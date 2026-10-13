@@ -1,3 +1,4 @@
+import { ActionHistoryPosition } from '@tabletop/common'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 
@@ -6,7 +7,8 @@ const CheckSyncRequest = Type.Object(
     {
         gameId: Type.String(),
         checksum: Type.Number(),
-        index: Type.Number()
+        index: Type.Number(),
+        branchPosition: Type.Optional(ActionHistoryPosition)
     },
     { additionalProperties: false }
 )

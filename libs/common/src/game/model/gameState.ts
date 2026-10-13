@@ -25,6 +25,46 @@ export const ExplorationState = Type.Object({
     )
 })
 
+export type StartingPositionRandomState = Type.Static<typeof StartingPositionRandomState>
+export const StartingPositionRandomState = Type.Object({
+    playerId: Type.String(),
+    identity: PrngState,
+    rules: ProtectedPrngState
+})
+
+export type ActionHistoryPosition = Type.Static<typeof ActionHistoryPosition>
+export const ActionHistoryPosition = Type.Object({
+    actionCount: Type.Number(),
+    actionChecksum: Type.Number()
+})
+
+export type BranchPoint = ActionHistoryPosition
+export const BranchPoint = ActionHistoryPosition
+
+export type ParallelSpanState = Type.Static<typeof ParallelSpanState>
+export const ParallelSpanState = Type.Object({
+    machineState: Type.String(),
+    branchPoint: BranchPoint,
+    playerIds: Type.Array(Type.String()),
+    closedPlayerIds: Type.Array(Type.String()),
+    mergedPlayerIds: Type.Array(Type.String()),
+    branchPlayerId: Type.Optional(Type.String()),
+    branchStartIds: Type.Record(Type.String(), Type.String()),
+    branchCloseIds: Type.Record(Type.String(), Type.String()),
+    completionId: Type.String()
+})
+
+export function startingPositionRandomFor(
+    state: Pick<GameState, 'startingPositionRandom'>,
+    playerId: string
+): StartingPositionRandomState {
+    const random = state.startingPositionRandom?.find(
+        (candidate) => candidate.playerId === playerId
+    )
+    assertExists(random, `Player ${playerId} has no Starting Position random streams`)
+    return random
+}
+
 export type GameState = Type.Static<typeof GameState>
 export const GameState = Type.Object({
     systemVersion: Type.Optional(Type.Number()), // Not game specific versioning
@@ -42,7 +82,9 @@ export const GameState = Type.Object({
     turnManager: TurnManager,
     result: Type.Optional(Type.Enum(GameResult)),
     winningPlayerIds: Type.Array(Type.String()),
-    explorationState: Type.Optional(ExplorationState)
+    explorationState: Type.Optional(ExplorationState),
+    startingPositionRandom: Type.Optional(Type.Array(StartingPositionRandomState)),
+    parallelSpan: Type.Optional(ParallelSpanState)
 })
 
 export type UninitializedGameState = Omit<GameState, 'players' | 'turnManager' | 'machineState'>
@@ -54,6 +96,8 @@ export interface HydratedGameState<
     players: P[]
     numPlayers: number
     turnManager: HydratedTurnManager
+    startingPositionRandom?: StartingPositionRandomState[]
+    parallelSpan?: ParallelSpanState
     getPublicPrng(): Prng
     getProtectedPrng(): Prng
     getPlayerState(playerId?: string): P
@@ -82,6 +126,8 @@ export abstract class HydratableGameState<T extends Type.TSchema, P extends Play
     declare turnManager: HydratedTurnManager
     declare result?: GameResult
     declare winningPlayerIds: string[]
+    declare startingPositionRandom?: StartingPositionRandomState[]
+    declare parallelSpan?: ParallelSpanState
 
     constructor(data: Type.Static<T>, validator: Validator<Record<never, never>, T>) {
         super(data, validator)
@@ -104,6 +150,10 @@ export abstract class HydratableGameState<T extends Type.TSchema, P extends Play
         }
         assertExists(this.protectedPrng, 'Version 3 protected randomness requires protectedPrng')
         return new Prng(this.protectedPrng)
+    }
+
+    getPlayerPrng(playerId: string): Prng {
+        return new Prng(startingPositionRandomFor(this, playerId).rules)
     }
 
     getPlayerState(playerId?: string): P {

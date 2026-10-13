@@ -21,14 +21,28 @@ export function generateMasterSeed(): string {
     return bytesToHex(crypto.getRandomValues(new Uint8Array(16)))
 }
 
-export function deriveGameSeeds(masterSeed: string) {
+const SEED_SALT = new TextEncoder().encode('tabletop/game-seeds/v1')
+
+function deriveSeedBytes(masterSeed: string, label: string, length: number): Uint8Array {
     const root = hexToBytes(normalizeMasterSeed(masterSeed))
-    const encoder = new TextEncoder()
-    const salt = encoder.encode('tabletop/game-seeds/v1')
-    const publicBytes = hkdf(sha256, root, salt, encoder.encode('public-v1'), 4)
-    const privateBytes = hkdf(sha256, root, salt, encoder.encode('protected-v1'), 32)
+    return hkdf(sha256, root, SEED_SALT, new TextEncoder().encode(label), length)
+}
+
+function numericSeed(bytes: Uint8Array): number {
+    return new DataView(bytes.buffer, bytes.byteOffset, 4).getUint32(0, true)
+}
+
+export function deriveGameSeeds(masterSeed: string) {
     return {
-        publicSeed: new DataView(publicBytes.buffer, publicBytes.byteOffset, 4).getUint32(0, true),
-        protectedSeed: bytesToHex(privateBytes)
+        publicSeed: numericSeed(deriveSeedBytes(masterSeed, 'public-v1', 4)),
+        protectedSeed: bytesToHex(deriveSeedBytes(masterSeed, 'protected-v1', 32))
+    }
+}
+
+export function deriveStartingPositionSeeds(masterSeed: string, startingPosition: number) {
+    const label = (stream: string) => `position-${startingPosition}-${stream}-v1`
+    return {
+        identitySeed: numericSeed(deriveSeedBytes(masterSeed, label('identity'), 4)),
+        rulesSeed: bytesToHex(deriveSeedBytes(masterSeed, label('rules'), 32))
     }
 }

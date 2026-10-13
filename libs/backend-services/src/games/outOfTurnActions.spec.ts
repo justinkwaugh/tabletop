@@ -104,7 +104,8 @@ function createHost() {
                 newState,
                 added,
                 gameUpdates,
-                relatedActions
+                relatedActions,
+                []
             )
             expect(result).toBe(UpdateValidationResult.Proceed)
             const priorState = state
@@ -126,7 +127,8 @@ function createHost() {
                 structuredClone(state),
                 structuredClone(undone),
                 newState,
-                gameUpdates
+                gameUpdates,
+                []
             )
             expect(result).toBe(UpdateValidationResult.Proceed)
             const priorState = state

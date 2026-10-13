@@ -1,0 +1,214 @@
+import {
+    BranchUndoError,
+    GameEngine,
+    assertExists,
+    belongsToSpan,
+    closedUnmergedPlayerIds,
+    isRestingInSpan,
+    removeBranchCloses,
+    restingSpan,
+    reverseToBranchStart,
+    sameHistoryPosition,
+    settleSpan,
+    undoBranchAction as undoInBranch,
+    unmergedPlayerIds,
+    type Branch,
+    type Game,
+    type GameAction,
+    type GameDefinition,
+    type GameState,
+    type UnmergedBranch
+} from '@tabletop/common'
+import type { GameStore, UnmergedBranchWrites } from '../persistence/stores/gameStore.js'
+import { DisallowedUndoError } from './errors.js'
+import {
+    assertBranchUnmoved,
+    assertBranchesUnmoved,
+    assertGameInProgress,
+    assertSameSpan,
+    freshBranchWrite,
+    type ExpectedBranch
+} from './spanWrites.js'
+
+export interface ReopenedBranch {
+    readonly closed: Branch
+    readonly reopened: Branch
+    readonly undoneActions: readonly GameAction[]
+}
+
+export type BranchUndo =
+    | {
+          readonly kind: 'branch'
+          readonly unmergedBranch: UnmergedBranch
+          readonly undoneActions: readonly GameAction[]
+      }
+    | { readonly kind: 'reopen'; readonly reopened: ReopenedBranch }
+
+export async function undoBranchAction({
+    gameStore,
+    definition,
+    game,
+    actionId,
+    playerIds,
+    asAdministrator
+}: {
+    gameStore: GameStore
+    definition: GameDefinition
+    game: Game
+    actionId: string
+    playerIds: readonly string[]
+    asAdministrator: boolean
+}): Promise<BranchUndo | undefined> {
+    const gameId = game.id
+    const state = game.state
+    assertExists(state, 'A Branch Undo requires current Game State')
+    if (!isRestingInSpan(state)) return undefined
+    const span = restingSpan(state)
+
+    const target = (await gameStore.findUnmergedBranches(gameId, playerIds)).find(
+        (record) =>
+            belongsToSpan(record.branch, span) &&
+            record.actions.some((action) => action.id === actionId)
+    )
+    if (target === undefined) return undefined
+
+    const engine = new GameEngine(definition.runtime)
+    const undone = (() => {
+        try {
+            return undoInBranch({ engine, state, ...target, actionId, asAdministrator })
+        } catch (error) {
+            if (error instanceof BranchUndoError) {
+                throw new DisallowedUndoError({ gameId, actionId, reason: error.message })
+            }
+            throw error
+        }
+    })()
+    const { branch, undoneActions } = undone
+    if (target.branch.closed) {
+        return {
+            kind: 'reopen',
+            reopened: { closed: target.branch, reopened: branch, undoneActions }
+        }
+    }
+
+    await gameStore.writeUnmergedBranch({
+        gameId,
+        write: { branch, addedActions: [], removedActions: undoneActions },
+        validator: async (found) => {
+            assertGameInProgress(found.game)
+            assertSameSpan(gameId, found.state, span)
+            assertBranchUnmoved(gameId, found.branch, target.branch)
+        }
+    })
+    return { kind: 'branch', unmergedBranch: { branch, actions: [] }, undoneActions }
+}
+
+export interface ReversalSettlement {
+    readonly state: GameState
+    readonly removedActions: GameAction[]
+    readonly reappliedActions: GameAction[]
+    readonly leavesSpan: boolean
+    readonly branchWrites: UnmergedBranchWrites
+    assertBranchesUnmoved(stored: readonly Branch[]): void
+}
+
+export async function settleAfterReversal({
+    gameStore,
+    engine,
+    game,
+    state,
+    reopened
+}: {
+    gameStore: GameStore
+    engine: GameEngine
+    game: Game
+    state: GameState
+    reopened?: ReopenedBranch
+}): Promise<ReversalSettlement> {
+    const priorSpan = game.state?.parallelSpan
+    const span = state.parallelSpan
+    if (span === undefined) {
+        return {
+            state,
+            removedActions: [],
+            reappliedActions: [],
+            leavesSpan: priorSpan !== undefined,
+            branchWrites: { set: [], removeBranchesOf: priorSpan === undefined ? [] : 'all' },
+            assertBranchesUnmoved: () => {}
+        }
+    }
+
+    const sinceSpanBegan = await gameStore.findActionRangeForGame({
+        game,
+        startIndex: span.branchPoint.actionCount,
+        endIndex: state.actionCount
+    })
+    const outsideBranch = reverseToBranchStart({ engine, state, history: sinceSpanBegan })
+    const resting = restingSpan(outsideBranch.state)
+    const leavesSpan =
+        priorSpan !== undefined && !sameHistoryPosition(priorSpan.branchPoint, span.branchPoint)
+    const stored = leavesSpan
+        ? []
+        : (await gameStore.findUnmergedBranches(game.id, unmergedPlayerIds(resting))).filter(
+              ({ branch }) =>
+                  belongsToSpan(branch, resting) && branch.playerId !== reopened?.closed.playerId
+          )
+    const held = [
+        ...stored,
+        ...(reopened === undefined ? [] : [{ branch: reopened.reopened, actions: [] }])
+    ]
+    const closedInStore = held
+        .filter(({ branch }) => branch.closed)
+        .map(({ branch }) => branch.playerId)
+    const withoutStrayCloses = removeBranchCloses({
+        engine,
+        game,
+        state: outsideBranch.state,
+        history: sinceSpanBegan.slice(0, sinceSpanBegan.length - outsideBranch.reversed.length),
+        playerIds: closedUnmergedPlayerIds(resting).filter(
+            (playerId) => !closedInStore.includes(playerId)
+        )
+    })
+    const settlement = settleSpan({
+        engine,
+        game,
+        state: withoutStrayCloses.state,
+        unmergedBranches: held,
+        mergesHeld: true
+    })
+    const expected: ExpectedBranch[] = [
+        ...stored
+            .filter(({ branch }) => branch.closed)
+            .map(({ branch }) => ({ playerId: branch.playerId, branch })),
+        ...settlement.createdBranches.map(({ branch }) => ({
+            playerId: branch.playerId,
+            branch: undefined
+        })),
+        ...(reopened === undefined
+            ? []
+            : [{ playerId: reopened.closed.playerId, branch: reopened.closed }])
+    ]
+    return {
+        state: settlement.updatedState,
+        removedActions: [...withoutStrayCloses.removed, ...outsideBranch.reversed],
+        reappliedActions: [...withoutStrayCloses.replayed, ...settlement.processedActions],
+        leavesSpan,
+        branchWrites: {
+            set: [
+                ...settlement.createdBranches.map(freshBranchWrite),
+                ...(reopened === undefined
+                    ? []
+                    : [
+                          {
+                              branch: reopened.reopened,
+                              addedActions: [],
+                              removedActions: reopened.undoneActions
+                          }
+                      ])
+            ],
+            removeBranchesOf: leavesSpan ? 'all' : [],
+            watchBranchesOf: expected.map((branch) => branch.playerId)
+        },
+        assertBranchesUnmoved: (found) => assertBranchesUnmoved(game.id, resting, found, expected)
+    }
+}

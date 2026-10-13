@@ -7,7 +7,6 @@ import {
     normalizeMasterSeed,
     assert,
     ActionSource,
-    GameResult,
     calculateActionChecksum,
     createGameFork,
     GameForkError,
@@ -48,8 +47,19 @@ import {
     WasInvitedNotification,
     Visibility,
     assertExists,
+    actsInBranch,
+    combineCascades,
+    createMissingBranches,
+    isRestingInSpan,
+    settleSpan,
+    unmergedPlayerIds,
+    type ActionCascadeResult,
+    type ActionHistoryPosition,
+    type SpanHold,
     type Tournament,
-    type TournamentSchedule
+    type TournamentSchedule,
+    type UnmergedBranch,
+    sameHistoryPosition
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -65,7 +75,6 @@ import {
     DuplicatePlayerError,
     GameAlreadyStartedError,
     GameNotFoundError,
-    GameNotInProgressError,
     GameNotWaitingForPlayersError,
     GameNotWaitingToStartError,
     GamePlayerCountInvalidError,
@@ -91,10 +100,14 @@ import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
 import {
     createActionResultsRepresentation,
+    createBranchResultsRepresentation,
+    createBranchUndoRepresentation,
     createGameRepresentation,
     createGameRepresentationEtag,
     createGameSyncRepresentation,
     createUndoResultsRepresentation,
+    withProjectedBranch,
+    withUnmergedBranch,
     type ActionResultsRepresentation,
     type GameRepresentation,
     type GameSyncRepresentation,
@@ -103,6 +116,7 @@ import {
 import {
     createGameNotification,
     publishActionResults,
+    publishBranchUpdate,
     publishUndoResults
 } from './gameNotifications.js'
 
@@ -114,6 +128,16 @@ import {
 } from './tournamentGames.js'
 import * as Value from 'typebox/value'
 import { enqueueGameAutoStart, type GameAutoStartTask } from './publicGameAutoStart.js'
+import {
+    checkBranchSync,
+    findStoredBranch,
+    loadWithOwnBranch,
+    readAtOneMainLinePosition,
+    spanVisibility
+} from './spanReads.js'
+import { settleAfterReversal, undoBranchAction, type ReopenedBranch } from './spanReversal.js'
+import { fillGameUpdatesAfterActions, submitBranchAction } from './spanSubmission.js'
+import { assertGameUnmoved, freshBranchWrite } from './spanWrites.js'
 
 export class GameService {
     constructor(
@@ -342,11 +366,28 @@ export class GameService {
         for (const player of fork.game.players) {
             player.status = player.userId === owner.id ? PlayerStatus.Joined : PlayerStatus.Reserved
         }
+        const settlement = settleSpan({
+            engine: new GameEngine(definition.runtime),
+            game: fork.game,
+            state: fork.state,
+            unmergedBranches: []
+        })
+        fork.game.activePlayerIds = [...settlement.updatedState.activePlayerIds]
+        fork.game.spanHold = settlement.refusal
         const { storedGame } = await this.gameStore.writeFullGameData(
             fork.game,
-            fork.state,
-            fork.actions
+            settlement.updatedState,
+            [
+                ...fork.actions,
+                ...settlement.processedActions.map((action) => ({
+                    ...action,
+                    createdAt: fork.game.createdAt,
+                    updatedAt: fork.game.createdAt
+                }))
+            ],
+            settlement.createdBranches.map(freshBranchWrite)
         )
+        this.reportRefusedMerge(storedGame.id, settlement.refusal)
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: storedGame })
         return storedGame
     }
@@ -383,6 +424,10 @@ export class GameService {
             game,
             hostView,
             visibility: definition.runtime.visibility,
+            branchPosition:
+                hostView || definition.runtime.parallelSpans === undefined
+                    ? undefined
+                    : await findStoredBranch({ gameStore: this.gameStore, game, user }),
             user
         })
     }
@@ -414,16 +459,27 @@ export class GameService {
     }): Promise<GameRepresentation | undefined> {
         this.assertHostViewAccess({ gameId, hostView, user })
 
-        const data = await this.gameStore.readGameData(gameId, async (reader) => ({
-            game: reader.game,
-            actions:
-                includeActions ||
-                (reader.game.state !== undefined && reader.game.state.actionChecksum === undefined)
-                    ? await reader.actions()
-                    : []
-        }))
-        if (!data) return undefined
-        const { game, actions } = data
+        const load = () =>
+            this.gameStore.readGameData(gameId, async (reader) => ({
+                game: reader.game,
+                actions:
+                    includeActions ||
+                    (reader.game.state !== undefined &&
+                        reader.game.state.actionChecksum === undefined)
+                        ? await reader.actions()
+                        : []
+            }))
+        const found = hostView
+            ? { loaded: await load(), unmergedBranch: undefined }
+            : await loadWithOwnBranch({
+                  gameStore: this.gameStore,
+                  gameId,
+                  user,
+                  includeActions,
+                  load
+              })
+        if (!found?.loaded) return undefined
+        const { game, actions } = found.loaded
         const definition = this.getRequiredTitle(game)
 
         if (game.state && game.state.actionChecksum === undefined) {
@@ -431,7 +487,7 @@ export class GameService {
             game.state.actionChecksum = checksum
         }
 
-        return measureSync('projection.response.game', () =>
+        const representation = measureSync('projection.response.game', () =>
             createGameRepresentation({
                 game,
                 actions: includeActions ? actions : [],
@@ -441,6 +497,18 @@ export class GameService {
                 visibility: definition.runtime.visibility,
                 user
             })
+        )
+        return withUnmergedBranch(
+            representation,
+            found.unmergedBranch && game.state
+                ? {
+                      game,
+                      state: game.state,
+                      ...found.unmergedBranch,
+                      visibility: spanVisibility(definition, game),
+                      user
+                  }
+                : undefined
         )
     }
 
@@ -481,11 +549,60 @@ export class GameService {
             throw new GameNotFoundError({ id: state.gameId })
         }
         assertOrdinaryGame(game)
-        new GameEngine(this.getRequiredTitle(game).runtime).validateCanonicalState(state)
-        await this.gameStore.setGameState({ gameId: state.gameId, state })
+        const engine = new GameEngine(this.getRequiredTitle(game).runtime)
+        engine.validateCanonicalState(state)
+        await this.gameStore.setGameState({
+            gameId: state.gameId,
+            state,
+            unmergedBranches: createMissingBranches({
+                engine,
+                game,
+                state,
+                unmergedBranches: []
+            }).map(freshBranchWrite)
+        })
     }
 
     async checkSync({
+        gameId,
+        checksum,
+        index,
+        branchPosition,
+        user
+    }: {
+        gameId: string
+        checksum: number
+        index: number
+        branchPosition?: ActionHistoryPosition
+        user: User
+    }): Promise<GameSyncRepresentation> {
+        return readAtOneMainLinePosition({
+            gameStore: this.gameStore,
+            gameId,
+            read: async () => {
+                const mainLine = await this.checkMainLineSync({ gameId, checksum, index, user })
+                const game = await this.getGame({ gameId })
+                if (!game) throw new GameNotFoundError({ id: gameId })
+                const branchSync = await checkBranchSync({
+                    gameStore: this.gameStore,
+                    definition: this.getRequiredTitle(game),
+                    game,
+                    claimed: branchPosition,
+                    user
+                })
+                if (branchSync === undefined) return { value: mainLine }
+                return {
+                    value: { ...mainLine, branchSync },
+                    mainLineChecksum:
+                        branchSync.status === GameSyncStatus.OutOfSync
+                            ? mainLine.checksum
+                            : undefined
+                }
+            }
+        })
+    }
+
+    private async checkMainLineSync({
         gameId,
         checksum,
         index,
@@ -950,6 +1067,10 @@ export class GameService {
             const { startedGame: initializedGame, initialState } = new GameEngine(
                 definition.runtime
             ).startGame(game, masterSeed)
+            assert(
+                !isRestingInSpan(initialState),
+                'A Hosted Game cannot yet start in a Branching Machine State'
+            )
             ;[startedGame] = await this.gameStore.updateGame({
                 game,
                 fields: {
@@ -1017,6 +1138,17 @@ export class GameService {
             this.verifyUserIsActionPlayer(action, game, user)
         }
 
+        if (game.state.parallelSpan !== undefined) {
+            if (!actsInBranch(game.state, action.playerId)) {
+                throw new DisallowedActionError({
+                    gameId,
+                    actionId: action.id,
+                    reason: 'a Parallel Span is in progress and you have no open Branch in it'
+                })
+            }
+            return this.applyActionToBranch({ definition, game, action, user })
+        }
+
         game = await this.supersedeDeclaration({ definition, game, action, user })
         const reconciledRace = await this.reconcileRace({ definition, game, action })
 
@@ -1032,7 +1164,22 @@ export class GameService {
                 game
             })
         )
-        const { processedActions, updatedState, indexOffset } = actionResult
+        const settlement = isRestingInSpan(actionResult.updatedState)
+            ? settleSpan({
+                  engine: gameEngine,
+                  game,
+                  state: actionResult.updatedState,
+                  unmergedBranches: [],
+                  mergesHeld: game.spanHold !== undefined
+              })
+            : undefined
+        if (settlement !== undefined) spanVisibility(definition, game)
+        const applied =
+            settlement === undefined
+                ? actionResult
+                : combineCascades(initialState, [actionResult, settlement])
+        const { processedActions, updatedState } = applied
+        const { indexOffset } = actionResult
         countTiming('game.processedActions', processedActions.length)
 
         // write the action and the updated state
@@ -1041,6 +1188,10 @@ export class GameService {
                 game: game,
                 actions: processedActions,
                 state: updatedState,
+                unmergedBranchWrites: {
+                    set: (settlement?.createdBranches ?? []).map(freshBranchWrite),
+                    removeBranchesOf: settlement?.mergedPlayerIds ?? []
+                },
                 validator: async (
                     existingGame,
                     existingState,
@@ -1053,17 +1204,11 @@ export class GameService {
                         return UpdateValidationResult.Cancel
                     }
 
-                    if (existingGame.status !== GameStatus.Started) {
-                        throw new GameNotInProgressError({ id: gameId })
-                    }
-
-                    const executedState = actionResult.actionCascade.before
-                    if (
-                        executedState.actionCount !== existingState.actionCount ||
-                        executedState.actionChecksum !== existingState.actionChecksum
-                    ) {
-                        throw new GameUpdateCollisionError({ id: gameId })
-                    }
+                    assertGameUnmoved(
+                        existingGame,
+                        existingState,
+                        actionResult.actionCascade.before
+                    )
 
                     let newActionIndex = existingState.actionCount
                     actions.forEach((action) => {
@@ -1109,24 +1254,153 @@ export class GameService {
                         relatedActions.push(...missingActions)
                     }
 
-                    gameUpdates.activePlayerIds = newState.activePlayerIds
-                    const lastPlayerAction = findLast(actions, (a) => a.playerId != undefined)
-                    if (lastPlayerAction) {
-                        gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
-                    }
-                    if (
-                        !existingState.result &&
-                        newState.result &&
-                        newState.result !== GameResult.Abandoned &&
-                        definition.runtime.scoring
-                    ) {
-                        gameUpdates.finalScores = definition.runtime.scoring.finalScores(newState)
-                    }
+                    fillGameUpdatesAfterActions({
+                        definition,
+                        existingState,
+                        newState,
+                        gameUpdates,
+                        lastActionPlayerId: findLast(actions, (a) => a.playerId != undefined)
+                            ?.playerId,
+                        settlement
+                    })
 
                     return UpdateValidationResult.Proceed
                 }
             })
+        this.reportRefusedMerge(gameId, settlement?.refusal)
 
+        return this.finishActionApplication({
+            definition,
+            game,
+            updatedGame,
+            result: applied,
+            storedActions,
+            relatedActions,
+            priorState,
+            user,
+            freshBranch: settlement?.createdBranches.find(
+                ({ branch }) => branch.playerId === action.playerId
+            )
+        })
+    }
+
+    private async applyActionToBranch({
+        definition,
+        game,
+        action,
+        user
+    }: {
+        definition: GameDefinition
+        game: Game
+        action: GameAction
+        user: User
+    }): Promise<ActionResultsRepresentation> {
+        const state = game.state
+        assertExists(state, 'A Branch Action requires current Game State')
+        spanVisibility(definition, game)
+        const submission = await submitBranchAction({
+            gameStore: this.gameStore,
+            definition,
+            game,
+            action
+        })
+        if (submission.kind === 'branch') {
+            const unmergedBranch = await this.publishBranch({
+                definition,
+                game,
+                state,
+                unmergedBranch: submission.unmergedBranch
+            })
+            return createBranchResultsRepresentation({ game, user, unmergedBranch })
+        }
+
+        this.reportRefusedMerge(game.id, submission.settlement.refusal)
+        const { updatedGame, unmergedBranch } = submission
+        const closedBranch =
+            unmergedBranch?.branch.closed === true
+                ? await this.publishBranch({
+                      definition,
+                      game: updatedGame,
+                      state: submission.settlement.updatedState,
+                      unmergedBranch
+                  })
+                : undefined
+        const representation = await this.finishActionApplication({
+            definition,
+            game,
+            updatedGame,
+            result: submission.settlement,
+            storedActions: submission.storedActions,
+            relatedActions: submission.relatedActions,
+            priorState: submission.priorState,
+            user,
+            freshBranch: closedBranch === undefined ? unmergedBranch : undefined
+        })
+        return closedBranch === undefined
+            ? representation
+            : withProjectedBranch(representation, {
+                  game: updatedGame,
+                  user,
+                  unmergedBranch: closedBranch
+              })
+    }
+
+    private async publishBranch({
+        definition,
+        game,
+        state,
+        unmergedBranch,
+        undoneActions = []
+    }: {
+        definition: GameDefinition
+        game: Game
+        state: GameState
+        unmergedBranch: UnmergedBranch
+        undoneActions?: readonly GameAction[]
+    }): Promise<UnmergedBranch> {
+        const projected = Visibility.projectUnmergedBranch({
+            game,
+            state,
+            ...unmergedBranch,
+            visibility: spanVisibility(definition, game)
+        })
+        await publishBranchUpdate({
+            game,
+            unmergedBranch: projected,
+            undoneActionIds: undoneActions.map((action) => action.id),
+            notificationService: this.notificationService
+        })
+        return projected
+    }
+
+    private reportRefusedMerge(gameId: string, refusal: SpanHold | undefined): void {
+        if (refusal !== undefined) {
+            console.error('A Merge was refused; the span is held', { gameId, ...refusal })
+        }
+    }
+
+    private async finishActionApplication({
+        definition,
+        game,
+        updatedGame,
+        result,
+        storedActions,
+        relatedActions,
+        priorState,
+        user,
+        freshBranch
+    }: {
+        definition: GameDefinition
+        game: Game
+        updatedGame: Game
+        result: ActionCascadeResult
+        storedActions: GameAction[]
+        relatedActions: GameAction[]
+        priorState: GameState
+        user: User
+        freshBranch?: UnmergedBranch
+    }): Promise<ActionResultsRepresentation> {
+        const updatedState = result.updatedState
         if (!priorState.result && updatedGame.result && updatedGame.tournament) {
             try {
                 await enqueueTournamentTask(this.taskService, {
@@ -1140,7 +1414,7 @@ export class GameService {
         const representation = measureSync('projection.response.action', () =>
             createActionResultsRepresentation({
                 game: updatedGame,
-                result: actionResult,
+                result,
                 storedActions,
                 missingActions: relatedActions,
                 priorState,
@@ -1153,7 +1427,7 @@ export class GameService {
         await measure('projection.publish.action', () =>
             publishActionResults({
                 game: updatedGame,
-                result: actionResult,
+                result,
                 storedActions,
                 priorState,
                 runtime: definition.runtime,
@@ -1163,8 +1437,10 @@ export class GameService {
         )
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
 
-        for (const activePlayerId of updatedState.activePlayerIds) {
-            if (!priorState.activePlayerIds.includes(activePlayerId)) {
+        const waitedOnBefore = game.activePlayerIds ?? priorState.activePlayerIds
+        const waitedOnNow = updatedGame.activePlayerIds ?? updatedState.activePlayerIds
+        for (const activePlayerId of waitedOnNow) {
+            if (!waitedOnBefore.includes(activePlayerId)) {
                 const activePlayer = this.findPlayerByPlayerId(representation.game, activePlayerId)
                 if (!activePlayer || !activePlayer.userId) {
                     continue
@@ -1182,7 +1458,16 @@ export class GameService {
             await this.sendGameEndEmail(representation.game)
         }
 
-        return representation
+        return withUnmergedBranch(
+            representation,
+            freshBranch && {
+                game: updatedGame,
+                state: updatedState,
+                ...freshBranch,
+                visibility: spanVisibility(definition, updatedGame),
+                user
+            }
+        )
     }
 
     private async reconcileRace({
@@ -1278,16 +1563,14 @@ export class GameService {
         if (outcome.kind === 'invalid') throw disallowed(outcome.reason)
         await this.persistReversal({
             definition,
-            gameId: game.id,
+            game,
             user,
             actionToUndo: window[0],
             startIndex: undoWindow.startIndex,
             retainedActions: undoWindow.actions.slice(0, targetPosition),
             actions: window,
             redoneActions: outcome.redone,
-            updatedState: outcome.state,
-            priorActionCount: state.actionCount,
-            priorChecksum: state.actionChecksum
+            updatedState: outcome.state
         })
         const reloaded = await this.getGame({ gameId: game.id, withState: true })
         const reloadedState = reloaded?.state
@@ -1316,27 +1599,42 @@ export class GameService {
             throw new GameNotFoundError({ id: gameId })
         }
         assertTournamentUndoAllowed(game)
-        let userPlayer: Player | undefined
-
-        if (!user.roles.includes(Role.Admin)) {
-            userPlayer = this.findValidPlayerForUser({ user, game })
-        }
+        const asAdministrator = user.roles.includes(Role.Admin)
+        const userPlayer = asAdministrator ? undefined : this.findValidPlayerForUser({ user, game })
+        const ownPlayerIds = userPlayer === undefined ? [] : [userPlayer.id]
 
         const storedGameState = game.state
         if (!storedGameState) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Game state not found` })
         }
+        const span = storedGameState.parallelSpan
+        if (span !== undefined) {
+            const undoneInBranch = await this.undoInBranch({
+                definition,
+                game,
+                actionId,
+                user,
+                asAdministrator,
+                playerIds: asAdministrator ? unmergedPlayerIds(span) : ownPlayerIds
+            })
+            if (undoneInBranch !== undefined) return undoneInBranch
+            if (!asAdministrator) {
+                throw new DisallowedUndoError({
+                    gameId,
+                    actionId,
+                    reason: 'a Parallel Span is in progress, so only an Action in your own Branch can be undone'
+                })
+            }
+        }
         let gameState = storedGameState
 
-        const priorActionCount = gameState.actionCount
-        const priorChecksum = gameState.actionChecksum
         const undoWindow = data?.undoWindow
         if (!undoWindow || undoWindow.targetAction.index === undefined) {
             throw new DisallowedUndoError({ gameId, actionId, reason: `Action not found` })
         }
         const actionToUndo = undoWindow.targetAction
 
-        if (!user.roles.includes(Role.Admin) && actionToUndo.playerId !== userPlayer?.id) {
+        if (!asAdministrator && actionToUndo.playerId !== userPlayer?.id) {
             throw new DisallowedUndoError({
                 gameId,
                 actionId,
@@ -1379,7 +1677,7 @@ export class GameService {
         }
 
         const redoActions = []
-        if (!user.roles.includes(Role.Admin)) {
+        if (!asAdministrator) {
             if (actions.some((action) => action.revealsInfo)) {
                 throw new DisallowedUndoError({
                     gameId,
@@ -1441,24 +1739,81 @@ export class GameService {
             gameState = updatedState
         }
 
+        const landsInSpan = gameState.parallelSpan !== undefined
+        if (landsInSpan && (retainedActions.length > 0 || redoneActions.length > 0)) {
+            throw new DisallowedUndoError({
+                gameId,
+                actionId,
+                reason: 'that position is inside a Parallel Span'
+            })
+        }
+
         return this.persistReversal({
             definition,
-            gameId,
+            game,
             user,
             actionToUndo,
             startIndex: undoWindow.startIndex,
             retainedActions,
             actions,
             redoneActions,
-            updatedState: gameState,
-            priorActionCount,
-            priorChecksum
+            updatedState: gameState
         })
+    }
+
+    private async undoInBranch({
+        definition,
+        game,
+        actionId,
+        user,
+        asAdministrator,
+        playerIds
+    }: {
+        definition: GameDefinition
+        game: Game
+        actionId: string
+        user: User
+        asAdministrator: boolean
+        playerIds: readonly string[]
+    }): Promise<UndoResultsRepresentation | undefined> {
+        const undone = await undoBranchAction({
+            gameStore: this.gameStore,
+            definition,
+            game,
+            actionId,
+            playerIds,
+            asAdministrator
+        })
+        if (undone === undefined) return undefined
+        const state = game.state
+        assertExists(state, 'A Branch Undo requires current Game State')
+        if (undone.kind === 'reopen') {
+            return this.persistReversal({
+                definition,
+                game,
+                user,
+                actionToUndo: undone.reopened.undoneActions[0],
+                startIndex: state.actionCount,
+                retainedActions: [],
+                actions: [],
+                redoneActions: [],
+                updatedState: state,
+                reopened: undone.reopened
+            })
+        }
+        const unmergedBranch = await this.publishBranch({
+            definition,
+            game,
+            state,
+            unmergedBranch: undone.unmergedBranch,
+            undoneActions: undone.undoneActions
+        })
+        return createBranchUndoRepresentation({ game, state, user, unmergedBranch })
     }
 
     private async persistReversal({
         definition,
-        gameId,
+        game,
         user,
         actionToUndo,
         startIndex,
@@ -1466,11 +1821,10 @@ export class GameService {
         actions,
         redoneActions,
         updatedState,
-        priorActionCount,
-        priorChecksum
+        reopened
     }: {
         definition: GameDefinition
-        gameId: string
+        game: Game
         user: User
         actionToUndo: GameAction
         startIndex: number
@@ -1478,31 +1832,40 @@ export class GameService {
         actions: GameAction[]
         redoneActions: GameAction[]
         updatedState: GameState
-        priorActionCount: number
-        priorChecksum: number
+        reopened?: ReopenedBranch
     }): Promise<UndoResultsRepresentation> {
+        const priorState = game.state
+        assertExists(priorState, 'An Undo requires current Game State')
         const gameEngine = new GameEngine(definition.runtime)
         measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
+        const gameId = game.id
+        const settled = await settleAfterReversal({
+            gameStore: this.gameStore,
+            engine: gameEngine,
+            game,
+            state: updatedState,
+            reopened
+        })
+        const reappliedActions = [...redoneActions, ...settled.reappliedActions]
         const {
             undoneActions,
             updatedGame,
             redoneActions: processedRedoneActions
         } = await this.gameStore.undoActionsFromGame({
             gameId,
-            actions,
-            redoneActions,
-            state: updatedState,
+            actions: [...settled.removedActions, ...actions],
+            redoneActions: reappliedActions,
+            state: settled.state,
+            unmergedBranchWrites: settled.branchWrites,
             validator: async (
                 existingGame,
                 existingState,
                 existingActions,
                 newState,
-                gameUpdates
+                gameUpdates,
+                existingBranches
             ) => {
-                if (
-                    existingState.actionCount !== priorActionCount ||
-                    existingState.actionChecksum !== priorChecksum
-                ) {
+                if (!sameHistoryPosition(existingState, priorState)) {
                     throw new GameUpdateCollisionError({ id: gameId })
                 }
 
@@ -1516,8 +1879,8 @@ export class GameService {
                 )
 
                 // Also checksum the redone actions
-                if (redoneActions.length > 0) {
-                    undoneChecksum = calculateActionChecksum(undoneChecksum, redoneActions)
+                if (reappliedActions.length > 0) {
+                    undoneChecksum = calculateActionChecksum(undoneChecksum, reappliedActions)
                 }
 
                 if (undoneChecksum !== newState.actionChecksum) {
@@ -1529,13 +1892,15 @@ export class GameService {
                     throw new GameUpdateCollisionError({ id: gameId })
                 }
 
+                settled.assertBranchesUnmoved(existingBranches)
                 gameUpdates.activePlayerIds = newState.activePlayerIds
+                if (settled.leavesSpan) gameUpdates.spanHold = undefined
                 return UpdateValidationResult.Proceed
             }
         })
         const replayActions = [...retainedActions, ...processedRedoneActions]
         const actionReplay = {
-            startIndex,
+            startIndex: startIndex - settled.removedActions.length,
             actions: replayActions.map((action) => structuredClone(action))
         }
         const representation = measureSync('projection.response.undo', () =>
@@ -1565,7 +1930,15 @@ export class GameService {
             game: representation.game
         })
 
-        return representation
+        if (reopened === undefined) return representation
+        const unmergedBranch = await this.publishBranch({
+            definition,
+            game: updatedGame,
+            state: settled.state,
+            unmergedBranch: { branch: reopened.reopened, actions: [] },
+            undoneActions: reopened.undoneActions
+        })
+        return withProjectedBranch(representation, { game: updatedGame, user, unmergedBranch })
     }
 
     async backfillChecksum(state: GameState, actions: GameAction[]): Promise<number> {

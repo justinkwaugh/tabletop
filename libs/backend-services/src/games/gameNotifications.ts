@@ -2,6 +2,7 @@ import {
     ActionSource,
     GameNotificationAddProjectedActionsData,
     GameNotificationReplaceProjectedActionsData,
+    GameNotificationUpdateBranchData,
     GameNotificationAction,
     NotificationCategory,
     Visibility,
@@ -14,7 +15,8 @@ import {
     type GameState,
     type Notification,
     omitGameState,
-    type ProcessedActionReplay
+    type ProcessedActionReplay,
+    type UnmergedBranch
 } from '@tabletop/common'
 import { nanoid } from 'nanoid'
 import * as Value from 'typebox/value'
@@ -173,6 +175,33 @@ export async function publishUndoResults({
     await publishForGamePerspectives({ game, publishForPerspective })
 }
 
+export async function publishBranchUpdate({
+    game,
+    unmergedBranch,
+    undoneActionIds,
+    notificationService
+}: {
+    game: Game
+    unmergedBranch: UnmergedBranch
+    undoneActionIds: string[]
+    notificationService: NotificationSender
+}): Promise<void> {
+    const playerId = unmergedBranch.branch.playerId
+    const userId = game.players.find((player) => player.id === playerId)?.userId
+    if (userId === undefined) return
+    await publish({
+        data: {
+            game: omitGameState(game),
+            unmergedBranch,
+            ...(undoneActionIds.length === 0 ? {} : { undoneActionIds }),
+            perspective: { kind: 'player', playerId }
+        },
+        action: GameNotificationAction.UpdateBranch,
+        notificationService,
+        topics: [`user-${userId}`]
+    })
+}
+
 async function publish({
     action,
     data,
@@ -184,6 +213,7 @@ async function publish({
         | GameNotificationAction.AddProjectedActions
         | GameNotificationAction.ReplaceProjectedActions
         | GameNotificationAction.UndoAction
+        | GameNotificationAction.UpdateBranch
     data: GameNotificationData
     notificationService: NotificationSender
     topics: string[]
@@ -192,6 +222,8 @@ async function publish({
         Value.Assert(GameNotificationAddProjectedActionsData, data)
     } else if (action === GameNotificationAction.ReplaceProjectedActions) {
         Value.Assert(GameNotificationReplaceProjectedActionsData, data)
+    } else if (action === GameNotificationAction.UpdateBranch) {
+        Value.Assert(GameNotificationUpdateBranchData, data)
     }
     await notificationService.sendNotification({
         notification: createGameNotification(action, data),

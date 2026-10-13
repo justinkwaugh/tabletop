@@ -20,11 +20,15 @@ import {
     GameStorage,
     assertExists,
     createAction,
+    executeInLocalGame,
+    type UnmergedBranch,
+    isLocalGame,
     type User,
     type GameChat,
     type GameChatMessage,
     Visibility
 } from '@tabletop/common'
+import { tick } from 'svelte'
 import { watch } from 'runed'
 import { toast } from 'svelte-sonner'
 import { nanoid } from 'nanoid'
@@ -38,7 +42,13 @@ import type { ChatAuthor, ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
-import { GameReconciliation } from './gameReconciliation.js'
+import {
+    GameReconciliation,
+    type LoadedGame,
+    type OptimisticSubmission
+} from './gameReconciliation.js'
+import type { VisibleStep } from './gameBranch.js'
+import { OwnBranch } from './ownBranch.svelte.js'
 import { GameUndo } from './gameUndo.js'
 import { GameNotifications } from './gameNotifications.js'
 import { GameRepresentations, HostViewUnsupportedError } from './gameRepresentations.svelte.js'
@@ -85,7 +95,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     synchronizationFailed = $state(false)
     private synchronizingGame = $state(false)
     private applyingSynchronization = $state(false)
-    private pendingHistory?: { context: GameContext<T, U>; isCurrent: () => boolean }
+    private pendingHistory?: LoadedGame<T, U> & { isCurrent: () => boolean }
 
     get hasCompleteHistory(): boolean {
         return this.currentVisibleContext.hasCompleteHistory
@@ -132,6 +142,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private gameContext: GameContext<T, U>
     private representations: GameRepresentations<T, U>
     explorationContext?: GameContext<T, U> = $state()
+    private ownBranch: OwnBranch<T, U>
+    private scriptedTransition?: VisibleStep<T>[]
+    private historySource: GameContext<T, U>
 
     private suppressStateChangeActions = false
     private nonActivePlayerViewEnabled = $state(false)
@@ -209,7 +222,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         } else if (this.explorationContext) {
             return this.explorationContext
         } else {
-            return this.gameContext
+            return this.playContext
         }
     })
 
@@ -218,9 +231,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (this.isExploring && this.explorationContext) {
             return this.explorationContext
         } else {
-            return this.gameContext
+            return this.playContext
         }
     })
+
+    private playContext: GameContext<T, U> = $derived.by(() => this.ownBranch.playContext)
 
     // Used to trigger an effect to call the state change listening callbacks and then update the exposed gameState
     private currentVisibleGameState: U = $derived.by(() => {
@@ -241,7 +256,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (
             this.history.inHistory ||
             (!superUserAccess && !localHotseatAccess && !this.myPlayer) ||
-            this.actions.length === 0
+            this.actions.length === 0 ||
+            (!superUserAccess && this.isBeyondOwnUndo(this.currentModifiableContext))
         ) {
             return undefined
         }
@@ -595,7 +611,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         actions,
         historyComplete = true,
         debug = false,
-        hostPerspective
+        hostPerspective,
+        unmergedBranch
     }: {
         gameService: GameService
         bridgedContext: BridgedContext
@@ -609,6 +626,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         historyComplete?: boolean
         debug?: boolean
         hostPerspective?: Visibility.Perspective
+        unmergedBranch?: UnmergedBranch
     }) {
         this.initialSynchronizationNeeded = !historyComplete
         this.authorizationBridge = bridgedContext.authorization
@@ -639,6 +657,21 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             actions,
             historyComplete
         })
+        this.ownBranch = new OwnBranch(
+            this.gameContext,
+            this.engine,
+            {
+                playerId: () => this.myPrimaryPlayer?.id,
+                playsHosted: () =>
+                    this.usesHostExecution(this.gameContext) &&
+                    this.representations.hostContext === undefined,
+                awaitsAnswer: () => this.processingActions,
+                requestBranch: () => this.requestOwnBranch(),
+                onChange: (steps) => this.onOwnBranchChange(steps)
+            },
+            unmergedBranch
+        )
+        this.historySource = this.ownBranch.historySource()
 
         this.representations = new GameRepresentations(this.gameContext, {
             getGame: (...args) => this.api.getGame(...args),
@@ -660,7 +693,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             beforeSynchronizationUpdate: () => {
                 this.applyingSynchronization = true
             },
-            acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective)
+            acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective),
+            branchPosition: () => this.ownBranch.position,
+            adoptBranch: (sent) => this.ownBranch.adopt(sent),
+            followBranch: (sent, undoneActionIds) =>
+                this.ownBranch.followPublished(sent, undoneActionIds)
         })
 
         this.notifications = new GameNotifications(game, notificationService, {
@@ -673,7 +710,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             onDeleted: () => toast.error('The game has been deleted')
         })
 
-        this.history = new GameHistory(this.gameContext, {
+        this.history = new GameHistory(this.historySource, {
             onHistoryAction: (action, animationIntent) =>
                 this.onHistoryAction(action, animationIntent),
             shouldAutoStepAction: (action, next) => this.shouldAutoStepAction(action, next),
@@ -706,7 +743,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     )
                         ? this.explorationReturnPosition
                         : undefined
-                    this.history.restorePosition(this.gameContext, position)
+                    this.historySource = this.ownBranch.historySource()
+                    this.history.restorePosition(this.historySource, position)
                     this.explorationReturnPosition = undefined
                     this.explorationReturnPerspective = undefined
                     this.explorationContext = undefined
@@ -721,7 +759,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         this.colors = new GameColors(this.authorizationBridge, this.gameContext)
 
-        this.gameState = $state.raw(this.runtime.hydrator.hydrateState(state))
+        this.gameState = $state.raw(
+            this.runtime.hydrator.hydrateState(this.ownBranch.playContext.state)
+        )
         this.bridge = new GameSessionBridge(this)
 
         if (!game.hotseat) {
@@ -752,6 +792,29 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                             this.resolveVisibleTransitionWaiters()
                         })
                 }
+            )
+
+            watch(
+                () => this.gameContext.state,
+                () => this.ownBranch.follow(),
+                { lazy: true }
+            )
+
+            watch(
+                () => this.gameContext.game,
+                (game) => this.ownBranch.context?.updateGame(game),
+                { lazy: true }
+            )
+
+            watch(
+                [
+                    () => this.ownBranch.context?.state,
+                    () => this.ownBranch.context?.actions,
+                    () => this.gameContext.state,
+                    () => this.gameContext.actions
+                ],
+                () => this.followHistorySource(),
+                { lazy: true }
             )
 
             watch(
@@ -837,6 +900,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.reconciliation.invalidatePendingRepresentation()
         if (!this.isExploring) this.history.updateSourceGameContext(this.gameContext)
         this.gameContext.restoreFrom(context.clone())
+        this.ownBranch.adopt(undefined)
+        this.ownBranch.fetchAgain()
         if (this.isExploring) return
         // A representation change is a confidentiality boundary. Publish its state immediately
         // instead of retaining the prior perspective while asynchronous listeners settle.
@@ -885,8 +950,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         // console.log('Notifying state change listeners')
         const actions: GameAction[] = []
         const historyAnimationIntent = this.pendingHistoryAnimationIntent
+        const scripted = this.scriptedTransition
+        this.scriptedTransition = undefined
 
-        if (!this.suppressStateChangeActions && oldState && newState.gameId === oldState.gameId) {
+        if (
+            scripted === undefined &&
+            !this.suppressStateChangeActions &&
+            oldState &&
+            newState.gameId === oldState.gameId
+        ) {
             if (newState.actionCount >= oldState.actionCount) {
                 actions.push(
                     ...this.actions.filter(
@@ -903,6 +975,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         if (historyAnimationIntent === 'silent-swap') {
             // Silent history replay setup/restore should swap visible state without any transition noise.
+        } else if (scripted !== undefined) {
+            let from = oldState
+            for (const step of scripted) {
+                const to = this.runtime.hydrator.hydrateState(step.state)
+                await this.gatherAndPlayAnimations(to, from, step.action)
+                from = to
+            }
         } else if (oldState && actions.length > 0) {
             // With actions, generate intermediate states and notify for each, giving each their own
             // timeline so that the action animations will be sequenced properly
@@ -962,6 +1041,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     listenToGame() {
         this.notifications.start()
         if (!this.gameContext.hasCompleteHistory) void this.loadHistory()
+        if (this.ownBranch.isAwaited) this.initialSynchronizationNeeded = true
         if (this.initialSynchronizationNeeded) {
             this.initialSynchronizationNeeded = false
             if (!this.notifications.handlesInitialSynchronization) {
@@ -978,7 +1058,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         try {
             const complete = await this.loadRecoveryContext()
             if (this.disposed || !isCurrent()) return
-            this.pendingHistory = { context: complete, isCurrent }
+            this.pendingHistory = { ...complete, isCurrent }
             this.applyLoadedHistory()
         } catch (error) {
             if (this.disposed || !isCurrent()) return
@@ -994,7 +1074,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         const pending = this.pendingHistory
         this.pendingHistory = undefined
         if (this.disposed || !pending.isCurrent()) return
-        if (!this.gameContext.hydrateHistory(pending.context)) {
+        if (
+            !this.gameContext.hydrateHistory(pending.context) ||
+            !this.ownBranch.hydrateHistory(pending)
+        ) {
             void this.checkSync(true)
         }
     }
@@ -1178,7 +1261,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     action,
                     gameSnapshot,
                     stateSnapshot,
-                    this.projectedExecutionPerspective(relevantContext)
+                    relevantContext
                 )
             } catch (error) {
                 if (
@@ -1230,10 +1313,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     await this.representations.reload()
                     return
                 }
-                this.reconciliation.acceptSubmission(action.id, response, {
-                    before: priorContext,
-                    result: actionResults
-                })
+                await this.acceptSubmission(
+                    action,
+                    response,
+                    relevantContext,
+                    isRepresentationCurrent,
+                    { before: priorContext, result: actionResults }
+                )
                 this.announceReconciledRace(action, response.missingActions)
             }
         } catch (e) {
@@ -1304,7 +1390,83 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             await this.representations.reload()
             return
         }
-        this.reconciliation.acceptSubmission(action.id, response)
+        await this.acceptSubmission(action, response, context, isRepresentationCurrent)
+    }
+
+    private async acceptSubmission(
+        action: GameAction,
+        response: Awaited<ReturnType<RemoteApiService['applyAction']>>,
+        context: GameContext<T, U>,
+        isRepresentationCurrent: () => boolean,
+        optimistic?: OptimisticSubmission<T, U>
+    ): Promise<void> {
+        if (context !== this.ownBranch.context) {
+            this.reconciliation.acceptSubmission(action.id, response, optimistic)
+            if (response.unmergedBranch !== undefined) {
+                await this.waitForVisibleTransitionSettled()
+                if (!isRepresentationCurrent()) {
+                    await this.representations.reload()
+                    return
+                }
+            }
+            this.ownBranch.followAnswer(response.unmergedBranch)
+            return
+        }
+
+        const merged = response.actions.some((accepted) => accepted.id === action.id)
+        if (response.actions.length > 0) {
+            await this.waitForVisibleTransitionSettled()
+            if (!isRepresentationCurrent()) {
+                await this.representations.reload()
+                return
+            }
+        }
+        if (!merged) {
+            const sent = response.unmergedBranch
+            assertExists(sent, 'The host accepted a Branch Action without returning the Branch')
+            this.ownBranch.acceptSubmission(action.id, sent, response.game, optimistic)
+        }
+        if (
+            response.actions.length > 0 &&
+            this.reconciliation.continueWith(response.actions, response.game)
+        ) {
+            this.ownBranch.followAnswer(merged ? response.unmergedBranch : undefined)
+        }
+    }
+
+    private isBeyondOwnUndo(context: GameContext<T, U>): boolean {
+        return (
+            context === this.gameContext &&
+            this.usesHostExecution(context) &&
+            context.state.parallelSpan !== undefined
+        )
+    }
+
+    private onOwnBranchChange(steps: VisibleStep<T>[] | undefined): void {
+        if (!this.isExploring) {
+            if (this.history.inHistory || steps === undefined) {
+                this.suppressStateChangeActions = true
+            } else {
+                this.scriptedTransition = steps
+            }
+        }
+        this.followHistorySource()
+    }
+
+    private followHistorySource(): void {
+        const source = this.ownBranch.historySource()
+        if (this.isExploring || source === this.historySource) return
+        this.historySource = source
+        this.history.updateSourceGameContext(source)
+    }
+
+    private requestOwnBranch(): void {
+        void tick()
+            .then(() => this.waitForVisibleTransitionSettled())
+            .then(() => this.reconciliation.enqueue({ kind: 'synchronize' }))
+            .catch((error) => {
+                console.error('Unable to fetch the Player’s Branch:', error)
+            })
     }
 
     async undo() {
@@ -1346,12 +1508,23 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     return
                 }
                 this.suppressStateChangeActions = true
-                this.reconciliation.replace(
-                    response.actionReplay ?? response.canonicalReplay,
-                    response.checksum,
-                    response.game,
-                    before
-                )
+                const replay = response.actionReplay ?? response.canonicalReplay
+                if (context === this.ownBranch.context) {
+                    const sent = response.unmergedBranch
+                    assertExists(
+                        sent,
+                        'The host undid a Branch Action without returning the Branch'
+                    )
+                    if (
+                        response.checksum !== this.gameContext.state.actionChecksum &&
+                        replay.startIndex <= this.gameContext.nextActionIndex
+                    ) {
+                        this.reconciliation.replace(replay, response.checksum, response.game)
+                    }
+                    this.ownBranch.acceptUndo(before, sent)
+                } else {
+                    this.reconciliation.replace(replay, response.checksum, response.game, before)
+                }
             } else if (context.game.storage === GameStorage.Local) {
                 await this.gameService.saveGameLocally({
                     game: context.game,
@@ -1381,8 +1554,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     async forkGame(newGameName: string): Promise<void> {
+        const mainLineEnd = this.gameContext.state.actionCount - 1
+        const actionIndex =
+            this.ownBranch.context === undefined || this.isExploring
+                ? this.currentActionIndex
+                : this.history.inHistory
+                  ? Math.min(this.currentActionIndex, mainLineEnd)
+                  : mainLineEnd
         try {
-            await this.gameService.forkGame(this.primaryGame, this.currentActionIndex, newGameName)
+            await this.gameService.forkGame(this.primaryGame, actionIndex, newGameName)
         } catch {
             toast.error('This game cannot be forked from that position.')
         }
@@ -1431,13 +1611,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         action: GameAction,
         game: Game,
         state: T,
-        perspective?: Visibility.Perspective
+        context: GameContext<T, U>
     ): GameActionResults<T> {
-        const { processedActions, updatedState } =
-            perspective === undefined
-                ? this.engine.executeCanonicalAction({ action, state, game })
-                : this.engine.executeAction({ action, state, game, perspective })
+        const perspective = this.projectedExecutionPerspective(context)
+        const execution = { engine: this.engine, action, state, game }
+        const { processedActions, updatedState } = this.ownsHistory(context)
+            ? executeInLocalGame(execution)
+            : perspective === undefined
+              ? this.engine.executeCanonicalAction(execution)
+              : this.engine.executeAction({ ...execution, perspective })
         return new GameActionResults(processedActions, updatedState)
+    }
+
+    private ownsHistory(context: GameContext<T, U>): boolean {
+        return !this.usesHostExecution(context) && isLocalGame(context.game)
     }
 
     // For primary game context only
@@ -1474,17 +1661,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
-    private async loadRecoveryContext(): Promise<GameContext<T, U>> {
-        const { game, actions } = await this.api.getGame(this.gameContext.game.id)
+    private async loadRecoveryContext(): Promise<LoadedGame<T, U>> {
+        const { game, actions, unmergedBranch } = await this.api.getGame(this.gameContext.game.id)
         if (!game.state) {
             throw new Error('Game state is missing from server')
         }
-        return new GameContext<T, U>({
-            runtime: this.runtime,
-            game,
-            state: game.state as T,
-            actions
-        })
+        return {
+            context: new GameContext<T, U>({
+                runtime: this.runtime,
+                game,
+                state: game.state as T,
+                actions
+            }),
+            unmergedBranch
+        }
     }
 
     private matchesPrimaryPerspective(perspective: Visibility.Perspective): boolean {
@@ -1520,7 +1710,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private projectedExecutionPerspective(
         context: GameContext<T, U>
     ): Visibility.Perspective | undefined {
-        if (context !== this.gameContext) return undefined
+        if (context !== this.gameContext && context !== this.ownBranch.context) return undefined
         const hostContext = this.representations.hostContext
         if (hostContext !== undefined && this.representations.isViewingAsActingPlayer) {
             const actingPlayer = this.representations.actingPlayer

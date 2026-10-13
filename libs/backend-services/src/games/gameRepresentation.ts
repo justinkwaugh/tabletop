@@ -3,6 +3,8 @@ import {
     assert,
     assertExists,
     findPlayerForUserId,
+    type ActionHistoryPosition,
+    type Branch,
     type ActionCascadeResult,
     type CanonicalActionReplay,
     type Game,
@@ -14,6 +16,7 @@ import {
     GameEngine,
     omitGameState,
     type ProcessedActionReplay,
+    type UnmergedBranch,
     type User,
     Visibility
 } from '@tabletop/common'
@@ -24,6 +27,7 @@ export interface GameRepresentation {
     readonly game: Game
     readonly actions: GameAction[]
     readonly perspective: Visibility.Perspective | undefined
+    readonly unmergedBranch?: UnmergedBranch
 }
 
 export interface ActionResultsRepresentation {
@@ -31,12 +35,19 @@ export interface ActionResultsRepresentation {
     readonly actions: GameAction[]
     readonly missingActions: GameAction[] | undefined
     readonly perspective: Visibility.Perspective | undefined
+    readonly unmergedBranch?: UnmergedBranch
+}
+
+export interface BranchSyncRepresentation {
+    readonly status: GameSyncStatus
+    readonly unmergedBranch?: UnmergedBranch
 }
 
 export interface GameSyncRepresentation {
     readonly status: GameSyncStatus
     readonly actions: GameAction[]
     readonly checksum: number
+    readonly branchSync?: BranchSyncRepresentation
 }
 
 export interface UndoResultsRepresentation {
@@ -47,6 +58,7 @@ export interface UndoResultsRepresentation {
     readonly undoneActions?: GameAction[]
     readonly redoneActions?: GameAction[]
     readonly perspective: Visibility.Perspective | undefined
+    readonly unmergedBranch?: UnmergedBranch
 }
 
 export function createGameRepresentationEtag({
@@ -54,12 +66,14 @@ export function createGameRepresentationEtag({
     game,
     hostView = false,
     visibility: registeredVisibility,
+    branchPosition,
     user
 }: {
     canonicalEtag: string
     game: Game
     hostView?: boolean
     visibility?: Visibility.GameVisibility<GameState>
+    branchPosition?: ActionHistoryPosition
     user: User
 }): string {
     const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
@@ -74,7 +88,89 @@ export function createGameRepresentationEtag({
         .update(canonicalEtag)
         .update('\0')
         .update(perspectiveKey)
+        .update(
+            branchPosition === undefined
+                ? ''
+                : `\0branch:${branchPosition.actionCount}:${branchPosition.actionChecksum}`
+        )
         .digest('base64url')
+}
+
+export interface BranchRepresentationInput {
+    game: Game
+    state: GameState
+    branch: Branch
+    actions: readonly GameAction[]
+    visibility: Visibility.GameVisibility<GameState>
+    user: User
+}
+
+export interface ProjectedBranchInput {
+    game: Game
+    user: User
+    unmergedBranch: UnmergedBranch
+}
+
+function playsBranch({ game, user }: { game: Game; user: User }, branch: Branch): boolean {
+    const perspective = derivePerspective({ game, user })
+    return perspective.kind === 'player' && perspective.playerId === branch.playerId
+}
+
+export function withProjectedBranch<Representation extends object>(
+    representation: Representation,
+    input: ProjectedBranchInput
+): Representation & { unmergedBranch?: UnmergedBranch } {
+    return playsBranch(input, input.unmergedBranch.branch)
+        ? { ...representation, unmergedBranch: input.unmergedBranch }
+        : representation
+}
+
+export function withUnmergedBranch<Representation extends object>(
+    representation: Representation,
+    input: BranchRepresentationInput | undefined
+): Representation & { unmergedBranch?: UnmergedBranch } {
+    if (input === undefined || !playsBranch(input, input.branch)) return representation
+    const { game, state, branch, actions, visibility } = input
+    return {
+        ...representation,
+        unmergedBranch: Visibility.projectUnmergedBranch({
+            game,
+            state,
+            branch,
+            actions,
+            visibility
+        })
+    }
+}
+
+export function createBranchResultsRepresentation(
+    input: ProjectedBranchInput
+): ActionResultsRepresentation {
+    return withProjectedBranch(
+        {
+            game: omitGameState(input.game),
+            actions: [],
+            missingActions: undefined,
+            perspective: derivePerspective(input)
+        },
+        input
+    )
+}
+
+export function createBranchUndoRepresentation(
+    input: ProjectedBranchInput & { state: GameState }
+): UndoResultsRepresentation {
+    const actionReplay = { startIndex: input.state.actionCount, actions: [] }
+    return withProjectedBranch(
+        {
+            game: omitGameState(input.game),
+            actionReplay,
+            canonicalReplay: createLegacyCompatibleReplay(actionReplay),
+            checksum: input.state.actionChecksum,
+            perspective: derivePerspective(input)
+        },
+        input
+    )
 }
 
 export function createGameRepresentation({

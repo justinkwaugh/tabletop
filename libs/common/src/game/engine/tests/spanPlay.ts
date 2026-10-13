@@ -1,0 +1,100 @@
+import { assertExists } from '../../../util/assertions.js'
+import type { Branch } from '../branch.js'
+import type { GameAction } from '../gameAction.js'
+import { createBranch, executeBranchAction } from '../branchExecution.js'
+import { mergeBranch } from '../branchMerge.js'
+import { advanceSpan, executeInLocalGame } from '../localSpan.js'
+import { createSpanGame, spanAction, type SpanGameState } from './spanGame.js'
+
+export { summary } from './spanGame.js'
+
+export type SpanGame = ReturnType<typeof createSpanGame>
+
+export interface PrivatePlay {
+    readonly branch: Branch
+    readonly actions: GameAction[]
+    readonly view: SpanGameState
+}
+
+export function playLocally(
+    { engine, game }: SpanGame,
+    state: SpanGameState,
+    actions: readonly GameAction[]
+) {
+    const opened = advanceSpan({ engine, game, state })
+    const processedActions = [...(opened?.processedActions ?? [])]
+    let current = opened?.updatedState ?? state
+    for (const action of actions) {
+        const result = executeInLocalGame({ engine, game, state: current, action })
+        processedActions.push(...result.processedActions)
+        current = result.updatedState
+    }
+    return { state: current, processedActions }
+}
+
+export function playPrivately(
+    { engine, game }: SpanGame,
+    state: SpanGameState,
+    playerId: string,
+    actions: readonly GameAction[]
+): PrivatePlay {
+    let execution = createBranch({ engine, game, state, playerId })
+    const recorded = [...execution.processedActions]
+    for (const action of actions) {
+        execution = executeBranchAction({
+            engine,
+            game,
+            state,
+            branch: execution.branch,
+            action
+        })
+        recorded.push(...execution.processedActions)
+    }
+    return { branch: execution.branch, actions: recorded, view: execution.view }
+}
+
+export function closeOnMainLine(
+    { engine }: SpanGame,
+    state: SpanGameState,
+    playerId: string
+): SpanGameState {
+    return state.parallelSpan?.closedPlayerIds.includes(playerId)
+        ? state
+        : engine.closeBranch({ state, playerId }).updatedState
+}
+
+export function mergePrivatePlay(spanGame: SpanGame, state: SpanGameState, play: PrivatePlay) {
+    return mergeBranch({
+        engine: spanGame.engine,
+        game: spanGame.game,
+        state: play.branch.closed ? closeOnMainLine(spanGame, state, play.branch.playerId) : state,
+        branch: play.branch,
+        actions: play.actions
+    })
+}
+
+export function beginSpan(spanGame: SpanGame): SpanGameState {
+    return spanGame.engine.executeCanonicalAction({
+        game: spanGame.game,
+        state: spanGame.state,
+        action: spanAction('begin', 'begin', 'p1')
+    }).updatedState
+}
+
+export function restAfterEveryBranch(spanGame: SpanGame): SpanGameState {
+    const lastBranch = playLocally(spanGame, beginSpan(spanGame), [
+        spanAction('f3', 'finish', 'p3'),
+        spanAction('f2', 'finish', 'p2')
+    ]).state
+    return spanGame.engine.executeCanonicalAction({
+        game: spanGame.game,
+        state: lastBranch,
+        action: spanAction('f1', 'finish', 'p1')
+    }).updatedState
+}
+
+export function playerOf(state: SpanGameState, playerId: string) {
+    const player = state.players.find((candidate) => candidate.playerId === playerId)
+    assertExists(player, `No player ${playerId}`)
+    return player
+}

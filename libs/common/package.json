@@ -10,6 +10,14 @@
         "./test-fixtures/private-hand": {
             "types": "./src/game/visibility/tests/privateHandGame.ts",
             "import": "./esm/game/visibility/tests/privateHandGame.js"
+        },
+        "./test-fixtures/span-game": {
+            "types": "./src/game/engine/tests/spanGame.ts",
+            "import": "./esm/game/engine/tests/spanGame.js"
+        },
+        "./test-fixtures/span-host": {
+            "types": "./src/game/engine/tests/spanHost.ts",
+            "import": "./esm/game/engine/tests/spanHost.js"
         }
     },
     "sideEffects": false,

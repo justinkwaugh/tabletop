@@ -193,6 +193,41 @@ describe('GameNotifications', () => {
         })
     })
 
+    it('routes a Player’s own Branch update only for the current perspective', async () => {
+        const f = fixture()
+        f.notifications.start()
+        const branch = {
+            playerId: 'player-one',
+            branchPoint: { actionCount: 4, actionChecksum: 11 },
+            machineState: 'working',
+            actionCount: 1,
+            actionChecksum: 7,
+            closed: false,
+            change: []
+        }
+        const data = {
+            game: f.game,
+            unmergedBranch: { branch, actions: [f.action] },
+            perspective: f.projected.perspective
+        }
+        await f.emit(GameNotificationAction.UpdateBranch, {
+            ...data,
+            perspective: { kind: 'player', playerId: 'player-two' }
+        })
+        expect(f.delivery.enqueue).not.toHaveBeenCalled()
+        await f.emit(GameNotificationAction.UpdateBranch, data)
+        expect(f.delivery.enqueue).toHaveBeenCalledExactlyOnceWith({
+            kind: 'branch',
+            unmergedBranch: {
+                branch,
+                actions: [{ ...f.action, createdAt: f.game.createdAt }]
+            },
+            undoneActionIds: [],
+            game: f.game,
+            perspective: data.perspective
+        })
+    })
+
     it('preserves legacy Undo manifests and converts redone Actions', async () => {
         const f = fixture()
         f.notifications.start()

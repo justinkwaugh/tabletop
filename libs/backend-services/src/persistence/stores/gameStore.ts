@@ -6,7 +6,9 @@ import {
     User,
     GameStatusCategory,
     GameHistoryPage,
-    GameHistoryCursor
+    GameHistoryCursor,
+    Branch,
+    UnmergedBranch
 } from '@tabletop/common'
 import { UpdateValidationResult, UpdateValidator } from './validator.js'
 
@@ -16,8 +18,27 @@ export type ActionUpdateValidator = (
     newState: GameState,
     actions: GameAction[],
     gameUpdates: Partial<Game>,
-    relatedActions: GameAction[]
+    relatedActions: GameAction[],
+    existingBranches: Branch[]
 ) => Promise<UpdateValidationResult>
+
+export type BranchWriteValidator = (existing: {
+    game: Game
+    state: GameState
+    branch: Branch | undefined
+}) => Promise<void>
+
+export interface UnmergedBranchWrite {
+    readonly branch: Branch
+    readonly addedActions: readonly GameAction[]
+    readonly removedActions: readonly GameAction[]
+}
+
+export interface UnmergedBranchWrites {
+    readonly set: readonly UnmergedBranchWrite[]
+    readonly removeBranchesOf: readonly string[] | 'all'
+    readonly watchBranchesOf?: readonly string[]
+}
 
 export type ActionUndoValidator = (
     existingGame: Game,
@@ -25,7 +46,8 @@ export type ActionUndoValidator = (
     existingActions: GameAction[],
 
     newState: GameState,
-    gameUpdates: Partial<Game>
+    gameUpdates: Partial<Game>,
+    existingBranches: Branch[]
 ) => Promise<UpdateValidationResult>
 
 export type UndoActionWindow = {
@@ -54,7 +76,8 @@ export interface GameStore {
     writeFullGameData(
         game: Game,
         state: GameState,
-        actions: GameAction[]
+        actions: GameAction[],
+        unmergedBranches?: readonly UnmergedBranchWrite[]
     ): Promise<{
         storedGame: Game
         storedGameState: GameState
@@ -87,15 +110,30 @@ export interface GameStore {
         endIndex: number
     }): Promise<GameAction[]>
 
+    findBranch(gameId: string, playerId: string): Promise<Branch | undefined>
+    findUnmergedBranch(gameId: string, playerId: string): Promise<UnmergedBranch | undefined>
+    findUnmergedBranches(gameId: string, playerIds: readonly string[]): Promise<UnmergedBranch[]>
+    writeUnmergedBranch({
+        gameId,
+        write,
+        validator
+    }: {
+        gameId: string
+        write: UnmergedBranchWrite
+        validator: BranchWriteValidator
+    }): Promise<void>
+
     addActionsToGame({
         game,
         actions,
         state,
+        unmergedBranchWrites,
         validator
     }: {
         game: Game
         actions: GameAction[]
         state: GameState
+        unmergedBranchWrites?: UnmergedBranchWrites
         validator?: ActionUpdateValidator
     }): Promise<{
         storedActions: GameAction[]
@@ -109,12 +147,14 @@ export interface GameStore {
         actions,
         redoneActions,
         state,
+        unmergedBranchWrites,
         validator
     }: {
         gameId: string
         actions: GameAction[]
         redoneActions: GameAction[]
         state: GameState
+        unmergedBranchWrites?: UnmergedBranchWrites
         validator?: ActionUndoValidator
     }): Promise<{
         undoneActions: GameAction[]
@@ -136,7 +176,15 @@ export interface GameStore {
     deleteGame(game: Game): Promise<void>
 
     getActionChecksum(gameId: string): Promise<number | undefined>
-    setGameState({ gameId, state }: { gameId: string; state: GameState }): Promise<void>
+    setGameState({
+        gameId,
+        state,
+        unmergedBranches
+    }: {
+        gameId: string
+        state: GameState
+        unmergedBranches?: readonly UnmergedBranchWrite[]
+    }): Promise<void>
 
     // This is just for seamless migration to the new checksum system
     setChecksum({ gameId, checksum }: { gameId: string; checksum: number }): Promise<number>

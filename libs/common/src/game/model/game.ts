@@ -48,10 +48,20 @@ export enum GameStorage {
     None = 'none'
 }
 
+export function isLocalGame(game: Pick<Game, 'storage'>): boolean {
+    return game.storage === GameStorage.Local || game.storage === GameStorage.None
+}
+
 export enum GameCategory {
     Standard = 'standard',
     Exploration = 'exploration'
 }
+
+export type SpanHold = Type.Static<typeof SpanHold>
+export const SpanHold = Type.Object({
+    playerId: Type.String(),
+    reason: Type.String()
+})
 
 export type Game = Type.Static<typeof Game>
 export const Game = Type.Object({
@@ -80,6 +90,7 @@ export const Game = Type.Object({
     result: Type.Optional(Type.Enum(GameResult)),
     winningPlayerIds: Type.Array(Type.String()),
     finalScores: Type.Optional(Type.Record(Type.String(), Type.Number())),
+    spanHold: Type.Optional(SpanHold),
     seed: Type.Optional(Type.Number()),
     storage: Type.Optional(Type.Enum(GameStorage, { default: GameStorage.Remote })),
     parentId: Type.Optional(Type.String()),

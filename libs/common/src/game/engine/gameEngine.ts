@@ -5,10 +5,27 @@ import {
     type StartingPositionAssignment
 } from '../model/startingPositionAssignment.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
-import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
+import {
+    deriveGameSeeds,
+    deriveStartingPositionSeeds,
+    generateMasterSeed,
+    normalizeMasterSeed
+} from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
-import { GameAction, type HydratedAction, Patch } from './gameAction.js'
+import * as Value from 'typebox/value'
+import type * as Type from 'typebox'
+import { ActionSource, createAction, GameAction, type HydratedAction, Patch } from './gameAction.js'
 import { createPatch } from './statePatch.js'
+import { findBranchScopeViolation } from './branchScope.js'
+import {
+    BranchCloseActionType,
+    isBranchClose,
+    restingSpan,
+    spanAwaitingBranch,
+    spanActivePlayerIds,
+    unmergedPlayerIds
+} from './parallelSpan.js'
+import { calculateActionChecksum } from '../../util/checksum.js'
 import {
     isOutOfTurnActionType,
     isOutOfTurnDeclaration,
@@ -18,11 +35,14 @@ import { Game, GameStatus } from '../model/game.js'
 import {
     GameState,
     type HydratedGameState,
+    type ParallelSpanState,
+    type StartingPositionRandomState,
     type UninitializedGameState
 } from '../model/gameState.js'
+import { Prng, type RandomState } from '../components/prng.js'
 import { MachineContext } from './machineContext.js'
 import { type MachineStateHandler } from './machineStateHandler.js'
-import { type GameRuntime } from '../definition/gameDefinition.js'
+import { type GameRuntime, type ParallelSpanDefinition } from '../definition/gameDefinition.js'
 import { undoRecordedAction } from './recordedHistory.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
@@ -50,6 +70,15 @@ export type ActionCascadeResult<T extends GameState = GameState> = ActionResult<
     actionCascade: CanonicalActionCascade<T>
 }
 
+export interface MainLine<
+    T extends GameState = GameState,
+    U extends HydratedGameState<T> = HydratedGameState<T>
+> {
+    engine: GameEngine<T, U>
+    state: T
+    game: Game
+}
+
 export interface GameStartOptions extends GameCreationOptions {
     startingPositions?: StartingPositionAssignment
 }
@@ -58,9 +87,31 @@ export interface ActionAvailabilityOptions {
     readonly perspective?: Perspective
 }
 
+interface SpanStep {
+    readonly branchPlayerId?: string
+    readonly completing: boolean
+}
+
+const OUTSIDE_SPAN_STEP: SpanStep = { completing: false }
+
 interface RuntimeExecution<T extends GameState> extends ActionResult<T> {
     readonly before: T
     readonly transitions: readonly CanonicalActionTransition<T>[]
+}
+
+export function combineCascades<T extends GameState>(
+    before: T,
+    steps: readonly ActionCascadeResult<T>[]
+): ActionCascadeResult<T> {
+    return {
+        processedActions: steps.flatMap((step) => step.processedActions),
+        updatedState: steps.at(-1)?.updatedState ?? before,
+        indexOffset: 0,
+        actionCascade: {
+            before,
+            transitions: steps.flatMap((step) => step.actionCascade.transitions)
+        }
+    }
 }
 
 export class GameEngine<
@@ -103,10 +154,7 @@ export class GameEngine<
             gameId: game.id,
             seed,
             prng: { seed, invocations: 0 },
-            protectedPrng:
-                derived === undefined
-                    ? { seed: generateSeed(), invocations: 0 }
-                    : { algorithm: 'chacha20-v1', seed: derived.protectedSeed, invocations: 0 },
+            protectedPrng: this.secretStream(derived?.protectedSeed),
             ...(masterSeed === undefined ? {} : { masterSeed }),
             activePlayerIds: [],
             winningPlayerIds: [],
@@ -154,13 +202,19 @@ export class GameEngine<
             assignment
         )
 
+        if (this.runtime.parallelSpans !== undefined) {
+            initialState.startingPositionRandom = this.generateStartingPositionRandom(
+                initialState.turnManager.turnOrder,
+                uninitializedState.masterSeed
+            )
+        }
+
         const machineContext = new MachineContext({
             gameConfig: game.config,
             gameState: initialState
         })
 
-        const initialHandler = this.getStateHandler(initialState)
-        initialHandler.enter(machineContext)
+        this.enterMachineState(initialState, machineContext, OUTSIDE_SPAN_STEP)
 
         const state = initialState.dehydrate()
         this.validateCanonicalState(state)
@@ -194,6 +248,100 @@ export class GameEngine<
         return runtimeState.isActivePlayer(playerId)
             ? types
             : types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
+    }
+
+    closeBranch({ state, playerId }: { state: T; playerId: string }): ActionCascadeResult<T> {
+        const span = restingSpan(state)
+        assert(span.playerIds.includes(playerId), `Player ${playerId} takes no part in this span`)
+        const action: GameAction = {
+            id: span.branchCloseIds[playerId],
+            gameId: state.gameId,
+            type: BranchCloseActionType,
+            source: ActionSource.System,
+            playerId,
+            createdAt: new Date()
+        }
+        const updatedState = this.applyBranchClose(state, action)
+        action.index = state.actionCount
+        action.undoPatch = createPatch(updatedState, state)
+        return {
+            processedActions: [action],
+            updatedState,
+            indexOffset: 0,
+            actionCascade: { before: state, transitions: [{ action, after: updatedState }] }
+        }
+    }
+
+    private applyBranchClose(state: T, action: GameAction): T {
+        const playerId = action.playerId
+        assertExists(playerId, 'A Branch Close names its Player')
+        const span = state.parallelSpan
+        assertExists(span, 'No Parallel Span is in progress')
+        assert(
+            span.branchCloseIds[playerId] === action.id,
+            `This is not the Branch Close of ${playerId} in this span`
+        )
+        assert(
+            !span.closedPlayerIds.includes(playerId),
+            `The Branch of ${playerId} is already closed`
+        )
+        const closed = { ...span, closedPlayerIds: [...span.closedPlayerIds, playerId] }
+        return {
+            ...structuredClone(state),
+            parallelSpan: closed,
+            activePlayerIds: spanActivePlayerIds(closed),
+            actionCount: state.actionCount + 1,
+            actionChecksum: calculateActionChecksum(state.actionChecksum, [
+                { ...action, index: state.actionCount }
+            ])
+        }
+    }
+
+    startBranch({
+        state,
+        game,
+        playerId
+    }: {
+        state: T
+        game: Game
+        playerId: string
+    }): ActionCascadeResult<T> {
+        const span = spanAwaitingBranch(state, playerId)
+        return this.executeCanonicalAction({
+            action: this.spanAction(state, this.spanDefinition(span).branchStart, {
+                id: span.branchStartIds[playerId],
+                playerId
+            }),
+            state,
+            game
+        })
+    }
+
+    completeSpan({ state, game }: { state: T; game: Game }): ActionCascadeResult<T> {
+        const span = restingSpan(state)
+        assert(
+            unmergedPlayerIds(span).length === 0,
+            'Span Completion needs every Branch on the Main Line'
+        )
+        assert(
+            span.closedPlayerIds.length === span.playerIds.length,
+            'Span Completion needs a Branch Close for every Branch'
+        )
+        return this.executeCanonicalAction({
+            action: this.spanAction(state, this.spanDefinition(span).spanCompletion, {
+                id: span.completionId
+            }),
+            state,
+            game
+        })
+    }
+
+    nextBranchToMerge({ state }: { state: T }): string | undefined {
+        const span = restingSpan(state)
+        const waiting = unmergedPlayerIds(span)
+        const isClosed = (playerId: string) => span.closedPlayerIds.includes(playerId)
+        const held = this.spanDefinition(span).merge === 'barrier' && !waiting.every(isClosed)
+        return held ? undefined : waiting.slice(0, 1).find(isClosed)
     }
 
     executeAction(input: {
@@ -240,6 +388,7 @@ export class GameEngine<
     }
 
     applyProcessedAction({ action, state, game }: { action: GameAction; state: T; game: Game }): T {
+        if (isBranchClose(action)) return this.applyBranchClose(state, action)
         if (isRedactedAction(action)) {
             assertExists(action.forwardPatch, 'Redacted Action record requires a forward patch')
             return this.applyStatePatch(state, action.forwardPatch)
@@ -345,6 +494,7 @@ export class GameEngine<
             const currentAction = machineContext.nextPendingAction()
             assertExists(currentAction, 'Action to process was unexpectedly null')
 
+            const spanStep = this.spanStepFor(currentAction, hydratedState)
             assert(
                 this.isPlayerAllowed(currentAction, hydratedState),
                 `Player ${currentAction.playerId} is not an active player`
@@ -365,14 +515,20 @@ export class GameEngine<
             )
 
             hydratedAction.apply(runtimeState, machineContext)
+            if (spanStep.completing) hydratedAction.revealsInfo = true
 
             const nextMachineState = stateHandler.onAction(hydratedAction, machineContext)
 
             hydratedState.recordAction(hydratedAction)
             hydratedState.machineState = nextMachineState
 
-            const nextHandler = this.getStateHandler(hydratedState)
-            nextHandler.enter(machineContext)
+            this.enterMachineState(hydratedState, machineContext, spanStep)
+            assert(
+                spanStep.branchPlayerId === undefined ||
+                    hydratedState.parallelSpan?.branchPlayerId !== undefined ||
+                    machineContext.getPendingActions().length === 0,
+                'A Branch must end its cascade when it closes'
+            )
 
             const stateBeforeAction = updatedState
             updatedState = hydratedState.dehydrate()
@@ -388,6 +544,7 @@ export class GameEngine<
             if (canonical) this.validateCanonicalState(updatedState)
 
             const undoPatch: Patch = createPatch(updatedState, stateBeforeAction)
+            this.assertWithinBranchScope(spanStep, undoPatch, stateBeforeAction, updatedState)
 
             const dehydratedAction = hydratedAction.dehydrate()
             dehydratedAction.undoPatch = undoPatch
@@ -403,6 +560,152 @@ export class GameEngine<
             before,
             transitions
         }
+    }
+
+    private spanStepFor(action: GameAction, state: U): SpanStep {
+        const span = state.parallelSpan
+        if (span === undefined) return OUTSIDE_SPAN_STEP
+        assert(action.outOfTurn !== true, 'Out-of-Turn Actions are rejected during a Parallel Span')
+        if (span.branchPlayerId !== undefined) {
+            return { branchPlayerId: span.branchPlayerId, completing: false }
+        }
+        assert(
+            action.source === ActionSource.System,
+            'No User Action is valid in a Branching Machine State'
+        )
+        const playerId = action.playerId
+        if (playerId === undefined || span.branchStartIds[playerId] !== action.id) {
+            return { completing: action.id === span.completionId }
+        }
+        assert(
+            !span.mergedPlayerIds.includes(playerId),
+            `The Branch of ${playerId} is already on the Main Line`
+        )
+        span.branchPlayerId = playerId
+        state.activePlayerIds = [playerId]
+        return { branchPlayerId: playerId, completing: false }
+    }
+
+    private enterMachineState(state: U, context: MachineContext<U>, spanStep: SpanStep): void {
+        const handler = this.getStateHandler(state)
+        const span = state.parallelSpan
+        if (span === undefined) {
+            handler.enter(context)
+            const definition = this.runtime.parallelSpans?.[state.machineState]
+            if (definition !== undefined) {
+                state.parallelSpan = this.newSpan(state, definition)
+                state.activePlayerIds = [...state.parallelSpan.playerIds]
+            }
+            return
+        }
+
+        const { branchPlayerId, completing } = spanStep
+        const inBranchingMachineState = state.machineState === span.machineState
+        if (branchPlayerId === undefined && !inBranchingMachineState) {
+            assert(
+                completing && unmergedPlayerIds(span).length === 0,
+                'Only Span Completion may leave a Branching Machine State'
+            )
+            delete state.parallelSpan
+            this.enterMachineState(state, context, OUTSIDE_SPAN_STEP)
+            return
+        }
+        assert(!completing, 'Span Completion must leave the Branching Machine State')
+        assert(
+            branchPlayerId === undefined ||
+                inBranchingMachineState ||
+                this.runtime.parallelSpans?.[state.machineState] === undefined,
+            'A Branch cannot enter another Branching Machine State'
+        )
+
+        handler.enter(context)
+
+        if (branchPlayerId !== undefined && inBranchingMachineState) {
+            span.mergedPlayerIds.push(branchPlayerId)
+            delete span.branchPlayerId
+        }
+        state.activePlayerIds = spanActivePlayerIds(span)
+    }
+
+    private newSpan(state: U, definition: ParallelSpanDefinition<U>): ParallelSpanState {
+        const identity = new Prng(state.prng)
+        const mergeOrder = definition.mergeOrder(state)
+        assert(
+            state.activePlayerIds.every((playerId) => mergeOrder.includes(playerId)),
+            'Merge Order must place every Active Player'
+        )
+        const playerIds = mergeOrder.filter((playerId) => state.isActivePlayer(playerId))
+        const identityForEach = () =>
+            Object.fromEntries(playerIds.map((playerId) => [playerId, identity.randId()]))
+        return {
+            machineState: state.machineState,
+            branchPoint: {
+                actionCount: state.actionCount,
+                actionChecksum: state.actionChecksum
+            },
+            playerIds,
+            closedPlayerIds: [],
+            mergedPlayerIds: [],
+            branchStartIds: identityForEach(),
+            completionId: identity.randId(),
+            branchCloseIds: identityForEach()
+        }
+    }
+
+    private assertWithinBranchScope(
+        spanStep: SpanStep,
+        undoPatch: Patch,
+        before: T,
+        after: T
+    ): void {
+        const playerId = spanStep.branchPlayerId
+        if (playerId === undefined) return
+        const violation = findBranchScopeViolation({ undoPatch, before, after, playerId })
+        assert(violation === undefined, `The Branch of ${playerId} may not change ${violation}`)
+    }
+
+    private spanDefinition(span: ParallelSpanState): ParallelSpanDefinition<U> {
+        const definition = this.runtime.parallelSpans?.[span.machineState]
+        assertExists(definition, `${span.machineState} is not a Branching Machine State`)
+        return definition
+    }
+
+    private spanAction(
+        state: T,
+        schema: Type.TSchema,
+        identity: { id: string; playerId?: string }
+    ): GameAction {
+        const action: unknown = createAction(schema, {
+            ...identity,
+            gameId: state.gameId,
+            source: ActionSource.System,
+            createdAt: new Date()
+        })
+        assert(Value.Check(GameAction, action), 'A span Action must be a Game Action')
+        return action
+    }
+
+    private generateStartingPositionRandom(
+        initialOrder: readonly string[],
+        masterSeed: string | undefined
+    ): StartingPositionRandomState[] {
+        return initialOrder.map((playerId, startingPosition) => {
+            const seeds =
+                masterSeed === undefined
+                    ? undefined
+                    : deriveStartingPositionSeeds(masterSeed, startingPosition)
+            return {
+                playerId,
+                identity: { seed: seeds?.identitySeed ?? generateSeed(), invocations: 0 },
+                rules: this.secretStream(seeds?.rulesSeed)
+            }
+        })
+    }
+
+    private secretStream(derivedSeed: string | undefined): RandomState {
+        return derivedSeed === undefined
+            ? { seed: generateSeed(), invocations: 0 }
+            : { algorithm: 'chacha20-v1', seed: derivedSeed, invocations: 0 }
     }
 
     private guardStateForPerspective(

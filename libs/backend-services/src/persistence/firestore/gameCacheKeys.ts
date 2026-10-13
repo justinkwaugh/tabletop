@@ -19,6 +19,14 @@ export class GameCacheKeys {
         return `csum-${gameId}`
     }
 
+    static branch(gameId: string, playerId: string): string {
+        return `branch-${gameId}-${playerId}`
+    }
+
+    static branches(gameId: string, playerIds: readonly string[]): string[] {
+        return playerIds.map((playerId) => this.branch(gameId, playerId))
+    }
+
     static revision(gameId: string): string {
         return `etag-${gameId}`
     }

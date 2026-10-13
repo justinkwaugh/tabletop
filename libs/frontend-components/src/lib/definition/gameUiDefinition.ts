@@ -9,6 +9,7 @@ import type {
     GameRuntime,
     GameState,
     HydratedGameState,
+    UnmergedBranch,
     Visibility
 } from '@tabletop/common'
 import { type Component } from 'svelte'
@@ -55,6 +56,7 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
         historyComplete?: boolean
         debug?: boolean
         hostPerspective?: Visibility.Perspective
+        unmergedBranch?: UnmergedBranch
     }): GameSession<T, U>
 }
 
