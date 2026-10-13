@@ -1,7 +1,9 @@
 import { assertExists } from '../../../util/assertions.js'
 import type { Branch } from '../branch.js'
 import type { GameAction } from '../gameAction.js'
-import { executeInLocalGame } from '../localSpan.js'
+import { createBranch, executeBranchAction } from '../branchExecution.js'
+import { mergeBranch } from '../branchMerge.js'
+import { advanceSpan, executeInLocalGame } from '../localSpan.js'
 import { createSpanGame, spanAction, type SpanGameState } from './spanGame.js'
 
 export { summary } from './spanGame.js'
@@ -19,7 +21,7 @@ export function playLocally(
     state: SpanGameState,
     actions: readonly GameAction[]
 ) {
-    const opened = engine.advanceSpan({ game, state })
+    const opened = advanceSpan({ engine, game, state })
     const processedActions = [...(opened?.processedActions ?? [])]
     let current = opened?.updatedState ?? state
     for (const action of actions) {
@@ -36,10 +38,16 @@ export function playPrivately(
     playerId: string,
     actions: readonly GameAction[]
 ): PrivatePlay {
-    let execution = engine.createBranch({ game, state, playerId })
+    let execution = createBranch({ engine, game, state, playerId })
     const recorded = [...execution.processedActions]
     for (const action of actions) {
-        execution = engine.executeBranchAction({ game, state, branch: execution.branch, action })
+        execution = executeBranchAction({
+            engine,
+            game,
+            state,
+            branch: execution.branch,
+            action
+        })
         recorded.push(...execution.processedActions)
     }
     return { branch: execution.branch, actions: recorded, view: execution.view }
@@ -56,7 +64,8 @@ export function closeOnMainLine(
 }
 
 export function mergePrivatePlay(spanGame: SpanGame, state: SpanGameState, play: PrivatePlay) {
-    return spanGame.engine.mergeBranch({
+    return mergeBranch({
+        engine: spanGame.engine,
         game: spanGame.game,
         state: play.branch.closed ? closeOnMainLine(spanGame, state, play.branch.playerId) : state,
         branch: play.branch,

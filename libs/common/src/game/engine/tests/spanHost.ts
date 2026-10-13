@@ -1,5 +1,6 @@
 import { assert, assertExists } from '../../../util/assertions.js'
 import type { UnmergedBranch } from '../branch.js'
+import { executeBranchAction, undoBranchAction } from '../branchExecution.js'
 import type { GameAction } from '../gameAction.js'
 import { combineCascades, type ActionCascadeResult } from '../gameEngine.js'
 import { removeBranchCloses, settleSpan } from '../hostedSpan.js'
@@ -51,7 +52,12 @@ export class SpanHost {
         const replay = record.branch.closed
             ? this.reopenOnMainLine(playerId)
             : { startIndex: this.state.actionCount, actions: [] }
-        const undone = this.engine.undoBranchAction({ state: this.state, ...record, actionId })
+        const undone = undoBranchAction({
+            engine: this.engine,
+            state: this.state,
+            ...record,
+            actionId
+        })
         const kept = record.actions.slice(0, record.actions.length - undone.undoneActions.length)
         this.branches.set(playerId, { branch: undone.branch, actions: kept })
         return {
@@ -88,7 +94,8 @@ export class SpanHost {
             record !== undefined && actsInBranch(this.state, playerId),
             `Player ${playerId} has no open Branch`
         )
-        const execution = this.engine.executeBranchAction({
+        const execution = executeBranchAction({
+            engine: this.engine,
             state: this.state,
             branch: record.branch,
             action,

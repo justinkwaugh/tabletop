@@ -16,27 +16,12 @@ import * as Value from 'typebox/value'
 import type * as Type from 'typebox'
 import { ActionSource, createAction, GameAction, type HydratedAction, Patch } from './gameAction.js'
 import { createPatch } from './statePatch.js'
-import { runs, sameRun, unprocessed } from './actionReplay.js'
-import {
-    branchFromView,
-    BranchMergeError,
-    branchUndoWindow,
-    branchView,
-    firstActionWithAnotherResult,
-    sameBranchOutcome,
-    unopenedBranchView,
-    type Branch,
-    type BranchExecution
-} from './branch.js'
 import { findBranchScopeViolation } from './branchScope.js'
 import {
     BranchCloseActionType,
-    spanRuns,
     isBranchClose,
-    isRestingInSpan,
     restingSpan,
     spanAwaitingBranch,
-    returnedPlayerIds,
     spanActivePlayerIds,
     unmergedPlayerIds
 } from './parallelSpan.js'
@@ -62,7 +47,6 @@ import { undoRecordedAction } from './recordedHistory.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
 import { assert, assertExists } from '../../util/assertions.js'
-import { errorMessage } from '../../util/errors.js'
 import type { Perspective } from '../visibility/valueProjector.js'
 import { isRedactedAction, UnavailableProjectedActionError } from '../visibility/actionProjector.js'
 
@@ -84,6 +68,15 @@ export interface CanonicalActionCascade<T extends GameState = GameState> {
 
 export type ActionCascadeResult<T extends GameState = GameState> = ActionResult<T> & {
     actionCascade: CanonicalActionCascade<T>
+}
+
+export interface MainLine<
+    T extends GameState = GameState,
+    U extends HydratedGameState<T> = HydratedGameState<T>
+> {
+    engine: GameEngine<T, U>
+    state: T
+    game: Game
 }
 
 export interface GameStartOptions extends GameCreationOptions {
@@ -257,25 +250,6 @@ export class GameEngine<
             : types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
     }
 
-    advanceSpan({ state, game }: { state: T; game: Game }): ActionCascadeResult<T> | undefined {
-        const steps: ActionCascadeResult<T>[] = []
-        let current = state
-        while (isRestingInSpan(current)) {
-            const span = restingSpan(current)
-            const returnedPlayerId = returnedPlayerIds(span).at(0)
-            const nextPlayerId = unmergedPlayerIds(span).at(0)
-            const step =
-                returnedPlayerId !== undefined
-                    ? this.closeBranch({ state: current, playerId: returnedPlayerId })
-                    : nextPlayerId === undefined
-                      ? this.completeSpan({ state: current, game })
-                      : this.startBranch({ state: current, game, playerId: nextPlayerId })
-            steps.push(step)
-            current = step.updatedState
-        }
-        return steps.length === 0 ? undefined : combineCascades(state, steps)
-    }
-
     closeBranch({ state, playerId }: { state: T; playerId: string }): ActionCascadeResult<T> {
         const span = restingSpan(state)
         assert(span.playerIds.includes(playerId), `Player ${playerId} takes no part in this span`)
@@ -368,145 +342,6 @@ export class GameEngine<
         const isClosed = (playerId: string) => span.closedPlayerIds.includes(playerId)
         const held = this.spanDefinition(span).merge === 'barrier' && !waiting.every(isClosed)
         return held ? undefined : waiting.slice(0, 1).find(isClosed)
-    }
-
-    createBranch({
-        state,
-        game,
-        playerId
-    }: {
-        state: T
-        game: Game
-        playerId: string
-    }): BranchExecution<T> {
-        const started = this.startBranch({
-            state: unopenedBranchView(state, playerId),
-            game,
-            playerId
-        })
-        return this.branchExecution(state, started, playerId)
-    }
-
-    executeBranchAction({
-        state,
-        branch,
-        action,
-        game
-    }: {
-        state: T
-        branch: Branch
-        action: GameAction
-        game: Game
-    }): BranchExecution<T> {
-        assert(!branch.closed, `The Branch of ${branch.playerId} is closed`)
-        const executed = this.executeCanonicalAction({
-            action,
-            state: branchView(state, branch),
-            game
-        })
-        return this.branchExecution(state, executed, branch.playerId)
-    }
-
-    undoBranchAction({
-        state,
-        branch,
-        actions,
-        actionId,
-        asAdministrator = false
-    }: {
-        state: T
-        branch: Branch
-        actions: readonly GameAction[]
-        actionId: string
-        asAdministrator?: boolean
-    }): { branch: Branch; undoneActions: GameAction[] } {
-        const playerId = branch.playerId
-        const undoneActions = branchUndoWindow(playerId, actions, actionId, asAdministrator)
-        assert(
-            undoneActions.at(-1)?.index === branch.actionCount - 1,
-            'The recorded Actions do not end where the Branch does'
-        )
-        let view = branchView(state, branch)
-        for (const action of undoneActions.toReversed()) {
-            view = this.undoProcessedAction({ action, state: view })
-        }
-        return { branch: branchFromView(state, view, playerId), undoneActions }
-    }
-
-    replayOnSpan({
-        state,
-        game,
-        recorded
-    }: {
-        state: T
-        game: Game
-        recorded: readonly GameAction[]
-    }): ActionCascadeResult<T> {
-        const steps: ActionCascadeResult<T>[] = []
-        let current = state
-        for (const run of spanRuns(recorded, restingSpan(state))) {
-            const playerId = run[0].playerId
-            assertExists(playerId, 'Every step of a span belongs to a Player')
-            const step = isBranchClose(run[0])
-                ? this.closeBranch({ state: current, playerId })
-                : this.replayOnMainLine({ state: current, game, playerId, recorded: run })
-            steps.push(step)
-            current = step.updatedState
-        }
-        return combineCascades(state, steps)
-    }
-
-    mergeBranch({
-        state,
-        game,
-        branch,
-        actions
-    }: {
-        state: T
-        game: Game
-        branch: Branch
-        actions: readonly GameAction[]
-    }): ActionCascadeResult<T> {
-        const playerId = branch.playerId
-        assert(branch.closed, `The Branch of ${playerId} is still open`)
-        const span = restingSpan(state)
-        assert(
-            span.closedPlayerIds.includes(playerId),
-            `The Branch of ${playerId} has no Branch Close on the Main Line`
-        )
-        assert(
-            unmergedPlayerIds(span).at(0) === playerId,
-            `The Branch of ${playerId} is not next in Merge Order`
-        )
-        const expected = branchView(state, branch)
-        const recordedRuns = runs(actions)
-        if (recordedRuns.at(0)?.at(0)?.id !== span.branchStartIds[playerId])
-            throw new BranchMergeError(playerId, 'its record does not begin with its Branch Start')
-
-        const steps: ActionCascadeResult<T>[] = []
-        let current = state
-        for (const recorded of recordedRuns) {
-            const replayed = this.replayOnMainLine({ state: current, game, playerId, recorded })
-            steps.push(replayed)
-            current = replayed.updatedState
-        }
-        if (!sameBranchOutcome(current, expected))
-            throw new BranchMergeError(
-                playerId,
-                'it reached a different Game State on the Main Line'
-            )
-        const merged = combineCascades(state, steps)
-        const changed = firstActionWithAnotherResult({
-            closedView: expected,
-            recorded: actions,
-            replayed: merged.actionCascade.transitions.map((transition) => transition.after)
-        })
-        if (changed !== undefined)
-            throw new BranchMergeError(
-                playerId,
-                `${changed.type} had a different result on the Main Line`
-            )
-        return merged
     }
 
     executeAction(input: {
@@ -848,47 +683,6 @@ export class GameEngine<
         })
         assert(Value.Check(GameAction, action), 'A span Action must be a Game Action')
         return action
-    }
-
-    private replayOnMainLine({
-        state,
-        game,
-        playerId,
-        recorded
-    }: {
-        state: T
-        game: Game
-        playerId: string
-        recorded: readonly GameAction[]
-    }): ActionCascadeResult<T> {
-        const first = recorded[0]
-        let replayed: ActionCascadeResult<T>
-        try {
-            replayed = this.executeCanonicalAction({ action: unprocessed(first), state, game })
-        } catch (error) {
-            throw new BranchMergeError(
-                playerId,
-                `${first.type} failed on the Main Line: ${errorMessage(error)}`
-            )
-        }
-        const sameIdentities = recorded.every(
-            (action, index) => action.id === replayed.processedActions.at(index)?.id
-        )
-        if (!sameRun(recorded, replayed.processedActions) || !sameIdentities)
-            throw new BranchMergeError(playerId, `${first.type} ran differently on the Main Line`)
-        return replayed
-    }
-
-    private branchExecution(
-        state: T,
-        executed: ActionCascadeResult<T>,
-        playerId: string
-    ): BranchExecution<T> {
-        return {
-            branch: branchFromView(state, executed.updatedState, playerId),
-            processedActions: executed.processedActions,
-            view: executed.updatedState
-        }
     }
 
     private generateStartingPositionRandom(

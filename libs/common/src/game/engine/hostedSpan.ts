@@ -1,6 +1,13 @@
 import { assert, assertExists } from '../../util/assertions.js'
 import { belongsToSpan, BranchMergeError, type UnmergedBranch } from './branch.js'
-import { combineCascades, type ActionCascadeResult, type GameEngine } from './gameEngine.js'
+import { createBranch } from './branchExecution.js'
+import { mergeBranch, replayOnSpan } from './branchMerge.js'
+import {
+    combineCascades,
+    type ActionCascadeResult,
+    type GameEngine,
+    type MainLine
+} from './gameEngine.js'
 import {
     closedUnmergedPlayerIds,
     isRestingInSpan,
@@ -22,18 +29,13 @@ export function createMissingBranches<T extends GameState, U extends HydratedGam
     game,
     state,
     unmergedBranches
-}: {
-    engine: GameEngine<T, U>
-    game: Game
-    state: T
-    unmergedBranches: readonly UnmergedBranch[]
-}): UnmergedBranch[] {
+}: MainLine<T, U> & { unmergedBranches: readonly UnmergedBranch[] }): UnmergedBranch[] {
     if (!isRestingInSpan(state)) return []
     const held = unmergedBranches.map(({ branch }) => branch.playerId)
     return unmergedPlayerIds(restingSpan(state))
         .filter((playerId) => !held.includes(playerId))
         .map((playerId) => {
-            const started = engine.createBranch({ state, game, playerId })
+            const started = createBranch({ engine, state, game, playerId })
             return { branch: started.branch, actions: started.processedActions }
         })
 }
@@ -44,10 +46,7 @@ export function settleSpan<T extends GameState, U extends HydratedGameState<T>>(
     state,
     unmergedBranches,
     mergesHeld = false
-}: {
-    engine: GameEngine<T, U>
-    game: Game
-    state: T
+}: MainLine<T, U> & {
     unmergedBranches: readonly UnmergedBranch[]
     mergesHeld?: boolean
 }): SpanSettlement<T> {
@@ -98,7 +97,7 @@ export function settleSpan<T extends GameState, U extends HydratedGameState<T>>(
         const record = known.get(playerId)
         assertExists(record, `The Branch of ${playerId} is ready to merge but unknown`)
         try {
-            const merged = engine.mergeBranch({ state: current, game, ...record })
+            const merged = mergeBranch({ engine, state: current, game, ...record })
             steps.push(merged)
             current = merged.updatedState
             mergedPlayerIds.push(playerId)
@@ -176,7 +175,8 @@ export function removeBranchCloses<T extends GameState, U extends HydratedGameSt
     for (const action of removed.toReversed()) {
         earlier = engine.undoProcessedAction({ action, state: earlier })
     }
-    const replayed = engine.replayOnSpan({
+    const replayed = replayOnSpan({
+        engine,
         state: earlier,
         game,
         recorded: removed.filter((action) => !isRemovedClose(action))

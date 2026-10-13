@@ -4,6 +4,8 @@ import {
     assert,
     assertExists,
     belongsToSpan,
+    createBranch,
+    executeBranchAction,
     restingSpan,
     settleSpan,
     unmergedPlayerIds,
@@ -96,7 +98,7 @@ export async function submitBranchAction({
     const stored = await gameStore.findBranch(gameId, playerId)
     const existing = stored !== undefined && belongsToSpan(stored, span) ? stored : undefined
     const started =
-        existing === undefined ? engine.createBranch({ state, game, playerId }) : undefined
+        existing === undefined ? createBranch({ engine, state, game, playerId }) : undefined
     const branch = existing ?? started?.branch
     assertExists(branch, `Player ${playerId} has no Branch to act in`)
     if (branch.closed) {
@@ -108,7 +110,7 @@ export async function submitBranchAction({
     }
 
     const execution = measureSync('engine.execute', () =>
-        engine.executeBranchAction({ state, branch, action, game })
+        executeBranchAction({ engine, state, branch, action, game })
     )
     const addedActions = [...(started?.processedActions ?? []), ...execution.processedActions]
     const write = { branch: execution.branch, addedActions, removedActions: [] }

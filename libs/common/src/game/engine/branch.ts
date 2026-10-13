@@ -33,12 +33,6 @@ export const UnmergedBranch = Type.Object({
     actions: Type.Array(GameAction)
 })
 
-export interface BranchExecution<T extends GameState = GameState> {
-    readonly branch: Branch
-    readonly processedActions: GameAction[]
-    readonly view: T
-}
-
 export class BranchMergeError extends BaseError {
     constructor(playerId: string, reason: string) {
         super({
