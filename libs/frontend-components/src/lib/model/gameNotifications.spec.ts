@@ -11,7 +11,8 @@ import {
 import { DummyNotificationService } from '../harness/dummyNotificationService.js'
 import { NotificationChannel, NotificationEventType } from '../services/notificationService.js'
 import { GameNotifications } from './gameNotifications.js'
-import { ServerActionHandling, type ReconciliationUpdate } from './gameReconciliation.js'
+import type { ReconciliationUpdate } from './gameLines.js'
+import { ServerActionHandling } from './gameReconciliation.js'
 
 function fixture({ hotseat = false, usesProjection = true, modernHost = false, userReady = false } = {}) {
     const game: Game = {

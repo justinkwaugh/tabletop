@@ -1,9 +1,11 @@
 import {
     GameContext,
+    GameLines,
     GameReconciliation,
-    ServerActionHandling
+    ServerActionHandling,
+    type GameLinesSession
 } from '@tabletop/frontend-components'
-import { GameSyncStatus } from '@tabletop/common'
+import { GameSyncStatus, type GameState, type HydratedGameState } from '@tabletop/common'
 import { describe, expect, test, vi } from 'vitest'
 import { FreshFishUiRuntime } from '../../definition/gameUiRuntime.js'
 import {
@@ -16,6 +18,23 @@ import {
     projectHostHistory,
     projectHostHistorySuffix
 } from './simultaneousAuction.js'
+
+function linesFor<T extends GameState, U extends HydratedGameState<T> & T>(
+    context: GameContext<T, U>,
+    remote: Pick<
+        GameLinesSession<T, U>,
+        'checkSync' | 'reload' | 'isPaused' | 'recover' | 'acceptsPerspective'
+    >
+) {
+    return new GameLines(context, {
+        ...remote,
+        playerId: () => PLAYER_B_ID,
+        playsHosted: () => true,
+        awaitsAnswer: () => false,
+        settle: async () => {},
+        onBranchViewChange: () => {}
+    })
+}
 
 function createReconciliationScenario() {
     const host = createAuctionHost()
@@ -33,13 +52,13 @@ function createReconciliationScenario() {
     return { host, aBid, context, reconciliation }
 }
 
-describe('GameReconciliation', () => {
+describe('GameLines', () => {
     test('does not publish a full reload after the requested representation changes', async () => {
         const { context } = createReconciliationScenario()
         const reloadStarted = Promise.withResolvers<void>()
-        const reloaded = Promise.withResolvers<typeof context>()
+        const reloaded = Promise.withResolvers<{ context: typeof context }>()
         let current = true
-        const reconciliation = new GameReconciliation(context, {
+        const lines = linesFor(context, {
             checkSync: async () => ({
                 status: GameSyncStatus.OutOfSync,
                 actions: [],
@@ -54,18 +73,21 @@ describe('GameReconciliation', () => {
             acceptsPerspective: () => true
         })
         const staleContext = context.clone()
-        const synchronization = reconciliation.synchronize(() => current)
+        const synchronization = lines.synchronize(() => current)
         await reloadStarted.promise
         current = false
         context.updateGame({ ...context.game, name: 'New representation' })
         const expected = context.clone()
-        reloaded.resolve(staleContext)
+        reloaded.resolve({ context: staleContext })
 
         expect(await synchronization).toBe('stale')
         expect(context.game).toEqual(expected.game)
         expect(context.state).toEqual(expected.state)
         expect(context.actions).toEqual(expected.actions)
     })
+})
+
+describe('GameReconciliation', () => {
     test('replaces an optimistic submission when the host accepted another bid first', () => {
         const host = createAuctionHost()
         const initial = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
@@ -196,7 +218,7 @@ describe('Checkpoint reconciliation', () => {
         const startIndex = context.state.actionCount
         host.apply(createBid('d-notification', PLAYER_D_ID, 2))
         const accepted = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
-        const reconciliation = new GameReconciliation(context, {
+        const lines = linesFor(context, {
             checkSync: async () => {
                 throw Error('Unexpected synchronization')
             },
@@ -215,8 +237,8 @@ describe('Checkpoint reconciliation', () => {
             handling: ServerActionHandling.ApplyProcessed,
             game: host.gameWithoutState()
         }
-        await reconciliation.enqueue(update)
-        await reconciliation.enqueue(update)
+        await lines.enqueue(update)
+        await lines.enqueue(update)
         expect(context.state).toEqual(accepted.currentState)
         expect(context.actions).toHaveLength(accepted.actions.length - startIndex)
         expect(() => context.verifyFullChecksum()).not.toThrow()
@@ -234,7 +256,7 @@ describe('Checkpoint reconciliation', () => {
             actions: [...accepted.actions]
         })
         let reloads = 0
-        const reconciliation = new GameReconciliation(context, {
+        const lines = linesFor(context, {
             checkSync: async (_id, _checksum, index) => {
                 expect(index).toBe(priorCount - 1)
                 return {
@@ -245,19 +267,19 @@ describe('Checkpoint reconciliation', () => {
             },
             reload: async () => {
                 reloads += 1
-                return complete
+                return { context: complete }
             },
             isPaused: () => false,
             recover: async () => {},
             acceptsPerspective: () => true
         })
         expect(() =>
-            reconciliation.replace(
+            new GameReconciliation(context).replace(
                 { startIndex: 0, actions: [...accepted.actions] },
                 accepted.currentState.actionChecksum
             )
         ).toThrow()
-        await reconciliation.synchronize(() => true)
+        await lines.synchronize(() => true)
         expect(reloads).toBe(1)
         expect(context.state).toEqual(accepted.currentState)
         expect(context.hasCompleteHistory).toBe(true)
@@ -290,9 +312,9 @@ describe('Checkpoint reconciliation', () => {
             const expected = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
             let reloads = 0
             const recover = vi.fn(async () => {
-                await reconciliation.synchronize(() => true)
+                await lines.synchronize(() => true)
             })
-            const reconciliation = new GameReconciliation(context, {
+            const lines = linesFor(context, {
                 checkSync: async () => ({
                     status: GameSyncStatus.InSync,
                     actions: [...expected.actions.slice(before.state.actionCount)],
@@ -306,7 +328,7 @@ describe('Checkpoint reconciliation', () => {
                 recover,
                 acceptsPerspective: () => true
             })
-            await reconciliation.enqueue({
+            await lines.enqueue({
                 kind: 'actions',
                 actions: [...expected.actions.slice(before.state.actionCount + 1)],
                 handling: ServerActionHandling.ApplyProcessed,
@@ -324,9 +346,9 @@ describe('Checkpoint reconciliation', () => {
         const before = context.state
         const expected = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
         const recover = vi.fn(async () => {
-            await reconciliation.synchronize(() => true)
+            await lines.synchronize(() => true)
         })
-        const reconciliation = new GameReconciliation(context, {
+        const lines = linesFor(context, {
             checkSync: async () => ({
                 status: GameSyncStatus.InSync,
                 actions: [],
@@ -339,7 +361,7 @@ describe('Checkpoint reconciliation', () => {
             recover,
             acceptsPerspective: () => true
         })
-        await reconciliation.enqueue({
+        await lines.enqueue({
             kind: 'actions',
             actions: [...expected.actions],
             handling: ServerActionHandling.ApplyProcessed,
@@ -358,7 +380,7 @@ describe('Checkpoint reconciliation', () => {
             const bid = host.apply(createBid('d-to-undo', PLAYER_D_ID, 2))
             const after = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
             const recover = vi.fn(async () => {})
-            const reconciliation = new GameReconciliation(context, {
+            const lines = linesFor(context, {
                 checkSync: async () => {
                     throw Error('Unexpected sync')
                 },
@@ -369,7 +391,7 @@ describe('Checkpoint reconciliation', () => {
                 recover,
                 acceptsPerspective: () => true
             })
-            await reconciliation.enqueue({
+            await lines.enqueue({
                 kind: 'actions',
                 actions: [...after.actions.slice(boundary)],
                 handling: ServerActionHandling.ApplyProcessed,
@@ -377,7 +399,7 @@ describe('Checkpoint reconciliation', () => {
             })
             host.undo(bid.id)
             const expected = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
-            await reconciliation.enqueue({
+            await lines.enqueue({
                 kind: 'replacement',
                 replay: { startIndex: boundary, actions: [...expected.actions.slice(boundary)] },
                 checksum: expected.currentState.actionChecksum,
@@ -402,8 +424,8 @@ describe('Checkpoint reconciliation', () => {
                 state: expected.currentState,
                 actions: [...expected.actions]
             })
-            const reload = vi.fn(async () => complete)
-            const reconciliation = new GameReconciliation(context, {
+            const reload = vi.fn(async () => ({ context: complete }))
+            const lines = linesFor(context, {
                 checkSync: async () => ({
                     status: GameSyncStatus.OutOfSync,
                     actions: [...expected.actions],
@@ -412,12 +434,12 @@ describe('Checkpoint reconciliation', () => {
                 reload,
                 isPaused: () => false,
                 recover: async () => {
-                    await reconciliation.synchronize(() => true)
+                    await lines.synchronize(() => true)
                 },
                 acceptsPerspective: () => true
             })
             if (kind === 'projected') {
-                await reconciliation.enqueue({
+                await lines.enqueue({
                     kind: 'replacement',
                     replay: { startIndex: 0, actions: [...expected.actions] },
                     checksum: expected.currentState.actionChecksum,
@@ -425,7 +447,7 @@ describe('Checkpoint reconciliation', () => {
                     perspective: PLAYER_B_PERSPECTIVE
                 })
             } else {
-                await reconciliation.enqueue({
+                await lines.enqueue({
                     kind: 'manifest',
                     manifest: {
                         startIndex: 0,
@@ -474,7 +496,7 @@ describe('Checkpoint reconciliation', () => {
         const start = context.state.actionCount
         host.apply(createBid('d-canonical-notification', PLAYER_D_ID, 2))
         const recover = vi.fn(async () => {})
-        const reconciliation = new GameReconciliation(context, {
+        const lines = linesFor(context, {
             checkSync: async () => {
                 throw Error('Unexpected sync')
             },
@@ -485,7 +507,7 @@ describe('Checkpoint reconciliation', () => {
             recover,
             acceptsPerspective: () => false
         })
-        await reconciliation.enqueue({
+        await lines.enqueue({
             kind: 'actions',
             actions: host.actionsSnapshot().slice(start),
             handling: ServerActionHandling.Execute,

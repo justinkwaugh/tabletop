@@ -18,7 +18,8 @@ import {
     type NotificationEvent,
     type NotificationService
 } from '../services/notificationService.js'
-import { ServerActionHandling, type ReconciliationUpdate } from './gameReconciliation.js'
+import type { ReconciliationUpdate } from './gameLines.js'
+import { ServerActionHandling } from './gameReconciliation.js'
 
 interface NotificationDelivery {
     usesProjection: boolean

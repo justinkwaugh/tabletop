@@ -10,8 +10,6 @@ import {
     type GameState,
     type HydratedGameState,
     type ProcessedActionReplay,
-    type ActionHistoryPosition,
-    type UnmergedBranch,
     Visibility
 } from '@tabletop/common'
 import type { RemoteApiService } from '../services/remoteApiService.js'
@@ -23,191 +21,49 @@ export enum ServerActionHandling {
     ApplyProcessed = 'applyProcessed'
 }
 
-export type ReconciliationUpdate =
-    | { kind: 'actions'; actions: GameAction[]; handling: ServerActionHandling; game: Game }
-    | {
-          kind: 'replacement'
-          replay: ProcessedActionReplay
-          checksum: number
-          game: Game
-          perspective: Visibility.Perspective
-      }
-    | {
-          kind: 'manifest'
-          manifest: CanonicalActionReplayManifest
-          redoneActions: GameAction[]
-          checksum: number
-          game: Game
-      }
-    | {
-          kind: 'branch'
-          unmergedBranch: UnmergedBranch
-          undoneActionIds: readonly string[]
-          game: Game
-          perspective: Visibility.Perspective
-      }
-    | { kind: 'synchronize' }
-
-export interface ReconciliationRemote<T extends GameState, U extends HydratedGameState<T> & T> {
-    checkSync: RemoteApiService['checkSync']
-    reload(): Promise<LoadedGame<T, U>>
-    branchPosition(): ActionHistoryPosition | undefined
-    adoptBranch(unmergedBranch: UnmergedBranch | undefined): void
-    followBranch(unmergedBranch: UnmergedBranch, undoneActionIds: readonly string[]): boolean
-    isPaused(): boolean
-    recover(): Promise<void>
-    acceptsPerspective(perspective: Visibility.Perspective): boolean
-    beforeSynchronizationUpdate?(): void
-}
-
-export interface LoadedGame<T extends GameState, U extends HydratedGameState<T> & T> {
-    context: GameContext<T, U>
-    unmergedBranch?: UnmergedBranch
-}
-
 export interface OptimisticSubmission<T extends GameState, U extends HydratedGameState<T> & T> {
     before: GameContext<T, U>
     result: ActionResults<T>
 }
 
+type SyncAnswer = Pick<
+    Awaited<ReturnType<RemoteApiService['checkSync']>>,
+    'status' | 'actions' | 'checksum'
+>
+
+export type SubmissionAnswer = Awaited<ReturnType<RemoteApiService['applyAction']>>
+
 export class GameReconciliation<T extends GameState, U extends HydratedGameState<T> & T> {
-    private pending: ReconciliationUpdate[] = []
-    private draining = false
+    constructor(private readonly context: GameContext<T, U>) {}
 
-    constructor(
-        private readonly context: GameContext<T, U>,
-        private readonly remote?: ReconciliationRemote<T, U>
-    ) {}
-
-    async enqueue(update: ReconciliationUpdate): Promise<void> {
-        this.pending.push(update)
-        await this.resume()
-    }
-
-    clearPending(): void {
-        this.pending = []
-    }
-
-    invalidatePendingRepresentation(): void {
-        if (this.pending.length > 0) {
-            this.pending = [{ kind: 'synchronize' }]
-        }
-    }
-
-    async resume(): Promise<void> {
-        if (this.draining) {
-            return
-        }
-        const remote = this.remote
-        assertExists(remote, 'Queued reconciliation requires a remote host')
-        this.draining = true
-        try {
-            while (!remote.isPaused() && this.pending.length > 0) {
-                const update = this.pending.shift()
-                assertExists(update, 'A queued server update must exist')
-                try {
-                    if (update.kind === 'synchronize') {
-                        await remote.recover()
-                    } else if (update.kind === 'replacement') {
-                        if (
-                            update.game.id === this.context.game.id &&
-                            remote.acceptsPerspective(update.perspective)
-                        ) {
-                            this.replace(update.replay, update.checksum, update.game)
-                        }
-                    } else if (update.kind === 'branch') {
-                        if (
-                            update.game.id === this.context.game.id &&
-                            remote.acceptsPerspective(update.perspective) &&
-                            !remote.followBranch(update.unmergedBranch, update.undoneActionIds)
-                        ) {
-                            await remote.recover()
-                        }
-                    } else if (update.kind === 'manifest') {
-                        if (update.game.id === this.context.game.id) {
-                            this.replaceFromManifest(
-                                update.manifest,
-                                update.redoneActions,
-                                update.checksum,
-                                update.game
-                            )
-                        }
-                    } else {
-                        this.apply(update.actions, update.handling, update.game)
-                    }
-                } catch (error) {
-                    console.error('Error applying server update:', error)
-                    this.clearPending()
-                    await remote.recover()
-                }
-            }
-        } finally {
-            this.draining = false
-        }
-    }
-
-    async synchronize(isCurrent: () => boolean, forceReload = false): Promise<'current' | 'stale'> {
-        if (forceReload) return this.reload(isCurrent)
-        const remote = this.remote
-        assertExists(remote, 'Synchronization requires a remote host')
+    catchUp(answer: SyncAnswer): boolean {
         const prior = this.context.clone()
+        let caughtUp = false
         try {
-            const { status, actions, checksum, branchSync } = await remote.checkSync(
-                this.context.game.id,
-                this.context.state.actionChecksum,
-                this.context.state.actionCount - 1,
-                remote.branchPosition()
-            )
-            if (!isCurrent()) {
-                return 'stale'
-            }
-            let needsResync = status !== GameSyncStatus.InSync
-            if (needsResync || actions.length > 0) remote.beforeSynchronizationUpdate?.()
-            if (!needsResync && actions.length > 0) {
-                this.apply(
-                    actions,
-                    Visibility.getGameVisibility(this.context.game, this.context.runtime) ===
-                        undefined
-                        ? ServerActionHandling.Execute
-                        : ServerActionHandling.ApplyProcessed
-                )
-                needsResync = this.context.state.actionChecksum !== checksum
-            }
-            if (!needsResync || this.tryResync(actions, checksum)) {
-                if (branchSync?.status === GameSyncStatus.OutOfSync) {
-                    remote.beforeSynchronizationUpdate?.()
-                    remote.adoptBranch(branchSync.unmergedBranch)
-                }
-                return 'current'
-            }
-        } catch (error) {
-            console.log('Incremental synchronization failed', error)
+            caughtUp = this.applySyncAnswer(answer)
+        } finally {
+            if (!caughtUp) this.context.restoreFrom(prior)
         }
-        if (!isCurrent()) {
-            return 'stale'
-        }
-        remote.beforeSynchronizationUpdate?.()
-        this.context.restoreFrom(prior)
-        return this.reload(isCurrent)
+        return caughtUp
     }
 
-    private async reload(isCurrent: () => boolean): Promise<'current' | 'stale'> {
-        const remote = this.remote
-        assertExists(remote, 'Reload requires a remote host')
-        if (!isCurrent()) return 'stale'
-        remote.beforeSynchronizationUpdate?.()
-        const replacement = await remote.reload()
-        if (!isCurrent()) {
-            return 'stale'
+    private applySyncAnswer({ status, actions, checksum }: SyncAnswer): boolean {
+        let needsResync = status !== GameSyncStatus.InSync
+        if (!needsResync && actions.length > 0) {
+            this.apply(
+                actions,
+                Visibility.getGameVisibility(this.context.game, this.context.runtime) === undefined
+                    ? ServerActionHandling.Execute
+                    : ServerActionHandling.ApplyProcessed
+            )
+            needsResync = this.context.state.actionChecksum !== checksum
         }
-        this.context.restoreFrom(replacement.context)
-        remote.adoptBranch(replacement.unmergedBranch)
-        return 'current'
+        return !needsResync || this.tryResync(actions, checksum)
     }
 
     acceptSubmission(
         actionId: string,
-        response: Awaited<ReturnType<RemoteApiService['applyAction']>>,
+        response: SubmissionAnswer,
         optimistic?: OptimisticSubmission<T, U>
     ): void {
         const accepted = response.actions.find((action) => action.id === actionId)
@@ -256,26 +112,16 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         this.context.verifyFullChecksum()
     }
 
+    continues(actions: readonly GameAction[]): boolean {
+        const next = actions.find((action) => !this.context.hasAction(action.id))
+        return next?.index === undefined || next.index <= this.context.state.actionCount
+    }
+
     applyProcessed(actions: readonly GameAction[]): void {
         this.apply(actions, ServerActionHandling.ApplyProcessed)
     }
 
-    continueWith(actions: GameAction[], game: Game): boolean {
-        const handling = ServerActionHandling.ApplyProcessed
-        const next = actions.find((action) => !this.context.hasAction(action.id))
-        if (next?.index !== undefined && next.index > this.context.state.actionCount) {
-            this.pending.push({ kind: 'actions', actions, handling, game })
-            return false
-        }
-        this.apply(actions, handling, game)
-        return true
-    }
-
-    private apply(
-        actions: readonly GameAction[],
-        handling: ServerActionHandling,
-        game?: Game
-    ): void {
+    apply(actions: readonly GameAction[], handling: ServerActionHandling, game?: Game): void {
         const gameSnapshot = structuredClone(this.context.game)
         let state = structuredClone(this.context.state)
         const results = new GameActionResults<T>([], state)
