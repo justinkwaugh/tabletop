@@ -133,6 +133,8 @@ export type TableName =
     | 'cardChangesSearch'
     | 'cardsOpenTravel'
     | 'travelToll'
+    | 'hospitality'
+    | 'hospitalityToll'
     | 'majorEvents'
     | 'sinceLastTurn'
     | 'sinceLastTurnLong'
@@ -2963,6 +2965,73 @@ function travelTollTable(): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * Hospitality on Dana's Travel from the River: she holds Hospitality (nomad), War Tortoise (beast)
+ * and Crop Rotation (hearth). The Plains hold Wolves (one bank, beast); the Wastes Oracle and
+ * Birdsong (two banks, beast and nomad); the Drowned City Forced Labor (no match); the Great Slum,
+ * which Rhys rules, Toll Roads and Rowdy Pub (hearth, whose bank is empty unless `hearth`). The
+ * Shrouded Wood, the Mountain and the Hidden Place hold no card.
+ */
+function hospitalityTable(hearth: boolean): PlayedTable {
+    const [river, plains] = mapSlotsFor(Region.Cradle)
+    const [city, wood, slum] = mapSlotsFor(Region.Provinces)
+    const [mountain, hidden, wastes] = mapSlotsFor(Region.Hinterland)
+    const advisers = [
+        'denizen.nomad.hospitality',
+        'denizen.beast.war-tortoise',
+        'denizen.hearth.crop-rotation'
+    ].map((cardId) => ({ cardId, faceUp: true }))
+    const state = testState(
+        [
+            testPlayer({ playerId: 'dana', color: Color.Purple, siteId: river, supply: 7, favor: 3, secrets: 1, advisers }),
+            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: slum, favor: 3, warbandsOnBoard: { rhys: 3 } }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                status: PlayerStatus.Chancellor,
+                siteId: mountain
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: {
+                [river]: 'site.river',
+                [plains]: 'site.plains',
+                [city]: 'site.drowned-city',
+                [wood]: 'site.shrouded-wood',
+                [slum]: 'site.great-slums',
+                [mountain]: 'site.mountain',
+                [hidden]: 'site.the-hidden-place',
+                [wastes]: 'site.wastes'
+            },
+            denizensBySite: {
+                [river]: [],
+                [plains]: ['denizen.beast.wolves'],
+                [city]: ['denizen.order.forced-labor'],
+                [wood]: [],
+                [slum]: ['denizen.order.toll-roads', 'denizen.hearth.rowdy-pub'],
+                [mountain]: [],
+                [hidden]: [],
+                [wastes]: ['denizen.nomad.oracle', 'denizen.beast.birdsong']
+            },
+            warbandsBySite: { [slum]: { rhys: 2 } },
+            favorBank: {
+                [Suit.Discord]: 3,
+                [Suit.Arcane]: 2,
+                [Suit.Order]: 2,
+                [Suit.Hearth]: hearth ? 2 : 0,
+                [Suit.Beast]: 3,
+                [Suit.Nomad]: 2
+            }
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
 const STACKED_CARDS = [
     'denizen.order.longbows',
     'denizen.hearth.wayside-inn',
@@ -4494,6 +4563,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     cardChangesSearch: () => mushroomsTable(2),
     cardsOpenTravel: travelCardsTable,
     travelToll: travelTollTable,
+    hospitality: () => hospitalityTable(false),
+    hospitalityToll: () => hospitalityTable(true),
     majorEvents: majorEventsTable,
     sinceLastTurn: () => sinceLastTurnTable(false),
     sinceLastTurnLong: () => sinceLastTurnTable(true),

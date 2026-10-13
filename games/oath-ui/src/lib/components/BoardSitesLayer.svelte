@@ -4,7 +4,7 @@
     import BoardCard from '$lib/components/BoardCard.svelte'
     import SiteMagnifier from '$lib/components/SiteMagnifier.svelte'
     import TokenPair from '$lib/components/TokenPair.svelte'
-    import { cardName, siteName, slotLabel } from '$lib/model/names.js'
+    import { cardName, siteName, slotLabel, suitName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { dimsTheMap, type SiteOffer } from '$lib/model/actionOffers.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
@@ -16,6 +16,7 @@
         type TravelChip
     } from '$lib/model/travelOnTheMap.js'
     import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
+    import { suitImage } from '$lib/images/suitImages.js'
     import { cardAspect } from '$lib/images/cardShape.js'
     import { SITE_SLOT_RECTS, SITE_TOKEN_RADIUS, fitRect } from '$lib/definitions/boardGeometry.js'
 
@@ -160,6 +161,7 @@
         />
 
         {#if text.chip !== undefined}
+            <!-- Hospitality's gain ends the chip in a dark part: "+1 [favor] [suit] or [suit]". -->
             <span class="travel-cost" class:targeted>
                 {#if 'words' in text.chip}
                     {text.chip.words}
@@ -167,7 +169,19 @@
                     {#each text.chip.ways as way, index (index)}
                         {#if index > 0}<span class="travel-cost__or">{' or '}</span>{/if}
                         {@render chipWay(way)}
-                    {/each}
+                    {/each}{#if text.chip.banks}<span class="travel-cost__gain"
+                            >+1<img
+                                class="travel-cost__token"
+                                src={favorTokenImage()}
+                                alt="favor"
+                            />{#each text.chip.banks as suit, index (suit)}{#if index > 0}<span
+                                        class="travel-cost__or">{' or '}</span
+                                    >{/if}<img
+                                    class="travel-cost__token travel-cost__suit"
+                                    src={suitImage(suit)}
+                                    alt={`the ${suitName(suit)} bank`}
+                                />{/each}</span
+                        >{/if}
                 {/if}
             </span>
         {/if}
@@ -241,6 +255,23 @@
         align-items: center;
     }
 
+    /* Hospitality's gain is not a cost, so not gold: the chip's right end turns dark for it. */
+    .travel-cost__gain {
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        align-self: stretch;
+        margin: -2px -10px -1px 0.35em;
+        padding: 2px 10px 1px 0.35em;
+        border-radius: 0 999px 999px 0;
+        background: #1c1917;
+        color: #fafaf9;
+    }
+
+    .travel-cost__suit {
+        margin-left: 0.15em;
+    }
+
     /* "or" reads smaller than the costs it joins. */
     .travel-cost__or {
         font-size: 0.7em;
@@ -278,6 +309,11 @@
         white-space: normal;
         text-align: center;
         justify-content: center;
+    }
+
+    .site.on-map .travel-cost__gain {
+        margin: -3px -20px -2px 0.35em;
+        padding: 3px 20px 2px 0.35em;
     }
 
     /* Top-left: the only corner the site's own print leaves free. */

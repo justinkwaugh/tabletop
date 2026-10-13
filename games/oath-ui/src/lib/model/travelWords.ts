@@ -1,4 +1,4 @@
-import { cardName } from './names.js'
+import { cardName, suitName } from './names.js'
 import type { TravelChoice, TravelRow } from './travelRows.js'
 
 /** R-9.4 — a facedown destination is never named. */
@@ -19,6 +19,7 @@ export function travelSpoken(
         parts.push(`give 1 favor to ${payee(way.favorTo[index], nameOf)} (${cardName(cardId)})`)
     })
     if (way.flipSecret) parts.push('flip a secret facedown')
+    if (way.hospitality) parts.push(`gain 1 favor from the ${suitName(way.hospitality)} bank`)
     return `Travel to ${destinationName(row)}: ${parts.join(', ')}`
 }
 

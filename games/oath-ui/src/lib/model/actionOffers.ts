@@ -15,6 +15,7 @@ import {
     type TollOccasion,
     type TravelTerms
 } from '@tabletop/oath'
+import type { TravelChoice } from './travelRows.js'
 
 /**
  * R-1.23.1 — Setup's start sites on the map: lit while the pick is open (`pickable`), the one
@@ -54,7 +55,8 @@ export type SiteOffer =
           intent: 'travel'
           cost: number | undefined
           toll: string
-          ways: TravelWay[]
+          /** Each way to pay, once per bank Hospitality could gain from there. */
+          ways: TravelChoice[]
           /** Its ways to pay are open in the panel, as a map pick opens them. */
           picked: boolean
       }

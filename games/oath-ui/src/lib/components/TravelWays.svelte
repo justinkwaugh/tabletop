@@ -4,15 +4,17 @@
     import { CARD_ASPECT } from '$lib/images/cardShape.js'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
+    import { suitImage } from '$lib/images/suitImages.js'
+    import { suitName } from '$lib/model/names.js'
     import type { TravelChoice, TravelRow } from '$lib/model/travelRows.js'
     import { destinationName, tollFavor, travelSpoken } from '$lib/model/travelWords.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    // R-11.12, R-7.1.4 — a destination picked on the map with more than one way to pay, or a
-    // toll: the site, and a button per way, each as wide as the widest label; Undo closes it. On
-    // a desktop and on a phone held sideways the site, its name and the ways stand on one row;
-    // held upright the name alone tops the site's picture, drawn as large as fits, with the ways
-    // stacked to its right.
+    // R-11.12, R-7.1.4 — a destination picked on the map with more than one way to pay, a toll,
+    // or more than one bank for Hospitality: the site, and a button per way and bank, each as wide
+    // as the widest label; Undo closes it. On a desktop and on a phone held sideways the site, its
+    // name and the ways stand on one row; held upright the name alone tops the site's picture,
+    // drawn as large as fits, with the ways stacked to its right.
     let { row, upright }: { row: TravelRow; upright: boolean } = $props()
 
     let gameSession = getGameSession()
@@ -45,6 +47,18 @@
         {#if way.flipSecret}
             <span>+</span>
             <img class="ways__token" src={secretTokenImage()} alt="secret" />
+        {/if}
+        {#if way.hospitality}
+            <!-- Hospitality's gain after the cost, in the text colour: "· +1 [favor] [suit]". -->
+            <span class="inline-flex items-center gap-1 text-oath-text">
+                <span>· +1</span>
+                <img class="ways__token" src={favorTokenImage()} alt="favor" />
+                <img
+                    class="ways__token"
+                    src={suitImage(way.hospitality)}
+                    alt={`the ${suitName(way.hospitality)} bank`}
+                />
+            </span>
         {/if}
     </span>
 {/snippet}

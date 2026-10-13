@@ -8563,3 +8563,185 @@ test.describe('scenario 69: a power’s piles, banks, “may” and “or”', (
         })
     }
 })
+
+/**
+ * docs/ui-interaction-visual-contract.md, Choose a Travel destination: Hospitality starts in use
+ * and its gain shows on each destination it fits, with its bank's suit, and is sent with the way.
+ * Dana is at the River; the Plains match one bank (beast), the Wastes two (beast and nomad), the
+ * Drowned City none, and the Great Slum's hearth bank is empty unless the table gives it favor.
+ */
+test.describe('Hospitality on a Travel', () => {
+    const plains = 'slot.cradle.1'
+    const city = 'slot.provinces.0'
+    const slum = 'slot.provinces.2'
+    const wastes = 'slot.hinterland.2'
+    const hospitality = 'denizen.nomad.hospitality'
+    const chipOf = (page: Page, slotId: string) => siteAt(page, slotId).locator('.travel-cost')
+    const gainOf = (page: Page, slotId: string) => chipOf(page, slotId).locator('.travel-cost__gain')
+    const bankWay = (page: Page, suit: string) =>
+        grid(page).getByRole('button', { name: new RegExp(`gain 1 favor from the ${suit} bank$`) })
+    const facts = (page: Page) => call(page, 'tableFacts')
+
+    /** The chip stands on one line, wholly on its card, the gain's dark end level with the cost. */
+    async function oneLineOnItsCard(page: Page, slotId: string) {
+        const chip = await boxOf(chipOf(page, slotId))
+        const gain = await boxOf(gainOf(page, slotId))
+        const fontSize = await chipOf(page, slotId).evaluate((element) =>
+            parseFloat(getComputedStyle(element).fontSize)
+        )
+        expect(inside(chip, await boxOf(siteCard(page, slotId)))).toBe(true)
+        expect(chip.height).toBeLessThan(fontSize * 1.6)
+        expect(gain.y).toBeGreaterThanOrEqual(chip.y - 0.5)
+        expect(gain.y + gain.height).toBeLessThanOrEqual(chip.y + chip.height + 0.5)
+        expect(gain.x + gain.width).toBeCloseTo(chip.x + chip.width, 0)
+    }
+
+    test('on a desktop it starts in use with no bank asked; every destination stays lit, the gain on those it fits', async ({ page }) => {
+        await openTable(page, 'hospitality')
+        await tile(page, 'Travel').click()
+        await expect(travelPrompt(page)).toBeVisible()
+        await expect(cardToggle(page, hospitality)).toHaveAttribute('aria-pressed', 'true')
+        await expect(grid(page)).not.toContainText('Hospitality:')
+        await expect(grid(page)).not.toContainText('a bank matching')
+        expect(await litSlots(page)).toEqual([...(await call(page, 'legalTravelDestinations'))].sort())
+
+        await expect(chipOf(page, plains)).toHaveText(/^\s*\d\s*\+1\s*$/)
+        await expect(gainOf(page, plains).getByRole('img', { name: 'favor' })).toBeVisible()
+        await expect(gainOf(page, plains).getByRole('img', { name: 'the Beast bank' })).toBeVisible()
+        await expect(gainOf(page, wastes).getByRole('img', { name: /^the (Beast|Nomad) bank$/ })).toHaveCount(2)
+        await expect(gainOf(page, wastes)).toContainText('or')
+        await expect(gainOf(page, city)).toHaveCount(0)
+        await expect(gainOf(page, slum)).toHaveCount(0)
+        const background = (locator: Locator) =>
+            locator.evaluate((element) => getComputedStyle(element).backgroundColor)
+        expect(await background(gainOf(page, plains))).not.toBe(await background(chipOf(page, plains)))
+
+        // One way, one bank and no toll: the click travels, taking the beast bank's favor.
+        const before = await facts(page)
+        await siteCard(page, plains).click()
+        await expect.poll(async () => (await facts(page)).siteOf.dana).toBe(plains)
+        const after = await facts(page)
+        expect(after.favorBank.beast).toBe(before.favorBank.beast - 1)
+        expect(after.favorOf.dana).toBe(before.favorOf.dana + 1)
+        await page.getByRole('tab', { name: 'History' }).click()
+        const row = page.getByRole('tabpanel', { name: 'History' }).getByRole('listitem').first()
+        await expect(row).toContainText(/traveled to Plains, spending \d Supply; gained 1\s*from\s*\(Hospitality\)/)
+        await expect(row.getByRole('img', { name: 'the Beast bank' })).toBeVisible()
+    })
+
+    test('on a desktop two banks are two ways, each its cost and gain; Undo closes them; the way clicked sends its bank', async ({ page }) => {
+        await openTable(page, 'hospitality')
+        await tile(page, 'Travel').click()
+        await siteCard(page, wastes).click()
+        await expect(bankWay(page, 'Beast')).toHaveCount(1)
+        await expect(bankWay(page, 'Nomad')).toHaveCount(1)
+        for (const suit of ['Beast', 'Nomad']) {
+            await expect(bankWay(page, suit)).toHaveText(/^\s*\d Supply\s*· \+1\s*$/)
+            await expect(bankWay(page, suit).getByRole('img', { name: `the ${suit} bank` })).toBeVisible()
+        }
+        const [one, other] = [await boxOf(bankWay(page, 'Beast')), await boxOf(bankWay(page, 'Nomad'))]
+        expect(other.width).toBeCloseTo(one.width, 0)
+        expect((await facts(page)).siteOf.dana).toBe('slot.cradle.0')
+
+        await undoButton(page).click()
+        await expect(bankWay(page, 'Beast')).toHaveCount(0)
+        await expect(travelPrompt(page)).toBeVisible()
+
+        await siteCard(page, wastes).click()
+        const before = await facts(page)
+        await bankWay(page, 'Nomad').click()
+        await expect.poll(async () => (await facts(page)).siteOf.dana).toBe(wastes)
+        const after = await facts(page)
+        expect(after.favorBank.nomad).toBe(before.favorBank.nomad - 1)
+        expect(after.favorBank.beast).toBe(before.favorBank.beast)
+    })
+
+    test('put down, the gains leave the sites and the Travel is sent without it', async ({ page }) => {
+        await openTable(page, 'hospitality')
+        await tile(page, 'Travel').click()
+        await cardToggle(page, hospitality).click()
+        await expect(cardToggle(page, hospitality)).toHaveAttribute('aria-pressed', 'false')
+        await expect(page.locator('.travel-cost__gain')).toHaveCount(0)
+        await expect(chipOf(page, plains)).toHaveText(/^\s*\d Supply\s*$/)
+        const before = await facts(page)
+        await siteCard(page, plains).click()
+        await expect.poll(async () => (await facts(page)).siteOf.dana).toBe(plains)
+        expect((await facts(page)).favorBank).toEqual(before.favorBank)
+    })
+
+    test('Toll Roads and a gain on one site: one way reads the toll then the gain, and sends both', async ({ page }) => {
+        await openTable(page, 'hospitalityToll')
+        await tile(page, 'Travel').click()
+        await expect(chipOf(page, slum).getByRole('img', { name: 'favor' })).toHaveCount(2)
+        await expect(gainOf(page, slum).getByRole('img', { name: 'the Hearth bank' })).toBeVisible()
+        await siteCard(page, slum).click()
+        const way = bankWay(page, 'Hearth')
+        await expect(way).toHaveCount(1)
+        await expect(way).toHaveAccessibleName(/give 1 favor to rhys \(Toll Roads\), gain 1 favor from the Hearth bank$/)
+        await expect(way).toContainText(/\d Supply\s*\+ 1\s*to\s*rhys\s*· \+1/)
+        const before = await facts(page)
+        await way.click()
+        await expect.poll(async () => (await facts(page)).siteOf.dana).toBe(slum)
+        const after = await facts(page)
+        expect(after.favorOf.rhys).toBe(before.favorOf.rhys + 1)
+        expect(after.favorBank.hearth).toBe(before.favorBank.hearth - 1)
+        expect(after.favorOf.dana).toBe(before.favorOf.dana)
+    })
+
+    test.describe('on a phone held upright', () => {
+        test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
+
+        test('one bank: the chip is the gold cost and a dark end with the gain; a tap travels', async ({ page }) => {
+            await openTable(page, 'hospitality')
+            await chooseTravelOnThePhone(page)
+            await expect.poll(() => onScreen(page, siteCard(page, plains))).toBe(true)
+            await expect(chipOf(page, plains)).toHaveText(/^\s*\d\s*\+1\s*$/)
+            await oneLineOnItsCard(page, plains)
+            const token = gainOf(page, plains).getByRole('img', { name: 'the Beast bank' })
+            const fontSize = await chipOf(page, plains).evaluate((element) => parseFloat(getComputedStyle(element).fontSize))
+            expect((await boxOf(token)).height).toBeLessThanOrEqual(fontSize * 0.8)
+
+            const before = await facts(page)
+            await siteCard(page, plains).tap()
+            await expect.poll(async () => (await facts(page)).siteOf.dana).toBe(plains)
+            expect((await facts(page)).favorBank.beast).toBe(before.favorBank.beast - 1)
+        })
+
+        test('two banks: the chip reads both suits on one line; a tap opens a way per bank, stacked; Undo closes them', async ({ page }) => {
+            await openTable(page, 'hospitality')
+            await chooseTravelOnThePhone(page)
+            await regionChip(page, 'Hinterland').tap()
+            await expect.poll(() => onScreen(page, siteCard(page, wastes))).toBe(true)
+            await expect(gainOf(page, wastes)).toContainText('or')
+            await oneLineOnItsCard(page, wastes)
+
+            await siteCard(page, wastes).tap()
+            const [one, other] = [await boxOf(bankWay(page, 'Beast')), await boxOf(bankWay(page, 'Nomad'))]
+            expect(other.x).toBeCloseTo(one.x, 0)
+            expect(other.y).toBeGreaterThan(one.y + one.height - 1)
+            expect(other.width).toBeCloseTo(one.width, 0)
+            expect((await facts(page)).siteOf.dana).toBe('slot.cradle.0')
+
+            await undoButton(page).tap()
+            await expect(bankWay(page, 'Beast')).toHaveCount(0)
+            await expect(travelPrompt(page)).toBeVisible()
+
+            await regionChip(page, 'Hinterland').tap()
+            await expect.poll(() => onScreen(page, siteCard(page, wastes))).toBe(true)
+            await siteCard(page, wastes).tap()
+            const before = await facts(page)
+            await bankWay(page, 'Beast').tap()
+            await expect.poll(async () => (await facts(page)).siteOf.dana).toBe(wastes)
+            expect((await facts(page)).favorBank.beast).toBe(before.favorBank.beast - 1)
+        })
+
+        test('a toll and a gain: the chip reads the toll then the gain on one line, on its card', async ({ page }) => {
+            await openTable(page, 'hospitalityToll')
+            await chooseTravelOnThePhone(page)
+            await regionChip(page, 'Provinces').tap()
+            await expect.poll(() => onScreen(page, siteCard(page, slum))).toBe(true)
+            await expect(chipOf(page, slum).getByRole('img', { name: 'favor' })).toHaveCount(2)
+            await oneLineOnItsCard(page, slum)
+        })
+    })
+})
