@@ -233,8 +233,11 @@ export function setupTargets(
     step: SetupStep
 ): SetupTarget[] {
     const { setup, open } = step
+    // Turning a corps or the fixed battery can make the battery one of the six detachments, so a turn is offered only where the set-up still fits.
+    const stillFitting = (targets: SetupTarget[]) =>
+        targets.filter((target) => fits(state, playerId, withTargetChosen(step, target)))
     if (open.kind === DestinationKind.Corps) {
-        return stanceTargets(state.map, setup, open.commanderId)
+        return stillFitting(stanceTargets(state.map, setup, open.commanderId))
     }
     const unitId = unitInHand(step)
     if (unitId === undefined) {
@@ -243,7 +246,7 @@ export function setupTargets(
     if (setup.detached.some((entry) => entry.unitId === unitId)) {
         return state.santon && setup.fixedBatteryId === unitId
             ? []
-            : postStances(state.map, setup, unitId)
+            : stillFitting(postStances(state.map, setup, unitId))
     }
     return PLACING_APART[open.kind].posts(state, playerId, setup, unitId)
 }

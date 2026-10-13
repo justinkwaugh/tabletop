@@ -2,7 +2,7 @@ import { assertExists } from '@tabletop/common'
 import type { ApproachId } from '../components/battleMap.js'
 import { isGuard } from '../components/pieces.js'
 import type { ThreatOrder } from './attack.js'
-import { canThreaten } from './attackOrders.js'
+import { canThreaten, mayAttackInPlace } from './attackOrders.js'
 import { currentAttack, attackLocale, defenseLocale } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { validateDefenseLeaders } from './leaders.js'
@@ -162,7 +162,7 @@ export function canPressAttack(state: HydratedNapoleonsTriumphGameState): boolea
     return [
         ...state.reserveUnits(locale, attack.attackerId),
         ...state.blockers(attack.attackApproach, attack.attackerId)
-    ].some((unit) => hasUsableCommand(state, unit))
+    ].some((unit) => mayAttackInPlace(state, unit, attack.attackApproach))
 }
 
 /** Rule 11, step 4 made public once the attacker presses on. */

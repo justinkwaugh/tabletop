@@ -375,3 +375,39 @@ describe('artillery attacking from the Santon (rule 18)', () => {
         expect(defending.state.machineState).toBe(MachineState.FeintDecision)
     })
 })
+
+describe('artillery on the Santon other than the fixed battery (rule 18)', () => {
+    it('cannot hold its ground after a retreat before combat, since it could not have led', () => {
+        const game = frenchTurn(
+            [
+                {
+                    id: 'F-gun',
+                    side: Side.French,
+                    face: artillery(),
+                    locale: SANTON_LOCALE,
+                    facing: BELOW
+                },
+                allied('A-inf', infantry(3))
+            ],
+            santonRule
+        )
+        threaten(game, Side.French, SANTON_LOCALE, BELOW)
+        const [refuge] = AUSTERLITZ.reachableNeighbours(BELOW).filter(
+            (locale) => locale !== SANTON_LOCALE
+        )
+        const loss = AUSTERLITZ.approachBetween(BELOW, SANTON_LOCALE).wide ? 2 : 1
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: { 'A-inf': loss },
+            destinations: { 'A-inf': refuge },
+            kept: {}
+        })
+        expect(() =>
+            game.act(ActionType.Occupy, game.playerOf(Side.French), {
+                orders: [unitMove('F-gun')],
+                artilleryStays: true
+            })
+        ).toThrow(/could have led/)
+        game.act(ActionType.Occupy, game.playerOf(Side.French), { orders: [unitMove('F-gun')] })
+        expect(game.hydrated.unit('F-gun').position).toEqual({ locale: BELOW })
+    })
+})

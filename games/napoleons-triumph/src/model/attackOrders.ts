@@ -146,6 +146,15 @@ export function artilleryMayFire(
     return state.map.locale(approach.locale).hill && !state.map.locale(approach.neighbour).hill
 }
 
+/** Rule 6, step 9: the fixed battery never moves, so it attacks only by firing: it can neither follow up a retreat nor press an attack where it may not fire. */
+export function mayAttackInPlace(
+    state: HydratedNapoleonsTriumphGameState,
+    unit: ProjectedUnit,
+    attackApproach: ApproachId
+): boolean {
+    return hasUsableCommand(state, unit) && (!unit.fixed || artilleryMayFire(state, attackApproach))
+}
+
 /** Rule 11, step 1: a threat must be one the attacker can carry out whichever way the defender answers. */
 export function canThreaten(
     state: HydratedNapoleonsTriumphGameState,
@@ -157,12 +166,7 @@ export function canThreaten(
         ...state.reserveUnits(approach.locale, playerId),
         ...state.blockers(approach.id, playerId)
     ]
-    // Rule 11, step 2: the fixed battery cannot follow up a retreat, so it threatens only where it could fire.
-    const standing = inPlace.some(
-        (unit) =>
-            hasUsableCommand(state, unit) &&
-            (!unit.fixed || artilleryMayFire(state, attackApproach))
-    )
+    const standing = inPlace.some((unit) => mayAttackInPlace(state, unit, attackApproach))
     return standing || roadThreats(state, playerId, attackApproach).length > 0
 }
 

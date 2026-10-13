@@ -424,6 +424,33 @@ describe('the fixed battery', () => {
         ).toThrow()
     })
 
+    it('cannot press an attack it may not fire in, when cavalry up the road made the threat', () => {
+        const game = frenchTurn([
+            { id: 'F-fixed', side: Side.French, face: artillery(), locale: TAKEN, facing: BEYOND },
+            { id: 'F-cav', side: Side.French, face: cavalry(2), locale: NEAR },
+            { id: 'A-inf', side: Side.Allied, face: infantry(3), locale: BEYOND }
+        ])
+        const facing = approach(game, TAKEN, BEYOND)
+        game.arrange((state) => {
+            state.unit('F-fixed').fixed = true
+            state.artilleryFire[String(facing)] = state.round - 1
+        })
+        const french = game.playerOf(Side.French)
+        game.act(ActionType.ThreatenAttack, french, { approach: facing })
+        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
+            unitIds: ['A-inf'],
+            leaderIds: []
+        })
+
+        expect(() => game.act(ActionType.PressAttack, french)).toThrow()
+        game.act(ActionType.DeclareFeint, french, {
+            orders: [{ ...rider, road: [TAKEN] }],
+            end: FeintEnd.Reserve
+        })
+        expect(game.hydrated.attack).toBeUndefined()
+        expect(game.hydrated.unit('F-cav').position).toEqual({ locale: TAKEN })
+    })
+
     it('holds its ground after a retreat only if it could have fired', () => {
         const game = emplaced(TAKEN, BEYOND)
         const facing = approach(game, TAKEN, BEYOND)

@@ -227,17 +227,17 @@ function validateFixedBattery(
     deployment: Deployment,
     placed: Placement[]
 ) {
-    const artilleryOnMap = placed.filter(
-        (placement) =>
-            placement.position !== undefined && faceOf(placement.unit).type === UnitType.Artillery
-    )
-    if (state.sideOf(playerId) !== Side.French || artilleryOnMap.length === 0) {
+    if (state.sideOf(playerId) !== Side.French) {
         legal(deployment.fixedBattery === undefined, 'There is no fixed battery to name')
         return
     }
     const battery = deployment.fixedBattery
     legal(battery !== undefined, 'The French name one battery on the map as their fixed battery')
-    const placement = artilleryOnMap.find((candidate) => candidate.unit.id === battery.unitId)
+    const placement = placed.find(
+        (candidate) =>
+            candidate.unit.id === battery.unitId &&
+            faceOf(candidate.unit).type === UnitType.Artillery
+    )
     legal(placement?.position !== undefined, 'The fixed battery is an artillery unit on the map')
     // Table ruling: with the Santon rule in use the fixed battery stands on the Santon, as it did. Rule 18 itself only says what follows if it sets up there.
     if (state.santon) {
@@ -263,6 +263,11 @@ function validateFixedBattery(
         battery.approach !== undefined &&
         battery.approach !== placement.position.approach
     ) {
+        // Rule 6, step 9 repositions the battery only "if it is in reserve"; from an approach its corps blocks it goes elsewhere as one of the six detachments.
+        legal(
+            placement.position.approach === undefined,
+            'The fixed battery leaves an approach its corps blocks only as a detachment'
+        )
         const corps = placed.filter((candidate) => candidate.commanderId === placement.commanderId)
         legal(corps.length > 1, 'A commander cannot detach its last unit')
     }

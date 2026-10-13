@@ -391,6 +391,34 @@ describe('the fixed battery', () => {
         expect(detachmentsUsed(state, playerId, posted)).toBe(0)
     })
 
+    it('is a detachment on another approach of the locale once its corps blocks one', () => {
+        const { state, playerId, setup } = frenchToSetUp()
+        const [battery] = unitIdsOf(state, playerId, UnitType.Artillery)
+        const home = setupLocaleOf(state.map, 'lannes').id
+        const [held, other] = state.map.passableApproachesOf(home)
+        const blocking = withCorpsStance(setup, 'lannes', held.id)
+
+        const apart = withFixedBatteryPosted(blocking, battery, {
+            locale: home,
+            approach: other.id
+        })
+        expect(creditsOf(state, playerId, apart)).toEqual([
+            { unitId: battery, commanderId: 'lannes', isDetachment: true, standsWithCorps: false }
+        ])
+        expect(deploymentOf(state, playerId, apart)).toMatchObject({
+            detachments: [{ unitId: battery, position: { locale: home, approach: other.id } }],
+            fixedBattery: { unitId: battery }
+        })
+
+        const beside = withFixedBatteryPosted(blocking, battery, {
+            locale: home,
+            approach: held.id
+        })
+        expect(detachmentsUsed(state, playerId, beside)).toBe(0)
+        const stillToAim = withFixedBatteryPosted(blocking, battery, { locale: home })
+        expect(detachmentsUsed(state, playerId, stillToAim)).toBe(0)
+    })
+
     it('is a detachment when it stands in any other locale', () => {
         const { state, playerId, setup } = frenchToSetUp()
         const [battery] = unitIdsOf(state, playerId, UnitType.Artillery)

@@ -159,7 +159,7 @@ function sizeIn(sizes: CorpsSizes, commanderId: string): number {
     return size
 }
 
-/** Rule 6, step 9: the fixed battery may block an approach of its own set-up locale without being one of the six detachments, and on the approach its corps blocks it stands in the corps. */
+/** The commander a unit standing on its own counts as coming from. The fixed battery may be no detachment at all (rule 6, step 9), and on the approach its corps blocks it stands in the corps. */
 export interface Credit {
     unitId: string
     commanderId: string
@@ -174,14 +174,16 @@ function creditChoices(
     { unitId, position }: Detachment
 ): Credit[] {
     const map = state.map
-    const aimedInPlace = setup.fixedBatteryId === unitId && !state.santon
+    const isBattery = setup.fixedBatteryId === unitId && !state.santon
     return setup.corps
         .filter((corps) => !corps.offMap)
         .flatMap((corps) => {
             const { commanderId } = corps
             const home = setupLocaleOf(map, commanderId).id
-            if (aimedInPlace && home === position.locale) {
-                const standsWithCorps = corps.approach === position.approach
+            const standsWithCorps = corps.approach === position.approach
+            // Rule 6, step 9 repositions the battery "if it is in reserve": from an approach its corps blocks, another approach takes one of the six detachments. A battery not yet given its approach is still to be repositioned.
+            const repositioned = corps.approach === undefined || position.approach === undefined
+            if (isBattery && home === position.locale && (standsWithCorps || repositioned)) {
                 return [{ unitId, commanderId, isDetachment: false, standsWithCorps, steps: 0 }]
             }
             return isLegal(() => validateDetachedPosition(state, playerId, commanderId, position))

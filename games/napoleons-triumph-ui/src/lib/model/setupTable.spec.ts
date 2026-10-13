@@ -197,6 +197,33 @@ describe('the set-up table', () => {
         ).toHaveLength(others.length)
     })
 
+    it('offers a corps no approach that would make the fixed battery a seventh detachment', () => {
+        const { state, playerId, setup } = frenchToSetUp()
+        const table = setupTable(state, playerId, { setup, open: FIXED_BATTERY })
+        const battery = nextOf(table, UnitType.Artillery, 1)
+        const others = state
+            .unitsOf(playerId)
+            .map((unit) => unit.id)
+            .filter((id) => id !== battery)
+            .toSorted()
+            .slice(0, MAX_FRENCH_DETACHMENTS)
+        const home = setupLocaleOf(state.map, 'lannes').id
+        const murat = setupLocaleOf(state.map, 'murat').id
+        const [aimed] = state.map.passableApproachesOf(home)
+        const sixDetached = others.reduce(
+            (posted, unitId) => withUnitDetached(posted, unitId, { locale: murat }),
+            withFixedBatteryPosted(setup, battery, { locale: home, approach: aimed.id })
+        )
+        const lannes: SetupStep = { setup: sixDetached, open: corps('lannes') }
+
+        expect(setupTargets(state, playerId, lannes).map((target) => target.position)).toEqual([
+            { locale: home, approach: aimed.id }
+        ])
+        expect(
+            setupTargets(state, playerId, { setup: sixDetached, open: FIXED_BATTERY }).length
+        ).toBe(state.map.passableApproachesOf(home).length - 1)
+    })
+
     it('sends the fixed battery straight to the Santon when the Santon rule is in use', () => {
         const { state, playerId, setup } = frenchToSetUp({ santon: true })
         const step: SetupStep = { setup, open: FIXED_BATTERY }

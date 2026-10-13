@@ -306,6 +306,61 @@ describe('rule 6: the French fixed battery', () => {
         expect(unit.shown).toEqual(unit.face)
     })
 
+    it('has to be named even if that means keeping artillery on the map', () => {
+        const french = setUp(Side.French)
+        const isArtillery = (unitId: string) =>
+            faceOf(french.state.unit(unitId)).type === UnitType.Artillery
+        const davout = corpsOf(french.deployment, 'davout')
+        for (const corps of french.deployment.corps.filter((entry) => !entry.offMap)) {
+            for (const [index, unitId] of corps.unitIds.entries()) {
+                if (isArtillery(unitId)) {
+                    const given = davout.unitIds.findIndex((id) => !isArtillery(id))
+                    corps.unitIds[index] = davout.unitIds[given]
+                    davout.unitIds[given] = unitId
+                }
+            }
+        }
+        const named = french.deployment.fixedBattery
+        assertExists(named, 'The suggested French set-up names a fixed battery')
+        expect(problemWith(french)).toBe('The fixed battery is an artillery unit on the map')
+
+        delete french.deployment.fixedBattery
+        expect(problemWith(french)).toBe(
+            'The French name one battery on the map as their fixed battery'
+        )
+    })
+
+    it('leaves an approach its corps blocks only as one of the six detachments', () => {
+        const french = setUp(Side.French)
+        const battery = french.deployment.fixedBattery
+        assertExists(battery?.approach, 'The suggested fixed battery blocks an approach')
+        const corps = french.deployment.corps.find((entry) =>
+            entry.unitIds.includes(battery.unitId)
+        )
+        assertExists(corps, 'The suggested fixed battery belongs to a corps')
+        const home = homeOf(french.state, corps.commanderId)
+        const elsewhere = french.state.map
+            .passableApproachesOf(home)
+            .find((approach) => approach.id !== battery.approach)
+        assertExists(elsewhere, 'The battery’s locale has a second approach')
+
+        corps.approach = elsewhere.id
+        expect(problemWith(french)).toBe(
+            'The fixed battery leaves an approach its corps blocks only as a detachment'
+        )
+
+        french.deployment.detachments.push({
+            unitId: battery.unitId,
+            position: { locale: home, approach: battery.approach }
+        })
+        french.deployment.fixedBattery = { unitId: battery.unitId }
+        expect(problemWith(french)).toBeUndefined()
+
+        corps.approach = battery.approach
+        french.deployment.detachments.pop()
+        expect(problemWith(french)).toBeUndefined()
+    })
+
     it('cannot stay in reserve', () => {
         const french = setUp(Side.French)
         const battery = french.deployment.fixedBattery

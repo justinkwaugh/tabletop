@@ -24,7 +24,8 @@ export function santonBatteryPresent(state: HydratedNapoleonsTriumphGameState): 
     return state.units.some((unit) => isSantonBattery(state, unit))
 }
 
-function artilleryBarredOnSanton(
+/** Rule 18: other than the French fixed battery, artillery on the Santon cannot lead an attack or defence. */
+export function artilleryBarredOnSanton(
     state: HydratedNapoleonsTriumphGameState,
     unit: ProjectedUnit
 ): boolean {
