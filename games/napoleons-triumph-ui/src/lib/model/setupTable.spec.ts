@@ -71,10 +71,10 @@ describe('the set-up table', () => {
         const open = firstDestination(setup)
         const table = setupTable(state, playerId, { setup, open })
 
-        expect(open).toEqual(corps('bernadotte'))
+        expect(open).toEqual(corps('bessieres'))
         expect(table.unassigned).toBe(36)
         expect(table.corps.filter((seat) => seat.open).map((seat) => seat.commanderId)).toEqual([
-            'bernadotte'
+            'bessieres'
         ])
         expect(table.stacks.every((stack) => stack.offered && !stack.held)).toBe(true)
         expect(table.problem).toBeUndefined()
@@ -331,10 +331,10 @@ describe('the corps that start on the map', () => {
         expect(locales.map((entry) => entry.commanderId)).toEqual([
             'bessieres',
             'lannes',
-            'legrand',
             'murat',
+            'vandamme',
             'st-hilaire',
-            'vandamme'
+            'legrand'
         ])
         expect(locales.filter((entry) => entry.open).map((entry) => entry.commanderId)).toEqual([
             'lannes'
@@ -363,7 +363,7 @@ describe('the corps that start on the map', () => {
             chosen.corps
                 .filter((seat) => seat.onMapStart === OnMapStart.Offered)
                 .map((seat) => seat.commanderId)
-        ).toEqual(['bagration', 'langeron'])
+        ).toEqual(['langeron', 'bagration'])
         expect(chosen.corpsStillToStartOnMap).toBe(0)
         expect(setupLocales(state, { setup: two, open: firstDestination(two) })).toHaveLength(2)
     })

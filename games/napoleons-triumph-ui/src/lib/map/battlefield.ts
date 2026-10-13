@@ -1,6 +1,6 @@
 import type { BoundingBox, Point } from '@tabletop/common'
 import { boxHolds } from '$lib/utils/boundingBox.js'
-import { BOARD_WIDTH } from './boardGeometry.js'
+import { BOARD_HEIGHT, BOARD_WIDTH } from './boardGeometry.js'
 
 const MAP_FILE_WIDTH = 2448
 
@@ -41,6 +41,17 @@ function onBoard({ left, top, right, bottom }: MapFileArea): BoundingBox {
         width: (right - left) * MAP_FILE_SCALE,
         height: (bottom - top) * MAP_FILE_SCALE
     }
+}
+
+/** The direction straight onto the board from a point on or near its edge. */
+export function inwardsFromTheEdge(point: Point): Point {
+    const edges = [
+        { away: point.x, inwards: { x: 1, y: 0 } },
+        { away: BOARD_WIDTH - point.x, inwards: { x: -1, y: 0 } },
+        { away: point.y, inwards: { x: 0, y: 1 } },
+        { away: BOARD_HEIGHT - point.y, inwards: { x: 0, y: -1 } }
+    ]
+    return edges.reduce((nearest, edge) => (edge.away < nearest.away ? edge : nearest)).inwards
 }
 
 export const BATTLEFIELD_EVEN_ODD_PATH = [outline(FIELD), ...COVERED.map(outline)].join(' ')

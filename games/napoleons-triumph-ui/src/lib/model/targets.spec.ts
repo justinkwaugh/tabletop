@@ -206,6 +206,6 @@ describe('the ways to a place by road (rule 10)', () => {
             { key: 'locale:39', kind: TargetKind.Way, position: { locale: 39 }, step: through },
             { key: 'entry:F5', kind: TargetKind.Way, position: { locale: 89 }, step: comingOn }
         ])
-        expect(marksOn(steps)).toEqual([TargetMark.RoadMarch])
+        expect(marksOn(steps)).toEqual([TargetMark.Way])
     })
 })

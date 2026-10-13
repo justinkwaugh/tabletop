@@ -83,6 +83,50 @@ test('corps start empty, show what they still need, then one free slot at a time
     await expect(units(page, 'kienmayer')).toHaveCount(KIENMAYER_LOCALE_HOLDS - 1)
 })
 
+test('a tap anywhere on a seat opens it, except on a unit in it', async ({ page }) => {
+    await createGame(page)
+    const opened = (name: string) => seat(page, name).locator('.nt-setup-head')
+
+    await emptySlots(page, 'kienmayer').first().click()
+    await expect(opened('kienmayer')).toHaveAttribute('aria-pressed', 'true')
+    await takeFromPool(page, '2-strength infantry')
+    await expect(units(page, 'kienmayer')).toHaveCount(1)
+
+    await seat(page, 'langeron').click({ position: { x: 2, y: 2 } })
+    await expect(opened('langeron')).toHaveAttribute('aria-pressed', 'true')
+    await expect(opened('kienmayer')).toHaveAttribute('aria-pressed', 'false')
+
+    await units(page, 'kienmayer').first().click()
+    await expect(units(page, 'kienmayer')).toHaveCount(0)
+    await expect(opened('langeron')).toHaveAttribute('aria-pressed', 'true')
+    await expect(opened('kienmayer')).toHaveAttribute('aria-pressed', 'false')
+})
+
+test('Undo takes back units placed and removed, never the opening of a seat', async ({ page }) => {
+    await createGame(page)
+    const undo = page.getByRole('button', { name: 'Undo' })
+    const opened = (name: string) => seat(page, name).locator('.nt-setup-head')
+
+    await openSeat(page, 'kienmayer')
+    await openSeat(page, 'langeron')
+    await expect(undo).toBeHidden()
+
+    await takeFromPool(page, '2-strength infantry')
+    await openSeat(page, 'kienmayer')
+    await takeFromPool(page, '2-strength infantry')
+    await openSeat(page, 'dokhturov')
+
+    await undo.click()
+    await expect(units(page, 'kienmayer')).toHaveCount(0)
+    await expect(units(page, 'langeron')).toHaveCount(1)
+    await expect(opened('dokhturov')).toHaveAttribute('aria-pressed', 'true')
+
+    await undo.click()
+    await expect(units(page, 'langeron')).toHaveCount(0)
+    await expect(opened('dokhturov')).toHaveAttribute('aria-pressed', 'true')
+    await expect(undo).toBeHidden()
+})
+
 test('the army deploys once every unit is assigned and every corps has its minimum', async ({
     page
 }) => {
@@ -107,6 +151,21 @@ test('the army deploys once every unit is assigned and every corps has its minim
     await deploy.click()
     await expect(page.locator('[data-seat="lannes"]')).toBeVisible()
     await expect(page.locator('[data-commander="prebyshevsky"]')).toBeVisible()
+})
+
+test('the printed set-up marks show on the map until both armies are deployed', async ({
+    page
+}) => {
+    await createGame(page)
+    const marks = page.locator('img[data-setup-marks]')
+    await expect(marks).toHaveCount(1)
+    await deployAllies(page)
+    await expect(marks).toHaveCount(1)
+    await fillCorps(page, FRENCH_ARMY)
+    await placeFixedBattery(page)
+    await page.getByRole('button', { name: 'Deploy the army' }).click()
+    await expect(page.locator('.nt-setup')).toHaveCount(0)
+    await expect(marks).toHaveCount(0)
 })
 
 test('a French unit is set up on its own straight from the pool, in a locale and then on an approach of it', async ({
@@ -141,7 +200,7 @@ test('a French unit is set up on its own straight from the pool, in a locale and
     await undo.click()
     await expect(units(page, 'detached')).toHaveCount(0)
     await expect(prompt).toHaveText('Now tap the locale it stands in.')
-    await undo.click()
+    await page.getByRole('button', { name: 'Put the 2-strength cavalry down' }).click()
     await expect(prompt).toContainText('Tap a unit to set it up on its own')
 
     await takeFromPool(page, '2-strength cavalry')

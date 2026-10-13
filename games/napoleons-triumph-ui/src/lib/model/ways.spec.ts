@@ -12,8 +12,8 @@ describe('choosing among the ways to a place', () => {
     it('offers the locales where two ways part, and a tap on one settles it', () => {
         const ways = [byTheNorth, byTheSouth]
         expect(traceWays(ways, []).next).toEqual([
-            { kind: WayStepKind.Locale, key: 'locale:39', locale: 39 },
-            { kind: WayStepKind.Locale, key: 'locale:52', locale: 52 }
+            { kind: WayStepKind.Locale, key: 'locale:39', locale: 39, after: 53 },
+            { kind: WayStepKind.Locale, key: 'locale:52', locale: 52, after: 53 }
         ])
         expect(traceWays(ways, ['locale:52'])).toEqual({ settled: byTheSouth, next: [] })
     })
@@ -30,6 +30,14 @@ describe('choosing among the ways to a place', () => {
         const ways: Way[] = [{ road: [39, 53] }, { road: [52, 61, 53] }, { road: [52, 62, 53] }]
         expect(traceWays(ways, ['locale:52']).next.map((step) => step.locale)).toEqual([61, 62])
         expect(traceWays(ways, ['locale:52', 'locale:62']).settled).toBe(ways[2])
+    })
+
+    it('knows the locales on either side of a step along its way', () => {
+        const ways: Way[] = [{ road: [39, 53] }, { road: [52, 61, 53] }, { road: [52, 62, 53] }]
+        expect(traceWays(ways, ['locale:52']).next).toMatchObject([
+            { locale: 61, before: 52, after: 53 },
+            { locale: 62, before: 52, after: 53 }
+        ])
     })
 
     it('tells roads that come on in one locale apart by their entry', () => {

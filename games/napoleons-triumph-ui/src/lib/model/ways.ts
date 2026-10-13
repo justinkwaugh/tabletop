@@ -10,9 +10,17 @@ export enum WayStepKind {
     Locale = 'Locale'
 }
 
-export type WayStep =
-    | { kind: WayStepKind.Entry; key: string; locale: number; entryId: string }
-    | { kind: WayStepKind.Locale; key: string; locale: number }
+/** The locales on either side of a step along its way: none before the first step, none after the place itself. */
+interface AlongTheWay {
+    before?: number
+    after?: number
+}
+
+export type WayStep = AlongTheWay &
+    (
+        | { kind: WayStepKind.Entry; key: string; locale: number; entryId: string }
+        | { kind: WayStepKind.Locale; key: string; locale: number }
+    )
 
 export interface WayChoice {
     settled?: Way
@@ -20,11 +28,12 @@ export interface WayChoice {
 }
 
 function stepsOf({ road, entryId }: Way): WayStep[] {
-    return road.map((locale, index) =>
-        index === 0 && entryId !== undefined
-            ? { kind: WayStepKind.Entry, key: `entry:${entryId}`, locale, entryId }
-            : { kind: WayStepKind.Locale, key: `locale:${locale}`, locale }
-    )
+    return road.map((locale, index) => {
+        const alongTheWay = { before: road[index - 1], after: road[index + 1] }
+        return index === 0 && entryId !== undefined
+            ? { kind: WayStepKind.Entry, key: `entry:${entryId}`, locale, entryId, ...alongTheWay }
+            : { kind: WayStepKind.Locale, key: `locale:${locale}`, locale, ...alongTheWay }
+    })
 }
 
 function stepsApart(ways: readonly Way[], index: number): WayStep[] {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TestGame } from '@tabletop/napoleons-triumph/testing'
 import { commandDiscs } from '$lib/utils/commandTrack.js'
-import { onBattlefield } from './battlefield.js'
+import { inwardsFromTheEdge, onBattlefield } from './battlefield.js'
 import { BOARD_HEIGHT, BOARD_WIDTH, LOCALE_GEOMETRY, PRINTED_BARS } from './boardGeometry.js'
 
 describe('the battlefield on the printed board', () => {
@@ -32,5 +32,20 @@ describe('the battlefield on the printed board', () => {
         const hidden = PRINTED_BARS.filter((bar) => !onBattlefield(bar.centre))
         expect(hidden.length).toBeGreaterThan(0)
         expect(hidden.length).toBeLessThan(PRINTED_BARS.length / 4)
+    })
+})
+
+describe('the way onto the board from its edge', () => {
+    it('is straight in from whichever edge is nearest', () => {
+        expect(inwardsFromTheEdge({ x: 40, y: BOARD_HEIGHT / 2 })).toEqual({ x: 1, y: 0 })
+        expect(inwardsFromTheEdge({ x: BOARD_WIDTH - 40, y: BOARD_HEIGHT / 2 })).toEqual({
+            x: -1,
+            y: 0
+        })
+        expect(inwardsFromTheEdge({ x: BOARD_WIDTH / 3, y: 40 })).toEqual({ x: 0, y: 1 })
+        expect(inwardsFromTheEdge({ x: BOARD_WIDTH / 3, y: BOARD_HEIGHT - 40 })).toEqual({
+            x: 0,
+            y: -1
+        })
     })
 })

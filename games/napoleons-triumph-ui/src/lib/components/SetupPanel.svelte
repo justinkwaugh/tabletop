@@ -8,7 +8,7 @@
     } from '@tabletop/napoleons-triumph'
     import { OnMapStart, RoomLimit } from '$lib/model/armySetup.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { DestinationKind } from '$lib/model/setupSelection.js'
+    import { DestinationKind, type SetupDestination } from '$lib/model/setupSelection.js'
     import type { CorpsSeat, DetachedSeat, FixedBatterySeat } from '$lib/model/setupTable.js'
     import { faceName } from '$lib/utils/faceName.js'
     import { standingAt, type Standing } from '$lib/utils/standing.js'
@@ -151,6 +151,13 @@
     }
 
     const ready = $derived(table?.unassigned === 0 && table.problem === undefined)
+
+    function openSeat(event: MouseEvent, seat: SetupDestination) {
+        const control = event.target instanceof Element ? event.target.closest('button') : null
+        if (!control || control.classList.contains('nt-setup-head')) {
+            gameSession.openSetupDestination(seat)
+        }
+    }
 </script>
 
 {#snippet emptySlots(needed: number, room: number, lastNeedsOtherKind = false)}
@@ -189,21 +196,22 @@
             {#each table.corps as seat (seat.commanderId)}
                 {@const definition = commanderDefinition(seat.commanderId)}
                 {@const standing = standingOf(seat)}
+                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
                 <div
                     class="nt-setup-seat"
                     class:nt-setup-seat-open={seat.open}
                     data-seat={seat.commanderId}
+                    onclick={(event) =>
+                        openSeat(event, {
+                            kind: DestinationKind.Corps,
+                            commanderId: seat.commanderId
+                        })}
                 >
                     <button
                         type="button"
                         class="nt-setup-head"
                         aria-pressed={seat.open}
                         aria-label="Open {definition.name}’s corps"
-                        onclick={() =>
-                            gameSession.openSetupDestination({
-                                kind: DestinationKind.Corps,
-                                commanderId: seat.commanderId
-                            })}
                     >
                         <span class="nt-setup-name">{definition.name}</span>
                         <span class="nt-setup-where">{standing.place}</span>
@@ -235,20 +243,18 @@
             {/each}
             {#if table.fixedBattery}
                 {@const battery = table.fixedBattery}
+                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
                 <div
                     class="nt-setup-seat"
                     class:nt-setup-seat-open={battery.open}
                     data-seat="fixed-battery"
+                    onclick={(event) => openSeat(event, { kind: DestinationKind.FixedBattery })}
                 >
                     <button
                         type="button"
                         class="nt-setup-head"
                         aria-pressed={battery.open}
                         aria-label="Open the fixed battery"
-                        onclick={() =>
-                            gameSession.openSetupDestination({
-                                kind: DestinationKind.FixedBattery
-                            })}
                     >
                         <span class="nt-setup-name">Fixed battery</span>
                         <span class="nt-setup-where">{batteryStanding.place}</span>
@@ -276,18 +282,18 @@
             {/if}
             {#if table.detached}
                 {@const detached = table.detached}
+                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
                 <div
                     class="nt-setup-seat"
                     class:nt-setup-seat-open={detached.open}
                     data-seat="detached"
+                    onclick={(event) => openSeat(event, { kind: DestinationKind.Detached })}
                 >
                     <button
                         type="button"
                         class="nt-setup-head"
                         aria-pressed={detached.open}
                         aria-label="Open the detached units"
-                        onclick={() =>
-                            gameSession.openSetupDestination({ kind: DestinationKind.Detached })}
                     >
                         <span class="nt-setup-name">Detached</span>
                         <span class="nt-setup-where">on their own</span>
@@ -375,6 +381,7 @@
         padding: 5px 5px 5px;
         border-radius: 3px;
         background: color-mix(in srgb, var(--nt-ink) 6%, transparent);
+        cursor: pointer;
     }
 
     .nt-setup-seat-open {

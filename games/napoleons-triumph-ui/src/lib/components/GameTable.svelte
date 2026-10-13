@@ -12,9 +12,10 @@
     import { assert, type Point } from '@tabletop/common'
     import { onMount, tick, untrack } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
-    import type {
-        HydratedNapoleonsTriumphGameState,
-        NapoleonsTriumphProjectedState
+    import {
+        Side,
+        type HydratedNapoleonsTriumphGameState,
+        type NapoleonsTriumphProjectedState
     } from '@tabletop/napoleons-triumph'
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
@@ -333,7 +334,11 @@
     fontStyle="italic"
 />
 
-<div class="nt-table bg-[#e9e6dc]" bind:this={table}>
+<div
+    class="nt-table bg-[#e9e6dc]"
+    class:nt-french-ways={session.mySide === Side.French}
+    bind:this={table}
+>
     <DefaultTableLayout topPadding={0} horizontalPadding={0}>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -435,7 +440,16 @@
         --nt-move-line: #8a6a12;
         --nt-road-fill: rgba(190, 150, 110, 0.24);
         --nt-road-line: #6d4a2a;
+        --nt-way-fill: rgba(236, 140, 52, 0.4);
+        --nt-way-line: #a3521a;
         --nt-approach-fill: rgba(246, 222, 120, 0.55);
+        --nt-closed-fill: rgba(43, 38, 32, 0.05);
+        --nt-closed-line: rgba(43, 38, 32, 0.3);
+    }
+
+    .nt-table.nt-french-ways {
+        --nt-way-fill: rgba(140, 104, 176, 0.38);
+        --nt-way-line: #5c3f80;
     }
 
     /* Restores to the side panel the gaps given up by zeroing DefaultTableLayout's padding. */
@@ -483,6 +497,8 @@
         --nt-ground: #f9f6ee;
         background: var(--nt-ground);
         color: var(--nt-ink);
+        /* Workaround: iOS takes two quick taps for a double-tap zoom, and adding units or stepping a loss is tapped quickly. */
+        touch-action: manipulation;
     }
 
     .nt-turn-body {

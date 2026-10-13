@@ -74,11 +74,20 @@ export type MoveTarget = MarchTarget | AttackTarget | RetreatTarget | WayTarget
 export enum TargetMark {
     Move = 'move',
     RoadMarch = 'road march',
+    Way = 'way',
     Approach = 'approach',
-    Threat = 'threat'
+    Threat = 'threat',
+    ClosedReserve = 'closed reserve'
 }
 
-const LEGEND_ORDER = [TargetMark.Move, TargetMark.RoadMarch, TargetMark.Approach, TargetMark.Threat]
+const LEGEND_ORDER = [
+    TargetMark.Move,
+    TargetMark.RoadMarch,
+    TargetMark.Way,
+    TargetMark.Approach,
+    TargetMark.Threat,
+    TargetMark.ClosedReserve
+]
 
 export function markOf(target: MoveTarget): TargetMark {
     switch (target.kind) {
@@ -91,12 +100,18 @@ export function markOf(target: MoveTarget): TargetMark {
         case TargetKind.Retreat:
             return TargetMark.Move
         case TargetKind.Way:
-            return TargetMark.RoadMarch
+            return TargetMark.Way
     }
 }
 
-export function marksOn(targets: readonly MoveTarget[]): TargetMark[] {
+export function marksOn(
+    targets: readonly MoveTarget[],
+    closedReserves: readonly number[] = []
+): TargetMark[] {
     const drawn = new Set(targets.map(markOf))
+    if (closedReserves.length > 0) {
+        drawn.add(TargetMark.ClosedReserve)
+    }
     return LEGEND_ORDER.filter((mark) => drawn.has(mark))
 }
 

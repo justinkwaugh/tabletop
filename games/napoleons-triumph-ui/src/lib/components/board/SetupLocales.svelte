@@ -1,14 +1,10 @@
 <script lang="ts">
     import { commanderDefinition } from '@tabletop/napoleons-triumph'
-    import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
+    import { localeOutlinePoints } from '$lib/map/localeOutline.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { DestinationKind } from '$lib/model/setupSelection.js'
 
     const gameSession = getGameSession()
-
-    function outline(locale: number): string {
-        return LOCALE_GEOMETRY[locale].outline.map((point) => `${point.x},${point.y}`).join(' ')
-    }
 
     function open(event: Event, commanderId: string) {
         event.stopPropagation()
@@ -18,7 +14,7 @@
 
 {#each gameSession.setupLocales as entry (entry.commanderId)}
     <polygon
-        points={outline(entry.locale)}
+        points={localeOutlinePoints(entry.locale)}
         class="nt-setup-locale"
         class:nt-setup-locale-open={entry.open}
         fill={gameSession.myPlayerId

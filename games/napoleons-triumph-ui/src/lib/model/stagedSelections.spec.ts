@@ -50,9 +50,9 @@ import type { ArmySetup } from './armySetup.js'
 import {
     DestinationKind,
     hasManualSetupSelection,
-    latestSetupStep,
+    latestArrangement,
     noSetupSelection,
-    recordSetupStep,
+    recordArrangement,
     sameDestination,
     undoSetupSelection,
     type SetupDestination
@@ -464,44 +464,31 @@ describe('battle selections', () => {
 describe('set-up selection', () => {
     const lannes: SetupDestination = { kind: DestinationKind.Corps, commanderId: 'lannes' }
     const detached: SetupDestination = { kind: DestinationKind.Detached }
-    const empty: ArmySetup = { corps: [], detached: [] }
     const posted: ArmySetup = {
         corps: [],
         detached: [{ unitId: 'F01', position: { locale: 53 } }]
     }
+    const onTheApproach: ArmySetup = {
+        corps: [],
+        detached: [{ unitId: 'F01', position: { locale: 53, approach: 7 } }]
+    }
 
-    it('takes back one tap at a time: the place given, the unit taken in hand, the destination opened', () => {
-        const opened = recordSetupStep(noSetupSelection(), { setup: empty, open: detached })
-        const inHand = recordSetupStep(opened, { setup: empty, open: detached, heldUnitId: 'F01' })
-        const placed = recordSetupStep(inHand, { setup: posted, open: detached, heldUnitId: 'F01' })
-        expect(latestSetupStep(placed)).toEqual({
-            setup: posted,
-            open: detached,
-            heldUnitId: 'F01'
-        })
+    it('takes back one change to the army at a time: the approach blocked, then the place given', () => {
+        const placed = recordArrangement(noSetupSelection(), posted)
+        const blocking = recordArrangement(placed, onTheApproach)
+        expect(latestArrangement(blocking)).toEqual(onTheApproach)
 
-        const unplaced = undoSetupSelection(placed)
-        expect(latestSetupStep(unplaced)).toEqual({
-            setup: empty,
-            open: detached,
-            heldUnitId: 'F01'
-        })
+        const inReserveAgain = undoSetupSelection(blocking)
+        expect(latestArrangement(inReserveAgain)).toEqual(posted)
 
-        const putDown = undoSetupSelection(unplaced)
-        expect(latestSetupStep(putDown)).toEqual({ setup: empty, open: detached })
-
-        const untouched = undoSetupSelection(putDown)
-        expect(latestSetupStep(untouched)).toBeUndefined()
+        const untouched = undoSetupSelection(inReserveAgain)
+        expect(latestArrangement(untouched)).toBeUndefined()
         expect(hasManualSetupSelection(untouched)).toBe(false)
     })
 
-    it('is a manual selection from the first tap, so Undo is offered for it', () => {
+    it('is a manual selection from the first change to the army, so Undo is offered for it', () => {
         expect(hasManualSetupSelection(noSetupSelection())).toBe(false)
-        expect(
-            hasManualSetupSelection(
-                recordSetupStep(noSetupSelection(), { setup: empty, open: lannes })
-            )
-        ).toBe(true)
+        expect(hasManualSetupSelection(recordArrangement(noSetupSelection(), posted))).toBe(true)
     })
 
     it('tells one corps from another and a corps from the units set up on their own', () => {

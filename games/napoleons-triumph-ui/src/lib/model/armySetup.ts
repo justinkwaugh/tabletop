@@ -26,6 +26,7 @@ import {
     type HydratedNapoleonsTriumphGameState,
     type Position
 } from '@tabletop/napoleons-triumph'
+import { leftToRightFromOwnLines } from '$lib/utils/seatOrder.js'
 import { UNIT_TYPE_ORDER } from '$lib/utils/unitTypeOrder.js'
 import { copyOf } from './stateCopy.js'
 import {
@@ -71,11 +72,12 @@ function batteryForTheSanton(state: HydratedNapoleonsTriumphGameState, playerId:
 export function emptySetup(state: HydratedNapoleonsTriumphGameState, playerId: string): ArmySetup {
     const side = state.sideOf(playerId)
     const heldBack = choosesAdvanceGuard(state, side)
+    const commanderIds = commandersOf(side).map((commander) => commander.id)
     const untouched: ArmySetup = {
-        corps: commandersOf(side).map((commander) => ({
-            commanderId: commander.id,
+        corps: leftToRightFromOwnLines(state.map, side, commanderIds).map((commanderId) => ({
+            commanderId,
             unitIds: [],
-            offMap: heldBack || commander.reinforcement === true
+            offMap: heldBack || commanderDefinition(commanderId).reinforcement === true
         })),
         detached: []
     }
@@ -90,6 +92,10 @@ export function corpsOf(setup: ArmySetup, commanderId: string): CorpsSetup {
     const corps = setup.corps.find((entry) => entry.commanderId === commanderId)
     assertExists(corps, `${commanderId} leads no corps of the set-up`)
     return corps
+}
+
+export function seatedInACorps(setup: ArmySetup, unitId: string): boolean {
+    return setup.corps.some((corps) => corps.unitIds.includes(unitId))
 }
 
 export function fixedBatteryPost(setup: ArmySetup): Detachment | undefined {

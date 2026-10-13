@@ -123,6 +123,7 @@ import {
     deploymentOf,
     emptySetup,
     fits,
+    seatedInACorps,
     withCorpsOnMap,
     withUnitReturned,
     type ArmySetup
@@ -147,12 +148,13 @@ import {
 import {
     DestinationKind,
     hasManualSetupSelection,
-    latestSetupStep,
+    latestArrangement,
     noSetupSelection,
-    recordSetupStep,
+    recordArrangement,
     sameDestination,
     undoSetupSelection,
     type SetupDestination,
+    type SetupFocus,
     type SetupSelection,
     type SetupStep
 } from './setupSelection.js'
@@ -193,6 +195,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
 > {
     private selection: CommandSelection = $state(noCommandSelection())
     private setup: SetupSelection = $state.raw(noSetupSelection())
+    private setupFocus: SetupFocus | undefined = $state.raw()
     private battle: BattleSelections = $state(emptyBattleSelections())
     private readonly pickUpListeners = new Set<() => void>()
     private readonly seatOpenedListeners = new Set<() => void>()
@@ -242,9 +245,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
             return undefined
         }
         const untouched = emptySetup(this.gameState, playerId)
-        return (
-            latestSetupStep(this.setup) ?? { setup: untouched, open: firstDestination(untouched) }
-        )
+        const setup = latestArrangement(this.setup) ?? untouched
+        const { open, heldUnitId } = this.setupFocus ?? { open: firstDestination(untouched) }
+        const stillInHand = heldUnitId !== undefined && !seatedInACorps(setup, heldUnitId)
+        return { setup, open, heldUnitId: stillInHand ? heldUnitId : undefined }
     })
 
     setupTable: SetupTable | undefined = $derived.by(() => {
@@ -265,7 +269,13 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     battleLocales: number[] = $derived(battleLocalesOf(this.gameState))
 
+    closedReserves: number[] = $derived(this.gameState.limits.marchedLocales)
+
+    settingUp = $derived(this.gameState.rounds.series.length === 0)
+
     spreadLocale: number | undefined = $state()
+
+    wayUnderPointer: string | undefined = $state()
 
     private pickedUpLocale: number | undefined = $derived.by(() => {
         const groupKey = pickedUpOf(this.selection)?.groupKey
@@ -778,7 +788,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     openSetupDestination(open: SetupDestination) {
         const step = this.setupStep
         if (step && !sameDestination(step.open, open)) {
-            this.stageSetup(recordSetupStep(this.setup, { setup: step.setup, open }))
+            this.stageSetup(this.setup, { open })
             for (const listener of this.seatOpenedListeners) {
                 listener()
             }
@@ -795,13 +805,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (placed) {
             this.arrange(placed)
         } else {
-            this.stageSetup(
-                recordSetupStep(this.setup, {
-                    setup: step.setup,
-                    open: step.open,
-                    heldUnitId: stack.held ? undefined : unitId
-                })
-            )
+            this.stageSetup(this.setup, {
+                open: step.open,
+                heldUnitId: stack.held ? undefined : unitId
+            })
         }
     }
 
@@ -1082,8 +1089,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     resetAction() {
         this.spreadLocale = undefined
+        this.wayUnderPointer = undefined
         this.selection = noCommandSelection()
         this.setup = noSetupSelection()
+        this.setupFocus = undefined
         this.battle = emptyBattleSelections()
     }
 
@@ -1168,13 +1177,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
                 commanderId: group.commander.id
             })
         } else if (step.heldUnitId !== unitId) {
-            this.stageSetup(
-                recordSetupStep(this.setup, {
-                    setup: step.setup,
-                    open: seatOfUnitApart(step.setup, unitId),
-                    heldUnitId: unitId
-                })
-            )
+            this.stageSetup(this.setup, {
+                open: seatOfUnitApart(step.setup, unitId),
+                heldUnitId: unitId
+            })
         }
     }
 
@@ -1186,7 +1192,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
                 fits(this.gameState, playerId, setup),
                 'Only arrangements within the maximums are offered in set-up'
             )
-            this.stageSetup(recordSetupStep(this.setup, { setup, open: step.open, heldUnitId }))
+            this.stageSetup(recordArrangement(this.setup, setup), { open: step.open, heldUnitId })
         }
     }
 
@@ -1205,9 +1211,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
-    private stageSetup(setup: SetupSelection) {
+    private stageSetup(setup: SetupSelection, focus: SetupFocus) {
         if (!this.busy) {
             this.setup = setup
+            this.setupFocus = focus
         }
     }
 

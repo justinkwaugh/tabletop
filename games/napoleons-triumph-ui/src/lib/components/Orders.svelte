@@ -200,7 +200,9 @@
                 </div>
                 {#if !problem}
                     <div class="nt-orders-key">
-                        <TargetLegend marks={marksOn(gameSession.targets)} />
+                        <TargetLegend
+                            marks={marksOn(gameSession.targets, gameSession.closedReserves)}
+                        />
                     </div>
                 {/if}
             </div>
@@ -329,9 +331,8 @@
 
     .nt-orders-note {
         display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0 16px;
+        flex-direction: column;
+        align-items: flex-start;
         font-size: 13px;
         line-height: 1.3;
     }
