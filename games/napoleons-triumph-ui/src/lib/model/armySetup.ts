@@ -13,7 +13,6 @@ import {
     deployArmy,
     faceOf,
     hasUnitOtherThanLineInfantry,
-    isGuard,
     isLegal,
     sameFace,
     setupLocaleOf,
@@ -27,7 +26,7 @@ import {
     type Position
 } from '@tabletop/napoleons-triumph'
 import { leftToRightFromOwnLines } from '$lib/utils/seatOrder.js'
-import { UNIT_TYPE_ORDER } from '$lib/utils/unitTypeOrder.js'
+import { byFaceRank } from '$lib/utils/unitTypeOrder.js'
 import { copyOf } from './stateCopy.js'
 import {
     approachTarget,
@@ -575,14 +574,6 @@ export interface UnitStack {
     unitIds: string[]
 }
 
-function byRank(a: Face, b: Face): number {
-    return (
-        UNIT_TYPE_ORDER.indexOf(a.type) - UNIT_TYPE_ORDER.indexOf(b.type) ||
-        Number(isGuard(b)) - Number(isGuard(a)) ||
-        b.strength - a.strength
-    )
-}
-
 export function unassignedStacks(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -595,7 +586,7 @@ export function unassignedStacks(
         .toSorted((a, b) => a.id.localeCompare(b.id))
     const faces = STARTING_ARMIES[state.sideOf(playerId)]
         .filter((face, index, all) => all.findIndex((other) => sameFace(other, face)) === index)
-        .toSorted(byRank)
+        .toSorted(byFaceRank)
     return faces.map((face) => ({
         face,
         unitIds: unassigned.filter((unit) => sameFace(faceOf(unit), face)).map((unit) => unit.id)

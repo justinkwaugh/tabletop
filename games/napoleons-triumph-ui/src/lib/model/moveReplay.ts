@@ -196,7 +196,11 @@ function arrowLine(
     return tail ? [onBoard(tail), ...onwards] : []
 }
 
-export function moveReplayScene(replay: MoveReplay, rotation: number): MoveReplayScene {
+export function moveReplayScene(
+    replay: MoveReplay,
+    rotation: number,
+    readBy?: string
+): MoveReplayScene {
     const { action, before, after } = replay
     const movements = movementsOf(action, before, after)
     const movedIds = movements.flatMap((movement) => movement.unitIds)
@@ -217,7 +221,7 @@ export function moveReplayScene(replay: MoveReplay, rotation: number): MoveRepla
                 return commander
             }
         },
-        { rotation }
+        { rotation, readBy }
     )
     const left = laidOut
         .flatMap((sprite) => sprite.blocks)

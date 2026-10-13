@@ -1,4 +1,6 @@
 <script lang="ts" generics="Value extends string">
+    import type { Snippet } from 'svelte'
+
     interface Choice {
         value: Value
         name: string
@@ -9,12 +11,15 @@
         label,
         choices,
         chosen,
-        onchoose
+        onchoose,
+        mark
     }: {
         label: string
         choices: readonly Choice[]
         chosen?: Value
         onchoose: (value: Value) => void
+        /** Something drawn after a choice's name, for the choices that have it. */
+        mark?: Snippet<[Value]>
     } = $props()
 
     const chosenIndex = $derived(choices.findIndex((choice) => choice.value === chosen))
@@ -29,7 +34,8 @@
             type="button"
             aria-pressed={choice.value === chosen}
             disabled={choice.unavailable}
-            onclick={() => onchoose(choice.value)}>{choice.name}</button
+            onclick={() => onchoose(choice.value)}
+            >{choice.name}{@render mark?.(choice.value)}</button
         >
     {/each}
 </div>
@@ -61,6 +67,10 @@
 
     button {
         position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35em;
         padding: 1px 12px;
         color: var(--nt-ink);
         text-align: center;

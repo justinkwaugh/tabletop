@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists, type Point } from '@tabletop/common'
-import { Side } from '@tabletop/napoleons-triumph'
+import { Side, type Face } from '@tabletop/napoleons-triumph'
 import {
     TestGame,
     arrangeBattlefield,
+    artillery,
     cavalry,
+    guard,
     infantry
 } from '@tabletop/napoleons-triumph/testing'
 import { BoardView, toView, viewRotation } from './boardView.js'
@@ -295,3 +297,99 @@ describe('stacks short of room', () => {
         expect(stack.blocks.at(-1)?.unit.id).toBe('inf-0')
     })
 })
+
+describe('the order of a player’s own pieces in a stack', () => {
+    const AS_DEALT: Face[] = [
+        artillery(),
+        cavalry(1),
+        infantry(2),
+        guard(),
+        cavalry(3),
+        infantry(3)
+    ]
+    const IN_ORDER: Face[] = [
+        guard(),
+        infantry(3),
+        infantry(2),
+        cavalry(3),
+        cavalry(1),
+        artillery()
+    ]
+    const VIEWS = [BoardView.North, BoardView.French, BoardView.Allied]
+
+    function corps(facing: number | undefined, view: BoardView, readBy: Side | undefined) {
+        const game = new TestGame()
+        game.deployBoth()
+        arrangeBattlefield(
+            game,
+            AS_DEALT.map((face, index) => ({
+                id: `unit-${index}`,
+                side: Side.Allied,
+                face,
+                locale: LOCALE,
+                facing,
+                commanderId: 'langeron'
+            }))
+        )
+        const rotation = viewRotation(view)
+        const [stack] = layoutPieces(game.hydrated, {
+            rotation,
+            readBy: readBy && game.playerOf(readBy)
+        })
+        return { stack, rotation, map: game.hydrated.map }
+    }
+
+    const facesOf = (blocks: BlockSprite[]) => blocks.map((block) => block.unit.face)
+
+    it('runs Guard, infantry, cavalry, artillery from the top of a reserve stack down, the strongest first, however the board is turned', () => {
+        for (const view of VIEWS) {
+            const { stack, rotation } = corps(undefined, view, Side.Allied)
+            const topDown = stack.blocks.toSorted(
+                (a, b) => toView(a.centre, rotation).y - toView(b.centre, rotation).y
+            )
+            expect(facesOf(topDown)).toEqual(IN_ORDER)
+            expect(stack.group.units.map((unit) => unit.face)).toEqual(IN_ORDER)
+        }
+    })
+
+    it('is left as it stands for anyone else, who must learn nothing from it', () => {
+        for (const readBy of [Side.French, undefined]) {
+            const { stack } = corps(undefined, BoardView.North, readBy)
+            expect(stack.group.units.map((unit) => unit.face)).toEqual(AS_DEALT)
+        }
+    })
+
+    it('runs from the top of the screen down in a file standing upright, and from inside the locale out to the bar in one lying level', () => {
+        const { map } = corps(undefined, BoardView.North, Side.Allied)
+        const neighbours = map.passableApproachesOf(LOCALE).map((approach) => approach.neighbour)
+        const seen = { upright: 0, level: 0 }
+        for (const view of VIEWS) {
+            for (const facing of neighbours) {
+                const { stack, rotation } = corps(facing, view, Side.Allied)
+                const bar = APPROACH_GEOMETRY[map.approachBetween(LOCALE, facing).id]
+                const onScreen = (point: Point) => toView(point, rotation)
+                const [front, behind] = stack.blocks.toSorted(
+                    (a, b) => fromTheBar(a, bar.centre) - fromTheBar(b, bar.centre)
+                )
+                const along = {
+                    x: onScreen(behind.centre).x - onScreen(front.centre).x,
+                    y: onScreen(behind.centre).y - onScreen(front.centre).y
+                }
+                const upright = Math.abs(along.y) >= Math.abs(along.x)
+                const asRead = upright
+                    ? stack.blocks.toSorted((a, b) => onScreen(a.centre).y - onScreen(b.centre).y)
+                    : stack.blocks.toSorted(
+                          (a, b) => fromTheBar(b, bar.centre) - fromTheBar(a, bar.centre)
+                      )
+                expect(facesOf(asRead)).toEqual(IN_ORDER)
+                seen[upright ? 'upright' : 'level'] += 1
+            }
+        }
+        expect(seen.upright).toBeGreaterThan(0)
+        expect(seen.level).toBeGreaterThan(0)
+    })
+})
+
+function fromTheBar(block: BlockSprite, barCentre: Point): number {
+    return Math.hypot(block.centre.x - barCentre.x, block.centre.y - barCentre.y)
+}

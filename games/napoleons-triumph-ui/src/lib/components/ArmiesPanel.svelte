@@ -114,7 +114,7 @@
                             {/if}
                         </div>
                         {#if units.some((unit) => gameSession.visibleFace(unit))}
-                            {@render unitBlocks(units, colors)}
+                            {@render unitBlocks(gameSession.asRead(player.playerId, units), colors)}
                         {:else if units.length > 0}
                             <div class="nt-corps-where">{strength(units)}</div>
                         {/if}
@@ -131,7 +131,10 @@
                             <span class="nt-corps-where">{strength(detached)}</span>
                         </div>
                         {#if detached.some((unit) => gameSession.visibleFace(unit))}
-                            {@render unitBlocks(detached, colors)}
+                            {@render unitBlocks(
+                                gameSession.asRead(player.playerId, detached),
+                                colors
+                            )}
                         {/if}
                     </div>
                 {/if}

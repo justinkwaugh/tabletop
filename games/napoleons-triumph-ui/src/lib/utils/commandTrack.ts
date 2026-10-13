@@ -1,6 +1,6 @@
 import type { Point } from '@tabletop/common'
 import { Side, type HydratedNapoleonsTriumphGameState } from '@tabletop/napoleons-triumph'
-import { MAP_FILE_SCALE, mapFilePoint } from '$lib/map/battlefield.js'
+import { mapFilePoint } from '$lib/map/battlefield.js'
 import { TRACK_COLUMN_PITCH } from './trackMarker.js'
 
 const INDEPENDENT = undefined
@@ -62,16 +62,6 @@ function boxesOf(side: Side): { commanderId: string | typeof INDEPENDENT; at: Po
             at: mapFilePoint(track.firstColumn + column * TRACK_COLUMN_PITCH, row.y)
         }))
     )
-}
-
-const BOX_HALF_SIZE = TRACK_COLUMN_PITCH / 2
-
-export function commandTrackCorners(side: Side): Point[] {
-    const reach = BOX_HALF_SIZE * MAP_FILE_SCALE
-    return boxesOf(side).flatMap(({ at }) => [
-        { x: at.x - reach, y: at.y - reach },
-        { x: at.x + reach, y: at.y + reach }
-    ])
 }
 
 export function commandDiscs(state: HydratedNapoleonsTriumphGameState): Point[] {

@@ -70,6 +70,7 @@
     }
 
     .nt-masthead {
+        --nt-masthead-size: 21px;
         display: flex;
         align-items: baseline;
         justify-content: space-between;
@@ -86,12 +87,12 @@
     }
 
     .nt-masthead-turn {
-        font-size: 21px;
+        font-size: var(--nt-masthead-size);
         font-style: italic;
     }
 
     .nt-masthead-time {
-        font-size: 21px;
+        font-size: var(--nt-masthead-size);
         font-weight: 700;
     }
 
@@ -112,7 +113,7 @@
         gap: 0.32em;
         padding: 0 2px 0 6px;
         line-height: 1.2;
-        font-size: 17px;
+        font-size: var(--nt-masthead-size);
         font-style: italic;
     }
 
@@ -143,19 +144,8 @@
         }
 
         .nt-masthead {
+            --nt-masthead-size: 16px;
             padding: 6px 6px 3px;
-        }
-
-        .nt-masthead-turn {
-            font-size: 16px;
-        }
-
-        .nt-masthead-time {
-            font-size: 16px;
-        }
-
-        .nt-undo {
-            font-size: 14px;
         }
 
         .nt-masthead-rule {

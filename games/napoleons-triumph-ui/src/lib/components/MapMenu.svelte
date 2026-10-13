@@ -1,28 +1,23 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { BoardView } from '$lib/utils/boardView.js'
+    import SlidingSwitch from './SlidingSwitch.svelte'
 
-    let { onshowcommandtrack, onturn }: { onshowcommandtrack: () => void; onturn: () => void } =
-        $props()
+    let { onview }: { onview: (view: BoardView) => void } = $props()
 
     const gameSession = getGameSession()
 
     let open = $state(false)
 
-    const VIEW_NAMES: Record<BoardView, string> = {
-        [BoardView.North]: 'North up',
-        [BoardView.French]: 'From the French lines',
-        [BoardView.Allied]: 'From the Allied lines'
-    }
+    const VIEWS = [
+        { value: BoardView.Allied, name: 'Allies' },
+        { value: BoardView.French, name: 'French' },
+        { value: BoardView.North, name: 'North' }
+    ]
 </script>
 
 <div class="nt-map-menu pointer-events-auto absolute bottom-1 right-1 z-10">
     <div class="nt-map-menu-items" class:nt-map-menu-open={open} id="nt-map-menu-items">
-        {#if gameSession.mySide}
-            <button type="button" class="nt-map-chip" onclick={onshowcommandtrack}
-                >Command track</button
-            >
-        {/if}
         <button
             type="button"
             class="nt-map-chip"
@@ -37,17 +32,35 @@
             onclick={() => gameSession.setDarkBorders(!gameSession.darkBorders)}
             >Darker borders</button
         >
-        <button type="button" class="nt-map-chip" aria-label="Turn the map" onclick={onturn}
-            >{VIEW_NAMES[gameSession.boardView]}</button
-        >
+        <div class="nt-map-view">
+            <SlidingSwitch
+                label="See the map from"
+                choices={VIEWS}
+                chosen={gameSession.boardView}
+                onchoose={onview}
+            >
+                {#snippet mark(view)}
+                    {#if view === BoardView.North}
+                        <svg viewBox="0 0 10 11" class="nt-map-north" aria-hidden="true">
+                            <path d="M5 0.4 L9.7 5.6 H6.7 V10.6 H3.3 V5.6 H0.3 Z"></path>
+                        </svg>
+                    {/if}
+                {/snippet}
+            </SlidingSwitch>
+        </div>
     </div>
     <button
         type="button"
         class="nt-map-chip nt-map-menu-toggle"
         aria-expanded={open}
         aria-controls="nt-map-menu-items"
-        onclick={() => (open = !open)}>Map</button
+        onclick={() => (open = !open)}
     >
+        Map
+        <svg viewBox="0 0 12 10" class="nt-map-lines" aria-hidden="true">
+            <path d="M0.8 1.2 H11.2 M0.8 5 H11.2 M0.8 8.8 H11.2"></path>
+        </svg>
+    </button>
 </div>
 
 <style>
@@ -69,6 +82,29 @@
         line-height: 16px;
         background: var(--nt-ground);
         color: var(--nt-ink);
+    }
+
+    .nt-map-view {
+        display: flex;
+        border-radius: 6px;
+        background: var(--nt-ground);
+    }
+
+    .nt-map-lines {
+        flex: none;
+        width: 0.95em;
+        height: 0.8em;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+    }
+
+    .nt-map-north {
+        flex: none;
+        width: 0.72em;
+        height: 0.8em;
+        fill: currentColor;
     }
 
     .nt-map-chip.nt-map-menu-toggle {

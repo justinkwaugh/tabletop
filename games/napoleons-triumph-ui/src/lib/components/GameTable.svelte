@@ -36,11 +36,10 @@
     import {
         boundsOf,
         focusWhereSeen,
-        nextView,
         viewFor,
+        type BoardView,
         type Focus
     } from '$lib/utils/boardView.js'
-    import { commandTrackCorners } from '$lib/utils/commandTrack.js'
     import LibreBaskervilleFont from '$lib/fonts/LibreBaskerville.woff2'
     import LibreBaskervilleItalicFont from '$lib/fonts/LibreBaskerville-Italic.woff2'
 
@@ -103,18 +102,6 @@
             ...LOCATE_FOCUS
         })
         boardHost?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-    }
-
-    const TRACK_FOCUS = { maxScale: 0.85, padding: 40 }
-
-    function showCommandTrack() {
-        const side = session.mySide
-        if (!wrapper || !side) return
-        restoreView = undefined
-        wrapper.focusRect(boundsOf(commandTrackCorners(side), session.boardRotation), {
-            animate: true,
-            ...TRACK_FOCUS
-        })
     }
 
     const UNCOVERED_PADDING = 60
@@ -255,8 +242,8 @@
         }
     }
 
-    async function turnBoard() {
-        session.boardView = nextView(session.boardView)
+    async function turnBoardTo(view: BoardView) {
+        session.boardView = view
         await tick()
         if (session.battleLocales.length > 0) {
             showBattle(session.battleLocales, false)
@@ -418,7 +405,7 @@
                         >
                             <Board />
                             {#snippet overlay()}
-                                <MapMenu onshowcommandtrack={showCommandTrack} onturn={turnBoard} />
+                                <MapMenu onview={turnBoardTo} />
                             {/snippet}
                         </ScalingWrapper>
                     </div>

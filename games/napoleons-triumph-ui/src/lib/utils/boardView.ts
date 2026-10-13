@@ -16,14 +16,6 @@ export function viewFor(side: Side | undefined): BoardView {
     return side === Side.Allied ? BoardView.Allied : BoardView.French
 }
 
-export function nextView(view: BoardView): BoardView {
-    return view === BoardView.North
-        ? BoardView.French
-        : view === BoardView.French
-          ? BoardView.Allied
-          : BoardView.North
-}
-
 export function viewSize(rotation: number): RectangleDimensions {
     return rotation === 0
         ? { width: BOARD_WIDTH, height: BOARD_HEIGHT }

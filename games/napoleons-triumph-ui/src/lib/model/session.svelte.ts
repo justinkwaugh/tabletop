@@ -45,6 +45,7 @@ import { commandDiscs } from '$lib/utils/commandTrack.js'
 import { sameIds } from '$lib/utils/ids.js'
 import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
 import { timeMarker } from '$lib/utils/timeTrack.js'
+import { inReadingOrder } from '$lib/utils/unitTypeOrder.js'
 import {
     arrowsToKeepClear,
     flagMarks,
@@ -287,6 +288,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     sprites: GroupSprite[] = $derived(
         layoutPieces(this.arrayedArmy ?? this.gameState, {
             rotation: this.boardRotation,
+            readBy: this.myPlayerId,
             looseLocales: [
                 ...this.battleLocales,
                 ...[this.spreadLocale, this.pickedUpLocale].filter((locale) => locale !== undefined)
@@ -340,7 +342,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     moveReplayScene: MoveReplayScene | undefined = $derived(
-        this.moveReplay ? moveReplayScene(this.moveReplay, this.boardRotation) : undefined
+        this.moveReplay
+            ? moveReplayScene(this.moveReplay, this.boardRotation, this.myPlayerId)
+            : undefined
     )
 
     battleStage: BattleStage | undefined = $derived.by(() => {
@@ -531,6 +535,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
     armyColors(playerId: string): ArmyColors {
         const block = this.colors.getPlayerUiColor(playerId)
         return { block, shade: shadeOf(block), ink: this.colors.getPlayerTextColorValue(playerId) }
+    }
+
+    /** The viewer's own units are listed in reading order; anyone else's as the game holds them, so their order tells nothing. */
+    asRead(playerId: string, units: readonly ProjectedUnit[]): ProjectedUnit[] {
+        return playerId === this.myPlayerId ? inReadingOrder(units) : [...units]
     }
 
     visibleFace(unit: ProjectedUnit): Face | undefined {

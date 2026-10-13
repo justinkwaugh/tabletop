@@ -23,6 +23,7 @@ import {
 } from './blockShape.js'
 import { screenAxes, uprightAngle } from './boardView.js'
 import { insidePolygon } from './polygon.js'
+import { inReadingOrder } from './unitTypeOrder.js'
 
 export const BAR_HALF_THICKNESS = 6
 const BAR_GAP = 3
@@ -80,7 +81,7 @@ export function heldApproaches(sprites: readonly GroupSprite[]): HeldApproach[] 
 
 export type BoardPieces = Pick<HydratedNapoleonsTriumphGameState, 'units' | 'commander'>
 
-function placedGroups(state: BoardPieces): PlacedGroup[] {
+function placedGroups(state: BoardPieces, readBy: string | undefined): PlacedGroup[] {
     const groups = new Map<string, PlacedGroup>()
     for (const unit of state.units) {
         const position = unit.position
@@ -96,12 +97,16 @@ function placedGroups(state: BoardPieces): PlacedGroup[] {
         const commander = unit.commanderId ? state.commander(unit.commanderId) : undefined
         groups.set(key, { key, playerId: unit.playerId, position, commander, units: [unit] })
     }
-    return [...groups.values()]
+    return [...groups.values()].map((group) =>
+        group.playerId === readBy ? { ...group, units: inReadingOrder(group.units) } : group
+    )
 }
 
 export interface LayoutOptions {
     rotation: number
     looseLocales?: readonly number[]
+    /** The player looking at the board, whose own stacks are put in reading order. */
+    readBy?: string
 }
 
 function rankSpacing(count: number, room: number, loose: boolean): number {
@@ -182,6 +187,28 @@ function filesAcross(bar: ApproachGeometry): number {
     return bar.length > BLOCK_LENGTH * 2 ? 2 : 1
 }
 
+/**
+ * A file the viewer reads runs Guard to artillery from the top of the screen down where it stands
+ * more upright than level on screen, and from inside its locale out to the bar where it lies level.
+ */
+function ranksFromTheBar(
+    group: PlacedGroup,
+    bar: ApproachGeometry,
+    options: LayoutOptions
+): ProjectedUnit[] {
+    if (group.playerId !== options.readBy) {
+        return group.units
+    }
+    const { right, down } = screenAxes(options.rotation)
+    const intoTheLocale = {
+        across: bar.inward.x * right.x + bar.inward.y * right.y,
+        down: bar.inward.x * down.x + bar.inward.y * down.y
+    }
+    const upright = Math.abs(intoTheLocale.down) >= Math.abs(intoTheLocale.across)
+    const barIsTheTop = upright && intoTheLocale.down > 0
+    return barIsTheTop ? group.units : group.units.toReversed()
+}
+
 function layoutBlockers(
     groups: PlacedGroup[],
     approachId: number,
@@ -211,7 +238,7 @@ function layoutBlockers(
     const frontToRear = filed.map(({ group, file, ranksAhead, groupsAhead }) => {
         const sideways =
             files === 1 ? 0 : (((file + firstFile) % files) - 0.5) * (BLOCK_LENGTH + COLUMN_GAP)
-        const fromTheBar = group.units.map((unit, place) => {
+        const fromTheBar = ranksFromTheBar(group, bar, options).map((unit, place) => {
             const inward = first + (ranksAhead + place) * spacing + groupsAhead * GROUP_GAP
             return {
                 unit,
@@ -366,7 +393,7 @@ export function layoutPieces(
     options: LayoutOptions = { rotation: 0 }
 ): GroupSprite[] {
     const byPosition: PlacedGroup[][] = []
-    for (const group of placedGroups(state)) {
+    for (const group of placedGroups(state, options.readBy)) {
         const peers = byPosition.find((entry) => samePosition(entry[0].position, group.position))
         if (peers) {
             peers.push(group)
