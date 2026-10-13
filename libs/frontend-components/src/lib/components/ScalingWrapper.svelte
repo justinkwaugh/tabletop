@@ -1119,6 +1119,7 @@
 
         if (didPanX || didPanY) {
             cancelViewAnimation()
+            clearActiveFocus()
             notifyManualViewChange(currentScale, nextView.translateX, nextView.translateY)
             applyView(currentScale, nextView.translateX, nextView.translateY)
         }
