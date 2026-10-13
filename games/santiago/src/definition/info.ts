@@ -6,7 +6,7 @@ export const SantiagoInfo: GameInfo = {
     id: 'santiago',
     metadata: {
         name: 'Santiago',
-        designer: 'Claudia Hempel & Michael Hempel',
+        designer: 'Claudia Hely & Roman Pelek',
         description:
             'Santiago is a bidding and placement game in which players compete to irrigate their plantations. ' +
             'Each round, players bid openly for planting priority. The lowest bidder becomes the ditch master, who controls ' +
