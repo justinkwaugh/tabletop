@@ -110,6 +110,13 @@ describe('the trails of the turn in progress', () => {
         })
         const trails = recorded.trails()
         expect(trails.map((trail) => trail.order)).toEqual([1, 1, 2, 3])
+        const { game } = recorded
+        expect(trails.map((trail) => trail.playerId)).toEqual([
+            game.playerOf(Side.Allied),
+            game.playerOf(Side.Allied),
+            game.playerOf(Side.French),
+            game.playerOf(Side.Allied)
+        ])
         const [first] = trails.filter((trail) => near(trail.line[trail.line.length - 1], 64))
         const [second] = trails.filter((trail) => trail.order === 3)
         expect(near(first.line[0], 63)).toBe(true)

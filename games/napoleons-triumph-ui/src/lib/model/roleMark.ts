@@ -2,6 +2,13 @@ import { BattleRole } from './battleStage.js'
 
 export interface RoleMark {
     letter?: string
+    /** Drawn larger and thickened: the face's own bold is too slight for a figure this small. */
+    heavy?: true
+}
+
+/** The steps a unit is to lose, printed where its role's letter would be. */
+export function lossMark(steps: number): RoleMark | undefined {
+    return steps > 0 ? { letter: `−${steps}`, heavy: true } : undefined
 }
 
 export function roleMarkOf(role: BattleRole): RoleMark | undefined {

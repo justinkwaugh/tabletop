@@ -7,9 +7,10 @@
         type AttackStep,
         type ProjectedUnit
     } from '@tabletop/napoleons-triumph'
+    import { anyLoss } from '$lib/model/attackLosses.js'
     import { StageKind } from '$lib/model/battleSelection.js'
+    import { rolesBeforeTheCounterAttack } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { signed } from '$lib/utils/signed.js'
     import CounterStep from './battle/CounterStep.svelte'
     import DecisionStep from './battle/DecisionStep.svelte'
     import DeclareStep from './battle/DeclareStep.svelte'
@@ -17,6 +18,8 @@
     import FeintStep from './battle/FeintStep.svelte'
     import Force from './battle/Force.svelte'
     import OccupyStep from './battle/OccupyStep.svelte'
+    import LossRule from './battle/LossRule.svelte'
+    import ResultRule from './battle/ResultRule.svelte'
     import RetreatStep from './battle/RetreatStep.svelte'
 
     const gameSession = getGameSession()
@@ -61,7 +64,10 @@
 {#if attack}
     {@const attackers = living(attack.attackingUnitIds)}
     {@const defenders = living(attack.defendingUnitIds)}
+    {@const counterAttackers = living(attack.counterAttackingUnitIds)}
     {@const roles = gameSession.battleRoles}
+    {@const losses = gameSession.attackLosses}
+    {@const verdict = gameSession.attackVerdict}
     <div class="nt-battle">
         <div class="nt-battle-title">
             {attack.guardAttack ? 'Guard Attack' : 'Attack'} from
@@ -69,7 +75,7 @@
             {game.map.label(game.map.approach(attack.defenseApproach).locale)}
             <span class="nt-battle-faint">· {terrain(attack.defenseApproach)}</span>
         </div>
-        {#if attackers.length > 0 || defenders.length > 0 || attack.initialResult !== undefined}
+        {#if attackers.length > 0 || defenders.length > 0}
             <div class="nt-battle-sides">
                 {#if attackers.length > 0}
                     <div>
@@ -84,17 +90,30 @@
                                 ? ' from reserve'
                                 : ' on the approach'}
                         </div>
-                        <Force units={defenders} {roles} />
-                    </div>
-                {/if}
-                {#if attack.initialResult !== undefined}
-                    <div class="nt-battle-result">
-                        Initial {signed(attack.initialResult)}{attack.finalResult !== undefined
-                            ? ` · Final ${signed(attack.finalResult)}`
-                            : ''}
+                        <Force
+                            units={defenders}
+                            roles={rolesBeforeTheCounterAttack(attack, roles)}
+                        />
                     </div>
                 {/if}
             </div>
+        {/if}
+        {#if counterAttackers.length > 0}
+            <div>
+                <div class="nt-battle-faint">Counter-attacking</div>
+                <Force units={counterAttackers} {roles} />
+            </div>
+        {/if}
+        {#if attack.feint}
+            <ResultRule feint />
+        {:else if attack.initialResult !== undefined}
+            <ResultRule initialResult={attack.initialResult} finalResult={attack.finalResult} />
+        {/if}
+        {#if verdict}
+            <div class="nt-battle-prompt">{verdict}</div>
+        {/if}
+        {#if losses && anyLoss(losses)}
+            <LossRule {losses} />
         {/if}
         {#if !stage}
             <div class="nt-battle-prompt">
@@ -153,11 +172,6 @@
     .nt-battle :global(.nt-battle-prompt) {
         line-height: 1.3;
         max-width: 60ch;
-    }
-
-    .nt-battle :global(.nt-battle-result) {
-        font-weight: 700;
-        align-self: center;
     }
 
     .nt-battle :global(.nt-battle-warning) {

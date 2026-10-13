@@ -133,6 +133,24 @@ export const MoralePenalty = Type.Object({
     moraleLost: Type.Integer({ minimum: 0 })
 })
 
+export enum ResultTermKind {
+    AttackLeaders = 'AttackLeaders',
+    InfantryAgainstBlockers = 'InfantryAgainstBlockers',
+    ApproachPenalty = 'ApproachPenalty',
+    DefenseLeaders = 'DefenseLeaders',
+    GuardAttack = 'GuardAttack',
+    ArtilleryLeads = 'ArtilleryLeads',
+    CounterAttack = 'CounterAttack'
+}
+
+/** Rule 11, steps 6 and 8: one thing counted towards an attack's result, what it added, and the units it counted as they then were. */
+export type ResultTerm = Type.Static<typeof ResultTerm>
+export const ResultTerm = Type.Object({
+    kind: Type.Enum(ResultTermKind),
+    value: Type.Integer(),
+    faces: Type.Optional(Type.Array(Face))
+})
+
 export type Attack = Type.Static<typeof Attack>
 export const Attack = Type.Object({
     attackerId: Type.String(),

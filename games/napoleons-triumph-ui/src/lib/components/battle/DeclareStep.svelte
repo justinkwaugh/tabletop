@@ -2,10 +2,10 @@
     import { AttackWidth } from '$lib/model/battleSelection.js'
     import type { DeclarationStage } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { signed } from '$lib/utils/signed.js'
     import SlidingSwitch from '$lib/components/SlidingSwitch.svelte'
     import AttackerPicker from './AttackerPicker.svelte'
     import Force from './Force.svelte'
+    import ResultRule from './ResultRule.svelte'
 
     let { stage }: { stage: DeclarationStage } = $props()
 
@@ -50,6 +50,9 @@
         onpick={(id) => gameSession.pickBattleUnit(id)}
     />
 {/if}
+{#if !stage.problem && stage.initialResult !== undefined}
+    <ResultRule initialResult={stage.initialResult} />
+{/if}
 <div class="flex flex-wrap items-center gap-3 pt-1">
     <button
         type="button"
@@ -61,7 +64,5 @@
     </button>
     {#if stage.problem}
         <span class="nt-battle-warning">{stage.problem}.</span>
-    {:else if stage.initialResult !== undefined}
-        <span class="nt-battle-result">Initial result {signed(stage.initialResult)}</span>
     {/if}
 </div>

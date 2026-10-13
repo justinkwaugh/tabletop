@@ -18,7 +18,8 @@ import { coveredBy } from '$lib/utils/blockShape.js'
 import { BoardView, toView, viewRotation } from '$lib/utils/boardView.js'
 import { layoutPieces } from '$lib/utils/pieceLayout.js'
 import { BattleRole } from './battleStage.js'
-import { AttackMarkKind, moveReplayOf, moveReplayScene, type MoveReplay } from './moveReplay.js'
+import { AttackMarkKind } from './attackMark.js'
+import { moveReplayOf, moveReplayScene, type MoveReplay } from './moveReplay.js'
 import { TargetKind, moveTargets } from './targets.js'
 
 const NORTH = viewRotation(BoardView.North)
@@ -153,14 +154,14 @@ describe('what the history can replay', () => {
         })
         const threatened = moveReplayScene(recorded.replay(threat), NORTH)
         expect(threatened.arrows).toEqual([])
-        expect(threatened.attackMark).toEqual({
+        expect(threatened.attackMark).toMatchObject({
             approach: recorded.game.hydrated.map.approachBetween(53, 63).id,
-            kind: AttackMarkKind.Attack
+            kind: AttackMarkKind.Threat
         })
         const scene = moveReplayScene(recorded.replay(retreat), NORTH)
         expect(idsOf(scene.left).toSorted()).toEqual(['A-1', 'A-2'])
         expect(scene.arrows).toHaveLength(2)
-        expect(scene.attackMark?.kind).toBe(AttackMarkKind.Attack)
+        expect(scene.attackMark?.kind).toBe(AttackMarkKind.Threat)
         const moved = moveReplayScene(recorded.replay(occupation), NORTH)
         expect(idsOf(moved.left)).toEqual(['F-inf'])
         expect(moved.arrows).toHaveLength(1)
@@ -204,7 +205,7 @@ describe('what the history can replay', () => {
             end: FeintEnd.Reserve
         })
         const scene = moveReplayScene(recorded.replay(feint), NORTH)
-        expect(scene.attackMark).toEqual({ approach, kind: AttackMarkKind.Feint })
+        expect(scene.attackMark).toMatchObject({ approach, kind: AttackMarkKind.Feint })
     })
 
     it('is the defender stepping up after a feint, shown by where it went: no arrow of the attack, the corps it left solid', () => {
@@ -268,7 +269,7 @@ describe('what the history can replay', () => {
         const scene = moveReplayScene(recorded.replay(defence), NORTH)
         expect(scene.arrows).toEqual([])
         expect(scene.roles).toMatchObject({ 'A-1': BattleRole.Defends, 'A-2': BattleRole.Defends })
-        expect(scene.attackMark?.kind).toBe(AttackMarkKind.Attack)
+        expect(scene.attackMark?.kind).toBe(AttackMarkKind.Threat)
     })
 
     it('washes out only the units standing with those an action names, and none when it names no unit', () => {

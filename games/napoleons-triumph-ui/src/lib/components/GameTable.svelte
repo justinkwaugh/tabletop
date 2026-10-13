@@ -133,6 +133,14 @@
 
     const UNCOVERED_PADDING = 60
 
+    // A view can only be gone back to if it was taken before the battle and the board has not been
+    // turned since. Where there is none, the battle ends on the whole board.
+    // Workaround: the wrapper drops a fit it is still animating when the map area changes size, as
+    // it does when the battle panel closes, so this one is cut to.
+    function returnToTheWholeBoard() {
+        restoreView = () => wrapper?.fitToContent()
+    }
+
     function showBattle(locales: number[], animate: boolean) {
         if (!wrapper) return
         if (locales.length === 0) {
@@ -310,6 +318,7 @@
         session.boardView = view
         await tick()
         if (session.battleLocales.length > 0) {
+            returnToTheWholeBoard()
             showBattle(session.battleLocales, false)
         }
     }
@@ -355,6 +364,9 @@
     onMount(() => {
         if (window.innerWidth > window.innerHeight) {
             session.boardView = viewFor(session.mySide)
+        }
+        if (session.battleLocales.length > 0) {
+            returnToTheWholeBoard()
         }
         showBattle(session.battleLocales, false)
         void showSetup()

@@ -36,7 +36,7 @@ import {
     type NapoleonsTriumphProjectedState,
     type Position,
     type ProjectedUnit,
-    type Side
+    Side
 } from '@tabletop/napoleons-triumph'
 import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { shadeOf, type ArmyColors } from '$lib/utils/armyColors.js'
@@ -85,9 +85,9 @@ import {
     battleStageOf,
     commandersGoing,
     committedUnits,
-    cycleLoss,
     keepWithCommander,
     keptByCommander,
+    moveLossOnto,
     pickUnit,
     rolesShown,
     sendCommander,
@@ -135,6 +135,9 @@ import {
 } from './armySetup.js'
 import { guardUnitToAnnounce, targetsOfGuardAttack } from './guardAttack.js'
 import { historyChapters, type HistoryChapter, type HistoryLine } from './historyChapters.js'
+import { lossesOfAttack, type AttackLosses } from './attackLosses.js'
+import { attackMarkOf, type AttackMark } from './attackMark.js'
+import { fightOf, recordedAccounts, verdictOf, type ResultAccounts } from './resultAccount.js'
 import { turnTrails, type Trail } from './turnTrails.js'
 import {
     RideChoice,
@@ -405,6 +408,35 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     battleRoles: Record<string, BattleRole> = $derived(rolesShown(this.attack, this.battleStage))
+
+    /** Which way the settled result of the attack in progress decides it, and why. */
+    attackVerdict: string | undefined = $derived.by(() => {
+        const attack = this.attack
+        if (!attack || attack.finalResult === undefined || attack.attackerWon === undefined) {
+            return undefined
+        }
+        const attackerIsFrench = this.gameState.sideOf(attack.attackerId) === Side.French
+        return verdictOf(attack.finalResult, fightOf(attack, attackerIsFrench))
+    })
+
+    attackLosses: AttackLosses | undefined = $derived(
+        this.attack ? lossesOfAttack(this.history.visibleContext.actions, this.attack) : undefined
+    )
+
+    attackMark: AttackMark | undefined = $derived(
+        this.attack ? attackMarkOf(this.attack) : undefined
+    )
+
+    /** What the results of the attack in progress are made of: as the pieces named so far would make them while a step is being decided, and as the game kept them once it is. */
+    resultAccounts: ResultAccounts = $derived.by(() => {
+        const stage = this.battleStage
+        const recorded = recordedAccounts(this.history.visibleContext.actions)
+        return {
+            initial:
+                stage?.kind === StageKind.Declaration ? stage.initialAccount : recorded.initial,
+            counter: stage?.kind === StageKind.Counter ? stage.counterAccount : recorded.counter
+        }
+    })
 
     // Rule 11: cavalry that has taken a locale by road may ride on.
     private openRoadMarch = $derived(this.isCommanding ? this.gameState.roadMarch : undefined)
@@ -932,10 +964,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
-    cycleRetreatLoss(unitId: string) {
+    moveRetreatLossOnto(unitId: string) {
         const stage = this.battleStage
         if (stage?.kind === StageKind.Retreat) {
-            this.stageBattle(cycleLoss(this.gameState, stage, this.battle, unitId))
+            this.stageBattle(moveLossOnto(this.gameState, stage, this.battle, unitId))
         }
     }
 

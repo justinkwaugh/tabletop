@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { NapoleonsTriumphAction } from './gameAction.js'
-import { counterAttack } from '../model/attackResolution.js'
+import { counterAttack, counterAttackAccountWith } from '../model/attackResolution.js'
 import { currentAttack } from '../model/attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { CombatMetadata, combatMetadata } from './lossRecord.js'
@@ -42,6 +42,9 @@ export class HydratedCounterAttack
 
     protected perform(state: HydratedNapoleonsTriumphGameState) {
         const { initialResult } = currentAttack(state)
-        this.metadata = combatMetadata(counterAttack(state, this.unitIds), initialResult)
+        const account = counterAttackAccountWith(
+            this.unitIds.flatMap((id) => state.findUnit(id) ?? [])
+        )
+        this.metadata = combatMetadata(counterAttack(state, this.unitIds), initialResult, account)
     }
 }

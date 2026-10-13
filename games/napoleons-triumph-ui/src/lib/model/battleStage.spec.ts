@@ -25,9 +25,9 @@ import {
     BattleRole,
     battleStageOf,
     commandersGoing,
-    cycleLoss,
     keepWithCommander,
     keptByCommander,
+    moveLossOnto,
     pickUnit,
     rolesShown,
     sendCommander,
@@ -238,21 +238,47 @@ describe('arranging a retreat', () => {
         expect(stage.alone).toBeUndefined()
     })
 
-    it('steps a unit through every loss it could take and back to none', () => {
+    it('moves a step of the loss onto a tapped unit from another of its group, never changing how many are lost', () => {
         const { game, selections } = retreating(PLACEMENTS)
-        const lossAfterTaps = (taps: number) => {
+        const lossesAfter = (...taps: string[]) => {
             let current = selections
-            for (let tapped = 0; tapped < taps; tapped++) {
-                const stage = stageOf(game, StageKind.Retreat, current)
-                current = cycleLoss(game.hydrated, stage, current, 'A-cav')
+            for (const unitId of taps) {
+                current = moveLossOnto(
+                    game.hydrated,
+                    stageOf(game, StageKind.Retreat, current),
+                    current,
+                    unitId
+                )
             }
-            return stageOf(game, StageKind.Retreat, current).plan.losses['A-cav'] ?? 0
+            return stageOf(game, StageKind.Retreat, current).plan
         }
-        const suggested = lossAfterTaps(0)
-        const strength = 2
-        expect([1, 2, 3].map(lossAfterTaps)).toEqual(
-            [1, 2, 3].map((taps) => (suggested + taps) % (strength + 1))
-        )
+        const suggested = lossesAfter()
+        const [group] = suggested.groups
+        expect(group.unitIds.toSorted()).toEqual(['A-inf-a', 'A-inf-b'])
+        expect(group.assigned).toBe(group.steps)
+        const total = (plan: typeof suggested) =>
+            Object.values(plan.losses).reduce((sum, steps) => sum + steps, 0)
+
+        const before = suggested.losses['A-inf-b'] ?? 0
+        const moved = lossesAfter('A-inf-b')
+        expect(moved.losses['A-inf-b'] ?? 0).toBe(Math.min(2, before + 1, group.steps))
+        expect(total(moved)).toBe(total(suggested))
+        expect(moved.lossesValid).toBe(true)
+
+        const hammered = lossesAfter('A-inf-b', 'A-inf-b', 'A-inf-b', 'A-inf-b', 'A-inf-b')
+        expect(hammered.losses['A-inf-b']).toBe(Math.min(2, group.steps))
+        expect(total(hammered)).toBe(total(suggested))
+        expect(hammered.lossesValid).toBe(true)
+    })
+
+    it('leaves a unit that owes no loss in the retreat without one, however often it is tapped', () => {
+        const { game, selections } = retreating(PLACEMENTS)
+        const stage = stageOf(game, StageKind.Retreat, selections)
+        expect(stage.plan.units.find(({ unit }) => unit.id === 'A-cav')).toMatchObject({
+            owesLoss: false,
+            sharesLoss: false
+        })
+        expect(moveLossOnto(game.hydrated, stage, selections, 'A-cav')).toBe(selections)
     })
 
     it('sends only the unit picked to go by itself to the locale tapped, and is then done with it', () => {

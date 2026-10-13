@@ -47,12 +47,12 @@ export class HydratedDeclareAttack
     }
 
     protected perform(state: HydratedNapoleonsTriumphGameState) {
-        const { outcome, initialResult } = declareAttack(state, {
+        const { outcome, initialResult, account } = declareAttack(state, {
             orders: this.orders,
             wide: this.wide,
             leaderIds: this.leaderIds,
             targetLeaderId: this.targetLeaderId
         })
-        this.metadata = combatMetadata(outcome, initialResult)
+        this.metadata = combatMetadata(outcome, initialResult, account)
     }
 }

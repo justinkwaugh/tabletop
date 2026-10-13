@@ -10,7 +10,7 @@ import {
     infantry,
     type PiecePlacement
 } from '../testing/harness.js'
-import { CommandKind } from './attack.js'
+import { CommandKind, ResultTermKind } from './attack.js'
 import { FeintEnd } from './attackDeclaration.js'
 
 const ATTACK_FROM = 95
@@ -124,10 +124,22 @@ describe('rule 11 attack example 4: infantry repulsed by a cavalry counter-attac
             wide: false,
             leaderIds: ['F-inf']
         })
-        expect(declared).toMatchObject({ initialResult: 1 })
+        expect(declared).toMatchObject({
+            initialResult: 1,
+            account: [
+                { kind: ResultTermKind.AttackLeaders, value: 3, faces: [infantry(3)] },
+                { kind: ResultTermKind.InfantryAgainstBlockers, value: -1 },
+                { kind: ResultTermKind.DefenseLeaders, value: -1, faces: [infantry(1)] }
+            ]
+        })
         expect(game.state.machineState).toBe(MachineState.CounterAttackDecision)
         const countered = game.outcome(ActionType.CounterAttack, allied, { unitIds: ['A-cav'] })
-        expect(countered).toMatchObject({ finalResult: -1, attackerWon: false, moraleLost: 2 })
+        expect(countered).toMatchObject({
+            finalResult: -1,
+            attackerWon: false,
+            moraleLost: 2,
+            account: [{ kind: ResultTermKind.CounterAttack, value: -2, faces: [cavalry(3)] }]
+        })
         const state = game.hydrated
         expect(state.machineState).toBe(MachineState.Commanding)
         expect(state.unit('F-inf').face).toEqual(infantry(1))

@@ -8,6 +8,7 @@
         OddLossStage,
         RegroupStage
     } from '$lib/model/battleStage.js'
+    import { lossMark } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { advancePrompt } from '$lib/utils/advancePrompt.js'
     import Force from './Force.svelte'
@@ -33,8 +34,8 @@
     <Force
         units={stage.units}
         selected={Object.keys(stage.losses)}
-        markers={Object.fromEntries(
-            Object.entries(stage.losses).map(([id, steps]) => [id, `−${steps}`])
+        marks={Object.fromEntries(
+            Object.entries(stage.losses).map(([id, steps]) => [id, lossMark(steps)])
         )}
         onpick={pick}
     />
@@ -48,9 +49,7 @@
         >
     </div>
 {:else if stage.kind === StageKind.Regroup}
-    <div class="nt-battle-prompt">
-        The attack is thrown back. One unit stays with each commander; the rest are detached.
-    </div>
+    <div class="nt-battle-prompt">One unit stays with each commander; the rest are detached.</div>
     {#each stage.corps as corps (corps.commanderId)}
         <div class="nt-battle-faint">{commanderDefinition(corps.commanderId).name}</div>
         <Force units={corps.units} selected={[corps.keptId]} roles={stage.roles} onpick={pick} />
@@ -68,15 +67,20 @@
         roles={stage.roles}
         onpick={stage.pickableIds.length > 0 ? pick : undefined}
     />
-    <div class="flex flex-wrap items-center gap-2 pt-1">
-        {#each stage.commanders as commander (commander.commanderId)}
-            <AdvanceSwitch
-                commanderId={commander.commanderId}
-                goes={commander.goes}
-                mustGo={commander.mustGo}
-                onchoose={(goes) => gameSession.sendCommanderForward(commander.commanderId, goes)}
-            />
-        {/each}
+    {#if stage.commanders.length > 0}
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+            {#each stage.commanders as commander (commander.commanderId)}
+                <AdvanceSwitch
+                    commanderId={commander.commanderId}
+                    goes={commander.goes}
+                    mustGo={commander.mustGo}
+                    onchoose={(goes) =>
+                        gameSession.sendCommanderForward(commander.commanderId, goes)}
+                />
+            {/each}
+        </div>
+    {/if}
+    <div class="pt-1">
         <button
             type="button"
             class="nt-plain-button"

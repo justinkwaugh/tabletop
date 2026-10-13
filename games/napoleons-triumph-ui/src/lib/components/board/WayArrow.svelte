@@ -1,7 +1,8 @@
 <script lang="ts">
     import { ARROW_HEAD_LENGTH, type DrawnArrow } from '$lib/utils/wayArrow.js'
 
-    let { arrow }: { arrow: DrawnArrow } = $props()
+    /** `color` is the ink of the arrow where it is not the plain dark one: an army's colour for a trail of its move. */
+    let { arrow, color }: { arrow: DrawnArrow; color?: string } = $props()
 
     const SHAFT_WIDTH = 11
     const CASING = 3
@@ -13,7 +14,7 @@
     const shaft = $derived(arrow.shaft.map((point) => `${point.x},${point.y}`).join(' '))
 </script>
 
-<g class="nt-way-arrow" stroke-width={SHAFT_WIDTH * arrow.scale}>
+<g class="nt-way-arrow" stroke-width={SHAFT_WIDTH * arrow.scale} style:--nt-way-ink={color}>
     <polyline
         points={shaft}
         class="nt-way-arrow-casing"
@@ -28,13 +29,13 @@
 <style>
     .nt-way-arrow {
         fill: none;
-        stroke: #2b2620;
+        stroke: var(--nt-way-ink, #2b2620);
         stroke-linecap: round;
         stroke-linejoin: round;
     }
 
     .nt-way-arrow path {
-        fill: #2b2620;
+        fill: var(--nt-way-ink, #2b2620);
     }
 
     .nt-way-arrow .nt-way-arrow-casing {

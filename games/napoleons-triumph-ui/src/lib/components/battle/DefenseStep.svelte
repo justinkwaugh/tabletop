@@ -22,10 +22,6 @@
     roles={stage.roles}
     onpick={(id) => gameSession.pickBattleUnit(id)}
 />
-{#if stage.bystanders.length > 0}
-    <div class="nt-battle-faint">Elsewhere in the locale</div>
-    <Force units={stage.bystanders} />
-{/if}
 {#if stage.problem}
     <div class="nt-battle-warning">{stage.problem}.</div>
 {/if}

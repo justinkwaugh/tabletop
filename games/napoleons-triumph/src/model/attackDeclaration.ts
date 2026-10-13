@@ -1,5 +1,5 @@
 import { SANTON_LOCALE } from '../components/austerlitz.js'
-import type { MoveOrder } from './attack.js'
+import type { MoveOrder, ResultTerm } from './attack.js'
 import { artilleryMayFire, resolveAttackOrders, type AttackOrders } from './attackOrders.js'
 import {
     closeApproach,
@@ -11,7 +11,7 @@ import {
     type CombatOutcome
 } from './attackResolution.js'
 import { attackLocale, currentAttack, defenseLocale, type AttackState } from './attackState.js'
-import { initialResult, isArtilleryLed } from './combat.js'
+import { initialResult, initialResultTerms, isArtilleryLed, type Engagement } from './combat.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { santonBatteryPresent, validateAttackLeaders } from './leaders.js'
 import { endRoadMarch, relocate, requireRoom } from './movement.js'
@@ -154,14 +154,13 @@ export function checkAttackDeclaration(
     return { orders, leaders, artilleryLed, struckLeaderIds }
 }
 
-/** Rule 11, step 6. */
-export function initialResultOf(
+function engagementOf(
     state: HydratedNapoleonsTriumphGameState,
     checked: CheckedDeclaration
-): number {
+): Engagement {
     const attack = currentAttack(state)
     const defenseApproach = state.map.approach(attack.defenseApproach)
-    return initialResult({
+    return {
         attackLeaders: checked.leaders.map(faceOf),
         defenseLeaders: checked.struckLeaderIds.map((id) => faceOf(state.unit(id))),
         defendersBlocking: attack.defendersBlocking === true,
@@ -169,11 +168,28 @@ export function initialResultOf(
         penaltiesApplyInReserve:
             defenseApproach.locale === SANTON_LOCALE && santonBatteryPresent(state),
         guardAttack: attack.guardAttack === true
-    })
+    }
+}
+
+/** Rule 11, step 6. */
+export function initialResultOf(
+    state: HydratedNapoleonsTriumphGameState,
+    checked: CheckedDeclaration
+): number {
+    return initialResult(engagementOf(state, checked))
+}
+
+/** What the initial result of a declaration is made of, term by term. */
+export function initialAccountOf(
+    state: HydratedNapoleonsTriumphGameState,
+    checked: CheckedDeclaration
+): ResultTerm[] {
+    return initialResultTerms(engagementOf(state, checked))
 }
 
 export interface DeclaredAttack {
     initialResult: number
+    account: ResultTerm[]
     /** While a counter-attack may still be made this holds only what the declaration itself cost. */
     outcome: CombatOutcome
 }
@@ -204,9 +220,11 @@ export function declareAttack(
         ].flatMap((unit) => state.commit(unit))
     }
     const initialResult = initialResultOf(state, checked)
+    const account = initialAccountOf(state, checked)
     attack.initialResult = initialResult
     return {
         initialResult,
+        account,
         outcome: counterAttackCandidates(state).length > 0 ? cost : resolveCombat(state, cost)
     }
 }

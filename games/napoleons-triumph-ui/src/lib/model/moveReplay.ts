@@ -54,6 +54,7 @@ import {
     type BattleRole,
     type VisibleAttack
 } from './battleStage.js'
+import { attackMarkOf, type AttackMark } from './attackMark.js'
 import { belongsToAnAttack } from './historyChapters.js'
 
 export interface Standing {
@@ -221,16 +222,6 @@ export function moveReplayOf(
         : undefined
 }
 
-export enum AttackMarkKind {
-    Attack = 'attack',
-    Feint = 'feint'
-}
-
-export interface AttackMark {
-    approach: number
-    kind: AttackMarkKind
-}
-
 export interface MoveReplayScene {
     sprites: GroupSprite[]
     held: HeldApproach[]
@@ -310,18 +301,12 @@ function arrowLine(
 }
 
 // The arrow belongs to the attack while it is being made; pieces crossing to the approach or over it afterwards are shown by where they went.
-function attackMarkOf(
+function attackMarkIn(
     action: GameAction,
     attack: VisibleAttack | undefined
 ): AttackMark | undefined {
     const crossesAfterwards = isAdvance(action) || (isOccupy(action) && !action.artilleryStays)
-    if (!attack || crossesAfterwards) {
-        return undefined
-    }
-    return {
-        approach: attack.attackApproach,
-        kind: attack.feint || isDeclareFeint(action) ? AttackMarkKind.Feint : AttackMarkKind.Attack
-    }
+    return attack && !crossesAfterwards ? attackMarkOf(attack, action) : undefined
 }
 
 function firstPlaceOnTheWay(movement: Movement): Point {
@@ -411,7 +396,7 @@ export function moveReplayScene(
         held: heldApproaches(sprites),
         left,
         arrows: lines.flatMap((line) => drawnArrow(line) ?? []),
-        attackMark: attackMarkOf(action, attack),
+        attackMark: attackMarkIn(action, attack),
         roles: attack ? committedRoles(attack) : {},
         bystanderIds:
             movements.length > 0
