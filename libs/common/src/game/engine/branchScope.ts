@@ -10,7 +10,7 @@ export const ENGINE_MAINTAINED_FIELDS: ReadonlySet<string> = new Set([
 
 interface Location {
     readonly ownedByAncestor: boolean
-    readonly carriesPlayer: boolean
+    readonly ownedByItself: boolean
     readonly inArray: boolean
 }
 
@@ -21,32 +21,33 @@ function pathSegments(path: string): string[] {
         .map((segment) => segment.replaceAll('~1', '/').replaceAll('~0', '~'))
 }
 
-function carriesPlayer(value: unknown, playerId: string): boolean {
-    return (
-        typeof value === 'object' &&
-        value !== null &&
-        !Array.isArray(value) &&
-        Reflect.get(value, 'playerId') === playerId
-    )
+function carriedPlayerId(value: unknown): string | undefined {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+    const playerId: unknown = Reflect.get(value, 'playerId')
+    return typeof playerId === 'string' ? playerId : undefined
 }
 
 function locate(document: unknown, segments: readonly string[], playerId: string): Location {
     let current = document
-    let ownedByAncestor = false
+    let outermostOwnerId: string | undefined
     let inArray = false
     for (const segment of segments) {
-        ownedByAncestor ||= carriesPlayer(current, playerId)
+        outermostOwnerId ??= carriedPlayerId(current)
         inArray = Array.isArray(current)
         current =
             typeof current === 'object' && current !== null && Object.hasOwn(current, segment)
                 ? Reflect.get(current, segment)
                 : undefined
     }
-    return { ownedByAncestor, carriesPlayer: carriesPlayer(current, playerId), inArray }
+    return {
+        ownedByAncestor: outermostOwnerId === playerId,
+        ownedByItself: outermostOwnerId === undefined && carriedPlayerId(current) === playerId,
+        inArray
+    }
 }
 
-function isOwnEntry(location: Location, ownedBefore: boolean): boolean {
-    return ownedBefore || (location.carriesPlayer && !location.inArray)
+function isOwnEntry(location: Location): boolean {
+    return location.ownedByItself && !location.inArray
 }
 
 function isWithinScope(
@@ -59,12 +60,13 @@ function isWithinScope(
     if (ENGINE_MAINTAINED_FIELDS.has(segments[0])) return true
     const was = locate(before, segments, playerId)
     const is = locate(after, segments, playerId)
-    if (operation.op === 'remove') return isOwnEntry(is, was.ownedByAncestor)
-    if (operation.op === 'add') return isOwnEntry(was, was.ownedByAncestor)
+    const staysOwned = was.ownedByAncestor && is.ownedByAncestor
+    if (operation.op === 'remove') return staysOwned || isOwnEntry(is)
+    if (operation.op === 'add') return staysOwned || isOwnEntry(was)
     return (
         operation.op === 'replace' &&
-        (was.ownedByAncestor || was.carriesPlayer) &&
-        (is.ownedByAncestor || is.carriesPlayer)
+        (was.ownedByAncestor || was.ownedByItself) &&
+        (is.ownedByAncestor || is.ownedByItself)
     )
 }
 

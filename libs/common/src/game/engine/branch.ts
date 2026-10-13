@@ -12,6 +12,7 @@ import {
     spanActivePlayerIds,
     unmergedPlayerIds
 } from './parallelSpan.js'
+import { undoRecordedAction } from './recordedHistory.js'
 import { createPatch } from './statePatch.js'
 import { BranchPoint, type GameState, type ParallelSpanState } from '../model/gameState.js'
 
@@ -82,8 +83,9 @@ function viewOver<T extends GameState>(state: T, span: ParallelSpanState, branch
         structuredClone(state),
         structuredClone(branch.change)
     ).newDocument
+    const { branchPlayerId: _mainLineBranchPlayerId, ...mainLineSpan } = structuredClone(span)
     const viewed = {
-        ...structuredClone(span),
+        ...mainLineSpan,
         mergedPlayerIds: branch.closed
             ? [...span.mergedPlayerIds, branch.playerId]
             : [...span.mergedPlayerIds],
@@ -153,4 +155,30 @@ function mergeOutcome(state: GameState): Record<string, unknown> {
 
 export function sameBranchOutcome(mainLine: GameState, view: GameState): boolean {
     return Value.Equal(mergeOutcome(mainLine), mergeOutcome(view))
+}
+
+// A recorded undo patch addresses the span record's lists as they stood privately, so a view worked back from one has no comparable span record.
+function outcomeInsideBranch(state: GameState): Record<string, unknown> {
+    const { parallelSpan: _parallelSpan, ...outcome } = mergeOutcome(state)
+    return outcome
+}
+
+export function firstActionWithAnotherResult<T extends GameState>({
+    closedView,
+    recorded,
+    replayed
+}: {
+    closedView: T
+    recorded: readonly GameAction[]
+    replayed: readonly T[]
+}): GameAction | undefined {
+    let shown = closedView
+    let first: GameAction | undefined
+    for (let position = recorded.length - 1; position >= 0; position--) {
+        const action = recorded[position]
+        if (!Value.Equal(outcomeInsideBranch(replayed[position]), outcomeInsideBranch(shown)))
+            first = action
+        shown = undoRecordedAction(shown, action)
+    }
+    return first
 }
