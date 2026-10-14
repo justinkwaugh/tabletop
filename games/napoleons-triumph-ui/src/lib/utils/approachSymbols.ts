@@ -1,7 +1,12 @@
 import type { Point } from '@tabletop/common'
 import { UnitType } from '@tabletop/napoleons-triumph'
 import { onBattlefield } from '$lib/map/battlefield.js'
-import { PRINTED_MARKS, type PrintedMark, type PrintedMarks } from '$lib/map/boardGeometry.js'
+import {
+    APPROACH_GEOMETRY,
+    PRINTED_MARKS,
+    type PrintedMark,
+    type PrintedMarks
+} from '$lib/map/boardGeometry.js'
 import { BAR_HALF_THICKNESS } from './pieceLayout.js'
 
 // The marks keep the proportions they are printed in on the board.
@@ -10,14 +15,13 @@ export const MARK_HEIGHT = 10
 const MARK_GAP = 4
 const TAG_PADDING = 3.5
 const BAR_CLEARANCE = 1
+// The bars of the map file and of the rules data are the same bars, measured to a tenth.
+const SAME_BAR = 1
 
 export const TAG_HEIGHT = MARK_HEIGHT + TAG_PADDING * 2
 
-export const DIAGONAL_BAR = {
-    length: Math.hypot(MARK_WIDTH, MARK_HEIGHT),
-    thickness: 2.6,
-    angle: (Math.atan2(MARK_HEIGHT, MARK_WIDTH) * 180) / Math.PI
-}
+export const MARK_PAPER = '#f1ecdc'
+export const MARK_INK = '#2b2620'
 
 export const PENALISED_UNIT_TYPE: Partial<Record<PrintedMark, UnitType>> = {
     I: UnitType.Infantry,
@@ -39,6 +43,20 @@ export interface SymbolTag {
     awayFromBar: Point
 }
 
+export function sideKey(side: PrintedMarks): string {
+    return `${side.centre.x}:${side.centre.y}`
+}
+
+/** The marks printed on an approach's own side of its bar. */
+export function printedSideOf(approach: number): PrintedMarks | undefined {
+    const { centre, inward } = APPROACH_GEOMETRY[approach]
+    return PRINTED_MARKS.find(
+        ({ bar, centre: marks }) =>
+            Math.hypot(bar.x - centre.x, bar.y - centre.y) < SAME_BAR &&
+            (marks.x - bar.x) * inward.x + (marks.y - bar.y) * inward.y > 0
+    )
+}
+
 function tagOf(side: PrintedMarks): SymbolTag {
     const radians = (side.angle * Math.PI) / 180
     const along = { x: Math.cos(radians), y: Math.sin(radians) }
@@ -49,7 +67,7 @@ function tagOf(side: PrintedMarks): SymbolTag {
     const width =
         side.marks.length * MARK_WIDTH + (side.marks.length - 1) * MARK_GAP + TAG_PADDING * 2
     return {
-        key: `${side.centre.x}:${side.centre.y}`,
+        key: sideKey(side),
         angle: side.angle,
         width,
         marks: side.marks.map((mark, index) => ({

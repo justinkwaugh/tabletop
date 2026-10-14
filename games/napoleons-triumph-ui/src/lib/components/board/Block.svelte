@@ -4,7 +4,7 @@
     import type { RoleMark } from '$lib/model/roleMark.js'
     import { washedOut, type ArmyColors } from '$lib/utils/armyColors.js'
     import { BLOCK_LENGTH, BLOCK_THICKNESS } from '$lib/utils/blockShape.js'
-    import { faceWidth } from '$lib/utils/faceLayout.js'
+    import { BLOCK_SYMBOL_HEIGHT, BLOCK_SYMBOL_WIDTH, faceWidth } from '$lib/utils/faceLayout.js'
 
     let {
         x,
@@ -33,10 +33,9 @@
     } = $props()
 
     const ROLE_MARK_AT = BLOCK_LENGTH / 2 - 10
-    const SYMBOL_WIDTH = 16
     const STRONGEST = 3
     // A loss stands clear of both the end of the block and the symbols of the strongest unit, the same place on every block.
-    const HEAVY_MARK_AT = (faceWidth(STRONGEST, SYMBOL_WIDTH) / 2 + BLOCK_LENGTH / 2) / 2
+    const HEAVY_MARK_AT = (faceWidth(STRONGEST, BLOCK_SYMBOL_WIDTH) / 2 + BLOCK_LENGTH / 2) / 2
     const MOVED_DOT_AT = BLOCK_LENGTH / 2 - 8
     const SEEN_MARK_AT = -BLOCK_LENGTH / 2 + 11
     const SEEN_MARK_LIDS = 'M-6.5 0 Q0 -5.6 6.5 0 Q0 5.6 -6.5 0 Z'
@@ -102,8 +101,8 @@
                 {face}
                 ink={paint.ink}
                 ground={paint.block}
-                symbolHeight={11}
-                symbolWidth={SYMBOL_WIDTH}
+                symbolHeight={BLOCK_SYMBOL_HEIGHT}
+                symbolWidth={BLOCK_SYMBOL_WIDTH}
             />
         </g>
     {/if}

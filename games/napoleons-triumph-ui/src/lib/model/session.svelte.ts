@@ -60,6 +60,8 @@ import {
     type PlantedFlag
 } from '$lib/utils/flagLayout.js'
 import { topmostAt } from '$lib/utils/blockShape.js'
+import { approachPlates, plateSamples, type ApproachPlate } from '$lib/utils/approachPlates.js'
+import { SYMBOL_TAGS, type SymbolTag } from '$lib/utils/approachSymbols.js'
 import {
     heldApproaches,
     layoutPieces,
@@ -333,6 +335,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     heldApproaches: HeldApproach[] = $derived(heldApproaches(this.sprites))
 
+    approachPlates: ApproachPlate[] = $derived(approachPlates(this.heldApproaches))
+
+    approachSymbolTags: SymbolTag[] = $derived.by(() => {
+        if (!this.approachSymbolsShown) {
+            return []
+        }
+        const onPlates = this.approachPlates.map((plate) => plate.side)
+        return SYMBOL_TAGS.filter((tag) => !onPlates.includes(tag.key))
+    })
+
     flagView: FlagView = $derived({ rotation: this.boardRotation, scale: flagScale(this.zoom) })
 
     private plantedFlags: PlantedFlag[] = $derived.by(() => {
@@ -358,6 +370,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             this.flagView,
             [
                 ...arrowsToKeepClear(arrowApproaches, this.zoom),
+                ...plateSamples(this.approachPlates),
                 ...this.movementTrails.flatMap((trail) => [
                     ...lineSamples(trail.line),
                     numberOfTrail(trail, this.flagView.scale).at

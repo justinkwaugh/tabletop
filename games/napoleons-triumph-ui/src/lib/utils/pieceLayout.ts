@@ -243,6 +243,11 @@ function filesAcross(bar: ApproachGeometry): number {
     return bar.length > BLOCK_LENGTH * 2 ? 2 : 1
 }
 
+/** How far along its bar, from the middle, the pieces fronting an approach reach. */
+export function reachOfFiles(bar: ApproachGeometry): number {
+    return filesAcross(bar) === 1 ? BLOCK_LENGTH / 2 : BLOCK_LENGTH + COLUMN_GAP / 2
+}
+
 /**
  * A file the viewer reads runs Guard to artillery from the top of the screen down where it stands
  * more upright than level on screen, and from inside its locale out to the bar where it lies level.
