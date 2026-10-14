@@ -51,24 +51,6 @@
         )?.id
     }
     const session = $derived(requireTheOldPrinceSession(gameSession))
-    const spreadsheetCompanyOrder = $derived.by(() => {
-        const gameState = session.gameState
-        const trancheCompanies = gameState.tranches.flatMap((tranche) => tranche.companyIds)
-        return [
-            ...gameState.companies
-                .filter((company) => company.role === 'mainline')
-                .map((company) => company.id),
-            ...gameState.companies
-                .filter(
-                    (company) =>
-                        company.started &&
-                        company.role !== 'mainline' &&
-                        !trancheCompanies.includes(company.id)
-                )
-                .map((company) => company.id),
-            ...trancheCompanies
-        ]
-    })
     const privateOperationDescription = (id: string, companyId: string) =>
         id === 'HS' && companyId !== 'PEIR'
             ? 'Close to buy one depot train during the company’s turn, paying the normal train price.'
@@ -76,7 +58,6 @@
 </script>
 
 <GameTable
-    {spreadsheetCompanyOrder}
     additionalStockActions={session.additionalStockMenuCount
         ? [
               {

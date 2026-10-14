@@ -84,7 +84,6 @@
         additionalStockActions = [],
         gameInformation,
         boardInformation,
-        spreadsheetCompanyOrder,
         auctionLotDescription,
         numberedShareLocation,
         actions,
@@ -95,7 +94,6 @@
         additionalStockActions?: readonly StockMenuOption[]
         gameInformation?: Snippet
         boardInformation?: Snippet
-        spreadsheetCompanyOrder?: readonly string[]
         auctionLotDescription?: (id: string) => string
         numberedShareLocation?: (companyId: string, number: number) => string | undefined
         actions: Snippet<[(locationId: string) => void, (trainId: string) => void]>
@@ -608,10 +606,8 @@
             : operatingRules.companyOrder(gameState)
         ).map((id) => getCompany(gameState, id))
     )
-    // Company cards and the spreadsheet follow the operating order unless the title sets its own.
-    const displayedCompanyOrder = $derived(
-        spreadsheetCompanyOrder ?? companyOrder.map((company) => company.id)
-    )
+    // Company cards and the spreadsheet follow the operating order.
+    const displayedCompanyOrder = $derived(companyOrder.map((company) => company.id))
     const startedCompanies = $derived(
         spreadsheetCompanies(
             gameState,
