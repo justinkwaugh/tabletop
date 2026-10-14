@@ -704,6 +704,35 @@ export function deploymentOf(
     return deployment
 }
 
+/** The set-up a deployment was made from: who stays with each commander and who stands apart. */
+export function setupOfDeployment(map: BattleMap, deployment: Deployment): ArmySetup {
+    const battery = deployment.fixedBattery
+    const batteryCorps = deployment.corps.find(
+        (corps) => battery !== undefined && corps.unitIds.includes(battery.unitId)
+    )
+    const detached = [...deployment.detachments]
+    // Rule 6, step 9: a battery given an approach and no detachment stands in its corps's own locale.
+    if (battery?.approach !== undefined && batteryCorps) {
+        detached.push({
+            unitId: battery.unitId,
+            position: {
+                locale: setupLocaleOf(map, batteryCorps.commanderId).id,
+                approach: battery.approach
+            }
+        })
+    }
+    return {
+        corps: deployment.corps.map((corps) => ({
+            commanderId: corps.commanderId,
+            unitIds: corps.unitIds.filter((id) => !detached.some((entry) => entry.unitId === id)),
+            offMap: corps.offMap === true,
+            approach: corps.approach
+        })),
+        detached,
+        fixedBatteryId: battery?.unitId
+    }
+}
+
 export function setupProblem(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,

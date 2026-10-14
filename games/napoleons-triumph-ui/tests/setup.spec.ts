@@ -3,6 +3,7 @@ import {
     ALLIED_ARMY,
     FRENCH_ARMY,
     createGame,
+    deployBothArmies,
     deployAllies,
     failOnPageErrors,
     fillCorps,
@@ -151,6 +152,60 @@ test('the army deploys once every unit is assigned and every corps has its minim
     await deploy.click()
     await expect(page.locator('[data-seat="lannes"]')).toBeVisible()
     await expect(page.locator('[data-commander="prebyshevsky"]')).toBeVisible()
+})
+
+test('a Deploy taken back brings the set-up back as it was deployed, even after the page is reloaded', async ({
+    page
+}) => {
+    await createGame(page)
+    const deploy = page.getByRole('button', { name: 'Deploy the army' })
+    const undo = page.getByRole('button', { name: 'Undo' })
+    await fillCorps(page, ALLIED_ARMY)
+    await tap(page, 'svg [aria-label="Block this approach"]')
+    await deploy.click()
+    await expect(page.locator('[data-seat="lannes"]')).toBeVisible()
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Austerlitz' }).click()
+    await expect(page.locator('[data-seat="lannes"]')).toBeVisible()
+    await undo.click()
+    for (const [commander, faces] of Object.entries(ALLIED_ARMY)) {
+        await expect(seat(page, commander).locator('.nt-unit-tile')).toHaveCount(faces.length)
+    }
+    await expect(seat(page, 'prebyshevsky').locator('.nt-setup-where').nth(1)).toContainText(
+        'facing'
+    )
+    await expect(page.locator('.nt-setup-progress')).toHaveText('')
+    await expect(deploy).toBeEnabled()
+
+    await seat(page, 'bagration').locator('.nt-unit-tile').first().click()
+    await expect(seat(page, 'bagration').locator('.nt-unit-tile')).toHaveCount(
+        ALLIED_ARMY.bagration.length - 1
+    )
+    await undo.click()
+    await expect(seat(page, 'bagration').locator('.nt-unit-tile')).toHaveCount(
+        ALLIED_ARMY.bagration.length
+    )
+
+    await deploy.click()
+    await expect(page.locator('[data-seat="lannes"]')).toBeVisible()
+    await expect(page.locator('[data-commander="prebyshevsky"]')).toBeVisible()
+})
+
+test('the French Deploy taken back brings back the fixed battery on its approach', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    for (const [commander, faces] of Object.entries(FRENCH_ARMY)) {
+        await expect(seat(page, commander).locator('.nt-unit-tile')).toHaveCount(faces.length)
+    }
+    await expect(seat(page, 'fixed-battery').locator('.nt-unit-tile')).toHaveCount(1)
+    await expect(page.locator('.nt-setup-progress')).toHaveText('')
+    await expect(page.getByRole('button', { name: 'Deploy the army' })).toBeEnabled()
 })
 
 test('the printed set-up marks show on the map until both armies are deployed', async ({

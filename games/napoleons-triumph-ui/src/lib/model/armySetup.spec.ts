@@ -11,7 +11,7 @@ import {
     deployArmy,
     nearAlliedObjective,
     setupLocaleOf,
-    type Deployment,
+    type Detachment,
     type HydratedNapoleonsTriumphGameState
 } from '@tabletop/napoleons-triumph'
 import { TestGame, suggestedDeployment } from '@tabletop/napoleons-triumph/testing'
@@ -28,6 +28,7 @@ import {
     fixedBatteryPosts,
     onMapStartOf,
     postStances,
+    setupOfDeployment,
     setupProblem,
     stanceTargets,
     unassignedStacks,
@@ -79,34 +80,6 @@ function cardOf(
     )
     assertExists(card, `${commanderId} has no card`)
     return card
-}
-
-/** The set-up the specs deploy, arranged the way a player would: who stays with each commander and who stands apart. */
-function setupFrom(state: HydratedNapoleonsTriumphGameState, deployment: Deployment): ArmySetup {
-    const battery = deployment.fixedBattery
-    const batteryCorps = deployment.corps.find(
-        (corps) => battery !== undefined && corps.unitIds.includes(battery.unitId)
-    )
-    const detached = [...deployment.detachments]
-    if (battery?.approach !== undefined && batteryCorps) {
-        detached.push({
-            unitId: battery.unitId,
-            position: {
-                locale: setupLocaleOf(state.map, batteryCorps.commanderId).id,
-                approach: battery.approach
-            }
-        })
-    }
-    return {
-        corps: deployment.corps.map((corps) => ({
-            commanderId: corps.commanderId,
-            unitIds: corps.unitIds.filter((id) => !detached.some((entry) => entry.unitId === id)),
-            offMap: corps.offMap === true,
-            approach: corps.approach
-        })),
-        detached,
-        fixedBatteryId: battery?.unitId
-    }
 }
 
 describe('an untouched set-up', () => {
@@ -419,7 +392,7 @@ describe('units set up on their own', () => {
 
     it('bring a thin corps up to its minimum once no other unit is left to do it', () => {
         const { state, playerId } = frenchToSetUp()
-        const suggested = setupFrom(state, suggestedDeployment(state, Side.French))
+        const suggested = setupOfDeployment(state.map, suggestedDeployment(state, Side.French))
         const corps = suggested.corps.find((entry) => entry.commanderId === 'st-hilaire')
         assertExists(corps, 'St. Hilaire leads a corps')
         const [kept, ...sent] = corps.unitIds
@@ -619,6 +592,8 @@ describe('where a corps stands', () => {
 })
 
 describe('a finished set-up', () => {
+    const byUnit = (a: Detachment, b: Detachment) => a.unitId.localeCompare(b.unitId)
+
     it('deploys by the rules and stands on the map exactly as it was shown, however the blocks are dealt', () => {
         for (const santon of [true, false]) {
             for (const scenario of Object.values(Scenario)) {
@@ -628,11 +603,21 @@ describe('a finished set-up', () => {
                     for (const side of [Side.Allied, Side.French]) {
                         const state = game.hydrated
                         const playerId = game.playerOf(side)
-                        const setup = setupFrom(state, suggestedDeployment(state, side))
+                        const setup = setupOfDeployment(state.map, suggestedDeployment(state, side))
                         const context = `${side}, santon ${santon}, ${scenario}, seed ${seed}`
 
                         expect(fits(state, playerId, setup), context).toBe(true)
                         expect(setupProblem(state, playerId, setup), context).toBeUndefined()
+
+                        const asDeployed = setupOfDeployment(
+                            state.map,
+                            deploymentOf(state, playerId, setup)
+                        )
+                        expect(asDeployed.corps, context).toEqual(setup.corps)
+                        expect(asDeployed.fixedBatteryId, context).toBe(setup.fixedBatteryId)
+                        expect(asDeployed.detached.toSorted(byUnit), context).toEqual(
+                            setup.detached.toSorted(byUnit)
+                        )
 
                         const deployed = copyOf(state)
                         deployArmy(deployed, playerId, deploymentOf(state, playerId, setup))
@@ -660,7 +645,7 @@ describe('a finished set-up', () => {
 
     it('is not finished while the fixed battery has a locale but no approach, even where its corps blocks one', () => {
         const { state, playerId } = frenchToSetUp()
-        const suggested = setupFrom(state, suggestedDeployment(state, Side.French))
+        const suggested = setupOfDeployment(state.map, suggestedDeployment(state, Side.French))
         const battery = suggested.detached.find(
             (entry) => entry.unitId === suggested.fixedBatteryId
         )
@@ -682,7 +667,7 @@ describe('a finished set-up', () => {
 
     it('says in the rules’ words what is still wrong once every unit is placed', () => {
         const { state, playerId } = frenchToSetUp()
-        const suggested = setupFrom(state, suggestedDeployment(state, Side.French))
+        const suggested = setupOfDeployment(state.map, suggestedDeployment(state, Side.French))
         const battery = suggested.fixedBatteryId
         assertExists(battery, 'The suggested French set-up names a fixed battery')
         const unnamed = withUnitJoining(suggested, battery, 'lannes')

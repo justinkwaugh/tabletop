@@ -12,6 +12,7 @@ import {
     LeadDefense,
     DeclareFeint,
     DeployArmy,
+    isDeployArmy,
     EndTurn,
     MachineState,
     Move,
@@ -133,6 +134,7 @@ import {
     arrayedArmy,
     deploymentOf,
     emptySetup,
+    setupOfDeployment,
     fits,
     seatedInACorps,
     withCorpsOnMap,
@@ -211,6 +213,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
     private selection: CommandSelection = $state(noCommandSelection())
     private setup: SetupSelection = $state.raw(noSetupSelection())
     private setupFocus: SetupFocus | undefined = $state.raw()
+    // Deliberate: a player deploys once, so being asked to again means the Deploy was taken back,
+    // and the set-up starts from the army as that Deploy had it. Kept by player for a shared screen.
+    private setupsTakenBack: Record<string, ArmySetup> = $state.raw({})
     private battle: BattleSelections = $state(emptyBattleSelections())
     private readonly pickUpListeners = new Set<() => void>()
     private readonly seatOpenedListeners = new Set<() => void>()
@@ -266,7 +271,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             return undefined
         }
         const untouched = emptySetup(this.gameState, playerId)
-        const setup = latestArrangement(this.setup) ?? untouched
+        const setup = latestArrangement(this.setup) ?? this.setupsTakenBack[playerId] ?? untouched
         const { open, heldUnitId } = this.setupFocus ?? { open: firstDestination(untouched) }
         const stillInHand = heldUnitId !== undefined && !seatedInACorps(setup, heldUnitId)
         return { setup, open, heldUnitId: stillInHand ? heldUnitId : undefined }
@@ -1251,6 +1256,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     override async undo() {
         if (!this.hasManualSelection()) {
+            this.keepSetupOfDeployToUndo()
             await super.undo()
         } else if (this.isDeploying) {
             this.setup = undoSetupSelection(this.setup)
@@ -1355,6 +1361,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
                 open: seatOfUnitApart(step.setup, unitId),
                 heldUnitId: unitId
             })
+        }
+    }
+
+    private keepSetupOfDeployToUndo() {
+        const action = this.undoableAction
+        if (isDeployArmy(action)) {
+            this.setupsTakenBack = {
+                ...this.setupsTakenBack,
+                [action.playerId]: setupOfDeployment(this.gameState.map, action.deployment)
+            }
         }
     }
 

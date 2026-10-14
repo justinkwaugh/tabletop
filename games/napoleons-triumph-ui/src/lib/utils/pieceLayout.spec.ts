@@ -362,6 +362,47 @@ describe('stacks short of room', () => {
     })
 })
 
+describe('a corps fronting an approach of a locale short of depth', () => {
+    const SHALLOW = { locale: 121, facing: 120 }
+
+    function fronting(reserve: boolean) {
+        const game = new TestGame()
+        game.deployBoth()
+        arrangeBattlefield(game, [
+            ...Array.from({ length: 5 }, (_, index) => ({
+                id: `inf-${index}`,
+                side: Side.Allied,
+                face: infantry(2),
+                commanderId: 'dokhturov',
+                ...SHALLOW
+            })),
+            ...(reserve
+                ? [{ id: 'held-back', side: Side.Allied, face: cavalry(1), locale: SHALLOW.locale }]
+                : [])
+        ])
+        const corps = layoutPieces(game.hydrated, { rotation: 0 }).find(
+            (sprite) => sprite.group.commander !== undefined
+        )
+        assertExists(corps, 'Expected the corps to be laid out')
+        return corps
+    }
+
+    it('stands a full block apart, inside the locale, when it has the locale to itself', () => {
+        const corps = fronting(false)
+        const { outline } = LOCALE_GEOMETRY[SHALLOW.locale]
+        expect(corps.closedUp).toBe(false)
+        for (const block of corps.blocks) {
+            for (const corner of cornersOf(block)) {
+                expect(insidePolygon(corner, outline)).toBe(true)
+            }
+        }
+    })
+
+    it('closes up short of the middle of the locale when anything else stands there', () => {
+        expect(fronting(true).closedUp).toBe(true)
+    })
+})
+
 describe('the order of a player’s own pieces in a stack', () => {
     const AS_DEALT: Face[] = [
         artillery(),

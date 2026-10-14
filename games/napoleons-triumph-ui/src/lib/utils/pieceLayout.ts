@@ -31,10 +31,15 @@ const COLUMN_GAP = 6
 const RESERVE_ROW_GAP = 5
 const FILE_GROUP_GAP = 10
 const MIN_RANK_SPACING = 7
+const INSIDE_STEP = 2
+const FAR_SIDE_CLEARANCE = 6
+const ROOM_CHOICES = 5
 const FULL_RANK_SPACING = BLOCK_THICKNESS + 2
 const LEVEL_TOLERANCE = 0.5
 const SETTLE_STEP = 12
-const SETTLE_CLEARANCE = 3
+// Deliberate: files keep the same clear gap from a neighbouring stack as groups in one file keep from
+// each other, so two stacks in adjoining locales are not read as one.
+const NEIGHBOUR_CLEARANCE = FILE_GROUP_GAP
 // Deliberate: a reserve stands as far from the pieces fronting an approach as groups in one file do,
 // so the two are never read as one stack.
 const RESERVE_CLEARANCE = FILE_GROUP_GAP
@@ -270,14 +275,64 @@ function ranksFromTheBar(
     return barIsTheTop ? group.units : group.units.toReversed()
 }
 
+const roomInsideByApproach = new Map<number, number>()
+
+function filesStayInside(bar: ApproachGeometry, outline: readonly Point[], inward: number) {
+    const radians = (bar.angle * Math.PI) / 180
+    const reach = reachOfFiles(bar)
+    return [-reach, 0, reach].every((sideways) =>
+        insidePolygon(
+            {
+                x: bar.centre.x + Math.cos(radians) * sideways + bar.inward.x * inward,
+                y: bar.centre.y + Math.sin(radians) * sideways + bar.inward.y * inward
+            },
+            outline
+        )
+    )
+}
+
+// How deep the files fronting an approach can stand before a block of them would leave the locale.
+function roomInsideLocale(approachId: number, locale: LocaleGeometry): number {
+    const known = roomInsideByApproach.get(approachId)
+    if (known !== undefined) {
+        return known
+    }
+    const bar = APPROACH_GEOMETRY[approachId]
+    const nearest = BAR_HALF_THICKNESS + BAR_GAP
+    let inward = nearest
+    while (filesStayInside(bar, locale.outline, inward + INSIDE_STEP)) {
+        inward += INSIDE_STEP
+    }
+    const room = inward - nearest - FAR_SIDE_CLEARANCE
+    roomInsideByApproach.set(approachId, room)
+    return room
+}
+
+// Deliberate: files stop at the locale's anchor, leaving its middle to whatever else stands there.
+// With the locale to themselves they may take its whole depth before they close up, and are
+// offered the depths between so they can stop short of a neighbouring stack.
+function roomsToTry(approachId: number, locale: LocaleGeometry, aloneInLocale: boolean): number[] {
+    const bar = APPROACH_GEOMETRY[approachId]
+    const depth = Math.hypot(locale.anchor.x - bar.centre.x, locale.anchor.y - bar.centre.y)
+    const toAnchor = Math.max(BLOCK_THICKNESS, depth - BAR_HALF_THICKNESS)
+    const inside = aloneInLocale ? roomInsideLocale(approachId, locale) : toAnchor
+    if (inside <= toAnchor) {
+        return [toAnchor]
+    }
+    return Array.from(
+        { length: ROOM_CHOICES },
+        (_, choice) => inside - ((inside - toAnchor) * choice) / (ROOM_CHOICES - 1)
+    )
+}
+
 function layoutBlockers(
     groups: PlacedGroup[],
     approachId: number,
     options: LayoutOptions,
-    firstFile: number
+    firstFile: number,
+    room: number
 ): GroupSprite[] {
     const bar = APPROACH_GEOMETRY[approachId]
-    const locale = LOCALE_GEOMETRY[groups[0].position.locale]
     const along = {
         x: Math.cos((bar.angle * Math.PI) / 180),
         y: Math.sin((bar.angle * Math.PI) / 180)
@@ -287,15 +342,9 @@ function layoutBlockers(
     const deepest = Math.max(
         ...filed.map(({ group, ranksAhead }) => ranksAhead + group.units.length)
     )
-    const depth = Math.hypot(locale.anchor.x - bar.centre.x, locale.anchor.y - bar.centre.y)
     const loose = options.looseLocales?.includes(groups[0].position.locale) === true
     const gapsInAFile = Math.max(...filed.map(({ groupsAhead }) => groupsAhead))
-    const spacing = fileSpacing(
-        deepest,
-        gapsInAFile,
-        Math.max(BLOCK_THICKNESS, depth - BAR_HALF_THICKNESS),
-        loose
-    )
+    const spacing = fileSpacing(deepest, gapsInAFile, room, loose)
     // Deliberate: groups filed one behind another stand a clear gap apart even where their own
     // blocks lie over one another, so a detached unit behind a corps is not read as part of it.
     const betweenGroups = Math.max(0, BLOCK_THICKNESS - spacing) + FILE_GROUP_GAP
@@ -325,17 +374,21 @@ function choicesOfFile(approachId: number): number {
 }
 
 function covering(blocks: readonly BlockFootprint[], placed: readonly BlockFootprint[]): number {
-    return blocks.flatMap(blockSamples).filter(coveredBy(placed, SETTLE_CLEARANCE)).length
+    return blocks.flatMap(blockSamples).filter(coveredBy(placed, NEIGHBOUR_CLEARANCE)).length
 }
 
 function clearestFiles(
     groups: PlacedGroup[],
     approachId: number,
     options: LayoutOptions,
-    placed: readonly BlockFootprint[]
+    placed: readonly BlockFootprint[],
+    aloneInLocale: boolean
 ): GroupSprite[] {
-    const arrangements = Array.from({ length: choicesOfFile(approachId) }, (_, firstFile) =>
-        layoutBlockers(groups, approachId, options, firstFile)
+    const locale = LOCALE_GEOMETRY[groups[0].position.locale]
+    const arrangements = roomsToTry(approachId, locale, aloneInLocale).flatMap((room) =>
+        Array.from({ length: choicesOfFile(approachId) }, (_, firstFile) =>
+            layoutBlockers(groups, approachId, options, firstFile, room)
+        )
     )
     const overlap = (sprites: GroupSprite[]) =>
         covering(
@@ -482,7 +535,17 @@ export function layoutPieces(
         })
         .toSorted((a, b) => choicesOfFile(a.approach) - choicesOfFile(b.approach))
         .flatMap(({ groups, approach }) => {
-            const sprites = clearestFiles(groups, approach, options, placed)
+            const { locale } = groups[0].position
+            const standingInLocale = byPosition.filter(
+                (entry) => entry[0].position.locale === locale
+            )
+            const sprites = clearestFiles(
+                groups,
+                approach,
+                options,
+                placed,
+                standingInLocale.length === 1
+            )
             placed.push(...sprites.flatMap((sprite) => sprite.blocks))
             return sprites
         })
