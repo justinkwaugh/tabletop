@@ -32,6 +32,7 @@ import { TournamentService } from './tournamentService.js'
 import { generateTournamentSchedule } from './tournamentScheduler.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { tournamentGameId } from '../games/tournamentGames.js'
+import { DEFERRED_TURN_REMINDER_INDEX } from '../games/turnReminders.js'
 
 const definition = {
     ...SyntheticDefinition,
@@ -1009,6 +1010,32 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             assertExists(spectator)
             expect(spectator.game.tournament?.tournamentId).toBe(request.tournamentId)
             expect((await db.doc(`games/${gameId}/private/initialization`).get()).exists).toBe(true)
+        })
+        it('reminds the first active entrant four hours after their game is provisioned', async () => {
+            const { request, table } = await fixture()
+            const initializer = SyntheticRuntime.initializer
+            const initializeGameState = initializer.initializeGameState.bind(initializer)
+            vi.spyOn(initializer, 'initializeGameState').mockImplementation((...args) => {
+                const state = initializeGameState(...args)
+                state.activePlayerIds = ['player-1']
+                return state
+            })
+            const createPushTask = vi.spyOn(tasks, 'createPushTask').mockResolvedValue()
+
+            await service.provisionTable(request)
+
+            expect(createPushTask).toHaveBeenCalledExactlyOnceWith({
+                queue: 'turn-notification',
+                path: '/notification/sendTurnNotification',
+                inSeconds: 4 * 60 * 60,
+                payload: {
+                    userId: table.entrantIds[0],
+                    gameId: tournamentGameId(request),
+                    notificationId: expect.any(String),
+                    reminderIndex: DEFERRED_TURN_REMINDER_INDEX,
+                    delay: 4 * 60 * 60
+                }
+            })
         })
         it('shares game links with spectators, caches unchanged reads and invalidates on provisioning', async () => {
             const { request, gameId } = await fixture()

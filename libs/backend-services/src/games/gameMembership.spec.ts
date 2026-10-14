@@ -15,7 +15,8 @@ import { UserService } from '../users/userService.js'
 import { TokenService } from '../tokens/tokenService.js'
 import { LocalTaskService } from '../tasks/localTasksService.js'
 import { DefaultNotificationService } from '../notifications/defaultNotificationService.js'
-import { SyntheticDefinition } from './tests/syntheticGame.js'
+import { SyntheticDefinition, SyntheticRuntime } from './tests/syntheticGame.js'
+import { DEFERRED_TURN_REMINDER_INDEX } from './turnReminders.js'
 
 const users: User[] = ['a', 'b', 'c'].map((id) => ({
     id,
@@ -306,6 +307,52 @@ describe('game auto-start', () => {
         await service.autoStartGame({ gameId: 'lobby', autoStartAt })
         expect(read().status).toBe(GameStatus.WaitingToStart)
     })
+
+    const startPaths: [string, (service: GameService) => Promise<unknown>][] = [
+        [
+            'the owner starts it',
+            (service) =>
+                service.startGame({
+                    definition: SyntheticDefinition,
+                    gameId: 'lobby',
+                    user: users[0]
+                })
+        ],
+        ['its countdown ends', (service) => service.autoStartGame({ gameId: 'lobby', autoStartAt })]
+    ]
+
+    it.each(startPaths)(
+        'reminds the first active player four hours after %s',
+        async (_path, start) => {
+            const { service, tasks, cache } = await fillLobby()
+            const initializer = SyntheticRuntime.initializer
+            const initializeGameState = initializer.initializeGameState.bind(initializer)
+            vi.spyOn(initializer, 'initializeGameState').mockImplementation((...args) => {
+                const state = initializeGameState(...args)
+                state.activePlayerIds = ['p1']
+                return state
+            })
+            vi.spyOn(UserService.prototype, 'getUser').mockImplementation(async (userId) =>
+                users.find((user) => user.id === userId)
+            )
+            vi.spyOn(cache, 'set').mockResolvedValue()
+
+            await start(service)
+
+            expect(tasks.createPushTask).toHaveBeenLastCalledWith({
+                queue: 'turn-notification',
+                path: '/notification/sendTurnNotification',
+                inSeconds: 4 * 60 * 60,
+                payload: {
+                    userId: 'b',
+                    gameId: 'lobby',
+                    notificationId: expect.any(String),
+                    reminderIndex: DEFERRED_TURN_REMINDER_INDEX,
+                    delay: 4 * 60 * 60
+                }
+            })
+        }
+    )
 
     it('ignores the task when the owner already started the game', async () => {
         const { service, read, store } = await fillLobby()

@@ -253,7 +253,6 @@ function createService(source: ReturnType<typeof createSource>) {
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
         sendGameInvitationEmail: unused,
-        sendTurnNotification: unused,
         sendGameEndEmail: unused
     }
     const notifications: NotificationService = {

@@ -19,6 +19,12 @@ import {
     type Tally
 } from './tests/syntheticGame.js'
 import { GameService } from './gameService.js'
+import {
+    DEFERRED_TURN_REMINDER_INDEX,
+    FIRST_TURN_REMINDER_INDEX,
+    TurnReminderTask
+} from './turnReminders.js'
+import * as Value from 'typebox/value'
 import { DisallowedActionError, DisallowedUndoError, RacedActionError } from './errors.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
 import { RedisCacheService } from '../cache/cacheService.js'
@@ -34,7 +40,7 @@ function user(id: string): User {
     return { id, status: UserStatus.Active, roles: [Role.User], externalIds: [] }
 }
 
-function createHost() {
+function createHost({ activeSeats = 1 } = {}) {
     const game = SyntheticRuntime.initializer.initializeGame(
         {
             id: 'standing',
@@ -59,7 +65,11 @@ function createHost() {
         systemVersion: 3,
         protectedPrng: { seed: 3, invocations: 0 }
     })
-    initial.activePlayerIds = [initial.turnManager.startNextTurn(0)]
+    const firstPlayerId = initial.turnManager.startNextTurn(0)
+    const waitingPlayerIds = game.players
+        .map((player) => player.id)
+        .filter((playerId) => playerId !== firstPlayerId)
+    initial.activePlayerIds = [firstPlayerId, ...waitingPlayerIds].slice(0, activeSeats)
     let state: GameState = initial.dehydrate()
     const actions: GameAction[] = []
     const store = new FirestoreGameStore(
@@ -157,7 +167,6 @@ function createHost() {
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
         sendGameInvitationEmail: unused,
-        sendTurnNotification: unused,
         sendGameEndEmail: unused
     }
     const notifications: NotificationService = {
@@ -225,7 +234,19 @@ function createHost() {
     const undo = (actionId: string, by: string) =>
         service.undoAction({ definition: Definition, gameId: game.id, actionId, user: user(by) })
     const summary = () => actions.map((action) => `${action.index}:${action.id}`)
-    return { game, store, service, step, note, tally, apply, undo, summary, state: () => state }
+    return {
+        game,
+        store,
+        tasks,
+        service,
+        step,
+        note,
+        tally,
+        apply,
+        undo,
+        summary,
+        state: () => state
+    }
 }
 
 describe('Out-of-turn Actions on the host', () => {
@@ -352,5 +373,70 @@ describe('Sequenced Out-of-Turn Actions on the host', () => {
         await host.undo('t1', 'p3')
         expect(host.summary()).toEqual(['0:s1'])
         expect(Reflect.get(host.state(), 'tallies')).toBeUndefined()
+    })
+})
+
+describe('Turn reminders after an Action', () => {
+    function remindedHost(options?: { activeSeats?: number }) {
+        const host = createHost(options)
+        const cached = new Map<string, unknown>()
+        vi.spyOn(UserService.prototype, 'getUser').mockImplementation(async (id) => user(id))
+        vi.spyOn(RedisCacheService.prototype, 'set').mockImplementation(async (key, value) => {
+            cached.set(key, value)
+        })
+        vi.mocked(host.tasks.createPushTask).mockResolvedValue()
+        const reminders = () =>
+            vi
+                .mocked(host.tasks.createPushTask)
+                .mock.calls.map(([{ payload }]) => payload)
+                .filter((payload) => Value.Check(TurnReminderTask, payload))
+        const reminderTimings = () =>
+            reminders().map(({ userId, reminderIndex, delay }) => ({
+                userId,
+                reminderIndex,
+                delay
+            }))
+        const chainFor = (userId: string) => cached.get(`turn-notification-${userId}-standing`)
+        return { ...host, reminders, reminderTimings, chainFor }
+    }
+
+    it('reminds the next Player a minute after the turn passes to them', async () => {
+        const host = remindedHost()
+        await host.apply(host.step('s1', 'p1'))
+        expect(host.reminderTimings()).toEqual([
+            { userId: 'p2', reminderIndex: FIRST_TURN_REMINDER_INDEX, delay: 60 }
+        ])
+    })
+
+    it('reminds a Player four hours after an Action that leaves them active', async () => {
+        const host = remindedHost()
+        await host.apply(host.tally('t1', 'p1'))
+        expect(host.state().activePlayerIds).toEqual(['p1'])
+        expect(host.reminderTimings()).toEqual([
+            { userId: 'p1', reminderIndex: DEFERRED_TURN_REMINDER_INDEX, delay: 4 * 60 * 60 }
+        ])
+    })
+
+    it('replaces the earlier chain of a Player who acts and keeps the turn', async () => {
+        const host = remindedHost()
+        await host.apply(host.tally('t1', 'p1'))
+        await host.apply(host.tally('t2', 'p1'))
+        const [first, second] = host.reminders()
+        expect(first.notificationId).not.toBe(second.notificationId)
+        expect(host.chainFor('p1')).toBe(second.notificationId)
+    })
+
+    it('leaves the chains of other active Players alone when one acts', async () => {
+        const host = remindedHost({ activeSeats: 2 })
+        expect(host.state().activePlayerIds).toEqual(['p1', 'p2'])
+        await host.apply(host.tally('t1', 'p1'))
+        expect(host.reminderTimings().map(({ userId }) => userId)).toEqual(['p1'])
+    })
+
+    it('does not remind a waiting Player who acts out of turn', async () => {
+        const host = remindedHost()
+        await host.apply(host.tally('t1', 'p3'))
+        expect(host.state().activePlayerIds).toEqual(['p1'])
+        expect(host.reminders()).toEqual([])
     })
 })

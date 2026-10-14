@@ -62,29 +62,6 @@ export abstract class BaseTaskService implements TaskService {
         })
     }
 
-    async sendTurnNotification({
-        userId,
-        gameId,
-        notificationId,
-        inSeconds
-    }: {
-        userId: string
-        gameId: string
-        notificationId: string
-        inSeconds?: number
-    }): Promise<void> {
-        if (inSeconds === undefined) {
-            inSeconds = 60
-        }
-        console.log('Sending turn notification', notificationId, 'in', inSeconds, 'seconds')
-        await this.createPushTask({
-            queue: 'turn-notification',
-            path: '/notification/sendTurnNotification',
-            inSeconds: inSeconds,
-            payload: { userId, gameId, notificationId, delay: inSeconds }
-        })
-    }
-
     async sendGameEndEmail({
         userId,
         gameId,

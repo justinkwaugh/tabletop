@@ -57,7 +57,6 @@ function fixture() {
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
         sendGameInvitationEmail: vi.fn(async () => {}),
-        sendTurnNotification: unused,
         sendGameEndEmail: unused
     }
     const notifications: NotificationService = {

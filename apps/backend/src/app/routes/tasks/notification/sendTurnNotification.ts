@@ -1,26 +1,14 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from 'typebox'
-
-type SendTurnNotificationRequest = Static<typeof SendTurnNotificationRequest>
-const SendTurnNotificationRequest = Type.Object(
-    {
-        userId: Type.String(),
-        gameId: Type.String(),
-        notificationId: Type.String(),
-        delay: Type.Optional(Type.Number())
-    },
-    { additionalProperties: false }
-)
+import { TurnReminderTask } from '@tabletop/backend-services'
 
 export default async function (fastify: FastifyInstance) {
-    fastify.post<{ Body: SendTurnNotificationRequest }>(
+    fastify.post<{ Body: TurnReminderTask }>(
         '/sendTurnNotification',
         {
-            schema: { body: SendTurnNotificationRequest }
+            schema: { body: TurnReminderTask }
         },
         async function (request, reply) {
-            const { userId, gameId, notificationId, delay } = request.body
-            await fastify.gameService.notifyIsYourTurn(userId, gameId, notificationId, delay)
+            await fastify.gameService.notifyIsYourTurn(request.body)
             await reply.code(200).send()
         }
     )

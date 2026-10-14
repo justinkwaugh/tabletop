@@ -35,18 +35,6 @@ export interface TaskService {
         toEmail: string
     }): Promise<void>
 
-    sendTurnNotification({
-        userId,
-        gameId,
-        notificationId,
-        inSeconds
-    }: {
-        userId: string
-        gameId: string
-        notificationId: string
-        inSeconds?: number
-    }): Promise<void>
-
     sendGameEndEmail({
         userId,
         gameId,
