@@ -22,6 +22,14 @@
 </script>
 
 <g transform="translate({x} {y})" class:ghost>
+    <rect
+        x={-half + 0.8}
+        y={-half + 1.4}
+        width={size}
+        height={size}
+        rx={corner}
+        class="shadow"
+    />
     <rect x={-half} y={-half} width={size} height={size} rx={corner} {fill} class="body" />
     <rect
         x={-half + size * 0.12}
@@ -62,7 +70,10 @@
     .body {
         stroke: rgba(29, 20, 11, 0.55);
         stroke-width: 0.9;
-        filter: drop-shadow(0.8px 1.4px 0.9px rgba(30, 20, 10, 0.4));
+    }
+
+    .shadow {
+        fill: rgba(30, 20, 10, 0.4);
     }
 
     .window {
