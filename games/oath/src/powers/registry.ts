@@ -1,5 +1,5 @@
 import { HydratedOathGameState } from '../model/gameState.js'
-import type { Banner, Region, SearchPlay, Suit } from '../model/oathEnums.js'
+import type { Banner, Region, Suit } from '../model/oathEnums.js'
 import type { PersistentContext } from '../util/persistent.js'
 import type { BannerTake } from '../util/seize.js'
 import type { HiddenRequest, HiddenReveal, PileDeposit } from '../model/hidden.js'
@@ -48,8 +48,20 @@ export interface EffectContext {
     /** Absent for a used power. */
     particulars?: ModifierParticulars
     reveal?: HiddenReveal
-    /** R-5.1.4 — where a When Played power's own card is played: its check runs before the card lands there, its resolve after. */
-    playedTo?: SearchPlay
+    /** R-5.1.4 — a When Played power's play: what it does to the map before the power resolves. */
+    mapChanges?: PlayMapChanges
+}
+
+/**
+ * R-5.1.4 — the sites a When Played power's check sees are the map before the play; its resolve sees them after
+ * the play's own placements. A power that counts the map takes these from here, not from where the cards are, so
+ * the check and the resolve count the same map.
+ */
+export interface PlayMapChanges {
+    /** Taken off the map first: the card the People's Favor, the Great Slum or Crop Rotation discards (R-5.1.4.I, R-11.10). */
+    leaving: readonly string[]
+    /** Put at a site: the played card, and Land Warden's kept card before the second card. */
+    arriving: readonly string[]
 }
 
 export interface CampaignContext {

@@ -14,7 +14,7 @@ import { detachFromPlay, discardCards, noteSiteDiscard, type DiscardTarget } fro
 import { discardRevealedVision } from './revealedVision.js'
 import { seizeBanner } from './seize.js'
 import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
-import { effectFor, type EffectContext } from '../powers/registry.js'
+import { effectFor, type EffectContext, type PlayMapChanges } from '../powers/registry.js'
 import { pawnSiteId } from './pawn.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
@@ -225,6 +225,37 @@ export interface CardPlayOptions {
     discardedAdviserCardIds?: readonly string[]
     fromAdvisers?: boolean
     choices?: readonly PowerChoice[]
+    /** Land Warden — what the kept card's play did to the map before this second card's. */
+    earlierMapChanges?: PlayMapChanges
+}
+
+/** R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — the denizen a site play discards first. */
+function cardDiscardedFirst(
+    state: HydratedOathGameState,
+    play: SearchPlay,
+    options: CardPlayOptions
+): string | undefined {
+    const first = play === SearchPlay.Site ? options.discardFirstCardId : undefined
+    const at = first ? siteHolding(state, first) : undefined
+    return first && at && state.isMusterableCard(at, first) ? first : undefined
+}
+
+/**
+ * R-5.1.4 — what a play does to the map before its When Played power resolves, read from the state before the
+ * play: the check and the resolve both judge the power on the map these leave.
+ */
+export function playMapChanges(
+    state: HydratedOathGameState,
+    cardId: string,
+    play: SearchPlay,
+    options: CardPlayOptions = {}
+): PlayMapChanges {
+    const first = cardDiscardedFirst(state, play, options)
+    const earlier = options.earlierMapChanges
+    return {
+        leaving: [...(earlier?.leaving ?? []), ...(first ? [first] : [])],
+        arriving: [...(earlier?.arriving ?? []), ...(play === SearchPlay.Site ? [cardId] : [])]
+    }
 }
 
 /** R-5.1.4.I */
@@ -262,15 +293,16 @@ export function playCard(
     let favorGained = 0
     let secretsGained = 0
     let sitePower: string | undefined
+    // Read before the play changes the map, as the check reads it.
+    const mapChanges = playMapChanges(state, cardId, play, options)
 
     switch (play) {
         case SearchPlay.Site: {
             // R-5.1.4.I — New Growth may name another site.
             const siteId = options.toSiteId ?? pawnSiteId(state, playerId)
             // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — a denizen discarded first.
-            const first = options.discardFirstCardId
-            const firstAt = first === undefined ? undefined : siteHolding(state, first)
-            if (first && firstAt && state.isMusterableCard(firstAt, first)) {
+            const first = cardDiscardedFirst(state, play, options)
+            if (first) {
                 noteSiteDiscard(state, playerId, first)
                 detachFromPlay(state, first)
                 discard(first)
@@ -351,7 +383,7 @@ export function playCard(
                 power,
                 choices: options.choices ?? [],
                 reveal: options.reveal,
-                playedTo: play
+                mapChanges
             }
             if (context.reveal === undefined && effect.hidden?.(context)) {
                 whenPlayed = unresolvedForWantOfReveal(cardId)
@@ -431,7 +463,7 @@ export function reasonWhenPlayedChoicesInvalid(
         playerId,
         power,
         choices: options.choices ?? [],
-        playedTo: play
+        mapChanges: playMapChanges(state, cardId, play, options)
     })
 }
 

@@ -3,13 +3,13 @@ import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/sea
 import { HydratedSearch, SearchSource, Search } from '../actions/search.js'
 import { HydratedMuster, Muster } from '../actions/muster.js'
 import { HydratedCampaign, Campaign } from '../actions/campaign.js'
-import { Banner, Suit } from '../model/oathEnums.js'
+import { Banner, Region, Suit } from '../model/oathEnums.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { advisersTowardLimit } from '../util/continuous.js'
 import '../powers/index.js'
 import { createOathVault } from '../model/vault.js'
 import { getPrng } from '@tabletop/common'
-import { adviserDiscardsNeeded, reasonCannotPlayCard } from '../util/cardPlay.js'
+import { adviserDiscardsNeeded, playCard, reasonCannotPlayCard } from '../util/cardPlay.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { OathRevision } from '../util/revision.js'
 import { served } from '../testing/projection.js'
@@ -214,6 +214,155 @@ describe('Discord', () => {
             const s = discordLeads(OathRevision.EngineFixes5)
             playDrawnCard(s, RIOTS, SearchPlay.Site, [bank(Suit.Hearth)])
             expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [MERCENARIES], p1: [], h1: [] })
+        })
+
+        it('the resolve judges a named suit on its own count: one that is not the most common is not followed', () => {
+            const s = discordLeads(OathRevision.EngineFixes6)
+            playCard(s, 'ruler', RIOTS, SearchPlay.Site, Region.Cradle, { choices: [bank(Suit.Hearth)] })
+            expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [], h1: [INN] })
+        })
+
+        // The People's Favor, the Great Slum (R-11.10) and Crop Rotation discard a card before the site play, and
+        // Land Warden's kept card lands before the second card: the check counts the map as Riots will resolve on it.
+        describe('the check counts the map as it will be when Riots resolves', () => {
+            const SCRYER = 'denizen.discord.scryer'
+            const LAND_WARDEN = 'denizen.hearth.land-warden'
+            const CROP_ROTATION = 'denizen.hearth.crop-rotation'
+            const now = OathRevision.EngineFixes6
+            const table = (revision: OathRevision, denizens: Record<string, string[]>, extra: Record<string, unknown> = {}) =>
+                rulerTable([], [], {}, { ...mob, oathRevision: revision, ...extra, denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...denizens } })
+            const favorHeld = { banners: { [Banner.PeoplesFavor]: { value: 1, mobSide: true, holderPlayerId: 'ruler' }, [Banner.DarkestSecret]: { value: 1 } } }
+            /** Discord 2 with Riots at c1 against Hearth 2; the Inn at c2 discarded first leaves Discord leading 2–1. */
+            const innFirstLeavesDiscord = (revision: OathRevision) => table(revision, { c2: [INN, STORYTELLER], p1: [MERCENARIES] }, favorHeld)
+            /** Hearth 3 against Discord 2 with Riots; the Inn discarded first makes it a tie. */
+            const innFirstTies = (revision: OathRevision) => table(revision, { c2: [INN, STORYTELLER], p1: [MERCENARIES], h1: [HOMESTEADERS] }, favorHeld)
+            const riotsKept = (extra: Record<string, unknown>) => ({ keptCardId: RIOTS, discardOrder: [FILLER], play: SearchPlay.Site, ...extra })
+            const check = (s: HydratedOathGameState, extra: Record<string, unknown>) => {
+                s.getPlayerState('ruler').handIds = [RIOTS, FILLER]
+                return HydratedSearchResolve.reasonCannotResolve(s, 'ruler', riotsKept(extra))
+            }
+            const resolve = (s: HydratedOathGameState, extra: Record<string, unknown>) => {
+                s.getPlayerState('ruler').handIds = [RIOTS, FILLER]
+                const a = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'ruler', ...riotsKept(extra) }))
+                a.apply(s)
+                return a
+            }
+            const innFirst = { discardFirstCardId: INN }
+
+            it("the People's Favor: with a Hearth card discarded first Discord leads, so Hearth may not be named and Discord goes", () => {
+                expect(check(innFirstLeavesDiscord(now), { ...innFirst, choices: [bank(Suit.Hearth)] })).toMatch(
+                    /hearth is not the most common suit on the map \(discord\)/
+                )
+                expect(check(innFirstLeavesDiscord(now), innFirst)).toBeUndefined()
+                const s = innFirstLeavesDiscord(now)
+                const a = resolve(s, innFirst)
+                expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [STORYTELLER], p1: [], h1: [] })
+                expect(a.metadata?.discardedCardIds).toEqual([FILLER, INN])
+                expect(a.metadata?.whenPlayed).toBe('Riots: discarded 1 discord cards from the map')
+            })
+
+            it('a card discarded first that turns a lead into a tie asks for a suit, and either tied suit may be named', () => {
+                expect(check(innFirstTies(now), innFirst)).toMatch(/the most common suit is tied \(.+\); name one/)
+                const s = innFirstTies(now)
+                resolve(s, { ...innFirst, choices: [bank(Suit.Discord)] })
+                expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [STORYTELLER], p1: [], h1: [HOMESTEADERS] })
+                const t = innFirstTies(now)
+                resolve(t, { ...innFirst, choices: [bank(Suit.Hearth)] })
+                expect(t.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [MERCENARIES], h1: [] })
+            })
+
+            it('the Great Slum: the card discarded there first is not counted', () => {
+                const slum = () =>
+                    table(now, { c1: [INN], c2: [STORYTELLER], p1: [MERCENARIES] }, { siteCards: { c1: 'site.great-slums', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' } })
+                expect(check(slum(), { ...innFirst, choices: [bank(Suit.Hearth)] })).toMatch(/hearth is not the most common suit on the map \(discord\)/)
+                const s = slum()
+                resolve(s, innFirst)
+                expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [STORYTELLER], p1: [], h1: [] })
+            })
+
+            it('Crop Rotation: the card discarded at the site first is not counted', () => {
+                const s = table(now, { c1: [CROP_ROTATION, INN], p1: [MERCENARIES] })
+                s.getPlayerState('ruler').handIds = []
+                s.requireVault().worldDeck = [RIOTS, FILLER]
+                new HydratedSearch(buildAction(Search, { playerId: 'ruler', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(CROP_ROTATION)] })).apply(s)
+                expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', riotsKept({ ...innFirst, choices: [bank(Suit.Hearth)] }))).toMatch(
+                    /hearth is not the most common suit on the map \(discord\)/
+                )
+                new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'ruler', ...riotsKept(innFirst) })).apply(s)
+                expect(s.denizensBySite).toEqual({ c1: [CROP_ROTATION, RIOTS], c2: [], p1: [], h1: [] })
+            })
+
+            /** The ruler holds Land Warden and has searched with it, drawing these cards. */
+            const searched = (revision: OathRevision, drawn: string[], denizens: Record<string, string[]>) => {
+                const s = table(revision, denizens)
+                s.getPlayerState('ruler').advisers = [{ cardId: LAND_WARDEN, faceUp: true }]
+                s.getPlayerState('ruler').handIds = []
+                s.requireVault().worldDeck = drawn
+                new HydratedSearch(buildAction(Search, { playerId: 'ruler', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(LAND_WARDEN)] })).apply(s)
+                return s
+            }
+            const both = (kept: string, second: string) => ({
+                keptCardId: kept,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                secondPlay: { cardId: second, play: SearchPlay.Site }
+            })
+            /** Discord 2 with Riots, Hearth 1 — and Hearth 2 once Storyteller, kept, lands first: a tie the second card cannot name. */
+            const hearthKept = (revision: OathRevision) => searched(revision, [STORYTELLER, RIOTS, FILLER], { p1: [MERCENARIES], h1: [INN] })
+            /** Discord 2 with Riots against Hearth 2 — and Discord 3 once Scryer, kept, lands first. */
+            const discordKept = (revision: OathRevision) => searched(revision, [SCRYER, RIOTS, FILLER], { p1: [MERCENARIES], h1: [INN, STORYTELLER] })
+
+            describe("Land Warden: the kept card's site play lands before the second card's Riots resolves", () => {
+                it('a kept card that makes a tie is counted at the check, which refuses the second card (it names no suit)', () => {
+                    expect(HydratedSearchResolve.reasonCannotResolve(hearthKept(now), 'ruler', both(STORYTELLER, RIOTS))).toMatch(
+                        /second card: the most common suit is tied \(.+\); name one/
+                    )
+                })
+
+                it('a kept card that breaks a tie is counted at the check, and Riots discards it with the other Discord cards', () => {
+                    const s = discordKept(now)
+                    expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', both(SCRYER, RIOTS))).toBeUndefined()
+                    const a = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'ruler', ...both(SCRYER, RIOTS) }))
+                    a.apply(s)
+                    expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [], h1: [INN, STORYTELLER] })
+                    expect(a.metadata?.secondWhenPlayed).toBe('Riots: discarded 2 discord cards from the map')
+                })
+
+                it('Riots kept resolves before the second card lands, at the check and at the resolve', () => {
+                    const s = searched(now, [RIOTS, STORYTELLER, FILLER], { p1: [MERCENARIES], h1: [INN] })
+                    expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', both(RIOTS, STORYTELLER))).toBeUndefined()
+                    new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'ruler', ...both(RIOTS, STORYTELLER) })).apply(s)
+                    expect(s.denizensBySite).toEqual({ c1: [RIOTS, STORYTELLER], c2: [], p1: [], h1: [INN] })
+                })
+            })
+
+            it('before revision 10 a game keeps the count it was recorded with: the card discarded first was counted', () => {
+                expect(check(innFirstLeavesDiscord(OathRevision.EngineFixes5), { ...innFirst, choices: [bank(Suit.Hearth)] })).toBeUndefined()
+                const s = innFirstLeavesDiscord(OathRevision.EngineFixes5)
+                resolve(s, { ...innFirst, choices: [bank(Suit.Hearth)] })
+                expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [MERCENARIES], h1: [] })
+            })
+
+            it("the table checks the pick on the player's own view as the server does", () => {
+                const own = (s: HydratedOathGameState) => new HydratedOathGameState(served(s, { kind: 'player', playerId: 'ruler' }))
+                for (const choices of [[], [bank(Suit.Discord)], [bank(Suit.Hearth)]]) {
+                    for (const scene of [innFirstLeavesDiscord, innFirstTies]) {
+                        const s = scene(now)
+                        const reason = (state: HydratedOathGameState) =>
+                            reasonCannotPlayCard(state, 'ruler', RIOTS, SearchPlay.Site, { ...innFirst, choices })
+                        expect(reason(own(s)), `${scene.name} ${JSON.stringify(choices)}`).toEqual(reason(s))
+                    }
+                }
+                for (const [scene, kept] of [[hearthKept, STORYTELLER], [discordKept, SCRYER]] as const) {
+                    const s = scene(now)
+                    const reason = (state: HydratedOathGameState) => HydratedSearchResolve.reasonCannotResolve(state, 'ruler', both(kept, RIOTS))
+                    expect(reason(own(s)), kept).toEqual(reason(s))
+                }
+                expect(
+                    reasonCannotPlayCard(own(innFirstLeavesDiscord(now)), 'ruler', RIOTS, SearchPlay.Site, { ...innFirst, choices: [bank(Suit.Hearth)] })
+                ).toMatch(/hearth is not the most common suit on the map \(discord\)/)
+                expect(HydratedSearchResolve.reasonCannotResolve(own(discordKept(now)), 'ruler', both(SCRYER, RIOTS))).toBeUndefined()
+            })
         })
     })
 })
