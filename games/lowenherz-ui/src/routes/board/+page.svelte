@@ -3,7 +3,7 @@
     import DeckArea from '$lib/components/DeckArea.svelte'
     import RampartBorder from '$lib/components/RampartBorder.svelte'
     import RampartCorner from '$lib/components/RampartCorner.svelte'
-    import parchmentTexture from '$lib/images/board/parchment-texture.jpg'
+    import parchmentTexture from '$lib/images/board/parchment-texture.webp'
 </script>
 
 <div class="p-6 bg-stone-900 min-h-screen">

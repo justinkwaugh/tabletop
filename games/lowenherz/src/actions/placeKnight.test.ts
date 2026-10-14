@@ -44,8 +44,6 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         board: blankBoard(),
         regions: [],
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: 'p1',
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: undefined,

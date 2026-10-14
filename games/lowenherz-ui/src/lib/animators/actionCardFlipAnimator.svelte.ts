@@ -34,14 +34,17 @@ export class ActionCardFlipAnimator extends StateAnimator {
     }
 
     override async onGameStateChange({ to, from, action, animationContext }: StateChange) {
-        const drawn = to.currentActionCard
+        // The face-up card as DeckPiles shows it. A Silver Mine resolves within its own draw, so
+        // it lands in discardedActionCard with currentActionCard already cleared.
+        const drawn = to.currentActionCard ?? to.discardedActionCard
         if (!drawn) return
 
         // Cinematic on a draw; otherwise a fast fallback when the face-up card changed anyway -
         // plain history navigation, or a rewind that lands on a different card. The fallback keeps
         // the card identifiable without the travel or the flip, inside the ~0.1s budget.
         const cinematic = !!action && isDrawActionCard(action)
-        if (!cinematic && drawn.id === from?.currentActionCard?.id) return
+        const shown = from?.currentActionCard ?? from?.discardedActionCard
+        if (!cinematic && drawn.id === shown?.id) return
 
         this.flippingCard = drawn
         await tick()

@@ -64,7 +64,7 @@ export class AllianceBurstAnimator extends StateAnimator {
         // the other way (an alliance reappears) and gets no burst, which is correct - nothing broke.
         const allianceId =
             action && isCancelAlliance(action)
-                ? (action as unknown as { allianceId: string }).allianceId
+                ? action.allianceId
                 : from.alliances.find((alliance) => !to.alliances.some((a) => a.id === alliance.id))
                       ?.id
         if (!allianceId) return

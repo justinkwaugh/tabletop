@@ -99,8 +99,6 @@ function buildState(
         board,
         regions,
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: playerIds[0],
         neutralColor: playerIds.length < 4 ? colors[playerIds.length] : undefined,
         actionDeck: [],
         currentActionCard: card,
@@ -422,7 +420,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
         ).updatedState
 
         expect(state.machineState).toBe(MachineState.StartOfTurn)
-        expect(state.firstPlayerId).toBe('p2') // rotated from p1
+        expect(state.turnManager.turnOrder[0]).toBe('p2') // rotated from p1
         expect(state.decisions).toEqual([])
         expect(state.currentActionCard).toBeUndefined()
         expect(state.resolvedSlots).toEqual([])
@@ -509,7 +507,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
         state = executeAction(submitDuelBid('p4', 3), state, game).updatedState
 
         expect(state.machineState).toBe(MachineState.StartOfTurn)
-        expect(state.firstPlayerId).toBe('p2') // rotated from p1
+        expect(state.turnManager.turnOrder[0]).toBe('p2') // rotated from p1
         expect(state.resolvedSlots).toEqual([])
 
         // No one's money changed from bidding - a double tie means everyone keeps
@@ -576,7 +574,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
         // Slot 3 had no choosers, so the round completes immediately after the knight
         // is placed.
         expect(state.machineState).toBe(MachineState.StartOfTurn)
-        expect(state.firstPlayerId).toBe('p2') // rotated from p1
+        expect(state.turnManager.turnOrder[0]).toBe('p2') // rotated from p1
     })
 
     it('a knight-slot winner can expand their region instead of placing a knight, advancing the round', () => {
@@ -644,7 +642,7 @@ describe('resolution cascade (via the real GameEngine)', () => {
         // Slot 3 had no choosers, so the round completes immediately after p1 stops
         // expanding - just like the knight-placement case.
         expect(state.machineState).toBe(MachineState.StartOfTurn)
-        expect(state.firstPlayerId).toBe('p2') // rotated from p1
+        expect(state.turnManager.turnOrder[0]).toBe('p2') // rotated from p1
     })
 
     it("records what happened in each AdvanceResolution step's metadata (for UI history)", () => {

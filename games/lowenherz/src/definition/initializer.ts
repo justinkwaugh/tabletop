@@ -81,15 +81,11 @@ export class LowenherzGameInitializer
             board: playerPlacedCastles ? assembleBoard(prng) : assembleStandardBoard(),
             regions: [],
             alliances: [],
-            // Cloned, not aliased: turnManager.turnOrder gets rotated in place by
-            // generic engine bookkeeping (e.g. newFirstPlayer()) as turns advance, but
-            // our own turnOrder must stay fixed as the seating order for the whole game.
-            turnOrder: [...turnManager.turnOrder],
-            firstPlayerId: turnManager.turnOrder[0],
             neutralColor,
             minimumOneDucat: config.allowZeroDucatOffers !== true,
             ...(privateInformation ? { publicMoney: config.privateMoney !== true } : {}),
             minimumCastleDistance: RULEBOOK_CASTLE_MIN_DISTANCE,
+            enclosureEndsWallAllotment: true,
 
             actionDeck: playerPlacedCastles
                 ? assembleActionDeckWithConstruction(hiddenPrng)

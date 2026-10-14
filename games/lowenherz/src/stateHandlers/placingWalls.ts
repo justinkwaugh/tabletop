@@ -71,8 +71,9 @@ export class PlacingWallsStateHandler
         // moment rather than from the next action card.
         const placerId = gameState.wallPlacingPlayerId
         const cappedNow =
+            gameState.enclosureEndsWallAllotment === true &&
             placerId !== undefined &&
-            hasEveryCastleEnclosed(gameState, gameState.getPlayerState(placerId).color)
+            hasEveryCastleEnclosed(gameState, placerId)
         if (action instanceof HydratedPass || cappedNow || (gameState.wallsRemaining ?? 0) <= 0) {
             gameState.wallsRemaining = undefined
             gameState.wallPlacingPlayerId = undefined

@@ -55,8 +55,6 @@ function buildState(playerIds: string[]): HydratedLowenherzGameState {
         board: blankBoard(),
         regions: [],
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: playerIds[0],
         neutralColor: playerIds.length < 4 ? Color.Gray : undefined,
         actionDeck: [],
         currentActionCard: standardCard,

@@ -12,7 +12,7 @@ import { PlacingKnightsStateHandler } from './placingKnights.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
     const squares = Array.from({ length: BOARD_ROWS }, () =>
-        Array.from({ length: BOARD_COLS }, () => ({ type: SquareType.Blank }) as BoardSquare)
+        Array.from({ length: BOARD_COLS }, (): BoardSquare => ({ type: SquareType.Blank }))
     )
     squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
     return { squares, walls: [] }
@@ -43,8 +43,6 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         board: blankBoard(),
         regions: [],
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: 'p1',
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: undefined,

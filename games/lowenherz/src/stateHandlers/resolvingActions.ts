@@ -1,4 +1,9 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    assertExists,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { ActionCardType, slotKindForCard } from '../definition/actionCards.js'
@@ -7,6 +12,8 @@ import { AdvanceResolution, HydratedAdvanceResolution } from '../actions/advance
 import { advanceRound, distributeMoneyBag, routeAfterSlotResolved } from '../util/resolutionHelpers.js'
 
 type ResolvingActionsAction = HydratedAdvanceResolution
+
+const SLOT_RESOLUTION_ORDER = [1, 2, 3] as const
 
 // Dispatches each slot of the current card (top, then middle, then bottom) in order.
 // This state never waits for a real player action - enter() always immediately
@@ -45,7 +52,8 @@ export class ResolvingActionsStateHandler
             return MachineState.StartOfTurn
         }
 
-        const slot = (gameState.resolvedSlots.length + 1) as 1 | 2 | 3
+        const slot = SLOT_RESOLUTION_ORDER[gameState.resolvedSlots.length]
+        assertExists(slot, 'Every slot on the current card is already resolved')
         const card = gameState.currentActionCard
         if (!card || card.type !== ActionCardType.Standard) {
             throw Error('ResolvingActions requires a standard action card to be face up')

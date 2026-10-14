@@ -18,7 +18,7 @@ export type PlacementSlot = {
 // Every player count places exactly 12 castles total, matching the physical
 // component count (4 castles x 4 colors = 16, with 4 held back for a 2-player-only rule).
 export function buildPlacementPlan(
-    turnOrder: string[],
+    turnOrder: readonly string[],
     hasNeutralOwner: boolean
 ): PlacementSlot[] {
     const plan: PlacementSlot[] = []

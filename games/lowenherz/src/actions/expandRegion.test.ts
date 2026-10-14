@@ -10,7 +10,7 @@ import { isKnightSafeToRemove } from '../util/knightConnectivity.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: { col: number; row: number; edge: WallEdge }[] } {
     const squares = Array.from({ length: BOARD_ROWS }, () =>
-        Array.from({ length: BOARD_COLS }, () => ({ type: SquareType.Blank }) as BoardSquare)
+        Array.from({ length: BOARD_COLS }, (): BoardSquare => ({ type: SquareType.Blank }))
     )
     // Castles far from the action so the wide-open remainder always has 2+ distinct
     // castle colors in it (as any real game would) and never gets misidentified by
@@ -49,8 +49,6 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         board: blankBoard(),
         regions: [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'], castleSquareKey: '0,0' }],
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: 'p1',
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: undefined,

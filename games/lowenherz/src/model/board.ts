@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { assert } from '@tabletop/common'
 import { PieceOwner } from './owner.js'
 
 export enum SquareType {
@@ -82,12 +83,21 @@ export function squareKey(col: number, row: number): string {
     return `${col},${row}`
 }
 
+export function parseSquareKey(key: string): [col: number, row: number] {
+    const [col, row, ...rest] = key.split(',').map(Number)
+    assert(
+        rest.length === 0 && Number.isFinite(col) && Number.isFinite(row),
+        `Invalid square key ${key}`
+    )
+    return [col, row]
+}
+
 // The plain average of a region's own squares - not its castle, and not clamped to an
 // actual square, since the only consumer (ScorePopupAnimator's floating "+N"/"-N") just
 // wants a point to float the popup over, and an irregular region's castle can sit at one
 // edge of it rather than where the region actually reads as "the middle".
 export function regionCentroidSquareKey(squareKeys: string[]): string {
-    const points = squareKeys.map((key) => key.split(',').map(Number) as [number, number])
+    const points = squareKeys.map(parseSquareKey)
     const col = points.reduce((sum, [c]) => sum + c, 0) / points.length
     const row = points.reduce((sum, [, r]) => sum + r, 0) / points.length
     return squareKey(col, row)

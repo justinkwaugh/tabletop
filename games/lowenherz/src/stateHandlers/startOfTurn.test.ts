@@ -10,7 +10,7 @@ import { StartOfTurnStateHandler } from './startOfTurn.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
     const squares = Array.from({ length: BOARD_ROWS }, () =>
-        Array.from({ length: BOARD_COLS }, () => ({ type: SquareType.Blank }) as BoardSquare)
+        Array.from({ length: BOARD_COLS }, (): BoardSquare => ({ type: SquareType.Blank }))
     )
     // One hill square, at (0,0), so region-based hill scoring has something to count.
     squares[0][0] = { type: SquareType.Hill }
@@ -58,8 +58,6 @@ function buildState(actionDeck: ActionCard[]): HydratedLowenherzGameState {
         // p1's region owns the one hill square on the board.
         regions: [{ id: 'r1', owner: 'p1', squareKeys: [squareKey(0, 0)] }],
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: 'p1',
         neutralColor: Color.Purple,
         actionDeck,
         currentActionCard: undefined,

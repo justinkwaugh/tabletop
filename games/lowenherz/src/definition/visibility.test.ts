@@ -191,6 +191,29 @@ describe('Lowenherz privacy', () => {
                 .systemVersion
         ).toBe(version)
     })
+    it.each([1, 3])('samples the same hypothetical state from the same version %i source', (version) => {
+        assertExists(gameExploration.createFromCanonicalState)
+        const state = initialize(version)
+        const first = gameExploration.createFromCanonicalState(structuredClone(state))
+        const second = gameExploration.createFromCanonicalState(structuredClone(state))
+        expect(second).toEqual(first)
+    })
+    it('samples legacy projected Exploration from the supplied random source', () => {
+        const state = initialize(2)
+        const sample = (seed: number) =>
+            createFromProjectedState({
+                game,
+                state: structuredClone(state),
+                actions: [],
+                perspective: owner,
+                random: getPrng(seed)
+            })
+        expect(sample(4)).toEqual(sample(4))
+        const decks = new Set(
+            [1, 2, 3, 4, 5].map((seed) => JSON.stringify(sample(seed).actionDeck))
+        )
+        expect(decks.size).toBeGreaterThan(1)
+    })
     it('normalizes legacy current saves before projecting their private fields', () => {
         const { updatedState: state } = inspect(initialize(2))
         delete state.actionDeckBacks
@@ -315,20 +338,21 @@ describe('Lowenherz privacy', () => {
     })
     it('reveals complete action cards and prevents drawing optimistically through a hidden deck', () => {
         const state = initialize()
-        state.activePlayerIds = [state.firstPlayerId]
+        const firstPlayerId = LowenherzRuntime.hydrator.hydrateState(state).firstPlayerId
+        state.activePlayerIds = [firstPlayerId]
         const action = {
             id: 'draw',
             gameId: game.id,
             source: ActionSource.User,
             type: ActionType.DrawActionCard,
-            playerId: state.firstPlayerId
+            playerId: firstPlayerId
         }
         expect(
             engine.getValidActionTypesForPlayer(
                 game,
-                view(state, { kind: 'player', playerId: state.firstPlayerId }),
-                state.firstPlayerId,
-                { perspective: { kind: 'player', playerId: state.firstPlayerId } }
+                view(state, { kind: 'player', playerId: firstPlayerId }),
+                firstPlayerId,
+                { perspective: { kind: 'player', playerId: firstPlayerId } }
             )
         ).toContain(ActionType.DrawActionCard)
         const result = execute(state, action)

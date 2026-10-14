@@ -4,7 +4,7 @@ import { assert, GameAction, HydratableAction, MachineContext } from '@tabletop/
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { ActionCardType, SlotKind, slotKindForCard } from '../definition/actionCards.js'
-import { buildDecisionPlan, currentDecisionPlayer, rotateToStart } from '../util/decisionPlan.js'
+import { buildDecisionPlan, currentDecisionPlayer } from '../util/decisionPlan.js'
 
 export type ChooseActionMetadata = Type.Static<typeof ChooseActionMetadata>
 export const ChooseActionMetadata = Type.Object({
@@ -36,7 +36,7 @@ export function isChooseAction(action?: GameAction): action is ChooseAction {
 }
 
 function planFor(state: HydratedLowenherzGameState): string[] {
-    return buildDecisionPlan(rotateToStart(state.turnOrder, state.firstPlayerId))
+    return buildDecisionPlan(state.turnOrder)
 }
 
 export class HydratedChooseAction
