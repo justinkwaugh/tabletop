@@ -926,19 +926,24 @@ export function committedUnits(attack: VisibleAttack | undefined): SingledOut[] 
         : []
 }
 
-/** The units named in a defence earlier this turn, with the approach they defended: they stay marked, so they stay at that end of their stack. */
-export function defendersOfEarlierAttacks(units: readonly ProjectedUnit[]): SingledOut[] {
-    const byApproach = new Map<number, string[]>()
-    for (const unit of units) {
-        if (unit.defendedApproach !== undefined) {
-            byApproach.set(unit.defendedApproach, [
-                ...(byApproach.get(unit.defendedApproach) ?? []),
-                unit.id
-            ])
+/**
+ * Units the enemy knows something of once an attack is over: those it has seen face-up, and those
+ * named in a defence this turn, which stay towards the approach they defended. Seen units come
+ * first, as leading units do during an attack.
+ */
+export function knownToTheEnemy(units: readonly ProjectedUnit[]): SingledOut[] {
+    const seenFirst = units.toSorted(
+        (a, b) => Number(b.shown !== undefined) - Number(a.shown !== undefined)
+    )
+    const byApproach = new Map<number | undefined, string[]>()
+    for (const unit of seenFirst) {
+        if (unit.shown !== undefined || unit.defendedApproach !== undefined) {
+            const key = unit.defendedApproach
+            byApproach.set(key, [...(byApproach.get(key) ?? []), unit.id])
         }
     }
     return [...byApproach].map(([approach, unitIds]) => ({
-        towards: APPROACH_GEOMETRY[approach].centre,
+        towards: approach === undefined ? undefined : APPROACH_GEOMETRY[approach].centre,
         unitIds
     }))
 }

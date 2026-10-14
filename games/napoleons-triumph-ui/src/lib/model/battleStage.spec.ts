@@ -26,6 +26,7 @@ import {
     battleLocalesOf,
     BattleRole,
     battleStageOf,
+    knownToTheEnemy,
     commandersGoing,
     keptByCommander,
     liftRetreatingCommander,
@@ -37,6 +38,8 @@ import {
     type BattleStage
 } from './battleStage.js'
 import { RetreatRowKind, retreatRows } from './retreatPlan.js'
+import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
+import { layoutPieces } from '$lib/utils/pieceLayout.js'
 
 const ATTACK_FROM = 95
 const DEFEND_IN = 108
@@ -1125,5 +1128,53 @@ describe('the roles shown on the pieces', () => {
         const [alone] = stage.pickableIds
         const parting = stageOf(game, StageKind.Retreat, tap(game, emptyBattleSelections(), alone))
         expect(rolesShown(attack, parting)).toEqual({ [alone]: BattleRole.RetreatsAlone })
+    })
+})
+
+describe('after an attack, the units the enemy knows of', () => {
+    function blockingStack(
+        mark: (unit: { shown?: unknown; defendedApproach?: number }, approach: number) => void
+    ) {
+        const game = new TestGame()
+        game.deployBoth()
+        arrangeBattlefield(
+            game,
+            Array.from({ length: 5 }, (_, index) => ({
+                id: `inf-${index}`,
+                side: Side.Allied,
+                face: infantry(2),
+                locale: 94,
+                facing: 93,
+                commanderId: 'langeron'
+            }))
+        )
+        const approach = game.hydrated.map.approachBetween(94, 93).id
+        game.arrange((state) => mark(state.unit('inf-3'), approach))
+        const state = game.hydrated
+        const [stack] = layoutPieces(state, {
+            rotation: 0,
+            readBy: game.playerOf(Side.French),
+            singledOut: knownToTheEnemy(state.units)
+        }).filter((sprite) => sprite.group.commander?.id === 'langeron')
+        const bar = APPROACH_GEOMETRY[approach].centre
+        return stack.blocks
+            .toSorted(
+                (a, b) =>
+                    Math.hypot(a.centre.x - bar.x, a.centre.y - bar.y) -
+                    Math.hypot(b.centre.x - bar.x, b.centre.y - bar.y)
+            )
+            .map((block) => block.unit.id)
+    }
+
+    it('stand at the front of their stack for the other player, whichever block they are', () => {
+        expect(blockingStack(() => {})[0]).toBe('inf-0')
+        const seen = blockingStack((unit) => {
+            unit.shown = infantry(2)
+        })
+        expect(seen[0]).toBe('inf-3')
+        const defended = blockingStack((unit, approach) => {
+            unit.defendedApproach = approach
+        })
+        expect(defended[0]).toBe('inf-3')
     })
 })
