@@ -14,15 +14,22 @@ import {
     TheOldPrinceTileSet,
     TheOldPrinceTrainDepot
 } from '../index.js'
+import type { TheOldPrinceState } from '../state.js'
 import { prepareTheOldPrinceBranchSplit } from './branchSplitExample.js'
 import { createTheOldPrinceFinanceExample } from './financeFixture.js'
 import { prepareTheOldPrincePrivates } from './privateExamples.js'
 
+type CompanyExample = CompanyState &
+    TrancheState &
+    MapStateData &
+    TrainState &
+    Pick<TheOldPrinceState, 'fourPlusTrainIdsWithOperatingOpportunity'>
+
 export function createTheOldPrinceCompanyExample(
     players: readonly PlayerState[],
     position: PreparedPosition
-): CompanyState & TrancheState & MapStateData & TrainState {
-    const state: CompanyState & TrancheState & MapStateData & TrainState = {
+): CompanyExample {
+    const state: CompanyExample = {
         ...createTheOldPrinceFinanceExample(players),
         trainInventory: TheOldPrinceTrainDepot.createInventory(),
         phaseId: '3H',
@@ -53,10 +60,9 @@ export function createTheOldPrinceCompanyExample(
         position === 'powers'
     ) {
         const market = { owner: { kind: 'bank' } as const, poolId: 'market' }
-        for (const { companyId, name } of peirCompanies(state)) {
+        for (const { companyId } of peirCompanies(state)) {
             state.companies.push({
                 id: companyId,
-                name,
                 kind: 'major',
                 shareCount: 10,
                 started: false,
@@ -87,7 +93,7 @@ export function createTheOldPrinceCompanyExample(
             ['A:share:3', 2]
         ] as const) {
             const certificate = state.certificates.find((certificate) => certificate.id === id)
-            assert(certificate && !certificate.retired, 'Missing fixture certificate')
+            assert(certificate, 'Missing fixture certificate')
             certificate.owner = { kind: 'player', playerId: players[index].playerId }
             delete certificate.poolId
         }
@@ -191,10 +197,12 @@ export function createTheOldPrinceCompanyExample(
             }
         const next = position === 'private-events' ? '4+' : position === 'phases' ? '2+' : 'D'
         const ranks = TheOldPrinceTrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next)
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'depot' &&
+                    ranks.indexOf(train.definitionId) < ranks.indexOf(next)
+                )
         )
         const treasury = state.cash.find(
             (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'ML'
@@ -210,16 +218,13 @@ export function createTheOldPrinceCompanyExample(
                     train.definitionId === '4+'
             )
             assert(used, 'Diesel example requires a used 4+')
-            used.hasRun = true
+            state.fourPlusTrainIdsWithOperatingOpportunity = [used.id]
         }
     }
     if (position === 'transfers' || position === 'powers') {
         getCompany(state, 'So').president = { kind: 'player', playerId: players[1].playerId }
         const shortlinePresident = state.certificates.find((item) => item.id === 'So:president')
-        assert(
-            shortlinePresident && !shortlinePresident.retired,
-            'The example requires Shortline presidency'
-        )
+        assert(shortlinePresident, 'The example requires Shortline presidency')
         shortlinePresident.owner = { kind: 'player', playerId: players[1].playerId }
         state.phaseId = '4H'
         for (const companyId of ['ML', 'So']) {
@@ -231,10 +236,12 @@ export function createTheOldPrinceCompanyExample(
             })
         }
         const ranks = TheOldPrinceTrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('4H')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'depot' &&
+                    ranks.indexOf(train.definitionId) < ranks.indexOf('4H')
+                )
         )
     }
     if (position === 'funding' || position === 'funding-chain' || position === 'bankruptcy') {
@@ -244,10 +251,8 @@ export function createTheOldPrinceCompanyExample(
             { locationId: 'K19', definitionId: '18xx:6', rotation: 1 }
         ])
         const ranks = TheOldPrinceTrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            ranks.indexOf(train.definitionId) < ranks.indexOf('5H')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) => !(ranks.indexOf(train.definitionId) < ranks.indexOf('5H'))
         )
         const treasury = state.cash.find(
             (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'ML'
@@ -259,7 +264,6 @@ export function createTheOldPrinceCompanyExample(
         if (position === 'bankruptcy')
             for (const certificate of state.certificates) {
                 if (
-                    !certificate.retired &&
                     certificate.kind === 'share' &&
                     !certificate.president &&
                     certificate.companyId !== 'PEIR'
@@ -284,7 +288,7 @@ export function createTheOldPrinceCompanyExample(
             ['So:president', blair]
         ] as const) {
             const certificate = state.certificates.find((item) => item.id === id)
-            assert(certificate && !certificate.retired, 'Funding chain requires its share')
+            assert(certificate, 'Funding chain requires its share')
             certificate.owner = owner
             delete certificate.poolId
         }

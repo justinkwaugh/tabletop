@@ -99,14 +99,13 @@ export class EighteenXXInitializer<
         const seatOrder = [
             ...(parts.startingPositions?.playerIds ?? players.map((player) => player.playerId))
         ]
-        const { map, tileSet, depot } = titleComponents(this.rules)
+        const components = titleComponents(this.rules)
         return inKnownPhase(
             this.rules.state.hydrate(
                 {
                     ...state,
                     players,
                     activePlayerIds: [seatOrder[0]],
-                    example: 'finances',
                     phaseEvents: [],
                     ...('usedPrivatePowerIds' in this.rules.state.schema.properties
                         ? { usedPrivatePowerIds: [] }
@@ -123,9 +122,7 @@ export class EighteenXXInitializer<
                     ...parts.position,
                     ...parts.titleState
                 },
-                map,
-                tileSet,
-                depot
+                components
             ),
             this.rules.phases
         )

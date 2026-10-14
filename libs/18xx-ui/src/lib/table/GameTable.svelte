@@ -755,7 +755,7 @@
         tokens={session.map.displayedTokens}
         stationAppearances={session.mapView.stations}
         reservations={[
-            ...(session.track.displayedPreview?.stationReservations ??
+            ...(session.track.displayedStations?.stationReservations ??
                 session.stations.displayState.stationReservations),
             ...powerReservations
         ]}
@@ -793,18 +793,16 @@
             area={viewportRect(boardViewport, boardAreas.market)}
         >
             {@const corner = boardInformation
-                ? marketLowerRightSpace(
-                      session.gameState.stockMarket,
-                      session.presentation.marketCell
-                  )
+                ? marketLowerRightSpace(session.stockMarketChart, session.presentation.marketCell)
                 : undefined}
             <div class="board-market">
                 <StockMarketScene
                     cell={session.presentation.marketCell}
                     animation={session.marketAnimation}
                     appearances={session.mapView.stations}
+                    chart={session.stockMarketChart}
                     market={session.gameState.stockMarket}
-                    companies={session.gameState.companies}
+                    companyName={(companyId) => session.companyName(companyId)}
                     zones={session.presentation.marketZones}
                     ledge={session.presentation.marketLedge}
                 />
@@ -1041,6 +1039,7 @@
                                         {money}
                                         showDetails
                                         companies={companyOrder}
+                                        companyName={(companyId) => session.companyName(companyId)}
                                         {gameState}
                                         trainDepot={session.trainDepot}
                                         {trainColors}
@@ -1237,8 +1236,10 @@
                                             animation={session.marketAnimation}
                                             appearances={session.mapView.stations}
                                             renderScale={2}
+                                            chart={session.stockMarketChart}
                                             market={session.gameState.stockMarket}
-                                            companies={session.gameState.companies}
+                                            companyName={(companyId) =>
+                                                session.companyName(companyId)}
                                             zones={session.presentation.marketZones}
                                             ledge={session.presentation.marketLedge}
                                         />

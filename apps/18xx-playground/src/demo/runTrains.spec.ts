@@ -50,9 +50,6 @@ it.each(Titles)(
         expect(result.updatedState.machineState).toBe('DistributingEarnings')
         expect(result.updatedState.routeStep?.result?.revenue).toBe(expected)
         expect(result.updatedState.cash).toEqual(state.cash)
-        expect(
-            result.updatedState.trainInventory.trains.filter((train) => train.hasRun)
-        ).toHaveLength(2)
         expect(result.processedActions.filter(isRunTrains)[0].metadata).toEqual(
             result.updatedState.routeStep?.result
         )

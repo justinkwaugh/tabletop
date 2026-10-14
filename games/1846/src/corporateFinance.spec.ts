@@ -1,11 +1,7 @@
+import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists, ActionSource } from '@tabletop/common'
-import {
-    TrackConstruction,
-    companyMarketSpace,
-    finiteCashOwnedBy,
-    sharesOwned
-} from '@tabletop/18xx'
+import { TrackConstruction, finiteCashOwnedBy, placeStockMarker, sharesOwned } from '@tabletop/18xx'
 import { corporateFinanceChoices } from './corporateFinance.js'
 import { layTrack, stockGame } from './testSupport.js'
 import { TrackRules1846 } from './track.js'
@@ -22,7 +18,6 @@ function financeGame() {
 }
 function putInMarket(table: ReturnType<typeof stockGame>, count: number) {
     const certificates = table.state.certificates
-        .filter((c) => !c.retired)
         .filter((c) => c.companyId === 'IC' && c.owner.kind === 'company')
         .slice(0, count)
     for (const certificate of certificates) {
@@ -116,10 +111,10 @@ describe('1846 corporate finance', () => {
         table.act('CorporateFinance', redeem)
         expect(finiteCashOwnedBy(table.state, { kind: 'company', companyId: 'IC' })).toBe(20)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(0)
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(40)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(40)
         expect(
             table.state.certificates.filter(
-                (c) => !c.retired && c.companyId === 'IC' && c.poolId === 'open-market'
+                (c) => c.companyId === 'IC' && c.poolId === 'open-market'
             )
         ).toHaveLength(0)
     })
@@ -127,8 +122,9 @@ describe('1846 corporate finance', () => {
         const table = financeGame()
         putInMarket(table, 3)
         expect(shareCounts(table, 'redeem')).toEqual([1, 2])
-        const space = companyMarketSpace(table.state.stockMarket, 'IC')
-        space.price = 550
+        const ceiling = Market1846.spaces.find((space) => space.price === 550)
+        assertExists(ceiling)
+        placeStockMarker(table.state.stockMarket, 'IC', ceiling.id)
         expect(shareCounts(table, 'redeem')).toEqual([])
         const cash = table.state.cash.find(
             (c) => c.owner.kind === 'company' && c.owner.companyId === 'IC'

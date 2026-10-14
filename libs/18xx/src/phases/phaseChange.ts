@@ -4,10 +4,11 @@ import type { StockState } from '../stock/stockState.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import { controllingOwner, getCompany } from '../finance/finance.js'
-import { stockMarketOrder } from '../stock/stockMarket.js'
+import type { StockMarketChart } from '../stock/stockMarket.js'
 import {
-    unownedTrain,
+    releaseTrains,
     type Train,
+    type TrainDestination,
     type TrainState,
     type TrainPurchaseState
 } from '../trains/train.js'
@@ -27,7 +28,9 @@ export const PhaseEvent = Type.Object(
     {
         ...PhaseOccurrence.properties,
         privateEffects: Type.Array(PrivateEffect),
-        rustedTrainIds: Type.Array(Id),
+        rustedTrains: Type.Array(
+            Type.Object({ trainId: Id, definitionId: Id }, { additionalProperties: false })
+        ),
         pendingRustTrainIds: Type.Array(Id),
         departurePayments: DeparturePayments
     },
@@ -49,7 +52,7 @@ export const PhaseChange = Type.Object(
 )
 export type PhaseChange = Type.Static<typeof PhaseChange>
 export const PhaseFields = {
-    phaseEvents: Type.Array(PhaseEvent),
+    phaseEvents: Type.Array(PhaseOccurrence),
     phaseChange: Type.Optional(PhaseChange)
 }
 export type PhaseState = Type.Static<Type.TObject<typeof PhaseFields>> & { phaseId: string }
@@ -59,9 +62,10 @@ export interface PhaseRules {
     rustTiming(state: TrainPurchaseState, train: Train): 'immediate' | 'after-operation' | undefined
     /** Companies in discard order, starting from the operating company when there is one. */
     discardOrder(state: PhaseChangeState, companyId: string | undefined): string[]
-    discardDestination: 'market' | 'removed'
+    discardDestination: TrainDestination
 }
 export function marketDiscardOrder(
+    market: StockMarketChart,
     state: PhaseChangeState,
     companyId: string | undefined,
     after: readonly string[] = []
@@ -69,7 +73,7 @@ export function marketDiscardOrder(
     return [
         ...new Set([
             ...(companyId ? [companyId] : []),
-            ...stockMarketOrder(state.stockMarket),
+            ...market.order(state.stockMarket),
             ...after
         ])
     ].filter((id) => !getCompany(state, id).closed)
@@ -111,32 +115,35 @@ export function advancePhase(
     const event: PhaseEvent = {
         ...change.event,
         privateEffects: [],
-        rustedTrainIds: [],
+        rustedTrains: [],
         pendingRustTrainIds: []
     }
     const departures: TrainDeparture[] = []
     state.trainInventory.trains = state.trainInventory.trains.map((train) => {
-        if (train.status === 'removed') return train
         const rustTiming = rules.rustTiming(state, train)
         if (rustTiming === 'after-operation' && train.status === 'owned') {
             event.pendingRustTrainIds.push(train.id)
             return { ...train, rustsAfterOperation: true }
         }
         if (rustTiming) {
-            event.rustedTrainIds.push(train.id)
+            event.rustedTrains.push({ trainId: train.id, definitionId: train.definitionId })
             departures.push({
                 trainId: train.id,
                 definitionId: train.definitionId,
                 cause: 'rust',
                 ...(train.status === 'owned' ? { owner: { ...train.owner } } : {})
             })
-            return unownedTrain(train, 'removed')
         }
         return train
     })
+    releaseTrains(
+        state.trainInventory,
+        event.rustedTrains.map((train) => train.trainId),
+        'removed'
+    )
     const payments = settleTrainDepartures(state, trainRules, departures)
     if (payments.length) event.departurePayments = payments
-    state.phaseEvents.push(event)
+    state.phaseEvents.push({ ...change.event })
     change.discardCompanyIds = rules
         .discardOrder(state, change.continuation.companyId)
         .filter(

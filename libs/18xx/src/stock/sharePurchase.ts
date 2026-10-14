@@ -34,6 +34,7 @@ export const SharePurchaseDetails = Type.Object(
     {
         certificateId: Type.String(),
         companyId: Type.String(),
+        shares: Type.Integer({ minimum: 1 }),
         buyer: Owner,
         seller: Owner,
         price: Type.Integer({ minimum: 1 }),
@@ -57,7 +58,7 @@ export function evaluateSharePurchase(
     rules: StockRules
 ): ShareBuyResult {
     const certificate = state.certificates.find((item) => item.id === request.certificateId)
-    if (!certificate || certificate.retired || certificate.kind !== 'share')
+    if (!certificate || certificate.kind !== 'share')
         return { reason: 'This is not an available share certificate.' }
     if (state.stockRound.turn.bought && !furtherShareAllowed(state, certificate, rules))
         return { reason: 'Only one purchase is allowed this turn.' }
@@ -102,7 +103,7 @@ export function evaluateShareTransfer(
 ): SharePurchaseResult {
     const { buyer, certificateId } = request
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
-    if (!certificate || certificate.retired || certificate.kind !== 'share')
+    if (!certificate || certificate.kind !== 'share')
         return { reason: 'This is not an available share certificate.' }
     if (sameOwner(certificate.owner, buyer))
         return { reason: 'The buyer already owns this certificate.' }
@@ -138,7 +139,7 @@ export function evaluateShareTransfer(
     if (remaining > 0) return { reason: 'The buyer cannot afford this purchase.' }
     const projected = { ...state, ...copyFinances(state) }
     const purchased = projected.certificates.find((item) => item.id === certificateId)
-    assert(purchased && !purchased.retired, 'Missing purchased certificate')
+    assert(purchased, 'Missing purchased certificate')
     purchased.owner = buyer
     delete purchased.poolId
     const presidency = evaluatePresidency(
@@ -164,6 +165,7 @@ export function evaluateShareTransfer(
         details: {
             certificateId,
             companyId: certificate.companyId,
+            shares: certificate.shares,
             buyer,
             seller: certificate.owner,
             price: terms.price,
@@ -186,7 +188,7 @@ export function applyShareTransfer(state: StockState, details: SharePurchaseDeta
     const certificate = state.certificates.find(
         (certificate) => certificate.id === details.certificateId
     )
-    assert(certificate && !certificate.retired, 'Missing purchased certificate')
+    assert(certificate, 'Missing purchased certificate')
     settleCashPayments(state, details.payments)
     certificate.owner = details.buyer
     delete certificate.poolId

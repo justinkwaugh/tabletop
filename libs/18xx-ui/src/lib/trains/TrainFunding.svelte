@@ -23,7 +23,7 @@
     <section aria-label="Compulsory train funding">
         <header>
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
-            <span>{getCompany(session.gameState, purchase.companyId).name} must buy a</span>
+            <span>{session.companyName(purchase.companyId)} must buy a</span>
             <TrainBadge
                 name={session.trainDepot.trainDefinition(purchase.definitionId).name}
                 color={trainColors[purchase.definitionId]}
@@ -74,7 +74,7 @@
                             class="sale-choice"
                             {disabled}
                             data-funding-shares={sale.sales[0].shares}
-                            aria-label={`Sell ${sale.sales[0].shares} ${getCompany(session.gameState, companyId).name} shares for ${money(sale.proceeds)}`}
+                            aria-label={`Sell ${sale.sales[0].shares} ${session.companyName(companyId)} shares for ${money(sale.proceeds)}`}
                             onclick={() => session.trainFunding.resolve(sale)}
                         >
                             <CompanyToken
@@ -134,8 +134,7 @@
                                                 details.sales[0].companyId
                                             ]}
                                             size={20}
-                                        />{getCompany(session.gameState, details.sales[0].companyId)
-                                            .name}</span
+                                        />{session.companyName(details.sales[0].companyId)}</span
                                     ></td
                                 >
                                 <td>{details.sales[0].shares}</td><td>{money(details.proceeds)}</td

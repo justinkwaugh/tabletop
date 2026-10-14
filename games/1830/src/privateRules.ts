@@ -8,7 +8,6 @@ export const EighteenThirtyPrivateRules: PrivateRules = {
             certificateIds: state.certificates
                 .filter(
                     (item) =>
-                        !item.retired &&
                         item.kind === 'share' &&
                         item.companyId === 'NYC' &&
                         !item.president &&

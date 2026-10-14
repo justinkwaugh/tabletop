@@ -1,11 +1,10 @@
 <script lang="ts">
     import type { MoneyFormat } from '../presentation/money.js'
     import {
-        stockMarketSpace,
         type EarningsChoice,
         type EarningsDetails,
         type Owner,
-        type StockMarket
+        type StockMarketChart
     } from '@tabletop/18xx'
     let {
         money,
@@ -13,7 +12,7 @@
         details,
         label,
         companyId,
-        stockMarket,
+        chart,
         ownerName,
         reason,
         onclick,
@@ -24,7 +23,7 @@
         details?: EarningsDetails
         label: string
         companyId: string
-        stockMarket: StockMarket
+        chart: StockMarketChart
         ownerName: (owner: Owner) => string
         reason?: string
         onclick?: () => void
@@ -74,8 +73,8 @@
             <span class="market"
                 >Market
                 <b
-                    >{stockMarketSpace(stockMarket, details.marketMove.fromMarketSpaceId).price}
-                    → {stockMarketSpace(stockMarket, details.marketMove.toMarketSpaceId).price}</b
+                    >{chart.space(details.marketMove.fromMarketSpaceId).price}
+                    → {chart.space(details.marketMove.toMarketSpaceId).price}</b
                 >
             </span>
         {/if}

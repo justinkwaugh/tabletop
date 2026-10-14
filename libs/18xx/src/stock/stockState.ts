@@ -16,7 +16,6 @@ export function copyStockState(state: StockState): StockState {
         ...state,
         ...copyFinances(state),
         stockMarket: {
-            spaces: state.stockMarket.spaces,
             stacks: state.stockMarket.stacks.map((stack) => ({
                 ...stack,
                 companyIds: [...stack.companyIds]

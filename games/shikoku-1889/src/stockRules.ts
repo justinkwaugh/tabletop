@@ -1,3 +1,4 @@
+import { Shikoku1889Market } from './stockMarket.js'
 import { Shikoku1889StockRoundRules } from './roundRules.js'
 import { assertExists } from '@tabletop/common'
 import {
@@ -8,12 +9,14 @@ import {
 } from '@tabletop/18xx'
 
 export const Shikoku1889ShareTrading = ipoMarketTrading({
+    market: Shikoku1889Market,
     ipoPoolId: 'initial-offering',
     marketPoolId: 'open-market',
     marketLimit: 50
 })
 
 export const Shikoku1889StockRules: StockRules = {
+    market: Shikoku1889Market,
     round: Shikoku1889StockRoundRules,
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
@@ -25,6 +28,7 @@ export const Shikoku1889StockRules: StockRules = {
         return limit
     },
     ...marketZoneHoldingLimits({
+        market: Shikoku1889Market,
         certificateFreeColors: ['yellow', 'orange'],
         ownershipFreeColors: ['orange'],
         ownershipPercent: 60

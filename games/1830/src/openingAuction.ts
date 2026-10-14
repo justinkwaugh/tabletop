@@ -18,7 +18,6 @@ import { EighteenThirtyMap } from './map.js'
 import { EighteenThirtyPrivateCatalog, EighteenThirtyPrivates } from './privates.js'
 import type { EighteenThirtyState, HydratedEighteenThirtyState } from './state.js'
 import { EighteenThirtyStationCounts } from './stationRules.js'
-import { createEighteenThirtyStockMarket } from './stockMarket.js'
 import { EighteenThirtyTileSet } from './tiles.js'
 import { createEighteenThirtyTrainInventory } from './trains.js'
 
@@ -63,11 +62,11 @@ export function createEighteenThirtyOpening({
     const capital = EighteenThirtyStartingCash[players.length]
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
-        stockMarket: createEighteenThirtyStockMarket(),
-        bank: { name: 'Bank', unlimitedAfterExhaustion: true },
+        stockMarket: { stacks: [] },
+        bank: { unlimitedAfterExhaustion: true },
         companies: [
             ...majors.map((company) => ({
-                ...company,
+                id: company.id,
                 kind: 'major',
                 shareCount: 10,
                 started: false,
@@ -77,7 +76,6 @@ export function createEighteenThirtyOpening({
             })),
             ...EighteenThirtyPrivates.map((company) => ({
                 id: company.id,
-                name: company.name,
                 kind: 'private',
                 privateRevenue: company.revenue
             }))
@@ -94,8 +92,8 @@ export function createEighteenThirtyOpening({
             }))
         ],
         certificatePools: [
-            { id: 'initial-offering', name: 'IPO', owner: { kind: 'bank' } },
-            { id: 'open-market', name: 'Market', owner: { kind: 'bank' } }
+            { id: 'initial-offering', owner: { kind: 'bank' } },
+            { id: 'open-market', owner: { kind: 'bank' } }
         ],
         certificates: [
             ...majors.flatMap((company) =>
@@ -109,8 +107,6 @@ export function createEighteenThirtyOpening({
                 id: `${company.id}:charter`,
                 companyId: company.id,
                 kind: 'private' as const,
-                certificateLimitCount: 1,
-                retired: false as const,
                 owner: { kind: 'bank' as const }
             }))
         ],

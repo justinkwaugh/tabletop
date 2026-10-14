@@ -79,7 +79,7 @@
                 playerId: undefined,
                 description: session.privates.companies.find((company) => company.id === companyId)
                     ?.description,
-                name: getCompany(session.gameState, companyId).name,
+                name: session.companyName(companyId),
                 controller: controller ? session.getPlayerName(controller.playerId) : undefined,
                 bankrupt: false,
                 liquidity: undefined,
@@ -317,7 +317,7 @@
                                     <div class="holding-line">
                                         <button
                                             class="company-focus compact-token"
-                                            aria-label={`Show ${entry.company.name} network`}
+                                            aria-label={`Show ${session.companyName(entry.company.id)} network`}
                                             disabled={!focusableCompanyIds.has(entry.company.id)}
                                             onclick={() => onFocusCompany(entry.company.id)}
                                             ><CompanyToken
@@ -330,7 +330,7 @@
                                         <span class="compact-company-label">
                                             <button
                                                 class="company-focus"
-                                                title={entry.company.name}
+                                                title={session.companyName(entry.company.id)}
                                                 disabled={!focusableCompanyIds.has(
                                                     entry.company.id
                                                 )}
@@ -382,7 +382,7 @@
                                         <td class="token"
                                             ><button
                                                 class="company-focus"
-                                                aria-label={`Show ${entry.company.name} network`}
+                                                aria-label={`Show ${session.companyName(entry.company.id)} network`}
                                                 disabled={!focusableCompanyIds.has(
                                                     entry.company.id
                                                 )}
@@ -402,7 +402,7 @@
                                                     entry.company.id
                                                 )}
                                                 onclick={() => onFocusCompany(entry.company.id)}
-                                                >{entry.company.name}</button
+                                                >{session.companyName(entry.company.id)}</button
                                             >{#if entry.president}<PresidentBadge />{/if}</th
                                         >
                                         <td class="amount">{percent.format(entry.percentage)}%</td>
@@ -450,7 +450,7 @@
                                             phaseColors={session.presentation.phaseColors}
                                             token={session.privateCompanyTokens[entry.company.id]}
                                             imageUrl={session.publishedCardImage(entry.company.id)}
-                                            name={entry.company.name}
+                                            name={session.companyName(entry.company.id)}
                                             value={entry.value}
                                             income={entry.income}
                                             description={session.privates.companies.find(

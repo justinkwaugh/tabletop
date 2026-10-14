@@ -1,20 +1,18 @@
 <script lang="ts">
     import StockMarketScene from './StockMarketScene.svelte'
-    import {
-        stockMarketOrder,
-        type StockMarket as StockMarketModel,
-        type Company
-    } from '@tabletop/18xx'
+    import { type StockMarket as StockMarketModel, type StockMarketChart } from '@tabletop/18xx'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import type { MarketAnimationSource } from './marketAnimationSource.js'
     let {
+        chart,
         market,
-        companies,
+        companyName,
         appearances,
         animation
     }: {
+        chart: StockMarketChart
         market: StockMarketModel
-        companies: readonly Company[]
+        companyName: (companyId: string) => string
         appearances: Readonly<Record<string, StationAppearance>>
         animation?: MarketAnimationSource
     } = $props()
@@ -25,9 +23,9 @@
     <!-- Keyboard users need to focus the scrollable market. -->
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <div class="scroll" tabindex="0" role="region" aria-label="Stock market spaces">
-        <StockMarketScene {market} {companies} {appearances} {animation} />
+        <StockMarketScene {chart} {market} {companyName} {appearances} {animation} />
     </div>
-    <p class="order">Market order: {stockMarketOrder(market).join(' · ')}</p>
+    <p class="order">Market order: {chart.order(market).join(' · ')}</p>
 </section>
 
 <style>

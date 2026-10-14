@@ -1,3 +1,4 @@
+import { playgroundTitleForType } from '../titles.js'
 import { historyCompanyChanges } from '../../../../libs/18xx-ui/src/lib/table/historyCompanyChanges.js'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { expect, it } from 'vitest'
@@ -162,7 +163,6 @@ it('TOP reserved exchanges work after buying or selling the railway and permit r
     const owner = { kind: 'player', playerId: 'alex' } as const
     for (const certificate of state.certificates)
         if (
-            !certificate.retired &&
             certificate.kind === 'share' &&
             certificate.companyId === 'So' &&
             certificate.poolId !== 'reserved'
@@ -293,7 +293,7 @@ it('1889 Dôgo respects ownership limits and requires an IPO share, but can exch
     const owner = { kind: 'player', playerId: 'alex' } as const
     const request = { playerId: 'alex', privateCompanyId: 'DR', certificateId: 'IR:share:5' }
     for (const item of state.certificates)
-        if (!item.retired && ['IR:president', 'IR:share:1'].includes(item.id)) item.owner = owner
+        if (['IR:president', 'IR:share:1'].includes(item.id)) item.owner = owner
     getCompany(state, 'IR').president = owner
     expect(
         evaluatePrivateExchange(state, request, Shikoku1889PrivateRules, Shikoku1889StockRules)
@@ -302,7 +302,7 @@ it('1889 Dôgo respects ownership limits and requires an IPO share, but can exch
     getCompany(state, 'IR').started = false
     delete getCompany(state, 'IR').president
     const initialOwner = state.certificates.find((item) => item.id === 'IR:share:1')!
-    if (!initialOwner.retired) initialOwner.owner = { kind: 'bank' }
+    initialOwner.owner = { kind: 'bank' }
     expect(
         evaluatePrivateExchange(state, request, Shikoku1889PrivateRules, Shikoku1889StockRules)
             .details
@@ -350,10 +350,8 @@ it.each([
                 const certificate = state.certificates.find(
                     (item) => item.id === `So:share:${index + 1}`
                 )!
-                if (!certificate.retired) {
-                    certificate.owner = { kind: 'player', playerId }
-                    delete certificate.poolId
-                }
+                certificate.owner = { kind: 'player', playerId }
+                delete certificate.poolId
             }
         }
         const train = trains.depot.nextTrain(state.trainInventory, rank)!
@@ -374,6 +372,7 @@ it.each([
         const description = historyDescription(
             advancement,
             updated,
+            playgroundTitleForType(definition.info.id).rules.stockRules.market,
             (id) => id,
             (id) => id,
             changes.get(advancement.id)
@@ -384,19 +383,18 @@ it.each([
             expect(description.detail).toContain('So President: UB → alex')
         } else expect(description.detail).toContain('UTF income $50')
         expect(updated.phaseId).toBe(phase)
-        expect(updated.phaseEvents[0].privateEffects.length).toBeGreaterThan(0)
+        const privateEffects = advancement.metadata?.event.privateEffects ?? []
+        expect(privateEffects.length).toBeGreaterThan(0)
         if (definition === Top) {
             for (const id of ['MC', 'VR', 'SB', 'IB', 'SBC', 'HS', 'MLC', 'SLC'])
                 expect(getCompany(updated, id).closed).toBe(true)
             expect(getCompany(updated, 'UB').closed).not.toBe(true)
             expect(getCompany(updated, 'KM').closed).toBe(true)
-            expect(updated.phaseEvents[0].privateEffects).toContainEqual({
+            expect(privateEffects).toContainEqual({
                 kind: 'close',
                 privateCompanyId: 'KM'
             })
-            expect(
-                updated.phaseEvents[0].privateEffects.filter((effect) => effect.kind === 'exchange')
-            ).toHaveLength(3)
+            expect(privateEffects.filter((effect) => effect.kind === 'exchange')).toHaveLength(3)
             expect(getCompany(updated, 'So').president).toEqual({
                 kind: 'player',
                 playerId: 'alex'
@@ -439,7 +437,7 @@ it.each([
 it('1889 closes a corporate-owned Uno-Takamatsu Ferry at phase 5', () => {
     const { state } = example(Shikoku, 'private-events')
     const certificate = state.certificates.find((item) => item.companyId === 'UTF')!
-    if (!certificate.retired) certificate.owner = { kind: 'company', companyId: 'IR' }
+    certificate.owner = { kind: 'company', companyId: 'IR' }
     state.phaseId = '5'
     expect(Shikoku1889PrivateRules.phaseEffects(state)).toContainEqual({
         kind: 'close',
@@ -468,7 +466,7 @@ it('Dôgo exchange can float Iyo and capitalizes it only once through the existi
     company.floated = false
     company.operated = false
     for (const item of state.certificates)
-        if (!item.retired && ['IR:share:3', 'IR:share:4'].includes(item.id)) {
+        if (['IR:share:3', 'IR:share:4'].includes(item.id)) {
             item.owner = { kind: 'bank' }
             item.poolId = 'initial-offering'
         }
@@ -500,7 +498,6 @@ it('TOP concessions close on operation and no longer receive private income', ()
     const { game, engine, state } = example(Top, 'operations')
     state.companies.push({
         id: 'MLC',
-        name: 'Mainline Concession',
         kind: 'private',
         privateRevenue: 20
     })
@@ -508,8 +505,6 @@ it('TOP concessions close on operation and no longer receive private income', ()
         id: 'MLC:charter',
         companyId: 'MLC',
         kind: 'private',
-        certificateLimitCount: 1,
-        retired: false,
         owner: { kind: 'player', playerId: 'alex' }
     })
     let current = state

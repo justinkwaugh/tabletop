@@ -1,7 +1,7 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import {
     cashOwnedBy,
-    companyMarketSpace,
     evaluateSharePurchase,
     evaluateShareSale,
     getCompany,
@@ -35,7 +35,7 @@ function giveCash(state: EighteenXXState, playerId: string, amount: number) {
 
 function givePrivate(state: EighteenXXState, privateId: string, playerId: string) {
     const certificate = state.certificates.find((item) => item.companyId === privateId)!
-    if (!certificate.retired) certificate.owner = { kind: 'player', playerId }
+    certificate.owner = { kind: 'player', playerId }
 }
 
 describe('company auctions', () => {
@@ -56,7 +56,7 @@ describe('company auctions', () => {
         const company = getCompany(play.state, 'AS')
         expect(company).toMatchObject({ started: true, floated: true, shareCount: 2, parPrice: 50 })
         expect(company.president).toEqual({ kind: 'player', playerId: 'alex' })
-        expect(companyMarketSpace(play.state.stockMarket, 'AS').price).toBe(50)
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'AS').price).toBe(50)
         expect(play.treasury('AS')).toBe(100)
         expect(play.cash('alex')).toBe(200)
         expect(play.state.stations.find((station) => station.id === 'AS:home')).toMatchObject({
@@ -79,7 +79,7 @@ describe('company auctions', () => {
             kind: 'player',
             playerId: 'blair'
         })
-        expect(companyMarketSpace(play.state.stockMarket, 'AS').price).toBe(55)
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'AS').price).toBe(55)
         expect(play.treasury('AS')).toBe(115)
         expect(play.state.activePlayerIds).toEqual(['blair'])
     })
@@ -96,12 +96,10 @@ describe('company auctions', () => {
             play.act('FormCompany', { companyId: 'AS', shareCount: 10, privateIds: [] })
         ).toThrow()
         play.act('FormCompany', { companyId: 'AS', shareCount: 5, privateIds: [] })
-        expect(companyMarketSpace(play.state.stockMarket, 'AS').price).toBe(120)
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'AS').price).toBe(120)
         expect(play.treasury('AS')).toBe(200)
         expect(
-            play.state.certificates
-                .filter((item) => !item.retired && item.companyId === 'AS')
-                .map((item) => item.id)
+            play.state.certificates.filter((item) => item.companyId === 'AS').map((item) => item.id)
         ).toEqual(['AS:president', 'AS:share:1', 'AS:share:2', 'AS:share:3'])
         expect(play.state.stations.filter((station) => station.companyId === 'AS')).toHaveLength(2)
     })
@@ -178,8 +176,8 @@ describe('company auctions', () => {
         it('liquidates a company still owing stations when the stock round ends', () => {
             const play = formedShort()
             while (play.state.machineState === 'StockRound') play.act('FinishStockTurn')
-            expect(companyMarketSpace(play.state.stockMarket, 'AS').id).toBe(
-                play.state.stockMarket.spaces.find((space) => space.column === 0)?.id
+            expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'AS').id).toBe(
+                EighteenSeventeenMarket.spaces.find((space) => space.column === 0)?.id
             )
             expect(play.state.operatingSet?.companyOrder).not.toContain('AS')
         })
@@ -240,14 +238,14 @@ describe('stock-round share rules', () => {
         const result = evaluateShareSale(play.state, request, EighteenSeventeenStockRules)
         expect(result.details?.proceeds).toBe(120)
         play.act('SellShares', { ...request, expectedProceeds: 120 })
-        expect(companyMarketSpace(play.state.stockMarket, 'BA').price).toBe(120)
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').price).toBe(120)
     })
 
     it('moves a company down one space per market share when the round ends', () => {
         const play = trading()
         for (const playerId of ['alex', 'blair', 'casey']) play.act('FinishStockTurn', {}, playerId)
         expect(play.state.stockRound.completed).toBe(true)
-        expect(companyMarketSpace(play.state.stockMarket, 'BA').price).toBe(110)
-        expect(companyMarketSpace(play.state.stockMarket, 'PLE').price).toBe(65)
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').price).toBe(110)
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'PLE').price).toBe(65)
     })
 })

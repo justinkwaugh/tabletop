@@ -2,12 +2,18 @@ import { assert } from '@tabletop/common'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import type { TrainDepot } from '../trains/trainDepot.js'
+import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { EighteenXXTitleRules } from './eighteenXXTitleRules.js'
 
-export type TitleComponents = { map: RailwayMap; tileSet: TileSet; depot: TrainDepot }
+export type TitleComponents = {
+    map: RailwayMap
+    tileSet: TileSet
+    depot: TrainDepot
+    market: StockMarketChart
+}
 export type TitleComponentRules = Pick<
     EighteenXXTitleRules,
-    'trackRules' | 'stationRules' | 'routeRules' | 'trainRules'
+    'trackRules' | 'stationRules' | 'routeRules' | 'trainRules' | 'stockRules'
 >
 
 export function titleComponents(rules: TitleComponentRules): TitleComponents {
@@ -22,5 +28,5 @@ export function titleComponents(rules: TitleComponentRules): TitleComponents {
         'Track, station and route rules must share one tile set'
     )
     assert(rules.routeRules.depot === depot, 'Route and train rules must share one depot')
-    return { map, tileSet, depot }
+    return { map, tileSet, depot, market: rules.stockRules.market }
 }

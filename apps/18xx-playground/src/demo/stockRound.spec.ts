@@ -8,7 +8,7 @@ import {
 import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
 import {
     allPlayersPassed,
-    companyMarketSpace,
+    companyMarketSpaceId,
     getCompany,
     isCompleteStockRound,
     isFinishStockTurn,
@@ -47,7 +47,7 @@ function buy(state: EighteenXXState, certificateId: string, expectedPrice: numbe
 }
 function give(state: EighteenXXState, certificateId: string, owner: Owner) {
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
-    if (!certificate || certificate.retired) throw new Error('Missing certificate')
+    if (!certificate) throw new Error('Missing certificate')
     certificate.owner = owner
     delete certificate.poolId
 }
@@ -321,11 +321,7 @@ it('counts TOP reserved and Union Bank shares as sold, but excludes Bank and tre
 it('moves sold-out companies in market order, preserves an existing top marker, and derives operations after movement', () => {
     const { game, engine, state } = example(Shikoku)
     for (const certificate of state.certificates)
-        if (
-            certificate.kind === 'share' &&
-            !certificate.retired &&
-            certificate.owner.kind === 'bank'
-        )
+        if (certificate.kind === 'share' && certificate.owner.kind === 'bank')
             give(state, certificate.id, { kind: 'player', playerId: 'casey' })
     placeStockMarker(state.stockMarket, 'AR', '0:2')
     placeStockMarker(state.stockMarket, 'IR', '1:2')
@@ -339,7 +335,7 @@ it('moves sold-out companies in market order, preserves an existing top marker, 
     const result = engine.executeCanonicalAction({ game, state: current, action: finish(current) })
     const completion = result.processedActions.find(isCompleteStockRound)
     expect(completion?.metadata?.marketMoves.map((move) => move.companyId)).toEqual(['AR', 'IR'])
-    expect(companyMarketSpace(result.updatedState.stockMarket, 'IR').id).toBe('0:2')
+    expect(companyMarketSpaceId(result.updatedState.stockMarket, 'IR')).toBe('0:2')
     expect(
         result.updatedState.stockMarket.stacks.find((stack) => stack.spaceId === '0:2')?.companyIds
     ).toEqual(['AR', 'IR'])
@@ -446,11 +442,7 @@ it('automatically passes a stock player with no affordable purchase or holdings 
     for (const cash of state.cash)
         if (cash.owner.kind === 'player' && cash.owner.playerId === 'blair') cash.amount = 0
     for (const certificate of state.certificates)
-        if (
-            !certificate.retired &&
-            certificate.owner.kind === 'player' &&
-            certificate.owner.playerId === 'blair'
-        ) {
+        if (certificate.owner.kind === 'player' && certificate.owner.playerId === 'blair') {
             certificate.owner = { kind: 'player', playerId: 'casey' }
         }
     const result = engine.executeCanonicalAction({ game, state, action: finish(state) })

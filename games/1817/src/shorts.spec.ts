@@ -1,11 +1,10 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     cashOwnedBy,
-    companyMarketSpace,
     getCompany,
     issueShareCertificates,
-    moveMarketSpace,
     openShort,
     openShorts,
     retireCertificates,
@@ -25,7 +24,8 @@ import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
 
 const casey = { kind: 'player' as const, playerId: 'casey' }
-const price = (state: EighteenXXState) => companyMarketSpace(state.stockMarket, 'BA').price
+const price = (state: EighteenXXState) =>
+    EighteenSeventeenMarket.companySpace(state.stockMarket, 'BA').price
 const cash = (state: EighteenXXState, playerId: string) =>
     cashOwnedBy(state, { kind: 'player', playerId })
 
@@ -96,9 +96,16 @@ describe('closing a short', () => {
     it('retires the bought share with the short, even at the certificate limit', () => {
         const play = caseysTurn((state) => {
             openShort(state, 'BA', casey, marketPool(state))
-            const [heavy] = issueShareCertificates(state, 'PLE', 1, { owner: casey })
-            for (const certificate of state.certificates)
-                if (certificate.id === heavy) certificate.certificateLimitCount = 21
+            const toLimit =
+                EighteenSeventeenStockRules.certificateLimit(state, casey) -
+                stockCertificateCount(state, casey, EighteenSeventeenStockRules)
+            const unstarted = state.companies.filter(
+                (company) => company.kind === 'major' && !company.started
+            )
+            for (let index = 0; index < toLimit; index++)
+                issueShareCertificates(state, unstarted[index % unstarted.length].id, 1, {
+                    owner: casey
+                })
         })
         expect(stockCertificateCount(play.state, casey, EighteenSeventeenStockRules)).toBe(
             EighteenSeventeenStockRules.certificateLimit(play.state, casey)
@@ -110,7 +117,7 @@ describe('closing a short', () => {
         })
         expect(sharesOwned(play.state, 'BA', casey)).toBe(0)
         expect(openShorts(play.state, 'BA')).toEqual([])
-        expect(play.state.certificates.find((c) => c.id === 'BA:share:2')?.retired).toBe(true)
+        expect(play.state.certificates.find((c) => c.id === 'BA:share:2')).toBeUndefined()
     })
 })
 
@@ -174,7 +181,6 @@ describe('the market’s shorts', () => {
         const { shareId, shortId } = openShort(state, 'BA', market.owner, market)
         retireCertificates(state, [shareId])
         for (const certificate of state.certificates) {
-            if (certificate.retired) continue
             if (certificate.id === shortId) certificate.poolId = market.id
             if (certificate.id === 'BA:share:2') {
                 certificate.owner = { kind: 'player', playerId: 'alex' }
@@ -218,11 +224,11 @@ describe('the end of the stock round', () => {
 
     it('drops a shorted company once more for the extra market share', () => {
         const play = caseysTurn()
-        const before = companyMarketSpace(play.state.stockMarket, 'BA')
+        const before = EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA')
         play.act('ShortShare', { companyId: 'BA', expectedPrice: price(play.state) })
         finishRound(play)
-        expect(companyMarketSpace(play.state.stockMarket, 'BA').id).toBe(
-            moveMarketSpace(play.state.stockMarket, before.id, 'down', 2).id
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').id).toBe(
+            EighteenSeventeenMarket.move(before.id, 'down', 2).id
         )
     })
 
@@ -232,10 +238,7 @@ describe('the end of the stock round', () => {
             // Blair and alex end up with three shares each, 120% between them.
             const { shareId } = openShort(state, 'BA', casey, marketPool(state))
             for (const certificate of state.certificates)
-                if (
-                    !certificate.retired &&
-                    [shareId, 'BA:share:2', 'BA:share:3'].includes(certificate.id)
-                ) {
+                if ([shareId, 'BA:share:2', 'BA:share:3'].includes(certificate.id)) {
                     certificate.owner = {
                         kind: 'player',
                         playerId: certificate.id === 'BA:share:2' ? 'blair' : 'alex'
@@ -243,10 +246,10 @@ describe('the end of the stock round', () => {
                     delete certificate.poolId
                 }
         })
-        const before = companyMarketSpace(play.state.stockMarket, 'BA')
+        const before = EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA')
         finishRound(play)
-        expect(companyMarketSpace(play.state.stockMarket, 'BA').id).toBe(
-            moveMarketSpace(play.state.stockMarket, before.id, 'up', 2).id
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').id).toBe(
+            EighteenSeventeenMarket.move(before.id, 'up', 2).id
         )
     })
 })

@@ -33,15 +33,6 @@ export const TheOldPrinceState = composeEighteenXXState(
 )
 export type TheOldPrinceState = Type.Static<typeof TheOldPrinceState>
 export type HydratedTheOldPrinceState = HydratedEighteenXXState<typeof TheOldPrinceState>
-export const TheOldPrinceStateDefinition = defineEighteenXXState(
-    TheOldPrinceState,
-    [validateRailwayState],
-    readStoredState
-)
-
-function readStoredState(data: unknown): unknown {
-    if (!data || typeof data !== 'object' || !('usedPrivatePowerIds' in data)) return data
-    // The existing hosted TOP save contains this obsolete empty placeholder.
-    const { usedPrivatePowerIds, ...state } = data
-    return Array.isArray(usedPrivatePowerIds) && usedPrivatePowerIds.length === 0 ? state : data
-}
+export const TheOldPrinceStateDefinition = defineEighteenXXState(TheOldPrinceState, [
+    validateRailwayState
+])

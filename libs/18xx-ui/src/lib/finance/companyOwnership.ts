@@ -20,12 +20,7 @@ export function companyOwnership(
 ): CompanyOwnership[] {
     const rows: CompanyOwnership[] = []
     for (const certificate of state.certificates) {
-        if (
-            certificate.retired ||
-            certificate.kind === 'private' ||
-            certificate.companyId !== companyId
-        )
-            continue
+        if (certificate.kind === 'private' || certificate.companyId !== companyId) continue
         let row = rows.find(
             (entry) =>
                 sameOwner(entry.owner, certificate.owner) && entry.poolId === certificate.poolId

@@ -1,3 +1,4 @@
+import { Shikoku1889Market } from './stockMarket.js'
 import { ReserveBidAuction, cashOwnedBy } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import { ActionSource, type GameAction } from '@tabletop/common'
@@ -63,7 +64,7 @@ it.each([2, 3, 4, 5, 6])('creates the standard %i-player opening', (count) => {
     expect(
         state.certificates
             .filter((c) => c.kind === 'share')
-            .every((c) => !c.retired && c.owner.kind === 'bank' && c.poolId === 'initial-offering')
+            .every((c) => c.owner.kind === 'bank' && c.poolId === 'initial-offering')
     ).toBe(true)
     expect(
         state.cash.reduce(
@@ -220,9 +221,7 @@ it('starts and floats a company from the real first stock round, placing its hom
     const run = opening()
     while (run.state.machineState !== 'StockRound') run.buy()
     const playerId = run.state.turnManager.turnOrder[0]
-    const marketSpace = run.state.stockMarket.spaces.find(
-        (s) => s.color === 'pink' && s.price === 65
-    )!
+    const marketSpace = Shikoku1889Market.spaces.find((s) => s.color === 'pink' && s.price === 65)!
     const buyer = { kind: 'player', playerId } as const
     run.act('StartCompany', {
         playerId,
@@ -239,7 +238,6 @@ it('starts and floats a company from the real first stock round, placing its hom
                 c.kind === 'share' &&
                 c.companyId === 'AR' &&
                 !c.president &&
-                !c.retired &&
                 c.poolId === 'initial-offering'
         )!
         run.act('BuyShares', {

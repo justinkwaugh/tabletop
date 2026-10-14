@@ -17,7 +17,7 @@ export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: str
               kind: 'track'
               construction: Pick<
                   TrackConstruction,
-                  'choices' | 'canReach' | 'evaluate' | 'inventoryAfter'
+                  'choices' | 'canReach' | 'evaluate' | 'inventoryAfter' | 'stationsAfter'
               >
               commit(details: TrackLayDetails): Promise<void>
               /** Ends a power that allows several lays with the lays staged so far. */

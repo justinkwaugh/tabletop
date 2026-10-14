@@ -26,7 +26,7 @@ function coalFieldsPlay(coalFieldsOwner: 'ACL' | 'player') {
             cost: 0
         })
         const coalFields = state.certificates.find((item) => item.id === 'P5:charter')
-        if (coalFields && !coalFields.retired)
+        if (coalFields)
             coalFields.owner =
                 coalFieldsOwner === 'ACL'
                     ? { kind: 'company', companyId: 'ACL' }
@@ -70,7 +70,7 @@ describe('West Virginia Coal Fields', () => {
         const state = structuredClone(play.state)
         EighteenThirtyTwoTransferRules.afterPurchase(state, {
             id: 'offer',
-            companyId: 'CG',
+            buyer: { kind: 'company', companyId: 'CG' },
             asset: { kind: 'private', privateCompanyId: 'P5' },
             seller: { kind: 'player', playerId: 'casey' },
             sellerPlayerId: 'casey',

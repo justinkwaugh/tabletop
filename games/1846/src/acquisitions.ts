@@ -15,7 +15,8 @@ import {
     type TransferRules,
     type StationTransfer,
     type TrainRunningState,
-    type Train
+    type Train,
+    removeCertificates
 } from '@tabletop/18xx'
 import { draftCompany } from './catalog.js'
 import { TrainRules1846, finalDepotEmpty } from './trains.js'
@@ -90,7 +91,7 @@ export const TransferRules1846: TransferRules = {
             if (isRevenuePrivate(offer.asset.privateCompanyId))
                 state.pendingRevenueMarker = {
                     privateCompanyId: offer.asset.privateCompanyId,
-                    companyId: offer.companyId
+                    companyId: offer.buyer.companyId
                 }
             return
         }
@@ -98,7 +99,7 @@ export const TransferRules1846: TransferRules = {
         const id = offer.asset.companyId
         const set = state.operatingSet
         assertExists(set, 'An independent is acquired during operations')
-        const assets = transferCompanyAssets(state, id, offer.companyId, { loans: false })
+        const assets = transferCompanyAssets(state, id, offer.buyer.companyId, { loans: false })
         assert(assets.trainIds.length === 1, 'An independent brings its single 2-train')
         state.independentAcquisitions.push({
             companyId: id,
@@ -114,12 +115,12 @@ export const TransferRules1846: TransferRules = {
         if (
             !state.stations.some(
                 (own) =>
-                    own.companyId === offer.companyId &&
+                    own.companyId === offer.buyer.companyId &&
                     own.status === 'placed' &&
                     own.position.locationId === station.position.locationId
             )
         ) {
-            addCompanyStations(state, offer.companyId, 1)
+            addCompanyStations(state, offer.buyer.companyId, 1)
             const extra = state.stations.at(-1)
             assertExists(extra, 'Absorption provides an extra station')
             replaceStation(state, station.id, extra.id)
@@ -131,11 +132,12 @@ export const TransferRules1846: TransferRules = {
         const company = getCompany(state, id)
         company.closed = true
         delete company.president
-        state.certificates = state.certificates.map((certificate) => {
-            if (certificate.retired || certificate.companyId !== id) return certificate
-            const { owner: _owner, poolId: _poolId, ...interest } = certificate
-            return { ...interest, retired: true }
-        })
+        removeCertificates(
+            state,
+            state.certificates
+                .filter((certificate) => certificate.companyId === id)
+                .map((certificate) => certificate.id)
+        )
         if (state.steamboat?.companyId === id) delete state.steamboat
         return { assets, stations }
     }

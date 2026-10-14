@@ -1,10 +1,11 @@
+import { Names1846 } from './names.js'
+import { Market1846 } from './stock.js'
 import { Phases1846 } from './trains.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     canStartOperatingRound,
     canStartStockRound,
     nextOperatingCompany,
-    companyMarketSpace,
     floatedCompaniesInMarketOrder,
     getCompany,
     marketShareValue,
@@ -16,7 +17,7 @@ import type { HydratedEighteenFortySixState } from './state.js'
 export const OperatingRules1846: OperatingRules = {
     roundCount: (state) => Phases1846.phase(state.phaseId).operatingRounds,
     companyOrder(state) {
-        const majors = floatedCompaniesInMarketOrder(state)
+        const majors = floatedCompaniesInMarketOrder(Market1846, state)
         const first =
             !state.operatingSet ||
             (state.operatingSet.number === 1 && state.operatingSet.roundNumber === 1)
@@ -28,8 +29,8 @@ export const OperatingRules1846: OperatingRules = {
             ...(first
                 ? majors.toSorted(
                       (a, b) =>
-                          companyMarketSpace(state.stockMarket, a).price -
-                          companyMarketSpace(state.stockMarket, b).price
+                          Market1846.companySpace(state.stockMarket, a).price -
+                          Market1846.companySpace(state.stockMarket, b).price
                   )
                 : majors)
         ]
@@ -43,13 +44,19 @@ export const ValuationRules1846: ValuationRules = {
             return [
                 {
                     assetId: certificate.id,
-                    label: company.name,
-                    value: marketShareValue(state, certificate)
+                    label: Names1846.company(company.id),
+                    value: marketShareValue(Market1846, state, certificate)
                 }
             ]
         const privateCompany = DraftCompanies.find((entry) => entry.id === company.id)
         assertExists(privateCompany, 'A private or independent has a printed value')
-        return [{ assetId: certificate.id, label: company.name, value: privateCompany.price }]
+        return [
+            {
+                assetId: certificate.id,
+                label: Names1846.company(company.id),
+                value: privateCompany.price
+            }
+        ]
     }
 }
 

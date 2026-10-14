@@ -10,7 +10,9 @@ import {
     sharesOwned,
     privateOwner,
     controllingOwner,
-    countCertificatesForLimit,
+    standardCertificateWeight,
+    issueShareCertificates,
+    removeCertificates,
     FinanceFields,
     validateFinances,
     type FinancialState,
@@ -23,14 +25,14 @@ const player = { kind: 'player', playerId: 'one' } as const
 const investor = { kind: 'company', companyId: 'investment' } as const
 const bank = { kind: 'bank' } as const
 const position: FinancialState = {
-    bank: { name: 'Bank' },
+    bank: {},
     companies: [
-        { id: 'investment', name: 'Investment company', kind: 'private' },
-        { id: 'railway', name: 'Railway', kind: 'major', shareCount: 20, president: investor }
+        { id: 'investment', kind: 'private' },
+        { id: 'railway', kind: 'major', shareCount: 20, president: investor }
     ],
     certificatePools: [
-        { id: 'ipo', name: 'IPO', owner: bank },
-        { id: 'market', name: 'Market', owner: bank }
+        { id: 'ipo', owner: bank },
+        { id: 'market', owner: bank }
     ],
     cash: [
         { owner: player, amount: 100 },
@@ -42,9 +44,7 @@ const position: FinancialState = {
             id: 'investment:private',
             companyId: 'investment',
             owner: player,
-            kind: 'private',
-            retired: false,
-            certificateLimitCount: 1
+            kind: 'private'
         },
         {
             id: 'president',
@@ -52,19 +52,14 @@ const position: FinancialState = {
             owner: investor,
             kind: 'share',
             shares: 4,
-            president: true,
-            retired: false,
-            certificateLimitCount: 1
+            president: true
         },
         {
             id: 'small',
             companyId: 'railway',
             owner: player,
             kind: 'share',
-            shares: 1,
-            president: false,
-            retired: false,
-            certificateLimitCount: 0.5
+            shares: 1
         },
         {
             id: 'offered',
@@ -72,19 +67,7 @@ const position: FinancialState = {
             owner: bank,
             poolId: 'ipo',
             kind: 'share',
-            shares: 1,
-            president: false,
-            retired: false,
-            certificateLimitCount: 0.5
-        },
-        {
-            id: 'retired',
-            companyId: 'railway',
-            kind: 'share',
-            shares: 1,
-            president: false,
-            retired: true,
-            certificateLimitCount: 0.5
+            shares: 1
         }
     ]
 }
@@ -96,6 +79,19 @@ function validatedCopy(data: FinancialState = position) {
 }
 
 describe('finances', () => {
+    it('never reuses the number of a certificate that has left play', () => {
+        const state = validatedCopy()
+        const [first, second] = issueShareCertificates(state, 'railway', 2, { owner: player })
+        expect([first, second]).toEqual(['railway:share:1', 'railway:share:2'])
+        removeCertificates(state, [second])
+        expect(getCompany(state, 'railway').lastIssuedNumber).toBe(2)
+        expect(issueShareCertificates(state, 'railway', 1, { owner: player })).toEqual([
+            'railway:share:3'
+        ])
+        removeCertificates(state, [first])
+        expect(getCompany(state, 'railway').lastIssuedNumber).toBe(2)
+    })
+
     it('keeps personal assets and company treasuries separate through hydration', () => {
         const state = validatedCopy()
         expect(cashOwnedBy(state, player)).toBe(100)
@@ -108,8 +104,7 @@ describe('finances', () => {
             'small'
         ])
         expect(sharesOwned(state, 'railway', player)).toBe(1)
-        expect(countCertificatesForLimit(certificatesOwnedBy(state, player))).toBe(1.5)
-        expect(countCertificatesForLimit(state.certificates)).toBe(3)
+        expect(certificatesOwnedBy(state, player).map(standardCertificateWeight)).toEqual([1, 1])
         const restored = validatedCopy(JSON.parse(JSON.stringify(state)))
         expect(restored).toEqual(position)
         restored.cash[2].amount = 'unlimited'
@@ -117,7 +112,7 @@ describe('finances', () => {
         expect(cashOwnedBy(restored, { kind: 'company', companyId: 'railway' })).toBeUndefined()
     })
 
-    it('changes pool membership without changing ownership, and excludes retired certificates', () => {
+    it('changes pool membership without changing ownership', () => {
         const state = validatedCopy()
         const certificate = certificatesInPool(state, 'ipo')[0]
         certificate.poolId = 'market'
@@ -130,9 +125,6 @@ describe('finances', () => {
         expect(certificatesOwnedBy(state, bank)).toEqual([])
         expect(sharesOwned(state, 'railway', player)).toBe(2)
         expect(certificatesOwnedBy(validatedCopy(state), player)).toHaveLength(3)
-        expect(
-            certificatesOwnedBy(state, player).some((certificate) => certificate.id === 'retired')
-        ).toBe(false)
     })
 
     it('derives controlling owners from private ownership and immediate presidencies', () => {
@@ -152,9 +144,9 @@ describe('finances', () => {
 
     it('allows company control chains and cycles without inventing a controlling player', () => {
         const companies: FinancialState['companies'] = [
-            { id: 'a', name: 'A', kind: 'major', president: { kind: 'company', companyId: 'b' } },
-            { id: 'b', name: 'B', kind: 'minor', president: { kind: 'company', companyId: 'c' } },
-            { id: 'c', name: 'C', kind: 'major', president: player }
+            { id: 'a', kind: 'major', president: { kind: 'company', companyId: 'b' } },
+            { id: 'b', kind: 'minor', president: { kind: 'company', companyId: 'c' } },
+            { id: 'c', kind: 'major', president: player }
         ]
         const state = validatedCopy({ ...position, companies, certificates: [], cash: [] })
         expect(controllingOwner(state, 'a')).toEqual(player)
@@ -186,7 +178,7 @@ describe('finances', () => {
             expect(() =>
                 validatedCopy({
                     ...position,
-                    certificatePools: [{ id: 'bad', name: 'Bad', owner }]
+                    certificatePools: [{ id: 'bad', owner }]
                 })
             ).toThrow('Unknown')
         }
@@ -201,9 +193,11 @@ describe('finances', () => {
 
     it('rejects incompatible certificate shapes and conflicting private ownership', () => {
         const state = validatedCopy()
-        const retired = state.certificates.find((certificate) => certificate.retired)
         expect(
-            FinanceValidator.Check({ ...position, certificates: [{ ...retired, owner: player }] })
+            FinanceValidator.Check({
+                ...position,
+                certificates: [{ ...state.certificates[0], retired: true }]
+            })
         ).toBe(false)
         expect(
             FinanceValidator.Check({

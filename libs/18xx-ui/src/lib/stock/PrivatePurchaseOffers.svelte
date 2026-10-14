@@ -14,7 +14,7 @@
     {#each session.stock.privateChoices as choice (choice.privateCompanyId)}
         {@const amount = price(choice.privateCompanyId, choice.suggestedPrice)}
         {@const reason = session.stock.privateOfferReason(choice.privateCompanyId, amount)}
-        {@const name = getCompany(session.gameState, choice.privateCompanyId).name}
+        {@const name = session.companyName(choice.privateCompanyId)}
         <form
             class="private-offer"
             data-private-offer={choice.privateCompanyId}

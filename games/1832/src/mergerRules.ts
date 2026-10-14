@@ -2,7 +2,6 @@ import { assertExists } from '@tabletop/common'
 import {
     TrackNetwork,
     applyShareSale,
-    companyMarketSpace,
     controllingOwner,
     copyStockState,
     evaluateShareDisposal,
@@ -10,7 +9,6 @@ import {
     getCompany,
     sameOwner,
     sharesOwned,
-    stockMarketSpace,
     type CashPayment,
     type PlacedStation,
     type ShareSaleDetails,
@@ -19,7 +17,7 @@ import {
 import { coalFieldsOpen } from './coalAccess.js'
 import type { EighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoShareTrading, EighteenThirtyTwoStockRules } from './stockRules.js'
-import { isClosingSpace } from './stockMarket.js'
+import { isClosingSpace, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { isSystem, nextSystemId, shellsOf, systemMarketSpace, systemPresident } from './systems.js'
 import { eighteenThirtyTwoMapState } from './tileState.js'
 import type { MergerKind, MergerProposal, TakeoverFunding } from './titleState.js'
@@ -110,11 +108,10 @@ export function takeoverPayments(
 ): CashPayment[] {
     const target = getCompany(state, targetId)
     assertExists(target.parPrice, 'A started company has a par price')
-    const price = companyMarketSpace(state.stockMarket, targetId).price
+    const price = EighteenThirtyTwoMarket.companySpace(state.stockMarket, targetId).price
     const payments: CashPayment[] = []
     for (const certificate of state.certificates) {
         if (
-            certificate.retired ||
             certificate.kind !== 'share' ||
             certificate.companyId !== targetId ||
             certificate.owner.kind === 'company'
@@ -181,7 +178,7 @@ function candidateSales(state: StockState, funding: TakeoverFunding) {
                 !(
                     company.id === funding.buyerId &&
                     (sale.presidency ||
-                        isClosingSpace(stockMarketSpace(state.stockMarket, sale.toMarketSpaceId)))
+                        isClosingSpace(EighteenThirtyTwoMarket.space(sale.toMarketSpaceId)))
                 )
             )
                 results.push(details)

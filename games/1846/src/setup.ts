@@ -3,7 +3,6 @@ import { EighteenFortySixMap, AdditionalReservations } from './map.js'
 import { createInitialTrainInventory } from './trains.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { createStockRound } from '@tabletop/18xx'
-import { createMarket } from './stock.js'
 import {
     BaseGameInitializer,
     Color,
@@ -20,7 +19,8 @@ import {
 } from '@tabletop/18xx'
 import { BankSize, Corporations, DraftCompanies } from './catalog.js'
 import {
-    HydratedEighteenFortySixState,
+    hydrateEighteenFortySixState,
+    type HydratedEighteenFortySixState,
     type EighteenFortySixState,
     type EighteenFortySixProjectedState
 } from './state.js'
@@ -73,8 +73,6 @@ export class Initializer extends BaseGameInitializer<
             ...privates.map((company): EighteenFortySixState['certificates'][number] => ({
                 id: `${company.id}:charter`,
                 companyId: company.id,
-                certificateLimitCount: 1,
-                retired: false,
                 owner: { kind: 'bank' },
                 ...(company.kind === 'independent'
                     ? { kind: 'share', shares: 1, president: true }
@@ -111,7 +109,7 @@ export class Initializer extends BaseGameInitializer<
                         : { id: `${companyId}:blocking`, companyId, status: 'available' }
                 )
         const order = players.map((player) => player.playerId)
-        const state = new HydratedEighteenFortySixState({
+        const state = hydrateEighteenFortySixState({
             ...base,
             players,
             activePlayerIds: [order[order.length - 1]],
@@ -123,21 +121,18 @@ export class Initializer extends BaseGameInitializer<
             revenueMarkers: [],
             usedPrivatePowerIds: [],
             tileInventory: EighteenFortySixTileSet.createInventory(),
-            stockMarket: createMarket(),
+            stockMarket: { stacks: [] },
             stockRound: createStockRound(1),
             turnManager: {
                 series: [],
                 turnOrder: order.toReversed(),
                 turnCounts: Object.fromEntries(order.map((id) => [id, 0]))
             },
-            priorityDealPlayerId: order[0],
-            removedPrivateIds,
             removedCorporationIds,
-            bank: { name: 'Bank', unlimitedAfterExhaustion: true },
+            bank: { unlimitedAfterExhaustion: true },
             companies: [
                 ...Corporations.map((company) => ({
                     id: company.id,
-                    name: company.name,
                     kind: 'major',
                     shareCount: 10,
                     closed: removedCorporationIds.includes(company.id),
@@ -145,13 +140,12 @@ export class Initializer extends BaseGameInitializer<
                 })),
                 ...privates.map((company) => ({
                     id: company.id,
-                    name: company.name,
                     kind: company.kind === 'independent' ? 'minor' : 'private',
                     privateRevenue: company.revenue,
                     ...(company.kind === 'independent' ? { shareCount: 1 } : {})
                 }))
             ],
-            certificatePools: [{ id: 'open-market', name: 'Market', owner: { kind: 'bank' } }],
+            certificatePools: [{ id: 'open-market', owner: { kind: 'bank' } }],
             cash: [
                 {
                     owner: { kind: 'bank' },

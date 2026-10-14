@@ -34,7 +34,7 @@ export function createShikoku1889CompanyExample(
     }
     if (position === 'starting' || position === 'flotation') {
         state.companies.push({
-            ...Shikoku1889Majors.SR,
+            id: Shikoku1889Majors.SR.id,
             kind: 'major',
             shareCount: 10,
             started: false,
@@ -63,7 +63,7 @@ export function createShikoku1889CompanyExample(
             ['SR:share:2', 2]
         ] as const) {
             const certificate = state.certificates.find((certificate) => certificate.id === id)
-            assert(certificate && !certificate.retired, 'Missing fixture certificate')
+            assert(certificate, 'Missing fixture certificate')
             certificate.owner = { kind: 'player', playerId: players[index].playerId }
             delete certificate.poolId
         }
@@ -167,10 +167,12 @@ export function createShikoku1889CompanyExample(
             }
         const next = position !== 'diesel' ? '5' : 'D'
         const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next)
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'depot' &&
+                    ranks.indexOf(train.definitionId) < ranks.indexOf(next)
+                )
         )
         const treasury = state.cash.find(
             (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'IR'
@@ -180,11 +182,11 @@ export function createShikoku1889CompanyExample(
     }
     if (position === 'transfers' || position === 'powers') {
         const ehime = state.certificates.find((item) => item.companyId === 'ER')
-        assert(ehime && !ehime.retired, 'The example requires Ehime')
+        assert(ehime, 'The example requires Ehime')
         ehime.owner = { kind: 'player', playerId: players[0].playerId }
         if (position === 'powers') {
             const ferry = state.certificates.find((item) => item.companyId === 'MF')
-            assert(ferry && !ferry.retired, 'The example requires Mitsubishi Ferry')
+            assert(ferry, 'The example requires Mitsubishi Ferry')
             ferry.owner = { kind: 'player', playerId: players[1].playerId }
         }
         state.phaseId = '3'
@@ -197,10 +199,12 @@ export function createShikoku1889CompanyExample(
             })
         }
         const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('3')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'depot' &&
+                    ranks.indexOf(train.definitionId) < ranks.indexOf('3')
+                )
         )
     }
     if (position === 'funding' || position === 'bankruptcy') {
@@ -211,10 +215,8 @@ export function createShikoku1889CompanyExample(
             { locationId: 'G4', definitionId: '18xx:6', rotation: 0 }
         ])
         const ranks = Shikoku1889TrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            ranks.indexOf(train.definitionId) < ranks.indexOf('4')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) => !(ranks.indexOf(train.definitionId) < ranks.indexOf('4'))
         )
         const treasury = state.cash.find(
             (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'IR'
@@ -226,17 +228,13 @@ export function createShikoku1889CompanyExample(
         if (position === 'funding')
             for (const id of ['IR:share:5', 'IR:share:6']) {
                 const certificate = state.certificates.find((item) => item.id === id)
-                assert(
-                    certificate && !certificate.retired,
-                    'Funding example requires ordinary shares'
-                )
+                assert(certificate, 'Funding example requires ordinary shares')
                 certificate.owner = { kind: 'player', playerId: players[1].playerId }
                 delete certificate.poolId
             }
         if (position === 'bankruptcy')
             for (const certificate of state.certificates) {
                 if (
-                    !certificate.retired &&
                     certificate.kind === 'share' &&
                     !certificate.president &&
                     certificate.companyId !== 'PEIR'

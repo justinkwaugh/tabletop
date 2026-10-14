@@ -126,10 +126,8 @@ it.each(Titles)(
         const next = rules.depot.nextTrain(state.trainInventory, nextRank)!
         const request = { companyId, trainId: next.id, definitionId: next.definitionId }
         expect(new TrainPurchase(state, rules).evaluate(request).reason).toContain('train limit')
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'owned'
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) => train.status !== 'owned'
         )
         expect(new TrainPurchase(state, rules).evaluate(request).details).toBeDefined()
     }
@@ -153,11 +151,7 @@ it.each(Titles)(
         const { game, engine, state } = example(definition, 'trains')
         state.phaseId = 'D'
         if (definition === Top) state.gameEnding = { reason: 'First diesel', finalOperatingSet: 2 }
-        state.trainInventory.trains = state.trainInventory.trains.map((train) => ({
-            id: train.id,
-            definitionId: train.definitionId,
-            status: 'removed'
-        }))
+        state.trainInventory.trains = []
         state.cash.find(
             (cash) => cash.owner.kind === 'company' && cash.owner.companyId === companyId
         )!.amount = 3000
@@ -184,10 +178,8 @@ it('makes 1889 diesels available alongside remaining 6 trains, at their ordinary
     state.cash.find(
         (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'IR'
     )!.amount = 1500
-    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-        ['2', '3', '4', '5'].includes(train.definitionId)
-            ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-            : train
+    state.trainInventory.trains = state.trainInventory.trains.filter(
+        (train) => !['2', '3', '4', '5'].includes(train.definitionId)
     )
     expect(Shikoku1889TrainRules.availableDefinitions(state)).toEqual(['6', 'D'])
     expect(

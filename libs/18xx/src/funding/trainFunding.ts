@@ -258,6 +258,7 @@ export class EmergencyTrainFunding {
                     owner,
                     [{ companyId: company.id, shares }],
                     {
+                        market: this.stocks.market,
                         presidencyCandidates: this.stocks.presidencyCandidates,
                         saleTerms: (_state, id, count, seller) =>
                             this.rules.saleTerms(this.state, id, count, seller)

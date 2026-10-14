@@ -22,7 +22,7 @@ export function companyActions(companies: CompanyRules, stock: StockRules): Acti
                   defineAction(
                       ParCompany,
                       isParCompany,
-                      (action) => new HydratedParCompany(action, companies)
+                      (action) => new HydratedParCompany(action, companies, stock.market)
                   )
               ]
             : [])

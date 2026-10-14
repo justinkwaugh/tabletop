@@ -16,7 +16,7 @@ export const OperatingRoundSnapshot = Type.Object(
         ...OperatingRoundIdentity.properties,
         complete: Type.Boolean(),
         playerNetWorth: Type.Record(Type.String(), Type.Number()),
-        companyNames: Type.Record(Type.String(), Type.String())
+        companyIds: Type.Array(Type.String())
     },
     { additionalProperties: false }
 )
@@ -41,10 +41,8 @@ export function operatingRoundSnapshot(
                 )
             ])
         ),
-        companyNames: Object.fromEntries(
-            state.companies
-                .filter((company) => set.companyOrder.includes(company.id))
-                .map((company) => [company.id, company.name])
-        )
+        companyIds: state.companies
+            .filter((company) => set.companyOrder.includes(company.id))
+            .map((company) => company.id)
     }
 }

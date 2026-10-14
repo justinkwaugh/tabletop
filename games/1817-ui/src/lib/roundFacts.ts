@@ -1,6 +1,6 @@
 import type { EighteenSeventeenState } from '@tabletop/1817'
 import { finiteCashOwnedBy, privateOwningCompany, trainsOwnedBy } from '@tabletop/18xx'
-import { corporationShareCount, heldStations } from '@tabletop/1817'
+import { corporationShareCount, heldStations, EighteenSeventeenNames } from '@tabletop/1817'
 import type { MoneyFormat, TitleFact } from '@tabletop/18xx-ui'
 import { loansAgainstLimit, zoneFact } from './titleFacts.js'
 
@@ -35,7 +35,14 @@ export function companyAssetFacts(state: EighteenSeventeenState, companyId: stri
     return [
         { label: 'Trains', value: trains.length ? trains.join(', ') : '—' },
         ...(privates.length
-            ? [{ label: 'Privates', value: privates.map((company) => company.name).join(', ') }]
+            ? [
+                  {
+                      label: 'Privates',
+                      value: privates
+                          .map((company) => EighteenSeventeenNames.company(company.id))
+                          .join(', ')
+                  }
+              ]
             : []),
         { label: 'Stations', value: `${placed}/${heldStations(state, companyId)}` }
     ]

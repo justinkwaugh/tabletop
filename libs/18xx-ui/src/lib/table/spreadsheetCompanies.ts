@@ -15,9 +15,7 @@ export function spreadsheetCompanies(
             (company.shareCount !== undefined ||
                 state.certificates.some(
                     (certificate) =>
-                        certificate.kind === 'share' &&
-                        !certificate.retired &&
-                        certificate.companyId === company.id
+                        certificate.kind === 'share' && certificate.companyId === company.id
                 ))
     )
     const starts = actions

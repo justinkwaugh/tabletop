@@ -6,7 +6,7 @@ import {
     cashOwnedBy,
     getCompany,
     sharesOwned,
-    companyMarketSpace,
+    companyMarketSpaceId,
     placeStockMarker,
     evaluateCompanyStart,
     evaluateCompanyFlotation,
@@ -18,7 +18,8 @@ import {
     type StartCompany,
     type EighteenXXState,
     type Owner,
-    type FloatCompany
+    type FloatCompany,
+    type StockRules
 } from '@tabletop/18xx'
 import {
     Definition as Top,
@@ -26,7 +27,8 @@ import {
     TheOldPrinceCompanyRules,
     availableTheOldPrinceTranche,
     peirShares,
-    TheOldPrinceTrainDepot
+    TheOldPrinceTrainDepot,
+    TheOldPrinceMarket
 } from '@tabletop/the-old-prince'
 import {
     Definition as Shikoku,
@@ -57,7 +59,7 @@ function start(
 }
 function give(state: EighteenXXState, id: string, owner: Owner, poolId?: string) {
     const certificate = state.certificates.find((certificate) => certificate.id === id)
-    if (!certificate || certificate.retired) throw new Error('Missing fixture certificate')
+    if (!certificate) throw new Error('Missing fixture certificate')
     certificate.owner = owner
     if (poolId) certificate.poolId = poolId
     else delete certificate.poolId
@@ -89,9 +91,7 @@ for (const [definition, companyId, marketSpaceId, parPrice] of [
         expect(cashOwnedBy(result.updatedState, alex)).toBe(240 - parPrice * 2)
         expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId })).toBe(0)
         expect(sharesOwned(result.updatedState, companyId, alex)).toBe(2)
-        expect(companyMarketSpace(result.updatedState.stockMarket, companyId).id).toBe(
-            marketSpaceId
-        )
+        expect(companyMarketSpaceId(result.updatedState.stockMarket, companyId)).toBe(marketSpaceId)
         expect(
             result.updatedState.stations.find((station) => station.id === `${companyId}:home`)
                 ?.status
@@ -165,7 +165,7 @@ for (const [definition, companyId, marketSpaceId, parPrice] of [
                 result.updatedState.certificates.find(
                     (certificate) => certificate.id === 'PEIR:share:2'
                 )
-            ).toMatchObject({ retired: true })
+            ).toBeUndefined()
             expect(sharesOwned(result.updatedState, 'A', alex)).toBe(5)
             expect(peirShares(result.updatedState)).toHaveLength(4)
             expect(
@@ -235,7 +235,7 @@ it('applies TOP phase prices and tranche completion independently of flotation',
         state.phaseId = phase
         expect(
             TheOldPrinceCompanyRules.startMarketSpaces(state, 'A').map(
-                (id) => state.stockMarket.spaces.find((space) => space.id === id)!.price
+                (id) => TheOldPrinceMarket.space(id).price
             )
         ).toEqual(expected)
     }
@@ -247,7 +247,7 @@ it('applies TOP phase prices and tranche completion independently of flotation',
     expect(availableTheOldPrinceTranche(state)?.id).toBe('2')
     getCompany(state, 'A').operated = false
     for (const certificate of state.certificates)
-        if (!certificate.retired && certificate.companyId === 'A') {
+        if (certificate.companyId === 'A') {
             certificate.owner = alex
             delete certificate.poolId
         }
@@ -299,7 +299,6 @@ it('floats an already funded branch without granting initial capital again', () 
     const { game, engine, state } = example(Top)
     state.companies.push({
         id: 'CB',
-        name: 'Cornwall Branch',
         kind: 'major',
         shareCount: 10,
         started: true,
@@ -347,16 +346,9 @@ it('floats an already funded branch without granting initial capital again', () 
 })
 it('closes PEIR and removes its cash and trains on its final exchange', () => {
     const { game, engine, state } = example(Top, 'flotation')
-    state.certificates = state.certificates.map((certificate) => {
-        if (
-            certificate.retired ||
-            certificate.companyId !== 'PEIR' ||
-            certificate.id === 'PEIR:share:2'
-        )
-            return certificate
-        const { owner: _owner, poolId: _poolId, ...interest } = certificate
-        return { ...interest, retired: true }
-    })
+    state.certificates = state.certificates.filter(
+        (certificate) => certificate.companyId !== 'PEIR' || certificate.id === 'PEIR:share:2'
+    )
     state.stations = state.stations.map((station) =>
         station.companyId === 'PEIR' && station.id !== 'PEIR:A'
             ? { id: station.id, companyId: station.companyId, status: 'removed' }
@@ -371,11 +363,10 @@ it('closes PEIR and removes its cash and trains on its final exchange', () => {
         return train.id
     })
     const result = engine.executeCanonicalAction({ game, state, action: purchase('A:share:4', 80) })
-    for (const id of ownedTrainIds) {
-        const train = result.updatedState.trainInventory.trains.find((train) => train.id === id)
-        expect(train).toMatchObject({ status: 'removed' })
-        expect(train).not.toHaveProperty('owner')
-    }
+    for (const id of ownedTrainIds)
+        expect(
+            result.updatedState.trainInventory.trains.find((train) => train.id === id)
+        ).toBeUndefined()
     let replay = state
     for (const action of result.processedActions)
         replay = engine.applyProcessedAction({ game, state: replay, action })
@@ -387,8 +378,7 @@ it('closes PEIR and removes its cash and trains on its final exchange', () => {
     expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId: 'PEIR' })).toBe(0)
     expect(
         result.updatedState.certificates.find((certificate) => certificate.id === 'KM:charter')
-            ?.retired
-    ).toBe(true)
+    ).toBeUndefined()
     let undone = result.updatedState
     for (const action of [...result.processedActions].reverse())
         undone = engine.undoProcessedAction({ state: undone, action })
@@ -419,16 +409,16 @@ it('rejects player-triggered flotation and refuses start costs above the buyerâ€
     state.cash.find(
         (cash) => cash.owner.kind === 'player' && cash.owner.playerId === 'alex'
     )!.amount = 240
-    state.certificates.find(
-        (certificate) => certificate.id === 'AR:president'
-    )!.certificateLimitCount = 19
+    const atLimit: StockRules = {
+        ...Shikoku1889StockRules,
+        certificateWeight: (current, certificate) =>
+            certificate.id === 'AR:president'
+                ? 19
+                : Shikoku1889StockRules.certificateWeight(current, certificate)
+    }
     expect(
-        evaluateCompanyStart(
-            state,
-            start('SR', '5:3', 130),
-            Shikoku1889StockRules,
-            Shikoku1889CompanyRules
-        ).reason
+        evaluateCompanyStart(state, start('SR', '5:3', 130), atLimit, Shikoku1889CompanyRules)
+            .reason
     ).toContain('limits')
 })
 it('resolves both presidencies when the PEIR exchange changes the largest interests', () => {
@@ -460,6 +450,7 @@ it('resolves both presidencies when the PEIR exchange changes the largest intere
     const description = historyDescription(
         flotation,
         result.updatedState,
+        TheOldPrinceMarket,
         (id) => id,
         (id) => id,
         changes.get(flotation.id)

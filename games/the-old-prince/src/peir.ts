@@ -3,7 +3,6 @@ import { sameOwner, type Owner, type FinancialState } from '@tabletop/18xx'
 
 export function peirShares(state: FinancialState) {
     return state.certificates
-        .filter((certificate) => !certificate.retired)
         .filter((certificate) => certificate.kind === 'share')
         .filter((certificate) => certificate.companyId === 'PEIR')
 }

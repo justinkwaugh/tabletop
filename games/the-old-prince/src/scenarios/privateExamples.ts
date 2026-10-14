@@ -20,14 +20,12 @@ export function prepareTheOldPrincePrivates(
     ] as const) {
         const definition = TheOldPrincePrivates.find((privateCompany) => privateCompany.id === id)
         assert(definition, 'Missing private definition')
-        const { name, revenue } = definition
-        state.companies.push({ id, name, kind: 'private', privateRevenue: revenue })
+        const { revenue } = definition
+        state.companies.push({ id, kind: 'private', privateRevenue: revenue })
         state.certificates.push({
             id: `${id}:charter`,
             companyId: id,
             kind: 'private',
-            certificateLimitCount: 1,
-            retired: false,
             owner: { kind: 'player', playerId: players[playerIndex].playerId }
         })
     }
@@ -36,7 +34,7 @@ export function prepareTheOldPrincePrivates(
     getCompany(state, 'VR').privateRevenue = 5
     for (const id of ['So:share:6', 'So:share:7']) {
         const share = state.certificates.find((item) => item.id === id)
-        assert(share && !share.retired, 'Private example requires reserved shares')
+        assert(share, 'Private example requires reserved shares')
         share.owner = { kind: 'bank' }
         share.poolId = 'reserved'
     }
@@ -50,7 +48,7 @@ export function prepareTheOldPrincePrivates(
         president: { kind: 'player', playerId: players[3].playerId }
     })
     const president = state.certificates.find((item) => item.id === 'A:president')
-    assert(president && !president.retired, 'Private example requires a president')
+    assert(president, 'Private example requires a president')
     president.owner = { kind: 'player', playerId: players[3].playerId }
     delete president.poolId
     state.tranches[1].companyIds.push('A')

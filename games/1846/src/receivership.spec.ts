@@ -3,7 +3,6 @@ import { ActionSource, assert, assertExists, GameResult } from '@tabletop/common
 import {
     TrackConstruction,
     stockCertificateCount,
-    companyMarketSpace,
     finiteCashOwnedBy,
     getCompany,
     placeStockMarker,
@@ -22,7 +21,7 @@ import { bankruptcyShortfall } from './bankruptcy.js'
 import { inReceivership } from './receivership.js'
 import { receiverShareChoices } from './receiverShares.js'
 import { receiverTrainPurchase } from './receiverOperations.js'
-import { StockRules1846 } from './stock.js'
+import { StockRules1846, Market1846 } from './stock.js'
 import { TrackRules1846 } from './track.js'
 import { TransferRules1846 } from './acquisitions.js'
 import { RouteRules1846 } from './routes.js'
@@ -40,7 +39,6 @@ function giveShares(table: Table, companyId: string, playerId: string, shares: n
     const certificates = table.state.certificates
         .filter(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 !certificate.president &&
                 certificate.companyId === companyId &&
@@ -49,13 +47,12 @@ function giveShares(table: Table, companyId: string, playerId: string, shares: n
         .slice(0, shares)
     expect(certificates).toHaveLength(shares)
     for (const certificate of certificates) {
-        assert(!certificate.retired)
         certificate.owner = { kind: 'player', playerId }
         delete certificate.poolId
     }
 }
 function setPrice(table: Table, price: number) {
-    const space = table.state.stockMarket.spaces.find((space) => space.price === price)
+    const space = Market1846.spaces.find((space) => space.price === price)
     assertExists(space)
     placeStockMarker(table.state.stockMarket, 'IC', space.id)
 }
@@ -102,7 +99,7 @@ describe('1846 bankruptcy and receivership', () => {
         })
         expect(
             table.state.certificates.some(
-                (c) => !c.retired && c.owner.kind === 'player' && c.owner.playerId === playerId
+                (c) => c.owner.kind === 'player' && c.owner.playerId === playerId
             )
         ).toBe(false)
         let replay = before
@@ -117,11 +114,7 @@ describe('1846 bankruptcy and receivership', () => {
         const { table, playerId } = funding(20)
         giveShares(table, 'IC', playerId, 4)
         for (const certificate of table.state.certificates) {
-            if (
-                !certificate.retired &&
-                certificate.companyId === 'IC' &&
-                certificate.owner.kind === 'company'
-            ) {
+            if (certificate.companyId === 'IC' && certificate.owner.kind === 'company') {
                 certificate.owner = { kind: 'bank' }
                 certificate.poolId = 'open-market'
             }
@@ -133,7 +126,7 @@ describe('1846 bankruptcy and receivership', () => {
             sales: [{ proceeds: 20 }],
             forcedSales: [{ shares: 5, price: 10, proceeds: 50 }]
         })
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(10)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(10)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(10)
         expect(trainsOwnedBy(table.state, treasury)).toHaveLength(0)
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(70)
@@ -180,8 +173,9 @@ describe('1846 bankruptcy and receivership', () => {
     })
     it('buys the cheaper phase-II face and resumes receiver completion after advancing phase', () => {
         const { table } = funding(40, 100)
-        for (const train of table.state.trainInventory.trains)
-            if (train.status === 'depot' && train.definitionId === '2') train.status = 'removed'
+        table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+            (train) => !(train.status === 'depot' && train.definitionId === '2')
+        )
         table.act('StartEmergencyFunding', { companyId: 'IC' })
         expect(bankruptcyShortfall(table.hydrated)).toBe(40)
         const before = structuredClone(table.state)
@@ -223,7 +217,7 @@ describe('1846 bankruptcy and receivership', () => {
             expect(result.processedActions.map((action) => action.type)).toContain('SettleReceiver')
             expect(getCompany(table.state, 'IC').closed ?? false).toBe(closed)
             if (after !== undefined) {
-                expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(after)
+                expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(after)
                 expect(table.state.machineState).toBe('StockRound')
                 expect(table.state.turnManager.turnOrder).not.toContain('p1')
             }
@@ -283,7 +277,7 @@ describe('1846 bankruptcy and receivership', () => {
             retained: 60
         })
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(60)
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(50)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(50)
         expect(inReceivership(table.state, 'IC')).toBe(true)
         table.state.machineState = 'BuyingTrains'
         expect(
@@ -294,6 +288,9 @@ describe('1846 bankruptcy and receivership', () => {
         const { table } = funding(40, 20)
         table.state.bankruptPlayerIds = ['p3']
         table.state.turnManager.turnOrder = ['p1', 'p2']
+        table.state.stockRound.passedPlayerIds = table.state.stockRound.passedPlayerIds.filter(
+            (id) => id !== 'p3'
+        )
         table.state.gameEnding = { reason: 'Bank broken', finalOperatingSet: 2 }
         table.act('StartEmergencyFunding', { companyId: 'IC' })
         const result = declare(table)
@@ -312,7 +309,7 @@ describe('1846 bankruptcy and receivership', () => {
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: 'p2' })).toBe(1)
         table.finishTurn()
         const cash = finiteCashOwnedBy(table.state, { kind: 'player', playerId: 'p2' })
-        const price = companyMarketSpace(table.state.stockMarket, 'IC').price
+        const price = Market1846.companySpace(table.state.stockMarket, 'IC').price
         const result = table.buy('IC', 'bank')
         expect(getCompany(table.state, 'IC').president).toEqual({ kind: 'player', playerId: 'p2' })
         expect(result.processedActions[0].metadata).toMatchObject({
@@ -341,7 +338,6 @@ describe('1846 bankruptcy and receivership', () => {
         const table = receiverStock()
         for (const certificate of table.state.certificates) {
             if (
-                certificate.retired ||
                 certificate.kind !== 'share' ||
                 certificate.president ||
                 certificate.companyId !== 'IC'
@@ -397,7 +393,7 @@ describe('1846 bankruptcy and receivership', () => {
             'withhold'
         )
         expect(
-            table.state.stockMarket.spaces.find(
+            Market1846.spaces.find(
                 (space) => space.id === result.details?.marketMove?.toMarketSpaceId
             )?.price
         ).toBe(40)

@@ -1,25 +1,24 @@
 import { expect, it } from 'vitest'
-import { createRectangularStockMarket, placeStockMarker } from '../stock/stockMarket.js'
+import { placeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 import { closeShareCompany } from './companyClosure.js'
 
 function closingState() {
-    const stockMarket = createRectangularStockMarket([[0, 60]], () => 'white')
+    const stockMarket: StockMarket = { stacks: [] }
     placeStockMarker(stockMarket, 'A', '0:0')
     const owner = { kind: 'company' as const, companyId: 'A' }
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         stockMarket,
         companies: [
             {
                 id: 'A',
-                name: 'A',
                 kind: 'major' as const,
                 shareCount: 10,
                 started: true,
                 floated: true,
                 president: { kind: 'player' as const, playerId: 'one' }
             },
-            { id: 'P', name: 'P', kind: 'private' as const, privateRevenue: 10 }
+            { id: 'P', kind: 'private' as const, privateRevenue: 10 }
         ],
         cash: [
             { owner, amount: 70 },
@@ -33,16 +32,12 @@ function closingState() {
                 kind: 'share' as const,
                 president: true,
                 shares: 2,
-                certificateLimitCount: 1,
-                retired: false as const,
                 owner: { kind: 'player' as const, playerId: 'one' }
             },
             {
                 id: 'P:charter',
                 companyId: 'P',
                 kind: 'private' as const,
-                certificateLimitCount: 1,
-                retired: false as const,
                 owner
             }
         ],
@@ -79,7 +74,7 @@ it('closes a share company, its owned privates and its holdings', () => {
     })
     expect(state.companies[0]).toMatchObject({ closed: true })
     expect(state.companies[0].president).toBeUndefined()
-    expect(state.certificates[0]).toMatchObject({ retired: true })
+    expect(state.certificates).toEqual([])
     expect(state.stations).toEqual([{ id: 'A:home', companyId: 'A', status: 'removed' }])
     expect(state.stationReservations).toEqual([])
     expect(state.trainInventory.trains).toEqual([{ id: 't1', definitionId: '2', status: 'market' }])
@@ -89,7 +84,5 @@ it('closes a share company, its owned privates and its holdings', () => {
 it('removes the trains from play when the title says so', () => {
     const state = closingState()
     closeShareCompany(state, 'A', 'removed')
-    expect(state.trainInventory.trains).toEqual([
-        { id: 't1', definitionId: '2', status: 'removed' }
-    ])
+    expect(state.trainInventory.trains).toEqual([])
 })

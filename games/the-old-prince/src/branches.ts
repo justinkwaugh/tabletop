@@ -17,7 +17,7 @@ export function addTheOldPrinceBranches(state: CompanyState): void {
     const market = { owner: { kind: 'bank' } as const, poolId: 'market' }
     for (const branch of TheOldPrinceBranches) {
         state.companies.push({
-            ...branch,
+            id: branch.id,
             kind: 'major',
             shareCount: 10,
             started: false,
@@ -28,7 +28,6 @@ export function addTheOldPrinceBranches(state: CompanyState): void {
         state.cash.push({ owner: { kind: 'company', companyId: branch.id }, amount: 0 })
         state.certificatePools.push({
             id: `treasury:${branch.id}`,
-            name: 'Treasury shares',
             owner: { kind: 'company', companyId: branch.id }
         })
         state.certificates.push(

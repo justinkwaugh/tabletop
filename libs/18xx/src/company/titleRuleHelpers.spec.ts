@@ -7,11 +7,12 @@ import {
     type Owner
 } from '../finance/finance.js'
 import { certificateWealthItem } from '../ending/finalWealth.js'
+import { titleNames } from '../game/titleNames.js'
 import { createCompanyStations, homeStationId } from '../map/station.js'
 import { floatedCompaniesInMarketOrder } from '../operating/operatingSet.js'
 import {
-    createRectangularStockMarket,
-    placeStockMarker,
+    createRectangularStockMarketSpaces,
+    StockMarketChart,
     type StockMarket
 } from '../stock/stockMarket.js'
 import { allSharesHeld } from '../stock/stockRoundRules.js'
@@ -20,10 +21,13 @@ import { fullCapitalizationPayments, sharesStillToFloat } from './companyFlotati
 
 const ipo = { owner: { kind: 'bank' } as const, poolId: 'ipo' }
 const alex: Owner = { kind: 'player', playerId: 'alex' }
+const market = new StockMarketChart(
+    createRectangularStockMarketSpaces([[60, 70, 80]], () => 'white')
+)
 function position(sold: number, funded = false) {
-    const stockMarket = createRectangularStockMarket([[60, 70, 80]], () => 'white')
-    placeStockMarker(stockMarket, 'A', '0:1')
-    placeStockMarker(stockMarket, 'B', '0:2')
+    const stockMarket: StockMarket = { stacks: [] }
+    market.placeMarker(stockMarket, 'A', '0:1')
+    market.placeMarker(stockMarket, 'B', '0:2')
     const state: Pick<FinancialState, 'companies' | 'certificates'> & { stockMarket: StockMarket } =
         {
             stockMarket,
@@ -35,7 +39,6 @@ function position(sold: number, funded = false) {
             companies: [
                 {
                     id: 'A',
-                    name: 'Alpha',
                     kind: 'major',
                     shareCount: 10,
                     started: true,
@@ -45,7 +48,6 @@ function position(sold: number, funded = false) {
                 },
                 {
                     id: 'B',
-                    name: 'Beta',
                     kind: 'major',
                     shareCount: 10,
                     started: true,
@@ -53,7 +55,6 @@ function position(sold: number, funded = false) {
                 },
                 {
                     id: 'C',
-                    name: 'Gamma',
                     kind: 'major',
                     shareCount: 10,
                     started: true,
@@ -99,7 +100,7 @@ describe('helpers for ordinary title rules', () => {
 
     it('sells to a bank pool at the market price, moving the price down', () => {
         expect(
-            marketSaleTerms(position(5), 'A', {
+            marketSaleTerms(market, position(5), 'A', {
                 destinationPoolId: 'market',
                 marketLimit: 50,
                 maximumShares: 10,
@@ -117,12 +118,13 @@ describe('helpers for ordinary title rules', () => {
     })
 
     it('operates floated, open companies by stock price', () => {
-        expect(floatedCompaniesInMarketOrder(position(5))).toEqual(['A'])
+        expect(floatedCompaniesInMarketOrder(market, position(5))).toEqual(['A'])
     })
 
     it('labels a final-wealth line and names a company’s station markers', () => {
         const state = position(5)
-        expect(certificateWealthItem(state, presidentCertificate(state, 'A')!, 140)).toEqual({
+        const names = titleNames({ A: 'Alpha' }, () => undefined)
+        expect(certificateWealthItem(names, presidentCertificate(state, 'A')!, 140)).toEqual({
             assetId: 'A:president',
             label: 'Alpha · 2 shares',
             value: 140

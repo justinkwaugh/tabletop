@@ -21,6 +21,7 @@
         type TitleActionDescription
     } from './historyDescription.js'
     import { isHistoryBookkeeping, purchaseWithFlotation } from './historyNavigation.js'
+    import { auctionLotName } from './auctionHistory.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import TrainRunTable from '../routes/TrainRunTable.svelte'
     import EarningsCard from '../earnings/EarningsCard.svelte'
@@ -97,7 +98,7 @@
                   : statusLabels[gameState.machineState]
     )
     function companyName(id: string) {
-        return gameState.companies.find((company) => company.id === id)?.name ?? id
+        return session.companyName(id)
     }
     function describe(action: GameAction): HistoryDescription {
         if (isOfferAuctionLot(action) || isBidOnAuctionLot(action)) {
@@ -112,10 +113,13 @@
             historyDescription(
                 action,
                 gameState,
+                session.stockMarketChart,
                 companyName,
                 (id) => session.getPlayerName(id),
                 undefined,
-                session.presentation.money
+                session.presentation.money,
+                (id) =>
+                    auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName)
             )
         return describeAction?.(action, companyName, shared) ?? shared()
     }
@@ -259,12 +263,12 @@
                     details={latest.payout.metadata}
                     label={latest.description.text}
                     companyId={latest.payout.companyId}
-                    stockMarket={gameState.stockMarket}
+                    chart={session.stockMarketChart}
                     ownerName={(owner) =>
                         owner.kind === 'player'
                             ? session.getPlayerName(owner.playerId)
                             : owner.kind === 'bank'
-                              ? gameState.bank.name
+                              ? 'Bank'
                               : companyName(owner.companyId)}
                 />
             </div>

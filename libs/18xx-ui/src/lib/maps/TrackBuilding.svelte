@@ -35,7 +35,7 @@
             </header>
         {:else}
             <header>
-                <strong>{getCompany(session.gameState, turn.companyId).name} · Track</strong>
+                <strong>{session.companyName(turn.companyId)} · Track</strong>
                 <span
                     >Treasury: {cashText(
                         money,

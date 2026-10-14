@@ -1,6 +1,6 @@
+import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import {
-    companyMarketSpace,
     getCompany,
     sameOwner,
     sharesOwned,
@@ -44,7 +44,11 @@ export function refreshOwnershipExcess(state: StockState, companyId: string, own
  * to 60% in that block (§5.9.8).
  */
 export function requiredSellDown(state: StockState, companyId: string, seller: Owner): number {
-    if (OwnershipFreeColors.includes(companyMarketSpace(state.stockMarket, companyId).color))
+    if (
+        OwnershipFreeColors.includes(
+            EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId).color
+        )
+    )
         return 0
     return Math.max(0, sharesOwned(state, companyId, seller) - ownershipCeiling(state, companyId))
 }

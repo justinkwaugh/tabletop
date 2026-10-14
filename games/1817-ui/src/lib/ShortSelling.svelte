@@ -25,7 +25,7 @@
                 {
                     label: 'Short',
                     detail: `+${money(price)}`,
-                    ariaLabel: `Short ${company.name} (${money(price)})`,
+                    ariaLabel: `Short ${session.companyName(company.id)} (${money(price)})`,
                     disabled: busy,
                     onclick: () => session.shortShare(companyId)
                 }

@@ -1,7 +1,7 @@
-import { createRectangularStockMarket } from '@tabletop/18xx'
+import { createRectangularStockMarketSpaces, StockMarketChart } from '@tabletop/18xx'
 
-export function createShikoku1889StockMarket() {
-    const market = createRectangularStockMarket(
+export const Shikoku1889Market = new StockMarketChart(
+    createRectangularStockMarketSpaces(
         [
             [75, 80, 90, 100, 110, 125, 140, 155, 175, 200, 225, 255, 285, 315, 350],
             [70, 75, 80, 90, 100, 110, 125, 140, 155, 175, 200, 225, 255, 285, 315],
@@ -21,5 +21,4 @@ export function createShikoku1889StockMarket() {
             return row <= 5 && column === 3 ? 'pink' : 'white'
         }
     )
-    return market
-}
+)

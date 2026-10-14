@@ -72,18 +72,11 @@ export interface EarningsRules {
 export function dividendEntitlements(
     state: FinancialState,
     companyId: string,
-    recipient: (
-        certificate: Extract<Certificate, { retired: false; kind: 'share' | 'short' }>
-    ) => Owner | undefined
+    recipient: (certificate: Extract<Certificate, { kind: 'share' | 'short' }>) => Owner | undefined
 ): DividendEntitlement[] {
     const result: DividendEntitlement[] = []
     for (const certificate of state.certificates) {
-        if (
-            certificate.retired ||
-            certificate.kind === 'private' ||
-            certificate.companyId !== companyId
-        )
-            continue
+        if (certificate.kind === 'private' || certificate.companyId !== companyId) continue
         const owner = recipient(certificate)
         if (!owner) continue
         const shares = signedShares(certificate)

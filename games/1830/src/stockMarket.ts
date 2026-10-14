@@ -1,4 +1,4 @@
-import { createRectangularStockMarket } from '@tabletop/18xx'
+import { createRectangularStockMarketSpaces, StockMarketChart } from '@tabletop/18xx'
 
 // Zone letters follow the printed market: p par, y yellow, o orange, b brown.
 const Market: readonly (readonly string[])[] = [
@@ -78,9 +78,9 @@ const Zones: Readonly<Record<string, string>> = {
     b: 'brown'
 }
 
-export function createEighteenThirtyStockMarket() {
-    return createRectangularStockMarket(
+export const EighteenThirtyMarket = new StockMarketChart(
+    createRectangularStockMarketSpaces(
         Market.map((row) => row.map((cell) => (cell ? Number.parseInt(cell) : null))),
         (row, column) => Zones[Market[row][column].replace(/\d/g, '')] ?? 'white'
     )
-}
+)

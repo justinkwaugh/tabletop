@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import * as Type from 'typebox'
 import {
@@ -11,7 +12,6 @@ import {
     closePrivate,
     companyLoans,
     controllingOwner,
-    moveCompanyMarker,
     moveCompanyStations,
     repayLoan,
     resetCompany,
@@ -23,7 +23,7 @@ import {
     transferCompanyAssets,
     turnOrderFrom,
     trainsOwnedBy,
-    unownedTrain
+    releaseTrains
 } from '@tabletop/18xx'
 import { EighteenSeventeenTrainRules } from './trains.js'
 import {
@@ -165,7 +165,12 @@ export function moveBuyerForUnpaidLoans(
 ): StockMarketMove[] {
     const marketMoves: StockMarketMove[] = []
     for (let loan = acquisition.repaidLoans; loan < acquisition.inheritedLoans; loan++) {
-        const move = moveCompanyMarker(state.stockMarket, acquisition.buyerId, 'left', 1)
+        const move = EighteenSeventeenMarket.moveCompanyMarker(
+            state.stockMarket,
+            acquisition.buyerId,
+            'left',
+            1
+        )
         if (move) marketMoves.push(move)
     }
     return marketMoves
@@ -255,13 +260,9 @@ export function liquidateByBank(
         }))
     )
     const trainIds = trains.map((train) => train.id)
-    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-        trainIds.includes(train.id) ? unownedTrain(train, 'removed') : train
-    )
+    releaseTrains(state.trainInventory, trainIds, 'removed')
     const privateIds = state.certificates.flatMap((certificate) =>
-        !certificate.retired &&
-        certificate.kind === 'private' &&
-        sameOwner(certificate.owner, owner)
+        certificate.kind === 'private' && sameOwner(certificate.owner, owner)
             ? [certificate.companyId]
             : []
     )

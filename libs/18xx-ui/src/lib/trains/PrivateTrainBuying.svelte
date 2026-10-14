@@ -14,8 +14,8 @@
 
 <div class="private-trains">
     {#each privateIds as privateId (privateId)}
-        <section aria-label={`Use ${getCompany(session.gameState, privateId).name}`}>
-            <p>Buy a train and close {getCompany(session.gameState, privateId).name}</p>
+        <section aria-label={`Use ${session.companyName(privateId)}`}>
+            <p>Buy a train and close {session.companyName(privateId)}</p>
             <div class="trains">
                 {#each session.decisions.privateTrainOptions.filter((option) => option.privateCompanyId === privateId) as option (option.details.trainId)}
                     {@const definition = session.trainDepot.trainDefinition(

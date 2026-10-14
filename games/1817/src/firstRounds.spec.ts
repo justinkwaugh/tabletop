@@ -1,5 +1,6 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { expect, it } from 'vitest'
-import { TileEdges, TrackConstruction, cashOwnedBy, companyMarketSpace } from '@tabletop/18xx'
+import { TileEdges, TrackConstruction, cashOwnedBy } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenMap, EighteenSeventeenTrackRules } from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
@@ -46,7 +47,7 @@ it('plays from the opening through a company auction into a first operating roun
     play.act('FinishTrack', { companyId: 'AS' })
 
     expect(play.state.machineState).toBe('BuyingTrains')
-    expect(companyMarketSpace(play.state.stockMarket, 'AS').price).toBe(45)
+    expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'AS').price).toBe(45)
     const train = play.state.trainInventory.trains.find((item) => item.status === 'depot')!
     play.act('BuyTrain', {
         companyId: 'AS',

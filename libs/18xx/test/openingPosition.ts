@@ -31,9 +31,31 @@ export function openingPositionDigest(
         },
         definition
     )
-    const { id, protectedPrng, masterSeed, ...position } = startFromPublicSeed(runtime, game)
     return createHash('sha256')
-        .update(JSON.stringify(position, sortedKeys))
+        .update(JSON.stringify(seededPosition(startFromPublicSeed(runtime, game)), sortedKeys))
         .digest('hex')
         .slice(0, 16)
+}
+
+function seededPosition({
+    id,
+    protectedPrng,
+    masterSeed,
+    stockMarket,
+    certificates,
+    trainInventory,
+    ...position
+}: EighteenXXState) {
+    return {
+        ...position,
+        stockMarketStacks: stockMarket.stacks,
+        // The shape digests were first recorded in, so setup randomness stays comparable.
+        example: 'finances',
+        certificates: certificates.map(({ id, owner, poolId }) => ({
+            id,
+            retired: false,
+            owner,
+            poolId
+        }))
+    }
 }

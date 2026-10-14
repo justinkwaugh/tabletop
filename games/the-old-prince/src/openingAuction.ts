@@ -6,7 +6,7 @@ import {
     createOrdinaryShareCertificates,
     drawFirstPlayer,
     getCompany,
-    placeStockMarker,
+    type StockMarket,
     privateIncomePayments,
     settleCashPayments,
     type InitialPosition,
@@ -22,7 +22,7 @@ import { TheOldPrinceMap } from './map.js'
 import { peirPresident } from './peir.js'
 import { TheOldPrincePrivateCatalog, TheOldPrincePrivates } from './privates.js'
 import type { HydratedTheOldPrinceState, TheOldPrinceState } from './state.js'
-import { createTheOldPrinceStockMarket } from './stockMarket.js'
+import { TheOldPrinceMarket } from './stockMarket.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { TheOldPrinceTrainDepot } from './trains.js'
 export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
@@ -31,14 +31,13 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
     lots(state) {
         return [
             ...TheOldPrincePrivateCatalog.lots(state).filter((lot) => lot.id !== 'KM'),
-            ...state.certificates
-                .filter((c) => c.kind === 'share')
-                .filter((c) => c.companyId === 'PEIR')
-                .map((c) => ({
-                    id: c.id,
-                    name: `PEIR ${c.number} · ${TheOldPrinceCompanies.find((company) => company.number === c.number)!.name}`,
-                    price: 80
-                }))
+            ...TheOldPrinceCompanies.filter((item) =>
+                state.companies.some((company) => company.id === item.companyId && !company.role)
+            ).map((item) => ({
+                id: `PEIR:share:${item.number}`,
+                name: `PEIR ${item.number} · ${item.name}`,
+                price: 80
+            }))
         ]
     },
     award(state, award) {
@@ -109,9 +108,9 @@ export function createTheOldPrinceOpening({
         prng,
         startingPositions
     )
-    const stockMarket = createTheOldPrinceStockMarket()
-    placeStockMarker(stockMarket, mainline.companyId, '1:1')
-    placeStockMarker(stockMarket, shortline.companyId, '2:1')
+    const stockMarket: StockMarket = { stacks: [] }
+    TheOldPrinceMarket.placeMarker(stockMarket, mainline.companyId, '1:1')
+    TheOldPrinceMarket.placeMarker(stockMarket, shortline.companyId, '2:1')
     const stations: MapStateData['stations'] = []
     const stationReservations: MapStateData['stationReservations'] = []
     for (const company of TheOldPrinceCompanies) {
@@ -133,11 +132,10 @@ export function createTheOldPrinceOpening({
             })
     }
     const position: InitialPosition = {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
             ...TheOldPrinceCompanies.map((c) => ({
                 id: c.companyId,
-                name: c.name,
                 kind: 'major',
                 shareCount: 10,
                 started: c === mainline || c === shortline,
@@ -150,10 +148,9 @@ export function createTheOldPrinceOpening({
                       ? { role: 'shortline', parPrice: 86 }
                       : {})
             })),
-            { id: 'PEIR', name: 'Prince Edward Island Railway', kind: 'major' },
+            { id: 'PEIR', kind: 'major' },
             ...privates.map((p) => ({
                 id: p.id,
-                name: p.name,
                 kind: 'private',
                 privateRevenue: p.revenue
             }))
@@ -172,12 +169,11 @@ export function createTheOldPrinceOpening({
             { owner: { kind: 'company', companyId: 'UB' }, amount: 0 }
         ],
         certificatePools: [
-            { id: 'market', name: 'Market', owner: { kind: 'bank' } },
-            { id: 'reserved', name: 'Reserved exchanges', owner: { kind: 'bank' } },
-            { id: 'auction', name: 'Auction', owner: { kind: 'bank' } },
+            { id: 'market', owner: { kind: 'bank' } },
+            { id: 'reserved', owner: { kind: 'bank' } },
+            { id: 'auction', owner: { kind: 'bank' } },
             ...TheOldPrinceCompanies.map((c) => ({
                 id: `treasury:${c.companyId}`,
-                name: 'Treasury shares',
                 owner: { kind: 'company' as const, companyId: c.companyId }
             }))
         ],
@@ -208,10 +204,7 @@ export function createTheOldPrinceOpening({
                 companyId: 'PEIR',
                 kind: 'share' as const,
                 shares: 1,
-                president: false,
                 number: c.number,
-                certificateLimitCount: 1,
-                retired: false as const,
                 owner: { kind: 'bank' as const },
                 poolId: 'auction'
             })),
@@ -219,8 +212,6 @@ export function createTheOldPrinceOpening({
                 id: `${p.id}:charter`,
                 companyId: p.id,
                 kind: 'private' as const,
-                certificateLimitCount: 1,
-                retired: false as const,
                 owner:
                     p.id === 'KM'
                         ? { kind: 'company' as const, companyId: 'PEIR' }

@@ -1,8 +1,8 @@
+import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assertExists } from '@tabletop/common'
 import {
     EarningsDistribution,
-    companyMarketSpace,
     placeStockMarker,
     finiteCashOwnedBy,
     certificatesOwnedBy,
@@ -41,7 +41,7 @@ describe('1846 major earnings', () => {
         ).toBe(true)
         expect(table.state.machineState).toBe('BuyingTrains')
         expect(table.state.cash).toEqual(cash)
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(90)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(90)
         expect(table.state.earningsDistribution).toMatchObject({
             companyId: 'IC',
             revenue: 0,
@@ -79,7 +79,7 @@ describe('1846 major earnings', () => {
         expect(
             table.state.earningsDistribution?.payments.map((p) => p.amount).sort((a, b) => a - b)
         ).toEqual([26, 159])
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(112)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(112)
     })
     it.each([
         [100, 40, 'pay', 90],
@@ -96,11 +96,11 @@ describe('1846 major earnings', () => {
         'moves stock at price %i for revenue %i and %s',
         (price, revenue, choice: EarningsChoice, expected) => {
             const table = preparedEarnings(revenue)
-            const space = table.state.stockMarket.spaces.find((space) => space.price === price)
+            const space = Market1846.spaces.find((space) => space.price === price)
             assertExists(space)
             placeStockMarker(table.state.stockMarket, 'IC', space.id)
             table.act('DistributeEarnings', { companyId: 'IC', choice })
-            expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(expected)
+            expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(expected)
         }
     )
     it('preserves stack order when payout holds the price', () => {
@@ -128,7 +128,7 @@ describe('1846 major earnings', () => {
     })
     it('closes a corporation whose automatic stock drop reaches zero', () => {
         const table = constructionGame()
-        const space = table.state.stockMarket.spaces.find((space) => space.price === 10)
+        const space = Market1846.spaces.find((space) => space.price === 10)
         assertExists(space)
         placeStockMarker(table.state.stockMarket, 'IC', space.id)
         const before = structuredClone(table.state)

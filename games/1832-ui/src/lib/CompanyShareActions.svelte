@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { companyMarketSpace, getCompany } from '@tabletop/18xx'
+    import { EighteenThirtyTwoMarket } from '@tabletop/1832'
+    import { getCompany } from '@tabletop/18xx'
     import { CompanyActionCard, CompanyActionPanel } from '@tabletop/18xx-ui'
     import { companyShareFacts, redemptionHolderName } from './companyShareFacts.js'
     import type { EighteenThirtyTwoSession } from './session.svelte.js'
@@ -11,11 +12,11 @@
 
 <CompanyActionPanel label="Company share actions" heading="Act for a company">
         {#each session.companyShareOptions as { companyId, redemptions, reissue } (companyId)}
-            {@const name = getCompany(gameState, companyId).name}
+            {@const name = session.companyName(companyId)}
             <CompanyActionCard
                 {session}
                 {companyId}
-                value={money(companyMarketSpace(gameState.stockMarket, companyId).price)}
+                value={money(EighteenThirtyTwoMarket.companySpace(gameState.stockMarket, companyId).price)}
                 facts={companyShareFacts(gameState, companyId, money)}
                 actions={[
                     ...redemptions.map((choice) => {

@@ -15,10 +15,10 @@
     const gameState = $derived(session.gameState)
     const instructions = $derived(session.instructions)
     function poolLabel(pool: CertificatePool): string {
-        return session.presentation.poolName?.(pool) ?? pool.name
+        return session.presentation.poolName?.(pool) ?? session.poolName(pool.id)
     }
     const names = $derived({
-        companyName: (id: string) => getCompany(gameState, id).name,
+        companyName: (id: string) => session.companyName(id),
         poolName: (id: string) => {
             const pool = gameState.certificatePools.find((pool) => pool.id === id)
             return pool ? poolLabel(pool) : id
@@ -141,7 +141,9 @@
                         popovertarget={pickerId}
                         aria-expanded={pickerOpen}
                         aria-controls={pickerId}
-                        aria-label={choice ? `Company: ${choice.company.name}` : 'Choose company'}
+                        aria-label={choice
+                            ? `Company: ${session.companyName(choice.company.id)}`
+                            : 'Choose company'}
                         {disabled}
                     >
                         {#if choice}
@@ -171,7 +173,7 @@
                                         appearance={session.mapView.stations[option.company.id]}
                                         size={22}
                                     />
-                                    <span>{option.company.name}</span>
+                                    <span>{session.companyName(option.company.id)}</span>
                                 </button>
                             {/each}
                         </div>

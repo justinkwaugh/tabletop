@@ -11,7 +11,7 @@ import {
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { unownedTrain } from './train.js'
+import { releaseTrains } from './train.js'
 import { trainsCountingForLimit, type TrainRules } from './trainPurchase.js'
 import {
     continuePhaseChange,
@@ -97,9 +97,7 @@ export class HydratedDiscardTrain
                 owner: { kind: 'company', companyId: this.companyId }
             }
         ])
-        state.trainInventory.trains = state.trainInventory.trains.map((entry) =>
-            entry.id !== train.id ? entry : unownedTrain(entry, this.#phases.discardDestination)
-        )
+        releaseTrains(state.trainInventory, [train.id], this.#phases.discardDestination)
         if (
             trainsCountingForLimit(state, this.#rules, this.companyId).length <=
             this.#rules.trainLimit(state, this.companyId)

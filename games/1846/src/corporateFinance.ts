@@ -1,3 +1,4 @@
+import { Market1846 } from './stock.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -11,8 +12,6 @@ import {
     CashPayment,
     certificatesOwnedBy,
     certificatesInPool,
-    companyMarketSpace,
-    stockMarketSpace,
     nextOperatingCompany,
     getCompany,
     controllingOwner,
@@ -63,8 +62,7 @@ export function corporateIssueLimit(state: FinancialState, companyId: string): n
     const playerShares = state.certificates.reduce(
         (total, certificate) =>
             total +
-            (!certificate.retired &&
-            certificate.companyId === companyId &&
+            (certificate.companyId === companyId &&
             certificate.kind === 'share' &&
             certificate.owner.kind === 'player'
                 ? certificate.shares
@@ -87,13 +85,12 @@ export function corporateFinanceChoices(state: HydratedEighteenFortySixState): F
     const committed =
         state.financeStep?.companyId === companyId ? state.financeStep.operation : undefined
     const market = corporateFinanceCertificates(state, companyId, 'redeem')
-    const space = companyMarketSpace(state.stockMarket, companyId)
+    const space = Market1846.companySpace(state.stockMarket, companyId)
     assertExists(space.moves.left, 'An operating corporation has an issuance price')
-    const issuePrice = stockMarketSpace(state.stockMarket, space.moves.left).price
+    const issuePrice = Market1846.space(space.moves.left).price
     const redemptionSpaceId = space.price === 550 ? space.id : space.moves.right
     assertExists(redemptionSpaceId, 'An operating corporation has a redemption price')
-    const redeemPrice =
-        space.price === 550 ? 600 : stockMarketSpace(state.stockMarket, redemptionSpaceId).price
+    const redeemPrice = space.price === 550 ? 600 : Market1846.space(redemptionSpaceId).price
     const issueLimit = committed === 'redeem' ? 0 : corporateIssueLimit(state, companyId)
     const redeemLimit =
         committed === 'issue'

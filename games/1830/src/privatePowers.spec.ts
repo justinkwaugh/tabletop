@@ -1,3 +1,4 @@
+import { EighteenThirtyMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assert } from '@tabletop/common'
 import {
@@ -25,10 +26,8 @@ const play = (position: ScenarioPosition, prepare?: (state: EighteenXXState) => 
     playExample(EighteenThirtyScenarios, position, 3, prepare)
 
 function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Owner) {
-    const existing = state.certificates.find(
-        (item) => item.companyId === privateCompanyId && !item.retired
-    )
-    if (existing && !existing.retired) {
+    const existing = state.certificates.find((item) => item.companyId === privateCompanyId)
+    if (existing) {
         existing.owner = owner
         return
     }
@@ -36,7 +35,6 @@ function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Ow
     assert(definition, 'Unknown 1830 private')
     state.companies.push({
         id: privateCompanyId,
-        name: definition.name,
         kind: 'private',
         privateRevenue: definition.revenue
     })
@@ -44,8 +42,6 @@ function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Ow
         id: `${privateCompanyId}:charter`,
         companyId: privateCompanyId,
         kind: 'private',
-        certificateLimitCount: 1,
-        retired: false,
         owner
     })
 }
@@ -53,7 +49,7 @@ function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Ow
 const cash = (state: EighteenXXState, owner: Owner) => Number(cashOwnedBy(state, owner))
 const certificateOwner = (state: EighteenXXState, id: string) => {
     const certificate = state.certificates.find((item) => item.id === id)
-    assert(certificate && !certificate.retired, `Missing certificate ${id}`)
+    assert(certificate, `Missing certificate ${id}`)
     return certificate.owner
 }
 
@@ -90,7 +86,7 @@ describe('auction awards', () => {
         expect(() => game.act('ParCompany', { companyId: 'BO', marketSpaceId: '0:0' })).toThrow()
 
         const before = cash(game.state, { kind: 'player', playerId: owner })
-        const space = game.state.stockMarket.spaces.find(
+        const space = EighteenThirtyMarket.spaces.find(
             (space) => space.color === 'pink' && space.price === 100
         )
         assert(space, '1830 has a $100 par')
@@ -151,9 +147,7 @@ describe('B&O private closure', () => {
         expect(getCompany(state, 'BOP').closed).toBeFalsy()
         buy('BO')
         expect(getCompany(state, 'BOP').closed).toBe(true)
-        expect(state.certificates.find((item) => item.id === 'BOP:charter')).toMatchObject({
-            retired: true
-        })
+        expect(state.certificates.find((item) => item.id === 'BOP:charter')).toBeUndefined()
     })
 })
 
@@ -189,7 +183,7 @@ describe('B&O private closure by an intercompany train purchase', () => {
             state,
             {
                 id: 'offer',
-                companyId: 'BO',
+                buyer: { kind: 'company', companyId: 'BO' },
                 asset: { kind: 'train', trainId: train.id },
                 seller: { kind: 'company', companyId: 'PRR' },
                 price: 50,
@@ -366,7 +360,7 @@ describe('Mohawk & Hudson', () => {
             givePrivate(state, 'MH', alex)
             for (const id of ['NYC:share:5', 'NYC:share:6', 'NYC:share:7']) {
                 const certificate = state.certificates.find((item) => item.id === id)
-                assert(certificate && !certificate.retired, `Missing ${id}`)
+                assert(certificate, `Missing ${id}`)
                 certificate.owner = alex
                 delete certificate.poolId
             }

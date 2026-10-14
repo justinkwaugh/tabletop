@@ -71,7 +71,7 @@
                         session.map.inspectCompanyNetwork(event.currentTarget.value)}
                 >
                     {#each session.map.networkCompanies as company (company.id)}<option
-                            value={company.id}>{company.name}</option
+                            value={company.id}>{session.companyName(company.id)}</option
                         >{/each}
                 </select></label
             >
@@ -101,7 +101,7 @@
             session.stations.preview?.position.locationId}
         selection={session.map.selection}
         tokens={session.map.displayedTokens}
-        reservations={session.track.preview?.stationReservations ??
+        reservations={session.track.displayedStations?.stationReservations ??
             session.stations.displayState.stationReservations}
         appearance={MapStyleAppearances[session.map.style]}
         onselect={(selection) => session.map.select(selection)}

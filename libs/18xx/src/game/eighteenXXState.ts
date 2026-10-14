@@ -30,7 +30,6 @@ import { CashCrisisFields } from '../funding/cashCrisis.js'
 import { FundingFields, validateTrainFunding } from '../funding/trainFunding.js'
 import { LoanFields } from '../loans/loans.js'
 import { LocationMarkerFields } from '../map/locationMarkers.js'
-import type { RailwayMap } from '../map/map.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
 import { validateStations } from '../map/station.js'
 import { OperatingSet, validateOperatingSet } from '../operating/operatingSet.js'
@@ -45,12 +44,10 @@ import {
 import { RouteFields, validateRouteStep } from '../routes/route.js'
 import { StationStep, validateStationStep } from '../stations/stationPlacement.js'
 import { CompanyAuctionFields } from '../stock/companyAuction.js'
-import { StockMarket, validateStockMarket } from '../stock/stockMarket.js'
+import { StockMarket } from '../stock/stockMarket.js'
 import { StockRound, validateStockRound } from '../stock/stockRound.js'
 import { StockTurnPurchaseFields } from '../stock/turnPurchases.js'
-import type { TileSet } from '../tiles/inventory.js'
 import { TrainFields, validateTrainPurchaseStep } from '../trains/train.js'
-import type { TrainDepot } from '../trains/trainDepot.js'
 
 export const RailwayMachineStates = [
     'StockRound',
@@ -58,7 +55,6 @@ export const RailwayMachineStates = [
     'OperatingSet',
     'LayingTrack',
     'PlacingStation',
-    'StationsComplete',
     'BuyingTrains',
     'FundingTrain',
     'Bankrupt',
@@ -83,8 +79,6 @@ export type EighteenXXMachineState =
     | (typeof CashCrisisMachineStates)[number]
 
 export const RailwayFields = {
-    // Retained for saved games created before the runtime left the examples folder.
-    example: Type.Literal('finances'),
     stockRound: StockRound,
     operatingSet: Type.Optional(OperatingSet),
     trackStep: Type.Optional(TrackStep),
@@ -104,10 +98,7 @@ export const RailwayFields = {
     ...PurchaseOfferFields,
     ...RouteFields
 }
-type RuntimeFields = Omit<
-    typeof RailwayFields,
-    'companies' | 'certificates' | 'example' | 'purchaseOffer'
-> &
+type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | 'purchaseOffer'> &
     typeof FinanceFields &
     Omit<typeof CompanyDecisionFields, 'purchaseOffer'> &
     typeof CompanyAcquisitionOfferFields &
@@ -120,7 +111,6 @@ type RuntimeFields = Omit<
     typeof CompanyAuctionFields &
     typeof LoanFields &
     typeof CashCrisisFields & {
-        example: Type.TOptional<typeof RailwayFields.example>
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
         ownershipLimitExemptions: Type.TOptional<Type.TArray<typeof OwnershipLimitExemption>>
     }
@@ -188,23 +178,21 @@ export type EighteenXXStateDefinition<
 > = {
     schema: Schema
     read(data: unknown): unknown
-    hydrate(data: unknown, map: RailwayMap, tileSet: TileSet, depot: TrainDepot): State
+    hydrate(data: unknown, components: TitleComponents): State
 }
 
 export function defineEighteenXXState<Schema extends TitleStateSchema>(
     schema: Schema,
-    validations: readonly StateValidation<HydratedEighteenXXState<Schema>>[],
-    readStored?: (data: unknown) => unknown
+    validations: readonly StateValidation<HydratedEighteenXXState<Schema>>[]
 ): EighteenXXStateDefinition<Schema> {
     const validator = Compile(schema)
     function read(data: unknown): unknown {
-        const stored = data instanceof StateHydrator ? data.dehydrate() : data
-        return readStored ? readStored(stored) : stored
+        return data instanceof StateHydrator ? data.dehydrate() : data
     }
     return {
         schema,
         read,
-        hydrate(data, map, tileSet, depot) {
+        hydrate(data, components) {
             const stored = read(data)
             if (!validator.Check(stored)) throw new Error(JSON.stringify(validator.Errors(stored)))
             const core = new StateHydrator(stored, validator)
@@ -214,7 +202,7 @@ export function defineEighteenXXState<Schema extends TitleStateSchema>(
                     state.players.length,
                 'Duplicate player identity'
             )
-            for (const validate of validations) validate(state, { map, tileSet, depot })
+            for (const validate of validations) validate(state, components)
             return state
         }
     }
@@ -222,10 +210,20 @@ export function defineEighteenXXState<Schema extends TitleStateSchema>(
 
 export type StateValidation<State> = (state: State, components: TitleComponents) => void
 
-export const validateRailwayState: StateValidation<EighteenXXState> = (
+export const validateRailwayComponents: StateValidation<EighteenXXState> = (
     state,
-    { map, tileSet, depot }
+    { map, tileSet, depot, market }
 ) => {
+    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state)
+    const companyIds = state.companies.map((company) => company.id)
+    const playerIds = state.players.map((player) => player.playerId)
+    depot.validateInventory(state.trainInventory, companyIds, playerIds)
+    validateStations(state, companyIds)
+    market.validate(state.stockMarket, companyIds)
+    validateFinances(state, playerIds)
+}
+
+export const validateRailwayState: StateValidation<EighteenXXState> = (state, components) => {
     validateStockRound(state)
     validateOperatingSet(state)
     validateTrackStep(state)
@@ -237,19 +235,7 @@ export const validateRailwayState: StateValidation<EighteenXXState> = (
     validatePhaseChange(state)
     validateEarningsDistribution(state)
     validateTrainPurchaseStep(state)
-    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state)
-    const companyIds = state.companies.map((company) => company.id)
-    depot.validateInventory(
-        state.trainInventory,
-        companyIds,
-        state.players.map((player) => player.playerId)
-    )
-    validateStations(state, companyIds)
-    validateStockMarket(state.stockMarket, companyIds)
-    validateFinances(
-        state,
-        state.players.map((player) => player.playerId)
-    )
+    validateRailwayComponents(state, components)
 }
 
 export function inKnownPhase<State extends HydratedEighteenXXState>(

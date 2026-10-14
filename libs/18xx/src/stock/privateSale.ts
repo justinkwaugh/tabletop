@@ -108,7 +108,7 @@ export function privateCharter(state: StockState, privateCompanyId: string) {
         (certificate) =>
             certificate.kind === 'private' && certificate.companyId === privateCompanyId
     )
-    assert(certificate && !certificate.retired, 'A private has a charter certificate')
+    assert(certificate, 'A private has a charter certificate')
     return certificate
 }
 
@@ -157,6 +157,7 @@ export class HydratedOfferPrivatePurchase
         assert(owner?.kind === 'player', 'The seller is a player')
         state.purchaseOffer = {
             id: this.id,
+            buyer: { kind: 'player', playerId: this.playerId },
             asset: { kind: 'private', privateCompanyId: this.privateCompanyId },
             seller: owner,
             price: this.price,

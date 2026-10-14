@@ -1,6 +1,6 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
-    import { getCompany, stockMarketSpace } from '@tabletop/18xx'
+    import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
 
@@ -19,10 +19,7 @@
     const choice = $derived(module.formationChoice)
     const reason = $derived(choice ? module.formationReason(choice) : 'Choose a size.')
     const startPrice = $derived(
-        stockMarketSpace(
-            session.gameState.stockMarket,
-            terms.startSpace(session.gameState, pending.price)
-        ).price
+        session.stockMarketChart.space(terms.startSpace(session.gameState, pending.price)).price
     )
 </script>
 
@@ -31,7 +28,7 @@
         <div class="company">
             <CompanyToken appearance={session.mapView.stations[company.id]} size={48} />
             <div>
-                <strong>{company.name}</strong>
+                <strong>{session.companyName(company.id)}</strong>
                 <span
                     >{session.getPlayerName(pending.playerId)} won for {money(pending.price)} · starts
                     at {money(startPrice)}</span
@@ -54,7 +51,7 @@
                         aria-pressed={choice?.privateIds.includes(privateId)}
                         disabled={!module.canForm}
                         onclick={() => module.toggleContribution(privateId)}
-                        >{getCompany(session.gameState, privateId).name}</button
+                        >{session.companyName(privateId)}</button
                     >
                 {/each}
             </div>
@@ -63,7 +60,7 @@
         <button
             class="action-button"
             disabled={!module.canForm || !!reason}
-            onclick={() => module.form()}>Form {company.name}</button
+            onclick={() => module.form()}>Form {session.companyName(company.id)}</button
         >
     </div>
 </article>

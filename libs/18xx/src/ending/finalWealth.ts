@@ -1,3 +1,4 @@
+import type { TitleNames } from '../game/titleNames.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import {
@@ -8,7 +9,7 @@ import {
     type Owner,
     type Portfolio
 } from '../finance/finance.js'
-import { companyMarketSpace } from '../stock/stockMarket.js'
+import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { StockState } from '../stock/stockState.js'
 
 export const WealthItem = Type.Object(
@@ -42,10 +43,14 @@ export function certificateValue(
 ): number {
     return rules.certificateItems(state, certificate).reduce((sum, item) => sum + item.value, 0)
 }
-export function marketShareValue(state: StockState, certificate: Portfolio[number]): number {
+export function marketShareValue(
+    market: StockMarketChart,
+    state: StockState,
+    certificate: Portfolio[number]
+): number {
     const company = getCompany(state, certificate.companyId)
     return company.started && !company.closed
-        ? signedShares(certificate) * companyMarketSpace(state.stockMarket, company.id).price
+        ? signedShares(certificate) * market.companySpace(state.stockMarket, company.id).price
         : 0
 }
 export function portfolioWealth(
@@ -95,11 +100,11 @@ export function validateFinalResults(state: {
 }
 
 export function certificateWealthItem(
-    state: Pick<StockState, 'companies'>,
+    names: TitleNames,
     certificate: Portfolio[number],
     value: number
 ): WealthItem {
-    const { name } = getCompany(state, certificate.companyId)
+    const name = names.company(certificate.companyId)
     return {
         assetId: certificate.id,
         label:

@@ -1,7 +1,7 @@
+import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assert, assertExists } from '@tabletop/common'
 import {
-    companyMarketSpace,
     finiteCashOwnedBy,
     getCompany,
     placeStockMarker,
@@ -22,7 +22,7 @@ function setCash(table: Table, owner: Owner, amount: number) {
     balance.amount = amount
 }
 function setPrice(table: Table, companyId: string, price: number) {
-    const space = table.state.stockMarket.spaces.find((entry) => entry.price === price)
+    const space = Market1846.spaces.find((entry) => entry.price === price)
     assertExists(space)
     placeStockMarker(table.state.stockMarket, companyId, space.id)
 }
@@ -30,7 +30,6 @@ function giveShares(table: Table, companyId: string, playerId: string, shares: n
     const certificates = table.state.certificates
         .filter(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 !certificate.president &&
                 certificate.companyId === companyId &&
@@ -39,7 +38,6 @@ function giveShares(table: Table, companyId: string, playerId: string, shares: n
         .slice(0, shares)
     expect(certificates).toHaveLength(shares)
     for (const certificate of certificates) {
-        assert(!certificate.retired)
         certificate.owner = { kind: 'player', playerId }
         delete certificate.poolId
     }
@@ -55,13 +53,9 @@ function launchOther(table: Table, companyId = 'NYC', price = 40, presidentId = 
         parPrice: price
     })
     const certificate = table.state.certificates.find(
-        (entry) =>
-            !entry.retired &&
-            entry.kind === 'share' &&
-            entry.companyId === companyId &&
-            entry.president
+        (entry) => entry.kind === 'share' && entry.companyId === companyId && entry.president
     )
-    assert(certificate && !certificate.retired)
+    assert(certificate)
     certificate.owner = { kind: 'player', playerId: presidentId }
     delete certificate.poolId
     setPrice(table, companyId, price)
@@ -93,8 +87,9 @@ function buy(table: Table, definitionId = '2') {
     return table.act('EmergencyBuyTrain', choice)
 }
 function phaseII(table: Table) {
-    for (const train of table.state.trainInventory.trains)
-        if (train.status === 'depot' && train.definitionId === '2') train.status = 'removed'
+    table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+        (train) => !(train.status === 'depot' && train.definitionId === '2')
+    )
 }
 
 describe('1846 personal emergency train funding', () => {
@@ -109,11 +104,11 @@ describe('1846 personal emergency train funding', () => {
             certificateIds: [expect.any(String), expect.any(String)]
         })
         expect(table.state.machineState).toBe('FundingTrain')
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(20)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(20)
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(20)
         expect(finiteCashOwnedBy(table.state, owner)).toBe(0)
         sell(table, 'NYC', 2)
-        expect(companyMarketSpace(table.state.stockMarket, 'NYC').price).toBe(40)
+        expect(Market1846.companySpace(table.state.stockMarket, 'NYC').price).toBe(40)
         expect(table.state.emergencyFunding).toEqual({
             companyId: 'IC',
             minimumPrice: 61,
@@ -188,12 +183,8 @@ describe('1846 personal emergency train funding', () => {
         ).toContain('before')
         getCompany(table.state, 'NYC').operated = true
         for (const certificate of table.state.certificates
-            .filter(
-                (entry) =>
-                    !entry.retired && entry.companyId === 'NYC' && entry.owner.kind === 'company'
-            )
+            .filter((entry) => entry.companyId === 'NYC' && entry.owner.kind === 'company')
             .slice(0, 4)) {
-            assert(!certificate.retired)
             certificate.owner = { kind: 'bank' }
             certificate.poolId = 'open-market'
         }
@@ -214,7 +205,7 @@ describe('1846 personal emergency train funding', () => {
         ).toContain('keep its president')
         sell(table, 'IC', 1)
         expect(getCompany(table.state, 'IC').president).toEqual({ kind: 'player', playerId })
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(10)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(10)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(1)
     })
     it('never closes the operating corporation through personal sales', () => {
@@ -235,7 +226,7 @@ describe('1846 personal emergency train funding', () => {
         startFunding(table)
         sell(table, 'NYC', 1)
         expect(getCompany(table.state, 'NYC').president).toEqual({ kind: 'player', playerId: 'p2' })
-        expect(companyMarketSpace(table.state.stockMarket, 'NYC').price).toBe(30)
+        expect(Market1846.companySpace(table.state.stockMarket, 'NYC').price).toBe(30)
         expect(table.state.operatingSet.companyOrder).toEqual(['MS', 'BIG4', 'IC', 'B&O', 'NYC'])
     })
     it('closes another corporation without ending the operating company’s turn, then continues funding', () => {

@@ -1,9 +1,10 @@
 import { assertExists } from '@tabletop/common'
 import { getCompany } from '../finance/finance.js'
-import { companyMarketSpace } from './stockMarket.js'
+import type { StockMarketChart } from './stockMarket.js'
 import { marketSaleTerms, type StockRules } from './stockRules.js'
 
 export function ipoMarketTrading(options: {
+    market: StockMarketChart
     ipoPoolId: string
     marketPoolId: string
     marketLimit: number
@@ -15,7 +16,7 @@ export function ipoMarketTrading(options: {
     const saleTerms: StockRules['saleTerms'] = (state, companyId, shares) => {
         const company = getCompany(state, companyId)
         if (!company.shareCount || !company.president) return 'This company has no saleable shares.'
-        return marketSaleTerms(state, companyId, {
+        return marketSaleTerms(options.market, state, companyId, {
             destinationPoolId: options.marketPoolId,
             marketLimit: options.marketLimit,
             maximumShares: company.shareCount,
@@ -38,7 +39,7 @@ export function ipoMarketTrading(options: {
             const price =
                 certificate.poolId === options.ipoPoolId
                     ? company.parPrice
-                    : companyMarketSpace(state.stockMarket, company.id).price
+                    : options.market.companySpace(state.stockMarket, company.id).price
             assertExists(price, 'An available share requires its purchase price')
             return {
                 price: price * certificate.shares,

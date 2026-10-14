@@ -42,7 +42,7 @@
             {#each gameState.operatingSet.companyOrder as companyId (companyId)}
                 {@const owner = controllingOwner(gameState, companyId)}
                 <li>
-                    {getCompany(gameState, companyId).name}{#if owner}
+                    {session.companyName(companyId)}{#if owner}
                         · {session.ownerName(owner)}{/if}
                     {#if gameState.operatingSet.completedCompanyIds.includes(companyId)}
                         · Done{/if}

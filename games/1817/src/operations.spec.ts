@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
@@ -7,7 +8,6 @@ import {
     RouteEvaluation,
     TrackConstruction,
     applyStationPlacement,
-    companyMarketSpace,
     placeStockMarker,
     type TileRotation,
     type TrainRoute,
@@ -187,13 +187,7 @@ describe('dividends', () => {
             retained,
             baseDividendPerShare: 0
         })
-        return companyMarketSpace(
-            {
-                ...state.stockMarket,
-                stacks: [{ spaceId: effect.move!.toMarketSpaceId, companyIds: ['BA'] }]
-            },
-            'BA'
-        ).price
+        return EighteenSeventeenMarket.space(effect.move!.toMarketSpaceId).price
     }
 
     it('moves down when nothing is paid and up by what is paid against the share price', () => {

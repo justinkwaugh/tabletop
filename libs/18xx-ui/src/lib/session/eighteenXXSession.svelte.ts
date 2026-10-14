@@ -9,7 +9,6 @@ import {
     priorityOrder,
     shareSaleValue,
     stockCertificateCount,
-    stockMarketOrder,
     titleComponents,
     trainsOwnedBy,
     type EighteenXXPreferences,
@@ -352,12 +351,8 @@ export class EighteenXXSession<
             const certificate = this.gameState.certificates.find((item) => item.id === id)
             const card =
                 certificate &&
-                shareCard(
-                    certificate,
-                    this.presentation,
-                    (companyId) =>
-                        this.gameState.companies.find((company) => company.id === companyId)
-                            ?.name ?? companyId
+                shareCard(certificate, this.presentation, (companyId) =>
+                    this.companyName(companyId)
                 )
             return card ? [card] : []
         })
@@ -433,15 +428,9 @@ export class EighteenXXSession<
         )
         this.historicalMaps = new HistoricalMaps(
             () => this.mapView,
+            (companyId) => this.companyName(companyId),
             (state) =>
-                this.projectMapState(
-                    this.rules.state.hydrate(
-                        state,
-                        this.rules.trackRules.map,
-                        this.rules.trackRules.tileSet,
-                        this.rules.trainRules.depot
-                    )
-                )
+                this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules)))
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
@@ -451,12 +440,12 @@ export class EighteenXXSession<
             const location = this.mapView.map.definition.locations.find(
                 (item) => item.id === action.locationId
             )
-            return `${this.getPlayerName(action.playerId)} used ${getCompany(this.gameState, action.privateCompanyId).name} at ${location?.name ?? action.locationId}`
+            return `${this.getPlayerName(action.playerId)} used ${this.companyName(action.privateCompanyId)} at ${location?.name ?? action.locationId}`
         }
         if (!isPrivateExchangeAction(action)) return undefined
         const company = this.privates.exchangeCompany(action.certificateId)
-        const article = /^[AEIOU]/i.test(company.name) ? 'an' : 'a'
-        return `${this.getPlayerName(action.playerId)} exchanged ${getCompany(this.gameState, action.privateCompanyId).name} for ${article} ${company.name} share`
+        const article = /^[AEIOU]/i.test(this.companyName(company.id)) ? 'an' : 'a'
+        return `${this.getPlayerName(action.playerId)} exchanged ${this.companyName(action.privateCompanyId)} for ${article} ${this.companyName(company.id)} share`
     }
     auctionLotsFor(state: EighteenXXState) {
         return (
@@ -553,8 +542,8 @@ export class EighteenXXSession<
     )
     companySoldOut(companyId: string): boolean {
         return (
-            companySharePrice(this.gameState.stockMarket, companyId) !== undefined &&
-            this.rules.stockRules.round.soldOut(this.gameState, companyId)
+            companySharePrice(this.stockMarketChart, this.gameState.stockMarket, companyId) !==
+                undefined && this.rules.stockRules.round.soldOut(this.gameState, companyId)
         )
     }
     playerLiquidity(playerId: string): number {
@@ -627,11 +616,23 @@ export class EighteenXXSession<
     sharesToFloat(companyId: string) {
         return this.rules.companyRules.sharesToFloat?.(this.gameState, companyId)
     }
+    get names() {
+        return this.rules.names
+    }
+    companyName(companyId: string) {
+        return this.rules.names.company(companyId)
+    }
+    poolName(poolId: string) {
+        return this.rules.names.pool(poolId)
+    }
     stockCompanyName(companyId: string) {
-        return getCompany(this.gameState, companyId).name
+        return this.companyName(companyId)
+    }
+    get stockMarketChart() {
+        return this.rules.stockRules.market
     }
     get stockCompanies() {
-        const order = stockMarketOrder(this.gameState.stockMarket)
+        const order = this.stockMarketChart.order(this.gameState.stockMarket)
         const rank = new Map(order.map((id, index) => [id, index]))
         return this.gameState.companies
             .filter((company) => company.started)
@@ -651,9 +652,7 @@ export class EighteenXXSession<
     }
     ownerName(owner: Owner): string {
         if (owner.kind === 'player') return this.getPlayerName(owner.playerId)
-        return owner.kind === 'bank'
-            ? this.gameState.bank.name
-            : getCompany(this.gameState, owner.companyId).name
+        return owner.kind === 'bank' ? 'Bank' : this.companyName(owner.companyId)
     }
     override beforeNewState() {
         this.map.clearInspection()

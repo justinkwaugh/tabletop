@@ -46,12 +46,13 @@ export function operatingTransitionTests(
         const { engine, game, state: initialState } = fixture()
         let state = initialState
         const companyId = state.trackStep!.companyId
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'owned' &&
-            train.owner.kind === 'company' &&
-            train.owner.companyId === companyId
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'owned' &&
+                    train.owner.kind === 'company' &&
+                    train.owner.companyId === companyId
+                )
         )
         const types: string[] = []
         for (let index = 0; index < 2; index++) {

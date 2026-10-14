@@ -39,23 +39,16 @@ it('grants a company-owned 4+ diesel grace only before its first operating oppor
     })
     const state = { ...position, phaseId: 'D' }
     const owner = { kind: 'company', companyId: 'So' } as const
-    const owned = (hasRun: boolean): Train => ({
-        id: '4+:1',
-        definitionId: '4+',
-        status: 'owned',
-        owner,
-        hasRun
-    })
-    expect(TheOldPrincePhaseRules.rustTiming(state, owned(false))).toBe('after-operation')
-    expect(TheOldPrincePhaseRules.rustTiming(state, owned(true))).toBe('immediate')
+    const owned: Train = { id: '4+:1', definitionId: '4+', status: 'owned', owner }
+    expect(TheOldPrincePhaseRules.rustTiming(state, owned)).toBe('after-operation')
     const afterOpportunity = {
         ...state,
         fourPlusTrainIdsWithOperatingOpportunity: ['4+:1']
     }
-    expect(TheOldPrincePhaseRules.rustTiming(afterOpportunity, owned(false))).toBe('immediate')
+    expect(TheOldPrincePhaseRules.rustTiming(afterOpportunity, owned)).toBe('immediate')
     expect(
         TheOldPrincePhaseRules.rustTiming(afterOpportunity, {
-            ...owned(false),
+            ...owned,
             status: 'owned',
             owner: { kind: 'company', companyId: 'ML' }
         })

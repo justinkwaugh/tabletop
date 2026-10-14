@@ -1,8 +1,8 @@
+import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, GameResult, assert, assertExists, type GameAction } from '@tabletop/common'
 import {
     certificatesOwnedBy,
-    companyMarketSpace,
     finiteCashOwnedBy,
     getCompany,
     isEndGame,
@@ -13,6 +13,7 @@ import {
 import { buyTrain, constructionGame, emergencyBuyingGame, stockGame } from './testSupport.js'
 import { corporateFinanceChoices } from './corporateFinance.js'
 import { EndingRules1846 } from './ending.js'
+import { Names1846 } from './names.js'
 import { Runtime } from './definition/gameDefinition.js'
 import { DraftCompanies } from './catalog.js'
 import type { EighteenFortySixProjectedState } from './state.js'
@@ -199,16 +200,14 @@ describe('1846 game endings', () => {
         for (const company of table.state.companies) {
             if (company.id !== 'IC') company.closed = true
         }
-        table.state.certificates = table.state.certificates.map((certificate) => {
-            if (certificate.companyId === 'IC' || certificate.retired) return certificate
-            const { owner: _owner, poolId: _poolId, ...retired } = certificate
-            return { ...retired, retired: true }
-        })
+        table.state.certificates = table.state.certificates.filter(
+            (certificate) => certificate.companyId === 'IC'
+        )
         for (const cash of table.state.cash) {
             if (cash.owner.kind === 'player') cash.amount = 100
         }
         table.state.gameEnding = { reason: 'Bank broken', finalOperatingSet: 2 }
-        const zero = table.state.stockMarket.spaces.find((space) => space.price === 0)
+        const zero = Market1846.spaces.find((space) => space.price === 0)
         assertExists(zero)
         placeStockMarker(table.state.stockMarket, 'IC', zero.id)
         table.state.machineState = 'ClosingOperatingCorporation'
@@ -250,8 +249,10 @@ describe('1846 game endings', () => {
         expect(EndingRules1846.certificateItems(table.state, certificate)).toEqual([
             {
                 assetId: certificate.id,
-                label: getCompany(table.state, 'IC').name,
-                value: certificate.shares * companyMarketSpace(table.state.stockMarket, 'IC').price
+                label: Names1846.company('IC'),
+                value:
+                    certificate.shares *
+                    Market1846.companySpace(table.state.stockMarket, 'IC').price
             }
         ])
         getCompany(table.state, 'IC').closed = true

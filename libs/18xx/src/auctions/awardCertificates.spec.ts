@@ -3,10 +3,10 @@ import { awardCertificates } from './awardCertificates.js'
 import type { FinancialState } from '../finance/finance.js'
 function setup(): FinancialState {
     return {
-        bank: { name: 'Bank' },
+        bank: {},
         companies: [
-            { id: 'private', name: 'Private', kind: 'private' },
-            { id: 'railway', name: 'Railway', kind: 'major', shareCount: 10 }
+            { id: 'private', kind: 'private' },
+            { id: 'railway', kind: 'major', shareCount: 10 }
         ],
         certificatePools: [],
         cash: [
@@ -18,8 +18,6 @@ function setup(): FinancialState {
                 id: 'private',
                 companyId: 'private',
                 kind: 'private',
-                certificateLimitCount: 1,
-                retired: false,
                 owner: { kind: 'bank' }
             },
             {
@@ -28,8 +26,6 @@ function setup(): FinancialState {
                 kind: 'share',
                 shares: 2,
                 president: true,
-                certificateLimitCount: 1,
-                retired: false,
                 owner: { kind: 'bank' }
             }
         ]
@@ -44,9 +40,7 @@ it('charges once for a bundle and transfers each existing certificate', () => {
     expect(state.cash.map((account) => account.amount)).toEqual([260, 40])
     expect(state.certificates).toHaveLength(2)
     expect(
-        state.certificates.every(
-            (c) => !c.retired && c.owner.kind === 'player' && c.owner.playerId === 'winner'
-        )
+        state.certificates.every((c) => c.owner.kind === 'player' && c.owner.playerId === 'winner')
     ).toBe(true)
 })
 it('rejects a duplicate, unavailable certificate or unaffordable bundle before any transfer', () => {

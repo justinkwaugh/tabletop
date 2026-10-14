@@ -1,4 +1,4 @@
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
     isOfferAuctionLot,
     isBidOnAuctionLot,
@@ -7,8 +7,23 @@ import {
     type OfferAuctionLot,
     type BidOnAuctionLot,
     type PassAuction,
-    type AuctionAward
+    type AuctionAward,
+    type AuctionLot,
+    type EighteenXXState
 } from '@tabletop/18xx'
+
+/** A lot that is a company takes the company's name; any other lot, such as a share, its own. */
+export function auctionLotName(
+    lotId: string,
+    state: Pick<EighteenXXState, 'companies'>,
+    lots: readonly AuctionLot[],
+    companyName: (id: string) => string
+): string {
+    if (state.companies.some((company) => company.id === lotId)) return companyName(lotId)
+    const lot = lots.find((lot) => lot.id === lotId)
+    assertExists(lot, 'Recorded auction requires its lot')
+    return lot.name
+}
 
 export type AuctionHistoryCard = {
     kind: 'auction'
@@ -19,8 +34,7 @@ export type AuctionHistoryCard = {
     award?: AuctionAward
 }
 export type ActionHistoryEntry =
-    | AuctionHistoryCard
-    | { kind: 'action'; id: string; action: GameAction }
+    AuctionHistoryCard | { kind: 'action'; id: string; action: GameAction }
 
 export function auctionHistory(
     actions: readonly GameAction[],

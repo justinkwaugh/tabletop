@@ -20,6 +20,7 @@ import {
 import { startCompanyAtPar } from './companyStart.js'
 import type { FormationState } from './companyState.js'
 import type { CompanyRules } from './companyRules.js'
+import type { StockMarketChart } from '../stock/stockMarket.js'
 
 const Id = Type.String({ minLength: 1 })
 export const PendingPar = Type.Object(
@@ -92,9 +93,11 @@ export class HydratedParCompany extends HydratableAction<typeof ParCompany> impl
     declare companyId: string
     declare marketSpaceId: string
     readonly #rules: CompanyRules
-    constructor(data: ParCompany, rules: CompanyRules) {
+    readonly #market: StockMarketChart
+    constructor(data: ParCompany, rules: CompanyRules, market: StockMarketChart) {
         super(data instanceof HydratedParCompany ? data.dehydrate() : data, Validator)
         this.#rules = rules
+        this.#market = market
     }
     isValid(state: ParState): boolean {
         return (
@@ -103,7 +106,7 @@ export class HydratedParCompany extends HydratableAction<typeof ParCompany> impl
     }
     apply(state: HydratedGameState & ParState): void {
         assert(this.isValid(state), 'Invalid par')
-        startCompanyAtPar(state, this.companyId, this.marketSpaceId, {
+        startCompanyAtPar(state, this.#market, this.companyId, this.marketSpaceId, {
             kind: 'player',
             playerId: this.playerId
         })

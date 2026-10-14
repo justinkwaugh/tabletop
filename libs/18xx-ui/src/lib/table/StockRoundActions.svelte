@@ -2,15 +2,7 @@
     import { cashText, optionalMoney } from '../presentation/money.js'
     import { marketColors } from '../stock/marketColors.js'
     import { assertExists } from '@tabletop/common'
-    import {
-        cashOwnedBy,
-        getCompany,
-        sharesOwned,
-        companyMarketSpace,
-        stockMarketSpace,
-        sameOwner,
-        type Owner
-    } from '@tabletop/18xx'
+    import { cashOwnedBy, getCompany, sharesOwned, sameOwner, type Owner } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
@@ -179,7 +171,7 @@
                                   ]
                                 : []}
                         <div class="share-offer">
-                            <div class="share-pill" aria-label={company.name}>
+                            <div class="share-pill" aria-label={session.companyName(company.id)}>
                                 <div class="share-identity">
                                     <CompanyToken
                                         appearance={session.mapView.stations[company.id]}
@@ -201,10 +193,9 @@
                                                 (pool) => pool.id === choice.certificate.poolId
                                             )}
                                             {@const source = pool
-                                                ? (poolName?.(pool) ?? pool.name).replace(
-                                                      'Treasury shares',
-                                                      'Treasury'
-                                                  )
+                                                ? (
+                                                      poolName?.(pool) ?? session.poolName(pool.id)
+                                                  ).replace('Treasury shares', 'Treasury')
                                                 : sameOwner(choice.certificate.owner, {
                                                         kind: 'company',
                                                         companyId: company.id
@@ -219,7 +210,7 @@
                                             <button
                                                 class="share-source"
                                                 {disabled}
-                                                aria-label={`Buy ${company.name} from ${source} for ${optionalMoney(money, choice.result.details?.price)}`}
+                                                aria-label={`Buy ${session.companyName(company.id)} from ${source} for ${optionalMoney(money, choice.result.details?.price)}`}
                                                 data-purchase-certificate={choice.certificate.id}
                                                 onclick={() => {
                                                     session.stock.selectPurchase(choice.request)
@@ -267,7 +258,7 @@
                                 <button
                                     class="company-choice start-company-choice"
                                     {disabled}
-                                    aria-label={`Start ${getCompany(session.gameState, choice.request.companyId).name}`}
+                                    aria-label={`Start ${session.companyName(choice.request.companyId)}`}
                                     aria-pressed={session.stock.selectedStartCompany?.companyId ===
                                         choice.request.companyId}
                                     data-start-company={choice.request.companyId}
@@ -284,8 +275,7 @@
                             <div class="choices par-choices">
                                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}
-                                        {@const space = stockMarketSpace(
-                                            session.gameState.stockMarket,
+                                        {@const space = session.stockMarketChart.space(
                                             price.marketSpaceId
                                         )}
                                         <button
@@ -332,7 +322,7 @@
                                 <button
                                     class="share-identity sale-company"
                                     {disabled}
-                                    aria-label={`Sell ${company.name}`}
+                                    aria-label={`Sell ${session.companyName(company.id)}`}
                                     aria-pressed={session.stock.selectedSaleCompany === company.id}
                                     data-sale-company={company.id}
                                     onclick={() => {
@@ -366,7 +356,7 @@
                                                     block.seller.kind === 'player' &&
                                                     block.seller.playerId === session.myPlayer?.id
                                             )?.price ??
-                                                companyMarketSpace(
+                                                session.stockMarketChart.companySpace(
                                                     session.gameState.stockMarket,
                                                     company.id
                                                 ).price
@@ -416,12 +406,12 @@
                         {@const company = session.privates.exchangeCompany(offer.certificateId)}
                         <button
                             class="exchange-choice"
-                            aria-label={`Exchange ${getCompany(session.gameState, offer.privateCompanyId).name} for ${company.name}`}
+                            aria-label={`Exchange ${session.companyName(offer.privateCompanyId)} for ${session.companyName(company.id)}`}
                             {disabled}
                             onclick={() => void session.privates.exchange(offer)}
                         >
                             <span class="exchange-private"
-                                >{getCompany(session.gameState, offer.privateCompanyId).name}</span
+                                >{session.companyName(offer.privateCompanyId)}</span
                             >
                             <span class="exchange-arrow" aria-hidden="true">→</span>
                             <span class="exchange-company">
@@ -446,10 +436,7 @@
                 <tbody>
                     {#each session.stock.turnSales as sale (sale.companyId)}
                         <tr data-sold-company={sale.companyId}>
-                            <th
-                                scope="row"
-                                aria-label={getCompany(session.gameState, sale.companyId).name}
-                            >
+                            <th scope="row" aria-label={session.companyName(sale.companyId)}>
                                 <CompanyToken
                                     appearance={session.mapView.stations[sale.companyId]}
                                     size={26}

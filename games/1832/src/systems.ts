@@ -3,17 +3,17 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     PresidencyChange,
     applyPresidencyChange,
-    companyMarketSpace,
     evaluatePresidency,
     placeStockMarker,
     playersAfterPresident,
     sharesOwned,
     type StockMarket,
-    type StockMarketSpace
+    type StockMarketSpace,
+    removeCertificates
 } from '@tabletop/18xx'
 import type { EighteenThirtyTwoState } from './state.js'
 import { refreshOwnershipExcess } from './ownershipExcess.js'
-import { isLowerArea } from './stockMarket.js'
+import { isLowerArea, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
 
 /** Systems A–E, named for the modern railroads that grew from these lines. */
@@ -102,8 +102,10 @@ function nearestPrice(prices: readonly number[], target: number): number {
     )
 }
 
-function spaceAt(market: StockMarket, row: number, column: number) {
-    return market.spaces.find((space) => space.row === row && space.column === column)
+function spaceAt(row: number, column: number) {
+    return EighteenThirtyTwoMarket.spaces.find(
+        (space) => space.row === row && space.column === column
+    )
 }
 
 /**
@@ -116,12 +118,14 @@ export function systemMarketSpace(
     market: StockMarket,
     companyIds: readonly string[]
 ): StockMarketSpace {
-    const [first, second] = companyIds.map((companyId) => companyMarketSpace(market, companyId))
+    const [first, second] = companyIds.map((companyId) =>
+        EighteenThirtyTwoMarket.companySpace(market, companyId)
+    )
     const leftmost =
         first.column < second.column || (first.column === second.column && first.row > second.row)
             ? first
             : second
-    const row = market.spaces.filter((entry) => entry.row === leftmost.row)
+    const row = EighteenThirtyTwoMarket.spaces.filter((entry) => entry.row === leftmost.row)
     const price = nearestPrice(
         row.map((entry) => entry.price),
         (first.price + second.price) / 2
@@ -129,7 +133,7 @@ export function systemMarketSpace(
     let space = row.find((entry) => entry.price === price)
     assertExists(space, 'The row holds its own price')
     for (;;) {
-        const next = spaceAt(market, space.row + 1, space.column + 1)
+        const next = spaceAt(space.row + 1, space.column + 1)
         if (!next || next.price !== price || isLowerArea(next) !== isLowerArea(space)) break
         space = next
     }
@@ -159,7 +163,6 @@ function exchangedCertificates(
     playerId: string
 ): string[] {
     const held = state.certificates.flatMap((certificate) =>
-        !certificate.retired &&
         certificate.kind === 'share' &&
         companyIds.includes(certificate.companyId) &&
         certificate.owner.kind === 'player' &&
@@ -206,7 +209,6 @@ export function formSystem(
 
     state.companies.push({
         id: systemId,
-        name: system.name,
         kind: 'major',
         shareCount: SystemShareCount,
         parPrice,
@@ -226,18 +228,14 @@ export function formSystem(
             kind: 'share',
             shares: PresidentShares,
             president: true,
-            certificateLimitCount: 1,
-            retired: false,
             owner: president
         }
     ]
-    state.certificates = state.certificates.map((certificate) => {
-        if (
-            certificate.retired ||
-            certificate.kind !== 'share' ||
-            !companyIds.includes(certificate.companyId)
-        )
-            return certificate
+    const components = state.certificates.filter(
+        (certificate) => certificate.kind === 'share' && companyIds.includes(certificate.companyId)
+    )
+    for (const certificate of components) {
+        if (certificate.kind !== 'share') continue
         if (!exchangedCertificateIds.includes(certificate.id)) {
             const owner =
                 certificate.owner.kind === 'company'
@@ -249,16 +247,15 @@ export function formSystem(
                 companyId: systemId,
                 kind: 'share',
                 shares: certificate.shares,
-                president: false,
-                certificateLimitCount: 1,
-                retired: false,
                 owner,
                 ...(certificate.poolId ? { poolId: certificate.poolId } : {})
             })
         }
-        const { owner: _owner, poolId: _poolId, ...retired } = certificate
-        return { ...retired, retired: true }
-    })
+    }
+    removeCertificates(
+        state,
+        components.map((certificate) => certificate.id)
+    )
     state.certificates.push(...issued)
 
     placeStockMarker(state.stockMarket, systemId, space.id)

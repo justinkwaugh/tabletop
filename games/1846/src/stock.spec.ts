@@ -1,14 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import {
-    companyMarketSpace,
-    finiteCashOwnedBy,
-    getCompany,
-    placeStockMarker,
-    sharesOwned
-} from '@tabletop/18xx'
+import { finiteCashOwnedBy, getCompany, placeStockMarker, sharesOwned } from '@tabletop/18xx'
 import { stockGame } from './testSupport.js'
-import { StockRules1846 } from './stock.js'
+import { StockRules1846, Market1846 } from './stock.js'
 
 describe('1846 first stock round', () => {
     it('launches immediately, pays incremental capital and the IC bonus, and places its home', () => {
@@ -79,7 +73,7 @@ describe('1846 first stock round', () => {
                 expectedProceeds: 30
             })
         ).toThrow()
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(30)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(30)
         expect(finiteCashOwnedBy(table.state, { kind: 'player', playerId: president })).toBe(
             before + 80
         )
@@ -91,12 +85,12 @@ describe('1846 first stock round', () => {
     })
     it('completes on consecutive passes, preserves priority after no trades, and rejects further actions', () => {
         const table = stockGame()
-        const priority = table.state.priorityDealPlayerId
+        const priority = table.state.turnManager.turnOrder[0]
         table.finishTurn()
         table.finishTurn()
         table.finishTurn()
         expect(table.state.machineState).toBe('LayingTrack')
-        expect(table.state.priorityDealPlayerId).toBe(priority)
+        expect(table.state.turnManager.turnOrder[0]).toBe(priority)
         expect(table.state.trackStep?.companyId).toBe('MS')
         expect(() => table.finishTurn()).toThrow()
     })
@@ -116,8 +110,8 @@ describe('1846 first stock round', () => {
         table.finishTurn()
         table.finishTurn()
         table.finishTurn()
-        expect(table.state.priorityDealPlayerId).toBe(priority)
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(20)
+        expect(table.state.turnManager.turnOrder[0]).toBe(priority)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(20)
     })
     it('transfers presidency on a larger holding, keeping the incumbent on ties', () => {
         const table = stockGame()
@@ -183,13 +177,12 @@ describe('1846 first stock round', () => {
         for (const certificate of table.state.certificates
             .filter(
                 (certificate) =>
-                    !certificate.retired &&
                     certificate.kind === 'share' &&
                     certificate.companyId === 'IC' &&
                     !certificate.president
             )
             .slice(0, 2))
-            if (!certificate.retired) certificate.owner = { kind: 'player', playerId: successor }
+            certificate.owner = { kind: 'player', playerId: successor }
         table.finishTurn()
         table.finishTurn()
         const sale = table
@@ -205,7 +198,7 @@ describe('1846 first stock round', () => {
             playerId: successor
         })
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: seller })).toBe(0)
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(30)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(30)
     })
     it('records round-end closure before starting operations and reverses the entire cascade', () => {
         const table = stockGame()
@@ -273,11 +266,9 @@ describe('1846 first stock round', () => {
         })
         expect(getCompany(table.state, 'IC').closed).toBe(true)
         expect(finiteCashOwnedBy(table.state, { kind: 'company', companyId: 'IC' })).toBe(0)
-        expect(
-            table.state.certificates
-                .filter((certificate) => certificate.companyId === 'IC')
-                .every((certificate) => certificate.retired)
-        ).toBe(true)
+        expect(table.state.certificates.some((certificate) => certificate.companyId === 'IC')).toBe(
+            false
+        )
         expect(
             table.state.stations
                 .filter((station) => station.companyId === 'IC')

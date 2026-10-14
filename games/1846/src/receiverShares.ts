@@ -11,7 +11,6 @@ import {
     CashPayment,
     PresidencyClaim,
     applyPresidencyClaim,
-    companyMarketSpace,
     finiteCashOwnedBy,
     markTurnPurchase,
     mustSellShares,
@@ -22,7 +21,7 @@ import {
     sharesOwned
 } from '@tabletop/18xx'
 import { inReceivership } from './receivership.js'
-import { StockRules1846 } from './stock.js'
+import { StockRules1846, Market1846 } from './stock.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
 const ReceiverShare = Type.Object(
@@ -63,12 +62,11 @@ export function receiverShareChoices(
         )
             return []
         const certificates = state.certificates.filter(
-            (certificate) => !certificate.retired && certificate.companyId === company.id
+            (certificate) => certificate.companyId === company.id
         )
         if (
             certificates.some(
                 (certificate) =>
-                    !certificate.retired &&
                     certificate.kind === 'share' &&
                     !certificate.president &&
                     certificate.poolId === 'open-market'
@@ -76,18 +74,16 @@ export function receiverShareChoices(
         )
             return []
         const president = certificates.find(
-            (certificate) =>
-                !certificate.retired && certificate.kind === 'share' && certificate.president
+            (certificate) => certificate.kind === 'share' && certificate.president
         )
         const ordinary = certificates.find(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 !certificate.president &&
                 sameOwner(certificate.owner, buyer)
         )
         assert(president && ordinary, 'A virtual purchase requires both certificates')
-        const price = companyMarketSpace(state.stockMarket, company.id).price
+        const price = Market1846.companySpace(state.stockMarket, company.id).price
         if (price <= 0 || finiteCashOwnedBy(state, buyer) < price) return []
         return [
             {

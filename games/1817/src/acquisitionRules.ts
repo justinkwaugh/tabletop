@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import {
     formerPresident,
@@ -9,12 +10,10 @@ import {
 import {
     PassableBidding,
     companyLoans,
-    companyMarketSpace,
     controllingOwner,
     finiteCashOwnedBy,
     getCompany,
     loansRemaining,
-    stockMarketOrder,
     validBidStep
 } from '@tabletop/18xx'
 import { corporationShareCount } from './corporations.js'
@@ -27,7 +26,7 @@ const LoanValue = EighteenSeventeenLoanRules.value
 
 /** Lowest price first, so the closing zones come before the companies that could buy. */
 export function acquisitionRoundCompanyIds(state: EighteenSeventeenState): string[] {
-    return stockMarketOrder(state.stockMarket)
+    return EighteenSeventeenMarket.order(state.stockMarket)
         .filter((companyId) => getCompany(state, companyId).floated)
         .reverse()
 }
@@ -52,7 +51,7 @@ export function companyCash(state: EighteenSeventeenState, companyId: string): n
 }
 
 function price(state: EighteenSeventeenState, companyId: string): number {
-    return companyMarketSpace(state.stockMarket, companyId).price
+    return EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price
 }
 
 export function openingBid(

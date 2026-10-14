@@ -18,7 +18,7 @@ import {
     type Owner,
     cashOwnedBy,
     getCompany,
-    companyMarketSpace,
+    companyMarketSpaceId,
     type EighteenXXState,
     type FundingChoice
 } from '@tabletop/18xx'
@@ -246,7 +246,7 @@ it('uses company, Union Bank, and player balances in order, contributing only th
     getCompany(state, 'ML').president = union
     getCompany(state, 'So').president = { kind: 'player', playerId: 'blair' }
     for (const certificate of state.certificates) {
-        if (certificate.retired || certificate.kind !== 'share') continue
+        if (certificate.kind !== 'share') continue
         if (certificate.id === 'ML:president') certificate.owner = union
         else if (certificate.id === 'So:president')
             certificate.owner = { kind: 'player', playerId: 'blair' }
@@ -299,14 +299,21 @@ it('uses company, Union Bank, and player balances in order, contributing only th
     expect(cashOwnedBy(current, union)).toBe(0)
     expect(cashOwnedBy(current, { kind: 'company', companyId: 'ML' })).toBe(0)
     expect(payments.reduce((sum, payment) => sum + payment.amount, 0)).toBe(
-        purchase.price - companyMarketSpace(state.stockMarket, 'ML').price
+        purchase.price - TheOldPrinceStockRules.market.companySpace(state.stockMarket, 'ML').price
     )
 })
 it('selects the cheapest available 1889 market train and does not permit a more expensive diesel', () => {
     const { state } = example(Shikoku, 'funding')
     state.phaseId = '6'
-    const train = state.trainInventory.trains.find((train) => train.definitionId === '3')!
-    train.status = 'market'
+    // The funding example has removed every 3 from play, so return one to the Market.
+    const train = Shikoku1889TrainRules.depot
+        .createInventory(state.trainInventory.depotId)
+        .trains.find(
+            (train) =>
+                train.definitionId === '3' &&
+                !state.trainInventory.trains.some((entry) => entry.id === train.id)
+        )!
+    state.trainInventory.trains.push({ ...train, status: 'market' })
     const offers = new EmergencyTrainFunding(
         state,
         Shikoku1889TrainFundingRules,
@@ -369,7 +376,6 @@ it('issues every TOP treasury share as one block even above 30%, then keeps any 
     const { game, engine, state } = example(Top, 'funding')
     for (const certificate of state.certificates) {
         if (
-            !certificate.retired &&
             certificate.kind === 'share' &&
             certificate.companyId === 'ML' &&
             !certificate.president &&
@@ -408,7 +414,7 @@ it('issues every TOP treasury share as one block even above 30%, then keeps any 
     }).updatedState
     expect(model(issued).next().kind).toBe('buy')
     expect(cashOwnedBy(issued, { kind: 'player', playerId: 'alex' })).toBe(40)
-    expect(companyMarketSpace(issued.stockMarket, 'ML').id).toBe(
+    expect(companyMarketSpaceId(issued.stockMarket, 'ML')).toBe(
         next.details.sales[0].toMarketSpaceId
     )
 })
@@ -460,7 +466,6 @@ it('requires 1889 excess ownership sales even when they raise more than the trai
     const { game, engine, state } = example(Shikoku, 'funding')
     for (const certificate of state.certificates) {
         if (
-            !certificate.retired &&
             certificate.kind === 'share' &&
             certificate.companyId === 'IR' &&
             certificate.owner.kind === 'player' &&
@@ -543,7 +548,6 @@ it('reevaluates 1889 ownership limits when an emergency sale moves into the Oran
     const { state } = example(Shikoku, 'funding')
     for (const certificate of state.certificates) {
         if (
-            !certificate.retired &&
             certificate.kind === 'share' &&
             certificate.companyId === 'IR' &&
             certificate.owner.kind === 'player' &&
@@ -736,9 +740,7 @@ it('the funding-chain example exhausts Union Bank before its owner sells and buy
 
 it('allows separate 1830 emergency sale blocks without falsely declaring bankruptcy', () => {
     const { game, engine, state } = example(Thirty, 'funding', 4)
-    const other = state.certificates
-        .filter((certificate) => !certificate.retired)
-        .find((certificate) => certificate.id === 'NYC:share:2')!
+    const other = state.certificates.find((certificate) => certificate.id === 'NYC:share:2')!
     other.owner = { kind: 'player', playerId: 'casey' }
     const funding = (state: EighteenXXState) =>
         new EmergencyTrainFunding(

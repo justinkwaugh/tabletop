@@ -1,3 +1,4 @@
+import { EighteenThirtyNames } from '../names.js'
 import { EighteenThirtyEndingRules } from '../endingRules.js'
 import { EighteenThirtyAuctionRules, createEighteenThirtyOpening } from '../openingAuction.js'
 import { EighteenThirtyTrainFundingRules } from '../trainFundingRules.js'
@@ -28,6 +29,7 @@ export const EighteenThirtyTitleRules: EighteenXXTitleRules<
 > = {
     state: EighteenThirtyStateDefinition,
     endingRules: EighteenThirtyEndingRules,
+    names: EighteenThirtyNames,
     auctionRules: EighteenThirtyAuctionRules,
     trainFundingRules: EighteenThirtyTrainFundingRules,
     transferRules: EighteenThirtyTransferRules,

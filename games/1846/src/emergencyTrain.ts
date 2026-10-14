@@ -1,3 +1,4 @@
+import { Market1846 } from './stock.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -14,9 +15,6 @@ import {
     TrainPurchaseDetails,
     TrainPurchase,
     applyTrainPurchase,
-    companyMarketSpace,
-    moveMarketSpace,
-    moveCompanyMarker,
     controllingOwner,
     finiteCashOwnedBy,
     getCompany,
@@ -81,13 +79,13 @@ export function emergencyFundingChoices(state: HydratedEighteenFortySixState): E
     const treasury = finiteCashOwnedBy(state, owner)
     const offers = emergencyBankOffers(state)
     const cheapest = Math.min(...offers.map((offer) => offer.price))
-    const space = companyMarketSpace(state.stockMarket, companyId)
+    const space = Market1846.companySpace(state.stockMarket, companyId)
     const issuances = Array.from(
         { length: state.emergencyFunding ? 0 : corporateIssueLimit(state, companyId) },
         (_, i) => {
             const issuedShares = i + 1
-            const after = moveMarketSpace(state.stockMarket, space.id, 'left', issuedShares)
-            const price = moveMarketSpace(state.stockMarket, after.id, 'left', 1).price
+            const after = Market1846.move(space.id, 'left', issuedShares)
+            const price = Market1846.move(after.id, 'left', 1).price
             return { issuedShares, proceeds: issuedShares * price, stockPrice: after.price }
         }
     ).filter((issue) => issue.stockPrice >= 20 && issue.proceeds > 0)
@@ -143,7 +141,7 @@ function issueEmergencyShares(
         0,
         choice.issuedShares
     )
-    const stockMove = moveCompanyMarker(
+    const stockMove = Market1846.moveCompanyMarker(
         state.stockMarket,
         choice.companyId,
         'left',

@@ -4,7 +4,6 @@ import {
     cashOwnedBy,
     getCompany,
     sharesOwned,
-    companyMarketSpace,
     placeStockMarker,
     evaluateShareSale,
     evaluateSharePurchase,
@@ -16,10 +15,14 @@ import {
     type FinishStockTurn,
     type EighteenXXState,
     type Owner,
-    type ShareSale
+    type ShareSale,
+    type StockRules
 } from '@tabletop/18xx'
 import { Definition as Top, TheOldPrinceStockRules } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
+
+const marketOf = (definition: typeof Top | typeof Shikoku) =>
+    definition === Top ? TheOldPrinceStockRules.market : Shikoku1889StockRules.market
 import { example, purchase } from './stockTestUtils.js'
 
 const alex = { kind: 'player', playerId: 'alex' } as const
@@ -28,7 +31,7 @@ const casey = { kind: 'player', playerId: 'casey' } as const
 const union = { kind: 'company', companyId: 'UB' } as const
 function give(state: EighteenXXState, id: string, owner: Owner, poolId?: string) {
     const certificate = state.certificates.find((certificate) => certificate.id === id)
-    if (!certificate || certificate.retired) throw new Error('Missing fixture certificate')
+    if (!certificate) throw new Error('Missing fixture certificate')
     certificate.owner = owner
     if (poolId) certificate.poolId = poolId
     else delete certificate.poolId
@@ -77,7 +80,9 @@ it.each([
                 (certificate) => certificate.id === `${companyId}:president`
             )
         ).toMatchObject({ owner: blair })
-        expect(companyMarketSpace(result.updatedState.stockMarket, companyId).price).toBe(nextPrice)
+        expect(
+            marketOf(definition).companySpace(result.updatedState.stockMarket, companyId).price
+        ).toBe(nextPrice)
         const action = result.processedActions[0]
         if (!isSellShares(action)) throw new Error('Missing sale action')
         expect(action.metadata?.sales[0].presidency?.exchangedCertificateIds).toHaveLength(2)
@@ -99,7 +104,7 @@ it.each([Shikoku, Top])('retains the incumbent on a tied holding in $info.id', (
     const { game, engine, state } = example(definition)
     const companyId = definition === Top ? 'ML' : 'AR'
     if (definition === Shikoku) give(state, 'AR:share:3', blair)
-    const price = companyMarketSpace(state.stockMarket, companyId).price
+    const price = marketOf(definition).companySpace(state.stockMarket, companyId).price
     const result = engine.executeCanonicalAction({
         game,
         state,
@@ -177,7 +182,7 @@ it.each([
     (first, second) => {
         const { game, engine, state } = example(Top)
         give(state, 'So:share:2', alex)
-        state.companies.push({ id: 'stationary', kind: 'major', name: 'Stationary' })
+        state.companies.push({ id: 'stationary', kind: 'major' })
         placeStockMarker(state.stockMarket, 'stationary', '2:1')
         placeStockMarker(state.stockMarket, 'So', '1:1')
         let current = state
@@ -324,10 +329,15 @@ it('applies yellow/orange exemptions dynamically and requires sales when an exem
 it('does not use a presidency exchange to evade the 1889 certificate limit', () => {
     const { state } = example(Shikoku)
     for (const id of [3, 4]) give(state, `IR:share:${id}`, alex)
-    const certificate = state.certificates.find((certificate) => certificate.id === 'AR:president')!
-    certificate.certificateLimitCount = 15
-    expect(stockCertificateCount(state, alex, Shikoku1889StockRules)).toBe(19)
-    expect(
-        evaluateSharePurchase(state, purchase('IR:share:5', 70), Shikoku1889StockRules).reason
-    ).toContain('certificate limit')
+    const rules: StockRules = {
+        ...Shikoku1889StockRules,
+        certificateWeight: (current, certificate) =>
+            certificate.id === 'AR:president'
+                ? 15
+                : Shikoku1889StockRules.certificateWeight(current, certificate)
+    }
+    expect(stockCertificateCount(state, alex, rules)).toBe(19)
+    expect(evaluateSharePurchase(state, purchase('IR:share:5', 70), rules).reason).toContain(
+        'certificate limit'
+    )
 })

@@ -1,3 +1,4 @@
+import { TheOldPrinceMarket } from './stockMarket.js'
 import { expect, it } from 'vitest'
 import { ActionSource, MachineContext, createAction } from '@tabletop/common'
 import {
@@ -14,7 +15,6 @@ import {
     getCompany,
     sameOwner,
     sharesOwned,
-    companyMarketSpace,
     type EighteenXXState,
     createEighteenXXRuntime
 } from '@tabletop/18xx'
@@ -135,10 +135,10 @@ it('commits the exact preview, conserves assets, and uses one stock action', () 
         parPrice: 80
     })
     expect(after.tranches[1].companyIds).toEqual(['branch:BB'])
-    expect(companyMarketSpace(after.stockMarket, 'So')).toEqual(
-        companyMarketSpace(state.stockMarket, 'So')
+    expect(TheOldPrinceMarket.companySpace(after.stockMarket, 'So')).toEqual(
+        TheOldPrinceMarket.companySpace(state.stockMarket, 'So')
     )
-    expect(companyMarketSpace(after.stockMarket, 'branch:BB').price).toBe(80)
+    expect(TheOldPrinceMarket.companySpace(after.stockMarket, 'branch:BB').price).toBe(80)
     expect(after.stockRound.turn.bought).toBe(false)
     expect(after.stockRound.turn.acted).toBe(false)
     expect(after.activePlayerIds[0]).toBe('blair')
@@ -204,7 +204,7 @@ it('rejects duplicate trains, a missing Hunslet, wrong actors, system actions, a
             engine.executeCanonicalAction({ game, state, action: { ...action, ...override } })
         ).toThrow()
     const hunslet = state.certificates.find((c) => c.id === 'HS:charter')
-    if (!hunslet || hunslet.retired) throw new Error('Missing Hunslet')
+    if (!hunslet) throw new Error('Missing Hunslet')
     hunslet.owner = alex
     expect(() => engine.executeCanonicalAction({ game, state, action })).toThrow()
 })
@@ -317,7 +317,7 @@ it('finishes the stock turn, bars a second purchase, and floats later without pa
 it('preserves reserved certificates and non-acting-player authority during stock exchanges', () => {
     const { game, engine, state } = exampleGame(TheOldPrinceScenarios, 'split')
     const certificate = state.certificates.find((c) => c.id === 'So:share:8')
-    if (!certificate || certificate.retired) throw new Error('Missing share')
+    if (!certificate) throw new Error('Missing share')
     certificate.poolId = 'reserved'
     const result = engine.executeCanonicalAction({ game, state, action: split(state) })
     expect(result.updatedState.certificates.find((c) => c.id === certificate.id)).toEqual(

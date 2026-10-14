@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { companyMarketSpace, getCompany } from '@tabletop/18xx'
+    import { EighteenSeventeenMarket } from '@tabletop/1817'
+    import { getCompany } from '@tabletop/18xx'
     import { takeLoanAction } from './cardActions.js'
     import { CompanyActionCard, CompanyActionPanel } from '@tabletop/18xx-ui'
     import { companyFinanceFacts } from './roundFacts.js'
@@ -13,16 +14,16 @@
 
 <CompanyActionPanel
     label="Corporate actions"
-    heading={acting
-        ? `Acting for ${getCompany(gameState, acting.companyId).name}`
-        : 'Act for a company'}
+    heading={acting ? `Acting for ${session.companyName(acting.companyId)}` : 'Act for a company'}
 >
     {#each session.corporateActions as { companyId, canBorrow, buyBack } (companyId)}
-        {@const name = getCompany(gameState, companyId).name}
+        {@const name = session.companyName(companyId)}
         <CompanyActionCard
             {session}
             {companyId}
-            value={money(companyMarketSpace(gameState.stockMarket, companyId).price)}
+            value={money(
+                EighteenSeventeenMarket.companySpace(gameState.stockMarket, companyId).price
+            )}
             facts={companyFinanceFacts(gameState, companyId, money)}
             actions={[
                 ...(canBorrow

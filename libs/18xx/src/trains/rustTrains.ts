@@ -10,7 +10,7 @@ import {
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { trainsOwnedBy, unownedTrain, type TrainState } from './train.js'
+import { trainsOwnedBy, releaseTrains, type TrainState } from './train.js'
 import type { TrainRunningState } from '../routes/route.js'
 import {
     DeparturePayments,
@@ -72,9 +72,7 @@ export class HydratedRustTrains extends HydratableAction<typeof RustTrains> impl
                 owner: { kind: 'company', companyId: this.companyId }
             }))
         )
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            ids.includes(train.id) ? unownedTrain(train, 'removed') : train
-        )
+        releaseTrains(state.trainInventory, ids, 'removed')
         this.metadata = { trainIds: ids, ...departurePaymentsField(payments) }
     }
 }

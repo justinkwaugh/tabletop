@@ -77,9 +77,7 @@ it.each([3, 4])('sets up and completes TOP for %i players', (count) => {
     expect(state.stations.filter((s) => s.companyId === 'PEIR')).toHaveLength(5)
     expect(state.certificates.filter((c) => c.companyId === 'PEIR')).toHaveLength(5)
     expect(
-        state.certificates.filter(
-            (c) => !c.retired && c.owner.kind === 'company' && c.owner.companyId === 'UB'
-        )
+        state.certificates.filter((c) => c.owner.kind === 'company' && c.owner.companyId === 'UB')
     ).toHaveLength(2)
     expect(cashOwnedBy(state, { kind: 'company', companyId: main })).toBe(920)
     expect(cashOwnedBy(state, { kind: 'company', companyId: 'PEIR' })).toBe(200)
@@ -98,7 +96,7 @@ it.each([3, 4])('sets up and completes TOP for %i players', (count) => {
             (action) => action.type === 'OfferAuctionLot' && action.source === ActionSource.System
         )
     ).toBe(true)
-    expect(run.state.certificates.filter((c) => !c.retired && c.poolId === 'auction')).toEqual([])
+    expect(run.state.certificates.filter((c) => c.poolId === 'auction')).toEqual([])
     const cash = run.state.turnManager.turnOrder.map((playerId) =>
         cashOwnedBy(run.state, { kind: 'player', playerId })
     )
@@ -159,7 +157,6 @@ it('pays player privates repeatedly until a forced purchase is affordable, exclu
     const run = opening(4)
     const earner = run.model.playerId
     const certificate = run.state.certificates.find((c) => c.id === 'MC:charter')!
-    if (certificate.retired) throw Error('Missing private')
     certificate.owner = { kind: 'player', playerId: earner }
     delete certificate.poolId
     for (const pile of run.model.auction.piles)
@@ -202,7 +199,7 @@ it('floats the assigned Shortline on one additional share and places its home wi
     )!
     account.amount = 200
     const certificate = run.state.certificates.find(
-        (c) => c.kind === 'share' && !c.retired && c.companyId === short && c.poolId === 'market'
+        (c) => c.kind === 'share' && c.companyId === short && c.poolId === 'market'
     )!
     const result = run.act('BuyShares', {
         buyer: { kind: 'player', playerId },
@@ -213,9 +210,7 @@ it('floats the assigned Shortline on one additional share and places its home wi
     expect(getCompany(run.state, short).floated).toBe(true)
     expect(cashOwnedBy(run.state, { kind: 'company', companyId: short })).toBe(860)
     expect(run.state.stations.find((s) => s.id === `${short}:home`)?.status).toBe('placed')
-    expect(run.state.certificates.filter((c) => c.companyId === 'PEIR' && !c.retired)).toHaveLength(
-        5
-    )
+    expect(run.state.certificates.filter((c) => c.companyId === 'PEIR')).toHaveLength(5)
     run.act('FinishStockTurn')
     for (let turn = 0; turn < 3; turn++) run.act('FinishStockTurn')
     expect(run.state.machineState).toBe('LayingTrack')

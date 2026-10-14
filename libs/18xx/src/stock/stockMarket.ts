@@ -1,8 +1,10 @@
 import * as Type from 'typebox'
+import { Clone } from 'typebox/value'
 import {
     assert,
     assertExists,
     CardinalDirection,
+    deepFreeze,
     createCoordinatedNode,
     RectilinearGrid,
     type RectilinearGridNode
@@ -20,24 +22,21 @@ export const StockMarketSpace = Type.Object(
     { additionalProperties: false }
 )
 export type StockMarketSpace = Type.Static<typeof StockMarketSpace>
+export const StockMarketStack = Type.Object(
+    { spaceId: Type.String(), companyIds: Type.Array(Type.String()) },
+    { additionalProperties: false }
+)
+export type StockMarketStack = Type.Static<typeof StockMarketStack>
 export const StockMarket = Type.Object(
-    {
-        spaces: Type.Array(StockMarketSpace),
-        stacks: Type.Array(
-            Type.Object(
-                { spaceId: Type.String(), companyIds: Type.Array(Type.String()) },
-                { additionalProperties: false }
-            )
-        )
-    },
+    { stacks: Type.Array(StockMarketStack) },
     { additionalProperties: false }
 )
 export type StockMarket = Type.Static<typeof StockMarket>
 
-export function createRectangularStockMarket(
+export function createRectangularStockMarketSpaces(
     rows: readonly (readonly (number | null)[])[],
     color: (row: number, column: number) => string
-): StockMarket {
+): StockMarketSpace[] {
     const grid = new RectilinearGrid<RectilinearGridNode & { space: StockMarketSpace }>()
     const spaces: StockMarketSpace[] = []
     for (const [row, prices] of rows.entries())
@@ -68,34 +67,101 @@ export function createRectangularStockMarket(
             if (neighbor) node.space.moves[move] = neighbor.space.id
         }
     }
-    return { spaces, stacks: [] }
+    return spaces
 }
-export function stockMarketSpace(market: StockMarket, spaceId: string): StockMarketSpace {
-    const space = market.spaces.find((space) => space.id === spaceId)
-    assertExists(space, `Unknown stock market space: ${spaceId}`)
-    return space
+
+/** A title's printed stock market; the State records only where company markers stand. */
+export class StockMarketChart {
+    readonly spaces: readonly StockMarketSpace[]
+    private readonly spacesById: ReadonlyMap<string, StockMarketSpace>
+
+    constructor(spaces: readonly StockMarketSpace[]) {
+        const definition = Clone(spaces)
+        this.spacesById = new Map(definition.map((space) => [space.id, space]))
+        assert(this.spacesById.size === definition.length, 'Duplicate stock market space')
+        for (const space of definition)
+            for (const next of Object.values(space.moves)) this.space(next)
+        deepFreeze(definition)
+        this.spaces = definition
+    }
+
+    space(spaceId: string): StockMarketSpace {
+        const space = this.spacesById.get(spaceId)
+        assertExists(space, `Unknown stock market space: ${spaceId}`)
+        return space
+    }
+
+    companySpace(market: StockMarket, companyId: string): StockMarketSpace {
+        return this.space(companyMarketSpaceId(market, companyId))
+    }
+
+    move(spaceId: string, direction: string, steps: number): StockMarketSpace {
+        let space = this.space(spaceId)
+        for (let step = 0; step < steps; step++) {
+            const next = space.moves[direction]
+            if (!next) break
+            space = this.space(next)
+        }
+        return space
+    }
+
+    placeMarker(market: StockMarket, companyId: string, spaceId: string): void {
+        this.space(spaceId)
+        placeStockMarker(market, companyId, spaceId)
+    }
+
+    moveCompanyMarker(
+        market: StockMarket,
+        companyId: string,
+        direction: string,
+        steps: number
+    ): StockMarketMove | undefined {
+        const from = this.companySpace(market, companyId)
+        const to = this.move(from.id, direction, steps)
+        if (to.id === from.id) return undefined
+        this.placeMarker(market, companyId, to.id)
+        return { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to.id }
+    }
+
+    dividendMove(market: StockMarket, companyId: string, paying: boolean): StockMarketMove {
+        const from = this.companySpace(market, companyId)
+        const direction = paying ? 'right' : 'left'
+        const to = from.moves[direction] ?? from.moves[paying ? 'up' : 'down'] ?? from.id
+        return { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to }
+    }
+
+    order(market: StockMarket): string[] {
+        return [...market.stacks]
+            .sort((a, b) => {
+                const left = this.space(a.spaceId)
+                const right = this.space(b.spaceId)
+                return (
+                    right.price - left.price || right.column - left.column || left.row - right.row
+                )
+            })
+            .flatMap((stack) => stack.companyIds)
+    }
+
+    validate(market: StockMarket, companyIds: readonly string[]): void {
+        assert(
+            new Set(market.stacks.map((stack) => stack.spaceId)).size === market.stacks.length,
+            'Duplicate market stack'
+        )
+        const placed = market.stacks.flatMap((stack) => stack.companyIds)
+        assert(new Set(placed).size === placed.length, 'Duplicate stock market marker')
+        for (const id of placed) assert(companyIds.includes(id), 'Unknown stock market company')
+        for (const stack of market.stacks) this.space(stack.spaceId)
+    }
 }
-export function companyMarketSpace(market: StockMarket, companyId: string): StockMarketSpace {
+
+export function companyMarketSpaceId(market: StockMarket, companyId: string): string {
     const stack = market.stacks.find((stack) => stack.companyIds.includes(companyId))
     assertExists(stack, `Company has no stock market marker: ${companyId}`)
-    return stockMarketSpace(market, stack.spaceId)
+    return stack.spaceId
 }
-export function moveMarketSpace(
-    market: StockMarket,
-    spaceId: string,
-    direction: string,
-    steps: number
-): StockMarketSpace {
-    let space = stockMarketSpace(market, spaceId)
-    for (let step = 0; step < steps; step++) {
-        const next = space.moves[direction]
-        if (!next) break
-        space = stockMarketSpace(market, next)
-    }
-    return space
-}
+
+/** Moves a company's marker to a space taken from the chart, such as a recorded move's. */
 export function placeStockMarker(market: StockMarket, companyId: string, spaceId: string): void {
-    stockMarketSpace(market, spaceId)
     const previous = market.stacks.find((stack) => stack.companyIds.includes(companyId))
     if (previous?.spaceId === spaceId) return
     if (previous) previous.companyIds.splice(previous.companyIds.indexOf(companyId), 1)
@@ -108,14 +174,7 @@ export function placeStockMarker(market: StockMarket, companyId: string, spaceId
     market.stacks = market.stacks.filter((stack) => stack.companyIds.length > 0)
 }
 
-/** A company's place in its space's stack, counting from the top. */
-export function stockMarkerStackIndex(market: StockMarket, companyId: string): number {
-    const stack = market.stacks.find((stack) => stack.companyIds.includes(companyId))
-    assertExists(stack, `Company has no stock market marker: ${companyId}`)
-    return stack.companyIds.indexOf(companyId)
-}
-
-/** Returns a company's marker to a space at a given place in its stack. */
+/** Returns a company's marker to a recorded space at a given place in its stack. */
 export function restoreStockMarker(
     market: StockMarket,
     companyId: string,
@@ -129,17 +188,11 @@ export function restoreStockMarker(
     stack.companyIds.splice(Math.min(index, stack.companyIds.length), 0, companyId)
 }
 
-export function moveCompanyMarker(
-    market: StockMarket,
-    companyId: string,
-    direction: string,
-    steps: number
-): StockMarketMove | undefined {
-    const from = companyMarketSpace(market, companyId)
-    const to = moveMarketSpace(market, from.id, direction, steps)
-    if (to.id === from.id) return undefined
-    placeStockMarker(market, companyId, to.id)
-    return { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to.id }
+/** A company's place in its space's stack, counting from the top. */
+export function stockMarkerStackIndex(market: StockMarket, companyId: string): number {
+    const stack = market.stacks.find((stack) => stack.companyIds.includes(companyId))
+    assertExists(stack, `Company has no stock market marker: ${companyId}`)
+    return stack.companyIds.indexOf(companyId)
 }
 
 export function removeStockMarker(market: StockMarket, companyId: string): void {
@@ -150,44 +203,9 @@ export function removeStockMarker(market: StockMarket, companyId: string): void 
         }))
         .filter((stack) => stack.companyIds.length > 0)
 }
-export function stockMarketOrder(market: StockMarket): string[] {
-    return [...market.stacks]
-        .sort((a, b) => {
-            const left = stockMarketSpace(market, a.spaceId)
-            const right = stockMarketSpace(market, b.spaceId)
-            return right.price - left.price || right.column - left.column || left.row - right.row
-        })
-        .flatMap((stack) => stack.companyIds)
-}
-export function validateStockMarket(market: StockMarket, companyIds: readonly string[]): void {
-    assert(
-        new Set(market.spaces.map((space) => space.id)).size === market.spaces.length,
-        'Duplicate stock market space'
-    )
-    assert(
-        new Set(market.stacks.map((stack) => stack.spaceId)).size === market.stacks.length,
-        'Duplicate market stack'
-    )
-    const placed = market.stacks.flatMap((stack) => stack.companyIds)
-    assert(new Set(placed).size === placed.length, 'Duplicate stock market marker')
-    for (const id of placed) assert(companyIds.includes(id), 'Unknown stock market company')
-    for (const stack of market.stacks) stockMarketSpace(market, stack.spaceId)
-    for (const space of market.spaces)
-        for (const next of Object.values(space.moves)) stockMarketSpace(market, next)
-}
 
 export const StockMarketMove = Type.Object(
     { companyId: Type.String(), fromMarketSpaceId: Type.String(), toMarketSpaceId: Type.String() },
     { additionalProperties: false }
 )
 export type StockMarketMove = Type.Static<typeof StockMarketMove>
-export function dividendMarketMove(
-    market: StockMarket,
-    companyId: string,
-    paying: boolean
-): StockMarketMove {
-    const from = companyMarketSpace(market, companyId)
-    const direction = paying ? 'right' : 'left'
-    const to = from.moves[direction] ?? from.moves[paying ? 'up' : 'down'] ?? from.id
-    return { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to }
-}

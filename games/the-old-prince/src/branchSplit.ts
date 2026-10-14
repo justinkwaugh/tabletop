@@ -1,3 +1,4 @@
+import { TheOldPrinceMarket } from './stockMarket.js'
 import { assert, type GameState } from '@tabletop/common'
 import {
     homeStationId,
@@ -5,7 +6,6 @@ import {
     getCompany,
     settleCashPayments,
     replaceStation,
-    placeStockMarker,
     evaluatePresidency,
     applyPresidencyChange,
     recordStockAction,
@@ -16,7 +16,6 @@ import {
     certificatesOwnedBy,
     sameOwner,
     sharesOwned,
-    stockMarketSpace,
     trainsOwnedBy,
     type Owner,
     type Portfolio,
@@ -65,8 +64,7 @@ export type BranchSplitPreview = {
     stations: { station: Extract<Station, { status: 'placed' }>; protectedHome: boolean }[]
 }
 export type BranchSplitResult =
-    | { details: BranchSplitPreview; reason?: never }
-    | { details?: never; reason: string }
+    { details: BranchSplitPreview; reason?: never } | { details?: never; reason: string }
 
 export class TheOldPrinceBranchSplit {
     constructor(private readonly state: BranchSplitState) {}
@@ -120,9 +118,7 @@ export class TheOldPrinceBranchSplit {
         )
     }
     prices() {
-        return theOldPrinceStartMarketSpaces(this.state).map((id) =>
-            stockMarketSpace(this.state.stockMarket, id)
-        )
+        return theOldPrinceStartMarketSpaces(this.state).map((id) => TheOldPrinceMarket.space(id))
     }
     evaluate(request: BranchSplitRequest): BranchSplitResult {
         const { parentId, branchId, playerId, marketSpaceId } = request
@@ -227,7 +223,7 @@ export class TheOldPrinceBranchSplit {
         bankRow.childShares = childBankShares
         const tranche = availableTheOldPrinceTranche(this.state)
         assert(tranche, 'A split requires an available tranche')
-        const price = stockMarketSpace(this.state.stockMarket, marketSpaceId).price
+        const price = TheOldPrinceMarket.space(marketSpaceId).price
         const cash = cashOwnedBy(this.state, treasury)
         assert(typeof cash === 'number', 'The parent requires a finite treasury')
         const hunslet = certificatesOwnedBy(this.state, treasury).find(
@@ -352,7 +348,6 @@ export class TheOldPrinceBranchSplit {
         if (!state.certificatePools.some((pool) => pool.id === `treasury:${parent.id}`))
             state.certificatePools.push({
                 id: `treasury:${parent.id}`,
-                name: 'Treasury shares',
                 owner: treasury
             })
         settleCashPayments(state, details.payments)
@@ -360,10 +355,7 @@ export class TheOldPrinceBranchSplit {
             const certificate = state.certificates.find(
                 (certificate) => certificate.id === transfer.certificateId
             )
-            assert(
-                certificate && !certificate.retired,
-                'A split requires its existing certificates'
-            )
+            assert(certificate, 'A split requires its existing certificates')
             certificate.owner = transfer.owner
             delete certificate.poolId
             if (transfer.poolId) certificate.poolId = transfer.poolId
@@ -388,8 +380,8 @@ export class TheOldPrinceBranchSplit {
         child.floated = false
         child.operated = false
         child.president = { kind: 'player', playerId: request.playerId }
-        child.parPrice = stockMarketSpace(state.stockMarket, request.marketSpaceId).price
-        placeStockMarker(state.stockMarket, child.id, request.marketSpaceId)
+        child.parPrice = TheOldPrinceMarket.space(request.marketSpaceId).price
+        TheOldPrinceMarket.placeMarker(state.stockMarket, child.id, request.marketSpaceId)
         tranche.companyIds.push(child.id)
         for (const companyId of [parent.id, child.id]) {
             const result = evaluatePresidency(
@@ -406,7 +398,6 @@ export class TheOldPrinceBranchSplit {
     }
     private shares(companyId: string) {
         return this.state.certificates
-            .filter((certificate) => !certificate.retired)
             .filter((certificate) => certificate.kind === 'share')
             .filter((certificate) => certificate.companyId === companyId)
     }

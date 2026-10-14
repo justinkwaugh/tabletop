@@ -41,8 +41,7 @@
         {#each exchanges as option (`${option.playerId}:${option.privateCompanyId}:${option.certificateId}`)}
             <span class="power">
                 <span class="name"
-                    >{owner(option.playerId)}{getCompany(gameState, option.privateCompanyId)
-                        .name}</span
+                    >{owner(option.playerId)}{session.companyName(option.privateCompanyId)}</span
                 >
                 <PrivateExchangeButton {session} {option} />
             </span>
@@ -50,8 +49,7 @@
         {#each trackPowers as power (`${power.playerId}:${power.privateCompanyId}`)}
             <span class="power">
                 <span class="name"
-                    >{owner(power.playerId)}{getCompany(gameState, power.privateCompanyId)
-                        .name}</span
+                    >{owner(power.playerId)}{session.companyName(power.privateCompanyId)}</span
                 >
                 <PrivateTrackPowerButton
                     {session}

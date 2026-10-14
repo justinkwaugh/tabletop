@@ -14,14 +14,12 @@ export function prepareEighteenThirtyPrivates(
     ] as const) {
         const definition = EighteenThirtyPrivates.find((item) => item.id === id)
         assert(definition, 'Missing private definition')
-        const { name, revenue } = definition
-        state.companies.push({ id, name, kind: 'private', privateRevenue: revenue })
+        const { revenue } = definition
+        state.companies.push({ id, kind: 'private', privateRevenue: revenue })
         state.certificates.push({
             id: `${id}:charter`,
             companyId: id,
             kind: 'private',
-            certificateLimitCount: 1,
-            retired: false,
             owner: { kind: 'player', playerId: players[playerIndex].playerId }
         })
     }

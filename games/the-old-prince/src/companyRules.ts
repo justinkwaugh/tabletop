@@ -1,3 +1,4 @@
+import { TheOldPrinceMarket } from './stockMarket.js'
 import {
     applyPresidencyChange,
     applyStationPlacement,
@@ -10,11 +11,11 @@ import {
     grantOwnershipLimitExemption,
     homeStationId,
     presidentCertificate,
+    releaseTrains,
     replaceStation,
     sameOwner,
     sharesStillToFloat,
-    stockMarketSpace,
-    unownedTrain,
+    trainsOwnedBy,
     type CompanyRules,
     type FormationState,
     type StockState
@@ -33,7 +34,6 @@ export function availableTheOldPrinceTranche(state: FormationState) {
             !!company.operated ||
             state.certificates.every(
                 (certificate) =>
-                    certificate.retired ||
                     certificate.kind !== 'share' ||
                     certificate.companyId !== companyId ||
                     certificate.poolId === 'reserved' ||
@@ -46,7 +46,7 @@ export function availableTheOldPrinceTranche(state: FormationState) {
 export function theOldPrinceStartMarketSpaces(state: StockState): string[] {
     const reached = (phaseId: string) => TheOldPrincePhases.isAtLeast(state.phaseId, phaseId)
     const minimumRow = reached('7') ? 6 : reached('3+') ? 5 : reached('5H') ? 4 : 3
-    return state.stockMarket.spaces
+    return TheOldPrinceMarket.spaces
         .filter((space) => space.column === 1 && space.row >= minimumRow)
         .map((space) => space.id)
 }
@@ -62,13 +62,13 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         const peir = state.certificates.find(
             (certificate) => certificate.id === association.peirCertificateId
         )
-        if (!peir || peir.retired || peir.owner.kind !== 'player')
+        if (!peir || peir.owner.kind !== 'player')
             return 'The associated PEIR share must be owned by a player.'
         const certificate = presidentCertificate(state, companyId)
         if (!certificate || certificate.owner.kind !== 'bank' || certificate.poolId !== 'market')
             return 'The president’s certificate must be available from the Bank.'
         return {
-            price: stockMarketSpace(state.stockMarket, marketSpaceId).price * 2,
+            price: TheOldPrinceMarket.space(marketSpaceId).price * 2,
             recipient: { kind: 'bank' },
             payers: theOldPrincePurchasePayers(state, buyer)
         }
@@ -112,7 +112,6 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         }
         const replacement = state.certificates.find(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 certificate.companyId === companyId &&
                 !certificate.president &&
@@ -121,8 +120,8 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
                 certificate.poolId === 'market'
         )
         assertExists(replacement, 'PEIR exchange requires an ordinary Bank share')
-        const owner = exchangeCertificate(state, association.peirCertificateId, replacement.id)
-        grantOwnershipLimitExemption(state, companyId, owner)
+        const exchange = exchangeCertificate(state, association.peirCertificateId, replacement.id)
+        grantOwnershipLimitExemption(state, companyId, exchange.owner)
         const presidency = evaluatePresidency(
             state,
             companyId,
@@ -145,13 +144,13 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
             )
             assertExists(cash, 'PEIR requires a treasury')
             cash.amount = 0
-            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-                train.status === 'owned' && sameOwner(train.owner, cash.owner)
-                    ? unownedTrain(train, 'removed')
-                    : train
+            releaseTrains(
+                state.trainInventory,
+                trainsOwnedBy(state, cash.owner).map((train) => train.id),
+                'removed'
             )
             closePrivate(state, 'KM')
         }
-        return [{ surrenderedId: association.peirCertificateId, receivedId: replacement.id, owner }]
+        return [exchange]
     }
 }

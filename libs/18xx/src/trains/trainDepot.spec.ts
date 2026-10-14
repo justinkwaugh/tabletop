@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
 import { TrainDepot } from './trainDepot.js'
+import { releaseTrains } from './train.js'
 const depot = new TrainDepot({
     id: 'test',
     trains: [
@@ -36,8 +37,10 @@ it('keeps finite identities through ownership and removal and advances the suppl
     }
     expect(depot.remaining(inventory, 'local')).toBe(0)
     expect(depot.nextDefinitionId(inventory)).toBe('express')
-    inventory.trains[0] = { id: inventory.trains[0].id, definitionId: 'local', status: 'removed' }
+    releaseTrains(inventory, [inventory.trains[0].id], 'removed')
+    expect(inventory.trains).toHaveLength(1)
     depot.validateInventory(inventory, ['A'], [])
+    expect(depot.remaining(inventory, 'local')).toBe(0)
     expect(depot.nextDefinitionId(inventory)).toBe('express')
 })
 it('issues unlimited trains only on purchase and preserves deterministic identities through removal', () => {
@@ -53,19 +56,27 @@ it('issues unlimited trains only on purchase and preserves deterministic identit
     const replay = structuredClone(before)
     depot.purchase(replay, offered.id, 'express', { kind: 'company', companyId: 'A' })
     expect(replay).toEqual(inventory)
-    inventory.trains[inventory.trains.length - 1] = {
-        id: offered.id,
-        definitionId: 'express',
-        status: 'removed'
-    }
+    releaseTrains(inventory, [offered.id], 'removed')
     depot.validateInventory(inventory, [], [])
     expect(depot.nextTrain(inventory, 'express')!.id).not.toBe(offered.id)
 })
+it('numbers an exported unlimited train so no later train repeats its identity', () => {
+    const inventory = depot.createInventory()
+    for (const train of inventory.trains)
+        depot.purchase(inventory, train.id, 'local', { kind: 'company', companyId: 'A' })
+    const first = depot.export(inventory, 'express')
+    const second = depot.export(inventory, 'express')
+    expect(second.id).not.toBe(first.id)
+    expect(inventory.trains.map((train) => train.id)).not.toContain(first.id)
+    const next = depot.nextTrain(inventory, 'express')!
+    expect([first.id, second.id]).not.toContain(next.id)
+    depot.validateInventory(inventory, ['A'], [])
+})
 it('rejects corrupt supply, duplicate identities, unknown owners and reused issuance cursors', () => {
     const inventory = depot.createInventory()
-    const missing = structuredClone(inventory)
-    missing.trains.pop()
-    expect(() => depot.validateInventory(missing, [], [])).toThrow('Missing finite')
+    const leftPlay = structuredClone(inventory)
+    leftPlay.trains.pop()
+    expect(() => depot.validateInventory(leftPlay, [], [])).not.toThrow()
     const duplicate = structuredClone(inventory)
     duplicate.trains.push(duplicate.trains[0])
     expect(() => depot.validateInventory(duplicate, [], [])).toThrow('Duplicate train')
@@ -85,14 +96,13 @@ it('keeps Market returns separate from new supply, including unlimited train ide
     const cursor = inventory.nextTrainNumber
     inventory.trains = inventory.trains.map((entry) =>
         entry.id === train.id
-            ? { id: entry.id, definitionId: entry.definitionId, status: 'market', hasRun: true }
+            ? { id: entry.id, definitionId: entry.definitionId, status: 'market' }
             : entry
     )
     depot.purchase(inventory, train.id, 'express', { kind: 'company', companyId: 'B' })
     expect(inventory.nextTrainNumber).toBe(cursor)
     expect(inventory.trains.find((entry) => entry.id === train.id)).toMatchObject({
         status: 'owned',
-        hasRun: true,
         owner: { kind: 'company', companyId: 'B' }
     })
     expect(depot.nextTrain(inventory, 'express')!.id).not.toBe(train.id)

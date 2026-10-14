@@ -191,11 +191,11 @@ it('finishes TOP’s current set, a final stock round, and exactly three final o
     expect(current.operatingSet).toMatchObject({ number: 2, roundNumber: 3, roundCount: 3 })
     expect(current.machineState).toBe('GameOver')
 })
-it('values TOP’s PEIR and Union Bank assets once and ignores retired certificates and railway treasuries', () => {
+it('values TOP’s PEIR and Union Bank assets once and ignores certificates out of play and railway treasuries', () => {
     const { state } = example(Top)
     const wealth = finalWealth(state, TheOldPrinceEndingRules)
-    const owner = state.certificates.find((c) => c.companyId === 'UB' && !c.retired)!
-    if (owner.retired || owner.owner.kind !== 'player') throw Error('Expected Union Bank owner')
+    const owner = state.certificates.find((c) => c.companyId === 'UB')!
+    if (owner.owner.kind !== 'player') throw Error('Expected Union Bank owner')
     const ownerId = owner.owner.playerId
     const player = wealth.find((p) => p.playerId === ownerId)!
     const unionItems = player.items.filter((item) => item.label.startsWith('Union Bank:'))
@@ -204,7 +204,7 @@ it('values TOP’s PEIR and Union Bank assets once and ignores retired certifica
     expect(player.items.some((item) => item.assetId === owner.id)).toBe(false)
     expect(player.items.some((item) => item.assetId === 'cash:company:ML')).toBe(false)
     for (const certificate of state.certificates.filter(
-        (c) => c.kind === 'share' && c.companyId === 'PEIR' && !c.retired
+        (c) => c.kind === 'share' && c.companyId === 'PEIR'
     )) {
         const item = wealth.flatMap((p) => p.items).find((item) => item.assetId === certificate.id)
         if (item) expect(item.value).toBe(80)
@@ -212,7 +212,7 @@ it('values TOP’s PEIR and Union Bank assets once and ignores retired certifica
     const certificate = state.certificates.find(
         (c) => c.id === unionItems.find((item) => item.assetId !== 'cash:company:UB')!.assetId
     )!
-    certificate.retired = true
+    state.certificates = state.certificates.filter((other) => other.id !== certificate.id)
     const revised = finalWealth(state, TheOldPrinceEndingRules)
     expect(revised.flatMap((p) => p.items).some((item) => item.assetId === certificate.id)).toBe(
         false

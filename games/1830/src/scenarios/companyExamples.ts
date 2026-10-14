@@ -44,7 +44,7 @@ export function createEighteenThirtyCompanyExample(
         for (const major of Object.values(EighteenThirtyMajors)) {
             if (state.companies.some((company) => company.id === major.id)) continue
             state.companies.push({
-                ...major,
+                id: major.id,
                 kind: 'major',
                 shareCount: 10,
                 started: false,
@@ -73,7 +73,7 @@ export function createEighteenThirtyCompanyExample(
             ['CO:share:2', 2]
         ] as const) {
             const certificate = state.certificates.find((certificate) => certificate.id === id)
-            assert(certificate && !certificate.retired, 'Missing fixture certificate')
+            assert(certificate, 'Missing fixture certificate')
             certificate.owner = { kind: 'player', playerId: players[index].playerId }
             delete certificate.poolId
         }
@@ -182,10 +182,12 @@ export function createEighteenThirtyCompanyExample(
             }
         const next = position !== 'diesel' ? '5' : 'D'
         const ranks = EighteenThirtyTrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf(next)
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'depot' &&
+                    ranks.indexOf(train.definitionId) < ranks.indexOf(next)
+                )
         )
         const treasury = state.cash.find(
             (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'PRR'
@@ -195,7 +197,7 @@ export function createEighteenThirtyCompanyExample(
     }
     if (position === 'transfers' || position === 'powers') {
         const delaware = state.certificates.find((item) => item.companyId === 'DH')
-        assert(delaware && !delaware.retired, 'The example requires Delaware & Hudson')
+        assert(delaware, 'The example requires Delaware & Hudson')
         delaware.owner = { kind: 'player', playerId: players[0].playerId }
         state.phaseId = '3'
         for (const companyId of ['PRR', 'NYC']) {
@@ -207,20 +209,20 @@ export function createEighteenThirtyCompanyExample(
             })
         }
         const ranks = EighteenThirtyTrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('3')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) =>
+                !(
+                    train.status === 'depot' &&
+                    ranks.indexOf(train.definitionId) < ranks.indexOf('3')
+                )
         )
     }
     if (position === 'funding' || position === 'bankruptcy') {
         state.phaseId = '3'
         state.tileInventory = EighteenThirtyTileSet.createInventory(BuiltTrack)
         const ranks = EighteenThirtyTrainDepot.definition.supply.map((entry) => entry.definitionId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            ranks.indexOf(train.definitionId) < ranks.indexOf('4')
-                ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-                : train
+        state.trainInventory.trains = state.trainInventory.trains.filter(
+            (train) => !(ranks.indexOf(train.definitionId) < ranks.indexOf('4'))
         )
         const treasury = state.cash.find(
             (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'PRR'
@@ -232,20 +234,13 @@ export function createEighteenThirtyCompanyExample(
         if (position === 'funding')
             for (const id of ['PRR:share:5', 'PRR:share:6']) {
                 const certificate = state.certificates.find((item) => item.id === id)
-                assert(
-                    certificate && !certificate.retired,
-                    'Funding example requires ordinary shares'
-                )
+                assert(certificate, 'Funding example requires ordinary shares')
                 certificate.owner = { kind: 'player', playerId: players[1].playerId }
                 delete certificate.poolId
             }
         if (position === 'bankruptcy')
             for (const certificate of state.certificates) {
-                if (
-                    !certificate.retired &&
-                    certificate.kind === 'share' &&
-                    !certificate.president
-                ) {
+                if (certificate.kind === 'share' && !certificate.president) {
                     certificate.owner = { kind: 'bank' }
                     certificate.poolId = 'initial-offering'
                 }

@@ -121,7 +121,7 @@ export class TrainBuyingModule {
                 action.metadata?.accepted &&
                 offer &&
                 isCompanyPurchaseOffer(offer) &&
-                offer.companyId === step.companyId &&
+                offer.buyer.companyId === step.companyId &&
                 offer.asset.kind === 'train'
             ) {
                 assert(offer.seller.kind === 'company', 'Accepted train requires a company seller')

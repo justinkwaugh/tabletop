@@ -6,11 +6,13 @@ import {
     PlayerAction,
     HydratableAction,
     assert,
+    assertExists,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
 import { pendingCompanyDecision, type CompanyDecisionState } from '../privates/companyDecision.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
+import type { TrainState } from '../trains/train.js'
 import type { CashPayment } from '../finance/cashPayments.js'
 import { DeparturePayments, departurePaymentsField } from '../trains/trainDepartures.js'
 import {
@@ -28,14 +30,26 @@ import {
     OrdinaryPurchaseOffer,
     OrdinaryPendingPurchaseOffer,
     isCompanyPurchaseOffer,
+    companyOfferRequest,
     evaluatePurchaseOffer,
     settlePurchaseOffer,
     type TransferRules
 } from './purchaseOffer.js'
 const PurchaseMetadataFields = {
     accepted: Type.Boolean(),
+    trainDefinitionId: Type.Optional(Type.String()),
     companyChanges: Type.Optional(CompanyChanges),
     departurePayments: DeparturePayments
+}
+/** The offered train's kind, recorded so history can name it after the train leaves play. */
+function offeredTrain(
+    state: Pick<TrainState, 'trainInventory'>,
+    asset: { kind: string; trainId?: string }
+): { trainDefinitionId?: string } {
+    if (asset.kind !== 'train') return {}
+    const train = state.trainInventory.trains.find((entry) => entry.id === asset.trainId)
+    assertExists(train, 'An offered train is in play')
+    return { trainDefinitionId: train.definitionId }
 }
 export const OfferPurchase = Type.Object(
     {
@@ -100,7 +114,7 @@ export class HydratedOfferPurchase
         assert(result.buyerPlayerId && result.sellerPlayerId, 'Offer requires both players')
         const offer: PurchaseOffer = {
             id: this.id,
-            companyId: this.companyId,
+            buyer: { kind: 'company', companyId: this.companyId },
             asset: this.asset,
             seller: this.seller,
             price: this.price,
@@ -108,6 +122,7 @@ export class HydratedOfferPurchase
             sellerPlayerId: result.sellerPlayerId
         }
         const companies = new CompanyChangeRecorder(state)
+        const train = offeredTrain(state, offer.asset)
         const accepted = offer.buyerPlayerId === offer.sellerPlayerId
         const settlement = accepted
             ? settlePurchaseOffer(state, offer, this.#rules, this.#trains)
@@ -117,6 +132,7 @@ export class HydratedOfferPurchase
             companyChanges: companies.changes(state),
             offer,
             accepted,
+            ...train,
             ...(settlement.effects ? { effects: settlement.effects } : {}),
             ...departurePaymentsField(settlement.payments)
         }
@@ -191,7 +207,12 @@ export class HydratedRespondToPurchaseOffer
         if (!this.accept) return true
         if (!isCompanyPurchaseOffer(offer))
             return privateSaleReason(state, this.#stocks, offerSaleRequest(offer)) === undefined
-        const result = evaluatePurchaseOffer(state, offer, this.#rules, this.#trains)
+        const result = evaluatePurchaseOffer(
+            state,
+            companyOfferRequest(offer),
+            this.#rules,
+            this.#trains
+        )
         return (
             result.buyerPlayerId === offer.buyerPlayerId &&
             result.sellerPlayerId === offer.sellerPlayerId
@@ -201,6 +222,7 @@ export class HydratedRespondToPurchaseOffer
         assert(this.isValid(state), 'Invalid or stale purchase response')
         const offer = state.purchaseOffer!
         const companies = new CompanyChangeRecorder(state)
+        const train = offeredTrain(state, offer.asset)
         const payments: CashPayment[] = []
         let effects: PurchaseEffects | undefined
         if (isCompanyPurchaseOffer(offer)) {
@@ -218,6 +240,7 @@ export class HydratedRespondToPurchaseOffer
             companyChanges: companies.changes(state),
             offer,
             accepted: this.accept,
+            ...train,
             ...(effects ? { effects } : {}),
             ...departurePaymentsField(payments)
         }

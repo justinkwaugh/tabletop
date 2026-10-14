@@ -137,9 +137,6 @@ describe('1846 independent operations', () => {
         expect(getCompany(table.state, 'MS').operated).toBe(true)
         expect(table.state.trackStep?.companyId).toBe('BIG4')
         expect(table.state.operatingSet?.completedCompanyIds).toEqual(['MS'])
-        expect(table.state.trainInventory.trains.find((train) => train.id === 'MS:2')?.hasRun).toBe(
-            true
-        )
     })
     it('rejects a foreign train, wrong actor, disconnected route and duplicate train', () => {
         const table = routeGame()

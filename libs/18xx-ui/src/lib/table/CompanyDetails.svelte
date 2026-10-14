@@ -33,13 +33,13 @@
         onPreviewMap,
         company,
         pricePresentation = DefaultCompanyPricePresentation,
-        displayName = company.name,
+        displayName = session.companyName(company.id),
         vertical = false,
         unavailable = false,
         purchaseSources,
         canPurchase,
         trainColors,
-        poolName = (pool) => pool.name
+        poolName = (pool) => session.poolName(pool.id)
     }: {
         pricePresentation?: CompanyPricePresentation
         unavailable?: boolean
@@ -85,7 +85,9 @@
         ownership.findIndex((entry) => entry.owner.kind === 'bank' || sameOwner(entry.owner, owner))
     )
     const numberedShares = $derived(ownership.some((row) => row.certificateNumbers.length))
-    const marketPrice = $derived(companySharePrice(gameState.stockMarket, company.id))
+    const marketPrice = $derived(
+        companySharePrice(session.stockMarketChart, gameState.stockMarket, company.id)
+    )
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const stations = $derived(
         gameState.stations.filter((station) => station.companyId === company.id)
@@ -141,7 +143,7 @@
     class="company-detail"
     class:vertical
     class:unavailable
-    aria-label={`${company.name} details`}
+    aria-label={`${session.companyName(company.id)} details`}
 >
     <header>
         <div class="identity">
@@ -219,7 +221,7 @@
                 {#if session.companySoldOut(company.id)}<span class="sold-out">Sold out</span>{/if}
             </div>
             {#if ownership.length}
-                <table aria-label={`${company.name} share ownership`}>
+                <table aria-label={`${session.companyName(company.id)} share ownership`}>
                     <tbody>
                         {#each ownership as entry, index (index)}
                             {@const president =
@@ -281,7 +283,7 @@
                 {#if investmentCompanies.length}
                     <h3 class="section-heading">Investments</h3>
                     {#each investmentCompanies as id (id)}<p class="investment">
-                            {getCompany(gameState, id).name}<strong
+                            {session.companyName(id)}<strong
                                 >{sharesOwned(gameState, id, owner)} shares</strong
                             >
                         </p>{/each}
@@ -314,7 +316,7 @@
                     <button
                         class="last-run"
                         disabled={session.busy || session.updatingVisibleState}
-                        aria-label={`View ${company.name}'s last run for ${money(lastRun.metadata.revenue)}`}
+                        aria-label={`View ${session.companyName(company.id)}'s last run for ${money(lastRun.metadata.revenue)}`}
                         onclick={() => onPreviewMap?.(lastRun!)}
                         >{money(lastRun.metadata.revenue)}</button
                     >
@@ -347,7 +349,7 @@
                     phaseColors={session.presentation.phaseColors}
                     token={session.privateCompanyTokens[item.id]}
                     imageUrl={session.publishedCardImage(item.id)}
-                    name={item.name}
+                    name={session.companyName(item.id)}
                     description={item.description}
                     income={item.closed ? undefined : item.privateRevenue}
                 />{#each session.privateActions.powersFor(item.id) as power (power.playerId)}<span

@@ -11,10 +11,10 @@ it('sets up the same opening position for the same seed and player count', () =>
         )
     ).toMatchInlineSnapshot(`
       [
-        "3p/1871: 90f07cb1c5d59cac",
-        "3p/7: 495e69222b5daddf",
-        "4p/1871: a30ac193821f0eff",
-        "4p/7: 3c9e74e8d2b6404f",
+        "3p/1871: 64fed59a50c687ba",
+        "3p/7: 36d8eb7037e650a3",
+        "4p/1871: 265aeccdb533fc1c",
+        "4p/7: 4eb5c1a5e54b1052",
       ]
     `)
 })

@@ -7,8 +7,7 @@ import {
     getCompany,
     privateOwner,
     sameOwner,
-    sharesOwned,
-    type Owner
+    sharesOwned
 } from '../finance/finance.js'
 import { exchangeCertificate } from '../finance/certificateExchange.js'
 import { grantOwnershipLimitExemption } from '../company/companyState.js'
@@ -28,6 +27,7 @@ export const PrivateExchangeDetails = Type.Object(
         privateCompanyId: Type.String(),
         certificateId: Type.String(),
         companyId: Type.String(),
+        shares: Type.Integer({ minimum: 1 }),
         exemptOwnershipLimit: Type.Boolean(),
         stockAction: Type.Union([Type.Literal('additional'), Type.Literal('none')]),
         presidency: Type.Optional(PresidencyChange)
@@ -36,8 +36,7 @@ export const PrivateExchangeDetails = Type.Object(
 )
 export type PrivateExchangeDetails = Type.Static<typeof PrivateExchangeDetails>
 export type PrivateExchangeResult =
-    | { details: PrivateExchangeDetails; reason?: never }
-    | { details?: never; reason: string }
+    { details: PrivateExchangeDetails; reason?: never } | { details?: never; reason: string }
 
 export function evaluatePrivateExchange(
     state: PrivateState,
@@ -71,12 +70,7 @@ export function evaluatePrivateExchange(
     )
         return { reason: 'Exchange during your own stock turn.' }
     const certificate = state.certificates.find((item) => item.id === request.certificateId)
-    if (
-        !certificate ||
-        certificate.retired ||
-        certificate.kind !== 'share' ||
-        sameOwner(certificate.owner, owner)
-    )
+    if (!certificate || certificate.kind !== 'share' || sameOwner(certificate.owner, owner))
         return { reason: 'This share is unavailable.' }
     const target = getCompany(state, certificate.companyId)
     if (target.closed) return { reason: 'The railway is closed.' }
@@ -104,6 +98,7 @@ export function evaluatePrivateExchange(
             privateCompanyId: request.privateCompanyId,
             certificateId: request.certificateId,
             companyId: target.id,
+            shares: certificate.shares,
             exemptOwnershipLimit: terms.ownershipLimit === 'exempt',
             stockAction: terms.stockAction,
             ...(presidency ? { presidency } : {})
@@ -151,14 +146,14 @@ export function applyPrivateShareExchange(
     rules: StockRules
 ): PresidencyChange | undefined {
     const surrendered = state.certificates.find(
-        (item) => !item.retired && item.kind === 'private' && item.companyId === privateCompanyId
+        (item) => item.kind === 'private' && item.companyId === privateCompanyId
     )
     const received = state.certificates.find((item) => item.id === certificateId)
     assert(
-        surrendered && received && !received.retired && received.kind === 'share',
+        surrendered && received && received.kind === 'share',
         'Private exchange requires both certificates'
     )
-    const owner: Owner = exchangeCertificate(state, surrendered.id, received.id)
+    const { owner } = exchangeCertificate(state, surrendered.id, received.id)
     closePrivate(state, privateCompanyId)
     if (exemptOwnershipLimit) grantOwnershipLimitExemption(state, received.companyId, owner)
     if (!getCompany(state, received.companyId).president) return undefined

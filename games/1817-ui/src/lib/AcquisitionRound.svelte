@@ -20,7 +20,7 @@
     const sale = $derived(session.companySale)
     const choice = $derived(session.acquirerChoice)
     const acquisition = $derived(session.buyerLoans)
-    const name = (id: string) => getCompany(gameState, id).name
+    const name = (id: string) => session.companyName(id)
     const zones = {
         offered: 'Offered for sale',
         acquisition: 'In the acquisition zone',

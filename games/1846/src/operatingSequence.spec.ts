@@ -1,9 +1,9 @@
+import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assertExists } from '@tabletop/common'
 import {
     RouteEvaluation,
     trainsOwnedBy,
-    companyMarketSpace,
     controllingOwner,
     finiteCashOwnedBy,
     nextOperatingCompany,
@@ -100,8 +100,8 @@ describe('1846 stock and operating sequence', () => {
             completedCompanyIds: [],
             companyOrder: ['MS', 'BIG4', 'NYC', 'IC']
         })
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(30)
-        expect(companyMarketSpace(table.state.stockMarket, 'NYC').price).toBe(90)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(30)
+        expect(Market1846.companySpace(table.state.stockMarket, 'NYC').price).toBe(90)
         expect(() => table.act('StartOperatingRound')).toThrow()
         table.act('AssignSteamboat')
         table.act('FinishTrack', { companyId: 'MS' })
@@ -110,7 +110,7 @@ describe('1846 stock and operating sequence', () => {
         operate(table, 'IC')
         expect(table.state.machineState).toBe('StockRound')
         expect(table.state.operatingSet?.completedCompanyIds).toEqual(['MS', 'BIG4', 'NYC', 'IC'])
-        expect(table.state.activePlayerIds).toEqual([table.state.priorityDealPlayerId])
+        expect(table.state.activePlayerIds).toEqual([table.state.turnManager.turnOrder[0]])
         expect(
             table.actions.filter((action) => action.type === 'StartOperatingRound')
         ).toHaveLength(2)
@@ -184,7 +184,7 @@ describe('1846 stock and operating sequence', () => {
     })
     it('continues to the next corporation after a zero-price closure', () => {
         const table = twoMajors()
-        const space = table.state.stockMarket.spaces.find((space) => space.price === 10)
+        const space = Market1846.spaces.find((space) => space.price === 10)
         assertExists(space)
         placeStockMarker(table.state.stockMarket, 'IC', space.id)
         const result = table.act('FinishTrack', { companyId: 'IC' })
@@ -232,11 +232,9 @@ describe('1846 stock and operating sequence', () => {
         expect(table.state.stockRound.number).toBe(2)
         expect(table.state.companies.find((company) => company.id === 'GT')?.closed).toBe(true)
         expect(trainsOwnedBy(table.state, { kind: 'company', companyId: 'GT' })).toEqual([])
-        expect(table.state.trainInventory.trains.find((entry) => entry.id === train.id)).toEqual({
-            id: train.id,
-            definitionId: '2',
-            status: 'removed'
-        })
+        expect(
+            table.state.trainInventory.trains.find((entry) => entry.id === train.id)
+        ).toBeUndefined()
         expect(table.state.trainInventory.trains.filter((entry) => entry.id !== train.id)).toEqual(
             otherTrains
         )
@@ -254,7 +252,7 @@ describe('1846 stock and operating sequence', () => {
 
     it('keeps passing stock rounds and independent-only operating sets in a bounded player-driven loop', () => {
         const table = stockGame()
-        const priority = table.state.priorityDealPlayerId
+        const priority = table.state.turnManager.turnOrder[0]
         for (let setNumber = 1; setNumber <= 3; setNumber++) {
             expect(table.state.machineState).toBe('StockRound')
             expect(table.state.stockRound.number).toBe(setNumber)

@@ -27,7 +27,7 @@ import { operatingPlayers1846 } from './receivership.js'
 import { RailroadClosure, closeRailroad } from './closeCorporation.js'
 import { SteamboatAssignment } from './steamboat.js'
 import { TrainRules1846 } from './trains.js'
-import { StockRules1846 } from './stock.js'
+import { StockRules1846, Market1846 } from './stock.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
 export const PhaseRules1846: PhaseRules = {
@@ -39,7 +39,7 @@ export const PhaseRules1846: PhaseRules = {
         }
         return state.phaseId === 'III' && train.definitionId === '2' ? 'after-operation' : undefined
     },
-    discardOrder: marketDiscardOrder,
+    discardOrder: (state, companyId) => marketDiscardOrder(Market1846, state, companyId),
     discardDestination: 'market'
 }
 const Fields = Type.Object({

@@ -4,7 +4,7 @@ import { ActionSource, Visibility, assert, assertExists } from '@tabletop/common
 import { Runtime } from './definition/gameDefinition.js'
 import {
     CanonicalValidator,
-    HydratedEighteenFortySixState,
+    hydrateEighteenFortySixState,
     type EighteenFortySixProjectedState
 } from './state.js'
 import { BankSize, DraftCompanies, isBlank } from './catalog.js'
@@ -20,7 +20,13 @@ describe('1846 setup and distribution', () => {
     it.each([3, 4, 5])('initializes the second-printing setup for %i players', (count) => {
         const { state } = start(count)
         expect(CanonicalValidator.Check(state)).toBe(true)
-        expect(state.removedPrivateIds).toHaveLength(2 * (6 - count))
+        expect(
+            DraftCompanies.filter(
+                (company) =>
+                    company.kind === 'private' &&
+                    !state.companies.some((entry) => entry.id === company.id)
+            )
+        ).toHaveLength(2 * (6 - count))
         expect(state.removedCorporationIds).toHaveLength(5 - count)
         expect(state.removedCorporationIds.every((id) => ['PRR', 'C&O', 'ERIE'].includes(id))).toBe(
             true
@@ -29,7 +35,6 @@ describe('1846 setup and distribution', () => {
         expect(
             state.cash.filter((cash) => cash.owner.kind === 'player').map((cash) => cash.amount)
         ).toEqual(Array(count).fill(400))
-        expect(state.priorityDealPlayerId).toBe(state.players[0].playerId)
         expect(state.activePlayerIds).toEqual([state.players.at(-1)?.playerId])
         expect(state.turnManager.turnOrder).toEqual(
             state.players.map((player) => player.playerId).toReversed()
@@ -60,14 +65,11 @@ describe('1846 setup and distribution', () => {
         const copy = structuredClone(state)
         delete hiddenDistribution(copy).deck
         expect(CanonicalValidator.Check(copy)).toBe(false)
-        expect(hiddenDistribution(new HydratedEighteenFortySixState(copy)).deck).toBeUndefined()
+        expect(hiddenDistribution(hydrateEighteenFortySixState(copy)).deck).toBeUndefined()
     })
     it('rejects wrong actors, unavailable cards, forged system actions and invalid action flags', () => {
         const { game, state, engine } = start()
-        const cardId = choicesFor(
-            new HydratedEighteenFortySixState(state),
-            state.activePlayerIds[0]
-        )[0]
+        const cardId = choicesFor(hydrateEighteenFortySixState(state), state.activePlayerIds[0])[0]
         for (const invalid of [
             {
                 ...action(state, cardId),
@@ -130,13 +132,13 @@ describe('1846 setup and distribution', () => {
                 const { state } = finish(count, seed, seed % 2 === 0)
                 expect(CanonicalValidator.Check(state)).toBe(true)
                 expect(money(state)).toBe(BankSize[count])
-                expect(state.purchases).toHaveLength(12 - state.removedPrivateIds.length)
+                expect(state.purchases).toHaveLength(2 * count)
                 expect(new Set(state.purchases.map((p) => p.cardId)).size).toBe(
                     state.purchases.length
                 )
-                expect(state.activePlayerIds).toEqual([state.priorityDealPlayerId])
+                expect(state.activePlayerIds).toEqual([state.players[0].playerId])
                 expect(state.result).toBeUndefined()
-                expect(state.turnManager.turnOrder[0]).toBe(state.priorityDealPlayerId)
+                expect(state.turnManager.turnOrder[0]).toBe(state.players[0].playerId)
                 for (const [id, capital, home] of [
                     ['MS', 60, 'C15'],
                     ['BIG4', 40, 'G9']
@@ -187,7 +189,7 @@ describe('1846 setup and distribution', () => {
             const owned = result.updatedState.certificates.find(
                 (certificate) => certificate.companyId === id
             )
-            expect(owned && !owned.retired && owned.owner).toEqual({
+            expect(owned && owned.owner).toEqual({
                 kind: 'player',
                 playerId: expectedOwner
             })
@@ -213,7 +215,7 @@ describe('1846 setup and distribution', () => {
         expect(engine.getValidActionTypesForPlayer(game, view, playerId, { perspective })).toEqual([
             'ChooseDraftCard'
         ])
-        const cardId = choicesFor(new HydratedEighteenFortySixState(view), playerId)[0]
+        const cardId = choicesFor(hydrateEighteenFortySixState(view), playerId)[0]
         expect(() =>
             engine.executeAction({ game, state: view, action: action(view, cardId), perspective })
         ).toThrow()
@@ -250,10 +252,7 @@ describe('1846 setup and distribution', () => {
     })
     it('re-executes choices deterministically from identical canonical state', () => {
         const { game, state, engine } = start()
-        const cardId = choicesFor(
-            new HydratedEighteenFortySixState(state),
-            state.activePlayerIds[0]
-        )[0]
+        const cardId = choicesFor(hydrateEighteenFortySixState(state), state.activePlayerIds[0])[0]
         const choice = action(state, cardId)
         expect(engine.executeCanonicalAction({ game, state, action: choice }).updatedState).toEqual(
             engine.executeCanonicalAction({ game, state, action: choice }).updatedState
@@ -275,7 +274,7 @@ describe('1846 setup and distribution', () => {
                 expect(p.packet !== undefined).toBe(mine)
                 expect(p.selections !== undefined).toBe(mine)
             }
-            expect(new HydratedEighteenFortySixState(projected).dehydrate()).toEqual(projected)
+            expect(hydrateEighteenFortySixState(projected).dehydrate()).toEqual(projected)
             const history = Visibility.projectActionHistory({
                 currentState: state,
                 actions,

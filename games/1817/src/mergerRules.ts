@@ -1,10 +1,10 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     addShort,
     applyPresidencyChange,
     cancelShorts,
-    companyMarketSpace,
     controllingOwner,
     evaluatePresidency,
     finiteCashOwnedBy,
@@ -19,7 +19,6 @@ import {
     sameOwner,
     settleCashPayments,
     sharesOwned,
-    stockMarketOrder,
     transferCompanyAssets,
     trainsOwnedBy,
     type AssetTransfer,
@@ -46,7 +45,7 @@ const SizeAfter: Readonly<Record<number, number>> = { 2: 5, 5: 10 }
 
 /** The companies that take part in a merger round, in operating order. */
 export function mergerRoundCompanyIds(state: EighteenSeventeenState): string[] {
-    return stockMarketOrder(state.stockMarket).filter((companyId) => {
+    return EighteenSeventeenMarket.order(state.stockMarket).filter((companyId) => {
         const company = getCompany(state, companyId)
         return company.floated && !inClosingZone(state.stockMarket, companyId)
     })
@@ -154,10 +153,10 @@ export function mergerPrice(
     companyId: string,
     targetId: string
 ): number {
-    const a = companyMarketSpace(state.stockMarket, companyId).price
-    const b = companyMarketSpace(state.stockMarket, targetId).price
+    const a = EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price
+    const b = EighteenSeventeenMarket.companySpace(state.stockMarket, targetId).price
     const value = getCompany(state, companyId).shareCount === 2 ? a + b : Math.floor((a + b) / 2)
-    return mergerSpace(state, value).price
+    return mergerSpace(value).price
 }
 
 export type MergerPreview = {
@@ -198,8 +197,8 @@ export function mergerPreview(
     }
 }
 
-function mergerSpace(state: EighteenSeventeenState, value: number): StockMarketSpace {
-    const space = state.stockMarket.spaces
+function mergerSpace(value: number): StockMarketSpace {
+    const space = EighteenSeventeenMarket.spaces
         .filter((space) => space.price > 0 && space.price <= value)
         .reduce<StockMarketSpace | undefined>(
             (best, space) => (!best || space.price > best.price ? space : best),
@@ -273,7 +272,7 @@ export function mergeCompanies(
     assertExists(targetPresident, 'A merged company has a president')
     const assets = transferCompanyAssets(state, targetId, companyId, { loans: true })
     const stations = moveCompanyStations(state, targetId, companyId)
-    placeStockMarker(state.stockMarket, companyId, mergerSpace(state, price).id)
+    placeStockMarker(state.stockMarket, companyId, mergerSpace(price).id)
     const newShareIds = convertCompany(state, companyId)
     const payments: CashPayment[] = []
     if (size === 2) {
@@ -298,7 +297,7 @@ function giveShare(
     owner: Owner
 ): void {
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
-    assert(certificate && !certificate.retired, 'A merger gives an issued share')
+    assert(certificate, 'A merger gives an issued share')
     certificate.owner = { ...owner }
     delete certificate.poolId
 }
@@ -313,7 +312,7 @@ function migrateHoldings(
 ): void {
     const unused = [...newShareIds]
     for (const certificate of state.certificates) {
-        if (certificate.retired || certificate.companyId !== targetId) continue
+        if (certificate.companyId !== targetId) continue
         if (certificate.kind === 'short') {
             addShort(state, companyId, certificate.owner, certificate.poolId)
             continue
@@ -328,7 +327,7 @@ function migrateHoldings(
                 })[0]
             if (certificate.poolId === treasuryPoolId(targetId)) continue
             const share = state.certificates.find((item) => item.id === id)
-            assert(share && !share.retired, 'A migrated share is issued')
+            assert(share, 'A migrated share is issued')
             share.owner = { ...certificate.owner }
             if (certificate.poolId === MarketPoolId) share.poolId = MarketPoolId
             else delete share.poolId

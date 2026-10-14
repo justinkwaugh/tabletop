@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { Definition as Shikoku } from '@tabletop/shikoku-1889'
+import { Definition as Shikoku, Shikoku1889Market } from '@tabletop/shikoku-1889'
 import { isFinishStockTurn, type SetStockInstruction } from '@tabletop/18xx'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { historyGroups } from '../../../../libs/18xx-ui/src/lib/table/historyGroups.js'
@@ -50,7 +50,7 @@ it('keeps standing instructions out of the history and shows the automatic pass 
     const groups = rounds.flatMap((round) => historyGroups(round.entries, false))
     expect(groups.map((group) => group.kind)).toEqual(['passes'])
     for (const action of actions.slice(1)) {
-        const text = JSON.stringify(historyDescription(action, state))
+        const text = JSON.stringify(historyDescription(action, state, Shikoku1889Market))
         expect(text).not.toMatch(/automatic|instruction/i)
     }
 })
@@ -89,7 +89,7 @@ it('lists an automatic purchase exactly like a purchase made by hand', () => {
     expect(
         entries.map((entry) => (entry.kind === 'action' ? entry.action.type : entry.kind))
     ).toEqual(['FinishStockTurn', 'BuyShares'])
-    const purchase = historyDescription(actions[1], result.updatedState)
+    const purchase = historyDescription(actions[1], result.updatedState, Shikoku1889Market)
     expect(purchase.text).toMatch(/^Bought 1 IR/)
     expect(JSON.stringify(purchase)).not.toMatch(/automatic|instruction/i)
 })

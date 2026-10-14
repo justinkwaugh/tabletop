@@ -17,14 +17,13 @@ function stationsPlay(privateIds: readonly string[]) {
     return playExample(EighteenThirtyTwoScenarios, 'stations', 3, (state) => {
         for (const id of privateIds) {
             const existing = state.certificates.find((item) => item.id === `${id}:charter`)
-            if (existing && !existing.retired) {
+            if (existing) {
                 existing.owner = { kind: 'company', companyId: 'CG' }
                 continue
             }
             const definition = EighteenThirtyTwoPrivates.find((item) => item.id === id)!
             state.companies.push({
                 id,
-                name: definition.name,
                 kind: 'private',
                 privateRevenue: definition.revenue
             })
@@ -32,8 +31,6 @@ function stationsPlay(privateIds: readonly string[]) {
                 id: `${id}:charter`,
                 companyId: id,
                 kind: 'private',
-                certificateLimitCount: 1,
-                retired: false,
                 owner: { kind: 'company', companyId: 'CG' }
             })
         }
@@ -125,7 +122,7 @@ function keyWestPlay(phaseId: string) {
         const central = state.companies.find((company) => company.id === 'CG')!
         state.companies.push({
             ...central,
-            ...EighteenThirtyTwoMajors.FEC
+            id: EighteenThirtyTwoMajors.FEC.id
         })
         state.cash.push({ owner: { kind: 'company', companyId: 'FEC' }, amount: 300 })
         placeStockMarker(state.stockMarket, 'FEC', '1:6')

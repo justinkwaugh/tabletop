@@ -1,9 +1,9 @@
+import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     placeStockMarker,
     cashOwnedBy,
-    companyMarketSpace,
     getCompany,
     sharesOwned,
     stockMarkerStackIndex
@@ -65,7 +65,6 @@ describe('System formation', () => {
         expect(
             play.state.certificates.filter(
                 (certificate) =>
-                    !certificate.retired &&
                     certificate.companyId === 'AMTK' &&
                     certificate.kind === 'share' &&
                     certificate.shares === 2
@@ -74,16 +73,14 @@ describe('System formation', () => {
         const total = play.state.certificates.reduce(
             (sum, certificate) =>
                 sum +
-                (!certificate.retired &&
-                certificate.kind === 'share' &&
-                certificate.companyId === 'AMTK'
+                (certificate.kind === 'share' && certificate.companyId === 'AMTK'
                     ? certificate.shares
                     : 0),
             0
         )
         expect(total).toBe(20)
         expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'AMTK' })).toBe(1200)
-        expect(companyMarketSpace(play.state.stockMarket, 'AMTK').id).toBe('4:10')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'AMTK').id).toBe('4:10')
         expect(stockMarkerStackIndex(play.state.stockMarket, 'AMTK')).toBe(0)
         expect(play.state.systems).toEqual({ AMTK: ['ACL', 'CG'] })
         expect(
@@ -110,11 +107,7 @@ describe('System formation edge cases', () => {
         const play = trading()
         const state = structuredClone(play.state)
         for (const certificate of state.certificates)
-            if (
-                !certificate.retired &&
-                certificate.companyId === 'ACL' &&
-                certificate.poolId === 'initial-offering'
-            ) {
+            if (certificate.companyId === 'ACL' && certificate.poolId === 'initial-offering') {
                 certificate.owner = player('blair')
                 delete certificate.poolId
             }
@@ -123,7 +116,6 @@ describe('System formation edge cases', () => {
         expect(formation.presidency?.next).toEqual(player('blair'))
         const vicePresident = play.state.certificates.find(
             (certificate) =>
-                !certificate.retired &&
                 certificate.companyId === 'AMTK' &&
                 certificate.kind === 'share' &&
                 !certificate.president &&
@@ -258,7 +250,7 @@ describe('System operations', () => {
                     ...close('CG').map((company) =>
                         company.id === 'ACL' ? { ...company, closed: true } : company
                     ),
-                    { id: 'AMTK', name: 'Amtrak', kind: 'major' }
+                    { id: 'AMTK', kind: 'major' }
                 ],
                 systems: { AMTK: ['ACL', 'CG'] }
             })

@@ -8,7 +8,8 @@ import {
     TheOldPrinceTrainRules,
     TheOldPrinceTrackRules,
     TheOldPrincePrivateRules,
-    TheOldPrinceStockRules
+    TheOldPrinceStockRules,
+    TheOldPrinceMarket
 } from '@tabletop/the-old-prince'
 import {
     Definition as Shikoku,
@@ -62,7 +63,11 @@ it.each(Titles)(
             state,
             action: action(state, 'OfferPurchase', request)
         })
-        expect(offered.updatedState.purchaseOffer).toMatchObject(request)
+        const { companyId, ...terms } = request
+        expect(offered.updatedState.purchaseOffer).toMatchObject({
+            ...terms,
+            buyer: { kind: 'company', companyId }
+        })
         expect(offered.updatedState.activePlayerIds).toEqual([
             offered.updatedState.purchaseOffer!.sellerPlayerId
         ])
@@ -218,7 +223,6 @@ it('TOP applies one explicit confirmation when the same player controls both com
     const controller = { kind: 'company', companyId: 'UB' } as const
     getCompany(state, 'So').president = controller
     const certificate = state.certificates.find((item) => item.id === 'So:president')!
-    if (certificate.retired) throw Error('Expected presidency')
     certificate.owner = controller
     const request = purchaseChoices(
         Top.runtime.hydrator.hydrateState(state),
@@ -430,7 +434,6 @@ it('Sumitomo relieves the owning company’s mountain cost but preserves combine
     const { state } = example(Shikoku, 'powers')
     const hydrated = Shikoku.runtime.hydrator.hydrateState(state)
     const certificate = hydrated.certificates.find((item) => item.companyId === 'SRR')!
-    if (certificate.retired) throw Error('Expected private')
     certificate.owner = { kind: 'company', companyId: 'IR' }
     for (const location of Shikoku1889TrackRules.map.definition.locations.filter((item) =>
         item.terrain?.kinds.includes('mountain')
@@ -485,10 +488,8 @@ it('Hunslet buys before track finishes, advances phase and resumes that step', (
             accept: true
         })
     }).updatedState
-    bought.trainInventory.trains = bought.trainInventory.trains.map((train) =>
-        train.status === 'depot' && train.definitionId === '4H'
-            ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-            : train
+    bought.trainInventory.trains = bought.trainInventory.trains.filter(
+        (train) => !(train.status === 'depot' && train.definitionId === '4H')
     )
     const hydrated = Top.runtime.hydrator.hydrateState(bought)
     const details = privateTrainPurchase(hydrated, 'ML', TheOldPrinceTrainRules)
@@ -622,10 +623,12 @@ it.each([true, false])(
         const recordedResponse = result.processedActions.find(
             (item) => item.type === 'RespondToTrackConsent'
         )!
-        expect(historyDescription(recordedRequest, result.updatedState).text).toBe(
-            'Requested permission to lay track at N18'
-        )
-        expect(historyDescription(recordedResponse, result.updatedState)).toEqual(
+        expect(
+            historyDescription(recordedRequest, result.updatedState, TheOldPrinceMarket).text
+        ).toBe('Requested permission to lay track at N18')
+        expect(
+            historyDescription(recordedResponse, result.updatedState, TheOldPrinceMarket)
+        ).toEqual(
             accept
                 ? { text: 'Allowed track at N18; track laid', value: cost ? `$${cost}` : undefined }
                 : { text: 'Declined permission to lay track at N18' }
@@ -671,7 +674,6 @@ it.each([true, false])(
 it('Vernon River Bridge owner can approve through the ordinary lay without an extra turn', () => {
     const { game, engine, state } = example(Top, 'powers')
     const certificate = state.certificates.find((item) => item.companyId === 'VR')!
-    if (certificate.retired) throw Error('Expected private')
     certificate.owner = { kind: 'player', playerId: 'alex' }
     const details = new TrackConstruction(
         Top.runtime.hydrator.hydrateState(state),
@@ -697,7 +699,6 @@ it('Vernon River Bridge owner can approve through the ordinary lay without an ex
 it('construction entitlement stays owner-specific and uses the ordinary allowance', () => {
     const { game, engine, state } = example(Top, 'powers')
     const certificate = state.certificates.find((item) => item.companyId === 'SBC')!
-    if (certificate.retired) throw Error('Expected private')
     const construction = () =>
         new TrackConstruction(Top.runtime.hydrator.hydrateState(state), TheOldPrinceTrackRules)
     expect(
@@ -838,7 +839,6 @@ it('Hunslet resolves compulsory discards before returning to construction', () =
     const { game, engine, state } = example(Top, 'powers')
     state.phaseId = '6H'
     const hunslet = state.certificates.find((item) => item.companyId === 'HS')!
-    if (hunslet.retired) throw Error('Expected private')
     hunslet.owner = { kind: 'company', companyId: 'ML' }
     const depot = TheOldPrinceTrainRules.depot
     state.trainInventory = depot.createInventory()
@@ -847,10 +847,9 @@ it('Hunslet resolves compulsory discards before returning to construction', () =
         depot.purchase(state.trainInventory, train.id, rank, { kind: 'company', companyId: 'ML' })
     }
     const ranks = depot.definition.supply.map((entry) => entry.definitionId)
-    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-        train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('2+')
-            ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
-            : train
+    state.trainInventory.trains = state.trainInventory.trains.filter(
+        (train) =>
+            !(train.status === 'depot' && ranks.indexOf(train.definitionId) < ranks.indexOf('2+'))
     )
     const train = depot.nextTrain(state.trainInventory, '2+')!
     const bought = engine.executeCanonicalAction({

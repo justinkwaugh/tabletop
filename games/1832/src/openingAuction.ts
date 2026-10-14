@@ -17,7 +17,6 @@ import { EighteenThirtyTwoMap } from './map.js'
 import { EighteenThirtyTwoPrivateCatalog, EighteenThirtyTwoPrivates } from './privates.js'
 import type { EighteenThirtyTwoState, HydratedEighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoStationCounts } from './stationRules.js'
-import { createEighteenThirtyTwoStockMarket } from './stockMarket.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
 import { createEighteenThirtyTwoTrainInventory } from './trains.js'
 import { EighteenThirtyTwoGameConfig } from './definition/gameConfig.js'
@@ -72,11 +71,11 @@ export function createEighteenThirtyTwoOpening({
     const capital = EighteenThirtyTwoStartingCash[players.length]
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
-        stockMarket: createEighteenThirtyTwoStockMarket(),
-        bank: { name: 'Bank', unlimitedAfterExhaustion: true },
+        stockMarket: { stacks: [] },
+        bank: { unlimitedAfterExhaustion: true },
         companies: [
             ...majors.map((company) => ({
-                ...company,
+                id: company.id,
                 kind: 'major',
                 shareCount: 10,
                 started: false,
@@ -86,7 +85,6 @@ export function createEighteenThirtyTwoOpening({
             })),
             ...EighteenThirtyTwoPrivates.map((company) => ({
                 id: company.id,
-                name: company.name,
                 kind: 'private',
                 privateRevenue: company.revenue
             }))
@@ -103,8 +101,8 @@ export function createEighteenThirtyTwoOpening({
             }))
         ],
         certificatePools: [
-            { id: 'initial-offering', name: 'Initial offering', owner: { kind: 'bank' } },
-            { id: 'open-market', name: 'Open market', owner: { kind: 'bank' } }
+            { id: 'initial-offering', owner: { kind: 'bank' } },
+            { id: 'open-market', owner: { kind: 'bank' } }
         ],
         certificates: [
             ...majors.flatMap((company) =>
@@ -118,8 +116,6 @@ export function createEighteenThirtyTwoOpening({
                 id: `${company.id}:charter`,
                 companyId: company.id,
                 kind: 'private' as const,
-                certificateLimitCount: 1,
-                retired: false as const,
                 owner: { kind: 'bank' as const }
             }))
         ],

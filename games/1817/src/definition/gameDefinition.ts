@@ -1,3 +1,4 @@
+import { EighteenSeventeenNames } from '../names.js'
 import { type GameDefinition } from '@tabletop/common'
 import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
 import { EighteenSeventeenEndingRules } from '../endingRules.js'
@@ -148,6 +149,7 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
 > = {
     state: EighteenSeventeenStateDefinition,
     endingRules: EighteenSeventeenEndingRules,
+    names: EighteenSeventeenNames,
     selectionAuctionRules: EighteenSeventeenAuctionRules,
     trainFundingRules: EighteenSeventeenTrainFundingRules,
     transferRules: EighteenSeventeenTransferRules,

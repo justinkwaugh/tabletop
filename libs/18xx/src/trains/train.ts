@@ -25,7 +25,7 @@ export const TrainDefinition = Type.Object(
     { additionalProperties: false }
 )
 export type TrainDefinition = Type.Static<typeof TrainDefinition>
-const Identity = { id: Id, definitionId: Id, hasRun: Type.Optional(Type.Boolean()) }
+const Identity = { id: Id, definitionId: Id }
 export const Train = Type.Union([
     Type.Object({ ...Identity, status: Type.Literal('depot') }, { additionalProperties: false }),
     Type.Object({ ...Identity, status: Type.Literal('market') }, { additionalProperties: false }),
@@ -37,8 +37,7 @@ export const Train = Type.Union([
             rustsAfterOperation: Type.Optional(Type.Literal(true))
         },
         { additionalProperties: false }
-    ),
-    Type.Object({ ...Identity, status: Type.Literal('removed') }, { additionalProperties: false })
+    )
 ])
 export type Train = Type.Static<typeof Train>
 export const TrainInventory = Type.Object(
@@ -71,13 +70,24 @@ export function trainCanBeTraded(train: Train): boolean {
     return train.status === 'owned' && !train.rustsAfterOperation
 }
 
-export function unownedTrain(train: Train, status: 'market' | 'removed'): Train {
-    return {
-        id: train.id,
-        definitionId: train.definitionId,
-        status,
-        ...(train.hasRun === undefined ? {} : { hasRun: train.hasRun })
-    }
+/** Where trains go when they leave a company: the bank's market, or out of play. */
+export type TrainDestination = 'market' | 'removed'
+
+export function releaseTrains(
+    inventory: TrainInventory,
+    ids: readonly string[],
+    destination: TrainDestination
+): void {
+    inventory.trains =
+        destination === 'removed'
+            ? inventory.trains.filter((train) => !ids.includes(train.id))
+            : inventory.trains.map((train) =>
+                  ids.includes(train.id) ? unownedTrain(train) : train
+              )
+}
+
+export function unownedTrain(train: Train): Train {
+    return { id: train.id, definitionId: train.definitionId, status: 'market' }
 }
 
 export function validateTrainPurchaseStep(state: {

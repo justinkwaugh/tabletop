@@ -8,7 +8,10 @@
     }: {
         showUndo?: boolean
         recordedResult?: OperatingResult
-        session: Pick<EighteenXXSessionView, 'undo' | 'busy' | 'isViewingHistory'> & {
+        session: Pick<
+            EighteenXXSessionView,
+            'undo' | 'busy' | 'isViewingHistory' | 'companyName'
+        > & {
             gameState: Pick<EighteenXXSessionView['gameState'], 'routeStep' | 'companies'>
             presentation: Pick<EighteenXXSessionView['presentation'], 'money'>
             routes: Pick<
@@ -57,8 +60,7 @@
     <section aria-label="Train routes" class="routes">
         <header>
             <h3>
-                {session.gameState.companies.find((company) => company.id === step.companyId)?.name} ·
-                Routes
+                {session.companyName(step.companyId)} · Routes
             </h3>
             {#if showUndo}<button
                     onclick={() => session.undo()}
@@ -141,11 +143,9 @@
                     data-route-train={route.trainId}
                 >
                     <strong
-                        >{editor.rules.depot.trainDefinition(
-                            editor.state.trainInventory.trains.find(
-                                (train) => train.id === route.trainId
-                            )!.definitionId
-                        ).name}: {money(route.revenue)}</strong
+                        >{editor.rules.depot.trainDefinition(route.definitionId).name}: {money(
+                            route.revenue
+                        )}</strong
                     >
                     <span>{breakdown(route)}</span>
                     {#if !step.result}<button

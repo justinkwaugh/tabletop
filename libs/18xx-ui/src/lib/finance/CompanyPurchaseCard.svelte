@@ -24,7 +24,7 @@
         {money}
         phaseColors={session.presentation.phaseColors}
         token={session.privateCompanyTokens[company.id]}
-        name={company.name}
+        name={session.companyName(company.id)}
         description=""
         income={company.privateRevenue ?? 0}
         {purchaseRange}
@@ -33,7 +33,9 @@
     <article class="company-purchase-card">
         <header>
             <CompanyToken appearance={session.mapView.stations[companyId]} size={40} />
-            <div><strong>{company.name}</strong><small>Independent railway</small></div>
+            <div>
+                <strong>{session.companyName(company.id)}</strong><small>Independent railway</small>
+            </div>
         </header>
         <div class="assets">
             <span>Treasury {cashText(money, cashOwnedBy(session.gameState, owner))}</span>

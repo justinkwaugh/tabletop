@@ -30,6 +30,12 @@ Additional selections are title-owned:
 | 1830  | Waterfall auction, private-power usage, pending private station, par after award, multiple stock-turn purchases, its brown-zone option                                                       |
 | 1817  | Selection auction, company auction, borrowing, cash crises and player elimination, shorts, private-power usage, location markers, its options, private lay records, mergers and acquisitions |
 
+1846 composes its own fields without `RailwayFields`: a hidden or public private
+distribution, independents, receivership, emergency funding, revenue markers and the
+steamboat. It hydrates through its projection schema so a player's projected view loads,
+and keeps its own runtime and visibility projector (since 2026-10-09; see
+[state shape](state-shape-backlog.md)).
+
 Nested company and certificate schemas are selected too. Ordinary companies do not
 acquire loan or role properties; ordinary certificates do not acquire short positions
 or numbered shares. Shared finance invariants validate financial fields and references
@@ -86,6 +92,11 @@ calendars can use the same state composition and individual mechanisms with a
 different runtime.
 
 ## Saved states and publication
+
+On 2026-10-09 TOP's reader and the `readStored` hook were removed: hosted saves are no
+longer read across state-shape changes, and the deployed-game replay converts its recorded
+states in test code instead. See [state shape](state-shape-backlog.md). The rest of this
+section records the 2026-10-03 change.
 
 The only existing hosted save is one TOP game. TOP owns a reader that removes its
 obsolete `usedPrivatePowerIds` field only when it is an empty array. There are no

@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import {
     fullCapitalizationCompanyRules,
     sharesStillToFloat,
@@ -10,6 +11,7 @@ const FloatPercent = 60
 
 export const EighteenThirtyTwoCompanyRules: CompanyRules = {
     ...fullCapitalizationCompanyRules({
+        market: EighteenThirtyTwoMarket,
         ipoPoolId: IpoPoolId,
         parSpaceColor: 'pink',
         floatPercent: FloatPercent

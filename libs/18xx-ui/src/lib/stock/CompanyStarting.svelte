@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getCompany, stockMarketSpace } from '@tabletop/18xx'
+    import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session }: { session: EighteenXXSessionView } = $props()
     const gameState = $derived(session.gameState)
@@ -8,7 +8,7 @@
 {#if session.stock.selectedStartCompany}
     {@const company = getCompany(gameState, session.stock.selectedStartCompany.companyId)}
     <div class="start" aria-label="Start company">
-        <h3>Start {company.name}</h3>
+        <h3>Start {session.companyName(company.id)}</h3>
         {#if session.stock.selectedStartResult?.details}
             {@const details = session.stock.selectedStartResult.details}
             <p>
@@ -38,15 +38,11 @@
             <div class="buttons" aria-label="Starting prices">
                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                     <button
-                        data-start-price={stockMarketSpace(
-                            gameState.stockMarket,
-                            price.marketSpaceId
-                        ).price}
+                        data-start-price={session.stockMarketChart.space(price.marketSpaceId).price}
                         disabled={session.busy || !price.result.details}
                         title={price.result.reason}
                         onclick={() => session.stock.selectStartPrice(price.marketSpaceId)}
-                        >{stockMarketSpace(gameState.stockMarket, price.marketSpaceId)
-                            .price}</button
+                        >{session.stockMarketChart.space(price.marketSpaceId).price}</button
                     >
                 {/each}
             </div>
@@ -71,7 +67,7 @@
                     disabled={session.busy || !choice.prices.some((price) => price.result.details)}
                     onclick={() => session.stock.selectCompanyStart(choice.request)}
                 >
-                    <strong>{getCompany(gameState, choice.request.companyId).name}</strong>
+                    <strong>{session.companyName(choice.request.companyId)}</strong>
                     <span>{session.ownerName(choice.request.buyer)}</span>
                     {#if !choice.prices.some((price) => price.result.details)}<span
                             >{choice.prices[0]?.result.reason}</span

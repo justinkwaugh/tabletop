@@ -1,8 +1,8 @@
+import { TheOldPrinceNames } from './names.js'
 import { theOldPrinceRole } from './companies.js'
 import { TheOldPrinceTileSet } from './tiles.js'
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
-    getCompany,
     type PrivateRules,
     type PrivateEffect,
     type FinancialState
@@ -24,7 +24,6 @@ export const TheOldPrincePrivateRules: PrivateRules = {
                 certificateIds: state.certificates
                     .filter(
                         (item) =>
-                            !item.retired &&
                             item.id === reservedId &&
                             item.owner.kind === 'bank' &&
                             item.poolId === 'reserved'
@@ -39,7 +38,6 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             certificateIds: state.certificates
                 .filter(
                     (item) =>
-                        !item.retired &&
                         item.kind === 'share' &&
                         !item.president &&
                         item.shares === 1 &&
@@ -87,15 +85,17 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             const share = state.certificates.find(
                 (item) =>
                     item.id === certificateId &&
-                    !item.retired &&
                     item.owner.kind === 'bank' &&
                     item.poolId === 'reserved'
             )
             assertExists(share, 'Open Shortline exchange requires its reserved share')
+            assert(share.kind === 'share', 'Open Shortline exchanges for a share')
             return {
                 kind: 'exchange',
                 privateCompanyId: company.id,
                 certificateId,
+                companyId: share.companyId,
+                shares: share.shares,
                 exemptOwnershipLimit: true
             }
         })
@@ -113,9 +113,9 @@ export const TheOldPrincePrivateRules: PrivateRules = {
     },
     description(state, id) {
         if (ShortlineExchanges[id]) {
-            const company = getCompany(state, theOldPrinceRole(state, 'shortline'))
+            const company = TheOldPrinceNames.company(theOldPrinceRole(state, 'shortline'))
             return (
-                `**Includes one reserved share of ${company.name}.**\n\n` +
+                `**Includes one reserved share of ${company}.**\n\n` +
                 (id === 'VR'
                     ? 'The owner’s permission is required to build on N18 while this private is open.\n\n'
                     : '') +
@@ -123,15 +123,14 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             )
         }
         if (id === 'RA' || id === 'RF') {
-            const company = getCompany(state, theOldPrinceRole(state, 'mainline'))
-            return `**Includes one share of ${company.name}.**\n\nCloses at 4+.`
+            const company = TheOldPrinceNames.company(theOldPrinceRole(state, 'mainline'))
+            return `**Includes one share of ${company}.**\n\nCloses at 4+.`
         }
         if (id === 'MLC' || id === 'SLC') {
-            const company = getCompany(
-                state,
+            const company = TheOldPrinceNames.company(
                 theOldPrinceRole(state, id === 'MLC' ? 'mainline' : 'shortline')
             )
-            return `**Includes the president's cert for ${company.name}.**\n\nCloses when its railway first operates, or at 4+.`
+            return `**Includes the president's cert for ${company}.**\n\nCloses when its railway first operates, or at 4+.`
         }
         return TheOldPrincePrivateCatalog.definition(id).description ?? 'Closes at 4+.'
     }

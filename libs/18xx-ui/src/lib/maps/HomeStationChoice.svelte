@@ -8,8 +8,8 @@
 {#if choice}
     <section aria-label="Home city choice">
         <p>
-            {getCompany(session.gameState, choice.companyId).name}: choose a highlighted city on the
-            map for its home station.
+            {session.companyName(choice.companyId)}: choose a highlighted city on the map for its
+            home station.
         </p>
     </section>
 {/if}

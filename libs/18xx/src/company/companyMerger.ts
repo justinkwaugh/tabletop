@@ -47,11 +47,7 @@ export function transferCompanyAssets(
         }
     const privateIds: string[] = []
     for (const certificate of state.certificates)
-        if (
-            !certificate.retired &&
-            certificate.kind === 'private' &&
-            sameOwner(certificate.owner, from)
-        ) {
+        if (certificate.kind === 'private' && sameOwner(certificate.owner, from)) {
             certificate.owner = { ...to }
             privateIds.push(certificate.companyId)
         }
@@ -95,11 +91,10 @@ export function moveCompanyStations(
             placedIds.push(added.id)
         } else unplacedIds.push(added.id)
     }
-    state.stations = state.stations.map(
-        (station): Station =>
-            station.companyId === fromId && station.status !== 'removed'
-                ? { id: station.id, companyId: fromId, status: 'removed' }
-                : station
+    state.stations = state.stations.map((station): Station =>
+        station.companyId === fromId && station.status !== 'removed'
+            ? { id: station.id, companyId: fromId, status: 'removed' }
+            : station
     )
     return { placedIds, unplacedIds }
 }

@@ -7,7 +7,7 @@ import {
 } from '@tabletop/18xx'
 import { TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 import { EighteenFortySixTileSet } from './tiles.js'
-import { stockChoices } from './stock.js'
+import { stockChoices, Market1846 } from './stock.js'
 import {
     GameEngine,
     PlayerStatus,
@@ -20,7 +20,8 @@ import {
 import { Runtime, Definition } from './definition/gameDefinition.js'
 import {
     CanonicalValidator,
-    HydratedEighteenFortySixState,
+    hydrateEighteenFortySixState,
+    type HydratedEighteenFortySixState,
     type EighteenFortySixProjectedState
 } from './state.js'
 import { choicesFor, hiddenDistribution } from './distribution.js'
@@ -77,7 +78,7 @@ export function finish(
     let state = initialState
     const actions: GameAction[] = []
     for (let turn = 0; turn < 100 && state.machineState !== 'StockRound'; turn++) {
-        const hydrated = new HydratedEighteenFortySixState(state)
+        const hydrated = hydrateEighteenFortySixState(state)
         const choices = choicesFor(hydrated, state.activePlayerIds[0])
         const cardId = blanksFirst
             ? (choices.find(isBlank) ?? choices[0])
@@ -127,7 +128,7 @@ function testTable({ game, engine, state: initialState }: TestGame): StockTestGa
             return state
         },
         get hydrated() {
-            return new HydratedEighteenFortySixState(state)
+            return hydrateEighteenFortySixState(state)
         },
         choices() {
             return stockChoices(this.hydrated, state.activePlayerIds[0])
@@ -196,7 +197,7 @@ export function setCompanyInReceivership(table: StockTestGame, companyId: string
             certificate.companyId === companyId &&
             certificate.president
     )
-    assert(president && !president.retired, 'Receiver must have an active president certificate')
+    assert(president, 'Receiver must have an active president certificate')
     president.owner = { kind: 'bank' }
     president.poolId = 'open-market'
     delete getCompany(table.state, companyId).president
@@ -219,7 +220,7 @@ export function emergencyBuyingGame(cash = 10, price = 100) {
     )
     assertExists(presidentCash)
     presidentCash.amount = 500
-    const space = table.state.stockMarket.spaces.find((s) => s.price === price)
+    const space = Market1846.spaces.find((s) => s.price === price)
     assertExists(space)
     placeStockMarker(table.state.stockMarket, 'IC', space.id)
     return table
@@ -276,17 +277,13 @@ export function discardTrain(table: ReturnType<typeof stockGame>) {
 export function constructionGame(phaseId: 'III' | 'IV' = 'III') {
     const table = emergencyBuyingGame(2000)
     table.state.phaseId = 'II'
-    table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-        train.status === 'depot' && ['2', '4'].includes(train.definitionId)
-            ? { ...train, status: 'removed' }
-            : train
+    table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+        (train) => !(train.status === 'depot' && ['2', '4'].includes(train.definitionId))
     )
     buyTrain(table, '5')
     if (phaseId === 'IV') {
-        table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) =>
-            train.status === 'depot' && train.definitionId === '5'
-                ? { ...train, status: 'removed' }
-                : train
+        table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+            (train) => !(train.status === 'depot' && train.definitionId === '5')
         )
         buyTrain(table, '6')
     }

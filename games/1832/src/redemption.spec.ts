@@ -25,7 +25,6 @@ function moveShares(
     for (const certificate of state.certificates) {
         if (count === 0) return
         if (
-            certificate.retired ||
             certificate.kind !== 'share' ||
             certificate.president ||
             certificate.companyId !== companyId ||
@@ -53,8 +52,7 @@ function choiceFrom(play: Play, holderId: string) {
 
 function buyOffering(play: Play, playerId: string, companyId: string, price: number) {
     const certificate = play.state.certificates.find(
-        (entry) =>
-            !entry.retired && entry.companyId === companyId && entry.poolId === 'initial-offering'
+        (entry) => entry.companyId === companyId && entry.poolId === 'initial-offering'
     )
     assertExists(certificate, `${companyId} has an offering share`)
     play.act(
@@ -229,9 +227,7 @@ describe('share reissue', () => {
         expect(getCompany(play.state, 'ACL').parPrice).toBe(160)
         const offered = play.state.certificates.filter(
             (certificate) =>
-                !certificate.retired &&
-                certificate.companyId === 'ACL' &&
-                certificate.poolId === 'initial-offering'
+                certificate.companyId === 'ACL' && certificate.poolId === 'initial-offering'
         )
         expect(offered).toHaveLength(2)
         expect(play.state.activePlayerIds).toEqual(['blair'])

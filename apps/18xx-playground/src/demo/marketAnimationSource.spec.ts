@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { expect, it, vi } from 'vitest'
 import { ActionSource, GameState, HydratableGameState, type PlayerState } from '@tabletop/common'
-import { StockMarket, createRectangularStockMarket } from '@tabletop/18xx'
+import { StockMarket } from '@tabletop/18xx'
 import { AnimationContext, type GameStateChangeListener } from '@tabletop/frontend-components'
 import { createMarketAnimationSource } from '../../../../libs/18xx-ui/src/lib/stock/marketAnimationSource.js'
 
@@ -43,10 +43,8 @@ it('projects a title-owned market while preserving shared lifecycle, replay inte
     const source = createMarketAnimationSource(session, (state) => state.exchange)
     const receive = vi.fn(async () => {})
     const unsubscribe = source.subscribe(receive)
-    const from = new HydratedCustomState(createRectangularStockMarket([[100, 110]], () => 'white'))
-    const to = new HydratedCustomState(
-        createRectangularStockMarket([[100, 110, 120]], () => 'white')
-    )
+    const from = new HydratedCustomState({ stacks: [{ spaceId: '0:0', companyIds: ['A'] }] })
+    const to = new HydratedCustomState({ stacks: [{ spaceId: '0:1', companyIds: ['A'] }] })
     const animationContext = new AnimationContext()
     const action = { id: 'trade', gameId: 'game', type: 'Trade', source: ActionSource.User }
     session.updatingVisibleState = true

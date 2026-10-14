@@ -9,7 +9,6 @@ export function inReceivership(state: FinancialState, companyId: string): boolea
         !company.president &&
         state.certificates.some(
             (certificate) =>
-                !certificate.retired &&
                 certificate.kind === 'share' &&
                 certificate.companyId === companyId &&
                 certificate.president &&

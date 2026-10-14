@@ -1,9 +1,9 @@
+import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     EmergencyTrainFunding,
     cashOwnedBy,
-    companyMarketSpace,
     evaluateShareSale,
     getCompany,
     placeStockMarker,
@@ -54,11 +54,7 @@ function giveOfferingShares(
 ) {
     for (const certificate of state.certificates) {
         if (count === 0) return
-        if (
-            certificate.retired ||
-            certificate.companyId !== companyId ||
-            certificate.poolId !== 'initial-offering'
-        )
+        if (certificate.companyId !== companyId || certificate.poolId !== 'initial-offering')
             continue
         certificate.owner = player(playerId)
         delete certificate.poolId
@@ -86,7 +82,7 @@ function fundCheapestTrain(play: Play) {
 }
 
 function sellToFund(play: Play, companyId: string, shares: number) {
-    const price = companyMarketSpace(play.state.stockMarket, companyId).price
+    const price = EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, companyId).price
     play.act('SellFundingShares', {
         seller: player('blair'),
         companyId,
@@ -128,7 +124,7 @@ describe('share price protection', () => {
     it('lets the president buy back a stock-round sale, restoring the price', () => {
         const play = trading()
         const proceeds = sell(play, 'CG', 2)
-        expect(companyMarketSpace(play.state.stockMarket, 'CG').id).toBe('2:6')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('2:6')
         expect(play.state.machineState).toBe('StockRound')
         play.act('FinishStockTurn')
         expect(play.state.machineState).toBe('ProtectingPrice')
@@ -136,7 +132,7 @@ describe('share price protection', () => {
         expect(play.valid('blair')).toEqual(['ProtectShares', 'DeclineProtection'])
         play.act('ProtectShares', { companyId: 'CG' }, 'blair')
         expect(play.state.machineState).toBe('StockRound')
-        expect(companyMarketSpace(play.state.stockMarket, 'CG').id).toBe('0:6')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('0:6')
         expect(sharesOwned(play.state, 'CG', player('blair'))).toBe(5)
         expect(cashOwnedBy(play.state, player('blair'))).toBe(450 - proceeds)
         expect(cashOwnedBy(play.state, player('alex'))).toBe(600 + proceeds)
@@ -153,7 +149,7 @@ describe('share price protection', () => {
         play.act('DeclineProtection', { companyId: 'CG' }, 'blair')
         expect(play.state.machineState).toBe('StockRound')
         expect(play.state.activePlayerIds).toEqual(['blair'])
-        expect(companyMarketSpace(play.state.stockMarket, 'CG').id).toBe('2:6')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('2:6')
         expect(sharesOwned(play.state, 'CG', player('blair'))).toBe(3)
     })
 
@@ -199,19 +195,14 @@ describe('share price protection', () => {
             placeStockMarker(state.stockMarket, 'CG', '3:0')
             const offered = state.certificates.find(
                 (certificate) =>
-                    !certificate.retired &&
-                    certificate.companyId === 'CG' &&
-                    certificate.poolId === 'initial-offering'
+                    certificate.companyId === 'CG' && certificate.poolId === 'initial-offering'
             )
             assertExists(offered, 'CG has an offering share left')
-            if (!offered.retired) offered.poolId = 'open-market'
+            offered.poolId = 'open-market'
         })
         play.act('FinishStockTurn')
         const certificateId = play.state.certificates.find(
-            (certificate) =>
-                !certificate.retired &&
-                certificate.poolId === 'open-market' &&
-                certificate.companyId === 'CG'
+            (certificate) => certificate.poolId === 'open-market' && certificate.companyId === 'CG'
         )?.id
         assertExists(certificateId, 'A CG share is in the market')
         play.act('BuyShares', { buyer: player('blair'), certificateId, expectedPrice: 50 }, 'blair')
@@ -286,7 +277,9 @@ describe('share price protection', () => {
         expect(play.state.activePlayerIds).toEqual(['alex'])
         const aclSpace = play.state.priceProtection?.sales[0].fromMarketSpaceId
         play.act('ProtectShares', { companyId: 'ACL' }, 'alex')
-        expect(companyMarketSpace(play.state.stockMarket, 'ACL').id).toBe(aclSpace)
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'ACL').id).toBe(
+            aclSpace
+        )
         // CG's turn, with nothing left to do, ends and play moves on to the next company.
         expect(play.state.priceProtection).toBeUndefined()
         expect(play.state.operatingSet?.completedCompanyIds).toContain('CG')
@@ -298,9 +291,9 @@ describe('share price protection', () => {
             giveOfferingShares(state, 'ACL', 'blair', 1)
         )
         fundCheapestTrain(play)
-        const from = companyMarketSpace(play.state.stockMarket, 'ACL')
+        const from = EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'ACL')
         sellToFund(play, 'ACL', 1)
-        const second = companyMarketSpace(play.state.stockMarket, 'ACL').price
+        const second = EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'ACL').price
         sellToFund(play, 'ACL', 1)
         expect(play.state.priceProtection?.sales).toEqual([
             expect.objectContaining({
@@ -347,7 +340,9 @@ describe('black-area closure', () => {
         protectedPlay.act('FinishStockTurn')
         protectedPlay.act('ProtectShares', { companyId: 'CG' }, 'blair')
         expect(getCompany(protectedPlay.state, 'CG').closed).toBeFalsy()
-        expect(companyMarketSpace(protectedPlay.state.stockMarket, 'CG').id).toBe('8:1')
+        expect(EighteenThirtyTwoMarket.companySpace(protectedPlay.state.stockMarket, 'CG').id).toBe(
+            '8:1'
+        )
     })
 
     it('closes a declined company before the next president decides', () => {

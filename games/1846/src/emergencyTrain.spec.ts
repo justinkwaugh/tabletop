@@ -1,18 +1,14 @@
+import { Market1846 } from './stock.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assertExists } from '@tabletop/common'
-import {
-    companyMarketSpace,
-    finiteCashOwnedBy,
-    placeStockMarker,
-    sharesOwned,
-    trainsOwnedBy
-} from '@tabletop/18xx'
+import { finiteCashOwnedBy, placeStockMarker, sharesOwned, trainsOwnedBy } from '@tabletop/18xx'
 import { emergencyBuyingGame as buyingGame } from './testSupport.js'
 import { emergencyTrainChoices } from './emergencyTrain.js'
 
 function phaseII(table: ReturnType<typeof buyingGame>) {
-    for (const train of table.state.trainInventory.trains)
-        if (train.status === 'depot' && train.definitionId === '2') train.status = 'removed'
+    table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
+        (train) => !(train.status === 'depot' && train.definitionId === '2')
+    )
 }
 function choice(table: ReturnType<typeof buyingGame>, definitionId = '2') {
     const choice = emergencyTrainChoices(table.hydrated).find(
@@ -30,7 +26,7 @@ describe('1846 emergency depot purchases without personal stock sales', () => {
         expect(plan).toMatchObject({ issuedShares: 1, proceeds: 80, contribution: 0, price: 80 })
         const before = structuredClone(table.state)
         const result = table.act('EmergencyBuyTrain', plan)
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(90)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(90)
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(10)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(1)
         expect(trainsOwnedBy(table.state, treasury)).toHaveLength(1)
@@ -60,7 +56,7 @@ describe('1846 emergency depot purchases without personal stock sales', () => {
         table.act('EmergencyBuyTrain', plan)
         expect(finiteCashOwnedBy(table.state, owner)).toBe(cash - 60)
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(0)
-        expect(companyMarketSpace(table.state.stockMarket, 'IC').price).toBe(20)
+        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(20)
     })
     it('cannot issue below $20; proceeds can be $10 a share', () => {
         expect(choice(buyingGame(0, 30))).toMatchObject({
@@ -77,10 +73,9 @@ describe('1846 emergency depot purchases without personal stock sales', () => {
     it('deducts market shares from the issuance limit', () => {
         const table = buyingGame(0, 40)
         const cert = table.state.certificates.find(
-            (c) => !c.retired && c.companyId === 'IC' && c.owner.kind === 'company'
+            (c) => c.companyId === 'IC' && c.owner.kind === 'company'
         )
         assertExists(cert)
-        if (cert.retired) throw new Error('Expected live certificate')
         cert.owner = { kind: 'bank' }
         cert.poolId = 'open-market'
         expect(choice(table)).toMatchObject({ issuedShares: 1, proceeds: 20, contribution: 60 })
@@ -89,7 +84,7 @@ describe('1846 emergency depot purchases without personal stock sales', () => {
         const table = buyingGame(160, 20)
         phaseII(table)
         expect(emergencyTrainChoices(table.hydrated)).toEqual([])
-        const space = table.state.stockMarket.spaces.find((s) => s.price === 40)
+        const space = Market1846.spaces.find((s) => s.price === 40)
         assertExists(space)
         placeStockMarker(table.state.stockMarket, 'IC', space.id)
         expect(choice(table, '4')).toMatchObject({ issuedShares: 1, proceeds: 20, contribution: 0 })

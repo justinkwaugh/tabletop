@@ -59,16 +59,16 @@ import {
     isTakeLoan,
     isSellSharesToPay,
     isGoBankrupt,
-    stockMarketSpace,
     isDiscardTrain,
     isRustTrains,
     type DeparturePayment,
     type Owner,
     type PresidencyChange,
-    type EighteenXXState
+    type EighteenXXState,
+    type StockMarketChart
 } from '@tabletop/18xx'
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
-import { assert, assertExists, type GameAction } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 
 export type HistoryDescription = {
     text: string
@@ -165,22 +165,26 @@ function runBonusesDetail(
 export function historyDescription(
     action: GameAction,
     state: EighteenXXState,
+    chart: StockMarketChart,
     companyName: (id: string) => string = (id) => id,
     playerName: (id: string) => string = (id) => id,
     companyChanges?: HistoryCompanyChanges,
-    money: MoneyFormat = moneyFormat('$')
+    money: MoneyFormat = moneyFormat('$'),
+    lotName: (id: string) => string = companyName
 ): HistoryDescription {
     const description = describeShared(
         action,
         state,
+        chart,
         companyName,
         playerName,
         companyChanges,
-        money
+        money,
+        lotName
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
-        { companyName, playerName, bankName: state.bank.name },
+        { companyName, playerName, bankName: 'Bank' },
         money
     )
     return paid ? { ...description, detail: joinDetails(description.detail, paid) } : description
@@ -189,10 +193,12 @@ export function historyDescription(
 function describeShared(
     action: GameAction,
     state: EighteenXXState,
+    chart: StockMarketChart,
     companyName: (id: string) => string,
     playerName: (id: string) => string,
     companyChanges: HistoryCompanyChanges | undefined,
-    money: MoneyFormat
+    money: MoneyFormat,
+    lotName: (id: string) => string
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects
@@ -201,7 +207,7 @@ function describeShared(
                   ...effects.closedPrivateIds.map((privateId) => `${companyName(privateId)} closed`)
               ].join(' · ')
             : undefined
-    const names = { companyName, playerName, bankName: state.bank.name }
+    const names = { companyName, playerName, bankName: 'Bank' }
     const nameOf = (owner: Owner) => ownerName(owner, names)
     const presidency = (change: PresidencyChange) =>
         `President: ${nameOf(change.previous)} → ${nameOf(change.next)}`
@@ -220,18 +226,8 @@ function describeShared(
         )
         return extras.length ? `, with ${extras.join(' and ')}` : ''
     }
-    function receivedShare(certificateId: string) {
-        const certificate = state.certificates.find((item) => item.id === certificateId)
-        assert(certificate?.kind === 'share', 'Recorded exchange requires its received share')
-        return `${certificate.shares} ${companyName(certificate.companyId)}`
-    }
     function marketPrice(id: string) {
-        return stockMarketSpace(state.stockMarket, id).price
-    }
-    function shares(certificateId: string) {
-        const certificate = state.certificates.find((item) => item.id === certificateId)
-        assert(certificate?.kind === 'share', 'Recorded share action requires its certificate')
-        return certificate.shares
+        return chart.space(id).price
     }
     if (isRequestTrackConsent(action))
         return { text: `Requested permission to lay track at ${action.locationId}` }
@@ -276,13 +272,7 @@ function describeShared(
         assertExists(action.metadata, 'Recorded train run requires its revenue')
         return {
             text: action.routes.length ? 'Ran' : 'Did not run trains',
-            trainDefinitionIds: action.routes.map((route) => {
-                const train = state.trainInventory.trains.find(
-                    (train) => train.id === route.trainId
-                )
-                assertExists(train, 'Recorded train run requires its train')
-                return train.definitionId
-            }),
+            trainDefinitionIds: action.metadata.routes.map((route) => route.definitionId),
             value: action.metadata.revenue ? money(action.metadata.revenue) : undefined,
             detail: runBonusesDetail(action.metadata.routes, money)
         }
@@ -405,7 +395,7 @@ function describeShared(
     if (isBuyShares(action)) {
         assertExists(action.metadata, 'Recorded share purchase requires its company')
         return {
-            text: `Bought ${shares(action.certificateId)} ${companyName(action.metadata.companyId)} for ${money(action.expectedPrice)}`,
+            text: `Bought ${action.metadata.shares} ${companyName(action.metadata.companyId)} for ${money(action.expectedPrice)}`,
             detail:
                 [
                     action.buyer.kind === 'company'
@@ -448,7 +438,7 @@ function describeShared(
         return {
             text: `Started ${companyName(action.companyId)} for ${money(action.expectedPrice)}`,
             detail: action.metadata
-                ? `${shares(action.metadata.certificateId)} shares · Par ${action.metadata.parPrice}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
+                ? `${action.metadata.shares} shares · Par ${action.metadata.parPrice}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
                 : undefined,
             important: true
         }
@@ -461,13 +451,13 @@ function describeShared(
         return {
             text: `Exchanged ${companyName(action.privateCompanyId)}`,
             detail: action.metadata
-                ? `For ${shares(action.certificateId)} ${companyName(action.metadata.companyId)}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
+                ? `For ${action.metadata.shares} ${companyName(action.metadata.companyId)}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
                 : action.certificateId,
             important: true
         }
     if (isReserveBid(action) || isRaiseAuctionBid(action))
         return {
-            text: `${isReserveBid(action) ? 'Reserved bid on' : 'Bid on'} ${companyName(action.lotId)}`,
+            text: `${isReserveBid(action) ? 'Reserved bid on' : 'Bid on'} ${lotName(action.lotId)}`,
             value: money(action.amount)
         }
     if (isContributeTrainFunds(action))
@@ -485,15 +475,12 @@ function describeShared(
         assertExists(action.metadata, 'Recorded phase change requires its event')
         const event = action.metadata.event
         const effects = [
-            ...event.rustedTrainIds.map(
-                (id) =>
-                    `${state.trainInventory.trains.find((train) => train.id === id)?.definitionId ?? id} rusted`
-            ),
+            ...event.rustedTrains.map((train) => `${train.definitionId} rusted`),
             ...event.privateEffects.map((effect) => {
                 const name = companyName(effect.privateCompanyId)
                 if (effect.kind === 'close') return `${name} closed`
                 if (effect.kind === 'income') return `${name} income ${money(effect.revenue)}`
-                return `${name} exchanged for ${receivedShare(effect.certificateId)}`
+                return `${name} exchanged for ${effect.shares} ${companyName(effect.companyId)}`
             }),
             ...presidentChanges
         ]
@@ -505,7 +492,7 @@ function describeShared(
     }
     if (isBuyAuctionLot(action))
         return {
-            text: `Bought ${companyName(action.lotId)}${awardExtras(action.metadata)}`,
+            text: `Bought ${lotName(action.lotId)}${awardExtras(action.metadata)}`,
             value: money(action.expectedPrice),
             important: true
         }
@@ -518,7 +505,7 @@ function describeShared(
             detail: awards
                 .map(
                     (award) =>
-                        `${playerName(award.playerId)} won ${companyName(award.lotId)} for ${money(award.price)}${awardExtras(award)}`
+                        `${playerName(award.playerId)} won ${lotName(award.lotId)} for ${money(award.price)}${awardExtras(award)}`
                 )
                 .join(' · '),
             important: !!awards.length,
@@ -526,9 +513,9 @@ function describeShared(
         }
     }
     if (isNominateLot(action))
-        return { text: `Auctioned ${companyName(action.lotId)}`, value: money(action.amount) }
+        return { text: `Auctioned ${lotName(action.lotId)}`, value: money(action.amount) }
     if (isBidForLot(action))
-        return { text: `Bid on ${companyName(action.lotId)}`, value: money(action.amount) }
+        return { text: `Bid on ${lotName(action.lotId)}`, value: money(action.amount) }
     if (isPassSelectionAuction(action) || isPassCompanyAuction(action)) return { text: 'Passed' }
     if (isResolveSelectionAuction(action)) {
         assertExists(action.metadata, 'Recorded selection auction resolution requires its outcome')
@@ -537,7 +524,7 @@ function describeShared(
             return {
                 text: 'Auction awarded',
                 detail: [
-                    `${playerName(resolution.award.playerId)} won ${companyName(resolution.award.lotId)} for ${money(resolution.award.price)}`,
+                    `${playerName(resolution.award.playerId)} won ${lotName(resolution.award.lotId)} for ${money(resolution.award.price)}`,
                     ...(resolution.removedLotIds ?? []).map((id) => `${companyName(id)} removed`)
                 ].join(' · '),
                 important: true
@@ -585,18 +572,10 @@ function describeShared(
                 [
                     ...(capital ? [`${money(capital)} capital`] : []),
                     ...(action.metadata.exchanges ?? []).map((exchange) => {
-                        const certificate = state.certificates.find(
-                            (item) => item.id === exchange.surrenderedId
-                        )
-                        assertExists(
-                            certificate,
-                            'Recorded flotation requires its surrendered certificate'
-                        )
-                        const number =
-                            certificate.kind === 'share' && certificate.number
-                                ? ` #${certificate.number}`
-                                : ''
-                        return `${nameOf(exchange.owner)} exchanged ${companyName(certificate.companyId)}${number} for ${receivedShare(exchange.receivedId)}`
+                        const number = exchange.surrenderedNumber
+                            ? ` #${exchange.surrenderedNumber}`
+                            : ''
+                        return `${nameOf(exchange.owner)} exchanged ${companyName(exchange.surrenderedCompanyId)}${number} for ${exchange.receivedShares} ${companyName(exchange.receivedCompanyId)}`
                     }),
                     ...presidentChanges,
                     ...closures
@@ -654,14 +633,12 @@ function describeShared(
                 important: true
             }
         const purchaseAsset = offer.asset
+        const trainDefinitionId = action.metadata.trainDefinitionId
         if (purchaseAsset.kind === 'train' && accepted) {
-            const train = state.trainInventory.trains.find(
-                (train) => train.id === purchaseAsset.trainId
-            )
-            assertExists(train, 'Recorded train purchase requires its train')
+            assertExists(trainDefinitionId, 'Recorded train purchase names its train')
             return {
                 text: 'Bought',
-                trainDefinitionIds: [train.definitionId],
+                trainDefinitionIds: [trainDefinitionId],
                 omitActor: true,
                 value: money(offer.price),
                 detail: [`From ${nameOf(offer.seller)}`, ...closures].join(' · '),
@@ -673,14 +650,14 @@ function describeShared(
                 ? companyName(purchaseAsset.privateCompanyId)
                 : purchaseAsset.kind === 'company'
                   ? companyName(purchaseAsset.companyId)
-                  : `${state.trainInventory.trains.find((train) => train.id === purchaseAsset.trainId)?.definitionId ?? purchaseAsset.trainId} train`
+                  : `${trainDefinitionId} train`
         return {
             text: accepted
                 ? `Bought ${asset}`
                 : `Offered to buy ${asset} for ${money(offer.price)}`,
             omitActor: accepted,
             value: accepted ? money(offer.price) : undefined,
-            detail: `From ${offer.seller.kind === 'bank' ? state.bank.name : nameOf(offer.seller)}`,
+            detail: `From ${offer.seller.kind === 'bank' ? 'Bank' : nameOf(offer.seller)}`,
             important: accepted
         }
     }

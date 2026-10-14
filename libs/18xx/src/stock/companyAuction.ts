@@ -235,7 +235,7 @@ export class CompanyAuctionModel {
         }
         const president = { kind: 'player' as const, playerId }
         const marketSpaceId = this.terms.startSpace(this.state, formation.price)
-        startCompanyAtPar(this.state, companyId, marketSpaceId, president)
+        startCompanyAtPar(this.state, this.rules.market, companyId, marketSpaceId, president)
         const certificate = presidentCertificate(this.state, companyId)
         assertExists(certificate, 'A company auction awards the president’s certificate')
         certificate.owner = president

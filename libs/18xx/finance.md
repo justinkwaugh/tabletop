@@ -40,10 +40,11 @@ president's certificate, and an optional identifying number. A company's optiona
 `shareCount` supplies the basis for fixed percentages: two shares in a ten-share
 major represent 20%. A private certificate represents ownership of one private;
 there is at most one outstanding ownership certificate for each private.
-`certificateLimitCount` records the current title-supplied contribution to the
-certificate limit, independently of the number of shares or certificates. It
-supports zero and fractional counts. Stock rules derive the effective count from
-the current market position without changing that base weight. The ordinary-certificate authoring helper creates a two-share
+A certificate's contribution to the certificate limit is not stored: stock rules
+supply it through `certificateWeight`, starting from `standardCertificateWeight`
+(one per certificate, none for a short) and applying title or market exemptions,
+which may be zero or fractional. `president` is recorded only on a president's
+certificate. The ordinary-certificate authoring helper creates a two-share
 president's certificate and one-share ordinary certificates; this is not a family
 invariant.
 

@@ -53,8 +53,6 @@ export class HydratedRunTrains extends HydratableAction<typeof RunTrains> implem
         const evaluation = running.evaluate(this.companyId, this.routes)
         assert(evaluation.result, evaluation.reason ?? 'Invalid routes')
         state.routeStep!.result = evaluation.result
-        for (const route of evaluation.result.routes)
-            state.trainInventory.trains.find((train) => train.id === route.trainId)!.hasRun = true
         this.metadata = evaluation.result
     }
 }

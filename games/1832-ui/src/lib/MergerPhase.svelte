@@ -93,7 +93,7 @@
     {@const discards = session.mergedTrainDiscards}
     <CompanyActionPanel
         label="Train discards"
-        heading={`${getCompany(gameState, discards.companyId).name} has ${discards.excess} ${discards.excess === 1 ? 'train' : 'trains'} over its limit`}
+        heading={`${session.companyName(discards.companyId)} has ${discards.excess} ${discards.excess === 1 ? 'train' : 'trains'} over its limit`}
     >
         {#each discards.trains as train (train.id)}
             <button
@@ -113,7 +113,7 @@
             <CompanyActionCard
                 {session}
                 companyId={partnerId}
-                title={`${initials(companyId)} with ${getCompany(gameState, partnerId).name}`}
+                title={`${initials(companyId)} with ${session.companyName(partnerId)}`}
                 actions={proposals.map(proposalAction)}
             />
         {/each}

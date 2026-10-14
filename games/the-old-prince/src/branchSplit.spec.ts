@@ -19,7 +19,7 @@ function preview(state = exampleGame(TheOldPrinceScenarios, 'split').state) {
 function allocate(state: TheOldPrinceState, owners: { owner: Owner; poolId?: string }[]) {
     for (const [index, allocation] of owners.entries()) {
         const certificate = state.certificates.find((c) => c.id === `So:share:${index + 1}`)
-        if (!certificate || certificate.retired) throw new Error('Missing parent share')
+        if (!certificate) throw new Error('Missing parent share')
         certificate.owner = allocation.owner
         delete certificate.poolId
         if (allocation.poolId) certificate.poolId = allocation.poolId
@@ -91,7 +91,7 @@ it('rounds players and Union Bank independently and preserves reserved exchange 
 })
 it('retains existing treasury shares and rounds eligible Bank shares across pools together', () => {
     const { state } = exampleGame(TheOldPrinceScenarios, 'split')
-    state.certificatePools.push({ id: 'ipo', name: 'IPO', owner: bank })
+    state.certificatePools.push({ id: 'ipo', owner: bank })
     allocate(state, [
         { owner: alex },
         { owner: alex },
@@ -229,7 +229,7 @@ it('conserves each company’s share units across the preview transfers', () => 
     const details = preview(state)
     for (const transfer of details.certificateTransfers) {
         const certificate = state.certificates.find((c) => c.id === transfer.certificateId)
-        if (!certificate || certificate.retired) throw new Error('Missing transfer certificate')
+        if (!certificate) throw new Error('Missing transfer certificate')
         certificate.owner = transfer.owner
         delete certificate.poolId
         if (transfer.poolId) certificate.poolId = transfer.poolId

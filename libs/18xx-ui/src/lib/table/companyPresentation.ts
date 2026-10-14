@@ -1,4 +1,4 @@
-import { companyMarketSpace, type StockMarket } from '@tabletop/18xx'
+import type { StockMarket, StockMarketChart } from '@tabletop/18xx'
 
 export type CompanyNameVariants = {
     short: string
@@ -21,8 +21,12 @@ export const DefaultCompanyPricePresentation: CompanyPricePresentation = {
     showInSpreadsheet: false
 }
 
-export function companySharePrice(market: StockMarket, companyId: string): number | undefined {
+export function companySharePrice(
+    chart: StockMarketChart,
+    market: StockMarket,
+    companyId: string
+): number | undefined {
     return market.stacks.some((stack) => stack.companyIds.includes(companyId))
-        ? companyMarketSpace(market, companyId).price
+        ? chart.companySpace(market, companyId).price
         : undefined
 }

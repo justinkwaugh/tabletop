@@ -17,7 +17,7 @@ import {
     TrainPurchaseDetails,
     type TrainRules
 } from './trainPurchase.js'
-import { unownedTrain, type TrainPurchaseState } from './train.js'
+import { releaseTrains, type TrainPurchaseState } from './train.js'
 import { getCompany } from '../finance/finance.js'
 import { closePrivate } from '../privates/privateCompany.js'
 import {
@@ -100,9 +100,7 @@ export function applyTrainPurchase(
         }
     ])
     if (details.exchangeTrainId)
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.id === details.exchangeTrainId ? unownedTrain(train, 'market') : train
-        )
+        releaseTrains(state.trainInventory, [details.exchangeTrainId], 'market')
     const toPhaseId = rules.phaseAfterPurchase(state, details.definitionId)
     const payments = settleTrainDepartures(state, rules, [
         { trainId: details.trainId, definitionId: details.definitionId, cause: 'purchase' }

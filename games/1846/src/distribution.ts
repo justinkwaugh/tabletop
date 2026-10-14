@@ -1,6 +1,7 @@
 import { assert, assertExists, shuffle } from '@tabletop/common'
 import { settleCashPayments, getCompany, finiteCashOwnedBy } from '@tabletop/18xx'
 import { draftCompany, isBlank } from './catalog.js'
+import { independentTrainId } from './trains.js'
 import type { EighteenFortySixProjectedState, HydratedEighteenFortySixState } from './state.js'
 
 type State = HydratedEighteenFortySixState
@@ -106,8 +107,9 @@ export function settleDistribution(state: State): void {
     delete draft.finalOffer
     state.turnManager.endTurn(state.actionCount)
     state.turnManager.turnOrder = state.players.map((player) => player.playerId)
-    state.activePlayerIds = [state.priorityDealPlayerId]
-    state.turnManager.startTurn(state.priorityDealPlayerId, state.actionCount + 1)
+    const [priorityDealPlayerId] = state.turnManager.turnOrder
+    state.activePlayerIds = [priorityDealPlayerId]
+    state.turnManager.startTurn(priorityDealPlayerId, state.actionCount + 1)
     state.machineState = 'StockRound'
 }
 
@@ -120,10 +122,7 @@ export function purchaseOpeningCompany(
     const certificate = state.certificates.find(
         (certificate) => certificate.id === `${company.id}:charter`
     )
-    assert(
-        certificate && !certificate.retired && certificate.owner.kind === 'bank',
-        'Draft certificate must be bank owned'
-    )
+    assert(certificate && certificate.owner.kind === 'bank', 'Draft certificate must be bank owned')
     certificate.owner = { kind: 'player', playerId }
     if (selection.price > 0)
         settleCashPayments(state, [
@@ -144,7 +143,7 @@ export function purchaseOpeningCompany(
             }
         ])
         state.trainInventory.trains.push({
-            id: `${company.id}:2`,
+            id: independentTrainId(company.id),
             definitionId: '2',
             status: 'owned',
             owner: { kind: 'company', companyId: company.id }

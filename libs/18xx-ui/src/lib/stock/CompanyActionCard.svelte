@@ -30,7 +30,7 @@
         facts?: readonly TitleFact[]
         actions?: readonly CardAction[]
     } = $props()
-    const name = $derived(getCompany(session.gameState, companyId).name)
+    const name = $derived(session.companyName(companyId))
 </script>
 
 <div class="company-card" aria-label={name}>

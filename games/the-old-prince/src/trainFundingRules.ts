@@ -1,3 +1,4 @@
+import { TheOldPrinceMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import { TheOldPrinceOperatingRules } from './roundRules.js'
 import {
@@ -23,7 +24,7 @@ export const TheOldPrinceTrainFundingRules: TrainFundingRules = {
         return [president, owner]
     },
     issuanceTerms(state, companyId, shares) {
-        return marketSaleTerms(state, companyId, {
+        return marketSaleTerms(TheOldPrinceMarket, state, companyId, {
             destinationPoolId: 'market',
             marketLimit: 100,
             maximumShares: shares,

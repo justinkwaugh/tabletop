@@ -1,3 +1,4 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import {
     controllingOwner,
@@ -17,6 +18,7 @@ const LoansPerStep = 5
 const MaximumRate = 70
 
 export const EighteenSeventeenLoanRules: LoanRules = {
+    market: EighteenSeventeenMarket,
     value: 100,
     supply: (MaximumRate / RateStep) * LoansPerStep,
     capacity: (state, companyId) => corporationShareCount(state, companyId),

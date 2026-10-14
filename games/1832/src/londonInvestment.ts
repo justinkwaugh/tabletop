@@ -74,7 +74,6 @@ export function londonShareChoices(state: EighteenThirtyTwoState, playerId: stri
     )
         return []
     return state.certificates.flatMap((certificate) =>
-        !certificate.retired &&
         certificate.kind === 'share' &&
         !certificate.president &&
         certificate.owner.kind === 'bank' &&

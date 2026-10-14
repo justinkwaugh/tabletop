@@ -1,7 +1,7 @@
+import { EighteenSeventeenMarket } from './stockMarket.js'
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
-    companyMarketSpace,
     finiteCashOwnedBy,
     getCompany,
     issueShareCertificates,
@@ -32,7 +32,7 @@ const company = (companyId: string) => ({ kind: 'company' as const, companyId })
 const cash = (state: EighteenXXState, owner: Parameters<typeof finiteCashOwnedBy>[1]) =>
     finiteCashOwnedBy(state, owner)
 const price = (state: EighteenXXState, companyId: string) =>
-    companyMarketSpace(state.stockMarket, companyId).price
+    EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price
 
 function setCash(state: EighteenXXState, companyId: string, amount: number) {
     const account = state.cash.find(
@@ -278,8 +278,8 @@ describe('the closing zones', () => {
         play.act('PassOnCompany', { companyId: 'PLE' })
         expect(cash(play.state, player('alex'))).toBe(alex - 260)
         expect(
-            play.state.trainInventory.trains.find((entry) => entry.id === train.id)?.status
-        ).toBe('removed')
+            play.state.trainInventory.trains.find((entry) => entry.id === train.id)
+        ).toBeUndefined()
         expect(play.state.stations.find((station) => station.id === 'PLE:home')?.status).toBe(
             'available'
         )
@@ -356,7 +356,7 @@ describe('the buyer', () => {
         play.act('OfferCompany', { companyId: 'PLE' })
         play.act('BidToAcquire', { companyId: 'PLE', amount: 300 })
         expect(isLiquidated(play.state.stockMarket, 'BA')).toBe(false)
-        expect(companyMarketSpace(play.state.stockMarket, 'BA').id).toBe('0:3')
+        expect(EighteenSeventeenMarket.companySpace(play.state.stockMarket, 'BA').id).toBe('0:3')
         // Boston & Albany is not offered after it falls into the zone.
         expect(play.state.operatingSet?.roundNumber).toBe(2)
     })

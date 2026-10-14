@@ -97,7 +97,7 @@ describe('1846 corporate acquisitions', () => {
         expect(cash(table, 'NYC')).toBe(buyerCash - 60 + independentCash)
         expect(cash(table, 'MS')).toBe(0)
         expect(getCompany(table.state, 'MS').closed).toBe(true)
-        expect(table.state.certificates.find((c) => c.companyId === 'MS')?.retired).toBe(true)
+        expect(table.state.certificates.find((c) => c.companyId === 'MS')).toBeUndefined()
         const train = trainsOwnedBy(table.state, { kind: 'company', companyId: 'NYC' })[0]
         expect(train.id).toBe('MS:2')
         expect(canRunAcquiredTrain(table.hydrated, train)).toBe(false)
@@ -142,7 +142,7 @@ describe('1846 corporate acquisitions', () => {
         assert(request.seller.kind === 'player')
         if (request.seller.playerId === buyer) {
             const charter = table.state.certificates.find((c) => c.companyId === 'MS')
-            assert(charter && !charter.retired)
+            assert(charter)
             const seller = table.state.players.find((p) => p.playerId !== buyer)!.playerId
             charter.owner = { kind: 'player', playerId: seller }
             getCompany(table.state, 'MS').president = charter.owner

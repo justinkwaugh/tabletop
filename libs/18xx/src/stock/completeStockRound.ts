@@ -8,13 +8,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { allPlayersPassed, type StockRoundRules } from './stockRoundRules.js'
-import {
-    StockMarketMove,
-    companyMarketSpace,
-    moveMarketSpace,
-    placeStockMarker,
-    stockMarketOrder
-} from './stockMarket.js'
+import { placeStockMarker, StockMarketMove, type StockMarketChart } from './stockMarket.js'
 import type { StockState } from './stockState.js'
 
 const CompletionFields = Type.Object({
@@ -50,9 +44,11 @@ export class HydratedCompleteStockRound
     declare type: 'CompleteStockRound'
     declare metadata?: CompleteStockRound['metadata']
     readonly #rules: StockRoundRules
-    constructor(data: CompleteStockRound, rules: StockRoundRules) {
+    readonly #market: StockMarketChart
+    constructor(data: CompleteStockRound, rules: StockRoundRules, market: StockMarketChart) {
         super(data instanceof HydratedCompleteStockRound ? data.dehydrate() : data, Validator)
         this.#rules = rules
+        this.#market = market
     }
     apply(state: HydratedGameState & StockState): void {
         assert(
@@ -72,13 +68,14 @@ export class HydratedCompleteStockRound
                 nextPlayerOrder.every((id) => state.turnManager.turnOrder.includes(id)),
             'Invalid next player order'
         )
-        const marketMoves = stockMarketOrder(state.stockMarket).flatMap((companyId) => {
-            const from = companyMarketSpace(state.stockMarket, companyId)
+        const market = this.#market
+        const marketMoves = market.order(state.stockMarket).flatMap((companyId) => {
+            const from = market.companySpace(state.stockMarket, companyId)
             const soldOut = this.#rules.soldOut(state, companyId)
             const raises = soldOut ? (this.#rules.squeezed?.(state, companyId) ? 2 : 1) : 0
-            const raised = moveMarketSpace(state.stockMarket, from.id, 'up', raises)
+            const raised = market.move(from.id, 'up', raises)
             const drop = this.#rules.poolDrop?.(state, companyId) ?? 0
-            const to = moveMarketSpace(state.stockMarket, raised.id, 'down', drop)
+            const to = market.move(raised.id, 'down', drop)
             return soldOut || to.id !== from.id
                 ? [{ companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to.id }]
                 : []

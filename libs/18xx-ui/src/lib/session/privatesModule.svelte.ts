@@ -34,6 +34,7 @@ export type PrivatesSession = ModuleSession<
         | 'companyRules'
         | 'outOfTurnPrivatePowers'
         | 'privatePowerRules'
+        | 'names'
     >
 >
 
@@ -119,8 +120,8 @@ export class PrivatesModule {
     })
     requestablePrivateNames(playerId: string) {
         const { state, rules } = this.session
-        return requestablePrivateIds(state, playerId, rules.privatePowerRules).map(
-            (id) => getCompany(state, id).name
+        return requestablePrivateIds(state, playerId, rules.privatePowerRules).map((id) =>
+            rules.names.company(id)
         )
     }
     hasRequest(playerId: string) {
@@ -198,7 +199,7 @@ export class PrivatesModule {
                 (item) => item.id === offer.certificateId
             )
             assert(
-                certificate && !certificate.retired && certificate.kind === 'share',
+                certificate && certificate.kind === 'share',
                 'An exchange offer requires an available share certificate'
             )
             const key = JSON.stringify([
@@ -209,8 +210,7 @@ export class PrivatesModule {
                 certificate.poolId,
                 certificate.shares,
                 certificate.president,
-                certificate.number,
-                certificate.certificateLimitCount
+                certificate.number
             ])
             if (seen.has(key)) return false
             seen.add(key)

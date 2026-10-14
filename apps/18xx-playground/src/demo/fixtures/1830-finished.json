@@ -73,7 +73,6 @@
     "color": "green"
    }
   ],
-  "example": "finances",
   "phaseEvents": [],
   "usedPrivatePowerIds": [],
   "machineState": "WaterfallAuction",
@@ -110,1518 +109,14 @@
    }
   },
   "stockMarket": {
-   "spaces": [
-    {
-     "id": "0:0",
-     "price": 60,
-     "row": 0,
-     "column": 0,
-     "color": "yellow",
-     "moves": {
-      "down": "1:0",
-      "right": "0:1"
-     }
-    },
-    {
-     "id": "0:1",
-     "price": 67,
-     "row": 0,
-     "column": 1,
-     "color": "white",
-     "moves": {
-      "down": "1:1",
-      "left": "0:0",
-      "right": "0:2"
-     }
-    },
-    {
-     "id": "0:2",
-     "price": 71,
-     "row": 0,
-     "column": 2,
-     "color": "white",
-     "moves": {
-      "down": "1:2",
-      "left": "0:1",
-      "right": "0:3"
-     }
-    },
-    {
-     "id": "0:3",
-     "price": 76,
-     "row": 0,
-     "column": 3,
-     "color": "white",
-     "moves": {
-      "down": "1:3",
-      "left": "0:2",
-      "right": "0:4"
-     }
-    },
-    {
-     "id": "0:4",
-     "price": 82,
-     "row": 0,
-     "column": 4,
-     "color": "white",
-     "moves": {
-      "down": "1:4",
-      "left": "0:3",
-      "right": "0:5"
-     }
-    },
-    {
-     "id": "0:5",
-     "price": 90,
-     "row": 0,
-     "column": 5,
-     "color": "white",
-     "moves": {
-      "down": "1:5",
-      "left": "0:4",
-      "right": "0:6"
-     }
-    },
-    {
-     "id": "0:6",
-     "price": 100,
-     "row": 0,
-     "column": 6,
-     "color": "pink",
-     "moves": {
-      "down": "1:6",
-      "left": "0:5",
-      "right": "0:7"
-     }
-    },
-    {
-     "id": "0:7",
-     "price": 112,
-     "row": 0,
-     "column": 7,
-     "color": "white",
-     "moves": {
-      "down": "1:7",
-      "left": "0:6",
-      "right": "0:8"
-     }
-    },
-    {
-     "id": "0:8",
-     "price": 126,
-     "row": 0,
-     "column": 8,
-     "color": "white",
-     "moves": {
-      "down": "1:8",
-      "left": "0:7",
-      "right": "0:9"
-     }
-    },
-    {
-     "id": "0:9",
-     "price": 142,
-     "row": 0,
-     "column": 9,
-     "color": "white",
-     "moves": {
-      "down": "1:9",
-      "left": "0:8",
-      "right": "0:10"
-     }
-    },
-    {
-     "id": "0:10",
-     "price": 160,
-     "row": 0,
-     "column": 10,
-     "color": "white",
-     "moves": {
-      "down": "1:10",
-      "left": "0:9",
-      "right": "0:11"
-     }
-    },
-    {
-     "id": "0:11",
-     "price": 180,
-     "row": 0,
-     "column": 11,
-     "color": "white",
-     "moves": {
-      "down": "1:11",
-      "left": "0:10",
-      "right": "0:12"
-     }
-    },
-    {
-     "id": "0:12",
-     "price": 200,
-     "row": 0,
-     "column": 12,
-     "color": "white",
-     "moves": {
-      "down": "1:12",
-      "left": "0:11",
-      "right": "0:13"
-     }
-    },
-    {
-     "id": "0:13",
-     "price": 225,
-     "row": 0,
-     "column": 13,
-     "color": "white",
-     "moves": {
-      "down": "1:13",
-      "left": "0:12",
-      "right": "0:14"
-     }
-    },
-    {
-     "id": "0:14",
-     "price": 250,
-     "row": 0,
-     "column": 14,
-     "color": "white",
-     "moves": {
-      "down": "1:14",
-      "left": "0:13",
-      "right": "0:15"
-     }
-    },
-    {
-     "id": "0:15",
-     "price": 275,
-     "row": 0,
-     "column": 15,
-     "color": "white",
-     "moves": {
-      "down": "1:15",
-      "left": "0:14",
-      "right": "0:16"
-     }
-    },
-    {
-     "id": "0:16",
-     "price": 300,
-     "row": 0,
-     "column": 16,
-     "color": "white",
-     "moves": {
-      "down": "1:16",
-      "left": "0:15",
-      "right": "0:17"
-     }
-    },
-    {
-     "id": "0:17",
-     "price": 325,
-     "row": 0,
-     "column": 17,
-     "color": "white",
-     "moves": {
-      "down": "1:17",
-      "left": "0:16",
-      "right": "0:18"
-     }
-    },
-    {
-     "id": "0:18",
-     "price": 350,
-     "row": 0,
-     "column": 18,
-     "color": "white",
-     "moves": {
-      "down": "1:18",
-      "left": "0:17"
-     }
-    },
-    {
-     "id": "1:0",
-     "price": 53,
-     "row": 1,
-     "column": 0,
-     "color": "yellow",
-     "moves": {
-      "up": "0:0",
-      "down": "2:0",
-      "right": "1:1"
-     }
-    },
-    {
-     "id": "1:1",
-     "price": 60,
-     "row": 1,
-     "column": 1,
-     "color": "yellow",
-     "moves": {
-      "up": "0:1",
-      "down": "2:1",
-      "left": "1:0",
-      "right": "1:2"
-     }
-    },
-    {
-     "id": "1:2",
-     "price": 66,
-     "row": 1,
-     "column": 2,
-     "color": "white",
-     "moves": {
-      "up": "0:2",
-      "down": "2:2",
-      "left": "1:1",
-      "right": "1:3"
-     }
-    },
-    {
-     "id": "1:3",
-     "price": 70,
-     "row": 1,
-     "column": 3,
-     "color": "white",
-     "moves": {
-      "up": "0:3",
-      "down": "2:3",
-      "left": "1:2",
-      "right": "1:4"
-     }
-    },
-    {
-     "id": "1:4",
-     "price": 76,
-     "row": 1,
-     "column": 4,
-     "color": "white",
-     "moves": {
-      "up": "0:4",
-      "down": "2:4",
-      "left": "1:3",
-      "right": "1:5"
-     }
-    },
-    {
-     "id": "1:5",
-     "price": 82,
-     "row": 1,
-     "column": 5,
-     "color": "white",
-     "moves": {
-      "up": "0:5",
-      "down": "2:5",
-      "left": "1:4",
-      "right": "1:6"
-     }
-    },
-    {
-     "id": "1:6",
-     "price": 90,
-     "row": 1,
-     "column": 6,
-     "color": "pink",
-     "moves": {
-      "up": "0:6",
-      "down": "2:6",
-      "left": "1:5",
-      "right": "1:7"
-     }
-    },
-    {
-     "id": "1:7",
-     "price": 100,
-     "row": 1,
-     "column": 7,
-     "color": "white",
-     "moves": {
-      "up": "0:7",
-      "down": "2:7",
-      "left": "1:6",
-      "right": "1:8"
-     }
-    },
-    {
-     "id": "1:8",
-     "price": 112,
-     "row": 1,
-     "column": 8,
-     "color": "white",
-     "moves": {
-      "up": "0:8",
-      "down": "2:8",
-      "left": "1:7",
-      "right": "1:9"
-     }
-    },
-    {
-     "id": "1:9",
-     "price": 126,
-     "row": 1,
-     "column": 9,
-     "color": "white",
-     "moves": {
-      "up": "0:9",
-      "down": "2:9",
-      "left": "1:8",
-      "right": "1:10"
-     }
-    },
-    {
-     "id": "1:10",
-     "price": 142,
-     "row": 1,
-     "column": 10,
-     "color": "white",
-     "moves": {
-      "up": "0:10",
-      "down": "2:10",
-      "left": "1:9",
-      "right": "1:11"
-     }
-    },
-    {
-     "id": "1:11",
-     "price": 160,
-     "row": 1,
-     "column": 11,
-     "color": "white",
-     "moves": {
-      "up": "0:11",
-      "down": "2:11",
-      "left": "1:10",
-      "right": "1:12"
-     }
-    },
-    {
-     "id": "1:12",
-     "price": 180,
-     "row": 1,
-     "column": 12,
-     "color": "white",
-     "moves": {
-      "up": "0:12",
-      "down": "2:12",
-      "left": "1:11",
-      "right": "1:13"
-     }
-    },
-    {
-     "id": "1:13",
-     "price": 200,
-     "row": 1,
-     "column": 13,
-     "color": "white",
-     "moves": {
-      "up": "0:13",
-      "down": "2:13",
-      "left": "1:12",
-      "right": "1:14"
-     }
-    },
-    {
-     "id": "1:14",
-     "price": 220,
-     "row": 1,
-     "column": 14,
-     "color": "white",
-     "moves": {
-      "up": "0:14",
-      "down": "2:14",
-      "left": "1:13",
-      "right": "1:15"
-     }
-    },
-    {
-     "id": "1:15",
-     "price": 240,
-     "row": 1,
-     "column": 15,
-     "color": "white",
-     "moves": {
-      "up": "0:15",
-      "down": "2:15",
-      "left": "1:14",
-      "right": "1:16"
-     }
-    },
-    {
-     "id": "1:16",
-     "price": 260,
-     "row": 1,
-     "column": 16,
-     "color": "white",
-     "moves": {
-      "up": "0:16",
-      "left": "1:15",
-      "right": "1:17"
-     }
-    },
-    {
-     "id": "1:17",
-     "price": 280,
-     "row": 1,
-     "column": 17,
-     "color": "white",
-     "moves": {
-      "up": "0:17",
-      "left": "1:16",
-      "right": "1:18"
-     }
-    },
-    {
-     "id": "1:18",
-     "price": 300,
-     "row": 1,
-     "column": 18,
-     "color": "white",
-     "moves": {
-      "up": "0:18",
-      "left": "1:17"
-     }
-    },
-    {
-     "id": "2:0",
-     "price": 46,
-     "row": 2,
-     "column": 0,
-     "color": "yellow",
-     "moves": {
-      "up": "1:0",
-      "down": "3:0",
-      "right": "2:1"
-     }
-    },
-    {
-     "id": "2:1",
-     "price": 55,
-     "row": 2,
-     "column": 1,
-     "color": "yellow",
-     "moves": {
-      "up": "1:1",
-      "down": "3:1",
-      "left": "2:0",
-      "right": "2:2"
-     }
-    },
-    {
-     "id": "2:2",
-     "price": 60,
-     "row": 2,
-     "column": 2,
-     "color": "yellow",
-     "moves": {
-      "up": "1:2",
-      "down": "3:2",
-      "left": "2:1",
-      "right": "2:3"
-     }
-    },
-    {
-     "id": "2:3",
-     "price": 65,
-     "row": 2,
-     "column": 3,
-     "color": "white",
-     "moves": {
-      "up": "1:3",
-      "down": "3:3",
-      "left": "2:2",
-      "right": "2:4"
-     }
-    },
-    {
-     "id": "2:4",
-     "price": 70,
-     "row": 2,
-     "column": 4,
-     "color": "white",
-     "moves": {
-      "up": "1:4",
-      "down": "3:4",
-      "left": "2:3",
-      "right": "2:5"
-     }
-    },
-    {
-     "id": "2:5",
-     "price": 76,
-     "row": 2,
-     "column": 5,
-     "color": "white",
-     "moves": {
-      "up": "1:5",
-      "down": "3:5",
-      "left": "2:4",
-      "right": "2:6"
-     }
-    },
-    {
-     "id": "2:6",
-     "price": 82,
-     "row": 2,
-     "column": 6,
-     "color": "pink",
-     "moves": {
-      "up": "1:6",
-      "down": "3:6",
-      "left": "2:5",
-      "right": "2:7"
-     }
-    },
-    {
-     "id": "2:7",
-     "price": 90,
-     "row": 2,
-     "column": 7,
-     "color": "white",
-     "moves": {
-      "up": "1:7",
-      "down": "3:7",
-      "left": "2:6",
-      "right": "2:8"
-     }
-    },
-    {
-     "id": "2:8",
-     "price": 100,
-     "row": 2,
-     "column": 8,
-     "color": "white",
-     "moves": {
-      "up": "1:8",
-      "down": "3:8",
-      "left": "2:7",
-      "right": "2:9"
-     }
-    },
-    {
-     "id": "2:9",
-     "price": 111,
-     "row": 2,
-     "column": 9,
-     "color": "white",
-     "moves": {
-      "up": "1:9",
-      "down": "3:9",
-      "left": "2:8",
-      "right": "2:10"
-     }
-    },
-    {
-     "id": "2:10",
-     "price": 125,
-     "row": 2,
-     "column": 10,
-     "color": "white",
-     "moves": {
-      "up": "1:10",
-      "down": "3:10",
-      "left": "2:9",
-      "right": "2:11"
-     }
-    },
-    {
-     "id": "2:11",
-     "price": 140,
-     "row": 2,
-     "column": 11,
-     "color": "white",
-     "moves": {
-      "up": "1:11",
-      "down": "3:11",
-      "left": "2:10",
-      "right": "2:12"
-     }
-    },
-    {
-     "id": "2:12",
-     "price": 155,
-     "row": 2,
-     "column": 12,
-     "color": "white",
-     "moves": {
-      "up": "1:12",
-      "down": "3:12",
-      "left": "2:11",
-      "right": "2:13"
-     }
-    },
-    {
-     "id": "2:13",
-     "price": 170,
-     "row": 2,
-     "column": 13,
-     "color": "white",
-     "moves": {
-      "up": "1:13",
-      "left": "2:12",
-      "right": "2:14"
-     }
-    },
-    {
-     "id": "2:14",
-     "price": 185,
-     "row": 2,
-     "column": 14,
-     "color": "white",
-     "moves": {
-      "up": "1:14",
-      "left": "2:13",
-      "right": "2:15"
-     }
-    },
-    {
-     "id": "2:15",
-     "price": 200,
-     "row": 2,
-     "column": 15,
-     "color": "white",
-     "moves": {
-      "up": "1:15",
-      "left": "2:14"
-     }
-    },
-    {
-     "id": "3:0",
-     "price": 39,
-     "row": 3,
-     "column": 0,
-     "color": "orange",
-     "moves": {
-      "up": "2:0",
-      "down": "4:0",
-      "right": "3:1"
-     }
-    },
-    {
-     "id": "3:1",
-     "price": 48,
-     "row": 3,
-     "column": 1,
-     "color": "yellow",
-     "moves": {
-      "up": "2:1",
-      "down": "4:1",
-      "left": "3:0",
-      "right": "3:2"
-     }
-    },
-    {
-     "id": "3:2",
-     "price": 54,
-     "row": 3,
-     "column": 2,
-     "color": "yellow",
-     "moves": {
-      "up": "2:2",
-      "down": "4:2",
-      "left": "3:1",
-      "right": "3:3"
-     }
-    },
-    {
-     "id": "3:3",
-     "price": 60,
-     "row": 3,
-     "column": 3,
-     "color": "yellow",
-     "moves": {
-      "up": "2:3",
-      "down": "4:3",
-      "left": "3:2",
-      "right": "3:4"
-     }
-    },
-    {
-     "id": "3:4",
-     "price": 66,
-     "row": 3,
-     "column": 4,
-     "color": "white",
-     "moves": {
-      "up": "2:4",
-      "down": "4:4",
-      "left": "3:3",
-      "right": "3:5"
-     }
-    },
-    {
-     "id": "3:5",
-     "price": 71,
-     "row": 3,
-     "column": 5,
-     "color": "white",
-     "moves": {
-      "up": "2:5",
-      "down": "4:5",
-      "left": "3:4",
-      "right": "3:6"
-     }
-    },
-    {
-     "id": "3:6",
-     "price": 76,
-     "row": 3,
-     "column": 6,
-     "color": "pink",
-     "moves": {
-      "up": "2:6",
-      "down": "4:6",
-      "left": "3:5",
-      "right": "3:7"
-     }
-    },
-    {
-     "id": "3:7",
-     "price": 82,
-     "row": 3,
-     "column": 7,
-     "color": "white",
-     "moves": {
-      "up": "2:7",
-      "down": "4:7",
-      "left": "3:6",
-      "right": "3:8"
-     }
-    },
-    {
-     "id": "3:8",
-     "price": 90,
-     "row": 3,
-     "column": 8,
-     "color": "white",
-     "moves": {
-      "up": "2:8",
-      "down": "4:8",
-      "left": "3:7",
-      "right": "3:9"
-     }
-    },
-    {
-     "id": "3:9",
-     "price": 100,
-     "row": 3,
-     "column": 9,
-     "color": "white",
-     "moves": {
-      "up": "2:9",
-      "down": "4:9",
-      "left": "3:8",
-      "right": "3:10"
-     }
-    },
-    {
-     "id": "3:10",
-     "price": 110,
-     "row": 3,
-     "column": 10,
-     "color": "white",
-     "moves": {
-      "up": "2:10",
-      "down": "4:10",
-      "left": "3:9",
-      "right": "3:11"
-     }
-    },
-    {
-     "id": "3:11",
-     "price": 120,
-     "row": 3,
-     "column": 11,
-     "color": "white",
-     "moves": {
-      "up": "2:11",
-      "left": "3:10",
-      "right": "3:12"
-     }
-    },
-    {
-     "id": "3:12",
-     "price": 130,
-     "row": 3,
-     "column": 12,
-     "color": "white",
-     "moves": {
-      "up": "2:12",
-      "left": "3:11"
-     }
-    },
-    {
-     "id": "4:0",
-     "price": 32,
-     "row": 4,
-     "column": 0,
-     "color": "orange",
-     "moves": {
-      "up": "3:0",
-      "down": "5:0",
-      "right": "4:1"
-     }
-    },
-    {
-     "id": "4:1",
-     "price": 41,
-     "row": 4,
-     "column": 1,
-     "color": "orange",
-     "moves": {
-      "up": "3:1",
-      "down": "5:1",
-      "left": "4:0",
-      "right": "4:2"
-     }
-    },
-    {
-     "id": "4:2",
-     "price": 48,
-     "row": 4,
-     "column": 2,
-     "color": "yellow",
-     "moves": {
-      "up": "3:2",
-      "down": "5:2",
-      "left": "4:1",
-      "right": "4:3"
-     }
-    },
-    {
-     "id": "4:3",
-     "price": 55,
-     "row": 4,
-     "column": 3,
-     "color": "yellow",
-     "moves": {
-      "up": "3:3",
-      "down": "5:3",
-      "left": "4:2",
-      "right": "4:4"
-     }
-    },
-    {
-     "id": "4:4",
-     "price": 62,
-     "row": 4,
-     "column": 4,
-     "color": "white",
-     "moves": {
-      "up": "3:4",
-      "down": "5:4",
-      "left": "4:3",
-      "right": "4:5"
-     }
-    },
-    {
-     "id": "4:5",
-     "price": 67,
-     "row": 4,
-     "column": 5,
-     "color": "white",
-     "moves": {
-      "up": "3:5",
-      "down": "5:5",
-      "left": "4:4",
-      "right": "4:6"
-     }
-    },
-    {
-     "id": "4:6",
-     "price": 71,
-     "row": 4,
-     "column": 6,
-     "color": "pink",
-     "moves": {
-      "up": "3:6",
-      "down": "5:6",
-      "left": "4:5",
-      "right": "4:7"
-     }
-    },
-    {
-     "id": "4:7",
-     "price": 76,
-     "row": 4,
-     "column": 7,
-     "color": "white",
-     "moves": {
-      "up": "3:7",
-      "down": "5:7",
-      "left": "4:6",
-      "right": "4:8"
-     }
-    },
-    {
-     "id": "4:8",
-     "price": 82,
-     "row": 4,
-     "column": 8,
-     "color": "white",
-     "moves": {
-      "up": "3:8",
-      "down": "5:8",
-      "left": "4:7",
-      "right": "4:9"
-     }
-    },
-    {
-     "id": "4:9",
-     "price": 90,
-     "row": 4,
-     "column": 9,
-     "color": "white",
-     "moves": {
-      "up": "3:9",
-      "down": "5:9",
-      "left": "4:8",
-      "right": "4:10"
-     }
-    },
-    {
-     "id": "4:10",
-     "price": 100,
-     "row": 4,
-     "column": 10,
-     "color": "white",
-     "moves": {
-      "up": "3:10",
-      "left": "4:9"
-     }
-    },
-    {
-     "id": "5:0",
-     "price": 25,
-     "row": 5,
-     "column": 0,
-     "color": "brown",
-     "moves": {
-      "up": "4:0",
-      "down": "6:0",
-      "right": "5:1"
-     }
-    },
-    {
-     "id": "5:1",
-     "price": 34,
-     "row": 5,
-     "column": 1,
-     "color": "orange",
-     "moves": {
-      "up": "4:1",
-      "down": "6:1",
-      "left": "5:0",
-      "right": "5:2"
-     }
-    },
-    {
-     "id": "5:2",
-     "price": 42,
-     "row": 5,
-     "column": 2,
-     "color": "orange",
-     "moves": {
-      "up": "4:2",
-      "down": "6:2",
-      "left": "5:1",
-      "right": "5:3"
-     }
-    },
-    {
-     "id": "5:3",
-     "price": 50,
-     "row": 5,
-     "column": 3,
-     "color": "yellow",
-     "moves": {
-      "up": "4:3",
-      "down": "6:3",
-      "left": "5:2",
-      "right": "5:4"
-     }
-    },
-    {
-     "id": "5:4",
-     "price": 58,
-     "row": 5,
-     "column": 4,
-     "color": "yellow",
-     "moves": {
-      "up": "4:4",
-      "down": "6:4",
-      "left": "5:3",
-      "right": "5:5"
-     }
-    },
-    {
-     "id": "5:5",
-     "price": 65,
-     "row": 5,
-     "column": 5,
-     "color": "white",
-     "moves": {
-      "up": "4:5",
-      "down": "6:5",
-      "left": "5:4",
-      "right": "5:6"
-     }
-    },
-    {
-     "id": "5:6",
-     "price": 67,
-     "row": 5,
-     "column": 6,
-     "color": "pink",
-     "moves": {
-      "up": "4:6",
-      "down": "6:6",
-      "left": "5:5",
-      "right": "5:7"
-     }
-    },
-    {
-     "id": "5:7",
-     "price": 71,
-     "row": 5,
-     "column": 7,
-     "color": "white",
-     "moves": {
-      "up": "4:7",
-      "down": "6:7",
-      "left": "5:6",
-      "right": "5:8"
-     }
-    },
-    {
-     "id": "5:8",
-     "price": 75,
-     "row": 5,
-     "column": 8,
-     "color": "white",
-     "moves": {
-      "up": "4:8",
-      "down": "6:8",
-      "left": "5:7",
-      "right": "5:9"
-     }
-    },
-    {
-     "id": "5:9",
-     "price": 80,
-     "row": 5,
-     "column": 9,
-     "color": "white",
-     "moves": {
-      "up": "4:9",
-      "left": "5:8"
-     }
-    },
-    {
-     "id": "6:0",
-     "price": 18,
-     "row": 6,
-     "column": 0,
-     "color": "brown",
-     "moves": {
-      "up": "5:0",
-      "down": "7:0",
-      "right": "6:1"
-     }
-    },
-    {
-     "id": "6:1",
-     "price": 27,
-     "row": 6,
-     "column": 1,
-     "color": "brown",
-     "moves": {
-      "up": "5:1",
-      "down": "7:1",
-      "left": "6:0",
-      "right": "6:2"
-     }
-    },
-    {
-     "id": "6:2",
-     "price": 36,
-     "row": 6,
-     "column": 2,
-     "color": "orange",
-     "moves": {
-      "up": "5:2",
-      "down": "7:2",
-      "left": "6:1",
-      "right": "6:3"
-     }
-    },
-    {
-     "id": "6:3",
-     "price": 45,
-     "row": 6,
-     "column": 3,
-     "color": "orange",
-     "moves": {
-      "up": "5:3",
-      "down": "7:3",
-      "left": "6:2",
-      "right": "6:4"
-     }
-    },
-    {
-     "id": "6:4",
-     "price": 54,
-     "row": 6,
-     "column": 4,
-     "color": "yellow",
-     "moves": {
-      "up": "5:4",
-      "down": "7:4",
-      "left": "6:3",
-      "right": "6:5"
-     }
-    },
-    {
-     "id": "6:5",
-     "price": 63,
-     "row": 6,
-     "column": 5,
-     "color": "white",
-     "moves": {
-      "up": "5:5",
-      "down": "7:5",
-      "left": "6:4",
-      "right": "6:6"
-     }
-    },
-    {
-     "id": "6:6",
-     "price": 67,
-     "row": 6,
-     "column": 6,
-     "color": "white",
-     "moves": {
-      "up": "5:6",
-      "down": "7:6",
-      "left": "6:5",
-      "right": "6:7"
-     }
-    },
-    {
-     "id": "6:7",
-     "price": 69,
-     "row": 6,
-     "column": 7,
-     "color": "white",
-     "moves": {
-      "up": "5:7",
-      "down": "7:7",
-      "left": "6:6",
-      "right": "6:8"
-     }
-    },
-    {
-     "id": "6:8",
-     "price": 70,
-     "row": 6,
-     "column": 8,
-     "color": "white",
-     "moves": {
-      "up": "5:8",
-      "left": "6:7"
-     }
-    },
-    {
-     "id": "7:0",
-     "price": 10,
-     "row": 7,
-     "column": 0,
-     "color": "brown",
-     "moves": {
-      "up": "6:0",
-      "right": "7:1"
-     }
-    },
-    {
-     "id": "7:1",
-     "price": 20,
-     "row": 7,
-     "column": 1,
-     "color": "brown",
-     "moves": {
-      "up": "6:1",
-      "down": "8:1",
-      "left": "7:0",
-      "right": "7:2"
-     }
-    },
-    {
-     "id": "7:2",
-     "price": 30,
-     "row": 7,
-     "column": 2,
-     "color": "brown",
-     "moves": {
-      "up": "6:2",
-      "down": "8:2",
-      "left": "7:1",
-      "right": "7:3"
-     }
-    },
-    {
-     "id": "7:3",
-     "price": 40,
-     "row": 7,
-     "column": 3,
-     "color": "orange",
-     "moves": {
-      "up": "6:3",
-      "down": "8:3",
-      "left": "7:2",
-      "right": "7:4"
-     }
-    },
-    {
-     "id": "7:4",
-     "price": 50,
-     "row": 7,
-     "column": 4,
-     "color": "yellow",
-     "moves": {
-      "up": "6:4",
-      "down": "8:4",
-      "left": "7:3",
-      "right": "7:5"
-     }
-    },
-    {
-     "id": "7:5",
-     "price": 60,
-     "row": 7,
-     "column": 5,
-     "color": "yellow",
-     "moves": {
-      "up": "6:5",
-      "down": "8:5",
-      "left": "7:4",
-      "right": "7:6"
-     }
-    },
-    {
-     "id": "7:6",
-     "price": 67,
-     "row": 7,
-     "column": 6,
-     "color": "white",
-     "moves": {
-      "up": "6:6",
-      "down": "8:6",
-      "left": "7:5",
-      "right": "7:7"
-     }
-    },
-    {
-     "id": "7:7",
-     "price": 68,
-     "row": 7,
-     "column": 7,
-     "color": "white",
-     "moves": {
-      "up": "6:7",
-      "left": "7:6"
-     }
-    },
-    {
-     "id": "8:1",
-     "price": 10,
-     "row": 8,
-     "column": 1,
-     "color": "brown",
-     "moves": {
-      "up": "7:1",
-      "right": "8:2"
-     }
-    },
-    {
-     "id": "8:2",
-     "price": 20,
-     "row": 8,
-     "column": 2,
-     "color": "brown",
-     "moves": {
-      "up": "7:2",
-      "down": "9:2",
-      "left": "8:1",
-      "right": "8:3"
-     }
-    },
-    {
-     "id": "8:3",
-     "price": 30,
-     "row": 8,
-     "column": 3,
-     "color": "brown",
-     "moves": {
-      "up": "7:3",
-      "down": "9:3",
-      "left": "8:2",
-      "right": "8:4"
-     }
-    },
-    {
-     "id": "8:4",
-     "price": 40,
-     "row": 8,
-     "column": 4,
-     "color": "orange",
-     "moves": {
-      "up": "7:4",
-      "down": "9:4",
-      "left": "8:3",
-      "right": "8:5"
-     }
-    },
-    {
-     "id": "8:5",
-     "price": 50,
-     "row": 8,
-     "column": 5,
-     "color": "yellow",
-     "moves": {
-      "up": "7:5",
-      "down": "9:5",
-      "left": "8:4",
-      "right": "8:6"
-     }
-    },
-    {
-     "id": "8:6",
-     "price": 60,
-     "row": 8,
-     "column": 6,
-     "color": "yellow",
-     "moves": {
-      "up": "7:6",
-      "down": "9:6",
-      "left": "8:5"
-     }
-    },
-    {
-     "id": "9:2",
-     "price": 10,
-     "row": 9,
-     "column": 2,
-     "color": "brown",
-     "moves": {
-      "up": "8:2",
-      "right": "9:3"
-     }
-    },
-    {
-     "id": "9:3",
-     "price": 20,
-     "row": 9,
-     "column": 3,
-     "color": "brown",
-     "moves": {
-      "up": "8:3",
-      "down": "10:3",
-      "left": "9:2",
-      "right": "9:4"
-     }
-    },
-    {
-     "id": "9:4",
-     "price": 30,
-     "row": 9,
-     "column": 4,
-     "color": "brown",
-     "moves": {
-      "up": "8:4",
-      "down": "10:4",
-      "left": "9:3",
-      "right": "9:5"
-     }
-    },
-    {
-     "id": "9:5",
-     "price": 40,
-     "row": 9,
-     "column": 5,
-     "color": "orange",
-     "moves": {
-      "up": "8:5",
-      "down": "10:5",
-      "left": "9:4",
-      "right": "9:6"
-     }
-    },
-    {
-     "id": "9:6",
-     "price": 50,
-     "row": 9,
-     "column": 6,
-     "color": "yellow",
-     "moves": {
-      "up": "8:6",
-      "down": "10:6",
-      "left": "9:5"
-     }
-    },
-    {
-     "id": "10:3",
-     "price": 10,
-     "row": 10,
-     "column": 3,
-     "color": "brown",
-     "moves": {
-      "up": "9:3",
-      "right": "10:4"
-     }
-    },
-    {
-     "id": "10:4",
-     "price": 20,
-     "row": 10,
-     "column": 4,
-     "color": "brown",
-     "moves": {
-      "up": "9:4",
-      "left": "10:3",
-      "right": "10:5"
-     }
-    },
-    {
-     "id": "10:5",
-     "price": 30,
-     "row": 10,
-     "column": 5,
-     "color": "brown",
-     "moves": {
-      "up": "9:5",
-      "left": "10:4",
-      "right": "10:6"
-     }
-    },
-    {
-     "id": "10:6",
-     "price": 40,
-     "row": 10,
-     "column": 6,
-     "color": "orange",
-     "moves": {
-      "up": "9:6",
-      "left": "10:5"
-     }
-    }
-   ],
    "stacks": []
   },
   "bank": {
-   "name": "Bank",
    "unlimitedAfterExhaustion": true
   },
   "companies": [
    {
     "id": "PRR",
-    "name": "Pennsylvania Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -1631,7 +126,6 @@
    },
    {
     "id": "NYC",
-    "name": "New York Central Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -1641,7 +135,6 @@
    },
    {
     "id": "CPR",
-    "name": "Canadian Pacific Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -1651,7 +144,6 @@
    },
    {
     "id": "BO",
-    "name": "Baltimore & Ohio Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -1661,7 +153,6 @@
    },
    {
     "id": "CO",
-    "name": "Chesapeake & Ohio Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -1671,7 +162,6 @@
    },
    {
     "id": "ERIE",
-    "name": "Erie Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -1681,7 +171,6 @@
    },
    {
     "id": "NYNH",
-    "name": "New York, New Haven & Hartford Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -1691,7 +180,6 @@
    },
    {
     "id": "BM",
-    "name": "Boston & Maine Railroad",
     "kind": "major",
     "shareCount": 10,
     "started": false,
@@ -1701,37 +189,31 @@
    },
    {
     "id": "SV",
-    "name": "Schuylkill Valley",
     "kind": "private",
     "privateRevenue": 5
    },
    {
     "id": "CS",
-    "name": "Champlain & St. Lawrence",
     "kind": "private",
     "privateRevenue": 10
    },
    {
     "id": "DH",
-    "name": "Delaware & Hudson",
     "kind": "private",
     "privateRevenue": 15
    },
    {
     "id": "MH",
-    "name": "Mohawk & Hudson",
     "kind": "private",
     "privateRevenue": 20
    },
    {
     "id": "CA",
-    "name": "Camden & Amboy",
     "kind": "private",
     "privateRevenue": 25
    },
    {
     "id": "BOP",
-    "name": "Baltimore & Ohio",
     "kind": "private",
     "privateRevenue": 30
    }
@@ -1824,14 +306,12 @@
   "certificatePools": [
    {
     "id": "initial-offering",
-    "name": "IPO",
     "owner": {
      "kind": "bank"
     }
    },
    {
     "id": "open-market",
-    "name": "Market",
     "owner": {
      "kind": "bank"
     }
@@ -1844,8 +324,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1856,9 +334,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1869,9 +344,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1882,9 +354,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1895,9 +364,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1908,9 +374,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1921,9 +384,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1934,9 +394,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1947,9 +404,6 @@
     "companyId": "PRR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1961,8 +415,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1973,9 +425,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1986,9 +435,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -1999,9 +445,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2012,9 +455,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2025,9 +465,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2038,9 +475,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2051,9 +485,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2064,9 +495,6 @@
     "companyId": "NYC",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2078,8 +506,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2090,9 +516,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2103,9 +526,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2116,9 +536,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2129,9 +546,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2142,9 +556,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2155,9 +566,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2168,9 +576,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2181,9 +586,6 @@
     "companyId": "CPR",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2195,8 +597,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2207,9 +607,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2220,9 +617,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2233,9 +627,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2246,9 +637,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2259,9 +647,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2272,9 +657,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2285,9 +667,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2298,9 +677,6 @@
     "companyId": "BO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2312,8 +688,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2324,9 +698,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2337,9 +708,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2350,9 +718,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2363,9 +728,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2376,9 +738,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2389,9 +748,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2402,9 +758,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2415,9 +768,6 @@
     "companyId": "CO",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2429,8 +779,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2441,9 +789,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2454,9 +799,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2467,9 +809,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2480,9 +819,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2493,9 +829,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2506,9 +839,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2519,9 +849,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2532,9 +859,6 @@
     "companyId": "ERIE",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2546,8 +870,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2558,9 +880,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2571,9 +890,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2584,9 +900,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2597,9 +910,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2610,9 +920,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2623,9 +930,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2636,9 +940,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2649,9 +950,6 @@
     "companyId": "NYNH",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2663,8 +961,6 @@
     "kind": "share",
     "shares": 2,
     "president": true,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2675,9 +971,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2688,9 +981,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2701,9 +991,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2714,9 +1001,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2727,9 +1011,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2740,9 +1021,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2753,9 +1031,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2766,9 +1041,6 @@
     "companyId": "BM",
     "kind": "share",
     "shares": 1,
-    "president": false,
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     },
@@ -2778,8 +1050,6 @@
     "id": "SV:charter",
     "companyId": "SV",
     "kind": "private",
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -2788,8 +1058,6 @@
     "id": "CS:charter",
     "companyId": "CS",
     "kind": "private",
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -2798,8 +1066,6 @@
     "id": "DH:charter",
     "companyId": "DH",
     "kind": "private",
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -2808,8 +1074,6 @@
     "id": "MH:charter",
     "companyId": "MH",
     "kind": "private",
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -2818,8 +1082,6 @@
     "id": "CA:charter",
     "companyId": "CA",
     "kind": "private",
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -2828,8 +1090,6 @@
     "id": "BOP:charter",
     "companyId": "BOP",
     "kind": "private",
-    "certificateLimitCount": 1,
-    "retired": false,
     "owner": {
      "kind": "bank"
     }
@@ -3116,11 +1376,6 @@
      "id": "1830/6/20",
      "definitionId": "6",
      "status": "depot"
-    },
-    {
-     "id": "1830/6/21",
-     "definitionId": "6",
-     "status": "removed"
     }
    ],
    "nextTrainNumber": 22

@@ -32,7 +32,7 @@
             {
                 companyName,
                 playerName: (id) => session.getPlayerName(id),
-                bankName: session.gameState.bank.name
+                bankName: 'Bank'
             },
             session.presentation.money
         )

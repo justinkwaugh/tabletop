@@ -34,10 +34,11 @@ import {
     type HydratedEighteenThirtyTwoState,
     type RedemptionChoice,
     type ReissueChoice,
-    type RevenueTokenChoice
+    type RevenueTokenChoice,
+    EighteenThirtyTwoMarket
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
-import { getCompany, stockMarketSpace, type ShareSaleDetails } from '@tabletop/18xx'
+import { type ShareSaleDetails } from '@tabletop/18xx'
 import {
     createEighteenXXSessionClass,
     type HistoricalMapState,
@@ -203,7 +204,7 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly redemptionPrompt = $derived.by(() => {
         const request = this.gameState.redemptionRequest
         if (this.gameState.machineState !== ConsentingRedemptionState || !request) return undefined
-        return { ...request, companyName: getCompany(this.gameState, request.companyId).name }
+        return { ...request, companyName: this.companyName(request.companyId) }
     })
     readonly canAnswerRedemption = $derived(
         this.canChooseAction && this.validActionTypes.includes('AnswerRedemption')
@@ -236,10 +237,7 @@ export class EighteenThirtyTwoSession extends BaseSession {
             ...decision.sale,
             sellerPlayerId: record.sellerPlayerId,
             presidentPlayerId: decision.playerId,
-            restoredPrice: stockMarketSpace(
-                this.gameState.stockMarket,
-                decision.sale.fromMarketSpaceId
-            ).price
+            restoredPrice: EighteenThirtyTwoMarket.space(decision.sale.fromMarketSpaceId).price
         }
     })
     readonly canDecideProtection = $derived(

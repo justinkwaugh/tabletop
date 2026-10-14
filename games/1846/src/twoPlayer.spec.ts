@@ -105,12 +105,13 @@ function lastTrainGame(roundNumber = 1) {
         (train) => train.status === 'depot' && train.definitionId === '6'
     )
     expect(finals).toHaveLength(4)
-    table.state.trainInventory.trains = table.state.trainInventory.trains.map((train) => {
-        if (train.id === finals[3].id) return train
-        if (finals.some((candidate) => candidate.id === train.id))
-            return { ...train, status: 'owned', owner: { kind: 'company', companyId: 'NYC' } }
-        return { id: train.id, definitionId: train.definitionId, status: 'removed' }
-    })
+    table.state.trainInventory.trains = table.state.trainInventory.trains
+        .filter((train) => finals.some((candidate) => candidate.id === train.id))
+        .map((train) =>
+            train.id === finals[3].id
+                ? train
+                : { ...train, status: 'owned', owner: { kind: 'company', companyId: 'NYC' } }
+        )
     assertExists(table.state.operatingSet)
     table.state.operatingSet.roundNumber = roundNumber
     return table
@@ -128,7 +129,7 @@ describe('1846 complete two-player rules', () => {
         purchaseRemaining(table)
         expect(table.state.operatingSet).toBeUndefined()
         expect(table.state.stockRound.number).toBe(1)
-        expect(table.state.activePlayerIds).toEqual([table.state.priorityDealPlayerId])
+        expect(table.state.activePlayerIds).toEqual([table.state.turnManager.turnOrder[0]])
         replayAndUndo(table, before, table.actions.slice(offset))
         table.launch('IC', 40)
         table.launch('NYC', 90)
@@ -153,15 +154,12 @@ describe('1846 complete two-player rules', () => {
         const playerId = table.state.activePlayerIds[0]
         table.launch('IC', 40)
         const owner = { kind: 'player' as const, playerId }
-        const ordinary = table.state.certificates
-            .filter((certificate) => !certificate.retired)
-            .filter(
-                (certificate) =>
-                    !certificate.retired &&
-                    certificate.companyId === 'IC' &&
-                    certificate.kind === 'share' &&
-                    !certificate.president
-            )
+        const ordinary = table.state.certificates.filter(
+            (certificate) =>
+                certificate.companyId === 'IC' &&
+                certificate.kind === 'share' &&
+                !certificate.president
+        )
         for (const certificate of ordinary.slice(0, 4)) certificate.owner = owner
         expect(sharesOwned(table.state, 'IC', owner)).toBe(6)
         table.finishTurn()
@@ -169,10 +167,7 @@ describe('1846 complete two-player rules', () => {
         expect(sharesOwned(table.state, 'IC', owner)).toBe(7)
         table.finishTurn()
         const certificate = table.state.certificates.find(
-            (certificate) =>
-                !certificate.retired &&
-                certificate.companyId === 'IC' &&
-                certificate.owner.kind === 'company'
+            (certificate) => certificate.companyId === 'IC' && certificate.owner.kind === 'company'
         )
         assertExists(certificate)
         expect(
@@ -307,11 +302,11 @@ describe('1846 complete two-player rules', () => {
                 trainId: sellerTrain.id
             })
         ).toBe(true)
-        table.state.trainInventory.trains.push({
-            id: 'returned:5',
-            definitionId: '5',
-            status: 'market'
-        })
+        const returned = TrainDepot1846.createInventory(
+            table.state.trainInventory.depotId
+        ).trains.find((train) => train.definitionId === '5')
+        assertExists(returned)
+        table.state.trainInventory.trains.push({ ...returned, status: 'market' })
         expect(finalDepotEmpty(table.hydrated)).toBe(false)
         expect(TrainRules1846.requiresTrain(table.hydrated, 'IC')).toBe(true)
         expect(

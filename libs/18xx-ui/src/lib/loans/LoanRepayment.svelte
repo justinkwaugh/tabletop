@@ -10,7 +10,7 @@
 </script>
 
 {#if companyId && rules && session.gameState.machineState === 'RepayingLoans'}
-    {@const name = session.gameState.companies.find((company) => company.id === companyId)?.name}
+    {@const name = session.companyName(companyId)}
     <section aria-label="Loans">
         <h2>{name} · Loans {session.loans.loans(companyId)}/{session.loans.capacity(companyId)}</h2>
         <p>

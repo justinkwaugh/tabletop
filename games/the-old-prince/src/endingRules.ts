@@ -1,3 +1,5 @@
+import { TheOldPrinceNames } from './names.js'
+import { TheOldPrinceMarket } from './stockMarket.js'
 import {
     certificateWealthItem,
     getCompany,
@@ -29,9 +31,9 @@ export const TheOldPrinceEndingRules: EndingRules = {
         else if (!company.closed) {
             value =
                 certificate.kind === 'share'
-                    ? marketShareValue(state, certificate)
+                    ? marketShareValue(TheOldPrinceMarket, state, certificate)
                     : TheOldPrincePrivateCatalog.faceValue(company.id)
         }
-        return [certificateWealthItem(state, certificate, value)]
+        return [certificateWealthItem(TheOldPrinceNames, certificate, value)]
     }
 }
