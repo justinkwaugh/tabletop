@@ -63,7 +63,7 @@ export const TheOldPrinceTrainDepot = new TrainDepot({
         { id: '7', name: '7', price: 500, distance: { measure: 'revenue-centers', maximum: 7 } },
         {
             id: 'D',
-            name: 'Diesel',
+            name: 'D',
             price: 600,
             distance: { measure: 'revenue-centers', maximum: 'unlimited' }
         }

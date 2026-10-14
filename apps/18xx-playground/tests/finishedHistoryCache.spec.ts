@@ -33,6 +33,6 @@ test('rebuilds a finished example with outdated funding-sale metadata', async ({
         .getByRole('article', { name: 'S operation history', exact: true })
         .filter({ hasText: 'Sold 2 Murray River for $158' })
     await expect(operation).toContainText('President owes $400 and is short $135')
-    await expect(operation).toContainText(/Bought\s*Diesel/)
+    await expect(operation).toContainText(/Bought\s*D\b/)
     await expect(history).not.toContainText('Sell Funding Shares')
 })

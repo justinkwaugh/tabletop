@@ -61,7 +61,7 @@ import { enumerateRouteCandidates } from './routeCandidates.js'
 export const FullGameTitles = [
     {
         definition: Top,
-        ending: 'First diesel',
+        ending: 'First D',
         finalPhaseId: undefined,
         waterfall: undefined,
         policy: {

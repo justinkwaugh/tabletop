@@ -14,7 +14,7 @@ export function prepareTheOldPrinceEnding(state: HydratedEighteenXXState): void 
         kind: 'company',
         companyId: state.trainPurchaseStep.companyId
     })
-    state.gameEnding = { reason: 'First diesel', finalOperatingSet: 2 }
+    state.gameEnding = { reason: 'First D', finalOperatingSet: 2 }
     state.operatingSet.roundCount = 3
     prepareFinalOperatingTurn(state)
 }

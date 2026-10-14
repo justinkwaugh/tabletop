@@ -15,6 +15,6 @@ export const TheOldPrinceInfo: GameInfo = {
         defaultPlayerCount: 3,
         version: GAME_VERSION,
         beta: true,
-        visibility: GameVisibility.Alpha
+        visibility: GameVisibility.Beta
     }
 }

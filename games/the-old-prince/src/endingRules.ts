@@ -13,7 +13,7 @@ export const TheOldPrinceEndingRules: EndingRules = {
         if (state.bankruptcy) return { reason: 'Bankruptcy' }
         if (state.phaseId === 'D')
             return {
-                reason: 'First diesel',
+                reason: 'First D',
                 finalOperatingSet: (state.operatingSet?.number ?? 0) + 1
             }
         return undefined
