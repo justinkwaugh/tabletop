@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GameStatus, GameStorage } from '@tabletop/common'
-import { scenariosFrom } from './harnessScenarios.js'
+import { scenarioFileName, scenarioFromJson, scenariosFrom } from './harnessScenarios.js'
 
 const START = '2026-10-14T12:00:00.000Z'
 
@@ -45,6 +45,18 @@ describe('harness scenarios', () => {
         expect(names).toEqual(['Artillery pair narrow', 'Second attack'])
     })
 
+    it('are saved to a file named for the game, which names the scenario when it is put back', () => {
+        expect(scenarioFileName('Austerlitz, round 2')).toBe('austerlitz-round-2.json')
+        const [scenario] = scenariosFrom({
+            [`/src/scenarios/${scenarioFileName('Guns at dawn')}`]: async () => ({
+                game,
+                state,
+                actions: []
+            })
+        })
+        expect(scenario.name).toBe('Guns at dawn')
+    })
+
     it('read the dates a JSON file holds as strings back as dates', async () => {
         const [scenario] = scenariosFrom({
             '/src/scenarios/guns.json': async () => ({ game, state, actions: [] })
@@ -64,6 +76,13 @@ describe('harness scenarios', () => {
             })
         })
         await expect(scenario.load()).rejects.toThrow('belongs to game other')
+    })
+
+    it('are read from any file, with the same checks', () => {
+        const read = scenarioFromJson(JSON.stringify({ game, state, actions: [] }))
+        expect(read.game.createdAt).toEqual(new Date(START))
+        expect(() => scenarioFromJson('not json')).toThrow()
+        expect(() => scenarioFromJson(JSON.stringify({ game }))).toThrow()
     })
 
     it('refuse a file that does not hold a game, its state and its actions', async () => {

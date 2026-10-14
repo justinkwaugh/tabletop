@@ -32,6 +32,10 @@ Before designing or changing any 18xx model, Action, state/handler, logical or v
 
 For multi-step action selection, auto-selection, or `Undo` behavior, and before adding any `Back` control, read `docs/user-interactions.md`.
 
+### Harness scenarios
+
+To add a prepared position to a game's dev harness Scenarios menu, use `.agents/skills/add-harness-scenario/SKILL.md`.
+
 ### Game UI layout
 
 When building or reworking a game UI's table layout, turn header, action area, board interaction, board scaling, small-screen behavior, player panels, or history panel, read `docs/game-ui-layout.md`.

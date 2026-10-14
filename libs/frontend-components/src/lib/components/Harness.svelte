@@ -1,10 +1,18 @@
 <script lang="ts">
     import 'es-iterator-helpers/auto'
-    import { onMount, onDestroy, untrack } from 'svelte'
-    import type { Game } from '@tabletop/common'
+    import { onMount, onDestroy, untrack, type Snippet } from 'svelte'
+    import {
+        assertExists,
+        scenarioJson,
+        type Game,
+        type ScenarioData,
+        type GameState,
+        type HydratedGameState
+    } from '@tabletop/common'
     import {
         Button,
         Dropdown,
+        DropdownDivider,
         DropdownGroup,
         DropdownItem,
         Modal,
@@ -18,10 +26,15 @@
     import { type GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
     import { setAppContext } from '$lib/model/appContext.js'
     import { createHarnessAppContext } from '$lib/harness/harnessContext.js'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
     import { HarnessSessions } from '$lib/harness/harnessSessions.svelte.js'
     import { attachGlobalCssVarFromRect } from '$lib/utils/publishCssVarFromRect.js'
-    import { scenariosFrom, type Scenario } from '$lib/harness/harnessScenarios.js'
+    import {
+        gameScenarios,
+        scenarioFileName,
+        scenarioFromJson,
+        type Scenario
+    } from '$lib/harness/harnessScenarios.js'
+    import { saveToDevice } from '$lib/utils/saveToDevice.js'
 
     let { definition }: { definition: GameUiDefinition<GameState, HydratedGameState> } = $props()
     const appContext = createHarnessAppContext(definition)
@@ -40,11 +53,10 @@
     let colorBlindPalette = $state(false)
     let optionsOpen = $state(false)
     let scenariosOpen = $state(false)
+    let scenarioFileInput: HTMLInputElement | undefined = $state()
+    let scenarioError: string | undefined = $state()
 
-    // Convention: a game's harness offers the files in its package's `src/scenarios` folder.
-    const scenarios = scenariosFrom(
-        import.meta.glob('/src/scenarios/*.json', { import: 'default' })
-    )
+    const scenarios = gameScenarios()
 
     onMount(() => {
         gameService.loadGames().catch(console.error)
@@ -136,13 +148,57 @@
         }
     }
 
-    async function loadScenario(scenario: Scenario) {
+    async function attemptScenario(failure: string, work: () => Promise<void>) {
         scenariosOpen = false
-        const game = await gameService.loadScenario(await scenario.load())
+        scenarioError = undefined
+        try {
+            await work()
+        } catch (error) {
+            scenarioError = `${failure}: ${error instanceof Error ? error.message : String(error)}`
+        }
+    }
+
+    async function saveAsScenario() {
+        const session = gameSession
+        assertExists(session, 'Save as scenario is offered with a game open')
+        await attemptScenario('The game could not be saved as a scenario', async () => {
+            const scenario = await gameService.scenarioOf(session.primaryGame.id)
+            saveToDevice(
+                new Blob([scenarioJson(scenario)], { type: 'application/json' }),
+                scenarioFileName(scenario.game.name)
+            )
+        })
+    }
+
+    function chooseScenarioFile() {
+        scenariosOpen = false
+        assertExists(scenarioFileInput, 'The scenario file picker is on the page')
+        scenarioFileInput.click()
+    }
+
+    async function loadScenarioFile(event: Event & { currentTarget: HTMLInputElement }) {
+        const input = event.currentTarget
+        const [file] = input.files ?? []
+        input.value = ''
+        if (!file) return
+        await attemptScenario(`${file.name} is not a scenario this game can open`, async () =>
+            openScenario(scenarioFromJson(await file.text()))
+        )
+    }
+
+    async function loadScenario(scenario: Scenario) {
+        await attemptScenario(`The scenario ${scenario.name} could not be opened`, async () =>
+            openScenario(await scenario.load())
+        )
+    }
+
+    async function openScenario(scenario: ScenarioData) {
+        const game = await gameService.loadScenario(scenario)
         await loadGame(game.id)
     }
 
     async function loadGame(gameId: string) {
+        scenarioError = undefined
         await sessions.load(gameId)
         updateColorPreferencePreview()
     }
@@ -249,21 +305,36 @@
                             style="transform: translateY(-2px) scale(1.5);">+</span
                         >
                     </Button>
-                    {#if scenarios.length > 0}
-                        <Button size="xs" color="purple" class="ms-3"
-                            >Scenarios<ChevronDownOutline
-                                class="ms-2 text-white dark:text-white"
-                            /></Button
-                        ><Dropdown simple={true} class="min-w-[160px]" bind:isOpen={scenariosOpen}>
-                            {#each scenarios as scenario (scenario.name)}
-                                <DropdownItem
-                                    class="w-full px-2"
-                                    onclick={() => loadScenario(scenario)}
-                                    ><div class="ms-2">{scenario.name}</div></DropdownItem
-                                >
-                            {/each}
-                        </Dropdown>
-                    {/if}
+                    <Button size="xs" color="purple" class="ms-3"
+                        >Scenarios<ChevronDownOutline
+                            class="ms-2 text-white dark:text-white"
+                        /></Button
+                    ><Dropdown simple={true} class="min-w-[160px]" bind:isOpen={scenariosOpen}>
+                        {#if gameSession && !gameSession.isExploring}
+                            <DropdownItem class="w-full px-2" onclick={saveAsScenario}
+                                ><div class="ms-2">Save as scenario</div></DropdownItem
+                            >
+                        {/if}
+                        <DropdownItem class="w-full px-2" onclick={chooseScenarioFile}
+                            ><div class="ms-2">Load from file…</div></DropdownItem
+                        >
+                        {#if scenarios.length > 0}
+                            <DropdownDivider />
+                        {/if}
+                        {#each scenarios as scenario (scenario.name)}
+                            <DropdownItem class="w-full px-2" onclick={() => loadScenario(scenario)}
+                                ><div class="ms-2">{scenario.name}</div></DropdownItem
+                            >
+                        {/each}
+                    </Dropdown>
+                    <input
+                        type="file"
+                        accept=".json,application/json"
+                        class="hidden"
+                        aria-label="Scenario file"
+                        bind:this={scenarioFileInput}
+                        onchange={loadScenarioFile}
+                    />
                 </div>
                 <div class="min-w-0 px-2">
                     <div class="truncate text-2xl text-white">{gameSession?.game.name}</div>
@@ -343,19 +414,30 @@
     </Navbar>
 </div>
 
-{#if sessions.error}
+{#snippet harnessAlert(message: string, action?: Snippet)}
     <div role="alert" class="p-3 text-red-500">
-        <p>{sessions.error}</p>
-        {#if sessions.failedGameId}
-            <Button
-                size="xs"
-                onclick={async () => {
-                    if (sessions.failedGameId) await sessions.load(sessions.failedGameId, false)
-                    updateColorPreferencePreview()
-                }}>Open in ordinary hotseat</Button
-            >
-        {/if}
+        <p>{message}</p>
+        {@render action?.()}
     </div>
+{/snippet}
+
+{#snippet openInOrdinaryHotseat()}
+    {#if sessions.failedGameId}
+        <Button
+            size="xs"
+            onclick={async () => {
+                if (sessions.failedGameId) await sessions.load(sessions.failedGameId, false)
+                updateColorPreferencePreview()
+            }}>Open in ordinary hotseat</Button
+        >
+    {/if}
+{/snippet}
+
+{#if scenarioError}
+    {@render harnessAlert(scenarioError)}
+{/if}
+{#if sessions.error}
+    {@render harnessAlert(sessions.error, openInOrdinaryHotseat)}
 {/if}
 {#if sessions.loading}
     <p role="status" class="p-3">Loading game…</p>

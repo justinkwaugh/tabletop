@@ -159,9 +159,21 @@ export class HarnessGameService implements GameService {
             throw new Error('Game ID is required to fork a local game')
         }
 
-        const { game: actualGame, actions } = await this.loadGame(game.id)
+        const fork = await this.forkOf(game.id, actionIndex, name)
+        await this.saveGameLocally(fork)
+        return fork.game
+    }
+
+    /** The game as it stands, with every action behind it, ready to be saved as a scenario file. */
+    async scenarioOf(gameId: string): Promise<ScenarioData> {
+        return this.forkOf(gameId, 'latest')
+    }
+
+    private async forkOf(gameId: string, at: number | 'latest', name?: string) {
+        const { game: actualGame, actions } = await this.loadGame(gameId)
+        const actionIndex = at === 'latest' ? actions.length - 1 : at
         if (!actualGame) {
-            throw new Error(`Local game not found for id ${game.id}`)
+            throw new Error(`Local game not found for id ${gameId}`)
         }
 
         const definition = this.libraryService.getTitle(actualGame.typeId)
@@ -170,7 +182,7 @@ export class HarnessGameService implements GameService {
         }
 
         if (!actualGame.state) throw new GameForkError(actualGame.id, actionIndex)
-        const fork = createGameFork({
+        return createGameFork({
             game: actualGame,
             state: actualGame.state,
             actions,
@@ -178,8 +190,6 @@ export class HarnessGameService implements GameService {
             runtime: await definition.runtime(),
             name
         })
-        await this.saveGameLocally(fork)
-        return fork.game
     }
 
     async updateGame(_game: Partial<Game>): Promise<Game> {

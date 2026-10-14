@@ -15,3 +15,7 @@ export function scenarioFromGame(
 ): ScenarioData {
     return { game: omitGameState(game), state: game.state, actions }
 }
+
+export function scenarioJson(scenario: ScenarioData): string {
+    return `${JSON.stringify(scenario, null, 1)}\n`
+}

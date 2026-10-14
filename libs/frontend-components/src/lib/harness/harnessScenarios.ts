@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import { Game, GameAction, GameState, type ScenarioData } from '@tabletop/common'
+import { fileSlug } from '$lib/utils/fileSlug.js'
 
 export interface Scenario {
     name: string
@@ -17,6 +18,19 @@ export function scenariosFrom(files: ScenarioFiles): Scenario[] {
             load: async () => scenarioData(await read())
         }))
         .toSorted((a, b) => a.name.localeCompare(b.name))
+}
+
+// Workaround: in a Svelte component Vite's Svelte plugin keeps the file list stale when files are added, so the lookup lives in this plain module; inside a function, so a bundle that keeps the module keeps no lookup.
+export function gameScenarios(): Scenario[] {
+    return scenariosFrom(import.meta.glob('/src/scenarios/*.json', { import: 'default' }))
+}
+
+export function scenarioFromJson(json: string): ScenarioData {
+    return scenarioData(JSON.parse(json))
+}
+
+export function scenarioFileName(gameName: string): string {
+    return `${fileSlug(gameName)}.json`
 }
 
 function nameOf(path: string): string {
