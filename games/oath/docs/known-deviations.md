@@ -38,6 +38,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Animal Host, Fabled Feast:** in a game created before revision 10 (R-X.4) Animal Host played to the advisers counts itself among the Beast cards "at any sites", and Fabled Feast played to a site its player does not rule counts itself among "the Hearth cards you rule"; neither card is then one of the cards its text counts.
 - **Riots:** in a game created before revision 10 (R-X.4) Riots played to a site leaves itself out of the most common suit on the map, so a Discord tie or lead it makes is missed; its Q&A counts every card at a site and spares only Riots from the discard.
 - **Great Herd:** in a game created before revision 10 (R-X.4) Great Herd played to a site and swapped with a Nomad card at that same site leaves the site holding Great Herd twice, and the other card is lost; a swap of two cards at one site moves nothing (R-10.25).
+- **Enchantress:** from revision 10 (R-X.4), held as an adviser, it does not offer its holder's own advisers, which its text ("any faceup adviser") allows: that swap moves nothing and only burns the secret. In a game created before revision 10 it offers them, and the swap leaves the holder with Enchantress twice and loses the other card.
 - **Silver Tongue:** leaves an empty matching favor bank out of its choices, so its Rest cannot take from one; R-9.3 would let it take 0 there, as Vow of Obedience and Vow of Poverty may.
 
 ## Rules

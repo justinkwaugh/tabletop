@@ -16,6 +16,12 @@ import { actionPowerUse, bank, card, modifierUse, player, boardWarbands, siteWar
 import { rulerTable } from '../testing/tables.js'
 import { playDrawnCard } from '../testing/steps.js'
 import { INN, TENTS } from '../testing/cards.js'
+import { placedDenizens } from '../testing/census.js'
+import { served } from '../testing/projection.js'
+import { HydratedOathGameState } from '../model/gameState.js'
+import { cardPowers, PowerTiming } from '../data/cardPowers.js'
+import { legalChoices } from '../util/powerChoice.js'
+import { OathRevision } from '../util/revision.js'
 
 const PLAGUE = 'denizen.arcane.plague-engines'
 const TERROR = 'denizen.arcane.terror-spells'
@@ -161,6 +167,89 @@ describe('Discord', () => {
         expect(() => actionPowerUse('ruler', ENCHANTRESS, [card('denizen.nomad.faithful-friend')]).apply(locked)).toThrow(/not among the options/)
         const atSite = board([ENCHANTRESS], [], { other: { advisers: [{ cardId: 'denizen.hearth.charming-friend', faceUp: true }] } })
         expect(() => actionPowerUse('ruler', ENCHANTRESS, [card('denizen.hearth.charming-friend')]).apply(atSite)).toThrow(/not among the options/)
+    })
+
+    describe("Enchantress held as an adviser does not offer its holder's own advisers: that swap moves nothing (revision 10)", () => {
+        const enchantress = required(
+            cardPowers(ENCHANTRESS).find((power) => power.timing === PowerTiming.Action),
+            'Enchantress Action'
+        )
+        const SLANDER = 'denizen.discord.slander'
+        const PIPER = 'denizen.beast.pied-piper'
+        const BREAKER = 'denizen.nomad.spell-breaker'
+        /** `ruler` holds Enchantress (or has it at c1) beside Slander; `other` holds Scouts faceup and Tents facedown. */
+        const scene = (revision: OathRevision, at: 'held' | 'site', over: Record<string, Record<string, unknown>> = {}) =>
+            board(at === 'site' ? [ENCHANTRESS] : [], at === 'site' ? [SLANDER] : [ENCHANTRESS, SLANDER], { other: { advisers: [{ cardId: SCOUTS, faceUp: true }, { cardId: TENTS, faceUp: false }] }, ...over }, { oathRevision: revision })
+        const offered = (s: ReturnType<typeof scene>) => legalChoices(s, 'ruler', enchantress)[0].options
+
+        it("leaves out the holder's own advisers, and refuses one sent, burning nothing", () => {
+            const s = scene(OathRevision.EngineFixes6, 'held')
+            expect(offered(s)).toEqual([card(SCOUTS)])
+            const before = placedDenizens(s)
+            expect(() => actionPowerUse('ruler', ENCHANTRESS, [card(SLANDER)]).apply(s)).toThrow(/not among the options/)
+            expect(s.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([ENCHANTRESS, SLANDER])
+            expect(s.getPlayerState('ruler').secrets).toBe(3)
+            expect(placedDenizens(s)).toEqual(before)
+        })
+
+        it("still swaps with another player's faceup adviser, every card kept; a facedown one is no target", () => {
+            const s = scene(OathRevision.EngineFixes6, 'held')
+            const before = placedDenizens(s)
+            expect(() => actionPowerUse('ruler', ENCHANTRESS, [card(TENTS)]).apply(s)).toThrow(/not among the options/)
+            actionPowerUse('ruler', ENCHANTRESS, [card(SCOUTS)]).apply(s)
+            expect(s.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([SCOUTS, SLANDER])
+            expect(s.getPlayerState('other').faceupAdviserIds()).toEqual([ENCHANTRESS])
+            expect(s.getPlayerState('ruler').secrets).toBe(2)
+            expect(placedDenizens(s)).toEqual(before)
+        })
+
+        it("used from a site, it still offers its ruler's own adviser, and the swap moves both cards", () => {
+            const s = scene(OathRevision.EngineFixes6, 'site')
+            expect(offered(s)).toEqual([card(SLANDER), card(SCOUTS)])
+            const before = placedDenizens(s)
+            actionPowerUse('ruler', ENCHANTRESS, [card(SLANDER)]).apply(s)
+            expect(s.denizensBySite['c1']).toEqual([SLANDER])
+            expect(s.getPlayerState('ruler').advisers).toEqual([{ cardId: ENCHANTRESS, faceUp: true }])
+            expect(placedDenizens(s)).toEqual(before)
+        })
+
+        it('Pied Piper held by another player is swapped as before', () => {
+            const s = scene(OathRevision.EngineFixes6, 'held', { other: { advisers: [{ cardId: PIPER, faceUp: true }] } })
+            const before = placedDenizens(s)
+            actionPowerUse('ruler', ENCHANTRESS, [card(PIPER)]).apply(s)
+            expect(s.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([PIPER, SLANDER])
+            expect(s.getPlayerState('other').faceupAdviserIds()).toEqual([ENCHANTRESS])
+            expect(placedDenizens(s)).toEqual(before)
+        })
+
+        it("Spell Breaker at a site an enemy rules stops the secret cost; at the holder's own site it does not, and the targets are the same", () => {
+            const at = (siteId: string) =>
+                board([], [ENCHANTRESS, SLANDER], {}, { oathRevision: OathRevision.EngineFixes6, denizensBySite: { c1: [], c2: [], p1: [], h1: [], [siteId]: [BREAKER] } })
+            expect(() => actionPowerUse('ruler', ENCHANTRESS, [card(SCOUTS)]).apply(at('p1'))).toThrow(/Spell Breaker/)
+            const own = at('c1')
+            expect(offered(own)).toEqual([card(SCOUTS)])
+            expect(() => actionPowerUse('ruler', ENCHANTRESS, [card(SLANDER)]).apply(own)).toThrow(/not among the options/)
+            actionPowerUse('ruler', ENCHANTRESS, [card(SCOUTS)]).apply(own)
+            expect(own.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([SCOUTS, SLANDER])
+        })
+
+        it("offers the same targets on the holder's own projected view as on the server", () => {
+            for (const at of ['held', 'site'] as const) {
+                for (const revision of [OathRevision.EngineFixes5, OathRevision.EngineFixes6]) {
+                    const s = scene(revision, at)
+                    const own = new HydratedOathGameState(served(s, { kind: 'player', playerId: 'ruler' }))
+                    expect(offered(own), `${at} ${revision}`).toEqual(offered(s))
+                }
+            }
+            expect(offered(new HydratedOathGameState(served(scene(OathRevision.EngineFixes6, 'held'), { kind: 'player', playerId: 'ruler' })))).toEqual([card(SCOUTS)])
+        })
+
+        it('before revision 10 a recorded game replays as it was recorded: its own adviser is offered, and the holder is left with Enchantress twice', () => {
+            const s = scene(OathRevision.EngineFixes5, 'held')
+            expect(offered(s)).toEqual([card(SLANDER), card(SCOUTS)])
+            actionPowerUse('ruler', ENCHANTRESS, [card(SLANDER)]).apply(s)
+            expect(s.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([ENCHANTRESS, ENCHANTRESS])
+        })
     })
 
     it("Key to the City — with the ruler's pawn away, kills the site's warbands and garrisons one of yours", () => {
