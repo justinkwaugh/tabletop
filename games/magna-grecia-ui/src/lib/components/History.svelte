@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { tick } from 'svelte'
+    import { onDestroy, tick } from 'svelte'
     import type { GameAction } from '@tabletop/common'
     import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import { actionCard } from '@tabletop/magna-grecia'
@@ -44,7 +44,7 @@
         gameSession.historyHighlight = historySpaces(actions, gameSession.gameState.board)
     }
 
-    $effect(() => () => highlight([]))
+    onDestroy(() => highlight([]))
 
     function roundCard(round: number) {
         const cardId = gameSession.gameState.revealedCardIds[round]
