@@ -10,7 +10,8 @@ import {
     isTravel,
     Region,
     powerIndexOf,
-    type ModifierUse
+    type ModifierUse,
+    type Travel
 } from '@tabletop/oath'
 import { openTurn, served, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
@@ -37,6 +38,7 @@ const ROWDY_PUB = 'denizen.hearth.rowdy-pub'
 const TOLL_ROADS = 'denizen.order.toll-roads'
 const WAY_STATION = 'denizen.nomad.way-station'
 const VOW_OF_POVERTY = 'denizen.beast.vow-of-poverty'
+const VOW_OF_KINSHIP = 'denizen.nomad.vow-of-kinship'
 const DRUM = 'relic.dragonskin-drum'
 
 const hospitality = { cardId: HOSPITALITY, powerIndex: powerIndexOf(HOSPITALITY, PowerTiming.Modifier) }
@@ -250,6 +252,115 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
     })
 })
 
+/**
+ * Dana keeps her favor in the nomad bank (Vow of Kinship): none on her board, `nomad` in the bank.
+ * Toll Roads at the Cradle site Rhys rules takes a favor to travel there.
+ */
+function kinship(nomad: number, denizens: Record<string, string[]> = {}) {
+    const state = scene(
+        { favor: 0, advisers: [HOSPITALITY, VOW_OF_KINSHIP, WAR_TORTOISE].map((cardId) => ({ cardId, faceUp: true })) },
+        denizens
+    )
+    state.favorBank[Suit.Nomad] = nomad
+    return state
+}
+
+const tollsAndBanks = (ways: readonly { tolls: readonly string[]; hospitality?: Suit }[]) =>
+    ways.map((way) => [way.tolls, way.hospitality])
+
+describe('Hospitality’s bank as the way’s tolls leave it (R-7.1.4, R-7.4, R-9.3)', () => {
+    it('the engine pays the toll before the gain: a nomad bank the toll empties gives nothing', () => {
+        const state = kinship(1, { c2: [ORACLE, TOLL_ROADS] })
+        const travel = new HydratedTravel(
+            recorded({
+                type: ActionType.Travel,
+                playerId: 'dana',
+                siteId: 'c2',
+                tolls: [TOLL_ROADS],
+                modifiers: [withBank(Suit.Nomad)]
+            }) as Travel
+        )
+        travel.apply(state)
+        expect(state.favorBank[Suit.Nomad]).toBe(0)
+        expect(state.getPlayerState('rhys').favor).toBe(4)
+        expect(travel.metadata?.modifierNotes).toContain(`Hospitality: gained 0 favor from the ${Suit.Nomad} bank`)
+    })
+
+    it('Vow of Kinship pays the toll from the nomad bank: emptied, it offers no gain, and the Travel is sent without Hospitality', async () => {
+        const { session, sent } = travelling(kinship(1, { c2: [ORACLE, TOLL_ROADS] }))
+        const ways = rowAt(session, 'c2').ways
+        expect(tollsAndBanks(ways)).toEqual([[[TOLL_ROADS], undefined]])
+        const [way] = ways
+        assert(way !== undefined, 'the toll way is offered')
+        await session.travelTo('c2', way)
+        const action = sentTravel(sent)
+        expect(action.modifiers).toEqual([])
+        expect(action).toMatchObject({ tolls: [TOLL_ROADS] })
+    })
+
+    it('beside another match, the emptied nomad bank drops and the bank that still holds favor stays', async () => {
+        const { session, sent } = travelling(kinship(1, { c2: [ORACLE, WOLVES, TOLL_ROADS] }))
+        const ways = rowAt(session, 'c2').ways
+        expect(tollsAndBanks(ways)).toEqual([[[TOLL_ROADS], Suit.Beast]])
+        const [way] = ways
+        assert(way !== undefined, 'the toll way is offered')
+        await session.travelTo('c2', way)
+        expect(sentTravel(sent).modifiers).toEqual([withBank(Suit.Beast)])
+    })
+
+    it('two favor in the nomad bank: one is left after the toll, so the gain stands', () => {
+        const { session } = travelling(kinship(2, { c2: [ORACLE, TOLL_ROADS] }))
+        expect(tollsAndBanks(rowAt(session, 'c2').ways)).toEqual([[[TOLL_ROADS], Suit.Nomad]])
+    })
+
+    it('a toll paid from the board leaves the bank’s offer unchanged', () => {
+        const state = scene({}, { c2: [ORACLE, TOLL_ROADS] })
+        state.favorBank[Suit.Nomad] = 1
+        const { session } = travelling(state)
+        expect(tollsAndBanks(rowAt(session, 'c2').ways)).toEqual([[[TOLL_ROADS], Suit.Nomad]])
+    })
+
+    it('Way Station: the way that pays its toll from the nomad bank has no gain; the way that does not keeps it', async () => {
+        const { session, sent } = travelling(kinship(1, { c2: [WAY_STATION] }))
+        const ways = rowAt(session, 'c2').ways
+        expect(tollsAndBanks(ways)).toEqual([
+            [[], Suit.Nomad],
+            [[WAY_STATION], undefined]
+        ])
+        const paid = ways[1]
+        assert(paid !== undefined, 'the toll way is offered')
+        await session.travelTo('c2', paid)
+        const action = sentTravel(sent)
+        expect(action.modifiers).toEqual([])
+        expect(action).toMatchObject({ tolls: [WAY_STATION] })
+    })
+
+    it('a payee who keeps favor in the nomad bank fills it: the gain shows, and the engine gives it', async () => {
+        const fills = () => {
+            const state = scene({}, { c2: [ORACLE, TOLL_ROADS] })
+            const rhys = state.getPlayerState('rhys')
+            rhys.favor = 0
+            rhys.advisers = [{ cardId: VOW_OF_KINSHIP, faceUp: true }]
+            state.favorBank[Suit.Nomad] = 0
+            return state
+        }
+        const { session, sent } = travelling(fills())
+        const ways = rowAt(session, 'c2').ways
+        expect(tollsAndBanks(ways)).toEqual([[[TOLL_ROADS], Suit.Nomad]])
+        const [way] = ways
+        assert(way !== undefined, 'the toll way is offered')
+        await session.travelTo('c2', way)
+        const action = sentTravel(sent)
+        expect(action.modifiers).toEqual([withBank(Suit.Nomad)])
+        const state = fills()
+        const before = state.getPlayerState('dana').favor
+        new HydratedTravel(action).apply(state)
+        // One favor to Rhys's nomad bank for the toll, then Hospitality's one back from it.
+        expect(state.getPlayerState('dana').favor).toBe(before)
+        expect(state.favorBank[Suit.Nomad]).toBe(0)
+    })
+})
+
 describe('Hospitality only on the player’s own Travel', () => {
     it('the Shrouded Wood ruler’s pick lists no card and sends the Travel without Hospitality', async () => {
         const state = shroudedWoodState(2)
@@ -288,6 +399,23 @@ describe('Hospitality’s banks on a player’s own view', () => {
         const own = read(view)
         expect(own).toEqual(read(state))
         expect(own).toContainEqual(['p1', [Suit.Beast, Suit.Nomad]])
+    })
+
+    it('judges each way’s bank after its toll on the seat’s projected state as on the server’s', () => {
+        const state = kinship(1, { c2: [WAY_STATION], h3: [] })
+        state.getPlayerState('rhys').advisers = [{ cardId: 'denizen.nomad.tents', faceUp: false }]
+        const view = new HydratedOathGameState(served(state, { kind: 'player', playerId: 'dana' }))
+        const read = (s: HydratedOathGameState) =>
+            travelRows(s, 'dana', [hospitality]).map((row) => [row.slotId, tollsAndBanks(row.ways)])
+        const own = read(view)
+        expect(own).toEqual(read(state))
+        expect(own).toContainEqual([
+            'c2',
+            [
+                [[], Suit.Nomad],
+                [[WAY_STATION], undefined]
+            ]
+        ])
     })
 })
 

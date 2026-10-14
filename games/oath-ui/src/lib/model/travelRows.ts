@@ -3,12 +3,14 @@ import {
     FAVOR_BANK_ORDER,
     HydratedTravel,
     PowerChoiceKind,
+    favorHomeBankOf,
     tollsFor,
     type HydratedOathGameState,
     type ModifierUse,
     type PowerUseKey,
     type Region,
-    type Suit
+    type Suit,
+    type Toll
 } from '@tabletop/oath'
 import { travelWays, type TravelWay } from './actionOffers.js'
 import { fittingModifiers } from './modifierFit.js'
@@ -69,23 +71,53 @@ export function travelModifiers(
 }
 
 /**
+ * R-7.1.4, R-7.4 — each bank as the way's tolls leave it, for Hospitality's gain after the move. A
+ * toll's favor leaves the player's board first, then the bank the engine keeps their favor in
+ * (Vow of Kinship, `favorHomeBankOf`), as `spendFavor` takes it; it reaches its payee as
+ * `receiveFavor` gives it, into their bank under the same vow; a toll burned for the bandits leaves
+ * the banks. An emptied bank gives nothing on that way (R-9.3); a way that leaves it favor still can.
+ */
+function banksAfterTolls(
+    state: HydratedOathGameState,
+    playerId: string,
+    tolls: readonly Toll[]
+): Record<Suit, number> {
+    const banks = { ...state.favorBank }
+    const fromBank = Math.max(0, tolls.length - state.getPlayerState(playerId).favor)
+    const own = favorHomeBankOf(state, playerId)
+    if (own && fromBank > 0) banks[own] -= fromBank
+    for (const { payeeId } of tolls) {
+        const theirs = payeeId ? favorHomeBankOf(state, payeeId) : undefined
+        if (theirs) banks[theirs] += 1
+    }
+    return banks
+}
+
+/**
  * Hospitality — the banks this way could gain from: each that matches a card at the destination
  * and one of the player's advisers, as the engine judges it with the way's other cards, and that
- * holds favor to give (an empty bank gives nothing, R-9.3). A declaration naming a bank keeps to it.
+ * holds favor to give once the way's tolls are paid (an empty bank gives nothing, R-9.3). A
+ * declaration naming a bank keeps to it.
  */
 function hospitalityBanks(
     state: HydratedOathGameState,
     playerId: string,
     slotId: string,
     way: TravelWay,
+    tolls: readonly Toll[],
     others: readonly ModifierUse[],
     hospitality: ModifierUse
 ): Suit[] {
     const named = namedBank(hospitality)
+    const banks = banksAfterTolls(
+        state,
+        playerId,
+        tolls.filter((toll) => way.tolls.includes(toll.cardId))
+    )
     return FAVOR_BANK_ORDER.filter(
         (suit) =>
             (named === undefined || named === suit) &&
-            state.favorBank[suit] > 0 &&
+            banks[suit] > 0 &&
             HydratedTravel.reasonCannotTravel(
                 state,
                 playerId,
@@ -124,7 +156,15 @@ export function travelRows(
                 modifiers
             }
             if (!hospitality) return [choice]
-            const banks = hospitalityBanks(state, playerId, slotId, way, modifiers, hospitality)
+            const banks = hospitalityBanks(
+                state,
+                playerId,
+                slotId,
+                way,
+                tolls,
+                modifiers,
+                hospitality
+            )
             if (banks.length === 0) return [choice]
             return banks.map((suit) => ({
                 ...choice,
