@@ -1,4 +1,5 @@
 import { validateLocalGameState } from '$lib/utils/validateLocalGameState.js'
+import type { ScenarioData } from './harnessScenarios.js'
 import {
     type GameCreationOptions,
     Game,
@@ -10,7 +11,8 @@ import {
     createGameFork,
     GameForkError,
     GameStorage,
-    GameCategory
+    GameCategory,
+    assertExists
 } from '@tabletop/common'
 import { SvelteMap } from 'svelte/reactivity'
 import type { GameService } from '$lib/services/gameService.js'
@@ -210,6 +212,21 @@ export class HarnessGameService implements GameService {
             state: stateData
         })
         this.gamesById.set(gameData.id, gameData)
+    }
+
+    /** Saves a scenario as a local game of the harness user, replacing the copy loaded before, so loading it again starts it over. */
+    async loadScenario({ game, state, actions }: ScenarioData): Promise<Game> {
+        const user = this.authorizationService.getSessionUser()
+        assertExists(user, 'The harness has a session user')
+        const owned: Game = {
+            ...game,
+            ownerId: user.id,
+            storage: GameStorage.Local,
+            hotseat: true,
+            players: game.players.map((player) => ({ ...player, userId: user.id }))
+        }
+        await this.saveGameLocally({ game: owned, state, actions })
+        return owned
     }
 
     async deleteGame(gameId: string): Promise<void> {

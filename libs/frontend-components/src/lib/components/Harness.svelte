@@ -21,6 +21,7 @@
     import type { GameState, HydratedGameState } from '@tabletop/common'
     import { HarnessSessions } from '$lib/harness/harnessSessions.svelte.js'
     import { attachGlobalCssVarFromRect } from '$lib/utils/publishCssVarFromRect.js'
+    import { scenariosFrom, type Scenario } from '$lib/harness/harnessScenarios.js'
 
     let { definition }: { definition: GameUiDefinition<GameState, HydratedGameState> } = $props()
     const appContext = createHarnessAppContext(definition)
@@ -38,6 +39,12 @@
     let preferredColorsEnabled = $state(false)
     let colorBlindPalette = $state(false)
     let optionsOpen = $state(false)
+    let scenariosOpen = $state(false)
+
+    // Convention: a game's harness offers the files in its package's `src/scenarios` folder.
+    const scenarios = scenariosFrom(
+        import.meta.glob('/src/scenarios/*.json', { import: 'default' })
+    )
 
     onMount(() => {
         gameService.loadGames().catch(console.error)
@@ -127,6 +134,12 @@
         if (optionsButton instanceof HTMLButtonElement) {
             optionsButton.blur()
         }
+    }
+
+    async function loadScenario(scenario: Scenario) {
+        scenariosOpen = false
+        const game = await gameService.loadScenario(await scenario.load())
+        await loadGame(game.id)
     }
 
     async function loadGame(gameId: string) {
@@ -236,6 +249,21 @@
                             style="transform: translateY(-2px) scale(1.5);">+</span
                         >
                     </Button>
+                    {#if scenarios.length > 0}
+                        <Button size="xs" color="purple" class="ms-3"
+                            >Scenarios<ChevronDownOutline
+                                class="ms-2 text-white dark:text-white"
+                            /></Button
+                        ><Dropdown simple={true} class="min-w-[160px]" bind:isOpen={scenariosOpen}>
+                            {#each scenarios as scenario (scenario.name)}
+                                <DropdownItem
+                                    class="w-full px-2"
+                                    onclick={() => loadScenario(scenario)}
+                                    ><div class="ms-2">{scenario.name}</div></DropdownItem
+                                >
+                            {/each}
+                        </Dropdown>
+                    {/if}
                 </div>
                 <div class="min-w-0 px-2">
                     <div class="truncate text-2xl text-white">{gameSession?.game.name}</div>

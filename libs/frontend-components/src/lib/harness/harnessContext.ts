@@ -18,6 +18,7 @@ const visibilityService = new VisibilityService() // No reason not to use the re
 const chatService = new HarnessChatService()
 
 export type HarnessAppContext = AppContext & {
+    gameService: HarnessGameService
     chatService: HarnessChatService
     notificationService: DummyNotificationService
     api: DummyRemoteApiService
