@@ -927,6 +927,11 @@
         return currentScale
     }
 
+    /** Whether the content is drawn at the smallest scale it can be zoomed out to, as reactive state. */
+    export function isZoomedOut() {
+        return currentScale <= minScale + EPSILON
+    }
+
     export function captureView() {
         const scale = currentScale
         const rect = {
