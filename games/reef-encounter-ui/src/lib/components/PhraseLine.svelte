@@ -3,6 +3,7 @@
     import { PolypFaceUrls } from '$lib/images/art.generated.js'
     import LarvaCube from './table/LarvaCube.svelte'
     import AlgaCylinder from './table/AlgaCylinder.svelte'
+    import ParrotfishIcon from './ParrotfishIcon.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // `capitalise` starts the line with a capital, for lines with no player name before them.
@@ -51,17 +52,7 @@
             <span class="icon board" title={part.label}>{part.boardId}</span>
         {:else if part.icon === 'parrotfish'}
             <span class="icon" title={part.label}>
-                <svg width="26" height="16" viewBox="0 0 26 16">
-                    <path
-                        d="M2 8 C5 2 13 1 18 4 L23 1 L22 8 L23 15 L18 12 C13 15 5 14 2 8 Z"
-                        fill={fishPaint}
-                        stroke="rgb(0 0 0 / 0.55)"
-                        stroke-width="1"
-                        stroke-linejoin="round"
-                    ></path>
-                    <path d="M2 8 L5.5 6.2 L5.5 9.8 Z" fill="#fff"></path>
-                    <circle cx="7.5" cy="6.5" r="1.3" fill="#1d2b27"></circle>
-                </svg>
+                <ParrotfishIcon paint={fishPaint} />
             </span>
         {/if}
     {/each}

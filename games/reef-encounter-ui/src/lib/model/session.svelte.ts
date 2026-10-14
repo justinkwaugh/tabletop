@@ -263,14 +263,6 @@ export class ReefEncounterGameSession extends GameSession<
     })
 
     readonly canEatCoral = $derived(this.canTake(ActionType.EatCoral))
-    readonly hasGrowthChoices = $derived(
-        this.canEatCoral ||
-            this.larvaCubesToPlay.length > 0 ||
-            this.cubesForPolyps.length > 0 ||
-            this.consumedForCubes.length > 0 ||
-            this.cylinderPayments.length > 0 ||
-            this.canIntroduceShrimp
-    )
     readonly canPassFinalTurn = $derived(this.canTake(ActionType.PassFinalTurn))
 
     // Each coral the viewer may feed their parrotfish, named by the square of their shrimp on it.

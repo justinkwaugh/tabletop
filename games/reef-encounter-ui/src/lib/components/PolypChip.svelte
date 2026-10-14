@@ -2,10 +2,14 @@
     import type { CoralColor } from '@tabletop/reef-encounter'
     import { PolypFaceUrls } from '$lib/images/art.generated.js'
 
-    let { color, count }: { color: CoralColor; count: number } = $props()
+    let {
+        color,
+        count,
+        consumed = false
+    }: { color: CoralColor; count: number; consumed?: boolean } = $props()
 </script>
 
-<span class="chip" title="{count} {color}">
+<span class="chip" class:consumed title="{count} {color}">
     <img
         src={PolypFaceUrls[color][0]}
         alt="{count} {color} polyp{count === 1 ? '' : 's'}"
@@ -25,6 +29,11 @@
     img {
         border-radius: 3px;
         box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
+    }
+
+    /* A consumed polyp has a bite taken out of its corner, as in the history. */
+    .consumed img {
+        mask-image: radial-gradient(circle at 100% 0, transparent 6px, black 6.5px);
     }
 
     .count {

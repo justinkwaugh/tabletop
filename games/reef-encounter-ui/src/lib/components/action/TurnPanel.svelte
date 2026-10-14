@@ -7,6 +7,9 @@
     import AlgaCylinder from '$lib/components/table/AlgaCylinder.svelte'
     import PolypChip from '$lib/components/PolypChip.svelte'
     import EatPrompt from './EatPrompt.svelte'
+    import ActionTile from './ActionTile.svelte'
+    import ParrotfishIcon from '$lib/components/ParrotfishIcon.svelte'
+    import { AlgaColor } from '@tabletop/reef-encounter'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -16,9 +19,6 @@
     const me = $derived(gameSession.myPlayerState)
     const parked = $derived(gameSession.shrimpsOnBareRock)
     const consumedLeft = $derived(placing ? (me?.consumedPolyps[placing.color] ?? 0) : 0)
-    const onlyEndingLeft = $derived(
-        !placing && !gameSession.hasGrowthChoices && gameSession.takeableSpaces.length > 0
-    )
     const screenLeft = $derived.by(() => {
         if (!placing || !me) return 0
         return Math.min(me.getScreenPolyps()[placing.color], placing.screenPolypsLeft)
@@ -80,9 +80,7 @@
     <p class="detail">
         {screenLeft} more from behind your screen{consumedLeft > 0
             ? `, and up to ${consumedLeft} consumed`
-            : ''}.{' '}<span class="wide-only"
-            >Ringed squares can take one; dashed orange squares attack a weaker polyp.</span
-        >
+            : ''}.{' '}<span class="wide-only">Dashed orange squares consume weaker polyps.</span>
     </p>
     {#if gameSession.placementSources.length > 1}
         <div class="choices" role="group" aria-label="Where the polyp comes from">
@@ -102,9 +100,6 @@
             </ChoiceButton>
         </div>
     {/if}
-{:else if onlyEndingLeft}
-    <p class="prompt reef-display">End your turn</p>
-    <p class="detail">Take a larva cube and polyps.</p>
 {:else}
     <p class="prompt reef-display">Choose your actions</p>
 {/if}
@@ -116,112 +111,109 @@
     </p>
 {/if}
 
-<div class="options">
-    {#if gameSession.canEatCoral && !gameSession.turnChoiceOpen}
-        <div class="row">
-            <span class="label">First, if you like</span>
-            <ChoiceButton label="Eat a coral" onclick={() => gameSession.startChoosingCoralToEat()}>
-                <span class="choice-text">Eat a coral</span>
-            </ChoiceButton>
-        </div>
-    {/if}
-
-    {#if !gameSession.turnChoiceOpen && gameSession.larvaCubesToPlay.length > 0}
-        <div class="row">
-            <span class="label">
-                {placing ? 'Play another larva cube' : 'Play a larva cube'}
-            </span>
-            <div class="choices">
-                {#each gameSession.larvaCubesToPlay as { color, polypsToPlace } (color)}
-                    <ChoiceButton
-                        label={polypsToPlace > 0
-                            ? `Play ${withArticle(color)} larva cube`
-                            : `Play ${withArticle(color)} larva cube, though you have no ${color} polyps to place`}
-                        onclick={() => gameSession.playLarvaCube(color)}
-                    >
-                        <svg width="36" height="38" viewBox="-18 -19 36 38" aria-hidden="true">
-                            <LarvaCube center={{ x: 0, y: 0 }} size={32} {color} />
-                        </svg>
-                        <span class="count" class:none={polypsToPlace === 0}>
-                            {polypsToPlace > 0 ? polypsToPlace : 'none'}
-                        </span>
-                    </ChoiceButton>
-                {/each}
-            </div>
-        </div>
-    {/if}
-
-    {#if !gameSession.turnChoiceOpen && (gameSession.cubesForPolyps.length > 0 || gameSession.consumedForCubes.length > 0)}
-        <div class="row">
-            <span class="label">Trade</span>
-            {#each gameSession.cubesForPolyps as color (color)}
-                <ChoiceButton
-                    label="Trade {withArticle(color)} larva cube for {withArticle(color)} polyp"
-                    onclick={() => gameSession.exchangeLarvaCube(color)}
-                >
-                    <svg width="26" height="28" viewBox="-13 -14 26 28" aria-hidden="true">
-                        <LarvaCube center={{ x: 0, y: 0 }} size={22} {color} />
-                    </svg>
-                    <span class="arrow" aria-hidden="true">→</span>
-                    <PolypChip {color} count={1} />
-                </ChoiceButton>
-            {/each}
-            {#each gameSession.consumedForCubes as color (color)}
-                <ChoiceButton
-                    label="Trade a consumed {color} polyp for {withArticle(color)} larva cube"
-                    onclick={() => gameSession.exchangeConsumedPolyp(color)}
-                >
-                    <PolypChip {color} count={1} />
-                    <span class="arrow" aria-hidden="true">→</span>
-                    <svg width="26" height="28" viewBox="-13 -14 26 28" aria-hidden="true">
-                        <LarvaCube center={{ x: 0, y: 0 }} size={22} {color} />
-                    </svg>
-                </ChoiceButton>
-            {/each}
-        </div>
-    {/if}
-
-    {#if !gameSession.turnChoiceOpen && gameSession.cylinderPayments.length > 0}
-        <div class="row">
-            <span class="label">Alga cylinder, paid with</span>
-            {#each gameSession.cylinderPayments as color (color)}
-                <ChoiceButton
-                    label="Pay a consumed {color} polyp for an alga cylinder"
-                    onclick={() => gameSession.chooseCylinderPayment(color)}
-                >
-                    <PolypChip {color} count={1} />
-                </ChoiceButton>
-            {/each}
-        </div>
-    {/if}
-
-    {#if !gameSession.turnChoiceOpen && (gameSession.canIntroduceShrimp || gameSession.movableShrimps.length > 0)}
-        <div class="row">
-            {#if gameSession.canIntroduceShrimp}
-                <span class="label">Shrimps</span>
-                <ChoiceButton
-                    label="Introduce a shrimp"
-                    onclick={() => gameSession.startIntroducingShrimp()}
-                >
-                    <svg width="22" height="34" viewBox="0 0 22 34" aria-hidden="true">
-                        <Shrimp center={{ x: 11, y: 17 }} length={32} color={myColor} />
-                    </svg>
-                    <span class="choice-text">Introduce</span>
-                </ChoiceButton>
-            {/if}
-            {#if gameSession.movableShrimps.length > 0}
-                <span class="label">
-                    {gameSession.canIntroduceShrimp
-                        ? 'or pick up one of yours on the reefs to move it'
-                        : 'You may still move one of your shrimps.'}
+{#if !gameSession.turnChoiceOpen}
+    <div class="options">
+        {#if gameSession.canEatCoral}
+            <ActionTile
+                step={1}
+                verb="Eat"
+                label="Eat a coral and a shrimp"
+                onclick={() => gameSession.startChoosingCoralToEat()}
+            >
+                <ParrotfishIcon paint={myColor} />
+            </ActionTile>
+        {/if}
+        {#each gameSession.larvaCubesToPlay as { color, polypsToPlace } (color)}
+            <ActionTile
+                step={placing ? 3 : 2}
+                verb="Play"
+                label={polypsToPlace > 0
+                    ? `Play ${withArticle(color)} larva cube and ${polypsToPlace} ${color} polyp${polypsToPlace === 1 ? '' : 's'}`
+                    : `Play ${withArticle(color)} larva cube, though you have no ${color} polyps to place`}
+                onclick={() => gameSession.playLarvaCube(color)}
+            >
+                <svg width="24" height="26" viewBox="-12 -13 24 26">
+                    <LarvaCube center={{ x: 0, y: 0 }} size={21} {color} />
+                </svg>
+                <span class="plus">+</span>
+                <span class:none={polypsToPlace === 0}>
+                    <PolypChip {color} count={Math.max(polypsToPlace, 1)} />
                 </span>
-            {/if}
-        </div>
-    {/if}
-    {#if gameSession.takeableSpaces.length > 0 && !onlyEndingLeft}
-        <p class="detail">Take a larva cube and polyps to end your turn.</p>
-    {/if}
-</div>
+                {#if polypsToPlace === 0}<span class="none">0</span>{/if}
+            </ActionTile>
+        {/each}
+        {#if gameSession.canIntroduceShrimp}
+            <ActionTile
+                step={4}
+                verb="Introduce"
+                label="Introduce a shrimp"
+                onclick={() => gameSession.startIntroducingShrimp()}
+            >
+                <svg width="18" height="28" viewBox="0 0 18 28">
+                    <Shrimp center={{ x: 9, y: 14 }} length={26} color={myColor} />
+                </svg>
+            </ActionTile>
+        {/if}
+        {#if gameSession.movableShrimps.length > 0}
+            <ActionTile step={5} verb="Move" label="Pick up one of your shrimps to move it">
+                <svg width="18" height="28" viewBox="0 0 18 28">
+                    <Shrimp center={{ x: 9, y: 14 }} length={26} color={myColor} />
+                </svg>
+            </ActionTile>
+        {/if}
+        {#each gameSession.consumedForCubes as color (color)}
+            <ActionTile
+                step={6}
+                verb="Exchange"
+                label="Exchange a consumed {color} polyp for {withArticle(color)} larva cube"
+                onclick={() => gameSession.exchangeConsumedPolyp(color)}
+            >
+                <PolypChip {color} count={1} consumed />
+                <span class="arrow">→</span>
+                <svg width="24" height="26" viewBox="-12 -13 24 26">
+                    <LarvaCube center={{ x: 0, y: 0 }} size={21} {color} />
+                </svg>
+            </ActionTile>
+        {/each}
+        {#each gameSession.cylinderPayments as color (color)}
+            <ActionTile
+                step={7}
+                verb="Acquire"
+                label="Acquire an alga cylinder, paying a consumed {color} polyp"
+                onclick={() => gameSession.chooseCylinderPayment(color)}
+            >
+                <PolypChip {color} count={1} consumed />
+                <span class="arrow">→</span>
+                <svg width="24" height="26" viewBox="-12 -13 24 26">
+                    <AlgaCylinder center={{ x: 0, y: 0 }} size={20} color={AlgaColor.Red} />
+                </svg>
+            </ActionTile>
+        {/each}
+        {#each gameSession.cubesForPolyps as color (color)}
+            <ActionTile
+                step={8}
+                verb="Exchange"
+                label="Exchange {withArticle(color)} larva cube for {withArticle(color)} polyp"
+                onclick={() => gameSession.exchangeLarvaCube(color)}
+            >
+                <svg width="24" height="26" viewBox="-12 -13 24 26">
+                    <LarvaCube center={{ x: 0, y: 0 }} size={21} {color} />
+                </svg>
+                <span class="arrow">→</span>
+                <PolypChip {color} count={1} />
+            </ActionTile>
+        {/each}
+        {#if gameSession.takeableSpaces.length > 0}
+            <ActionTile
+                step={10}
+                verb="Collect"
+                label="Collect a larva cube and polyps to end your turn"
+            >
+                <span class="words">cube + polyps</span>
+            </ActionTile>
+        {/if}
+    </div>
+{/if}
 
 {#if parked.length > 0 && !gameSession.turnChoiceOpen}
     {#each parked.map(squareName) as name (name)}
@@ -238,27 +230,8 @@
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 8px 28px;
-    }
-
-    .options:not(:empty) {
+        gap: 8px;
         margin-top: 8px;
-    }
-
-    .row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px 10px;
-    }
-
-    .row .choices {
-        margin-top: 0;
-    }
-
-    .label {
-        font-size: 14px;
-        color: var(--reef-muted);
     }
 
     .choices {
@@ -278,12 +251,16 @@
         font-variant-numeric: tabular-nums;
     }
 
-    .count.none {
+    .arrow,
+    .plus {
         color: var(--reef-muted);
-        font-style: italic;
     }
 
-    .arrow {
+    .none {
+        opacity: 0.45;
+    }
+
+    .words {
         color: var(--reef-muted);
     }
 
@@ -293,19 +270,8 @@
         }
 
         .options {
-            gap: 6px 16px;
-        }
-
-        .options:not(:empty) {
-            margin-top: 4px;
-        }
-
-        .row {
-            gap: 4px 8px;
-        }
-
-        .label {
-            font-size: 12px;
+            gap: 6px;
+            margin-top: 6px;
         }
 
         .choices {

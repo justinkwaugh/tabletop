@@ -7,7 +7,7 @@ test('a parrotfish eats a coral its shrimp guards, at the start of a turn', asyn
     await playSetup(page, 2)
     await playUntilCoralIsEdible(page)
     const actions = actionPanel(page)
-    const eat = actions.getByRole('button', { name: 'Eat a coral' })
+    const eat = actions.getByRole('button', { name: 'Eat a coral and a shrimp' })
     const coralSquares = page.getByRole('button', { name: /^Feed the \d+-polyp \w+ coral/ })
 
     await eat.click()

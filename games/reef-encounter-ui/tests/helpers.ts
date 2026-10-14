@@ -61,11 +61,11 @@ export async function playUntilConsumedPolyp(page: Page, maxTurns = 8) {
     for (let turn = 0; turn < maxTurns; turn++) {
         await expect(actions).toContainText('Choose your actions')
         if (
-            (await settledCount(page, actions.getByRole('button', { name: /^Pay a consumed/ }))) > 0
+            (await settledCount(page, actions.getByRole('button', { name: /^Acquire an alga cylinder/ }))) > 0
         ) {
             return
         }
-        const cubes = actions.getByRole('button', { name: /^Play an? \w+ larva cube$/ })
+        const cubes = actions.getByRole('button', { name: /^Play an? \w+ larva cube/ })
         if ((await settledCount(page, cubes)) > 0) {
             await cubes.first().click()
             let last: ReturnType<typeof squareIn>
@@ -140,10 +140,10 @@ export async function playUntilCoralIsEdible(page: Page, maxTurns = 8) {
     const actions = actionPanel(page)
     for (let turn = 0; turn < maxTurns; turn++) {
         await expect(actions).toContainText('Choose your actions')
-        if ((await settledCount(page, actions.getByRole('button', { name: 'Eat a coral' }))) > 0) {
+        if ((await settledCount(page, actions.getByRole('button', { name: 'Eat a coral and a shrimp' }))) > 0) {
             return
         }
-        const cubes = actions.getByRole('button', { name: /^Play an? \w+ larva cube$/ })
+        const cubes = actions.getByRole('button', { name: /^Play an? \w+ larva cube/ })
         const counts = await cubes.evaluateAll((elements) =>
             elements.map((element) => Number(element.textContent?.trim()) || 0)
         )

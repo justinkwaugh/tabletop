@@ -26,7 +26,7 @@ test('the table names its pieces, coral tiles and choices for screen readers', a
     await expect(panel.getByRole('img', { name: /^\d \w+ larva cubes?$/ }).first()).toBeVisible()
     await expect(
         actionPanel(page)
-            .getByRole('button', { name: /^Play an? \w+ larva cube$/ })
+            .getByRole('button', { name: /^Play an? \w+ larva cube/ })
             .first()
     ).toBeVisible()
 })
