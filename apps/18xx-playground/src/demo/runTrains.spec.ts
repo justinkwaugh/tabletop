@@ -1,10 +1,11 @@
 import { enumerateRouteCandidates } from './routeCandidates.js'
 import { expect, it } from 'vitest'
-import { ActionSource } from '@tabletop/common'
+import { ActionSource, RecordedHistory, assertExists } from '@tabletop/common'
 import { Definition as Top, TheOldPrinceRouteRules } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889RouteRules } from '@tabletop/shikoku-1889'
 import {
     RouteEvaluation,
+    getCompany,
     isRunTrains,
     trainsOwnedBy,
     type RouteRules,
@@ -13,6 +14,7 @@ import {
     type TrainRoute
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
+import { finishedGame } from './finishedGame.js'
 const Titles = [
     { definition: Top, rules: TheOldPrinceRouteRules, companyId: 'ML', home: 'L16', expected: 70 },
     { definition: Shikoku, rules: Shikoku1889RouteRules, companyId: 'IR', home: 'E2', expected: 90 }
@@ -49,6 +51,7 @@ it.each(Titles)(
         expect(result.processedActions.map((action) => action.type)).toEqual(['RunTrains'])
         expect(result.updatedState.machineState).toBe('DistributingEarnings')
         expect(result.updatedState.routeStep?.result?.revenue).toBe(expected)
+        expect(getCompany(result.updatedState, companyId).lastRunRevenue).toBe(expected)
         expect(result.updatedState.cash).toEqual(state.cash)
         expect(result.processedActions.filter(isRunTrains)[0].metadata).toEqual(
             result.updatedState.routeStep?.result
@@ -148,3 +151,21 @@ it('preserves TOP H, +, 7 and diesel distance semantics on the same connected pa
         expect(result.routes[0].distance).toBe(distance)
     }
 })
+it('keeps each company’s last run revenue, $0 once it runs nothing', async () => {
+    const { state, actions } = await finishedGame('local-user', 'Finished game', 'the-old-prince')
+    const runs = actions.filter(isRunTrains)
+    const empty = runs.find(
+        (run, index) =>
+            run.routes.length === 0 &&
+            runs
+                .slice(0, index)
+                .some((earlier) => earlier.companyId === run.companyId && earlier.metadata?.revenue)
+    )
+    assertExists(empty, 'A company runs nothing after a paying run')
+    const after = new RecordedHistory(state, actions).after(empty.id)
+    expect(getCompany(after, empty.companyId).lastRunRevenue).toBe(0)
+    for (const company of state.companies)
+        expect(company.lastRunRevenue).toBe(
+            runs.findLast((run) => run.companyId === company.id)?.metadata?.revenue
+        )
+}, 60000)

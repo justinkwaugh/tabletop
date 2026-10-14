@@ -18,6 +18,7 @@ it('returns a company to an unstarted charter with its president’s certificate
                 floated: true,
                 parPrice: 60,
                 loans: 2,
+                lastRunRevenue: 120,
                 president: { kind: 'player', playerId: 'one' }
             }
         ],

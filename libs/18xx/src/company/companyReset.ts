@@ -5,9 +5,9 @@ import { removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 
 /**
  * Returns a company whose assets have gone to an unstarted charter that can be started again:
- * its market marker, flags and loans are cleared, its president's certificate returns to the
- * bank while its other shares and shorts leave play, and only its home station remains,
- * unplaced.
+ * its market marker, flags, loans and last run revenue are cleared, its president's
+ * certificate returns to the bank while its other shares and shorts leave play, and only its
+ * home station remains, unplaced.
  */
 export function resetCompany(
     state: FinancialState & StationState & { stockMarket: StockMarket },
@@ -23,7 +23,8 @@ export function resetCompany(
         'operated',
         'parPrice',
         'president',
-        'loans'
+        'loans',
+        'lastRunRevenue'
     ] as const)
         delete company[field]
     company.shareCount = shareCount
