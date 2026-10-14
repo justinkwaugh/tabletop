@@ -308,6 +308,10 @@
         if (area) wrapper.focusRect(viewportRect(boardViewport, area), { animate: true })
         else wrapper.fitToContent({ animate: true })
     }
+    // Without a chosen focus, the board viewed fully zoomed out shows as Full.
+    const boardFocusTarget = $derived(
+        boardFocus?.target ?? (boardViewer()?.isZoomedOut() ? 'Full' : undefined)
+    )
     const boardFocusOptions = $derived(
         (
             [
@@ -319,7 +323,7 @@
             .filter(([target, area]) => target === 'Full' || area)
             .map(([target, area]) => ({
                 label: target,
-                selected: boardFocus?.target === target,
+                selected: boardFocusTarget === target,
                 onSelect: () => focusBoard(target, area)
             }))
     )
