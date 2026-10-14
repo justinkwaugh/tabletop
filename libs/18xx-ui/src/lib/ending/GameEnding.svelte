@@ -29,11 +29,11 @@
                         {winners}
                         {gameState.winningPlayerIds.length > 1 ? 'tie' : 'wins'}
                     </h2>{/if}
-                <p class="reason">
-                    {gameState.gameEnding
-                        .reason}{#if !gameState.finalWealth && gameState.gameEnding.finalOperatingSet !== undefined}
-                        · Ends after operating set {gameState.gameEnding.finalOperatingSet}{/if}
-                </p>
+                {#if !gameState.finalWealth}<p class="reason">
+                        {gameState.gameEnding
+                            .reason}{#if gameState.gameEnding.finalOperatingSet !== undefined}
+                            · Ends after operating set {gameState.gameEnding.finalOperatingSet}{/if}
+                    </p>{/if}
             </header>
             {#if gameState.finalWealth}
                 <table aria-label="Final wealth">
