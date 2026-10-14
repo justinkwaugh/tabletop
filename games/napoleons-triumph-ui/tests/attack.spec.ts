@@ -323,7 +323,7 @@ test('the pieces that made the threat are still named after the page is reloaded
 const ST_HILAIRE_LOCALE = 93
 const APPROACH_FROM_ST_HILAIRE_TO_LOCALE_94 = 326
 
-test('two artillery units on a wide approach are picked together and fire by a Unit Move each', async ({
+test('two artillery units on a wide approach threaten one at a time and are named together to fire, each by a Unit Move', async ({
     page
 }) => {
     await createGame(page)
@@ -367,10 +367,8 @@ test('two artillery units on a wide approach are picked together and fire by a U
     await strip
         .getByRole('button', { name: 'Include this unit in the command', pressed: false })
         .click()
-    await expect(chosen).toHaveCount(2)
+    await expect(chosen).toHaveCount(1)
     await expect(unitMove).toHaveAttribute('aria-pressed', 'true')
-    await expect(strip).toContainText('The two fire together')
-    await expect(page.locator('[aria-label^="Move to"]')).toHaveCount(0)
     await expect(threat).toHaveCount(1)
 
     await threatenWithoutTheGuard(page)
@@ -379,12 +377,21 @@ test('two artillery units on a wide approach are picked together and fire by a U
     await page.getByRole('button', { name: 'Press the attack' }).click()
     await leadDefence(page)
 
-    const pieces = page.locator('button[aria-label="Choose this unit"]:not([disabled])')
     const attack = page.getByRole('button', { name: /^Attack/ })
-    await expect(pieces.filter({ hasText: 'attacks' })).toHaveCount(2)
-    await pieces.nth(0).click()
-    await pieces.nth(1).click()
-    await expect(pieces.filter({ hasText: 'leads' })).toHaveCount(2)
+    await page
+        .locator(
+            '[data-commander="detached"] [aria-label="Choose this unit"][aria-pressed="false"]'
+        )
+        .first()
+        .dispatchEvent('click')
+    const leading = page.locator('.nt-turn button[aria-label="Choose this unit"]', {
+        hasText: 'leads'
+    })
+    await expect(leading).toHaveCount(2)
+    await expect(
+        page.getByRole('group', { name: 'Attack width' }).getByRole('button', { name: 'Narrow' })
+    ).toBeDisabled()
+    await expect(page.getByText('Two batteries combine only')).toHaveCount(0)
     await expect(
         page.getByRole('group', { name: 'Command' }).getByRole('button', { name: 'Unit Move' })
     ).toHaveAttribute('aria-pressed', 'true')

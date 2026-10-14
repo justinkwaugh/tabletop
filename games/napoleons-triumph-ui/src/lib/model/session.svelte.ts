@@ -155,7 +155,6 @@ import { fightOf, recordedAccounts, verdictOf, type ResultAccounts } from './res
 import { turnTrails, type Trail } from './turnTrails.js'
 import {
     RideChoice,
-    mayFireTogether,
     moveCommandOptions,
     moveOrder,
     reinforcementsOf,
@@ -867,11 +866,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             this.stageCommand(chooseCorpsUnit(this.selection, unitId, this.commandableIds(group)))
         } else {
             const chosen = this.ridingOn ? [] : this.pickedUnitIds
-            const playerId = this.myPlayerId
-            const mayJoin =
-                playerId !== undefined &&
-                mayFireTogether(this.gameState, playerId, group, [...chosen, unitId])
-            this.stageCommand(chooseDetachedUnit(this.selection, unitId, chosen, mayJoin))
+            this.stageCommand(chooseDetachedUnit(this.selection, unitId, chosen))
         }
     }
 

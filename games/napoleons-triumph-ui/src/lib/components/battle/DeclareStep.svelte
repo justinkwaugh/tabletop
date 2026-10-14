@@ -11,10 +11,10 @@
 
     const gameSession = getGameSession()
 
-    const WIDTHS = [
+    const widths = $derived([
         { value: AttackWidth.Wide, name: 'Wide' },
-        { value: AttackWidth.Narrow, name: 'Narrow' }
-    ]
+        { value: AttackWidth.Narrow, name: 'Narrow', unavailable: stage.firesAsAPair }
+    ])
 </script>
 
 <div class="nt-battle-prompt">
@@ -31,7 +31,7 @@
     {#if stage.approachWide}
         <SlidingSwitch
             label="Attack width"
-            choices={WIDTHS}
+            choices={widths}
             chosen={stage.wide ? AttackWidth.Wide : AttackWidth.Narrow}
             onchoose={(width) => gameSession.chooseAttackWidth(width)}
         />

@@ -86,9 +86,6 @@
         if (together && picked.length > 1) {
             return 'Tap units to send only some.'
         }
-        if (kind === CommandKind.Unit && picked.length > 1) {
-            return 'The two fire together across their approach, each by its own independent command.'
-        }
         return kind === CommandKind.Corps && picked.length < group.units.length
             ? 'The units left out stay behind, detached.'
             : undefined

@@ -841,7 +841,7 @@ describe('guns picked to fire', () => {
         expect(game.hydrated.findUnit('A-inf')?.face).toEqual(infantry(1))
     })
 
-    it('combine two detached batteries on a wide approach, each by its own Unit Move', () => {
+    it('combine two detached batteries on a wide approach, each by its own Unit Move, both leading as they must', () => {
         const WIDE_FROM = 93
         const WIDE_INTO = 94
         const battery = (id: string): PiecePlacement => ({
@@ -869,15 +869,69 @@ describe('guns picked to fire', () => {
         const stage = stageOf(
             game,
             StageKind.Declaration,
-            tap(game, emptyBattleSelections(), 'F-a1', 'F-a1', 'F-a2', 'F-a2')
+            tap(game, emptyBattleSelections(), 'F-a1', 'F-a2')
         )
         expect(stage.commandOptions).toEqual([CommandKind.Unit])
         expect(stage.orders).toEqual([
             { kind: CommandKind.Unit, unitIds: ['F-a1'] },
             { kind: CommandKind.Unit, unitIds: ['F-a2'] }
         ])
+        expect(stage.firesAsAPair).toBe(true)
+        expect(stage.wide).toBe(true)
         expect(stage.leaders.toSorted()).toEqual(['F-a1', 'F-a2'])
         expect(stage.problem).toBeUndefined()
+
+        const narrowed = stageOf(game, StageKind.Declaration, {
+            ...tap(game, emptyBattleSelections(), 'F-a1', 'F-a2'),
+            attackers: setAttackWidth(
+                tap(game, emptyBattleSelections(), 'F-a1', 'F-a2').attackers,
+                AttackWidth.Narrow
+            )
+        })
+        expect(narrowed.wide).toBe(true)
+
+        const alone = stageOf(
+            game,
+            StageKind.Declaration,
+            tap(game, emptyBattleSelections(), 'F-a1', 'F-a2', 'F-a2')
+        )
+        expect(alone.attackers).toEqual(['F-a1'])
+        expect(alone.firesAsAPair).toBe(false)
+    })
+
+    it('are given no command together across a narrow approach, where only one may lead', () => {
+        const NARROW_FROM = 72
+        const NARROW_INTO = 74
+        const battery = (id: string): PiecePlacement => ({
+            id,
+            side: Side.French,
+            face: artillery(),
+            locale: NARROW_FROM,
+            facing: NARROW_INTO
+        })
+        const game = new TestGame()
+        game.deployBoth()
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        arrangeBattlefield(game, [
+            battery('F-a1'),
+            battery('F-a2'),
+            { id: 'A-inf', side: Side.Allied, face: infantry(3), locale: NARROW_INTO }
+        ])
+        const french = game.playerOf(Side.French)
+        const across = game.hydrated.map.approachBetween(NARROW_FROM, NARROW_INTO)
+        expect(across.wide).toBe(false)
+        game.act(ActionType.ThreatenAttack, french, { approach: across.id })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
+        game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
+        const both = stageOf(
+            game,
+            StageKind.Declaration,
+            tap(game, emptyBattleSelections(), 'F-a1', 'F-a2')
+        )
+        expect(both.commandOptions).toEqual([])
+        expect(both.orders).toBeUndefined()
+        expect(both.problem).toBe('No one command can send these units into the attack together')
     })
 
     it('drop the command the threat was planned with once other pieces are named', () => {

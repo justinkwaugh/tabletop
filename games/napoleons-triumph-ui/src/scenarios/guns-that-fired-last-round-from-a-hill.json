@@ -1,0 +1,276 @@
+{
+ "game": {
+  "id": "scenario-guns-that-fired-last-round-from-a-hill",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "napoleons-triumph",
+  "deleted": false,
+  "name": "Guns that fired last round, down from a hill",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p0",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p1",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {},
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [],
+  "createdAt": "2026-10-14T14:12:04.955Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-10-14T14:12:04.955Z",
+  "protectedInformation": true
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "zjDGY-8r49hRSHmo1xgYF",
+  "gameId": "scenario-guns-that-fired-last-round-from-a-hill",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 264
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p0",
+    "color": "red",
+    "morale": 27,
+    "moraleLost": 0,
+    "corpsCommandsUsed": 0,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "side": "Allied"
+   },
+   {
+    "playerId": "p1",
+    "color": "blue",
+    "morale": 23,
+    "moraleLost": 0,
+    "corpsCommandsUsed": 0,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "side": "French"
+   }
+  ],
+  "machineState": "Commanding",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p0",
+    "p1"
+   ],
+   "turnCounts": {
+    "p0": 2,
+    "p1": 1
+   }
+  },
+  "rounds": {
+   "series": [
+    {
+     "type": "round",
+     "start": 0,
+     "number": 2
+    }
+   ]
+  },
+  "scenario": "December2",
+  "santon": false,
+  "units": [
+   {
+    "id": "F01",
+    "playerId": "p1",
+    "face": {
+     "type": "Artillery",
+     "strength": 1
+    },
+    "position": {
+     "locale": 25,
+     "approach": 62
+    }
+   },
+   {
+    "id": "F03",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "vandamme",
+    "position": {
+     "locale": 25
+    }
+   },
+   {
+    "id": "A01",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "miloradovich",
+    "position": {
+     "locale": 38
+    }
+   },
+   {
+    "id": "A02",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "miloradovich",
+    "position": {
+     "locale": 38
+    }
+   },
+   {
+    "id": "A03",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "miloradovich",
+    "position": {
+     "locale": 38
+    }
+   }
+  ],
+  "commanders": [
+   {
+    "id": "bernadotte",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "bessieres",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "davout",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "lannes",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "legrand",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "murat",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "st-hilaire",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "vandamme",
+    "playerId": "p1",
+    "position": {
+     "locale": 25
+    }
+   },
+   {
+    "id": "bagration",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "constantine",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "dokhturov",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kienmayer",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kollowrath",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "langeron",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "liechtenstein",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "miloradovich",
+    "playerId": "p0",
+    "position": {
+     "locale": 38
+    }
+   },
+   {
+    "id": "prebyshevsky",
+    "playerId": "p0",
+    "eliminated": true
+   }
+  ],
+  "frenchReinforcementsEntered": false,
+  "artilleryFire": {
+   "62": 0
+  },
+  "limits": {
+   "closedApproaches": [],
+   "bombardedApproaches": [],
+   "stormedLocales": [],
+   "marchedLocales": []
+  }
+ },
+ "actions": []
+}

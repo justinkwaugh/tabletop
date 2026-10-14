@@ -19,6 +19,7 @@ import {
     isLegal,
     nextDecision,
     occupyAfterRetreat,
+    resolveAttackOrders,
     samePosition,
     validateCounterAttackers,
     whyIllegal,
@@ -137,6 +138,7 @@ export interface DeclarationStage extends AttackerPicking {
     leaders: string[]
     approachWide: boolean
     wide: boolean
+    firesAsAPair: boolean
     targetOptions: string[]
     target?: string
     problem?: string
@@ -370,6 +372,22 @@ function feintStage(
     }
 }
 
+// Erratum to rule 11: two batteries given a Unit Move each attack together only by both leading with their fire, across a wide approach.
+function firesAsAPair(
+    state: HydratedNapoleonsTriumphGameState,
+    attack: VisibleAttack,
+    orders: MoveOrder[] | undefined
+): boolean {
+    if (!orders) {
+        return false
+    }
+    const site = { attackerId: attack.attackerId, attackApproach: attack.attackApproach }
+    return (
+        isLegal(() => resolveAttackOrders(state, site, orders)) &&
+        resolveAttackOrders(state, site, orders).artilleryPair
+    )
+}
+
 function declarationStage(
     state: HydratedNapoleonsTriumphGameState,
     attack: VisibleAttack,
@@ -377,11 +395,12 @@ function declarationStage(
 ): DeclarationStage {
     // Rule 11: an attack by road must be a feint, so cavalry riding on presses an attack only by a new command.
     const picking = attackerPicking(state, attack, selections, false)
+    const pair = firesAsAPair(state, attack, picking.orders)
     const approachWide = state.map.approach(attack.attackApproach).wide
     const wide =
         approachWide &&
-        attackerSelection.value(selections.attackers, 'width') !== AttackWidth.Narrow
-    const leaders = picking.leaders.slice(0, wide ? 2 : 1)
+        (pair || attackerSelection.value(selections.attackers, 'width') !== AttackWidth.Narrow)
+    const leaders = pair ? picking.attackers : picking.leaders.slice(0, wide ? 2 : 1)
     const targetOptions =
         !wide && attack.defenseLeaderIds.length === 2 ? attack.defenseLeaderIds : []
     const wantedTarget = attackerSelection.value(selections.attackers, 'struckLeader')
@@ -392,7 +411,9 @@ function declarationStage(
         : undefined
     const problem = declaration
         ? whyIllegal(() => checkAttackDeclaration(state, declaration))
-        : undefined
+        : picking.attackers.length > 0
+          ? 'No one command can send these units into the attack together'
+          : undefined
     // Rule 11, step 5: the defence leading unit a narrow attack does not strike "is no longer considered a leading unit".
     const passedBy = Object.fromEntries(
         targetOptions.filter((id) => id !== target).map((id) => [id, BattleRole.PassedBy])
@@ -408,6 +429,7 @@ function declarationStage(
         roles: { ...rolesOf(picking.attackers, leaders, BattleRole.Attacks), ...passedBy },
         approachWide,
         wide,
+        firesAsAPair: pair,
         targetOptions,
         target,
         problem,

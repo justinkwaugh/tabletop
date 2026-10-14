@@ -95,23 +95,17 @@ describe('command selection', () => {
     })
 
     it('returns to the units a pick-up starts with when leaving some out is undone', () => {
-        const thinned = chooseDetachedUnit(corpsPickedUp(), 'F01', ['F02'], false)
+        const thinned = chooseDetachedUnit(corpsPickedUp(), 'F01', ['F02'])
         expect(chosenUnitsOf(thinned)).toEqual(['F01'])
         const restored = undoCommandSelection(thinned)
         expect(chosenUnitsOf(restored)).toBeUndefined()
         expect(pickedUpOf(restored)).toEqual({ groupKey: 'corps' })
     })
 
-    it('commands detached units one at a time, or two together where they may be', () => {
-        const one = chooseDetachedUnit(corpsPickedUp(), 'F01', [], false)
-        expect(chosenUnitsOf(chooseDetachedUnit(one, 'F02', ['F01'], false))).toEqual(['F02'])
-
-        const two = chooseDetachedUnit(one, 'F02', ['F01'], true)
-        expect(chosenUnitsOf(two)).toEqual(['F01', 'F02'])
-        expect(chosenUnitsOf(chooseDetachedUnit(two, 'F01', ['F01', 'F02'], false))).toEqual([
-            'F02'
-        ])
-        expect(chooseDetachedUnit(one, 'F01', ['F01'], false)).toEqual(noCommandSelection())
+    it('commands detached units one at a time', () => {
+        const one = chooseDetachedUnit(corpsPickedUp(), 'F01', [])
+        expect(chosenUnitsOf(chooseDetachedUnit(one, 'F02', ['F01']))).toEqual(['F02'])
+        expect(chooseDetachedUnit(one, 'F01', ['F01'])).toEqual(noCommandSelection())
     })
 
     it('leaves Undo to the last action when nothing has been chosen', () => {
@@ -231,12 +225,9 @@ describe('choosing units of a corps', () => {
         expect(chosenUnitsOf(whole)).toBeUndefined()
         expect(chosenCommandOf(whole)).toBe(CommandKind.Corps)
 
-        const another = chooseDetachedUnit(
-            setCommand(corpsPickedUp(), CommandKind.Unit),
-            'F02',
-            ['F01'],
-            false
-        )
+        const another = chooseDetachedUnit(setCommand(corpsPickedUp(), CommandKind.Unit), 'F02', [
+            'F01'
+        ])
         expect(chosenCommandOf(another)).toBe(CommandKind.Unit)
     })
 })
@@ -296,7 +287,7 @@ describe('a new command for cavalry riding on', () => {
             CommandKind.Unit
         )
         const otherUnits = [
-            chooseDetachedUnit(commanded, 'F02', ['F01'], false),
+            chooseDetachedUnit(commanded, 'F02', ['F01']),
             chooseCorpsUnit(commanded, 'F01', ['F01', 'F02'])
         ]
         expect(rideOf(commanded)).toBe(RideChoice.NewCommand)
@@ -324,7 +315,7 @@ describe('the place a march is bound for', () => {
     it('is forgotten when the order changes, since the places on offer change with it', () => {
         expect(destinationOf(setCommand(bound(), CommandKind.Detach))).toBeUndefined()
         expect(destinationOf(chooseCorpsUnit(bound(), 'F01', ['F01', 'F02']))).toBeUndefined()
-        expect(destinationOf(chooseDetachedUnit(bound(), 'F02', ['F01'], false))).toBeUndefined()
+        expect(destinationOf(chooseDetachedUnit(bound(), 'F02', ['F01']))).toBeUndefined()
         expect(wayStepsOf(setCommand(bound(), CommandKind.Detach))).toEqual([])
     })
 })

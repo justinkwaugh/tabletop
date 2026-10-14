@@ -124,21 +124,15 @@ export function chooseCorpsUnit(
     )
 }
 
-/** Detached units are commanded one at a time, so tapping another takes its place, unless the two may be commanded together; tapping the last one chosen puts the group down. */
+/** Detached units are commanded one at a time, so tapping another takes its place; tapping the one chosen puts the group down. */
 export function chooseDetachedUnit(
     selection: CommandSelection,
     unitId: string,
-    chosen: readonly string[],
-    mayJoinTheChosen: boolean
+    chosen: readonly string[]
 ): CommandSelection {
-    if (!chosen.includes(unitId)) {
-        const next = mayJoinTheChosen ? [...chosen, unitId] : [unitId]
-        return withoutRideOrDestination(commandSelection.revise(selection, 'units', next, 'manual'))
-    }
-    const rest = chosen.filter((id) => id !== unitId)
-    return rest.length === 0
+    return chosen.includes(unitId)
         ? commandSelection.empty()
-        : withoutRideOrDestination(commandSelection.revise(selection, 'units', rest, 'manual'))
+        : withoutRideOrDestination(commandSelection.revise(selection, 'units', [unitId], 'manual'))
 }
 
 // Deliberate: riding on is in force with no choice made, so choosing it takes the choice back and leaves Undo no step that changes nothing.

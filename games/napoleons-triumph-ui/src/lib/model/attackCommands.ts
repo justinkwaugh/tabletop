@@ -49,15 +49,17 @@ export function attackerGroups(
     ].filter((group) => group.units.length > 0)
 }
 
-function inPlaceCommands(picked: readonly ProjectedUnit[]): CommandKind[] {
+function inPlaceCommands(picked: readonly ProjectedUnit[], wide: boolean): CommandKind[] {
     const commanderIds = new Set(picked.map((unit) => unit.commanderId))
     const allInCorps = !commanderIds.has(undefined)
     const gunsAlone = picked.every((unit) => unit.face?.type === UnitType.Artillery)
     const kinds = [
         ...(allInCorps ? [CommandKind.Corps] : []),
         ...(allInCorps && commanderIds.size === 1 ? [CommandKind.Detach] : []),
-        // Erratum to rule 11: two batteries may combine their Unit Moves.
-        ...(picked.length === 1 || (picked.length === 2 && gunsAlone) ? [CommandKind.Unit] : [])
+        // Erratum to rule 11: two batteries may combine their Unit Moves, both leading, which takes a wide approach.
+        ...(picked.length === 1 || (picked.length === 2 && gunsAlone && wide)
+            ? [CommandKind.Unit]
+            : [])
     ]
     // Rule 11, step 5: a Corps Move attack cannot be led by artillery, so guns picked by themselves leave their corps first.
     return gunsAlone
@@ -121,7 +123,7 @@ export function attackCommand(
             inReserve(unit.position) === inReserve(picked[0].position)
     )
     const options = standsTogether
-        ? inPlaceCommands(picked).filter((kind) =>
+        ? inPlaceCommands(picked, state.map.approach(attack.attackApproach).wide).filter((kind) =>
               isLegal(() => resolveAttackOrders(state, attack, inPlaceOrders(picked, kind)))
           )
         : []

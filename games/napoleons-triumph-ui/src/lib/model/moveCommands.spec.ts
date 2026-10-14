@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import {
-    AUSTERLITZ,
-    ActionType,
-    CommandKind,
-    Side,
-    commanderDefinition
-} from '@tabletop/napoleons-triumph'
+import { ActionType, CommandKind, Side, commanderDefinition } from '@tabletop/napoleons-triumph'
 import {
     TestGame,
     artillery,
@@ -15,7 +9,6 @@ import {
     type PiecePlacement
 } from '@tabletop/napoleons-triumph/testing'
 import {
-    mayFireTogether,
     moveCommandOptions,
     moveOrder,
     reinforcementsOf,
@@ -90,7 +83,7 @@ describe('the commands a picked-up group may be given', () => {
     })
 })
 
-describe('two artillery units firing together', () => {
+describe('two artillery units on a wide approach', () => {
     const WIDE_FROM = 93
     const WIDE_INTO = 94
 
@@ -121,24 +114,19 @@ describe('two artillery units firing together', () => {
         return { game, state, playerId, group }
     }
 
-    it('are each given a Unit Move when they stand detached on a wide approach', () => {
-        const { state, playerId, group } = french([
-            battery('F-a1', WIDE_INTO),
-            battery('F-a2', WIDE_INTO)
-        ])
-        expect(state.map.approachBetween(WIDE_FROM, WIDE_INTO).wide).toBe(true)
-        expect(mayFireTogether(state, playerId, group, ['F-a1', 'F-a2'])).toBe(true)
-        expect(moveCommandOptions(state, playerId, group, ['F-a1', 'F-a2'], false)).toEqual([
-            CommandKind.Unit
-        ])
-        expect(moveOrder(CommandKind.Unit, group, ['F-a1', 'F-a2'])).toEqual({
-            kind: CommandKind.Unit,
-            unitIds: ['F-a1', 'F-a2']
-        })
-    })
+    it('are given no command together before a threat: they are named together when the attack is declared', () => {
+        const detached = french([battery('F-a1', WIDE_INTO), battery('F-a2', WIDE_INTO)])
+        expect(
+            moveCommandOptions(
+                detached.state,
+                detached.playerId,
+                detached.group,
+                ['F-a1', 'F-a2'],
+                false
+            )
+        ).toEqual([])
 
-    it('may leave their corps by a Detach Move or by a Unit Move each', () => {
-        const { state, playerId, group } = french([
+        const inACorps = french([
             battery('F-a1', WIDE_INTO, 'lannes'),
             battery('F-a2', WIDE_INTO, 'lannes'),
             {
@@ -150,45 +138,15 @@ describe('two artillery units firing together', () => {
                 commanderId: 'lannes'
             }
         ])
-        expect(moveCommandOptions(state, playerId, group, ['F-a1', 'F-a2'], false)).toEqual([
-            CommandKind.Detach,
-            CommandKind.Unit,
-            CommandKind.Corps
-        ])
-        expect(moveCommandOptions(state, playerId, group, ['F-a1', 'F-inf'], false)).toEqual([
-            CommandKind.Detach,
-            CommandKind.Corps
-        ])
-    })
-
-    it('cannot both leave a corps that has no other unit', () => {
-        const { state, playerId, group } = french([
-            battery('F-a1', WIDE_INTO, 'lannes'),
-            battery('F-a2', WIDE_INTO, 'lannes')
-        ])
-        expect(mayFireTogether(state, playerId, group, ['F-a1', 'F-a2'])).toBe(false)
-    })
-
-    it('need a wide approach and an independent command each', () => {
-        const narrow = AUSTERLITZ.passableApproachesOf(WIDE_FROM).find((approach) => !approach.wide)
-        assertExists(narrow, 'Locale 93 has a narrow approach')
-        const onNarrow = french([
-            battery('F-a1', narrow.neighbour),
-            battery('F-a2', narrow.neighbour)
-        ])
         expect(
-            mayFireTogether(onNarrow.state, onNarrow.playerId, onNarrow.group, ['F-a1', 'F-a2'])
-        ).toBe(false)
-
-        const { game, playerId, group } = french([
-            battery('F-a1', WIDE_INTO),
-            battery('F-a2', WIDE_INTO)
-        ])
-        game.arrange((arranged) => {
-            const player = arranged.getPlayerState(playerId)
-            player.independentCommandsUsed = 3
-        })
-        expect(mayFireTogether(game.hydrated, playerId, group, ['F-a1', 'F-a2'])).toBe(false)
+            moveCommandOptions(
+                inACorps.state,
+                inACorps.playerId,
+                inACorps.group,
+                ['F-a1', 'F-a2'],
+                false
+            )
+        ).toEqual([CommandKind.Detach, CommandKind.Corps])
     })
 })
 
