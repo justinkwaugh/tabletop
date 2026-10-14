@@ -7,7 +7,8 @@
         type GameStateChangeListener,
         GameChat,
         HistoryControls,
-        DefaultTabs
+        DefaultTabs,
+        saveToDevice
     } from '@tabletop/frontend-components'
     import { assert, type Point } from '@tabletop/common'
     import { onMount, tick, untrack } from 'svelte'
@@ -40,12 +41,7 @@
         type BoardView,
         type Focus
     } from '$lib/utils/boardView.js'
-    import {
-        boardPicture,
-        boardPictureName,
-        picturedLayers,
-        saveToDevice
-    } from '$lib/utils/boardPicture.js'
+    import { boardPicture, boardPictureName, picturedLayers } from '$lib/utils/boardPicture.js'
     import boardArt from '$lib/images/board.webp'
     import setupMarks from '$lib/images/setup-marks.webp'
     import LibreBaskervilleFont from '$lib/fonts/LibreBaskerville.woff2'

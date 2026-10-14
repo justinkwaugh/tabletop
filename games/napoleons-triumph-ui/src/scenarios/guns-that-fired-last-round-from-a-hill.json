@@ -25,16 +25,18 @@
   "hotseat": false,
   "winningPlayerIds": [],
   "seed": 3367980177,
-  "activePlayerIds": [],
-  "createdAt": "2026-10-14T14:12:04.955Z",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-14T15:31:39.426Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-14T14:12:04.955Z",
+  "startedAt": "2026-10-14T15:31:39.426Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "zjDGY-8r49hRSHmo1xgYF",
+  "id": "crXQVyxPUZXYaVGKgfi1D",
   "gameId": "scenario-guns-that-fired-last-round-from-a-hill",
   "seed": 3367980177,
   "prng": {

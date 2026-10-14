@@ -25,16 +25,18 @@
   "hotseat": false,
   "winningPlayerIds": [],
   "seed": 3367980177,
-  "activePlayerIds": [],
-  "createdAt": "2026-10-14T14:12:04.932Z",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-14T15:31:39.402Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-14T14:12:04.932Z",
+  "startedAt": "2026-10-14T15:31:39.402Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "d3nZ-ggYEW1PH2yHDhN6s",
+  "id": "ZDyLlLSyhxWcW_3empDi5",
   "gameId": "scenario-artillery-pair-on-a-narrow-approach",
   "seed": 3367980177,
   "prng": {

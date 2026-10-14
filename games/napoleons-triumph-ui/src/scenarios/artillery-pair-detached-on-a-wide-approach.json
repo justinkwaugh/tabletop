@@ -25,16 +25,18 @@
   "hotseat": false,
   "winningPlayerIds": [],
   "seed": 3367980177,
-  "activePlayerIds": [],
-  "createdAt": "2026-10-14T14:12:04.901Z",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-14T15:31:39.371Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-14T14:12:04.901Z",
+  "startedAt": "2026-10-14T15:31:39.371Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "n8qj6xllFsfyPDuVdZYdY",
+  "id": "1NMunhsbzCbVSdrb8RTSB",
   "gameId": "scenario-artillery-pair-detached-on-a-wide-approach",
   "seed": 3367980177,
   "prng": {

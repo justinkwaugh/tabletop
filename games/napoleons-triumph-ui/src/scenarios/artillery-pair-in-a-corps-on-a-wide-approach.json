@@ -25,16 +25,18 @@
   "hotseat": false,
   "winningPlayerIds": [],
   "seed": 3367980177,
-  "activePlayerIds": [],
-  "createdAt": "2026-10-14T14:12:04.918Z",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-14T15:31:39.389Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-14T14:12:04.918Z",
+  "startedAt": "2026-10-14T15:31:39.389Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "g6fpcGHJUHqkzJVcmICsq",
+  "id": "04jOVdvgjB0hz1EEillRs",
   "gameId": "scenario-artillery-pair-in-a-corps-on-a-wide-approach",
   "seed": 3367980177,
   "prng": {

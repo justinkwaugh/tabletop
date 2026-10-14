@@ -25,16 +25,18 @@
   "hotseat": false,
   "winningPlayerIds": [],
   "seed": 3367980177,
-  "activePlayerIds": [],
-  "createdAt": "2026-10-14T14:12:04.965Z",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-14T15:31:39.436Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-14T14:12:04.965Z",
+  "startedAt": "2026-10-14T15:31:39.436Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "_jpeE0tW8laR1RuAOFkVM",
+  "id": "riXQxwytQp7npezi9mBWH",
   "gameId": "scenario-second-attack-after-a-repulse-or-feint",
   "seed": 3367980177,
   "prng": {

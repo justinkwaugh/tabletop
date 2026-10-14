@@ -25,16 +25,18 @@
   "hotseat": false,
   "winningPlayerIds": [],
   "seed": 3367980177,
-  "activePlayerIds": [],
-  "createdAt": "2026-10-14T14:12:04.944Z",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-14T15:31:39.415Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-14T14:12:04.944Z",
+  "startedAt": "2026-10-14T15:31:39.415Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "6E6jmEQhZbLgMno2-kTj3",
+  "id": "l4n-nXCsU-ejnJq5hEclW",
   "gameId": "scenario-guns-that-fired-last-round",
   "seed": 3367980177,
   "prng": {

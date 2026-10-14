@@ -5,6 +5,7 @@ import {
 } from '@tabletop/napoleons-triumph'
 import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
 import { viewSize, viewTransformInSvg } from './boardView.js'
+import { fileSlug } from '@tabletop/frontend-components'
 
 // The board art is 3400 pixels wide, so the picture is drawn at the art's own size.
 const PIXELS_PER_BOARD_UNIT = 3400 / BOARD_WIDTH
@@ -159,15 +160,5 @@ export function boardPictureName(
         ? roundLabel(roundDefinition(state.scenario, latest.number - 1), true)
         : 'set-up'
     const kept = showsUnitTypes ? '' : ' unit types hidden'
-    const words = `napoleons triumph ${moment}${kept}`.toLowerCase().match(/[a-z0-9]+/g) ?? []
-    return `${words.join('-')}.jpg`
-}
-
-export function saveToDevice(blob: Blob, name: string) {
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = name
-    link.click()
-    URL.revokeObjectURL(url)
+    return `${fileSlug(`napoleons triumph ${moment}${kept}`)}.jpg`
 }

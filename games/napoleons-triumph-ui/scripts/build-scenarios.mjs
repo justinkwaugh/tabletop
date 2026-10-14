@@ -3,7 +3,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { AUSTERLITZ, ActionType, Side } from '@tabletop/napoleons-triumph'
+import { startingPositionFile } from '@tabletop/common/testing'
+import { AUSTERLITZ, Side } from '@tabletop/napoleons-triumph'
 import {
     TestGame,
     arrangeBattlefield,
@@ -40,32 +41,17 @@ function frenchTurn(placements, { round = 1 } = {}) {
     return game
 }
 
-// A scenario starts afresh: no actions led to it, so its counts and turn records start at the first action.
-function startingPosition(state) {
-    const turn = state.turnManager.series.at(-1)
-    const round = state.rounds.series.at(-1)
-    return {
-        ...state,
-        actionCount: 0,
-        actionChecksum: 0,
-        turnManager: { ...state.turnManager, series: [{ ...turn, start: 0 }] },
-        rounds: { ...state.rounds, series: [{ ...round, start: 0 }] }
-    }
-}
-
-function write(slug, title, game) {
-    const id = `scenario-${slug}`
-    const file = {
+function write(slug, name, game) {
+    const file = startingPositionFile({
+        slug,
+        name,
         game: {
             ...game.game,
-            id,
-            name: title,
             players: game.game.players.map((player, i) => ({ ...player, name: `Player ${i + 1}` }))
         },
-        state: { ...startingPosition(game.state), gameId: id },
-        actions: []
-    }
-    writeFileSync(join(OUT, `${slug}.json`), `${JSON.stringify(file, null, 1)}\n`)
+        state: game.state
+    })
+    writeFileSync(join(OUT, file.fileName), file.contents)
 }
 
 const approach = (from, into) => AUSTERLITZ.approachBetween(from, into).id
