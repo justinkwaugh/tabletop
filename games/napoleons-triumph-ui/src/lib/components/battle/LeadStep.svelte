@@ -10,7 +10,7 @@
 
 <div class="nt-battle-prompt">
     The attack is pressed. Tap {stage.leaderLimit === 1 ? 'a unit' : 'up to two units'}, here or on
-    the map, to lead the defence. Leading units are shown to the enemy as you name them.
+    the map, to lead the defence. Leading units are shown to the enemy when you lead with them.
 </div>
 <Force
     units={stage.defenders}

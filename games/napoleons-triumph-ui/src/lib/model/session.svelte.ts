@@ -90,7 +90,7 @@ import {
     battleStageOf,
     commandersGoing,
     committedUnits,
-    defendersOfEarlierAttacks,
+    knownToTheEnemy,
     liftRetreatingCommander,
     keptByCommander,
     moveLossOnto,
@@ -315,10 +315,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         layoutPieces(this.arrayedArmy ?? this.gameState, {
             rotation: this.boardRotation,
             readBy: this.myPlayerId,
-            singledOut: [
-                ...committedUnits(this.attack),
-                ...defendersOfEarlierAttacks(this.gameState.units)
-            ],
+            singledOut: [...committedUnits(this.attack), ...knownToTheEnemy(this.gameState.units)],
             looseLocales: [
                 ...this.battleLocales,
                 ...[this.spreadLocale, this.pickedUpLocale].filter((locale) => locale !== undefined)
