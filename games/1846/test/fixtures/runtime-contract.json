@@ -451,6 +451,10 @@
               "minimum": 1,
               "type": "integer"
             },
+            "lastRunRevenue": {
+              "minimum": 0,
+              "type": "integer"
+            },
             "operated": {
               "type": "boolean"
             },

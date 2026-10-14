@@ -10,6 +10,7 @@ import {
 } from '@tabletop/common'
 import { TrainRoute, OperatingResult, type TrainRunningState } from './route.js'
 import { RouteEvaluation, type RouteRules } from './routeEvaluation.js'
+import { getCompany } from '../finance/finance.js'
 export const RunTrains = Type.Object(
     {
         ...PlayerAction.properties,
@@ -53,6 +54,7 @@ export class HydratedRunTrains extends HydratableAction<typeof RunTrains> implem
         const evaluation = running.evaluate(this.companyId, this.routes)
         assert(evaluation.result, evaluation.reason ?? 'Invalid routes')
         state.routeStep!.result = evaluation.result
+        getCompany(state, this.companyId).lastRunRevenue = evaluation.result.revenue
         this.metadata = evaluation.result
     }
 }

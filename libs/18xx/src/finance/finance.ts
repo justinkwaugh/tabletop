@@ -33,6 +33,7 @@ export const CompanyProperties = {
     floated: Type.Optional(Type.Boolean()),
     president: Type.Optional(President),
     privateRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
+    lastRunRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
     /** The highest number its certificates or stations have used, once any has left play. */
     lastIssuedNumber: Type.Optional(Type.Integer({ minimum: 1 }))
 }

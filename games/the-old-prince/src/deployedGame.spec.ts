@@ -5,7 +5,8 @@ import {
     GameEngine,
     PlayerStatus,
     RecordedHistory,
-    type GameAction
+    type GameAction,
+    type RecordedTransition
 } from '@tabletop/common'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
@@ -160,6 +161,28 @@ function currentShape({
     }
 }
 
+/** The recorded shape kept a run's result only until its company's turn ended. */
+function recordLastRunRevenues(
+    transitions: Map<string, RecordedTransition<TheOldPrinceState>>,
+    oldestFirst: readonly GameAction[]
+) {
+    const revenues = new Map<string, number>()
+    const apply = (state: TheOldPrinceState) => {
+        for (const company of state.companies) {
+            const revenue = revenues.get(company.id)
+            if (revenue !== undefined) company.lastRunRevenue = revenue
+        }
+    }
+    for (const action of oldestFirst) {
+        const transition = transitions.get(action.id)
+        assertExists(transition?.before, 'Every recorded action has an undo patch')
+        apply(transition.before)
+        const result = transition.after.routeStep?.result
+        if (action.type === 'RunTrains' && result) revenues.set(result.companyId, result.revenue)
+        apply(transition.after)
+    }
+}
+
 const recordedLatestState: RecordedState = readFixture('state')
 const latestState = currentShape(recordedLatestState)
 const oldestFirstActions: GameAction[] = readFixture('actions')
@@ -230,6 +253,7 @@ describe('the deployed game', () => {
             currentShape
         )
         expect(transitions.size).toBe(oldestFirstActions.length)
+        recordLastRunRevenues(transitions, oldestFirstActions)
         for (const [index, action] of oldestFirstActions.entries()) {
             const transition = transitions.get(action.id)
             assertExists(transition?.before, 'Every recorded action has an undo patch')

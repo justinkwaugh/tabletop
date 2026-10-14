@@ -446,7 +446,7 @@
                     tieOrder: (a, b) => operatingOrder(a.company.id, b.company.id)
                 },
                 cash: { value: (row) => (typeof row.cash === 'number' ? row.cash : undefined) },
-                lastRun: { value: (row) => row.lastRun?.metadata?.revenue },
+                lastRun: { value: (row) => row.company.lastRunRevenue },
                 ...Object.fromEntries(
                     titleColumns.map((column) => [
                         `column:${column.id}`,
@@ -596,14 +596,15 @@
 {/snippet}
 
 {#snippet lastRunCell(company: Company, run: ReturnType<typeof companyLastRun>)}
-    {#if run?.metadata}
+    {#if company.lastRunRevenue === undefined}<span class="empty">—</span>
+    {:else if run}
         <button
             class="last-run"
             disabled={session.busy || session.updatingVisibleState}
-            aria-label={`View ${session.companyName(company.id)}'s last run for ${money(run.metadata.revenue)}`}
-            onclick={() => onPreviewMap(run)}>{money(run.metadata.revenue)}</button
+            aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}`}
+            onclick={() => onPreviewMap(run)}>{money(company.lastRunRevenue)}</button
         >
-    {:else}<span class="empty">—</span>{/if}
+    {:else}<span class="last-run-revenue">{money(company.lastRunRevenue)}</span>{/if}
 {/snippet}
 
 {#snippet companyTrains(companyId: string)}
@@ -1336,7 +1337,7 @@
         --row-fill: var(--sheet-financial);
     }
     .bright-cell,
-    td:has(.last-run) {
+    td:has(.last-run, .last-run-revenue) {
         --cell-fill: var(--sheet-financial);
     }
     td.player-financial {

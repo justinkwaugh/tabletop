@@ -312,15 +312,16 @@
         {#if !vertical}
             <div>
                 <span>Last run</span>
-                {#if lastRun?.metadata && onPreviewMap}
+                {#if company.lastRunRevenue === undefined}<strong>—</strong>
+                {:else if lastRun && onPreviewMap}
                     <button
                         class="last-run"
                         disabled={session.busy || session.updatingVisibleState}
-                        aria-label={`View ${session.companyName(company.id)}'s last run for ${money(lastRun.metadata.revenue)}`}
+                        aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}`}
                         onclick={() => onPreviewMap?.(lastRun!)}
-                        >{money(lastRun.metadata.revenue)}</button
+                        >{money(company.lastRunRevenue)}</button
                     >
-                {:else}<strong>—</strong>{/if}
+                {:else}<strong>{money(company.lastRunRevenue)}</strong>{/if}
             </div>
         {/if}
     </div>
