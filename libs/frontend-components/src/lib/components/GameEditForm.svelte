@@ -115,13 +115,19 @@
     let players: Player[] = $state(editedGame.players)
     let isPublic: boolean = $state(editedGame.isPublic)
     let isHotseat: boolean = $state(hotseatOnly || editedGame.hotseat)
+    let isUnlisted: boolean = $state(false)
     let includeOwner: boolean = $state(true)
+    let publicGame = $derived(isPublic || isUnlisted)
+    let showUnlistedToggle = $derived(
+        authorizationService.canUseDeveloperTools && mode === EditMode.Create && !isHotseat
+    )
     let showPublicToggle = $derived(
         getTitleVisibility(gameTitle.info.metadata) === GameVisibility.Public &&
             mode === EditMode.Create &&
-            !isHotseat
+            !isHotseat &&
+            !isUnlisted
     )
-    let showHotseatToggle = $derived(!hotseatOnly && !isPublic && includeOwner)
+    let showHotseatToggle = $derived(!hotseatOnly && !publicGame && includeOwner)
     let reclaimableOwnerSeat = $derived.by(() => {
         const ownNameSeat = players.findIndex((player) => player.name === sessionUser?.username)
         return ownNameSeat !== -1
@@ -244,9 +250,10 @@
             id: editedGame.id,
             name: (formData.get('name') as string).trim(),
             players: playersToUpload,
-            isPublic,
-            hotseat: !isPublic && isHotseat,
-            storage: !isPublic && isHotseat ? GameStorage.Local : GameStorage.Remote,
+            isPublic: publicGame,
+            ...(isUnlisted ? { unlisted: true } : {}),
+            hotseat: !publicGame && isHotseat,
+            storage: !publicGame && isHotseat ? GameStorage.Local : GameStorage.Remote,
             ownerId: editedGame.ownerId,
             config: mergedConfig
         }
@@ -441,7 +448,7 @@
                       : 'default'}
                 readonly={isOwner(player)}
                 disabled={isOwner(player)}
-                required={isHotseat || !isPublic}
+                required={isHotseat || !publicGame}
             >
                 <div class="flex flex-row justify-center align-center">
                     {#if isOwner(player)}
@@ -505,7 +512,7 @@
             {/if}
         {/each}
     </div>
-    {#if showPublicToggle || showHotseatToggle || showIncludeOwnerToggle}
+    {#if showPublicToggle || showUnlistedToggle || showHotseatToggle || showIncludeOwnerToggle}
         <div class="flex flex-row items-center gap-6">
             {#if showIncludeOwnerToggle}
                 <Toggle
@@ -516,6 +523,9 @@
             {/if}
             {#if showPublicToggle}
                 <Toggle bind:checked={isPublic}>Public</Toggle>
+            {/if}
+            {#if showUnlistedToggle}
+                <Toggle bind:checked={isUnlisted}>Unlisted</Toggle>
             {/if}
             {#if showHotseatToggle}
                 <Toggle bind:checked={isHotseat}>Hotseat</Toggle>

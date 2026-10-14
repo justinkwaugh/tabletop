@@ -276,6 +276,72 @@ describe('owners joining their own public game', () => {
     })
 })
 
+describe('unlisted games', () => {
+    const openSeats = invitees.map(({ id }) => ({
+        id: `player-${id}`,
+        name: '',
+        isHuman: true,
+        status: PlayerStatus.Open
+    }))
+    const sentTopics = (notifications: NotificationService) =>
+        vi.mocked(notifications.sendNotification).mock.calls.map(([{ topics }]) => topics)
+
+    it('lets a developer create one without telling everyone', async () => {
+        const { service, notifications, write } = fixture()
+        const created = await service.createGame({
+            definition: SyntheticDefinition,
+            game: { ...inviteesOnly(), isPublic: true, unlisted: true, players: openSeats },
+            owner: developer
+        })
+        expect(write).toHaveBeenCalled()
+        expect(created).toMatchObject({ isPublic: true, unlisted: true })
+        expect(sentTopics(notifications)).toEqual([['user-developer']])
+    })
+
+    it('rejects one from a regular user', async () => {
+        const { service, write } = fixture()
+        await expect(
+            service.createGame({
+                definition: SyntheticDefinition,
+                game: {
+                    ...inviteesOnly(),
+                    isPublic: true,
+                    unlisted: true,
+                    players: [seat(regular.id), ...openSeats.slice(1)]
+                },
+                owner: regular
+            })
+        ).rejects.toThrow('is not authorized')
+        expect(write).not.toHaveBeenCalled()
+    })
+
+    it('rejects one that is not public', async () => {
+        const { service, write } = fixture()
+        await expect(
+            service.createGame({
+                definition: SyntheticDefinition,
+                game: { ...inviteesOnly(), unlisted: true },
+                owner: developer
+            })
+        ).rejects.toThrow('must be public')
+        expect(write).not.toHaveBeenCalled()
+    })
+
+    it('lets anyone with the link claim an open seat, telling only its users', async () => {
+        const { service, store, notifications } = fixture()
+        const existing: Game = {
+            ...storedGame(developer, ['b']),
+            isPublic: true,
+            unlisted: true,
+            players: [{ ...seat('b'), status: PlayerStatus.Joined }, ...openSeats.slice(1)]
+        }
+        acceptUpdates(store, existing)
+        const joined = await service.joinGame({ user: regular, gameId: existing.id })
+        expect(findPlayerForUserId(joined, regular.id)?.status).toBe(PlayerStatus.Joined)
+        expect(sentTopics(notifications).flat()).not.toContain('global')
+    })
+})
+
 describe('game user ids', () => {
     const players = [
         { id: 'p1', userId: 'b', name: 'b', isHuman: true, status: PlayerStatus.Joined }

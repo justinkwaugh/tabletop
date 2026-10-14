@@ -31,6 +31,7 @@ import {
     GameCategory,
     PlayerStatus,
     gameUserIds,
+    isListedPublicGame,
     isYourTurnNotification
 } from '@tabletop/common'
 import * as Type from 'typebox'
@@ -272,7 +273,7 @@ export class GameService implements GameServiceInterface {
             newGame = await this.api.createGame(game, options)
             this.gamesById.set(newGame.id, newGame)
 
-            if (newGame.isPublic && newGame.status === GameStatus.WaitingForPlayers) {
+            if (isListedPublicGame(newGame) && newGame.status === GameStatus.WaitingForPlayers) {
                 const titleGames = this.openGamesByTitleId.get(newGame.typeId) || []
                 titleGames.push(newGame)
                 this.openGamesByTitleId.set(newGame.typeId, titleGames)
@@ -397,7 +398,10 @@ export class GameService implements GameServiceInterface {
                 this.gamesById.set(game.id, game)
             }
         } else {
-            if (!game.players.some((p) => p.status === PlayerStatus.Open)) {
+            if (
+                !isListedPublicGame(game) ||
+                !game.players.some((p) => p.status === PlayerStatus.Open)
+            ) {
                 this.removeFromPublicCache(game.id)
             } else {
                 const titleGames = (this.openGamesByTitleId.get(game.typeId) || []).filter(

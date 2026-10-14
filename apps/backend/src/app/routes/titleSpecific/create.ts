@@ -10,7 +10,7 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
             options: Type.Optional(GameCreationOptions),
             game: Type.Evaluate(
                 Type.Intersect([
-                    Type.Pick(Game, ['id', 'name', 'players', 'isPublic', 'seed']),
+                    Type.Pick(Game, ['id', 'name', 'players', 'isPublic', 'unlisted', 'seed']),
                     Type.Object({
                         config: Type.Optional(
                             definition.info.configurator?.schema ?? Type.Object({})

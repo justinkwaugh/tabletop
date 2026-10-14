@@ -36,6 +36,7 @@ import {
     generateSeed,
     GameStatusCategory,
     gameUserIds,
+    isListedPublicGame,
     getGameStatusesForCategory,
     GameStorage,
     Tournament,
@@ -811,8 +812,9 @@ export class FirestoreGameStore implements GameStore {
 
         try {
             const querySnapshot = await this.readQuery(query)
-            const games = querySnapshot.docs.map((doc) => doc.data()) as Game[]
-            this.recordRead('game', games.length)
+            const found = querySnapshot.docs.map((doc) => doc.data()) as Game[]
+            this.recordRead('game', found.length)
+            const games = found.filter(isListedPublicGame)
 
             const ids = games.map((game) => game.id)
             this.cacheService.cacheSet(cacheKey, ids, lockValue).catch((error) => {

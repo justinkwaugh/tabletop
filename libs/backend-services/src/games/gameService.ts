@@ -21,6 +21,7 @@ import {
     unnamedDuplicateReason,
     findPlayerForUserId,
     gameUserIds,
+    isListedPublicGame,
     ownerMayDeleteGame,
     Game,
     GameAction,
@@ -76,6 +77,7 @@ import {
     InvalidPlayerIdError,
     InvalidPlayerUserError,
     OwnerNotPlayingError,
+    UnlistedGameNotPublicError,
     PlayersNotFoundError,
     PrivateGameNotFullError,
     UnauthorizedAccessError,
@@ -191,6 +193,12 @@ export class GameService {
 
         this.assertOwnerSeatedUnlessDeveloper(newGame, owner)
 
+        if (newGame.unlisted) {
+            if (!this.hasDeveloperAccess(owner))
+                throw new UnauthorizedAccessError({ user: owner, gameId: newGame.id })
+            if (!newGame.isPublic) throw new UnlistedGameNotPublicError({ id: newGame.id })
+        }
+
         // Private games have to be full
         if (!newGame.isPublic && Object.keys(usersByPlayerId).length !== newGame.players.length) {
             throw new PrivateGameNotFullError({ id: newGame.id })
@@ -220,11 +228,7 @@ export class GameService {
         }
 
         // Send notifications
-        if (createdGame.isPublic) {
-            await this.notifyGlobal(GameNotificationAction.Create, { game: createdGame })
-        } else {
-            await this.notifyGamePlayers(GameNotificationAction.Create, { game: createdGame })
-        }
+        await this.notifyGameAudience(GameNotificationAction.Create, { game: createdGame })
 
         return createdGame
     }
@@ -321,11 +325,7 @@ export class GameService {
                 throw new FinishedGameDeletionError({ id: gameId })
             }
         })
-        if (game.isPublic) {
-            await this.notifyGlobal(GameNotificationAction.Delete, { game })
-        } else {
-            await this.notifyGamePlayers(GameNotificationAction.Delete, { game })
-        }
+        await this.notifyGameAudience(GameNotificationAction.Delete, { game })
     }
 
     async forkGame({
@@ -748,11 +748,7 @@ export class GameService {
             }
         }
 
-        if (updatedGame.isPublic) {
-            await this.notifyGlobal(GameNotificationAction.Update, { game: updatedGame })
-        } else {
-            await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
-        }
+        await this.notifyGameAudience(GameNotificationAction.Update, { game: updatedGame })
         await this.ensureAutoStartScheduled(updatedGame)
 
         return updatedGame
@@ -805,11 +801,7 @@ export class GameService {
             return updatedGame
         }
         const player = this.findValidPlayerForUser({ user, game: updatedGame })
-        if (game.isPublic) {
-            await this.notifyGlobal(GameNotificationAction.Update, { game: updatedGame })
-        } else {
-            await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
-        }
+        await this.notifyGameAudience(GameNotificationAction.Update, { game: updatedGame })
         if (user.id !== updatedGame.ownerId) {
             await this.notifyJoined(user, updatedGame, player)
         }
@@ -855,11 +847,7 @@ export class GameService {
             }
         })
 
-        if (game.isPublic) {
-            await this.notifyGlobal(GameNotificationAction.Update, { game: updatedGame })
-        } else {
-            await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
-        }
+        await this.notifyGameAudience(GameNotificationAction.Update, { game: updatedGame })
         await this.notifyDeclined(
             user,
             updatedGame,
@@ -1803,6 +1791,14 @@ export class GameService {
                 })
             }
         }
+    }
+
+    private async notifyGameAudience(
+        action: GameNotificationAction,
+        data: GameNotificationData
+    ): Promise<void> {
+        if (isListedPublicGame(data.game)) await this.notifyGlobal(action, data)
+        else await this.notifyGamePlayers(action, data)
     }
 
     private async notifyGlobal(

@@ -2,6 +2,7 @@ import {
     GameStatus,
     GameStatusCategory,
     gameUserIds,
+    isListedPublicGame,
     getGameStatusesForCategory,
     type Game
 } from '@tabletop/common'
@@ -90,7 +91,7 @@ export class GameCacheKeys {
             if (!getGameStatusesForCategory(category).includes(game.status)) continue
             for (const userId of gameUserIds(game)) keys.add(this.userList(userId, category))
         }
-        if (game.isPublic && game.status === GameStatus.WaitingForPlayers) {
+        if (isListedPublicGame(game) && game.status === GameStatus.WaitingForPlayers) {
             keys.add(this.publicList(game.typeId))
         }
         return keys

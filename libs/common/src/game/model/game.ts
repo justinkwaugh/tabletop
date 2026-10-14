@@ -59,6 +59,7 @@ export const Game = Type.Object({
     typeId: Type.String(),
     status: Type.Enum(GameStatus),
     isPublic: Type.Boolean(),
+    unlisted: Type.Optional(Type.Literal(true)),
     deleted: Type.Boolean(),
     deletedAt: Type.Optional(DateType()),
     ownerId: Type.String(),
@@ -112,6 +113,10 @@ export function ownerMayDeleteGame(
         game.storage === GameStorage.Local ||
         (game.status !== GameStatus.Finished && !game.everFinished)
     )
+}
+
+export function isListedPublicGame(game: Pick<Game, 'isPublic' | 'unlisted'>): boolean {
+    return game.isPublic && game.unlisted !== true
 }
 
 export function gameUserIds(game: Pick<Game, 'players' | 'ownerId' | 'tournament'>): string[] {

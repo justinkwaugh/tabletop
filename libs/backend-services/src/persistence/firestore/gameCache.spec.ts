@@ -436,6 +436,17 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             }
         )
 
+        it('leaves an unlisted public game out of discovery', async () => {
+            const key = await primePublic()
+            game.isPublic = true
+            game.unlisted = true
+            await store.createGame(game)
+            expect((await live.cache.cacheGet(key)).cached).toBe(true)
+            expect(await store.findOpenGamesForTitle(game.typeId)).toEqual([])
+            await client.del(key)
+            expect(await store.findOpenGamesForTitle(game.typeId)).toEqual([])
+        })
+
         it('keeps a game when its deletion is refused inside the transaction', async () => {
             await store.createGame(game)
             const key = await primeUser(owner, GameStatusCategory.Active)
