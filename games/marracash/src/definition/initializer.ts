@@ -76,7 +76,8 @@ export class MarracashGameInitializer
             turnActions: [],
             finalRound: false,
             pendingAntiqueSets: [],
-            antiqueRevealOrder: []
+            antiqueRevealOrder: [],
+            passesBiddersWhoCannotWin: true as const
         })
 
         return new HydratedMarracashGameState(marracashState)

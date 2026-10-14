@@ -24,6 +24,7 @@ import {
     type ShopEntry
 } from '../model/gameState.js'
 import type { MarketColor } from './marketColor.js'
+import type { MarracashGameConfig } from './config.js'
 
 export class MarracashGameExploration implements GameExploration<MarracashProjectedState> {
     createFromCanonicalState(state: MarracashProjectedState): MarracashProjectedState {
@@ -46,7 +47,7 @@ export class MarracashGameExploration implements GameExploration<MarracashProjec
         if (sample.antiqueCards) {
             this.sampleAntiques(sample, knownPlayerId, actions, random)
         }
-        this.sampleSealedBids(sample, knownPlayerId, random)
+        this.sampleSealedBids(sample, knownPlayerId, game.config, random)
 
         const result = sample.dehydrate()
         assert(
@@ -161,6 +162,7 @@ export class MarracashGameExploration implements GameExploration<MarracashProjec
     private sampleSealedBids(
         sample: HydratedMarracashGameState,
         knownPlayerId: string | undefined,
+        config: Partial<MarracashGameConfig> | undefined,
         random: RandomFunction
     ) {
         const auction = sample.auction
@@ -172,7 +174,7 @@ export class MarracashGameExploration implements GameExploration<MarracashProjec
                 continue
             }
             assert(participant.playerId !== knownPlayerId, 'A known bid cannot be missing')
-            if (sample.isAtShopLimit(participant.playerId)) {
+            if (sample.mustPassAuction(participant.playerId, config)) {
                 participant.bid = 0
                 continue
             }
