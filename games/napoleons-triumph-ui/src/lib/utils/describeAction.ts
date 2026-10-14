@@ -112,7 +112,7 @@ function combat(metadata: CombatMetadata | undefined, game: DescribedGame): stri
     const parts: string[] = penalties(metadata.penalties, game, false)
     if (metadata.finalResult !== undefined && metadata.attackerWon !== undefined) {
         parts.push(
-            `Final result ${signed(metadata.finalResult)}: the attack ${metadata.attackerWon ? 'succeeds' : 'is thrown back'}.`
+            `Final result ${signed(metadata.finalResult)}: the attack ${metadata.attackerWon ? 'succeeds' : 'is defeated'}.`
         )
     }
     const steps = metadata.losses.reduce((sum, loss) => sum + loss.steps, 0)
@@ -221,7 +221,7 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
         return `${army} assign losses. ${combat(action.metadata, game)}`.trim()
     }
     if (isRegroup(action)) {
-        return `${army} regroup after the repulse.`
+        return `${army} regroup after their defeat.`
     }
     if (isAdvance(action)) {
         return `${army} bring ${count(action.unitIds.length)} up to block the approach.`

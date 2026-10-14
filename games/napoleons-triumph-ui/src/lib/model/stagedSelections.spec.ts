@@ -17,7 +17,9 @@ import {
     setAttackCommand,
     setAttackWidth,
     setCommandersGoing,
+    liftCommander,
     setKeptInCorps,
+    takeRetreatLosses,
     sendRetreating,
     setRetreatLosses,
     setStruckLeader,
@@ -320,22 +322,17 @@ describe('battle selections', () => {
         }
     }
 
-    it('keeps the defence picked while a retreat is arranged, and returns to it', () => {
+    it('goes back from a retreat being arranged to the defence still picked, passing over where units were sent', () => {
         const retreating = { ...defended(), defence: chooseRetreat(defended().defence) }
-        const sent = {
-            ...retreating,
-            retreat: sendRetreating(retreating.retreat, [{ unitId: 'A01', locale: 83 }])
-        }
+        const sent = sendRetreating(retreating, [{ unitId: 'A01', locale: 83 }])
+        expect(retreatSelection.hasManual(sent.retreat)).toBe(false)
+
         const afterFirst = undoBattleSelection(sent, StageKind.Retreat)
-        expect(retreatSelection.hasManual(afterFirst.retreat)).toBe(false)
-        expect(defenceSelection.value(afterFirst.defence, 'retreating')).toBe(true)
+        expect(defenceSelection.value(afterFirst.defence, 'retreating')).toBeUndefined()
+        expect(defenceSelection.value(afterFirst.defence, 'defenders')).toEqual(['A01'])
 
-        const afterSecond = undoBattleSelection(afterFirst, StageKind.Retreat)
-        expect(defenceSelection.value(afterSecond.defence, 'retreating')).toBeUndefined()
-        expect(defenceSelection.value(afterSecond.defence, 'defenders')).toEqual(['A01'])
-
-        const afterThird = undoBattleSelection(afterSecond, StageKind.Defence)
-        expect(hasManualBattleSelection(afterThird, StageKind.Defence)).toBe(false)
+        const afterSecond = undoBattleSelection(afterFirst, StageKind.Defence)
+        expect(hasManualBattleSelection(afterSecond, StageKind.Defence)).toBe(false)
     })
 
     it('takes back the naming of a leading unit and nothing of the defence it was named from', () => {
@@ -369,14 +366,14 @@ describe('battle selections', () => {
         const everyStep: BattleSelections = {
             ...attacking(),
             defence: chooseRetreat(defended().defence),
-            retreat: setKeptInCorps(setRetreatLosses(start.retreat, { A01: 1 }), {
-                langeron: 'A01'
-            }),
+            retreat: takeRetreatLosses(start).retreat,
+            retreatArrangement: { losses: { A01: 1 }, kept: { langeron: 'A01' } },
             advance: setCommandersGoing(start.advance, ['lannes'])
         }
         const undone = undoBattleSelection(everyStep, StageKind.Declaration)
         expect(undone.defence).toEqual(everyStep.defence)
         expect(undone.retreat).toEqual(everyStep.retreat)
+        expect(undone.retreatArrangement).toEqual(everyStep.retreatArrangement)
         expect(undone.advance).toEqual(everyStep.advance)
         expect(undone.counter).toEqual(everyStep.counter)
         expect(undone.excessLosses).toEqual(everyStep.excessLosses)
@@ -455,23 +452,68 @@ describe('battle selections', () => {
     })
 
     it('keeps where the units go and who stays with a commander when a loss is changed', () => {
-        const sent = sendRetreating(retreatSelection.empty(), [{ unitId: 'A01', locale: 83 }])
-        const kept = setKeptInCorps(sent, { langeron: 'A01' })
-        const relost = setRetreatLosses(kept, { A02: 1 })
-        expect(retreatSelection.value(relost, 'destinations')).toEqual([
-            { unitId: 'A01', locale: 83 }
-        ])
-        expect(retreatSelection.value(relost, 'kept')).toEqual({ langeron: 'A01' })
-        expect(retreatSelection.value(relost, 'losses')).toEqual({ A02: 1 })
+        const sent = sendRetreating(emptyBattleSelections(), [{ unitId: 'A01', locale: 83 }])
+        const relost = setRetreatLosses(setKeptInCorps(sent, { langeron: 'A01' }), { A02: 1 })
+        expect(relost.retreatArrangement).toEqual({
+            destinations: [{ unitId: 'A01', locale: 83 }],
+            kept: { langeron: 'A01' },
+            losses: { A02: 1 }
+        })
     })
 
     it('is done sending a unit by itself once somewhere to go is tapped', () => {
-        const alone = retreatSelection.set(retreatSelection.empty(), 'sentAlone', 'A01', 'manual')
+        const start = emptyBattleSelections()
+        const alone = {
+            ...start,
+            retreat: retreatSelection.set(start.retreat, 'sentAlone', 'A01', 'manual')
+        }
         const sent = sendRetreating(alone, [{ unitId: 'A01', locale: 83 }])
-        expect(retreatSelection.value(sent, 'sentAlone')).toBeUndefined()
-        expect(retreatSelection.value(sent, 'destinations')).toEqual([
-            { unitId: 'A01', locale: 83 }
-        ])
+        expect(retreatSelection.value(sent.retreat, 'sentAlone')).toBeUndefined()
+        expect(sent.retreatArrangement.destinations).toEqual([{ unitId: 'A01', locale: 83 }])
+    })
+
+    it('gives Undo nothing to take back in moving losses, units or a commander about', () => {
+        const lost = setRetreatLosses(emptyBattleSelections(), { A02: 1 })
+        const arranged = setKeptInCorps(sendRetreating(lost, [{ unitId: 'A01', locale: 83 }]), {
+            langeron: 'A01'
+        })
+        expect(hasManualBattleSelection(arranged, StageKind.Retreat)).toBe(false)
+        expect(undoBattleSelection(arranged, StageKind.Retreat)).toEqual(arranged)
+    })
+
+    it('goes back to how the losses fall, dropping where the units were sent', () => {
+        const taken = takeRetreatLosses(setRetreatLosses(emptyBattleSelections(), { A02: 1 }))
+        const arranged = setKeptInCorps(sendRetreating(taken, [{ unitId: 'A01', locale: 83 }]), {
+            langeron: 'A01'
+        })
+        expect(hasManualBattleSelection(arranged, StageKind.Retreat)).toBe(true)
+        const back = undoBattleSelection(arranged, StageKind.Retreat)
+        expect(retreatSelection.value(back.retreat, 'lossesTaken')).toBeUndefined()
+        expect(back.retreatArrangement).toEqual({ losses: { A02: 1 } })
+        expect(hasManualBattleSelection(back, StageKind.Retreat)).toBe(false)
+    })
+
+    it('puts down what is held and leaves the arrangement as it stands', () => {
+        const sent = sendRetreating(emptyBattleSelections(), [{ unitId: 'A01', locale: 83 }])
+        const lifted = liftCommander(sent, 'langeron')
+        const down = undoBattleSelection(lifted, StageKind.Retreat)
+        expect(retreatSelection.value(down.retreat, 'movingCommander')).toBeUndefined()
+        expect(down.retreatArrangement).toEqual(sent.retreatArrangement)
+    })
+
+    it('holds one thing picked up at a time, a unit or a commander’s flag', () => {
+        const start = emptyBattleSelections()
+        const alone = {
+            ...start,
+            retreat: retreatSelection.set(start.retreat, 'sentAlone', 'A01', 'manual')
+        }
+        const lifted = liftCommander(alone, 'langeron')
+        expect(retreatSelection.value(lifted.retreat, 'sentAlone')).toBeUndefined()
+        expect(retreatSelection.value(lifted.retreat, 'movingCommander')).toBe('langeron')
+
+        const kept = setKeptInCorps(lifted, { langeron: 'A02' })
+        expect(retreatSelection.value(kept.retreat, 'movingCommander')).toBeUndefined()
+        expect(kept.retreatArrangement.kept).toEqual({ langeron: 'A02' })
     })
 })
 

@@ -10,6 +10,7 @@ import {
     leadDefence,
     openSeat,
     pickUp,
+    retreat,
     placeFixedBattery,
     rearrange,
     takeFromPool,
@@ -91,12 +92,14 @@ test('a threat, a retreat before combat and the move into the vacated locale', a
     await expect(defend).toBeDisabled()
 
     const giveGround = page.getByRole('button', { name: 'Retreat before combat' })
+    const takeLosses = page.getByRole('button', { name: 'Take these losses' })
+    const places = page.locator('[aria-label^="Retreat to"]')
     await giveGround.click()
-    await expect(page.locator('[aria-label^="Retreat to"]').first()).toBeVisible()
+    await expect(takeLosses).toBeVisible()
+    await expect(places).toHaveCount(0)
     await undo.click()
     await expect(defend).toBeVisible()
     await giveGround.click()
-    const owed = page.getByRole('button', { name: /^Owes \d+ steps?$/ })
     const tiles = page.locator(
         'button[aria-label="Move a step of the loss onto this unit"]:not([disabled])'
     )
@@ -110,13 +113,47 @@ test('a threat, a retreat before combat and the move into the vacated locale', a
     }
     const total = (marks: string[]) => marks.reduce((sum, mark) => sum + Number(mark.slice(1)), 0)
     expect(total(await lossesShown())).toBe(total(arranged))
-    await expect(page.getByText('Owes no steps')).toBeVisible()
-    await owed.click()
+    await page.getByRole('button', { name: /^The retreat costs \d+ steps?$/ }).click()
     const retreatCost = page.getByRole('dialog', { name: 'What the retreat costs' })
     await expect(retreatCost.getByText(/^Infantry in reserve/)).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(retreatCost).toBeHidden()
-    await page.getByRole('button', { name: 'Retreat', exact: true }).click()
+
+    await takeLosses.click()
+    const rows = page.locator('.nt-retreat-to').filter({ hasText: /^\s*To / })
+    const retreating = page.locator(
+        '.nt-retreat-units button[aria-label="Choose this unit"]:not([disabled])'
+    )
+    const flag = page.locator('[data-commander-chip="langeron"]')
+    const holdsTheFlag = (unit: Locator) => unit.locator('xpath=..').locator(flag)
+    await expect(places.first()).toBeVisible()
+    await expect(rows).toHaveCount(1)
+    await expect(holdsTheFlag(retreating.first())).toHaveCount(1)
+
+    const held = page.getByText('Now tap the locale this unit goes to.')
+    await retreating.last().click()
+    await expect(held).toBeVisible()
+    await undo.click()
+    await expect(held).toBeHidden()
+    await expect(takeLosses).toBeHidden()
+    await retreating.last().click()
+    const firstPlace = (await rows.first().innerText()).replace(/^To /, '').trim()
+    await tap(page, `[aria-label^="Retreat to"]:not([aria-label="Retreat to ${firstPlace}"])`)
+    await expect(rows).toHaveCount(2)
+
+    await flag.click()
+    await expect(page.getByText('Now tap the unit Langeron stays with.')).toBeVisible()
+    await expect(places).toHaveCount(0)
+    await retreating.nth(1).click()
+    await expect(places.first()).toBeVisible()
+    await expect(holdsTheFlag(retreating.nth(1))).toHaveCount(1)
+    await expect(holdsTheFlag(retreating.first())).toHaveCount(0)
+
+    await undo.click()
+    await expect(takeLosses).toBeVisible()
+    await takeLosses.click()
+    await expect(rows).toHaveCount(1)
+    await retreat(page)
     await expect(morale(page, 'Allied')).toHaveText('25')
 
     await page.getByRole('button', { name: 'Move into the locale' }).click()
@@ -134,7 +171,7 @@ test('cavalry that rides in by road stays picked up, riding on', async ({ page }
     await pickUp(page, 'st-hilaire')
     await tap(page, '[aria-label="Threaten an attack across this approach"]')
     await page.getByRole('button', { name: 'Retreat before combat' }).click()
-    await page.getByRole('button', { name: 'Retreat', exact: true }).click()
+    await retreat(page)
 
     const moveIn = page.getByRole('button', { name: 'Move into the locale' })
     const rideIn = page.getByRole('button', { name: 'Ride in by road' })
@@ -231,19 +268,18 @@ test('a commander stays behind when a defender steps up, unless he is sent', asy
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await page.getByRole('button', { name: 'Feint, staying in reserve' }).click()
 
-    const choice = page.getByRole('group', { name: 'Advance alone or with Langeron' })
-    const alone = choice.getByRole('button', { name: 'Alone' })
-    const withLangeron = choice.getByRole('button', { name: 'With Langeron' })
-    await expect(alone).toHaveAttribute('aria-pressed', 'true')
+    const flag = page.locator('[data-commander-chip="langeron"]')
+    await expect(flag).toHaveAttribute('aria-pressed', 'false')
+    await expect(flag).toContainText('stays')
     await expect(page.getByText('Going alone, it is detached from its corps.')).toBeVisible()
-    await withLangeron.click()
-    await expect(withLangeron).toHaveAttribute('aria-pressed', 'true')
-    await expect(alone).toHaveAttribute('aria-pressed', 'false')
+    await flag.click()
+    await expect(flag).toHaveAttribute('aria-pressed', 'true')
+    await expect(flag).toContainText('advances')
     await expect(
         page.getByText('joined by Langeron. The remaining units detach and remain in reserve.')
     ).toBeVisible()
     await page.getByRole('button', { name: 'Undo' }).click()
-    await expect(alone).toHaveAttribute('aria-pressed', 'true')
+    await expect(flag).toHaveAttribute('aria-pressed', 'false')
 
     await page.getByRole('button', { name: 'Advance to the approach' }).click()
     const allies = page.locator('section.nt-army').filter({ hasText: 'Allied Army' })
@@ -496,7 +532,7 @@ test('the results of an attack are set in a rule of their own in the action area
     await page.getByRole('button', { name: /^Final result/ }).click()
     const final = page.getByRole('dialog', { name: 'How the final result is reached' })
     await expect(final.getByText(/^Counter-attacking/)).toBeVisible()
-    await expect(final.getByText(/the attack (succeeds|is thrown back)/)).toBeVisible()
+    await expect(final.getByText(/the attack (succeeds|is defeated)/)).toBeVisible()
     expect(Number(await final.locator('tfoot td').innerText())).toBe(await sumOf(final))
     await page.keyboard.press('Escape')
     await expect(final).toBeHidden()
@@ -512,10 +548,9 @@ test('the results of an attack are set in a rule of their own in the action area
     await page.getByRole('tab', { name: 'Armies' }).click()
 
     const lossRule = page.locator('.nt-loss-rule')
-    const verdict = page
-        .locator('.nt-battle')
-        .getByText(/zero.* the attack (succeeds|is thrown back)/)
+    const verdict = page.locator('.nt-battle').getByText(/zero.* the attack (succeeds|is defeated)/)
     await expect(lossRule).toHaveText(/French\s+.*Allies\s+/)
+    await expect(page.locator('.nt-loss-rule-units .nt-unit-tile')).not.toHaveCount(0)
     await expect(verdict).toBeVisible()
     expect(await below(verdict)).toBeGreaterThan(await below(result))
     expect(await below(lossRule)).toBeGreaterThan(await below(verdict))
@@ -523,7 +558,8 @@ test('the results of an attack are set in a rule of their own in the action area
     const losses = page.getByRole('dialog', { name: 'What the attack has cost' })
     await expect(losses.getByRole('heading', { name: /^The French/ })).toBeVisible()
     await expect(losses.getByRole('heading', { name: /^The Allies/ })).toBeVisible()
-    await expect(losses.getByText('Steps lost').first()).toBeVisible()
+    await expect(losses.getByText(/^A step for each/).first()).toBeVisible()
+    await expect(losses.locator('.nt-unit-tile')).toHaveCount(0)
     await losses.getByRole('button', { name: 'Close' }).click()
     await expect(losses).toBeHidden()
 })
@@ -596,6 +632,27 @@ test('a player’s own units that the enemy has seen carry a mark, on the map an
     await expect(page.locator('.nt-masthead-turn')).toHaveText('Allies’ turn')
     await expect(onTheMap).toHaveCount(1)
     await expect(inThePanel).toHaveCount(1)
+})
+
+test('the fixed battery is marked for both players and carries no eye of its own', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    const turn = page.locator('.nt-masthead-turn')
+    const onTheMap = page.locator('svg[data-board] [data-fixed-battery]')
+    const inThePanel = page
+        .locator('section.nt-army')
+        .filter({ hasText: 'Grande Armée' })
+        .locator('[data-fixed-battery]')
+    await expect(turn).toHaveText('Allies’ turn')
+    await expect(onTheMap).toHaveCount(1)
+    await expect(inThePanel).toHaveCount(1)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await expect(turn).toHaveText('French turn')
+    await expect(onTheMap).toHaveCount(1)
+    await expect(inThePanel).toHaveCount(1)
+    await expect(page.locator('[data-seen-by-the-enemy]')).toHaveCount(0)
 })
 
 test('pressing an attack shows nothing and can be taken back until the defender has named the leading units', async ({

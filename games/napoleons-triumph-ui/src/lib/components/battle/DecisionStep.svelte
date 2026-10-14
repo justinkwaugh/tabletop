@@ -1,6 +1,5 @@
 <script lang="ts">
     import { commanderDefinition } from '@tabletop/napoleons-triumph'
-    import AdvanceSwitch from './AdvanceSwitch.svelte'
     import { StageKind } from '$lib/model/battleSelection.js'
     import type {
         AdvanceStage,
@@ -11,7 +10,9 @@
     import { lossMark } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { advancePrompt } from '$lib/utils/advancePrompt.js'
+    import UnitTile from '$lib/components/UnitTile.svelte'
     import Force from './Force.svelte'
+    import CommanderChip from './CommanderChip.svelte'
 
     let { stage }: { stage: OddLossStage | ExcessLossStage | RegroupStage | AdvanceStage } =
         $props()
@@ -49,10 +50,30 @@
         >
     </div>
 {:else if stage.kind === StageKind.Regroup}
-    <div class="nt-battle-prompt">One unit stays with each commander; the rest are detached.</div>
+    <div class="nt-battle-prompt">
+        One unit stays with each commander; the rest are detached. Tap the unit he stays with.
+    </div>
     {#each stage.corps as corps (corps.commanderId)}
-        <div class="nt-battle-faint">{commanderDefinition(corps.commanderId).name}</div>
-        <Force units={corps.units} selected={[corps.keptId]} roles={stage.roles} onpick={pick} />
+        <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+            {#each corps.units as unit (unit.id)}
+                <span class="inline-flex items-center">
+                    <UnitTile
+                        playerId={unit.playerId}
+                        {...gameSession.lookOf(unit)}
+                        label="Keep this unit with {commanderDefinition(corps.commanderId).name}"
+                        onclick={() => pick(unit.id)}
+                    />
+                    {#if corps.keptId === unit.id}
+                        <CommanderChip
+                            commanderId={corps.commanderId}
+                            playerId={unit.playerId}
+                            label="{commanderDefinition(corps.commanderId)
+                                .name} stays with this unit"
+                        />
+                    {/if}
+                </span>
+            {/each}
+        </div>
     {/each}
     <div class="pt-1">
         <button type="button" class="nt-plain-button" onclick={() => gameSession.regroup()}
@@ -66,21 +87,25 @@
         selected={stage.advancing}
         roles={stage.roles}
         onpick={stage.pickableIds.length > 0 ? pick : undefined}
-    />
-    {#if stage.commanders.length > 0}
-        <div class="flex flex-wrap items-center gap-2 pt-1">
-            {#each stage.commanders as commander (commander.commanderId)}
-                <AdvanceSwitch
-                    commanderId={commander.commanderId}
-                    goes={commander.goes}
-                    mustGo={commander.mustGo}
-                    onchoose={(goes) =>
-                        gameSession.sendCommanderForward(commander.commanderId, goes)}
-                />
-            {/each}
-        </div>
-    {/if}
-    <div class="pt-1">
+    >
+        {#each stage.commanders as commander (commander.commanderId)}
+            {@const name = commanderDefinition(commander.commanderId).name}
+            <CommanderChip
+                commanderId={commander.commanderId}
+                playerId={stage.units[0].playerId}
+                label={commander.mustGo
+                    ? `${name} goes forward with his last unit`
+                    : `Send ${name} forward with them`}
+                marker={commander.goes ? 'advances' : 'stays'}
+                chosen={commander.goes}
+                onclick={commander.mustGo
+                    ? undefined
+                    : () =>
+                          gameSession.sendCommanderForward(commander.commanderId, !commander.goes)}
+            />
+        {/each}
+    </Force>
+    <div class="pt-2.5">
         <button
             type="button"
             class="nt-plain-button"

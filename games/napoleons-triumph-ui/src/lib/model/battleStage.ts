@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
     DecisionKind,
     FeintEnd,
@@ -50,6 +50,7 @@ import {
     regroupSelection,
     retreatSelection,
     setCommandersGoing,
+    liftCommander,
     setKeptInCorps,
     sendRetreating,
     setStruckLeader,
@@ -61,7 +62,7 @@ import { sameIds } from '$lib/utils/ids.js'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
 import type { SingledOut } from '$lib/utils/pieceLayout.js'
 import { RideChoice } from './moveCommands.js'
-import { retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
+import { movableCommander, retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
 import type { StagedSelection } from './stagedSelection.js'
 import { copyOf } from './stateCopy.js'
 
@@ -76,7 +77,6 @@ export enum BattleRole {
     Attacks = 'attacks',
     CounterAttacks = 'counter-attacks',
     Advances = 'advances',
-    Stays = 'stays',
     RetreatsAlone = 'goes alone',
     PassedBy = 'passed by'
 }
@@ -107,6 +107,9 @@ export interface DefenceLeadersStage extends Picking {
 export interface RetreatStage extends Picking {
     kind: StageKind.Retreat
     plan: RetreatPlan
+    /** The losses can fall more than one way and are still to be settled, before where the units go. */
+    choosingLosses: boolean
+    movingCommander?: string
     alone?: string
 }
 
@@ -265,7 +268,27 @@ function retreatStage(
     state: HydratedNapoleonsTriumphGameState,
     selections: BattleSelections
 ): RetreatStage {
-    const plan = retreatPlan(state, selections.retreat)
+    const plan = retreatPlan(state, selections.retreatArrangement)
+    const choosingLosses =
+        plan.groups.some((group) => group.open) &&
+        retreatSelection.value(selections.retreat, 'lossesTaken') !== true
+    if (choosingLosses) {
+        return { kind: StageKind.Retreat, plan, choosingLosses, pickableIds: [], roles: {} }
+    }
+    const moving = movableCommander(
+        plan,
+        retreatSelection.value(selections.retreat, 'movingCommander')
+    )
+    if (moving) {
+        return {
+            kind: StageKind.Retreat,
+            plan,
+            choosingLosses,
+            movingCommander: moving.commanderId,
+            pickableIds: [...moving.corpsUnitIds],
+            roles: {}
+        }
+    }
     const placed = Object.keys(plan.destinations)
     const mayPartWays = plan.room.size > 1 && placed.length > 1
     const maySendOne = mayPartWays || plan.stranded > 0
@@ -273,6 +296,7 @@ function retreatStage(
     return {
         kind: StageKind.Retreat,
         plan,
+        choosingLosses,
         alone,
         pickableIds: maySendOne ? idsOf(plan.survivors) : [],
         roles: alone === undefined ? {} : { [alone]: BattleRole.RetreatsAlone }
@@ -463,7 +487,7 @@ function advanceStage(
     const onlyOne = unitIds.length === 1
     const advancing = onlyOne
         ? [...unitIds]
-        : (advanceSelection.value(selections.advance, 'advancing') ?? []).filter((id) =>
+        : (advanceSelection.value(selections.advance, 'advancing') ?? unitIds).filter((id) =>
               unitIds.includes(id)
           )
     const sent = advanceSelection.value(selections.advance, 'commandersGoing') ?? []
@@ -540,7 +564,7 @@ function decisionStage(
             kind: StageKind.Regroup,
             corps,
             pickableIds: corps.flatMap((entry) => idsOf(entry.units)),
-            roles: Object.fromEntries(corps.map((entry) => [entry.keptId, BattleRole.Stays]))
+            roles: {}
         }
     }
     if (decision?.kind === DecisionKind.Advance) {
@@ -730,7 +754,7 @@ export function pickUnit(
             return addExcessLoss(state, stage, selections, unitId)
         case StageKind.Regroup: {
             const commanderId = state.unit(unitId).commanderId
-            assertExists(commanderId, 'Only a unit of a repulsed corps stays with its commander')
+            assertExists(commanderId, 'Only a unit of a defeated corps stays with its commander')
             return {
                 ...selections,
                 regroup: regroupSelection.set(
@@ -793,17 +817,36 @@ export function moveLossOnto(
         [unitId]: lossOf(unitId) + 1
     }
     const losses = Object.fromEntries(Object.entries(moved).filter(([, steps]) => steps > 0))
-    return { ...selections, retreat: setRetreatLosses(selections.retreat, losses) }
+    return setRetreatLosses(selections, losses)
 }
 
-export function keepWithCommander(
+/** Picks a commander's flag up, or puts it back where it was when it is the one already picked up. */
+export function liftRetreatingCommander(
+    stage: RetreatStage,
+    selections: BattleSelections,
+    commanderId: string
+): BattleSelections {
+    if (stage.movingCommander === commanderId) {
+        return {
+            ...selections,
+            retreat: retreatSelection.clearFrom(selections.retreat, 'movingCommander')
+        }
+    }
+    assert(
+        !stage.choosingLosses && movableCommander(stage.plan, commanderId) !== undefined,
+        'A flag is picked up only where the commander has a choice of units to keep'
+    )
+    return liftCommander(selections, commanderId)
+}
+
+function keepWithCommander(
     stage: RetreatStage,
     selections: BattleSelections,
     commanderId: string,
     unitId: string
 ): BattleSelections {
     const kept = { ...stage.plan.kept, [commanderId]: unitId }
-    return { ...selections, retreat: setKeptInCorps(selections.retreat, kept) }
+    return setKeptInCorps(selections, kept)
 }
 
 export function sendRetreatTo(
@@ -823,7 +866,7 @@ export function sendRetreatTo(
             all.findIndex((other) => other.unitId === destination.unitId) === index
     )
     const destinations = [...sent.map((unitId) => ({ unitId, locale })), ...earlier]
-    return { ...selections, retreat: sendRetreating(selections.retreat, destinations) }
+    return sendRetreating(selections, destinations)
 }
 
 function pickRetreatingUnit(
@@ -831,6 +874,9 @@ function pickRetreatingUnit(
     selections: BattleSelections,
     unitId: string
 ): BattleSelections {
+    if (stage.movingCommander !== undefined) {
+        return keepWithCommander(stage, selections, stage.movingCommander, unitId)
+    }
     if (stage.alone === unitId) {
         return {
             ...selections,

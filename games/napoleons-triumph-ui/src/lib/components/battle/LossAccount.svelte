@@ -1,6 +1,5 @@
 <script lang="ts">
     import { Side } from '@tabletop/napoleons-triumph'
-    import UnitTile from '$lib/components/UnitTile.svelte'
     import {
         PENALTY_NAMES,
         lossSummary,
@@ -10,7 +9,6 @@
         type OwedLine,
         type SideLosses
     } from '$lib/model/attackLosses.js'
-    import { lossMark } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import AccountSheet from './AccountSheet.svelte'
 
@@ -67,26 +65,6 @@
                             <td>{line.steps}</td>
                         </tr>
                     {/each}
-                    {#if side.taken.length > 0}
-                        <tr>
-                            <th scope="row">
-                                <span>Steps lost</span>
-                                <span class="nt-account-units">
-                                    {#each side.taken as loss (loss.unitId)}
-                                        <UnitTile
-                                            playerId={side.playerId}
-                                            face={loss.face}
-                                            roleMark={lossMark(loss.steps)}
-                                            marker={loss.eliminated ? 'destroyed' : undefined}
-                                            label="A unit that lost steps"
-                                            scale={0.8}
-                                        />
-                                    {/each}
-                                </span>
-                            </th>
-                            <td>{side.steps}</td>
-                        </tr>
-                    {/if}
                     {#if side.paidForSteps > 0}
                         <tr>
                             <th scope="row">Morale for the steps lost</th>
@@ -141,17 +119,6 @@
         font-weight: 400;
         line-height: 1.3;
         text-align: left;
-    }
-
-    th span {
-        display: block;
-    }
-
-    .nt-account-units {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        padding-top: 3px;
     }
 
     td {

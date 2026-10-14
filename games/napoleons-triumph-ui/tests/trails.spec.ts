@@ -5,7 +5,8 @@ import {
     failOnPageErrors,
     openMapMenu,
     pickUp,
-    tap
+    tap,
+    retreat
 } from './table.js'
 
 failOnPageErrors()
@@ -35,14 +36,14 @@ test('the map menu shows the moves of the turn in progress as arrows on the boar
     await pickUp(page, 'st-hilaire')
     await tap(page, '[aria-label="Threaten an attack across this approach"]')
     await page.getByRole('button', { name: 'Retreat before combat' }).click()
-    await page.getByRole('button', { name: 'Retreat', exact: true }).click()
-    await expect(trails).toHaveCount(2)
+    await retreat(page)
+    await expect(trails).toHaveCount(1)
     await page.getByRole('button', { name: 'Move into the locale' }).click()
-    await expect(trails).toHaveCount(3)
-    await expect(numbers).toHaveText(['1', '1', '2'])
+    await expect(trails).toHaveCount(2)
+    await expect(numbers).toHaveText(['1', '2'])
 
     await page.getByRole('button', { name: 'Undo' }).click()
-    await expect(trails).toHaveCount(2)
+    await expect(trails).toHaveCount(1)
 
     await shown.click()
     await expect(trails).toHaveCount(0)

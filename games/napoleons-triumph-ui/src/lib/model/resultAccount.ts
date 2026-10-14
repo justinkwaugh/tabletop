@@ -126,7 +126,7 @@ export function attackSucceeds(finalResult: number, fight: Fight): boolean {
 }
 
 export function verdictOf(finalResult: number, fight: Fight): string {
-    const outcome = attackSucceeds(finalResult, fight) ? 'succeeds' : 'is thrown back'
+    const outcome = attackSucceeds(finalResult, fight) ? 'succeeds' : 'is defeated'
     if (finalResult !== 0) {
         return `${finalResult > 0 ? 'Above' : 'Below'} zero, the attack ${outcome}.`
     }

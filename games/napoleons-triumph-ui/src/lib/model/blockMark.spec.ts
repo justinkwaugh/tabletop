@@ -110,14 +110,14 @@ describe('picking and naming a block', () => {
         const { viewerId, fresh, moved } = ownUnits()
         const named = commanding(viewerId, {
             fighting: true,
-            roles: { [fresh.id]: BattleRole.Leads, [moved.id]: BattleRole.Stays }
+            roles: { [fresh.id]: BattleRole.Leads, [moved.id]: BattleRole.PassedBy }
         })
         expect(blockMarkOf(fresh, GROUP, named)).toMatchObject({
             role: BattleRole.Leads,
             roleMark: { letter: 'L' }
         })
         expect(blockMarkOf(moved, GROUP, named)).toMatchObject({
-            role: BattleRole.Stays,
+            role: BattleRole.PassedBy,
             roleMark: undefined
         })
     })

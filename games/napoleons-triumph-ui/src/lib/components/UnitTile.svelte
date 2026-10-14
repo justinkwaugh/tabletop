@@ -13,6 +13,8 @@
         marker,
         roleMark,
         seen = false,
+        fixed = false,
+        close = false,
         label,
         scale = 1,
         onclick
@@ -24,6 +26,9 @@
         marker?: string
         roleMark?: RoleMark
         seen?: boolean
+        fixed?: boolean
+        /** It cannot be picked where it stands, so it needs no room for a selection outline and closes up on the next. */
+        close?: boolean
         label: string
         scale?: number
         onclick?: () => void
@@ -37,6 +42,7 @@
     type="button"
     class="nt-unit-tile"
     class:nt-unit-tile-selected={selected}
+    class:nt-unit-tile-close={close}
     disabled={!onclick}
     aria-label={label}
     aria-pressed={selected}
@@ -57,6 +63,7 @@
             {dimmed}
             {roleMark}
             {seen}
+            {fixed}
         />
     </svg>
     {#if marker}
@@ -87,6 +94,10 @@
     .nt-unit-tile-selected,
     .nt-unit-tile-selected:not(:disabled):hover {
         border-color: var(--nt-ink);
+    }
+
+    .nt-unit-tile-close {
+        margin-right: -6px;
     }
 
     .nt-unit-tile-marker {

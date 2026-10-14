@@ -17,6 +17,7 @@ import {
     chooseFeint,
     chooseRetreat,
     emptyBattleSelections,
+    takeRetreatLosses,
     setAttackWidth,
     undoBattleSelection,
     type BattleSelections
@@ -26,8 +27,8 @@ import {
     BattleRole,
     battleStageOf,
     commandersGoing,
-    keepWithCommander,
     keptByCommander,
+    liftRetreatingCommander,
     moveLossOnto,
     pickUnit,
     rolesShown,
@@ -35,6 +36,7 @@ import {
     sendRetreatTo,
     type BattleStage
 } from './battleStage.js'
+import { RetreatRowKind, retreatRows } from './retreatPlan.js'
 
 const ATTACK_FROM = 95
 const DEFEND_IN = 108
@@ -261,15 +263,42 @@ describe('naming the leading units of a defence that has been pressed', () => {
 describe('arranging a retreat', () => {
     function retreating(placements: readonly PiecePlacement[]) {
         const game = threatened(placements)
-        const selections = emptyBattleSelections()
-        return {
-            game,
-            selections: {
-                ...selections,
-                defence: chooseRetreat(selections.defence)
-            }
-        }
+        const empty = emptyBattleSelections()
+        const choosingLosses = { ...empty, defence: chooseRetreat(empty.defence) }
+        return { game, choosingLosses, selections: takeRetreatLosses(choosingLosses) }
     }
+
+    it('settles how the losses fall first, when they can fall more than one way', () => {
+        const { game, choosingLosses, selections } = retreating(PLACEMENTS)
+        const first = stageOf(game, StageKind.Retreat, choosingLosses)
+        expect(first.choosingLosses).toBe(true)
+        expect(first.pickableIds).toEqual([])
+        expect(stageOf(game, StageKind.Retreat, selections).choosingLosses).toBe(false)
+
+        const back = undoBattleSelection(selections, StageKind.Retreat)
+        expect(stageOf(game, StageKind.Retreat, back).choosingLosses).toBe(true)
+    })
+
+    it('asks nothing about the losses when they can fall only one way', () => {
+        const oneInfantry = PLACEMENTS.filter((piece) => piece.id !== 'A-inf-b')
+        const { game, choosingLosses } = retreating(oneInfantry)
+        const stage = stageOf(game, StageKind.Retreat, choosingLosses)
+        expect(stage.plan.groups).toHaveLength(1)
+        expect(stage.choosingLosses).toBe(false)
+    })
+
+    it('keeps the units together until the player parts them', () => {
+        const { game, selections } = retreating(PLACEMENTS)
+        const stage = stageOf(game, StageKind.Retreat, selections)
+        expect(stage.plan.room.size).toBeGreaterThan(1)
+        expect(new Set(Object.values(stage.plan.destinations)).size).toBe(1)
+        expect(retreatRows(stage.plan)).toEqual([
+            expect.objectContaining({
+                kind: RetreatRowKind.Retreats,
+                locale: stage.plan.destinations['A-cav']
+            })
+        ])
+    })
 
     it('lets any unit be sent a different way from the rest', () => {
         const { game, selections } = retreating(PLACEMENTS)
@@ -328,10 +357,7 @@ describe('arranging a retreat', () => {
     it('leaves a unit that owes no loss in the retreat without one, however often it is tapped', () => {
         const { game, selections } = retreating(PLACEMENTS)
         const stage = stageOf(game, StageKind.Retreat, selections)
-        expect(stage.plan.units.find(({ unit }) => unit.id === 'A-cav')).toMatchObject({
-            owesLoss: false,
-            sharesLoss: false
-        })
+        expect(stage.plan.groups.flatMap((group) => group.unitIds)).not.toContain('A-cav')
         expect(moveLossOnto(game.hydrated, stage, selections, 'A-cav')).toBe(selections)
     })
 
@@ -404,12 +430,57 @@ describe('arranging a retreat', () => {
         expect(game.hydrated.findUnit(saved)).toBeUndefined()
     })
 
-    it('keeps the unit tapped with its commander', () => {
+    it('keeps the unit tapped with its commander once his flag is picked up', () => {
         const { game, selections } = retreating(PLACEMENTS)
         const stage = stageOf(game, StageKind.Retreat, selections)
         expect(stage.plan.kept).toEqual({ langeron: 'A-inf-a' })
-        const kept = keepWithCommander(stage, selections, 'langeron', 'A-inf-b')
-        expect(stageOf(game, StageKind.Retreat, kept).plan.kept).toEqual({ langeron: 'A-inf-b' })
+        expect(stage.plan.commanders).toEqual([
+            {
+                commanderId: 'langeron',
+                unitId: 'A-inf-a',
+                corpsUnitIds: ['A-inf-a', 'A-inf-b'],
+                movable: true
+            }
+        ])
+
+        const lifted = liftRetreatingCommander(stage, selections, 'langeron')
+        const choosing = stageOf(game, StageKind.Retreat, lifted)
+        expect(choosing.movingCommander).toBe('langeron')
+        expect(choosing.pickableIds.toSorted()).toEqual(['A-inf-a', 'A-inf-b'])
+
+        const kept = stageOf(game, StageKind.Retreat, tap(game, lifted, 'A-inf-b'))
+        expect(kept.plan.kept).toEqual({ langeron: 'A-inf-b' })
+        expect(kept.movingCommander).toBeUndefined()
+    })
+
+    it('puts a commander’s flag back when it is tapped again, or when Undo is pressed', () => {
+        const { game, selections } = retreating(PLACEMENTS)
+        const stage = stageOf(game, StageKind.Retreat, selections)
+        const lifted = liftRetreatingCommander(stage, selections, 'langeron')
+        const again = liftRetreatingCommander(
+            stageOf(game, StageKind.Retreat, lifted),
+            lifted,
+            'langeron'
+        )
+        expect(stageOf(game, StageKind.Retreat, again).movingCommander).toBeUndefined()
+        const undone = undoBattleSelection(lifted, StageKind.Retreat)
+        expect(stageOf(game, StageKind.Retreat, undone).movingCommander).toBeUndefined()
+        expect(stageOf(game, StageKind.Retreat, undone).choosingLosses).toBe(false)
+    })
+
+    it('gives a commander with one unit left no choice of whom he stays with', () => {
+        const oneInfantry = PLACEMENTS.filter((piece) => piece.id !== 'A-inf-b')
+        const { game, selections } = retreating(oneInfantry)
+        const stage = stageOf(game, StageKind.Retreat, selections)
+        expect(stage.plan.commanders).toEqual([
+            {
+                commanderId: 'langeron',
+                unitId: 'A-inf-a',
+                corpsUnitIds: ['A-inf-a'],
+                movable: false
+            }
+        ])
+        expect(() => liftRetreatingCommander(stage, selections, 'langeron')).toThrow()
     })
 })
 
@@ -896,9 +967,15 @@ describe('the forced advance', () => {
         return game
     }
 
-    it('sends a commander forward with the last unit standing with him', () => {
+    it('sends every defender forward, and their commander with them, until one is held back', () => {
         const game = feintedAgainst(['F-1', 'F-2'])
-        const one = tap(game, emptyBattleSelections(), 'F-1')
+        const all = stageOf(game, StageKind.Advance)
+        expect(all.advancing).toEqual(['F-1', 'F-2'])
+        expect(all.commanders).toEqual([
+            { commanderId: 'lannes', unitsStaying: 0, mustGo: true, goes: true }
+        ])
+        const one = tap(game, emptyBattleSelections(), 'F-2')
+        expect(stageOf(game, StageKind.Advance, one).advancing).toEqual(['F-1'])
         expect(stageOf(game, StageKind.Advance, one).commanders).toEqual([
             { commanderId: 'lannes', unitsStaying: 1, mustGo: false, goes: false }
         ])
@@ -920,7 +997,7 @@ describe('the forced advance', () => {
 
     it('leaves a commander behind unless asked, and holds him back again on a second asking', () => {
         const game = feintedAgainst(['F-1', 'F-2'])
-        const one = tap(game, emptyBattleSelections(), 'F-1')
+        const one = tap(game, emptyBattleSelections(), 'F-2')
         expect(commandersGoing(stageOf(game, StageKind.Advance, one))).toEqual([])
 
         const sending = sendCommander(stageOf(game, StageKind.Advance, one), one, 'lannes', true)
@@ -948,9 +1025,9 @@ describe('the forced advance', () => {
 
         const two = feintedAgainst(['F-1', 'F-2'])
         expect(advancePrompt(stageOf(two, StageKind.Advance))).toBe(
-            'At least one defending unit steps up to block the approach.'
+            'At least one defending unit steps up to block the approach, joined by Lannes.'
         )
-        const one = tap(two, emptyBattleSelections(), 'F-1')
+        const one = tap(two, emptyBattleSelections(), 'F-2')
         expect(advancePrompt(stageOf(two, StageKind.Advance, one))).toBe(
             'At least one defending unit steps up to block the approach. Units going without their commander are detached from their corps.'
         )
@@ -962,7 +1039,7 @@ describe('the forced advance', () => {
 
     it('holds a commander back again once a unit stays with him, unless he was sent', () => {
         const game = feintedAgainst(['F-1', 'F-2'])
-        const both = tap(game, tap(game, emptyBattleSelections(), 'F-1'), 'F-2')
+        const both = emptyBattleSelections()
         expect(commandersGoing(stageOf(game, StageKind.Advance, both))).toEqual(['lannes'])
         const oneAgain = tap(game, both, 'F-2')
         expect(commandersGoing(stageOf(game, StageKind.Advance, oneAgain))).toEqual([])
@@ -992,7 +1069,7 @@ describe('regrouping a corps thrown back', () => {
             tap(game, emptyBattleSelections(), 'F-inf-b')
         )
         expect(keptByCommander(other)).toEqual({ lannes: 'F-inf-b' })
-        expect(other.roles).toEqual({ 'F-inf-b': BattleRole.Stays })
+        expect(other.roles).toEqual({})
     })
 })
 

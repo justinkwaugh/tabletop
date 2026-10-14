@@ -1,5 +1,5 @@
 import type { BoundingBox, Point } from '@tabletop/common'
-import { commanderDefinition, type Face, type UnitType } from '@tabletop/napoleons-triumph'
+import { commanderDefinition } from '@tabletop/napoleons-triumph'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
 import type { ArmyColors } from './armyColors.js'
 import { attackMarkerSamples, attackMarkerScale } from './attackMarker.js'
@@ -7,11 +7,9 @@ import { screenAxes } from './boardView.js'
 import { boxHolds } from './boundingBox.js'
 import { blockSamples, type BlockFootprint } from './blockShape.js'
 import type { GroupSprite, PieceGroup } from './pieceLayout.js'
-import { UNIT_TYPE_ORDER } from './unitTypeOrder.js'
 
 export const STAFF_HEIGHT = 30
 export const BANNER_HEIGHT = 18
-export const TALLY_WIDTH = 27
 const SAMPLE_STEP = 12
 const STAFF_HALF_WIDTH = 2
 const KEEP_CLEAR_WEIGHT = 4
@@ -19,11 +17,6 @@ const KEEP_CLEAR_WEIGHT = 4
 export enum FlagSide {
     Right = 'right',
     Left = 'left'
-}
-
-export interface Tally {
-    type: UnitType
-    count: number
 }
 
 export interface StandingFlag {
@@ -46,16 +39,6 @@ export function flagScale(zoom: number): number {
     return Math.min(3.2, Math.max(1, 0.62 / zoom))
 }
 
-export function talliesOf(faces: Face[], unitCount: number): Tally[] {
-    if (faces.length !== unitCount) {
-        return []
-    }
-    return UNIT_TYPE_ORDER.map((type) => ({
-        type,
-        count: faces.filter((face) => face.type === type).length
-    })).filter((tally) => tally.count > 0)
-}
-
 // Workaround: no text can be measured where the banner's width is needed, so these are the advances of 13px italic Libre Baskerville as the browser reports them.
 const GLYPH_ADVANCES: Record<number, string> = {
     3: '.',
@@ -74,6 +57,7 @@ const GLYPH_ADVANCES: Record<number, string> = {
 const UNLISTED_GLYPH_ADVANCE = 8
 export const NAME_INSET = 11
 const NAME_GAP = 9
+const COUNT_ROOM = 16
 
 function textWidth(text: string): number {
     const advances = Object.entries(GLYPH_ADVANCES)
@@ -83,12 +67,8 @@ function textWidth(text: string): number {
     }, 0)
 }
 
-export function nameWidth(name: string): number {
-    return NAME_INSET + textWidth(name) + NAME_GAP
-}
-
-export function bannerWidth(name: string, tallyCount: number): number {
-    return nameWidth(name) + (tallyCount > 0 ? tallyCount * TALLY_WIDTH + 6 : 16)
+export function bannerWidth(name: string): number {
+    return NAME_INSET + textWidth(name) + NAME_GAP + COUNT_ROOM
 }
 
 function steps(from: number, to: number): number[] {
@@ -161,13 +141,11 @@ export interface FlagMark {
     name: string
     colors: ArmyColors
     count: number
-    tallies: Tally[]
     hasCommanded: boolean
 }
 
 export interface FlagBearer {
     colors: ArmyColors
-    visibleFaces: Face[]
     hasCommanded: boolean
 }
 
@@ -197,14 +175,13 @@ export function flagMarks(
         if (!commander || !sprite.flagFeetByPreference) {
             return []
         }
-        const { colors, visibleFaces, hasCommanded } = bearerOf(sprite.group)
+        const { colors, hasCommanded } = bearerOf(sprite.group)
         return {
             key,
             feetByPreference: sprite.flagFeetByPreference,
             name: commanderDefinition(commander.id).name,
             colors,
             count: units.length,
-            tallies: talliesOf(visibleFaces, units.length),
             hasCommanded
         }
     })
@@ -216,15 +193,14 @@ export function flagMarks(
             name: commanderDefinition(commanderId).name,
             colors,
             count: 0,
-            tallies: [],
             hasCommanded: false
         }))
     ]
     const placements = placeFlags(
-        standing.map(({ key, feetByPreference, name, tallies }) => ({
+        standing.map(({ key, feetByPreference, name }) => ({
             key,
             feetByPreference,
-            width: bannerWidth(name, tallies.length)
+            width: bannerWidth(name)
         })),
         sprites.flatMap((sprite) => sprite.blocks),
         view,

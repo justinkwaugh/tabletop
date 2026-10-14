@@ -134,7 +134,7 @@ describe('the verdict on a final result', () => {
                         })
                         expect(attackSucceeds(finalResult, fight)).toBe(wins)
                         expect(verdictOf(finalResult, fight)).toContain(
-                            wins ? 'the attack succeeds' : 'the attack is thrown back'
+                            wins ? 'the attack succeeds' : 'the attack is defeated'
                         )
                     }
                 }

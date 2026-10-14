@@ -149,7 +149,7 @@ describe('how morale paid beyond the losses is told', () => {
         expect(guardAttackUpTheSlope(23)).toBe(
             'The French make a narrow attack with a unit, led by a unit. Initial result 0. ' +
                 'The French commit the Guard and lose 4 morale. ' +
-                'Final result 0: the attack is thrown back. 2 steps lost. ' +
+                'Final result 0: the attack is defeated. 2 steps lost. ' +
                 'The French lose 1 morale. ' +
                 'The Guard Attack is defeated. The French lose 3 more morale and may make no more Guard Attacks.'
         )

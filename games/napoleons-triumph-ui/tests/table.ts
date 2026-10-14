@@ -139,6 +139,17 @@ export async function leadDefence(page: Page, leaders = 0) {
     await leadButton(page).click()
 }
 
+/** A retreat as the table offers it: the losses as they fall, then every unit where it is sent. */
+export async function retreat(page: Page) {
+    const takeLosses = page.getByRole('button', { name: 'Take these losses' })
+    const commit = page.getByRole('button', { name: 'Retreat', exact: true })
+    await expect(takeLosses.or(commit)).toBeVisible()
+    if (await takeLosses.isVisible()) {
+        await takeLosses.click()
+    }
+    await commit.click()
+}
+
 export function leadButton(page: Page): Locator {
     return page.getByRole('button', { name: /^(Lead with|Defend with no leading unit)/ })
 }
