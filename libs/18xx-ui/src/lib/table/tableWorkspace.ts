@@ -3,25 +3,29 @@ import {
     restoreWorkspaceTabs,
     saveWorkspace,
     workspaceLayout,
+    type InitialWorkspace,
     type SavedPane,
     type SavedWorkspace,
     type WorkspaceTab
 } from '@tabletop/frontend-components'
 
 const sidebar = ['Players', 'History', 'Chat']
-export function initialTableLayout(tabs: readonly WorkspaceTab[]): SavedPane {
-    const board = tabs.some((tab) => tab.id === 'Board') ? ['Board'] : []
-    return [
-        'cols',
-        20,
-        ['rows', 25, ['Game info'], sidebar],
-        [
-            'rows',
-            50,
-            ['Actions'],
-            [...board, 'Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid']
-        ]
-    ]
+export function initialTableLayout(tabs: readonly WorkspaceTab[]): InitialWorkspace {
+    const board = tabs.some((tab) => tab.id === 'Board')
+    return {
+        main: [
+            'cols',
+            18,
+            ['Players'],
+            [
+                'rows',
+                48,
+                ['cols', 55, ['cols', 38, ['History', 'Chat'], ['Actions']], ['Spreadsheet']],
+                ['cols', 49, [board ? 'Board' : 'Map', 'Tiles'], ['Companies']]
+            ]
+        ],
+        closed: [...(board ? ['Map'] : []), 'Market', 'Player Aid', 'Game info']
+    }
 }
 
 export function saveTableWorkspace(value: SavedWorkspace) {
@@ -74,9 +78,8 @@ export function defaultTableView(
         undefined,
         initialTableLayout(tabs)
     )
-    return workspaceLayout(root).panes.some(
-        ({ pane }) => pane.tabs.includes('Board') && pane.tabs.includes('Map')
-    )
-        ? 'Board'
-        : 'Map'
+    const panes = workspaceLayout(root).panes.map(({ pane }) => pane.tabs)
+    const boardPane = panes.find((tabs) => tabs.includes('Board'))
+    const mapPane = panes.find((tabs) => tabs.includes('Map'))
+    return boardPane && (!mapPane || mapPane === boardPane) ? 'Board' : 'Map'
 }

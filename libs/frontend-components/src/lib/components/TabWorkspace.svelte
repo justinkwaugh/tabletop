@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { WorkspaceTab, WorkspaceFixedPane } from './workspaceTypes.js'
-    import { restoreWorkspaceTabs, saveWorkspace, type SavedWorkspace, type SavedPane } from './workspacePersistence.js'
+    import { restoreWorkspaceTabs, saveWorkspace, type SavedWorkspace, type InitialWorkspace } from './workspacePersistence.js'
     import { tick, untrack, type Snippet } from 'svelte'
     import { type WorkspaceInitialSplit, activateTab, closeTab, addTab, deletePane, maxSplitRatio, minSplitRatio, moveTab, resizeSplit, splitPane, swapSplit, workspaceLayout, type DividerLayout, type WorkspaceNode, type WorkspacePane, type PaneLayout } from './tabWorkspace.js'
     let { tabs, children, selected = $bindable<string | undefined>(), label = 'Workspace', splittable = true, initialSplit, initialLayout, fixedPane, tabTitle, savedLayout, onLayoutChange }: {
@@ -14,7 +14,7 @@
         fixedPane?: WorkspaceFixedPane
         splittable?: boolean
         initialSplit?: WorkspaceInitialSplit
-        initialLayout?: SavedPane
+        initialLayout?: InitialWorkspace
     } = $props()
     const instanceId = $props.id()
     const closableTabs = $derived(tabs.filter(tab => tab.closable !== false).map(tab => tab.id))
