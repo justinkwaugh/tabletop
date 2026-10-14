@@ -148,7 +148,12 @@ describe('BugReportService', () => {
     it('posts without the scenario when it is over the Discord upload limit', async () => {
         vi.mocked(gameService.getGameData).mockResolvedValue({
             game: { ...game, state },
-            actions: [{ ...action, note: 'x'.repeat(10_000_000) }]
+            actions: [
+                {
+                    ...action,
+                    undoPatch: [{ op: 'add', path: '/notes', value: 'x'.repeat(10_000_000) }]
+                }
+            ]
         })
 
         await service.reportBug({ user: reporter, report })
