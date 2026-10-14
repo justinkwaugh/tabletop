@@ -137,12 +137,14 @@ const FAVOR_STEP_STAGES = [
 /** The one Wake choice on screen: a People's Favor step, the bank of its return, or the site's take. */
 export type WakeQuestion =
     | { kind: 'favorStep'; index: number; options: FavorStepKind[] }
-    | { kind: 'returnBank'; index: number; banks: Suit[] }
+    | { kind: 'returnBank'; index: number; banks: Suit[]; counts: Record<Suit, number> }
     | { kind: 'siteTake'; takes: OpportunityTake[] }
 
 type FavorStepView = {
     options: FavorStepKind[]
     leastBanks: Suit[]
+    /** Each bank's favor as the steps before this one leave it: what `leastBanks` is judged on. */
+    bankCounts: Record<Suit, number>
     kind?: FavorStepKind
     step?: WakeFavorStep
 }
@@ -196,6 +198,7 @@ export class WakeDraft implements PanelDraft {
             const options = availablePeoplesFavorOptions(rehearsal, playerId)
             if (options.length === 0) break
             const leastBanks = banksWithLeastFavor(rehearsal)
+            const bankCounts = { ...rehearsal.favorBank }
             const stages = this.stagesOf(index)
             const pickedKind = this.flow.value(stages.kind)
             const kind =
@@ -217,7 +220,7 @@ export class WakeDraft implements PanelDraft {
                     : kind === 'return' && bank !== undefined
                       ? { kind, toSuit: bank }
                       : undefined
-            views.push({ options, leastBanks, kind, step })
+            views.push({ options, leastBanks, bankCounts, kind, step })
             if (!step) break
             applyPeoplesFavorStep(rehearsal, playerId, step)
         }
@@ -253,7 +256,12 @@ export class WakeDraft implements PanelDraft {
         const view = steps[open]
         if (view) {
             return view.kind === 'return'
-                ? { kind: 'returnBank', index: open, banks: view.leastBanks }
+                ? {
+                      kind: 'returnBank',
+                      index: open,
+                      banks: view.leastBanks,
+                      counts: view.bankCounts
+                  }
                 : { kind: 'favorStep', index: open, options: view.options }
         }
         if (this.sitePowerOffered && this.siteTake === undefined) {

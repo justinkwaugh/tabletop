@@ -1,5 +1,7 @@
-import { Region } from '@tabletop/oath'
+import { Region, type Suit } from '@tabletop/oath'
 import type { TravelWay } from './actionOffers.js'
+import { suitName } from './names.js'
+import { hospitalityBanksOf, waysToPay } from './travelRows.js'
 
 /** One way to pay as the chip draws it: its Supply, then a favor token per toll and the secret it flips. */
 export type ChipWay = { cost: number; favor: number; secret: boolean }
@@ -7,28 +9,38 @@ export type ChipWay = { cost: number; favor: number; secret: boolean }
 /**
  * A lit site's cost chip. One way paid in Supply alone reads its words ("2 Supply"); a way with a
  * token is a number and symbols ("2+[favor]"), with "or" between two ways (R-11.12, R-7.1.4).
+ * Where Hospitality gains, the costs are numbers and the chip ends with the gain and each bank's
+ * suit ("2 | +1 [favor] [Beast] or [Nomad]").
  */
-export type TravelChip = { words: string } | { ways: ChipWay[] }
+export type TravelChip = { words: string } | { ways: ChipWay[]; banks?: Suit[] }
 
-export function travelChip(ways: readonly TravelWay[]): TravelChip | undefined {
-    const [only] = ways
+export function travelChip(
+    ways: readonly (TravelWay & { hospitality?: Suit })[]
+): TravelChip | undefined {
+    const paying = waysToPay(ways)
+    const [only] = paying
     if (only === undefined) return undefined
-    if (ways.length === 1 && !only.flipSecret && only.tolls.length === 0) {
+    const banks = hospitalityBanksOf(ways)
+    if (paying.length === 1 && !only.flipSecret && only.tolls.length === 0 && banks.length === 0) {
         return { words: `${only.cost} Supply` }
     }
     return {
-        ways: ways.map((way) => ({
+        ways: paying.map((way) => ({
             cost: way.cost,
             favor: way.tolls.length,
             secret: way.flipSecret
-        }))
+        })),
+        ...(banks.length > 0 ? { banks } : {})
     }
 }
 
-/** The chip in words, as a lit site's accessible name reads it: "2 Supply", "2 Supply + 1 favor or 0 Supply + 1 secret". */
+/**
+ * The chip in words, as a lit site's accessible name reads it: "2 Supply", "2 Supply + 1 favor or
+ * 0 Supply + 1 secret", "2 Supply, gain 1 favor from the Beast or Nomad bank".
+ */
 export function chipWords(chip: TravelChip): string {
     if ('words' in chip) return chip.words
-    return chip.ways
+    const costs = chip.ways
         .map(
             (way) =>
                 `${way.cost} Supply` +
@@ -36,6 +48,10 @@ export function chipWords(chip: TravelChip): string {
                 (way.secret ? ' + 1 secret' : '')
         )
         .join(' or ')
+    const banks = chip.banks ?? []
+    return banks.length > 0
+        ? `${costs}, gain 1 favor from the ${banks.map(suitName).join(' or ')} bank`
+        : costs
 }
 
 /**

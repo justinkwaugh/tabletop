@@ -22,6 +22,7 @@ import {
 import { assert } from '@tabletop/common'
 import type { ModifierDeclaration } from './oathSelection.svelte.js'
 import { powerUseKey, samePowerUse } from './powerUse.js'
+import { isHospitality } from './travelRows.js'
 import type { OathGameSession } from './session.svelte.js'
 import {
     CARD_ACTIONS,
@@ -82,7 +83,11 @@ export class ModifierDeclarations {
             const use = powerUseKey(power)
             // A card in use whose picks are still open stays listed, its picker under it.
             const entry = live.find((m) => samePowerUse(m.use, use))
-            if (entry && !picksComplete(this.choicesOf(power), entry.picks ?? emptyPicks())) {
+            if (
+                entry &&
+                !this.banksInMenu(power) &&
+                !picksComplete(this.choicesOf(power), entry.picks ?? emptyPicks())
+            ) {
                 return true
             }
             const others = declared.filter((m) => !samePowerUse(m, use))
@@ -115,22 +120,26 @@ export class ModifierDeclarations {
     }
 
     /**
-     * R-7.4 — a card in use whose picks are not all made (Hospitality's bank, Bracken's pile): the
-     * menu's rows wait for them, so no row is sent without a card the player is still setting. A
-     * pile a Search would draw from is picked by its row instead (`regionVariants`).
+     * R-7.4 — a card in use whose picks are not all made (Master of Disguise's player, Bracken's
+     * pile): the menu's rows wait for them, so no row is sent without a card the player is still
+     * setting. A pile a Search would draw from is picked by its row instead (`regionVariants`), and
+     * Hospitality's bank by the Travel's destination.
      */
     get picksPending(): boolean {
         const live = this.session.selection.modifiers.filter((m) => !m.down)
         return this.options.some((power) => {
             const entry = live.find((m) => samePowerUse(m.use, power))
-            if (!entry || this.drawPileChoice(power)) return false
+            if (!entry || this.drawPileChoice(power) || this.banksInMenu(power)) return false
             return !picksComplete(this.choicesOf(power), entry.picks ?? emptyPicks())
         })
     }
 
-    /** R-7.4 — an action starts with its free gains in use (Dragonskin Drum, Rowdy Pub, Wild Cry …). */
+    /**
+     * R-7.4 — an action starts with its free gains in use (Dragonskin Drum, Rowdy Pub, Wild Cry …),
+     * and a Travel with Hospitality, whose one pick, the bank, each destination makes.
+     */
     seed(): void {
-        const seeds = this.options.filter(isFreeGain)
+        const seeds = this.options.filter((power) => isFreeGain(power) || this.banksInMenu(power))
         if (seeds.length === 0) return
         this.session.selection.setModifiers(
             seeds.map((power): ModifierDeclaration => ({ use: powerUseKey(power), seeded: true }))
@@ -236,9 +245,20 @@ export class ModifierDeclarations {
         )
     }
 
-    /** R-7.4 — a card whose pile is picked by the Search menu's rows, so it draws no picker. */
+    /**
+     * R-7.4 — a card whose pick the menu's rows make, so it draws no picker: the pile a Search
+     * draws from, or Hospitality's bank on a Travel.
+     */
     picksInMenu(power: CardPower): boolean {
-        return this.drawPileChoice(power) !== undefined
+        return this.drawPileChoice(power) !== undefined || this.banksInMenu(power)
+    }
+
+    /**
+     * Hospitality on a Travel: the bank is the one a destination's card and an adviser share, so
+     * the Travel menu works it out for each destination and sends it with the way picked.
+     */
+    private banksInMenu(power: CardPower): boolean {
+        return this.session.selection.action === ActionType.Travel && isHospitality(power)
     }
 
     /**

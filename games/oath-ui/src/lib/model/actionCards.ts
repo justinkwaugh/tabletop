@@ -24,7 +24,7 @@ import { powerUseKey, samePowerUse } from './powerUse.js'
 import { recoverRows } from './recoverRows.js'
 import { searchRows } from './searchRows.js'
 import { tradeRows } from './tradeRows.js'
-import { travelRows } from './travelRows.js'
+import { travelOffer, travelRows } from './travelRows.js'
 
 /** R-7.4 — the major actions a modifier card is declared on. */
 export const CARD_ACTIONS = [
@@ -174,7 +174,14 @@ export function actionMenu(
         case ActionType.Search:
             return rows(searchRows(state, playerId, modifiers, []))
         case ActionType.Travel:
-            return rows(travelRows(state, playerId, modifiers))
+            // R-7.4 — Hospitality's gain comes after the move, so a destination offers the same
+            // Travel with its bank as without; the card fits the row where a way carries it.
+            return travelRows(state, playerId, modifiers).map((row) => ({
+                key: rowKey(travelOffer(row)),
+                modifiers:
+                    row.ways.find((way) => way.hospitality !== undefined)?.modifiers ??
+                    row.modifiers
+            }))
         case ActionType.Muster:
             return rows(musterRows(state, playerId, modifiers))
         case ActionType.Trade:
