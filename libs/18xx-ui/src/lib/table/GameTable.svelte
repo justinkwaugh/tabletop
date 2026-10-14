@@ -1323,6 +1323,7 @@
                                     .filter(
                                         (tab) =>
                                             tab.id !== 'Actions' &&
+                                            tab.id !== 'Player Aid' &&
                                             !(boardAvailable && tab.id === 'Market')
                                     )
                                     .map((tab) =>
