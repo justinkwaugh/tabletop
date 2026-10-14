@@ -127,7 +127,8 @@
                 ><span class="sm:hidden">{companyNames[company.id]?.initials ?? company.id}</span
                 ></span
             >{/if}
-        {#if centered}<span class="separator" aria-hidden="true">/</span>{@render turnLabel()}{/if}
+        {#if centered && turnPlayerIds.length}<span class="separator" aria-hidden="true">/</span
+            >{@render turnLabel()}{/if}
     </div>
     <div class="turn">
         <button
