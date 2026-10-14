@@ -35,7 +35,7 @@ export class HarnessPreferenceApi extends DummyRemoteApiService {
         change: PreferenceChange,
         etag: string
     ): Promise<PreferenceResponse> => {
-        return navigator.locks.request('tabletop-harness-preferences', async () => {
+        const write = async () => {
             const current = await this.getTitlePreferences(titleId, userId)
             if (etag !== current.etag) throw new PreferenceError('Preferences changed', 412)
             const definition = this.getDefinition(titleId)
@@ -49,7 +49,11 @@ export class HarnessPreferenceApi extends DummyRemoteApiService {
                 JSON.stringify(changePreferences(scope, record, change))
             )
             return this.getTitlePreferences(titleId, userId)
-        })
+        }
+        // Web Locks exist only in secure contexts; a harness opened over http by host name has none.
+        return 'locks' in navigator
+            ? navigator.locks.request('tabletop-harness-preferences', write)
+            : write()
     }
 
     private getDefinition(titleId: string) {
