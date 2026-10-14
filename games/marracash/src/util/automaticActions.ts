@@ -5,7 +5,7 @@ import { CompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
 import { EndTurn } from '../actions/endTurn.js'
 import type { HydratedMarracashGameState } from '../model/gameState.js'
 
-export function queueAutomaticPasses(context: MachineContext<HydratedMarracashGameState>) {
+function queueAutomaticPasses(context: MachineContext<HydratedMarracashGameState>) {
     const state = context.gameState
     const auction = state.auction
     assertExists(auction, 'Automatic passes require an auction')
@@ -14,6 +14,18 @@ export function queueAutomaticPasses(context: MachineContext<HydratedMarracashGa
             context.addSystemAction(PlaceBid, { playerId: participant.playerId, amount: 0 })
         }
     }
+}
+
+// Games started under logic 1.0.0 queued their passes before any antique payout; they keep that
+// order so their recorded Actions replay the same way.
+export function queueAutomaticPassesAfterAntiquePayouts(
+    context: MachineContext<HydratedMarracashGameState>
+) {
+    const state = context.gameState
+    if (state.passesBiddersWhoCannotWin && state.pendingAntiqueSets.length > 0) {
+        return
+    }
+    queueAutomaticPasses(context)
 }
 
 export function queueAuctionResolution(context: MachineContext<HydratedMarracashGameState>) {

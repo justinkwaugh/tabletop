@@ -17,7 +17,7 @@ import {
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import {
     queueAntiqueSetCompletions,
-    queueAutomaticPasses,
+    queueAutomaticPassesAfterAntiquePayouts,
     queueEndTurn
 } from '../util/automaticActions.js'
 import { finishTurn, stateAfterTurnAction } from '../util/turns.js'
@@ -84,7 +84,7 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
         switch (true) {
             case isStartAuction(action): {
                 queueAntiqueSetCompletions(context)
-                queueAutomaticPasses(context)
+                queueAutomaticPassesAfterAntiquePayouts(context)
                 return MachineState.Bidding
             }
             case isMoveVisitors(action): {

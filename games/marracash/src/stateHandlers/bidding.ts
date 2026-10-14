@@ -15,7 +15,11 @@ import {
     isCompleteAntiqueSet,
     isNextAntiqueSetCompletion
 } from '../actions/completeAntiqueSet.js'
-import { queueAntiqueSetCompletions, queueAuctionResolution } from '../util/automaticActions.js'
+import {
+    queueAntiqueSetCompletions,
+    queueAuctionResolution,
+    queueAutomaticPassesAfterAntiquePayouts
+} from '../util/automaticActions.js'
 import { stateAfterTurnAction } from '../util/turns.js'
 
 type BiddingAction = HydratedPlaceBid | HydratedResolveAuction | HydratedCompleteAntiqueSet
@@ -68,6 +72,9 @@ export class BiddingStateHandler implements MachineStateHandler<
                 return MachineState.Bidding
             }
             case isCompleteAntiqueSet(action): {
+                if (gameState.passesBiddersWhoCannotWin) {
+                    queueAutomaticPassesAfterAntiquePayouts(context)
+                }
                 return MachineState.Bidding
             }
             case isResolveAuction(action): {

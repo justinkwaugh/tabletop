@@ -214,6 +214,30 @@ describe('MarraCash auctions', () => {
             ])
         })
 
+        it('asks a player whose antique set pays out as the auction starts', () => {
+            const session = startTestGame(3, { antiqueCards: true })
+            const [, collector] = seats(session)
+            session.edit((state) => {
+                state.pendingAntiqueSets = [collector]
+            })
+            startAuctionWithMoney(session, { 1: 75 })
+            expect(money(session, collector)).toBeGreaterThan(100)
+            expect(submitted(session, collector)).toBe(false)
+            expect(session.state.activePlayerIds).toContain(collector)
+        })
+
+        it('passes them once another player’s antique set has paid out', () => {
+            const session = startTestGame(3, { antiqueCards: true })
+            const [, poor, collector] = seats(session)
+            session.edit((state) => {
+                state.pendingAntiqueSets = [collector]
+            })
+            startAuctionWithMoney(session, { 1: 75 })
+            expect(session.state.antiqueRevealOrder).toEqual([collector])
+            expect(submitted(session, poor)).toBe(true)
+            expect(session.state.activePlayerIds).not.toContain(poor)
+        })
+
         it('still asks a player with 125 Dirham', () => {
             const session = startTestGame(3)
             const [, , bidder] = startAuctionWithMoney(session, { 2: 125 })
