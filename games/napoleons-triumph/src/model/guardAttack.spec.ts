@@ -13,7 +13,8 @@ import {
     infantry,
     passTurns,
     type PiecePlacement,
-    type TestGame
+    type TestGame,
+    defendWith
 } from '../testing/harness.js'
 import { CommandKind, MoralePenaltyKind } from './attack.js'
 import { FeintEnd } from './attackDeclaration.js'
@@ -107,10 +108,8 @@ describe('announcing a Guard Attack (rule 15)', () => {
     it('cannot be turned into a feint once the defender stands', () => {
         const game = frenchTurn(placements)
         announce(game, Side.French, FROM, INTO, 'F-guard')
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: ['A-inf']
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: ['A-inf'] })
         expect(game.state.machineState).toBe(MachineState.AttackDeclaration)
         expect(game.hydrated.unit('A-inf').shown).toEqual(infantry(2))
         expect(() =>
@@ -121,7 +120,7 @@ describe('announcing a Guard Attack (rule 15)', () => {
         ).toThrow()
     })
 
-    it('binds no Guard to follow up when the defender gives ground instead', () => {
+    it('binds no Guard to follow up when the defender retreats instead', () => {
         const game = frenchTurn([
             { id: 'F-guard', side: Side.French, face: guard(), locale: FROM },
             { id: 'F-line', side: Side.French, face: infantry(3), locale: FROM },
@@ -170,10 +169,8 @@ describe('the leading units of a Guard Attack (rule 15)', () => {
             { id: 'A-inf', side: Side.Allied, face: infantry(3), locale: WIDE_INTO }
         ])
         announce(game, Side.French, WIDE_FROM, WIDE_INTO, 'F-guard')
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: ['A-inf']
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: ['A-inf'] })
         return game
     }
 
@@ -208,10 +205,12 @@ describe('the effect of a Guard Attack on the defense leading units (rule 15)', 
             ...defenders
         ])
         announce(game, Side.French, FROM, INTO, 'F-guard')
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: defenders.map((defender) => defender.id),
-            leaderIds: [leaderId]
-        })
+        defendWith(
+            game,
+            game.playerOf(Side.Allied),
+            defenders.map((defender) => defender.id)
+        )
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [leaderId] })
         return game
     }
 
@@ -484,11 +483,9 @@ describe('the Guard outside a Guard Attack (rule 15)', () => {
             }
         ]
         game.act(ActionType.ThreatenAttack, french, { approach: approach(WIDE_FROM, WIDE_INTO) })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: ['A-inf']
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: ['A-inf'] })
         expect(() =>
             game.act(ActionType.DeclareAttack, french, {
                 orders,

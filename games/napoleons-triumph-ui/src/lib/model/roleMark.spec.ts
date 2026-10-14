@@ -10,9 +10,9 @@ describe('the letter a named block carries', () => {
         expect(roleMarkOf(BattleRole.Leads)).toEqual({ letter: 'L' })
     })
 
-    it('is left off a unit picked to advance or to retreat alone, and nothing marks one that stays', () => {
+    it('is left off a unit picked to advance or to retreat alone, and nothing marks one an attack passes by', () => {
         expect(roleMarkOf(BattleRole.Advances)).toEqual({})
         expect(roleMarkOf(BattleRole.RetreatsAlone)).toEqual({})
-        expect(roleMarkOf(BattleRole.Stays)).toBeUndefined()
+        expect(roleMarkOf(BattleRole.PassedBy)).toBeUndefined()
     })
 })

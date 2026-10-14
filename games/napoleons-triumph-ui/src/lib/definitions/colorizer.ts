@@ -3,6 +3,11 @@ import { DefaultColorizer } from '@tabletop/frontend-components'
 import { NapoleonsTriumphPalette } from './palette.js'
 
 export class NapoleonsTriumphColorizer extends DefaultColorizer {
+    // The French are blue and the Allies red, as their pieces are printed, whatever colours a player prefers.
+    override allowPreferredPlayerColors(): boolean {
+        return false
+    }
+
     override getUiColor(color?: Color): string {
         return (color && NapoleonsTriumphPalette[color]?.fill) ?? super.getUiColor(color)
     }

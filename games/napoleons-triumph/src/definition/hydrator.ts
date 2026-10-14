@@ -8,6 +8,7 @@ import { HydratedDeclareAttack, isDeclareAttack } from '../actions/declareAttack
 import { HydratedDeclareDefense, isDeclareDefense } from '../actions/declareDefense.js'
 import { HydratedDeclareFeint, isDeclareFeint } from '../actions/declareFeint.js'
 import { HydratedDeployArmy, isDeployArmy } from '../actions/deployArmy.js'
+import { HydratedLeadDefense, isLeadDefense } from '../actions/leadDefense.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { HydratedMove, isMove } from '../actions/move.js'
 import { HydratedOccupy, isOccupy } from '../actions/occupy.js'
@@ -48,6 +49,8 @@ export class NapoleonsTriumphHydrator implements GameHydrator<
                 return new HydratedDeclareFeint(data)
             case isPressAttack(data):
                 return new HydratedPressAttack(data)
+            case isLeadDefense(data):
+                return new HydratedLeadDefense(data)
             case isDeclareAttack(data):
                 return new HydratedDeclareAttack(data)
             case isCounterAttack(data):

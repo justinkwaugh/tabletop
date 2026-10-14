@@ -142,10 +142,7 @@ describe('the trails of the turn in progress', () => {
             recorded.act(ActionType.ThreatenAttack, Side.French, {
                 approach: recorded.game.hydrated.map.approachBetween(53, 63).id
             })
-            recorded.act(ActionType.DeclareDefense, Side.Allied, {
-                unitIds: [unitId],
-                leaderIds: [unitId]
-            })
+            recorded.act(ActionType.DeclareDefense, Side.Allied, { unitIds: [unitId] })
             recorded.act(ActionType.DeclareFeint, Side.French, {
                 orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
                 end: FeintEnd.Reserve

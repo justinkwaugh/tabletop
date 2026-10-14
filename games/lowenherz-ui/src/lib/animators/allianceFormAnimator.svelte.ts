@@ -41,7 +41,7 @@ export class AllianceFormAnimator extends StateAnimator {
         // other way (an alliance disappears) and gets no bounce here - nothing formed.
         const allianceId =
             action && isPlayAllianceCard(action)
-                ? (action as unknown as { metadata?: { allianceId?: string } }).metadata?.allianceId
+                ? action.metadata?.allianceId
                 : to.alliances.find((alliance) => !from.alliances.some((a) => a.id === alliance.id))?.id
         if (!allianceId) return
 

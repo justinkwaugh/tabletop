@@ -1,9 +1,7 @@
-import { assertExists } from '@tabletop/common'
+import type { Point } from '@tabletop/common'
 
-// Shared sizing/row-splitting for the dealt politics-card row - PoliticsPileReveal (which
-// actually lays the cards out) and PoliticsDeckChooser (which needs to know, before any of that
-// exists, exactly where the leftmost dealt card will land so its own leftover-deck placeholder
-// can slide to just beside it) both need to agree on these, or the two drift apart.
+// Shared sizing for the politics piles - PoliticsDeckChooser's two decks, PoliticsPileReveal's
+// dealt row and the deal animator's transient copy of it all have to agree, or the deal jumps.
 
 // Same fixed size PlayerState uses for the cards in a player's own hand - the LARGEST a card
 // here ever gets; see responsiveCardWidth below for why it isn't the only size.
@@ -58,26 +56,26 @@ export function rowSizes(totalCount: number, availableWidth: number, cardWidth: 
     return Array.from({ length: rowCount }, (_, r) => base + (r < remainder ? 1 : 0))
 }
 
-// The pixel width of a row of `count` cards laid out flat with CARD_GAP between them, at the
-// given card width - what justify-center centers within the row's own available width.
-export function rowContentWidth(count: number, cardWidth: number = CARD_W): number {
-    return count > 0 ? count * cardWidth + (count - 1) * CARD_GAP : 0
+// PoliticsDeckChooser's two decks sit side by side, centred, this far apart.
+export const CHOOSER_DECK_GAP = 12
+
+export function cardHeightFor(cardWidth: number): number {
+    return (cardWidth * CARD_H) / CARD_W
 }
 
-// Where the deck ends up once it is part of the dealt row: the centre of slot 0, which
-// buildSlotRows below always fills with the deck. PoliticsDeckChooser slides its clicked deck to
-// this point before the pile has been opened - so before there is any dealt row to measure - and
-// then hands the deck itself over as the deal's origin, so this has to agree with what
-// buildSlotRows lays out once the cards arrive, which politicsCardLayout.test.ts pins down.
-export function deckSlotCenterX(
-    rowLeft: number,
-    rowWidth: number,
-    cardCount: number,
+// The centre of a pile's deck in PoliticsDeckChooser, which occupies the same slot, at the same
+// width, as the dealt row that replaces it - so the dealt row's own box locates it, whether or
+// not the chooser was ever on screen (replay, undo and history navigation).
+export function chooserDeckCenter(
+    pile: 'A' | 'B',
+    row: Pick<DOMRect, 'left' | 'top' | 'width'>,
     cardWidth: number
-): number {
-    const [firstRowSize] = rowSizes(cardCount + 1, rowWidth, cardWidth)
-    assertExists(firstRowSize, 'rowSizes always yields a first row for one or more slots')
-    return rowLeft + (rowWidth - rowContentWidth(firstRowSize, cardWidth)) / 2 + cardWidth / 2
+): Point {
+    const offset = (cardWidth + CHOOSER_DECK_GAP) / 2
+    return {
+        x: row.left + row.width / 2 + (pile === 'A' ? -offset : offset),
+        y: row.top + cardHeightFor(cardWidth) / 2
+    }
 }
 
 export type PileSlot<TCard> =

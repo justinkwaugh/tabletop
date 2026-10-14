@@ -8,6 +8,7 @@
     import MovementTrails from './board/MovementTrails.svelte'
     import PiecesLayer from './board/PiecesLayer.svelte'
     import TargetLayer from './board/TargetLayer.svelte'
+    import ApproachPlates from './board/ApproachPlates.svelte'
     import ApproachBars from './board/ApproachBars.svelte'
     import ApproachSymbols from './board/ApproachSymbols.svelte'
     import BattleMarker from './board/BattleMarker.svelte'
@@ -77,6 +78,7 @@
             <ClosedReserves />
             <TargetLayer />
             <g data-in-picture><PiecesLayer /></g>
+            <g data-in-picture><ApproachPlates /></g>
             <MovementTrails />
             <ApproachSymbols />
             <g data-in-picture><FlagLayer /></g>

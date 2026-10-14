@@ -1,45 +1,59 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
 import { isLookAtPoliticsPile, type PoliticsCard } from '@tabletop/lowenherz'
-import { buildSlotRows, responsiveCardWidth, type PileSlot } from '$lib/model/politicsCardLayout.js'
+import {
+    buildSlotRows,
+    chooserDeckCenter,
+    responsiveCardWidth,
+    type PileSlot
+} from '$lib/model/politicsCardLayout.js'
 import { preloadPoliticsCardFace } from '$lib/model/politicsCardImages.js'
 import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnimator.js'
 
 /**
- * The politics pile's cards flying in once LookAtPoliticsPile opens it, plus the leftover deck
- * stand-in sliding in alongside them and fading to a dashed placeholder - both starting from
- * wherever PoliticsDeckChooser's own exit animation left off - settled to a fixed point here,
- * as the deal starts (gameSession.settlePoliticsPileOrigin).
+ * Opening a politics pile (LookAtPoliticsPile): the deck that was not chosen fades away, the
+ * chosen deck slides to its seat at the head of the dealt row, and the pile's cards fly out of it.
  *
- * Renders its own transient slot layout (Pattern B), same reason as AllianceFormAnimator: the
- * real cards only exist in `to`, which the board doesn't render until the session assigns the
- * new state - after the shared timeline has already played. PoliticsPileReveal renders this
- * transient layout while `dealing` is true, then falls back to its own real, interactive
- * rendering (built from the same buildSlotRows helper) the moment it clears.
+ * Pattern B: the cards only exist in `to`, which the table does not render until the session
+ * assigns the new state after the shared timeline. While `dealing`, PoliticsPileReveal renders
+ * this transient layout - both decks where PoliticsDeckChooser draws them, and the dealt row
+ * from the same buildSlotRows the real row uses - so the handoff in either direction lands on
+ * identical positions. Every position comes from the transition and the layout helpers, so
+ * replay, undo and history navigation deal from the same place live play does.
  */
-const DEAL_DURATION = 380 // ms
-const DEAL_STAGGER = 45 // ms between each successive card starting its flight
-const DECK_SLIDE_DURATION = 300 // ms
+const LOSING_DECK_FADE = 0.22
+const DECK_SLIDE = 0.38
+const DEAL_START = LOSING_DECK_FADE + DECK_SLIDE
+const DEAL_DURATION = 0.38
+const DEAL_STAGGER = 0.045
+const CARD_FADE_IN = 0.2
+
+export type LosingDeck = { left: number; empty: boolean }
 
 export class PoliticsPileDealAnimator extends StateAnimator {
     dealing = $state(false)
     slotRows: PileSlot<PoliticsCard>[][] = $state([])
+    cardWidth = $state(0)
+    rowWidth = $state(0)
+    losingDeck: LosingDeck | undefined = $state(undefined)
 
     private nodes = new Map<string, HTMLElement>()
+    private rowsEl: HTMLElement | undefined
 
     setNode(key: string, element?: HTMLElement) {
         if (element) this.nodes.set(key, element)
         else this.nodes.delete(key)
     }
 
+    setRowsEl(element?: HTMLElement) {
+        this.rowsEl = element
+    }
+
     override async onGameStateChange({ to, from, action, animationContext }: StateChange) {
-        // Only the player actually taking a politics card ever deals one in - to.openedPoliticsPile
-        // is shared server state, so without this every other connected client (and, while
-        // scrubbing history, every other player looking at their own past state) would otherwise
-        // splay the real, opened pile's cards face-up too. See selectedPoliticsPile's own comment
-        // in session.svelte.ts, which PoliticsPileReveal's template gates its rendering on - this
-        // guards the same leak here, since `dealing` drives that template independently of `pile`.
-        if (to.politicsTakingPlayerId !== this.gameSession.myPlayer?.id) return
+        // Only the player taking a politics card ever sees the opened pile; to.openedPoliticsPile
+        // is shared state, so every other client must not splay it.
+        const myPlayerId = this.gameSession.myPlayer?.id
+        if (!myPlayerId || to.politicsTakingPlayerId !== myPlayerId) return
 
         const pile =
             action && isLookAtPoliticsPile(action)
@@ -49,109 +63,134 @@ export class PoliticsPileDealAnimator extends StateAnimator {
                   : undefined
         if (!pile) return
 
-        const cards = to.inspectedPoliticsCards(this.gameSession.myPlayer?.id ?? '') ?? []
+        const cards = to.inspectedPoliticsCards(myPlayerId) ?? []
         if (cards.length === 0) return
 
-        // Settles the handoff to a point - this is the moment the deck's position is authoritative
-        // - and reads it back. Nothing to settle means no handoff point to fly from: a page reload
-        // landing mid-reveal, or a replay with no live click behind it. Falling through with
-        // `dealing` left false lets PoliticsPileReveal just render the real row directly, cards
-        // already in place - the same degenerate case the old mount-triggered dealIn accepted.
-        const origin = this.gameSession.settlePoliticsPileOrigin()
-        if (!origin) return
-
-        const cinematic = !!action
-        const rowWidth = this.gameSession.politicsRowWidth ?? 0
-        const cardWidth = responsiveCardWidth(rowWidth)
-
-        this.slotRows = buildSlotRows(cards, rowWidth, cardWidth)
+        this.slotRows = []
+        this.losingDeck = undefined
         this.dealing = true
-
         await tick()
 
-        // Hide/reposition every node the instant it mounts, before the preload wait below -
-        // otherwise a freshly-mounted card paints at full opacity, in its own final resting
-        // position, for however long decoding takes. Rects are measured here, not again after
-        // the wait: gsap.set below moves the node, so a second getBoundingClientRect afterward
-        // would read the offset position instead of the natural one.
+        const row = this.rowsEl?.getBoundingClientRect()
+        if (!row) {
+            this.dealing = false
+            return
+        }
+        this.rowWidth = row.width
+        this.cardWidth = responsiveCardWidth(row.width)
+        const otherPile = pile === 'A' ? 'B' : 'A'
+        const chosenDeck = chooserDeckCenter(pile, row, this.cardWidth)
+        const losingDeckCenter = chooserDeckCenter(otherPile, row, this.cardWidth)
+        this.losingDeck = {
+            left: losingDeckCenter.x - row.left - this.cardWidth / 2,
+            empty: (from?.getPoliticsPileCount(otherPile) ?? 0) === 0
+        }
+        this.slotRows = buildSlotRows(cards, row.width, this.cardWidth)
+        await tick()
+
+        // Placed the instant they mount, before the preload wait below, so nothing paints at its
+        // resting position first. Measured before any offset is applied.
         const deckNode = this.nodes.get('deck')
-        if (deckNode) {
-            const rect = deckNode.getBoundingClientRect()
+        const deckRect = deckNode?.getBoundingClientRect()
+        if (deckNode && deckRect) {
             gsap.set(deckNode, {
-                x: origin.x - (rect.left + rect.width / 2),
-                y: origin.y - (rect.top + rect.height / 2)
+                x: chosenDeck.x - (deckRect.left + deckRect.width / 2),
+                y: chosenDeck.y - (deckRect.top + deckRect.height / 2)
             })
         }
+        const dealOrigin = deckRect
+            ? { x: deckRect.left + deckRect.width / 2, y: deckRect.top + deckRect.height / 2 }
+            : chosenDeck
 
-        const cardOffsets = new Map<string, { dx: number; dy: number }>()
-        for (const [index] of cards.entries()) {
+        const cardNodes = cards.flatMap((_, index) => {
             const node = this.nodes.get(String(index))
-            if (!node) continue
+            if (!node) return []
             const rect = node.getBoundingClientRect()
-            const dx = origin.x - (rect.left + rect.width / 2)
-            const dy = origin.y - (rect.top + rect.height / 2)
-            cardOffsets.set(String(index), { dx, dy })
-            gsap.set(node, { x: dx, y: dy, scale: 0.3, opacity: 0 })
-        }
+            gsap.set(node, {
+                x: dealOrigin.x - (rect.left + rect.width / 2),
+                y: dealOrigin.y - (rect.top + rect.height / 2),
+                scale: 0.3,
+                opacity: 0
+            })
+            return [{ node, index }]
+        })
 
+        const cinematic = !!action
         if (cinematic) {
-            // One shared wait rather than dealIn's old per-card `.then()` - every card's stagger
-            // slot is relative to the same start, so a slow decode for an early card can no
-            // longer push a later, already-cached card's own delay out of sync with it.
             await Promise.all(cards.map((card) => preloadPoliticsCardFace(card)))
         }
 
         const timeline = animationContext.actionTimeline
-        const scale = cinematic ? 1 : FALLBACK_DURATION / (DEAL_DURATION / 1000)
-
-        if (deckNode) {
-            timeline.to(
-                deckNode,
-                { x: 0, y: 0, duration: (DECK_SLIDE_DURATION / 1000) * scale, ease: 'power2.out' },
-                0
-            )
-            // Fades over the same span the last card takes to land (staggered, in cinematic
-            // mode) rather than holding at full opacity until dealing flips off and the real row
-            // swaps it for the dashed placeholder underneath it - which read as a hard cut, the
-            // deck popping out of existence the instant the splay finished instead of dissolving
-            // alongside it.
-            const totalDealDuration =
-                (((cinematic ? (cards.length - 1) * DEAL_STAGGER : 0) + DEAL_DURATION) / 1000) *
-                scale
-            timeline.to(
-                deckNode,
-                { opacity: 0, scale: 0.8, duration: totalDealDuration, ease: 'power1.in' },
-                0
-            )
+        const losingDeckNode = this.nodes.get('losing-deck')
+        if (cinematic) {
+            if (losingDeckNode) {
+                timeline.to(
+                    losingDeckNode,
+                    { opacity: 0, scale: 0.85, duration: LOSING_DECK_FADE, ease: 'power1.in' },
+                    0
+                )
+            }
+            if (deckNode) {
+                timeline.to(
+                    deckNode,
+                    { x: 0, y: 0, duration: DECK_SLIDE, ease: 'power2.inOut' },
+                    LOSING_DECK_FADE
+                )
+                const dealSpan = (cards.length - 1) * DEAL_STAGGER + DEAL_DURATION
+                timeline.to(
+                    deckNode,
+                    { opacity: 0, scale: 0.8, duration: dealSpan, ease: 'power1.in' },
+                    DEAL_START
+                )
+            }
+            for (const { node, index } of cardNodes) {
+                const start = DEAL_START + index * DEAL_STAGGER
+                timeline.to(node, { opacity: 1, duration: CARD_FADE_IN, ease: 'power1.out' }, start)
+                timeline.to(
+                    node,
+                    { x: 0, y: 0, scale: 1, duration: DEAL_DURATION, ease: 'power2.out' },
+                    start
+                )
+            }
+        } else {
+            if (losingDeckNode) {
+                timeline.to(losingDeckNode, { opacity: 0, duration: FALLBACK_DURATION }, 0)
+            }
+            if (deckNode) {
+                timeline.to(
+                    deckNode,
+                    { x: 0, y: 0, opacity: 0, duration: FALLBACK_DURATION, ease: 'power2.out' },
+                    0
+                )
+            }
+            for (const { node } of cardNodes) {
+                timeline.to(
+                    node,
+                    {
+                        x: 0,
+                        y: 0,
+                        scale: 1,
+                        opacity: 1,
+                        duration: FALLBACK_DURATION,
+                        ease: 'power2.out'
+                    },
+                    0
+                )
+            }
         }
-
-        cards.forEach((_, index) => {
-            const node = this.nodes.get(String(index))
-            if (!node || !cardOffsets.has(String(index))) return
-            const delay = cinematic ? (index * DEAL_STAGGER) / 1000 : 0
-            timeline.to(node, { opacity: 1, duration: 0.2 * scale, ease: 'power1.out' }, delay)
-            timeline.to(
-                node,
-                {
-                    x: 0,
-                    y: 0,
-                    scale: 1,
-                    duration: (DEAL_DURATION / 1000) * scale,
-                    ease: 'power2.out'
-                },
-                delay
-            )
-        })
 
         animationContext.afterAnimations(() => {
             this.dealing = false
             this.slotRows = []
+            this.losingDeck = undefined
         })
     }
 
     override onDetach() {
         this.nodes.clear()
+        this.rowsEl = undefined
         this.dealing = false
         this.slotRows = []
+        this.losingDeck = undefined
     }
 }

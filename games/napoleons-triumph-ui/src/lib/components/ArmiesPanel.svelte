@@ -53,7 +53,7 @@
                 role="img"
                 aria-label="Unit"
             >
-                <Block x={0} y={0} angle={0} {colors} face={gameSession.visibleFace(unit)} />
+                <Block x={0} y={0} angle={0} {colors} {...gameSession.lookOf(unit)} />
             </svg>
         {/each}
     </div>

@@ -7,7 +7,6 @@ import {
     cavalry,
     infantry
 } from '@tabletop/napoleons-triumph/testing'
-import { retreatSelection } from './battleSelection.js'
 import { RetreatFate, retreatPlan, type RetreatPlan } from './retreatPlan.js'
 
 const ATTACK_FROM = 95
@@ -54,7 +53,7 @@ function fatesIn(plan: RetreatPlan): Record<string, RetreatFate> {
 describe('arranging a retreat', () => {
     it('suggests losses that cost no unit, and a plan the rules accept', () => {
         const game = threatened()
-        const plan = retreatPlan(game.hydrated, retreatSelection.empty())
+        const plan = retreatPlan(game.hydrated, {})
         const owed = plan.groups.reduce((sum, group) => sum + group.steps, 0)
         expect(owed).toBeGreaterThan(0)
         expect(plan.losses).toEqual({ 'A-inf-a': owed })
@@ -73,17 +72,12 @@ describe('arranging a retreat', () => {
 
     it('sends a unit where the player asks and the rest where there is most room', () => {
         const game = threatened()
-        const suggested = retreatPlan(game.hydrated, retreatSelection.empty())
+        const suggested = retreatPlan(game.hydrated, {})
         const [elsewhere] = [...suggested.room.keys()].filter(
             (locale) =>
                 locale !== suggested.destinations['A-cav'] && (suggested.room.get(locale) ?? 0) > 0
         )
-        const asked = retreatSelection.set(
-            retreatSelection.empty(),
-            'destinations',
-            [{ unitId: 'A-cav', locale: elsewhere }],
-            'manual'
-        )
+        const asked = { destinations: [{ unitId: 'A-cav', locale: elsewhere }] }
         const plan = retreatPlan(game.hydrated, asked)
         expect(plan.destinations['A-cav']).toBe(elsewhere)
         expect(plan.destinations['A-inf-a']).toBe(suggested.destinations['A-inf-a'])
@@ -91,12 +85,7 @@ describe('arranging a retreat', () => {
 
     it('reports losses that do not add up', () => {
         const game = threatened()
-        const chosen = retreatSelection.set(
-            retreatSelection.empty(),
-            'losses',
-            { 'A-inf-b': 1 },
-            'manual'
-        )
+        const chosen = { losses: { 'A-inf-b': 1 } }
         const plan = retreatPlan(game.hydrated, chosen)
         const owed = plan.groups.reduce((sum, group) => sum + group.steps, 0)
         expect(plan.lossesValid).toBe(owed === 1)
@@ -104,7 +93,7 @@ describe('arranging a retreat', () => {
     })
 
     it('tells what becomes of each unit: guns are lost and the rest go with the steps they lose', () => {
-        const plan = retreatPlan(threatened().hydrated, retreatSelection.empty())
+        const plan = retreatPlan(threatened().hydrated, {})
         expect(fatesIn(plan)).toEqual({
             'A-inf-a': RetreatFate.Retreats,
             'A-inf-b': RetreatFate.Retreats,
@@ -114,20 +103,15 @@ describe('arranging a retreat', () => {
         const struck = plan.units.find(({ unit }) => unit.id === 'A-inf-a')
         expect(struck).toMatchObject({
             loss: plan.losses['A-inf-a'],
-            destination: plan.destinations['A-inf-a'],
-            owesLoss: true
+            destination: plan.destinations['A-inf-a']
         })
+        expect(plan.groups.flatMap((group) => group.unitIds)).toContain('A-inf-a')
         const guns = plan.units.find(({ unit }) => unit.id === 'A-art')
         expect(guns).toMatchObject({ loss: 0, destination: undefined })
     })
 
     it('counts a unit eliminated once it loses every step it has', () => {
-        const chosen = retreatSelection.set(
-            retreatSelection.empty(),
-            'losses',
-            { 'A-inf-b': 1 },
-            'manual'
-        )
+        const chosen = { losses: { 'A-inf-b': 1 } }
         const plan = retreatPlan(threatened().hydrated, chosen)
         expect(fatesIn(plan)['A-inf-b']).toBe(RetreatFate.Eliminated)
         expect(plan.destinations['A-inf-b']).toBeUndefined()
@@ -138,7 +122,7 @@ describe('arranging a retreat', () => {
         const waysOut = state.map
             .adjacentLocales(DEFEND_IN)
             .filter((locale) => locale !== ATTACK_FROM)
-        const plan = retreatPlan(threatened(waysOut).hydrated, retreatSelection.empty())
+        const plan = retreatPlan(threatened(waysOut).hydrated, {})
         expect(plan.room.size).toBe(0)
         expect(fatesIn(plan)).toMatchObject({
             'A-inf-a': RetreatFate.NoRoom,
@@ -162,28 +146,25 @@ describe('arranging a retreat', () => {
             })
         })
         const room = game.hydrated.map.locale(open).capacity - 1
-        const suggested = retreatPlan(game.hydrated, retreatSelection.empty())
+        const suggested = retreatPlan(game.hydrated, {})
         expect(Object.keys(suggested.destinations)).toHaveLength(Math.min(room, 3))
         expect(suggested.stranded).toBe(3 - Math.min(room, 3))
 
         const everyone = ['A-inf-a', 'A-inf-b', 'A-cav']
         const lastAsked = everyone.toReversed().map((unitId) => ({ unitId, locale: open }))
-        const plan = retreatPlan(
-            game.hydrated,
-            retreatSelection.set(retreatSelection.empty(), 'destinations', lastAsked, 'manual')
-        )
+        const plan = retreatPlan(game.hydrated, { destinations: lastAsked })
         const saved = lastAsked.slice(0, Math.min(room, 3)).map(({ unitId }) => unitId)
         expect(Object.keys(plan.destinations).toSorted()).toEqual(saved.toSorted())
     })
 
     it('counts for each group the steps assigned against the steps it owes', () => {
         const game = threatened()
-        const suggested = retreatPlan(game.hydrated, retreatSelection.empty())
+        const suggested = retreatPlan(game.hydrated, {})
         expect(suggested.groups.length).toBeGreaterThan(0)
         for (const group of suggested.groups) {
             expect(group.assigned).toBe(group.steps)
         }
-        const none = retreatSelection.set(retreatSelection.empty(), 'losses', {}, 'manual')
+        const none = { losses: {} }
         const unassigned = retreatPlan(game.hydrated, none)
         expect(unassigned.groups.map((group) => group.assigned)).toEqual(
             unassigned.groups.map(() => 0)

@@ -6,7 +6,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionCard, ActionCardType, CardBack } from '../definition/actionCards.js'
 import { Region } from '../model/region.js'
 import { PoliticsCardType } from '../definition/politicsCards.js'
-import { routeAfterSlotResolved } from './resolutionHelpers.js'
+import { advanceRound, routeAfterSlotResolved } from './resolutionHelpers.js'
 
 function blankBoard(): { squares: BoardSquare[][]; walls: [] } {
     return {
@@ -46,8 +46,6 @@ function buildState(
         board: blankBoard(),
         regions,
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: 'p1',
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: card,
@@ -77,6 +75,22 @@ const cardWithTwoKnightsBottom: ActionCard = {
     middle: { kind: 'border', count: 2 },
     bottom: { kind: 'knight', count: 2 }
 }
+
+describe('advanceRound', () => {
+    it('passes the first player castle clockwise on the turn manager and resets the round', () => {
+        const state = buildState([{ slot: 1 }, { slot: 2 }, { slot: 3 }], cardWithBorderMiddle)
+        state.turnManager.turnOrder = ['p2', 'p1']
+        state.decisions = [{ playerId: 'p2', slot: 1 }]
+
+        advanceRound(state)
+
+        expect(state.turnManager.turnOrder).toEqual(['p1', 'p2'])
+        expect(state.firstPlayerId).toBe('p1')
+        expect(state.decisions).toEqual([])
+        expect(state.resolvedSlots).toEqual([])
+        expect(state.currentActionCard).toBeUndefined()
+    })
+})
 
 describe('routeAfterSlotResolved', () => {
     it('routes a border-slot winner into PlacingWalls with the right wall count', () => {

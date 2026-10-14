@@ -39,7 +39,8 @@
         </tfoot>
     </table>
     <p>
-        Cavalry in reserve and the units that defended lose nothing.{gunsLost > 0
+        Every unit that retreats is shown to the enemy. Cavalry in reserve and the units that
+        defended lose nothing.{gunsLost > 0
             ? ` Artillery cannot retreat: ${gunsLost === 1 ? 'the unit is' : `${gunsLost} units are`} lost.`
             : ''}
     </p>

@@ -94,6 +94,15 @@ export const AttackPlan = Type.Object({
     order: Visibility.protect(ThreatOrder, { policy: Visibility.Policy.Owner })
 })
 
+/** Rule 11: whose answer the attack waits for once the defending pieces are named. */
+export enum DefenseAwaits {
+    /** Step 3: the attacker presses the attack or calls it a feint. */
+    Feint = 'Feint',
+    /** Step 4: the defender names the leading units, which are then turned face-up. */
+    Leaders = 'Leaders'
+}
+
+/** Kept for attacks declared when the leading units were named with the defending pieces and held back until the attack was pressed. */
 export type DefensePlan = Type.Static<typeof DefensePlan>
 export const DefensePlan = Type.Object({
     playerId: Type.String(),
@@ -105,6 +114,7 @@ export const DefensePlan = Type.Object({
 export type AttackStep =
     | MachineState.DefenseResponse
     | MachineState.FeintDecision
+    | MachineState.DefenseDeclaration
     | MachineState.AttackDeclaration
     | MachineState.CounterAttackDecision
     | MachineState.ResolvingAttack
@@ -163,6 +173,7 @@ export const Attack = Type.Object({
     defendingCommanderIds: Type.Array(Type.String()),
     defendersBlocking: Type.Optional(Type.Boolean()),
     defensePlan: Type.Optional(DefensePlan),
+    awaits: Type.Optional(Type.Enum(DefenseAwaits)),
     defenseLeaderIds: Type.Array(Type.String()),
     orders: Type.Array(MoveOrder),
     attackingUnitIds: Type.Array(Type.String()),

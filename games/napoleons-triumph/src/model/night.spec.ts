@@ -94,7 +94,7 @@ describe('the night round (rule 14)', () => {
             ActionType.ThreatenAttack
         )
         threaten(game, Side.Allied, INTO, FROM)
-        expect(game.state.machineState).toBe(MachineState.DefenseResponse)
+        expect(game.hydrated.attack?.attackerId).toBe(allied)
     })
 
     it('opens with each army regaining half the morale it has lost, rounded down, and four at most', () => {

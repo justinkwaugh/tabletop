@@ -94,6 +94,8 @@
             : undefined
     }
 
+    const SKIPPED = 'Skipped'
+
     const marketStatus = $derived(tookMarketAction ? 'Done' : 'None available')
 
     const tileStatus = $derived.by(() => {
@@ -103,7 +105,7 @@
         if (tookTileAction) {
             return 'Done'
         }
-        return tookMarketAction || marketToolChosen ? 'Skipped' : 'None available'
+        return tookMarketAction || marketToolChosen ? SKIPPED : 'None available'
     })
     const mobileStep = $derived.by(() => {
         if (gameSession.onlyEndTurnLeft) {
@@ -115,6 +117,7 @@
         return 'market'
     })
     const tilePhaseClosed = $derived(!gameSession.tileActionsOpen || marketToolChosen)
+    const tilesShownSkipped = $derived(tilePhaseClosed && tileStatus === SKIPPED)
 
     // A reversible round change is only noted; the irreversible ones ask to confirm instead.
     const endTurnNote = $derived(
@@ -237,6 +240,9 @@
             <div class="hint" class:warning={hintIsWarning}>{hint}</div>
         {/if}
         {#if !gameSession.cityUnfinished}
+            {#if tilesShownSkipped}
+                <div class="phone-skipped">Tile actions skipped</div>
+            {/if}
             <div class="phases" data-step={mobileStep}>
                 <div class="phase tiles" class:closed={tilePhaseClosed}>
                     <div class="phase-label">
@@ -256,7 +262,9 @@
                             </button>
                         {/each}
                         {#if tilePhaseClosed}
-                            <span class="phase-status">{tileStatus}</span>
+                            <span class="phase-status" class:skipped={tilesShownSkipped}
+                                >{tileStatus}</span
+                            >
                         {/if}
                     </div>
                     <button type="button" class="skip" onclick={() => gameSession.skipTiles()}>
@@ -391,6 +399,17 @@
         font-size: 13px;
         font-style: italic;
         color: rgba(74, 44, 18, 0.55);
+    }
+
+    .phase-status.skipped,
+    .phone-skipped {
+        font-size: 17px;
+        font-weight: 700;
+        color: #c0261a;
+    }
+
+    .phone-skipped {
+        display: none;
     }
 
     .chevron {
@@ -550,6 +569,10 @@
             display: inline-flex;
         }
 
+        .phone-skipped {
+            display: block;
+        }
+
         .message-detail,
         .hint:not(.warning) {
             display: none;
@@ -595,6 +618,7 @@
     @media (prefers-reduced-motion: no-preference) {
         .tool,
         .phase-status,
+        .phone-skipped,
         .hint,
         .round-actions,
         .appear {

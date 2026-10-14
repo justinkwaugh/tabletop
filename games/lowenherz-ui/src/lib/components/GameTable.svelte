@@ -20,30 +20,28 @@
     import PoliticsPileReveal from '$lib/components/PoliticsPileReveal.svelte'
     import SummaryStrip from '$lib/components/SummaryStrip.svelte'
     import StatusMessages from '$lib/components/StatusMessages.svelte'
-    import EasedHeight from '$lib/components/EasedHeight.svelte'
+    import ReservedHeight from '$lib/components/ReservedHeight.svelte'
     import { CARD_ROW_HEIGHT } from '$lib/model/politicsCardLayout.js'
-    import parchmentTexture from '$lib/images/board/parchment-texture.jpg'
+    import parchmentTexture from '$lib/images/board/parchment-texture.webp'
 
     import BlankenburgFont from '$lib/fonts/Blankenburg.woff2'
     import IMFellEnglishFont from '$lib/fonts/IMFellEnglish-Regular.woff2'
     import IMFellEnglishItalicFont from '$lib/fonts/IMFellEnglish-Italic.woff2'
 
-    import type { LowenherzGameSession } from '$lib/model/session.svelte'
+    import { assert } from '@tabletop/common'
+    import { untrack } from 'svelte'
+    import { LowenherzGameSession } from '$lib/model/session.svelte'
     import type { HydratedLowenherzGameState, LowenherzProjectedState } from '@tabletop/lowenherz'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
     let {
         gameSession
     }: { gameSession: GameSession<LowenherzProjectedState, HydratedLowenherzGameState> } = $props()
-    const lowenherzSession = gameSession as LowenherzGameSession
+    const lowenherzSession = untrack(() => {
+        assert(gameSession instanceof LowenherzGameSession, 'Löwenherz needs its own game session')
+        return gameSession
+    })
     setGameSession(lowenherzSession)
-
-    // Exposes the session for console debugging (Svelte context isn't reachable from
-    // devtools otherwise) - e.g. `__gameSession.myRegions`.
-    if (typeof window !== 'undefined') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(window as any).__gameSession = gameSession
-    }
 </script>
 
 <!-- The game's faces, declared the way every other game here declares them. Two of these
@@ -125,18 +123,13 @@
                 <!-- Below the toolbar so Undo stays at the very top, and outside ScalingWrapper
                      below so none of this text scales with the board. -->
                 <StatusMessages />
-                <!-- Real layout, not an overlay: each of these renders nothing at all until it
-                     has something to show (see their own guards - PoliticsDeckChooser while
-                     choosing, PoliticsPileReveal once a pile's picked), and sitting here, above
-                     the board's own flex:1 area below, is what pushes the board down to make
-                     room. One eased slot for both, holding a card row for the whole of my
-                     politics turn: the board slides down once when the decks appear, stays put
-                     through the chooser/reveal handoff, and slides back once the taken card is
-                     away. -->
-                <EasedHeight minHeight={lowenherzSession.isMyPoliticsCardTurn ? CARD_ROW_HEIGHT : 0}>
+                <!-- Real layout, not an overlay: it pushes the board down. One slot for both,
+                     reserving a card row for the whole of my politics turn, so the board moves
+                     once when the decks appear and once when the taken card is away. -->
+                <ReservedHeight minHeight={lowenherzSession.isMyPoliticsCardTurn ? CARD_ROW_HEIGHT : 0}>
                     <PoliticsDeckChooser />
                     <PoliticsPileReveal />
-                </EasedHeight>
+                </ReservedHeight>
             </div>
             <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
               This allows the wrapper to scale to its bounds regardless of its content size-->

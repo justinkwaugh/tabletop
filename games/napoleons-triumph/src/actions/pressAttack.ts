@@ -3,7 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { NapoleonsTriumphAction } from './gameAction.js'
-import { revealDefenseLeaders } from '../model/attackThreat.js'
+import { pressAttack } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
 export type PressAttack = Type.Static<typeof PressAttack>
@@ -35,6 +35,6 @@ export class HydratedPressAttack
     }
 
     protected perform(state: HydratedNapoleonsTriumphGameState) {
-        revealDefenseLeaders(state)
+        pressAttack(state)
     }
 }

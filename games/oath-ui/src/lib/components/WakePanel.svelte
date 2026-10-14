@@ -103,6 +103,7 @@
                 {:else if question.kind === 'returnBank'}
                     <SuitPicker
                         suits={question.banks}
+                        counts={question.counts}
                         picked={[]}
                         onpick={(suit) => wake.chooseBank(suit)}
                         {busy}

@@ -1,4 +1,4 @@
-import { isOnBoard, isWalledBetween, neighbors, squareKey } from '../model/board.js'
+import { isOnBoard, isWalledBetween, neighbors, parseSquareKey, squareKey } from '../model/board.js'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { PieceOwner } from '../model/owner.js'
 
@@ -29,7 +29,7 @@ function reachablePieces(
     const stack = [...castleKeys]
     while (stack.length > 0) {
         const currentKey = stack.pop()!
-        const [cCol, cRow] = currentKey.split(',').map(Number)
+        const [cCol, cRow] = parseSquareKey(currentKey)
         for (const n of neighbors(cCol, cRow)) {
             if (!isOnBoard(n.col, n.row)) continue
             const nKey = squareKey(n.col, n.row)

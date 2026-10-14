@@ -1,10 +1,10 @@
 <script lang="ts">
-    import boardA from '$lib/images/board/board-a.jpg'
-    import boardB from '$lib/images/board/board-b.jpg'
-    import boardC from '$lib/images/board/board-c.jpg'
-    import boardD from '$lib/images/board/board-d.jpg'
-    import boardE from '$lib/images/board/board-e.jpg'
-    import boardF from '$lib/images/board/board-f.jpg'
+    import boardA from '$lib/images/board/board-a.webp'
+    import boardB from '$lib/images/board/board-b.webp'
+    import boardC from '$lib/images/board/board-c.webp'
+    import boardD from '$lib/images/board/board-d.webp'
+    import boardE from '$lib/images/board/board-e.webp'
+    import boardF from '$lib/images/board/board-f.webp'
 
     const boardImages = [boardA, boardB, boardC, boardD, boardE, boardF]
     const rotations = [0, 90, 180, 270]

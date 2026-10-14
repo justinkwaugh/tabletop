@@ -29,7 +29,7 @@ export interface SideLosses {
     /** Every point of morale the attack has cost this side so far. */
     morale: number
     taken: StepLoss[]
-    /** Morale paid for steps lost, which only the side that lost the fight or gave ground pays. */
+    /** Morale paid for steps lost, which only the side that lost the fight or retreated pays. */
     paidForSteps: number
     penalties: MoralePenalty[]
 }

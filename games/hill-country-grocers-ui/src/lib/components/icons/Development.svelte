@@ -20,6 +20,14 @@
 
 <g transform="translate({x} {y})">
     {#if built}
+        <rect
+            x={left + 0.8}
+            y={top + 1.2}
+            {width}
+            height={size}
+            rx={size * 0.08}
+            class="shadow"
+        />
         <rect x={left} y={top} {width} height={size} rx={size * 0.08} class="body" />
         <rect
             x={left - size * 0.04}
@@ -54,7 +62,10 @@
         fill: #8a8f99;
         stroke: #3f434b;
         stroke-width: 0.9;
-        filter: drop-shadow(0.8px 1.2px 0.8px rgba(30, 20, 10, 0.35));
+    }
+
+    .shadow {
+        fill: rgba(30, 20, 10, 0.35);
     }
 
     .roof {

@@ -5,6 +5,7 @@ import { stagedSelection } from './stagedSelection.js'
 
 export enum StageKind {
     Defence = 'Defence',
+    DefenceLeaders = 'DefenceLeaders',
     Retreat = 'Retreat',
     Feint = 'Feint',
     Declaration = 'Declaration',
@@ -23,14 +24,12 @@ export enum AttackWidth {
 
 export type DefenceValues = {
     defenders: string[]
-    leaders: string[]
     retreating: true
 }
-export const defenceSelection = stagedSelection<DefenceValues>()([
-    'defenders',
-    'leaders',
-    'retreating'
-])
+export const defenceSelection = stagedSelection<DefenceValues>()(['defenders', 'retreating'])
+
+export type LeadValues = { leaders: string[] }
+export const leadSelection = stagedSelection<LeadValues>()(['leaders'])
 
 type DefenceSelection = StagedSelectionState<DefenceValues>
 
@@ -43,43 +42,32 @@ export interface RetreatDestination {
     locale: number
 }
 
-export type RetreatValues = {
-    losses: Record<string, number>
+/**
+ * How a retreat stands arranged: who takes its losses, where each unit goes, whom each commander keeps.
+ * Deliberate: this is kept apart from the staged selection, as the open seat of a set-up is. Each
+ * part is redone by another tap, so none is a step for Undo to take back.
+ */
+export interface RetreatArrangement {
+    losses?: Record<string, number>
     /** Rule 12: where room is short the retreating player chooses who gets it, so the latest choice comes first. */
-    destinations: RetreatDestination[]
-    kept: Record<string, string>
+    destinations?: RetreatDestination[]
+    kept?: Record<string, string>
+}
+
+export type RetreatValues = {
+    /** The player has settled how the losses fall, so the panel has gone on to where the units go. */
+    lossesTaken: true
     sentAlone: string
+    /** The commander whose flag is picked up, waiting for the unit he is to stay with. */
+    movingCommander: string
 }
 export const retreatSelection = stagedSelection<RetreatValues>()([
-    'losses',
-    'destinations',
-    'kept',
-    'sentAlone'
+    'lossesTaken',
+    'sentAlone',
+    'movingCommander'
 ])
 
 type RetreatSelection = StagedSelectionState<RetreatValues>
-
-export function setRetreatLosses(
-    retreat: RetreatSelection,
-    losses: Record<string, number>
-): RetreatSelection {
-    return retreatSelection.revise(retreat, 'losses', losses, 'manual')
-}
-
-export function sendRetreating(
-    retreat: RetreatSelection,
-    destinations: RetreatDestination[]
-): RetreatSelection {
-    const sent = retreatSelection.revise(retreat, 'destinations', destinations, 'manual')
-    return retreatSelection.withdraw(sent, 'sentAlone')
-}
-
-export function setKeptInCorps(
-    retreat: RetreatSelection,
-    kept: Record<string, string>
-): RetreatSelection {
-    return retreatSelection.revise(retreat, 'kept', kept, 'manual')
-}
 
 export type AttackerValues = {
     feinting: true
@@ -164,7 +152,9 @@ export function setCommandersGoing(
 
 export interface BattleSelections {
     defence: DefenceSelection
+    lead: StagedSelectionState<LeadValues>
     retreat: RetreatSelection
+    retreatArrangement: RetreatArrangement
     attackers: AttackerSelection
     counter: StagedSelectionState<CounterValues>
     excessLosses: StagedSelectionState<ExcessLossValues>
@@ -175,7 +165,9 @@ export interface BattleSelections {
 export function emptyBattleSelections(): BattleSelections {
     return {
         defence: defenceSelection.empty(),
+        lead: leadSelection.empty(),
         retreat: retreatSelection.empty(),
+        retreatArrangement: {},
         attackers: attackerSelection.empty(),
         counter: counterSelection.empty(),
         excessLosses: excessLossSelection.empty(),
@@ -194,9 +186,75 @@ const DEFENCE: StepSelection = {
     undo: (selections) => ({ ...selections, defence: defenceSelection.undo(selections.defence) })
 }
 
+const LEAD: StepSelection = {
+    hasManual: (selections) => leadSelection.hasManual(selections.lead),
+    undo: (selections) => ({ ...selections, lead: leadSelection.undo(selections.lead) })
+}
+
 const RETREAT: StepSelection = {
     hasManual: (selections) => retreatSelection.hasManual(selections.retreat),
-    undo: (selections) => ({ ...selections, retreat: retreatSelection.undo(selections.retreat) })
+    undo: (selections) => {
+        const retreat = retreatSelection.undo(selections.retreat)
+        const backToTheLosses =
+            retreatSelection.value(selections.retreat, 'lossesTaken') === true &&
+            retreatSelection.value(retreat, 'lossesTaken') === undefined
+        // Other losses can change who retreats, so where the units were sent does not survive them.
+        return {
+            ...selections,
+            retreat,
+            retreatArrangement: backToTheLosses
+                ? { losses: selections.retreatArrangement.losses }
+                : selections.retreatArrangement
+        }
+    }
+}
+
+export function setRetreatLosses(
+    selections: BattleSelections,
+    losses: Record<string, number>
+): BattleSelections {
+    return { ...selections, retreatArrangement: { ...selections.retreatArrangement, losses } }
+}
+
+export function takeRetreatLosses(selections: BattleSelections): BattleSelections {
+    return {
+        ...selections,
+        retreat: retreatSelection.set(selections.retreat, 'lossesTaken', true, 'manual')
+    }
+}
+
+export function sendRetreating(
+    selections: BattleSelections,
+    destinations: RetreatDestination[]
+): BattleSelections {
+    return {
+        ...selections,
+        retreat: retreatSelection.clearFrom(selections.retreat, 'sentAlone'),
+        retreatArrangement: { ...selections.retreatArrangement, destinations }
+    }
+}
+
+export function setKeptInCorps(
+    selections: BattleSelections,
+    kept: Record<string, string>
+): BattleSelections {
+    return {
+        ...selections,
+        retreat: retreatSelection.withdraw(selections.retreat, 'movingCommander'),
+        retreatArrangement: { ...selections.retreatArrangement, kept }
+    }
+}
+
+export function liftCommander(selections: BattleSelections, commanderId: string): BattleSelections {
+    return {
+        ...selections,
+        retreat: retreatSelection.set(
+            retreatSelection.withdraw(selections.retreat, 'sentAlone'),
+            'movingCommander',
+            commanderId,
+            'manual'
+        )
+    }
 }
 
 const ATTACKERS: StepSelection = {
@@ -232,6 +290,7 @@ const ADVANCE: StepSelection = {
 
 const SELECTIONS_BY_STEP_EARLIEST_FIRST: Record<StageKind, readonly StepSelection[]> = {
     [StageKind.Defence]: [DEFENCE],
+    [StageKind.DefenceLeaders]: [LEAD],
     [StageKind.Retreat]: [DEFENCE, RETREAT],
     [StageKind.Feint]: [ATTACKERS],
     [StageKind.Declaration]: [ATTACKERS],

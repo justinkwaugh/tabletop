@@ -4,6 +4,7 @@
     import { lossSummary, type AttackLosses } from '$lib/model/attackLosses.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import LossAccount from './LossAccount.svelte'
+    import LostUnits from './LostUnits.svelte'
 
     let { losses }: { losses: AttackLosses } = $props()
 
@@ -41,6 +42,13 @@
 <div class="nt-loss-rule">
     <SwelledRule>{@render words()}</SwelledRule>
 </div>
+<div class="nt-loss-rule-units">
+    {#each [losses.attacker, losses.defender] as side (side.playerId)}
+        {#if side.taken.length > 0}
+            <span><LostUnits {side} /></span>
+        {/if}
+    {/each}
+</div>
 {#if explaining}
     <LossAccount {losses} onclose={() => (explaining = false)} />
 {/if}
@@ -49,6 +57,19 @@
     .nt-loss-rule {
         max-width: 60ch;
         padding: 2px 0;
+    }
+
+    .nt-loss-rule-units {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 22px;
+        padding-bottom: 7px;
+    }
+
+    .nt-loss-rule-units span {
+        display: inline-flex;
+        flex-wrap: wrap;
+        row-gap: 2px;
     }
 
     .nt-loss-rule-words {

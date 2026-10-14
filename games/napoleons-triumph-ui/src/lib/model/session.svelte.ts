@@ -9,6 +9,7 @@ import {
     CounterAttack,
     DeclareAttack,
     DeclareDefense,
+    LeadDefense,
     DeclareFeint,
     DeployArmy,
     EndTurn,
@@ -59,6 +60,8 @@ import {
     type PlantedFlag
 } from '$lib/utils/flagLayout.js'
 import { topmostAt } from '$lib/utils/blockShape.js'
+import { approachPlates, plateSamples, type ApproachPlate } from '$lib/utils/approachPlates.js'
+import { SYMBOL_TAGS, type SymbolTag } from '$lib/utils/approachSymbols.js'
 import {
     heldApproaches,
     layoutPieces,
@@ -72,6 +75,7 @@ import {
     StageKind,
     chooseFeint,
     chooseRetreat,
+    takeRetreatLosses,
     emptyBattleSelections,
     hasManualBattleSelection,
     setAttackCommand,
@@ -85,10 +89,11 @@ import {
     battleStageOf,
     commandersGoing,
     committedUnits,
-    keepWithCommander,
+    liftRetreatingCommander,
     keptByCommander,
     moveLossOnto,
     pickUnit,
+    committedRoles,
     rolesShown,
     sendCommander,
     sendRetreatTo,
@@ -99,7 +104,8 @@ import {
     blockMarkOf,
     shownMovedInUnitStrip,
     type BlockMark,
-    type BlockMarkContext
+    type BlockMarkContext,
+    type UnitLook
 } from './blockMark.js'
 import {
     chooseCorpsUnit,
@@ -329,6 +335,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     heldApproaches: HeldApproach[] = $derived(heldApproaches(this.sprites))
 
+    approachPlates: ApproachPlate[] = $derived(approachPlates(this.heldApproaches))
+
+    approachSymbolTags: SymbolTag[] = $derived.by(() => {
+        if (!this.approachSymbolsShown) {
+            return []
+        }
+        const onPlates = this.approachPlates.map((plate) => plate.side)
+        return SYMBOL_TAGS.filter((tag) => !onPlates.includes(tag.key))
+    })
+
     flagView: FlagView = $derived({ rotation: this.boardRotation, scale: flagScale(this.zoom) })
 
     private plantedFlags: PlantedFlag[] = $derived.by(() => {
@@ -354,6 +370,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             this.flagView,
             [
                 ...arrowsToKeepClear(arrowApproaches, this.zoom),
+                ...plateSamples(this.approachPlates),
                 ...this.movementTrails.flatMap((trail) => [
                     ...lineSamples(trail.line),
                     numberOfTrail(trail, this.flagView.scale).at
@@ -408,6 +425,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     battleRoles: Record<string, BattleRole> = $derived(rolesShown(this.attack, this.battleStage))
+    /** The roles the units of the fight were named to, whatever is being picked in the step now open. */
+    foughtRoles: Record<string, BattleRole> = $derived(
+        this.attack ? committedRoles(this.attack) : {}
+    )
 
     /** Which way the settled result of the attack in progress decides it, and why. */
     attackVerdict: string | undefined = $derived.by(() => {
@@ -592,7 +613,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
             return this.setupTargets
         }
         if (stage?.kind === StageKind.Retreat) {
-            return retreatTargets(stage.plan.room.keys())
+            const sending = !stage.choosingLosses && stage.movingCommander === undefined
+            return sending ? retreatTargets(stage.plan.room.keys()) : []
         }
         if (this.wayChoice) {
             return wayTargets(this.stepsOfTheWay)
@@ -629,8 +651,26 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.facesCoveredForPicture = covered
     }
 
-    faceOnTheMap(unit: ProjectedUnit): Face | undefined {
-        return this.facesCoveredForPicture ? undefined : this.visibleFace(unit)
+    /** The viewer's own unit standing face-up to the enemy, as it does until the end-of-turn shuffle hides it again (rule 7). */
+    seenByTheEnemy(unit: ProjectedUnit): boolean {
+        return unit.playerId === this.myPlayerId && unit.shown !== undefined
+    }
+
+    /** How a unit is drawn for the viewer. The fixed battery stands face-up all game, so its own mark says the enemy sees it. */
+    lookOf(unit: ProjectedUnit): UnitLook {
+        const fixed = unit.fixed === true
+        return {
+            face: this.visibleFace(unit),
+            seen: !fixed && this.seenByTheEnemy(unit),
+            fixed
+        }
+    }
+
+    /** Neither face nor mark while faces are covered for a picture saved without unit types. */
+    lookOnTheMap(unit: ProjectedUnit): UnitLook {
+        return this.facesCoveredForPicture
+            ? { face: undefined, seen: false, fixed: false }
+            : this.lookOf(unit)
     }
 
     visibleFace(unit: ProjectedUnit): Face | undefined {
@@ -640,7 +680,6 @@ export class NapoleonsTriumphGameSession extends GameSession<
     flagBearer(group: PieceGroup, hasCommanded: boolean): FlagBearer {
         return {
             colors: this.armyColors(group.playerId),
-            visibleFaces: group.units.flatMap((unit) => this.faceOnTheMap(unit) ?? []),
             hasCommanded
         }
     }
@@ -971,10 +1010,17 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
-    keepInCorps(commanderId: string, unitId: string) {
+    takeRetreatLosses() {
+        const stage = this.battleStage
+        if (stage?.kind === StageKind.Retreat && stage.choosingLosses && stage.plan.lossesValid) {
+            this.stageBattle(takeRetreatLosses(this.battle))
+        }
+    }
+
+    liftRetreatingCommander(commanderId: string) {
         const stage = this.battleStage
         if (stage?.kind === StageKind.Retreat) {
-            this.stageBattle(keepWithCommander(stage, this.battle, commanderId, unitId))
+            this.stageBattle(liftRetreatingCommander(stage, this.battle, commanderId))
         }
     }
 
@@ -1017,17 +1063,23 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stage = this.battleStage
         if (stage?.kind === StageKind.Defence && stage.defenders.length > 0 && !stage.problem) {
             await this.applyAction(
-                this.createPlayerAction(DeclareDefense, {
-                    unitIds: stage.defenders,
-                    leaderIds: stage.leaders
-                })
+                this.createPlayerAction(DeclareDefense, { unitIds: stage.defenders })
+            )
+        }
+    }
+
+    async leadDefense() {
+        const stage = this.battleStage
+        if (stage?.kind === StageKind.DefenceLeaders && !stage.problem) {
+            await this.applyAction(
+                this.createPlayerAction(LeadDefense, { leaderIds: stage.leaders })
             )
         }
     }
 
     async commitRetreat() {
         const stage = this.battleStage
-        if (stage?.kind === StageKind.Retreat && stage.plan.lossesValid) {
+        if (stage?.kind === StageKind.Retreat && !stage.choosingLosses && stage.plan.lossesValid) {
             const { losses, destinations, kept } = stage.plan
             await this.applyAction(
                 this.createPlayerAction(Retreat, {

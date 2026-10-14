@@ -16,7 +16,7 @@ import {
     isDeclareFeint,
     isMove,
     isOccupy,
-    isPressAttack,
+    isLeadDefense,
     isRegroup,
     isOnMap,
     samePosition,
@@ -144,7 +144,7 @@ interface Subject {
     unitIds: string[]
 }
 
-function unitsNamedBy(action: GameAction, attack: VisibleAttack | undefined): string[] {
+function unitsNamedBy(action: GameAction): string[] {
     if (isDeclareDefense(action) || isCounterAttack(action) || isAdvance(action)) {
         return action.unitIds
     }
@@ -160,7 +160,7 @@ function unitsNamedBy(action: GameAction, attack: VisibleAttack | undefined): st
     if (isAttach(action)) {
         return [action.unitId]
     }
-    return isPressAttack(action) ? (attack?.defenseLeaderIds ?? []) : []
+    return isLeadDefense(action) ? action.leaderIds : []
 }
 
 function subjectOf(action: GameAction, before: Standing, after: Standing): Subject {
@@ -181,7 +181,7 @@ function subjectOf(action: GameAction, before: Standing, after: Standing): Subje
             ...movements.flatMap((movement) => movement.unitIds),
             ...lost.map((unit) => unit.id),
             ...setDown.map((unit) => unit.id),
-            ...unitsNamedBy(action, attack)
+            ...unitsNamedBy(action)
         ],
         locales: [
             ...movements.flatMap((movement) => [

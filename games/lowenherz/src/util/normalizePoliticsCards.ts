@@ -1,6 +1,7 @@
 import { assert } from '@tabletop/common'
 import { PoliticsCardType, type PoliticsCard } from '../definition/politicsCards.js'
 import type { LowenherzProjectedState } from '../model/gameState.js'
+import { moveLegacyTurnOrderToTurnManager } from './legacyTurnOrder.js'
 
 export function normalizePoliticsCards(data: LowenherzProjectedState): LowenherzProjectedState {
     const hasCopyId = (card: PoliticsCard) => Object.hasOwn(card, 'id')
@@ -65,7 +66,7 @@ export function normalizePoliticsCards(data: LowenherzProjectedState): Lowenherz
 }
 
 export function normalizeLowenherzState(data: LowenherzProjectedState): LowenherzProjectedState {
-    const normalized = normalizePoliticsCards(data)
+    const normalized = normalizePoliticsCards(moveLegacyTurnOrderToTurnManager(data))
     return {
         ...normalized,
         actionDeckBacks:

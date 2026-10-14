@@ -28,12 +28,16 @@ import { inReadingOrder } from './unitTypeOrder.js'
 export const BAR_HALF_THICKNESS = 6
 const BAR_GAP = 3
 const COLUMN_GAP = 6
-const GROUP_GAP = 5
+const RESERVE_ROW_GAP = 5
+const FILE_GROUP_GAP = 10
 const MIN_RANK_SPACING = 7
 const FULL_RANK_SPACING = BLOCK_THICKNESS + 2
 const LEVEL_TOLERANCE = 0.5
 const SETTLE_STEP = 12
 const SETTLE_CLEARANCE = 3
+// Deliberate: a reserve stands as far from the pieces fronting an approach as groups in one file do,
+// so the two are never read as one stack.
+const RESERVE_CLEARANCE = FILE_GROUP_GAP
 const OVERLAP_COST = 12
 const STRAY_COST = 3
 const DRIFT_COST = 0.02
@@ -156,6 +160,19 @@ function rankSpacing(count: number, room: number, loose: boolean): number {
     return Math.max(MIN_RANK_SPACING, Math.min(FULL_RANK_SPACING, fitted))
 }
 
+// A file with groups behind one another gives room to the gaps between them as well as to its ranks.
+// Where its blocks lie over one another, each gap also takes the overlap back, so the fit allows for both.
+function fileSpacing(ranks: number, gaps: number, room: number, loose: boolean): number {
+    const open = rankSpacing(ranks, room - gaps * FILE_GROUP_GAP, loose)
+    if (gaps === 0 || open >= BLOCK_THICKNESS) {
+        return open
+    }
+    const closedUp =
+        (room - BLOCK_THICKNESS - gaps * (BLOCK_THICKNESS + FILE_GROUP_GAP)) /
+        Math.max(1, ranks - 1 - gaps)
+    return Math.max(MIN_RANK_SPACING, Math.min(open, closedUp))
+}
+
 export function midpoint(points: readonly Point[]): Point {
     return {
         x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
@@ -226,6 +243,11 @@ function filesAcross(bar: ApproachGeometry): number {
     return bar.length > BLOCK_LENGTH * 2 ? 2 : 1
 }
 
+/** How far along its bar, from the middle, the pieces fronting an approach reach. */
+export function reachOfFiles(bar: ApproachGeometry): number {
+    return filesAcross(bar) === 1 ? BLOCK_LENGTH / 2 : BLOCK_LENGTH + COLUMN_GAP / 2
+}
+
 /**
  * A file the viewer reads runs Guard to artillery from the top of the screen down where it stands
  * more upright than level on screen, and from inside its locale out to the bar where it lies level.
@@ -267,18 +289,23 @@ function layoutBlockers(
     )
     const depth = Math.hypot(locale.anchor.x - bar.centre.x, locale.anchor.y - bar.centre.y)
     const loose = options.looseLocales?.includes(groups[0].position.locale) === true
-    const spacing = rankSpacing(
+    const gapsInAFile = Math.max(...filed.map(({ groupsAhead }) => groupsAhead))
+    const spacing = fileSpacing(
         deepest,
+        gapsInAFile,
         Math.max(BLOCK_THICKNESS, depth - BAR_HALF_THICKNESS),
         loose
     )
+    // Deliberate: groups filed one behind another stand a clear gap apart even where their own
+    // blocks lie over one another, so a detached unit behind a corps is not read as part of it.
+    const betweenGroups = Math.max(0, BLOCK_THICKNESS - spacing) + FILE_GROUP_GAP
     const angle = angleFacingAcross(bar)
     const first = BAR_HALF_THICKNESS + BAR_GAP + BLOCK_THICKNESS / 2
     const frontToRear = filed.map(({ group, file, ranksAhead, groupsAhead }) => {
         const sideways =
             files === 1 ? 0 : (((file + firstFile) % files) - 0.5) * (BLOCK_LENGTH + COLUMN_GAP)
         const fromTheBar = ranksFromTheBar(group, bar, options).map((unit, place) => {
-            const inward = first + (ranksAhead + place) * spacing + groupsAhead * GROUP_GAP
+            const inward = first + (ranksAhead + place) * spacing + groupsAhead * betweenGroups
             return {
                 unit,
                 angle,
@@ -343,7 +370,7 @@ function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBl
     const rows = Math.ceil(groups.length / columns)
     const tallest = Math.max(...groups.map((group) => group.units.length))
     const spacing = rankSpacing(tallest * rows, room, loose)
-    const rowHeight = BLOCK_THICKNESS + (tallest - 1) * spacing + GROUP_GAP * 2
+    const rowHeight = BLOCK_THICKNESS + (tallest - 1) * spacing + RESERVE_ROW_GAP * 2
     return groups.map((group, index) => {
         const column = index % columns
         const row = Math.floor(index / columns)
@@ -352,7 +379,7 @@ function arrangeReserve(groups: PlacedGroup[], options: LayoutOptions): PlacedBl
         const top =
             -(rows * rowHeight) / 2 +
             row * rowHeight +
-            GROUP_GAP +
+            RESERVE_ROW_GAP +
             BLOCK_THICKNESS / 2 +
             ((tallest - group.units.length) * spacing) / 2
         const singledOutAtTheBottom =
@@ -393,7 +420,7 @@ function shiftClearOf(
             Math.hypot(block.centre.x - locale.anchor.x, block.centre.y - locale.anchor.y) <
             reach * 2 + BLOCK_LENGTH
     )
-    const onPlaced = coveredBy(near, SETTLE_CLEARANCE)
+    const onPlaced = coveredBy(near, RESERVE_CLEARANCE)
     const covered = (shift: Point) =>
         samples.filter((sample) => onPlaced(moved(sample, shift))).length
     const stay = { x: 0, y: 0 }

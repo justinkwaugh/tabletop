@@ -150,7 +150,12 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
         const { wake, sent } = waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
         await wake.chooseKind('return')
         expect(sent).not.toHaveBeenCalled()
-        expect(wake.question).toEqual({ kind: 'returnBank', index: 0, banks: [Suit.Discord, Suit.Order] })
+        expect(wake.question).toEqual({
+            kind: 'returnBank',
+            index: 0,
+            banks: [Suit.Discord, Suit.Order],
+            counts: { ...BANKS, order: 1 }
+        })
         await wake.chooseBank(Suit.Order)
         expect(sent).toHaveBeenCalledExactlyOnceWith([{ kind: 'return', toSuit: Suit.Order }], undefined)
     })
@@ -163,7 +168,12 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
         await wake.chooseKind('return')
         expect(wake.answeredLines).toEqual(['Returned 1 favor to the Discord bank.'])
         await wake.chooseKind('return')
-        expect(wake.question).toEqual({ kind: 'returnBank', index: 1, banks: [Suit.Discord, Suit.Arcane] })
+        expect(wake.question).toEqual({
+            kind: 'returnBank',
+            index: 1,
+            banks: [Suit.Discord, Suit.Arcane],
+            counts: { discord: 1, arcane: 1, order: 2, hearth: 2, beast: 2, nomad: 2 }
+        })
         await wake.chooseBank(Suit.Arcane)
         expect(sent).toHaveBeenCalledExactlyOnceWith(
             [
@@ -172,6 +182,116 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
             ],
             undefined
         )
+    })
+
+    /** R-4.1.1-H1 — the bank picker counts each bank as the steps before it leave it, as its banks are judged. */
+    describe('the counts beside the banks asked', () => {
+        const banksAsked = (wake: ReturnType<typeof waking>['wake']) => {
+            const question = wake.question
+            if (question?.kind !== 'returnBank') throw new Error('no bank is asked')
+            return question
+        }
+        // Each bank offered shows the least count, and no bank shows less.
+        const offeredAtLeast = (question: { banks: Suit[]; counts: Record<Suit, number> }) => {
+            const least = Math.min(...Object.values(question.counts))
+            expect(question.banks.map((suit) => question.counts[suit])).toEqual(
+                question.banks.map(() => least)
+            )
+            expect(FAVOR_BANK_ORDER.filter((suit) => question.counts[suit] === least).sort()).toEqual(
+                [...question.banks].sort()
+            )
+        }
+        const AFTER_ORDER = { arcane: 1, beast: 2, discord: 1, hearth: 3, nomad: 2, order: 0 }
+
+        it('Return twice: step 2 counts the bank step 1 returned to', async () => {
+            const { wake, sent } = waking({ value: 3, mobSide: true }, { favorBank: AFTER_ORDER })
+            await wake.chooseKind('return')
+            expect(wake.answeredLines).toEqual(['Returned 1 favor to the Order bank.'])
+            await wake.chooseKind('return')
+            const asked = banksAsked(wake)
+            expect(asked.index).toBe(1)
+            expect(asked.counts).toEqual({ ...AFTER_ORDER, order: 1 })
+            expect([...asked.banks].sort()).toEqual([Suit.Arcane, Suit.Discord, Suit.Order].sort())
+            offeredAtLeast(asked)
+            await wake.chooseBank(Suit.Order)
+            expect(sent).toHaveBeenCalledExactlyOnceWith(
+                [
+                    { kind: 'return', toSuit: Suit.Order },
+                    { kind: 'return', toSuit: Suit.Order }
+                ],
+                undefined
+            )
+        })
+
+        it('one step: the banks asked are counted as the table shows them', async () => {
+            const { wake } = waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
+            await wake.chooseKind('return')
+            const asked = banksAsked(wake)
+            expect(asked.counts).toEqual({ ...BANKS, order: 1 })
+            offeredAtLeast(asked)
+        })
+
+        it('Place, then Return: a favor placed from the board leaves the banks as they are', async () => {
+            const { wake } = waking({ value: 3, mobSide: true }, { favorBank: { ...BANKS, order: 1 } })
+            await wake.chooseKind('place')
+            await wake.chooseKind('return')
+            const asked = banksAsked(wake)
+            expect(asked.index).toBe(1)
+            expect(asked.counts).toEqual({ ...BANKS, order: 1 })
+            offeredAtLeast(asked)
+        })
+
+        it('Vow of Kinship: a favor placed from the Nomad bank is counted off it on step 2', async () => {
+            const banks = { arcane: 1, beast: 2, discord: 2, hearth: 2, nomad: 2, order: 2 }
+            const { wake, sent } = waking(
+                { value: 3, mobSide: true },
+                { favorBank: banks },
+                { favor: 0, advisers: [{ cardId: 'denizen.nomad.vow-of-kinship', faceUp: true }] }
+            )
+            expect(wake.question).toEqual({ kind: 'favorStep', index: 0, options: ['place', 'return'] })
+            await wake.chooseKind('place')
+            await wake.chooseKind('return')
+            const asked = banksAsked(wake)
+            expect(asked.counts).toEqual({ ...banks, nomad: 1 })
+            expect([...asked.banks].sort()).toEqual([Suit.Arcane, Suit.Nomad].sort())
+            offeredAtLeast(asked)
+            await wake.chooseBank(Suit.Nomad)
+            expect(sent).toHaveBeenCalledExactlyOnceWith(
+                [{ kind: 'place' }, { kind: 'return', toSuit: Suit.Nomad }],
+                undefined
+            )
+        })
+
+        it('Return, then Place: step 2 asks no bank, and the Wake sends both', async () => {
+            const { wake, sent } = waking({ value: 3, mobSide: true }, { favorBank: AFTER_ORDER })
+            await wake.chooseKind('return')
+            expect(wake.question).toEqual({ kind: 'favorStep', index: 1, options: ['place', 'return'] })
+            await wake.chooseKind('place')
+            expect(sent).toHaveBeenCalledExactlyOnceWith(
+                [{ kind: 'return', toSuit: Suit.Order }, { kind: 'place' }],
+                undefined
+            )
+        })
+
+        it('Undo between the steps counts the banks as the table shows them again', async () => {
+            vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
+            const tied = { ...AFTER_ORDER, arcane: 0, discord: 0 }
+            const { session, wake } = waking({ value: 3, mobSide: true }, { favorBank: tied })
+            await wake.chooseKind('return')
+            expect(banksAsked(wake).counts).toEqual(tied)
+            await wake.chooseBank(Suit.Order)
+            await wake.chooseKind('return')
+            expect(banksAsked(wake).counts).toEqual({ ...tied, order: 1 })
+            await session.undo()
+            await session.undo()
+            const again = banksAsked(wake)
+            expect(again.index).toBe(0)
+            expect(again.counts).toEqual(tied)
+            expect([...again.banks].sort()).toEqual([Suit.Arcane, Suit.Discord, Suit.Order].sort())
+            await wake.chooseBank(Suit.Discord)
+            await wake.chooseKind('return')
+            expect(banksAsked(wake).counts).toEqual({ ...tied, discord: 1 })
+        })
     })
 
     it('after the People’s Favor, the site asks its take, and that tap sends the Wake with it', async () => {
@@ -226,7 +346,12 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
     it('while a bank is asked, a bank not tied for the least and a kind are never picked', async () => {
         const { wake, sent } = waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
         await wake.chooseKind('return')
-        const asked = { kind: 'returnBank', index: 0, banks: [Suit.Discord, Suit.Order] }
+        const asked = {
+            kind: 'returnBank',
+            index: 0,
+            banks: [Suit.Discord, Suit.Order],
+            counts: { ...BANKS, order: 1 }
+        }
         await wake.chooseBank(Suit.Arcane)
         expect(wake.question).toEqual(asked)
         await wake.chooseKind('place')

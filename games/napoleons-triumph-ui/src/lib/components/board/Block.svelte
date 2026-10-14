@@ -4,7 +4,7 @@
     import type { RoleMark } from '$lib/model/roleMark.js'
     import { washedOut, type ArmyColors } from '$lib/utils/armyColors.js'
     import { BLOCK_LENGTH, BLOCK_THICKNESS } from '$lib/utils/blockShape.js'
-    import { faceWidth } from '$lib/utils/faceLayout.js'
+    import { BLOCK_SYMBOL_HEIGHT, BLOCK_SYMBOL_WIDTH, faceWidth } from '$lib/utils/faceLayout.js'
 
     let {
         x,
@@ -14,6 +14,8 @@
         face,
         dimmed = false,
         moved = false,
+        seen = false,
+        fixed = false,
         roleMark
     }: {
         x: number
@@ -23,21 +25,37 @@
         face?: Face
         dimmed?: boolean
         moved?: boolean
+        /** The viewer's own unit that the enemy has seen: its owner sees every face, so this one is marked. */
+        seen?: boolean
+        /** The battery that never moves (rule 6, step 9), as both players know. */
+        fixed?: boolean
         roleMark?: RoleMark
     } = $props()
 
     const ROLE_MARK_AT = BLOCK_LENGTH / 2 - 10
-    const SYMBOL_WIDTH = 16
     const STRONGEST = 3
     // A loss stands clear of both the end of the block and the symbols of the strongest unit, the same place on every block.
-    const HEAVY_MARK_AT = (faceWidth(STRONGEST, SYMBOL_WIDTH) / 2 + BLOCK_LENGTH / 2) / 2
+    const HEAVY_MARK_AT = (faceWidth(STRONGEST, BLOCK_SYMBOL_WIDTH) / 2 + BLOCK_LENGTH / 2) / 2
     const MOVED_DOT_AT = BLOCK_LENGTH / 2 - 8
+    const SEEN_MARK_AT = -BLOCK_LENGTH / 2 + 11
+    const SEEN_MARK_LIDS = 'M-6.5 0 Q0 -5.6 6.5 0 Q0 5.6 -6.5 0 Z'
     const LETTERLESS_ROLE_LOZENGE = 'M0 -4.6 L4.2 0 L0 4.6 L-4.2 0 Z'
+    const FIXED_MARK_FROM_END = 4
+    const FIXED_MARK_DEPTH = 8
+    const FIXED_MARK_HALF_HEIGHT = 5.5
+    const FIXED_ROLE_MARK_AT = BLOCK_LENGTH / 2 - FIXED_MARK_FROM_END - FIXED_MARK_DEPTH - 12
     const EDGE = 3
     // Workaround: stacked blocks leave slivers between them, so each takes taps a little beyond its edges.
     const HIT_MARGIN = 2
 
     const paint = $derived(dimmed ? washedOut(colors) : colors)
+
+    function roleMarkAt(mark: RoleMark): number {
+        if (fixed) {
+            return FIXED_ROLE_MARK_AT
+        }
+        return mark.heavy ? HEAVY_MARK_AT : ROLE_MARK_AT
+    }
 </script>
 
 <g transform="translate({x} {y}) rotate({angle})">
@@ -64,19 +82,32 @@
         rx="1.5"
         fill={paint.block}
     ></rect>
+    {#if fixed}
+        <g transform="translate(0 {-EDGE / 2})" data-fixed-battery>
+            <title>The fixed battery: it never moves</title>
+            {#each [-1, 1] as end (end)}
+                {@const base = end * (BLOCK_LENGTH / 2 - FIXED_MARK_FROM_END)}
+                <polygon
+                    points="{base},{-FIXED_MARK_HALF_HEIGHT} {base},{FIXED_MARK_HALF_HEIGHT} {base -
+                        end * FIXED_MARK_DEPTH},0"
+                    fill={paint.ink}
+                ></polygon>
+            {/each}
+        </g>
+    {/if}
     {#if face}
         <g transform="translate(0 {-EDGE / 2})" data-unit-face>
             <UnitFace
                 {face}
                 ink={paint.ink}
                 ground={paint.block}
-                symbolHeight={11}
-                symbolWidth={SYMBOL_WIDTH}
+                symbolHeight={BLOCK_SYMBOL_HEIGHT}
+                symbolWidth={BLOCK_SYMBOL_WIDTH}
             />
         </g>
     {/if}
     {#if roleMark}
-        <g transform="translate({roleMark.heavy ? HEAVY_MARK_AT : ROLE_MARK_AT} {-EDGE / 2})">
+        <g transform="translate({roleMarkAt(roleMark)} {-EDGE / 2})">
             {#if roleMark.letter}
                 <text
                     y={roleMark.heavy ? 4.6 : 4}
@@ -91,6 +122,19 @@
             {:else}
                 <path d={LETTERLESS_ROLE_LOZENGE} fill={paint.ink}></path>
             {/if}
+        </g>
+    {/if}
+    {#if seen}
+        <g transform="translate({SEEN_MARK_AT} {-EDGE / 2})" data-seen-by-the-enemy>
+            <title>Seen by the enemy until the turn ends</title>
+            <path
+                d={SEEN_MARK_LIDS}
+                fill="none"
+                stroke={paint.ink}
+                stroke-width="1.3"
+                stroke-linejoin="round"
+            ></path>
+            <circle r="2" fill={paint.ink}></circle>
         </g>
     {/if}
     {#if moved}

@@ -5,7 +5,14 @@ import {
     UnitType,
     type NapoleonsTriumphGameState
 } from '@tabletop/napoleons-triumph'
-import { createGame, deployBothArmies, failOnPageErrors, rearrange, tap } from './table.js'
+import {
+    createGame,
+    deployBothArmies,
+    failOnPageErrors,
+    leadDefence,
+    rearrange,
+    tap
+} from './table.js'
 
 failOnPageErrors()
 
@@ -157,6 +164,7 @@ test('reinforcement cavalry that is riding on takes its second command and press
     await page.getByRole('button', { name: 'Undo' }).click()
 
     await page.getByRole('button', { name: 'Press the attack' }).click()
+    await leadDefence(page)
     await expect(page.getByText('In reserve', { exact: true })).toBeVisible()
     await expect(rideSwitch).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Attack with no leading unit' })).toBeEnabled()

@@ -10,7 +10,8 @@ import {
     artillery,
     cavalry,
     infantry,
-    type PiecePlacement
+    type PiecePlacement,
+    defendWith
 } from '../testing/harness.js'
 import { RIDDEN_IN, reinforcementCavalryRiddenIn, waitOffMap } from '../testing/reinforcements.js'
 import { CommandKind } from './attack.js'
@@ -83,7 +84,7 @@ describe('cavalry attacking by road from the attack locale', () => {
         const french = game.playerOf(Side.French)
         const allied = game.playerOf(Side.Allied)
         game.act(ActionType.ThreatenAttack, french, { approach: approach(game, TAKEN, BEYOND) })
-        game.act(ActionType.DeclareDefense, allied, { unitIds: ['A-line'], leaderIds: [] })
+        defendWith(game, allied, ['A-line'])
         expect(() =>
             game.act(ActionType.DeclareFeint, french, { orders: [rider], end: FeintEnd.Approach })
         ).toThrow()
@@ -228,10 +229,7 @@ describe('threats by cavalry still a road away', () => {
         ])
         const french = game.playerOf(Side.French)
         game.act(ActionType.ThreatenAttack, french, { approach: approach(game, NEAR, TAKEN) })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-main'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-main'])
         expect(() => game.act(ActionType.PressAttack, french)).toThrow(/not valid/)
         expect(game.hydrated.unit('A-main').shown).toBeUndefined()
         expect(game.state.machineState).toBe(MachineState.FeintDecision)
@@ -277,10 +275,7 @@ describe('a cavalry corps of two or more units attacking by road', () => {
     it('halts beside an enemy corps that stands, so only one unit can ride up to feint', () => {
         const game = threatened()
         const french = game.playerOf(Side.French)
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-1'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-1'])
         expect(() =>
             game.act(ActionType.DeclareFeint, french, { orders: [corps], end: FeintEnd.Reserve })
         ).toThrow(/must halt/)
@@ -392,11 +387,9 @@ describe('the fixed battery', () => {
     it('fires where it stands', () => {
         const game = emplaced(NEAR, TAKEN)
         const french = game.playerOf(Side.French)
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
         game.act(ActionType.DeclareAttack, french, {
             orders: [gun],
             wide: false,
@@ -439,10 +432,7 @@ describe('the fixed battery', () => {
         })
         const french = game.playerOf(Side.French)
         game.act(ActionType.ThreatenAttack, french, { approach: facing })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
 
         expect(() => game.act(ActionType.PressAttack, french)).toThrow()
         game.act(ActionType.DeclareFeint, french, {
@@ -484,10 +474,7 @@ describe('feinting from reserve', () => {
         ])
         const french = game.playerOf(Side.French)
         game.act(ActionType.ThreatenAttack, french, { approach: approach(game, NEAR, TAKEN) })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
         game.act(ActionType.DeclareFeint, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
             end: FeintEnd.Reserve
@@ -609,11 +596,9 @@ describe('cavalry reinforcements riding on in their turn of entry', () => {
             approach: approach(game, TAKEN, HELD),
             plan: { kind: CommandKind.Corps, unitIds: ['F-off'] }
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-line'],
-            leaderIds: []
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-line'])
         game.act(ActionType.PressAttack, french)
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: [] })
         expect(() =>
             game.act(ActionType.DeclareAttack, french, {
                 orders: [{ ...corps, road: [], continues: true }],

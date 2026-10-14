@@ -6,6 +6,7 @@ export enum MachineState {
     Commanding = 'Commanding',
     DefenseResponse = 'DefenseResponse',
     FeintDecision = 'FeintDecision',
+    DefenseDeclaration = 'DefenseDeclaration',
     AttackDeclaration = 'AttackDeclaration',
     CounterAttackDecision = 'CounterAttackDecision',
     ResolvingAttack = 'ResolvingAttack',

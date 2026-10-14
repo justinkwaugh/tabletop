@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { ActionType } from '@tabletop/napoleons-triumph'
+import { ActionType, DefenseAwaits } from '@tabletop/napoleons-triumph'
 import { AttackMarkKind, attackMarkOf } from './attackMark.js'
 
 const THREAT = {
@@ -10,8 +10,9 @@ const THREAT = {
     counterAttackingUnitIds: [],
     defendingUnitIds: []
 }
-const STOOD = { ...THREAT, defendingUnitIds: ['d1'], defensePlan: { playerId: 'allied' } }
-const PRESSED = { ...THREAT, defendingUnitIds: ['d1'] }
+const STOOD = { ...THREAT, defendingUnitIds: ['d1'], awaits: DefenseAwaits.Feint }
+const PRESSED = { ...THREAT, defendingUnitIds: ['d1'], awaits: DefenseAwaits.Leaders }
+const LED = { ...THREAT, defendingUnitIds: ['d1'] }
 
 function action(type: ActionType, fields: Record<string, unknown> = {}): GameAction {
     return { id: 'a', gameId: 'g', type, source: ActionSource.User, ...fields }
@@ -34,8 +35,14 @@ describe('the mark of an attack on its approach', () => {
         )
     })
 
-    it('is the attacker’s from the moment the attack is pressed', () => {
+    it('is the attacker’s from the moment the attack is pressed, before the defence names its leading units and after', () => {
         expect(attackMarkOf(PRESSED).kind).toBe(AttackMarkKind.Attack)
+        expect(attackMarkOf(LED).kind).toBe(AttackMarkKind.Attack)
+    })
+
+    it('reads an attack whose defence named its leaders with its pieces the same way', () => {
+        const heldBack = { ...LED, defensePlan: { playerId: 'allied' } }
+        expect(attackMarkOf(heldBack).kind).toBe(AttackMarkKind.Threat)
     })
 
     it('is the attacker’s from the announcement of a Guard Attack, which cannot be called off', () => {

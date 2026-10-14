@@ -39,8 +39,6 @@ function buildState(board: ReturnType<typeof blankBoard>): HydratedLowenherzGame
         board,
         regions: [],
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: 'p1',
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: undefined,

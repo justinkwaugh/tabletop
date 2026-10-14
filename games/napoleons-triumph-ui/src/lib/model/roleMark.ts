@@ -24,7 +24,6 @@ export function roleMarkOf(role: BattleRole): RoleMark | undefined {
         case BattleRole.Advances:
         case BattleRole.RetreatsAlone:
             return {}
-        case BattleRole.Stays:
         case BattleRole.PassedBy:
             return undefined
     }

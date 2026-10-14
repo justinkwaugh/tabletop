@@ -1,4 +1,4 @@
-import { getSquare, SquareType } from '../model/board.js'
+import { getSquare, parseSquareKey, SquareType } from '../model/board.js'
 import type { HydratedLowenherzGameState } from '../model/gameState.js'
 
 export type HillScoringEntry = { playerId: string; points: number }
@@ -16,7 +16,7 @@ export function awardHillPowerPoints(state: HydratedLowenherzGameState): HillSco
         for (const region of state.regions) {
             if (region.owner !== playerState.playerId) continue
             for (const key of region.squareKeys) {
-                const [col, row] = key.split(',').map(Number)
+                const [col, row] = parseSquareKey(key)
                 if (getSquare(state.board, col, row)?.type === SquareType.Hill) hillCount++
             }
         }

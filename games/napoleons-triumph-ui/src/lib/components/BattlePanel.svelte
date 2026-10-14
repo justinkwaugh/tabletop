@@ -16,6 +16,7 @@
     import DeclareStep from './battle/DeclareStep.svelte'
     import DefenseStep from './battle/DefenseStep.svelte'
     import FeintStep from './battle/FeintStep.svelte'
+    import LeadStep from './battle/LeadStep.svelte'
     import Force from './battle/Force.svelte'
     import OccupyStep from './battle/OccupyStep.svelte'
     import LossRule from './battle/LossRule.svelte'
@@ -34,8 +35,9 @@
     }
 
     const WAITING: Record<AttackStep, string> = {
-        [MachineState.DefenseResponse]: 'to defend or give ground',
+        [MachineState.DefenseResponse]: 'to defend or retreat',
         [MachineState.FeintDecision]: 'to press the attack or call it a feint',
+        [MachineState.DefenseDeclaration]: 'to name the leading units of the defence',
         [MachineState.AttackDeclaration]: 'to declare the attack',
         [MachineState.CounterAttackDecision]: 'to counter-attack or hold',
         [MachineState.ResolvingAttack]: 'to settle the outcome',
@@ -65,7 +67,7 @@
     {@const attackers = living(attack.attackingUnitIds)}
     {@const defenders = living(attack.defendingUnitIds)}
     {@const counterAttackers = living(attack.counterAttackingUnitIds)}
-    {@const roles = gameSession.battleRoles}
+    {@const roles = gameSession.foughtRoles}
     {@const losses = gameSession.attackLosses}
     {@const verdict = gameSession.attackVerdict}
     <div class="nt-battle">
@@ -80,7 +82,7 @@
                 {#if attackers.length > 0}
                     <div>
                         <div class="nt-battle-faint">Attacking</div>
-                        <Force units={attackers} {roles} />
+                        <Force units={attackers} {roles} lettersOnly />
                     </div>
                 {/if}
                 {#if defenders.length > 0}
@@ -93,6 +95,7 @@
                         <Force
                             units={defenders}
                             roles={rolesBeforeTheCounterAttack(attack, roles)}
+                            lettersOnly
                         />
                     </div>
                 {/if}
@@ -101,7 +104,7 @@
         {#if counterAttackers.length > 0}
             <div>
                 <div class="nt-battle-faint">Counter-attacking</div>
-                <Force units={counterAttackers} {roles} />
+                <Force units={counterAttackers} {roles} lettersOnly />
             </div>
         {/if}
         {#if attack.feint}
@@ -110,7 +113,7 @@
             <ResultRule initialResult={attack.initialResult} finalResult={attack.finalResult} />
         {/if}
         {#if verdict}
-            <div class="nt-battle-prompt">{verdict}</div>
+            <div class="nt-battle-prompt nt-battle-verdict">{verdict}</div>
         {/if}
         {#if losses && anyLoss(losses)}
             <LossRule {losses} />
@@ -122,6 +125,8 @@
             </div>
         {:else if stage.kind === StageKind.Defence}
             <DefenseStep {stage} />
+        {:else if stage.kind === StageKind.DefenceLeaders}
+            <LeadStep {stage} />
         {:else if stage.kind === StageKind.Retreat}
             <RetreatStep {stage} />
         {:else if stage.kind === StageKind.Feint}
@@ -174,18 +179,12 @@
         max-width: 60ch;
     }
 
+    .nt-battle-verdict {
+        padding: 5px 0 6px;
+    }
+
     .nt-battle :global(.nt-battle-warning) {
         color: var(--nt-warn);
-    }
-
-    .nt-battle :global(.nt-battle-small) {
-        font-size: 12px;
-        padding: 1px 6px;
-    }
-
-    .nt-battle :global(.nt-chosen) {
-        background: var(--nt-ink);
-        color: var(--nt-ground);
     }
 
     .nt-battle :global(.nt-plain-button[disabled]) {

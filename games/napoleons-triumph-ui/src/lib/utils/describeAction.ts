@@ -15,6 +15,7 @@ import {
     isDeclareFeint,
     isDeployArmy,
     isEndTurn,
+    isLeadDefense,
     isMove,
     isOccupy,
     isPassBid,
@@ -111,7 +112,7 @@ function combat(metadata: CombatMetadata | undefined, game: DescribedGame): stri
     const parts: string[] = penalties(metadata.penalties, game, false)
     if (metadata.finalResult !== undefined && metadata.attackerWon !== undefined) {
         parts.push(
-            `Final result ${signed(metadata.finalResult)}: the attack ${metadata.attackerWon ? 'succeeds' : 'is thrown back'}.`
+            `Final result ${signed(metadata.finalResult)}: the attack ${metadata.attackerWon ? 'succeeds' : 'is defeated'}.`
         )
     }
     const steps = metadata.losses.reduce((sum, loss) => sum + loss.steps, 0)
@@ -186,7 +187,12 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
         return `${army} retreat from ${from}${when}${cost}.${committed}${broken}`
     }
     if (isPressAttack(action)) {
-        return `${army} press the attack; the defense leading units are shown.`
+        return `${army} press the attack.`
+    }
+    if (isLeadDefense(action)) {
+        return action.leaderIds.length === 0
+            ? `${army} name no leading unit.`
+            : `${army} lead the defence with ${count(action.leaderIds.length)}, now shown.`
     }
     if (isDeclareFeint(action)) {
         const stance = action.end === FeintEnd.Approach ? 'on the approach' : 'in reserve'
@@ -215,7 +221,7 @@ export function describeAction(action: GameAction, game: DescribedGame): string 
         return `${army} assign losses. ${combat(action.metadata, game)}`.trim()
     }
     if (isRegroup(action)) {
-        return `${army} regroup after the repulse.`
+        return `${army} regroup after their defeat.`
     }
     if (isAdvance(action)) {
         return `${army} bring ${count(action.unitIds.length)} up to block the approach.`

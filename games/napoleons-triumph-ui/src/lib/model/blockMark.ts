@@ -1,6 +1,13 @@
-import type { ProjectedUnit } from '@tabletop/napoleons-triumph'
+import type { Face, ProjectedUnit } from '@tabletop/napoleons-triumph'
 import type { BattleRole } from './battleStage.js'
 import { roleMarkOf, type RoleMark } from './roleMark.js'
+
+/** How a unit is drawn for one viewer: the face they may see, the mark on their own unit that the enemy has seen, and the mark of the fixed battery. */
+export interface UnitLook {
+    face: Face | undefined
+    seen: boolean
+    fixed: boolean
+}
 
 export interface BlockMark {
     pickable: boolean

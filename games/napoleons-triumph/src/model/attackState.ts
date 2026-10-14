@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import type { LocaleId } from '../components/battleMap.js'
 import { MachineState } from '../definition/states.js'
-import type { AttackStep } from './attack.js'
+import { DefenseAwaits, type AttackStep } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import type { Position } from './pieces.js'
 
@@ -23,8 +23,11 @@ export function attackStep(attack: AttackState): AttackStep {
     if (attack.defendingUnitIds.length === 0) {
         return MachineState.DefenseResponse
     }
-    if (attack.defensePlan !== undefined) {
+    if (attack.defensePlan !== undefined || attack.awaits === DefenseAwaits.Feint) {
         return MachineState.FeintDecision
+    }
+    if (attack.awaits === DefenseAwaits.Leaders) {
+        return MachineState.DefenseDeclaration
     }
     if (attack.initialResult === undefined) {
         return MachineState.AttackDeclaration

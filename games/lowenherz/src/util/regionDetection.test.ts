@@ -9,7 +9,7 @@ import { MachineState } from '../definition/states.js'
 function blankBoard(): LowenherzBoard {
     return {
         squares: Array.from({ length: BOARD_ROWS }, () =>
-            Array.from({ length: BOARD_COLS }, () => ({ type: SquareType.Blank }) as BoardSquare)
+            Array.from({ length: BOARD_COLS }, (): BoardSquare => ({ type: SquareType.Blank }))
         ),
         walls: []
     }
@@ -44,8 +44,6 @@ function buildStateWithRegions(regions: Region[]): HydratedLowenherzGameState {
         board: blankBoard(),
         regions,
         alliances: [],
-        turnOrder: playerIds,
-        firstPlayerId: 'p1',
         neutralColor: undefined,
         actionDeck: [],
         currentActionCard: undefined,

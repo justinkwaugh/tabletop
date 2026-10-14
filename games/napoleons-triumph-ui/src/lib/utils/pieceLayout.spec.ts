@@ -194,6 +194,68 @@ describe('units blocking an approach', () => {
     })
 })
 
+describe('groups filed one behind another on an approach', () => {
+    const GAP = 10
+
+    it('stand a clear gap apart, so a detached unit behind a corps is not read as part of it', () => {
+        const game = new TestGame()
+        game.deployBoth()
+        const { map } = game.hydrated
+        for (const facing of map
+            .passableApproachesOf(LOCALE)
+            .map((approach) => approach.neighbour)) {
+            arrangeBattlefield(game, [
+                ...[0, 1, 2, 3].map((index) => ({
+                    id: `corps-${index}`,
+                    side: Side.Allied,
+                    face: infantry(2),
+                    locale: LOCALE,
+                    facing,
+                    commanderId: 'langeron'
+                })),
+                {
+                    id: 'other-0',
+                    side: Side.Allied,
+                    face: infantry(2),
+                    locale: LOCALE,
+                    facing,
+                    commanderId: 'dokhturov'
+                },
+                { id: 'loose', side: Side.Allied, face: cavalry(3), locale: LOCALE, facing }
+            ])
+            const bar = APPROACH_GEOMETRY[map.approachBetween(LOCALE, facing).id]
+            const along = {
+                x: Math.cos((bar.angle * Math.PI) / 180),
+                y: Math.sin((bar.angle * Math.PI) / 180)
+            }
+            const placed = layoutPieces(game.hydrated, { rotation: 0 }).flatMap((sprite) =>
+                sprite.blocks.map((block) => ({
+                    group: sprite.group.key,
+                    inward:
+                        (block.centre.x - bar.centre.x) * bar.inward.x +
+                        (block.centre.y - bar.centre.y) * bar.inward.y,
+                    sideways:
+                        (block.centre.x - bar.centre.x) * along.x +
+                        (block.centre.y - bar.centre.y) * along.y
+                }))
+            )
+            let filedBehind = 0
+            for (const block of placed) {
+                for (const other of placed) {
+                    const sameFile = Math.abs(block.sideways - other.sideways) < 1
+                    if (block.group !== other.group && sameFile && other.inward > block.inward) {
+                        filedBehind += 1
+                        expect(other.inward - block.inward).toBeGreaterThanOrEqual(
+                            BLOCK_THICKNESS + GAP - 0.01
+                        )
+                    }
+                }
+            }
+            expect(filedBehind).toBeGreaterThan(0)
+        }
+    })
+})
+
 describe('a corps in reserve', () => {
     const SHARED = 64
 
@@ -239,6 +301,8 @@ describe('a corps in reserve', () => {
         expect(reserve).toHaveLength(4)
         const overlapping = reserve.flatMap(blockSamples).filter(coveredBy(blockers))
         expect(overlapping).toEqual([])
+        const crowding = reserve.flatMap(blockSamples).filter(coveredBy(blockers, 9.5))
+        expect(crowding).toEqual([])
         const { outline } = LOCALE_GEOMETRY[SHARED]
         for (const block of reserve) {
             expect(insidePolygon(block.centre, outline)).toBe(true)

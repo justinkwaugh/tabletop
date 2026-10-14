@@ -7,8 +7,7 @@ import {
     type ProjectedUnit,
     type RetreatLossGroup
 } from '@tabletop/napoleons-triumph'
-import type { StagedSelectionState } from '@tabletop/frontend-components'
-import { retreatSelection, type RetreatDestination, type RetreatValues } from './battleSelection.js'
+import type { RetreatArrangement, RetreatDestination } from './battleSelection.js'
 
 export enum RetreatFate {
     GunsLost = 'GunsLost',
@@ -21,15 +20,34 @@ export interface RetreatingUnit {
     unit: ProjectedUnit
     fate: RetreatFate
     loss: number
-    owesLoss: boolean
-    /** It owes its loss with other units, so steps of it can be moved between them. */
-    sharesLoss: boolean
     destination?: number
 }
 
 export interface AssignedLossGroup extends RetreatLossGroup {
     assigned: number
+    /** Its steps can fall on its units in more than one way. */
+    open: boolean
 }
+
+/** Rule 12: a retreat breaks a corps up. Its commander keeps one unit and goes where that unit goes; the rest retreat detached. */
+export interface RetreatingCommander {
+    commanderId: string
+    unitId: string
+    /** The units of his corps that retreat. With more than one of them, which he keeps is the player's to choose. */
+    corpsUnitIds: string[]
+    movable: boolean
+}
+
+export enum RetreatRowKind {
+    Retreats = 'Retreats',
+    NoRoom = 'NoRoom',
+    Lost = 'Lost'
+}
+
+/** The retreating units as the panel lists them: by the locale they go to, then those with no room, then those lost whatever is done. */
+export type RetreatRow =
+    | { kind: RetreatRowKind.Retreats; locale: number; units: RetreatingUnit[]; full: boolean }
+    | { kind: RetreatRowKind.NoRoom | RetreatRowKind.Lost; units: RetreatingUnit[] }
 
 export interface RetreatPlan {
     units: RetreatingUnit[]
@@ -41,6 +59,7 @@ export interface RetreatPlan {
     asked: RetreatDestination[]
     stranded: number
     kept: Record<string, string>
+    commanders: RetreatingCommander[]
     lossesValid: boolean
 }
 
@@ -89,10 +108,12 @@ function settleDestinations(
             send(unitId, locale)
         }
     }
+    // Deliberate: the order is fixed before anyone is placed. Asking for the roomiest locale unit by unit parts a corps between two locales as their room draws level.
+    const roomiestFirst = [...free].toSorted((a, b) => b[1] - a[1]).map(([locale]) => locale)
     for (const unit of survivors.filter((candidate) => result[candidate.id] === undefined)) {
-        const [roomiest] = [...free].toSorted((a, b) => b[1] - a[1])
-        if (roomiest && roomiest[1] > 0) {
-            send(unit.id, roomiest[0])
+        const locale = roomiestFirst.find((candidate) => (free.get(candidate) ?? 0) > 0)
+        if (locale !== undefined) {
+            send(unit.id, locale)
         }
     }
     return result
@@ -110,32 +131,46 @@ function fateWithoutRetreating(
 
 export function retreatPlan(
     state: HydratedNapoleonsTriumphGameState,
-    selection: StagedSelectionState<RetreatValues>
+    arrangement: RetreatArrangement
 ): RetreatPlan {
     const retreating = retreatingUnits(state)
     const lossGroups = retreatLossGroups(state)
     const room = retreatRoom(state)
-    const losses = retreatSelection.value(selection, 'losses') ?? suggestedLosses(state, lossGroups)
+    const losses = arrangement.losses ?? suggestedLosses(state, lossGroups)
     const lossOf = (unitId: string) => losses[unitId] ?? 0
     const survivors = retreating.filter(
         (unit) => fateWithoutRetreating(unit, lossOf(unit.id)) === undefined
     )
-    const asked = retreatSelection.value(selection, 'destinations') ?? []
+    const asked = arrangement.destinations ?? []
     const destinations = settleDestinations(survivors, room, asked)
-    const wantedKept = retreatSelection.value(selection, 'kept') ?? {}
-    const kept: Record<string, string> = {}
-    for (const commanderId of new Set(survivors.flatMap((unit) => unit.commanderId ?? []))) {
-        const corps = survivors.filter(
-            (unit) => unit.commanderId === commanderId && destinations[unit.id] !== undefined
-        )
-        const chosen = corps.find((unit) => unit.id === wantedKept[commanderId]) ?? corps[0]
-        if (chosen && corps.length > 1) {
-            kept[commanderId] = chosen.id
+    const wantedKept = arrangement.kept ?? {}
+    const commanders = [...new Set(survivors.flatMap((unit) => unit.commanderId ?? []))].flatMap(
+        (commanderId) => {
+            const corps = survivors.filter(
+                (unit) => unit.commanderId === commanderId && destinations[unit.id] !== undefined
+            )
+            const chosen = corps.find((unit) => unit.id === wantedKept[commanderId]) ?? corps.at(0)
+            return chosen
+                ? {
+                      commanderId,
+                      unitId: chosen.id,
+                      corpsUnitIds: corps.map((unit) => unit.id),
+                      movable: corps.length > 1
+                  }
+                : []
         }
-    }
+    )
+    const kept = Object.fromEntries(
+        commanders
+            .filter((commander) => commander.movable)
+            .map(({ commanderId, unitId }) => [commanderId, unitId])
+    )
     const groups = lossGroups.map((group) => ({
         ...group,
-        assigned: group.unitIds.reduce((sum, id) => sum + lossOf(id), 0)
+        assigned: group.unitIds.reduce((sum, id) => sum + lossOf(id), 0),
+        open:
+            group.unitIds.length > 1 &&
+            group.steps < group.unitIds.reduce((sum, id) => sum + strengthOf(state.unit(id)), 0)
     }))
     const units = retreating.map((unit) => {
         const loss = lossOf(unit.id)
@@ -146,10 +181,6 @@ export function retreatPlan(
                 fateWithoutRetreating(unit, loss) ??
                 (destination === undefined ? RetreatFate.NoRoom : RetreatFate.Retreats),
             loss,
-            owesLoss: lossGroups.some((group) => group.unitIds.includes(unit.id)),
-            sharesLoss: lossGroups.some(
-                (group) => group.unitIds.length > 1 && group.unitIds.includes(unit.id)
-            ),
             destination
         }
     })
@@ -163,6 +194,34 @@ export function retreatPlan(
         asked,
         stranded: survivors.filter((unit) => destinations[unit.id] === undefined).length,
         kept,
+        commanders,
         lossesValid: groups.every((group) => group.assigned === group.steps)
     }
+}
+
+/** The commander whose flag may be picked up, when the player has a choice of the unit he keeps. */
+export function movableCommander(
+    plan: RetreatPlan,
+    commanderId: string | undefined
+): RetreatingCommander | undefined {
+    return plan.commanders.find(
+        (commander) => commander.movable && commander.commanderId === commanderId
+    )
+}
+
+export function retreatRows(plan: RetreatPlan): RetreatRow[] {
+    const withFate = (fate: RetreatFate) => plan.units.filter((unit) => unit.fate === fate)
+    const going: RetreatRow[] = [...plan.room].map(([locale, free]) => {
+        const units = plan.units.filter((unit) => unit.destination === locale)
+        return { kind: RetreatRowKind.Retreats, locale, units, full: units.length >= free }
+    })
+    const lost = plan.units.filter(
+        (unit) => unit.fate === RetreatFate.GunsLost || unit.fate === RetreatFate.Eliminated
+    )
+    const rows: RetreatRow[] = [
+        ...going,
+        { kind: RetreatRowKind.NoRoom, units: withFate(RetreatFate.NoRoom) },
+        { kind: RetreatRowKind.Lost, units: lost }
+    ]
+    return rows.filter((row) => row.units.length > 0)
 }

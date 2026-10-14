@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Visibility } from '@tabletop/common'
 import { Side } from '../components/pieces.js'
-import { CommandKind } from '../model/attack.js'
+import { CommandKind, DefenseAwaits } from '../model/attack.js'
 import { NapoleonsTriumphProjectedStateValidator } from '../model/gameState.js'
 import { TestGame, arrangeBattlefield, cavalry, infantry } from '../testing/harness.js'
 import { ActionType } from './actions.js'
@@ -95,7 +95,7 @@ describe("Napoleon's Triumph hidden blocks", () => {
         ).toEqual(plan)
     })
 
-    it('keeps the defense leading units from the attacker until the attack is pressed', () => {
+    it('shows the defense leading units to nobody until the defender names them, after the attack is pressed', () => {
         const game = new TestGame()
         game.deployBoth()
         game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
@@ -106,26 +106,28 @@ describe("Napoleon's Triumph hidden blocks", () => {
         ])
         const french = game.playerOf(Side.French)
         const allied = game.playerOf(Side.Allied)
-        game.act(ActionType.ThreatenAttack, french, {
+        const [, defense] = game.act(ActionType.ThreatenAttack, french, {
             approach: game.hydrated.map.approachBetween(95, 108).id
         })
-        const [defense] = game.act(ActionType.DeclareDefense, allied, {
-            unitIds: ['A-inf', 'A-cav'],
-            leaderIds: ['A-cav']
-        })
+        expect(defense.type).toBe(ActionType.DeclareDefense)
         const toAttacker = NapoleonsTriumphRuntime.visibility.actions.project(defense, {
             kind: 'player',
             playerId: french
         })
         expect(toAttacker).toHaveProperty('unitIds')
-        expect(toAttacker).not.toHaveProperty('leaderIds')
-        const attackerView = project(game, { kind: 'player', playerId: french })
-        expect(attackerView.attack?.defensePlan).not.toHaveProperty('leaderIds')
-        expect(attackerView.attack?.defenseLeaderIds).toEqual([])
-        const defenderView = project(game, { kind: 'player', playerId: allied })
-        expect(defenderView.attack?.defensePlan?.leaderIds).toEqual(['A-cav'])
 
         game.act(ActionType.PressAttack, french)
+        for (const playerId of [french, allied]) {
+            const view = project(game, { kind: 'player', playerId })
+            expect(view.attack?.defenseLeaderIds).toEqual([])
+            expect(view.attack?.awaits).toBe(DefenseAwaits.Leaders)
+        }
+        const beforeTheyAreNamed = project(game, { kind: 'player', playerId: french })
+        expect(beforeTheyAreNamed.units.find((unit) => unit.id === 'A-cav')).not.toHaveProperty(
+            'shown'
+        )
+
+        game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-cav'] })
         const pressed = project(game, { kind: 'player', playerId: french })
         expect(pressed.attack?.defenseLeaderIds).toEqual(['A-cav'])
         expect(pressed.units.find((unit) => unit.id === 'A-cav')?.shown).toEqual(cavalry(2))

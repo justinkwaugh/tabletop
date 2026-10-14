@@ -2,7 +2,7 @@
     import ActionCard from './ActionCard.svelte'
     import PoliticsCard from './PoliticsCard.svelte'
     import { ActionCardDeck as actionCardDeck, PoliticsCardDeck } from '@tabletop/lowenherz'
-    import actionBack from '$lib/images/action-cards/backs/back-plain.jpg'
+    import actionBack from '$lib/images/action-cards/backs/back-plain.webp'
 
     const revealedCard = actionCardDeck[0]
 

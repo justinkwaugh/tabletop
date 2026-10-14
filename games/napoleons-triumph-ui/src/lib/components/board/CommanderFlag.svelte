@@ -1,13 +1,10 @@
 <script lang="ts">
-    import UnitSymbol from '$lib/components/UnitSymbol.svelte'
     import {
         BANNER_HEIGHT,
         FlagSide,
         NAME_INSET,
         STAFF_HEIGHT,
-        TALLY_WIDTH,
         bannerWidth,
-        nameWidth,
         type FlagMark,
         type FlagView
     } from '$lib/utils/flagLayout.js'
@@ -16,10 +13,8 @@
 
     const STRIPE = 6
     const SWALLOWTAIL = 7
-    const TALLY_SYMBOL = { width: 12, height: 9, top: -4.5, lineWidth: 1.2, dotRadius: 2 }
     const MUTED_INK_OPACITY = 0.45
-    const width = $derived(bannerWidth(flag.name, flag.tallies.length))
-    const talliesAt = $derived(nameWidth(flag.name))
+    const width = $derived(bannerWidth(flag.name))
     const flies = $derived(flag.side === FlagSide.Left ? -1 : 1)
     const bannerLeft = $derived(flag.side === FlagSide.Left ? -width : 0)
     const inkOpacity = $derived(flag.hasCommanded ? MUTED_INK_OPACITY : 1)
@@ -45,24 +40,14 @@
             <text x={NAME_INSET} y="-16.5" font-size="13" font-style="italic" fill="#2b2620"
                 >{flag.name}</text
             >
-            {#each flag.tallies as tally, index (tally.type)}
-                <g transform="translate({talliesAt + index * TALLY_WIDTH} -21)">
-                    <UnitSymbol type={tally.type} ink={flag.colors.block} {...TALLY_SYMBOL} />
-                    <text x="15" y="4.5" font-size="12" font-weight="700" fill={flag.colors.block}
-                        >{tally.count}</text
-                    >
-                </g>
-            {/each}
-            {#if flag.tallies.length === 0}
-                <text
-                    x={width - 9}
-                    y="-16.5"
-                    font-size="12"
-                    text-anchor="end"
-                    fill={flag.colors.block}
-                    font-weight="700">{flag.count}</text
-                >
-            {/if}
+            <text
+                x={width - 9}
+                y="-16.5"
+                font-size="12"
+                text-anchor="end"
+                fill={flag.colors.block}
+                font-weight="700">{flag.count}</text
+            >
         </g>
     </g>
 </g>

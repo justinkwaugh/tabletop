@@ -135,13 +135,7 @@ export class HydratedPlayRenegadeCard
     // Same checks as isValidPlayRenegadeCard, but reports WHY a play is rejected - the
     // client uses this to show a specific message instead of one generic one.
     invalidPlayRenegadeCardReason(state: HydratedLowenherzGameState): string | undefined {
-        if (
-            currentChoosingPlayerId(
-                state.turnOrder,
-                state.firstPlayerId,
-                state.decisions.length
-            ) !== this.playerId
-        ) {
+        if (currentChoosingPlayerId(state.turnOrder, state.decisions.length) !== this.playerId) {
             return "It isn't your turn to lay a decision card."
         }
 

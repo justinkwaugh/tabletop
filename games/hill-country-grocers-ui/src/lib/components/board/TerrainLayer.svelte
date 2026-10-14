@@ -1,6 +1,7 @@
 <script lang="ts">
     import { HILL_COUNTRY_MAP, cityAt } from '@tabletop/hill-country-grocers'
-    import hcgLogo from '$lib/images/hcg_logo.png'
+    import hcgLogo from '$lib/images/hcg_logo_shadowed.webp'
+    import paperGrain from '$lib/images/paper-grain.webp'
     import {
         MAP_RECT,
         SHEET_RECT,
@@ -74,8 +75,18 @@
         'M 0 560 L 120 600 L 210 700 L 260 778'
     ]
 
-    // The bottom of the map is left clear of hexes so the game's logo covers none of them.
-    const logo = { x: MAP_RECT.x + 8, y: MAP_RECT.y + MAP_RECT.height - 142, width: 210, height: 134 }
+    const PAPER_GRAIN_SIZE = 128
+    const TILE_SHADOW_OFFSET = { x: 1.5, y: 2.5 }
+
+    // The bottom of the map is left clear of hexes so the game's logo covers none of them. The
+    // logo image carries its own shadow in an 8-unit margin (scripts/generate-images.mjs).
+    const LOGO_SHADOW_MARGIN = 8
+    const logo = {
+        x: MAP_RECT.x + 8 - LOGO_SHADOW_MARGIN,
+        y: MAP_RECT.y + MAP_RECT.height - 142 - LOGO_SHADOW_MARGIN,
+        width: 210 + 2 * LOGO_SHADOW_MARGIN,
+        height: 134 + 2 * LOGO_SHADOW_MARGIN
+    }
 </script>
 
 <defs>
@@ -83,20 +94,25 @@
         <stop offset="0.55" stop-color="#8a6a32" stop-opacity="0" />
         <stop offset="1" stop-color="#8a6a32" stop-opacity="0.32" />
     </radialGradient>
-    <filter id="hcg-paper-grain" x="0" y="0" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" />
-        <feColorMatrix
-            values="0 0 0 0 0.45  0 0 0 0 0.33  0 0 0 0 0.16  0 0 0 0.16 0"
+    <!-- Pre-rendered noise (scripts/generate-images.mjs): live noise made WebKit's redraws too slow. -->
+    <pattern
+        id="hcg-paper-grain"
+        width={PAPER_GRAIN_SIZE}
+        height={PAPER_GRAIN_SIZE}
+        patternUnits="userSpaceOnUse"
+    >
+        <image
+            href={paperGrain}
+            width={PAPER_GRAIN_SIZE}
+            height={PAPER_GRAIN_SIZE}
+            preserveAspectRatio="none"
         />
-    </filter>
+    </pattern>
     <radialGradient id="hcg-tile-shade">
         <stop offset="0" stop-color="#fffbe8" stop-opacity="0.22" />
         <stop offset="0.7" stop-color="#fffbe8" stop-opacity="0" />
         <stop offset="1" stop-color="#4a3a14" stop-opacity="0.18" />
     </radialGradient>
-    <filter id="hcg-tile-shadow" x="-10%" y="-10%" width="125%" height="130%">
-        <feDropShadow dx="1.5" dy="2.5" stdDeviation="1.8" flood-color="#2a2410" flood-opacity="0.45" />
-    </filter>
     <clipPath id="hcg-map-clip">
         <rect
             x={SHEET_RECT.x}
@@ -115,7 +131,7 @@
         y={SHEET_RECT.y}
         width={SHEET_RECT.width}
         height={SHEET_RECT.height}
-        filter="url(#hcg-paper-grain)"
+        fill="url(#hcg-paper-grain)"
     />
     {#each meridians as x (x)}
         <line x1={x} y1={SHEET_RECT.y} x2={x} y2={MAP_RECT.y + MAP_RECT.height} class="graticule" />
@@ -142,7 +158,17 @@
     />
 
     {#each tiles as tile (tile.key)}
-        <g transform="translate({tile.center.x} {tile.center.y})" filter="url(#hcg-tile-shadow)">
+        <polygon
+            points={hexPoints(
+                { x: tile.center.x + TILE_SHADOW_OFFSET.x, y: tile.center.y + TILE_SHADOW_OFFSET.y },
+                71
+            )}
+            class="tile-shadow"
+        />
+    {/each}
+
+    {#each tiles as tile (tile.key)}
+        <g transform="translate({tile.center.x} {tile.center.y})">
             <polygon points={hexPoints({ x: 0, y: 0 }, 71)} fill={tile.fill} />
             <polygon points={hexPoints({ x: 0, y: 0 }, 71)} fill="url(#hcg-tile-shade)" />
         </g>
@@ -207,7 +233,6 @@
     y={logo.y}
     width={logo.width}
     height={logo.height}
-    class="logo"
     aria-label="Hill Country Grocers"
 />
 
@@ -249,6 +274,15 @@
         stroke-width: 1.6;
         stroke-dasharray: 10 4 2 4;
         opacity: 0.45;
+    }
+
+    .tile-shadow {
+        fill: #2a2410;
+        stroke: #2a2410;
+        stroke-width: 3;
+        stroke-opacity: 0.45;
+        stroke-linejoin: round;
+        opacity: 0.4;
     }
 
     .tile-edge {
@@ -334,10 +368,6 @@
 
 
 
-
-    .logo {
-        filter: drop-shadow(0 3px 4px rgba(30, 20, 5, 0.45));
-    }
 
     .map-frame {
         fill: none;

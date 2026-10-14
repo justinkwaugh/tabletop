@@ -41,11 +41,8 @@ describe('the accounts the game keeps of an attack’s results', () => {
             ...game.act(ActionType.ThreatenAttack, french, {
                 approach: game.hydrated.map.approachBetween(53, 63).id
             }),
-            ...game.act(ActionType.DeclareDefense, allied, {
-                unitIds: ['A-inf', 'A-cav'],
-                leaderIds: ['A-inf']
-            }),
-            ...game.act(ActionType.PressAttack, french)
+            ...game.act(ActionType.PressAttack, french),
+            ...game.act(ActionType.LeadDefense, allied, { leaderIds: ['A-inf'] })
         ]
         const declared = game.act(ActionType.DeclareAttack, french, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
@@ -137,7 +134,7 @@ describe('the verdict on a final result', () => {
                         })
                         expect(attackSucceeds(finalResult, fight)).toBe(wins)
                         expect(verdictOf(finalResult, fight)).toContain(
-                            wins ? 'the attack succeeds' : 'the attack is thrown back'
+                            wins ? 'the attack succeeds' : 'the attack is defeated'
                         )
                     }
                 }

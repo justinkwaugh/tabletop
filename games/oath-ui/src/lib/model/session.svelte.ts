@@ -75,7 +75,6 @@ import {
     type Region,
     type SearchResolveChoice,
     type SearchSource,
-    type TravelTerms,
     type WakeFavorStep,
     type WarbandGroup,
     type WarbandMoveOption,
@@ -142,8 +141,6 @@ import {
     dimsTheMap,
     reasonCannotRecoverBanner,
     travelCost,
-    travelWays,
-    type TravelWay,
     type SiteFavor,
     type MapPick,
     type SiteOffer
@@ -158,7 +155,7 @@ import {
 } from './recoverRows.js'
 import { searchRows, type SearchRow } from './searchRows.js'
 import { tradeModifiers, tradeRows, type TradeRow } from './tradeRows.js'
-import { travelModifiers, travelRows, type TravelRow } from './travelRows.js'
+import { samePayment, travelRows, type TravelChoice, type TravelRow } from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
 import { actionCardUses, actionCards, type ActionCard } from './actionCards.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
@@ -1186,8 +1183,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 return sites.map((slotId) => ({ slotId, intent: 'moveWarbands' }))
             case ActionType.Travel: {
                 const open = this.selection.value('site')
+                const rows = this.travelRows
                 return sites.map((slotId) => {
-                    const ways = this.travelWaysTo(slotId)
+                    const ways = rows.find((row) => row.slotId === slotId)?.ways ?? []
                     return {
                         slotId,
                         intent: 'travel',
@@ -1557,17 +1555,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    private travelWaysTo(siteId: string): TravelWay[] {
-        const playerId = this.liveTurnSeatId
-        if (!playerId || this.modifiers.picksPending) return []
-        return travelWays(this.gameState, playerId, siteId, this.travelModifiersTo(siteId))
-    }
-
-    /** R-7.4 — the cards in use a Travel to this site is sent with. */
-    private travelModifiersTo(siteId: string): ModifierUse[] {
-        const playerId = this.liveTurnSeatId
-        if (!playerId) return []
-        return travelModifiers(this.gameState, playerId, siteId, this.modifiers.declared)
+    /** Each way to Travel to this site, once per bank Hospitality could gain from there. */
+    private travelWaysTo(siteId: string): TravelChoice[] {
+        return this.travelRows.find((row) => row.slotId === siteId)?.ways ?? []
     }
 
     /** R-11.7 — who chooses where this seat's Travel goes, when an enemy rules its Shrouded Wood. */
@@ -1633,9 +1623,10 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     /**
-     * A lit site tapped on the map, where Travel is picked: with one way to pay and no toll it
-     * travels at once; with more, or a toll, its ways open in the panel, so a toll's payee is on
-     * a button before anything is paid (R-7.1.4). Undo unwinds the open ways.
+     * A lit site tapped on the map, where Travel is picked: with one way to pay, no toll and at
+     * most one bank for Hospitality it travels at once; with more ways or banks, or a toll, its
+     * ways open in the panel, so a toll's payee and each bank are on a button before anything is
+     * paid (R-7.1.4). Undo unwinds the open ways.
      */
     async pickTravelSite(siteId: string): Promise<void> {
         if (!this.selectableSites.includes(siteId)) return
@@ -1645,25 +1636,26 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         else if (ways.length > 0) this.selection.set('site', siteId)
     }
 
-    async travelTo(siteId: string, way: TravelTerms): Promise<void> {
+    /** Sends the Travel by a way still offered: its payment, and Hospitality's bank or none. */
+    async travelTo(siteId: string, way: TravelChoice): Promise<void> {
         if (this.selection.action !== ActionType.Travel) return
-        const legal = this.travelWaysTo(siteId).some(
-            (w) =>
-                w.flipSecret === way.flipSecret &&
-                w.tolls.length === way.tolls.length &&
-                w.tolls.every((t) => way.tolls.includes(t))
+        const offered = this.travelWaysTo(siteId).find(
+            (w) => samePayment(w, way) && w.hospitality === way.hospitality
         )
-        if (!legal) return
+        if (!offered) return
         this.selection.set('site', siteId)
-        await this.travelBy(siteId, way)
+        await this.travelBy(siteId, offered)
     }
 
-    private async travelBy(siteId: string, { tolls, flipSecret }: TravelTerms): Promise<void> {
+    private async travelBy(
+        siteId: string,
+        { tolls, flipSecret, modifiers }: TravelChoice
+    ): Promise<void> {
         await this.commit(
             this.createPlayerAction(Travel, {
                 type: ActionType.Travel,
                 siteId,
-                modifiers: this.travelModifiersTo(siteId),
+                modifiers,
                 ...(tolls.length > 0 ? { tolls } : {}),
                 ...(flipSecret ? { flipSecret } : {})
             })

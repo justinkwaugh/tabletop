@@ -41,6 +41,7 @@ const ATTACK_STEPS: readonly string[] = [
     ActionType.Retreat,
     ActionType.DeclareFeint,
     ActionType.PressAttack,
+    ActionType.LeadDefense,
     ActionType.DeclareAttack,
     ActionType.CounterAttack,
     ActionType.AssignLosses,

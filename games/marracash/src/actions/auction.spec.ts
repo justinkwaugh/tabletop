@@ -173,6 +173,103 @@ describe('MarraCash auctions', () => {
         expect(() => session.bid(full, 0)).toThrow()
     })
 
+    describe('a bidder whose open cash cannot beat the auctioneer', () => {
+        function startAuctionWithMoney(session: TestSession, amounts: Record<number, number>) {
+            const order = seats(session)
+            session.edit((state) => {
+                for (const [seat, amount] of Object.entries(amounts)) {
+                    const player = state.players.find(
+                        (candidate) => candidate.playerId === order[Number(seat)]
+                    )
+                    assertExists(player, `No player in seat ${seat}`)
+                    player.money = amount
+                }
+            })
+            session.startAuction(order[0], 'Y1')
+            return order
+        }
+
+        function submitted(session: TestSession, playerId: string): boolean | undefined {
+            return session.state.auction?.bidding.participants.find(
+                (participant) => participant.playerId === playerId
+            )?.submitted
+        }
+
+        it('enters 0 for a player with 100 Dirham or less without asking them', () => {
+            const session = startTestGame(3)
+            const [auctioneer, exactly100, under100] = startAuctionWithMoney(session, {
+                1: 100,
+                2: 75
+            })
+            for (const poor of [exactly100, under100]) {
+                expect(submitted(session, poor)).toBe(true)
+                expect(() => session.bid(poor, 0)).toThrow()
+            }
+            expect(session.state.activePlayerIds).toEqual([auctioneer])
+            const processed = session.bid(auctioneer, 100)
+            expect(processed.find(isResolveAuction)?.metadata?.bids).toEqual([
+                { playerId: auctioneer, amount: 100 },
+                { playerId: exactly100, amount: 0 },
+                { playerId: under100, amount: 0 }
+            ])
+        })
+
+        it('asks a player whose antique set pays out as the auction starts', () => {
+            const session = startTestGame(3, { antiqueCards: true })
+            const [, collector] = seats(session)
+            session.edit((state) => {
+                state.pendingAntiqueSets = [collector]
+            })
+            startAuctionWithMoney(session, { 1: 75 })
+            expect(money(session, collector)).toBeGreaterThan(100)
+            expect(submitted(session, collector)).toBe(false)
+            expect(session.state.activePlayerIds).toContain(collector)
+        })
+
+        it('passes them once another player’s antique set has paid out', () => {
+            const session = startTestGame(3, { antiqueCards: true })
+            const [, poor, collector] = seats(session)
+            session.edit((state) => {
+                state.pendingAntiqueSets = [collector]
+            })
+            startAuctionWithMoney(session, { 1: 75 })
+            expect(session.state.antiqueRevealOrder).toEqual([collector])
+            expect(submitted(session, poor)).toBe(true)
+            expect(session.state.activePlayerIds).not.toContain(poor)
+        })
+
+        it('still asks a player with 125 Dirham', () => {
+            const session = startTestGame(3)
+            const [, , bidder] = startAuctionWithMoney(session, { 2: 125 })
+            expect(submitted(session, bidder)).toBe(false)
+            expect(session.state.activePlayerIds).toContain(bidder)
+        })
+
+        it('still asks an auctioneer with exactly 100 Dirham', () => {
+            const session = startTestGame(3)
+            const [auctioneer] = startAuctionWithMoney(session, { 0: 100 })
+            expect(submitted(session, auctioneer)).toBe(false)
+            expect(session.state.activePlayerIds).toContain(auctioneer)
+        })
+
+        it('still asks them with Concealed Cash, so passing does not reveal their cash', () => {
+            const session = startTestGame(3, { concealedCash: true })
+            const [, poor] = startAuctionWithMoney(session, { 1: 75 })
+            expect(submitted(session, poor)).toBe(false)
+            expect(session.state.activePlayerIds).toContain(poor)
+        })
+
+        it('still asks them in a game started under 1.0.0', () => {
+            const session = startTestGame(3)
+            session.edit((state) => {
+                delete state.passesBiddersWhoCannotWin
+            })
+            const [, poor] = startAuctionWithMoney(session, { 1: 75 })
+            expect(submitted(session, poor)).toBe(false)
+            expect(session.state.activePlayerIds).toContain(poor)
+        })
+    })
+
     it('stops a player with 6 shops or under 100 Dirham from starting an auction', () => {
         const fullSession = startTestGame(3)
         giveShops(fullSession, fullSession.currentPlayerId(), 6)

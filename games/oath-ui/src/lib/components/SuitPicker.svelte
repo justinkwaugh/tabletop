@@ -9,14 +9,16 @@
     // Every choice of a favor bank is a row of suit symbols in the board's order: tap to pick,
     // the picked ones ringed; 44 px on a phone. `open`: a bank the pick cannot take now keeps its
     // place, faded and untappable. `framed`: each bank a framed button, its favor beside the
-    // symbol (several banks picked in one row, Salad Days').
+    // symbol (several banks picked in one row, Salad Days'). `counts`: each bank's favor as the
+    // state the pick is judged on holds it, when that is not the table's (the Wake's later steps).
     let {
         suits,
         picked,
         onpick,
         busy = false,
         open = () => true,
-        framed = false
+        framed = false,
+        counts
     }: {
         suits: readonly Suit[]
         picked: readonly Suit[]
@@ -24,10 +26,11 @@
         busy?: boolean
         open?: (suit: Suit) => boolean
         framed?: boolean
+        counts?: Readonly<Record<Suit, number>>
     } = $props()
 
     let gameSession = getGameSession()
-    let favorBank = $derived(gameSession.gameState.favorBank)
+    let favorBank = $derived(counts ?? gameSession.gameState.favorBank)
     let ordered = $derived(FAVOR_BANK_ORDER.filter((suit) => suits.includes(suit)))
 
     function bankName(suit: Suit): string {

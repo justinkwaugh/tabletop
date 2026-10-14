@@ -6,7 +6,8 @@ import {
     cavalry,
     frenchTurn,
     guard,
-    infantry
+    infantry,
+    defendWith
 } from '@tabletop/napoleons-triumph/testing'
 import { describeAction } from './describeAction.js'
 
@@ -76,7 +77,7 @@ describe('how other actions are told', () => {
         game.act(ActionType.ThreatenAttack, french, {
             approach: game.hydrated.map.approachBetween(93, NEAR).id
         })
-        game.act(ActionType.DeclareDefense, allied, { unitIds: [unitId], leaderIds: [] })
+        defendWith(game, allied, [unitId])
         const corps = game.hydrated.corpsUnits('st-hilaire').map((unit) => unit.id)
         expect(
             told(game, ActionType.DeclareFeint, Side.French, {
@@ -84,6 +85,29 @@ describe('how other actions are told', () => {
                 end: FeintEnd.Reserve
             })
         ).toBe('The attack by St. Hilaire’s corps is a feint, ending in reserve.')
+    })
+
+    it('tells the press and the naming of the leading units as steps of their own', () => {
+        const game = underway()
+        const [unitId] = langeron(game)
+        const allied = game.playerOf(Side.Allied)
+        game.act(ActionType.Move, allied, {
+            order: { kind: CommandKind.Unit, unitIds: [unitId] },
+            to: { locale: NEAR }
+        })
+        game.act(ActionType.EndTurn, allied)
+        game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
+            approach: game.hydrated.map.approachBetween(93, NEAR).id
+        })
+        expect(told(game, ActionType.DeclareDefense, Side.Allied, { unitIds: [unitId] })).toBe(
+            'The Allies stand with a unit.'
+        )
+        expect(told(game, ActionType.PressAttack, Side.French, {})).toBe(
+            'The French press the attack.'
+        )
+        expect(told(game, ActionType.LeadDefense, Side.Allied, { leaderIds: [] })).toBe(
+            'The Allies name no leading unit.'
+        )
     })
 })
 
@@ -112,10 +136,8 @@ describe('how morale paid beyond the losses is told', () => {
             approach: game.hydrated.map.approachBetween(BELOW_THE_SLOPE, ON_THE_SLOPE).id,
             guardUnitId: 'F-guard'
         })
-        game.act(ActionType.DeclareDefense, game.playerOf(Side.Allied), {
-            unitIds: ['A-inf'],
-            leaderIds: ['A-inf']
-        })
+        defendWith(game, game.playerOf(Side.Allied), ['A-inf'])
+        game.act(ActionType.LeadDefense, game.playerOf(Side.Allied), { leaderIds: ['A-inf'] })
         return told(game, ActionType.DeclareAttack, Side.French, {
             orders: [{ kind: CommandKind.Unit, unitIds: ['F-guard'] }],
             wide: false,
@@ -127,7 +149,7 @@ describe('how morale paid beyond the losses is told', () => {
         expect(guardAttackUpTheSlope(23)).toBe(
             'The French make a narrow attack with a unit, led by a unit. Initial result 0. ' +
                 'The French commit the Guard and lose 4 morale. ' +
-                'Final result 0: the attack is thrown back. 2 steps lost. ' +
+                'Final result 0: the attack is defeated. 2 steps lost. ' +
                 'The French lose 1 morale. ' +
                 'The Guard Attack is defeated. The French lose 3 more morale and may make no more Guard Attacks.'
         )
