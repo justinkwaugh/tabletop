@@ -1,5 +1,4 @@
 import { validateLocalGameState } from '$lib/utils/validateLocalGameState.js'
-import type { ScenarioData } from './harnessScenarios.js'
 import {
     type GameCreationOptions,
     Game,
@@ -12,7 +11,8 @@ import {
     GameForkError,
     GameStorage,
     GameCategory,
-    assertExists
+    assertExists,
+    type ScenarioData
 } from '@tabletop/common'
 import { SvelteMap } from 'svelte/reactivity'
 import type { GameService } from '$lib/services/gameService.js'

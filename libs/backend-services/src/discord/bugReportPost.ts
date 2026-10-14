@@ -12,6 +12,9 @@ export type BugReporter = {
     discordUserId?: string
 }
 
+export type ScenarioAttachment =
+    { attached: true; filename: string } | { attached: false; bytes: number }
+
 export type BugReportPostContext = {
     frontendHost: string
     titleName: string
@@ -19,6 +22,7 @@ export type BugReportPostContext = {
     liveActionCount: number | undefined
     appliedTagIds: string[]
     reportedAt: Date
+    scenario?: ScenarioAttachment
 }
 
 const SITE_NAME = 'BoardTogether'
@@ -67,6 +71,9 @@ export function bugReportPost(
                     ]
                 }
             ],
+            attachments: context.scenario?.attached
+                ? [{ id: 0, filename: context.scenario.filename }]
+                : undefined,
             allowed_mentions: { parse: [] }
         }
     }
@@ -96,11 +103,22 @@ function reportFields(
                 Limit.FieldValue
             )
         },
+        ...scenarioFields(context.scenario),
         {
             name: 'Investigate',
             value: `\`node tools/investigate/src/cli.mjs game ${game.id}\``
         }
     ]
+}
+
+function scenarioFields(scenario: ScenarioAttachment | undefined): APIEmbedField[] {
+    if (!scenario) {
+        return []
+    }
+    const value = scenario.attached
+        ? `Put \`${scenario.filename}\` in the UI package's \`src/scenarios\` to open it in the dev harness`
+        : `Too large to attach (${(scenario.bytes / 1_000_000).toFixed(1)} MB)`
+    return [{ name: 'Scenario', value }]
 }
 
 function reporterLabel(reporter: BugReporter): string {

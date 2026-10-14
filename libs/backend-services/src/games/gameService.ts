@@ -86,7 +86,7 @@ import {
 
 import { GameInvitationTokenData } from '../tokens/tokenData.js'
 import { nanoid } from 'nanoid'
-import { GameStore } from '../persistence/stores/gameStore.js'
+import { GameStore, type GameData } from '../persistence/stores/gameStore.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { Retryable } from 'typescript-retry-decorator'
 import { RedisCacheService } from '../cache/cacheService.js'
@@ -417,6 +417,10 @@ export class GameService {
         withState?: boolean
     }): Promise<Game | undefined> {
         return await this.gameStore.findGameById(gameId, withState)
+    }
+
+    async getGameData(gameId: string): Promise<GameData | undefined> {
+        return await this.gameStore.loadGameData(gameId)
     }
 
     async getGameActions(game: Game): Promise<GameAction[]> {

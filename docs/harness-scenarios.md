@@ -14,4 +14,6 @@ Each file holds one object:
 
 Dates may be written as ISO strings. The harness finds the files with Vite's `import.meta.glob('/src/scenarios/*.json')`, from the UI package's root; it lists new files after a reload. The folder sits under `src` because SvelteKit's dev server serves files only from there and a few other folders.
 
+A bug report posted to Discord attaches the reported game as a scenario file, `bug-report-<gameId>.json`, holding the whole game: every player's hidden information and all its actions. Drop it into the game's `src/scenarios` to open the game as it was reported and step through its history. Files over Discord's 10 MB upload limit are left off, and the post says so.
+
 Napoleon's Triumph builds its scenarios with the logic package's test helpers: `games/napoleons-triumph-ui/scripts/build-scenarios.mjs`.

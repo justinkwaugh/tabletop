@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+    ActionSource,
     GameStatus,
     PlayerStatus,
     UserStatus,
     type BugReportRequest,
     type Game,
+    type GameAction,
+    type GameState,
     type User
 } from '@tabletop/common'
 import { BugReportService } from './bugReportService.js'
@@ -38,6 +41,28 @@ const game: Game = {
     winningPlayerIds: []
 }
 
+const state: GameState = {
+    id: 'state-1',
+    gameId: 'game-1',
+    players: [],
+    activePlayerIds: ['p-1'],
+    actionCount: 1,
+    actionChecksum: 7,
+    prng: { seed: 1, invocations: 0 },
+    machineState: 'placing',
+    turnManager: { series: [], turnOrder: ['p-1'], turnCounts: {} },
+    winningPlayerIds: []
+}
+
+const action: GameAction = {
+    id: 'action-1',
+    gameId: 'game-1',
+    type: 'placeCanal',
+    source: ActionSource.User,
+    playerId: 'p-1',
+    createdAt: new Date('2026-09-01T00:05:00.000Z')
+}
+
 const report: BugReportRequest = {
     gameId: 'game-1',
     description: 'The canal would not place',
@@ -63,10 +88,13 @@ describe('BugReportService', () => {
 
     beforeEach(() => {
         gameService = Object.create(GameService.prototype)
-        vi.spyOn(gameService, 'getGame').mockResolvedValue(game)
+        vi.spyOn(gameService, 'getGameData').mockResolvedValue({ game, actions: [] })
         vi.spyOn(gameService, 'getTitle').mockReturnValue(undefined)
         discordBotApi = new DiscordBotApi('token')
         vi.spyOn(discordBotApi, 'post').mockResolvedValue(new Response('{}', { status: 201 }))
+        vi.spyOn(discordBotApi, 'postWithFiles').mockResolvedValue(
+            new Response('{}', { status: 201 })
+        )
         vi.spyOn(discordBotApi, 'get').mockImplementation(async () =>
             forumWithTags(['Fixed', ' open '])
         )
@@ -81,12 +109,64 @@ describe('BugReportService', () => {
     it('opens a thread in the configured forum for a player in the game', async () => {
         await service.reportBug({ user: reporter, report })
 
-        expect(gameService.getGame).toHaveBeenCalledWith({ gameId: 'game-1', withState: true })
+        expect(gameService.getGameData).toHaveBeenCalledWith('game-1')
         expect(discordBotApi.post).toHaveBeenCalledWith(
             '/channels/forum-1/threads',
             expect.objectContaining({
                 name: 'santiago: The canal would not place',
                 applied_tags: ['tag-1']
+            })
+        )
+    })
+
+    it('attaches a started game as a dev harness scenario', async () => {
+        vi.mocked(gameService.getGameData).mockResolvedValue({
+            game: { ...game, state },
+            actions: [action]
+        })
+
+        await service.reportBug({ user: reporter, report })
+
+        expect(discordBotApi.post).not.toHaveBeenCalled()
+        const [path, post, files] = vi.mocked(discordBotApi.postWithFiles).mock.calls[0]
+        expect(path).toBe('/channels/forum-1/threads')
+        expect(post).toEqual(
+            expect.objectContaining({
+                message: expect.objectContaining({
+                    attachments: [{ id: 0, filename: 'bug-report-game-1.json' }]
+                })
+            })
+        )
+        expect(files).toHaveLength(1)
+        expect(files[0].filename).toBe('bug-report-game-1.json')
+        expect(files[0].contentType).toBe('application/json')
+        expect(JSON.parse(files[0].content)).toEqual(
+            JSON.parse(JSON.stringify({ game, state, actions: [action] }))
+        )
+    })
+
+    it('posts without the scenario when it is over the Discord upload limit', async () => {
+        vi.mocked(gameService.getGameData).mockResolvedValue({
+            game: { ...game, state },
+            actions: [{ ...action, note: 'x'.repeat(10_000_000) }]
+        })
+
+        await service.reportBug({ user: reporter, report })
+
+        expect(discordBotApi.postWithFiles).not.toHaveBeenCalled()
+        const [, post] = vi.mocked(discordBotApi.post).mock.calls[0]
+        expect(post).toEqual(
+            expect.objectContaining({
+                message: expect.objectContaining({
+                    attachments: undefined,
+                    embeds: [
+                        expect.objectContaining({
+                            fields: expect.arrayContaining([
+                                { name: 'Scenario', value: 'Too large to attach (10.0 MB)' }
+                            ])
+                        })
+                    ]
+                })
             })
         )
     })
@@ -129,7 +209,7 @@ describe('BugReportService', () => {
     })
 
     it('refuses a game that does not exist', async () => {
-        vi.mocked(gameService.getGame).mockResolvedValue(undefined)
+        vi.mocked(gameService.getGameData).mockResolvedValue(undefined)
 
         await expect(service.reportBug({ user: reporter, report })).rejects.toBeInstanceOf(
             GameNotFoundError

@@ -1,13 +1,6 @@
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
-import { Game, GameAction, GameState } from '@tabletop/common'
-
-/** A position saved to start from: a game with its state and the actions that led to it. */
-export interface ScenarioData {
-    game: Game
-    state: GameState
-    actions: GameAction[]
-}
+import { Game, GameAction, GameState, type ScenarioData } from '@tabletop/common'
 
 export interface Scenario {
     name: string

@@ -16,7 +16,13 @@ const alice: Player = {
     name: 'Alice',
     status: PlayerStatus.Joined
 }
-const bob: Player = { id: 'p-2', isHuman: true, userId: 'u-2', name: 'Bob', status: PlayerStatus.Joined }
+const bob: Player = {
+    id: 'p-2',
+    isHuman: true,
+    userId: 'u-2',
+    name: 'Bob',
+    status: PlayerStatus.Joined
+}
 
 const game: Game = {
     id: 'game-1',
@@ -143,6 +149,18 @@ describe('bugReportPost', () => {
 
         expect(fieldValue(post, 'Actions')).toBe('Not started')
         expect(fieldValue(post, 'Active players')).toBe('None')
+    })
+
+    it('names the attached scenario and where it goes', () => {
+        const post = bugReportPost(game, report, {
+            ...context,
+            scenario: { attached: true, filename: 'bug-report-game-1.json' }
+        })
+
+        expect(post.message.attachments).toEqual([{ id: 0, filename: 'bug-report-game-1.json' }])
+        expect(fieldValue(post, 'Scenario')).toBe(
+            "Put `bug-report-game-1.json` in the UI package's `src/scenarios` to open it in the dev harness"
+        )
     })
 
     it('keeps the thread name within the Discord limit', () => {

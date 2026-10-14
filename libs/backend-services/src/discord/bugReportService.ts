@@ -1,11 +1,18 @@
-import { ExternalAuthService, type BugReportRequest, type User } from '@tabletop/common'
+import {
+    ExternalAuthService,
+    scenarioFromGame,
+    type BugReportRequest,
+    type Game,
+    type GameAction,
+    type User
+} from '@tabletop/common'
 import { Type } from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameService } from '../games/gameService.js'
 import { GameNotFoundError } from '../games/errors.js'
 import { UserService } from '../users/userService.js'
-import { DiscordBotApi } from './discordBotApi.js'
-import { bugReportPost } from './bugReportPost.js'
+import { DiscordBotApi, type DiscordFile } from './discordBotApi.js'
+import { bugReportPost, type ScenarioAttachment } from './bugReportPost.js'
 
 export type BugReportDestination = {
     forumChannelId: string
@@ -13,6 +20,8 @@ export type BugReportDestination = {
 }
 
 const OPEN_TAG_NAME = 'open'
+// Discord's upload limit for servers without boosts.
+const MAX_ATTACHMENT_BYTES = 10_000_000
 
 const ForumTags = Compile(
     Type.Object({
@@ -31,13 +40,16 @@ export class BugReportService {
     ) {}
 
     async reportBug({ user, report }: { user: User; report: BugReportRequest }): Promise<void> {
-        const game = await this.gameService.getGame({ gameId: report.gameId, withState: true })
-        if (!game) {
+        const data = await this.gameService.getGameData(report.gameId)
+        if (!data) {
             throw new GameNotFoundError({ id: report.gameId })
         }
+        const { game, actions } = data
         this.gameService.findValidPlayerForUser({ user, game })
 
         const openTagId = await this.findOpenTagId()
+        const scenarioFile = this.scenarioFile(game, actions)
+        const scenario = this.scenarioAttachment(scenarioFile)
         const post = bugReportPost(game, report, {
             frontendHost: this.destination.frontendHost,
             titleName: this.gameService.getTitle(game.typeId)?.info.metadata.name ?? game.typeId,
@@ -47,18 +59,43 @@ export class BugReportService {
             },
             liveActionCount: game.state?.actionCount,
             appliedTagIds: openTagId ? [openTagId] : [],
-            reportedAt: new Date()
+            reportedAt: new Date(),
+            scenario
         })
 
-        const response = await this.discordBotApi.post(
-            `/channels/${this.destination.forumChannelId}/threads`,
-            post
-        )
+        const path = `/channels/${this.destination.forumChannelId}/threads`
+        const response =
+            scenarioFile && scenario?.attached
+                ? await this.discordBotApi.postWithFiles(path, post, [scenarioFile])
+                : await this.discordBotApi.post(path, post)
         if (!response.ok) {
             throw new Error(
                 `Discord rejected the bug report with ${response.status}: ${await response.text()}`
             )
         }
+    }
+
+    // The file is a dev harness scenario: dropped into a UI package's src/scenarios, it opens the game as reported.
+    private scenarioFile(game: Game, actions: GameAction[]): DiscordFile | undefined {
+        const state = game.state
+        if (!state) {
+            return undefined
+        }
+        return {
+            filename: `bug-report-${game.id}.json`,
+            contentType: 'application/json',
+            content: JSON.stringify(scenarioFromGame({ ...game, state }, actions))
+        }
+    }
+
+    private scenarioAttachment(file: DiscordFile | undefined): ScenarioAttachment | undefined {
+        if (!file) {
+            return undefined
+        }
+        const bytes = Buffer.byteLength(file.content)
+        return bytes <= MAX_ATTACHMENT_BYTES
+            ? { attached: true, filename: file.filename }
+            : { attached: false, bytes }
     }
 
     // The tag only labels the post, so a missing or renamed tag must not block the report.
