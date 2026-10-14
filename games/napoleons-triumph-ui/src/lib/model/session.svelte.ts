@@ -112,11 +112,11 @@ import {
 import {
     chooseCorpsUnit,
     addWayStep,
+    aimOf,
     chooseDetachedUnit,
     chosenCommandOf,
     chosenUnitsOf,
     destinationOf,
-    guardAttackAnnounced,
     hasManualCommandSelection,
     noCommandSelection,
     pickedUpOf,
@@ -124,8 +124,13 @@ import {
     setCommand,
     setDestination,
     setRide,
-    setGuardAttack,
+    setAim,
     setPickedUp,
+    guardUnitOf,
+    setGuardUnit,
+    setThreat,
+    threatOf,
+    withoutGuardUnit,
     undoCommandSelection,
     unitsPickedUpWith,
     wayStepsOf,
@@ -142,7 +147,7 @@ import {
     withUnitReturned,
     type ArmySetup
 } from './armySetup.js'
-import { guardUnitToAnnounce, targetsOfGuardAttack } from './guardAttack.js'
+import { guardUnitsToAnnounce } from './guardAttack.js'
 import { historyChapters, type HistoryChapter, type HistoryLine } from './historyChapters.js'
 import { lossesOfAttack, type AttackLosses } from './attackLosses.js'
 import { attackMarkOf, type AttackMark } from './attackMark.js'
@@ -191,10 +196,12 @@ import {
 } from './setupTable.js'
 import {
     TargetKind,
+    attackableLocales,
     moveTargets,
     placeReachedSeveralWays,
     retreatTargets,
     threatenedApproaches,
+    threatsOn,
     wayTargets,
     type AttackTarget,
     type MarchTarget,
@@ -304,6 +311,30 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     wayUnderPointer: string | undefined = $state()
 
+    private aimedThreats: AttackTarget[] = $derived.by(() => {
+        const locale = aimOf(this.selection)
+        const playerId = this.myPlayerId
+        if (!this.isCommanding || locale === undefined || !playerId) {
+            return []
+        }
+        return threatsOn(this.gameState, playerId, locale)
+    })
+
+    aimableLocales: number[] = $derived(
+        this.isCommanding && this.myPlayerId
+            ? attackableLocales(this.gameState, this.myPlayerId)
+            : []
+    )
+
+    aimedLocale: number | undefined = $derived(
+        this.aimedThreats.length > 0 ? aimOf(this.selection) : undefined
+    )
+
+    private threatLocale: number | undefined = $derived.by(() => {
+        const approach = threatOf(this.selection)
+        return approach === undefined ? undefined : this.gameState.map.approach(approach).locale
+    })
+
     private pickedUpLocale: number | undefined = $derived.by(() => {
         const groupKey = pickedUpOf(this.selection)?.groupKey
         return this.gameState.units.find(
@@ -318,7 +349,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
             singledOut: [...committedUnits(this.attack), ...knownToTheEnemy(this.gameState.units)],
             looseLocales: [
                 ...this.battleLocales,
-                ...[this.spreadLocale, this.pickedUpLocale].filter((locale) => locale !== undefined)
+                ...[
+                    this.spreadLocale,
+                    this.pickedUpLocale,
+                    this.aimedLocale,
+                    this.threatLocale
+                ].filter((locale) => locale !== undefined)
             ]
         })
     )
@@ -369,7 +405,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
     flags: FlagMark[] = $derived.by(() => {
         const arrowApproaches = [
             ...(this.attack ? [this.attack.attackApproach] : []),
-            ...threatenedApproaches(this.targets)
+            ...threatenedApproaches(this.targets),
+            ...(this.threatBeingDeclared ? [this.threatBeingDeclared.position.approach] : [])
         ]
         return flagMarks(
             this.sprites,
@@ -477,7 +514,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
     )
 
     selectedGroupKey = $derived(
-        this.isCommanding ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey) : undefined
+        this.isCommanding && this.aimedLocale === undefined
+            ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey)
+            : undefined
     )
 
     reinforcements: Reinforcement[] = $derived(
@@ -582,19 +621,6 @@ export class NapoleonsTriumphGameSession extends GameSession<
         return moveTargets(this.gameState, playerId, this.order, entries)
     })
 
-    guardUnitId: string | undefined = $derived(
-        this.myPlayerId
-            ? guardUnitToAnnounce(
-                  this.gameState,
-                  this.myPlayerId,
-                  this.pickedUnitIds,
-                  this.orderTargets
-              )
-            : undefined
-    )
-
-    guardAttack = $derived(guardAttackAnnounced(this.selection) && this.guardUnitId !== undefined)
-
     destination: MarchTarget | undefined = $derived(
         placeReachedSeveralWays(this.orderTargets, destinationOf(this.selection))
     )
@@ -613,7 +639,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         return step && playerId ? setupTargets(this.gameState, playerId, step) : []
     })
 
-    targets: MoveTarget[] = $derived.by(() => {
+    private placesOnOffer: MoveTarget[] = $derived.by(() => {
         const stage = this.battleStage
         if (this.isDeploying) {
             return this.setupTargets
@@ -625,10 +651,35 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (this.wayChoice) {
             return wayTargets(this.stepsOfTheWay)
         }
-        return this.guardAttack
-            ? targetsOfGuardAttack(this.gameState, this.orderTargets)
-            : this.orderTargets
+        return this.aimedLocale !== undefined ? this.aimedThreats : this.orderTargets
     })
+
+    threatBeingDeclared: AttackTarget | undefined = $derived.by(() => {
+        const approach = threatOf(this.selection)
+        return this.placesOnOffer.find(
+            (target): target is AttackTarget =>
+                target.kind === TargetKind.Attack && target.position.approach === approach
+        )
+    })
+
+    guardUnitsToShow: string[] = $derived(
+        this.threatBeingDeclared && this.myPlayerId
+            ? guardUnitsToAnnounce(this.gameState, this.myPlayerId, this.threatBeingDeclared)
+            : []
+    )
+
+    guardUnitChosen: string | undefined = $derived.by(() => {
+        const chosen = guardUnitOf(this.selection)
+        return chosen !== undefined && this.guardUnitsToShow.includes(chosen) ? chosen : undefined
+    })
+
+    guardSprite: GroupSprite | undefined = $derived(
+        this.sprites.find((sprite) =>
+            sprite.group.units.some((unit) => unit.id === this.guardUnitChosen)
+        )
+    )
+
+    targets: MoveTarget[] = $derived(this.threatBeingDeclared ? [] : this.placesOnOffer)
 
     private blockMarkContext: BlockMarkContext = $derived({
         viewerId: this.myPlayerId,
@@ -836,13 +887,25 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
-    toggleGuardAttack() {
-        this.stageCommand(setGuardAttack(this.selection, !this.guardAttack))
-    }
-
     clearSelection() {
         this.spreadLocale = undefined
         this.stageCommand(noCommandSelection())
+    }
+
+    mayAimAt(locale: number): boolean {
+        return !this.busy && this.aimableLocales.includes(locale)
+    }
+
+    aimTask(locale: number): string {
+        const place = this.gameState.map.label(locale)
+        return locale === this.aimedLocale ? `Stop aiming at ${place}` : `Aim an attack at ${place}`
+    }
+
+    aimAt(locale: number) {
+        if (!this.mayAimAt(locale)) {
+            return
+        }
+        this.stageCommand(locale === this.aimedLocale ? noCommandSelection() : setAim(locale))
     }
 
     async chooseTarget(target: MoveTarget) {
@@ -872,12 +935,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
             await this.takeStepOfTheWay(target)
             return
         }
-        const order = this.order
-        assertExists(order, 'Move targets are offered for an order')
         if (target.kind === TargetKind.Attack) {
-            await this.threaten(target.position.approach, order)
+            await this.chooseThreat(target)
             return
         }
+        const order = this.order
+        assertExists(order, 'Move targets are offered for an order')
         const [way, ...otherWays] = target.ways ?? []
         if (otherWays.length > 0) {
             this.stageCommand(setDestination(this.selection, target.key))
@@ -1332,18 +1395,49 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )
     }
 
-    private async threaten(approach: number, order: MoveOrder) {
-        if (!this.validActionTypes.includes(ActionType.ThreatenAttack)) {
+    toggleGuardUnit(unitId: string) {
+        assert(
+            this.guardUnitsToShow.includes(unitId),
+            'Only Guard units that could announce the attack are offered'
+        )
+        this.stageCommand(
+            unitId === this.guardUnitChosen
+                ? withoutGuardUnit(this.selection)
+                : setGuardUnit(this.selection, unitId)
+        )
+    }
+
+    async declareThreat() {
+        const threat = this.threatBeingDeclared
+        assertExists(threat, 'A threat is declared once its approach is chosen')
+        await this.threaten(threat.position.approach, this.guardUnitChosen)
+    }
+
+    private async chooseThreat(target: AttackTarget) {
+        const playerId = this.myPlayerId
+        assertExists(playerId, 'Threats are offered to a player')
+        if (guardUnitsToAnnounce(this.gameState, playerId, target).length > 0) {
+            this.stageCommand(setThreat(this.selection, target.position.approach))
+        } else {
+            await this.threaten(target.position.approach)
+        }
+    }
+
+    private async threaten(approach: number, guardUnitId?: string) {
+        if (this.busy || !this.validActionTypes.includes(ActionType.ThreatenAttack)) {
             return
         }
-        const guardUnitId = this.guardAttack ? this.guardUnitId : undefined
-        const plan = { kind: order.kind, unitIds: [...order.unitIds], continues: order.continues }
+        const order = this.order
+        const plan = order
+            ? { kind: order.kind, unitIds: [...order.unitIds], continues: order.continues }
+            : undefined
         this.stageCommand(noCommandSelection())
         await this.applyAction(
-            this.createPlayerAction(
-                ThreatenAttack,
-                guardUnitId ? { approach, guardUnitId, plan } : { approach, plan }
-            )
+            this.createPlayerAction(ThreatenAttack, {
+                approach,
+                ...(guardUnitId ? { guardUnitId } : {}),
+                ...(plan ? { plan } : {})
+            })
         )
     }
 

@@ -109,6 +109,7 @@ export class BattleMap {
     private readonly roadEntries: RoadEntry[] = []
     private readonly setupLocales = new Map<string, LocaleDefinition>()
     private readonly stepsBetween = new Map<LocaleId, Map<LocaleId, number>>()
+    private readonly roadPaths = new Map<LocaleId, readonly (readonly LocaleId[])[]>()
 
     constructor(spec: MapSpec) {
         for (const locale of spec.locales) {
@@ -324,7 +325,16 @@ export class BattleMap {
         )
     }
 
-    roadPathsFrom(start: LocaleId): LocaleId[][] {
+    roadPathsFrom(start: LocaleId): readonly (readonly LocaleId[])[] {
+        let paths = this.roadPaths.get(start)
+        if (paths === undefined) {
+            paths = this.traceRoadPaths(start)
+            this.roadPaths.set(start, paths)
+        }
+        return paths
+    }
+
+    private traceRoadPaths(start: LocaleId): LocaleId[][] {
         const paths: LocaleId[][] = []
         const extend = (path: LocaleId[], locale: LocaleId) => {
             if (path.length >= MAIN_ROAD_REACH) {

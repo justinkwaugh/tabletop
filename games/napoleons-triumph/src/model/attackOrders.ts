@@ -219,7 +219,7 @@ function roadRoutes(
         const onward = state.map
             .roadPathsFrom(start.locale)
             .filter((road) => road[road.length - 1] === to)
-        return start.locale === to ? [{ road: [] }] : onward.map((road) => ({ road }))
+        return start.locale === to ? [{ road: [] }] : onward.map((road) => ({ road: [...road] }))
     }
     return state.map.entries(state.sideOf(site.attackerId)).flatMap((entry) => {
         const beyond = state.map.roadPathsFrom(entry.locale).map((road) => [entry.locale, ...road])

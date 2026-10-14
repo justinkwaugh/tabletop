@@ -513,6 +513,8 @@
         --nt-approach-fill: rgba(246, 222, 120, 0.55);
         --nt-closed-fill: rgba(43, 38, 32, 0.05);
         --nt-closed-line: rgba(43, 38, 32, 0.3);
+        --nt-aimed-fill: rgba(43, 38, 32, 0.1);
+        --nt-aimed-line: #2b2620;
     }
 
     .nt-table.nt-french-ways {

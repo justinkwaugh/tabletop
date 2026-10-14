@@ -190,6 +190,7 @@ function ownRoadPaths(
     return state.map
         .roadPathsFrom(from)
         .filter((path) => path.every((locale) => !state.isEnemyOccupied(locale, playerId)))
+        .map((path) => [...path])
 }
 
 interface March {
@@ -338,6 +339,28 @@ function targetsOfUnitsFiringTogether(
         isLegal(() => resolveAttackOrders(state, site, orders))
         ? [attackTarget(block)]
         : []
+}
+
+export function threatsOn(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    locale: number
+): AttackTarget[] {
+    return state.map
+        .approachesOf(locale)
+        .map((approach) => state.map.opposite(approach.id))
+        .filter((approach) => mayThreaten(state, playerId, approach.id))
+        .map((approach) => attackTarget({ locale: approach.locale, approach: approach.id }))
+}
+
+export function attackableLocales(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string
+): number[] {
+    const held = state.units.flatMap((unit) =>
+        unit.playerId !== playerId && unit.position ? [unit.position.locale] : []
+    )
+    return [...new Set(held)].filter((locale) => threatsOn(state, playerId, locale).length > 0)
 }
 
 export function moveTargets(

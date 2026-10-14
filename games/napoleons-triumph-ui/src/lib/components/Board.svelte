@@ -14,6 +14,7 @@
     import BattleMarker from './board/BattleMarker.svelte'
     import TrackMarkers from './board/TrackMarkers.svelte'
     import FlagLayer from './board/FlagLayer.svelte'
+    import AimLocales from './board/AimLocales.svelte'
     import ClosedReserves from './board/ClosedReserves.svelte'
     import ContactShadow from './board/ContactShadow.svelte'
     import HeldApproaches from './board/HeldApproaches.svelte'
@@ -76,6 +77,7 @@
             </g>
             <SetupLocales />
             <ClosedReserves />
+            <AimLocales />
             <TargetLayer />
             <g data-in-picture><PiecesLayer /></g>
             <g data-in-picture><ApproachPlates /></g>

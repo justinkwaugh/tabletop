@@ -32,6 +32,7 @@ import {
     type Position
 } from '@tabletop/napoleons-triumph'
 import { signed } from './signed.js'
+import { corpsName } from './groupNames.js'
 
 type DescribedGame = Pick<HydratedNapoleonsTriumphGameState, 'map' | 'findPlayerState'>
 
@@ -68,7 +69,7 @@ const UNIT_OF: Record<Side, string> = {
 
 function force(order: MoveOrder, armyToName?: Side): string {
     if (order.kind === CommandKind.Corps && order.commanderId) {
-        return `${commanderDefinition(order.commanderId).name}’s corps`
+        return corpsName(order.commanderId)
     }
     if (order.kind === CommandKind.Detach && order.commanderId) {
         return `${count(order.unitIds.length)} detached by ${commanderDefinition(order.commanderId).name}`

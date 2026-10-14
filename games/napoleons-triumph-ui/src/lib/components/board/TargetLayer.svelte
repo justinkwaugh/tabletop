@@ -45,6 +45,11 @@
 
     const arrowScale = $derived(attackMarkerScale(gameSession.zoom))
 
+    function arrowPlacement(approach: number): string {
+        const { centre } = APPROACH_GEOMETRY[approach]
+        return `translate(${centre.x} ${centre.y}) scale(${arrowScale})`
+    }
+
     function choose(event: Event, target: MoveTarget) {
         event.stopPropagation()
         gameSession.wayUnderPointer = undefined
@@ -94,6 +99,12 @@
         return { at, arrow: waySignArrow(at, comesFrom, anchorOf(step.after)) }
     }
 </script>
+
+{#snippet threatArrow(approach: number)}
+    <g transform="rotate({attackMarkerAngle(APPROACH_GEOMETRY[approach])})">
+        <path d={ATTACK_ARROW_PATH}></path>
+    </g>
+{/snippet}
 
 {#snippet approachBar(approach: number, look: string)}
     {@const bar = APPROACH_GEOMETRY[approach]}
@@ -203,10 +214,19 @@
             <path d={WAY_SIGN_HEAD} transform={head} class="nt-way-sign-head"></path>
         </g>
     {/each}
-    {#each attacks as target (target.key)}
-        {@const bar = APPROACH_GEOMETRY[target.position.approach]}
+    {#if gameSession.threatBeingDeclared}
+        {@const approach = gameSession.threatBeingDeclared.position.approach}
         <g
-            transform="translate({bar.centre.x} {bar.centre.y}) scale({arrowScale})"
+            transform={arrowPlacement(approach)}
+            class="nt-target-attack nt-target-attack-chosen"
+            data-threat-being-declared={approach}
+        >
+            {@render threatArrow(approach)}
+        </g>
+    {/if}
+    {#each attacks as target (target.key)}
+        <g
+            transform={arrowPlacement(target.position.approach)}
             role="button"
             tabindex="0"
             aria-label="Threaten an attack across this approach"
@@ -215,9 +235,7 @@
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         >
             <title>Threaten an attack across this approach</title>
-            <g transform="rotate({attackMarkerAngle(bar)})">
-                <path d={ATTACK_ARROW_PATH}></path>
-            </g>
+            {@render threatArrow(target.position.approach)}
         </g>
     {/each}
 {/if}
@@ -304,7 +322,12 @@
         stroke-linejoin: round;
     }
 
-    .nt-target-attack:hover path {
+    .nt-target-attack:hover path,
+    .nt-target-attack-chosen path {
         fill: #7a1418;
+    }
+
+    .nt-target-attack-chosen {
+        pointer-events: none;
     }
 </style>

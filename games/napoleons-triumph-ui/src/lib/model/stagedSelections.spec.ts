@@ -28,21 +28,25 @@ import {
 } from './battleSelection.js'
 import {
     addWayStep,
+    aimOf,
     chooseCorpsUnit,
     chooseDetachedUnit,
     chosenCommandOf,
     chosenUnitsOf,
     destinationOf,
-    guardAttackAnnounced,
     hasManualCommandSelection,
     noCommandSelection,
     pickedUpOf,
     rideOf,
     setCommand,
     setDestination,
-    setGuardAttack,
     setPickedUp,
     setRide,
+    setAim,
+    setGuardUnit,
+    setThreat,
+    guardUnitOf,
+    threatOf,
     undoCommandSelection,
     unitsPickedUpWith,
     wayStepsOf,
@@ -68,18 +72,18 @@ function corpsPickedUp() {
 
 describe('command selection', () => {
     it('starts over when other pieces are picked up', () => {
-        const announced = setGuardAttack(setCommand(corpsPickedUp(), CommandKind.Detach), true)
+        const threatening = setThreat(setCommand(corpsPickedUp(), CommandKind.Detach), 246)
         const other = setPickedUp({ groupKey: 'other' })
-        expect(pickedUpOf(announced)).toEqual({ groupKey: 'corps' })
+        expect(pickedUpOf(threatening)).toEqual({ groupKey: 'corps' })
         expect(pickedUpOf(other)).toEqual({ groupKey: 'other' })
         expect(chosenCommandOf(other)).toBeUndefined()
-        expect(guardAttackAnnounced(other)).toBe(false)
+        expect(threatOf(other)).toBeUndefined()
     })
 
     it('undoes the latest manual stage and what followed it, one press at a time', () => {
-        const announced = setGuardAttack(setCommand(corpsPickedUp(), CommandKind.Corps), true)
-        const commanded = undoCommandSelection(announced)
-        expect(guardAttackAnnounced(commanded)).toBe(false)
+        const threatening = setThreat(setCommand(corpsPickedUp(), CommandKind.Corps), 246)
+        const commanded = undoCommandSelection(threatening)
+        expect(threatOf(commanded)).toBeUndefined()
         expect(chosenCommandOf(commanded)).toBe(CommandKind.Corps)
 
         const picked = undoCommandSelection(commanded)
@@ -115,12 +119,36 @@ describe('command selection', () => {
         expect(undoCommandSelection(noCommandSelection())).toEqual(noCommandSelection())
     })
 
-    it('changes the command without withdrawing the Guard Attack, and withdraws it when asked', () => {
-        const announced = setGuardAttack(setCommand(corpsPickedUp(), CommandKind.Corps), true)
-        const recommanded = setCommand(announced, CommandKind.Detach)
+    it('aims at a locale as a choice of its own, which picking up pieces or Undo puts down', () => {
+        const aimed = setAim(94)
+        expect(aimOf(aimed)).toBe(94)
+        expect(hasManualCommandSelection(aimed)).toBe(true)
+        expect(aimOf(setPickedUp({ groupKey: 'corps' }))).toBeUndefined()
+        expect(pickedUpOf(setAim(94))).toBeUndefined()
+        expect(undoCommandSelection(aimed)).toEqual(noCommandSelection())
+
+        const threatening = setThreat(aimed, 246)
+        const steppedBack = undoCommandSelection(threatening)
+        expect(threatOf(steppedBack)).toBeUndefined()
+        expect(aimOf(steppedBack)).toBe(94)
+    })
+
+    it('takes back the Guard unit chosen for a threat before the threat itself', () => {
+        const threatening = setThreat(corpsPickedUp(), 246)
+        const shown = setGuardUnit(threatening, 'F-guard')
+        expect(guardUnitOf(shown)).toBe('F-guard')
+        const unshown = undoCommandSelection(shown)
+        expect(guardUnitOf(unshown)).toBeUndefined()
+        expect(threatOf(unshown)).toBe(246)
+        expect(guardUnitOf(setThreat(shown, 247))).toBeUndefined()
+    })
+
+    it('puts down a threat being declared when the order changes, since the threats on offer change with it', () => {
+        const threatening = setThreat(setCommand(corpsPickedUp(), CommandKind.Corps), 246)
+        const recommanded = setCommand(threatening, CommandKind.Detach)
         expect(chosenCommandOf(recommanded)).toBe(CommandKind.Detach)
-        expect(guardAttackAnnounced(recommanded)).toBe(true)
-        expect(guardAttackAnnounced(setGuardAttack(recommanded, false))).toBe(false)
+        expect(threatOf(recommanded)).toBeUndefined()
+        expect(threatOf(chooseCorpsUnit(threatening, 'F01', ['F01', 'F02']))).toBeUndefined()
     })
 })
 
@@ -190,20 +218,18 @@ describe('choosing units of a corps', () => {
         expect(pickedUpOf(none)).toEqual({ groupKey: 'corps' })
     })
 
-    it('keeps the command and the Guard Attack announcement when the units change', () => {
-        const announced = setGuardAttack(
-            setCommand(chooseCorpsUnit(corpsPickedUp(), 'F01', MOVABLE), CommandKind.Corps),
-            true
+    it('keeps the command when the units change', () => {
+        const commanded = setCommand(
+            chooseCorpsUnit(corpsPickedUp(), 'F01', MOVABLE),
+            CommandKind.Corps
         )
-        const more = chooseCorpsUnit(announced, 'F02', MOVABLE)
+        const more = chooseCorpsUnit(commanded, 'F02', MOVABLE)
         expect(chosenUnitsOf(more)).toEqual(['F01', 'F02'])
         expect(chosenCommandOf(more)).toBe(CommandKind.Corps)
-        expect(guardAttackAnnounced(more)).toBe(true)
 
         const whole = chooseCorpsUnit(more, 'F03', MOVABLE)
         expect(chosenUnitsOf(whole)).toBeUndefined()
         expect(chosenCommandOf(whole)).toBe(CommandKind.Corps)
-        expect(guardAttackAnnounced(whole)).toBe(true)
 
         const another = chooseDetachedUnit(
             setCommand(corpsPickedUp(), CommandKind.Unit),
@@ -299,7 +325,6 @@ describe('the place a march is bound for', () => {
         expect(destinationOf(setCommand(bound(), CommandKind.Detach))).toBeUndefined()
         expect(destinationOf(chooseCorpsUnit(bound(), 'F01', ['F01', 'F02']))).toBeUndefined()
         expect(destinationOf(chooseDetachedUnit(bound(), 'F02', ['F01'], false))).toBeUndefined()
-        expect(destinationOf(setGuardAttack(bound(), true))).toBeUndefined()
         expect(wayStepsOf(setCommand(bound(), CommandKind.Detach))).toEqual([])
     })
 })

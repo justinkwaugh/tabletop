@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { createGame, deployBothArmies, failOnPageErrors, pickUp, tap, retreat } from './table.js'
+import {
+    createGame,
+    deployBothArmies,
+    failOnPageErrors,
+    pickUp,
+    tap,
+    retreat,
+    threatenWithoutTheGuard
+} from './table.js'
 
 failOnPageErrors()
 
@@ -65,7 +73,7 @@ test('a feint curls the attack’s arrow back, on the map while it is answered a
     await tap(page, '[aria-label="Move to locale 94"]')
     await page.getByRole('button', { name: 'End turn' }).click()
     await pickUp(page, 'st-hilaire')
-    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    await threatenWithoutTheGuard(page)
     const onTheMap = page.locator('svg[data-board] [data-attack-arrow]')
     await expect(onTheMap).toHaveAttribute('data-attack-arrow', 'threat')
     await tap(page, 'svg [aria-label="Choose this unit"]')
@@ -99,7 +107,7 @@ test('an attack is one history entry, and its retreat and the move in are replay
     await tap(page, '[aria-label="Move to locale 94"]')
     await page.getByRole('button', { name: 'End turn' }).click()
     await pickUp(page, 'st-hilaire')
-    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    await threatenWithoutTheGuard(page)
     await page.getByRole('button', { name: 'Retreat before combat' }).click()
     await retreat(page)
     await page.getByRole('button', { name: 'Move into the locale' }).click()
@@ -137,7 +145,7 @@ test('the picture of a history line steps to the line before and the line after'
     await tap(page, '[aria-label="Move to locale 94"]')
     await page.getByRole('button', { name: 'End turn' }).click()
     await pickUp(page, 'st-hilaire')
-    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    await threatenWithoutTheGuard(page)
     await page.getByRole('button', { name: 'Retreat before combat' }).click()
     await retreat(page)
     await page.getByRole('button', { name: 'Move into the locale' }).click()

@@ -162,6 +162,12 @@ export async function openMapMenu(page: Page) {
 }
 
 // Pieces are labelled for picking up only while the session takes choices, so Playwright waits out an action or Undo still settling.
+/** Taps the threat arrow and, as a Guard unit standing there could announce a Guard Attack, declares the threat without one. */
+export async function threatenWithoutTheGuard(page: Page) {
+    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await page.getByRole('button', { name: 'Threaten an attack without the Guard' }).click()
+}
+
 export async function pickUp(page: Page, commander: string) {
     await tap(page, `[data-commander="${commander}"][aria-label="Select these pieces"]`)
 }

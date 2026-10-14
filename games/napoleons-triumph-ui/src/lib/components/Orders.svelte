@@ -1,8 +1,10 @@
 <script lang="ts">
     import { ActionType, CommandKind, commanderDefinition } from '@tabletop/napoleons-triumph'
+    import { corpsName, standingGroupName } from '$lib/utils/groupNames.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { RideChoice } from '$lib/model/moveCommands.js'
-    import { marksOn } from '$lib/model/targets.js'
+    import type { Snippet } from 'svelte'
+    import { marksOn, type TargetMark } from '$lib/model/targets.js'
     import { WayStepKind } from '$lib/model/ways.js'
     import { commandsLeft } from '$lib/utils/commandsLeft.js'
     import CommandSwitch from './CommandSwitch.svelte'
@@ -24,13 +26,31 @@
     const rideChoice = $derived(gameSession.rideChoice)
     const stepsOfTheWay = $derived(gameSession.stepsOfTheWay)
     const together = $derived(gameSession.wholeCorpsChosen)
+    const unitAlone = $derived(
+        !together && picked.length === 1
+            ? group?.units.find((unit) => unit.id === picked[0])
+            : undefined
+    )
+    const attachTo = $derived(unitAlone ? gameSession.attachOptions(unitAlone) : [])
+    const aimedLocale = $derived(gameSession.aimedLocale)
+    const threatBeingDeclared = $derived(gameSession.threatBeingDeclared)
+    const threatSentence = $derived.by(() => {
+        if (!threatBeingDeclared) {
+            return undefined
+        }
+        const map = gameSession.gameState.map
+        const { locale, approach } = threatBeingDeclared.position
+        return `Threaten an attack from ${map.label(locale)} into ${map.label(map.approach(approach).neighbour)}.`
+    })
+
     const title = $derived.by(() => {
+        if (aimedLocale !== undefined) {
+            return `Attack on ${gameSession.gameState.map.label(aimedLocale)}`
+        }
         if (!group) {
             return undefined
         }
-        const name = group.commander
-            ? `${commanderDefinition(group.commander.id).name}’s corps`
-            : 'Detached units'
+        const name = group.commander ? corpsName(group.commander.id) : 'Detached units'
         return ridingOn ? `${name}, riding on` : name
     })
 
@@ -99,9 +119,153 @@
     {/if}
 {/snippet}
 
+{#snippet drawer(sheet: Snippet, note: Snippet, marks: TargetMark[] | undefined)}
+    <div class="nt-orders-anchor">
+        <div class="nt-orders-drawer" bind:clientHeight={drawerHeight}>
+            <div class="nt-orders-sheet">
+                {@render sheet()}
+                <div class="nt-orders-note">
+                    {@render note()}
+                    <span class="nt-orders-faint">{stillToCommand}</span>
+                </div>
+            </div>
+            {#if marks}
+                <div class="nt-orders-key">
+                    <TargetLegend {marks} />
+                </div>
+            {/if}
+        </div>
+    </div>
+{/snippet}
+
+{#snippet guardSheet()}
+    <span>{threatSentence}</span>
+    <span>To announce a Guard Attack, choose the Guard unit to show:</span>
+    <div class="nt-orders-row">
+        <div class="nt-orders-actions nt-orders-guards">
+            {#each gameSession.guardUnitsToShow as unitId (unitId)}
+                {@const unit = gameSession.gameState.unit(unitId)}
+                {@const standsWith = standingGroupName(gameSession.gameState.map, unit)}
+                <div class="nt-orders-unit">
+                    <UnitTile
+                        playerId={unit.playerId}
+                        {...gameSession.lookOf(unit)}
+                        selected={gameSession.guardUnitChosen === unitId}
+                        label="Show this Guard unit: {standsWith}"
+                        onclick={() => gameSession.toggleGuardUnit(unitId)}
+                    />
+                    <span class="nt-orders-small-text">{standsWith}</span>
+                </div>
+            {/each}
+        </div>
+    </div>
+    <button type="button" class="nt-plain-button" onclick={() => gameSession.declareThreat()}
+        >{gameSession.guardUnitChosen
+            ? 'Announce a Guard Attack'
+            : 'Threaten an attack without the Guard'}</button
+    >
+{/snippet}
+
+{#snippet guardNote()}
+    {#if gameSession.guardUnitChosen}
+        <span class="nt-orders-warning"
+            >A Guard Attack cannot be taken back: the Guard unit is turned face-up to the enemy.</span
+        >
+    {/if}
+{/snippet}
+
+{#snippet aimSheet()}
+    <div class="nt-orders-row">
+        <div class="nt-orders-turn">
+            {@render turnActions(false)}
+        </div>
+    </div>
+{/snippet}
+
+{#snippet aimNote()}
+    <span
+        >Tap an arrow to threaten an attack across that approach. The attacking pieces are named
+        next.</span
+    >
+{/snippet}
+
+{#snippet groupSheet()}
+    {#if group}
+        <div
+            class="nt-orders-units"
+            class:nt-orders-together={together}
+            role="group"
+            aria-label={together ? 'The whole corps goes together' : 'Units'}
+        >
+            {#each group.units as unit (unit.id)}
+                {@const moved = gameSession.movedInUnitStrip(unit)}
+                <div class="nt-orders-unit">
+                    <UnitTile
+                        playerId={unit.playerId}
+                        {...gameSession.lookOf(unit)}
+                        selected={!together && picked.includes(unit.id)}
+                        dimmed={moved}
+                        marker={unit.fixed ? 'fixed battery' : moved ? 'moved' : undefined}
+                        label="Include this unit in the command"
+                        onclick={gameSession.mayChooseUnit(unit)
+                            ? () => gameSession.togglePickedUnit(unit.id)
+                            : undefined}
+                    />
+                </div>
+            {/each}
+        </div>
+        <div class="nt-orders-row">
+            <div class="nt-orders-actions">
+                {#if rideChoice}
+                    <RideSwitch
+                        chosen={rideChoice}
+                        onchoose={(ride) => gameSession.chooseRide(ride)}
+                    />
+                {/if}
+                {#if options.length > 0}
+                    <span class="nt-orders-faint">Command</span>
+                {/if}
+                <CommandSwitch
+                    {options}
+                    chosen={gameSession.order?.kind}
+                    onchoose={(command) => gameSession.chooseCommand(command)}
+                />
+                {#if unitAlone}
+                    {#each attachTo as commander (commander.id)}
+                        <button
+                            type="button"
+                            class="nt-plain-button nt-orders-small"
+                            onclick={() => gameSession.attach(commander.id, unitAlone.id)}
+                            >Attach to {commanderDefinition(commander.id).name}</button
+                        >
+                    {/each}
+                {/if}
+            </div>
+            <div class="nt-orders-turn">
+                {@render turnActions(false)}
+            </div>
+        </div>
+    {/if}
+{/snippet}
+
+{#snippet groupNote()}
+    {#if wayToChoose}
+        <span>{wayToChoose}</span>
+    {:else if problem}
+        <span>{problem}</span>
+    {:else if ridingOn}
+        <span
+            >The cavalry may ride on along its road, or threaten again. Any other command ends this
+            move.</span
+        >
+    {:else if aside}
+        <span>{aside}</span>
+    {/if}
+{/snippet}
+
 <div class="nt-orders" role={title ? 'group' : undefined} aria-label={title}>
     <div class="nt-orders-lead">
-        {#if group}
+        {#if title}
             <span class="nt-orders-name">{title}</span>
         {:else}
             <span
@@ -112,101 +276,16 @@
             {@render turnActions(true)}
         {/if}
     </div>
-    {#if group}
-        <div class="nt-orders-anchor">
-            <div class="nt-orders-drawer" bind:clientHeight={drawerHeight}>
-                <div class="nt-orders-sheet">
-                    <div
-                        class="nt-orders-units"
-                        class:nt-orders-together={together}
-                        role="group"
-                        aria-label={together ? 'The whole corps goes together' : 'Units'}
-                    >
-                        {#each group.units as unit (unit.id)}
-                            {@const attachTo = gameSession.attachOptions(unit)}
-                            {@const moved = gameSession.movedInUnitStrip(unit)}
-                            <div class="nt-orders-unit">
-                                <UnitTile
-                                    playerId={unit.playerId}
-                                    {...gameSession.lookOf(unit)}
-                                    selected={!together && picked.includes(unit.id)}
-                                    dimmed={moved}
-                                    marker={unit.fixed
-                                        ? 'fixed battery'
-                                        : moved
-                                          ? 'moved'
-                                          : undefined}
-                                    label="Include this unit in the command"
-                                    onclick={gameSession.mayChooseUnit(unit)
-                                        ? () => gameSession.togglePickedUnit(unit.id)
-                                        : undefined}
-                                />
-                                {#each attachTo as commander (commander.id)}
-                                    <button
-                                        type="button"
-                                        class="nt-plain-button nt-orders-small"
-                                        onclick={() => gameSession.attach(commander.id, unit.id)}
-                                        >Attach to {commanderDefinition(commander.id).name}</button
-                                    >
-                                {/each}
-                            </div>
-                        {/each}
-                    </div>
-                    <div class="nt-orders-row">
-                        <div class="nt-orders-actions">
-                            {#if rideChoice}
-                                <RideSwitch
-                                    chosen={rideChoice}
-                                    onchoose={(ride) => gameSession.chooseRide(ride)}
-                                />
-                            {/if}
-                            {#if options.length > 0}
-                                <span class="nt-orders-faint">Command</span>
-                            {/if}
-                            <CommandSwitch
-                                {options}
-                                chosen={gameSession.order?.kind}
-                                onchoose={(command) => gameSession.chooseCommand(command)}
-                            />
-                            {#if gameSession.guardUnitId}
-                                <button
-                                    type="button"
-                                    class="nt-plain-button nt-orders-small"
-                                    aria-pressed={gameSession.guardAttack}
-                                    onclick={() => gameSession.toggleGuardAttack()}
-                                    >Announce a Guard Attack</button
-                                >
-                            {/if}
-                        </div>
-                        <div class="nt-orders-turn">
-                            {@render turnActions(false)}
-                        </div>
-                    </div>
-                    <div class="nt-orders-note">
-                        {#if wayToChoose}
-                            <span>{wayToChoose}</span>
-                        {:else if problem}
-                            <span>{problem}</span>
-                        {:else if ridingOn}
-                            <span
-                                >The cavalry may ride on along its road, or threaten again. Any
-                                other command ends this move.</span
-                            >
-                        {:else if aside}
-                            <span>{aside}</span>
-                        {/if}
-                        <span class="nt-orders-faint">{stillToCommand}</span>
-                    </div>
-                </div>
-                {#if !problem}
-                    <div class="nt-orders-key">
-                        <TargetLegend
-                            marks={marksOn(gameSession.targets, gameSession.closedReserves)}
-                        />
-                    </div>
-                {/if}
-            </div>
-        </div>
+    {#if threatBeingDeclared}
+        {@render drawer(guardSheet, guardNote, undefined)}
+    {:else if aimedLocale !== undefined}
+        {@render drawer(aimSheet, aimNote, marksOn(gameSession.targets))}
+    {:else if group}
+        {@render drawer(
+            groupSheet,
+            groupNote,
+            problem ? undefined : marksOn(gameSession.targets, gameSession.closedReserves)
+        )}
     {:else}
         <div class="nt-orders-note nt-orders-rest">
             <span class="nt-orders-faint">{stillToCommand}</span>
@@ -339,6 +418,19 @@
 
     .nt-orders-faint {
         opacity: 0.66;
+    }
+
+    .nt-orders-guards {
+        gap: 8px 18px;
+    }
+
+    .nt-orders-small-text {
+        font-size: 13px;
+    }
+
+    .nt-orders-warning {
+        padding-bottom: 4px;
+        color: var(--nt-warn);
     }
 
     @media (max-width: 639px) {

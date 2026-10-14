@@ -21,6 +21,9 @@
         if (gameSession.canSelect(sprite.group)) {
             event.stopPropagation()
             gameSession.selectGroup(sprite.group)
+        } else if (gameSession.mayAimAt(sprite.group.position.locale)) {
+            event.stopPropagation()
+            gameSession.aimAt(sprite.group.position.locale)
         } else if (gameSession.maySpread(sprite)) {
             event.stopPropagation()
             gameSession.toggleSpread(sprite)
@@ -30,6 +33,10 @@
     function taskOf(sprite: GroupSprite): string | undefined {
         if (gameSession.canSelect(sprite.group)) {
             return 'Select these pieces'
+        }
+        const { locale } = sprite.group.position
+        if (gameSession.mayAimAt(locale)) {
+            return gameSession.aimTask(locale)
         }
         if (gameSession.maySpread(sprite)) {
             return sprite.closedUp ? 'Spread these pieces out' : 'Close these pieces up'
@@ -86,14 +93,25 @@
         {/each}
     </g>
 {/each}
-{#each gameSession.ringedSprites as sprite (sprite.group.key)}
+{#snippet ring(sprite: GroupSprite, guard: boolean)}
     <circle
         cx={sprite.centre.x}
         cy={sprite.centre.y}
         r={sprite.radius + 10}
         class="nt-selection-ring"
+        class:nt-guard-ring={guard}
+        data-guard-ring={guard ? sprite.group.key : undefined}
     ></circle>
+{/snippet}
+
+{#each gameSession.ringedSprites as sprite (sprite.group.key)}
+    {#if sprite.group.key !== gameSession.guardSprite?.group.key}
+        {@render ring(sprite, false)}
+    {/if}
 {/each}
+{#if gameSession.guardSprite}
+    {@render ring(gameSession.guardSprite, true)}
+{/if}
 
 <style>
     .nt-selectable {
@@ -106,5 +124,11 @@
         stroke-width: 3;
         stroke-dasharray: 4 6;
         pointer-events: none;
+    }
+
+    .nt-guard-ring {
+        stroke: #7a1418;
+        stroke-width: 5;
+        stroke-dasharray: 7 6;
     }
 </style>
