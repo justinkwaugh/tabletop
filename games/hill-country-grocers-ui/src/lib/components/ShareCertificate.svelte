@@ -1,26 +1,30 @@
+<script lang="ts" module>
+    export const CERTIFICATE_WIDTH = 32
+    export const CERTIFICATE_HEIGHT = 23
+</script>
+
 <script lang="ts">
     import { companyDefinition, type CompanyId } from '@tabletop/hill-country-grocers'
     import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
 
-    let { companyId, sold = true }: { companyId: CompanyId; sold?: boolean } = $props()
+    let { companyId }: { companyId: CompanyId } = $props()
 
     const style = $derived(COMPANY_STYLE[companyId])
 </script>
 
 <span
     class="certificate"
-    class:unsold={!sold}
+    style:width="{CERTIFICATE_WIDTH}px"
+    style:height="{CERTIFICATE_HEIGHT}px"
     style:--company={style.fill}
     style:--company-text={style.text}
-    title="{companyDefinition(companyId).name} share{sold ? '' : ' (unsold)'}">{companyId}</span
+    title="{companyDefinition(companyId).name} share">{companyId}</span
 >
 
 <style>
     .certificate {
         display: inline-block;
         box-sizing: border-box;
-        width: 32px;
-        height: 23px;
         border: 1px solid rgba(29, 20, 11, 0.7);
         border-radius: 3px;
         background: var(--company);
@@ -30,13 +34,5 @@
         font-weight: 700;
         line-height: 22px;
         text-align: center;
-    }
-
-    .certificate.unsold {
-        border: 1.5px dashed var(--company);
-        background: rgba(255, 255, 255, 0.55);
-        color: var(--company);
-        line-height: 20px;
-        opacity: 0.6;
     }
 </style>
