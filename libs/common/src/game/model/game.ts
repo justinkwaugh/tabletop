@@ -119,6 +119,10 @@ export function isListedPublicGame(game: Pick<Game, 'isPublic' | 'unlisted'>): b
     return game.isPublic && game.unlisted !== true
 }
 
+export function isListedOpenGame(game: Pick<Game, 'isPublic' | 'unlisted' | 'status'>): boolean {
+    return isListedPublicGame(game) && game.status === GameStatus.WaitingForPlayers
+}
+
 export function gameUserIds(game: Pick<Game, 'players' | 'ownerId' | 'tournament'>): string[] {
     const playerUserIds = game.players.flatMap((player) =>
         player.userId == null ? [] : [player.userId]

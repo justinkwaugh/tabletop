@@ -298,6 +298,33 @@ describe('unlisted games', () => {
         expect(sentTopics(notifications)).toEqual([['user-developer']])
     })
 
+    it('stays unlisted when the title’s bundled initializer predates unlisted games', async () => {
+        const { service, notifications } = fixture()
+        const initializer = SyntheticDefinition.runtime.initializer
+        const initialize = initializer.initializeGame.bind(initializer)
+        vi.spyOn(initializer, 'initializeGame').mockImplementation((game, definition) => {
+            const { unlisted: _unlisted, ...older } = initialize(game, definition)
+            return older
+        })
+        const created = await service.createGame({
+            definition: SyntheticDefinition,
+            game: { ...inviteesOnly(), isPublic: true, unlisted: true, players: openSeats },
+            owner: developer
+        })
+        expect(created.unlisted).toBe(true)
+        expect(sentTopics(notifications)).toEqual([['user-developer']])
+    })
+
+    it('cannot stop being public', async () => {
+        const { service, store } = fixture()
+        const existing: Game = { ...storedGame(developer, []), isPublic: true, unlisted: true }
+        existing.players = openSeats
+        acceptUpdates(store, existing)
+        await expect(
+            service.updateGame({ gameId: existing.id, fields: { isPublic: false }, user: developer })
+        ).rejects.toThrow('must be public')
+    })
+
     it('rejects one from a regular user', async () => {
         const { service, write } = fixture()
         await expect(

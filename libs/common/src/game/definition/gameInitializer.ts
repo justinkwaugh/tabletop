@@ -41,7 +41,6 @@ export abstract class BaseGameInitializer<
         const newGame: Game = <Game>{
             id: game.id,
             isPublic: game.isPublic || false,
-            ...(game.unlisted ? { unlisted: true } : {}),
             status: GameStatus.WaitingForPlayers,
             typeId: game.typeId,
             deleted: false,

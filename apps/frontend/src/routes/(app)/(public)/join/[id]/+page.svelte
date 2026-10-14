@@ -85,7 +85,7 @@
     <Card size="md" class={`w-full p-4 sm:p-6 gap-4 ${gameCardAppearance}`}>
         {#if game}
             <p class="text-sm font-medium text-blue-700 dark:text-blue-300">
-                Public game invitation
+                Game invitation
             </p>
             <div class="flex items-center gap-4">
                 {#if title}

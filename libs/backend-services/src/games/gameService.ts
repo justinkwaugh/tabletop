@@ -183,6 +183,9 @@ export class GameService {
 
         const newGame = definition.runtime.initializer.initializeGame(game, definition)
         delete newGame.protectedInformation
+        // Titles bundle their own initializer, which may predate unlisted games.
+        if (game.unlisted) newGame.unlisted = true
+        else delete newGame.unlisted
 
         // Check the specified players and populate them with user data
         const usersByPlayerId = await this.validateAndPopulatePlayers(newGame.players, owner)
@@ -705,6 +708,10 @@ export class GameService {
                         { ...existingGame, players: fieldsToUpdate.players },
                         owner
                     )
+                }
+
+                if (existingGame.unlisted && fieldsToUpdate.isPublic === false) {
+                    throw new UnlistedGameNotPublicError({ id: gameId })
                 }
 
                 if (fieldsToUpdate.isPublic === false && fieldsToUpdate.players === undefined) {

@@ -812,7 +812,7 @@ export class FirestoreGameStore implements GameStore {
 
         try {
             const querySnapshot = await this.readQuery(query)
-            const found = querySnapshot.docs.map((doc) => doc.data()) as Game[]
+            const found = querySnapshot.docs.map((doc) => doc.data())
             this.recordRead('game', found.length)
             const games = found.filter(isListedPublicGame)
 

@@ -49,10 +49,10 @@ A Player accepted by its associated User.
 A Reserved Player whose associated User declined. In a Public Game the position returns to Open; in an Invite-Only Game the declined association remains until the Owner changes it.
 
 **Public Game**:
-A discoverable Game Instance with Open Players that eligible Users may claim.
+A Game Instance with Open Players that eligible Users may claim. It is listed for public discovery unless it is an Unlisted Game.
 
 **Unlisted Game**:
-A Game Instance with Open Players that any User holding its link may claim, absent from public discovery. An Administrator or Developer creates one to recruit Players for a Game Title of any catalog visibility.
+A Public Game absent from public discovery, whose Open Players any User holding its link may claim. An Administrator or Developer creates one to recruit Players for a Game Title of any catalog visibility.
 _Avoid_: Hidden public game, private game
 
 **Invite-Only Game**:

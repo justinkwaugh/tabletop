@@ -31,6 +31,7 @@ import {
     GameCategory,
     PlayerStatus,
     gameUserIds,
+    isListedOpenGame,
     isListedPublicGame,
     isYourTurnNotification
 } from '@tabletop/common'
@@ -273,7 +274,7 @@ export class GameService implements GameServiceInterface {
             newGame = await this.api.createGame(game, options)
             this.gamesById.set(newGame.id, newGame)
 
-            if (isListedPublicGame(newGame) && newGame.status === GameStatus.WaitingForPlayers) {
+            if (isListedOpenGame(newGame)) {
                 const titleGames = this.openGamesByTitleId.get(newGame.typeId) || []
                 titleGames.push(newGame)
                 this.openGamesByTitleId.set(newGame.typeId, titleGames)
