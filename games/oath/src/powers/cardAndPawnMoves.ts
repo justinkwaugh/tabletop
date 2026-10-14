@@ -1,6 +1,7 @@
 import { isLockedFor } from '../util/locked.js'
 import { categoryAt } from '../util/sitePowers.js'
-import { Banner, Suit } from '../model/oathEnums.js'
+import { Banner, SearchPlay, Suit } from '../model/oathEnums.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import type { PileDeposit } from '../model/hidden.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { cardDefinition, suitOf } from '../data/cardRegistry.js'
@@ -239,10 +240,21 @@ registerEffect(PIPER, powerIndexOf(PIPER, PowerTiming.Action), {
 const RIOTS = 'denizen.discord.riots'
 function riotSuits(ctx: EffectContext): { most: Suit[]; count: number } {
     const counts = new Map<Suit, number>()
-    for (const id of denizensOnMap(ctx.state)) {
-        if (id === RIOTS) continue
+    const tally = (id: string) => {
         const suit = suitOf(id)
         if (suit) counts.set(suit, (counts.get(suit) ?? 0) + 1)
+    }
+    for (const id of denizensOnMap(ctx.state)) {
+        if (id !== RIOTS) tally(id)
+    }
+    // Its Q&A: "count … cards at all sites", so Riots counts when it is played to one ("other" spares it from
+    // the discard alone). Counted by its play, since the check runs before it lands and the resolve after.
+    // Before revision 10 it was left out.
+    if (
+        ctx.playedTo === SearchPlay.Site &&
+        isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6)
+    ) {
+        tally(RIOTS)
     }
     const count = Math.max(0, ...counts.values())
     const most = [...counts.entries()].filter(([, n]) => n === count).map(([s]) => s)

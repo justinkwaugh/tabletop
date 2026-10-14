@@ -1,5 +1,5 @@
 import { HydratedOathGameState } from '../model/gameState.js'
-import type { Banner, Region, Suit } from '../model/oathEnums.js'
+import type { Banner, Region, SearchPlay, Suit } from '../model/oathEnums.js'
 import type { PersistentContext } from '../util/persistent.js'
 import type { BannerTake } from '../util/seize.js'
 import type { HiddenRequest, HiddenReveal, PileDeposit } from '../model/hidden.js'
@@ -48,6 +48,8 @@ export interface EffectContext {
     /** Absent for a used power. */
     particulars?: ModifierParticulars
     reveal?: HiddenReveal
+    /** R-5.1.4 — where a When Played power's own card is played: its check runs before the card lands there, its resolve after. */
+    playedTo?: SearchPlay
 }
 
 export interface CampaignContext {

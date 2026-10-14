@@ -350,7 +350,8 @@ export function playCard(
                 playerId,
                 power,
                 choices: options.choices ?? [],
-                reveal: options.reveal
+                reveal: options.reveal,
+                playedTo: play
             }
             if (context.reveal === undefined && effect.hidden?.(context)) {
                 whenPlayed = unresolvedForWantOfReveal(cardId)
@@ -425,7 +426,13 @@ export function reasonWhenPlayedChoicesInvalid(
     }
     const bad = reasonChoicesInvalid(state, playerId, power, options.choices)
     if (bad) return bad
-    return effect.reasonCannotResolve?.({ state, playerId, power, choices: options.choices ?? [] })
+    return effect.reasonCannotResolve?.({
+        state,
+        playerId,
+        power,
+        choices: options.choices ?? [],
+        playedTo: play
+    })
 }
 
 export function reasonCannotPlayCard(

@@ -9,7 +9,10 @@ import { advisersTowardLimit } from '../util/continuous.js'
 import '../powers/index.js'
 import { createOathVault } from '../model/vault.js'
 import { getPrng } from '@tabletop/common'
-import { adviserDiscardsNeeded } from '../util/cardPlay.js'
+import { adviserDiscardsNeeded, reasonCannotPlayCard } from '../util/cardPlay.js'
+import { HydratedOathGameState } from '../model/gameState.js'
+import { OathRevision } from '../util/revision.js'
+import { served } from '../testing/projection.js'
 import { buildAction } from '../testing/actions.js'
 import { actionPowerUse, bank, card, modifierUse, player, site } from '../testing/choices.js'
 import { rulerTable } from '../testing/tables.js'
@@ -122,6 +125,96 @@ describe('Discord', () => {
         const a = playDrawnCard(calm, RIOTS, SearchPlay.Site)
         expect(a.metadata?.whenPlayed).toMatch(/not on the Mob side/)
         expect(calm.denizensBySite['c2']).toEqual(['denizen.hearth.storyteller'])
+    })
+
+    // Its Q&A: "count and discard cards at all sites. Do not count or discard advisers"; "other" spares Riots alone.
+    describe('Riots — from revision 10, played to a site it is one of the cards on the map it counts', () => {
+        const MERCENARIES = 'denizen.discord.mercenaries'
+        const STORYTELLER = 'denizen.hearth.storyteller'
+        const BOILING_LAKE = 'denizen.discord.boiling-lake'
+
+        const riot = (revision: OathRevision, denizens: Record<string, string[]>) =>
+            rulerTable([], [], {}, { ...mob, oathRevision: revision, denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...denizens } })
+        /** Discord 2 with Riots at c1, Hearth 2. */
+        const tied = (revision: OathRevision) => riot(revision, { c2: [MERCENARIES], h1: [INN, STORYTELLER] })
+        /** Discord 2 with Riots at c1, Hearth 1. */
+        const discordLeads = (revision: OathRevision) => riot(revision, { c2: [MERCENARIES], h1: [INN] })
+
+        it('a tie with Discord, Riots counted, lets its player name Discord: the other Discord cards go, Riots stays', () => {
+            const s = tied(OathRevision.EngineFixes6)
+            const a = playDrawnCard(s, RIOTS, SearchPlay.Site, [bank(Suit.Discord)])
+            expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [], h1: [INN, STORYTELLER] })
+            expect(a.metadata?.whenPlayed).toBe('Riots: discarded 1 discord cards from the map')
+        })
+
+        it('the same tie may be broken for Hearth instead, and must be broken', () => {
+            const s = tied(OathRevision.EngineFixes6)
+            playDrawnCard(s, RIOTS, SearchPlay.Site, [bank(Suit.Hearth)])
+            expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [MERCENARIES], p1: [], h1: [] })
+            expect(() => playDrawnCard(tied(OathRevision.EngineFixes6), RIOTS, SearchPlay.Site)).toThrow(/the most common suit is tied/)
+        })
+
+        it('Discord leading with Riots counted needs no pick, and no other suit may be named', () => {
+            const s = discordLeads(OathRevision.EngineFixes6)
+            playDrawnCard(s, RIOTS, SearchPlay.Site)
+            expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [], h1: [INN] })
+            expect(() => playDrawnCard(discordLeads(OathRevision.EngineFixes6), RIOTS, SearchPlay.Site, [bank(Suit.Hearth)])).toThrow(
+                /hearth is not the most common suit on the map \(discord\)/
+            )
+        })
+
+        it('played to the advisers it is neither counted nor discarded', () => {
+            expect(() => playDrawnCard(discordLeads(OathRevision.EngineFixes6), RIOTS, SearchPlay.Adviser)).toThrow(/the most common suit is tied/)
+            const s = discordLeads(OathRevision.EngineFixes6)
+            playDrawnCard(s, RIOTS, SearchPlay.Adviser, [bank(Suit.Discord)])
+            expect(s.denizensBySite).toEqual({ c1: [], c2: [], p1: [], h1: [INN] })
+            expect(s.getPlayerState('ruler').advisers).toEqual([{ cardId: RIOTS, faceUp: true }])
+        })
+
+        it('a locked Discord card at a site is counted and stays (R-7.2.2)', () => {
+            const s = riot(OathRevision.EngineFixes6, { c2: [BOILING_LAKE], h1: [INN] })
+            const a = playDrawnCard(s, RIOTS, SearchPlay.Site)
+            expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [BOILING_LAKE], p1: [], h1: [INN] })
+            expect(a.metadata?.whenPlayed).toBe('Riots: discarded 0 discord cards from the map')
+        })
+
+        it('alone on the map it is the most common suit, and discards nothing', () => {
+            const s = riot(OathRevision.EngineFixes6, {})
+            const a = playDrawnCard(s, RIOTS, SearchPlay.Site)
+            expect(s.denizensBySite['c1']).toEqual([RIOTS])
+            expect(a.metadata?.whenPlayed).toBe('Riots: discarded 0 discord cards from the map')
+        })
+
+        it('off the Mob side nothing is counted or discarded', () => {
+            const s = rulerTable([], [], {}, { oathRevision: OathRevision.EngineFixes6, denizensBySite: { c1: [], c2: [MERCENARIES], p1: [], h1: [INN, STORYTELLER] } })
+            const a = playDrawnCard(s, RIOTS, SearchPlay.Site)
+            expect(a.metadata?.whenPlayed).toMatch(/not on the Mob side/)
+            expect(s.denizensBySite['c2']).toEqual([MERCENARIES])
+        })
+
+        it("the table checks the pick on the player's own view as the server does", () => {
+            const own = (s: ReturnType<typeof riot>) => new HydratedOathGameState(served(s, { kind: 'player', playerId: 'ruler' }))
+            for (const scene of [tied, discordLeads]) {
+                const s = scene(OathRevision.EngineFixes6)
+                for (const choices of [[], [bank(Suit.Discord)], [bank(Suit.Hearth)]]) {
+                    for (const play of [SearchPlay.Site, SearchPlay.Adviser]) {
+                        const reason = (state: HydratedOathGameState) => reasonCannotPlayCard(state, 'ruler', RIOTS, play, { faceUp: true, choices })
+                        expect(reason(own(s)), `${scene.name} ${play} ${JSON.stringify(choices)}`).toEqual(reason(s))
+                    }
+                }
+            }
+            expect(reasonCannotPlayCard(own(tied(OathRevision.EngineFixes6)), 'ruler', RIOTS, SearchPlay.Site, { choices: [bank(Suit.Discord)] })).toBeUndefined()
+        })
+
+        it('before revision 10 a game keeps the count it was recorded with: Riots left itself out', () => {
+            expect(() => playDrawnCard(tied(OathRevision.EngineFixes5), RIOTS, SearchPlay.Site, [bank(Suit.Discord)])).toThrow(
+                /discord is not the most common suit on the map \(hearth\)/
+            )
+            expect(() => playDrawnCard(discordLeads(OathRevision.EngineFixes5), RIOTS, SearchPlay.Site)).toThrow(/the most common suit is tied/)
+            const s = discordLeads(OathRevision.EngineFixes5)
+            playDrawnCard(s, RIOTS, SearchPlay.Site, [bank(Suit.Hearth)])
+            expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [MERCENARIES], p1: [], h1: [] })
+        })
     })
 })
 
