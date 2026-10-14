@@ -85,4 +85,23 @@ describe('the Austerlitz map, as checked against the public map file', () => {
         expect(AUSTERLITZ.traceRoad({ locale: 88 }, [99])).not.toHaveLength(0)
         expect(AUSTERLITZ.traceRoad({ locale: 51 }, [38, 52, 61])).toHaveLength(0)
     })
+
+    it('keeps apart two roads of a locale that join only beyond its border', () => {
+        // Pratze Berg: the road from Liechtenstein's locale and the road cutting its corner from 94 meet in 121.
+        expect(AUSTERLITZ.traceRoad({ locale: 123 }, [106, 94])).toHaveLength(0)
+        expect(AUSTERLITZ.traceRoad({ locale: 123 }, [106, 121])).not.toHaveLength(0)
+        expect(AUSTERLITZ.traceRoad({ locale: 94 }, [106, 121])).not.toHaveLength(0)
+        // Locale 90: the roads from 101 and from 80 cross in 102.
+        expect(AUSTERLITZ.traceRoad({ locale: 101 }, [90, 80])).toHaveLength(0)
+        expect(AUSTERLITZ.traceRoad({ locale: 101 }, [90, 102])).not.toHaveLength(0)
+        expect(AUSTERLITZ.traceRoad({ locale: 80 }, [90, 102])).not.toHaveLength(0)
+    })
+
+    it('does not join entry roads that meet only under a printed track', () => {
+        expect(AUSTERLITZ.traceRoad({ entryId: 'F10' }, [140, 131])).not.toHaveLength(0)
+        expect(AUSTERLITZ.traceRoad({ entryId: 'F11' }, [140, 147])).not.toHaveLength(0)
+        expect(AUSTERLITZ.traceRoad({ entryId: 'F11' }, [140, 131])).toHaveLength(0)
+        expect(AUSTERLITZ.traceRoad({ entryId: 'F10' }, [140, 147])).toHaveLength(0)
+        expect(AUSTERLITZ.traceRoad({ locale: 147 }, [140, 131])).toHaveLength(0)
+    })
 })
