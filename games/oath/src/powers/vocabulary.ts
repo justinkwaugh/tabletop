@@ -22,6 +22,7 @@ import { burnFromBanner } from '../util/seize.js'
 import { countOf, adjustCount, warbandEntries } from '../util/warbands.js'
 import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import { pawnSiteId, playersAt, regionOfPawn } from '../util/pawn.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 
 export { gainFavorFromBank, takeFavorFromPlayer } from '../util/favor.js'
 export { pawnSiteId, regionOfPawn } from '../util/pawn.js'
@@ -272,7 +273,10 @@ export function moveFavorBetweenBanks(
     return moved
 }
 
-/** R-10.25 — a 1:1 swap leaves capacity unchanged; the caller's domain refuses a locked target (R-7.2.2). */
+/**
+ * R-10.25 — a 1:1 swap leaves capacity unchanged; the caller's domain refuses a locked target (R-7.2.2).
+ * From revision 10, two cards at one site swap to the same place, so nothing moves.
+ */
 export function swapPlayedCardWithSiteCard(
     state: HydratedOathGameState,
     playerId: string,
@@ -283,6 +287,9 @@ export function swapPlayedCardWithSiteCard(
     assertExists(targetSite, `${siteCardId} is a denizen at a site`)
     const player = state.getPlayerState(playerId)
     const playedAtSite = siteHolding(state, playedCardId)
+    if (playedAtSite === targetSite && isAtLeastOathRevision(state, OathRevision.EngineFixes6)) {
+        return
+    }
     if (playedAtSite) {
         state.denizensBySite[playedAtSite] = state.denizensBySite[playedAtSite].map((id) =>
             id === playedCardId ? siteCardId : id

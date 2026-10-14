@@ -163,3 +163,14 @@ export function expectCountsMatchTheVault(state: HydratedOathGameState): void {
         }
     }
 }
+
+/**
+ * R-10.25 — the denizens at sites and held as advisers, facedown ones too, sorted: a swap neither
+ * doubles nor loses one. Reads the server's state, where every adviser is known.
+ */
+export function placedDenizens(state: HydratedOathGameState): string[] {
+    return [
+        ...Object.values(state.denizensBySite).flat(),
+        ...state.players.flatMap((player) => player.knownAdviserIds())
+    ].sort()
+}

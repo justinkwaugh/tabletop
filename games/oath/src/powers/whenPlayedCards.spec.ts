@@ -12,6 +12,8 @@ import { bank, card } from '../testing/choices.js'
 import { discardInListedOrder, playDrawnCard } from '../testing/steps.js'
 import { FILLER } from '../testing/cards.js'
 import { OathRevision } from '../util/revision.js'
+import { placedDenizens } from '../testing/census.js'
+import { swapPlayedCardWithSiteCard } from './vocabulary.js'
 
 const SALAD_DAYS = 'denizen.hearth.salad-days'
 
@@ -190,6 +192,65 @@ describe('Nomad', () => {
         expect(() => playDrawnCard(s, 'denizen.nomad.great-herd', SearchPlay.Site, [card('denizen.beast.rangers')])).toThrow(
             /not among the options/
         )
+    })
+
+    describe('Great Herd and a Nomad card at its own site: two cards at one site swap to the same place (R-10.25)', () => {
+        const HERD = 'denizen.nomad.great-herd'
+        const TENTS = 'denizen.nomad.tents'
+        const SACRED_GROUND = 'denizen.nomad.sacred-ground'
+        const at = (revision: OathRevision, denizens: Record<string, string[]>, over: Parameters<typeof board>[0] = {}) => {
+            const s = board(over, denizens)
+            s.oathRevision = revision
+            return s
+        }
+
+        it('played to the site that holds the Nomad card and swapped with it, both cards stay where they are', () => {
+            const s = at(OathRevision.EngineFixes6, { c1: [TENTS] })
+            const before = placedDenizens(s)
+            const a = playDrawnCard(s, HERD, SearchPlay.Site, [card(TENTS)])
+            expect(s.denizensBySite['c1']).toEqual([TENTS, HERD])
+            expect(placedDenizens(s)).toEqual([...before, HERD].sort())
+            expect(a.metadata?.whenPlayed).toMatch(/swapped Great Herd with denizen.nomad.tents/)
+        })
+
+        it('a Nomad card at another site still trades places with it, beside one at its own site', () => {
+            const s = at(OathRevision.EngineFixes6, { c1: [TENTS], h1: ['denizen.nomad.oracle'] })
+            const before = placedDenizens(s)
+            playDrawnCard(s, HERD, SearchPlay.Site, [card('denizen.nomad.oracle')])
+            expect(s.denizensBySite['c1']).toEqual([TENTS, 'denizen.nomad.oracle'])
+            expect(s.denizensBySite['h1']).toEqual([HERD])
+            expect(placedDenizens(s)).toEqual([...before, HERD].sort())
+        })
+
+        it('a locked Nomad card at its own site is not among the options (its Q&A)', () => {
+            const s = at(OathRevision.EngineFixes6, { c1: [SACRED_GROUND] })
+            expect(() => playDrawnCard(s, HERD, SearchPlay.Site, [card(SACRED_GROUND)])).toThrow(/not among the options/)
+        })
+
+        it('the swap itself: same site changes nothing; different sites and an adviser trade places', () => {
+            const same = at(OathRevision.EngineFixes6, { c1: [TENTS, HERD] })
+            swapPlayedCardWithSiteCard(same, 'ruler', HERD, TENTS)
+            expect(same.denizensBySite['c1']).toEqual([TENTS, HERD])
+
+            const apart = at(OathRevision.EngineFixes6, { c1: [HERD], h1: [TENTS] })
+            swapPlayedCardWithSiteCard(apart, 'ruler', HERD, TENTS)
+            expect(apart.denizensBySite['c1']).toEqual([TENTS])
+            expect(apart.denizensBySite['h1']).toEqual([HERD])
+
+            // Horned Mask's case: one of the user's faceup advisers and a card at a site.
+            const held = at(OathRevision.EngineFixes6, { c1: [TENTS] }, { ruler: { advisers: [{ cardId: HERD, faceUp: true }] } })
+            const before = placedDenizens(held)
+            swapPlayedCardWithSiteCard(held, 'ruler', HERD, TENTS)
+            expect(held.denizensBySite['c1']).toEqual([HERD])
+            expect(held.getPlayerState('ruler').advisers).toEqual([{ cardId: TENTS, faceUp: true }])
+            expect(placedDenizens(held)).toEqual(before)
+        })
+
+        it('before revision 10 a recorded game replays as it was recorded: the site is left with Great Herd twice', () => {
+            const s = at(OathRevision.EngineFixes5, { c1: [TENTS] })
+            playDrawnCard(s, HERD, SearchPlay.Site, [card(TENTS)])
+            expect(s.denizensBySite['c1']).toEqual([HERD, HERD])
+        })
     })
 })
 
