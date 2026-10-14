@@ -10,7 +10,7 @@ export function queueAutomaticPasses(context: MachineContext<HydratedMarracashGa
     const auction = state.auction
     assertExists(auction, 'Automatic passes require an auction')
     for (const participant of auction.bidding.participants) {
-        if (state.isAtShopLimit(participant.playerId)) {
+        if (state.mustPassAuction(participant.playerId, context.gameConfig)) {
             context.addSystemAction(PlaceBid, { playerId: participant.playerId, amount: 0 })
         }
     }

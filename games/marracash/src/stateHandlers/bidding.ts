@@ -31,8 +31,7 @@ export class BiddingStateHandler implements MachineStateHandler<
         if (isPlaceBid(action)) {
             return (
                 this.isAwaitingBid(context.gameState, action.playerId) &&
-                (action.source === ActionSource.System ||
-                    this.canBid(context.gameState, action.playerId))
+                (action.source === ActionSource.System || this.canBid(context, action.playerId))
             )
         }
         if (isCompleteAntiqueSet(action)) {
@@ -45,8 +44,7 @@ export class BiddingStateHandler implements MachineStateHandler<
         playerId: string,
         context: MachineContext<HydratedMarracashGameState>
     ): ActionType[] {
-        return this.isAwaitingBid(context.gameState, playerId) &&
-            this.canBid(context.gameState, playerId)
+        return this.isAwaitingBid(context.gameState, playerId) && this.canBid(context, playerId)
             ? [ActionType.PlaceBid]
             : []
     }
@@ -89,7 +87,7 @@ export class BiddingStateHandler implements MachineStateHandler<
         return gameState.auction?.awaitingBidderIds().includes(playerId) ?? false
     }
 
-    private canBid(gameState: HydratedMarracashGameState, playerId: string): boolean {
-        return !gameState.isAtShopLimit(playerId)
+    private canBid(context: MachineContext<HydratedMarracashGameState>, playerId: string): boolean {
+        return !context.gameState.mustPassAuction(playerId, context.gameConfig)
     }
 }

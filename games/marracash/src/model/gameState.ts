@@ -147,7 +147,9 @@ export const MarracashGameState = Type.Evaluate(
                 policy: Visibility.Policy.HostOnly,
                 redaction: Visibility.redaction.emptyArray()
             }),
-            antiqueRevealOrder: Type.Array(Type.String())
+            antiqueRevealOrder: Type.Array(Type.String()),
+            // Absent from games started under 1.0.0, so their recorded Actions replay the same way.
+            passesBiddersWhoCannotWin: Type.Optional(Type.Literal(true))
         })
     ])
 )
@@ -184,6 +186,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
     declare finalRound: boolean
     declare pendingAntiqueSets: string[]
     declare antiqueRevealOrder: string[]
+    declare passesBiddersWhoCannotWin?: true
 
     constructor(data: MarracashProjectedState) {
         super(data, MarracashProjectedStateValidator)
@@ -231,6 +234,23 @@ export class HydratedMarracashGameState extends HydratableGameState<
             this.hasUnownedShop() &&
             !this.isAtShopLimit(playerId) &&
             this.getPlayerState(playerId).getMoney() >= MinimumAuctionBid
+        )
+    }
+
+    mustPassAuction(playerId: string, config: Partial<MarracashGameConfig> | undefined): boolean {
+        return this.isAtShopLimit(playerId) || this.cannotOutbidAuctioneer(playerId, config)
+    }
+
+    // The auctioneer bids at least 100 and wins ties, so open cash of 100 or less can't win.
+    private cannotOutbidAuctioneer(
+        playerId: string,
+        config: Partial<MarracashGameConfig> | undefined
+    ): boolean {
+        return (
+            this.passesBiddersWhoCannotWin === true &&
+            config?.concealedCash !== true &&
+            playerId !== this.auction?.bidding.auctioneerId &&
+            this.getPlayerState(playerId).getMoney() <= MinimumAuctionBid
         )
     }
 
