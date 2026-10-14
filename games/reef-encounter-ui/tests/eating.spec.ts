@@ -19,7 +19,7 @@ test('a parrotfish eats a coral its shrimp guards, at the start of a turn', asyn
 
     await eat.click()
     await coralSquares.first().click()
-    await expect(actions).toContainText('Grow your reefs')
+    await expect(actions).toContainText('Choose your actions')
     await expect(eat).toHaveCount(0)
     await expect(page.locator('article').first()).toContainText('ate 1 shrimp')
 })

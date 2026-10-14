@@ -17,7 +17,7 @@ test('a history entry shows the table as its player left it', async ({ page }) =
         .getByRole('button', { name: /^Take the \w+ larva cube/ })
         .first()
         .click()
-    await expect(actions).toContainText('Grow your reefs')
+    await expect(actions).toContainText('Choose your actions')
 
     await page.getByRole('tab', { name: 'History' }).click()
     const entries = page.getByRole('button', { name: /^Show the table as \w+ left it$/ })
@@ -29,7 +29,7 @@ test('a history entry shows the table as its player left it', async ({ page }) =
     await expect(entries).toHaveCount(4)
     // The action panel tells the step that led there: that player taking their larva cubes
     await expect(actions).toContainText(/took (two \w+|an? \w+ and an? \w+) larva cubes?\./)
-    await expect(actions).not.toContainText('Grow your reefs')
+    await expect(actions).not.toContainText('Choose your actions')
 })
 
 test("Replay plays a turn's moves and returns to the live game", async ({ page }) => {
@@ -48,7 +48,7 @@ test("Replay plays a turn's moves and returns to the live game", async ({ page }
         .getByRole('button', { name: /^Take the \w+ larva cube/ })
         .first()
         .click()
-    await expect(actions).toContainText('Grow your reefs')
+    await expect(actions).toContainText('Choose your actions')
 
     await page.getByRole('tab', { name: 'History' }).click()
     // Setup choices move no pieces, so only the turn replays
@@ -57,6 +57,6 @@ test("Replay plays a turn's moves and returns to the live game", async ({ page }
     await replays.click()
     await expect(page.getByText('Replaying')).toBeVisible()
     await expect(page.getByText('Replaying')).toHaveCount(0, { timeout: 15_000 })
-    await expect(actions).toContainText('Grow your reefs')
+    await expect(actions).toContainText('Choose your actions')
     await expect(replays).toHaveCount(1)
 })

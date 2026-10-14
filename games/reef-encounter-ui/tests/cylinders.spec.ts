@@ -28,7 +28,7 @@ test('a consumed polyp buys an alga cylinder, and Undo steps back through its ch
     await undo.click()
     await expect(actions).toContainText("Choose the cylinder's colour")
     await undo.click()
-    await expect(actions).toContainText('Grow your reefs')
+    await expect(actions).toContainText('Choose your actions')
 
     await actions
         .getByRole('button', { name: /^Pay a consumed/ })
@@ -39,6 +39,6 @@ test('a consumed polyp buys an alga cylinder, and Undo steps back through its ch
         .first()
         .click()
     await cylinderSpace.click()
-    await expect(actions).toContainText('Grow your reefs')
+    await expect(actions).toContainText('Choose your actions')
     await expect(cylinderSpace).toHaveCount(0)
 })

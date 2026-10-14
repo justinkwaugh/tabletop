@@ -20,7 +20,7 @@ test('every player feeds their parrotfish, then takes two larva cubes', async ({
         await actions.getByRole('button', { name: 'Take a grey larva cube' }).click()
     }
 
-    await expect(actions).toContainText('Grow your reefs')
+    await expect(actions).toContainText('Choose your actions')
 })
 
 test('Undo takes back the first larva cube without undoing the feeding', async ({ page }) => {

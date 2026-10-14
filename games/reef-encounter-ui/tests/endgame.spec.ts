@@ -12,7 +12,7 @@ test('the game ends when the open sea cannot be refilled, and shows the scores',
     const orange = page.getByRole('button', { name: /^Take the orange larva cube/ })
     while (await settledCount(page, orange)) {
         await orange.click()
-        await expect(actions).toContainText(/Grow your reefs|points/)
+        await expect(actions).toContainText(/Choose your actions|points/)
     }
 
     await expect(page.getByText('End of game', { exact: true })).toBeVisible()

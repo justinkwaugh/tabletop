@@ -46,7 +46,7 @@ export async function playSetup(page: Page, playerCount: number) {
         await cube.click()
         await cube.click()
     }
-    await expect(actions).toContainText('Grow your reefs')
+    await expect(actions).toContainText('Choose your actions')
 }
 
 const squareIn = (label: string) => {
@@ -59,7 +59,7 @@ const squareIn = (label: string) => {
 export async function playUntilConsumedPolyp(page: Page, maxTurns = 8) {
     const actions = actionPanel(page)
     for (let turn = 0; turn < maxTurns; turn++) {
-        await expect(actions).toContainText('Grow your reefs')
+        await expect(actions).toContainText('Choose your actions')
         if (
             (await settledCount(page, actions.getByRole('button', { name: /^Pay a consumed/ }))) > 0
         ) {
@@ -139,7 +139,7 @@ async function labelsOf(locator: Locator): Promise<string[]> {
 export async function playUntilCoralIsEdible(page: Page, maxTurns = 8) {
     const actions = actionPanel(page)
     for (let turn = 0; turn < maxTurns; turn++) {
-        await expect(actions).toContainText('Grow your reefs')
+        await expect(actions).toContainText('Choose your actions')
         if ((await settledCount(page, actions.getByRole('button', { name: 'Eat a coral' }))) > 0) {
             return
         }

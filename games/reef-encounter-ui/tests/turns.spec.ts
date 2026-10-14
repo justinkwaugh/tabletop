@@ -32,7 +32,7 @@ test('a turn plays a larva cube, places its polyps and ends by taking an open-se
         .first()
         .click()
     await expect(banner).not.toHaveText(turnBanner)
-    await expect(actions).toContainText('Grow your reefs')
+    await expect(actions).toContainText('Choose your actions')
 })
 
 test('a larva cube is traded for a polyp of its colour', async ({ page }) => {
