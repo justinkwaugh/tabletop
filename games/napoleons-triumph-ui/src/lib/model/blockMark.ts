@@ -1,5 +1,5 @@
 import type { Face, ProjectedUnit } from '@tabletop/napoleons-triumph'
-import type { BattleRole } from './battleStage.js'
+import { BattleRole } from './battleStage.js'
 import { roleMarkOf, type RoleMark } from './roleMark.js'
 
 /** How a unit is drawn for one viewer: the face they may see, the mark on their own unit that the enemy has seen, and the mark of the fixed battery. */
@@ -38,6 +38,19 @@ function carriesMovedMark(unit: ProjectedUnit, context: BlockMarkContext): boole
     )
 }
 
+/**
+ * Rule 11: a unit named in a defence is known to both players as a defender until its side's
+ * opponent ends the turn. A unit that can be picked now is left bare, so the letter is never taken
+ * for a pick already made.
+ */
+function carriesEarlierDefenceMark(
+    unit: ProjectedUnit,
+    eligible: boolean,
+    role: BattleRole | undefined
+): boolean {
+    return unit.defendedApproach !== undefined && role === undefined && !eligible
+}
+
 export function blockMarkOf(
     unit: ProjectedUnit,
     groupKey: string,
@@ -47,12 +60,14 @@ export function blockMarkOf(
     const role = context.roles[unit.id]
     const leftOut =
         groupKey === context.selectedGroupKey && !context.pickedUnitIds.includes(unit.id)
+    const defendedEarlier = carriesEarlierDefenceMark(unit, eligible, role)
+    const lettered = defendedEarlier ? BattleRole.Defends : role
     return {
         pickable: eligible && !context.settling,
         role,
-        roleMark: role === undefined ? undefined : roleMarkOf(role),
+        roleMark: lettered === undefined ? undefined : roleMarkOf(lettered),
         dimmed: leftOut || (context.fighting && !eligible && role === undefined),
-        moved: carriesMovedMark(unit, context)
+        moved: !defendedEarlier && carriesMovedMark(unit, context)
     }
 }
 

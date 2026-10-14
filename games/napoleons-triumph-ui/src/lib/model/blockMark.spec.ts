@@ -57,6 +57,47 @@ describe('the moved mark of a block', () => {
     })
 })
 
+describe('the mark of a unit named in a defence earlier this turn', () => {
+    const APPROACH = 100
+
+    function defender(changes: Partial<ProjectedUnit> = {}): ProjectedUnit {
+        return { ...ownUnits().fresh, defendedApproach: APPROACH, ...changes }
+    }
+
+    it('is the defender’s letter, for its owner and for the other player alike', () => {
+        const unit = defender()
+        for (const viewerId of [unit.playerId, 'the other player']) {
+            expect(blockMarkOf(unit, GROUP, commanding(viewerId)).roleMark).toEqual({ letter: 'D' })
+        }
+        expect(blockMarkOf(ownUnits().fresh, GROUP, commanding('anyone')).roleMark).toBeUndefined()
+    })
+
+    it('stays through a later attack the unit has no part in, on a block dimmed like the rest', () => {
+        const mark = blockMarkOf(defender(), GROUP, commanding('anyone', { fighting: true }))
+        expect(mark.roleMark).toEqual({ letter: 'D' })
+        expect(mark.role).toBeUndefined()
+        expect(mark.dimmed).toBe(true)
+    })
+
+    it('gives way to the unit’s part in the attack now on, and is left off a unit that can be picked', () => {
+        const unit = defender()
+        const leading = commanding('anyone', {
+            fighting: true,
+            roles: { [unit.id]: BattleRole.Leads }
+        })
+        expect(blockMarkOf(unit, GROUP, leading).roleMark).toEqual({ letter: 'L' })
+        const naming = commanding(unit.playerId, { fighting: true, pickableIds: [unit.id] })
+        expect(blockMarkOf(unit, GROUP, naming).roleMark).toBeUndefined()
+    })
+
+    it('takes the place of the moved dot, which stands at the same end of the block', () => {
+        const unit = defender({ movesThisTurn: 1 })
+        const mark = blockMarkOf(unit, GROUP, commanding(unit.playerId))
+        expect(mark.roleMark).toEqual({ letter: 'D' })
+        expect(mark.moved).toBe(false)
+    })
+})
+
 describe('a moved unit in the unit strip', () => {
     it('is set aside as moved, unless it is cavalry that may still ride on', () => {
         const { viewerId, fresh, moved } = ownUnits()

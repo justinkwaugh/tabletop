@@ -472,6 +472,64 @@ test('the attacker sees the defenders named at the end of their stack nearest th
     expect(stack.map((block) => block.named)).toEqual([true, true, false, false, false])
 })
 
+test('units named in a defence stay marked for the attacker until the turn ends', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await pickUp(page, 'st-hilaire')
+    await tap(page, '[aria-label="Threaten an attack across this approach"]')
+    const choices = page.locator('svg [aria-label="Choose this unit"]')
+    await choices.nth(0).dispatchEvent('click')
+    await choices.nth(1).dispatchEvent('click')
+    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Call it a feint' }).click()
+    await page.getByRole('button', { name: 'Feint, staying in reserve' }).click()
+    await page
+        .locator('.nt-turn button[aria-label="Choose this unit"]:not([disabled])')
+        .first()
+        .click()
+    await page.getByRole('button', { name: 'Advance to the approach' }).click()
+    const endTurn = page.getByRole('button', { name: 'End turn' })
+    await expect(endTurn).toBeVisible()
+    await expect(page.locator('.nt-masthead-turn')).toHaveText('French turn')
+
+    const marked = () =>
+        page.evaluate(() => {
+            const centreOf = (element: Element) => {
+                const box = element.getBoundingClientRect()
+                return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+            }
+            const letterOf = (block: Element) => block.querySelector('text')?.textContent ?? ''
+            const board = 'svg[data-board]'
+            const steppedUp = [
+                ...document.querySelectorAll(`${board} [data-commander="detached"] > g`)
+            ]
+            const front = steppedUp.find((block) => letterOf(block) === 'D')
+            const stack = [...document.querySelectorAll(`${board} [data-commander="langeron"] > g`)]
+            if (!front) {
+                return { atTheApproach: 0, stack: stack.map(letterOf) }
+            }
+            const at = centreOf(front)
+            const distance = (block: Element) => {
+                const centre = centreOf(block)
+                return Math.hypot(centre.x - at.x, centre.y - at.y)
+            }
+            return {
+                atTheApproach: steppedUp.filter((block) => letterOf(block) === 'D').length,
+                stack: stack.toSorted((a, b) => distance(a) - distance(b)).map(letterOf)
+            }
+        })
+    expect(await marked()).toEqual({ atTheApproach: 1, stack: ['D', '', '', ''] })
+
+    await endTurn.click()
+    await expect(page.locator('.nt-masthead-turn')).not.toHaveText('French turn')
+    await expect(page.locator('svg[data-board] [data-group] text')).toHaveCount(0)
+})
+
 test('the results of an attack are set in a rule of their own in the action area', async ({
     page
 }) => {

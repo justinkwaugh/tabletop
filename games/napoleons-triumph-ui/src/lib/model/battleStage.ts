@@ -926,6 +926,23 @@ export function committedUnits(attack: VisibleAttack | undefined): SingledOut[] 
         : []
 }
 
+/** The units named in a defence earlier this turn, with the approach they defended: they stay marked, so they stay at that end of their stack. */
+export function defendersOfEarlierAttacks(units: readonly ProjectedUnit[]): SingledOut[] {
+    const byApproach = new Map<number, string[]>()
+    for (const unit of units) {
+        if (unit.defendedApproach !== undefined) {
+            byApproach.set(unit.defendedApproach, [
+                ...(byApproach.get(unit.defendedApproach) ?? []),
+                unit.id
+            ])
+        }
+    }
+    return [...byApproach].map(([approach, unitIds]) => ({
+        towards: APPROACH_GEOMETRY[approach].centre,
+        unitIds
+    }))
+}
+
 export function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {
     return {
         ...Object.fromEntries(attack.attackingUnitIds.map((id) => [id, BattleRole.Attacks])),
