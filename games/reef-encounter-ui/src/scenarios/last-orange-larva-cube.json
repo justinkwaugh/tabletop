@@ -1,0 +1,545 @@
+{
+ "game": {
+  "id": "scenario-last-orange-larva-cube",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "reef-encounter",
+  "deleted": false,
+  "name": "Last orange larva cube",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p0",
+    "name": "Amira",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p1",
+    "name": "Bashir",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "advanced": false,
+   "concealed": false
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-15T01:24:01.682Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-10-15T01:24:01.682Z",
+  "protectedInformation": true
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "TojrmGNzBkxnsP9cLje7e",
+  "gameId": "scenario-last-orange-larva-cube",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 8
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 368
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p1",
+    "color": "purple",
+    "knownSupplyPolyps": {
+     "grey": 0,
+     "orange": 0,
+     "pink": 0,
+     "white": 0,
+     "yellow": 0
+    },
+    "secretSupplyPolyps": {
+     "grey": 0,
+     "orange": 2,
+     "pink": 0,
+     "white": 2,
+     "yellow": 1
+    },
+    "secretSupplyPolypCount": 5,
+    "secretParrotfishPolyps": {
+     "grey": 0,
+     "orange": 1,
+     "pink": 0,
+     "white": 0,
+     "yellow": 0
+    },
+    "knownParrotfishPolyps": {
+     "grey": 0,
+     "orange": 0,
+     "pink": 0,
+     "white": 0,
+     "yellow": 0
+    },
+    "larvaCubes": {
+     "grey": 1,
+     "orange": 4,
+     "pink": 1,
+     "white": 0,
+     "yellow": 0
+    },
+    "shrimpsInSupply": 4,
+    "shrimpOnOpenSea": false,
+    "shrimpsInParrotfish": 0,
+    "consumedPolyps": {
+     "grey": 0,
+     "orange": 0,
+     "pink": 0,
+     "white": 0,
+     "yellow": 0
+    }
+   },
+   {
+    "playerId": "p0",
+    "color": "green",
+    "knownSupplyPolyps": {
+     "grey": 0,
+     "orange": 0,
+     "pink": 0,
+     "white": 0,
+     "yellow": 0
+    },
+    "secretSupplyPolyps": {
+     "grey": 0,
+     "orange": 2,
+     "pink": 4,
+     "white": 1,
+     "yellow": 1
+    },
+    "secretSupplyPolypCount": 8,
+    "secretParrotfishPolyps": {
+     "grey": 0,
+     "orange": 1,
+     "pink": 0,
+     "white": 0,
+     "yellow": 0
+    },
+    "knownParrotfishPolyps": {
+     "grey": 0,
+     "orange": 0,
+     "pink": 0,
+     "white": 0,
+     "yellow": 0
+    },
+    "larvaCubes": {
+     "grey": 1,
+     "orange": 5,
+     "pink": 1,
+     "white": 0,
+     "yellow": 0
+    },
+    "shrimpsInSupply": 4,
+    "shrimpOnOpenSea": false,
+    "shrimpsInParrotfish": 0,
+    "consumedPolyps": {
+     "grey": 0,
+     "orange": 0,
+     "pink": 0,
+     "white": 0,
+     "yellow": 0
+    }
+   }
+  ],
+  "machineState": "TakingTurn",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p1",
+    "p0"
+   ],
+   "turnCounts": {
+    "p0": 2,
+    "p1": 2
+   }
+  },
+  "reefs": [
+   {
+    "boardId": 3,
+    "polyps": [
+     {
+      "coords": {
+       "row": 2,
+       "col": 1
+      },
+      "color": "pink"
+     },
+     {
+      "coords": {
+       "row": 2,
+       "col": 3
+      },
+      "color": "white"
+     },
+     {
+      "coords": {
+       "row": 4,
+       "col": 1
+      },
+      "color": "grey"
+     },
+     {
+      "coords": {
+       "row": 4,
+       "col": 4
+      },
+      "color": "orange"
+     },
+     {
+      "coords": {
+       "row": 5,
+       "col": 3
+      },
+      "color": "yellow"
+     }
+    ]
+   },
+   {
+    "boardId": 4,
+    "polyps": [
+     {
+      "coords": {
+       "row": 2,
+       "col": 2
+      },
+      "color": "white"
+     },
+     {
+      "coords": {
+       "row": 2,
+       "col": 4
+      },
+      "color": "orange"
+     },
+     {
+      "coords": {
+       "row": 3,
+       "col": 1
+      },
+      "color": "yellow"
+     },
+     {
+      "coords": {
+       "row": 4,
+       "col": 4
+      },
+      "color": "pink"
+     },
+     {
+      "coords": {
+       "row": 5,
+       "col": 3
+      },
+      "color": "grey"
+     }
+    ]
+   }
+  ],
+  "shrimps": [],
+  "openSeaShrimps": [],
+  "turn": {
+   "larvaCubesPlayed": 0,
+   "shrimpIntroduced": false,
+   "acted": false,
+   "tileLocked": false
+  },
+  "coralTiles": [
+   {
+    "tileId": 1,
+    "starfishSideUp": false
+   },
+   {
+    "tileId": 2,
+    "starfishSideUp": false
+   },
+   {
+    "tileId": 3,
+    "starfishSideUp": false
+   },
+   {
+    "tileId": 4,
+    "starfishSideUp": false
+   },
+   {
+    "tileId": 5,
+    "starfishSideUp": false
+   },
+   {
+    "tileId": 6,
+    "starfishSideUp": false
+   },
+   {
+    "tileId": 7,
+    "starfishSideUp": false
+   },
+   {
+    "tileId": 8,
+    "starfishSideUp": false
+   },
+   {
+    "tileId": 9,
+    "starfishSideUp": false
+   },
+   {
+    "tileId": 10,
+    "starfishSideUp": false
+   }
+  ],
+  "openSea": [
+   {
+    "larvaColor": "white",
+    "hasLarvaCube": true,
+    "polyps": [
+     "yellow",
+     "orange",
+     "yellow"
+    ]
+   },
+   {
+    "larvaColor": "yellow",
+    "hasLarvaCube": true,
+    "polyps": [
+     "pink",
+     "grey",
+     "white"
+    ]
+   },
+   {
+    "larvaColor": "orange",
+    "hasLarvaCube": true,
+    "polyps": [
+     "yellow",
+     "grey"
+    ]
+   },
+   {
+    "larvaColor": "pink",
+    "hasLarvaCube": true,
+    "polyps": [
+     "grey"
+    ]
+   },
+   {
+    "larvaColor": "grey",
+    "hasLarvaCube": true,
+    "polyps": [
+     "grey",
+     "orange",
+     "yellow"
+    ]
+   }
+  ],
+  "larvaCubeSupply": {
+   "grey": 7,
+   "orange": 0,
+   "pink": 7,
+   "white": 9,
+   "yellow": 9
+  },
+  "bonusPolyps": {
+   "grey": 1,
+   "orange": 1,
+   "pink": 1,
+   "white": 1,
+   "yellow": 1
+  },
+  "bonusPolypsInBag": false,
+  "colorsMissingFromBag": [],
+  "advanced": false,
+  "algaSupply": {
+   "blue": 5,
+   "green": 5,
+   "purple": 5,
+   "red": 5
+  },
+  "polypBag": {
+   "items": [
+    "white",
+    "pink",
+    "pink",
+    "yellow",
+    "orange",
+    "yellow",
+    "pink",
+    "orange",
+    "white",
+    "white",
+    "grey",
+    "pink",
+    "pink",
+    "grey",
+    "grey",
+    "grey",
+    "grey",
+    "grey",
+    "orange",
+    "pink",
+    "grey",
+    "yellow",
+    "grey",
+    "orange",
+    "pink",
+    "grey",
+    "grey",
+    "grey",
+    "pink",
+    "grey",
+    "grey",
+    "grey",
+    "yellow",
+    "pink",
+    "white",
+    "pink",
+    "orange",
+    "pink",
+    "white",
+    "orange",
+    "yellow",
+    "grey",
+    "yellow",
+    "white",
+    "grey",
+    "white",
+    "yellow",
+    "yellow",
+    "pink",
+    "pink",
+    "white",
+    "grey",
+    "white",
+    "pink",
+    "yellow",
+    "white",
+    "yellow",
+    "orange",
+    "orange",
+    "yellow",
+    "orange",
+    "pink",
+    "orange",
+    "orange",
+    "yellow",
+    "pink",
+    "yellow",
+    "pink",
+    "grey",
+    "white",
+    "white",
+    "white",
+    "white",
+    "pink",
+    "white",
+    "yellow",
+    "pink",
+    "orange",
+    "yellow",
+    "grey",
+    "orange",
+    "orange",
+    "yellow",
+    "orange",
+    "yellow",
+    "pink",
+    "pink",
+    "orange",
+    "grey",
+    "orange",
+    "pink",
+    "orange",
+    "pink",
+    "orange",
+    "white",
+    "pink",
+    "grey",
+    "orange",
+    "white",
+    "pink",
+    "white",
+    "yellow",
+    "pink",
+    "white",
+    "yellow",
+    "pink",
+    "white",
+    "orange",
+    "white",
+    "orange",
+    "orange",
+    "white",
+    "white",
+    "white",
+    "white",
+    "pink",
+    "white",
+    "white",
+    "white",
+    "yellow",
+    "yellow",
+    "white",
+    "orange",
+    "grey",
+    "grey",
+    "grey",
+    "orange",
+    "white",
+    "orange",
+    "grey",
+    "white",
+    "orange",
+    "yellow",
+    "yellow",
+    "grey",
+    "pink",
+    "yellow",
+    "yellow",
+    "grey",
+    "grey",
+    "yellow",
+    "pink",
+    "grey",
+    "orange",
+    "white",
+    "orange",
+    "grey",
+    "pink",
+    "grey",
+    "yellow",
+    "yellow",
+    "white",
+    "pink",
+    "grey",
+    "yellow",
+    "yellow",
+    "grey",
+    "yellow"
+   ],
+   "remaining": 158
+  }
+ },
+ "actions": []
+}
