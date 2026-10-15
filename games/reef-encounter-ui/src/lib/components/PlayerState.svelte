@@ -9,7 +9,7 @@
     import PolypChip from './PolypChip.svelte'
     import Shrimp from './table/Shrimp.svelte'
     import LarvaCube from './table/LarvaCube.svelte'
-    import { ParrotfishUrls } from '$lib/images/art.generated.js'
+    import { ParrotfishUrls, SceneCoralUrls } from '$lib/images/art.generated.js'
     import { playerPanelView } from '$lib/utils/playerPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -27,6 +27,16 @@
             isParrotfishFed(state, player.id)
         )
     )
+    // A few corals at the panel's foot, a different few for each seat so the panels tell apart.
+    const SeatCorals = [
+        ['orange', 'yellow', 'white'],
+        ['pink', 'grey', 'orange'],
+        ['white', 'pink', 'yellow'],
+        ['grey', 'orange', 'pink']
+    ]
+    const corals = $derived(
+        SeatCorals[Math.max(state.turnManager.turnOrder.indexOf(player.id), 0) % SeatCorals.length]
+    )
     const shrimpsOnReefs = $derived(
         state.shrimps.filter((shrimp) => shrimp.playerId === player.id).length
     )
@@ -41,10 +51,23 @@
 {/snippet}
 
 <article class="panel reef-glass" class:turn={isTurn} style:--player={paint}>
-    <header style:--art="url({ParrotfishUrls[gameSession.colors.getPlayerColor(player.id)]})">
-        {#if isTurn}
-            <span class="breath" aria-hidden="true"><i></i><i></i><i></i></span>
-        {/if}
+    <header>
+        <svg class="seabed" viewBox="0 0 320 22" preserveAspectRatio="none" aria-hidden="true">
+            <path class="far" d="M0 9 Q22 2 46 8 T96 7 T150 9 T206 5 T262 9 T320 6 V22 H0 Z"></path>
+            <path class="near" d="M0 15 Q30 9 62 14 T128 13 T190 15 T252 12 T320 14 V22 H0 Z"
+            ></path>
+        </svg>
+        <div class="corals" aria-hidden="true">
+            {#each corals as color (color)}
+                <img class="coral {color}" src={SceneCoralUrls[color]} alt="" />
+            {/each}
+        </div>
+        <div class="fish" aria-hidden="true">
+            {#if isTurn}
+                <span class="breath"><i></i><i></i><i></i></span>
+            {/if}
+            <img src={ParrotfishUrls[gameSession.colors.getPlayerColor(player.id)]} alt="" />
+        </div>
         <h3
             class="plaque reef-display"
             style:background={gameSession.colors.getPlayerBgColorValue(player.id)}
@@ -103,7 +126,7 @@
                 <dt>Consumed</dt>
                 <dd>
                     {#each view.consumed as { color, count } (color)}
-                        <PolypChip {color} {count} />
+                        <PolypChip {color} {count} consumed />
                     {/each}
                 </dd>
             </div>
@@ -164,39 +187,80 @@
             0 0 20px -2px color-mix(in srgb, var(--player) 60%, transparent);
     }
 
+    /* Shallow, sunlit water above the reef, deepening into the panel below. */
     header {
         position: relative;
-        height: 84px;
+        height: 72px;
+        background:
+            radial-gradient(120% 100% at 30% -20%, rgb(255 255 255 / 0.4), transparent 65%),
+            linear-gradient(180deg, #9dd3c0, #6eae9a 80%);
     }
 
-    header::before {
-        content: '';
+    .seabed {
         position: absolute;
-        inset: 0;
-        background: var(--art) right -16px top 42% / auto 120% no-repeat;
-        mask-image:
-            linear-gradient(black 70%, transparent),
-            linear-gradient(to left, black 170px, transparent 245px);
-        mask-composite: intersect;
+        inset: auto 0 0;
+        width: 100%;
+        height: 22px;
+    }
+
+    .seabed .far {
+        fill: rgb(30 84 72 / 0.35);
+    }
+
+    .seabed .near {
+        fill: rgb(14 52 46 / 0.55);
+    }
+
+    .corals {
+        position: absolute;
+        right: 104px;
+        bottom: 3px;
+        display: flex;
+        align-items: flex-end;
+        opacity: 0.92;
+    }
+
+    .coral {
+        height: 30px;
+        width: auto;
+        margin-left: -6px;
+    }
+
+    .coral.grey,
+    .coral.yellow {
+        height: 22px;
+    }
+
+    .fish {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+    }
+
+    .fish img {
+        display: block;
+        height: 44px;
+        max-width: 112px;
+        filter: drop-shadow(0 3px 3px rgb(4 30 26 / 0.3));
     }
 
     .plaque {
         position: absolute;
         left: 10px;
-        bottom: 12px;
+        bottom: 14px;
         padding: 1px 14px 2px;
         border-radius: 999px;
         font-size: 18px;
         box-shadow:
             inset 0 9px 8px -6px rgb(255 255 255 / 0.4),
-            0 0 0 2px rgb(255 255 255 / 0.85),
+            0 0 0 2px color-mix(in srgb, var(--player) 45%, #082520),
             0 3px 6px rgb(4 30 26 / 0.45);
     }
 
     .breath {
         position: absolute;
-        top: 2px;
-        right: 150px;
+        bottom: 22px;
+        left: -12px;
         width: 24px;
         height: 60px;
         pointer-events: none;

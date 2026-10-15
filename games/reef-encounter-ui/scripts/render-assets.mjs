@@ -6,7 +6,7 @@
 // Run from games/reef-encounter-ui: node scripts/render-assets.mjs <folder of official files>
 // then format the manifest: pnpm exec prettier --write src/lib/images/art.generated.ts
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -289,30 +289,90 @@ for (const color of Colors) {
     })
 }
 
-// Each player's parrotfish, from the parrotfish box art, for the player panels: one fish of the
-// player's colour swimming level, in a strip at twice the panel's 320 by 120 size.
-const BoxArtScale = 2.278
-const ParrotfishCrops = {
-    purple: { file: 'Parrotfish_outside-Purple_Red.png', box: [320, 470, 760, 635] },
-    red: { file: 'Parrotfish_outside-Purple_Red.png', box: [640, 472, 1075, 637] },
-    yellow: { file: 'Parrotfish_outside-Yellow_Green.png', box: [320, 118, 760, 283] },
-    green: { file: 'Parrotfish_outside-Yellow_Green.png', box: [935, 470, 1375, 635] }
+// The player panels' reef scene: each player's parrotfish and the five corals, cut out of the box
+// bottom, where they are painted apart on a flat green. Boxes are in Box_bottom.png pixels.
+// The background is keyed out, then only the largest piece is kept, which drops the edges of
+// neighbouring paintings that fall inside a box.
+const BoxBottomGreen = 'srgb(83,126,111)'
+const ParrotfishCuts = {
+    purple: [1204, 3964, 2117, 4462],
+    green: [2075, 3715, 2947, 4171],
+    red: [2802, 3839, 3694, 4484],
+    yellow: [3715, 3715, 4628, 4130]
 }
-mkdirSync(path.join(images, 'parrotfish'), { recursive: true })
-for (const [color, { file, box }] of Object.entries(ParrotfishCrops)) {
-    const [x0, y0, x1, y1] = box.map((value) => Math.round(value * BoxArtScale))
+const CoralCuts = {
+    white: [1287, 394, 1972, 1079],
+    yellow: [1918, 519, 2503, 1017],
+    pink: [2499, 291, 3113, 1017],
+    grey: [3121, 477, 3839, 975],
+    orange: [3839, 374, 4586, 1017]
+}
+const cutOut = ([x0, y0, x1, y1], height, out, turn = []) => {
+    const keyed = path.join(images, 'scene', '.keyed.png')
     convert(
-        from(file),
-        '-crop',
-        `${x1 - x0}x${y1 - y0}+${x0}+${y0}`,
-        '+repage',
-        '-filter',
-        'Lanczos',
-        '-resize',
-        '640x240!',
-        Lossy,
-        path.join(images, 'parrotfish', `${color}.webp`)
+        from('Box_bottom.png'),
+        ['-crop', `${x1 - x0}x${y1 - y0}+${x0}+${y0}`, '+repage'],
+        ['-alpha', 'set', '-fuzz', '9%', '-transparent', BoxBottomGreen],
+        ['-channel', 'A', '-morphology', 'Erode', 'Disk:1', '-blur', '0x0.8', '+channel'],
+        keyed
     )
+    // Pieces are found on the alpha dilated a little, so a fin or antenna stays with its body.
+    const pieces = ['-alpha', 'extract', '-threshold', '50%', '-morphology', 'Dilate', 'Disk:8']
+    const objects = execFileSync('convert', [
+        keyed,
+        ...pieces,
+        '-define',
+        'connected-components:verbose=true',
+        '-connected-components',
+        '8',
+        'null:'
+    ])
+        .toString()
+        .split('\n')
+        .filter((line) => line.includes('gray(255)'))
+        .map((line) => line.trim().split(/\s+/))
+        .map(([id, , , area]) => ({ id: id.replace(':', ''), area: Number(area) }))
+        .sort((a, b) => b.area - a.area)
+    const stray = objects.slice(1).map(({ id }) => id)
+    const mask = stray.length
+        ? [
+              '(',
+              '+clone',
+              ...pieces,
+              ['-define', 'connected-components:mean-color=true'],
+              ['-define', `connected-components:remove=${stray.join(',')}`],
+              ['-connected-components', '8', '-threshold', '50%'],
+              '(',
+              '-clone',
+              '0',
+              '-alpha',
+              'extract',
+              ')',
+              '-compose',
+              'multiply',
+              '-composite',
+              ')',
+              ['-compose', 'copy_opacity', '-composite']
+          ]
+        : []
+    convert(
+        keyed,
+        mask,
+        ['-trim', '+repage', ...turn, '-filter', 'Lanczos', '-resize', `x${height}`],
+        Lossy,
+        ['-define', 'webp:alpha-quality=90'],
+        out
+    )
+    rmSync(keyed)
+}
+mkdirSync(path.join(images, 'scene'), { recursive: true })
+// Twice the heights the panel header draws them at. The box bottom's fish swim along its lower
+// edge upside down; turned round, they are upright and face left, towards the corals.
+for (const [color, box] of Object.entries(ParrotfishCuts)) {
+    cutOut(box, 104, path.join(images, 'scene', `parrotfish-${color}.webp`), ['-rotate', '180'])
+}
+for (const [color, box] of Object.entries(CoralCuts)) {
+    cutOut(box, 88, path.join(images, 'scene', `coral-${color}.webp`))
 }
 
 // The cover, from the user's colour-corrected copy of the CMYK original, at twice the catalog's
@@ -380,9 +440,13 @@ const coralRefs = Object.fromEntries(
 )
 const boardRefs = [1, 2, 3, 4].map((id) => ref(`./boards/board-${id}.webp`))
 const openSeaRef = ref('./open-sea.webp')
-const parrotfishRefs = Object.keys(ParrotfishCrops).map((color) => [
+const parrotfishRefs = Object.keys(ParrotfishCuts).map((color) => [
     color,
-    ref(`./parrotfish/${color}.webp`)
+    ref(`./scene/parrotfish-${color}.webp`)
+])
+const sceneCoralRefs = Object.keys(CoralCuts).map((color) => [
+    color,
+    ref(`./scene/coral-${color}.webp`)
 ])
 lines.push(
     '',
@@ -402,6 +466,8 @@ lines.push(
     `export const OpenSeaImageUrl = ${openSeaRef}`,
     '',
     `export const ParrotfishUrls: Record<string, string> = { ${parrotfishRefs.map(([color, name]) => `${color}: ${name}`).join(', ')} }`,
+    '',
+    `export const SceneCoralUrls: Record<string, string> = { ${sceneCoralRefs.map(([color, name]) => `${color}: ${name}`).join(', ')} }`,
     ''
 )
 writeFileSync(path.join(images, 'art.generated.ts'), lines.join('\n'))
