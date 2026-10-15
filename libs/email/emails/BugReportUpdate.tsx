@@ -1,18 +1,6 @@
-import {
-    Body,
-    Button,
-    Container,
-    Head,
-    Heading,
-    Hr,
-    Html,
-    Link,
-    Preview,
-    Section,
-    Text,
-} from '@react-email/components'
+import { Link, Section, Text } from '@react-email/components'
 import type { CSSProperties } from 'react'
-import { DarkHeadContent, Wordmark, darkPalette, darkStyles } from '../components/darkCard.js'
+import { CardButton, DarkCardEmail, darkPalette, darkStyles } from '../components/darkCard.js'
 
 interface BugReportUpdateProps {
     eyebrow: string
@@ -28,17 +16,13 @@ interface BugReportUpdateProps {
     footer: string
 }
 
-const palette = { ...darkPalette, body: '#d1d5db' }
-
 const styles = {
     ...darkStyles,
-    paragraph: { margin: '20px 0 0', fontSize: '16px', lineHeight: '1.6', color: palette.body },
-    quote: {
-        marginTop: '24px',
-        backgroundColor: palette.raised,
-        border: `1px solid ${palette.raisedBorder}`,
-        borderRadius: '10px',
-        padding: '16px 20px',
+    paragraph: {
+        margin: '20px 0 0',
+        fontSize: '16px',
+        lineHeight: '1.6',
+        color: darkPalette.bodyText,
     },
     quoteLabel: {
         margin: 0,
@@ -46,16 +30,16 @@ const styles = {
         fontWeight: 600,
         letterSpacing: '0.12em',
         textTransform: 'uppercase',
-        color: palette.blue,
+        color: darkPalette.blue,
     },
     quoteText: {
         margin: '6px 0 0',
         fontSize: '15px',
         lineHeight: '1.5',
         fontStyle: 'italic',
-        color: palette.text,
+        color: darkPalette.text,
     },
-    secondaryLink: { fontSize: '14px', fontWeight: 600, color: palette.blue },
+    secondaryLink: { fontSize: '14px', fontWeight: 600, color: darkPalette.blue },
 } satisfies Record<string, CSSProperties>
 
 export const BugReportUpdate = ({
@@ -72,55 +56,39 @@ export const BugReportUpdate = ({
     footer,
 }: BugReportUpdateProps) => {
     return (
-        <Html>
-            <Head>
-                <DarkHeadContent />
-            </Head>
-            <Preview>{lead}</Preview>
-            <Body style={styles.body}>
-                <Container style={styles.container}>
-                    <Wordmark href={gameUrl} />
+        <DarkCardEmail
+            preview={lead}
+            wordmarkHref={gameUrl}
+            eyebrow={eyebrow}
+            heading={heading}
+            subline={game}
+            footer={
+                <>
+                    {footer} Your report lives in the bug-reports forum on our Discord; not on the
+                    server yet?{' '}
+                    <Link href={inviteUrl} style={styles.footerLink}>
+                        Come say hi
+                    </Link>
+                    .
+                </>
+            }
+        >
+            <Text style={styles.paragraph}>{lead}</Text>
+            {note && <Text style={styles.paragraph}>{note}</Text>}
+            {closing && <Text style={styles.paragraph}>{closing}</Text>}
 
-                    <Section style={styles.card}>
-                        <Text style={styles.eyebrow}>{eyebrow}</Text>
-                        <Heading as="h1" style={styles.heading}>
-                            {heading}
-                        </Heading>
-                        <Text style={styles.subline}>{game}</Text>
+            <Section style={styles.panel}>
+                <Text style={styles.quoteLabel}>You wrote</Text>
+                <Text style={styles.quoteText}>“{quote}”</Text>
+            </Section>
 
-                        <Text style={styles.paragraph}>{lead}</Text>
-                        {note && <Text style={styles.paragraph}>{note}</Text>}
-                        {closing && <Text style={styles.paragraph}>{closing}</Text>}
-
-                        <Section style={styles.quote}>
-                            <Text style={styles.quoteLabel}>You wrote</Text>
-                            <Text style={styles.quoteText}>“{quote}”</Text>
-                        </Section>
-
-                        <Section style={{ textAlign: 'center', padding: '28px 0 4px' }}>
-                            <Button href={gameUrl} style={styles.button}>
-                                Back to your game
-                            </Button>
-                        </Section>
-                        <Section style={{ textAlign: 'center', padding: '12px 0 0' }}>
-                            <Link href={postUrl} style={styles.secondaryLink}>
-                                Follow your report on Discord →
-                            </Link>
-                        </Section>
-                    </Section>
-
-                    <Hr style={{ borderColor: palette.cardBorder, margin: '24px 0 16px' }} />
-                    <Text style={styles.footer}>
-                        {footer} Your report lives in the bug-reports forum on our Discord; not on
-                        the server yet?{' '}
-                        <Link href={inviteUrl} style={styles.footerLink}>
-                            Come say hi
-                        </Link>
-                        .
-                    </Text>
-                </Container>
-            </Body>
-        </Html>
+            <CardButton href={gameUrl}>Back to your game</CardButton>
+            <Section style={{ textAlign: 'center', padding: '8px 0 0' }}>
+                <Link href={postUrl} style={styles.secondaryLink}>
+                    Follow your report on Discord →
+                </Link>
+            </Section>
+        </DarkCardEmail>
     )
 }
 
