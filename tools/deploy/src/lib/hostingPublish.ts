@@ -22,6 +22,7 @@ import { fetchBucketManifest } from './remoteManifest.js'
 const FRONTEND_HOSTING_CONFIG = path.join('apps', 'frontend', 'firebase.json')
 const BUILD_ID_PATH = '_app/version.json'
 const SERVED_BUILD_SETTLE: ServingSettle = { timeoutMs: 2 * 60_000, intervalMs: 5_000 }
+const BUILD_ID_FETCH_TIMEOUT_MS = 15_000
 
 export type HostingTarget = FirebaseTarget & {
     site: string
@@ -155,7 +156,9 @@ const channelUrl = async (context: PublishContext, target: HostingTarget): Promi
 }
 
 const fetchServedBuildId = async (url: string): Promise<string | null> => {
-    const response = await fetch(`${url}/${BUILD_ID_PATH}?served=${Date.now()}`)
+    const response = await fetch(`${url}/${BUILD_ID_PATH}?served=${Date.now()}`, {
+        signal: AbortSignal.timeout(BUILD_ID_FETCH_TIMEOUT_MS)
+    })
     if (!response.ok) return null
     const body = await response.text()
     // Hosting answers a path it has no file for with index.html, so a body that is not the
