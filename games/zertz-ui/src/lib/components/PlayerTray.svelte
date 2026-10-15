@@ -49,7 +49,11 @@
 <style>
     .tray {
         border-radius: 12px;
-        background: linear-gradient(180deg, #3a5158 0%, #2b3e44 100%);
+        background: linear-gradient(
+            180deg,
+            var(--zertz-tray-top) 0%,
+            var(--zertz-tray-bottom) 100%
+        );
         box-shadow:
             inset 0 0 0 1px var(--zertz-panel-edge),
             0 3px 8px rgb(0 0 0 / 0.35);

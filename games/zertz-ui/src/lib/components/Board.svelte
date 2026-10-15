@@ -1,16 +1,24 @@
 <script lang="ts">
     import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
-    import type { Ring } from '@tabletop/zertz'
+    import type { MarbleColor, Ring } from '@tabletop/zertz'
+    import MarbleDefs from './MarbleDefs.svelte'
+    import MarbleShape from './MarbleShape.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import {
         boardFrame,
         coordsKey,
         MARBLE_RADIUS,
-        RING_INNER_RADIUS,
+        RING_MID_RADIUS,
         RING_OUTER_RADIUS,
+        RING_WIDTH,
         ringCenter
     } from '$lib/board/geometry.js'
+
+    // Turning the shared speckle tile per ring keeps neighbouring marbles from looking stamped.
+    function speckleTurn(coords: AxialCoordinates): number {
+        return (coords.q * 67 + coords.r * 131 + 360 * 4) % 360
+    }
 
     const session = getGameSession()
 
@@ -64,34 +72,32 @@
     aria-label="ZÈRTZ board"
 >
     <defs>
-        <radialGradient id="zertz-marble-white" cx="0.35" cy="0.32" r="0.75">
-            <stop offset="0" stop-color="#ffffff"></stop>
-            <stop offset="0.5" stop-color="#ece8df"></stop>
-            <stop offset="1" stop-color="#b3ab9b"></stop>
-        </radialGradient>
-        <radialGradient id="zertz-marble-grey" cx="0.35" cy="0.32" r="0.75">
-            <stop offset="0" stop-color="#dadddf"></stop>
-            <stop offset="0.5" stop-color="#8e9497"></stop>
-            <stop offset="1" stop-color="#4a5053"></stop>
-        </radialGradient>
-        <radialGradient id="zertz-marble-black" cx="0.35" cy="0.32" r="0.75">
-            <stop offset="0" stop-color="#70777a"></stop>
-            <stop offset="0.5" stop-color="#25292b"></stop>
-            <stop offset="1" stop-color="#050606"></stop>
-        </radialGradient>
-        <radialGradient id="zertz-ring-surface" cx="0.4" cy="0.35" r="0.8">
-            <stop offset="0" stop-color="#fbf8f1"></stop>
-            <stop offset="1" stop-color="#d4ccb9"></stop>
+        <MarbleDefs prefix="zertz-board" />
+        <radialGradient id="zertz-ring-plastic" cx="0.4" cy="0.32" r="0.75">
+            <stop offset="0" stop-color="#3d4448"></stop>
+            <stop offset="0.6" stop-color="#16191b"></stop>
+            <stop offset="1" stop-color="#050607"></stop>
         </radialGradient>
         <filter id="zertz-drop" x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="0" dy="2.5" stdDeviation="2" flood-color="#000" flood-opacity="0.5"
+            <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#021624" flood-opacity="0.6"
             ></feDropShadow>
         </filter>
     </defs>
 
+    {#snippet marble(color: MarbleColor, coords: AxialCoordinates, preview: boolean)}
+        <g class:preview filter={preview ? undefined : 'url(#zertz-drop)'}>
+            <MarbleShape
+                prefix="zertz-board"
+                {color}
+                radius={MARBLE_RADIUS}
+                speckTurn={speckleTurn(coords)}
+            />
+        </g>
+    {/snippet}
+
     {#each removedPositions as coords (coordsKey(coords))}
         {@const center = ringCenter(coords)}
-        <circle cx={center.x} cy={center.y} r={RING_OUTER_RADIUS * 0.82} class="ghost"></circle>
+        <circle cx={center.x} cy={center.y} r={RING_MID_RADIUS} class="ghost"></circle>
     {/each}
 
     {#each rings as ring (coordsKey(ring.coords))}
@@ -112,23 +118,21 @@
             onpointerenter={() => (hoveredKey = coordsKey(ring.coords))}
             onpointerleave={() => (hoveredKey = undefined)}
         >
-            <circle r={RING_OUTER_RADIUS} class="ring-body" filter="url(#zertz-drop)"></circle>
-            <circle r={RING_INNER_RADIUS} class="ring-hole"></circle>
+            <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
+            <circle
+                r={RING_MID_RADIUS}
+                stroke-width={RING_WIDTH}
+                class="ring-body"
+                filter="url(#zertz-drop)"
+            ></circle>
+            <circle r={RING_OUTER_RADIUS - 1.5} class="ring-rim"></circle>
             {#if interactive}
                 <circle r={RING_OUTER_RADIUS + 3} class="ring-highlight"></circle>
             {/if}
             {#if ring.marble}
-                <circle
-                    r={MARBLE_RADIUS}
-                    fill="url(#zertz-marble-{ring.marble})"
-                    filter="url(#zertz-drop)"
-                ></circle>
+                {@render marble(ring.marble, ring.coords, false)}
             {:else if role === 'place' && session.chosenColor && isHovered(ring.coords)}
-                <circle
-                    r={MARBLE_RADIUS}
-                    fill="url(#zertz-marble-{session.chosenColor})"
-                    class="preview"
-                ></circle>
+                {@render marble(session.chosenColor, ring.coords, true)}
             {/if}
         </g>
     {/each}
@@ -142,19 +146,25 @@
 
     .ghost {
         fill: none;
-        stroke: rgb(255 255 255 / 0.07);
+        stroke: rgb(255 255 255 / 0.16);
         stroke-width: 2;
         stroke-dasharray: 4 5;
     }
 
-    .ring-body {
-        fill: url(#zertz-ring-surface);
-        stroke: var(--zertz-ring-shade);
-        stroke-width: 1;
+    .ring-hit {
+        fill: transparent;
     }
 
-    .ring-hole {
-        fill: var(--zertz-felt-deep);
+    .ring-body {
+        fill: none;
+        stroke: url(#zertz-ring-plastic);
+    }
+
+    .ring-rim {
+        fill: none;
+        stroke: rgb(255 255 255 / 0.14);
+        stroke-width: 1.5;
+        pointer-events: none;
     }
 
     .ring-highlight {
@@ -199,7 +209,7 @@
     }
 
     .role-remove.hovered .ring-body {
-        opacity: 0.55;
+        opacity: 0.5;
     }
 
     .preview {

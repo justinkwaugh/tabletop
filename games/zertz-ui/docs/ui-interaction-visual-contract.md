@@ -16,6 +16,7 @@
 - **Placement preview** (`Board.svelte`, `.preview`): translucent marble on the hovered placement ring. Inputs: `chosenColor` and local hover. Must not appear for any other role.
 - **Ghost position** (`Board.svelte`, `.ghost`): dashed outline where a ring has been removed. Inputs: layout positions minus current rings. Never interactive.
 - **Pool chip** (`PoolStrip.svelte`): marble and count; selectable and chosen states.
+- **Marble** (`MarbleDefs.svelte` + `MarbleShape.svelte`, styled from `board/marbleStyle.ts`): body gradient, speckles (white on black, black on grey) and sheen. The board and every icon draw marbles through these, so a style change lands everywhere. Never carries interaction state.
 
 ## 3. Layer Responsibilities
 

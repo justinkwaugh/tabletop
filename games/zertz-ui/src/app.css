@@ -40,15 +40,15 @@
 }
 
 :root {
-    --zertz-felt: #23343a;
-    --zertz-felt-deep: #182529;
-    --zertz-panel: #2e434a;
-    --zertz-panel-edge: #47616a;
-    --zertz-ring: #f1ece0;
-    --zertz-ring-shade: #c9c1ae;
+    --zertz-water: #1b7fb0;
+    --zertz-water-deep: #0a3554;
+    --zertz-panel: rgb(8 42 68 / 0.88);
+    --zertz-panel-edge: #2f74a0;
+    --zertz-tray-top: #15507a;
+    --zertz-tray-bottom: #0c3757;
     --zertz-ink: #f4efe4;
-    --zertz-ink-quiet: #a9b9bc;
+    --zertz-ink-quiet: #a6c8dc;
     --zertz-place: #f2c14e;
-    --zertz-remove: #ef6f4f;
-    --zertz-capture: #63d39a;
+    --zertz-remove: #ff7a59;
+    --zertz-capture: #6ee0a4;
 }

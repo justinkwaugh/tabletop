@@ -55,21 +55,21 @@
         {#snippet mobileControlsContent()}
             <HistoryControls
                 enabledColor="text-[#f4efe4]"
-                disabledColor="text-[#5f7378]"
-                borderClass="border-[#47616a] border-b-2"
+                disabledColor="text-[#5d8aa6]"
+                borderClass="border-[#2f74a0] border-b-2"
             />
         {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
                 <HistoryControls
                     enabledColor="text-[#f4efe4]"
-                    disabledColor="text-[#5f7378]"
-                    borderClass="rounded-lg border-2 border-[#47616a]"
+                    disabledColor="text-[#5d8aa6]"
+                    borderClass="rounded-lg border-2 border-[#2f74a0]"
                 />
             </div>
             <DefaultTabs
-                activeTabClass="py-1 px-3 bg-[#f1ece0] border-2 border-transparent rounded-lg text-[#182529]"
-                inactiveTabClass="text-[#f4efe4] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#47616a]"
+                activeTabClass="py-1 px-3 bg-[#f1ece0] border-2 border-transparent rounded-lg text-[#0a3554]"
+                inactiveTabClass="text-[#f4efe4] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#2f74a0]"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />
@@ -80,10 +80,10 @@
                 {#snippet chat()}
                     <GameChat
                         timeColor="text-gray-400"
-                        bgColor="bg-[#182529]"
-                        inputBgColor="bg-[#182529]"
-                        inputBorderColor="border-[#47616a]"
-                        borderColor="border-[#47616a]"
+                        bgColor="bg-[#0a3554]"
+                        inputBgColor="bg-[#0a3554]"
+                        inputBorderColor="border-[#2f74a0]"
+                        borderColor="border-[#2f74a0]"
                     />
                 {/snippet}
             </DefaultTabs>
@@ -113,11 +113,18 @@
 
 <style>
     .zertz-table {
-        background: radial-gradient(
-            ellipse at 50% 40%,
-            var(--zertz-felt) 0%,
-            var(--zertz-felt-deep) 100%
-        );
+        background-color: var(--zertz-water-deep);
+        background-image:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='1200' viewBox='0 0 1600 1200' preserveAspectRatio='xMidYMid slice'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004 0.008' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -2.4 1.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)' opacity='0.22'/%3E%3C/svg%3E"),
+            radial-gradient(
+                ellipse at 50% 30%,
+                var(--zertz-water) 0%,
+                #125f8c 45%,
+                var(--zertz-water-deep) 100%
+            );
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
         color: var(--zertz-ink);
     }
 
@@ -130,6 +137,6 @@
 
     .fullscreen-controls {
         padding-bottom: 8px;
-        background: var(--zertz-felt-deep);
+        background: var(--zertz-water-deep);
     }
 </style>
