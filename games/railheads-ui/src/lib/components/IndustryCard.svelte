@@ -18,9 +18,11 @@
 
 <div class="card" style:--ring={style.ring}>
     <div class="band">
-        <IndustryToken {industry} size={20} />
+        <IndustryToken {industry} size={40} />
         <span class="name">{style.name}</span>
-        <span class="level" title="Development level; each token pays this at the payout">Level {level}</span>
+        <span class="pays" title="Each token pays this at the payout (the development level)">
+            <span class="figure">${level}</span><span class="unit">per token</span>
+        </span>
     </div>
     <div class="track" role="img" aria-label="Level {level} of {length}">
         <span class="fill" style:width="{(100 * level) / length}%"></span>
@@ -54,7 +56,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 3px 8px;
+        padding: 4px 8px;
         background: #ece6b8;
         border-bottom: 2px solid var(--ring);
         font-family: 'Libre Baskerville', Georgia, serif;
@@ -63,6 +65,26 @@
 
     .name {
         flex: 1;
+        font-size: 14px;
+    }
+
+    .pays {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        line-height: 1;
+    }
+
+    .figure {
+        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-size: 24px;
+        color: #a3311d;
+    }
+
+    .unit {
+        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-size: 10px;
+        font-weight: 400;
     }
 
     .track {

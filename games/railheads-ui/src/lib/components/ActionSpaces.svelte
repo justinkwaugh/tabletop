@@ -42,16 +42,6 @@
         <span class="round">
             {#if state.round() === 0}Initial auction{:else}Round {state.round()} of {rounds}{/if}
         </span>
-        <span class="pips" title="The game ends after the payout of round {rounds}">
-            {#each Array.from({ length: rounds }, (_, index) => index + 1) as round (round)}
-                <span
-                    class="pip"
-                    class:done={round < state.round()}
-                    class:now={round === state.round()}
-                    class:last={round === rounds}>{round === rounds ? 'END' : round}</span
-                >
-            {/each}
-        </span>
         <span class="coins"><span class="coin">$</span>{state.roundTimer}</span>
         {#if state.startPlayerId}
             <span class="starter" title="Start Player">
@@ -73,15 +63,17 @@
                 <span class="terms">{entry.terms}</span>
                 <span class="pile">
                     <span class="held" title="Coins waiting on this space; consolidate to take them">
-                        <span class="label">On space</span>
-                        {#each Array.from({ length: Math.min(entry.coins, 6) }, (_, index) => index) as coin (coin)}
-                            <span class="mini-coin"></span>
-                        {/each}
-                        <span class="amount">{entry.coins > 0 ? `$${entry.coins}` : 'none'}</span>
+                        <span class="stack" class:empty={entry.coins === 0}>
+                            {#each Array.from({ length: Math.min(entry.coins, 8) }, (_, index) => index) as coin (coin)}
+                                <span class="mini-coin" style:bottom="{coin * 3}px"></span>
+                            {/each}
+                        </span>
+                        <span class="amount">{entry.coins > 0 ? `$${entry.coins}` : 'empty'}</span>
+                        <span class="label">on space</span>
                     </span>
                     <span class="cost" title="Coins you pay from the Round Timer to choose this space now">
                         <span class="label">Choose for</span>
-                        <span class="mini-coin"></span>
+                        <span class="mini-coin flat"></span>
                         <span class="amount">{entry.cost}</span>
                     </span>
                 </span>
@@ -92,7 +84,7 @@
                     class="collect"
                     onclick={() => gameSession.consolidate(entry.space)}
                     title="Take the ${entry.coins} on this space as cash"
-                    ><span>Consoli&shy;date</span><span class="amount">${entry.coins}</span></button
+                    >Consolidate ${entry.coins}</button
                 >
             {/if}
         </div>
@@ -123,44 +115,10 @@
         text-align: center;
     }
 
-    .pips {
-        display: inline-flex;
-        gap: 3px;
-    }
-
-    .pip {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 20px;
-        height: 20px;
-        padding: 0 3px;
-        border: 1.5px solid #8f9a63;
-        border-radius: 4px;
-        color: #cfd6a8;
-        font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 11px;
-        font-weight: 700;
-    }
-
-    .pip.done {
-        background: #5b6b2c;
-        color: #f4f0d8;
-    }
-
-    .pip.now {
-        border-color: #f2d438;
-        background: #f2d438;
-        color: #26300f;
-    }
-
-    .pip.last:not(.now) {
-        border-style: dashed;
-    }
-
     .round {
-        font-size: 12px;
-        letter-spacing: 0.06em;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
     }
 
@@ -195,7 +153,7 @@
 
     .space {
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
         overflow: hidden;
         border: 2px solid #5c4a2c;
         border-radius: 8px;
@@ -259,21 +217,57 @@
         display: flex;
         align-items: center;
         gap: 1px;
-        min-height: 14px;
+    }
+
+    .held .amount {
+        margin-left: 0;
+        font-size: 20px;
+        line-height: 1;
+    }
+
+    .held .label {
+        margin-left: 6px;
+        font-size: 11px;
     }
 
     .label {
         flex: 1;
+    }
+
+    .held .label {
+        flex: none;
+    }
+
+    .stack {
+        position: relative;
+        width: 22px;
+        height: 28px;
         margin-right: 4px;
     }
 
+    .stack.empty {
+        border: 1.5px dashed #b9b48a;
+        border-radius: 999px;
+        height: 12px;
+        margin-top: 16px;
+    }
+
     .mini-coin {
-        width: 9px;
-        height: 9px;
-        margin-right: -3px;
+        position: absolute;
+        left: 0;
+        width: 22px;
+        height: 11px;
         border: 1px solid #7a5f0a;
         border-radius: 999px;
         background: #e3c34a;
+        box-shadow: 0 1px 0 #a98a1c;
+    }
+
+    .mini-coin.flat {
+        position: static;
+        width: 12px;
+        height: 12px;
+        margin-left: 4px;
     }
 
     .amount {
@@ -293,19 +287,12 @@
     }
 
     .collect {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        width: 58px;
-        border-left: 1px dashed #9a7d12;
+        border-top: 1px dashed #9a7d12;
         background: #ece7c6;
-        padding: 2px 3px;
-        font-size: 11.5px;
+        padding: 3px 4px;
+        font-size: 13px;
         font-weight: 700;
         color: #33401a;
-        text-align: center;
     }
 
     .collect:hover {

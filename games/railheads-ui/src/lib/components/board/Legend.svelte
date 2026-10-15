@@ -73,14 +73,14 @@
 
     .head {
         fill: #5b5a36;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 11px;
         font-weight: 700;
     }
 
     .label {
         fill: #26300f;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 13px;
     }
 
@@ -93,7 +93,7 @@
 
     .foot {
         fill: #26300f;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 10px;
         text-anchor: middle;
     }
