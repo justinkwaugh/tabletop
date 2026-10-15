@@ -1,6 +1,7 @@
 <script lang="ts">
     import { capitalised, type Phrase, type PhrasePart } from '$lib/utils/actionDescription.js'
     import { PolypFaces } from '$lib/images/art.generated.js'
+    import { BiteMask } from '$lib/utils/bite.js'
     import LarvaCube from './table/LarvaCube.svelte'
     import AlgaCylinder from './table/AlgaCylinder.svelte'
     import ParrotfishIcon from './ParrotfishIcon.svelte'
@@ -28,7 +29,13 @@
             {words(part, index)}
         {:else if part.icon === 'polyp'}
             <span class="icon polyp" class:consumed={part.consumed} title={part.label}>
-                <img src={PolypFaces[part.color][0].url} alt="" width="20" height="20" />
+                <img
+                    src={PolypFaces[part.color][0].url}
+                    style:mask-image={part.consumed ? BiteMask : undefined}
+                    alt=""
+                    width="20"
+                    height="20"
+                />
                 {#if part.count > 1}<span class="times">×{part.count}</span>{/if}
             </span>
         {:else if part.icon === 'unseen-polyp'}
@@ -47,8 +54,6 @@
                     <AlgaCylinder center={{ x: 0, y: 0 }} size={14} color={part.alga} />
                 </svg>
             </span>
-        {:else if part.icon === 'board'}
-            <span class="icon board" title={part.label}>{part.boardId}</span>
         {:else if part.icon === 'parrotfish'}
             <span class="icon" title={part.label}>
                 <ParrotfishIcon paint={fishPaint} />
@@ -79,8 +84,13 @@
         box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
     }
 
+    /* The image's ring is cut away with the bite; this one follows the bite's edge. */
+    .polyp.consumed {
+        filter: drop-shadow(0 0 0.6px rgb(0 0 0 / 0.8));
+    }
+
     .polyp.consumed img {
-        mask-image: radial-gradient(circle at 100% 0, transparent 6px, black 6.5px);
+        mask-composite: intersect;
     }
 
     .times {
@@ -98,22 +108,6 @@
         background: repeating-linear-gradient(135deg, #6e7d78 0 3px, #5d6b66 3px 6px);
         box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
         color: #fff;
-        font-family: 'Reef Fredoka', sans-serif;
-        font-weight: 600;
-        font-size: 13px;
-    }
-
-    .board {
-        justify-content: center;
-        min-width: 20px;
-        height: 20px;
-        padding: 0 4px;
-        border-radius: 6px 4px 7px 3px;
-        background: radial-gradient(circle at 30% 25%, #f6efdd, #d9ccae);
-        box-shadow:
-            inset 0 -2px 0 rgb(120 100 70 / 0.35),
-            0 0 0 1px rgb(0 0 0 / 0.3);
-        color: #4a3f2c;
         font-family: 'Reef Fredoka', sans-serif;
         font-weight: 600;
         font-size: 13px;

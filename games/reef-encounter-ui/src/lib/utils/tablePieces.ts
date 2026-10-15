@@ -76,7 +76,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 key: `${reef.boardId}:polyp:${coords.row},${coords.col}:${color}`,
                 container: reef.boardId,
                 center: centerOf(box),
-                place: `on ${squareName({ boardId: reef.boardId, coords })}`,
+                place: `on ${squareName(state.reefs, { boardId: reef.boardId, coords })}`,
                 color,
                 box,
                 ...polypFace(color, `${gameId}:${reef.boardId}:${coords.row}:${coords.col}`)
@@ -89,7 +89,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
             key: `${boardId}:shrimp:${coords.row},${coords.col}:${playerId}`,
             container: boardId,
             center: centerOf(boardSquare(coords)),
-            place: `on ${squareName({ boardId, coords })}`,
+            place: `on ${squareName(state.reefs, { boardId, coords })}`,
             playerId,
             upsideDown: false
         })

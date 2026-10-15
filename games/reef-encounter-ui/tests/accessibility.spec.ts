@@ -16,9 +16,9 @@ test('the table names its pieces, coral tiles and choices for screen readers', a
         openSea.getByRole('button', { name: /^Take the \w+ larva cube/ }).first()
     ).toBeVisible()
 
-    const reef = page.getByRole('group', { name: /^Reef board \d$/ }).first()
+    const reef = page.getByRole('group', { name: /^Reef Board \d$/ }).first()
     await expect(
-        reef.getByRole('img', { name: /^\w+ polyp on board \d, row \d, column \d$/ }).first()
+        reef.getByRole('img', { name: /^\w+ polyp on Board \d, row \d, column \d$/ }).first()
     ).toBeVisible()
 
     // Setup left the acting player two larva cubes, named rather than drawn alone

@@ -2,6 +2,7 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import Phrases from '$lib/components/Phrases.svelte'
     import { describeActions } from '$lib/utils/actionDescription.js'
+    import { boardName } from '$lib/utils/reefSquare.js'
     import { previousTurn } from '$lib/utils/historyEntries.js'
     import { waitingActivity } from '$lib/utils/statusText.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -14,7 +15,8 @@
             ? describeActions(
                   lastTurn.actions,
                   lastTurn.playerId === gameSession.myPlayer?.id ? 'your' : 'their',
-                  gameSession.possessiveName
+                  gameSession.possessiveName,
+                  (boardId) => boardName(gameSession.gameState.reefs, boardId)
               )
             : []
     )

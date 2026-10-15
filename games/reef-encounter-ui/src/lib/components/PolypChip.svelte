@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { CoralColor } from '@tabletop/reef-encounter'
     import { PolypFaces } from '$lib/images/art.generated.js'
+    import { BiteMask } from '$lib/utils/bite.js'
 
     let {
         color,
@@ -11,6 +12,7 @@
 
 <span class="chip" class:consumed title="{count} {color}">
     <img
+        style:mask-image={consumed ? BiteMask : undefined}
         src={PolypFaces[color][0].url}
         alt="{count} {color} polyp{count === 1 ? '' : 's'}"
         width="22"
@@ -31,8 +33,13 @@
         box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
     }
 
+    /* The image's ring is cut away with the bite; this one follows the bite's edge. */
+    .consumed {
+        filter: drop-shadow(0 0 0.6px rgb(0 0 0 / 0.8));
+    }
+
     .consumed img {
-        mask-image: radial-gradient(circle at 100% 0, transparent 6px, black 6.5px);
+        mask-composite: intersect;
     }
 
     .count {

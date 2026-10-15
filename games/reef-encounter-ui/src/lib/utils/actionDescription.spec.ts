@@ -37,7 +37,7 @@ const played = (color: CoralColor): PlayLarvaCube => ({
 const possessive = (playerId: string) => (playerId === 'a' ? 'your' : 'Bashir’s')
 
 const described = (actions: Parameters<typeof describeActions>[0], own: 'your' | 'their') =>
-    describeActions(actions, own, possessive)
+    describeActions(actions, own, possessive, (boardId) => `Board ${boardId}`)
 
 const texts = (...args: Parameters<typeof described>) =>
     described(...args).map((phrase) => phrase.text)
@@ -55,8 +55,8 @@ describe('describing a turn', () => {
         )
         expect(phrases).toEqual([
             'played an orange larva cube.',
-            'placed 2 orange polyps on board 1.',
-            'placed an orange polyp on board 2.'
+            'placed 2 orange polyps on Board 1.',
+            'placed an orange polyp on Board 2.'
         ])
     })
 
@@ -66,8 +66,8 @@ describe('describing a turn', () => {
             'their'
         )
         expect(phrases).toEqual([
-            'placed a white polyp on board 1.',
-            'placed a white polyp on board 1, consuming a yellow polyp.'
+            'placed a white polyp on Board 1.',
+            'placed a white polyp on Board 1, consuming a yellow polyp.'
         ])
     })
 
@@ -151,7 +151,7 @@ describe('describing a turn', () => {
             'The bag held no pink polyp, so the cube stays.'
         ])
         expect(texts([search(true, growing)], 'their')).toEqual([
-            'The bag held a pink polyp, which grew beside it on board 2.'
+            'The bag held a pink polyp, which grew beside it on Board 2.'
         ])
         expect(texts([search(false, growing)], 'their')).toEqual([
             'The bag held no pink polyp, so nothing grew there.'

@@ -133,8 +133,6 @@
         --reef-water-top: #8cc6b3;
         --reef-water-mid: #4d8a79;
         --reef-water-bottom: #2a5d53;
-        --reef-rock: #1d4a42;
-        --reef-far: #3c7a6b;
         --reef-glass: rgb(14 52 46 / 0.5);
         --reef-glass-strong: rgb(12 46 41 / 0.66);
         --reef-line: rgb(255 255 255 / 0.85);

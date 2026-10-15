@@ -253,10 +253,15 @@ import image249 from './boards/board-2.webp'
 import image250 from './boards/board-3.webp'
 import image251 from './boards/board-4.webp'
 import image252 from './open-sea.webp'
-import image253 from './parrotfish/purple.webp'
-import image254 from './parrotfish/red.webp'
-import image255 from './parrotfish/yellow.webp'
-import image256 from './parrotfish/green.webp'
+import image253 from './scene/parrotfish-purple.webp'
+import image254 from './scene/parrotfish-green.webp'
+import image255 from './scene/parrotfish-red.webp'
+import image256 from './scene/parrotfish-yellow.webp'
+import image257 from './scene/coral-white.webp'
+import image258 from './scene/coral-yellow.webp'
+import image259 from './scene/coral-pink.webp'
+import image260 from './scene/coral-grey.webp'
+import image261 from './scene/coral-orange.webp'
 
 // Each colour has 80 faces, the backs of most tiles being their fronts drawn mirrored.
 export const PolypFaces: Record<string, { url: string; mirrored: boolean }[]> = {
@@ -691,7 +696,15 @@ export const OpenSeaImageUrl = image252
 
 export const ParrotfishUrls: Record<string, string> = {
     purple: image253,
-    red: image254,
-    yellow: image255,
-    green: image256
+    green: image254,
+    red: image255,
+    yellow: image256
+}
+
+export const SceneCoralUrls: Record<string, string> = {
+    white: image257,
+    yellow: image258,
+    pink: image259,
+    grey: image260,
+    orange: image261
 }
