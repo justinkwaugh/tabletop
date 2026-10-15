@@ -30,6 +30,12 @@
             }
         })
     )
+
+    const ARC_RADIUS = 21
+
+    function arcPath(x: number, y: number): string {
+        return `M ${x - ARC_RADIUS} ${y + 2} A ${ARC_RADIUS} ${ARC_RADIUS} 0 0 1 ${x + ARC_RADIUS} ${y + 2}`
+    }
 </script>
 
 {#each hexes as hex (hex.key)}
@@ -48,19 +54,16 @@
             stroke-width="6"
             stroke-linejoin="round"
         />
-        <g transform="translate({hex.center.x} {hex.center.y - 14})">
-            <IndustryMark industry={hex.industry} scale={0.8} />
+        <g transform="translate({hex.center.x} {hex.center.y})">
+            <IndustryMark industry={hex.industry} scale={0.9} />
         </g>
     {/if}
     {#if hex.name}
-        <text
-            x={hex.center.x}
-            y={hex.center.y - 17}
-            class="name"
-            class:city={hex.kind === HexKind.City}
-            font-size={hex.name.length > 9 ? 9.5 : 11}>{hex.name}</text
-        >
-        <text x={hex.center.x} y={hex.center.y + 26} class="value" class:city={hex.kind === HexKind.City}
+        <path id="arc-{hex.key}" d={arcPath(hex.center.x, hex.center.y)} fill="none" />
+        <text class="name" class:city={hex.kind === HexKind.City} font-size={hex.name.length > 8 ? 9.5 : 11}>
+            <textPath href="#arc-{hex.key}" startOffset="50%">{hex.name}</textPath>
+        </text>
+        <text x={hex.center.x} y={hex.center.y + 17} class="value" class:city={hex.kind === HexKind.City}
             >{hex.value}</text
         >
     {/if}
@@ -87,7 +90,7 @@
     .value {
         fill: #2b1d06;
         font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 700;
         text-anchor: middle;
     }

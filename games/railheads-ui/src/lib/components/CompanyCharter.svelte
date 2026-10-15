@@ -29,16 +29,49 @@
 </script>
 
 {#snippet body()}
-    <div class="emblem" style:--co={style.fill} style:--co-text={style.text} style:--co-edge={style.edge}>
-        <span class="seal">{definition.shortName}</span>
+    <div class="head" style:background={style.fill} style:color={style.text} title={definition.name}>
+        <span class="acronym">{definition.shortName}</span>
+        <span class="treasury" title="Treasury: pays for track">
+            <span class="treasury-label">Treasury</span>
+            <span class="treasury-amount">${company.treasury}</span>
+        </span>
     </div>
-    <div class="ledger">
-        <div class="title" title={definition.name}>{definition.name}</div>
+    <div class="body">
+        <div class="pile" title="{sharesLeft} of {definition.shares} shares left on the charter">
+            {#if sharesLeft > 0}
+                <span
+                    class="stack"
+                    style:width="{CERTIFICATE_WIDTH + SHARE_OFFSET_X * stackSteps}px"
+                    style:height="{CERTIFICATE_HEIGHT + SHARE_OFFSET_Y * stackSteps}px"
+                >
+                    {#each Array.from({ length: sharesLeft }, (_, index) => stackSteps - sharesLeft + 1 + index) as step (step)}
+                        <span
+                            class="stacked"
+                            aria-hidden="true"
+                            style:left="{SHARE_OFFSET_X * step}px"
+                            style:top="{SHARE_OFFSET_Y * step}px"
+                        >
+                            <ShareCertificate {companyId} labelled={step === stackSteps} />
+                        </span>
+                    {/each}
+                </span>
+                <span class="count">{sharesLeft} left</span>
+            {:else}
+                <span class="sold-out">
+                    <span
+                        class="empty-slot"
+                        style:width="{CERTIFICATE_WIDTH}px"
+                        style:height="{CERTIFICATE_HEIGHT}px"
+                    ></span>
+                    <Stamp label="All sold" />
+                </span>
+            {/if}
+        </div>
         <div class="figures">
-            <div class="entry" title="Treasury: pays for track">
-                <span>Treasury</span><span class="money">${company.treasury}</span>
-            </div>
-            <div class="entry" title="Revenue Level{drop > 0 ? `; falls ${drop} at the end of the round` : ''}">
+            <div
+                class="entry"
+                title="Revenue Level{drop > 0 ? `; falls ${drop} at the end of the round` : ''}"
+            >
                 <span>Revenue</span><span class="money"
                     >{company.revenue}{#if drop > 0}<span class="drop">−{drop}</span>{/if}</span
                 >
@@ -52,36 +85,6 @@
                 >
             </div>
         </div>
-    </div>
-    <div class="pile" title="{sharesLeft} of {definition.shares} shares left on the charter">
-        {#if sharesLeft > 0}
-            <span
-                class="stack"
-                style:width="{CERTIFICATE_WIDTH + SHARE_OFFSET_X * stackSteps}px"
-                style:height="{CERTIFICATE_HEIGHT + SHARE_OFFSET_Y * stackSteps}px"
-            >
-                {#each Array.from({ length: sharesLeft }, (_, index) => stackSteps - sharesLeft + 1 + index) as step (step)}
-                    <span
-                        class="stacked"
-                        aria-hidden="true"
-                        style:left="{SHARE_OFFSET_X * step}px"
-                        style:top="{SHARE_OFFSET_Y * step}px"
-                    >
-                        <ShareCertificate {companyId} labelled={step === stackSteps} />
-                    </span>
-                {/each}
-            </span>
-            <span class="count">{sharesLeft} left</span>
-        {:else}
-            <span class="sold-out">
-                <span
-                    class="empty-slot"
-                    style:width="{CERTIFICATE_WIDTH}px"
-                    style:height="{CERTIFICATE_HEIGHT}px"
-                ></span>
-                <Stamp label="All sold" />
-            </span>
-        {/if}
     </div>
 {/snippet}
 
@@ -111,14 +114,14 @@
 <style>
     .charter {
         display: flex;
-        align-items: stretch;
+        flex-direction: column;
         overflow: hidden;
         border: 2px solid #4a5a24;
         border-radius: 8px;
         background: #f6f2da;
         color: #26300f;
         font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 12px;
+        font-size: 12.5px;
         box-shadow: 0 1px 3px rgba(30, 36, 10, 0.2);
     }
 
@@ -140,85 +143,42 @@
         box-shadow: 0 0 0 2px #d8b62a;
     }
 
-    .emblem {
+    .head {
         display: flex;
-        flex: none;
-        align-items: center;
-        justify-content: center;
-        width: 64px;
-        background: #c9c493;
-    }
-
-    .seal {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 54px;
-        height: 54px;
-        border: 5px solid var(--co);
-        border-radius: 999px;
-        background: #faf7e6;
-        box-shadow: 0 0 0 1px var(--co-edge);
-        color: #1d1d1b;
-        font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 9px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-    }
-
-    .ledger {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
-        min-width: 0;
-    }
-
-    .title {
-        overflow: hidden;
-        padding: 2px 6px;
-        border-bottom: 1px solid #d9d4a8;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-family: 'Libre Baskerville', Georgia, serif;
-        font-size: 10px;
-        font-style: italic;
-    }
-
-    .figures {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
-    }
-
-    .entry {
-        display: flex;
-        flex: 1;
         align-items: center;
         justify-content: space-between;
-        padding-left: 6px;
-        border-bottom: 1px solid #e3dfb8;
-    }
-
-    .entry:last-child {
-        border-bottom: 0;
-    }
-
-    .money {
-        display: flex;
-        align-items: center;
-        align-self: stretch;
-        justify-content: flex-end;
-        gap: 3px;
-        min-width: 58px;
-        padding: 0 6px;
-        border-left: 1px solid #c9c493;
-        font-size: 13px;
+        padding: 3px 8px;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-weight: 700;
     }
 
-    .drop {
+    .acronym {
+        font-size: 16px;
+        letter-spacing: 0.02em;
+    }
+
+    .treasury {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        font-family: 'Courier Prime', 'Courier New', monospace;
+    }
+
+    .treasury-label {
         font-size: 10px;
-        color: #a3311d;
+        font-weight: 400;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 0.9;
+    }
+
+    .treasury-amount {
+        font-size: 16px;
+    }
+
+    .body {
+        display: flex;
+        align-items: stretch;
     }
 
     .pile {
@@ -229,9 +189,9 @@
         align-items: center;
         justify-content: flex-end;
         gap: 3px;
-        width: 70px;
-        padding: 5px 0 3px;
-        border-left: 1px solid #d9d4a8;
+        width: 74px;
+        padding: 6px 0 4px;
+        border-right: 1px solid #d9d4a8;
         background: #ece7c6;
         --stamp-size: 9px;
     }
@@ -266,5 +226,43 @@
         font-weight: 700;
         line-height: 1;
         white-space: nowrap;
+    }
+
+    .figures {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .entry {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: space-between;
+        padding-left: 8px;
+        border-bottom: 1px solid #e3dfb8;
+    }
+
+    .entry:last-child {
+        border-bottom: 0;
+    }
+
+    .money {
+        display: flex;
+        align-items: center;
+        align-self: stretch;
+        justify-content: flex-end;
+        gap: 3px;
+        min-width: 58px;
+        padding: 0 8px;
+        border-left: 1px solid #c9c493;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .drop {
+        font-size: 10px;
+        color: #a3311d;
     }
 </style>

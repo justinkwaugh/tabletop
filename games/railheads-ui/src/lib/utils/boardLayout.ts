@@ -40,5 +40,5 @@ export function revenueCell(revenue: number): Point {
     return { x: 0, y: (100 - step) * TRACK_CELL }
 }
 
-export const DEVELOPMENT_RECT = { x: 48, y: 52, width: 208, height: 212 }
-export const LEGEND_RECT = { x: 510, y: 50, width: 330, height: 114 }
+export const DEVELOPMENT_RECT = { x: 52, y: 54, width: 212, height: 204 }
+export const LEGEND_RECT = { x: 512, y: 70, width: 314, height: 108 }

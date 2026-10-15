@@ -17,9 +17,9 @@
 
 <g transform="translate({LEGEND_RECT.x} {LEGEND_RECT.y})">
     <rect width={LEGEND_RECT.width} height={LEGEND_RECT.height} rx="8" class="sheet" />
-    <text x={LEGEND_RECT.width / 2} y="16" class="title">Track</text>
+    <text x={LEGEND_RECT.width / 2} y="17" class="title">Track</text>
     {#each entries as entry, index (index)}
-        <g transform="translate({10 + index * 80} 30)">
+        <g transform="translate({6 + index * 76} 28)">
             <text x="36" y="10" class="cost">${entry.cost}</text>
             <polygon points={hexPoints({ x: 36, y: 40 }, 18)} fill={entry.fill} stroke="#1d1d1b" stroke-width="2" />
             <text x="36" y="72" class="note">{entry.note}</text>

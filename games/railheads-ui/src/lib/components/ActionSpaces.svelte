@@ -34,6 +34,16 @@
         <span class="round">
             {#if state.round() === 0}Initial auction{:else}Round {state.round()} of {rounds}{/if}
         </span>
+        <span class="pips" title="The game ends after the payout of round {rounds}">
+            {#each Array.from({ length: rounds }, (_, index) => index + 1) as round (round)}
+                <span
+                    class="pip"
+                    class:done={round < state.round()}
+                    class:now={round === state.round()}
+                    class:last={round === rounds}>{round === rounds ? 'END' : round}</span
+                >
+            {/each}
+        </span>
         <span class="coins"><span class="coin">$</span>{state.roundTimer}</span>
         {#if state.startPlayerId}
             <span class="starter" title="Start Player">
@@ -101,8 +111,43 @@
         text-align: center;
     }
 
-    .round {
+    .pips {
+        display: inline-flex;
+        gap: 3px;
+    }
+
+    .pip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 3px;
+        border: 1.5px solid #8f9a63;
+        border-radius: 4px;
+        color: #cfd6a8;
+        font-family: 'Courier Prime', 'Courier New', monospace;
         font-size: 11px;
+        font-weight: 700;
+    }
+
+    .pip.done {
+        background: #5b6b2c;
+        color: #f4f0d8;
+    }
+
+    .pip.now {
+        border-color: #f2d438;
+        background: #f2d438;
+        color: #26300f;
+    }
+
+    .pip.last:not(.now) {
+        border-style: dashed;
+    }
+
+    .round {
+        font-size: 12px;
         letter-spacing: 0.06em;
         text-transform: uppercase;
     }
@@ -112,7 +157,7 @@
         align-items: center;
         gap: 4px;
         font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 22px;
+        font-size: 24px;
         font-weight: 700;
         line-height: 1;
     }
@@ -160,8 +205,8 @@
         flex: 1;
         flex-direction: column;
         align-items: stretch;
-        gap: 1px;
-        padding: 3px 7px 4px;
+        gap: 3px;
+        padding: 5px 8px 6px;
         color: inherit;
         text-align: left;
     }
@@ -176,21 +221,17 @@
         outline: none;
     }
 
-    .title {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 13px;
+.title {
+        font-size: 15px;
         font-weight: 700;
+        line-height: 1.15;
     }
 
     .terms {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 10.5px;
-        font-style: italic;
-        color: #5b5a36;
+        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-size: 12.5px;
+        line-height: 1.2;
+        color: #26300f;
     }
 
     .pile {
@@ -199,7 +240,7 @@
         justify-content: space-between;
         gap: 4px;
         font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 12px;
+        font-size: 13px;
     }
 
     .held {
@@ -225,14 +266,14 @@
 
     .cost {
         white-space: nowrap;
-        color: #5b5a36;
+        color: #26300f;
     }
 
     .collect {
         border-top: 1px dashed #9a7d12;
         background: #ece7c6;
         padding: 2px 4px;
-        font-size: 11px;
+        font-size: 12.5px;
         font-weight: 700;
         color: #33401a;
     }
@@ -249,11 +290,11 @@
         }
 
         .terms {
-            display: none;
+            font-size: 11.5px;
         }
 
         .title {
-            font-size: 11px;
+            font-size: 13px;
         }
 
         .coins {
