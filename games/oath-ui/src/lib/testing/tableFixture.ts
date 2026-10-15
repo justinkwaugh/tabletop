@@ -553,6 +553,29 @@ const QUESTION_TABLES = {
         questionTable(prophet('vision.conquest'), {
             me: { advisers: PROPHET_ADVISERS.map((cardId) => ({ cardId, faceUp: false })) }
         }),
+    // Enchantress's Q&A — ann swapped it for the Pied Piper that came to my three advisers by its Action.
+    askEnchantressDiscard: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.DiscardAdvisers,
+                cardId: 'denizen.discord.enchantress',
+                ...asked,
+                actingPlayerId: 'ann',
+                count: 1,
+                receivedCardIds: ['denizen.discord.enchantress']
+            },
+            {
+                me: {
+                    advisers: [
+                        'denizen.beast.wolves',
+                        'denizen.hearth.wayside-inn',
+                        'denizen.order.scouts',
+                        'denizen.discord.enchantress'
+                    ].map(faceup)
+                },
+                ann: { advisers: [faceup('denizen.beast.pied-piper')] }
+            }
+        ),
     fabledFeast: fabledFeastTable
 } satisfies Record<string, () => PlayedTable>
 

@@ -415,6 +415,84 @@ describe('Law Glossary "Discard" — ordering cards that leave play for one pile
     })
 })
 
+/** Enchantress's Q&A (revision 11) — a swap left the player over the limit: discard down, never the card received. */
+describe('discarding down to the adviser limit after a swap', () => {
+    const ENCHANTRESS = 'denizen.discord.enchantress'
+    const WAGON = 'denizen.nomad.family-wagon'
+    const TENTS = 'denizen.nomad.tents'
+    const over = (advisers: string[], count = 1, received = [ENCHANTRESS]) =>
+        asked(
+            {
+                kind: PowerQuestionKind.DiscardAdvisers,
+                cardId: ENCHANTRESS,
+                askedPlayerId: ME,
+                actingPlayerId: 'ann',
+                count,
+                receivedCardIds: received
+            },
+            [],
+            { me: { advisers: advisers.map((cardId) => ({ cardId, faceUp: true })) } }
+        )
+
+    it('offers every adviser but the one received; "Discard" waits for the pick and sends it', async () => {
+        const { draft, sent } = over([...DRAWN, ENCHANTRESS])
+        expect(draft.adviserDiscardChoices).toEqual(DRAWN)
+        expect(draft.adviserDiscardsComplete).toBe(false)
+        expect(draft.adviserDiscardsBlockedBecause).toBeUndefined()
+        draft.toggleAdviserDiscard(ENCHANTRESS)
+        expect(draft.adviserDiscards).toEqual([])
+        draft.toggleAdviserDiscard(DRAWN[0])
+        // One to discard: a second tap moves the pick.
+        draft.toggleAdviserDiscard(DRAWN[2])
+        expect(draft.adviserDiscards).toEqual([DRAWN[2]])
+        expect(draft.adviserDiscardsComplete).toBe(true)
+        await draft.discardAdvisers()
+        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.DiscardAdvisers, discardedAdviserCardIds: [DRAWN[2]] })
+    })
+
+    it('a tap on the pick takes it back, and Undo has nothing more to take', () => {
+        const { draft } = over([...DRAWN, ENCHANTRESS])
+        draft.toggleAdviserDiscard(DRAWN[1])
+        draft.toggleAdviserDiscard(DRAWN[1])
+        expect(draft.adviserDiscards).toEqual([])
+        expect(draft.hasManualSelection()).toBe(false)
+        draft.toggleAdviserDiscard(DRAWN[1])
+        expect(draft.back()).toBe(true)
+        expect(draft.adviserDiscards).toEqual([])
+    })
+
+    it('under Family Wagon a Nomad is not offered, since it would leave the player over', () => {
+        const { draft } = over([WAGON, TENTS, DRAWN[0], DRAWN[1]], 1, [DRAWN[1]])
+        expect(draft.adviserDiscardChoices).toEqual([WAGON, DRAWN[0]])
+    })
+
+    it('under Family Wagon with a locked non-Nomad, the Wagon goes first and then a Nomad it no longer exempts', async () => {
+        const FALSE_PROPHET = 'denizen.discord.false-prophet'
+        const ELDERS = 'denizen.nomad.elders'
+        const STEED = 'denizen.nomad.a-fast-steed'
+        const SCOUTS = 'denizen.order.scouts'
+        const { draft, sent } = over([WAGON, FALSE_PROPHET, ELDERS, STEED, SCOUTS], 2, [SCOUTS])
+        expect(draft.adviserDiscardCount).toBe(2)
+        expect(draft.adviserDiscardChoices).toEqual([WAGON])
+        draft.toggleAdviserDiscard(ELDERS)
+        expect(draft.adviserDiscards).toEqual([])
+        draft.toggleAdviserDiscard(WAGON)
+        expect(draft.adviserDiscardChoices).toEqual([WAGON, ELDERS, STEED])
+        expect(draft.adviserDiscardsComplete).toBe(false)
+        draft.toggleAdviserDiscard(ELDERS)
+        expect(draft.adviserDiscards).toEqual([WAGON, ELDERS])
+        expect(draft.adviserDiscardsComplete).toBe(true)
+        expect(draft.adviserDiscardsBlockedBecause).toBeUndefined()
+        // Taking the Wagon back strands the Nomad after it.
+        draft.toggleAdviserDiscard(WAGON)
+        expect(draft.adviserDiscards).toEqual([])
+        draft.toggleAdviserDiscard(WAGON)
+        draft.toggleAdviserDiscard(STEED)
+        await draft.discardAdvisers()
+        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.DiscardAdvisers, discardedAdviserCardIds: [WAGON, STEED] })
+    })
+})
+
 /** Second Wind out of turn (revision 7) — "Travel now? Free." then "Campaign now? Free.", each taken by the action. */
 describe('a free action out of turn', () => {
     const SECOND_WIND = 'denizen.discord.second-wind'

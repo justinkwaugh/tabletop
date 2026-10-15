@@ -6640,6 +6640,25 @@ test.describe('power questions', () => {
         await expect.poll(() => asked(page)).toBe(false)
     })
 
+    test('Enchantress: "Over the adviser limit: discard 1."; the card received is not offered; "Discard" once one is picked', async ({ page }) => {
+        await openTable(page, 'askEnchantressDiscard')
+        await expect(line(page)).toHaveText('Over the adviser limit: discard 1.')
+        for (const name of ['Wolves', 'Wayside Inn', 'Scouts']) {
+            await expect(grid(page).getByRole('button', { name, exact: true })).toBeVisible()
+        }
+        await expect(grid(page).getByRole('button', { name: 'Enchantress', exact: true })).toHaveCount(0)
+        await expect(answer(page, 'Discard')).toHaveCount(0)
+        await expect(red(page)).toHaveCount(0)
+
+        const wolves = grid(page).getByRole('button', { name: 'Wolves', exact: true })
+        await wolves.click()
+        await expect(wolves).toHaveAttribute('aria-pressed', 'true')
+        await expect(wolves).toHaveClass(/ring-oath-danger/)
+        await expect(answer(page, 'Discard')).toBeVisible()
+        await answer(page, 'Discard').click()
+        await expect.poll(() => asked(page)).toBe(false)
+    })
+
     test('a When Played bank starts with none ringed; "Play" shows once one is tapped (Fabled Feast)', async ({ page }) => {
         await openTable(page, 'fabledFeast')
         await grid(page).getByRole('button', { name: 'Fabled Feast', exact: true }).click()
@@ -6671,6 +6690,18 @@ test.describe('power questions', () => {
             expect(shape.width).toBeGreaterThan(shape.height)
             expect(shape.width).toBeGreaterThanOrEqual(60)
             expect(Math.abs(shape.width / shape.height - shape.natural)).toBeLessThan(0.05)
+        })
+
+        test('askEnchantressDiscard: the page does not scroll sideways, and "Discard" is at least 44 px tall', async ({ page }) => {
+            await openTable(page, 'askEnchantressDiscard')
+            await expect(line(page)).toBeVisible()
+            await grid(page).getByRole('button', { name: 'Scouts', exact: true }).click()
+            const discard = answer(page, 'Discard')
+            await expect(discard).toBeVisible()
+            const box = await discard.boundingBox()
+            expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+            expect(overflow).toBeLessThanOrEqual(0)
         })
 
         for (const [table, names] of [

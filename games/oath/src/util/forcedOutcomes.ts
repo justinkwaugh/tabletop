@@ -140,7 +140,9 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
         return empty
             ? `${question.askedPlayerId} gains nothing from ${question.cardId}: ${empty}`
             : undefined
-    }
+    },
+    // R-10.5 — the discards are the asked player's to choose and order, and their pile is secret.
+    [PowerQuestionKind.DiscardAdvisers]: () => undefined
 }
 
 /** Second Wind out of turn — asked for the next action, so judged as that action will be: free. */

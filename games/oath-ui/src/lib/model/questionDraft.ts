@@ -5,6 +5,8 @@ import {
     PowerQuestionKind,
     SearchPlay,
     Suit,
+    adviserLimitDiscardCount,
+    adviserLimitDiscards,
     banksWithFavor,
     cardPower,
     currentQuestion,
@@ -25,12 +27,14 @@ import { answerCostText } from './actionCards.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
 import { exchangeComplete, noExchangePicks, type ExchangePicks } from './exchangeTerms.js'
 import {
+    adviserDiscardsAnswer,
     advisersToDiscardForConspiracy,
     advisersToDiscardForVision,
     conspiracyFacedownAnswer,
     playVisionAnswer,
     stackOrderAnswer
 } from './questionChoices.js'
+import { togglePick } from './cardChoice.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import {
     conspiracyNoTake,
@@ -54,6 +58,7 @@ type QuestionValueByStage = {
     visionDiscard: string
     instead: string
     stackOrder: string[]
+    adviserDiscards: string[]
 }
 
 const QUESTION_STAGE_ORDER = [
@@ -66,7 +71,8 @@ const QUESTION_STAGE_ORDER = [
     'conspiracyDiscard',
     'visionDiscard',
     'instead',
-    'stackOrder'
+    'stackOrder',
+    'adviserDiscards'
 ] as const
 const _questionStagesAreCovered: StagesCover<QuestionValueByStage, typeof QUESTION_STAGE_ORDER> =
     true
@@ -302,6 +308,67 @@ export class QuestionDraft implements PanelDraft {
             : undefined
     }
 
+    /** The player asked to discard down to the limit after a swap, when this panel's question is that. */
+    private get adviserDiscardPlayer(): string | undefined {
+        return this.question?.kind === PowerQuestionKind.DiscardAdvisers ? this.playerId : undefined
+    }
+
+    /** R-7.6.4 — after a swap, how many discards meet the limit by the shortest way on from the picks. */
+    get adviserDiscardCount(): number {
+        const playerId = this.adviserDiscardPlayer
+        return playerId
+            ? adviserLimitDiscardCount(this.session.gameState, playerId, this.adviserDiscards)
+            : 0
+    }
+
+    /**
+     * The picks and the advisers that may go next: never a card the swap gave, nor a locked one. A
+     * single discard moves with a tap on another; a longer way grows from the picks.
+     */
+    get adviserDiscardChoices(): string[] {
+        const playerId = this.adviserDiscardPlayer
+        if (!playerId) return []
+        const picked = this.adviserDiscards
+        const from = this.adviserDiscardCount <= 1 ? [] : picked
+        const offered = adviserLimitDiscards(this.session.gameState, playerId, from)
+        return this.session.gameState
+            .getPlayerState(playerId)
+            .knownAdviserIds()
+            .filter((cardId) => picked.includes(cardId) || offered.includes(cardId))
+    }
+
+    /** Picked in the order they go down, the last on top. */
+    get adviserDiscards(): string[] {
+        return this.adviserDiscardsThatMayGo(this.flow.value('adviserDiscards') ?? [])
+    }
+
+    /** The picks as far as each may go in its turn (a pick taken back can strand the ones after it). */
+    private adviserDiscardsThatMayGo(picks: readonly string[]): string[] {
+        const playerId = this.adviserDiscardPlayer
+        if (!playerId) return []
+        const kept: string[] = []
+        for (const cardId of picks) {
+            if (!adviserLimitDiscards(this.session.gameState, playerId, kept).includes(cardId)) break
+            kept.push(cardId)
+        }
+        return kept
+    }
+
+    /** Offered once the picks meet the limit. */
+    get adviserDiscardsComplete(): boolean {
+        return (
+            this.adviserDiscards.length > 0 &&
+            this.reasonCannot(adviserDiscardsAnswer(this.adviserDiscards)) === undefined
+        )
+    }
+
+    /** A red line only when the count is picked and the engine still refuses it. */
+    get adviserDiscardsBlockedBecause(): string | undefined {
+        const picked = this.adviserDiscards
+        if (picked.length < this.adviserDiscardCount) return undefined
+        return this.reasonCannot(adviserDiscardsAnswer(picked))
+    }
+
     /** The yes answer has every pick it needs; until then it is not offered. */
     get acceptComplete(): boolean {
         const question = this.mine
@@ -473,6 +540,11 @@ export class QuestionDraft implements PanelDraft {
         await this.send(stackOrderAnswer(this.stackKind, this.stackCards, this.stackOrder))
     }
 
+    async discardAdvisers(): Promise<void> {
+        if (!this.adviserDiscardsComplete) return
+        await this.send(adviserDiscardsAnswer(this.adviserDiscards))
+    }
+
     private conspiracyAnswer(play: SearchPlay): QuestionAnswer {
         if (play === SearchPlay.Adviser) return conspiracyFacedownAnswer(this.conspiracyDiscard)
         if (play === SearchPlay.Discard)
@@ -592,6 +664,15 @@ export class QuestionDraft implements PanelDraft {
     chooseInstead(cardId: string | undefined): void {
         if (cardId === undefined) this.flow.clearFrom('instead')
         else this.flow.set('instead', cardId)
+    }
+
+    toggleAdviserDiscard(cardId: string): void {
+        if (!this.adviserDiscardChoices.includes(cardId)) return
+        const picked = this.adviserDiscardsThatMayGo(
+            togglePick(this.adviserDiscards, cardId, this.adviserDiscardCount)
+        )
+        if (picked.length === 0) this.flow.clearFrom('adviserDiscards')
+        else this.flow.set('adviserDiscards', picked)
     }
 
     tapStack(cardId: string): void {

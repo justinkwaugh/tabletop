@@ -40,6 +40,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Great Herd:** in a game created before revision 10 (R-X.4) Great Herd played to a site and swapped with a Nomad card at that same site leaves the site holding Great Herd twice, and the other card is lost; a swap of two cards at one site moves nothing (R-10.25).
 - **Enchantress:** from revision 10 (R-X.4), held as an adviser, it does not offer its holder's own advisers, which its text ("any faceup adviser") allows: that swap moves nothing and only burns the secret. In a game created before revision 10 it offers them, and the swap leaves the holder with Enchantress twice and loses the other card.
 - **Pied Piper:** in a game created before revision 11 (R-X.4) it never counts toward its holder's advisers, so a holder of Pied Piper and two others keeps a fourth adviser and Family Wagon played after it keeps both; its Q&A counts it once held and exempts only its own arrival.
+- **Enchantress, Twin Brother, Horned Mask:** in a game created before revision 11 (R-X.4) a swap that leaves a player over their adviser limit asks no discard, so they keep the extra adviser; Enchantress's Q&A and R-7.6.4 have them discard down to the limit.
 - **Silver Tongue:** leaves an empty matching favor bank out of its choices, so its Rest cannot take from one; R-9.3 would let it take 0 there, as Vow of Obedience and Vow of Poverty may.
 
 ## Rules

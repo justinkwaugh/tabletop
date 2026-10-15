@@ -30,6 +30,7 @@ import {
 } from './relics.js'
 import { askQuestion } from './questions.js'
 import type { QuestionRules } from './questionAnswers.js'
+import { discardAdvisersToMeetLimit, reasonAdviserLimitDiscardsInvalid } from './adviserLimit.js'
 import {
     GATHERING_ALLOWS,
     applyExchange,
@@ -621,6 +622,22 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             matched.answer.gain ? reasonDrumBankEmpty(state, playerId) : undefined,
         apply: (state, playerId, matched) =>
             matched.answer.gain ? gainFromDrum(state, playerId) : 'skipped'
+    },
+    [PowerQuestionKind.DiscardAdvisers]: {
+        reasonCannotAnswer: (state, playerId, matched) =>
+            reasonAdviserLimitDiscardsInvalid(
+                state,
+                playerId,
+                matched.question,
+                matched.answer.discardedAdviserCardIds
+            ),
+        apply: (state, playerId, matched) =>
+            discardAdvisersToMeetLimit(
+                state,
+                playerId,
+                matched.question,
+                matched.answer.discardedAdviserCardIds
+            )
     },
     [PowerQuestionKind.OrderDrawnCards]: {
         reasonCannotAnswer: (_state, _playerId, matched) => {

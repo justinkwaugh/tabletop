@@ -21,17 +21,10 @@ export function effectiveAdviserLimit(
     playerId: string,
     withCardId?: string
 ): number {
-    const player = state.getPlayerState(playerId)
-    let limit = player.adviserLimit
-    for (const hooks of continuousHooksOf(state, playerId)) {
-        if (hooks.adviserLimit !== undefined) limit = Math.min(limit, hooks.adviserLimit)
-    }
-    if (withCardId) {
-        for (const hooks of hooksOfCard(state, withCardId)) {
-            if (hooks.adviserLimit !== undefined) limit = Math.min(limit, hooks.adviserLimit)
-        }
-    }
-    return limit
+    return lowestAdviserLimit(state.getPlayerState(playerId).adviserLimit, [
+        ...continuousHooksOf(state, playerId),
+        ...(withCardId ? hooksOfCard(state, withCardId) : [])
+    ])
 }
 
 /** Vow of Poverty — "You cannot gain favor from Trade." */
@@ -98,10 +91,76 @@ export function countsTowardAdviserLimit(
         ...continuousHooksOf(state, playerId),
         ...(withCardId ? hooksOfCard(state, withCardId) : [])
     ]
+    return !exemptFromAdviserLimit(held, cardId)
+}
+
+/** Family Wagon — "they ignore your adviser limit": a suit a held card exempts. */
+function exemptFromAdviserLimit(held: readonly ContinuousHooks[], cardId: string): boolean {
     const suit = suitOf(cardId)
-    return !held.some(
+    return held.some(
         (h) => h.adviserLimitExemptSuit !== undefined && h.adviserLimitExemptSuit === suit
     )
+}
+
+/** R-7.6.4 — a limiter: its own text sets the adviser limit or exempts a suit from it (Family Wagon). */
+export function shapesAdviserLimit(state: HydratedOathGameState, cardId: string): boolean {
+    return hooksOfCard(state, cardId).some(
+        (h) => h.adviserLimit !== undefined || h.adviserLimitExemptSuit !== undefined
+    )
+}
+
+/** R-7.6.4 — with several limiters, the limit is the lowest among them. */
+function lowestAdviserLimit(base: number, held: readonly ContinuousHooks[]): number {
+    return held.reduce(
+        (limit, h) => (h.adviserLimit !== undefined ? Math.min(limit, h.adviserLimit) : limit),
+        base
+    )
+}
+
+/**
+ * R-7.6.4 — how many advisers a player holds above their limit once `leaving` are gone, from
+ * revision 11, when a held Pied Piper counts. A card just received that ignores the limit (Pied
+ * Piper) is not counted on its arrival. Read from the public rows, besides the facedown cards
+ * `leaving` names, so any view of the table counts the same.
+ */
+export function advisersOverLimit(
+    state: HydratedOathGameState,
+    playerId: string,
+    receivedCardIds: readonly string[] = [],
+    leaving: readonly string[] = []
+): number {
+    const player = state.getPlayerState(playerId)
+    const faceupLeaving = leaving.filter((cardId) => player.isFaceupAdviser(cardId))
+    return adviserExcess(
+        state,
+        playerId,
+        receivedCardIds,
+        faceupLeaving,
+        leaving.length - faceupLeaving.length
+    )
+}
+
+/**
+ * `advisersOverLimit` with the faceup cards leaving named and the facedown ones only counted, so a
+ * view that cannot see which facedown cards they are counts the same.
+ */
+export function adviserExcess(
+    state: HydratedOathGameState,
+    playerId: string,
+    receivedCardIds: readonly string[],
+    faceupLeaving: readonly string[],
+    facedownLeaving: number
+): number {
+    const player = state.getPlayerState(playerId)
+    const faceup = player.faceupAdviserIds().filter((cardId) => !faceupLeaving.includes(cardId))
+    const facedown = player.advisers.filter((row) => !row.faceUp).length - facedownLeaving
+    const held = [...faceup, ...player.relicIds].flatMap((cardId) => hooksOfCard(state, cardId))
+    const counted = faceup.filter(
+        (cardId) =>
+            !(receivedCardIds.includes(cardId) && arrivesIgnoringAdviserLimit(state, cardId)) &&
+            !exemptFromAdviserLimit(held, cardId)
+    ).length
+    return Math.max(0, facedown + counted - lowestAdviserLimit(player.adviserLimit, held))
 }
 
 export function advisersTowardLimit(

@@ -1117,6 +1117,17 @@ describe('the history tab describes every action', () => {
     })
 })
 
+describe('discarding down to the adviser limit after a swap', () => {
+    const ENCHANTRESS = 'denizen.discord.enchantress'
+    const discarded = (summary: string) =>
+        action({ type: ActionType.AnswerQuestion, playerId: 'p2', answer: { kind: PowerQuestionKind.DiscardAdvisers, discardedAdviserCardIds: [] }, metadata: { cardId: ENCHANTRESS, kind: PowerQuestionKind.DiscardAdvisers, summary, resumeMachineState: MachineState.ActPhase, last: true } })
+
+    it('names a faceup adviser discarded, and only counts a facedown one', () => {
+        expect(describeAction(discarded('discarded denizen.beast.wolves to meet the adviser limit'), nameOf, 'p1')).toBe('Enchantress: discarded Wolves to meet the adviser limit')
+        expect(describeAction(discarded('discarded 1 facedown adviser to meet the adviser limit'), nameOf, 'p1')).toBe('Enchantress: discarded 1 facedown adviser to meet the adviser limit')
+    })
+})
+
 describe('Dragonskin Drum on a power’s move — the answer’s own row, after the move’s', () => {
     const DRUM = 'relic.dragonskin-drum'
     const drum = (gain: boolean, warbandGain?: { owner: string; count: number }) =>
