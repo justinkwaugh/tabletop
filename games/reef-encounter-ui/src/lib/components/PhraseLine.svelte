@@ -1,6 +1,6 @@
 <script lang="ts">
     import { capitalised, type Phrase, type PhrasePart } from '$lib/utils/actionDescription.js'
-    import { PolypFaceUrls } from '$lib/images/art.generated.js'
+    import { PolypFaces } from '$lib/images/art.generated.js'
     import LarvaCube from './table/LarvaCube.svelte'
     import AlgaCylinder from './table/AlgaCylinder.svelte'
     import ParrotfishIcon from './ParrotfishIcon.svelte'
@@ -28,7 +28,7 @@
             {words(part, index)}
         {:else if part.icon === 'polyp'}
             <span class="icon polyp" class:consumed={part.consumed} title={part.label}>
-                <img src={PolypFaceUrls[part.color][0]} alt="" width="20" height="20" />
+                <img src={PolypFaces[part.color][0].url} alt="" width="20" height="20" />
                 {#if part.count > 1}<span class="times">×{part.count}</span>{/if}
             </span>
         {:else if part.icon === 'unseen-polyp'}

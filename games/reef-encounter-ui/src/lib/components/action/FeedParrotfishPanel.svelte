@@ -1,7 +1,7 @@
 <script lang="ts">
     import { withArticle } from '$lib/utils/actionDescription.js'
     import ChoiceButton from './ChoiceButton.svelte'
-    import { polypFaceUrl } from '$lib/utils/polypFaces.js'
+    import { polypFace } from '$lib/utils/polypFaces.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -16,7 +16,8 @@
             label="Feed {withArticle(color)} polyp"
             onclick={() => gameSession.feedParrotfish(color)}
         >
-            <img src={polypFaceUrl(color, 'choice')} alt="" width="52" height="52" />
+            {@const face = polypFace(color, 'choice')}
+            <img src={face.url} class:mirrored={face.mirrored} alt="" width="52" height="52" />
         </ChoiceButton>
     {/each}
 </div>
@@ -27,6 +28,10 @@
         flex-wrap: wrap;
         gap: 10px;
         margin-top: 10px;
+    }
+
+    .mirrored {
+        scale: -1 1;
     }
 
     img {

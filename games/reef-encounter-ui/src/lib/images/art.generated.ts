@@ -40,829 +40,658 @@ import image36 from './polyps/grey-36.webp'
 import image37 from './polyps/grey-37.webp'
 import image38 from './polyps/grey-38.webp'
 import image39 from './polyps/grey-39.webp'
-import image40 from './polyps/grey-40.webp'
-import image41 from './polyps/grey-41.webp'
-import image42 from './polyps/grey-42.webp'
-import image43 from './polyps/grey-43.webp'
-import image44 from './polyps/grey-44.webp'
-import image45 from './polyps/grey-45.webp'
-import image46 from './polyps/grey-46.webp'
-import image47 from './polyps/grey-47.webp'
-import image48 from './polyps/grey-48.webp'
-import image49 from './polyps/grey-49.webp'
-import image50 from './polyps/grey-50.webp'
-import image51 from './polyps/grey-51.webp'
-import image52 from './polyps/grey-52.webp'
-import image53 from './polyps/grey-53.webp'
-import image54 from './polyps/grey-54.webp'
-import image55 from './polyps/grey-55.webp'
-import image56 from './polyps/grey-56.webp'
-import image57 from './polyps/grey-57.webp'
-import image58 from './polyps/grey-58.webp'
-import image59 from './polyps/grey-59.webp'
-import image60 from './polyps/grey-60.webp'
-import image61 from './polyps/grey-61.webp'
-import image62 from './polyps/grey-62.webp'
-import image63 from './polyps/grey-63.webp'
-import image64 from './polyps/grey-64.webp'
-import image65 from './polyps/grey-65.webp'
-import image66 from './polyps/grey-66.webp'
-import image67 from './polyps/grey-67.webp'
-import image68 from './polyps/grey-68.webp'
-import image69 from './polyps/grey-69.webp'
-import image70 from './polyps/grey-70.webp'
-import image71 from './polyps/grey-71.webp'
-import image72 from './polyps/grey-72.webp'
-import image73 from './polyps/grey-73.webp'
-import image74 from './polyps/grey-74.webp'
-import image75 from './polyps/grey-75.webp'
-import image76 from './polyps/grey-76.webp'
-import image77 from './polyps/grey-77.webp'
-import image78 from './polyps/grey-78.webp'
-import image79 from './polyps/grey-79.webp'
-import image80 from './polyps/orange-00.webp'
-import image81 from './polyps/orange-01.webp'
-import image82 from './polyps/orange-02.webp'
-import image83 from './polyps/orange-03.webp'
-import image84 from './polyps/orange-04.webp'
-import image85 from './polyps/orange-05.webp'
-import image86 from './polyps/orange-06.webp'
-import image87 from './polyps/orange-07.webp'
-import image88 from './polyps/orange-08.webp'
-import image89 from './polyps/orange-09.webp'
-import image90 from './polyps/orange-10.webp'
-import image91 from './polyps/orange-11.webp'
-import image92 from './polyps/orange-12.webp'
-import image93 from './polyps/orange-13.webp'
-import image94 from './polyps/orange-14.webp'
-import image95 from './polyps/orange-15.webp'
-import image96 from './polyps/orange-16.webp'
-import image97 from './polyps/orange-17.webp'
-import image98 from './polyps/orange-18.webp'
-import image99 from './polyps/orange-19.webp'
-import image100 from './polyps/orange-20.webp'
-import image101 from './polyps/orange-21.webp'
-import image102 from './polyps/orange-22.webp'
-import image103 from './polyps/orange-23.webp'
-import image104 from './polyps/orange-24.webp'
-import image105 from './polyps/orange-25.webp'
-import image106 from './polyps/orange-26.webp'
-import image107 from './polyps/orange-27.webp'
-import image108 from './polyps/orange-28.webp'
-import image109 from './polyps/orange-29.webp'
-import image110 from './polyps/orange-30.webp'
-import image111 from './polyps/orange-31.webp'
-import image112 from './polyps/orange-32.webp'
-import image113 from './polyps/orange-33.webp'
-import image114 from './polyps/orange-34.webp'
-import image115 from './polyps/orange-35.webp'
-import image116 from './polyps/orange-36.webp'
-import image117 from './polyps/orange-37.webp'
-import image118 from './polyps/orange-38.webp'
-import image119 from './polyps/orange-39.webp'
-import image120 from './polyps/orange-40.webp'
-import image121 from './polyps/orange-41.webp'
-import image122 from './polyps/orange-42.webp'
-import image123 from './polyps/orange-43.webp'
-import image124 from './polyps/orange-44.webp'
-import image125 from './polyps/orange-45.webp'
-import image126 from './polyps/orange-46.webp'
-import image127 from './polyps/orange-47.webp'
-import image128 from './polyps/orange-48.webp'
-import image129 from './polyps/orange-49.webp'
-import image130 from './polyps/orange-50.webp'
-import image131 from './polyps/orange-51.webp'
-import image132 from './polyps/orange-52.webp'
-import image133 from './polyps/orange-53.webp'
-import image134 from './polyps/orange-54.webp'
-import image135 from './polyps/orange-55.webp'
-import image136 from './polyps/orange-56.webp'
-import image137 from './polyps/orange-57.webp'
-import image138 from './polyps/orange-58.webp'
-import image139 from './polyps/orange-59.webp'
-import image140 from './polyps/orange-60.webp'
-import image141 from './polyps/orange-61.webp'
-import image142 from './polyps/orange-62.webp'
-import image143 from './polyps/orange-63.webp'
-import image144 from './polyps/orange-64.webp'
-import image145 from './polyps/orange-65.webp'
-import image146 from './polyps/orange-66.webp'
-import image147 from './polyps/orange-67.webp'
-import image148 from './polyps/orange-68.webp'
-import image149 from './polyps/orange-69.webp'
-import image150 from './polyps/orange-70.webp'
-import image151 from './polyps/orange-71.webp'
-import image152 from './polyps/orange-72.webp'
-import image153 from './polyps/orange-73.webp'
-import image154 from './polyps/orange-74.webp'
-import image155 from './polyps/orange-75.webp'
-import image156 from './polyps/orange-76.webp'
-import image157 from './polyps/orange-77.webp'
-import image158 from './polyps/orange-78.webp'
-import image159 from './polyps/orange-79.webp'
-import image160 from './polyps/pink-00.webp'
-import image161 from './polyps/pink-01.webp'
-import image162 from './polyps/pink-02.webp'
-import image163 from './polyps/pink-03.webp'
-import image164 from './polyps/pink-04.webp'
-import image165 from './polyps/pink-05.webp'
-import image166 from './polyps/pink-06.webp'
-import image167 from './polyps/pink-07.webp'
-import image168 from './polyps/pink-08.webp'
-import image169 from './polyps/pink-09.webp'
-import image170 from './polyps/pink-10.webp'
-import image171 from './polyps/pink-11.webp'
-import image172 from './polyps/pink-12.webp'
-import image173 from './polyps/pink-13.webp'
-import image174 from './polyps/pink-14.webp'
-import image175 from './polyps/pink-15.webp'
-import image176 from './polyps/pink-16.webp'
-import image177 from './polyps/pink-17.webp'
-import image178 from './polyps/pink-18.webp'
-import image179 from './polyps/pink-19.webp'
-import image180 from './polyps/pink-20.webp'
-import image181 from './polyps/pink-21.webp'
-import image182 from './polyps/pink-22.webp'
-import image183 from './polyps/pink-23.webp'
-import image184 from './polyps/pink-24.webp'
-import image185 from './polyps/pink-25.webp'
-import image186 from './polyps/pink-26.webp'
-import image187 from './polyps/pink-27.webp'
-import image188 from './polyps/pink-28.webp'
-import image189 from './polyps/pink-29.webp'
-import image190 from './polyps/pink-30.webp'
-import image191 from './polyps/pink-31.webp'
-import image192 from './polyps/pink-32.webp'
-import image193 from './polyps/pink-33.webp'
-import image194 from './polyps/pink-34.webp'
-import image195 from './polyps/pink-35.webp'
-import image196 from './polyps/pink-36.webp'
-import image197 from './polyps/pink-37.webp'
-import image198 from './polyps/pink-38.webp'
-import image199 from './polyps/pink-39.webp'
-import image200 from './polyps/pink-40.webp'
-import image201 from './polyps/pink-41.webp'
-import image202 from './polyps/pink-42.webp'
-import image203 from './polyps/pink-43.webp'
-import image204 from './polyps/pink-44.webp'
-import image205 from './polyps/pink-45.webp'
-import image206 from './polyps/pink-46.webp'
-import image207 from './polyps/pink-47.webp'
-import image208 from './polyps/pink-48.webp'
-import image209 from './polyps/pink-49.webp'
-import image210 from './polyps/pink-50.webp'
-import image211 from './polyps/pink-51.webp'
-import image212 from './polyps/pink-52.webp'
-import image213 from './polyps/pink-53.webp'
-import image214 from './polyps/pink-54.webp'
-import image215 from './polyps/pink-55.webp'
-import image216 from './polyps/pink-56.webp'
-import image217 from './polyps/pink-57.webp'
-import image218 from './polyps/pink-58.webp'
-import image219 from './polyps/pink-59.webp'
-import image220 from './polyps/pink-60.webp'
-import image221 from './polyps/pink-61.webp'
-import image222 from './polyps/pink-62.webp'
-import image223 from './polyps/pink-63.webp'
-import image224 from './polyps/pink-64.webp'
-import image225 from './polyps/pink-65.webp'
-import image226 from './polyps/pink-66.webp'
-import image227 from './polyps/pink-67.webp'
-import image228 from './polyps/pink-68.webp'
-import image229 from './polyps/pink-69.webp'
-import image230 from './polyps/pink-70.webp'
-import image231 from './polyps/pink-71.webp'
-import image232 from './polyps/pink-72.webp'
-import image233 from './polyps/pink-73.webp'
-import image234 from './polyps/pink-74.webp'
-import image235 from './polyps/pink-75.webp'
-import image236 from './polyps/pink-76.webp'
-import image237 from './polyps/pink-77.webp'
-import image238 from './polyps/pink-78.webp'
-import image239 from './polyps/pink-79.webp'
-import image240 from './polyps/white-00.webp'
-import image241 from './polyps/white-01.webp'
-import image242 from './polyps/white-02.webp'
-import image243 from './polyps/white-03.webp'
-import image244 from './polyps/white-04.webp'
-import image245 from './polyps/white-05.webp'
-import image246 from './polyps/white-06.webp'
-import image247 from './polyps/white-07.webp'
-import image248 from './polyps/white-08.webp'
-import image249 from './polyps/white-09.webp'
-import image250 from './polyps/white-10.webp'
-import image251 from './polyps/white-11.webp'
-import image252 from './polyps/white-12.webp'
-import image253 from './polyps/white-13.webp'
-import image254 from './polyps/white-14.webp'
-import image255 from './polyps/white-15.webp'
-import image256 from './polyps/white-16.webp'
-import image257 from './polyps/white-17.webp'
-import image258 from './polyps/white-18.webp'
-import image259 from './polyps/white-19.webp'
-import image260 from './polyps/white-20.webp'
-import image261 from './polyps/white-21.webp'
-import image262 from './polyps/white-22.webp'
-import image263 from './polyps/white-23.webp'
-import image264 from './polyps/white-24.webp'
-import image265 from './polyps/white-25.webp'
-import image266 from './polyps/white-26.webp'
-import image267 from './polyps/white-27.webp'
-import image268 from './polyps/white-28.webp'
-import image269 from './polyps/white-29.webp'
-import image270 from './polyps/white-30.webp'
-import image271 from './polyps/white-31.webp'
-import image272 from './polyps/white-32.webp'
-import image273 from './polyps/white-33.webp'
-import image274 from './polyps/white-34.webp'
-import image275 from './polyps/white-35.webp'
-import image276 from './polyps/white-36.webp'
-import image277 from './polyps/white-37.webp'
-import image278 from './polyps/white-38.webp'
-import image279 from './polyps/white-39.webp'
-import image280 from './polyps/white-40.webp'
-import image281 from './polyps/white-41.webp'
-import image282 from './polyps/white-42.webp'
-import image283 from './polyps/white-43.webp'
-import image284 from './polyps/white-44.webp'
-import image285 from './polyps/white-45.webp'
-import image286 from './polyps/white-46.webp'
-import image287 from './polyps/white-47.webp'
-import image288 from './polyps/white-48.webp'
-import image289 from './polyps/white-49.webp'
-import image290 from './polyps/white-50.webp'
-import image291 from './polyps/white-51.webp'
-import image292 from './polyps/white-52.webp'
-import image293 from './polyps/white-53.webp'
-import image294 from './polyps/white-54.webp'
-import image295 from './polyps/white-55.webp'
-import image296 from './polyps/white-56.webp'
-import image297 from './polyps/white-57.webp'
-import image298 from './polyps/white-58.webp'
-import image299 from './polyps/white-59.webp'
-import image300 from './polyps/white-60.webp'
-import image301 from './polyps/white-61.webp'
-import image302 from './polyps/white-62.webp'
-import image303 from './polyps/white-63.webp'
-import image304 from './polyps/white-64.webp'
-import image305 from './polyps/white-65.webp'
-import image306 from './polyps/white-66.webp'
-import image307 from './polyps/white-67.webp'
-import image308 from './polyps/white-68.webp'
-import image309 from './polyps/white-69.webp'
-import image310 from './polyps/white-70.webp'
-import image311 from './polyps/white-71.webp'
-import image312 from './polyps/white-72.webp'
-import image313 from './polyps/white-73.webp'
-import image314 from './polyps/white-74.webp'
-import image315 from './polyps/white-75.webp'
-import image316 from './polyps/white-76.webp'
-import image317 from './polyps/white-77.webp'
-import image318 from './polyps/white-78.webp'
-import image319 from './polyps/white-79.webp'
-import image320 from './polyps/yellow-00.webp'
-import image321 from './polyps/yellow-01.webp'
-import image322 from './polyps/yellow-02.webp'
-import image323 from './polyps/yellow-03.webp'
-import image324 from './polyps/yellow-04.webp'
-import image325 from './polyps/yellow-05.webp'
-import image326 from './polyps/yellow-06.webp'
-import image327 from './polyps/yellow-07.webp'
-import image328 from './polyps/yellow-08.webp'
-import image329 from './polyps/yellow-09.webp'
-import image330 from './polyps/yellow-10.webp'
-import image331 from './polyps/yellow-11.webp'
-import image332 from './polyps/yellow-12.webp'
-import image333 from './polyps/yellow-13.webp'
-import image334 from './polyps/yellow-14.webp'
-import image335 from './polyps/yellow-15.webp'
-import image336 from './polyps/yellow-16.webp'
-import image337 from './polyps/yellow-17.webp'
-import image338 from './polyps/yellow-18.webp'
-import image339 from './polyps/yellow-19.webp'
-import image340 from './polyps/yellow-20.webp'
-import image341 from './polyps/yellow-21.webp'
-import image342 from './polyps/yellow-22.webp'
-import image343 from './polyps/yellow-23.webp'
-import image344 from './polyps/yellow-24.webp'
-import image345 from './polyps/yellow-25.webp'
-import image346 from './polyps/yellow-26.webp'
-import image347 from './polyps/yellow-27.webp'
-import image348 from './polyps/yellow-28.webp'
-import image349 from './polyps/yellow-29.webp'
-import image350 from './polyps/yellow-30.webp'
-import image351 from './polyps/yellow-31.webp'
-import image352 from './polyps/yellow-32.webp'
-import image353 from './polyps/yellow-33.webp'
-import image354 from './polyps/yellow-34.webp'
-import image355 from './polyps/yellow-35.webp'
-import image356 from './polyps/yellow-36.webp'
-import image357 from './polyps/yellow-37.webp'
-import image358 from './polyps/yellow-38.webp'
-import image359 from './polyps/yellow-39.webp'
-import image360 from './polyps/yellow-40.webp'
-import image361 from './polyps/yellow-41.webp'
-import image362 from './polyps/yellow-42.webp'
-import image363 from './polyps/yellow-43.webp'
-import image364 from './polyps/yellow-44.webp'
-import image365 from './polyps/yellow-45.webp'
-import image366 from './polyps/yellow-46.webp'
-import image367 from './polyps/yellow-47.webp'
-import image368 from './polyps/yellow-48.webp'
-import image369 from './polyps/yellow-49.webp'
-import image370 from './polyps/yellow-50.webp'
-import image371 from './polyps/yellow-51.webp'
-import image372 from './polyps/yellow-52.webp'
-import image373 from './polyps/yellow-53.webp'
-import image374 from './polyps/yellow-54.webp'
-import image375 from './polyps/yellow-55.webp'
-import image376 from './polyps/yellow-56.webp'
-import image377 from './polyps/yellow-57.webp'
-import image378 from './polyps/yellow-58.webp'
-import image379 from './polyps/yellow-59.webp'
-import image380 from './polyps/yellow-60.webp'
-import image381 from './polyps/yellow-61.webp'
-import image382 from './polyps/yellow-62.webp'
-import image383 from './polyps/yellow-63.webp'
-import image384 from './polyps/yellow-64.webp'
-import image385 from './polyps/yellow-65.webp'
-import image386 from './polyps/yellow-66.webp'
-import image387 from './polyps/yellow-67.webp'
-import image388 from './polyps/yellow-68.webp'
-import image389 from './polyps/yellow-69.webp'
-import image390 from './polyps/yellow-70.webp'
-import image391 from './polyps/yellow-71.webp'
-import image392 from './polyps/yellow-72.webp'
-import image393 from './polyps/yellow-73.webp'
-import image394 from './polyps/yellow-74.webp'
-import image395 from './polyps/yellow-75.webp'
-import image396 from './polyps/yellow-76.webp'
-import image397 from './polyps/yellow-77.webp'
-import image398 from './polyps/yellow-78.webp'
-import image399 from './polyps/yellow-79.webp'
-import image400 from './coral-tiles/tile-01-starfish.webp'
-import image401 from './coral-tiles/tile-01-plain.webp'
-import image402 from './coral-tiles/tile-02-starfish.webp'
-import image403 from './coral-tiles/tile-02-plain.webp'
-import image404 from './coral-tiles/tile-03-starfish.webp'
-import image405 from './coral-tiles/tile-03-plain.webp'
-import image406 from './coral-tiles/tile-04-starfish.webp'
-import image407 from './coral-tiles/tile-04-plain.webp'
-import image408 from './coral-tiles/tile-05-starfish.webp'
-import image409 from './coral-tiles/tile-05-plain.webp'
-import image410 from './coral-tiles/tile-06-starfish.webp'
-import image411 from './coral-tiles/tile-06-plain.webp'
-import image412 from './coral-tiles/tile-07-starfish.webp'
-import image413 from './coral-tiles/tile-07-plain.webp'
-import image414 from './coral-tiles/tile-08-starfish.webp'
-import image415 from './coral-tiles/tile-08-plain.webp'
-import image416 from './coral-tiles/tile-09-starfish.webp'
-import image417 from './coral-tiles/tile-09-plain.webp'
-import image418 from './coral-tiles/tile-10-starfish.webp'
-import image419 from './coral-tiles/tile-10-plain.webp'
-import image420 from './boards/board-1.webp'
-import image421 from './boards/board-2.webp'
-import image422 from './boards/board-3.webp'
-import image423 from './boards/board-4.webp'
-import image424 from './open-sea.webp'
-import image425 from './parrotfish/purple.webp'
-import image426 from './parrotfish/red.webp'
-import image427 from './parrotfish/yellow.webp'
-import image428 from './parrotfish/green.webp'
+import image40 from './polyps/grey-47.webp'
+import image41 from './polyps/grey-53.webp'
+import image42 from './polyps/grey-56.webp'
+import image43 from './polyps/grey-57.webp'
+import image44 from './polyps/grey-64.webp'
+import image45 from './polyps/grey-73.webp'
+import image46 from './polyps/orange-00.webp'
+import image47 from './polyps/orange-01.webp'
+import image48 from './polyps/orange-02.webp'
+import image49 from './polyps/orange-03.webp'
+import image50 from './polyps/orange-04.webp'
+import image51 from './polyps/orange-05.webp'
+import image52 from './polyps/orange-06.webp'
+import image53 from './polyps/orange-07.webp'
+import image54 from './polyps/orange-08.webp'
+import image55 from './polyps/orange-09.webp'
+import image56 from './polyps/orange-10.webp'
+import image57 from './polyps/orange-11.webp'
+import image58 from './polyps/orange-12.webp'
+import image59 from './polyps/orange-13.webp'
+import image60 from './polyps/orange-14.webp'
+import image61 from './polyps/orange-15.webp'
+import image62 from './polyps/orange-16.webp'
+import image63 from './polyps/orange-17.webp'
+import image64 from './polyps/orange-18.webp'
+import image65 from './polyps/orange-19.webp'
+import image66 from './polyps/orange-20.webp'
+import image67 from './polyps/orange-21.webp'
+import image68 from './polyps/orange-22.webp'
+import image69 from './polyps/orange-23.webp'
+import image70 from './polyps/orange-24.webp'
+import image71 from './polyps/orange-25.webp'
+import image72 from './polyps/orange-26.webp'
+import image73 from './polyps/orange-27.webp'
+import image74 from './polyps/orange-28.webp'
+import image75 from './polyps/orange-29.webp'
+import image76 from './polyps/orange-30.webp'
+import image77 from './polyps/orange-31.webp'
+import image78 from './polyps/orange-32.webp'
+import image79 from './polyps/orange-33.webp'
+import image80 from './polyps/orange-34.webp'
+import image81 from './polyps/orange-35.webp'
+import image82 from './polyps/orange-36.webp'
+import image83 from './polyps/orange-37.webp'
+import image84 from './polyps/orange-38.webp'
+import image85 from './polyps/orange-39.webp'
+import image86 from './polyps/orange-56.webp'
+import image87 from './polyps/orange-71.webp'
+import image88 from './polyps/orange-74.webp'
+import image89 from './polyps/pink-00.webp'
+import image90 from './polyps/pink-01.webp'
+import image91 from './polyps/pink-02.webp'
+import image92 from './polyps/pink-03.webp'
+import image93 from './polyps/pink-04.webp'
+import image94 from './polyps/pink-05.webp'
+import image95 from './polyps/pink-06.webp'
+import image96 from './polyps/pink-07.webp'
+import image97 from './polyps/pink-08.webp'
+import image98 from './polyps/pink-09.webp'
+import image99 from './polyps/pink-10.webp'
+import image100 from './polyps/pink-11.webp'
+import image101 from './polyps/pink-12.webp'
+import image102 from './polyps/pink-13.webp'
+import image103 from './polyps/pink-14.webp'
+import image104 from './polyps/pink-15.webp'
+import image105 from './polyps/pink-16.webp'
+import image106 from './polyps/pink-17.webp'
+import image107 from './polyps/pink-18.webp'
+import image108 from './polyps/pink-19.webp'
+import image109 from './polyps/pink-20.webp'
+import image110 from './polyps/pink-21.webp'
+import image111 from './polyps/pink-22.webp'
+import image112 from './polyps/pink-23.webp'
+import image113 from './polyps/pink-24.webp'
+import image114 from './polyps/pink-25.webp'
+import image115 from './polyps/pink-26.webp'
+import image116 from './polyps/pink-27.webp'
+import image117 from './polyps/pink-28.webp'
+import image118 from './polyps/pink-29.webp'
+import image119 from './polyps/pink-30.webp'
+import image120 from './polyps/pink-31.webp'
+import image121 from './polyps/pink-32.webp'
+import image122 from './polyps/pink-33.webp'
+import image123 from './polyps/pink-34.webp'
+import image124 from './polyps/pink-35.webp'
+import image125 from './polyps/pink-36.webp'
+import image126 from './polyps/pink-37.webp'
+import image127 from './polyps/pink-38.webp'
+import image128 from './polyps/pink-39.webp'
+import image129 from './polyps/pink-40.webp'
+import image130 from './polyps/pink-45.webp'
+import image131 from './polyps/pink-46.webp'
+import image132 from './polyps/pink-47.webp'
+import image133 from './polyps/pink-52.webp'
+import image134 from './polyps/pink-63.webp'
+import image135 from './polyps/pink-71.webp'
+import image136 from './polyps/pink-73.webp'
+import image137 from './polyps/white-00.webp'
+import image138 from './polyps/white-01.webp'
+import image139 from './polyps/white-02.webp'
+import image140 from './polyps/white-03.webp'
+import image141 from './polyps/white-04.webp'
+import image142 from './polyps/white-05.webp'
+import image143 from './polyps/white-06.webp'
+import image144 from './polyps/white-07.webp'
+import image145 from './polyps/white-08.webp'
+import image146 from './polyps/white-09.webp'
+import image147 from './polyps/white-10.webp'
+import image148 from './polyps/white-11.webp'
+import image149 from './polyps/white-12.webp'
+import image150 from './polyps/white-13.webp'
+import image151 from './polyps/white-14.webp'
+import image152 from './polyps/white-15.webp'
+import image153 from './polyps/white-16.webp'
+import image154 from './polyps/white-17.webp'
+import image155 from './polyps/white-18.webp'
+import image156 from './polyps/white-19.webp'
+import image157 from './polyps/white-20.webp'
+import image158 from './polyps/white-21.webp'
+import image159 from './polyps/white-22.webp'
+import image160 from './polyps/white-23.webp'
+import image161 from './polyps/white-24.webp'
+import image162 from './polyps/white-25.webp'
+import image163 from './polyps/white-26.webp'
+import image164 from './polyps/white-27.webp'
+import image165 from './polyps/white-28.webp'
+import image166 from './polyps/white-29.webp'
+import image167 from './polyps/white-30.webp'
+import image168 from './polyps/white-31.webp'
+import image169 from './polyps/white-32.webp'
+import image170 from './polyps/white-33.webp'
+import image171 from './polyps/white-34.webp'
+import image172 from './polyps/white-35.webp'
+import image173 from './polyps/white-36.webp'
+import image174 from './polyps/white-37.webp'
+import image175 from './polyps/white-38.webp'
+import image176 from './polyps/white-39.webp'
+import image177 from './polyps/white-44.webp'
+import image178 from './polyps/white-47.webp'
+import image179 from './polyps/white-48.webp'
+import image180 from './polyps/white-54.webp'
+import image181 from './polyps/white-65.webp'
+import image182 from './polyps/white-74.webp'
+import image183 from './polyps/yellow-00.webp'
+import image184 from './polyps/yellow-01.webp'
+import image185 from './polyps/yellow-02.webp'
+import image186 from './polyps/yellow-03.webp'
+import image187 from './polyps/yellow-04.webp'
+import image188 from './polyps/yellow-05.webp'
+import image189 from './polyps/yellow-06.webp'
+import image190 from './polyps/yellow-07.webp'
+import image191 from './polyps/yellow-08.webp'
+import image192 from './polyps/yellow-09.webp'
+import image193 from './polyps/yellow-10.webp'
+import image194 from './polyps/yellow-11.webp'
+import image195 from './polyps/yellow-12.webp'
+import image196 from './polyps/yellow-13.webp'
+import image197 from './polyps/yellow-14.webp'
+import image198 from './polyps/yellow-15.webp'
+import image199 from './polyps/yellow-16.webp'
+import image200 from './polyps/yellow-17.webp'
+import image201 from './polyps/yellow-18.webp'
+import image202 from './polyps/yellow-19.webp'
+import image203 from './polyps/yellow-20.webp'
+import image204 from './polyps/yellow-21.webp'
+import image205 from './polyps/yellow-22.webp'
+import image206 from './polyps/yellow-23.webp'
+import image207 from './polyps/yellow-24.webp'
+import image208 from './polyps/yellow-25.webp'
+import image209 from './polyps/yellow-26.webp'
+import image210 from './polyps/yellow-27.webp'
+import image211 from './polyps/yellow-28.webp'
+import image212 from './polyps/yellow-29.webp'
+import image213 from './polyps/yellow-30.webp'
+import image214 from './polyps/yellow-31.webp'
+import image215 from './polyps/yellow-32.webp'
+import image216 from './polyps/yellow-33.webp'
+import image217 from './polyps/yellow-34.webp'
+import image218 from './polyps/yellow-35.webp'
+import image219 from './polyps/yellow-36.webp'
+import image220 from './polyps/yellow-37.webp'
+import image221 from './polyps/yellow-38.webp'
+import image222 from './polyps/yellow-39.webp'
+import image223 from './polyps/yellow-40.webp'
+import image224 from './polyps/yellow-48.webp'
+import image225 from './polyps/yellow-52.webp'
+import image226 from './polyps/yellow-56.webp'
+import image227 from './polyps/yellow-71.webp'
+import image228 from './coral-tiles/tile-01-starfish.webp'
+import image229 from './coral-tiles/tile-01-plain.webp'
+import image230 from './coral-tiles/tile-02-starfish.webp'
+import image231 from './coral-tiles/tile-02-plain.webp'
+import image232 from './coral-tiles/tile-03-starfish.webp'
+import image233 from './coral-tiles/tile-03-plain.webp'
+import image234 from './coral-tiles/tile-04-starfish.webp'
+import image235 from './coral-tiles/tile-04-plain.webp'
+import image236 from './coral-tiles/tile-05-starfish.webp'
+import image237 from './coral-tiles/tile-05-plain.webp'
+import image238 from './coral-tiles/tile-06-starfish.webp'
+import image239 from './coral-tiles/tile-06-plain.webp'
+import image240 from './coral-tiles/tile-07-starfish.webp'
+import image241 from './coral-tiles/tile-07-plain.webp'
+import image242 from './coral-tiles/tile-08-starfish.webp'
+import image243 from './coral-tiles/tile-08-plain.webp'
+import image244 from './coral-tiles/tile-09-starfish.webp'
+import image245 from './coral-tiles/tile-09-plain.webp'
+import image246 from './coral-tiles/tile-10-starfish.webp'
+import image247 from './coral-tiles/tile-10-plain.webp'
+import image248 from './boards/board-1.webp'
+import image249 from './boards/board-2.webp'
+import image250 from './boards/board-3.webp'
+import image251 from './boards/board-4.webp'
+import image252 from './open-sea.webp'
+import image253 from './parrotfish/purple.webp'
+import image254 from './parrotfish/red.webp'
+import image255 from './parrotfish/yellow.webp'
+import image256 from './parrotfish/green.webp'
 
-export const PolypFaceUrls = {
+// Each colour has 80 faces, the backs of most tiles being their fronts drawn mirrored.
+export const PolypFaces: Record<string, { url: string; mirrored: boolean }[]> = {
     grey: [
-        image0,
-        image1,
-        image2,
-        image3,
-        image4,
-        image5,
-        image6,
-        image7,
-        image8,
-        image9,
-        image10,
-        image11,
-        image12,
-        image13,
-        image14,
-        image15,
-        image16,
-        image17,
-        image18,
-        image19,
-        image20,
-        image21,
-        image22,
-        image23,
-        image24,
-        image25,
-        image26,
-        image27,
-        image28,
-        image29,
-        image30,
-        image31,
-        image32,
-        image33,
-        image34,
-        image35,
-        image36,
-        image37,
-        image38,
-        image39,
-        image40,
-        image41,
-        image42,
-        image43,
-        image44,
-        image45,
-        image46,
-        image47,
-        image48,
-        image49,
-        image50,
-        image51,
-        image52,
-        image53,
-        image54,
-        image55,
-        image56,
-        image57,
-        image58,
-        image59,
-        image60,
-        image61,
-        image62,
-        image63,
-        image64,
-        image65,
-        image66,
-        image67,
-        image68,
-        image69,
-        image70,
-        image71,
-        image72,
-        image73,
-        image74,
-        image75,
-        image76,
-        image77,
-        image78,
-        image79
+        { url: image0, mirrored: false },
+        { url: image1, mirrored: false },
+        { url: image2, mirrored: false },
+        { url: image3, mirrored: false },
+        { url: image4, mirrored: false },
+        { url: image5, mirrored: false },
+        { url: image6, mirrored: false },
+        { url: image7, mirrored: false },
+        { url: image8, mirrored: false },
+        { url: image9, mirrored: false },
+        { url: image10, mirrored: false },
+        { url: image11, mirrored: false },
+        { url: image12, mirrored: false },
+        { url: image13, mirrored: false },
+        { url: image14, mirrored: false },
+        { url: image15, mirrored: false },
+        { url: image16, mirrored: false },
+        { url: image17, mirrored: false },
+        { url: image18, mirrored: false },
+        { url: image19, mirrored: false },
+        { url: image20, mirrored: false },
+        { url: image21, mirrored: false },
+        { url: image22, mirrored: false },
+        { url: image23, mirrored: false },
+        { url: image24, mirrored: false },
+        { url: image25, mirrored: false },
+        { url: image26, mirrored: false },
+        { url: image27, mirrored: false },
+        { url: image28, mirrored: false },
+        { url: image29, mirrored: false },
+        { url: image30, mirrored: false },
+        { url: image31, mirrored: false },
+        { url: image32, mirrored: false },
+        { url: image33, mirrored: false },
+        { url: image34, mirrored: false },
+        { url: image35, mirrored: false },
+        { url: image36, mirrored: false },
+        { url: image37, mirrored: false },
+        { url: image38, mirrored: false },
+        { url: image39, mirrored: false },
+        { url: image7, mirrored: true },
+        { url: image6, mirrored: true },
+        { url: image5, mirrored: true },
+        { url: image4, mirrored: true },
+        { url: image3, mirrored: true },
+        { url: image2, mirrored: true },
+        { url: image1, mirrored: true },
+        { url: image40, mirrored: false },
+        { url: image15, mirrored: true },
+        { url: image14, mirrored: true },
+        { url: image13, mirrored: true },
+        { url: image12, mirrored: true },
+        { url: image11, mirrored: true },
+        { url: image41, mirrored: false },
+        { url: image9, mirrored: true },
+        { url: image8, mirrored: true },
+        { url: image42, mirrored: false },
+        { url: image43, mirrored: false },
+        { url: image19, mirrored: true },
+        { url: image18, mirrored: true },
+        { url: image17, mirrored: true },
+        { url: image16, mirrored: true },
+        { url: image27, mirrored: true },
+        { url: image26, mirrored: true },
+        { url: image44, mirrored: false },
+        { url: image24, mirrored: true },
+        { url: image23, mirrored: true },
+        { url: image22, mirrored: true },
+        { url: image33, mirrored: true },
+        { url: image32, mirrored: true },
+        { url: image31, mirrored: true },
+        { url: image30, mirrored: true },
+        { url: image29, mirrored: true },
+        { url: image45, mirrored: false },
+        { url: image39, mirrored: true },
+        { url: image38, mirrored: true },
+        { url: image37, mirrored: true },
+        { url: image36, mirrored: true },
+        { url: image35, mirrored: true },
+        { url: image34, mirrored: true }
     ],
     orange: [
-        image80,
-        image81,
-        image82,
-        image83,
-        image84,
-        image85,
-        image86,
-        image87,
-        image88,
-        image89,
-        image90,
-        image91,
-        image92,
-        image93,
-        image94,
-        image95,
-        image96,
-        image97,
-        image98,
-        image99,
-        image100,
-        image101,
-        image102,
-        image103,
-        image104,
-        image105,
-        image106,
-        image107,
-        image108,
-        image109,
-        image110,
-        image111,
-        image112,
-        image113,
-        image114,
-        image115,
-        image116,
-        image117,
-        image118,
-        image119,
-        image120,
-        image121,
-        image122,
-        image123,
-        image124,
-        image125,
-        image126,
-        image127,
-        image128,
-        image129,
-        image130,
-        image131,
-        image132,
-        image133,
-        image134,
-        image135,
-        image136,
-        image137,
-        image138,
-        image139,
-        image140,
-        image141,
-        image142,
-        image143,
-        image144,
-        image145,
-        image146,
-        image147,
-        image148,
-        image149,
-        image150,
-        image151,
-        image152,
-        image153,
-        image154,
-        image155,
-        image156,
-        image157,
-        image158,
-        image159
+        { url: image46, mirrored: false },
+        { url: image47, mirrored: false },
+        { url: image48, mirrored: false },
+        { url: image49, mirrored: false },
+        { url: image50, mirrored: false },
+        { url: image51, mirrored: false },
+        { url: image52, mirrored: false },
+        { url: image53, mirrored: false },
+        { url: image54, mirrored: false },
+        { url: image55, mirrored: false },
+        { url: image56, mirrored: false },
+        { url: image57, mirrored: false },
+        { url: image58, mirrored: false },
+        { url: image59, mirrored: false },
+        { url: image60, mirrored: false },
+        { url: image61, mirrored: false },
+        { url: image62, mirrored: false },
+        { url: image63, mirrored: false },
+        { url: image64, mirrored: false },
+        { url: image65, mirrored: false },
+        { url: image66, mirrored: false },
+        { url: image67, mirrored: false },
+        { url: image68, mirrored: false },
+        { url: image69, mirrored: false },
+        { url: image70, mirrored: false },
+        { url: image71, mirrored: false },
+        { url: image72, mirrored: false },
+        { url: image73, mirrored: false },
+        { url: image74, mirrored: false },
+        { url: image75, mirrored: false },
+        { url: image76, mirrored: false },
+        { url: image77, mirrored: false },
+        { url: image78, mirrored: false },
+        { url: image79, mirrored: false },
+        { url: image80, mirrored: false },
+        { url: image81, mirrored: false },
+        { url: image82, mirrored: false },
+        { url: image83, mirrored: false },
+        { url: image84, mirrored: false },
+        { url: image85, mirrored: false },
+        { url: image53, mirrored: true },
+        { url: image52, mirrored: true },
+        { url: image51, mirrored: true },
+        { url: image50, mirrored: true },
+        { url: image49, mirrored: true },
+        { url: image48, mirrored: true },
+        { url: image47, mirrored: true },
+        { url: image46, mirrored: true },
+        { url: image61, mirrored: true },
+        { url: image60, mirrored: true },
+        { url: image59, mirrored: true },
+        { url: image58, mirrored: true },
+        { url: image57, mirrored: true },
+        { url: image56, mirrored: true },
+        { url: image55, mirrored: true },
+        { url: image54, mirrored: true },
+        { url: image86, mirrored: false },
+        { url: image66, mirrored: true },
+        { url: image65, mirrored: true },
+        { url: image64, mirrored: true },
+        { url: image63, mirrored: true },
+        { url: image62, mirrored: true },
+        { url: image73, mirrored: true },
+        { url: image72, mirrored: true },
+        { url: image71, mirrored: true },
+        { url: image70, mirrored: true },
+        { url: image69, mirrored: true },
+        { url: image68, mirrored: true },
+        { url: image79, mirrored: true },
+        { url: image78, mirrored: true },
+        { url: image77, mirrored: true },
+        { url: image87, mirrored: false },
+        { url: image75, mirrored: true },
+        { url: image74, mirrored: true },
+        { url: image88, mirrored: false },
+        { url: image84, mirrored: true },
+        { url: image83, mirrored: true },
+        { url: image82, mirrored: true },
+        { url: image81, mirrored: true },
+        { url: image80, mirrored: true }
     ],
     pink: [
-        image160,
-        image161,
-        image162,
-        image163,
-        image164,
-        image165,
-        image166,
-        image167,
-        image168,
-        image169,
-        image170,
-        image171,
-        image172,
-        image173,
-        image174,
-        image175,
-        image176,
-        image177,
-        image178,
-        image179,
-        image180,
-        image181,
-        image182,
-        image183,
-        image184,
-        image185,
-        image186,
-        image187,
-        image188,
-        image189,
-        image190,
-        image191,
-        image192,
-        image193,
-        image194,
-        image195,
-        image196,
-        image197,
-        image198,
-        image199,
-        image200,
-        image201,
-        image202,
-        image203,
-        image204,
-        image205,
-        image206,
-        image207,
-        image208,
-        image209,
-        image210,
-        image211,
-        image212,
-        image213,
-        image214,
-        image215,
-        image216,
-        image217,
-        image218,
-        image219,
-        image220,
-        image221,
-        image222,
-        image223,
-        image224,
-        image225,
-        image226,
-        image227,
-        image228,
-        image229,
-        image230,
-        image231,
-        image232,
-        image233,
-        image234,
-        image235,
-        image236,
-        image237,
-        image238,
-        image239
+        { url: image89, mirrored: false },
+        { url: image90, mirrored: false },
+        { url: image91, mirrored: false },
+        { url: image92, mirrored: false },
+        { url: image93, mirrored: false },
+        { url: image94, mirrored: false },
+        { url: image95, mirrored: false },
+        { url: image96, mirrored: false },
+        { url: image97, mirrored: false },
+        { url: image98, mirrored: false },
+        { url: image99, mirrored: false },
+        { url: image100, mirrored: false },
+        { url: image101, mirrored: false },
+        { url: image102, mirrored: false },
+        { url: image103, mirrored: false },
+        { url: image104, mirrored: false },
+        { url: image105, mirrored: false },
+        { url: image106, mirrored: false },
+        { url: image107, mirrored: false },
+        { url: image108, mirrored: false },
+        { url: image109, mirrored: false },
+        { url: image110, mirrored: false },
+        { url: image111, mirrored: false },
+        { url: image112, mirrored: false },
+        { url: image113, mirrored: false },
+        { url: image114, mirrored: false },
+        { url: image115, mirrored: false },
+        { url: image116, mirrored: false },
+        { url: image117, mirrored: false },
+        { url: image118, mirrored: false },
+        { url: image119, mirrored: false },
+        { url: image120, mirrored: false },
+        { url: image121, mirrored: false },
+        { url: image122, mirrored: false },
+        { url: image123, mirrored: false },
+        { url: image124, mirrored: false },
+        { url: image125, mirrored: false },
+        { url: image126, mirrored: false },
+        { url: image127, mirrored: false },
+        { url: image128, mirrored: false },
+        { url: image129, mirrored: false },
+        { url: image95, mirrored: true },
+        { url: image94, mirrored: true },
+        { url: image93, mirrored: true },
+        { url: image92, mirrored: true },
+        { url: image130, mirrored: false },
+        { url: image131, mirrored: false },
+        { url: image132, mirrored: false },
+        { url: image104, mirrored: true },
+        { url: image103, mirrored: true },
+        { url: image102, mirrored: true },
+        { url: image101, mirrored: true },
+        { url: image133, mirrored: false },
+        { url: image99, mirrored: true },
+        { url: image98, mirrored: true },
+        { url: image97, mirrored: true },
+        { url: image110, mirrored: true },
+        { url: image109, mirrored: true },
+        { url: image108, mirrored: true },
+        { url: image107, mirrored: true },
+        { url: image106, mirrored: true },
+        { url: image105, mirrored: true },
+        { url: image116, mirrored: true },
+        { url: image134, mirrored: false },
+        { url: image114, mirrored: true },
+        { url: image113, mirrored: true },
+        { url: image112, mirrored: true },
+        { url: image111, mirrored: true },
+        { url: image122, mirrored: true },
+        { url: image121, mirrored: true },
+        { url: image120, mirrored: true },
+        { url: image135, mirrored: false },
+        { url: image118, mirrored: true },
+        { url: image136, mirrored: false },
+        { url: image128, mirrored: true },
+        { url: image127, mirrored: true },
+        { url: image126, mirrored: true },
+        { url: image125, mirrored: true },
+        { url: image124, mirrored: true },
+        { url: image123, mirrored: true }
     ],
     white: [
-        image240,
-        image241,
-        image242,
-        image243,
-        image244,
-        image245,
-        image246,
-        image247,
-        image248,
-        image249,
-        image250,
-        image251,
-        image252,
-        image253,
-        image254,
-        image255,
-        image256,
-        image257,
-        image258,
-        image259,
-        image260,
-        image261,
-        image262,
-        image263,
-        image264,
-        image265,
-        image266,
-        image267,
-        image268,
-        image269,
-        image270,
-        image271,
-        image272,
-        image273,
-        image274,
-        image275,
-        image276,
-        image277,
-        image278,
-        image279,
-        image280,
-        image281,
-        image282,
-        image283,
-        image284,
-        image285,
-        image286,
-        image287,
-        image288,
-        image289,
-        image290,
-        image291,
-        image292,
-        image293,
-        image294,
-        image295,
-        image296,
-        image297,
-        image298,
-        image299,
-        image300,
-        image301,
-        image302,
-        image303,
-        image304,
-        image305,
-        image306,
-        image307,
-        image308,
-        image309,
-        image310,
-        image311,
-        image312,
-        image313,
-        image314,
-        image315,
-        image316,
-        image317,
-        image318,
-        image319
+        { url: image137, mirrored: false },
+        { url: image138, mirrored: false },
+        { url: image139, mirrored: false },
+        { url: image140, mirrored: false },
+        { url: image141, mirrored: false },
+        { url: image142, mirrored: false },
+        { url: image143, mirrored: false },
+        { url: image144, mirrored: false },
+        { url: image145, mirrored: false },
+        { url: image146, mirrored: false },
+        { url: image147, mirrored: false },
+        { url: image148, mirrored: false },
+        { url: image149, mirrored: false },
+        { url: image150, mirrored: false },
+        { url: image151, mirrored: false },
+        { url: image152, mirrored: false },
+        { url: image153, mirrored: false },
+        { url: image154, mirrored: false },
+        { url: image155, mirrored: false },
+        { url: image156, mirrored: false },
+        { url: image157, mirrored: false },
+        { url: image158, mirrored: false },
+        { url: image159, mirrored: false },
+        { url: image160, mirrored: false },
+        { url: image161, mirrored: false },
+        { url: image162, mirrored: false },
+        { url: image163, mirrored: false },
+        { url: image164, mirrored: false },
+        { url: image165, mirrored: false },
+        { url: image166, mirrored: false },
+        { url: image167, mirrored: false },
+        { url: image168, mirrored: false },
+        { url: image169, mirrored: false },
+        { url: image170, mirrored: false },
+        { url: image171, mirrored: false },
+        { url: image172, mirrored: false },
+        { url: image173, mirrored: false },
+        { url: image174, mirrored: false },
+        { url: image175, mirrored: false },
+        { url: image176, mirrored: false },
+        { url: image144, mirrored: true },
+        { url: image143, mirrored: true },
+        { url: image142, mirrored: true },
+        { url: image141, mirrored: true },
+        { url: image177, mirrored: false },
+        { url: image139, mirrored: true },
+        { url: image138, mirrored: true },
+        { url: image178, mirrored: false },
+        { url: image179, mirrored: false },
+        { url: image151, mirrored: true },
+        { url: image150, mirrored: true },
+        { url: image149, mirrored: true },
+        { url: image148, mirrored: true },
+        { url: image147, mirrored: true },
+        { url: image180, mirrored: false },
+        { url: image145, mirrored: true },
+        { url: image158, mirrored: true },
+        { url: image157, mirrored: true },
+        { url: image156, mirrored: true },
+        { url: image155, mirrored: true },
+        { url: image154, mirrored: true },
+        { url: image153, mirrored: true },
+        { url: image164, mirrored: true },
+        { url: image163, mirrored: true },
+        { url: image162, mirrored: true },
+        { url: image181, mirrored: false },
+        { url: image160, mirrored: true },
+        { url: image159, mirrored: true },
+        { url: image170, mirrored: true },
+        { url: image169, mirrored: true },
+        { url: image168, mirrored: true },
+        { url: image167, mirrored: true },
+        { url: image166, mirrored: true },
+        { url: image165, mirrored: true },
+        { url: image182, mirrored: false },
+        { url: image175, mirrored: true },
+        { url: image174, mirrored: true },
+        { url: image173, mirrored: true },
+        { url: image172, mirrored: true },
+        { url: image171, mirrored: true }
     ],
     yellow: [
-        image320,
-        image321,
-        image322,
-        image323,
-        image324,
-        image325,
-        image326,
-        image327,
-        image328,
-        image329,
-        image330,
-        image331,
-        image332,
-        image333,
-        image334,
-        image335,
-        image336,
-        image337,
-        image338,
-        image339,
-        image340,
-        image341,
-        image342,
-        image343,
-        image344,
-        image345,
-        image346,
-        image347,
-        image348,
-        image349,
-        image350,
-        image351,
-        image352,
-        image353,
-        image354,
-        image355,
-        image356,
-        image357,
-        image358,
-        image359,
-        image360,
-        image361,
-        image362,
-        image363,
-        image364,
-        image365,
-        image366,
-        image367,
-        image368,
-        image369,
-        image370,
-        image371,
-        image372,
-        image373,
-        image374,
-        image375,
-        image376,
-        image377,
-        image378,
-        image379,
-        image380,
-        image381,
-        image382,
-        image383,
-        image384,
-        image385,
-        image386,
-        image387,
-        image388,
-        image389,
-        image390,
-        image391,
-        image392,
-        image393,
-        image394,
-        image395,
-        image396,
-        image397,
-        image398,
-        image399
+        { url: image183, mirrored: false },
+        { url: image184, mirrored: false },
+        { url: image185, mirrored: false },
+        { url: image186, mirrored: false },
+        { url: image187, mirrored: false },
+        { url: image188, mirrored: false },
+        { url: image189, mirrored: false },
+        { url: image190, mirrored: false },
+        { url: image191, mirrored: false },
+        { url: image192, mirrored: false },
+        { url: image193, mirrored: false },
+        { url: image194, mirrored: false },
+        { url: image195, mirrored: false },
+        { url: image196, mirrored: false },
+        { url: image197, mirrored: false },
+        { url: image198, mirrored: false },
+        { url: image199, mirrored: false },
+        { url: image200, mirrored: false },
+        { url: image201, mirrored: false },
+        { url: image202, mirrored: false },
+        { url: image203, mirrored: false },
+        { url: image204, mirrored: false },
+        { url: image205, mirrored: false },
+        { url: image206, mirrored: false },
+        { url: image207, mirrored: false },
+        { url: image208, mirrored: false },
+        { url: image209, mirrored: false },
+        { url: image210, mirrored: false },
+        { url: image211, mirrored: false },
+        { url: image212, mirrored: false },
+        { url: image213, mirrored: false },
+        { url: image214, mirrored: false },
+        { url: image215, mirrored: false },
+        { url: image216, mirrored: false },
+        { url: image217, mirrored: false },
+        { url: image218, mirrored: false },
+        { url: image219, mirrored: false },
+        { url: image220, mirrored: false },
+        { url: image221, mirrored: false },
+        { url: image222, mirrored: false },
+        { url: image223, mirrored: false },
+        { url: image189, mirrored: true },
+        { url: image188, mirrored: true },
+        { url: image187, mirrored: true },
+        { url: image186, mirrored: true },
+        { url: image185, mirrored: true },
+        { url: image184, mirrored: true },
+        { url: image183, mirrored: true },
+        { url: image224, mirrored: false },
+        { url: image197, mirrored: true },
+        { url: image196, mirrored: true },
+        { url: image195, mirrored: true },
+        { url: image225, mirrored: false },
+        { url: image193, mirrored: true },
+        { url: image192, mirrored: true },
+        { url: image191, mirrored: true },
+        { url: image226, mirrored: false },
+        { url: image203, mirrored: true },
+        { url: image202, mirrored: true },
+        { url: image201, mirrored: true },
+        { url: image200, mirrored: true },
+        { url: image199, mirrored: true },
+        { url: image210, mirrored: true },
+        { url: image209, mirrored: true },
+        { url: image208, mirrored: true },
+        { url: image207, mirrored: true },
+        { url: image206, mirrored: true },
+        { url: image205, mirrored: true },
+        { url: image216, mirrored: true },
+        { url: image215, mirrored: true },
+        { url: image214, mirrored: true },
+        { url: image227, mirrored: false },
+        { url: image212, mirrored: true },
+        { url: image211, mirrored: true },
+        { url: image222, mirrored: true },
+        { url: image221, mirrored: true },
+        { url: image220, mirrored: true },
+        { url: image219, mirrored: true },
+        { url: image218, mirrored: true },
+        { url: image217, mirrored: true }
     ]
 }
 
 export const CoralTileFaceUrls: Record<number, { starfish: string; plain: string }> = {
-    1: { starfish: image400, plain: image401 },
-    2: { starfish: image402, plain: image403 },
-    3: { starfish: image404, plain: image405 },
-    4: { starfish: image406, plain: image407 },
-    5: { starfish: image408, plain: image409 },
-    6: { starfish: image410, plain: image411 },
-    7: { starfish: image412, plain: image413 },
-    8: { starfish: image414, plain: image415 },
-    9: { starfish: image416, plain: image417 },
-    10: { starfish: image418, plain: image419 }
+    1: { starfish: image228, plain: image229 },
+    2: { starfish: image230, plain: image231 },
+    3: { starfish: image232, plain: image233 },
+    4: { starfish: image234, plain: image235 },
+    5: { starfish: image236, plain: image237 },
+    6: { starfish: image238, plain: image239 },
+    7: { starfish: image240, plain: image241 },
+    8: { starfish: image242, plain: image243 },
+    9: { starfish: image244, plain: image245 },
+    10: { starfish: image246, plain: image247 }
 }
 
-export const BoardImageUrls = { 1: image420, 2: image421, 3: image422, 4: image423 }
+export const BoardImageUrls = { 1: image248, 2: image249, 3: image250, 4: image251 }
 
-export const OpenSeaImageUrl = image424
+export const OpenSeaImageUrl = image252
 
 export const ParrotfishUrls: Record<string, string> = {
-    purple: image425,
-    red: image426,
-    yellow: image427,
-    green: image428
+    purple: image253,
+    red: image254,
+    yellow: image255,
+    green: image256
 }

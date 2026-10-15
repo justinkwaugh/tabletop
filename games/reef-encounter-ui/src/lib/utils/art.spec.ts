@@ -5,7 +5,7 @@ import {
     BoardImageUrls,
     CoralTileFaceUrls,
     OpenSeaImageUrl,
-    PolypFaceUrls
+    PolypFaces
 } from '$lib/images/art.generated.js'
 
 // A lossy WebP's size, from its VP8 frame header.
@@ -22,9 +22,10 @@ const imagePath = (url: string) => url.slice(url.indexOf('/images/') + '/images/
 describe('the official art', () => {
     it('has 80 polyp faces of each colour, 144 pixels square', () => {
         for (const color of CoralColors) {
-            expect(PolypFaceUrls[color]).toHaveLength(80)
-            expect(new Set(PolypFaceUrls[color]).size).toBe(80)
-            for (const url of PolypFaceUrls[color]) {
+            const faces = PolypFaces[color]
+            expect(faces).toHaveLength(80)
+            expect(new Set(faces.map(({ url, mirrored }) => `${url}:${mirrored}`)).size).toBe(80)
+            for (const { url } of faces) {
                 expect(webpSize(imagePath(url))).toEqual({ width: 144, height: 144 })
             }
         }

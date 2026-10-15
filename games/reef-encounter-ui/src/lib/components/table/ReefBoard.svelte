@@ -15,7 +15,6 @@
         BoardView,
         type BoardRotation
     } from '$lib/utils/artGeometry.js'
-    import { polypFaceUrl } from '$lib/utils/polypFaces.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { reef, rotation }: { reef: Reef; rotation: BoardRotation } = $props()

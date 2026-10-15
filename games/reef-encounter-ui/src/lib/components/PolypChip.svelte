@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { CoralColor } from '@tabletop/reef-encounter'
-    import { PolypFaceUrls } from '$lib/images/art.generated.js'
+    import { PolypFaces } from '$lib/images/art.generated.js'
 
     let {
         color,
@@ -11,7 +11,7 @@
 
 <span class="chip" class:consumed title="{count} {color}">
     <img
-        src={PolypFaceUrls[color][0]}
+        src={PolypFaces[color][0].url}
         alt="{count} {color} polyp{count === 1 ? '' : 's'}"
         width="22"
         height="22"

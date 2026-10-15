@@ -50,7 +50,11 @@
                     {y}
                     width={piece.box.width}
                     height={piece.box.height}
-                    transform={piece.kind === 'coralTile' ? upright(rotation, Origin) : undefined}
+                    transform={piece.kind === 'coralTile'
+                        ? upright(rotation, Origin)
+                        : piece.mirrored
+                          ? `matrix(-1 0 0 1 ${2 * x + piece.box.width} 0)`
+                          : undefined}
                 ></image>
                 {#if piece.kind === 'polyp' && piece.larvaSpace}
                     <rect

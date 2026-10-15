@@ -16,7 +16,7 @@ import {
     larvaSpaceCube,
     larvaSpacePolyp
 } from './artGeometry.js'
-import { polypFaceUrl } from './polypFaces.js'
+import { polypFace } from './polypFaces.js'
 import { squareName } from './reefSquare.js'
 
 // Positions are in image pixels of the piece's drawing.
@@ -35,6 +35,8 @@ export type PolypPiece = PieceBase & {
     color: CoralColor
     box: BoundingBox
     url: string
+    // Drawn mirrored left to right: the back of a tile whose front this is.
+    mirrored: boolean
     larvaSpace?: CoralColor
 }
 export type ShrimpPiece = PieceBase & { kind: 'shrimp'; playerId: string; upsideDown: boolean }
@@ -77,7 +79,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 place: `on ${squareName({ boardId: reef.boardId, coords })}`,
                 color,
                 box,
-                url: polypFaceUrl(color, `${gameId}:${reef.boardId}:${coords.row}:${coords.col}`)
+                ...polypFace(color, `${gameId}:${reef.boardId}:${coords.row}:${coords.col}`)
             })
         }
     }
@@ -116,7 +118,7 @@ export function tablePieces(state: HydratedReefEncounterGameState, gameId: strin
                 place: `in the ${larvaColor} larva space`,
                 color,
                 box,
-                url: polypFaceUrl(color, `${gameId}:sea:${larvaColor}:${index}`),
+                ...polypFace(color, `${gameId}:sea:${larvaColor}:${index}`),
                 larvaSpace: larvaColor
             })
         })

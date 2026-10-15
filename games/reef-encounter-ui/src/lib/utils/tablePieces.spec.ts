@@ -32,6 +32,7 @@ const polyp = (key: string, color: CoralColor, x: number, larvaSpace?: CoralColo
     color,
     box: { x, y: 0, width: 10, height: 10 },
     url: '',
+    mirrored: false,
     larvaSpace
 })
 
