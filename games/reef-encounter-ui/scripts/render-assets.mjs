@@ -371,8 +371,10 @@ mkdirSync(path.join(images, 'scene'), { recursive: true })
 for (const [color, box] of Object.entries(ParrotfishCuts)) {
     cutOut(box, 104, path.join(images, 'scene', `parrotfish-${color}.webp`), ['-rotate', '180'])
 }
+// The panel draws the low grey and yellow corals 22 pixels high and the others 30.
+const CoralHeights = { white: 60, yellow: 44, pink: 60, grey: 44, orange: 60 }
 for (const [color, box] of Object.entries(CoralCuts)) {
-    cutOut(box, 88, path.join(images, 'scene', `coral-${color}.webp`))
+    cutOut(box, CoralHeights[color], path.join(images, 'scene', `coral-${color}.webp`))
 }
 
 // The cover, from the user's colour-corrected copy of the CMYK original, at twice the catalog's
