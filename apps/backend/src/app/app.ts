@@ -47,7 +47,9 @@ export interface AppOptions {
 
 async function manifestFrontendVersion(fastify: FastifyInstance): Promise<string | null> {
     try {
-        const manifest = await measure('manifest.get', () => fastify.libraryService.getManifest())
+        const manifest = await measure('manifest.get', () =>
+            fastify.libraryService.getServedManifest()
+        )
         return manifest.frontend?.version ?? null
     } catch (error) {
         console.warn('Unable to resolve frontend version from manifest', error)

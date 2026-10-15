@@ -6,6 +6,7 @@ import type { SiteManifest } from '@tabletop/games-config'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
 import { STATIC_ROOT } from '../env/staticRoot.js'
+import { servedManifest } from './servedManifest.js'
 
 const DEFAULT_CACHE_KEY = 'site-manifest'
 
@@ -53,6 +54,7 @@ export class LibraryService {
     private manifestRefreshQueue: Promise<void> = Promise.resolve()
     private titlesById?: Record<string, GameDefinition>
     private titlesSignature?: string
+    private titlesManifest?: SiteManifest
     private readonly mismatchListeners = new Set<ManifestMismatchListener>()
 
     constructor(
@@ -118,6 +120,10 @@ export class LibraryService {
         return this.refreshManifest()
     }
 
+    async getServedManifest(): Promise<SiteManifest> {
+        return servedManifest(await this.getManifest(), this.titlesManifest)
+    }
+
     async getTitles(): Promise<GameDefinition[]> {
         const titles = await this.getTitlesMap()
         return Object.values(titles)
@@ -138,6 +144,7 @@ export class LibraryService {
 
         this.titlesById = byId
         this.titlesSignature = signature
+        this.titlesManifest = manifest
 
         return byId
     }
