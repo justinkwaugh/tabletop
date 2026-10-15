@@ -8,15 +8,17 @@ import {
 import type { GameContext } from './gameContext.svelte.js'
 
 export type StepDirection = 'forward' | 'backward'
+type HistoryStepPredicate = (actionIndex: number) => boolean
 export type HistoryAnimationIntent = 'full-action' | 'state-only' | 'silent-swap'
 
 export type HistoryEnterCallback = () => void
-export type HistoryActionCallback = (
-    action: GameAction | undefined,
-    animationIntent?: HistoryAnimationIntent
-) => void
+export type HistoryActionCallback = (action: GameAction | undefined) => void
 export type HistoryShouldAutoStepCallback = (action: GameAction, next?: GameAction) => boolean
-export type HistoryExitCallback = (animationIntent?: HistoryAnimationIntent) => void
+export type HistoryExitCallback = () => void
+export type HistoryPresentCallback = (
+    animationIntent: HistoryAnimationIntent,
+    write: () => void
+) => void
 export type HistoryWaitForTransitionSettledCallback = () => Promise<void>
 
 export type HistoryCallbacks = {
@@ -24,6 +26,7 @@ export type HistoryCallbacks = {
     onHistoryAction?: HistoryActionCallback
     shouldAutoStepAction?: HistoryShouldAutoStepCallback
     onHistoryExit?: HistoryExitCallback
+    present?: HistoryPresentCallback
     waitForTransitionSettled?: HistoryWaitForTransitionSettledCallback
 }
 
@@ -93,6 +96,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     private onHistoryAction: HistoryActionCallback = () => {}
     private shouldAutoStepAction: HistoryShouldAutoStepCallback = () => false
     private onHistoryExit: HistoryExitCallback = () => {}
+    private present: HistoryPresentCallback = (_animationIntent, write) => write()
     private waitForTransitionSettled: HistoryWaitForTransitionSettledCallback = async () => {}
 
     constructor(gameContext: GameContext<T, U>, callbacks?: HistoryCallbacks) {
@@ -103,6 +107,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             this.onHistoryAction = callbacks.onHistoryAction ?? this.onHistoryAction
             this.shouldAutoStepAction = callbacks.shouldAutoStepAction ?? this.shouldAutoStepAction
             this.onHistoryExit = callbacks.onHistoryExit ?? this.onHistoryExit
+            this.present = callbacks.present ?? this.present
             this.waitForTransitionSettled =
                 callbacks.waitForTransitionSettled ?? this.waitForTransitionSettled
         }
@@ -122,10 +127,12 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     restorePosition(gameContext: GameContext<T, U>, position?: HistoryPosition<T, U>): void {
         this.updateSourceGameContext(gameContext)
         if (!position) return
-        this.historyContext = position.context
-        this.actionIndex = position.actionIndex
+        this.present('silent-swap', () => {
+            this.historyContext = position.context
+            this.actionIndex = position.actionIndex
+        })
         this.onHistoryEnter()
-        this.onHistoryAction(this.currentAction, 'silent-swap')
+        this.onHistoryAction(this.currentAction)
     }
 
     createExplorationSource(): GameContext<T, U> {
@@ -364,7 +371,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     }: {
         toActionIndex?: number
         stopPlayback?: boolean
-        predicate?: () => boolean
+        predicate?: HistoryStepPredicate
         animationIntent?: HistoryAnimationIntent
         exact?: boolean
     } = {}) {
@@ -377,36 +384,35 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
 
         this.enterHistory()
 
-        if (!this.historyContext) {
+        const historyContext = this.historyContext
+        if (!historyContext) {
             return
         }
 
-        let stateSnapshot = this.historyContext.state as T
+        let actionIndex = this.actionIndex
+        let stateSnapshot = historyContext.state
         let lastAction: GameAction | undefined
         do {
-            lastAction = this.historyContext.actions[this.actionIndex]
-            const updatedState = new ExplorationHistory(this.historyContext.engine).backward(
+            lastAction = historyContext.actions[actionIndex]
+            const updatedState = new ExplorationHistory(historyContext.engine).backward(
                 stateSnapshot,
                 lastAction,
                 this.gameContext.state.explorationState
             )
-            this.actionIndex -= 1
+            actionIndex -= 1
             stateSnapshot = updatedState
         } while (
-            this.actionIndex > this.earliestActionIndex &&
+            actionIndex > this.earliestActionIndex &&
             ((toActionIndex !== undefined && (lastAction.index ?? 0) > toActionIndex + 1) ||
                 (!exact &&
                     this.shouldAutoStepAction(
-                        this.historyContext.actions[this.actionIndex],
-                        this.historyContext.actions.at(this.actionIndex + 1)
+                        historyContext.actions[actionIndex],
+                        historyContext.actions.at(actionIndex + 1)
                     )) ||
-                (predicate && predicate() === false))
+                (predicate && predicate(actionIndex) === false))
         )
-        this.onHistoryAction(
-            this.actionIndex >= 0 ? this.historyContext.actions[this.actionIndex] : undefined,
-            animationIntent
-        )
-        this.historyContext.updateGameState(stateSnapshot)
+        this.onHistoryAction(actionIndex >= 0 ? historyContext.actions[actionIndex] : undefined)
+        this.presentStep(animationIntent, historyContext, actionIndex, stateSnapshot)
 
         if (stopPlayback) {
             this.stopHistoryPlayback()
@@ -424,53 +430,55 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         toActionIndex?: number
         stopPlayback?: boolean
         animated?: boolean
-        predicate?: () => boolean
+        predicate?: HistoryStepPredicate
         animationIntent?: HistoryAnimationIntent
         exact?: boolean
     } = {}) {
-        if (!this.historyContext) {
+        const historyContext = this.historyContext
+        if (!historyContext) {
             return
         }
 
-        if (this.actionIndex === this.historyContext.actions.length - 1) {
+        if (this.actionIndex === historyContext.actions.length - 1) {
             this.stopHistoryPlayback()
             this.exitHistory(animationIntent)
             return
         }
 
-        if (this.actionIndex >= this.historyContext.actions.length - 1) {
+        if (this.actionIndex >= historyContext.actions.length - 1) {
             return
         }
 
-        const gameSnapshot = this.historyContext.game
-        let stateSnapshot = this.historyContext.state as T
+        const gameSnapshot = historyContext.game
+        let actionIndex = this.actionIndex
+        let stateSnapshot = historyContext.state
 
         let nextAction: GameAction | undefined
         do {
-            const nextActionIndex = this.actionIndex + 1
-            nextAction = this.historyContext.actions[nextActionIndex] as GameAction
-            stateSnapshot = new ExplorationHistory(this.historyContext.engine).forward(
+            const nextActionIndex = actionIndex + 1
+            nextAction = historyContext.actions[nextActionIndex]
+            stateSnapshot = new ExplorationHistory(historyContext.engine).forward(
                 stateSnapshot,
                 nextAction,
                 gameSnapshot,
                 this.gameContext.state.explorationState
             )
-            this.actionIndex = nextActionIndex
+            actionIndex = nextActionIndex
         } while (
-            this.actionIndex < this.historyContext.actions.length - 1 &&
+            actionIndex < historyContext.actions.length - 1 &&
             ((toActionIndex !== undefined && (nextAction.index ?? 0) < toActionIndex) ||
                 (!exact &&
                     this.shouldAutoStepAction(
                         nextAction,
-                        this.historyContext.actions.at(this.actionIndex + 1)
+                        historyContext.actions.at(actionIndex + 1)
                     )) ||
-                (predicate && predicate() === false))
+                (predicate && predicate(actionIndex) === false))
         )
-        this.onHistoryAction(this.historyContext.actions[this.actionIndex], animationIntent)
-        this.historyContext.updateGameState(stateSnapshot)
+        this.onHistoryAction(historyContext.actions[actionIndex])
+        this.presentStep(animationIntent, historyContext, actionIndex, stateSnapshot)
 
         const skippableLastAction =
-            this.actionIndex === this.historyContext.actions.length - 1 &&
+            actionIndex === historyContext.actions.length - 1 &&
             this.shouldAutoStepAction(nextAction)
         if (stopPlayback || skippableLastAction) {
             this.stopHistoryPlayback()
@@ -482,6 +490,18 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             }
             this.exitHistory(animationIntent)
         }
+    }
+
+    private presentStep(
+        animationIntent: HistoryAnimationIntent,
+        historyContext: GameContext<T, U>,
+        actionIndex: number,
+        state: T
+    ) {
+        this.present(animationIntent, () => {
+            this.actionIndex = actionIndex
+            historyContext.updateGameState(state)
+        })
     }
 
     private async gotoAction(
@@ -573,11 +593,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         if (this.stepping || !this.hasPreviousAction) {
             return
         }
-        await this.stepUntil('backward', () => {
+        await this.stepUntil('backward', (actionIndex) => {
             return (
-                this.actionIndex === -1 ||
+                actionIndex === -1 ||
                 !this.historyContext ||
-                this.historyContext.actions[this.actionIndex].playerId === playerId
+                this.historyContext.actions[actionIndex].playerId === playerId
             )
         })
     }
@@ -592,10 +612,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         // Now find my next turn
-        await this.stepUntil('forward', () => {
+        await this.stepUntil('forward', (actionIndex) => {
             return (
                 !this.historyContext ||
-                this.historyContext.actions[this.actionIndex].playerId === playerId
+                this.historyContext.actions[actionIndex].playerId === playerId
             )
         })
     }
@@ -640,7 +660,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         return false
     }
 
-    private async stepUntil(direction: StepDirection, predicate: () => boolean) {
+    private async stepUntil(direction: StepDirection, predicate: HistoryStepPredicate) {
         this.stepping = true
         try {
             if (direction === 'backward') {
@@ -681,9 +701,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         if (!this.inHistory) {
             return
         }
-        this.historyContext = undefined
-        this.actionIndex = 0
-
-        this.onHistoryExit(animationIntent)
+        this.present(animationIntent, () => {
+            this.historyContext = undefined
+            this.actionIndex = 0
+        })
+        this.onHistoryExit()
     }
 }

@@ -252,8 +252,9 @@
             action?: GameAction
             from?: HydratedLowenherzGameState
         }) => {
-            // Action presence, not isViewingHistory: plain history navigation and undo suppress
-            // actions (see GameSession.onHistoryAction), so this holds only during live play and
+            // Action presence, not isViewingHistory: plain history navigation and undo present
+            // their writes without actions (see TransitionPresenter.present), so this holds only
+            // during live play and
             // `full-action` replay - and a replay that steps through a negotiation ought to show
             // the offer it settled on, which the old guard prevented.
             //

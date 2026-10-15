@@ -39,7 +39,11 @@ import type { GameService } from '$lib/services/gameService.js'
 import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
 import { GameReconciliation } from './gameReconciliation.js'
-import { sameStoredState } from './storedState.js'
+import {
+    TransitionPresenter,
+    type TransitionIntent,
+    type TransitionListener
+} from './transitionPresenter.js'
 import { GameUndo } from './gameUndo.js'
 import { GameNotifications } from './gameNotifications.js'
 import { GameRepresentations, HostViewUnsupportedError } from './gameRepresentations.svelte.js'
@@ -63,28 +67,10 @@ export enum GameSessionMode {
     History = 'history'
 }
 
-export type GameStateChangeListener<U extends HydratedGameState> = ({
-    to,
-    from,
-    action,
-    animationContext
-}: {
-    to: U
-    from?: U
-    action?: GameAction
-    animationContext: AnimationContext
-}) => Promise<void>
-
-export type VisibleTransition = {
-    animateActions: boolean
-    historyIntent?: HistoryAnimationIntent
-}
-
-type PendingVisibleState<T extends GameState, U extends HydratedGameState<T> & T> = {
-    to: U
-    context: GameContext<T, U>
-    transition: VisibleTransition
-}
+export type GameStateChangeListener<U extends HydratedGameState> = TransitionListener<
+    U,
+    AnimationContext
+>
 
 type PlayerStateOf<U extends HydratedGameState> = U['players'][number]
 
@@ -136,20 +122,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private engine: GameEngine<T, U>
     private api: RemoteApiService
 
-    private gameStateChangeListeners: Set<GameStateChangeListener<U>> = new Set()
-    private visibleTransitionWaiters: Array<() => void> = []
-    private presented?: U
-    private presentedContext?: GameContext<T, U>
-    private presenting = false
-    private pendingVisibleState?: PendingVisibleState<T, U>
-    private pendingHistoryAnimationIntent?: HistoryAnimationIntent = $state()
+    private presenter: TransitionPresenter<T, U, AnimationContext>
 
     private reconciliation: GameReconciliation<T, U>
     private gameContext: GameContext<T, U>
     private representations: GameRepresentations<T, U>
     explorationContext?: GameContext<T, U> = $state()
 
-    private suppressStateChangeActions = false
     private nonActivePlayerViewEnabled = $state(false)
 
     history: GameHistory<T, U>
@@ -236,13 +215,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         } else {
             return this.gameContext
         }
-    })
-
-    // Used to trigger an effect to call the state change listening callbacks and then update the exposed gameState
-    private currentVisibleGameState: U = $derived.by(() => {
-        // console.log('Deriving current visible game state')
-        this.updatingVisibleState = true
-        return this.runtime.hydrator.hydrateState(this.currentVisibleContext.state)
     })
 
     undoableAction: GameAction | undefined = $derived.by(() => {
@@ -689,16 +661,25 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             onDeleted: () => toast.error('The game has been deleted')
         })
 
+        this.presenter = new TransitionPresenter<T, U, AnimationContext>({
+            source: () => this.currentVisibleContext,
+            output: {
+                publish: (state) => this.publishState(state),
+                setPending: (pending) => this.setPendingPresentation(pending)
+            },
+            createAnimationContext: () => new AnimationContext(),
+            onError: (error) => console.error('Error presenting game state:', error)
+        })
+
         this.history = new GameHistory(this.gameContext, {
-            onHistoryAction: (action, animationIntent) =>
-                this.onHistoryAction(action, animationIntent),
+            onHistoryAction: (action) => this.onHistoryAction(action),
             shouldAutoStepAction: (action, next) => this.shouldAutoStepAction(action, next),
-            onHistoryExit: (animationIntent) => {
-                this.suppressStateChangeActions = true
+            onHistoryExit: () => {
                 this.isExitingHistory = true
-                this.pendingHistoryAnimationIntent = animationIntent ?? 'state-only'
                 this.onHistoryExit()
             },
+            present: (animationIntent, write) =>
+                this.presenter.present(this.historyTransition(animationIntent), write),
             waitForTransitionSettled: () => this.waitForVisibleTransitionSettled()
         })
 
@@ -707,31 +688,31 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             this.gameService,
             this.runtime,
             {
-                onExplorationEnter: (context) => {
-                    this.suppressStateChangeActions = true
-                    this.mode = GameSessionMode.Explore
-                    this.explorationContext = context
-                    this.history.updateSourceGameContext(this.explorationContext)
-                },
-                onExplorationEnd: () => {
-                    this.suppressStateChangeActions = true
-                    this.mode = GameSessionMode.Play
-                    const position = Value.Equal(
-                        this.explorationReturnPerspective,
-                        this.explorationPerspective(this.gameContext)
-                    )
-                        ? this.explorationReturnPosition
-                        : undefined
-                    this.history.restorePosition(this.gameContext, position)
-                    this.explorationReturnPosition = undefined
-                    this.explorationReturnPerspective = undefined
-                    this.explorationContext = undefined
-                },
-                onExplorationSwitched: (context) => {
-                    this.suppressStateChangeActions = true
-                    this.explorationContext = context
-                    this.history.updateSourceGameContext(context)
-                }
+                onExplorationEnter: (context) =>
+                    this.presenter.present('state', () => {
+                        this.mode = GameSessionMode.Explore
+                        this.explorationContext = context
+                        this.history.updateSourceGameContext(context)
+                    }),
+                onExplorationEnd: () =>
+                    this.presenter.present('state', () => {
+                        this.mode = GameSessionMode.Play
+                        const position = Value.Equal(
+                            this.explorationReturnPerspective,
+                            this.explorationPerspective(this.gameContext)
+                        )
+                            ? this.explorationReturnPosition
+                            : undefined
+                        this.history.restorePosition(this.gameContext, position)
+                        this.explorationReturnPosition = undefined
+                        this.explorationReturnPerspective = undefined
+                        this.explorationContext = undefined
+                    }),
+                onExplorationSwitched: (context) =>
+                    this.presenter.present('state', () => {
+                        this.explorationContext = context
+                        this.history.updateSourceGameContext(context)
+                    })
             }
         )
 
@@ -747,14 +728,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         // Add self as a listener for game state changes for subclasses to override
         this.addGameStateChangeListener(this.onGameStateChange.bind(this))
 
-        // This effect watches for changes to the current game state, then calls the listeners and
-        // finally updates the exposed gameState so that the UI can react to the change
         this.effectDisposer = $effect.root(() => {
             this.bridge.connect()
 
-            watch(
-                () => this.currentVisibleGameState,
-                (newState) => this.queueVisibleState(newState)
+            watch([() => this.currentVisibleContext, () => this.currentVisibleContext.state], () =>
+                this.presenter.visibleStateChanged()
             )
 
             watch(
@@ -838,20 +816,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     private replacePrimaryGameContext(context: GameContext<T, U>): void {
-        if (!this.isExploring) this.suppressStateChangeActions = true
         this.reconciliation.invalidatePendingRepresentation()
-        if (!this.isExploring) this.history.updateSourceGameContext(this.gameContext)
-        this.gameContext.restoreFrom(context.clone())
-        if (this.isExploring) return
+        if (this.isExploring) {
+            this.presenter.present('state', () => this.gameContext.restoreFrom(context.clone()))
+            return
+        }
         // A representation change is a confidentiality boundary. Publish its state immediately
         // instead of retaining the prior perspective while asynchronous listeners settle.
-        this.pendingHistoryAnimationIntent = 'silent-swap'
-        this.pendingVisibleState = undefined
-        this.publishState(
-            this.runtime.hydrator.hydrateState(this.gameContext.state),
-            this.presented
-        )
-        this.presentedContext = this.gameContext
+        this.presenter.publishNow(() => {
+            this.history.updateSourceGameContext(this.gameContext)
+            this.gameContext.restoreFrom(context.clone())
+        })
     }
 
     private handleGameRepresentationError(error: unknown): void {
@@ -869,163 +844,41 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         await new Promise<void>((resolve) => {
             queueMicrotask(resolve)
         })
-
-        if (!this.updatingVisibleState) {
-            return
-        }
-
-        await new Promise<void>((resolve) => {
-            this.visibleTransitionWaiters.push(resolve)
-        })
+        await this.presenter.settled()
     }
 
-    private resolveVisibleTransitionWaiters() {
-        if (this.visibleTransitionWaiters.length === 0) {
-            return
-        }
-
-        const waiters = this.visibleTransitionWaiters
-        this.visibleTransitionWaiters = []
-        for (const resolve of waiters) {
-            resolve()
-        }
+    async presentState(state: T): Promise<void> {
+        this.gameContext.updateGameState(state)
+        await this.waitForVisibleTransitionSettled()
     }
 
-    private queueVisibleState(state: U) {
-        const transition = this.takeVisibleTransition()
-        this.pendingVisibleState = {
-            to: state,
-            context: this.currentVisibleContext,
-            transition: this.mergeVisibleTransitions(
-                this.pendingVisibleState?.transition,
-                transition
-            )
-        }
-        if (!this.presenting) void this.presentPendingStates()
+    protected get incomingGameState(): U | undefined {
+        return this.presenter.incoming
     }
 
-    private takeVisibleTransition(): VisibleTransition {
-        const transition = {
-            animateActions: !this.suppressStateChangeActions,
-            historyIntent: this.pendingHistoryAnimationIntent
-        }
-        this.suppressStateChangeActions = false
-        this.pendingHistoryAnimationIntent = undefined
-        return transition
-    }
-
-    private async presentPendingStates() {
-        this.presenting = true
-        try {
-            while (this.pendingVisibleState) {
-                const { to, context, transition } = this.pendingVisibleState
-                this.pendingVisibleState = undefined
-                const from = this.presented
-                if (
-                    from !== undefined &&
-                    context === this.presentedContext &&
-                    sameStoredState(from.dehydrate(), to.dehydrate())
-                ) {
-                    continue
-                }
-                try {
-                    await this.notifyStateChangeListeners(to, from, transition)
-                } catch (error) {
-                    console.error('Error notifying state change listeners:', error)
-                }
-                if (this.presented === to) this.presentedContext = context
-            }
-        } finally {
-            this.presenting = false
-            this.updatingVisibleState = false
-            this.isExitingHistory = false
-            this.resolveVisibleTransitionWaiters()
-        }
-    }
-
-    async notifyStateChangeListeners(
-        newState: U,
-        oldState: U | undefined,
-        transition: VisibleTransition
-    ) {
-        if (transition.historyIntent !== 'silent-swap') {
-            const actions = transition.animateActions ? this.actionsBetween(oldState, newState) : []
-            if (oldState && actions.length > 0) {
-                await this.animateActions(oldState, actions)
-            } else {
-                await this.gatherAndPlayAnimations(newState, oldState)
-            }
-        }
-        this.publishState(newState, oldState)
-    }
-
-    private actionsBetween(oldState: U | undefined, newState: U): GameAction[] {
-        if (
-            !oldState ||
-            newState.gameId !== oldState.gameId ||
-            newState.actionCount < oldState.actionCount
-        ) {
-            return []
-        }
-        return this.actions.filter(
-            (action) =>
-                action.index !== undefined &&
-                action.index >= oldState.actionCount &&
-                action.index < newState.actionCount
-        )
-    }
-
-    private async animateActions(oldState: U, actions: GameAction[]) {
-        let priorState = oldState.dehydrate()
-        for (const action of actions) {
-            const updatedState = this.engine.applyProcessedAction({
-                action: $state.snapshot(action),
-                state: priorState,
-                game: this.game
-            })
-            await this.gatherAndPlayAnimations(
-                this.runtime.hydrator.hydrateState(updatedState),
-                this.runtime.hydrator.hydrateState(priorState),
-                action
-            )
-            priorState = updatedState
-        }
-    }
-
-    private publishState(state: U, from: U | undefined) {
-        if (this.presented !== from) return
+    private publishState(state: U) {
         this.beforeNewState()
         this.reconcilePlayerPerspective(state)
-        this.presented = state
         this.gameState = state
     }
 
-    private mergeVisibleTransitions(
-        earlier: VisibleTransition | undefined,
-        later: VisibleTransition
-    ): VisibleTransition {
-        if (earlier === undefined) return later
-        const silent =
-            earlier.historyIntent === 'silent-swap' || later.historyIntent === 'silent-swap'
-        return {
-            animateActions: earlier.animateActions && later.animateActions,
-            historyIntent: silent ? 'silent-swap' : (later.historyIntent ?? earlier.historyIntent)
+    private setPendingPresentation(pending: boolean) {
+        this.updatingVisibleState = pending
+        if (!pending) this.isExitingHistory = false
+    }
+
+    private historyTransition(animationIntent: HistoryAnimationIntent): TransitionIntent {
+        switch (animationIntent) {
+            case 'full-action':
+                return 'actions'
+            case 'state-only':
+                return 'state'
+            case 'silent-swap':
+                return 'silent'
         }
     }
 
     beforeNewState() {}
-
-    private async gatherAndPlayAnimations(to: U, from?: U, action?: GameAction) {
-        const animationContext = new AnimationContext()
-        const promises = []
-        for (const listener of this.gameStateChangeListeners) {
-            promises.push(listener({ to, from, action, animationContext }))
-        }
-        await Promise.all(promises)
-        await animationContext.play()
-
-        animationContext.runAfterAnimations()
-    }
 
     async onGameStateChange(_args: {
         to: U
@@ -1412,8 +1265,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     targetAction,
                     this.projectedExecutionPerspective(context)
                 )
-                this.suppressStateChangeActions = true
-                context.restoreFrom(preview)
+                this.presenter.present('state', () => context.restoreFrom(preview))
                 optimisticState = context.state
             } catch (error) {
                 if (!hosted) throw error
@@ -1427,12 +1279,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     await this.representations.reload()
                     return
                 }
-                this.suppressStateChangeActions = true
-                this.reconciliation.replace(
-                    response.actionReplay ?? response.canonicalReplay,
-                    response.checksum,
-                    response.game,
-                    before
+                this.presenter.present('state', () =>
+                    this.reconciliation.replace(
+                        response.actionReplay ?? response.canonicalReplay,
+                        response.checksum,
+                        response.game,
+                        before
+                    )
                 )
             } else if (context.game.storage === GameStorage.Local) {
                 await this.gameService.saveGameLocally({
@@ -1446,8 +1299,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             await this.waitForVisibleTransitionSettled()
             const stale = !isRepresentationCurrent()
             if (!stale || context.state === optimisticState) {
-                this.suppressStateChangeActions = true
-                context.restoreFrom(before)
+                this.presenter.present('state', () => context.restoreFrom(before))
             }
             if (!this.isMajorChange()) {
                 toast.error('An error occurred while undoing an action')
@@ -1471,11 +1323,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     addGameStateChangeListener(listener: GameStateChangeListener<U>) {
-        this.gameStateChangeListeners.add(listener)
+        this.presenter.addListener(listener)
     }
 
     removeGameStateChangeListener(listener: GameStateChangeListener<U>) {
-        this.gameStateChangeListeners.delete(listener)
+        this.presenter.removeListener(listener)
     }
 
     public shouldAutoStepAction(action: GameAction, _next?: GameAction) {
@@ -1484,13 +1336,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     willUndo(_action: GameAction) {}
 
-    onHistoryAction(_action?: GameAction, animationIntent: HistoryAnimationIntent = 'state-only') {
-        this.pendingHistoryAnimationIntent = animationIntent
-
-        if (animationIntent !== 'full-action') {
-            this.suppressStateChangeActions = true
-        }
-    }
+    onHistoryAction(_action?: GameAction) {}
 
     onHistoryExit() {}
 
