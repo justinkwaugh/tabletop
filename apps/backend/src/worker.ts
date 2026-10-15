@@ -1,17 +1,13 @@
 import Fastify from 'fastify'
 import rawBody from 'fastify-raw-body'
-import { Visibility } from '@tabletop/common'
 import { app } from './app/app.js'
 import { installHandlerDrain } from './runtime/handlerDrain.js'
-import { lazyValidatorCompiler, type AjvCompilerOptions } from './runtime/lazyValidation.js'
+import { ajvOptions } from './runtime/ajvOptions.js'
+import { lazyValidatorCompiler } from './runtime/lazyValidation.js'
 
 if (!process.send) throw new Error('Backend worker requires a supervisor IPC channel')
 const send = process.send.bind(process)
 
-const ajvOptions: AjvCompilerOptions = {
-    customOptions: { keywords: [Visibility.MetadataKey, Visibility.ScopeKey] },
-    plugins: []
-}
 const server = Fastify({
     logger: true,
     trustProxy: '127.0.0.1',
