@@ -1,8 +1,6 @@
-import type { ExplorationPopulation, GameExploration } from '@tabletop/common'
+import { assertExists, type ExplorationPopulation, type GameExploration } from '@tabletop/common'
 import type { RailheadsProjectedState } from '../model/gameState.js'
 
-// A hypothetical game keeps every sealed bid the explorer knows and invents the rest: zero or a
-// whole-dollar amount from the minimum up to that player's cash.
 export class RailheadsGameExploration implements GameExploration<RailheadsProjectedState> {
     createFromCanonicalState(state: RailheadsProjectedState): RailheadsProjectedState {
         return structuredClone(state)
@@ -19,11 +17,13 @@ export class RailheadsGameExploration implements GameExploration<RailheadsProjec
         }
         for (const bid of auction.bids) {
             if (bid.amount !== undefined) continue
-            const cash =
-                result.players.find((player) => player.playerId === bid.playerId)?.cash ?? 0
-            const choices = Math.max(0, cash - auction.minimum + 1)
-            const pick = Math.floor(random() * (choices + 1))
-            bid.amount = pick === 0 ? 0 : auction.minimum + pick - 1
+            const player = result.players.find((candidate) => candidate.playerId === bid.playerId)
+            assertExists(player, 'A sealed bid must belong to a player')
+            const mayBidZero = bid.playerId !== auction.investorId
+            const amounts = Math.max(0, player.cash - auction.minimum + 1)
+            const choice = Math.floor(random() * (amounts + (mayBidZero ? 1 : 0)))
+            bid.amount =
+                mayBidZero && choice === 0 ? 0 : auction.minimum + choice - (mayBidZero ? 1 : 0)
         }
         return result
     }

@@ -22,7 +22,6 @@ import {
 } from '@tabletop/railheads'
 import { INDUSTRY_STYLE } from './companyStyle.js'
 
-// A description reads as text with players, companies and industries spliced in.
 export type DescriptionSegment =
     string | { playerId: string } | { companyId: CompanyId } | { industry: Industry }
 export type Description = DescriptionSegment[]
@@ -56,7 +55,6 @@ export function saleDescription(sale: ShareSale): Description {
     ]
 }
 
-// "You" is plural in form, so a lone winner who is the viewer takes "win".
 export function winVerb(winnerIds: readonly string[], myPlayerId: string | undefined): string {
     if (winnerIds.length > 1) {
         return 'share the win'

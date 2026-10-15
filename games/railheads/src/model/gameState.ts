@@ -266,6 +266,12 @@ export class HydratedRailheadsGameState
         return new PassableBidding(auction.bidding)
     }
 
+    awaitedBidders(): string[] {
+        const auction = this.industryAuction
+        assertExists(auction, 'No industry auction in progress')
+        return auction.bidders
+    }
+
     smallestBid(): number {
         const auction = this.shareAuction
         assertExists(auction, 'No share auction in progress')
@@ -292,19 +298,21 @@ export class HydratedRailheadsGameState
             .filter((companyId) => !rules.requiresShare || this.holdsShare(companyId, playerId))
     }
 
-    siteCapacity(): number {
-        return this.edition.definition.siteCapacity(this.round())
+    siteCapacity(coords: AxialCoordinates): number {
+        return this.edition.definition.siteCapacity(
+            this.round(),
+            this.edition.map.hex(coords).siteId
+        )
     }
 
     private placementContext(companyId: CompanyId, space: LayTrackSpace): PlacementContext {
-        const definition = this.companyDefinition(companyId)
         return {
             track: this.track,
             companyId,
             rules: this.layTrackRules(space),
-            siteCapacity: this.siteCapacity(),
-            discsLeft: definition.discs - discsPlaced(this.track, companyId),
-            cubesLeft: definition.crossingCubes - cubesPlaced(this.track, companyId),
+            siteCapacity: (coords) => this.siteCapacity(coords),
+            discsLeft: this.discsLeft(companyId),
+            cubesLeft: this.cubesLeft(companyId),
             neighbours: (coords) => this.edition.map.neighbourCoords(coords)
         }
     }
@@ -327,14 +335,17 @@ export class HydratedRailheadsGameState
         if (kind === PlacementKind.Cube) {
             return this.edition.definition.crossingCubeCost
         }
-        const cost = this.edition.definition.trackCost[this.edition.map.hex(coords).kind]
+        const discsBelow = trackAt(this.track, coords)?.discs.length ?? 0
+        const cost = this.edition.definition.trackCost(
+            this.edition.map.hex(coords).kind,
+            discsBelow
+        )
         return this.layTrackRules(space).halfPriceWithoutShare &&
             !this.holdsShare(companyId, playerId)
             ? halfPrice(cost)
             : cost
     }
 
-    // Every hex where the company could put its next piece, with what it would cost.
     placementTargets(
         playerId: string,
         space: LayTrackSpace,
@@ -365,7 +376,6 @@ export class HydratedRailheadsGameState
         return this.offTheRails && this.edition.map.hex(coords).kind === HexKind.Industry
     }
 
-    // Lays one piece, checking it against the action space and the board as it stands.
     placeTrack(playerId: string, space: LayTrackSpace, placement: Placement): PlacementEffect {
         const { companyId, coords, kind } = placement
         const target = this.placementTargets(playerId, space, companyId).find((candidate) =>
@@ -429,7 +439,6 @@ export class HydratedRailheadsGameState
         }
     }
 
-    // A company's Railroad Bonus: for every site where its disc is on top, the discs beneath it.
     railroadBonus(companyId: CompanyId): number {
         return this.track
             .filter(

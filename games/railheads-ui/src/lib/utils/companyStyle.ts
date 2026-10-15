@@ -2,7 +2,6 @@ import { CompanyId, Industry } from '@tabletop/railheads'
 
 export type CompanyStyle = { fill: string; text: string; edge: string }
 
-// The charter colours printed on the Germany board.
 export const COMPANY_STYLE: Record<CompanyId, CompanyStyle> = {
     [CompanyId.KPEV]: { fill: '#1f1f1d', text: '#ffffff', edge: '#000000' },
     [CompanyId.GBSE]: { fill: '#b8232a', text: '#ffffff', edge: '#6e1216' },

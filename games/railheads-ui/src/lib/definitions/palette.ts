@@ -1,8 +1,6 @@
 import { Color } from '@tabletop/common'
 import type { PlayerColorPalette } from '@tabletop/frontend-components/definition/gameUiDefinition'
 
-// Seats keep clear of the companies' black, red, green, yellow and blue: the blue seat is teal
-// and the gray seat slate.
 export const RailheadsPalette: PlayerColorPalette = {
     [Color.Pink]: { fill: '#d9609c', text: '#2a1020', contrast: '#2a1020' },
     [Color.Purple]: { fill: '#7a4fb4', text: '#ffffff', contrast: '#ffffff' },

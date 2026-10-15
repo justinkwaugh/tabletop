@@ -80,7 +80,10 @@ test('plays the opening auctions and lays track on the map', async ({ page }) =>
         await company.first().click()
     }
     await screenshot(page, '03-laying-track')
-    await page.getByRole('button', { name: /^Lay a disc here/ }).first().click()
+    await page
+        .getByRole('button', { name: /^Lay a disc here/ })
+        .first()
+        .click()
     await expect(page.getByRole('button', { name: /^Lay 1 piece/ })).toBeVisible()
     await expect(page.locator('.panel .prompt')).toContainText('lay a disc for')
     await screenshot(page, '04-staged')
@@ -96,7 +99,10 @@ test('runs a sealed-bid industry auction', async ({ page }) => {
     await createGame(page)
     await playInitialAuctions(page)
     await page.getByRole('button', { name: /^Choose Industry Investment/ }).click()
-    await page.getByRole('button', { name: /level 2/ }).first().click()
+    await page
+        .getByRole('button', { name: /level 2/ })
+        .first()
+        .click()
     await expect.poll(() => machineState(page)).toBe('SealedBidding')
     await screenshot(page, '06-sealed-bidding')
     for (let seat = 0; seat < 4; seat++) {

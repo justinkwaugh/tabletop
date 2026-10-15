@@ -5,7 +5,6 @@
 
     const gameSession = getGameSession()
 
-    // Bids and delegated builds hand the table to other players within one player's turn.
     const currentTurnPlayerId = $derived(
         gameSession.gameState.activePlayerIds[0] ??
             gameSession.gameState.turnManager.currentTurn()?.playerId

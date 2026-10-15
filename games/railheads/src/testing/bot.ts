@@ -30,7 +30,6 @@ function act<T extends GameAction>(action: T): GameAction {
     return action
 }
 
-// Lays as many pieces as the action allows, each where the board, as built so far, permits.
 export function botPlacements(
     state: HydratedRailheadsGameState,
     playerId: string,

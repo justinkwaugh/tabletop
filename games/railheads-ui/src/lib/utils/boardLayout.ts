@@ -5,8 +5,6 @@ import {
     type Point
 } from '@tabletop/common'
 
-// The Revenue Track runs around the board's edge like the printed board: 0 to 20 along the
-// top, 20 to 50 down the right, 50 to 70 back along the bottom and 70 to 100 up the left.
 export const TRACK_CELL = 42
 export const BOARD_WIDTH = TRACK_CELL * 21
 export const BOARD_HEIGHT = TRACK_CELL * 31
@@ -34,7 +32,6 @@ export function hexPoints(center: Point, radius: number = HEX_RADIUS): string {
         .join(' ')
 }
 
-// The top-left corner of the Revenue Track cell for a revenue, which wraps past 100.
 export function revenueCell(revenue: number): Point {
     const step = ((revenue % 100) + 100) % 100
     if (step <= 20) return { x: step * TRACK_CELL, y: 0 }

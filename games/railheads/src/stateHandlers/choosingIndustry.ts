@@ -33,7 +33,7 @@ export class ChoosingIndustryStateHandler implements MachineStateHandler<
         _action: HydratedInvestInIndustry,
         context: MachineContext<HydratedRailheadsGameState>
     ): MachineState {
-        if ((context.gameState.industryAuction?.bidders.length ?? 0) > 0) {
+        if (context.gameState.awaitedBidders().length > 0) {
             return MachineState.SealedBidding
         }
         context.addSystemAction(ResolveIndustryAuction, {})

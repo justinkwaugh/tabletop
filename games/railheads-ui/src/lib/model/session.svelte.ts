@@ -121,7 +121,6 @@ export class RailheadsGameSession extends GameSession<
         return playerId && this.issuing ? this.gameState.issuableCompanies(playerId) : []
     })
 
-    // A lone choice is automatic, so Undo steps straight past it.
     issueCompany: CompanyId | undefined = $derived.by(() => {
         const chosen = this.issueSelection.company?.value
         if (chosen && this.issuableCompanies.includes(chosen)) {
@@ -243,8 +242,6 @@ export class RailheadsGameSession extends GameSession<
 
     placements: Placement[] = $derived(this.laySpace ? stagedPlacements(this.trackSelection) : [])
 
-    // The game as it stands once the staged pieces are laid, so the board, treasuries and
-    // revenues show what the build would do.
     shownState: HydratedRailheadsGameState = $derived.by(() => {
         const space = this.laySpace
         const playerId = this.myPlayerId
@@ -304,8 +301,6 @@ export class RailheadsGameSession extends GameSession<
         )
     }
 
-    // The company the next piece goes to: the second once chosen, else the first until it has
-    // laid all it may.
     buildingSlot: CompanySlot | undefined = $derived.by(() => {
         if (this.secondCompany) {
             return this.slotFull('second') ? undefined : 'second'

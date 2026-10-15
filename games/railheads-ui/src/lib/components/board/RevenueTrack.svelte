@@ -48,7 +48,6 @@
         })
     })
 
-    // Band labels sit just inside the frame, beside the stretch of track they cover.
     function inwardOf(step: number): { x: number; y: number } {
         const reach = TRACK_CELL * 0.72
         if (step <= 20) return { x: 0, y: reach }

@@ -1,4 +1,3 @@
-import { Color } from '@tabletop/common'
 import {
     ActionSpaceId,
     CompanyId,
@@ -8,6 +7,13 @@ import {
     type EditionDefinition
 } from '../types.js'
 import { GERMANY_MAP } from './map.js'
+
+const GERMANY_TRACK_COST: Record<HexKind, number> = {
+    [HexKind.Countryside]: 2,
+    [HexKind.City]: 4,
+    [HexKind.Town]: 4,
+    [HexKind.Industry]: 4
+}
 
 const COMPANY_SUPPLY = { shares: 4, discs: 25, crossingCubes: 5, startingTreasury: 0 }
 
@@ -19,7 +25,6 @@ export const GERMANY: EditionDefinition = {
             id: CompanyId.KPEV,
             shortName: 'K.P.E.V.',
             name: 'Königlich Preußische Eisenbahn-Verwaltung',
-            color: Color.Black,
             homeSiteId: 'berlin',
             ...COMPANY_SUPPLY
         },
@@ -27,7 +32,6 @@ export const GERMANY: EditionDefinition = {
             id: CompanyId.GBSE,
             shortName: 'G.B.S.E.',
             name: 'Großherzoglich Badische Staats-Eisenbahnen',
-            color: Color.Red,
             homeSiteId: 'karlsruhe',
             ...COMPANY_SUPPLY
         },
@@ -35,7 +39,6 @@ export const GERMANY: EditionDefinition = {
             id: CompanyId.KSSE,
             shortName: 'K.S.S.E.',
             name: 'Königlich Sächsische Staats-Eisenbahnen',
-            color: Color.Green,
             homeSiteId: 'leipzig',
             ...COMPANY_SUPPLY
         },
@@ -43,7 +46,6 @@ export const GERMANY: EditionDefinition = {
             id: CompanyId.KWSE,
             shortName: 'K.W.S.E.',
             name: 'Königlich Württembergische Staats-Eisenbahnen',
-            color: Color.Yellow,
             homeSiteId: 'stuttgart',
             ...COMPANY_SUPPLY
         },
@@ -51,7 +53,6 @@ export const GERMANY: EditionDefinition = {
             id: CompanyId.KBSB,
             shortName: 'K.B.S.B.',
             name: 'Königlich Bayerische Staats-Bahnen',
-            color: Color.Blue,
             homeSiteId: 'munchen',
             ...COMPANY_SUPPLY
         }
@@ -93,12 +94,7 @@ export const GERMANY: EditionDefinition = {
             allowsCrossingCubes: false
         }
     },
-    trackCost: {
-        [HexKind.Countryside]: 2,
-        [HexKind.City]: 4,
-        [HexKind.Town]: 4,
-        [HexKind.Industry]: 4
-    },
+    trackCost: (hexKind) => GERMANY_TRACK_COST[hexKind],
     siteRevenue: { [SiteKind.City]: 5, [SiteKind.Town]: 3 },
     crossingCubeCost: 1,
     siteCapacity: (round) => round,

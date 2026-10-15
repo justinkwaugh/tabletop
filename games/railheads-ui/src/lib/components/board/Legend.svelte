@@ -6,12 +6,12 @@
     const gameSession = getGameSession()
 
     const edition = $derived(gameSession.gameState.edition.definition)
-    const capacity = $derived(Math.max(1, gameSession.gameState.round()))
+    const capacity = $derived(edition.siteCapacity(Math.max(1, gameSession.gameState.round()), undefined))
     const entries = $derived([
-        { fill: '#e9dc3f', cost: edition.trackCost[HexKind.Industry], note: '+ level', limit: capacity },
-        { fill: '#de8a1d', cost: edition.trackCost[HexKind.Town], note: '+3', limit: capacity },
-        { fill: '#df3f2b', cost: edition.trackCost[HexKind.City], note: '+5', limit: capacity },
-        { fill: '#83a35a', cost: edition.trackCost[HexKind.Countryside], note: 'cube $1', limit: 1 }
+        { fill: '#e9dc3f', cost: edition.trackCost(HexKind.Industry, 0), note: '+ level', limit: capacity },
+        { fill: '#de8a1d', cost: edition.trackCost(HexKind.Town, 0), note: '+3', limit: capacity },
+        { fill: '#df3f2b', cost: edition.trackCost(HexKind.City, 0), note: '+5', limit: capacity },
+        { fill: '#83a35a', cost: edition.trackCost(HexKind.Countryside, 0), note: 'cube $1', limit: 1 }
     ])
 </script>
 

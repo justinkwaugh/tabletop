@@ -8,8 +8,6 @@ import {
 import type { AxialCoordinates } from '@tabletop/common'
 import type { CompanyId, Placement } from '@tabletop/railheads'
 
-// Laying track: the first company and its pieces, then, where the action allows a second
-// company, that company and its pieces.
 export type TrackSelectionValues = {
     firstCompany: CompanyId
     firstPiece1: Placement
@@ -21,7 +19,6 @@ export type TrackSelectionValues = {
     secondPiece2: Placement
     secondPiece3: Placement
     secondPiece4: Placement
-    // Off the Rails: an Industry Site picked, waiting for how it develops.
     boostHex: AxialCoordinates
 }
 

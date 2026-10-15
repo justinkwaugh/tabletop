@@ -23,7 +23,6 @@ export const CompanyRevenueChange = Type.Object({
     to: Type.Number()
 })
 
-// Pays every player from the bank for each share and industry token they hold.
 export function payPlayers(state: HydratedRailheadsGameState, rates: PayoutRates): PlayerIncome[] {
     return state.players.map((player) => {
         const amount = state.playerIncome(player.playerId, rates)

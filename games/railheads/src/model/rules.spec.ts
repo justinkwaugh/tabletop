@@ -4,11 +4,11 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { isEndRound } from '../actions/endRound.js'
 import { isResolveIndustryAuction } from '../actions/resolveIndustryAuction.js'
-import { edition } from '../editions/editions.js'
+import { edition, hexKey } from '../editions/editions.js'
 import { ActionSpaceId, CompanyId, EditionId, Industry, printedHex } from '../editions/types.js'
 import { Table } from '../testing/table.js'
 import { finalRoundReduction, pileCoins, selectionCost } from './economy.js'
-import { IndustryBoost, PlacementKind, trackAt } from './track.js'
+import { IndustryBoost, PlacementKind, networkKeys, trackAt } from './track.js'
 
 const BERLIN = printedHex(12, 14)
 const NORTH_OF_BERLIN = printedHex(12, 12)
@@ -459,6 +459,66 @@ describe('the end of a round', () => {
         })
         expect(table.hydrated.roundTimerSize(4)).toBe(15 - 2 - 1)
         expect(table.hydrated.roundTimerSize(3)).toBe(15)
+    })
+})
+
+describe('rulings recorded in the interpretations', () => {
+    it('counts a crossing cube as part of the company’s network', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            state.track.push({ coords: NORTH_OF_BERLIN, discs: [CompanyId.GBSE] })
+            state.track.push({ coords: NORTH_WEST_OF_BERLIN, discs: [CompanyId.KSSE] })
+            state.company(CompanyId.GBSE).treasury = 10
+        })
+        choose(table, ActionSpaceId.LayTrackI)
+        table.act('p1', {
+            type: ActionType.LayTrack,
+            placements: [
+                {
+                    companyId: CompanyId.GBSE,
+                    coords: NORTH_WEST_OF_BERLIN,
+                    kind: PlacementKind.Cube
+                }
+            ]
+        })
+        const state = table.hydrated
+        expect(trackAt(state.track, NORTH_WEST_OF_BERLIN)?.cube).toBe(CompanyId.GBSE)
+        expect(networkKeys(state.track, CompanyId.GBSE).has(hexKey(NORTH_WEST_OF_BERLIN))).toBe(
+            true
+        )
+    })
+
+    it('shares the win between players tied on the most money', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            for (let round = 1; round < 4; round++) {
+                state.rounds.endRound(state.actionCount)
+                state.rounds.startRound(state.actionCount)
+            }
+            state.roundTimer = 1
+            for (const player of state.players) player.cash = 10
+            for (const company of state.companies) company.owners = []
+            for (const player of state.players) player.industryTokens = []
+        })
+        choose(table, ActionSpaceId.LayTrackII)
+        table.act('p1', { type: ActionType.LayTrack, placements: [] })
+        expect(table.state.winningPlayerIds).toHaveLength(4)
+    })
+
+    it('trims the timer for the final round when the third round ends', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            state.rounds.endRound(state.actionCount)
+            state.rounds.startRound(state.actionCount)
+            state.rounds.endRound(state.actionCount)
+            state.rounds.startRound(state.actionCount)
+            state.company(CompanyId.KPEV).owners.push('p0', 'p1', 'p2')
+            state.company(CompanyId.GBSE).owners.push('p0', 'p1')
+            state.roundTimer = 1
+        })
+        choose(table, ActionSpaceId.LayTrackII)
+        table.act('p1', { type: ActionType.LayTrack, placements: [] })
+        expect(table.state.roundTimer).toBe(15 - 2 - 1)
     })
 })
 

@@ -3205,12 +3205,6 @@ importers:
       '@tabletop/railheads':
         specifier: workspace:*
         version: link:../railheads
-      gsap:
-        specifier: ^3.14.2
-        version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1

@@ -17,7 +17,7 @@ Where the Germany rulebook (v0.60) is silent or conflicts with the board (v0.61)
 - **The investor's tie rule applies at the tied bid.** A tie for highest goes to the investor if tied, else the tied player next clockwise, at the tied amount; a lone positive bid pays the industry's new level.
 - **A sealed bid of zero is declared as an amount of 0** and is a full action, like a bid.
 - **Lay Track may lay nothing.** The rulebook allows laying zero discs. Laying zero is an action that still moves the coins.
-- **A crossing cube is a countryside placement for the company's own network.** It joins the company's network like a disc and counts toward the action's piece limit.
+- **A crossing cube is a countryside placement for the company's own network.** It joins the company's network like a disc.
 - **Network connection is by adjacency to any hex holding the company's disc or cube**, starting from its home hex.
 - **Site capacity is the round number** for cities, towns and industry sites, one disc per company per site; a countryside hex holds one disc and one cube.
 

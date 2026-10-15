@@ -24,8 +24,6 @@ function auctionId(state: HydratedRailheadsGameState, companyId: CompanyId): str
     return `${companyId}-${state.actionCount}`
 }
 
-// The next opening share goes up with its industry token or the Start Player token; whoever
-// offers it opens the bidding and takes it free when nobody bids.
 export function openInitialAuction(state: HydratedRailheadsGameState, openerId: string) {
     const [offer] = state.initialOffers
     assertExists(offer, 'Every opening share is sold')
@@ -80,7 +78,6 @@ export function passShareBid(state: HydratedRailheadsGameState, playerId: string
     auction.bidding = state.bidding().pass(playerId)
 }
 
-// Players who cannot afford the next bid drop out so nobody waits on a forced pass.
 function withdrawUnableBidders(state: HydratedRailheadsGameState): string[] {
     const auction = state.shareAuction
     assertExists(auction, 'No share auction in progress')
@@ -92,7 +89,6 @@ function withdrawUnableBidders(state: HydratedRailheadsGameState): string[] {
     return before.filter((playerId) => !after.includes(playerId))
 }
 
-// Awards the share once bidding is over, clearing the auction; undefined while it continues.
 export function settleShareAuction(state: HydratedRailheadsGameState): ShareSale | undefined {
     const auction = state.shareAuction
     assertExists(auction, 'No share auction in progress')

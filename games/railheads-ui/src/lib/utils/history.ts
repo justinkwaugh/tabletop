@@ -32,8 +32,6 @@ export type HistoryPayout = {
 
 export type HistoryEntry = HistoryTurn | HistoryOffering | HistoryPayout
 
-// Groups actions oldest first: each opening share is one entry, each turn opens with its chosen
-// action or consolidation and holds what followed, and every payout stands alone.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     let open: HistoryTurn | HistoryOffering | undefined

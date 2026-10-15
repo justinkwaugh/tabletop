@@ -15,7 +15,6 @@
     ])
 </script>
 
-<!-- Off the Rails asks how the industry develops, beside the site that was picked. -->
 {#if center}
     <polygon points={hexPoints(center, HEX_RADIUS - 5)} class="picked" />
     <g transform="translate({center.x + HEX_RADIUS + 6} {center.y - 30})">

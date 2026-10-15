@@ -7,7 +7,6 @@
     const color = $derived(INDUSTRY_STYLE[industry].mark)
 </script>
 
-<!-- The board's industry pictograms: a bolt of cloth, a grain sack, a brick and an anvil. -->
 <g transform="scale({scale})" fill={color} stroke="#1d1d1b" stroke-width="1.2" stroke-linejoin="round">
     {#if industry === Industry.Cloth}
         <path d="M -12 -2 L 0 -10 L 12 -2 L 0 6 Z" />

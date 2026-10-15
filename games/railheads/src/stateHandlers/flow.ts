@@ -3,7 +3,6 @@ import type { HydratedRailheadsGameState } from '../model/gameState.js'
 import { ShareAuctionKind } from '../model/components.js'
 import { openInitialAuction, type ShareSale } from '../model/shareAuctionRules.js'
 
-// A turn ends once its action is done; the round ends when that action emptied the Round Timer.
 export function finishTurn(state: HydratedRailheadsGameState): MachineState {
     state.activeSpace = undefined
     state.turnManager.endTurn(state.actionCount)
@@ -23,7 +22,6 @@ export function afterSale(state: HydratedRailheadsGameState, sale: ShareSale): M
     return MachineState.ChoosingAction
 }
 
-// The Start Player token holder opens every round; turns then go clockwise.
 export function startNextTurn(state: HydratedRailheadsGameState) {
     const roundStart = state.rounds.currentRound?.start ?? 0
     const lastTurn = state.turnManager.series.at(-1)

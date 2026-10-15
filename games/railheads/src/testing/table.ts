@@ -17,7 +17,6 @@ const masterSeed = '0123456789abcdef0123456789abcdef'
 
 type ActionFields = Record<string, unknown> & { type: ActionType }
 
-// A game driven action by action, for rule tests that need a precise position.
 export class Table {
     readonly game: Game
     state: RailheadsProjectedState
@@ -57,14 +56,12 @@ export class Table {
         return result.processedActions
     }
 
-    // Edits the position directly, for setups the rules would take many turns to reach.
     edit(change: (state: HydratedRailheadsGameState) => void) {
         const hydrated = this.hydrated
         change(hydrated)
         this.state = hydrated.dehydrate()
     }
 
-    // Each opening share goes to the named buyer at its minimum; everyone else passes.
     playInitialAuction(buyers: Partial<Record<CompanyId, string>> = {}) {
         while (this.state.machineState === MachineState.ShareBidding) {
             const auction = this.hydrated.shareAuction

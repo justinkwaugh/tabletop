@@ -206,4 +206,20 @@ describe('Railheads protected visibility', () => {
             }
         }
     })
+
+    it('never invents a zero bid for the investor', () => {
+        const table = sealedBidding()
+        submit(table, 'p1', 3)
+        for (let seed = 1; seed <= 40; seed++) {
+            const sample = RailheadsRuntime.exploration.createFromProjectedState({
+                game: table.game,
+                state: projectState(table.state, opponent),
+                actions: [],
+                perspective: opponent,
+                random: getPrng(seed)
+            })
+            const amount = sample.industryAuction?.bids[0].amount
+            expect(amount).toBeGreaterThanOrEqual(sample.industryAuction?.minimum ?? 0)
+        }
+    })
 })

@@ -103,8 +103,6 @@ export function onTheClock(table: PlayedTable): string {
     return playerId
 }
 
-// p1 takes the K.P.E.V., K.W.S.E. and K.B.S.B. and so the Start Player token and a choice of
-// companies to build for; p2 and p3 each take one other company.
 const INITIAL_BUYERS: Record<CompanyId, string> = {
     [CompanyId.KPEV]: 'p1',
     [CompanyId.GBSE]: 'p2',

@@ -8,7 +8,6 @@ export type RevealedBid = Type.Static<typeof RevealedBid>
 export const RevealedBid = Type.Object({
     playerId: Type.String(),
     amount: Type.Number(),
-    // False for a player who could not afford the minimum and so bid nothing.
     submitted: Type.Boolean()
 })
 
@@ -19,8 +18,6 @@ export const IndustrySale = Type.Object({
     bids: Type.Array(RevealedBid)
 })
 
-// Raises the industry a step and asks every player who can afford its new level for a sealed
-// bid. When nobody else can, the investor buys at that level without bidding.
 export function openIndustryAuction(
     state: HydratedRailheadsGameState,
     investorId: string,
@@ -71,8 +68,6 @@ export function placeSealedBid(
     auction.bidders = auction.bidders.filter((bidder) => bidder !== playerId)
 }
 
-// The highest bid wins and pays the second highest, or the industry's level when every other bid
-// is zero. Ties go to the investor, then to the tied player next clockwise, at the tied amount.
 export function resolveIndustryAuction(state: HydratedRailheadsGameState): IndustrySale {
     const auction = state.industryAuction
     assertExists(auction, 'No industry auction in progress')

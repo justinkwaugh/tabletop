@@ -1,4 +1,4 @@
-import type { AxialCoordinates, Color } from '@tabletop/common'
+import type { AxialCoordinates } from '@tabletop/common'
 
 export enum EditionId {
     Germany = 'Germany'
@@ -66,7 +66,6 @@ export type CompanyDefinition = {
     id: CompanyId
     shortName: string
     name: string
-    color: Color
     homeSiteId: string
     shares: number
     discs: number
@@ -87,7 +86,6 @@ export type IndustrySiteDefinition = {
 }
 
 export type MapDefinition = {
-    // Flat-topped hexes by column, west to east; rows count half-hex steps from the top edge.
     countrysideRowsByColumn: readonly (readonly number[])[]
     sites: readonly SiteDefinition[]
     industrySites: readonly IndustrySiteDefinition[]
@@ -99,8 +97,6 @@ export type EditionDefinition = {
     id: EditionId
     name: string
     companies: readonly CompanyDefinition[]
-    // The order the opening shares are auctioned; each comes with an industry token except the
-    // one that carries the Start Player token.
     initialAuctionOrder: readonly CompanyId[]
     startPlayerCompany: CompanyId
     map: MapDefinition
@@ -108,10 +104,10 @@ export type EditionDefinition = {
     startingCash: Readonly<Record<number, number>>
     roundTimer: Readonly<Record<number, number>>
     layTrack: Readonly<Record<LayTrackSpace, LayTrackRules>>
-    trackCost: Readonly<Record<HexKind, number>>
+    trackCost: (hexKind: HexKind, discsBelow: number) => number
     siteRevenue: Readonly<Record<SiteKind, number>>
     crossingCubeCost: number
-    siteCapacity: (round: number) => number
+    siteCapacity: (round: number, siteId: string | undefined) => number
     obsolescence: readonly ObsolescenceBand[]
     industryTokensPerType: number
     developmentTrackLength: number

@@ -7,14 +7,12 @@ export const CompanyState = Type.Object({
     id: Type.Enum(CompanyId),
     treasury: Type.Number(),
     revenue: Type.Number(),
-    // One entry per sold share, naming the player who holds it.
     owners: Type.Array(Type.String())
 })
 
 export type TrackHex = Type.Static<typeof TrackHex>
 export const TrackHex = Type.Object({
     coords: AxialCoordinates,
-    // Bottom to top: the top disc is the one that counts for the Railroad Bonus.
     discs: Type.Array(Type.Enum(CompanyId)),
     cube: Type.Optional(Type.Enum(CompanyId))
 })
@@ -23,14 +21,12 @@ export type IndustryState = Type.Static<typeof IndustryState>
 export const IndustryState = Type.Object({
     industry: Type.Enum(Industry),
     level: Type.Number(),
-    // Tokens still in the Industry Development box, for sale through Industry Investment.
     available: Type.Number()
 })
 
 export type ActionSpaceState = Type.Static<typeof ActionSpaceState>
 export const ActionSpaceState = Type.Object({
     id: Type.Enum(ActionSpaceId),
-    // Times chosen since it was last emptied; its coin pile follows from this and the player count.
     selections: Type.Number()
 })
 
@@ -67,9 +63,7 @@ export const IndustryAuction = Type.Object({
     id: Type.String(),
     industry: Type.Enum(Industry),
     investorId: Type.String(),
-    // The industry's newly raised Development Level, the lowest bid other than zero.
     minimum: Type.Number(),
-    // Players whose sealed bid is still awaited.
     bidders: Type.Array(Type.String()),
     bids: Type.Array(SealedBid)
 })

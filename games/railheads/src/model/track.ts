@@ -9,8 +9,6 @@ export enum PlacementKind {
     Cube = 'Cube'
 }
 
-// Off the Rails: an Industry Site either raises the industry one step and the company's revenue
-// by the new level, or raises the industry two steps and leaves the revenue alone.
 export enum IndustryBoost {
     Revenue = 'Revenue',
     Development = 'Development'
@@ -29,7 +27,6 @@ export const PlacementEffect = Type.Object({
     companyId: Type.Enum(CompanyId),
     kind: Type.Enum(PlacementKind),
     cost: Type.Number(),
-    // The company whose disc a crossing cube crosses, paid the cube's cost.
     crossedCompanyId: Type.Optional(Type.Enum(CompanyId)),
     revenueGain: Type.Number(),
     industry: Type.Optional(Type.Enum(Industry)),
@@ -73,13 +70,12 @@ export type PlacementContext = {
     track: readonly TrackHex[]
     companyId: CompanyId
     rules: LayTrackRules
-    siteCapacity: number
+    siteCapacity: (coords: AxialCoordinates) => number
     discsLeft: number
     cubesLeft: number
     neighbours: (coords: AxialCoordinates) => AxialCoordinates[]
 }
 
-// The kind of piece the company could put on this hex, ignoring cost and connection.
 export function placementKind(context: PlacementContext, place: MapHex): PlacementKind | undefined {
     const discs = trackAt(context.track, place.coords)?.discs ?? []
     if (place.kind === HexKind.Countryside) {
@@ -95,7 +91,7 @@ export function placementKind(context: PlacementContext, place: MapHex): Placeme
             : undefined
     }
     return context.discsLeft > 0 &&
-        discs.length < context.siteCapacity &&
+        discs.length < context.siteCapacity(place.coords) &&
         !discs.includes(context.companyId)
         ? PlacementKind.Disc
         : undefined
