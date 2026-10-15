@@ -17,9 +17,10 @@
         "@tabletop/games-config": "workspace:*"
     },
     "devDependencies": {
-        "@typescript/native-preview": "7.0.0-dev.20260707.2",
+        "@tabletop/eslint-config": "workspace:*",
         "@types/node": "^24.3.1",
-        "typescript": "5.9.3",
-        "@tabletop/eslint-config": "workspace:*"
+        "@typescript/native-preview": "7.0.0-dev.20260707.2",
+        "firebase-tools": "15.34.0",
+        "typescript": "5.9.3"
     }
 }

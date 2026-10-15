@@ -223,20 +223,27 @@ const awaitServing = async (
     return serving
 }
 
-export const runReportedDeploy = async (
+export type ReportedDeployOptions<Deployed> = {
+    verifyServing: boolean
+    settle?: ServingSettle
+    afterServing?: (deployed: Deployed) => Promise<void>
+}
+
+export const runReportedDeploy = async <Deployed>(
     context: PublishContext,
     label: string,
     artifacts: PublishedArtifact[],
     fetchServingVersions: () => Promise<ServingLookup>,
-    deploy: () => Promise<void>,
-    options: { verifyServing: boolean; settle?: ServingSettle } = { verifyServing: true }
+    deploy: () => Promise<Deployed>,
+    options: ReportedDeployOptions<Deployed> = { verifyServing: true }
 ) => {
     const servingBefore = await fetchServingVersions()
     context.log(`${label} serving before deploy: ${describeServing(servingBefore)}`)
     context.log(`${label} deploying: ${describeDeployment(servingBefore, artifacts)}`)
 
+    let deployed: Deployed
     try {
-        await deploy()
+        deployed = await deploy()
     } catch (error) {
         const servingAfterFailure = await fetchServingVersions()
         context.log(`${label} deploy FAILED: ${error instanceof Error ? error.message : error}`)
@@ -253,6 +260,17 @@ export const runReportedDeploy = async (
               options.settle ?? DEFAULT_SERVING_SETTLE
           )
         : await fetchServingVersions()
+    if (options.afterServing) {
+        try {
+            await options.afterServing(deployed)
+        } catch (error) {
+            context.log(
+                `${label} deploy FAILED after the backend switched: ${error instanceof Error ? error.message : error}`
+            )
+            context.log(`${label} serving now: ${describeServing(servingAfter)}`)
+            throw error
+        }
+    }
     const outcome = options.verifyServing ? '' : ' (staged without traffic)'
     context.log(`${label} deploy SUCCEEDED: ${describeVersions(artifacts)}${outcome}`)
     context.log(`${label} serving now: ${describeServing(servingAfter)}`)

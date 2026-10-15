@@ -6,6 +6,7 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
     if (!isObject(config)) return {}
     const backend = config.backend
     const backendAdmin = config.backendAdmin
+    const hosting = config.hosting
     return {
         gcsBucket: typeof config.gcsBucket === 'string' ? config.gcsBucket : undefined,
         gcloudCredentialFile:
@@ -37,6 +38,9 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
                       typeof backendAdmin.password === 'string' ? backendAdmin.password : undefined,
                   cookie: typeof backendAdmin.cookie === 'string' ? backendAdmin.cookie : undefined
               }
+            : undefined,
+        hosting: isObject(hosting)
+            ? { channel: typeof hosting.channel === 'string' ? hosting.channel : undefined }
             : undefined
     }
 }
@@ -80,6 +84,7 @@ export const mergeEnvConfig = (config: DeployConfig): DeployConfig => {
             process.env.TABLETOP_MANIFEST_URL ??
             config.backendManifestUrl,
         backend,
-        backendAdmin
+        backendAdmin,
+        hosting: { channel: process.env.TABLETOP_HOSTING_CHANNEL ?? config.hosting?.channel }
     }
 }

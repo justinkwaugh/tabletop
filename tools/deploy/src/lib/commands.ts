@@ -12,6 +12,7 @@ export type CommandSpec = {
     cwd: string
     logPath: string
     requiresDeploy?: boolean
+    env?: Record<string, string>
 }
 
 type RunCommandOptions = {
@@ -32,7 +33,10 @@ const ensureDir = (dirPath: string) => {
 export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Promise<void> => {
     ensureDir(path.dirname(spec.logPath))
     const logStream = fs.createWriteStream(spec.logPath, { flags: 'w' })
-    const env = isCloudSdkCommand(spec.command) ? withCloudSdkPythonEnv(process.env) : process.env
+    const baseEnv = isCloudSdkCommand(spec.command)
+        ? withCloudSdkPythonEnv(process.env)
+        : process.env
+    const env = { ...baseEnv, ...spec.env }
 
     return new Promise((resolve, reject) => {
         const child = spawn(spec.command, spec.args, {
@@ -554,6 +558,65 @@ export const deployFrontendCommand = (
         requiresDeploy: true
     }
 }
+
+export const downloadFrontendCommand = (
+    repoRoot: string,
+    version: string,
+    config: DeployConfig,
+    destinationDir: string
+): CommandSpec => {
+    if (!config.gcsBucket) {
+        throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
+    }
+    return {
+        label: 'download-frontend',
+        command: 'gcloud',
+        args: [
+            'storage',
+            'cp',
+            '--recursive',
+            `gs://${config.gcsBucket}/frontend/${version}/*`,
+            destinationDir
+        ],
+        cwd: repoRoot,
+        logPath: '/tmp/frontend-download.log'
+    }
+}
+
+// firebase-tools authenticates through Application Default Credentials, so it gets the same
+// service account key the gcloud commands use.
+const firebaseCredentialEnv = (): Record<string, string> => {
+    const credentialFile =
+        process.env.GOOGLE_APPLICATION_CREDENTIALS ??
+        process.env.CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE
+    return credentialFile ? { GOOGLE_APPLICATION_CREDENTIALS: credentialFile } : {}
+}
+
+export const firebaseCommand = (
+    repoRoot: string,
+    label: string,
+    target: { project: string; configPath: string },
+    args: string[]
+): CommandSpec => ({
+    label,
+    command: 'pnpm',
+    args: [
+        '--dir',
+        path.join(repoRoot, 'tools', 'deploy'),
+        'exec',
+        'firebase',
+        ...args,
+        '--config',
+        target.configPath,
+        '--project',
+        target.project,
+        '--non-interactive'
+    ],
+    cwd: repoRoot,
+    logPath: `/tmp/${label}.log`,
+    requiresDeploy: true,
+    env: firebaseCredentialEnv()
+})
 
 export const manifestObjectUrl = (config: DeployConfig) => {
     if (!config.gcsBucket) {

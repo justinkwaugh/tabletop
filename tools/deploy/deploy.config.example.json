@@ -8,6 +8,9 @@
     "username": "admin",
     "password": "your-password"
   },
+  "hosting": {
+    "channel": "live"
+  },
   "backend": {
     "image": "us-central1-docker.pkg.dev/your-project/your-repo/backend",
     "service": "your-cloud-run-service",

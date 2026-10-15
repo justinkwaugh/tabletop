@@ -94,6 +94,10 @@ failing step and the error text, and then:
   and return to the branch afterwards.
 - A deploy that failed after uploading an artifact is safe to rerun: the tool reuses an
   existing artifact for the tagged version and continues with the remaining steps.
+- `deploy FAILED after the backend switched` comes from the Firebase Hosting copy, which runs
+  only when the deploy config sets `hosting.channel`: the backend already serves the new
+  frontend but Hosting still serves the old site files. Run `sync-hosting` to finish it, then
+  confirm `preflight --frontend` reports that Hosting serves the manifest's version.
 - `spawn gcloud ENOENT` or `No credentialed accounts` means this environment cannot upload.
   The Cloud CLI must be installed and logged in (`gcloud auth login --no-launch-browser`);
   that login is interactive, so hand it to the user.
