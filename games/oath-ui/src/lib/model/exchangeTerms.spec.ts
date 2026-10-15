@@ -3,26 +3,31 @@ import { Color } from '@tabletop/common'
 import {
     DEED_WRITER_ALLOWS,
     GATHERING_ALLOWS,
+    HydratedOathGameState,
     IMPERIAL_WARBANDS,
     OathRevision,
     PlayerStatus,
     TINKERS_FAIR_ALLOWS,
+    reasonExchangeInvalid,
     type AdviserRow,
     type OathPlayerState
 } from '@tabletop/oath'
-import { testPlayer, testState } from '@tabletop/oath/testing'
+import { served, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     exchangeComplete,
     exchangeOffers,
+    inReturnOf,
     noExchangePicks,
     siteCounts,
     tappedCount,
     tappedSiteCount,
+    transferOf,
     warbandsToMoveIn,
     withOfferedPicks,
     withSiteCount,
     withSitePicked,
-    type ExchangePicks
+    type ExchangePicks,
+    type ExchangeSide
 } from './exchangeTerms.js'
 
 const CROWN = 'relic.bandit-crown'
@@ -243,9 +248,12 @@ describe('Deed Writer — from revision 11 a receiver moves in from the board th
     }
     const p1 = { sites: [{ siteId: 'p1', warbands: 1 }] }
 
-    it('a site is offered to an empty board once the receiver hands over a site of their own, counted to what comes home', () => {
+    it('a site is listed for an empty board without a count, and counted to what comes home once the receiver hands over a site of their own', () => {
         const s = swapTable(OathRevision.EngineFixes7)
-        expect(sitesOffered(s, 'dana', 'rhys')).toEqual([])
+        expect(sitesOffered(s, 'dana', 'rhys')).toEqual([
+            { siteId: 'c1', counts: [] },
+            { siteId: 'c2', counts: [] }
+        ])
         expect(exchangeOffers(s, 'dana', 'rhys', DEED_WRITER_ALLOWS, 'dana', p1).sites.map(({ siteId, counts }) => ({ siteId, counts }))).toEqual([
             { siteId: 'c1', counts: [1, 2] },
             { siteId: 'c2', counts: [1, 2] }
@@ -257,6 +265,7 @@ describe('Deed Writer — from revision 11 a receiver moves in from the board th
 
     it('before revision 11 the board is read as it stands, so nothing is offered', () => {
         const s = swapTable(OathRevision.EngineFixes6)
+        expect(sitesOffered(s, 'dana', 'rhys')).toEqual([])
         expect(exchangeOffers(s, 'dana', 'rhys', DEED_WRITER_ALLOWS, 'dana', p1).sites).toEqual([])
         expect(warbandsToMoveIn(s, 'rhys', p1.sites)).toEqual({ owner: 'rhys', held: 0 })
     })
@@ -278,7 +287,7 @@ describe('a pick the other side no longer allows leaves the terms with it', () =
         return keep(state, withSiteCount(p1, 'fromProposer', 'c1', 1))
     }
 
-    it('Deed Writer: withdrawing the site that refills the board drops the counted site it allowed', () => {
+    it('Deed Writer: withdrawing the site that refills the board clears the count of the site it allowed, which waits for a site again', () => {
         const s = swapTable(OathRevision.EngineFixes7)
         const picked = swap(s)
         expect(picked.terms.fromProposer?.sites).toEqual([{ siteId: 'c1', warbands: 1 }])
@@ -287,11 +296,15 @@ describe('a pick the other side no longer allows leaves the terms with it', () =
         const withdrawn = keep(s, withSitePicked(picked, 'fromCounterparty', 'p1', [1], false))
         expect(withdrawn.terms.fromProposer?.sites).toEqual([])
         expect(withdrawn.terms.fromCounterparty?.sites).toEqual([])
-        expect(withdrawn.uncountedSiteIds).toEqual([])
+        expect(withdrawn.uncountedSiteIds).toEqual(['c1'])
         expect(exchangeComplete(withdrawn)).toBe(false)
+        expect(sitesOffered(s, 'dana', 'rhys')).toEqual([
+            { siteId: 'c1', counts: [] },
+            { siteId: 'c2', counts: [] }
+        ])
     })
 
-    it('Deed Writer: an uncounted site it allowed goes too, and what else is picked stays', () => {
+    it('Deed Writer: an uncounted site it allowed stays picked, waiting, and what else is picked stays', () => {
         const s = swapTable(OathRevision.EngineFixes7)
         const p1 = keep(s, withSiteCount(noExchangePicks(), 'fromCounterparty', 'p1', 2))
         const favor = keep(s, { ...p1, terms: { ...p1.terms, fromProposer: { favor: 1 } } })
@@ -299,9 +312,9 @@ describe('a pick the other side no longer allows leaves the terms with it', () =
         expect(uncounted.uncountedSiteIds).toEqual(['c1'])
 
         const withdrawn = keep(s, withSitePicked(uncounted, 'fromCounterparty', 'p1', [1, 2], false))
-        expect(withdrawn.uncountedSiteIds).toEqual([])
+        expect(withdrawn.uncountedSiteIds).toEqual(['c1'])
         expect(withdrawn.terms.fromProposer).toEqual({ favor: 1, sites: [] })
-        expect(exchangeComplete(withdrawn)).toBe(true)
+        expect(exchangeComplete(withdrawn)).toBe(false)
     })
 
     it('a change to the same side keeps the other side’s picks while they stay offered', () => {
@@ -321,5 +334,177 @@ describe('a pick the other side no longer allows leaves the terms with it', () =
         const withdrawn = keep(s, { ...both, terms: { ...both.terms, fromProposer: { adviserRows: [] } } }, GATHERING_ALLOWS)
         expect(withdrawn.terms).toEqual({ fromProposer: { adviserRows: [] }, fromCounterparty: { adviserRows: [] } })
         expect(exchangeComplete(withdrawn)).toBe(false)
+    })
+})
+
+/**
+ * The editor's own steps, on any view of the state: a side's rows are its offers with what the
+ * other side gives back; a site is picked with the counts its row offers; a count is a piece of
+ * that row; every change goes through `withOfferedPicks`.
+ */
+function editor(state: HydratedOathGameState, viewerId = 'dana') {
+    const players: Record<ExchangeSide, { giver: string; receiver: string; back: ExchangeSide }> = {
+        fromProposer: { giver: 'dana', receiver: 'rhys', back: 'fromCounterparty' },
+        fromCounterparty: { giver: 'rhys', receiver: 'dana', back: 'fromProposer' }
+    }
+    const inReturn = (picks: ExchangePicks, side: ExchangeSide) =>
+        inReturnOf(state, picks, players[side].back, players[side].receiver)
+    const keep = (picks: ExchangePicks) =>
+        withOfferedPicks(state, 'dana', 'rhys', DEED_WRITER_ALLOWS, viewerId, picks)
+    const listed = (picks: ExchangePicks, side: ExchangeSide) =>
+        exchangeOffers(state, players[side].giver, players[side].receiver, DEED_WRITER_ALLOWS, viewerId, inReturn(picks, side))
+            .sites.map((site) => site.siteId)
+    const counts = (picks: ExchangePicks, side: ExchangeSide, siteId: string) =>
+        siteCounts(state, players[side].giver, players[side].receiver, transferOf(picks.terms, side), siteId, inReturn(picks, side))
+    const pick = (picks: ExchangePicks, side: ExchangeSide, siteId: string, on = true) => {
+        expect(listed(picks, side)).toContain(siteId)
+        return keep(withSitePicked(picks, side, siteId, counts(picks, side, siteId), on))
+    }
+    const count = (picks: ExchangePicks, side: ExchangeSide, siteId: string, warbands: number) => {
+        expect(counts(picks, side, siteId)).toContain(warbands)
+        return keep(withSiteCount(picks, side, siteId, warbands))
+    }
+    return { keep, listed, counts, pick, count }
+}
+
+const danaView = (state: HydratedOathGameState) =>
+    new HydratedOathGameState(served(state, { kind: 'player', playerId: 'dana' }))
+
+const views = [
+    ['the server’s state', (state: HydratedOathGameState) => state],
+    ['Dana’s own view', danaView]
+] as const
+
+// R-10.8 — a site's count is one its row's pieces offer; a count the other side's change took
+// away is cleared, not clamped, so the player picks again and the terms wait for it.
+describe('a count no longer among its row’s counts is cleared', () => {
+    /** 'rhys' has one warband on his board and rules p1 with three; 'dana' gives c1. */
+    function staleTable() {
+        const s = table({ dana: { warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } }, rhys: { warbandsOnBoard: { rhys: 1 } } }, OathRevision.EngineFixes7)
+        s.warbandsBySite = { ...s.warbandsBySite, p1: { rhys: 3 } }
+        return s
+    }
+
+    for (const [view, of] of views) {
+        it(`a receiver who promised four after giving a site that returns three, then withdrew it, picks again at one (${view})`, () => {
+            const s = staleTable()
+            const ed = editor(of(s))
+            let picks = ed.count(ed.pick(noExchangePicks(), 'fromCounterparty', 'p1'), 'fromCounterparty', 'p1', 1)
+            picks = ed.count(ed.pick(picks, 'fromProposer', 'c1'), 'fromProposer', 'c1', 4)
+            expect(exchangeComplete(picks)).toBe(true)
+            expect(reasonExchangeInvalid(s, 'dana', 'rhys', picks.terms)).toBeUndefined()
+
+            const withdrawn = ed.pick(picks, 'fromCounterparty', 'p1', false)
+            // The count left behind is one the engine refuses: Rhys's board holds one.
+            expect(reasonExchangeInvalid(s, 'dana', 'rhys', { fromProposer: { sites: [{ siteId: 'c1', warbands: 4 }] } })).toBeDefined()
+            expect(ed.listed(withdrawn, 'fromProposer')).toContain('c1')
+            expect(ed.counts(withdrawn, 'fromProposer', 'c1')).toEqual([1])
+            expect(withdrawn.terms.fromProposer?.sites).toEqual([])
+            expect(withdrawn.uncountedSiteIds).toEqual(['c1'])
+            expect(exchangeComplete(withdrawn)).toBe(false)
+
+            const again = ed.count(withdrawn, 'fromProposer', 'c1', 1)
+            expect(again.terms.fromProposer?.sites).toEqual([{ siteId: 'c1', warbands: 1 }])
+            expect(exchangeComplete(again)).toBe(true)
+            expect(reasonExchangeInvalid(s, 'dana', 'rhys', again.terms)).toBeUndefined()
+        })
+    }
+
+    it('a count still among its row’s counts stays', () => {
+        const s = staleTable()
+        const ed = editor(s)
+        let picks = ed.count(ed.pick(noExchangePicks(), 'fromCounterparty', 'p1'), 'fromCounterparty', 'p1', 1)
+        picks = ed.count(ed.pick(picks, 'fromProposer', 'c1'), 'fromProposer', 'c1', 1)
+        const withdrawn = ed.pick(picks, 'fromCounterparty', 'p1', false)
+        expect(withdrawn.terms.fromProposer?.sites).toEqual([{ siteId: 'c1', warbands: 1 }])
+        expect(withdrawn.uncountedSiteIds).toEqual([])
+        expect(exchangeComplete(withdrawn)).toBe(true)
+    })
+})
+
+// Deed Writer: "Old ruler moves warbands to board, and new ruler moves warbands from board."
+describe('Deed Writer — two sites that depend on each other, both boards empty (revision 11)', () => {
+    /** 'dana' rules c1 (2 Imperial) and c2 (1); 'rhys' rules p1 with 2 warbands; both boards are empty. */
+    function bothEmpty(oathRevision: OathRevision = OathRevision.EngineFixes7, dana: Partial<OathPlayerState> = {}) {
+        const s = table({ dana, rhys: { warbandsOnBoard: {} } }, oathRevision)
+        s.warbandsBySite = { ...s.warbandsBySite, p1: { rhys: 2 } }
+        return s
+    }
+    const swapTerms = {
+        fromProposer: { sites: [{ siteId: 'c1', warbands: 2 }] },
+        fromCounterparty: { sites: [{ siteId: 'p1', warbands: 2 }] }
+    }
+
+    it('the engine accepts the swap, and neither side alone', () => {
+        const s = bothEmpty()
+        expect(reasonExchangeInvalid(s, 'dana', 'rhys', swapTerms)).toBeUndefined()
+        expect(reasonExchangeInvalid(s, 'dana', 'rhys', { fromProposer: swapTerms.fromProposer })).toBeDefined()
+        expect(reasonExchangeInvalid(s, 'dana', 'rhys', { fromCounterparty: swapTerms.fromCounterparty })).toBeDefined()
+    })
+
+    for (const [view, of] of views) {
+        for (const [who, first, firstSite, second, secondSite] of [
+            ['Dana', 'fromProposer', 'c1', 'fromCounterparty', 'p1'],
+            ['Rhys', 'fromCounterparty', 'p1', 'fromProposer', 'c1']
+        ] as const) {
+            it(`${who} picks first, with no count; the other's site brings both counts, and the engine accepts (${view})`, () => {
+                const s = bothEmpty()
+                const ed = editor(of(s))
+                expect(ed.listed(noExchangePicks(), 'fromProposer')).toEqual(['c1', 'c2'])
+                expect(ed.listed(noExchangePicks(), 'fromCounterparty')).toEqual(['p1'])
+
+                const staged = ed.pick(noExchangePicks(), first, firstSite)
+                expect(staged.uncountedSiteIds).toEqual([firstSite])
+                expect(ed.counts(staged, first, firstSite)).toEqual([])
+                expect(exchangeComplete(staged)).toBe(false)
+
+                const both = ed.pick(staged, second, secondSite)
+                expect([...both.uncountedSiteIds].sort()).toEqual(['c1', 'p1'])
+                expect(ed.counts(both, 'fromProposer', 'c1')).toEqual([1, 2])
+                expect(ed.counts(both, 'fromCounterparty', 'p1')).toEqual([1, 2])
+                expect(exchangeComplete(both)).toBe(false)
+
+                const done = ed.count(ed.count(both, 'fromProposer', 'c1', 2), 'fromCounterparty', 'p1', 2)
+                expect(done.uncountedSiteIds).toEqual([])
+                expect(done.terms.fromProposer?.sites).toEqual(swapTerms.fromProposer.sites)
+                expect(done.terms.fromCounterparty?.sites).toEqual(swapTerms.fromCounterparty.sites)
+                expect(exchangeComplete(done)).toBe(true)
+                expect(reasonExchangeInvalid(s, 'dana', 'rhys', done.terms)).toBeUndefined()
+            })
+        }
+    }
+
+    it('withdrawing one side’s site clears the other’s count, and that site waits for a site again', () => {
+        const s = bothEmpty()
+        const ed = editor(s)
+        const both = ed.pick(ed.pick(noExchangePicks(), 'fromProposer', 'c1'), 'fromCounterparty', 'p1')
+        const done = ed.count(ed.count(both, 'fromProposer', 'c1', 2), 'fromCounterparty', 'p1', 2)
+
+        const withdrawn = ed.pick(done, 'fromCounterparty', 'p1', false)
+        expect(withdrawn.terms.fromCounterparty?.sites).toEqual([])
+        expect(withdrawn.terms.fromProposer?.sites).toEqual([])
+        expect(withdrawn.uncountedSiteIds).toEqual(['c1'])
+        expect(ed.counts(withdrawn, 'fromProposer', 'c1')).toEqual([])
+        expect(exchangeComplete(withdrawn)).toBe(false)
+    })
+
+    it('a site with no way to become legal is neither listed nor kept: a Ring of Devotion holder cannot take the other site back', () => {
+        const s = bothEmpty(OathRevision.EngineFixes7, { relicIds: [RING] })
+        const ed = editor(s)
+        expect(ed.listed(noExchangePicks(), 'fromProposer')).toEqual([])
+        expect(ed.listed(noExchangePicks(), 'fromCounterparty')).toEqual([])
+        const kept = ed.keep(withSitePicked(noExchangePicks(), 'fromProposer', 'c1', [], true))
+        expect(kept.uncountedSiteIds).toEqual([])
+        expect(exchangeComplete(kept)).toBe(false)
+    })
+
+    it('before revision 11 nothing waits for a site: nothing is listed and no pick is kept, as before', () => {
+        const s = bothEmpty(OathRevision.EngineFixes6)
+        const ed = editor(s)
+        expect(reasonExchangeInvalid(s, 'dana', 'rhys', swapTerms)).toBeDefined()
+        expect(ed.listed(noExchangePicks(), 'fromProposer')).toEqual([])
+        expect(ed.listed(noExchangePicks(), 'fromCounterparty')).toEqual([])
+        const picked = withSitePicked(withSitePicked(noExchangePicks(), 'fromProposer', 'c1', [], true), 'fromCounterparty', 'p1', [], true)
+        expect(ed.keep(picked).uncountedSiteIds).toEqual([])
     })
 })

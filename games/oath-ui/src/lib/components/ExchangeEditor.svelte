@@ -13,6 +13,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         exchangeOffers,
+        inReturnOf,
         isSitePicked,
         siteCounts,
         siteWarbandsIn,
@@ -56,7 +57,7 @@
         key: ExchangeSide
         giver: string
         receiver: string
-        // R-10.8 — what the receiver gives back in the same exchange.
+        // R-10.8 — what the receiver gives back in the same exchange, sites picked but not yet counted too.
         inReturn: ExchangeTransfer
         offers: ExchangeOffers
     }
@@ -78,7 +79,7 @@
                 }
             ] as const
         ).map(({ key, giver, receiver, back }) => {
-            const inReturn = transferOf(value.terms, back)
+            const inReturn = inReturnOf(gameState, value, back, receiver)
             return {
                 key,
                 giver,
