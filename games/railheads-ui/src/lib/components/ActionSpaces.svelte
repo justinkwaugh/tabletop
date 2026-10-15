@@ -42,7 +42,7 @@
         <span class="round">
             {#if state.round() === 0}Initial auction{:else}Round {state.round()} of {rounds}{/if}
         </span>
-        <span class="coins"><span class="coin">$</span>{state.roundTimer}</span>
+        <span class="coins"><span class="coin"></span>{gameSession.money(state.roundTimer)}</span>
         {#if state.startPlayerId}
             <span class="starter" title="Start Player">
                 <TrainIcon size={16} />
@@ -68,13 +68,13 @@
                                 <span class="mini-coin" style:bottom="{coin * 3}px"></span>
                             {/each}
                         </span>
-                        <span class="amount">{entry.coins > 0 ? `$${entry.coins}` : 'empty'}</span>
+                        <span class="amount">{entry.coins > 0 ? gameSession.money(entry.coins) : 'empty'}</span>
                         <span class="label">on space</span>
                     </span>
                     <span class="cost" title="Coins you pay from the Round Timer to choose this space now">
                         <span class="label">Choose for</span>
                         <span class="mini-coin flat"></span>
-                        <span class="amount">{entry.cost}</span>
+                        <span class="amount">{gameSession.money(entry.cost)}</span>
                     </span>
                 </span>
             </button>
@@ -83,8 +83,8 @@
                     type="button"
                     class="collect"
                     onclick={() => gameSession.consolidate(entry.space)}
-                    title="Take the ${entry.coins} on this space as cash"
-                    >Consolidate ${entry.coins}</button
+                    title="Take the {gameSession.money(entry.coins)} on this space as cash"
+                    >Consolidate {gameSession.money(entry.coins)}</button
                 >
             {/if}
         </div>

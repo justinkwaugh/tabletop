@@ -19,7 +19,7 @@
             {industryName(view.industry)} token · level {view.minimum}
         </div>
         <p class="terms">
-            Sealed bids: the highest bidder pays the second-highest bid. A bid is $0 or at least ${view.minimum}.
+            Sealed bids: the highest bidder pays the second-highest bid. A bid is {gameSession.money(0)} or at least {gameSession.money(view.minimum)}.
         </p>
         <div class="seats">
             {#each view.seats as seat (seat.playerId)}
@@ -33,7 +33,7 @@
                         {#if seat.waiting}
                             …
                         {:else if seat.amount !== undefined}
-                            ${seat.amount}
+                            {gameSession.money(seat.amount)}
                         {:else if seat.sealed}
                             ✓
                         {:else}
@@ -53,7 +53,7 @@
                 />
                 {#if gameSession.mayBidZero}
                     <button type="button" class="secondary" onclick={() => gameSession.placeSealedBid(0)}
-                        >Bid $0</button
+                        >Bid {gameSession.money(0)}</button
                     >
                 {/if}
             </div>

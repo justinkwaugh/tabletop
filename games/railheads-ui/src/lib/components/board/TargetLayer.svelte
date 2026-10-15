@@ -10,7 +10,7 @@
             ...target,
             key: hexKey(target.coords),
             center: hexCenter(target.coords),
-            label: target.kind === PlacementKind.Cube ? `cube $${target.cost}` : `$${target.cost}`
+            label: target.kind === PlacementKind.Cube ? `cube ${gameSession.money(target.cost)}` : gameSession.money(target.cost)
         }))
     )
 

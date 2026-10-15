@@ -59,9 +59,9 @@
         <div class="figures">
             <div
                 class="entry"
-                title="Each {style.name} token pays ${level} at the payout, equal to its development level"
+                title="Each {style.name} token pays {gameSession.money(level)} at the payout, equal to its development level"
             >
-                <span>Payout</span><span class="money">${level}</span>
+                <span>Payout</span><span class="money">{gameSession.money(level)}</span>
             </div>
             <div class="entry" title="Industry sites with a company disc on them, of all {sites}">
                 <span>Sites</span><span class="money">{reached}/{sites}</span>

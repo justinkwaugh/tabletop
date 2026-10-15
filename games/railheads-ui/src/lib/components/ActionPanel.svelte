@@ -51,9 +51,7 @@
         {#if gameSession.issueCompany}
             {@const companyId = gameSession.issueCompany}
             <p class="prompt">
-                Open the bidding on a <CompanyBadge {companyId} /> share (minimum ${state.minimumBid(
-                    companyId
-                )}). Your bid goes to its treasury if nobody tops it.
+                Open the bidding on a <CompanyBadge {companyId} /> share (minimum {gameSession.money(state.minimumBid(companyId))}). Your bid goes to its treasury if nobody tops it.
             </p>
             <BidStepper
                 minimum={state.minimumBid(companyId)}
@@ -70,7 +68,7 @@
                         class="secondary"
                         onclick={() => gameSession.selectIssueCompany(companyId)}
                     >
-                        <ShareCertificate {companyId} /> from ${state.minimumBid(companyId)}
+                        <ShareCertificate {companyId} /> from {gameSession.money(state.minimumBid(companyId))}
                     </button>
                 {/each}
             </div>
@@ -121,7 +119,7 @@
                 {:else}
                     Lay {gameSession.placements.length} piece{gameSession.placements.length === 1
                         ? ''
-                        : 's'} · ${gameSession.stagedCost}{cubes > 0
+                        : 's'} · {gameSession.money(gameSession.stagedCost)}{cubes > 0
                         ? ` (${cubes} cube${cubes === 1 ? '' : 's'})`
                         : ''}
                 {/if}

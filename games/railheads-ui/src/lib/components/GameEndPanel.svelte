@@ -31,7 +31,7 @@
         {#each rows as row (row.playerId)}
             <li class:winner={winners.includes(row.playerId)}>
                 <PlayerName playerId={row.playerId} />
-                <strong>${row.cash}</strong>
+                <strong>{gameSession.money(row.cash)}</strong>
             </li>
         {/each}
     </ol>

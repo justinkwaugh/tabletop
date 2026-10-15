@@ -42,14 +42,14 @@
                 >
                     <span class="name">{gameSession.displayName(seat.playerId)}</span>
                     <span class="amount"
-                        >{seat.bid !== undefined ? `$${seat.bid}` : current ? '?' : '—'}</span
+                        >{seat.bid !== undefined ? gameSession.money(seat.bid) : current ? '?' : '—'}</span
                     >
                     {#if seat.passed}<Stamp label="Passed" />{/if}
                 </div>
             {/each}
         </div>
         <div class="terms">
-            Minimum bid ${view.minimum}
+            Minimum bid {gameSession.money(view.minimum)}
             {#if view.kind === ShareAuctionKind.Initial && view.openerId}
                 · unbid, it goes free to <PlayerName
                     playerId={view.openerId}
