@@ -562,6 +562,24 @@ def title_files(roots: list[Path], repo: Path) -> list[Path]:
     return sorted(repo / line for line in output.splitlines() if line and (repo / line).is_file())
 
 
+def gltf_buffers(files: list[Path]) -> set[Path]:
+    buffers: set[Path] = set()
+    for path in files:
+        if path.suffix.lower() != ".gltf":
+            continue
+        try:
+            entries = json.loads(path.read_text(encoding="utf-8")).get("buffers", [])
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            continue
+        for entry in entries:
+            uri = entry.get("uri") if isinstance(entry, dict) else None
+            if isinstance(uri, str) and not uri.startswith("data:") and (path.parent / uri).is_file():
+                buffer = (path.parent / uri).resolve()
+                if buffer.stat().st_size == entry.get("byteLength"):
+                    buffers.add(buffer)
+    return buffers
+
+
 def file_signature(data: bytes) -> str | None:
     if data[:4] == b"RIFF" and data[8:12] in (b"WEBP", b"WAVE"):
         return "webp" if data[8:12] == b"WEBP" else "wav"
@@ -834,6 +852,7 @@ def untrusted_code(
     agent_text: list[dict[str, Any]] = []
     svg: list[dict[str, Any]] = []
     binaries: list[dict[str, Any]] = []
+    model_buffers = gltf_buffers(files)
     for path in files:
         relative = path.relative_to(repo).as_posix()
         parts = set(path.relative_to(repo).parts)
@@ -848,6 +867,8 @@ def untrusted_code(
         except UnicodeDecodeError:
             text = None
         if text is None or expected:
+            if path.resolve() in model_buffers:
+                continue
             if signature != expected or (text is None and expected is None):
                 binaries.append({"path": relative, "bytes": len(data), "detected": signature or "unknown", "expected": expected})
             continue
