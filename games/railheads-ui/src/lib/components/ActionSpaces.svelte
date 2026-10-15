@@ -62,18 +62,14 @@
                 <span class="title">{entry.title}</span>
                 <span class="terms">{entry.terms}</span>
                 <span class="pile">
-                    <span class="held" title="Coins waiting on this space; consolidate to take them">
-                        <span class="stack" class:empty={entry.coins === 0}>
-                            {#each Array.from({ length: Math.min(entry.coins, 8) }, (_, index) => index) as coin (coin)}
-                                <span class="mini-coin" style:bottom="{coin * 3}px"></span>
-                            {/each}
-                        </span>
-                        <span class="amount">{entry.coins > 0 ? `$${entry.coins}` : 'empty'}</span>
-                        <span class="label">on space</span>
+                    <span class="row" title="Coins waiting on this space; consolidate to take them">
+                        <span class="label">On space</span>
+                        <span class="mini-coin"></span>
+                        <span class="amount">{entry.coins}</span>
                     </span>
-                    <span class="cost" title="Coins you pay from the Round Timer to choose this space now">
+                    <span class="row" title="Coins you pay from the Round Timer to choose this space now">
                         <span class="label">Choose for</span>
-                        <span class="mini-coin flat"></span>
+                        <span class="mini-coin"></span>
                         <span class="amount">{entry.cost}</span>
                     </span>
                 </span>
@@ -212,78 +208,34 @@
         font-size: 13px;
     }
 
-    .held,
-    .cost {
+    .row {
         display: flex;
         align-items: center;
-        gap: 1px;
+        gap: 4px;
+        white-space: nowrap;
     }
 
-    .held .amount {
-        margin-left: 0;
-        font-size: 20px;
-        line-height: 1;
-    }
-
-    .held .label {
-        margin-left: 6px;
-        font-size: 11px;
+    .row + .row {
+        padding-top: 2px;
+        border-top: 1px dashed #c9c493;
     }
 
     .label {
         flex: 1;
     }
 
-    .held .label {
-        flex: none;
-    }
-
-    .stack {
-        position: relative;
-        width: 22px;
-        height: 28px;
-        margin-right: 4px;
-    }
-
-    .stack.empty {
-        border: 1.5px dashed #b9b48a;
-        border-radius: 999px;
-        height: 12px;
-        margin-top: 16px;
-    }
-
     .mini-coin {
-        position: absolute;
-        left: 0;
-        width: 22px;
-        height: 11px;
+        width: 12px;
+        height: 12px;
         border: 1px solid #7a5f0a;
         border-radius: 999px;
         background: #e3c34a;
-        box-shadow: 0 1px 0 #a98a1c;
-    }
-
-    .mini-coin.flat {
-        position: static;
-        width: 12px;
-        height: 12px;
-        margin-left: 4px;
     }
 
     .amount {
-        margin-left: 5px;
+        min-width: 1ch;
         font-weight: 700;
-    }
-
-    .cost {
-        white-space: nowrap;
-        padding-top: 2px;
-        border-top: 1px dashed #c9c493;
-        color: #26300f;
-    }
-
-    .cost .amount {
-        margin-left: 4px;
+        text-align: right;
     }
 
     .collect {
