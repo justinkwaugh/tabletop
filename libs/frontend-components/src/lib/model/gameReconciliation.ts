@@ -88,6 +88,12 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             while (!remote.isPaused() && this.pending.length > 0) {
                 const update = this.pending.shift()
                 assertExists(update, 'A queued server update must exist')
+                // An update can arrive after a later change the client already has, such as the
+                // player's own Undo of a broadcast action or a later Undo than the one it reports;
+                // applying it would bring undone actions back.
+                if (update.kind !== 'synchronize' && this.predatesLocalGame(update.game)) {
+                    continue
+                }
                 try {
                     if (update.kind === 'synchronize') {
                         await remote.recover()
@@ -268,6 +274,15 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         if (game !== undefined) {
             this.context.updateGame(game)
         }
+    }
+
+    private predatesLocalGame(game: Game): boolean {
+        const local = this.context.game.updatedAt
+        return (
+            local !== undefined &&
+            game.updatedAt !== undefined &&
+            game.updatedAt.getTime() < local.getTime()
+        )
     }
 
     replace(
