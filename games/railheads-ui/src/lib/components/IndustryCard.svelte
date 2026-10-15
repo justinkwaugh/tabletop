@@ -17,7 +17,6 @@
     const level = $derived(state.industry(industry).level)
     const length = $derived(state.edition.definition.developmentTrackLength)
     const forSale = $derived(state.industry(industry).available)
-    const held = $derived(state.tokensHeld(industry))
     const steps = $derived(Math.max(0, state.edition.definition.industryTokensPerType - 1))
     const reached = $derived(state.industrySitesReached(industry))
     const sites = $derived(state.edition.industrySiteCount(industry))
@@ -55,7 +54,6 @@
     </div>
     <div class="body">
         {@render pile(forSale, 'for sale', `${forSale} tokens still to be auctioned`)}
-        {@render pile(held, 'held', `${held} tokens held by investors`)}
         <div class="figures">
             <div
                 class="entry"
