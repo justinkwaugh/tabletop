@@ -685,14 +685,17 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         if (this.inHistory) {
             return
         }
-        this.historyContext = this.gameContext.clone()
-        this.historyContext.updateGameState(
-            new ExplorationHistory(this.historyContext.engine).recordedState(
-                this.historyContext.state,
+        const historyContext = this.gameContext.clone()
+        historyContext.updateGameState(
+            new ExplorationHistory(historyContext.engine).recordedState(
+                historyContext.state,
                 this.gameContext.state.explorationState
             )
         )
-        this.actionIndex = this.historyContext.actions.length - 1
+        this.present('state-only', () => {
+            this.historyContext = historyContext
+            this.actionIndex = historyContext.actions.length - 1
+        })
 
         this.onHistoryEnter()
     }

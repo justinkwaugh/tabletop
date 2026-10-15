@@ -15,6 +15,7 @@ import type { RemoteApiService } from '../services/remoteApiService.js'
 import { GameActionResults, type ActionResults } from './gameActionResults.svelte.js'
 import type { GameContext } from './gameContext.svelte.js'
 import { sameStoredState } from './storedState.js'
+import type { TransitionKind, TransitionRequest } from './transitionPresenter.js'
 
 export enum ServerActionHandling {
     Execute = 'execute',
@@ -46,6 +47,7 @@ export interface ReconciliationRemote<T extends GameState, U extends HydratedGam
     recover(): Promise<void>
     acceptsPerspective(perspective: Visibility.Perspective): boolean
     beforeSynchronizationUpdate?(): void
+    present(request: TransitionRequest, write: () => void): void
 }
 
 export interface OptimisticSubmission<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -163,7 +165,9 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             return 'stale'
         }
         remote.beforeSynchronizationUpdate?.()
-        this.context.restoreFrom(prior)
+        this.present({ kind: 'reconciliation', intent: 'actions' }, () =>
+            this.context.restoreFrom(prior)
+        )
         return this.reload(isCurrent)
     }
 
@@ -176,7 +180,9 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         if (!isCurrent()) {
             return 'stale'
         }
-        this.context.restoreFrom(replacement)
+        this.present({ kind: 'reconciliation', intent: 'actions' }, () =>
+            this.context.restoreFrom(replacement)
+        )
         return 'current'
     }
 
@@ -191,7 +197,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             const actions = [...(response.missingActions ?? []), ...response.actions].toSorted(
                 (left, right) => (left.index ?? 0) - (right.index ?? 0)
             )
-            this.apply(actions, ServerActionHandling.ApplyProcessed, response.game)
+            this.apply(actions, ServerActionHandling.ApplyProcessed, response.game, 'own-action')
             this.context.verifyFullChecksum()
             return
         }
@@ -201,30 +207,40 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             (action) => action.id === actionId
         )
         assertExists(localAction, `Optimistic Action ${actionId} is unavailable`)
-        let applyAccepted = optimistic.result.revealing
-        if (!applyAccepted && !this.canKeepOptimisticResult(optimistic, response.actions)) {
-            this.context.restoreFrom(before)
-            applyAccepted = true
-        }
-        if (accepted.index !== undefined && accepted.index < (localAction.index ?? 0)) {
-            this.context.restoreFrom(before)
-            this.rollbackTo(this.context, accepted.index - 1)
-            before = this.context.clone()
-            applyAccepted = true
-        }
+        const revealing = optimistic.result.revealing
+        const corrected = !revealing && !this.canKeepOptimisticResult(optimistic, response.actions)
+        const acceptedIndex = accepted.index
+        const rollbackIndex =
+            acceptedIndex !== undefined && acceptedIndex < (localAction.index ?? 0)
+                ? acceptedIndex - 1
+                : undefined
+        const missing = response.missingActions ?? []
         let actions = response.actions
-        if (response.missingActions !== undefined && response.missingActions.length > 0) {
-            this.context.restoreFrom(before)
-            actions = [...response.missingActions]
-                .sort((left, right) => (left.index ?? 0) - (right.index ?? 0))
-                .concat(actions)
-            applyAccepted = true
-        }
-        if (applyAccepted) {
-            for (const action of actions) {
-                this.applyProcessedAction(this.context, action)
+        const kind: TransitionKind =
+            revealing && rollbackIndex === undefined && missing.length === 0
+                ? 'own-action'
+                : 'reconciliation'
+        this.present({ kind }, () => {
+            if (corrected) {
+                this.context.restoreFrom(before)
             }
-        }
+            if (rollbackIndex !== undefined) {
+                this.context.restoreFrom(before)
+                this.rollbackTo(this.context, rollbackIndex)
+                before = this.context.clone()
+            }
+            if (missing.length > 0) {
+                this.context.restoreFrom(before)
+                actions = [...missing]
+                    .sort((left, right) => (left.index ?? 0) - (right.index ?? 0))
+                    .concat(actions)
+            }
+            if (revealing || corrected || rollbackIndex !== undefined || missing.length > 0) {
+                for (const action of actions) {
+                    this.applyProcessedAction(this.context, action)
+                }
+            }
+        })
         for (const action of actions) {
             this.context.upsertAction(action)
         }
@@ -234,7 +250,8 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
     private apply(
         actions: readonly GameAction[],
         handling: ServerActionHandling,
-        game?: Game
+        game?: Game,
+        kind: TransitionKind = 'other-action'
     ): void {
         const gameSnapshot = structuredClone(this.context.game)
         let state = structuredClone(this.context.state)
@@ -268,12 +285,20 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             }
             state = results.updatedState
         }
-        if (results.processedActions.length > 0) {
-            this.context.applyActionResults(results)
-        }
-        if (game !== undefined) {
-            this.context.updateGame(game)
-        }
+        this.present({ kind }, () => {
+            if (results.processedActions.length > 0) {
+                this.context.applyActionResults(results)
+            }
+            if (game !== undefined) {
+                this.context.updateGame(game)
+            }
+        })
+    }
+
+    private present(request: TransitionRequest, write: () => void): void {
+        const remote = this.remote
+        if (remote) remote.present(request, write)
+        else write()
     }
 
     private predatesLocalGame(game: Game): boolean {
@@ -330,7 +355,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         if (game !== undefined) {
             replacement.updateGame(game)
         }
-        this.context.restoreFrom(replacement)
+        this.present({ kind: 'undo' }, () => this.context.restoreFrom(replacement))
     }
 
     private sameHistory(left: GameContext<T, U>, right: GameContext<T, U>): boolean {
@@ -381,7 +406,9 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         if (replacement.state.actionChecksum !== checksum) {
             return false
         }
-        this.context.restoreFrom(replacement)
+        this.present({ kind: 'reconciliation', intent: 'actions' }, () =>
+            this.context.restoreFrom(replacement)
+        )
         return true
     }
 

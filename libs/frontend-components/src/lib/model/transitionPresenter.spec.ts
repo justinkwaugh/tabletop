@@ -12,6 +12,7 @@ import {
     TransitionPresenter,
     type AnimationTimeline,
     type PresentableContext,
+    type PresentedTransition,
     type TransitionStep
 } from './transitionPresenter.js'
 
@@ -53,12 +54,14 @@ function fixture() {
     let source: Context = context
     const animations = new HeldAnimations()
     const published: HydratedPrivateHandState[] = []
+    const transitions: PresentedTransition[] = []
     const pendingLog: boolean[] = []
     const errors: unknown[] = []
     const steps: TransitionStep<HydratedPrivateHandState, AnimationTimeline>[] = []
     const output = {
-        publish: (state: HydratedPrivateHandState) => {
+        publish: (state: HydratedPrivateHandState, transition: PresentedTransition) => {
             published.push(state)
+            transitions.push(transition)
         },
         setPending: (pending: boolean) => {
             pendingLog.push(pending)
@@ -95,6 +98,7 @@ function fixture() {
         output,
         context,
         published,
+        transitions,
         pendingLog,
         errors,
         steps,
@@ -186,7 +190,7 @@ describe('TransitionPresenter', () => {
         f.play('p1', 'r1')
         f.presenter.visibleStateChanged()
         await runStarted()
-        f.presenter.present('state', () => f.play('p2', 'r2'))
+        f.presenter.present({ kind: 'undo' }, () => f.play('p2', 'r2'))
         f.draw('p1')
         f.presenter.visibleStateChanged()
         await f.animations.release()
@@ -218,7 +222,7 @@ describe('TransitionPresenter', () => {
         await f.animations.release()
         f.play('p1', 'r1')
         f.presenter.visibleStateChanged()
-        f.presenter.publishNow(() => f.play('p2', 'r2'))
+        f.presenter.publishNow('view-switch', () => f.play('p2', 'r2'))
         expect(f.published).toHaveLength(2)
         expect(f.published[1].actionCount).toBe(2)
         await f.animations.release()
@@ -247,9 +251,9 @@ describe('TransitionPresenter', () => {
         await f.animations.release()
         let failures = 1
         const publish = f.output.publish
-        f.output.publish = (state) => {
+        f.output.publish = (state, transition) => {
             if (failures-- > 0) throw new Error('hook failed')
-            publish(state)
+            publish(state, transition)
         }
         f.play('p1', 'r1')
         f.presenter.visibleStateChanged()
@@ -268,12 +272,12 @@ describe('TransitionPresenter', () => {
         const f = fixture()
         f.presenter.visibleStateChanged()
         await f.animations.release()
-        f.presenter.present('state', () => f.play('p1', 'r1'))
+        f.presenter.present({ kind: 'undo' }, () => f.play('p1', 'r1'))
         f.presenter.visibleStateChanged()
         await f.animations.release()
         expect(f.steps.at(-1)?.action).toBeUndefined()
         expect(f.published.at(-1)?.actionCount).toBe(1)
-        f.presenter.present('silent', () => {})
+        f.presenter.present({ kind: 'view-switch' }, () => {})
         f.play('p2', 'r2')
         f.presenter.visibleStateChanged()
         await f.animations.release()
@@ -284,11 +288,54 @@ describe('TransitionPresenter', () => {
         const f = fixture()
         f.presenter.visibleStateChanged()
         await f.animations.release()
-        f.presenter.present('silent', () => f.play('p1', 'r1'))
+        f.presenter.present({ kind: 'view-switch' }, () => f.play('p1', 'r1'))
         f.presenter.visibleStateChanged()
         await f.presenter.settled()
         expect(f.steps).toHaveLength(1)
         expect(f.published.at(-1)?.actionCount).toBe(1)
+    })
+
+    it('labels the first observation initial and later unwrapped ones edit', async () => {
+        const f = fixture()
+        f.presenter.visibleStateChanged()
+        await f.animations.release()
+        f.play('p1', 'r1')
+        f.presenter.visibleStateChanged()
+        await f.animations.release()
+        expect(f.transitions.map((transition) => transition.kind)).toEqual(['initial', 'edit'])
+        expect(f.steps.map((step) => step.kind)).toEqual(['initial', 'edit'])
+    })
+
+    it('gives a declared kind to its listeners and its publication, with the presented actions', async () => {
+        const f = fixture()
+        f.presenter.visibleStateChanged()
+        await f.animations.release()
+        f.presenter.present({ kind: 'own-action' }, () => f.play('p1', 'r1'))
+        f.presenter.visibleStateChanged()
+        await f.animations.release()
+        expect(f.steps.at(-1)?.kind).toBe('own-action')
+        expect(f.steps.at(-1)?.action?.type).toBe('play')
+        expect(f.transitions.at(-1)?.kind).toBe('own-action')
+        expect(f.transitions.at(-1)?.actions.map((action) => action.type)).toEqual(['play'])
+    })
+
+    it('lets a later declared kind replace an earlier one while a run is in flight', async () => {
+        const f = fixture()
+        f.presenter.visibleStateChanged()
+        await f.animations.release()
+        f.presenter.present({ kind: 'own-action' }, () => f.play('p1', 'r1'))
+        await runStarted()
+        f.presenter.present({ kind: 'other-action' }, () => f.play('p2', 'r2'))
+        f.presenter.present({ kind: 'reconciliation' }, () => f.draw('p1'))
+        f.presenter.visibleStateChanged()
+        await f.animations.release()
+        await f.animations.release()
+        expect(f.transitions.map((transition) => transition.kind)).toEqual([
+            'initial',
+            'own-action',
+            'reconciliation'
+        ])
+        expect(f.transitions.at(-1)?.actions).toEqual([])
     })
 
     it('exposes the incoming state while a change is presented', async () => {

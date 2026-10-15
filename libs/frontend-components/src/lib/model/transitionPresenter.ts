@@ -8,7 +8,22 @@ import type {
 } from '@tabletop/common'
 import { sameStoredState } from './storedState.js'
 
+export type TransitionKind =
+    | 'initial'
+    | 'own-action'
+    | 'other-action'
+    | 'reconciliation'
+    | 'undo'
+    | 'history'
+    | 'exploration'
+    | 'view-switch'
+    | 'edit'
+
 export type TransitionIntent = 'actions' | 'state' | 'silent'
+
+export type TransitionRequest = { kind: TransitionKind; intent?: TransitionIntent }
+
+export type PresentedTransition = { kind: TransitionKind; actions: readonly GameAction[] }
 
 export interface AnimationTimeline {
     play(): Promise<void>
@@ -16,6 +31,7 @@ export interface AnimationTimeline {
 }
 
 export type TransitionStep<U, A> = {
+    kind: TransitionKind
     to: U
     from?: U
     action?: GameAction
@@ -33,7 +49,7 @@ export interface PresentableContext<T extends GameState, U extends HydratedGameS
 }
 
 export interface DisplayedStateOutput<U> {
-    publish(state: U): void
+    publish(state: U, transition: PresentedTransition): void
     setPending(pending: boolean): void
 }
 
@@ -51,7 +67,23 @@ export interface TransitionPresenterDependencies<
 type PendingChange<T extends GameState, U extends HydratedGameState<T> & T> = {
     context: PresentableContext<T, U>
     state: T
+    kind: TransitionKind
+    origin: ChangeOrigin
     intent: TransitionIntent
+}
+
+type ChangeOrigin = 'producer' | 'watch'
+
+const DEFAULT_INTENT: Record<TransitionKind, TransitionIntent> = {
+    initial: 'actions',
+    'own-action': 'actions',
+    'other-action': 'actions',
+    reconciliation: 'state',
+    undo: 'state',
+    history: 'state',
+    exploration: 'state',
+    'view-switch': 'silent',
+    edit: 'actions'
 }
 
 const QUIETNESS: Record<TransitionIntent, number> = { silent: 0, state: 1, actions: 2 }
@@ -67,6 +99,7 @@ export class TransitionPresenter<
     private incomingState?: U
     private running = false
     private pending?: PendingChange<T, U>
+    private observed = false
     private waiters: Array<() => void> = []
 
     constructor(private readonly deps: TransitionPresenterDependencies<T, U, A>) {}
@@ -85,22 +118,24 @@ export class TransitionPresenter<
 
     visibleStateChanged(): void {
         const { context, state } = this.observe()
-        this.queue(context, state, 'actions')
+        const kind = this.observed ? 'edit' : 'initial'
+        this.observed = true
+        this.queue(context, state, { kind }, 'watch')
     }
 
-    present(intent: TransitionIntent, write: () => void): void {
+    present(request: TransitionRequest, write: () => void): void {
         const before = this.observe()
         write()
         const after = this.observe()
         if (after.context === before.context && after.state === before.state) return
-        this.queue(after.context, after.state, intent)
+        this.queue(after.context, after.state, request, 'producer')
     }
 
-    publishNow(write: () => void): void {
+    publishNow(kind: TransitionKind, write: () => void): void {
         write()
         const { context, state } = this.observe()
         this.pending = undefined
-        this.show(context, context.runtime.hydrator.hydrateState(state))
+        this.show(context, context.runtime.hydrator.hydrateState(state), { kind, actions: [] })
     }
 
     async settled(): Promise<void> {
@@ -113,11 +148,21 @@ export class TransitionPresenter<
         return { context, state: context.state }
     }
 
-    private queue(context: PresentableContext<T, U>, state: T, intent: TransitionIntent) {
+    private queue(
+        context: PresentableContext<T, U>,
+        state: T,
+        request: TransitionRequest,
+        origin: ChangeOrigin
+    ) {
+        const intent = request.intent ?? DEFAULT_INTENT[request.kind]
+        const earlier = this.pending
         this.pending = {
             context,
             state,
-            intent: this.pending ? this.quietest(this.pending.intent, intent) : intent
+            kind:
+                earlier?.origin === 'producer' && origin === 'watch' ? earlier.kind : request.kind,
+            origin: origin === 'producer' || earlier?.origin === 'producer' ? 'producer' : 'watch',
+            intent: earlier ? this.quietest(earlier.intent, intent) : intent
         }
         this.deps.output.setPending(true)
         if (!this.running) {
@@ -129,7 +174,7 @@ export class TransitionPresenter<
     private async drain() {
         try {
             while (this.pending) {
-                const { context, state, intent } = this.pending
+                const { context, state, kind, intent } = this.pending
                 this.pending = undefined
                 const from = this.displayed
                 if (
@@ -143,6 +188,7 @@ export class TransitionPresenter<
                     context,
                     from,
                     context.runtime.hydrator.hydrateState(state),
+                    kind,
                     intent
                 )
             }
@@ -159,12 +205,13 @@ export class TransitionPresenter<
         context: PresentableContext<T, U>,
         from: U | undefined,
         to: U,
+        kind: TransitionKind,
         intent: TransitionIntent
     ) {
         this.incomingState = to
         try {
-            await this.animate(context, from, to, intent)
-            if (this.displayed === from) this.show(context, to)
+            const actions = await this.animate(context, from, to, kind, intent)
+            if (this.displayed === from) this.show(context, to, { kind, actions })
         } catch (error) {
             this.deps.onError(error)
         } finally {
@@ -176,27 +223,29 @@ export class TransitionPresenter<
         context: PresentableContext<T, U>,
         from: U | undefined,
         to: U,
+        kind: TransitionKind,
         intent: TransitionIntent
-    ) {
+    ): Promise<GameAction[]> {
+        if (intent === 'silent') return []
+        const actions = intent === 'actions' ? this.actionsBetween(context, from, to) : []
         try {
-            await this.playSteps(context, from, to, intent)
+            if (from === undefined || actions.length === 0) {
+                await this.step({ kind, to, from })
+            } else {
+                await this.replay(context, from, actions, kind)
+            }
         } catch (error) {
             this.deps.onError(error)
         }
+        return actions
     }
 
-    private async playSteps(
+    private async replay(
         context: PresentableContext<T, U>,
-        from: U | undefined,
-        to: U,
-        intent: TransitionIntent
+        from: U,
+        actions: GameAction[],
+        kind: TransitionKind
     ) {
-        if (intent === 'silent') return
-        const actions = intent === 'actions' ? this.actionsBetween(context, from, to) : []
-        if (from === undefined || actions.length === 0) {
-            await this.step({ to, from })
-            return
-        }
         const hydrate = (state: T) => context.runtime.hydrator.hydrateState(state)
         let prior = from.dehydrate()
         for (const action of actions) {
@@ -205,12 +254,12 @@ export class TransitionPresenter<
                 state: prior,
                 game: context.game
             })
-            await this.step({ to: hydrate(next), from: hydrate(prior), action })
+            await this.step({ kind, to: hydrate(next), from: hydrate(prior), action })
             prior = next
         }
     }
 
-    private async step(step: { to: U; from?: U; action?: GameAction }) {
+    private async step(step: { kind: TransitionKind; to: U; from?: U; action?: GameAction }) {
         const animationContext = this.deps.createAnimationContext()
         await Promise.all(
             [...this.listeners].map((listener) => listener({ ...step, animationContext }))
@@ -219,8 +268,8 @@ export class TransitionPresenter<
         animationContext.runAfterAnimations()
     }
 
-    private show(context: PresentableContext<T, U>, state: U) {
-        this.deps.output.publish(state)
+    private show(context: PresentableContext<T, U>, state: U, transition: PresentedTransition) {
+        this.deps.output.publish(state, transition)
         this.displayed = state
         this.displayedContext = context
     }

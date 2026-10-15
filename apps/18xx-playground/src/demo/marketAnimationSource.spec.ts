@@ -49,14 +49,18 @@ it('projects a title-owned market while preserving shared lifecycle, replay inte
     const action = { id: 'trade', gameId: 'game', type: 'Trade', source: ActionSource.User }
     session.updatingVisibleState = true
     expect(source.updatingVisibleState).toBe(true)
-    for (const listener of listeners) await listener({ from, to, action, animationContext })
+    for (const listener of listeners) {
+        await listener({ kind: 'own-action', from, to, action, animationContext })
+    }
     expect(receive).toHaveBeenLastCalledWith({
         from: from.exchange,
         to: to.exchange,
         action,
         animationContext
     })
-    for (const listener of listeners) await listener({ from: to, to: from, animationContext })
+    for (const listener of listeners) {
+        await listener({ kind: 'undo', from: to, to: from, animationContext })
+    }
     expect(receive).toHaveBeenLastCalledWith({
         from: to.exchange,
         to: from.exchange,

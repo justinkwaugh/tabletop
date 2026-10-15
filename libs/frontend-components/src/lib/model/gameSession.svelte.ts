@@ -41,7 +41,9 @@ import { GameContext } from './gameContext.svelte.js'
 import { GameReconciliation } from './gameReconciliation.js'
 import {
     TransitionPresenter,
+    type PresentedTransition,
     type TransitionIntent,
+    type TransitionKind,
     type TransitionListener
 } from './transitionPresenter.js'
 import { GameUndo } from './gameUndo.js'
@@ -648,6 +650,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             beforeSynchronizationUpdate: () => {
                 this.applyingSynchronization = true
             },
+            present: (request, write) => this.presenter.present(request, write),
             acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective)
         })
 
@@ -664,7 +667,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.presenter = new TransitionPresenter<T, U, AnimationContext>({
             source: () => this.currentVisibleContext,
             output: {
-                publish: (state) => this.publishState(state),
+                publish: (state, transition) => this.publishState(state, transition),
                 setPending: (pending) => this.setPendingPresentation(pending)
             },
             createAnimationContext: () => new AnimationContext(),
@@ -679,7 +682,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 this.onHistoryExit()
             },
             present: (animationIntent, write) =>
-                this.presenter.present(this.historyTransition(animationIntent), write),
+                this.presenter.present(
+                    { kind: 'history', intent: this.historyTransition(animationIntent) },
+                    write
+                ),
             waitForTransitionSettled: () => this.waitForVisibleTransitionSettled()
         })
 
@@ -689,13 +695,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             this.runtime,
             {
                 onExplorationEnter: (context) =>
-                    this.presenter.present('state', () => {
+                    this.presenter.present({ kind: 'exploration' }, () => {
                         this.mode = GameSessionMode.Explore
                         this.explorationContext = context
                         this.history.updateSourceGameContext(context)
                     }),
                 onExplorationEnd: () =>
-                    this.presenter.present('state', () => {
+                    this.presenter.present({ kind: 'exploration' }, () => {
                         this.mode = GameSessionMode.Play
                         const position = Value.Equal(
                             this.explorationReturnPerspective,
@@ -709,7 +715,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                         this.explorationContext = undefined
                     }),
                 onExplorationSwitched: (context) =>
-                    this.presenter.present('state', () => {
+                    this.presenter.present({ kind: 'exploration' }, () => {
                         this.explorationContext = context
                         this.history.updateSourceGameContext(context)
                     })
@@ -818,12 +824,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private replacePrimaryGameContext(context: GameContext<T, U>): void {
         this.reconciliation.invalidatePendingRepresentation()
         if (this.isExploring) {
-            this.presenter.present('state', () => this.gameContext.restoreFrom(context.clone()))
+            this.presenter.present({ kind: 'view-switch' }, () =>
+                this.gameContext.restoreFrom(context.clone())
+            )
             return
         }
         // A representation change is a confidentiality boundary. Publish its state immediately
         // instead of retaining the prior perspective while asynchronous listeners settle.
-        this.presenter.publishNow(() => {
+        this.presenter.publishNow('view-switch', () => {
             this.history.updateSourceGameContext(this.gameContext)
             this.gameContext.restoreFrom(context.clone())
         })
@@ -848,7 +856,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     async presentState(state: T): Promise<void> {
-        this.gameContext.updateGameState(state)
+        this.presenter.present({ kind: 'edit' }, () => this.gameContext.updateGameState(state))
         await this.waitForVisibleTransitionSettled()
     }
 
@@ -856,8 +864,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.presenter.incoming
     }
 
-    private publishState(state: U) {
-        this.beforeNewState()
+    private publishState(state: U, transition: PresentedTransition) {
+        this.beforeNewState(transition)
         this.reconcilePlayerPerspective(state)
         this.gameState = state
     }
@@ -878,9 +886,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
-    beforeNewState() {}
+    beforeNewState(_transition: PresentedTransition) {}
 
     async onGameStateChange(_args: {
+        kind: TransitionKind
         to: U
         from?: U
         action?: GameAction
@@ -1130,7 +1139,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             // This is because the server may reject the action due to undo or any other reason and we
             // do not want to show the player the revealed info.
             if (!this.usesHostExecution(relevantContext) || !actionResults.revealing) {
-                relevantContext.applyActionResults(actionResults)
+                this.presenter.present({ kind: 'own-action' }, () =>
+                    relevantContext.applyActionResults(actionResults)
+                )
             }
 
             // Our processed action has the updated index so grab it
@@ -1175,7 +1186,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             console.log(e)
             const representationRequestStale = !isRepresentationCurrent()
             if (!representationRequestStale) {
-                relevantContext.restoreFrom(priorContext)
+                this.presenter.present({ kind: 'reconciliation' }, () =>
+                    relevantContext.restoreFrom(priorContext)
+                )
             }
             if (!this.isMajorChange()) {
                 toast.error(
@@ -1265,7 +1278,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     targetAction,
                     this.projectedExecutionPerspective(context)
                 )
-                this.presenter.present('state', () => context.restoreFrom(preview))
+                this.presenter.present({ kind: 'undo' }, () => context.restoreFrom(preview))
                 optimisticState = context.state
             } catch (error) {
                 if (!hosted) throw error
@@ -1279,7 +1292,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     await this.representations.reload()
                     return
                 }
-                this.presenter.present('state', () =>
+                this.presenter.present({ kind: 'undo' }, () =>
                     this.reconciliation.replace(
                         response.actionReplay ?? response.canonicalReplay,
                         response.checksum,
@@ -1299,7 +1312,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             await this.waitForVisibleTransitionSettled()
             const stale = !isRepresentationCurrent()
             if (!stale || context.state === optimisticState) {
-                this.presenter.present('state', () => context.restoreFrom(before))
+                this.presenter.present({ kind: 'reconciliation' }, () =>
+                    context.restoreFrom(before)
+                )
             }
             if (!this.isMajorChange()) {
                 toast.error('An error occurred while undoing an action')
@@ -1352,7 +1367,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             await this.representations.reload()
             return
         }
-        this.gameContext.updateGameState(state)
+        this.presenter.present({ kind: 'edit' }, () => this.gameContext.updateGameState(state))
     }
 
     private executeActionInGame(

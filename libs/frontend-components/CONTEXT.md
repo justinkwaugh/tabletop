@@ -27,6 +27,9 @@ The Active Game Context when it is eligible to receive new Actions. No Game Cont
 **Displayed Game State**:
 The Game State currently published to game UI components. During transition presentation, it remains at the prior state until the resulting state is ready to be displayed.
 
+**Transition Kind**:
+Why the Displayed Game State is changing: the first presentation, the Acting Player's own Action, another Player's Action, Reconciliation, Undo, History Navigation, Exploration, a switch of the Displayed Game Representation, or a direct edit of the Game State. A game UI decides from the kind which transient state survives the change.
+
 **Displayed Game Representation**:
 The Game Context currently supplying the game UI. For a Hosted Game with hidden information, it may be an ordinary Player or spectator projection, an authorized canonical Host View, or a Player projection derived locally from a retained Host Game Context for inspection.
 
