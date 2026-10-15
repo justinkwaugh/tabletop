@@ -1,7 +1,7 @@
-import * as Value from 'typebox/value'
 import {
     ActionSource,
     assertExists,
+    createPatch,
     findLastIndex,
     GameSyncStatus,
     type CanonicalActionReplayManifest,
@@ -388,7 +388,9 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                 game: optimistic.before.game
             })
         }
-        return Value.Equal(confirmedState, optimistic.result.updatedState)
+        // Compare as the server's forward patch does: a field cleared to undefined locally arrives
+        // removed, and must not count as a difference.
+        return createPatch(confirmedState, optimistic.result.updatedState).length === 0
     }
 
     private rollbackTo(context: GameContext<T, U>, index: number): void {

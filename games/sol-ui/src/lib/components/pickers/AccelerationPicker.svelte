@@ -4,10 +4,10 @@
     import Clockwise from '$lib/images/clockwise.svelte'
     import SolPicker from './SolPicker.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import { MachineState, type HydratedSolGameState } from '@tabletop/sol'
 
     let gameSession = getGameSession() as SolGameSession
     let amount: number = $state(0)
-    let amountChosen = $state(false)
     let picker: SolPicker
 
     let maxAmount = $derived(gameSession.gameState.board.numMothershipLocations - 1)
@@ -37,22 +37,21 @@
         if (amount === 0) {
             return
         }
-        amountChosen = true
         picker.close()
 
         gameSession.accelerationAmount = amount
         await gameSession.accelerate()
     }
 
-    async function onClose() {
-        if (!amountChosen) {
-            await gameSession.undo()
-        }
-    }
-
     function attachCloseOnStateChange(_element: HTMLElement) {
-        const onGameStateChange = async () => {
-            picker?.close()
+        // The player cannot dismiss this picker, so closing it never undoes. A State that is
+        // replaced but still Accelerating rebuilds the mothership preview, so start over at zero.
+        const onGameStateChange = async ({ to }: { to: HydratedSolGameState }) => {
+            if (to.machineState === MachineState.Accelerating) {
+                amount = 0
+            } else {
+                picker?.close()
+            }
         }
 
         gameSession.addGameStateChangeListener(onGameStateChange)
@@ -63,7 +62,7 @@
     }
 </script>
 
-<SolPicker bind:this={picker} {onClose} offset={8} trigger="manual">
+<SolPicker bind:this={picker} offset={8} trigger="manual">
     <div
         {@attach attachCloseOnStateChange}
         class="flex flex-row flex-wrap justify-center items-center gap-x-2"
