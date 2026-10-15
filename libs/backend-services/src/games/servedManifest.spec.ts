@@ -55,7 +55,9 @@ describe('servedManifest', () => {
         expect(servedManifest(live, loaded).frontend).toEqual({ version: '1.0.0' })
     })
 
-    it('serves no games before any are loaded', () => {
-        expect(servedManifest(loaded, undefined)).toEqual({ ...loaded, games: [] })
+    it('keeps the loaded publication when the same package names a different game', () => {
+        const renamed = { ...game('oath', '1.0.0', '1.1.0'), gameId: 'oath-renamed' }
+        const live: SiteManifest = { ...loaded, games: [renamed, game('sol', '2.0.0', '3.0.0')] }
+        expect(servedManifest(live, loaded).games[0]).toEqual(game('oath', '1.0.0', '1.0.0'))
     })
 })
