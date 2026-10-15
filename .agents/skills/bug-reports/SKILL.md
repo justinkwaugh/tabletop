@@ -16,10 +16,10 @@ reporters are not in the Discord server, so the message is their only answer.
 
 The note goes to the reporter alone; the forum gets the status. Write it as the site to a
 player, in plain words about what they saw and what changes. Keep opponents' hidden
-information out (hands, hidden stacks, secret choices); the scenario holds all of it. Run each
-milestone with `--dry-run` first and show the user the message and its email preview; send it
-once they agree, unless they have told you to send without asking. A command that updated the
-post but could not reach the reporter says so; `notify` sends the message again.
+information out (hands, hidden stacks, secret choices); the scenario holds all of it. Send each
+milestone as you reach it and tell the user what went out; `not a bug` alone waits for their
+approval (step 3). A command that updated the post but could not reach the reporter says so;
+`notify` sends the message again.
 
 ## 1. Read
 
@@ -53,8 +53,8 @@ Each outcome has its milestone:
   behaves that way for a good reason: `close <post> --as "not a bug"`. This message disagrees
   with the player, so the note is **gentle**: take their concern seriously, then explain in a
   positive way why the game works like this, or give the tip for doing what they were after.
-  It goes out with `--approved`, which you add after the user has read and agreed to its
-  `--dry-run`, every time, whatever they said about other milestones.
+  Run it with `--dry-run` first and show the user the message and its email preview; it goes
+  out with `--approved`, which you add once they agree, every time.
 - **Won't fix**, a real fault that will stay as it is: `close <post> --as "wont fix"` with a note
   saying why.
 
