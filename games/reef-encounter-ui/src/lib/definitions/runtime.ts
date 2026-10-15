@@ -16,11 +16,12 @@ import '../../app.css'
 
 // The painted wood of the shrimp pieces, measured from a photograph of them, with the red
 // deepened and the green lightened so the two differ in lightness as well as hue and stay apart
-// for red- and green-blind players.
+// for red- and green-blind players. The green is the green parrotfish's lime, saturated like the
+// other three, so it does not sink into the table's teal water.
 const reefEncounterPlayerColorPalette: PlayerColorPalette = {
     [Color.Red]: { fill: '#a81c0c', text: '#ffffff', contrast: '#ffffff' },
     [Color.Yellow]: { fill: '#efe048', text: '#000000', contrast: '#000000' },
-    [Color.Green]: { fill: '#4f9e55', text: '#000000', contrast: '#000000' },
+    [Color.Green]: { fill: '#5fae3e', text: '#000000', contrast: '#000000' },
     [Color.Purple]: { fill: '#58287a', text: '#ffffff', contrast: '#ffffff' }
 }
 

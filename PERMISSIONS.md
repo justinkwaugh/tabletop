@@ -25,3 +25,7 @@ Permission granted by Stefan Dorra to Justin Waugh on 2026-10-04 for non-commerc
 ### Magna Grecia
 
 Permission granted by Leo Colovini and Michael Schacht to Justin Waugh on 2026-10-06 for non-commercial use of Magna Grecia when hosted on https://boardtogether.games
+
+### Reef Encounter
+
+Permission granted by Richard Breese to Dan Domme on 2026-10-08 for non-commercial use of Reef Encounter and its graphical assets when hosted on https://boardtogether.games

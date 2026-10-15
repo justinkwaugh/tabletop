@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { cutOutWater } from './cut-out-water.mjs'
 
 const source = process.argv[2]
 if (!source) {
@@ -290,7 +291,7 @@ for (const color of Colors) {
 }
 
 // Each player's parrotfish, from the parrotfish box art, for the player panels: one fish of the
-// player's colour swimming level, in a strip at twice the panel's 320 by 120 size.
+// player's colour swimming level, cut out of its water.
 const BoxArtScale = 2.278
 const ParrotfishCrops = {
     purple: { file: 'Parrotfish_outside-Purple_Red.png', box: [320, 470, 760, 635] },
@@ -313,6 +314,7 @@ for (const [color, { file, box }] of Object.entries(ParrotfishCrops)) {
         Lossy,
         path.join(images, 'parrotfish', `${color}.webp`)
     )
+    cutOutWater(path.join(images, 'parrotfish', `${color}.webp`), Lossy)
 }
 
 // The cover, from the user's colour-corrected copy of the CMYK original, at twice the catalog's

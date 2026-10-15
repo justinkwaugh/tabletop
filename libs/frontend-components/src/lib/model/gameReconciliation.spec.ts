@@ -227,3 +227,76 @@ describe('GameReconciliation server updates', () => {
         expect(context.applyActionResults).toHaveBeenCalledOnce()
     })
 })
+
+// The player undid an action; the client already shows the result, and the server's push of the
+// Undo to the same player replays exactly that history.
+class FakeContext {
+    historyStartIndex = 0
+    updateGame = vi.fn()
+    restoreFrom = vi.fn()
+    verifyFullChecksum = () => {}
+
+    constructor(
+        public state: State,
+        public actions: GameAction[],
+        readonly game: Game,
+        readonly engine: { applyProcessedAction(input: { action: GameAction; state: State }): State }
+    ) {}
+
+    get nextActionIndex() {
+        return this.actions.length
+    }
+
+    undoLastAction() {
+        this.actions = this.actions.slice(0, -1)
+        this.state = stateWith({ actionCount: this.actions.length })
+    }
+
+    applyActionResults(results: { processedActions: GameAction[]; updatedState: State }) {
+        this.actions = [...this.actions, ...results.processedActions]
+        this.state = results.updatedState
+    }
+
+    clone(): FakeContext {
+        return new FakeContext(structuredClone(this.state), [...this.actions], this.game, this.engine)
+    }
+}
+
+function afterOwnUndo(replayedRank: number) {
+    const game = { id: 'game', updatedAt: new Date('2026-10-14T21:00:01.000Z') } as Game
+    const kept: GameAction = {
+        id: 'kept',
+        gameId: 'game',
+        type: 'Build',
+        playerId: 'p1',
+        source: ActionSource.User,
+        index: 0
+    }
+    const engine = {
+        applyProcessedAction: ({ state }: { action: GameAction; state: State }) =>
+            ({ ...state, actionCount: state.actionCount + 1, rank: replayedRank }) as State
+    }
+    const shown = { ...stateWith({ actionCount: 1 }), rank: 0 } as State
+    const context = new FakeContext(shown, [kept], game, engine)
+    const reconciliation = new GameReconciliation(context as unknown as Context)
+    return { context, reconciliation, replay: { startIndex: 0, actions: [kept] }, game }
+}
+
+describe('GameReconciliation.replace', () => {
+    it('keeps the current State when the replay rebuilds exactly what the client has', () => {
+        const { context, reconciliation, replay, game } = afterOwnUndo(0)
+
+        reconciliation.replace(replay, 0, game)
+
+        expect(context.restoreFrom).not.toHaveBeenCalled()
+        expect(context.updateGame).toHaveBeenCalledWith(game)
+    })
+
+    it('replaces the State when the replay rebuilds something different', () => {
+        const { context, reconciliation, replay, game } = afterOwnUndo(2)
+
+        reconciliation.replace(replay, 0, game)
+
+        expect(context.restoreFrom).toHaveBeenCalledOnce()
+    })
+})
