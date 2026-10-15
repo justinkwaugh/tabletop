@@ -60,6 +60,10 @@ To release, deploy, or publish a game or the site frontend, or to check what is 
 
 For read-only production evidence (logs, Cloud Tasks queues, Firestore records, serving revisions), use `.agents/skills/prod-investigation/SKILL.md`.
 
+### Bug reports
+
+To read, answer, fix or close player bug reports from the Discord forum, use `.agents/skills/bug-reports/SKILL.md`.
+
 ### Animation
 
 For game UI animation design, implementation, debugging, or review, use `.agents/skills/game-ui-animation/SKILL.md`.

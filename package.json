@@ -14,6 +14,7 @@
         "watch:backend": "turbo watch dev --filter=@tabletop/backend",
         "start:backend": "turbo run start --filter=@tabletop/backend",
         "update-games": "turbo update-games",
+        "bug-reports": "node tools/bug-reports/src/cli.mjs",
         "deploy": "node tools/deploy/esm/cli.js",
         "investigate": "node tools/investigate/src/cli.mjs",
         "rehearse": "pnpm --filter @tabletop/tools exec tsx src/rehearsal/cli.mjs"

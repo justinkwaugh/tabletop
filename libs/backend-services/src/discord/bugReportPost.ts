@@ -116,7 +116,7 @@ function scenarioFields(scenario: ScenarioAttachment | undefined): APIEmbedField
         return []
     }
     const value = scenario.attached
-        ? `Put \`${scenario.filename}\` in the UI package's \`src/scenarios\` to open it in the dev harness`
+        ? `Open \`${scenario.filename}\` with **Load from file…** in the title's dev harness; it is a real game, so keep it out of the repository`
         : `Too large to attach (${(scenario.bytes / 1_000_000).toFixed(1)} MB)`
     return [{ name: 'Scenario', value }]
 }

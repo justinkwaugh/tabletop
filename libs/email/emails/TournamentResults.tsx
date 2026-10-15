@@ -3,7 +3,6 @@ import {
     Button,
     Column,
     Container,
-    Font,
     Head,
     Heading,
     Hr,
@@ -15,6 +14,13 @@ import {
     Text,
 } from '@react-email/components'
 import type { CSSProperties } from 'react'
+import {
+    DarkHeadContent,
+    Wordmark,
+    darkPalette,
+    darkStyles,
+    fontStack,
+} from '../components/darkCard.js'
 
 export interface TournamentResultsRow {
     rank: number
@@ -34,76 +40,15 @@ interface TournamentResultsProps {
 }
 
 const palette = {
-    canvas: '#111827',
-    card: '#1f2937',
-    cardBorder: '#374151',
-    raised: '#293950',
-    raisedBorder: '#6496df80',
+    ...darkPalette,
     highlight: '#24314a',
-    text: '#f9fafb',
-    muted: '#9ca3af',
-    faint: '#6b7280',
     divider: '#374151',
-    blue: '#93c5fd',
-    brandBlue: '#4a7fd0',
-    button: '#2563eb',
-    buttonBorder: '#3b82f6',
     gold: '#fbbf24',
     you: '#fdba74',
 }
 
-const fontStack =
-    "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
-const numberStack =
-    "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
-
 const styles = {
-    body: {
-        margin: 0,
-        padding: 0,
-        backgroundColor: palette.canvas,
-        fontFamily: fontStack,
-        WebkitFontSmoothing: 'antialiased',
-    },
-    container: { maxWidth: '600px', margin: '0 auto', padding: '32px 16px' },
-    wordmark: { textAlign: 'center', padding: '0 0 20px' },
-    wordmarkBoard: {
-        fontSize: '18px',
-        fontWeight: 800,
-        letterSpacing: '0.04em',
-        color: palette.brandBlue,
-        textDecoration: 'none',
-    },
-    wordmarkTogether: {
-        fontSize: '18px',
-        fontWeight: 300,
-        letterSpacing: '0.04em',
-        color: palette.muted,
-        textDecoration: 'none',
-    },
-    card: {
-        backgroundColor: palette.card,
-        border: `1px solid ${palette.cardBorder}`,
-        borderRadius: '12px',
-        padding: '32px 32px 28px',
-    },
-    eyebrow: {
-        margin: 0,
-        fontSize: '12px',
-        fontWeight: 600,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        color: palette.blue,
-    },
-    heading: {
-        margin: '10px 0 6px',
-        fontSize: '30px',
-        lineHeight: '1.1',
-        fontWeight: 700,
-        letterSpacing: '-0.02em',
-        color: palette.text,
-    },
-    subline: { margin: 0, fontSize: '15px', lineHeight: '1.6', color: palette.muted },
+    ...darkStyles,
     champion: {
         marginTop: '24px',
         backgroundColor: palette.raised,
@@ -151,23 +96,9 @@ const styles = {
         fontSize: '15px',
         lineHeight: '1.3',
         color: palette.text,
-        fontFamily: numberStack,
+        fontFamily: fontStack,
     },
     footnote: { margin: '10px 0 0', fontSize: '12px', lineHeight: '1.5', color: palette.faint },
-    button: {
-        display: 'inline-block',
-        backgroundColor: palette.button,
-        border: `1px solid ${palette.buttonBorder}`,
-        borderRadius: '8px',
-        color: '#ffffff',
-        fontSize: '14px',
-        fontWeight: 600,
-        lineHeight: '20px',
-        padding: '13px 24px',
-        textDecoration: 'none',
-    },
-    footer: { margin: 0, fontSize: '12px', lineHeight: '1.6', color: palette.faint },
-    footerLink: { color: palette.muted, textDecoration: 'underline' },
 } satisfies Record<string, CSSProperties>
 
 const formatNames = (names: string[]): string => {
@@ -228,31 +159,12 @@ export const TournamentResults = ({
     return (
         <Html>
             <Head>
-                <meta name="color-scheme" content="dark" />
-                <meta name="supported-color-schemes" content="dark" />
-                <Font
-                    fontFamily="Inter"
-                    fallbackFontFamily={['Helvetica', 'Arial', 'sans-serif']}
-                    webFont={{
-                        url: 'https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff2',
-                        format: 'woff2',
-                    }}
-                    fontWeight={400}
-                    fontStyle="normal"
-                />
+                <DarkHeadContent />
             </Head>
             <Preview>{previewText}</Preview>
             <Body style={styles.body}>
                 <Container style={styles.container}>
-                    <Section style={styles.wordmark}>
-                        <Link href={url} style={styles.wordmarkBoard}>
-                            BOARD
-                        </Link>
-                        <Link href={url} style={styles.wordmarkTogether}>
-                            {' '}
-                            TOGETHER
-                        </Link>
-                    </Section>
+                    <Wordmark href={url} />
 
                     <Section style={styles.card}>
                         <Text style={styles.eyebrow}>Tournament complete</Text>

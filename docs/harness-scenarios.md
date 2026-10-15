@@ -12,7 +12,7 @@ A game's dev harness can open prepared positions. Put JSON files in a `src/scena
 
 ## Bug reports
 
-A bug report posted to Discord attaches the reported game as a scenario file, `bug-report-<gameId>.json`, holding the whole game: every player's hidden information and all its actions. Drop it into the game's `src/scenarios`, or open it with **Load from file…**, to open the game as it was reported and step through its history. Files over Discord's 10 MB upload limit are left off, and the post says so.
+A bug report posted to Discord attaches the reported game as a scenario file, `bug-report-<gameId>.json`, holding the whole game: every player's hidden information and all its actions. Open it with **Load from file…** to see the game as it was reported and step through its history; it is a real game with real names, so it stays out of the repository. Files over Discord's 10 MB upload limit are left off, and the post says so.
 
 ## Building a position by hand
 
