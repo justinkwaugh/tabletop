@@ -46,7 +46,7 @@
             class="total"
             title="What this player's shares would pay if dividends were paid now"
         >
-            <span>TOTAL DIV <strong>${dividend}</strong></span>
+            <span>PAYOUT DUE <strong>${dividend}</strong></span>
         </div>
     </div>
 </div>
