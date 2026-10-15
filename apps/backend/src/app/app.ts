@@ -113,9 +113,10 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         }
     })
 
-    let servedFrontendVersion: string | null = null
     fastify.addHook('onSend', async (_request, reply, payload) => {
-        void reply.header('X-Tabletop-Version', servedFrontendVersion ?? '0.0.0')
+        const frontendVersion =
+            FRONTEND_VERSION_OVERRIDE ?? (await manifestFrontendVersion(fastify))
+        void reply.header('X-Tabletop-Version', frontendVersion ?? '0.0.0')
         return payload
     })
 
@@ -169,7 +170,10 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin)
     await fastify.register(ServicesPlugin)
-    servedFrontendVersion = FRONTEND_VERSION_OVERRIDE ?? (await manifestFrontendVersion(fastify))
+    // Firebase Hosting serves the site files; this startup build is only a fallback for a Hosting
+    // release that sends every path to the backend.
+    const staticFrontendVersion =
+        FRONTEND_VERSION_OVERRIDE ?? (await manifestFrontendVersion(fastify))
 
     if (service !== 'local') {
         fastify.addHook('onRequest', async (request, _reply) => {
@@ -298,13 +302,13 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         })
 
         if (service === 'backend') {
-            if (servedFrontendVersion) {
+            if (staticFrontendVersion) {
                 console.log(
                     'Serving static content for root from: ' +
-                        path.join(STATIC_ROOT, 'frontend', servedFrontendVersion)
+                        path.join(STATIC_ROOT, 'frontend', staticFrontendVersion)
                 )
                 await fastify.register(fastifyStatic, {
-                    root: path.join(STATIC_ROOT, 'frontend', servedFrontendVersion),
+                    root: path.join(STATIC_ROOT, 'frontend', staticFrontendVersion),
                     preCompressed: true,
                     cacheControl: false,
                     setHeaders: (reply, pathName) => {

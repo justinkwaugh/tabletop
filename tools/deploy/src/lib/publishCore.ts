@@ -188,8 +188,8 @@ const servesArtifacts = (serving: ServingLookup, artifacts: PublishedArtifact[])
 
 export type ServingSettle = { timeoutMs: number; intervalMs: number }
 
-// The backend swaps in a new frontend by replacing its server process, which can take
-// minutes on a throttled instance, so the served version lags the manifest.
+// The backend swaps in new game logic by replacing its server process, which can take
+// minutes on a throttled instance, so the served logic version lags the manifest.
 const DEFAULT_SERVING_SETTLE: ServingSettle = { timeoutMs: 5 * 60_000, intervalMs: 5_000 }
 
 export const pollUntil = async <Value>(
@@ -237,16 +237,9 @@ const awaitServing = async (
     return serving
 }
 
-export type AfterServingStep = {
-    name: string
-    recovery: string
-    run: () => Promise<void>
-}
-
 export type ReportedDeployOptions = {
     verifyServing: boolean
     settle?: ServingSettle
-    afterServing?: AfterServingStep
 }
 
 const describeError = (error: unknown) => (error instanceof Error ? error.message : error)
@@ -272,39 +265,15 @@ export const runReportedDeploy = async (
         throw error
     }
 
-    const afterServing = options.afterServing
-    let servingAfter: ServingLookup
-    try {
-        servingAfter = options.verifyServing
-            ? await awaitServing(
-                  context,
-                  label,
-                  artifacts,
-                  fetchServingVersions,
-                  options.settle ?? DEFAULT_SERVING_SETTLE
-              )
-            : await fetchServingVersions()
-    } catch (error) {
-        if (afterServing) {
-            context.log(
-                `${label} ${afterServing.name} did not run; once the backend serves ` +
-                    `${describeVersions(artifacts)}, run ${afterServing.recovery}`
-            )
-        }
-        throw error
-    }
-    if (afterServing) {
-        try {
-            await afterServing.run()
-        } catch (error) {
-            context.log(
-                `${label} deploy FAILED after the backend switched: ${describeError(error)}; ` +
-                    `run ${afterServing.recovery}`
-            )
-            context.log(`${label} serving now: ${describeServing(servingAfter)}`)
-            throw error
-        }
-    }
+    const servingAfter = options.verifyServing
+        ? await awaitServing(
+              context,
+              label,
+              artifacts,
+              fetchServingVersions,
+              options.settle ?? DEFAULT_SERVING_SETTLE
+          )
+        : await fetchServingVersions()
     const outcome = options.verifyServing ? '' : ' (staged without traffic)'
     context.log(`${label} deploy SUCCEEDED: ${describeVersions(artifacts)}${outcome}`)
     context.log(`${label} serving now: ${describeServing(servingAfter)}`)

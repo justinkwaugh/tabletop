@@ -94,11 +94,12 @@ failing step and the error text, and then:
   and return to the branch afterwards.
 - A deploy that failed after uploading an artifact is safe to rerun: the tool reuses an
   existing artifact for the tagged version and continues with the remaining steps.
-- A frontend line naming `sync-hosting` (`deploy FAILED after the backend switched`, or `the
-  Firebase Hosting copy did not run`) means Hosting, which is in use only when the deploy config
-  sets `hosting.channel`, still serves the old site files. Once the backend serves the new
-  version, run `sync-hosting`, then confirm `preflight --frontend` reports that Hosting serves
-  the manifest's version.
+- A frontend failure after `hosting: live serves frontend <version>` (the line naming
+  `sync-hosting`) means Firebase Hosting, in use when the deploy config sets `hosting.channel`,
+  already serves the new site files but the manifest still names the old version, so players
+  who load the site are reloaded. Rerun the deploy to publish the manifest, or run
+  `sync-hosting` to put Hosting back; then confirm `preflight --frontend` reports that Hosting
+  serves the manifest's version. A failure before that line changed nothing.
 - `spawn gcloud ENOENT` or `No credentialed accounts` means this environment cannot upload.
   The Cloud CLI must be installed and logged in (`gcloud auth login --no-launch-browser`);
   that login is interactive, so hand it to the user.

@@ -19,9 +19,10 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
         games: []
     }
     const fallback: SiteManifest = { frontend: { version: '0.0.0' }, games: [] }
+    const game = { gameId: 'oath', packageId: 'oath', logicVersion: '1.0.0', uiVersion: '1.0.0' }
     const after: SiteManifest = {
-        ...before,
-        frontend: { ...before.frontend, version: '2.0.0' }
+        frontend: { ...before.frontend, version: '2.0.0' },
+        games: [game]
     }
 
     beforeEach(async () => {
@@ -138,6 +139,23 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
         expect((await live.cache.get<SiteManifest>(cacheKey)).value).toEqual(after)
         expect.soft(changes).toEqual(['2.0.0'])
         expect((await service.getManifest()).frontend.version).toBe('2.0.0')
+    })
+
+    it('reports a mismatch for a logic change but not for a frontend or UI change', async () => {
+        const service = new LibraryService(live.cache, { manifestPath, cacheKey, useCache: false })
+        const mismatches: SiteManifest[] = []
+        service.onManifestMismatch(({ next }) => mismatches.push(next))
+        const publish = async (manifest: SiteManifest) => {
+            await writeFile(manifestPath, JSON.stringify(manifest))
+            await service.refreshManifest()
+        }
+        await publish(after)
+        await publish({ ...after, frontend: { version: '3.0.0' } })
+        await publish({ ...after, games: [{ ...game, uiVersion: '1.1.0' }] })
+        expect(mismatches).toEqual([])
+        const logicRelease = { ...after, games: [{ ...game, logicVersion: '1.1.0' }] }
+        await publish(logicRelease)
+        expect(mismatches).toEqual([logicRelease])
     })
 
     it('continues queued refreshes after an earlier refresh fails', async () => {

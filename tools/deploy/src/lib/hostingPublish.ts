@@ -10,13 +10,7 @@ import {
 } from './commands.js'
 import { readGcsText } from './gcs.js'
 import { isObject } from './json.js'
-import {
-    pollUntil,
-    runSpec,
-    type AfterServingStep,
-    type PublishContext,
-    type ServingSettle
-} from './publishCore.js'
+import { pollUntil, runSpec, type PublishContext, type ServingSettle } from './publishCore.js'
 import { fetchBucketManifest } from './remoteManifest.js'
 
 const FRONTEND_HOSTING_CONFIG = path.join('apps', 'frontend', 'firebase.json')
@@ -198,34 +192,30 @@ const promoteFrontendOnHosting = async (
     context.log(`hosting: ${target.channel} serves frontend ${staged.version} at ${url}`)
 }
 
-export type FrontendSwitch = {
-    stageAndPublishManifest: () => Promise<void>
-    promoteHosting?: AfterServingStep
-}
-
-// Hosting is staged before the manifest changes and promoted only once the backend serves the
-// new version, so the site files and the version the backend reports switch together.
-export const planFrontendSwitch = async (
+// The backend reports the manifest's frontend version as soon as the manifest changes, and a
+// client whose code is newer than that version reloads, so Hosting switches first and the
+// manifest follows within seconds.
+export const publishFrontendVersion = async (
     context: PublishContext,
     version: string,
     publishManifestChange: () => Promise<void>
-): Promise<FrontendSwitch> => {
+) => {
     const target = await resolveHostingTarget(context)
-    if (!target) return { stageAndPublishManifest: publishManifestChange }
-    let staged: StagedFrontend | null = null
-    return {
-        stageAndPublishManifest: async () => {
-            staged = await stageFrontendOnHosting(context, target, version)
-            await publishManifestChange()
-        },
-        promoteHosting: {
-            name: 'the Firebase Hosting copy',
-            recovery: 'sync-hosting',
-            run: async () => {
-                if (!staged) throw new Error(`frontend ${version} was never staged on Hosting`)
-                await promoteFrontendOnHosting(context, target, staged)
-            }
+    if (target) {
+        const staged = await stageFrontendOnHosting(context, target, version)
+        await promoteFrontendOnHosting(context, target, staged)
+    }
+    try {
+        await publishManifestChange()
+    } catch (error) {
+        if (target) {
+            context.log(
+                `hosting: ${target.channel} already serves frontend ${version} but the manifest ` +
+                    'was not published; rerun to publish it, or run sync-hosting to put Hosting ' +
+                    "back on the manifest's version"
+            )
         }
+        throw error
     }
 }
 

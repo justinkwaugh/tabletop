@@ -22,7 +22,7 @@ import {
     type ServingLookup
 } from './publishCore.js'
 import { headCommitSha } from './git.js'
-import { planFrontendSwitch } from './hostingPublish.js'
+import { publishFrontendVersion } from './hostingPublish.js'
 import { withFrontendVersion } from './remoteManifest.js'
 import {
     bumpVersion,
@@ -83,16 +83,6 @@ const buildAndUpload = async (
 
 export const deployFrontend = async (context: PublishContext) => {
     const { version, artifacts, pending } = await assertFrontendPublishable(context)
-    const frontendSwitch = await planFrontendSwitch(context, version, async () => {
-        const metadata = {
-            deployedAt: new Date().toISOString(),
-            commitSha: await headCommitSha(context.repoRoot),
-            tags: [frontendReleaseTag(version)]
-        }
-        await publishManifest(context, `frontend-${version}`, (manifest) =>
-            withFrontendVersion(manifest, version, metadata)
-        )
-    })
     await runReportedDeploy(
         context,
         'frontend',
@@ -100,9 +90,17 @@ export const deployFrontend = async (context: PublishContext) => {
         () => fetchFrontendServingVersion(context),
         async () => {
             await buildAndUpload(context, version, pending)
-            await frontendSwitch.stageAndPublishManifest()
-        },
-        { verifyServing: true, afterServing: frontendSwitch.promoteHosting }
+            await publishFrontendVersion(context, version, async () => {
+                const metadata = {
+                    deployedAt: new Date().toISOString(),
+                    commitSha: await headCommitSha(context.repoRoot),
+                    tags: [frontendReleaseTag(version)]
+                }
+                await publishManifest(context, `frontend-${version}`, (manifest) =>
+                    withFrontendVersion(manifest, version, metadata)
+                )
+            })
+        }
     )
 }
 
