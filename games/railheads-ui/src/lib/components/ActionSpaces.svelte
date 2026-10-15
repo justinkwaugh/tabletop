@@ -1,16 +1,24 @@
 <script lang="ts">
-    import { ACTION_SPACES, isLayTrackSpace, type ActionSpaceId } from '@tabletop/railheads'
+    import { ActionSpaceId, isLayTrackSpace } from '@tabletop/railheads'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { SPACE_NAMES, spaceTerms } from '$lib/utils/describeAction.js'
     import TrainIcon from './TrainIcon.svelte'
+
+    const DISPLAY_ORDER = [
+        ActionSpaceId.IssueShare,
+        ActionSpaceId.IndustryInvestment,
+        ActionSpaceId.LayTrackI,
+        ActionSpaceId.LayTrackII,
+        ActionSpaceId.LayTrackIII
+    ] as const
 
     const gameSession = getGameSession()
 
     const state = $derived(gameSession.gameState)
     const rounds = $derived(state.edition.definition.rounds)
     const spaces = $derived(
-        ACTION_SPACES.map((space) => ({
+        DISPLAY_ORDER.map((space) => ({
             space,
             title: SPACE_NAMES[space],
             terms: spaceTerms(space, isLayTrackSpace(space) ? state.layTrackRules(space) : undefined),
@@ -64,14 +72,17 @@
                 <span class="title">{entry.title}</span>
                 <span class="terms">{entry.terms}</span>
                 <span class="pile">
-                    <span class="held" title="Coins on this space">
+                    <span class="held" title="Coins waiting on this space; consolidate to take them">
+                        <span class="label">On space</span>
                         {#each Array.from({ length: Math.min(entry.coins, 6) }, (_, index) => index) as coin (coin)}
                             <span class="mini-coin"></span>
                         {/each}
-                        <span class="amount">{entry.coins > 0 ? `$${entry.coins}` : 'empty'}</span>
+                        <span class="amount">{entry.coins > 0 ? `$${entry.coins}` : 'none'}</span>
                     </span>
-                    <span class="cost" title="Coins it costs to choose this space now">
-                        next {entry.cost}
+                    <span class="cost" title="Coins you pay from the Round Timer to choose this space now">
+                        <span class="label">Choose for</span>
+                        <span class="mini-coin"></span>
+                        <span class="amount">{entry.cost}</span>
                     </span>
                 </span>
             </button>
@@ -80,7 +91,8 @@
                     type="button"
                     class="collect"
                     onclick={() => gameSession.consolidate(entry.space)}
-                    >Consolidate ${entry.coins}</button
+                    title="Take the ${entry.coins} on this space as cash"
+                    ><span>Consoli&shy;date</span><span class="amount">${entry.coins}</span></button
                 >
             {/if}
         </div>
@@ -183,7 +195,7 @@
 
     .space {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         overflow: hidden;
         border: 2px solid #5c4a2c;
         border-radius: 8px;
@@ -236,18 +248,23 @@
 
     .pile {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 4px;
+        flex-direction: column;
+        gap: 2px;
         font-family: 'Courier Prime', 'Courier New', monospace;
         font-size: 13px;
     }
 
-    .held {
-        display: inline-flex;
+    .held,
+    .cost {
+        display: flex;
         align-items: center;
         gap: 1px;
         min-height: 14px;
+    }
+
+    .label {
+        flex: 1;
+        margin-right: 4px;
     }
 
     .mini-coin {
@@ -266,16 +283,29 @@
 
     .cost {
         white-space: nowrap;
+        padding-top: 2px;
+        border-top: 1px dashed #c9c493;
         color: #26300f;
     }
 
+    .cost .amount {
+        margin-left: 4px;
+    }
+
     .collect {
-        border-top: 1px dashed #9a7d12;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        width: 58px;
+        border-left: 1px dashed #9a7d12;
         background: #ece7c6;
-        padding: 2px 4px;
-        font-size: 12.5px;
+        padding: 2px 3px;
+        font-size: 11.5px;
         font-weight: 700;
         color: #33401a;
+        text-align: center;
     }
 
     .collect:hover {

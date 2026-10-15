@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import CompaniesPanel from './CompaniesPanel.svelte'
+    import IndustriesPanel from './IndustriesPanel.svelte'
     import PlayerState from './PlayerState.svelte'
 
     const gameSession = getGameSession()
@@ -17,4 +18,5 @@
         <PlayerState {playerState} />
     {/each}
     <CompaniesPanel />
+    <IndustriesPanel />
 </div>

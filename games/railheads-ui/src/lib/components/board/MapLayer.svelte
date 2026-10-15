@@ -63,7 +63,7 @@
         <text class="name" class:city={hex.kind === HexKind.City} font-size={hex.name.length > 8 ? 9.5 : 11}>
             <textPath href="#arc-{hex.key}" startOffset="50%">{hex.name}</textPath>
         </text>
-        <text x={hex.center.x} y={hex.center.y + 17} class="value" class:city={hex.kind === HexKind.City}
+        <text x={hex.center.x} y={hex.center.y + 25} class="value" class:city={hex.kind === HexKind.City}
             >{hex.value}</text
         >
     {/if}

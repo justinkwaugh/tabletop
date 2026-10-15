@@ -1,7 +1,6 @@
 <script lang="ts">
     import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/utils/boardLayout.js'
     import BoostPicker from './board/BoostPicker.svelte'
-    import DevelopmentPanel from './board/DevelopmentPanel.svelte'
     import Legend from './board/Legend.svelte'
     import MapLayer from './board/MapLayer.svelte'
     import RevenueTrack from './board/RevenueTrack.svelte'
@@ -18,7 +17,6 @@
     aria-label="Map of the railroads"
 >
     <RevenueTrack />
-    <DevelopmentPanel />
     <Legend />
     <MapLayer />
     <TrackLayer />
