@@ -23,7 +23,7 @@ import {
 import { INDUSTRY_STYLE } from './companyStyle.js'
 
 export type DescriptionSegment =
-    string | { amount: number } | { playerId: string } | { companyId: CompanyId } | { industry: Industry }
+    string | { playerId: string } | { companyId: CompanyId } | { industry: Industry }
 export type Description = DescriptionSegment[]
 
 export const SPACE_NAMES: Record<ActionSpaceId, string> = {
@@ -51,9 +51,7 @@ export function saleDescription(sale: ShareSale): Description {
         { playerId: sale.buyerId },
         ' bought the ',
         company,
-        ' share for ',
-        { amount: sale.price },
-        extras
+        ` share for $${sale.price}${extras}`
     ]
 }
 
@@ -87,35 +85,30 @@ function trackDescription(effects: readonly PlacementEffect[]): Description {
             pieces,
             ' for the ',
             { companyId },
-            ' · ',
-            { amount: cost },
-            gain > 0 ? `, revenue +${gain}` : ''
+            ` · $${cost}${gain > 0 ? `, revenue +${gain}` : ''}`
         ]
     })
 }
 
 export function describeAction(action: GameAction): Description {
     if (isPlaceBid(action)) {
-        return ['bid ', { amount: action.amount }]
+        return [`bid $${action.amount}`]
     }
     if (isPassBid(action)) {
         return ['passed']
     }
     if (isChooseAction(action)) {
-        const chosen = `chose ${SPACE_NAMES[action.space]}`
-        return action.metadata
-            ? [chosen, ' for ', { amount: action.metadata.cost }]
-            : [chosen]
+        const cost = action.metadata ? ` for ${plural(action.metadata.cost, 'coin')}` : ''
+        return [`chose ${SPACE_NAMES[action.space]}${cost}`]
     }
     if (isConsolidate(action)) {
-        return ['consolidated ', { amount: action.metadata?.coins ?? 0 }, ` from ${SPACE_NAMES[action.space]}`]
+        return [`consolidated $${action.metadata?.coins ?? 0} from ${SPACE_NAMES[action.space]}`]
     }
     if (isIssueShare(action)) {
         return [
             'offered a ',
             { companyId: action.companyId },
-            ' share, opening at ',
-            { amount: action.amount }
+            ` share, opening at $${action.amount}`
         ]
     }
     if (isInvestInIndustry(action)) {
@@ -134,8 +127,7 @@ export function describeAction(action: GameAction): Description {
             { playerId: metadata.sale.buyerId },
             ' bought the ',
             { industry: metadata.industry },
-            ' token for ',
-            { amount: metadata.sale.price }
+            ` token for $${metadata.sale.price}`
         ]
     }
     if (isLayTrack(action)) {

@@ -39,28 +39,28 @@
         {#if startPlayer}
             <span class="start" title="Holds the Start Player token"><TrainIcon /></span>
         {/if}
-        <span class="cash" title="Cash in hand">{gameSession.money(playerState.cash)}</span>
+        <span class="cash" title="Cash in hand">${playerState.cash}</span>
     </div>
     {#each shares as line (line.companyId)}
-        <div class="line" title="{gameSession.money(line.each)} a share at the next payout">
+        <div class="line" title="${line.each} a share at the next payout">
             <span class="items">
                 {#each Array.from({ length: line.count }, (_, index) => index) as share (share)}
                     <ShareCertificate companyId={line.companyId} />
                 {/each}
             </span>
             <span class="leader"></span>
-            <span class="amount">{gameSession.money(line.amount)}</span>
+            <span class="amount">${line.amount}</span>
         </div>
     {/each}
     {#each tokens as line (line.industry)}
-        <div class="line" title="{gameSession.money(line.each)} a token at the next payout">
+        <div class="line" title="${line.each} a token at the next payout">
             <span class="items">
                 {#each Array.from({ length: line.count }, (_, index) => index) as token (token)}
                     <IndustryToken industry={line.industry} size={30} />
                 {/each}
             </span>
             <span class="leader"></span>
-            <span class="amount">{gameSession.money(line.amount)}</span>
+            <span class="amount">${line.amount}</span>
         </div>
     {/each}
     {#if shares.length === 0 && tokens.length === 0}
@@ -68,7 +68,7 @@
     {/if}
     <div class="total" title="What this player's shares and tokens would pay if the round ended now">
         <span>PAYOUT DUE</span>
-        <span>{gameSession.money(payout)}</span>
+        <span>${payout}</span>
     </div>
 </div>
 

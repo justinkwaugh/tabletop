@@ -20,8 +20,6 @@
                 ? 'none'
                 : 'capitalize'}
         />
-    {:else if 'amount' in segment}
-        <span class="amount">{gameSession.money(segment.amount)}</span>
     {:else if 'companyId' in segment}
         <CompanyBadge companyId={segment.companyId} />
     {:else}

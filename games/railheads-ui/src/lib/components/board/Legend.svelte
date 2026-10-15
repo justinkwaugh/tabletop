@@ -32,8 +32,8 @@
         <g transform="translate(0 {FIRST_ROW_Y + index * ROW})">
             <polygon points={hexPoints({ x: 24, y: 12 }, 11)} fill={row.fill} stroke="#1d1d1b" stroke-width="1.5" />
             <text x="42" y="17" class="label">{row.name}</text>
-            <text x="140" y="17" class="cost">{gameSession.money(row.disc)}</text>
-            <text x="196" y="17" class="cost">{row.cube === undefined ? '–' : gameSession.money(row.cube)}</text>
+            <text x="140" y="17" class="cost">${row.disc}</text>
+            <text x="196" y="17" class="cost">{row.cube === undefined ? '–' : `$${row.cube}`}</text>
         </g>
     {/each}
     <line

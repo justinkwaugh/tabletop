@@ -101,7 +101,6 @@ export type EditionDefinition = {
     startPlayerCompany: CompanyId
     map: MapDefinition
     rounds: number
-    currencySymbol: string
     startingCash: Readonly<Record<number, number>>
     roundTimer: Readonly<Record<number, number>>
     layTrack: Readonly<Record<LayTrackSpace, LayTrackRules>>

@@ -55,7 +55,7 @@ async function screenshot(page: Page, name: string) {
 // Hotseat play: every seat is local. Each opener bids once, then everyone else passes.
 async function playInitialAuctions(page: Page) {
     for (let step = 0; step < 60 && (await machineState(page)) !== 'ChoosingAction'; step++) {
-        const bid = page.getByRole('button', { name: /^Bid \d+ Th/ })
+        const bid = page.getByRole('button', { name: /^Bid \$/ })
         if (step % 5 === 0 && (await bid.count()) > 0) {
             await bid.click()
         } else {

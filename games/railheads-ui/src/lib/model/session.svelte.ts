@@ -81,10 +81,6 @@ export class RailheadsGameSession extends GameSession<
 
     myPlayerId = $derived(this.myPlayer?.id)
 
-    money(amount: number): string {
-        return `${amount} ${this.gameState.edition.definition.currencySymbol}`
-    }
-
     canAct = $derived(this.isMyTurn && !this.isViewingHistory && !this.gameState.result)
 
     private actingIn(...states: MachineState[]): boolean {

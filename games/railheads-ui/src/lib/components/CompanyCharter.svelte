@@ -33,7 +33,7 @@
         <span class="acronym">{definition.shortName}</span>
         <span class="treasury" title="Treasury: pays for track">
             <span class="treasury-label">Treasury</span>
-            <span class="treasury-amount">{gameSession.money(company.treasury)}</span>
+            <span class="treasury-amount">${company.treasury}</span>
         </span>
     </div>
     <div class="body">
@@ -70,14 +70,14 @@
         <div class="figures">
             <div
                 class="entry"
-                title="Revenue Level{drop > 0 ? `; falls {drop} at the end of the round` : ''}"
+                title="Revenue Level{drop > 0 ? `; falls ${drop} at the end of the round` : ''}"
             >
                 <span>Revenue</span><span class="money"
-                    >{gameSession.money(company.revenue)}{#if drop > 0}<span class="drop">−{drop}</span>{/if}</span
+                    >{company.revenue}{#if drop > 0}<span class="drop">−{drop}</span>{/if}</span
                 >
             </div>
             <div class="entry" title="Payout per share: revenue ÷ shares sold, rounded up">
-                <span>Per share</span><span class="money">{gameSession.money(state.dividendPerShare(companyId))}</span>
+                <span>Per share</span><span class="money">${state.dividendPerShare(companyId)}</span>
             </div>
             <div class="entry" title="Track discs and crossing cubes still on the charter">
                 <span>Discs · cubes</span><span class="money"

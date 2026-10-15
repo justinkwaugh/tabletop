@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-
     let {
         minimum,
         maximum,
@@ -8,8 +6,6 @@
         onbid
     }: { minimum: number; maximum: number; label: string; onbid: (amount: number) => void } =
         $props()
-
-    const gameSession = getGameSession()
 
     let amount = $derived(minimum)
 
@@ -63,7 +59,7 @@
         disabled={Number.isInteger(amount) && amount >= maximum}>+</button
     >
     <button type="button" class="primary" disabled={!valid} onclick={bid}
-        >{valid ? `${label} ${gameSession.money(amount)}` : label}</button
+        >{valid ? `${label} $${amount}` : label}</button
     >
 </div>
 

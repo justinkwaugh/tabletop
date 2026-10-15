@@ -106,7 +106,6 @@ export const GERMANY: EditionDefinition = {
         { from: 41, drop: 12 },
         { from: 51, drop: 15 }
     ],
-    currencySymbol: 'Th',
     industryTokensPerType: 4,
     developmentTrackLength: 20,
     // The board's "$6 per industry site reached" with four sites a type, rather than the
