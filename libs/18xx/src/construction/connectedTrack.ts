@@ -1,7 +1,8 @@
 import type { RevenueCenter } from '../routes/route.js'
 import type { RailwayMapState } from '../map/mapState.js'
 import type { TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
-import { rotateTileEdge, rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
+import { rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
+import { reachRoutes } from './routeReach.js'
 
 export class ConnectedTrack {
     private readonly blocked = new Map<string, Set<string>>()
@@ -24,90 +25,23 @@ export class ConnectedTrack {
                 ] as const
             })
         )
-        // `via` is the path a route entered a node along; it cannot leave the node the same way.
-        const pending: {
-            locationId: string
-            endpoint: TileEndpoint
-            exiting: boolean
-            via?: string
-        }[] = origins.map(({ locationId, nodeId }) => ({
-            locationId,
-            endpoint: { kind: 'node', nodeId } satisfies TileEndpoint,
-            exiting: false
-        }))
-        const entered = new Map<string, { endpoint: TileEndpoint; via?: string }[]>()
-        const exited = new Map<string, { endpoint: TileEndpoint; via?: string }[]>()
-        while (pending.length) {
-            const { locationId, endpoint, exiting, via } = pending.shift()!
-            const visited = exiting ? exited : entered
-            const visitedEnds = visited.get(locationId) ?? []
-            if (
-                visitedEnds.some(
-                    (visit) => visit.via === via && sameTileEndpoint(visit.endpoint, endpoint)
-                )
-            )
-                continue
-            visitedEnds.push({ endpoint, via })
-            visited.set(locationId, visitedEnds)
-            const ends = this.reached.get(locationId) ?? []
-            if (!ends.some((end) => sameTileEndpoint(end, endpoint))) ends.push(endpoint)
-            this.reached.set(locationId, ends)
-            const face = faces.get(locationId)!
-            if (endpoint.kind === 'node') {
-                const node = face.nodes.find((node) => node.id === endpoint.nodeId)!
-                if (blocked(locationId, node)) {
-                    const blocked = this.blocked.get(locationId) ?? new Set<string>()
-                    blocked.add(node.id)
-                    this.blocked.set(locationId, blocked)
-                    continue
-                }
+        reachRoutes(mapState.map, (locationId) => faces.get(locationId)!, origins, blocked, {
+            reached: (locationId, endpoint) => {
+                const ends = this.reached.get(locationId) ?? []
+                if (!ends.some((end) => sameTileEndpoint(end, endpoint))) ends.push(endpoint)
+                this.reached.set(locationId, ends)
+            },
+            used: (locationId, pathId) => {
+                const paths = this.paths.get(locationId) ?? new Set<string>()
+                paths.add(pathId)
+                this.paths.set(locationId, paths)
+            },
+            stopped: (locationId, node) => {
+                const blocked = this.blocked.get(locationId) ?? new Set<string>()
+                blocked.add(node.id)
+                this.blocked.set(locationId, blocked)
             }
-            const paths = this.paths.get(locationId) ?? new Set<string>()
-            if (!exiting) {
-                for (const path of face.paths) {
-                    if (
-                        path.id === via ||
-                        !path.endpoints.some((end) => sameTileEndpoint(end, endpoint))
-                    )
-                        continue
-                    paths.add(path.id)
-                    for (const end of path.endpoints) {
-                        if (sameTileEndpoint(end, endpoint)) continue
-                        pending.push({
-                            locationId,
-                            endpoint: end,
-                            exiting: end.kind === 'edge',
-                            ...(end.kind === 'node' ? { via: path.id } : {})
-                        })
-                    }
-                }
-            }
-            this.paths.set(locationId, paths)
-            if (!exiting || endpoint.kind !== 'edge') continue
-            const neighbor = mapState.map.neighbor(locationId, endpoint.edge)
-            if (!neighbor) continue
-            const opposite = rotateTileEdge(endpoint.edge, 3)
-            if (
-                mapState.map
-                    .location(locationId)
-                    .borders?.some(
-                        (border) => border.edge === endpoint.edge && border.kind === 'impassable'
-                    ) ||
-                neighbor.borders?.some(
-                    (border) => border.edge === opposite && border.kind === 'impassable'
-                )
-            )
-                continue
-            const other: TileEndpoint = { kind: 'edge', edge: opposite }
-            if (
-                faces
-                    .get(neighbor.id)!
-                    .paths.some((path) =>
-                        path.endpoints.some((end) => sameTileEndpoint(end, other))
-                    )
-            )
-                pending.push({ locationId: neighbor.id, endpoint: other, exiting: false })
-        }
+        })
     }
     isBlocked(locationId: string, nodeId: string): boolean {
         return this.blocked.get(locationId)?.has(nodeId) ?? false
