@@ -53,6 +53,7 @@ it('projects a title-owned market while preserving shared lifecycle, replay inte
         await listener({ kind: 'own-action', from, to, action, animationContext })
     }
     expect(receive).toHaveBeenLastCalledWith({
+        kind: 'own-action',
         from: from.exchange,
         to: to.exchange,
         action,
@@ -62,6 +63,7 @@ it('projects a title-owned market while preserving shared lifecycle, replay inte
         await listener({ kind: 'undo', from: to, to: from, animationContext })
     }
     expect(receive).toHaveBeenLastCalledWith({
+        kind: 'undo',
         from: to.exchange,
         to: from.exchange,
         animationContext

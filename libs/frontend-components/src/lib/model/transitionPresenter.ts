@@ -68,11 +68,8 @@ type PendingChange<T extends GameState, U extends HydratedGameState<T> & T> = {
     context: PresentableContext<T, U>
     state: T
     kind: TransitionKind
-    origin: ChangeOrigin
     intent: TransitionIntent
 }
-
-type ChangeOrigin = 'producer' | 'watch'
 
 const DEFAULT_INTENT: Record<TransitionKind, TransitionIntent> = {
     initial: 'actions',
@@ -99,7 +96,6 @@ export class TransitionPresenter<
     private incomingState?: U
     private running = false
     private pending?: PendingChange<T, U>
-    private observed = false
     private waiters: Array<() => void> = []
 
     constructor(private readonly deps: TransitionPresenterDependencies<T, U, A>) {}
@@ -116,26 +112,31 @@ export class TransitionPresenter<
         this.listeners.delete(listener)
     }
 
-    visibleStateChanged(): void {
+    presentInitial(): void {
         const { context, state } = this.observe()
-        const kind = this.observed ? 'edit' : 'initial'
-        this.observed = true
-        this.queue(context, state, { kind }, 'watch')
+        this.queue(context, state, { kind: 'initial' })
     }
 
     present(request: TransitionRequest, write: () => void): void {
         const before = this.observe()
-        write()
-        const after = this.observe()
-        if (after.context === before.context && after.state === before.state) return
-        this.queue(after.context, after.state, request, 'producer')
+        try {
+            write()
+        } finally {
+            const after = this.observe()
+            if (after.context !== before.context || after.state !== before.state) {
+                this.queue(after.context, after.state, request)
+            }
+        }
     }
 
     publishNow(kind: TransitionKind, write: () => void): void {
-        write()
-        const { context, state } = this.observe()
-        this.pending = undefined
-        this.show(context, context.runtime.hydrator.hydrateState(state), { kind, actions: [] })
+        try {
+            write()
+        } finally {
+            const { context, state } = this.observe()
+            this.pending = undefined
+            this.show(context, context.runtime.hydrator.hydrateState(state), { kind, actions: [] })
+        }
     }
 
     async settled(): Promise<void> {
@@ -148,20 +149,13 @@ export class TransitionPresenter<
         return { context, state: context.state }
     }
 
-    private queue(
-        context: PresentableContext<T, U>,
-        state: T,
-        request: TransitionRequest,
-        origin: ChangeOrigin
-    ) {
+    private queue(context: PresentableContext<T, U>, state: T, request: TransitionRequest) {
         const intent = request.intent ?? DEFAULT_INTENT[request.kind]
         const earlier = this.pending
         this.pending = {
             context,
             state,
-            kind:
-                earlier?.origin === 'producer' && origin === 'watch' ? earlier.kind : request.kind,
-            origin: origin === 'producer' || earlier?.origin === 'producer' ? 'producer' : 'watch',
+            kind: request.kind,
             intent: earlier ? this.quietest(earlier.intent, intent) : intent
         }
         this.deps.output.setPending(true)

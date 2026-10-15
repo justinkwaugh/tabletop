@@ -733,13 +733,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         // Add self as a listener for game state changes for subclasses to override
         this.addGameStateChangeListener(this.onGameStateChange.bind(this))
+        this.presenter.presentInitial()
 
         this.effectDisposer = $effect.root(() => {
             this.bridge.connect()
-
-            watch([() => this.currentVisibleContext, () => this.currentVisibleContext.state], () =>
-                this.presenter.visibleStateChanged()
-            )
 
             watch(
                 () => this.historyBusy,
@@ -824,9 +821,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private replacePrimaryGameContext(context: GameContext<T, U>): void {
         this.reconciliation.invalidatePendingRepresentation()
         if (this.isExploring) {
-            this.presenter.present({ kind: 'view-switch' }, () =>
-                this.gameContext.restoreFrom(context.clone())
-            )
+            this.gameContext.restoreFrom(context.clone())
             return
         }
         // A representation change is a confidentiality boundary. Publish its state immediately
@@ -1082,11 +1077,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         // Make copy of original state to allow rollback
         const priorContext = relevantContext.clone()
-        if (
-            relevantContext.game.storage === GameStorage.Local &&
-            !this.usesHostExecution(relevantContext)
-        ) {
-            this.reverseSupersededAction(relevantContext, action)
+        if (this.executesLocally(relevantContext)) {
+            this.presenter.present({ kind: 'own-action' }, () =>
+                this.reverseSupersededAction(relevantContext, action)
+            )
         }
 
         const gameSnapshot = structuredClone(relevantContext.game)
@@ -1152,10 +1146,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             action.index = processedAction.index
 
             // Now handle local or remote persistence
-            if (
-                relevantContext.game.storage === GameStorage.Local &&
-                !this.usesHostExecution(relevantContext)
-            ) {
+            if (this.executesLocally(relevantContext)) {
                 await this.gameService.saveGameLocally({
                     game: relevantContext.game,
                     actions: relevantContext.actions,
@@ -1440,6 +1431,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return player === undefined
         }
         return perspective.playerId === player?.id
+    }
+
+    private executesLocally(context: GameContext<T, U>): boolean {
+        return context.game.storage === GameStorage.Local && !this.usesHostExecution(context)
     }
 
     private usesHostExecution(context: GameContext<T, U>): boolean {
