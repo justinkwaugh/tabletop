@@ -22,7 +22,7 @@ import {
     type ServingLookup
 } from './publishCore.js'
 import { headCommitSha } from './git.js'
-import { frontendSelection } from './hostingPublish.js'
+import { planFrontendSwitch } from './hostingPublish.js'
 import { withFrontendVersion } from './remoteManifest.js'
 import {
     bumpVersion,
@@ -83,7 +83,7 @@ const buildAndUpload = async (
 
 export const deployFrontend = async (context: PublishContext) => {
     const { version, artifacts, pending } = await assertFrontendPublishable(context)
-    const selection = await frontendSelection(context, version, async () => {
+    const frontendSwitch = await planFrontendSwitch(context, version, async () => {
         const metadata = {
             deployedAt: new Date().toISOString(),
             commitSha: await headCommitSha(context.repoRoot),
@@ -100,9 +100,9 @@ export const deployFrontend = async (context: PublishContext) => {
         () => fetchFrontendServingVersion(context),
         async () => {
             await buildAndUpload(context, version, pending)
-            return selection.deploy()
+            await frontendSwitch.stageAndPublishManifest()
         },
-        { verifyServing: true, afterServing: selection.afterServing }
+        { verifyServing: true, afterServing: frontendSwitch.promoteHosting }
     )
 }
 

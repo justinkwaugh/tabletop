@@ -1,29 +1,37 @@
-import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { promisify } from 'node:util'
-import { downloadFrontendCommand, firebaseCommand } from './commands.js'
+import {
+    downloadFrontendCommand,
+    firebaseCommand,
+    frontendArtifactUrl,
+    runCommand,
+    type FirebaseTarget
+} from './commands.js'
 import { readGcsText } from './gcs.js'
 import { isObject } from './json.js'
-import { runSpec, type PublishContext } from './publishCore.js'
+import {
+    pollUntil,
+    runSpec,
+    type AfterServingStep,
+    type PublishContext,
+    type ServingSettle
+} from './publishCore.js'
 import { fetchBucketManifest } from './remoteManifest.js'
 
 const FRONTEND_HOSTING_CONFIG = path.join('apps', 'frontend', 'firebase.json')
-const STAGING_CHANNEL = 'frontend-staging'
 const BUILD_ID_PATH = '_app/version.json'
-const SERVED_BUILD_SETTLE = { timeoutMs: 2 * 60_000, intervalMs: 5_000 }
+const SERVED_BUILD_SETTLE: ServingSettle = { timeoutMs: 2 * 60_000, intervalMs: 5_000 }
 
-export type HostingTarget = {
-    project: string
-    configPath: string
+export type HostingTarget = FirebaseTarget & {
     site: string
     channel: string
     hostingConfig: Record<string, unknown>
 }
 
-export type StagedFrontend = {
+type StagedFrontend = {
     version: string
+    channel: string
     buildId: string
 }
 
@@ -73,6 +81,9 @@ const parseBuildId = (versionJson: string, source: string): string => {
     return parsed.version
 }
 
+const stagingChannel = (version: string) =>
+    `frontend-${version.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+
 // The bucket copy is what the backend serves, so Hosting gets exactly those bytes; the
 // repository's firebase.json supplies the routing and headers.
 const stageFrontendOnHosting = async (
@@ -88,58 +99,49 @@ const stageFrontendOnHosting = async (
             context,
             downloadFrontendCommand(context.repoRoot, version, context.deployConfig, siteDir)
         )
+        const buildId = parseBuildId(
+            await fs.readFile(path.join(siteDir, BUILD_ID_PATH), 'utf8'),
+            `frontend ${version}`
+        )
         const configPath = path.join(stagingDir, 'firebase.json')
         await fs.writeFile(
             configPath,
             JSON.stringify({ hosting: { ...target.hostingConfig, public: 'site' } }, null, 4)
         )
+        const channel = stagingChannel(version)
         await runSpec(
             context,
             firebaseCommand(
                 context.repoRoot,
                 'hosting-stage',
                 { project: target.project, configPath },
-                [
-                    'hosting:channel:deploy',
-                    STAGING_CHANNEL,
-                    '--expires',
-                    '7d',
-                    '--no-authorized-domains'
-                ]
+                ['hosting:channel:deploy', channel, '--expires', '1d', '--no-authorized-domains']
             )
         )
-        const buildId = parseBuildId(
-            await fs.readFile(path.join(siteDir, BUILD_ID_PATH), 'utf8'),
-            `frontend ${version}`
-        )
-        context.log(`hosting: staged frontend ${version} on channel ${STAGING_CHANNEL}`)
-        return { version, buildId }
+        context.log(`hosting: staged frontend ${version} on channel ${channel}`)
+        return { version, channel, buildId }
     } finally {
         await fs.rm(stagingDir, { recursive: true, force: true })
     }
 }
 
-const execFileAsync = promisify(execFile)
-
 const channelUrl = async (context: PublishContext, target: HostingTarget): Promise<string> => {
     if (target.channel === 'live') return `https://${target.site}.web.app`
-    const spec = firebaseCommand(context.repoRoot, 'hosting-channels', target, [
-        'hosting:channel:list',
-        '--site',
-        target.site,
-        '--json'
-    ])
-    const { stdout } = await execFileAsync(spec.command, spec.args, {
-        cwd: spec.cwd,
-        env: { ...process.env, ...spec.env },
-        maxBuffer: 16 * 1024 * 1024
-    })
+    let stdout = ''
+    await runCommand(
+        firebaseCommand(context.repoRoot, 'hosting-channels', target, [
+            'hosting:channel:list',
+            '--site',
+            target.site,
+            '--json'
+        ]),
+        { onStdout: (chunk) => (stdout += chunk) }
+    )
     const listed: unknown = JSON.parse(stdout)
-    const channels =
-        isObject(listed) && isObject(listed.result) && Array.isArray(listed.result.channels)
-            ? listed.result.channels
-            : []
-    for (const channel of channels) {
+    if (!isObject(listed) || !isObject(listed.result) || !Array.isArray(listed.result.channels)) {
+        throw new Error('Unexpected hosting:channel:list output; see /tmp/hosting-channels.log')
+    }
+    for (const channel of listed.result.channels) {
         if (
             isObject(channel) &&
             typeof channel.name === 'string' &&
@@ -152,23 +154,17 @@ const channelUrl = async (context: PublishContext, target: HostingTarget): Promi
     throw new Error(`Hosting channel ${target.channel} not found on site ${target.site}`)
 }
 
-// A missing or unparseable build file means the channel does not serve this build yet.
 const fetchServedBuildId = async (url: string): Promise<string | null> => {
+    const response = await fetch(`${url}/${BUILD_ID_PATH}?served=${Date.now()}`)
+    if (!response.ok) return null
+    const body = await response.text()
+    // Hosting answers a path it has no file for with index.html, so a body that is not the
+    // build file means the channel serves some other release.
     try {
-        const response = await fetch(`${url}/${BUILD_ID_PATH}?served=${Date.now()}`)
-        return response.ok ? parseBuildId(await response.text(), url) : null
+        return parseBuildId(body, url)
     } catch {
         return null
     }
-}
-
-const awaitServedBuild = async (url: string, buildId: string): Promise<boolean> => {
-    const deadline = Date.now() + SERVED_BUILD_SETTLE.timeoutMs
-    while (Date.now() < deadline) {
-        if ((await fetchServedBuildId(url)) === buildId) return true
-        await new Promise((resolve) => setTimeout(resolve, SERVED_BUILD_SETTLE.intervalMs))
-    }
-    return false
 }
 
 const promoteFrontendOnHosting = async (
@@ -180,12 +176,17 @@ const promoteFrontendOnHosting = async (
         context,
         firebaseCommand(context.repoRoot, 'hosting-promote', target, [
             'hosting:clone',
-            `${target.site}:${STAGING_CHANNEL}`,
+            `${target.site}:${staged.channel}`,
             `${target.site}:${target.channel}`
         ])
     )
     const url = await channelUrl(context, target)
-    if (!(await awaitServedBuild(url, staged.buildId))) {
+    const served = await pollUntil(
+        () => fetchServedBuildId(url),
+        (buildId) => buildId === staged.buildId,
+        SERVED_BUILD_SETTLE
+    )
+    if (served !== staged.buildId) {
         throw new Error(
             `Hosting ${target.channel} (${url}) does not serve frontend ${staged.version} ` +
                 `(build ${staged.buildId}); see /tmp/hosting-promote.log`
@@ -194,27 +195,33 @@ const promoteFrontendOnHosting = async (
     context.log(`hosting: ${target.channel} serves frontend ${staged.version} at ${url}`)
 }
 
-export type FrontendSelection = {
-    deploy: () => Promise<StagedFrontend | null>
-    afterServing: (staged: StagedFrontend | null) => Promise<void>
+export type FrontendSwitch = {
+    stageAndPublishManifest: () => Promise<void>
+    promoteHosting?: AfterServingStep
 }
 
 // Hosting is staged before the manifest changes and promoted only once the backend serves the
 // new version, so the site files and the version the backend reports switch together.
-export const frontendSelection = async (
+export const planFrontendSwitch = async (
     context: PublishContext,
     version: string,
     publishManifestChange: () => Promise<void>
-): Promise<FrontendSelection> => {
+): Promise<FrontendSwitch> => {
     const target = await resolveHostingTarget(context)
+    if (!target) return { stageAndPublishManifest: publishManifestChange }
+    let staged: StagedFrontend | null = null
     return {
-        deploy: async () => {
-            const staged = target ? await stageFrontendOnHosting(context, target, version) : null
+        stageAndPublishManifest: async () => {
+            staged = await stageFrontendOnHosting(context, target, version)
             await publishManifestChange()
-            return staged
         },
-        afterServing: async (staged) => {
-            if (target && staged) await promoteFrontendOnHosting(context, target, staged)
+        promoteHosting: {
+            name: 'the Firebase Hosting copy',
+            recovery: 'sync-hosting',
+            run: async () => {
+                if (!staged) throw new Error(`frontend ${version} was never staged on Hosting`)
+                await promoteFrontendOnHosting(context, target, staged)
+            }
         }
     }
 }
@@ -228,27 +235,35 @@ export const syncHostingToManifest = async (context: PublishContext) => {
 
 export type HostingCheck =
     | { enabled: false }
-    | {
-          enabled: true
-          channel: string
-          url: string
-          version: string
-          matches: boolean
-      }
+    | { enabled: true; channel: string; error: string }
+    | { enabled: true; channel: string; url: string; version: string; matches: boolean }
+
+const compareHostingWithManifest = async (
+    context: PublishContext,
+    target: HostingTarget
+): Promise<HostingCheck> => {
+    const url = await channelUrl(context, target)
+    const { version } = (await fetchBucketManifest(context.deployConfig)).frontend
+    const expected = parseBuildId(
+        await readGcsText(`${frontendArtifactUrl(context.deployConfig, version)}/${BUILD_ID_PATH}`),
+        `frontend ${version}`
+    )
+    const served = await fetchServedBuildId(url)
+    return { enabled: true, channel: target.channel, url, version, matches: served === expected }
+}
 
 export const checkHostingMatchesManifest = async (
     context: PublishContext
 ): Promise<HostingCheck> => {
     const target = await resolveHostingTarget(context)
     if (!target) return { enabled: false }
-    const url = await channelUrl(context, target)
-    const { version } = (await fetchBucketManifest(context.deployConfig)).frontend
-    const expected = parseBuildId(
-        await readGcsText(
-            `gs://${context.deployConfig.gcsBucket}/frontend/${version}/${BUILD_ID_PATH}`
-        ),
-        `frontend ${version}`
-    )
-    const served = await fetchServedBuildId(url)
-    return { enabled: true, channel: target.channel, url, version, matches: served === expected }
+    try {
+        return await compareHostingWithManifest(context, target)
+    } catch (error) {
+        return {
+            enabled: true,
+            channel: target.channel,
+            error: error instanceof Error ? error.message : String(error)
+        }
+    }
 }

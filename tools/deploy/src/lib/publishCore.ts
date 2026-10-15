@@ -192,6 +192,22 @@ export type ServingSettle = { timeoutMs: number; intervalMs: number }
 // minutes on a throttled instance, so the served version lags the manifest.
 const DEFAULT_SERVING_SETTLE: ServingSettle = { timeoutMs: 5 * 60_000, intervalMs: 5_000 }
 
+export const pollUntil = async <Value>(
+    read: () => Promise<Value>,
+    done: (value: Value) => boolean,
+    settle: ServingSettle,
+    onWait: () => void = () => {}
+): Promise<Value> => {
+    const deadline = Date.now() + settle.timeoutMs
+    let value = await read()
+    if (!done(value)) onWait()
+    while (!done(value) && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, settle.intervalMs))
+        value = await read()
+    }
+    return value
+}
+
 const awaitServing = async (
     context: PublishContext,
     label: string,
@@ -199,15 +215,13 @@ const awaitServing = async (
     fetchServingVersions: () => Promise<ServingLookup>,
     settle: ServingSettle
 ): Promise<ServingLookup> => {
-    const deadline = Date.now() + settle.timeoutMs
-    let serving = await fetchServingVersions()
-    if (!servesArtifacts(serving, artifacts)) {
-        context.log(`${label} waiting for the backend to serve ${describeVersions(artifacts)}`)
-    }
-    while (!servesArtifacts(serving, artifacts) && Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, settle.intervalMs))
-        serving = await fetchServingVersions()
-    }
+    const serving = await pollUntil(
+        fetchServingVersions,
+        (lookup) => servesArtifacts(lookup, artifacts),
+        settle,
+        () =>
+            context.log(`${label} waiting for the backend to serve ${describeVersions(artifacts)}`)
+    )
     if ('error' in serving) {
         throw new Error(
             `Deploy finished but the serving versions could not be read: ${serving.error}`
@@ -223,49 +237,69 @@ const awaitServing = async (
     return serving
 }
 
-export type ReportedDeployOptions<Deployed> = {
-    verifyServing: boolean
-    settle?: ServingSettle
-    afterServing?: (deployed: Deployed) => Promise<void>
+export type AfterServingStep = {
+    name: string
+    recovery: string
+    run: () => Promise<void>
 }
 
-export const runReportedDeploy = async <Deployed>(
+export type ReportedDeployOptions = {
+    verifyServing: boolean
+    settle?: ServingSettle
+    afterServing?: AfterServingStep
+}
+
+const describeError = (error: unknown) => (error instanceof Error ? error.message : error)
+
+export const runReportedDeploy = async (
     context: PublishContext,
     label: string,
     artifacts: PublishedArtifact[],
     fetchServingVersions: () => Promise<ServingLookup>,
-    deploy: () => Promise<Deployed>,
-    options: ReportedDeployOptions<Deployed> = { verifyServing: true }
+    deploy: () => Promise<void>,
+    options: ReportedDeployOptions = { verifyServing: true }
 ) => {
     const servingBefore = await fetchServingVersions()
     context.log(`${label} serving before deploy: ${describeServing(servingBefore)}`)
     context.log(`${label} deploying: ${describeDeployment(servingBefore, artifacts)}`)
 
-    let deployed: Deployed
     try {
-        deployed = await deploy()
+        await deploy()
     } catch (error) {
         const servingAfterFailure = await fetchServingVersions()
-        context.log(`${label} deploy FAILED: ${error instanceof Error ? error.message : error}`)
+        context.log(`${label} deploy FAILED: ${describeError(error)}`)
         context.log(`${label} serving now: ${describeServing(servingAfterFailure)}`)
         throw error
     }
 
-    const servingAfter = options.verifyServing
-        ? await awaitServing(
-              context,
-              label,
-              artifacts,
-              fetchServingVersions,
-              options.settle ?? DEFAULT_SERVING_SETTLE
-          )
-        : await fetchServingVersions()
-    if (options.afterServing) {
+    const afterServing = options.afterServing
+    let servingAfter: ServingLookup
+    try {
+        servingAfter = options.verifyServing
+            ? await awaitServing(
+                  context,
+                  label,
+                  artifacts,
+                  fetchServingVersions,
+                  options.settle ?? DEFAULT_SERVING_SETTLE
+              )
+            : await fetchServingVersions()
+    } catch (error) {
+        if (afterServing) {
+            context.log(
+                `${label} ${afterServing.name} did not run; once the backend serves ` +
+                    `${describeVersions(artifacts)}, run ${afterServing.recovery}`
+            )
+        }
+        throw error
+    }
+    if (afterServing) {
         try {
-            await options.afterServing(deployed)
+            await afterServing.run()
         } catch (error) {
             context.log(
-                `${label} deploy FAILED after the backend switched: ${error instanceof Error ? error.message : error}`
+                `${label} deploy FAILED after the backend switched: ${describeError(error)}; ` +
+                    `run ${afterServing.recovery}`
             )
             context.log(`${label} serving now: ${describeServing(servingAfter)}`)
             throw error

@@ -53,14 +53,16 @@ The frontend follows the same model with `release-frontend (--major | --minor | 
 
 When `hosting.channel` is set in the deploy config (or `TABLETOP_HOSTING_CHANNEL`), Firebase
 Hosting serves the site files instead of the backend. A frontend deploy, `rollback --frontend`,
-and `switch --frontend` then copy `frontend/<version>` from the bucket to the Hosting channel
-`frontend-staging` before publishing the manifest, and once the backend reports the new version,
-copy that release to the configured channel and check the channel serves the build. Routing and
+and `switch --frontend` then copy `frontend/<version>` from the bucket to a Hosting staging
+channel before publishing the manifest, and once the backend reports the new version,
+copy that release to the configured channel and check the channel serves the build. Each
+version stages on its own channel, `frontend-<version>`, which expires after a day. Routing and
 headers come from `apps/frontend/firebase.json`, whose `hosting.site` names the site; the project
 is `backend.project`. `sync-hosting` puts the manifest's current frontend version on the channel
 without changing the manifest, for going live and for recovering from a failed copy, and
 `preflight --frontend` reports whether the channel serves the manifest's version. With no channel
-set, nothing goes to Hosting. The deploy service account needs `roles/firebasehosting.admin`.
+set, nothing goes to Hosting; `"hosting": { "channel": "live" }` turns it on. The deploy
+service account needs `roles/firebasehosting.admin`.
 
 The backend follows the same model with `release-backend (--major | --minor | --patch)
 [--no-deploy] [--no-traffic] [--service=backend|tasks]` and `deploy-backend`. The release bumps
