@@ -173,11 +173,11 @@ export function endGameIfReached(
         return MachineState.TakingTurn
     }
     gameState.endReason = endReason
+    gameState.finishTurn()
     if (endReason === GameEndReason.NoRockLeft) {
         context.addSystemAction(EndGame, { revealsInfo: true })
         return MachineState.EndingGame
     }
     gameState.endingPlayerId = playerId
-    gameState.finishTurn()
     return MachineState.FinalTurns
 }

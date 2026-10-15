@@ -33,6 +33,7 @@ function startAssigned(game: TestGame, order: string[]) {
         masterSeed: TestMasterSeed,
         startingPositions: { playerIds: order }
     })
+    expect(startedGame.protectedInformation).toBe(true)
     return createTestSession(startedGame, initialState)
 }
 

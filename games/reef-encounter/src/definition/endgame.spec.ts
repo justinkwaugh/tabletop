@@ -203,6 +203,7 @@ describe('running out of rock', () => {
         expect(session.state.machineState).toBe(MachineState.EndOfGame)
         expect(session.state.endReason).toBe(GameEndReason.NoRockLeft)
         expect(session.state.endingPlayerId).toBeUndefined()
+        expect(session.hydrated().turnManager.currentTurn()).toBeUndefined()
         expect(endedWithReveal(session)).toBe(true)
     })
 })

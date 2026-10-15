@@ -99,7 +99,10 @@ export class PiecesAnimator {
         animationContext.afterAnimations(() => this.callbacks.settle(toPieces))
         await tick()
 
-        const timing = !action ? FAST : this.callbacks.isOwnLiveAction(action) ? OWN : ACTION
+        // Players who ask for less motion get the quick changes undo uses, with no hold.
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const timing =
+            !action || reduced ? FAST : this.callbacks.isOwnLiveAction(action) ? OWN : ACTION
         const timeline = animationContext.actionTimeline
         const movedFrom = new Set(moves.map(({ source }) => source.key))
         const flippedFrom = new Set(flips.map(({ from }) => from.key))

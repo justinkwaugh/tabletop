@@ -1,4 +1,4 @@
-import { assert, GameResult, Visibility } from '@tabletop/common'
+import { assert, GameResult, validateGameResult, Visibility } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { CoralColor, CoralColors, coralCounts, totalCount } from '../components/colors.js'
 import { isRefillOpenSea } from '../actions/refillOpenSea.js'
@@ -200,6 +200,7 @@ describe('scoring', () => {
 
         expect(session.state.result).toBe(GameResult.Win)
         expect(session.state.winningPlayerIds).toEqual([winner])
+        expect(() => validateGameResult(session.state)).not.toThrow()
         const scoring = ReefEncounterRuntime.scoring
         expect(scoring.finalScores(session.state)).toEqual({
             [session.state.players[0].playerId]: values[worst],
@@ -247,6 +248,7 @@ describe('scoring', () => {
 
         expect(session.state.result).toBe(GameResult.Draw)
         expect(session.state.winningPlayerIds).toHaveLength(2)
+        expect(() => validateGameResult(session.state)).not.toThrow()
     })
 })
 

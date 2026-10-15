@@ -21,7 +21,7 @@ export const ReefEncounterGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.Boolean,
         name: 'Concealed',
         description:
-            "Don't track other players' supplies, larva cubes and parrotfish for you: they stay hidden, as the printed rules keep them, and you rely on your memory",
+            "Don't track other players' supplies, larva cubes and parrotfish for you: the panels hide them, as the printed rules do. The history still shows every move, so they can be worked out from it",
         default: false
     }
 ]
