@@ -319,10 +319,27 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             )
         }
         replacement.verifyFullChecksum()
+        // The server pushes an Undo to the player who made it too, after the client already shows
+        // the result. Swapping in an identical State would reset whatever the player started since.
+        if (before === this.context && this.sameHistory(replacement, this.context)) {
+            if (game !== undefined) {
+                this.context.updateGame(game)
+            }
+            return
+        }
         if (game !== undefined) {
             replacement.updateGame(game)
         }
         this.context.restoreFrom(replacement)
+    }
+
+    private sameHistory(left: GameContext<T, U>, right: GameContext<T, U>): boolean {
+        return (
+            left.historyStartIndex === right.historyStartIndex &&
+            left.actions.length === right.actions.length &&
+            left.actions.every((action, index) => action.id === right.actions[index].id) &&
+            createPatch(asJson(left.state), asJson(right.state)).length === 0
+        )
     }
 
     replaceFromManifest(
