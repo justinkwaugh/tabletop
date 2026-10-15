@@ -71,20 +71,23 @@ remain HTTP/1. Both stream requests to the child over HTTP/1, preserving request
 bodies, authorization, cookies, status codes and streaming responses. The parent
 sets the forwarded client address; the child trusts only its loopback proxy.
 
-Each child resolves the frontend version once at startup. It serves that build and
-reports it in `X-Tabletop-Version`, so the header changes only when a replacement
-serving the new build takes over, and clients are never told to refresh into a build
-the backend does not yet serve. The deploy tool reads that header as the served
-frontend version and waits for it after a frontend publication.
+Firebase Hosting serves the site files, so a frontend publication needs no
+replacement: only a logic change in the manifest triggers one. `X-Tabletop-Version`
+reports the manifest's frontend version on every response, and the deploy tool
+publishes the manifest only after Hosting serves the new build, so the files and the
+header switch seconds apart. Each child still serves the frontend build it resolved at
+startup, as a fallback for a Hosting release that sends every path to the backend; after
+rolling Hosting back to such a release, replace the backend so the fallback matches the
+manifest. The deploy tool reads `X-Tabletop-Version` as the served frontend version.
 
 Game versions follow the same rule through the served manifest
 (`libs/backend-services/src/games/servedManifest.ts`). It is the live manifest
-with each game limited to what the child runs, and the frontend the child started
-with: a game whose logic version still
+with each game limited to what the child runs: a game whose logic version still
 matches the loaded logic reports its live publication, so a UI-only release reaches
 clients without a replacement; a game whose logic changed keeps the publication the
 child loaded until its replacement takes over; and a game the child never loaded is
-left out. A child loads its titles once; it never re-imports logic in place. `/api/v1/manifest`, `/api/v1/catalog`, `X-TABLETOP-GAME-UI-VERSION`,
+left out. A child loads its titles once; it never re-imports logic in place.
+`/api/v1/manifest`, `/api/v1/catalog`, `X-TABLETOP-GAME-UI-VERSION`,
 `X-Tabletop-Version` and the game names and thumbnails in Discord notifications
 all come from the served manifest, so clients never load a UI whose logic the backend
 does not run yet, and the deploy tool's wait on `/api/v1/manifest` ends only when

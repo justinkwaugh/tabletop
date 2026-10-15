@@ -50,9 +50,9 @@ describe('servedManifest', () => {
         expect(servedManifest(live, loaded).games).toEqual([game('sol', '2.0.0', '3.0.0')])
     })
 
-    it('keeps the frontend this process started with', () => {
+    it('follows the live frontend, which needs no replacement process', () => {
         const live: SiteManifest = { ...loaded, frontend: { version: '2.0.0' } }
-        expect(servedManifest(live, loaded).frontend).toEqual({ version: '1.0.0' })
+        expect(servedManifest(live, loaded).frontend).toEqual({ version: '2.0.0' })
     })
 
     it('keeps the loaded publication when the same package names a different game', () => {

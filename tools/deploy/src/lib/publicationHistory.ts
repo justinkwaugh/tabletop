@@ -1,7 +1,7 @@
 import { fetchFrontendServingVersion } from './frontendPublish.js'
 import { fetchServingVersions, findGameEntry } from './gamePublish.js'
 import { gcsPathExists, readGcsText } from './gcs.js'
-import { planFrontendSwitch } from './hostingPublish.js'
+import { publishFrontendVersion, requireFrontendRelease } from './hostingPublish.js'
 import { isObject } from './json.js'
 import {
     assertDeployConfig,
@@ -16,7 +16,6 @@ import {
     gameHistory,
     previousFrontendVersion,
     previousGamePublication,
-    withFrontendVersion,
     withGameVersions
 } from './remoteManifest.js'
 import type {
@@ -181,18 +180,16 @@ const applyFrontendVersion = async (
         'index.html'
     )
     await assertArtifactsExist([artifact])
-    const frontendSwitch = await planFrontendSwitch(context, version, () =>
-        publishManifest(context, `frontend-${operation}`, (current) =>
-            withFrontendVersion(current, version, { deployedAt: new Date().toISOString() })
-        )
-    )
+    const target = await requireFrontendRelease(context)
     await runReportedDeploy(
         context,
         'frontend',
         [artifact],
         () => fetchFrontendServingVersion(context),
-        frontendSwitch.stageAndPublishManifest,
-        { verifyServing: true, afterServing: frontendSwitch.promoteHosting }
+        () =>
+            publishFrontendVersion(context, target, version, `frontend-${operation}`, {
+                deployedAt: new Date().toISOString()
+            })
     )
 }
 
