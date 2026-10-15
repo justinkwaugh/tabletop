@@ -388,9 +388,9 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                 game: optimistic.before.game
             })
         }
-        // Compare as the server's forward patch does: a field cleared to undefined locally arrives
-        // removed, and must not count as a difference.
-        return createPatch(confirmedState, optimistic.result.updatedState).length === 0
+        // Compare the States as the server stores and sends them, as JSON: a field cleared to
+        // undefined locally arrives removed, and an undefined array slot arrives as null.
+        return createPatch(asJson(confirmedState), asJson(optimistic.result.updatedState)).length === 0
     }
 
     private rollbackTo(context: GameContext<T, U>, index: number): void {
@@ -401,4 +401,8 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             context.undoLastAction()
         }
     }
+}
+
+function asJson(value: unknown): unknown {
+    return JSON.parse(JSON.stringify(value))
 }

@@ -11,7 +11,7 @@ import { GameActionResults } from './gameActionResults.svelte.js'
 import type { GameContext } from './gameContext.svelte.js'
 import { GameReconciliation } from './gameReconciliation.js'
 
-type State = GameState & { card?: string; effect?: string }
+type State = GameState & { card?: string; effect?: string; cubes?: (string | null | undefined)[] }
 type Context = GameContext<State, HydratedGameState<State> & State>
 
 function stateWith(fields: Partial<State>): State {
@@ -27,11 +27,8 @@ function stateWith(fields: Partial<State>): State {
     } as State
 }
 
-// The client clears a field by assigning undefined, as Sol's ActivateEffect does with the held card.
-// The server's projected action carries a JSON forward patch, which removes the key instead.
-function submission() {
-    const before = stateWith({ card: 'Refraction' })
-    const optimisticState = { ...before, card: undefined, effect: 'Accelerate', actionCount: 1 }
+// The server's projected action carries a JSON forward patch built from the State as it is stored.
+function submission(before: State, optimisticState: State) {
     const action: GameAction = {
         id: 'activate',
         gameId: 'game',
@@ -45,13 +42,18 @@ function submission() {
         forwardPatch: createPatch(before, JSON.parse(JSON.stringify(optimisticState)))
     }
     const applyPatch = (state: State, patch: GameAction['forwardPatch']) => {
-        const next: Record<string, unknown> = structuredClone(state)
+        const next = structuredClone(state)
         for (const op of patch ?? []) {
-            const key = op.path.slice(1)
-            if (op.op === 'remove') delete next[key]
-            else next[key] = op.value
+            const keys = op.path.slice(1).split('/')
+            const last = keys.pop() as string
+            const parent = keys.reduce<Record<string, unknown>>(
+                (node, key) => node[key] as Record<string, unknown>,
+                next as Record<string, unknown>
+            )
+            if (op.op === 'remove') delete parent[last]
+            else parent[last] = 'value' in op ? op.value : undefined
         }
-        return next as State
+        return next
     }
     const context = {
         state: optimisticState,
@@ -80,12 +82,49 @@ function submission() {
 
 describe('GameReconciliation.acceptSubmission', () => {
     it('keeps an optimistic State whose cleared field the server removed', () => {
-        const { context, response, optimistic } = submission()
+        // Sol's ActivateEffect clears the held card by assigning undefined
+        const before = stateWith({ card: 'Refraction' })
+        const { context, response, optimistic } = submission(before, {
+            ...before,
+            card: undefined,
+            effect: 'Accelerate',
+            actionCount: 1
+        })
         const reconciliation = new GameReconciliation(context as unknown as Context)
 
         reconciliation.acceptSubmission('activate', response, optimistic)
 
         expect(context.restoreFrom).not.toHaveBeenCalled()
         expect(context.upsertAction).toHaveBeenCalledOnce()
+    })
+
+    it('keeps an optimistic State whose cleared array slot the server sent as null', () => {
+        // Estates' startAuction takes a cube off the board, leaving undefined in its slot
+        const before = stateWith({ cubes: ['red', null] })
+        const { context, response, optimistic } = submission(before, {
+            ...before,
+            cubes: [undefined, null],
+            actionCount: 1
+        })
+        const reconciliation = new GameReconciliation(context as unknown as Context)
+
+        reconciliation.acceptSubmission('activate', response, optimistic)
+
+        expect(context.restoreFrom).not.toHaveBeenCalled()
+    })
+
+    it('replaces an optimistic State that differs from the server', () => {
+        const before = stateWith({ card: 'Refraction' })
+        const { context, response, optimistic } = submission(before, {
+            ...before,
+            card: undefined,
+            actionCount: 1
+        })
+        optimistic.result.updatedState = { ...optimistic.result.updatedState, card: 'Flare' }
+        const reconciliation = new GameReconciliation(context as unknown as Context)
+
+        reconciliation.acceptSubmission('activate', response, optimistic)
+
+        expect(context.restoreFrom).toHaveBeenCalledOnce()
     })
 })
