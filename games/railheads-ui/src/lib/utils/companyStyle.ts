@@ -10,11 +10,11 @@ export const COMPANY_STYLE: Record<CompanyId, CompanyStyle> = {
     [CompanyId.KBSB]: { fill: '#2c7fd3', text: '#ffffff', edge: '#164a80' }
 }
 
-export type IndustryStyle = { name: string; ring: string; mark: string }
+export type IndustryStyle = { name: string; ring: string; mark: string; text: string }
 
 export const INDUSTRY_STYLE: Record<Industry, IndustryStyle> = {
-    [Industry.Cloth]: { name: 'Cloth', ring: '#4b4f9e', mark: '#3a3e8c' },
-    [Industry.Grain]: { name: 'Grain', ring: '#d3a92a', mark: '#c99a1e' },
-    [Industry.Brick]: { name: 'Brick', ring: '#7a2f17', mark: '#7a2f17' },
-    [Industry.Anvil]: { name: 'Anvil', ring: '#6b6d68', mark: '#5c5e59' }
+    [Industry.Cloth]: { name: 'Cloth', ring: '#4b4f9e', mark: '#3a3e8c', text: '#ffffff' },
+    [Industry.Grain]: { name: 'Grain', ring: '#d3a92a', mark: '#c99a1e', text: '#2b2405' },
+    [Industry.Brick]: { name: 'Brick', ring: '#7a2f17', mark: '#7a2f17', text: '#ffffff' },
+    [Industry.Anvil]: { name: 'Anvil', ring: '#6b6d68', mark: '#5c5e59', text: '#ffffff' }
 }

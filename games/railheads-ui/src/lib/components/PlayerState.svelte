@@ -131,7 +131,7 @@
         align-items: center;
         gap: 6px;
         padding: 3px 10px 3px 12px;
-        font-size: 13px;
+        font-size: 12.5px;
     }
 
     .items {
@@ -148,7 +148,7 @@
     }
 
     .amount {
-        font-size: 18px;
+        font-size: 14px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
     }

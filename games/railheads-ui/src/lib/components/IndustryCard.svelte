@@ -47,10 +47,13 @@
     </div>
 {/snippet}
 
-<div class="card" style:--ring={style.ring}>
-    <div class="head">
+<div class="card">
+    <div class="head" style:background={style.ring} style:color={style.text}>
         <span class="name">{style.name}</span>
-        <span class="level" title="Development level, out of {length}">Level {level}</span>
+        <span class="level" title="Development level, out of {length}">
+            <span class="level-label">Level</span>
+            <span class="level-amount">{level}</span>
+        </span>
     </div>
     <div class="body">
         {@render pile(forSale, 'left', `${forSale} tokens left to be auctioned`)}
@@ -59,15 +62,15 @@
                 class="entry"
                 title="Each {style.name} token pays ${level} at the payout, equal to its development level"
             >
-                <span>Payout</span><span class="money">${level}</span>
+                <span>Payout per token</span><span class="money">${level}</span>
             </div>
             <div class="entry" title="Industry sites with a company disc on them, of all {sites}">
-                <span>Sites</span><span class="money">{reached}/{sites}</span>
+                <span>Sites reached</span><span class="money">{reached}/{sites}</span>
             </div>
         </div>
     </div>
     <div class="track" role="img" aria-label="Level {level} of {length}">
-        <span class="fill" style:width="{(100 * level) / length}%"></span>
+        <span class="fill" style:width="{(100 * level) / length}%" style:background={style.ring}></span>
     </div>
 </div>
 
@@ -76,7 +79,7 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        border: 2px solid var(--ring);
+        border: 2px solid #4a5a24;
         border-radius: 8px;
         background: #f6f2da;
         color: #26300f;
@@ -90,19 +93,32 @@
         align-items: center;
         justify-content: space-between;
         padding: 3px 8px;
-        background: var(--ring);
-        color: #ffffff;
         font-family: 'Libre Baskerville', Georgia, serif;
         font-weight: 700;
     }
 
     .name {
         font-size: 16px;
+        letter-spacing: 0.02em;
     }
 
     .level {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
         font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 13px;
+    }
+
+    .level-label {
+        font-size: 10px;
+        font-weight: 400;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 0.9;
+    }
+
+    .level-amount {
+        font-size: 16px;
     }
 
     .body {
@@ -117,7 +133,7 @@
         align-items: center;
         justify-content: flex-end;
         gap: 3px;
-        width: 66px;
+        width: 74px;
         padding: 6px 0 4px;
         border-right: 1px solid #d9d4a8;
         background: #ece7c6;
@@ -173,24 +189,18 @@
         min-width: 58px;
         padding: 0 8px;
         border-left: 1px solid #c9c493;
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 700;
     }
 
-    .entry:first-child .money {
-        font-size: 22px;
-        color: #a3311d;
-    }
-
     .track {
-        height: 6px;
-        border-top: 1px solid #c9c493;
-        background: #d9d4a8;
+        height: 5px;
+        border-top: 1px solid #d9d4a8;
+        background: #e3dfb8;
     }
 
     .fill {
         display: block;
         height: 100%;
-        background: var(--ring);
     }
 </style>
