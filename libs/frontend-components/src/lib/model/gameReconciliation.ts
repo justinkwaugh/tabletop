@@ -88,6 +88,12 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             while (!remote.isPaused() && this.pending.length > 0) {
                 const update = this.pending.shift()
                 assertExists(update, 'A queued server update must exist')
+                // An update can arrive after a later change the client already has, such as the
+                // player's own Undo of a broadcast action or a later Undo than the one it reports;
+                // applying it would bring undone actions back.
+                if (update.kind !== 'synchronize' && this.predatesLocalGame(update.game)) {
+                    continue
+                }
                 try {
                     if (update.kind === 'synchronize') {
                         await remote.recover()
@@ -270,6 +276,15 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         }
     }
 
+    private predatesLocalGame(game: Game): boolean {
+        const local = this.context.game.updatedAt
+        return (
+            local !== undefined &&
+            game.updatedAt !== undefined &&
+            game.updatedAt.getTime() < local.getTime()
+        )
+    }
+
     replace(
         replay: ProcessedActionReplay,
         checksum: number,
@@ -304,10 +319,27 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             )
         }
         replacement.verifyFullChecksum()
+        // The server pushes an Undo to the player who made it too, after the client already shows
+        // the result. Swapping in an identical State would reset whatever the player started since.
+        if (before === this.context && this.sameHistory(replacement, this.context)) {
+            if (game !== undefined) {
+                this.context.updateGame(game)
+            }
+            return
+        }
         if (game !== undefined) {
             replacement.updateGame(game)
         }
         this.context.restoreFrom(replacement)
+    }
+
+    private sameHistory(left: GameContext<T, U>, right: GameContext<T, U>): boolean {
+        return (
+            left.historyStartIndex === right.historyStartIndex &&
+            left.actions.length === right.actions.length &&
+            left.actions.every((action, index) => action.id === right.actions[index].id) &&
+            createPatch(asJson(left.state), asJson(right.state)).length === 0
+        )
     }
 
     replaceFromManifest(
@@ -388,9 +420,9 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                 game: optimistic.before.game
             })
         }
-        // Compare as the server's forward patch does: a field cleared to undefined locally arrives
-        // removed, and must not count as a difference.
-        return createPatch(confirmedState, optimistic.result.updatedState).length === 0
+        // Compare the States as the server stores and sends them, as JSON: a field cleared to
+        // undefined locally arrives removed, and an undefined array slot arrives as null.
+        return createPatch(asJson(confirmedState), asJson(optimistic.result.updatedState)).length === 0
     }
 
     private rollbackTo(context: GameContext<T, U>, index: number): void {
@@ -401,4 +433,8 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             context.undoLastAction()
         }
     }
+}
+
+function asJson(value: unknown): unknown {
+    return JSON.parse(JSON.stringify(value))
 }
