@@ -101,9 +101,15 @@ export function chooseTool(draft: TurnDraft, tool: BuildTool, turnKey: string): 
 
 // A tool chosen this turn stays selected across the turn's own actions, but only as an
 // automatic selection, so Undo after an action undoes that action rather than the choice.
+// Only tile tools carry: the one market action closes the market tools, so a market tool is only
+// carried by undoing it, where it would keep the tile actions undone after it closed.
 export function carryTool(draft: TurnDraft, turnKey: string): TurnDraft {
     const entry = getStagedSelectionEntry<TurnDraftValues, 'tool'>(draft.selection, 'tool')
-    if (!entry || entry.value.turnKey !== turnKey) {
+    if (
+        !entry ||
+        entry.value.turnKey !== turnKey ||
+        (entry.value.tool !== BuildTool.Road && entry.value.tool !== BuildTool.City)
+    ) {
         return emptyDraft()
     }
     return {

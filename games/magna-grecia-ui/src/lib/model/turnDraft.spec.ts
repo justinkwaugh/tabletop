@@ -142,6 +142,17 @@ describe('turn draft', () => {
         expect(carryTool(carryTool(laying, '0:1'), '0:2')).toEqual(emptyDraft())
     })
 
+    // A turn has one market action, so a market tool is only carried by undoing it, and it would
+    // then keep the tile actions closed while Undo walks back through them.
+    it('does not carry a market tool', () => {
+        expect(carryTool(chooseTool(emptyDraft(), BuildTool.Market, '0:1'), '0:1')).toEqual(
+            emptyDraft()
+        )
+        expect(carryTool(chooseTool(emptyDraft(), BuildTool.Sell, '0:1'), '0:1')).toEqual(
+            emptyDraft()
+        )
+    })
+
     it('keeps the tool while the resupply picker is open', () => {
         let draft = toggleResupply(chooseTool(emptyDraft(), BuildTool.City, '0:1'))
         expect(draftResupplyOpen(draft)).toBe(true)
