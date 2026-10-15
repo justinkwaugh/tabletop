@@ -1,7 +1,6 @@
 import {
     ActionSource,
     assertExists,
-    createPatch,
     findLastIndex,
     GameSyncStatus,
     type CanonicalActionReplayManifest,
@@ -15,6 +14,7 @@ import {
 import type { RemoteApiService } from '../services/remoteApiService.js'
 import { GameActionResults, type ActionResults } from './gameActionResults.svelte.js'
 import type { GameContext } from './gameContext.svelte.js'
+import { sameStoredState } from './storedState.js'
 
 export enum ServerActionHandling {
     Execute = 'execute',
@@ -338,7 +338,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             left.historyStartIndex === right.historyStartIndex &&
             left.actions.length === right.actions.length &&
             left.actions.every((action, index) => action.id === right.actions[index].id) &&
-            createPatch(asJson(left.state), asJson(right.state)).length === 0
+            sameStoredState(left.state, right.state)
         )
     }
 
@@ -420,9 +420,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                 game: optimistic.before.game
             })
         }
-        // Compare the States as the server stores and sends them, as JSON: a field cleared to
-        // undefined locally arrives removed, and an undefined array slot arrives as null.
-        return createPatch(asJson(confirmedState), asJson(optimistic.result.updatedState)).length === 0
+        return sameStoredState(confirmedState, optimistic.result.updatedState)
     }
 
     private rollbackTo(context: GameContext<T, U>, index: number): void {
@@ -433,8 +431,4 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             context.undoLastAction()
         }
     }
-}
-
-function asJson(value: unknown): unknown {
-    return JSON.parse(JSON.stringify(value))
 }

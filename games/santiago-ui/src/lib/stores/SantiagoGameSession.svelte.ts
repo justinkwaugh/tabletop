@@ -1,4 +1,4 @@
-import { AnimationContext, GameSession } from '@tabletop/frontend-components'
+import { AnimationContext, GameSession, type VisibleTransition } from '@tabletop/frontend-components'
 import {
     ActionType,
     MachineState,
@@ -122,11 +122,12 @@ export class SantiagoGameSession extends GameSession<
     // inert bar, in place.
     override async notifyStateChangeListeners(
         newState: HydratedSantiagoGameState,
-        oldState?: HydratedSantiagoGameState
+        oldState: HydratedSantiagoGameState | undefined,
+        transition: VisibleTransition
     ) {
         this.incoming = newState
         try {
-            await super.notifyStateChangeListeners(newState, oldState)
+            await super.notifyStateChangeListeners(newState, oldState, transition)
         } catch (error) {
             this.clearAnimationPreviews()
             this.landMoodAnimator.settle(this.landMood)

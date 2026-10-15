@@ -95,7 +95,8 @@ test('loaded panels clear tall buildings and roof labels follow state-only jumps
                 data.machineState = machineState
                 await session.notifyStateChangeListeners(
                     session.runtime.hydrator.hydrateState(data),
-                    session.gameState
+                    session.gameState,
+                    { animateActions: true }
                 )
             },
             { value, pieceType: PieceType.Roof as const, machineState: MachineState.Auctioning }
@@ -119,10 +120,13 @@ test('loaded panels clear tall buildings and roof labels follow state-only jumps
         data.board.rows[0].sites[0].roof = undefined
         await session.notifyStateChangeListeners(
             session.runtime.hydrator.hydrateState(data),
-            original
+            original,
+            { animateActions: true }
         )
         const height = window.estatesScene.getObjectByName('player-panels')?.position.y
-        session.gameState = original
+        await session.notifyStateChangeListeners(original, session.gameState, {
+            animateActions: true
+        })
         return height
     }, MachineState.StartOfTurn)
     expect(heightAfterTransition).toBe(2.5)
