@@ -2219,7 +2219,11 @@ function deedWriterTable(): PlayedTable {
 }
 
 type ExchangeScene =
-    'exchangeDeed' | 'exchangeDeedEmptyBoard' | 'exchangeTinkers' | 'exchangeGathering'
+    | 'exchangeDeed'
+    | 'exchangeDeedEmptyBoard'
+    | 'exchangeDeedSwap'
+    | 'exchangeTinkers'
+    | 'exchangeGathering'
 
 const VOW_OF_SILENCE = 'denizen.arcane.vow-of-silence'
 
@@ -2228,13 +2232,15 @@ const VOW_OF_SILENCE = 'denizen.arcane.vow-of-silence'
  * Great Slum (Imperial warbands) and holds the Grand Scepter and the Cup of Plenty. Rhys, an
  * Exile, rules the Mountain and holds the Bandit Crown with 2 warbands on his board; Ann is a
  * Citizen. `exchangeDeedEmptyBoard`: Rhys holds no Crown and his board is empty.
+ * `exchangeDeedSwap`: the same, in a game at the current revision, where the Mountain's warband
+ * comes home before Rhys moves in.
  * `exchangeTinkers`: Rhys holds Vow of Silence. `exchangeGathering`: The Gathering's round asks
  * Dana, who holds 2 advisers of 3; Rhys holds Vow of Peace (locked), Tents and a facedown card.
  */
 function exchangeTable(scene: ExchangeScene): PlayedTable {
     const [home, slums] = mapSlotsFor(Region.Cradle)
     const mountain = mapSlotId(Region.Provinces, 0)
-    const crowned = scene !== 'exchangeDeedEmptyBoard'
+    const crowned = scene !== 'exchangeDeedEmptyBoard' && scene !== 'exchangeDeedSwap'
     const card =
         scene === 'exchangeTinkers' ? 'denizen.hearth.tinkers-fair' : 'denizen.hearth.deed-writer'
     const gathering = scene === 'exchangeGathering'
@@ -2285,7 +2291,8 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
         ],
         {
             machineState: gathering ? MachineState.PowerQuestion : MachineState.ActPhase,
-            oathRevision: OathRevision.UiBatch1,
+            oathRevision:
+                scene === 'exchangeDeedSwap' ? CURRENT_OATH_REVISION : OathRevision.UiBatch1,
             chancellorPlayerId: 'dana',
             map: allMapSlots(),
             vault: testVaultWithRelics(RELIQUARY),
@@ -4647,6 +4654,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     deedWriter: deedWriterTable,
     exchangeDeed: () => exchangeTable('exchangeDeed'),
     exchangeDeedEmptyBoard: () => exchangeTable('exchangeDeedEmptyBoard'),
+    exchangeDeedSwap: () => exchangeTable('exchangeDeedSwap'),
     exchangeTinkers: () => exchangeTable('exchangeTinkers'),
     exchangeGathering: () => exchangeTable('exchangeGathering'),
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),

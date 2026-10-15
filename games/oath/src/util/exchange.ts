@@ -169,7 +169,8 @@ export function reasonTransferInvalid(
         }
     }
     if (summed) {
-        const moves = movesFromBoard(state, toId, sites)
+        const board = boardToMoveInFrom(state, toId, inReturn?.sites ?? [])
+        const moves = movesFromBoard(state, toId, sites, board)
         if (moves.length < sites.length) {
             const covered = sites.slice(0, moves.length + 1)
             const needed = covered.reduce((sum, site) => sum + site.warbands, 0)
@@ -251,15 +252,42 @@ function adviserExcessAfterExchange(
     )
 }
 
-/** R-10.8 — the warbands a new ruler moves in: whichever of theirs their board holds most of. */
+/**
+ * R-10.8 — the warbands a new ruler moves in: whichever of theirs their board holds most of,
+ * once the sites they give in the same exchange have sent theirs home.
+ */
 export function boardWarbandOwnerOf(
     state: HydratedOathGameState,
-    playerId: string
+    playerId: string,
+    givenSites: readonly SiteTransfer[] = []
 ): WarbandOwner | undefined {
     return mostHeld(
         rulingWarbandOwners(state, playerId),
-        state.getPlayerState(playerId).warbandsOnBoard
+        boardToMoveInFrom(state, playerId, givenSites)
     )
+}
+
+/**
+ * Deed Writer — "Old ruler moves warbands to board, and new ruler moves warbands from board": the
+ * board `playerId` moves warbands in from, with the warbands on the sites they give in the same
+ * exchange (`givenSites`) already home. From revision 11; before it the board as it stands, since
+ * each side's sites were moved in turn. Read from the public board and sites.
+ */
+export function boardToMoveInFrom(
+    state: HydratedOathGameState,
+    playerId: string,
+    givenSites: readonly SiteTransfer[]
+): WarbandCounts {
+    const board: WarbandCounts = { ...state.getPlayerState(playerId).warbandsOnBoard }
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes7)) return board
+    for (const { siteId } of givenSites) {
+        const onSite = warbandsAt(state, siteId)
+        for (const owner of rulingWarbandOwners(state, playerId)) {
+            const n = countOf(onSite, owner)
+            if (n > 0) board[owner] = countOf(board, owner) + n
+        }
+    }
+    return board
 }
 
 function mostHeld(
@@ -283,10 +311,11 @@ interface BoardMove {
 function movesFromBoard(
     state: HydratedOathGameState,
     toId: string,
-    sites: readonly SiteTransfer[]
+    sites: readonly SiteTransfer[],
+    board: Readonly<WarbandCounts>
 ): BoardMove[] {
     const owners = rulingWarbandOwners(state, toId)
-    const left: WarbandCounts = { ...state.getPlayerState(toId).warbandsOnBoard }
+    const left: WarbandCounts = { ...board }
     const moves: BoardMove[] = []
     for (const site of sites) {
         const owner = mostHeld(owners, left)
@@ -305,21 +334,86 @@ export interface ExchangeApplied {
     advisersMoved: AdvisersMoved[]
 }
 
-/** R-10.8 — the caller validates first. */
+/**
+ * R-10.8 — the caller validates first. From revision 11 the sites move in Deed Writer's order
+ * across both sides ("Old ruler moves warbands to board, and new ruler moves warbands from
+ * board"): every site handed over sends its old ruler's warbands home before any new ruler moves
+ * in. Before it each side's sites moved in turn, the proposer's first, as the game was recorded.
+ */
 export function applyExchange(
     state: HydratedOathGameState,
     proposerId: string,
     counterpartyId: string,
     terms: ExchangeTerms
 ): ExchangeApplied {
-    const fromProposer = applyTransfer(state, proposerId, counterpartyId, terms.fromProposer)
+    const inTurn = !isAtLeastOathRevision(state, OathRevision.EngineFixes7)
+    const fromProposer = applyTransfer(
+        state,
+        proposerId,
+        counterpartyId,
+        terms.fromProposer,
+        inTurn
+    )
     const fromCounterparty = applyTransfer(
         state,
         counterpartyId,
         proposerId,
-        terms.fromCounterparty
+        terms.fromCounterparty,
+        inTurn
     )
+    if (!inTurn) {
+        const sides = [
+            { fromId: proposerId, toId: counterpartyId, sites: terms.fromProposer?.sites ?? [] },
+            { fromId: counterpartyId, toId: proposerId, sites: terms.fromCounterparty?.sites ?? [] }
+        ]
+        for (const { fromId, sites } of sides) {
+            for (const { siteId } of sites) sendWarbandsHome(state, fromId, siteId)
+        }
+        for (const { toId, sites } of sides) moveWarbandsIn(state, toId, sites)
+    }
     return exchangeApplied(proposerId, counterpartyId, fromProposer, fromCounterparty)
+}
+
+/** R-10.8 — "Old ruler moves warbands to board": all of theirs on the site. */
+function sendWarbandsHome(state: HydratedOathGameState, fromId: string, siteId: string): void {
+    const onSite = warbandsAt(state, siteId)
+    for (const owner of rulingWarbandOwners(state, fromId)) {
+        const n = countOf(onSite, owner)
+        if (n <= 0) continue
+        removeWarbandsFrom(state, { kind: 'site', siteId }, owner, n)
+        addWarbandsToBoard(state, fromId, owner, n)
+    }
+}
+
+/** Before revision 11: site by site, the old ruler's warbands go home and the new ruler's go in. */
+function moveSitesInTurn(
+    state: HydratedOathGameState,
+    fromId: string,
+    toId: string,
+    sites: readonly SiteTransfer[]
+): void {
+    const moves = movesFromBoard(state, toId, sites, state.getPlayerState(toId).warbandsOnBoard)
+    assert(moves.length === sites.length, `${toId}'s board cannot fill every site promised`)
+    for (const move of moves) {
+        sendWarbandsHome(state, fromId, move.siteId)
+        removeWarbandsFrom(state, { kind: 'board', playerId: toId }, move.owner, move.warbands)
+        addWarbandsToSite(state, move.siteId, move.owner, move.warbands)
+    }
+}
+
+/** R-10.8 — "…and new ruler moves warbands from board". */
+function moveWarbandsIn(
+    state: HydratedOathGameState,
+    toId: string,
+    sites: readonly SiteTransfer[]
+): void {
+    const board = state.getPlayerState(toId).warbandsOnBoard
+    const moves = movesFromBoard(state, toId, sites, board)
+    assert(moves.length === sites.length, `${toId}'s board cannot fill every site promised`)
+    for (const move of moves) {
+        removeWarbandsFrom(state, { kind: 'board', playerId: toId }, move.owner, move.warbands)
+        addWarbandsToSite(state, move.siteId, move.owner, move.warbands)
+    }
 }
 
 function exchangeApplied(
@@ -342,12 +436,16 @@ function exchangeApplied(
     }
 }
 
-/** Returns the advisers that went from `fromId` to `toId`. */
+/**
+ * Returns the advisers that went from `fromId` to `toId`. The sites move here only when each side
+ * moves its sites `inTurn` (before revision 11).
+ */
 function applyTransfer(
     state: HydratedOathGameState,
     fromId: string,
     toId: string,
-    transfer?: ExchangeTransfer
+    transfer: ExchangeTransfer | undefined,
+    inTurn: boolean
 ): KnownAdviser[] {
     if (!transfer) return []
     const from = state.getPlayerState(fromId)
@@ -357,22 +455,7 @@ function applyTransfer(
     from.secrets -= secrets
     to.secrets += secrets
     for (const cardId of transfer.relicCardIds ?? []) giveRelic(state, fromId, toId, cardId)
-    const sites = transfer.sites ?? []
-    const moves = movesFromBoard(state, toId, sites)
-    assert(moves.length === sites.length, `${toId}'s board cannot fill every site promised`)
-    for (const move of moves) {
-        // R-10.8 — "old ruler moves warbands to board": all of theirs there.
-        const onSite = warbandsAt(state, move.siteId)
-        for (const owner of rulingWarbandOwners(state, fromId)) {
-            const n = countOf(onSite, owner)
-            if (n <= 0) continue
-            removeWarbandsFrom(state, { kind: 'site', siteId: move.siteId }, owner, n)
-            addWarbandsToBoard(state, fromId, owner, n)
-        }
-        // R-10.8 — "…and new ruler moves warbands from board".
-        removeWarbandsFrom(state, { kind: 'board', playerId: toId }, move.owner, move.warbands)
-        addWarbandsToSite(state, move.siteId, move.owner, move.warbands)
-    }
+    if (inTurn) moveSitesInTurn(state, fromId, toId, transfer.sites ?? [])
     // Resolved by the host, which alone knows what a facedown row holds.
     const moving = (transfer.adviserRows ?? []).map((row) => {
         const adviser = from.knownAdvisers()[row]

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { CardKind, type ExchangeAllowance } from '@tabletop/oath'
+    import { CardKind, type ExchangeAllowance, type ExchangeTransfer } from '@tabletop/oath'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -21,6 +21,7 @@
         toggled,
         transferOf,
         warbandsToMoveIn,
+        withOfferedPicks,
         withSiteCount,
         withSitePicked,
         withTransfer,
@@ -51,18 +52,41 @@
     let gameState = $derived(gameSession.gameState)
     let myId = $derived(gameSession.myPlayer?.id)
 
-    type Column = { key: ExchangeSide; giver: string; receiver: string; offers: ExchangeOffers }
+    type Column = {
+        key: ExchangeSide
+        giver: string
+        receiver: string
+        // R-10.8 — what the receiver gives back in the same exchange.
+        inReturn: ExchangeTransfer
+        offers: ExchangeOffers
+    }
 
     let columns: Column[] = $derived(
         (
             [
-                { key: 'fromProposer', giver: proposerId, receiver: counterpartyId },
-                { key: 'fromCounterparty', giver: counterpartyId, receiver: proposerId }
+                {
+                    key: 'fromProposer',
+                    giver: proposerId,
+                    receiver: counterpartyId,
+                    back: 'fromCounterparty'
+                },
+                {
+                    key: 'fromCounterparty',
+                    giver: counterpartyId,
+                    receiver: proposerId,
+                    back: 'fromProposer'
+                }
             ] as const
-        ).map((side) => ({
-            ...side,
-            offers: exchangeOffers(gameState, side.giver, side.receiver, allows, myId)
-        }))
+        ).map(({ key, giver, receiver, back }) => {
+            const inReturn = transferOf(value.terms, back)
+            return {
+                key,
+                giver,
+                receiver,
+                inReturn,
+                offers: exchangeOffers(gameState, giver, receiver, allows, myId, inReturn)
+            }
+        })
     )
 
     const widths: Record<ExchangeSide, ChoiceWidth> = {
@@ -78,9 +102,14 @@
         return (site.cardId ? cardImage(site.cardId) : undefined) ?? cardBack(CardKind.Site)
     }
 
+    // R-10.8 — a pick the other side's change no longer allows leaves with it: no row would show it.
+    function change(picks: ExchangePicks) {
+        onchange(withOfferedPicks(gameState, proposerId, counterpartyId, allows, myId, picks))
+    }
+
     function tapToken(key: ExchangeSide, token: 'favor' | 'secrets', tapped: number) {
         const picked = transferOf(value.terms, key)[token] ?? 0
-        onchange({
+        change({
             ...value,
             terms: withTransfer(value.terms, key, { [token]: tappedCount(picked, tapped) })
         })
@@ -89,20 +118,20 @@
     function toggleRelic(key: ExchangeSide, relicId: string) {
         const picked = transferOf(value.terms, key).relicCardIds
         const relicCardIds = toggled(picked, relicId, !picked?.includes(relicId))
-        onchange({ ...value, terms: withTransfer(value.terms, key, { relicCardIds }) })
+        change({ ...value, terms: withTransfer(value.terms, key, { relicCardIds }) })
     }
 
     function toggleAdviser(key: ExchangeSide, row: number) {
         const picked = transferOf(value.terms, key).adviserRows
         const adviserRows = toggled(picked, row, !picked?.includes(row))
-        onchange({ ...value, terms: withTransfer(value.terms, key, { adviserRows }) })
+        change({ ...value, terms: withTransfer(value.terms, key, { adviserRows }) })
     }
 </script>
 
 <div class="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-    {#each columns as { key, giver, receiver, offers } (key)}
+    {#each columns as { key, giver, receiver, inReturn, offers } (key)}
         {@const transfer = transferOf(value.terms, key)}
-        {@const moving = warbandsToMoveIn(gameState, receiver)}
+        {@const moving = warbandsToMoveIn(gameState, receiver, inReturn.sites)}
         <div class="min-w-0 border-t border-oath-divider pt-1.5">
             <div class="text-oath-text-muted mb-1">
                 {#if giver === myId}You give{:else}<PlayerName playerId={giver} /> gives{/if}
@@ -145,7 +174,8 @@
                         giver,
                         receiver,
                         transfer,
-                        site.siteId
+                        site.siteId,
+                        inReturn
                     )}
                     <MenuToggleRow
                         image={siteImage(site)}
@@ -154,7 +184,7 @@
                         disabled={busy}
                         width={widths[key]}
                         onclick={() =>
-                            onchange(withSitePicked(value, key, site.siteId, counts, !picked))}
+                            change(withSitePicked(value, key, site.siteId, counts, !picked))}
                     />
                     {#if picked && moving.owner !== undefined && moving.held > 0}
                         {@const count = siteWarbandsIn(transfer, site.siteId)}
@@ -171,7 +201,7 @@
                                 picked={count ?? 0}
                                 label={(n) => `${nameOf(receiver)} moves ${n} in from their board`}
                                 ontap={(n) =>
-                                    onchange(
+                                    change(
                                         withSiteCount(
                                             value,
                                             key,

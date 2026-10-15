@@ -1,5 +1,6 @@
 import { range } from '@tabletop/common'
 import {
+    boardToMoveInFrom,
     boardWarbandOwnerOf,
     countOf,
     reasonTransferInvalid,
@@ -9,6 +10,7 @@ import {
     type ExchangeTerms,
     type ExchangeTransfer,
     type HydratedOathGameState,
+    type SiteTransfer,
     type WarbandOwner
 } from '@tabletop/oath'
 import { offerableAdviserRows, type AdviserRowOffer } from './questionChoices.js'
@@ -46,53 +48,60 @@ export function addableCount(held: number, allowed: (count: number) => boolean):
 
 /**
  * R-10.8 — "new ruler moves warbands from board": the warbands the receiver's board holds most
- * of, which the engine moves in, and how many of them there are.
+ * of, which the engine moves in, and how many of them there are, once the sites the receiver
+ * gives (`givenSites`) have sent theirs home (from revision 11, as the engine counts it).
  */
 export function warbandsToMoveIn(
     state: HydratedOathGameState,
-    receiverId: string
+    receiverId: string,
+    givenSites: readonly SiteTransfer[] = []
 ): { owner: WarbandOwner | undefined; held: number } {
-    const owner = boardWarbandOwnerOf(state, receiverId)
-    const board = state.getPlayerState(receiverId).warbandsOnBoard
+    const owner = boardWarbandOwnerOf(state, receiverId, givenSites)
+    const board = boardToMoveInFrom(state, receiverId, givenSites)
     return { owner, held: owner ? countOf(board, owner) : 0 }
 }
 
 /**
  * R-10.8 — the counts of warbands the receiver may move into `siteId` alongside the other sites
- * already counted in `transfer`, which share one board.
+ * already counted in `transfer`, which share one board; `inReturn` is what the receiver gives.
  */
 export function siteCounts(
     state: HydratedOathGameState,
     giverId: string,
     receiverId: string,
     transfer: ExchangeTransfer,
-    siteId: string
+    siteId: string,
+    inReturn: ExchangeTransfer = {}
 ): number[] {
-    return range(0, warbandsToMoveIn(state, receiverId).held + 1).filter(
+    const held = warbandsToMoveIn(state, receiverId, inReturn.sites).held
+    return range(0, held + 1).filter(
         (warbands) =>
             reasonTransferInvalid(
                 state,
                 giverId,
                 receiverId,
-                withSiteWarbands(transfer, siteId, warbands)
+                withSiteWarbands(transfer, siteId, warbands),
+                inReturn
             ) === undefined
     )
 }
 
 /**
- * R-10.8 — what `giverId` may promise `receiverId` under a card's `allows`: a row the engine
- * would refuse alone is not offered, so a stored game keeps its own revision's rules.
+ * R-10.8 — what `giverId` may promise `receiverId` under a card's `allows`, given what comes back
+ * (`inReturn`): a row the engine would refuse alone is not offered, so a stored game keeps its own
+ * revision's rules.
  */
 export function exchangeOffers(
     state: HydratedOathGameState,
     giverId: string,
     receiverId: string,
     allows: ExchangeAllowance,
-    viewerId: string | undefined
+    viewerId: string | undefined,
+    inReturn: ExchangeTransfer = {}
 ): ExchangeOffers {
     const giver = state.getPlayerState(giverId)
     const allowed = (transfer: ExchangeTransfer) =>
-        reasonTransferInvalid(state, giverId, receiverId, transfer) === undefined
+        reasonTransferInvalid(state, giverId, receiverId, transfer, inReturn) === undefined
     const favor = usableFavor(state, giverId)
     return {
         favor: { held: favor, addable: addableCount(favor, (n) => allowed({ favor: n })) },
@@ -106,7 +115,7 @@ export function exchangeOffers(
                   .map((siteId) => ({
                       siteId,
                       cardId: state.siteCardAt(siteId),
-                      counts: siteCounts(state, giverId, receiverId, {}, siteId)
+                      counts: siteCounts(state, giverId, receiverId, {}, siteId, inReturn)
                   }))
                   .filter((site) => site.counts.length > 0)
             : [],
@@ -234,4 +243,62 @@ export function tappedSiteCount(
 ): number | undefined {
     if (tapped !== picked) return tapped
     return counts.includes(0) ? 0 : undefined
+}
+
+/**
+ * R-10.8 — each side offers what the engine accepts with what the other side gives back, so a
+ * change to one side drops from the other every site (counted or not) and adviser its offers no
+ * longer list: no row would show such a pick to take it back. A drop can change what the first
+ * side offers in turn, so it repeats until both sides stand.
+ */
+export function withOfferedPicks(
+    state: HydratedOathGameState,
+    proposerId: string,
+    counterpartyId: string,
+    allows: ExchangeAllowance,
+    viewerId: string | undefined,
+    picks: ExchangePicks
+): ExchangePicks {
+    const sides = [
+        { side: 'fromProposer', giver: proposerId, receiver: counterpartyId, back: 'fromCounterparty' },
+        { side: 'fromCounterparty', giver: counterpartyId, receiver: proposerId, back: 'fromProposer' }
+    ] as const
+    let kept = picks
+    let dropped = true
+    while (dropped) {
+        dropped = false
+        for (const { side, giver, receiver, back } of sides) {
+            const offers = exchangeOffers(
+                state,
+                giver,
+                receiver,
+                allows,
+                viewerId,
+                transferOf(kept.terms, back)
+            )
+            const offeredSites = new Set(offers.sites.map((site) => site.siteId))
+            const offeredRows = new Set(offers.advisers.map((adviser) => adviser.row))
+            // An uncounted site is not in the terms yet; the giver's rule names its side.
+            const ruled = new Set(sitesRuledBy(state, giver))
+            const transfer = transferOf(kept.terms, side)
+            const patch: Partial<ExchangeTransfer> = {}
+            if (transfer.sites?.some((site) => !offeredSites.has(site.siteId)))
+                patch.sites = transfer.sites.filter((site) => offeredSites.has(site.siteId))
+            if (transfer.adviserRows?.some((row) => !offeredRows.has(row)))
+                patch.adviserRows = transfer.adviserRows.filter((row) => offeredRows.has(row))
+            const uncountedSiteIds = kept.uncountedSiteIds.filter(
+                (siteId) => !ruled.has(siteId) || offeredSites.has(siteId)
+            )
+            const unchanged =
+                Object.keys(patch).length === 0 &&
+                uncountedSiteIds.length === kept.uncountedSiteIds.length
+            if (unchanged) continue
+            dropped = true
+            kept = {
+                terms: Object.keys(patch).length === 0 ? kept.terms : withTransfer(kept.terms, side, patch),
+                uncountedSiteIds
+            }
+        }
+    }
+    return kept
 }

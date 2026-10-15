@@ -3779,6 +3779,45 @@ test.describe('the exchange editor', () => {
         await expect(pieces(page, 'dana')).toHaveCount(6)
     })
 
+    test('Deed Writer: an empty board takes a site once its own site is handed over, counted to the warbands that come home', async ({ page }) => {
+        await openPower(page, 'exchangeDeedSwap')
+        await chip(page, DEED_WRITER, 'rhys').click()
+        await expect(site(page, 'Plains')).toHaveCount(0)
+        await expect(site(page, 'Great Slum')).toHaveCount(0)
+        await site(page, 'Mountain').click()
+        await grid(page).getByRole('button', { name: 'dana moves 1 in from their board', exact: true }).click()
+
+        // The Mountain's one warband comes home to Rhys first, so he can move it into Plains.
+        await expect(site(page, 'Great Slum')).toBeVisible()
+        await site(page, 'Plains').click()
+        await expect(pieces(page, 'rhys')).toHaveCount(1)
+        await expect(grid(page).getByRole('button', { name: 'rhys moves 1 in from their board', exact: true })).toHaveAttribute('aria-pressed', 'true')
+        await expect(red(page)).toHaveCount(0)
+        await expect(answer(page, 'Use')).toBeVisible()
+
+        // A second tap on the Mountain takes it out, and Plains, offered only with it, goes too.
+        await site(page, 'Mountain').click()
+        await expect(site(page, 'Plains')).toHaveCount(0)
+        await expect(answer(page, 'Use')).toHaveCount(0)
+        await expect(red(page)).toHaveCount(0)
+        await site(page, 'Mountain').click()
+        await grid(page).getByRole('button', { name: 'dana moves 1 in from their board', exact: true }).click()
+        await site(page, 'Plains').click()
+        await expect(grid(page).getByRole('button', { name: 'rhys moves 1 in from their board', exact: true })).toHaveAttribute('aria-pressed', 'true')
+
+        const home = (await call(page, 'tableFacts')).siteOf.dana
+        if (!home) throw Error('Dana stands at a site')
+        await answer(page, 'Use').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('rhys')
+        await answer(page, 'Accept').click()
+        await expect.poll(async () => (await call(page, 'openQuestionKind')) ?? 'none').toBe('none')
+        const facts = await call(page, 'tableFacts')
+        expect(facts.warbandsAt[home]?.rhys).toBe(1)
+        expect(facts.warbandsAt[home]?.imperial ?? 0).toBe(0)
+        expect(facts.boardOf.dana).toEqual({ imperial: 7 })
+        expect(facts.boardOf.rhys?.rhys ?? 0).toBe(0)
+    })
+
     test('two sites share one board: the second site’s count stops at the warbands the first leaves; the Crown’s 0 alone is picked at once', async ({ page }) => {
         await openPower(page, 'exchangeDeed')
         await chip(page, DEED_WRITER, 'rhys').click()
