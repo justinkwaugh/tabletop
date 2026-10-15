@@ -178,13 +178,14 @@
         position: relative;
         overflow: hidden;
         text-align: left;
-        transition: box-shadow 0.25s;
     }
 
-    .panel.turn {
-        box-shadow:
-            0 0 0 2px var(--player),
-            0 0 20px -2px color-mix(in srgb, var(--player) 60%, transparent);
+    /* The player whose turn it is: the glass's pearl edge becomes a band of their colour. */
+    article.panel.turn::after {
+        padding: 3px;
+        background: var(--player);
+        opacity: 1;
+        z-index: 1;
     }
 
     /* Shallow, sunlit water above the reef, deepening into the panel below. */
