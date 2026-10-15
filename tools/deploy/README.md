@@ -51,6 +51,19 @@ The frontend follows the same model with `release-frontend (--major | --minor | 
 `apps/frontend/package.json`, tags `frontend-v<version>`, and the deploy uploads the build to
 `frontend/<version>` in the bucket before publishing the manifest.
 
+When `hosting.channel` is set in the deploy config (or `TABLETOP_HOSTING_CHANNEL`), Firebase
+Hosting serves the site files instead of the backend. A frontend deploy, `rollback --frontend`,
+and `switch --frontend` then copy `frontend/<version>` from the bucket to a Hosting staging
+channel before publishing the manifest, and once the backend reports the new version,
+copy that release to the configured channel and check the channel serves the build. Each
+version stages on its own channel, `frontend-<version>`, which expires after a day. Routing and
+headers come from `apps/frontend/firebase.json`, whose `hosting.site` names the site; the project
+is `backend.project`. `sync-hosting` puts the manifest's current frontend version on the channel
+without changing the manifest, for going live and for recovering from a failed copy, and
+`preflight --frontend` reports whether the channel serves the manifest's version. With no channel
+set, nothing goes to Hosting; `"hosting": { "channel": "live" }` turns it on. The deploy
+service account needs `roles/firebasehosting.admin`.
+
 The backend follows the same model with `release-backend (--major | --minor | --patch)
 [--no-deploy] [--no-traffic] [--service=backend|tasks]` and `deploy-backend`. The release bumps
 `apps/backend/package.json` and tags `backend-v<version>`. The deploy builds the backend,
@@ -174,6 +187,7 @@ release-frontend (--major | --minor | --patch) [--no-deploy]
                              Bump the frontend version, commit, tag, push, then deploy
 build-frontend               Build the frontend
 deploy-frontend              Build and deploy a tagged frontend HEAD, with the same guards
+sync-hosting                 Put the manifest's frontend version on the Hosting channel
 release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--service=backend|tasks]
                              Bump the backend version, commit, tag, push, then deploy
 build-backend                Build the backend
@@ -294,6 +308,7 @@ Environment overrides:
 - `TABLETOP_GCS_BUCKET`
 - `TABLETOP_GCLOUD_CREDENTIAL_FILE`
 - `TABLETOP_BACKEND_MANIFEST_URL` (or `TABLETOP_MANIFEST_URL`)
+- `TABLETOP_HOSTING_CHANNEL`
 - `TABLETOP_BACKEND_ADMIN_URL`
 - `TABLETOP_BACKEND_ADMIN_USER`
 - `TABLETOP_BACKEND_ADMIN_PASSWORD`
