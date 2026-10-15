@@ -17,6 +17,7 @@ import {
     tagExists,
     tagsAtHead
 } from './git.js'
+import { writeManifest } from './manifest.js'
 import { fetchBucketManifest, manifestBackupUrl, writeTemporaryManifest } from './remoteManifest.js'
 import type { BackendManifest, DeployConfig, GameCatalogueEntry, SiteManifest } from './types.js'
 
@@ -67,41 +68,77 @@ export const runStep = async (
 export const runSpec = (context: PublishContext, spec: CommandSpec) =>
     runStep(context, spec, () => runCommand(spec))
 
-export const runDeploysWithDirectoryPlaceholders = async (
-    context: PublishContext,
-    specs: CommandSpec[]
-) => {
+const runDirectoryPlaceholders = async (context: PublishContext, specs: CommandSpec[]) => {
     const placeholderSpecs = dedupeCommandSpecs(
         specs.flatMap((spec) => directoryPlaceholderSpecs(context.repoRoot, spec))
     )
     for (const placeholder of placeholderSpecs) {
         await runSpec(context, placeholder)
     }
+}
+
+export const runDeploysWithDirectoryPlaceholders = async (
+    context: PublishContext,
+    specs: CommandSpec[]
+) => {
+    await runDirectoryPlaceholders(context, specs)
     for (const spec of specs) {
         await runSpec(context, spec)
     }
 }
 
-// The bucket manifest is the only record of what production serves. Every change reads the
-// current copy, backs it up, writes the changed copy, and invalidates the backend cache.
+export type PreparedManifestPublication = {
+    before: SiteManifest
+    write: (change: (manifest: SiteManifest) => SiteManifest) => Promise<void>
+    invalidateBackend: () => Promise<void>
+}
+
+export const invalidateBackendManifest = (context: PublishContext) =>
+    runStep(
+        context,
+        { label: 'invalidate-manifest', logPath: '/tmp/manifest-invalidate.log' },
+        () => invalidateBackendManifestCache(context.deployConfig)
+    )
+
+// The bucket manifest is the only record of what production serves. Every change backs up the
+// current copy, then rereads it, writes the changed copy, and invalidates the backend cache.
+// Preparing does the backup and bucket folders first, so a caller can switch something else
+// and the manifest only seconds apart.
+export const prepareManifestPublication = async (
+    context: PublishContext,
+    operation: string
+): Promise<PreparedManifestPublication> => {
+    const before = await fetchBucketManifest(context.deployConfig)
+    const manifestPath = await writeTemporaryManifest(before)
+    const backup = backupManifestCommand(
+        context.repoRoot,
+        context.deployConfig,
+        manifestBackupUrl(context.deployConfig, operation, new Date())
+    )
+    const deploy = deployManifestCommand(manifestPath, context.deployConfig)
+    await runDirectoryPlaceholders(context, [backup, deploy])
+    await runSpec(context, backup)
+    return {
+        before,
+        write: async (change) => {
+            await writeManifest(
+                manifestPath,
+                change(await fetchBucketManifest(context.deployConfig))
+            )
+            await runSpec(context, deploy)
+        },
+        invalidateBackend: () => invalidateBackendManifest(context)
+    }
+}
+
 export const publishManifest = async (
     context: PublishContext,
     operation: string,
     change: (manifest: SiteManifest) => SiteManifest
 ) => {
-    const current = await fetchBucketManifest(context.deployConfig)
-    const next = change(current)
-    const manifestPath = await writeTemporaryManifest(next)
-    const backupUrl = manifestBackupUrl(context.deployConfig, operation, new Date())
-    await runDeploysWithDirectoryPlaceholders(context, [
-        backupManifestCommand(context.repoRoot, context.deployConfig, backupUrl),
-        deployManifestCommand(manifestPath, context.deployConfig)
-    ])
-    await runStep(
-        context,
-        { label: 'invalidate-manifest', logPath: '/tmp/manifest-invalidate.log' },
-        () => invalidateBackendManifestCache(context.deployConfig)
-    )
+    const publication = await prepareManifestPublication(context, operation)
+    await publication.write(change)
+    await publication.invalidateBackend()
 }
 
 export const assertDeployConfig = (deployConfig: DeployConfig): string => {

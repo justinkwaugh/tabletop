@@ -264,8 +264,6 @@ export class LibraryService {
         throw unavailable
     }
 
-    // Logic cannot be unloaded from a process, so a logic change needs a replacement process; the
-    // site files are served by Firebase Hosting and change without one.
     private getLogicSignature(manifest: SiteManifest): string {
         return JSON.stringify(this.getLogicVersionEntries(manifest))
     }

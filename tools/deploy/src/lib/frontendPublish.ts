@@ -13,7 +13,6 @@ import {
     fetchServing,
     gcsArtifact,
     prepareRelease,
-    publishManifest,
     runDeploysWithDirectoryPlaceholders,
     runReportedDeploy,
     runSpec,
@@ -22,8 +21,7 @@ import {
     type ServingLookup
 } from './publishCore.js'
 import { headCommitSha } from './git.js'
-import { publishFrontendVersion } from './hostingPublish.js'
-import { withFrontendVersion } from './remoteManifest.js'
+import { publishFrontendVersion, requireFrontendRelease } from './hostingPublish.js'
 import {
     bumpVersion,
     frontendReleaseTag,
@@ -83,6 +81,7 @@ const buildAndUpload = async (
 
 export const deployFrontend = async (context: PublishContext) => {
     const { version, artifacts, pending } = await assertFrontendPublishable(context)
+    const target = await requireFrontendRelease(context)
     await runReportedDeploy(
         context,
         'frontend',
@@ -90,15 +89,10 @@ export const deployFrontend = async (context: PublishContext) => {
         () => fetchFrontendServingVersion(context),
         async () => {
             await buildAndUpload(context, version, pending)
-            await publishFrontendVersion(context, version, async () => {
-                const metadata = {
-                    deployedAt: new Date().toISOString(),
-                    commitSha: await headCommitSha(context.repoRoot),
-                    tags: [frontendReleaseTag(version)]
-                }
-                await publishManifest(context, `frontend-${version}`, (manifest) =>
-                    withFrontendVersion(manifest, version, metadata)
-                )
+            await publishFrontendVersion(context, target, version, `frontend-${version}`, {
+                deployedAt: new Date().toISOString(),
+                commitSha: await headCommitSha(context.repoRoot),
+                tags: [frontendReleaseTag(version)]
             })
         }
     )

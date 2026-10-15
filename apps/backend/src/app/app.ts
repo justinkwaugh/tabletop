@@ -45,16 +45,11 @@ export interface AppOptions {
     requestRestart: () => void
 }
 
-async function manifestFrontendVersion(fastify: FastifyInstance): Promise<string | null> {
-    try {
-        const manifest = await measure('manifest.get', () =>
-            fastify.libraryService.getServedManifest()
-        )
-        return manifest.frontend?.version ?? null
-    } catch (error) {
-        console.warn('Unable to resolve frontend version from manifest', error)
-        return null
-    }
+async function frontendVersion(fastify: FastifyInstance): Promise<string> {
+    return (
+        FRONTEND_VERSION_OVERRIDE ??
+        (await fastify.libraryService.getServedManifest()).frontend.version
+    )
 }
 
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
@@ -114,9 +109,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     })
 
     fastify.addHook('onSend', async (_request, reply, payload) => {
-        const frontendVersion =
-            FRONTEND_VERSION_OVERRIDE ?? (await manifestFrontendVersion(fastify))
-        void reply.header('X-Tabletop-Version', frontendVersion ?? '0.0.0')
+        void reply.header('X-Tabletop-Version', await frontendVersion(fastify))
         return payload
     })
 
@@ -170,10 +163,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin)
     await fastify.register(ServicesPlugin)
-    // Firebase Hosting serves the site files; this startup build is only a fallback for a Hosting
-    // release that sends every path to the backend.
-    const staticFrontendVersion =
-        FRONTEND_VERSION_OVERRIDE ?? (await manifestFrontendVersion(fastify))
+    const hostingFallbackFrontendVersion = await frontendVersion(fastify)
 
     if (service !== 'local') {
         fastify.addHook('onRequest', async (request, _reply) => {
@@ -302,25 +292,19 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         })
 
         if (service === 'backend') {
-            if (staticFrontendVersion) {
-                console.log(
-                    'Serving static content for root from: ' +
-                        path.join(STATIC_ROOT, 'frontend', staticFrontendVersion)
-                )
-                await fastify.register(fastifyStatic, {
-                    root: path.join(STATIC_ROOT, 'frontend', staticFrontendVersion),
-                    preCompressed: true,
-                    cacheControl: false,
-                    setHeaders: (reply, pathName) => {
-                        setFrontendCacheHeaders(reply, pathName, 60 * 60 * 24 * 365)
+            const frontendRoot = path.join(STATIC_ROOT, 'frontend', hostingFallbackFrontendVersion)
+            console.log('Serving static content for root from: ' + frontendRoot)
+            await fastify.register(fastifyStatic, {
+                root: frontendRoot,
+                preCompressed: true,
+                cacheControl: false,
+                setHeaders: (reply, pathName) => {
+                    setFrontendCacheHeaders(reply, pathName, 60 * 60 * 24 * 365)
 
-                        setPrecompressedHeaders(reply, pathName)
-                    }
-                })
-                frontendStaticReady = true
-            } else {
-                console.warn('Frontend static handlers skipped (version unavailable)')
-            }
+                    setPrecompressedHeaders(reply, pathName)
+                }
+            })
+            frontendStaticReady = true
         }
 
         if (frontendStaticReady) {

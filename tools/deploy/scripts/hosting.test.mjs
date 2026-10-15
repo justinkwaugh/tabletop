@@ -4,7 +4,12 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { mergeEnvConfig, readDeployConfig } from '../esm/lib/config.js'
-import { publishFrontendVersion, resolveHostingTarget } from '../esm/lib/hostingPublish.js'
+import {
+    requireFrontendRelease,
+    resolveHostingTarget,
+    runFrontendSwitch
+} from '../esm/lib/hostingPublish.js'
+import { isVersionAtLeast } from '../esm/lib/versions.js'
 
 const temporaryDir = async (t, prefix) => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), prefix))
@@ -12,16 +17,59 @@ const temporaryDir = async (t, prefix) => {
     return dir
 }
 
-test('without a Hosting channel a frontend selection only publishes the manifest', async () => {
-    let published = 0
-    await publishFrontendVersion(
-        { repoRoot: '/nonexistent', deployConfig: {}, log: () => {} },
-        '2.0.0',
-        async () => {
-            published++
+const switching = { channel: 'live', from: '1.0.0', to: '2.0.0' }
+
+const recordedSwitch = (failing) => {
+    const lines = []
+    const step = (name) => async () => {
+        lines.push(name)
+        if (name === failing) throw new Error(`${name} failed`)
+    }
+    return {
+        lines,
+        context: { log: (line) => lines.push(line) },
+        steps: {
+            copyToChannel: step('copy'),
+            writeManifest: step('write'),
+            invalidateBackend: step('invalidate')
         }
+    }
+}
+
+test('a frontend switch copies to Hosting before it publishes the manifest', async () => {
+    const { lines, context, steps } = recordedSwitch()
+    await runFrontendSwitch(context, switching, steps)
+    assert.deepEqual(lines, ['copy', 'write', 'invalidate'])
+})
+
+test('each failed switch step names what production serves and how to recover', async () => {
+    const recoveries = {
+        copy: 'hosting: live may serve frontend 2.0.0 while the manifest names 1.0.0; rerun, or run sync-hosting to put Hosting back on frontend 1.0.0',
+        write: 'hosting: live serves frontend 2.0.0 but the manifest still names 1.0.0; rerun, or run sync-hosting to put Hosting back on frontend 1.0.0',
+        invalidate:
+            'the manifest names frontend 2.0.0 but the backend may still report 1.0.0; run sync-hosting to finish'
+    }
+    for (const [failing, recovery] of Object.entries(recoveries)) {
+        const { lines, context, steps } = recordedSwitch(failing)
+        await assert.rejects(runFrontendSwitch(context, switching, steps), /failed/)
+        assert.equal(lines.at(-1), recovery)
+        assert.equal(lines.at(-2), failing)
+    }
+})
+
+test('a frontend release needs a Hosting channel', async () => {
+    await assert.rejects(
+        requireFrontendRelease({ repoRoot: '/nonexistent', deployConfig: {}, log: () => {} }),
+        /needs hosting\.channel/
     )
-    assert.equal(published, 1)
+})
+
+test('version minimums compare major, then minor, then patch', () => {
+    assert.ok(isVersionAtLeast('1.23.0', '1.23.0'))
+    assert.ok(isVersionAtLeast('1.23.1', '1.23.0'))
+    assert.ok(isVersionAtLeast('2.0.0', '1.23.0'))
+    assert.ok(!isVersionAtLeast('1.22.9', '1.23.0'))
+    assert.ok(!isVersionAtLeast('0.99.0', '1.23.0'))
 })
 
 test('the Hosting target names the site from the frontend firebase.json', async (t) => {

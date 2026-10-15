@@ -111,8 +111,8 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
         const service = new LibraryService(live.cache, { manifestPath, cacheKey })
         await service.refreshManifest()
         await expectCached(before)
-        const changes: string[] = []
-        service.onManifestMismatch(({ next }) => changes.push(next.frontend.version))
+        const mismatches: SiteManifest[] = []
+        service.onManifestMismatch(({ next }) => mismatches.push(next))
         const readStarted = Promise.withResolvers<void>()
         const releaseRead = Promise.withResolvers<void>()
         const cacheGet = live.cache.cacheGet.bind(live.cache)
@@ -137,7 +137,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
 
         await expectCached(after)
         expect((await live.cache.get<SiteManifest>(cacheKey)).value).toEqual(after)
-        expect.soft(changes).toEqual(['2.0.0'])
+        expect.soft(mismatches).toEqual([after])
         expect((await service.getManifest()).frontend.version).toBe('2.0.0')
     })
 
