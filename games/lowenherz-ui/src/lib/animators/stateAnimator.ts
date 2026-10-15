@@ -14,8 +14,8 @@ import type { LowenherzGameSession } from '$lib/model/session.svelte.js'
  *   still `from`, and anything that must show the `to` values first has to render them transiently.
  * - `action` present means cinematic; `action` absent means fast fallback. That is how the three
  *   history intents reach an animator: `full-action` replay delivers each action, plain navigation
- *   and undo suppress them (see GameSession.onHistoryAction setting suppressStateChangeActions),
- *   and `silent-swap` never calls listeners at all. Branching on `isViewingHistory` instead - which
+ *   and undo present their writes with the `state` intent (see TransitionPresenter.present), and
+ *   `silent-swap` never calls listeners at all. Branching on `isViewingHistory` instead - which
  *   is what this code used to do - throws that distinction away and makes replay silent.
  */
 export type StateChange = {

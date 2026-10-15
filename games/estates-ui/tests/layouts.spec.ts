@@ -86,6 +86,9 @@ test('loaded panels clear tall buildings and roof labels follow state-only jumps
     await page.setViewportSize({ width: 1280, height: 900 })
     await expect.poll(panelHeight).toBe(5.7)
 
+    const originalState = await page.evaluate(() =>
+        window.estatesSession.gameState.dehydrate()
+    )
     for (const value of [1, 6, 1]) {
         await page.evaluate(
             async ({ value, pieceType, machineState }) => {
@@ -93,10 +96,7 @@ test('loaded panels clear tall buildings and roof labels follow state-only jumps
                 const data = session.gameState.dehydrate()
                 data.chosenPiece = { pieceType, value }
                 data.machineState = machineState
-                await session.notifyStateChangeListeners(
-                    session.runtime.hydrator.hydrateState(data),
-                    session.gameState
-                )
+                await session.presentState(data)
             },
             { value, pieceType: PieceType.Roof as const, machineState: MachineState.Auctioning }
         )
@@ -109,22 +109,21 @@ test('loaded panels clear tall buildings and roof labels follow state-only jumps
             )
             .toBe(String(value))
     }
-    const heightAfterTransition = await page.evaluate(async (machineState) => {
-        const session = window.estatesSession
-        const original = session.gameState
-        const data = original.dehydrate()
-        data.chosenPiece = undefined
-        data.machineState = machineState
-        data.board.rows[0].sites[0].cubes = data.board.rows[0].sites[0].cubes.slice(0, 1)
-        data.board.rows[0].sites[0].roof = undefined
-        await session.notifyStateChangeListeners(
-            session.runtime.hydrator.hydrateState(data),
-            original
-        )
-        const height = window.estatesScene.getObjectByName('player-panels')?.position.y
-        session.gameState = original
-        return height
-    }, MachineState.StartOfTurn)
+    const heightAfterTransition = await page.evaluate(
+        async ({ machineState, originalState }) => {
+            const session = window.estatesSession
+            const data = structuredClone(originalState)
+            data.chosenPiece = undefined
+            data.machineState = machineState
+            data.board.rows[0].sites[0].cubes = data.board.rows[0].sites[0].cubes.slice(0, 1)
+            data.board.rows[0].sites[0].roof = undefined
+            await session.presentState(data)
+            const height = window.estatesScene.getObjectByName('player-panels')?.position.y
+            await session.presentState(originalState)
+            return height
+        },
+        { machineState: MachineState.StartOfTurn, originalState }
+    )
     expect(heightAfterTransition).toBe(2.5)
     await expect.poll(panelHeight).toBe(5.7)
     expect(errors).toEqual([])
