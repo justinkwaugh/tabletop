@@ -25,7 +25,8 @@ import {
     type ReefBoardId,
     type ReefSquare,
     type HydratedReefEncounterGameState,
-    type ReefEncounterProjectedState
+    type ReefEncounterProjectedState,
+    SupplyPolypsPerLarvaCube
 } from '@tabletop/reef-encounter'
 import { assert, assertExists } from '@tabletop/common'
 import {
@@ -135,7 +136,8 @@ export class ReefEncounterGameSession extends GameSession<
         return CoralColors.filter((color) => this.gameState.canPlayLarvaCube(me, color)).map(
             (color) => ({
                 color,
-                polypsToPlace: supply[color] + player.consumedPolyps[color]
+                polypsToPlace:
+                    Math.min(supply[color], SupplyPolypsPerLarvaCube) + player.consumedPolyps[color]
             })
         )
     })

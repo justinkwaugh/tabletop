@@ -11,7 +11,10 @@ test('with polyps in the supply and consumed, a popup by the square asks which t
     })
     const consumed = page.getByRole('button', { name: 'Place a consumed white polyp' })
 
-    await actions.getByRole('button', { name: /^Play a white larva cube/ }).click()
+    // One cube places at most four polyps from the supply, plus the consumed one.
+    await actions
+        .getByRole('button', { name: 'Play a white larva cube and 5 white polyps' })
+        .click()
     await square.click()
     await expect(actions).toContainText('Which white polyp goes there?')
     await expect(consumed).toBeVisible()

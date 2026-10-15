@@ -31,15 +31,15 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-15T01:24:01.823Z",
+  "createdAt": "2026-10-15T03:05:09.660Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-15T01:24:01.823Z",
+  "startedAt": "2026-10-15T03:05:09.660Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "HDrO8hEphTp1L_aRqO1BH",
+  "id": "bj68PE3VW5mnf3c10tzgI",
   "gameId": "scenario-both-polyp-sources",
   "seed": 3367980177,
   "prng": {
@@ -66,7 +66,7 @@
      "grey": 0,
      "orange": 0,
      "pink": 0,
-     "white": 2,
+     "white": 5,
      "yellow": 0
     },
     "secretSupplyPolyps": {
@@ -410,16 +410,13 @@
     "grey",
     "yellow",
     "pink",
-    "white",
     "pink",
     "orange",
     "pink",
-    "white",
     "orange",
     "yellow",
     "grey",
     "yellow",
-    "white",
     "grey",
     "white",
     "yellow",
@@ -535,7 +532,7 @@
     "grey",
     "yellow"
    ],
-   "remaining": 155
+   "remaining": 152
   }
  },
  "actions": []

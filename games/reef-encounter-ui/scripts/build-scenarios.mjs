@@ -184,7 +184,7 @@ write(
         const { state } = position
         const player = actingPlayer(state)
         giveCube(state, player, CoralColor.White)
-        giveKnownPolyps(state, player, CoralColor.White, 2)
+        giveKnownPolyps(state, player, CoralColor.White, 5)
         takeFromBag(state, CoralColor.White)
         player.consumedPolyps[CoralColor.White] = 1
         return position
