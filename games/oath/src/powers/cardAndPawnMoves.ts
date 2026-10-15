@@ -1,6 +1,7 @@
 import { isLockedFor } from '../util/locked.js'
 import { categoryAt } from '../util/sitePowers.js'
 import { Banner, Suit } from '../model/oathEnums.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import type { PileDeposit } from '../model/hidden.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { cardDefinition, suitOf } from '../data/cardRegistry.js'
@@ -239,10 +240,26 @@ registerEffect(PIPER, powerIndexOf(PIPER, PowerTiming.Action), {
 const RIOTS = 'denizen.discord.riots'
 function riotSuits(ctx: EffectContext): { most: Suit[]; count: number } {
     const counts = new Map<Suit, number>()
-    for (const id of denizensOnMap(ctx.state)) {
-        if (id === RIOTS) continue
+    const tally = (id: string) => {
         const suit = suitOf(id)
         if (suit) counts.set(suit, (counts.get(suit) ?? 0) + 1)
+    }
+    if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6)) {
+        // Its Q&A: "count … cards at all sites", so Riots counts when it is played to one ("other" spares it
+        // from the discard alone). The map is the one Riots resolves on: the check runs before the play
+        // discards a card first or puts cards at sites, the resolve after, so those cards are counted by the
+        // play in both.
+        const leaving = ctx.mapChanges?.leaving ?? []
+        const arriving = ctx.mapChanges?.arriving ?? []
+        for (const id of denizensOnMap(ctx.state)) {
+            if (!leaving.includes(id) && !arriving.includes(id)) tally(id)
+        }
+        for (const id of arriving) tally(id)
+    } else {
+        // Before revision 10 Riots left itself out, and counted the map where it stood.
+        for (const id of denizensOnMap(ctx.state)) {
+            if (id !== RIOTS) tally(id)
+        }
     }
     const count = Math.max(0, ...counts.values())
     const most = [...counts.entries()].filter(([, n]) => n === count).map(([s]) => s)
@@ -267,7 +284,13 @@ registerEffect(RIOTS, powerIndexOf(RIOTS, PowerTiming.WhenPlayed), {
         const { most, count } = riotSuits(ctx)
         if (count === 0) return { summary: 'Riots: no other cards on the map' }
         const [pick] = chosen(ctx, PowerChoiceKind.FavorBank)
-        const suit = pick?.suit ?? most[0]
+        // From revision 10 the pick is judged on this count, as the check judges it: one that is not among
+        // the most common suits is not followed.
+        const named =
+            pick && (most.includes(pick.suit) || !isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6))
+                ? pick.suit
+                : undefined
+        const suit = named ?? most[0]
         assertExists(suit, 'Riots: a map with other cards has a most common suit')
         const { discarded, pileDeposits } = discardDenizensAtSites(
             ctx.state,

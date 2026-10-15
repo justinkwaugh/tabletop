@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, HydratedSearchResolve, MachineState, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf } from '@tabletop/oath'
+import { Banner, HydratedSearchResolve, MachineState, OathRevision, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf } from '@tabletop/oath'
 import { FIXTURE_SITE_CAPACITY, openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     disposeSessions,
@@ -368,9 +368,47 @@ describe('Land Warden — the second play is picked on the cards', () => {
         draft.setSecondPlay(draft.secondPlays.find((option) => option.cardId === TUTOR && option.faceUp === false)?.key)
         expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
     })
+
+    // Riots counts the map it resolves on: played second, after the kept card has landed at the site.
+    describe("Riots as the second card is judged with the kept card's play before it, as the engine judges the pair", () => {
+        const RIOTS = 'denizen.discord.riots'
+        const MERCENARIES = 'denizen.discord.mercenaries'
+        const SCRYER = 'denizen.discord.scryer'
+        const STORYTELLER = 'denizen.hearth.storyteller'
+        const riotsSecond = (draft: ReturnType<typeof searchingWith>['draft']) =>
+            draft.secondPlays.find((option) => option.cardId === RIOTS && option.play === SearchPlay.Site)
+        const onTheMob = (denizensBySite: Record<string, string[]>) => ({
+            ...WARDEN_CARRIED,
+            oathRevision: OathRevision.EngineFixes6,
+            banners: { [Banner.PeoplesFavor]: { value: 1, mobSide: true }, [Banner.DarkestSecret]: { value: 1 } },
+            denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...denizensBySite }
+        })
+
+        it('a kept Hearth card at the site would tie Hearth with Discord, which Riots played second cannot name, so the site is not offered', async () => {
+            const { session, draft, sent } = searchingWith([STORYTELLER, RIOTS, HELD[0]], [], onTheMob({ p1: [MERCENARIES], h1: [HELD[1]] }))
+            draft.keep(STORYTELLER)
+            draft.setSecondPlay(riotsSecond(draft)?.key)
+            expect(draft.second?.cardId).toBe(RIOTS)
+            expect(draft.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
+            await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
+            expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Adviser, secondPlay: { cardId: RIOTS, play: SearchPlay.Site } }))
+            expect(engineRefusal(session, sent)).toBeUndefined()
+        })
+
+        it('a kept Discord card at the site breaks the tie, so Riots is offered second and only that placement pairs with it', async () => {
+            const { session, draft, sent } = searchingWith([SCRYER, RIOTS, HELD[0]], [], onTheMob({ p1: [MERCENARIES], h1: [HELD[1], STORYTELLER] }))
+            draft.keep(SCRYER)
+            draft.setSecondPlay(riotsSecond(draft)?.key)
+            expect(draft.second?.cardId).toBe(RIOTS)
+            expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
+            await draft.choosePlacement({ play: SearchPlay.Site })
+            expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, secondPlay: { cardId: RIOTS, play: SearchPlay.Site } }))
+            expect(engineRefusal(session, sent)).toBeUndefined()
+        })
+    })
 })
 
-const FULL = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
+const FULL =Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
 const FABLED_FEAST = 'denizen.hearth.fabled-feast'
 const SLUM_SITES = { c1: 'site.great-slums', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
 const FAVOR_HELD = {

@@ -34,6 +34,8 @@ import { buildAction, defendingSideChooses } from '../testing/actions.js'
 import { ongoingCampaign, required } from '../testing/required.js'
 import { card, facedown, player, site, slot, actionPowerUse, battlePlanUse, modifierUse } from '../testing/choices.js'
 import { INN, FILLER } from '../testing/cards.js'
+import { placedDenizens } from '../testing/census.js'
+import { OathRevision } from '../util/revision.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { served, spectator } from '../testing/projection.js'
 
@@ -274,6 +276,16 @@ describe('the moving relics', () => {
         expect(s.getPlayerState('far').siteId).toBe('c1')
         expect(s.getPlayerState('far').secrets).toBe(3)
         expect(s.cardTokens[WHISTLE]).toEqual({ favor: 0, secrets: 0 })
+    })
+
+    it('Horned Mask from revision 10 still trades an adviser for a card at your site, every card kept (R-10.25)', () => {
+        const SCOUTS = 'denizen.order.scouts'
+        const s = relicBoard([HORNED], {}, { oathRevision: OathRevision.EngineFixes6, denizensBySite: { c1: [WOLVES, SCOUTS], c2: [], p1: [], h1: [] } })
+        const before = placedDenizens(s)
+        use(s, HORNED, [card(INN), card(SCOUTS)])
+        expect(s.denizensBySite['c1']).toEqual([WOLVES, INN])
+        expect(s.getPlayerState('me').advisers).toEqual([{ cardId: SCOUTS, faceUp: true }])
+        expect(placedDenizens(s)).toEqual(before)
     })
 })
 
