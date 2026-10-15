@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { isPlacePolyp } from '../actions/placePolyp.js'
+import { isSearchBag } from '../actions/searchBag.js'
 import { CoralColor, coralCounts } from '../components/colors.js'
 import {
     at,
     polyp,
     startOnBoardThree,
     give,
-    giveScreenPolyps,
+    giveSupplyPolyps,
     play,
     place,
     colorAt,
@@ -17,19 +18,19 @@ import { newTurnRecord } from '../model/turn.js'
 describe('playing a larva cube', () => {
     it('returns the cube to the supply and lets polyps of its colour follow', () => {
         const session = startOnBoardThree([])
-        giveScreenPolyps(session, CoralColor.White, 3)
+        giveSupplyPolyps(session, CoralColor.White, 3)
         const supply = session.state.larvaCubeSupply[CoralColor.White]
 
         play(session, CoralColor.White)
 
         expect(currentPlayer(session).getLarvaCubes()[CoralColor.White]).toBe(1)
         expect(session.state.larvaCubeSupply[CoralColor.White]).toBe(supply + 1)
-        expect(session.state.turn.placing).toEqual({ color: CoralColor.White, screenPolypsLeft: 4 })
+        expect(session.state.turn.placing).toEqual({ color: CoralColor.White, supplyPolypsLeft: 4 })
     })
 
     it('allows two cubes a turn, and no polyps before the first', () => {
         const session = startOnBoardThree([])
-        giveScreenPolyps(session, CoralColor.White, 3)
+        giveSupplyPolyps(session, CoralColor.White, 3)
         give(session, (player) => {
             player.larvaCubes = { ...coralCounts(0), [CoralColor.White]: 3 }
         })
@@ -42,15 +43,15 @@ describe('playing a larva cube', () => {
 
     it('rejects a colour the player has no cube of', () => {
         const session = startOnBoardThree([])
-        giveScreenPolyps(session, CoralColor.White, 3)
+        giveSupplyPolyps(session, CoralColor.White, 3)
         expect(() => play(session, CoralColor.Orange)).toThrow()
     })
 })
 
 describe('placing polyps', () => {
-    it('places up to four screen polyps per cube, on rock only', () => {
+    it('places up to four supply polyps per cube, on rock only', () => {
         const session = startOnBoardThree([])
-        giveScreenPolyps(session, CoralColor.White, 6)
+        giveSupplyPolyps(session, CoralColor.White, 6)
         play(session, CoralColor.White)
 
         expect(() => place(session, at(5, 2))).toThrow()
@@ -59,31 +60,31 @@ describe('placing polyps', () => {
             place(session, coords)
         }
         expect(() => place(session, at(6, 3))).toThrow()
-        expect(currentPlayer(session).getKnownScreenPolyps()[CoralColor.White]).toBe(2)
+        expect(currentPlayer(session).getKnownSupplyPolyps()[CoralColor.White]).toBe(2)
         expect(colorAt(session, at(5, 1))).toBe(CoralColor.White)
     })
 
     it('plays the polyps others saw arrive before the secret ones', () => {
         const session = startOnBoardThree([])
         give(session, (player) => {
-            player.knownScreenPolyps = { ...coralCounts(0), [CoralColor.Pink]: 1 }
-            player.secretScreenPolyps = { ...coralCounts(0), [CoralColor.Pink]: 2 }
-            player.secretScreenPolypCount = 2
+            player.knownSupplyPolyps = { ...coralCounts(0), [CoralColor.Pink]: 1 }
+            player.secretSupplyPolyps = { ...coralCounts(0), [CoralColor.Pink]: 2 }
+            player.secretSupplyPolypCount = 2
             player.larvaCubes = { ...coralCounts(0), [CoralColor.Pink]: 1 }
         })
         play(session, CoralColor.Pink)
 
         place(session, at(6, 0))
-        expect(currentPlayer(session).getKnownScreenPolyps()[CoralColor.Pink]).toBe(0)
-        expect(currentPlayer(session).getSecretScreenPolyps()[CoralColor.Pink]).toBe(2)
+        expect(currentPlayer(session).getKnownSupplyPolyps()[CoralColor.Pink]).toBe(0)
+        expect(currentPlayer(session).getSecretSupplyPolyps()[CoralColor.Pink]).toBe(2)
         place(session, at(5, 0))
-        expect(currentPlayer(session).getSecretScreenPolyps()[CoralColor.Pink]).toBe(1)
-        expect(currentPlayer(session).getSecretScreenPolypCount()).toBe(1)
+        expect(currentPlayer(session).getSecretSupplyPolyps()[CoralColor.Pink]).toBe(1)
+        expect(currentPlayer(session).getSecretSupplyPolypCount()).toBe(1)
     })
 
     it('places any number of consumed polyps on top of the four', () => {
         const session = startOnBoardThree([])
-        giveScreenPolyps(session, CoralColor.White, 0)
+        giveSupplyPolyps(session, CoralColor.White, 0)
         give(session, (player) => {
             player.consumedPolyps = { ...coralCounts(0), [CoralColor.White]: 5 }
         })
@@ -101,7 +102,7 @@ describe('placing polyps', () => {
     it('stops the first cube once a second is played', () => {
         const session = startOnBoardThree([])
         give(session, (player) => {
-            player.knownScreenPolyps = {
+            player.knownSupplyPolyps = {
                 ...coralCounts(0),
                 [CoralColor.White]: 2,
                 [CoralColor.Pink]: 2
@@ -114,12 +115,12 @@ describe('placing polyps', () => {
 
         place(session, at(2, 0))
         expect(colorAt(session, at(2, 0))).toBe(CoralColor.Pink)
-        expect(currentPlayer(session).getKnownScreenPolyps()[CoralColor.White]).toBe(1)
+        expect(currentPlayer(session).getKnownSupplyPolyps()[CoralColor.White]).toBe(1)
     })
 
     it('never places under a shrimp', () => {
         const session = startOnBoardThree([], [{ playerId: 'p0', coords: at(6, 0) }])
-        giveScreenPolyps(session, CoralColor.White, 2)
+        giveSupplyPolyps(session, CoralColor.White, 2)
         play(session, CoralColor.White)
         expect(() => place(session, at(6, 0))).toThrow()
     })
@@ -132,7 +133,7 @@ describe('placing polyps', () => {
                 { playerId: 'p1', coords: at(1, 0) }
             ]
         )
-        giveScreenPolyps(session, CoralColor.White, 2)
+        giveSupplyPolyps(session, CoralColor.White, 2)
         play(session, CoralColor.White)
 
         expect(() => place(session, at(2, 0))).toThrow()
@@ -143,7 +144,7 @@ describe('placing polyps', () => {
             [polyp(3, 0, CoralColor.White), polyp(1, 0, CoralColor.White)],
             [{ playerId: 'p0', coords: at(3, 0) }]
         )
-        giveScreenPolyps(session, CoralColor.White, 2)
+        giveSupplyPolyps(session, CoralColor.White, 2)
         play(session, CoralColor.White)
 
         place(session, at(2, 0))
@@ -156,7 +157,7 @@ describe('attacking', () => {
 
     it('lets a coral of two or more replace a weaker, unprotected polyp, which the attacker keeps', () => {
         const session = startOnBoardThree([...whiteCoral, polyp(1, 0, CoralColor.Yellow)])
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
 
         const [placement] = place(session, at(1, 0))
@@ -174,7 +175,7 @@ describe('attacking', () => {
             polyp(2, 0, CoralColor.White),
             polyp(1, 0, CoralColor.Yellow)
         ])
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
         expect(() => place(session, at(1, 0))).toThrow()
     })
@@ -185,14 +186,14 @@ describe('attacking', () => {
             polyp(0, 0, CoralColor.White),
             polyp(1, 0, CoralColor.Yellow)
         ])
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
         expect(() => place(session, at(1, 0))).toThrow()
     })
 
     it('cannot attack a stronger or equal colour', () => {
         const session = startOnBoardThree([...whiteCoral, polyp(1, 0, CoralColor.Pink)])
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
         expect(() => place(session, at(1, 0))).toThrow()
     })
@@ -202,7 +203,7 @@ describe('attacking', () => {
             [...whiteCoral, polyp(1, 0, CoralColor.Yellow)],
             [{ playerId: 'p1', coords: at(1, 0) }]
         )
-        giveScreenPolyps(onIt, CoralColor.White, 1)
+        giveSupplyPolyps(onIt, CoralColor.White, 1)
         play(onIt, CoralColor.White)
         expect(() => place(onIt, at(1, 0))).toThrow()
 
@@ -210,7 +211,7 @@ describe('attacking', () => {
             [...whiteCoral, polyp(1, 0, CoralColor.Yellow), polyp(1, 1, CoralColor.Yellow)],
             [{ playerId: 'p1', coords: at(1, 1) }]
         )
-        giveScreenPolyps(beside, CoralColor.White, 1)
+        giveSupplyPolyps(beside, CoralColor.White, 1)
         play(beside, CoralColor.White)
         expect(() => place(beside, at(1, 0))).toThrow()
     })
@@ -229,7 +230,7 @@ describe('attacking', () => {
             [...whiteCoral, polyp(1, 0, CoralColor.Yellow), polyp(1, 1, CoralColor.Pink)],
             [{ playerId: 'p1', coords: at(1, 1) }]
         )
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
 
         place(session, at(1, 0))
@@ -240,7 +241,7 @@ describe('attacking', () => {
 describe('extra growth', () => {
     it('grows a bonus polyp into the empty starfish square, outside the four-polyp limit', () => {
         const session = startOnBoardThree([])
-        giveScreenPolyps(session, CoralColor.White, 4)
+        giveSupplyPolyps(session, CoralColor.White, 4)
         const bonusBefore = session.state.bonusPolyps[CoralColor.White]
         const bagBefore = session.state.polypBag.remaining
         play(session, CoralColor.White)
@@ -249,14 +250,14 @@ describe('extra growth', () => {
 
         expect(colorAt(session, at(3, 2))).toBe(CoralColor.White)
         expect(isPlacePolyp(placement) && placement.metadata?.extraGrowth).toEqual(at(3, 2))
-        expect(session.state.turn.placing?.screenPolypsLeft).toBe(3)
-        expect(session.state.bonusPolyps[CoralColor.White]).toBe(bonusBefore)
-        expect(session.state.polypBag.remaining).toBe(bagBefore - 1)
+        expect(session.state.turn.placing?.supplyPolypsLeft).toBe(3)
+        expect(session.state.bonusPolyps[CoralColor.White]).toBe(bonusBefore - 1)
+        expect(session.state.polypBag.remaining).toBe(bagBefore)
     })
 
     it('does not grow when the starfish square is already filled', () => {
         const session = startOnBoardThree([polyp(3, 2, CoralColor.Pink)])
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
 
         const [placement] = place(session, at(2, 2))
@@ -264,15 +265,51 @@ describe('extra growth', () => {
         expect(colorAt(session, at(3, 2))).toBe(CoralColor.Pink)
     })
 
-    it('does not grow when no bonus polyp of that colour is left', () => {
+    it('searches the bag when no bonus polyp of that colour is left, which is a reveal', () => {
         const session = startOnBoardThree([])
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         session.edit((draft) => {
             draft.bonusPolyps[CoralColor.White] = 0
+            draft.polypBag = { items: [CoralColor.Pink, CoralColor.White], remaining: 2 }
         })
         play(session, CoralColor.White)
 
-        place(session, at(2, 2))
+        const [placement, search] = place(session, at(2, 2))
+
+        expect(isPlacePolyp(placement) && placement.metadata?.extraGrowthSearchesBag).toBe(true)
+        expect(isSearchBag(search) && search.revealsInfo).toBe(true)
+        expect(isSearchBag(search) && search.metadata).toEqual({ found: true })
+        expect(colorAt(session, at(3, 2))).toBe(CoralColor.White)
+        expect(session.state.polypBag.items).toEqual([CoralColor.Pink])
+        expect(session.state.turn.placing?.color).toBe(CoralColor.White)
+    })
+
+    it('does not grow when the search finds none of that colour', () => {
+        const session = startOnBoardThree([])
+        giveSupplyPolyps(session, CoralColor.White, 1)
+        session.edit((draft) => {
+            draft.bonusPolyps[CoralColor.White] = 0
+            draft.polypBag = { items: [CoralColor.Pink], remaining: 1 }
+        })
+        play(session, CoralColor.White)
+
+        const [, search] = place(session, at(2, 2))
+
+        expect(isSearchBag(search) && search.metadata).toEqual({ found: false })
+        expect(colorAt(session, at(3, 2))).toBeUndefined()
+        expect(session.state.colorsMissingFromBag).toEqual([CoralColor.White])
+    })
+
+    it('does not search a bag already known to lack that colour', () => {
+        const session = startOnBoardThree([])
+        giveSupplyPolyps(session, CoralColor.White, 1)
+        session.edit((draft) => {
+            draft.bonusPolyps[CoralColor.White] = 0
+            draft.colorsMissingFromBag = [CoralColor.White]
+        })
+        play(session, CoralColor.White)
+
+        expect(place(session, at(2, 2))).toHaveLength(1)
         expect(colorAt(session, at(3, 2))).toBeUndefined()
     })
 
@@ -285,7 +322,7 @@ describe('extra growth', () => {
             draft.shrimps.push({ playerId: 'p0', boardId: 3, coords: at(1, 2) })
             draft.reefs[0].polyps.push(polyp(1, 2, CoralColor.White))
         })
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
 
         place(session, at(2, 2))
@@ -299,7 +336,7 @@ describe('extra growth in the Advanced game', () => {
         session.edit((draft) => {
             draft.advanced = true
         })
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         const bonusBefore = session.state.bonusPolyps[CoralColor.White]
         play(session, CoralColor.White)
 
@@ -314,7 +351,7 @@ describe('extra growth in the Advanced game', () => {
 describe('the end of a turn', () => {
     it('clears the played cubes for the next player', () => {
         const session = startOnBoardThree([])
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
 
         session.takeOpenSeaSpace(session.currentPlayerId(), CoralColor.Grey)

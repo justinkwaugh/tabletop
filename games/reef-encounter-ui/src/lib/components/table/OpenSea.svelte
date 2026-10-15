@@ -54,6 +54,8 @@
         {#each gameSession.takeableSpaces as larvaColor (larvaColor)}
             <Target
                 box={larvaSpace(larvaColor)}
+                inset={0}
+                radius={2}
                 label="Take the {larvaColor} larva cube and its polyps, ending your turn"
                 onselect={() => gameSession.takeOpenSeaSpace(larvaColor)}
             />

@@ -20,7 +20,13 @@ export class HydratedPolypBag
         super(data, PolypBagValidator)
     }
 
-    // Bonus polyps are replenished by picking their colour out of the bag, not by drawing.
+    // The shared addItems counts a batch as one item, so polyps go in one at a time.
+    addPolyps(polyps: readonly CoralColor[]) {
+        for (const polyp of polyps) {
+            this.addItem(polyp)
+        }
+    }
+
     takeColor(color: CoralColor): boolean {
         const index = this.items.slice(0, this.remaining).indexOf(color)
         if (index < 0) {

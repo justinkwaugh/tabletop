@@ -7,7 +7,7 @@ export type ScoreBreakdown = {
     total: number
     consumedPolyps: number
     larvaCubes: number
-    screenPolyps: number
+    supplyPolyps: number
     guardedPolyps: number
 }
 
@@ -35,19 +35,25 @@ export function scoreBreakdown(
         total: parrotfishPoints(parrotfishPolyps, values),
         consumedPolyps: totalCount(player.consumedPolyps),
         larvaCubes: totalCount(player.getLarvaCubes()),
-        screenPolyps: player.screenPolypCount(),
+        supplyPolyps: player.supplyPolypCount(),
         guardedPolyps
     }
 }
 
-// Rulebook p. 12 breaks ties by consumed polyps, unplayed larva cubes, unplayed screen polyps,
+// Rulebook p. 12 breaks ties by consumed polyps, unplayed larva cubes, unplayed supply polyps,
 // then polyps in corals the player's shrimps protect.
+export const TieBreakOrder = [
+    'consumedPolyps',
+    'larvaCubes',
+    'supplyPolyps',
+    'guardedPolyps'
+] as const satisfies readonly (keyof ScoreBreakdown)[]
+
+export type TieBreakCriterion = (typeof TieBreakOrder)[number]
+
 export function compareScores(a: ScoreBreakdown, b: ScoreBreakdown): number {
-    return (
-        a.total - b.total ||
-        a.consumedPolyps - b.consumedPolyps ||
-        a.larvaCubes - b.larvaCubes ||
-        a.screenPolyps - b.screenPolyps ||
-        a.guardedPolyps - b.guardedPolyps
-    )
+    for (const key of ['total', ...TieBreakOrder] as const) {
+        if (a[key] !== b[key]) return a[key] - b[key]
+    }
+    return 0
 }

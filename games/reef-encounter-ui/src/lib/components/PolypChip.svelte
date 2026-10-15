@@ -31,7 +31,6 @@
         box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
     }
 
-    /* A consumed polyp has a bite taken out of its corner, as in the history. */
     .consumed img {
         mask-image: radial-gradient(circle at 100% 0, transparent 6px, black 6.5px);
     }

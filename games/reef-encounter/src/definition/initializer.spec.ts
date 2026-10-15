@@ -21,7 +21,7 @@ describe('setup', () => {
 
         const dealt = session
             .hydrated()
-            .players.map((player) => totalCount(player.getSecretScreenPolyps()))
+            .players.map((player) => totalCount(player.getSecretSupplyPolyps()))
         expect(dealt).toEqual(SetupDeal[playerCount])
         expect(state.players.map((player) => player.playerId)).toEqual(state.turnManager.turnOrder)
 
@@ -48,11 +48,11 @@ describe('setup', () => {
         ]
         const counts = countColors(placed)
         for (const color of CoralColors) {
-            const behindScreens = players.reduce(
-                (total, player) => total + player.getSecretScreenPolyps()[color],
+            const inSupplies = players.reduce(
+                (total, player) => total + player.getSecretSupplyPolyps()[color],
                 0
             )
-            expect(counts[color] + behindScreens + state.bonusPolyps[color]).toBe(PolypsPerColor)
+            expect(counts[color] + inSupplies + state.bonusPolyps[color]).toBe(PolypsPerColor)
         }
     })
 

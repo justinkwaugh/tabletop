@@ -14,6 +14,7 @@ import {
     isPlayAlgaCylinder,
     isPlayLarvaCube,
     isRefillOpenSea,
+    isSearchBag,
     isTakeOpenSeaSpace,
     type AlgaColor,
     type CoralColor
@@ -52,7 +53,6 @@ const polyp = (color: CoralColor, count = 1, consumed = false): PhraseIcon => ({
     label: counted(count, `${consumed ? 'consumed ' : ''}${color} polyp`).replace(/^two /, '2 ')
 })
 
-// Several polyps of mixed colours, grouped by colour in the order first seen.
 const polypsOf = (colors: readonly CoralColor[]): PhraseIcon[] => {
     const counts = new Map<CoralColor, number>()
     for (const color of colors) counts.set(color, (counts.get(color) ?? 0) + 1)
@@ -139,7 +139,7 @@ export function describeAction(
     }
     if (isMoveShrimp(action)) {
         if (!action.to) {
-            return phrase([`took a shrimp back behind ${own} screen.`])
+            return phrase([`took a shrimp back to ${own} supply.`])
         }
         return action.to.boardId === action.from.boardId
             ? phrase(['moved a shrimp.'])
@@ -155,6 +155,15 @@ export function describeAction(
         ])
     }
     if (isExchangeLarvaCube(action)) {
+        if (action.metadata?.searchesBag) {
+            return phrase([
+                'reached into the bag to trade ',
+                cube(action.color),
+                { text: ' for ', short: ' → ' },
+                polyp(action.color),
+                '.'
+            ])
+        }
         return phrase([
             'traded ',
             cube(action.color),
@@ -229,10 +238,41 @@ export function describeSystemAction(action: GameAction): Omit<Phrase, 'playerId
                   `The open sea was refilled with ${polypsLabel(added)}.`
               )
     }
+    if (isSearchBag(action)) {
+        const found = action.metadata?.found
+        if (found === undefined) return undefined
+        const searched = polyp(action.color)
+        if (!found) {
+            const outcome =
+                action.need.kind === 'exchange' ? 'the cube stays' : 'nothing grew there'
+            return phrase([
+                'The bag held no ',
+                { ...searched, label: `${action.color} polyp` },
+                `, so ${outcome}.`
+            ])
+        }
+        return action.need.kind === 'exchange'
+            ? phrase(['The bag held ', searched, '.'])
+            : phrase([
+                  'The bag held ',
+                  searched,
+                  `, which grew beside it on `,
+                  board(action.need.boardId),
+                  '.'
+              ])
+    }
     if (isEndGame(action)) {
         return phrase(['The game ended.'])
     }
     return undefined
+}
+
+function setupParrotfishPhrases(action: GameAction, possessive: (playerId: string) => string) {
+    const revealed = isEndGame(action) ? (action.metadata?.setupParrotfishPolyps ?? []) : []
+    return revealed.map(({ playerId, color }) => ({
+        ...phrase([`${possessive(playerId)} parrotfish had been fed `, polyp(color), ' at setup.']),
+        playerId
+    }))
 }
 
 function placedPolyps(
@@ -253,7 +293,11 @@ function placedPolyps(
 }
 
 // Consecutive plain placements of one colour on one board merge into one phrase.
-export function describeActions(actions: readonly GameAction[], own: 'your' | 'their'): Phrase[] {
+export function describeActions(
+    actions: readonly GameAction[],
+    own: 'your' | 'their',
+    possessive: (playerId: string) => string
+): Phrase[] {
     const phrases: Phrase[] = []
     let run:
         | {
@@ -296,6 +340,7 @@ export function describeActions(actions: readonly GameAction[], own: 'your' | 't
             ? describeAction(action, own)
             : describeSystemAction(action)
         if (described) phrases.push({ ...described, playerId: action.playerId })
+        phrases.push(...setupParrotfishPhrases(action, possessive))
         if (startsFinalTurns(action)) {
             phrases.push(phrase(['That ends the game: every other player has one final turn.']))
         }

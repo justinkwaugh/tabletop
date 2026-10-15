@@ -8,7 +8,7 @@ import {
     at,
     currentPlayer,
     give,
-    giveScreenPolyps,
+    giveSupplyPolyps,
     play,
     polyp,
     startOnBoardThree
@@ -130,7 +130,7 @@ describe('eating a coral', () => {
 
     it('comes before every other action, once a turn', () => {
         const afterCube = startWithOwnCoral(5)
-        giveScreenPolyps(afterCube, CoralColor.Pink, 1)
+        giveSupplyPolyps(afterCube, CoralColor.Pink, 1)
         play(afterCube, CoralColor.Pink)
         expect(() => eat(afterCube)).toThrow()
 
@@ -212,9 +212,9 @@ describe('breaking ties', () => {
                 player.secretParrotfishPolyps = coralCounts(0)
                 player.knownParrotfishPolyps = coralCounts(0)
                 player.larvaCubes = coralCounts(0)
-                player.knownScreenPolyps = coralCounts(0)
-                player.secretScreenPolyps = coralCounts(0)
-                player.secretScreenPolypCount = 0
+                player.knownSupplyPolyps = coralCounts(0)
+                player.secretSupplyPolyps = coralCounts(0)
+                player.secretSupplyPolypCount = 0
                 player.consumedPolyps = coralCounts(0)
             }
         })

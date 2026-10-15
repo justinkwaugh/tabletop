@@ -40,7 +40,7 @@ import { ReefEncounterColors } from './colors.js'
 export const PolypsPerColor = 40
 export const LarvaCubesPerColor = 10
 
-// Polyps dealt behind each screen, in turn order from the start player (rulebook p. 4).
+// Polyps dealt into each supply, in turn order from the start player (rulebook p. 4).
 export const SetupDeal: Record<number, readonly number[]> = {
     2: [6, 9],
     3: [6, 7, 9],
@@ -95,6 +95,7 @@ export class ReefEncounterGameInitializer
             larvaCubeSupply: coralCounts(LarvaCubesPerColor - 1),
             bonusPolyps,
             bonusPolypsInBag: false,
+            colorsMissingFromBag: [],
             advanced: game.config?.advanced === true,
             algaSupply: algaCounts(AlgaCylindersPerColor),
             polypBag

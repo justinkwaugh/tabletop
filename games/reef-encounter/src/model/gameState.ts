@@ -50,7 +50,9 @@ import {
     Shrimp,
     shrimpAt
 } from './reef.js'
-import { LarvaCubesPerTurn, ScreenPolypsPerLarvaCube, TurnRecord } from './turn.js'
+import { LarvaCubesPerTurn, newTurnRecord, SupplyPolypsPerLarvaCube, TurnRecord } from './turn.js'
+import type { BagSearchNeed, BagSearchResult } from '../actions/searchBag.js'
+import type { LarvaCubeExchange } from '../actions/exchangeLarvaCube.js'
 import { compareScores, coralValues, scoreBreakdown, type ScoreBreakdown } from './scoring.js'
 import {
     HydratedReefEncounterPlayerState,
@@ -101,6 +103,8 @@ export const ReefEncounterGameState = Type.Intersect([
         bonusPolyps: CoralCounts,
         // Once the bag runs out, the bonus polyps join it for good (rulebook p. 11).
         bonusPolypsInBag: Type.Boolean(),
+        // Colours a search of the bag failed to find, until one is returned to it.
+        colorsMissingFromBag: Type.Array(Type.Enum(CoralColor)),
         // The Advanced game option (rulebook p. 12): no extra growth, and eating returns more.
         advanced: Type.Boolean(),
         algaSupply: AlgaCounts,
@@ -152,6 +156,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     declare larvaCubeSupply: CoralCounts
     declare bonusPolyps: CoralCounts
     declare bonusPolypsInBag: boolean
+    declare colorsMissingFromBag: CoralColor[]
     declare advanced: boolean
     declare algaSupply: AlgaCounts
     declare endReason?: GameEndReason
@@ -164,6 +169,18 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
 
         this.players = data.players.map((player) => new HydratedReefEncounterPlayerState(player))
         this.polypBag = new HydratedPolypBag(data.polypBag)
+    }
+
+    activateTurnPlayer() {
+        const playerId =
+            this.turnManager.currentTurn()?.playerId ??
+            this.turnManager.startNextTurn(this.actionCount)
+        this.activePlayerIds = [playerId]
+    }
+
+    finishTurn() {
+        this.turnManager.endTurn(this.actionCount)
+        this.turn = newTurnRecord()
     }
 
     turnPlayerId(): string {
@@ -210,7 +227,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         )
     }
 
-    // Action 10: the larva cube and every polyp on its space go behind the player's screen.
+    // Action 10: the larva cube and every polyp on its space go into the player's supply.
     takeOpenSeaSpace(playerId: string, larvaColor: CoralColor): CoralColor[] {
         assert(
             this.canTakeOpenSeaSpace(playerId, larvaColor),
@@ -220,7 +237,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         const polyps = space.polyps
         const player = this.getPlayerState(playerId)
         player.addLarvaCube(larvaColor)
-        player.addKnownScreenPolyps(polyps)
+        player.addKnownSupplyPolyps(polyps)
         space.hasLarvaCube = false
         space.polyps = []
         return polyps
@@ -272,7 +289,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         this.turn.larvaCubesPlayed += 1
         this.turn.acted = true
         this.turn.cubeToPlay = undefined
-        this.turn.placing = { color, screenPolypsLeft: ScreenPolypsPerLarvaCube }
+        this.turn.placing = { color, supplyPolypsLeft: SupplyPolypsPerLarvaCube }
     }
 
     canPlacePolyp(
@@ -325,7 +342,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         coords: OffsetCoordinates,
         color: CoralColor
     ): string | undefined {
-        const reef = this.reefs.find((candidate) => candidate.boardId === boardId)
+        const reef = this.findReef(boardId)
         if (!reef) {
             return `Reef board ${boardId} is not in play`
         }
@@ -375,8 +392,8 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         if (fromConsumed) {
             player.spendConsumedPolyp(color)
         } else {
-            player.spendScreenPolyp(color)
-            placing.screenPolypsLeft -= 1
+            player.spendSupplyPolyp(color)
+            placing.supplyPolypsLeft -= 1
         }
 
         const reef = this.reefOn(boardId)
@@ -389,22 +406,26 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         }
         reef.polyps.push({ coords: structuredClone(coords), color })
 
-        const extraGrowth = this.growExtraPolyp(reef, coords, color)
-        if (extraGrowth) {
-            placement.extraGrowth = extraGrowth
+        if (this.canGrowExtraPolyp(reef, coords, color)) {
+            if (this.bonusPolyps[color] > 0) {
+                this.bonusPolyps[color] -= 1
+                const square = ReefBoards[boardId].extraGrowth
+                reef.polyps.push({ coords: structuredClone(square), color })
+                placement.extraGrowth = structuredClone(square)
+            } else if (this.bagMayHold(color)) {
+                placement.extraGrowthSearchesBag = true
+            }
         }
         return placement
     }
 
-    // Action 1, only before anything else this turn: a coral of five or more guarded by the
-    // player's own shrimp, named by any of its squares.
-    // Action 6, only when the cube can then be played, as action 2, 3 or 8.
+    // Action 6. The bought cube can always be played next: the polyp paid for it goes back
+    // where action 8 can take it.
     canExchangeConsumedPolyp(playerId: string, color: CoralColor): boolean {
         return (
             this.turn.cubeToPlay === undefined &&
             this.getPlayerState(playerId).consumedPolyps[color] > 0 &&
-            this.larvaCubeSupply[color] > 0 &&
-            (this.turn.larvaCubesPlayed < LarvaCubesPerTurn || this.bonusPolyps[color] > 0)
+            this.larvaCubeSupply[color] > 0
         )
     }
 
@@ -423,28 +444,44 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         this.endAction()
     }
 
-    // Action 8. The polyp is taken from the bonus polyps, which are refilled from the bag, as
-    // the rulebook suggests (p. 6), so whether it can be done never depends on the hidden bag.
+    // Action 8. The polyp comes from the bag, or its bonus space when that holds one
+    // (rulebook p. 6).
     canExchangeLarvaCube(playerId: string, color: CoralColor): boolean {
         return (
             this.mayPlayCube(color) &&
             this.getPlayerState(playerId).getLarvaCubes()[color] > 0 &&
-            this.bonusPolyps[color] > 0
+            (this.bonusPolyps[color] > 0 || this.bagMayHold(color))
         )
     }
 
-    exchangeLarvaCube(playerId: string, color: CoralColor) {
+    exchangeLarvaCube(playerId: string, color: CoralColor): LarvaCubeExchange {
         assert(
             this.canExchangeLarvaCube(playerId, color),
             `Player ${playerId} cannot exchange a ${color} larva cube`
         )
-        const player = this.getPlayerState(playerId)
-        player.spendLarvaCube(color)
-        this.larvaCubeSupply[color] += 1
-        player.addKnownScreenPolyps([color])
-        this.takeBonusPolyp(color)
-        this.turn.cubeToPlay = undefined
-        this.endAction()
+        if (this.bonusPolyps[color] === 0) {
+            return { searchesBag: true }
+        }
+        this.bonusPolyps[color] -= 1
+        this.completeLarvaCubeExchange(playerId, color)
+        return { searchesBag: false }
+    }
+
+    searchBag(color: CoralColor, need: BagSearchNeed): BagSearchResult {
+        assert(this.bagMayHold(color), `A search of the bag cannot find a ${color} polyp`)
+        if (!this.polypBag.takeColor(color)) {
+            this.colorsMissingFromBag.push(color)
+            return { found: false }
+        }
+        if (need.kind === 'exchange') {
+            this.completeLarvaCubeExchange(need.playerId, color)
+        } else {
+            this.reefOn(need.boardId).polyps.push({
+                coords: structuredClone(ReefBoards[need.boardId].extraGrowth),
+                color
+            })
+        }
+        return { found: true }
     }
 
     // Action 7: a consumed polyp buys an alga cylinder, played at once onto the open-sea space,
@@ -591,9 +628,10 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
 
     // Eating a fourth shrimp ends the game and starts the final turns (rulebook p. 11).
     eatingStartsFinalTurns(playerId: string): boolean {
-        const player = this.getPlayerState(playerId)
-        const eaten = (player.shrimpOnOpenSea ? 1 : 0) + player.getShrimpsInParrotfish()
-        return this.machineState === MachineState.TakingTurn && eaten + 1 >= ShrimpsPerPlayer
+        return (
+            this.machineState === MachineState.TakingTurn &&
+            this.getPlayerState(playerId).shrimpsEaten() + 1 >= ShrimpsPerPlayer
+        )
     }
 
     // Locking the last coral tile ends the game and starts the final turns (rulebook p. 11).
@@ -658,7 +696,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         this.endAction()
     }
 
-    // Action 5: to another square, or back behind the screen when no square is given.
+    // Action 5: to another square, or back to the supply when no square is given.
     canMoveShrimp(playerId: string, from: ReefSquare, to?: ReefSquare): boolean {
         const shrimp = this.ownShrimpAt(playerId, from)
         return (
@@ -698,7 +736,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
 
     // A moving shrimp may also go on bare rock; a new one must go onto a coral (rulebook p. 5).
     shrimpBlocker(playerId: string, square: ReefSquare, moving?: Shrimp): string | undefined {
-        const reef = this.reefs.find((candidate) => candidate.boardId === square.boardId)
+        const reef = this.findReef(square.boardId)
         if (!reef) {
             return `Reef board ${square.boardId} is not in play`
         }
@@ -734,11 +772,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         if (this.coralTiles.every((tile) => tile.cylinder !== undefined)) {
             return GameEndReason.AllTilesLocked
         }
-        const player = this.getPlayerState(playerId)
-        if (
-            (player.shrimpOnOpenSea ? 1 : 0) + player.getShrimpsInParrotfish() >=
-            ShrimpsPerPlayer
-        ) {
+        if (this.getPlayerState(playerId).shrimpsEaten() >= ShrimpsPerPlayer) {
             return GameEndReason.FourShrimpsEaten
         }
         const rockLeft = this.reefs.some((reef) =>
@@ -775,10 +809,9 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         const player = this.getPlayerState(playerId)
         return fromConsumed
             ? player.consumedPolyps[placing.color] > 0
-            : placing.screenPolypsLeft > 0 && player.hasScreenPolyp(placing.color)
+            : placing.supplyPolypsLeft > 0 && player.hasSupplyPolyp(placing.color)
     }
 
-    // Polyps in corals the player's shrimps sit on; a coral never has two shrimps.
     private startsFinalTurns(playerId: string): boolean {
         const reason =
             this.machineState === MachineState.TakingTurn
@@ -787,6 +820,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return reason === GameEndReason.AllTilesLocked || reason === GameEndReason.FourShrimpsEaten
     }
 
+    // A coral never has two shrimps, so no polyp is counted twice.
     private guardedPolyps(playerId: string): number {
         return this.shrimps
             .filter((shrimp) => shrimp.playerId === playerId)
@@ -797,7 +831,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     }
 
     private edibleCoral(playerId: string, square: ReefSquare) {
-        const reef = this.reefs.find((candidate) => candidate.boardId === square.boardId)
+        const reef = this.findReef(square.boardId)
         if (!reef) {
             return undefined
         }
@@ -814,7 +848,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return (
             !this.turn.shrimpIntroduced &&
             this.turn.cubeToPlay === undefined &&
-            this.getPlayerState(playerId).getShrimpsBehindScreen() > 0
+            this.getPlayerState(playerId).getShrimpsInSupply() > 0
         )
     }
 
@@ -823,10 +857,14 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return shrimp?.playerId === playerId ? shrimp : undefined
     }
 
-    private reefOn(boardId: ReefBoardId): Reef {
-        const reef = this.reefs.find((candidate) => candidate.boardId === boardId)
+    reefOn(boardId: ReefBoardId): Reef {
+        const reef = this.findReef(boardId)
         assertExists(reef, `Reef board ${boardId} is not in play`)
         return reef
+    }
+
+    private findReef(boardId: ReefBoardId): Reef | undefined {
+        return this.reefs.find((candidate) => candidate.boardId === boardId)
     }
 
     private shrimpsOn(boardId: ReefBoardId): Shrimp[] {
@@ -836,34 +874,29 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     // A polyp placed next to an empty extra-growth square grows a bonus polyp there at once
     // (rulebook p. 7), except in the Advanced game (p. 12). It does not count towards the
     // cube's four polyps.
-    private growExtraPolyp(
-        reef: Reef,
-        placedAt: OffsetCoordinates,
-        color: CoralColor
-    ): OffsetCoordinates | undefined {
+    private canGrowExtraPolyp(reef: Reef, placedAt: OffsetCoordinates, color: CoralColor) {
         const square = ReefBoards[reef.boardId].extraGrowth
         const shrimps = this.shrimpsOn(reef.boardId)
-        const grows =
+        return (
             !this.advanced &&
             orthogonalNeighbors(placedAt).some((neighbor) => sameCoordinates(neighbor, square)) &&
             !polypAt(reef, square) &&
             !shrimpAt(shrimps, square) &&
-            this.bonusPolyps[color] > 0 &&
             !joinsGuardedCorals(reef, shrimps, square, color)
-        if (!grows) {
-            return undefined
-        }
-        reef.polyps.push({ coords: structuredClone(square), color })
-        this.takeBonusPolyp(color)
-        return structuredClone(square)
+        )
     }
 
-    // A bonus polyp is replaced by picking one of its colour out of the bag, when there is one.
-    private takeBonusPolyp(color: CoralColor) {
-        this.bonusPolyps[color] -= 1
-        if (this.polypBag.takeColor(color)) {
-            this.bonusPolyps[color] += 1
-        }
+    private completeLarvaCubeExchange(playerId: string, color: CoralColor) {
+        const player = this.getPlayerState(playerId)
+        player.spendLarvaCube(color)
+        this.larvaCubeSupply[color] += 1
+        player.addKnownSupplyPolyps([color])
+        this.turn.cubeToPlay = undefined
+        this.endAction()
+    }
+
+    private bagMayHold(color: CoralColor): boolean {
+        return this.polypBag.remaining > 0 && !this.colorsMissingFromBag.includes(color)
     }
 
     // Every action but moving shrimps finishes the one before it (rulebook p. 4).
@@ -885,22 +918,28 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             toBag -= 1
         }
         if (toBag > 0) {
-            this.polypBag.addItems(Array.from({ length: toBag }, () => color))
-            this.polypBag.shuffle(this.getProtectedPrng().random)
+            this.addToBag(Array.from({ length: toBag }, () => color))
         }
     }
 
     // When the bag runs out, the bonus polyps join it for ordinary play (rulebook p. 11).
     private returnBonusPolypsToBag() {
         this.bonusPolypsInBag = true
-        this.polypBag.addItems(
+        this.addToBag(
             CoralColors.flatMap((color) =>
                 Array.from({ length: this.bonusPolyps[color] }, () => color)
             )
         )
-        this.polypBag.shuffle(this.getProtectedPrng().random)
         for (const color of CoralColors) {
             this.bonusPolyps[color] = 0
         }
+    }
+
+    private addToBag(polyps: CoralColor[]) {
+        this.polypBag.addPolyps(polyps)
+        this.polypBag.shuffle(this.getProtectedPrng().random)
+        this.colorsMissingFromBag = this.colorsMissingFromBag.filter(
+            (color) => !polyps.includes(color)
+        )
     }
 }

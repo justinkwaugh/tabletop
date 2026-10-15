@@ -1,14 +1,14 @@
 import * as Type from 'typebox'
 import { CoralColor } from '../components/colors.js'
 
-// Actions 2 and 3 each play one larva cube; its colour's polyps follow, up to four from behind the screen.
+// Actions 2 and 3 each play one larva cube; its colour's polyps follow, up to four from the supply.
 export const LarvaCubesPerTurn = 2
-export const ScreenPolypsPerLarvaCube = 4
+export const SupplyPolypsPerLarvaCube = 4
 
 export type PlacingPolyps = Type.Static<typeof PlacingPolyps>
 export const PlacingPolyps = Type.Object({
     color: Type.Enum(CoralColor),
-    screenPolypsLeft: Type.Number()
+    supplyPolypsLeft: Type.Number()
 })
 
 export type TurnRecord = Type.Static<typeof TurnRecord>

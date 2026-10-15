@@ -54,7 +54,8 @@ export type PolypPlacement = Type.Static<typeof PolypPlacement>
 export const PolypPlacement = Type.Object({
     color: Type.Enum(CoralColor),
     attacked: Type.Optional(Type.Enum(CoralColor)),
-    extraGrowth: Type.Optional(OffsetCoordinates)
+    extraGrowth: Type.Optional(OffsetCoordinates),
+    extraGrowthSearchesBag: Type.Optional(Type.Literal(true))
 })
 
 const Directions = Object.values(CardinalDirection)

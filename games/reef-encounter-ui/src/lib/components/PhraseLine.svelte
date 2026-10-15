@@ -6,7 +6,6 @@
     import ParrotfishIcon from './ParrotfishIcon.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    // `capitalise` starts the line with a capital, for lines with no player name before them.
     let { phrase, capitalise = false }: { phrase: Phrase; capitalise?: boolean } = $props()
 
     const gameSession = getGameSession()
@@ -80,7 +79,6 @@
         box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
     }
 
-    /* A consumed polyp has a bite taken out of its corner. */
     .polyp.consumed img {
         mask-image: radial-gradient(circle at 100% 0, transparent 6px, black 6.5px);
     }
@@ -105,7 +103,6 @@
         font-size: 13px;
     }
 
-    /* A board is a little sandstone slab bearing its number. */
     .board {
         justify-content: center;
         min-width: 20px;

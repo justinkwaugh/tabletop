@@ -33,56 +33,55 @@
     }
 </script>
 
-<!-- Each outer group places its piece and is what GSAP animates; the drawing inside is centred
-     on the group's origin. -->
 {#each pieces as piece (piece.key)}
-    <g
-        {@attach gameSession.piecesAnimator.attach(piece.key)}
-        transform="translate({piece.center.x} {piece.center.y})"
-        data-across={rotation % 180 === 0 ? 'x' : 'y'}
-        role="img"
-        aria-label={label(piece)}
-    >
-        {#if piece.kind === 'coralTile' || piece.kind === 'polyp'}
-            {@const x = piece.box.x - piece.center.x}
-            {@const y = piece.box.y - piece.center.y}
-            <image
-                href={piece.url}
-                {x}
-                {y}
-                width={piece.box.width}
-                height={piece.box.height}
-                transform={piece.kind === 'coralTile' ? upright(rotation, Origin) : undefined}
-            ></image>
-            {#if piece.kind === 'polyp' && piece.larvaSpace}
-                <rect
+    <g transform="translate({piece.center.x} {piece.center.y})">
+        <g
+            {@attach gameSession.piecesAnimator.attach(piece.key)}
+            data-across={rotation % 180 === 0 ? 'x' : 'y'}
+            role="img"
+            aria-label={label(piece)}
+        >
+            {#if piece.kind === 'coralTile' || piece.kind === 'polyp'}
+                {@const x = piece.box.x - piece.center.x}
+                {@const y = piece.box.y - piece.center.y}
+                <image
+                    href={piece.url}
                     {x}
                     {y}
                     width={piece.box.width}
                     height={piece.box.height}
-                    fill="none"
-                    stroke="rgb(0 0 0 / 0.45)"
-                    stroke-width="2"
-                ></rect>
+                    transform={piece.kind === 'coralTile' ? upright(rotation, Origin) : undefined}
+                ></image>
+                {#if piece.kind === 'polyp' && piece.larvaSpace}
+                    <rect
+                        {x}
+                        {y}
+                        width={piece.box.width}
+                        height={piece.box.height}
+                        fill="none"
+                        stroke="rgb(0 0 0 / 0.45)"
+                        stroke-width="2"
+                    ></rect>
+                {/if}
+            {:else if piece.kind === 'shrimp'}
+                <g transform={piece.container === 'sea' ? undefined : upright(rotation, Origin)}>
+                    <ShrimpPiece
+                        center={Origin}
+                        length={ShrimpLength}
+                        upsideDown={piece.upsideDown}
+                        blinkSeed={piece.key}
+                        color={gameSession.colors.getPlayerBgColorValue(piece.playerId)}
+                    />
+                </g>
+            {:else if piece.kind === 'cube'}
+                <g transform={upright(rotation, Origin)}>
+                    <LarvaCube center={Origin} size={44} color={piece.color} />
+                </g>
+            {:else}
+                <g transform={upright(rotation, Origin)}>
+                    <AlgaCylinder center={Origin} size={piece.size} color={piece.color} />
+                </g>
             {/if}
-        {:else if piece.kind === 'shrimp'}
-            <g transform={piece.container === 'sea' ? undefined : upright(rotation, Origin)}>
-                <ShrimpPiece
-                    center={Origin}
-                    length={ShrimpLength}
-                    upsideDown={piece.upsideDown}
-                    blinkSeed={piece.key}
-                    color={gameSession.colors.getPlayerBgColorValue(piece.playerId)}
-                />
-            </g>
-        {:else if piece.kind === 'cube'}
-            <g transform={upright(rotation, Origin)}>
-                <LarvaCube center={Origin} size={44} color={piece.color} />
-            </g>
-        {:else}
-            <g transform={upright(rotation, Origin)}>
-                <AlgaCylinder center={Origin} size={piece.size} color={piece.color} />
-            </g>
-        {/if}
+        </g>
     </g>
 {/each}

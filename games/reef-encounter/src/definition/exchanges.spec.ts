@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { CoralColor, coralCounts } from '../components/colors.js'
 import { ActionType } from './actions.js'
+import { MachineState } from './states.js'
+import { isExchangeLarvaCube } from '../actions/exchangeLarvaCube.js'
+import { isSearchBag } from '../actions/searchBag.js'
 import type { TestSession } from '../util/testHelper.js'
 import {
     at,
     currentPlayer,
     give,
-    giveScreenPolyps,
+    giveSupplyPolyps,
     place,
     play,
     polyp,
@@ -24,10 +27,10 @@ function sellCube(session: TestSession, color: CoralColor) {
     return session.act(session.currentPlayerId(), ActionType.ExchangeLarvaCube, { color })
 }
 
-// The player holds one consumed white polyp, one pink larva cube, and four white screen polyps.
+// The player holds one consumed white polyp, one pink larva cube, and four white supply polyps.
 function startWithConsumedWhite() {
     const session = startOnBoardThree([polyp(6, 0, White)])
-    giveScreenPolyps(session, White, 4)
+    giveSupplyPolyps(session, White, 4)
     give(session, (player) => {
         player.larvaCubes = { ...coralCounts(0), [Pink]: 1 }
         player.consumedPolyps = { ...coralCounts(0), [White]: 1 }
@@ -102,7 +105,7 @@ describe('exchanging a consumed polyp for a larva cube', () => {
         expect(() => buyCube(session, White)).toThrow()
     })
 
-    it('after two cubes, needs a bonus polyp so the cube can still be exchanged', () => {
+    it('after two cubes, may still be done, as the polyp paid can be taken back by action 8', () => {
         const session = startWithConsumedWhite()
         give(session, (player) => {
             player.larvaCubes = { ...coralCounts(0), [Pink]: 2 }
@@ -112,12 +115,11 @@ describe('exchanging a consumed polyp for a larva cube', () => {
         session.edit((draft) => {
             draft.bonusPolyps[White] = 0
         })
-        expect(() => buyCube(session, White)).toThrow()
 
-        session.edit((draft) => {
-            draft.bonusPolyps[White] = 1
-        })
         buyCube(session, White)
+        expect(session.state.bonusPolyps[White]).toBe(1)
+        expect(sellCube(session, White)).toHaveLength(1)
+        expect(session.state.bonusPolyps[White]).toBe(0)
     })
 
     it('finishes the larva cube being played', () => {
@@ -133,50 +135,69 @@ describe('exchanging a consumed polyp for a larva cube', () => {
 })
 
 describe('exchanging a larva cube for a polyp', () => {
-    it('returns the cube and puts a bonus polyp behind the screen, replaced from the bag', () => {
+    it('returns the cube and puts the bonus polyp in the supply, leaving the bag alone', () => {
         const session = startWithConsumedWhite()
         setBag(session, [Pink, White, Pink])
         const supply = session.state.larvaCubeSupply[Pink]
-        const bonus = session.state.bonusPolyps[Pink]
 
-        sellCube(session, Pink)
+        const actions = sellCube(session, Pink)
 
         const player = currentPlayer(session)
+        expect(actions).toHaveLength(1)
         expect(player.getLarvaCubes()[Pink]).toBe(0)
-        expect(player.getKnownScreenPolyps()[Pink]).toBe(1)
+        expect(player.getKnownSupplyPolyps()[Pink]).toBe(1)
         expect(session.state.larvaCubeSupply[Pink]).toBe(supply + 1)
-        expect(session.state.bonusPolyps[Pink]).toBe(bonus)
-        expect(session.state.polypBag.remaining).toBe(2)
-    })
-
-    it('uses up the bonus polyp when the bag has none of the colour', () => {
-        const session = startWithConsumedWhite()
-        setBag(session, [White])
-        const bonus = session.state.bonusPolyps[Pink]
-        sellCube(session, Pink)
-        expect(session.state.bonusPolyps[Pink]).toBe(bonus - 1)
-        expect(session.state.polypBag.remaining).toBe(1)
-    })
-
-    it('cannot be done again for a colour until a returned polyp refills its bonus space', () => {
-        const session = startWithConsumedWhite()
-        setBag(session, [White])
-        give(session, (player) => {
-            player.larvaCubes = { ...coralCounts(0), [Pink]: 2 }
-            player.consumedPolyps = { ...coralCounts(0), [Pink]: 2 }
-        })
-        sellCube(session, Pink)
         expect(session.state.bonusPolyps[Pink]).toBe(0)
+        expect(session.state.polypBag.remaining).toBe(3)
+    })
+
+    it('searches the bag when the bonus space is empty, which is a reveal', () => {
+        const session = startWithConsumedWhite()
+        setBag(session, [White, Pink])
+        session.edit((draft) => {
+            draft.bonusPolyps[Pink] = 0
+        })
+
+        const [exchange, search] = sellCube(session, Pink)
+
+        expect(isExchangeLarvaCube(exchange) && exchange.metadata).toEqual({ searchesBag: true })
+        expect(isSearchBag(search) && search.revealsInfo).toBe(true)
+        expect(isSearchBag(search) && search.metadata).toEqual({ found: true })
+        expect(currentPlayer(session).getLarvaCubes()[Pink]).toBe(0)
+        expect(currentPlayer(session).getKnownSupplyPolyps()[Pink]).toBe(1)
+        expect(session.state.polypBag.items).toEqual([White])
+        expect(session.state.machineState).toBe(MachineState.TakingTurn)
+    })
+
+    it('changes nothing when the search finds none, and rules the colour out until one returns', () => {
+        const session = startWithConsumedWhite()
+        setBag(session, [White])
+        session.edit((draft) => {
+            draft.bonusPolyps[Pink] = 0
+        })
+        give(session, (player) => {
+            player.consumedPolyps = { ...coralCounts(0), [Pink]: 1 }
+        })
+
+        const [, search] = sellCube(session, Pink)
+
+        expect(isSearchBag(search) && search.metadata).toEqual({ found: false })
+        expect(currentPlayer(session).getLarvaCubes()[Pink]).toBe(1)
+        expect(session.state.turn.acted).toBe(false)
+        expect(session.state.colorsMissingFromBag).toEqual([Pink])
         expect(() => sellCube(session, Pink)).toThrow()
 
+        session.edit((draft) => {
+            draft.bonusPolypsInBag = true
+        })
         buyCube(session, Pink)
-        expect(session.state.bonusPolyps[Pink]).toBe(1)
-        expect(session.state.polypBag.remaining).toBe(1)
-        sellCube(session, Pink)
+        expect(session.state.colorsMissingFromBag).toEqual([])
+        expect(sellCube(session, Pink)).toHaveLength(2)
     })
 
-    it('needs a bonus polyp of the colour', () => {
+    it('needs a bonus polyp of the colour or a bag that may hold one', () => {
         const session = startWithConsumedWhite()
+        setBag(session, [])
         session.edit((draft) => {
             draft.bonusPolyps[Pink] = 0
         })

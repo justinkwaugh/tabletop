@@ -8,7 +8,7 @@ import type { TestSession } from '../util/testHelper.js'
 import {
     at,
     currentPlayer,
-    giveScreenPolyps,
+    giveSupplyPolyps,
     place,
     play,
     polyp,
@@ -70,14 +70,14 @@ function startWithOwnShrimps(squares: OffsetCoordinates[]) {
 }
 
 describe('introducing a shrimp', () => {
-    it('puts one from behind the screen onto a coral, once a turn', () => {
+    it('puts one from the supply onto a coral, once a turn', () => {
         const session = startOnBoardThree(corals)
         introduce(session, onBoard(6, 0))
 
         expect(shrimpSquares(session)).toEqual([
             { playerId: session.currentPlayerId(), boardId: 3, row: 6, col: 0 }
         ])
-        expect(currentPlayer(session).getShrimpsBehindScreen()).toBe(3)
+        expect(currentPlayer(session).getShrimpsInSupply()).toBe(3)
         expect(() => introduce(session, onBoard(6, 1))).toThrow()
     })
 
@@ -100,11 +100,11 @@ describe('introducing a shrimp', () => {
         introduce(session, onBoard(0, 5, 4))
     })
 
-    it('needs a shrimp left behind the screen', () => {
+    it('needs a shrimp left in the supply', () => {
         const session = startOnBoardThree(corals)
         session.edit((draft) => {
             const player = draft.players.find((p) => p.playerId === session.currentPlayerId())
-            if (player) player.shrimpsBehindScreen = 0
+            if (player) player.shrimpsInSupply = 0
         })
         expect(
             session.hydrated().canIntroduceShrimp(session.currentPlayerId(), onBoard(6, 0))
@@ -114,7 +114,7 @@ describe('introducing a shrimp', () => {
 
     it('finishes the larva cube being played', () => {
         const session = startOnBoardThree(corals)
-        giveScreenPolyps(session, CoralColor.White, 4)
+        giveSupplyPolyps(session, CoralColor.White, 4)
         play(session, CoralColor.White)
         place(session, at(3, 0))
         introduce(session, onBoard(6, 0))
@@ -126,21 +126,21 @@ describe('introducing a shrimp', () => {
 })
 
 describe('moving a shrimp', () => {
-    it('moves within its coral, to another coral, or back behind the screen', () => {
+    it('moves within its coral, to another coral, or back to the supply', () => {
         const session = startWithOwnShrimps([at(6, 0)])
         move(session, onBoard(6, 0), onBoard(5, 0))
         move(session, onBoard(5, 0), onBoard(6, 1))
         expect(shrimpSquares(session)).toMatchObject([{ row: 6, col: 1 }])
 
-        const behind = currentPlayer(session).getShrimpsBehindScreen()
+        const behind = currentPlayer(session).getShrimpsInSupply()
         move(session, onBoard(6, 1))
         expect(session.state.shrimps).toEqual([])
-        expect(currentPlayer(session).getShrimpsBehindScreen()).toBe(behind + 1)
+        expect(currentPlayer(session).getShrimpsInSupply()).toBe(behind + 1)
     })
 
     it('can be done any number of times without finishing the cube being played', () => {
         const session = startWithOwnShrimps([at(6, 0)])
-        giveScreenPolyps(session, CoralColor.White, 4)
+        giveSupplyPolyps(session, CoralColor.White, 4)
         play(session, CoralColor.White)
         move(session, onBoard(6, 0), onBoard(5, 0))
         move(session, onBoard(5, 0), onBoard(6, 0))

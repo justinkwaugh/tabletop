@@ -5,7 +5,7 @@ import { ActionType } from '../definition/actions.js'
 import { ReefBoardIdSchema, type ReefBoardId } from '../components/reefBoards.js'
 import { HydratedReefEncounterGameState } from '../model/gameState.js'
 
-// Action 4: once a turn, a shrimp from behind the screen goes onto a coral without one.
+// Action 4: once a turn, a shrimp from the supply goes onto a coral without one.
 export type IntroduceShrimp = Type.Static<typeof IntroduceShrimp>
 export const IntroduceShrimp = Type.Evaluate(
     Type.Intersect([

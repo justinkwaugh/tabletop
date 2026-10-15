@@ -13,7 +13,7 @@
     const gameSession = getGameSession()
 </script>
 
-<section class="card" aria-label="Actions">
+<section class="card" class:settling={gameSession.busy} aria-label="Actions">
     {#if gameSession.gameState.machineState === MachineState.FinalTurns}
         <FinalTurnsBanner />
     {/if}
@@ -35,8 +35,11 @@
 </section>
 
 <style>
-    /* Watercolour paper, its edge roughened like the box art's painted border. Inside it the
-       ink colours turn dark, so the panels within need no colours of their own. */
+    .settling {
+        pointer-events: none;
+    }
+
+    /* Inside the paper the ink colours turn dark, so the panels within need none of their own. */
     .card {
         --reef-ink: var(--reef-paper-ink);
         --reef-muted: var(--reef-paper-muted);

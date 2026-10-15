@@ -30,7 +30,6 @@
 </button>
 
 <style>
-    /* A pearly button, lit along its top. */
     .choice {
         display: inline-flex;
         align-items: center;

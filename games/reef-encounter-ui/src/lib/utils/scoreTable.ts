@@ -3,7 +3,9 @@ import {
     CoralColors,
     type CoralColor,
     type CoralCounts,
-    type ScoreBreakdown
+    type ScoreBreakdown,
+    TieBreakOrder,
+    type TieBreakCriterion
 } from '@tabletop/reef-encounter'
 
 export type ScoreCell = { color: CoralColor; polyps: number; points: number }
@@ -20,16 +22,12 @@ export type TieBreak = {
 
 export type ScoreTable = { rows: ScoreRow[]; tieBreaks: TieBreak[] }
 
-// Rulebook p. 12, in order.
-const TieBreakCriteria: {
-    key: Exclude<keyof ScoreBreakdown, 'parrotfishPolyps' | 'total'>
-    name: string
-}[] = [
-    { key: 'consumedPolyps', name: 'consumed polyps' },
-    { key: 'larvaCubes', name: 'unplayed larva cubes' },
-    { key: 'screenPolyps', name: 'unplayed polyps behind the screen' },
-    { key: 'guardedPolyps', name: 'polyps in corals their shrimps guard' }
-]
+const TieBreakNames: Record<TieBreakCriterion, string> = {
+    consumedPolyps: 'consumed polyps',
+    larvaCubes: 'unplayed larva cubes',
+    supplyPolyps: 'unplayed polyps in the supply',
+    guardedPolyps: 'polyps in corals their shrimps guard'
+}
 
 export function scoreTable(
     scores: Record<string, ScoreBreakdown>,
@@ -56,15 +54,15 @@ export function scoreTable(
         const ahead = scores[aheadId]
         const behind = scores[behindId]
         if (ahead.total !== behind.total) return []
-        const decider = TieBreakCriteria.find(({ key }) => ahead[key] !== behind[key])
+        const decider = TieBreakOrder.find((key) => ahead[key] !== behind[key])
         return decider
             ? [
                   {
                       aheadId,
                       behindId,
-                      criterion: decider.name,
-                      ahead: ahead[decider.key],
-                      behind: behind[decider.key]
+                      criterion: TieBreakNames[decider],
+                      ahead: ahead[decider],
+                      behind: behind[decider]
                   }
               ]
             : []

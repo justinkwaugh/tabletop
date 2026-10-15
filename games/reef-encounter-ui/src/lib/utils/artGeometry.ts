@@ -33,13 +33,14 @@ export function coralTileSlot(index: number): BoundingBox {
     }
 }
 
-const LarvaSpaceSize: RectangleDimensions = { width: 346, height: 224 }
+// Each larva space's printed white frame, measured along the middle of its line.
+const LarvaSpaceSize: RectangleDimensions = { width: 347, height: 225 }
 const LarvaSpaceOrigins: Record<CoralColor, Point> = {
-    [CoralColor.White]: { x: 109, y: 569 },
+    [CoralColor.White]: { x: 109, y: 568 },
     [CoralColor.Yellow]: { x: 503, y: 569 },
-    [CoralColor.Orange]: { x: 899, y: 569 },
-    [CoralColor.Grey]: { x: 218, y: 819 },
-    [CoralColor.Pink]: { x: 612, y: 819 }
+    [CoralColor.Orange]: { x: 899, y: 568 },
+    [CoralColor.Grey]: { x: 218, y: 818 },
+    [CoralColor.Pink]: { x: 612, y: 818 }
 }
 
 export function larvaSpace(color: CoralColor): BoundingBox {
@@ -70,15 +71,21 @@ export function larvaSpaceCube(color: CoralColor): Point {
 
 export const AlgaSpace: Point = { x: 1377, y: 682 }
 
-const EatenShrimpSlotColumns = [1137, 1213, 1288, 1358, 1425]
-const EatenShrimpSlotCentreY = 930
+// The centres of the printed silhouettes, which alternate in direction and so in height.
+const EatenShrimpSlots: Point[] = [
+    { x: 1131, y: 955 },
+    { x: 1208, y: 910 },
+    { x: 1276, y: 955 },
+    { x: 1352, y: 910 },
+    { x: 1422, y: 955 }
+]
 
 // A shrimp piece is as long as the silhouettes printed on the open sea, a little longer than a
 // reef square.
 export const ShrimpLength = 150
 
 export function eatenShrimpSlot(index: number): Point {
-    return { x: EatenShrimpSlotColumns[index], y: EatenShrimpSlotCentreY }
+    return EatenShrimpSlots[index]
 }
 
 // Sampled from the open-sea board's colour squares and the algae printed on the coral tiles.
@@ -110,7 +117,6 @@ export const BoardView: BoundingBox = {
 }
 export const OpenSeaView: BoundingBox = { x: 40, y: 50, width: 1495, height: 1040 }
 
-// Turns a view so its bottom edge faces the given side of the table.
 export function rotatedView(
     view: BoundingBox,
     rotation: BoardRotation

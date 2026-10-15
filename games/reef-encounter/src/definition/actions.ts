@@ -11,6 +11,7 @@ export enum ActionType {
     PlayAlgaCylinder = 'playAlgaCylinder',
     TakeOpenSeaSpace = 'takeOpenSeaSpace',
     PassFinalTurn = 'passFinalTurn',
+    SearchBag = 'searchBag',
     RefillOpenSea = 'refillOpenSea',
     EndGame = 'endGame'
 }

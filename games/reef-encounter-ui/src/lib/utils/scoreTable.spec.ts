@@ -12,7 +12,7 @@ const score = (
         total: Object.values(parrotfishPolyps).reduce((sum, count) => sum + count * 2, 0),
         consumedPolyps: 0,
         larvaCubes: 0,
-        screenPolyps: 0,
+        supplyPolyps: 0,
         guardedPolyps: 0,
         ...extra
     }

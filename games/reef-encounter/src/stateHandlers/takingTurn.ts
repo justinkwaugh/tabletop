@@ -3,7 +3,6 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { GameEndReason, HydratedReefEncounterGameState } from '../model/gameState.js'
 import { EndGame } from '../actions/endGame.js'
-import { newTurnRecord } from '../model/turn.js'
 import { HydratedTakeOpenSeaSpace, isTakeOpenSeaSpace } from '../actions/takeOpenSeaSpace.js'
 import { HydratedPlayLarvaCube, isPlayLarvaCube } from '../actions/playLarvaCube.js'
 import { HydratedPlacePolyp, isPlacePolyp } from '../actions/placePolyp.js'
@@ -17,8 +16,8 @@ import {
 import { HydratedExchangeLarvaCube, isExchangeLarvaCube } from '../actions/exchangeLarvaCube.js'
 import { HydratedPlayAlgaCylinder, isPlayAlgaCylinder } from '../actions/playAlgaCylinder.js'
 import { RefillOpenSea } from '../actions/refillOpenSea.js'
+import { SearchBag } from '../actions/searchBag.js'
 import { CoralColors } from '../components/colors.js'
-import { activateTurnPlayer } from '../util/turns.js'
 
 type TakingTurnAction =
     | HydratedEatCoral
@@ -129,34 +128,56 @@ export class TakingTurnStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedReefEncounterGameState>) {
-        activateTurnPlayer(context.gameState)
+        context.gameState.activateTurnPlayer()
     }
 
     onAction(
         action: TakingTurnAction,
         context: MachineContext<HydratedReefEncounterGameState>
     ): MachineState {
-        const gameState = context.gameState
         if (isTakeOpenSeaSpace(action)) {
             context.addSystemAction(RefillOpenSea, { revealsInfo: true })
             return MachineState.RefillingOpenSea
         }
+        if (isExchangeLarvaCube(action) && action.metadata?.searchesBag) {
+            context.addSystemAction(SearchBag, {
+                revealsInfo: true,
+                color: action.color,
+                need: { kind: 'exchange', playerId: action.playerId }
+            })
+            return MachineState.SearchingBag
+        }
+        if (isPlacePolyp(action) && action.metadata?.extraGrowthSearchesBag) {
+            context.addSystemAction(SearchBag, {
+                revealsInfo: true,
+                color: action.metadata.color,
+                need: { kind: 'extraGrowth', boardId: action.boardId }
+            })
+            return MachineState.SearchingBag
+        }
         if (!isEatCoral(action) && !isPlayAlgaCylinder(action) && !isPlacePolyp(action)) {
             return MachineState.TakingTurn
         }
-        const endReason = gameState.gameEndReachedBy(action.playerId)
-        if (!endReason) {
-            return MachineState.TakingTurn
-        }
-        // The game ends at once; the player does nothing more, not even action 10.
-        gameState.endReason = endReason
-        if (endReason === GameEndReason.NoRockLeft) {
-            context.addSystemAction(EndGame, { revealsInfo: true })
-            return MachineState.EndingGame
-        }
-        gameState.endingPlayerId = action.playerId
-        gameState.turnManager.endTurn(gameState.actionCount)
-        gameState.turn = newTurnRecord()
-        return MachineState.FinalTurns
+        return endGameIfReached(context, action.playerId)
     }
+}
+
+// The game ends at once; the player does nothing more, not even action 10 (rulebook p. 11).
+export function endGameIfReached(
+    context: MachineContext<HydratedReefEncounterGameState>,
+    playerId: string
+): MachineState {
+    const gameState = context.gameState
+    const endReason = gameState.gameEndReachedBy(playerId)
+    if (!endReason) {
+        return MachineState.TakingTurn
+    }
+    gameState.endReason = endReason
+    if (endReason === GameEndReason.NoRockLeft) {
+        context.addSystemAction(EndGame, { revealsInfo: true })
+        return MachineState.EndingGame
+    }
+    gameState.endingPlayerId = playerId
+    gameState.finishTurn()
+    return MachineState.FinalTurns
 }

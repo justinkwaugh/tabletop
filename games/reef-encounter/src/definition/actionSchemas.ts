@@ -12,6 +12,7 @@ import { EndGame } from '../actions/endGame.js'
 import { PassFinalTurn } from '../actions/passFinalTurn.js'
 import { PlayLarvaCube } from '../actions/playLarvaCube.js'
 import { RefillOpenSea } from '../actions/refillOpenSea.js'
+import { SearchBag } from '../actions/searchBag.js'
 import { TakeOpenSeaSpace } from '../actions/takeOpenSeaSpace.js'
 import { ActionType } from './actions.js'
 
@@ -28,6 +29,7 @@ export const ReefEncounterActionSchemas = {
     [ActionType.PlayAlgaCylinder]: PlayAlgaCylinder,
     [ActionType.TakeOpenSeaSpace]: TakeOpenSeaSpace,
     [ActionType.PassFinalTurn]: PassFinalTurn,
+    [ActionType.SearchBag]: SearchBag,
     [ActionType.RefillOpenSea]: RefillOpenSea,
     [ActionType.EndGame]: EndGame
 } satisfies Record<ActionType, Type.TSchema>

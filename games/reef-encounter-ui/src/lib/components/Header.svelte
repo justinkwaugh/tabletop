@@ -4,7 +4,6 @@
 
     const gameSession = getGameSession()
     const turnPlayerId = $derived(gameSession.gameState.activePlayerIds[0])
-    // Another player's turn wears their colour; the viewer's own turn and the rest wear coral.
     const othersTurn = $derived(
         !gameSession.isViewingHistory &&
             !gameSession.gameState.result &&
@@ -67,7 +66,6 @@
         margin-bottom: -10px;
     }
 
-    /* A coral tag with a scalloped tail, pinned over the action card's top edge. */
     .tag {
         --tag: var(--reef-coral);
         --tag-ink: #fff;

@@ -12,7 +12,7 @@ import type { TestSession } from '../util/testHelper.js'
 import {
     at,
     give,
-    giveScreenPolyps,
+    giveSupplyPolyps,
     place,
     play,
     polyp,
@@ -87,6 +87,24 @@ describe('locking the last coral tile', () => {
     })
 })
 
+describe('the end of the game', () => {
+    it('reveals the polyp each player fed their parrotfish at setup', () => {
+        const session = startOnBoardThree([], [], 3)
+        lastTileLeft(session)
+        lockLastTile(session)
+        pass(session)
+        pass(session)
+
+        const ended = session.actions.find((action) => isEndGame(action))
+        expect(isEndGame(ended) && ended.metadata?.setupParrotfishPolyps).toEqual(
+            session.hydrated().players.map((player) => ({
+                playerId: player.playerId,
+                color: player.setupParrotfishPolyp()
+            }))
+        )
+    })
+})
+
 describe('eating the fourth shrimp', () => {
     it('ends the turn at once and gives the other players a final turn', () => {
         const session = startOnBoardThree(coral(5))
@@ -97,7 +115,7 @@ describe('eating the fourth shrimp', () => {
         give(session, (player) => {
             player.shrimpOnOpenSea = true
             player.shrimpsInParrotfish = 2
-            player.shrimpsBehindScreen = 0
+            player.shrimpsInSupply = 0
         })
         expect(session.hydrated().eatingStartsFinalTurns(first)).toBe(true)
 
@@ -157,7 +175,7 @@ describe('final turns', () => {
 
     it('allows nothing but eating or passing', () => {
         const session = startFinalTurns()
-        giveScreenPolyps(session, CoralColor.Pink, 1)
+        giveSupplyPolyps(session, CoralColor.Pink, 1)
         expect(() => play(session, CoralColor.Pink)).toThrow()
         expect(() =>
             session.act(session.currentPlayerId(), ActionType.TakeOpenSeaSpace, {
@@ -177,7 +195,7 @@ describe('running out of rock', () => {
         session.edit((draft) => {
             draft.reefs[1].polyps = filled(4)
         })
-        giveScreenPolyps(session, CoralColor.White, 1)
+        giveSupplyPolyps(session, CoralColor.White, 1)
         play(session, CoralColor.White)
 
         place(session, at(6, 0))

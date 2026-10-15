@@ -75,8 +75,8 @@ function everyPolyp(state: ReefEncounterProjectedState) {
         counts[color] += state.bonusPolyps[color]
         for (const player of state.players) {
             counts[color] +=
-                (player.knownScreenPolyps?.[color] ?? 0) +
-                (player.secretScreenPolyps?.[color] ?? 0) +
+                (player.knownSupplyPolyps?.[color] ?? 0) +
+                (player.secretSupplyPolyps?.[color] ?? 0) +
                 (player.knownParrotfishPolyps?.[color] ?? 0) +
                 (player.secretParrotfishPolyps?.[color] ?? 0) +
                 player.consumedPolyps[color]
@@ -97,8 +97,8 @@ describe('exploring from what a player can see', () => {
             expect(everyPolyp(sample)).toEqual(coralCounts(PolypsPerColor))
             expect(sample.polypBag.items).toHaveLength(sample.polypBag.remaining)
             for (const player of sample.players) {
-                expect(totalCount(player.secretScreenPolyps ?? coralCounts())).toBe(
-                    player.secretScreenPolypCount
+                expect(totalCount(player.secretSupplyPolyps ?? coralCounts())).toBe(
+                    player.secretSupplyPolypCount
                 )
                 expect(totalCount(player.secretParrotfishPolyps ?? coralCounts())).toBe(1)
             }
@@ -116,27 +116,49 @@ describe('exploring from what a player can see', () => {
         const sample = populate(session, asPlayer(viewer))
         const own = (state: ReefEncounterProjectedState) =>
             state.players.find((player) => player.playerId === viewer)
-        expect(own(sample)?.secretScreenPolyps).toEqual(own(real)?.secretScreenPolyps)
+        expect(own(sample)?.secretSupplyPolyps).toEqual(own(real)?.secretSupplyPolyps)
         expect(own(sample)?.secretParrotfishPolyps).toEqual(own(real)?.secretParrotfishPolyps)
 
         // Swap one of another player's secret polyps with a bag polyp of another colour: the
         // viewer can't tell the difference, so neither may the sample.
         const swapped = structuredClone(real)
         const hidden = swapped.players.find((player) => player.playerId === other)
-        assertExists(hidden?.secretScreenPolyps, 'The other player has secret polyps')
-        const held = CoralColors.find((color) => (hidden.secretScreenPolyps?.[color] ?? 0) > 0)
+        assertExists(hidden?.secretSupplyPolyps, 'The other player has secret polyps')
+        const held = CoralColors.find((color) => (hidden.secretSupplyPolyps?.[color] ?? 0) > 0)
         assertExists(held, 'The other player holds a secret polyp')
         const bagIndex = swapped.polypBag.items.findIndex((color) => color !== held)
         const bagColor = swapped.polypBag.items[bagIndex]
         swapped.polypBag.items[bagIndex] = held
-        hidden.secretScreenPolyps[held] -= 1
-        hidden.secretScreenPolyps[bagColor] += 1
+        hidden.secretSupplyPolyps[held] -= 1
+        hidden.secretSupplyPolyps[bagColor] += 1
         swapped.polypBag.items.reverse()
 
         expect(project(session, asPlayer(viewer), swapped)).toEqual(
             project(session, asPlayer(viewer))
         )
         expect(populate(session, asPlayer(viewer), swapped)).toEqual(sample)
+    })
+
+    it('keeps out of the bag any colour a search of it failed to find', () => {
+        const session = playTurns()
+        const [viewer, other] = session.state.turnManager.turnOrder
+        const missing = CoralColor.Grey
+        session.edit((draft) => {
+            const holder = draft.players.find((player) => player.playerId === other)
+            assertExists(holder?.secretSupplyPolyps, 'The other player has secret polyps')
+            const greys = draft.polypBag.items.filter((color) => color === missing).length
+            holder.secretSupplyPolyps[missing] += greys
+            holder.secretSupplyPolypCount = (holder.secretSupplyPolypCount ?? 0) + greys
+            draft.polypBag.items = draft.polypBag.items.filter((color) => color !== missing)
+            draft.polypBag.remaining = draft.polypBag.items.length
+            draft.colorsMissingFromBag = [missing]
+        })
+
+        for (const seed of [1, 2, 3]) {
+            const sample = populate(session, asPlayer(viewer), session.state, seed)
+            expect(sample.polypBag.items).not.toContain(missing)
+            expect(everyPolyp(sample)).toEqual(coralCounts(PolypsPerColor))
+        }
     })
 
     it('fills only the parrotfish already fed during setup', () => {

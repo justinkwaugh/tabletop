@@ -8,11 +8,11 @@ import {
 
 export type ShrimpIntent = { kind: 'introduce' } | { kind: 'move'; from: ReefSquare }
 
-export type PolypSource = 'screen' | 'consumed'
+export type PolypSource = 'supply' | 'consumed'
 
 export type ReefSelectionValues = {
     firstLarvaCube: CoralColor
-    polypSource: PolypSource
+    placementSquare: ReefSquare
     shrimp: ShrimpIntent
     cylinderPayment: CoralColor
     cylinderAlga: AlgaColor
@@ -23,7 +23,7 @@ export type ReefSelection = StagedSelectionState<ReefSelectionValues>
 
 export const ReefStageOrder = [
     'firstLarvaCube',
-    'polypSource',
+    'placementSquare',
     'shrimp',
     'cylinderPayment',
     'cylinderAlga',
@@ -33,7 +33,7 @@ type MissingStages = Exclude<keyof ReefSelectionValues, (typeof ReefStageOrder)[
 const stageCoverage: MissingStages extends never ? true : never = true
 void stageCoverage
 
-export function setReefSelection<TStage extends keyof ReefSelectionValues>(
+function setReefSelection<TStage extends keyof ReefSelectionValues>(
     selection: ReefSelection,
     stage: TStage,
     value: ReefSelectionValues[TStage]
@@ -45,6 +45,30 @@ export function setReefSelection<TStage extends keyof ReefSelectionValues>(
         value,
         'manual'
     )
+}
+
+export function chooseFirstLarvaCube(selection: ReefSelection, color: CoralColor) {
+    return setReefSelection(selection, 'firstLarvaCube', color)
+}
+
+export function choosePlacementSquare(selection: ReefSelection, square: ReefSquare) {
+    return setReefSelection(selection, 'placementSquare', square)
+}
+
+export function chooseShrimp(selection: ReefSelection, intent: ShrimpIntent) {
+    return setReefSelection(selection, 'shrimp', intent)
+}
+
+export function chooseCylinderPayment(selection: ReefSelection, color: CoralColor) {
+    return setReefSelection(selection, 'cylinderPayment', color)
+}
+
+export function chooseCylinderAlga(selection: ReefSelection, alga: AlgaColor) {
+    return setReefSelection(selection, 'cylinderAlga', alga)
+}
+
+export function startEating(selection: ReefSelection) {
+    return setReefSelection(selection, 'eating', true)
 }
 
 export function hasManualReefSelection(selection: ReefSelection): boolean {

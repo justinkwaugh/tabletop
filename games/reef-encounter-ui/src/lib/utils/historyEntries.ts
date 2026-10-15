@@ -14,7 +14,8 @@ const PieceMovingActions = new Set<string>([
     ActionType.EatCoral,
     ActionType.PlayAlgaCylinder,
     ActionType.TakeOpenSeaSpace,
-    ActionType.RefillOpenSea
+    ActionType.RefillOpenSea,
+    ActionType.SearchBag
 ])
 
 const SetupActions = new Set<string>([ActionType.FeedParrotfish, ActionType.ChooseLarvaCubes])

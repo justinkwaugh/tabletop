@@ -59,10 +59,8 @@
     </div>
 {/snippet}
 
-<!-- Shows that the session refuses choices while a change plays out. -->
-<div class="reef-table" class:settling={gameSession.busy}>
+<div class="reef-table" aria-busy={gameSession.busy}>
     <Seascape />
-    <!-- Roughens the edges of paper surfaces, like the painted border of the box art. -->
     <svg width="0" height="0" class="absolute" aria-hidden="true">
         <filter id="reef-rough-edge" x="-2%" y="-2%" width="104%" height="104%">
             <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="3"
@@ -149,7 +147,6 @@
         --reef-accent: #ef8f2e;
         --reef-sun: #ffd98a;
         --reef-wobble: 15px 11px 16px 10px / 11px 16px 10px 15px;
-        /* Mother-of-pearl: the sheen inside a shell, for rims and highlights. */
         --reef-pearl: conic-gradient(
             from 200deg,
             #ffe3ef,
@@ -178,19 +175,12 @@
         z-index: 1;
     }
 
-    .reef-table.settling :global(.target),
-    .reef-table.settling :global(section[aria-label='Actions'] button) {
-        pointer-events: none;
-    }
-
-    /* Labels, buttons and numbers: rounded like sea-worn pebbles. */
     .reef-table :global(.reef-display) {
         font-family: 'Reef Fredoka', 'Trebuchet MS', sans-serif;
         font-weight: 600;
         letter-spacing: 0.01em;
     }
 
-    /* Frosted sea glass with a mother-of-pearl rim. */
     .reef-table :global(.reef-glass) {
         background: var(--reef-glass);
         backdrop-filter: blur(4px) saturate(1.15);
@@ -198,7 +188,6 @@
         box-shadow: 0 10px 24px -14px rgb(4 30 26 / 0.7);
     }
 
-    /* The rim is a ring of the pearl sheen, masked to the card's edge. */
     .reef-table :global(.reef-glass::after) {
         content: '';
         position: absolute;
@@ -250,7 +239,6 @@
         margin: 0;
     }
 
-    /* Tabs are pebbles; the open one is a sunlit shell. */
     .reef-table :global(.reef-tab) {
         flex: 1;
         padding: 5px 8px;

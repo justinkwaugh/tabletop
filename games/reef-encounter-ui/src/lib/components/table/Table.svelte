@@ -1,6 +1,7 @@
 <script lang="ts">
     import ReefBoard from './ReefBoard.svelte'
     import OpenSea from './OpenSea.svelte'
+    import SquarePicker from './SquarePicker.svelte'
     import type { BoardRotation } from '$lib/utils/artGeometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -19,7 +20,7 @@
     )
 </script>
 
-<div class="flex items-center gap-4 p-4">
+<div class="flex items-center gap-4 p-4" class:pointer-events-none={gameSession.busy}>
     <OpenSea rotation={OpenSeaRotation} />
     <div class="flex flex-col items-center gap-4">
         {#each reefRows as row, index (index)}
@@ -31,3 +32,4 @@
         {/each}
     </div>
 </div>
+<SquarePicker />

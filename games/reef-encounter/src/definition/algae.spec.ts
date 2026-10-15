@@ -5,7 +5,7 @@ import { ActionType } from './actions.js'
 import type { TestSession } from '../util/testHelper.js'
 import {
     give,
-    giveScreenPolyps,
+    giveSupplyPolyps,
     place,
     play,
     at,
@@ -93,7 +93,7 @@ describe('playing an alga cylinder on the open-sea space', () => {
 
     it('finishes the larva cube being played', () => {
         const session = startWithConsumed()
-        giveScreenPolyps(session, CoralColor.White, 4)
+        giveSupplyPolyps(session, CoralColor.White, 4)
         play(session, CoralColor.White)
         playAlga(session, Blue)
         expect(() => place(session, at(6, 0))).toThrow()

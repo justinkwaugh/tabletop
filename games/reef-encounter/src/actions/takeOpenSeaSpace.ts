@@ -10,7 +10,7 @@ export const TakenFromOpenSea = Type.Object({
     polyps: Type.Array(Type.Enum(CoralColor))
 })
 
-// Action 10, which ends the turn: a larva cube and its polyps go behind the player's screen.
+// Action 10, which ends the turn: a larva cube and its polyps go into the player's supply.
 export type TakeOpenSeaSpace = Type.Static<typeof TakeOpenSeaSpace>
 export const TakeOpenSeaSpace = Type.Evaluate(
     Type.Intersect([

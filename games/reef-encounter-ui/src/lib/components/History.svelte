@@ -118,7 +118,7 @@
                 </header>
             {/if}
             <ul>
-                {#each describeActions(entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their') as phrase, index (index)}
+                {#each describeActions(entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their', gameSession.possessiveName) as phrase, index (index)}
                     <li><PhraseLine {phrase} capitalise /></li>
                 {/each}
             </ul>
@@ -138,7 +138,6 @@
         align-content: start;
     }
 
-    /* A heading on a fine thread that fades out either side. */
     .divider {
         display: flex;
         align-items: center;
@@ -167,7 +166,6 @@
         text-align: left;
     }
 
-    /* The player's colour runs down the card's edge like a ribbon of weed. */
     .entry::before {
         content: '';
         position: absolute;

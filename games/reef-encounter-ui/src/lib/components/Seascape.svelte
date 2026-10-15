@@ -1,7 +1,5 @@
 <script lang="ts">
-    // The sunlit shallows behind the table, after the box art: light shafts from the surface,
-    // a shimmer of caustics and a few rising bubbles.
-    // Decoration only; it takes no input and holds still under reduced motion.
+    // Decoration only, after the box art; it takes no input and holds still under reduced motion.
 
     const Bubbles = [
         { left: 3, size: 7, delay: 0, duration: 13 },
@@ -12,7 +10,6 @@
         { left: 97.5, size: 4, delay: 10, duration: 10 }
     ]
 
-    // Ripples of light, as an SVG noise pattern tiled across the water.
     const caustics = `url("data:image/svg+xml,${encodeURIComponent(
         `<svg xmlns='http://www.w3.org/2000/svg' width='360' height='360'><filter id='c' x='0' y='0'><feTurbulence type='fractalNoise' baseFrequency='0.018 0.028' numOctaves='2' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -9 5.2'/></filter><rect width='360' height='360' filter='url(#c)'/></svg>`
     )}")`

@@ -4,6 +4,7 @@ import { Compile } from 'typebox/compile'
 import {
     addCounts,
     CoralColor,
+    CoralColors,
     CoralCounts,
     coralCounts,
     totalCount
@@ -30,15 +31,15 @@ export type ReefEncounterPlayerState = Type.Static<typeof ReefEncounterPlayerSta
 export const ReefEncounterPlayerState = Type.Intersect([
     PlayerState,
     Type.Object({
-        knownScreenPolyps: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
-        secretScreenPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
+        knownSupplyPolyps: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
+        secretSupplyPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
         // How many secret polyps are left is trackable: everyone saw how many were dealt, and
         // the known ones are always played first.
-        secretScreenPolypCount: Visibility.protect(Type.Number(), { policy: trackablePolicy }),
+        secretSupplyPolypCount: Visibility.protect(Type.Number(), { policy: trackablePolicy }),
         secretParrotfishPolyps: Visibility.protect(CoralCounts, { policy: secretPolicy }),
         knownParrotfishPolyps: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
         larvaCubes: Visibility.protect(CoralCounts, { policy: trackablePolicy }),
-        shrimpsBehindScreen: Visibility.protect(Type.Number(), { policy: trackablePolicy }),
+        shrimpsInSupply: Visibility.protect(Type.Number(), { policy: trackablePolicy }),
         // The first shrimp a parrotfish eats goes on the open-sea board for all to see;
         // later ones go inside the parrotfish.
         shrimpOnOpenSea: Type.Boolean(),
@@ -64,13 +65,13 @@ export function newPlayerState(
     return {
         playerId,
         color,
-        knownScreenPolyps: coralCounts(),
-        secretScreenPolyps: dealtPolyps,
-        secretScreenPolypCount: totalCount(dealtPolyps),
+        knownSupplyPolyps: coralCounts(),
+        secretSupplyPolyps: dealtPolyps,
+        secretSupplyPolypCount: totalCount(dealtPolyps),
         secretParrotfishPolyps: coralCounts(),
         knownParrotfishPolyps: coralCounts(),
         larvaCubes: coralCounts(),
-        shrimpsBehindScreen: ShrimpsPerPlayer,
+        shrimpsInSupply: ShrimpsPerPlayer,
         shrimpOnOpenSea: false,
         shrimpsInParrotfish: 0,
         consumedPolyps: coralCounts()
@@ -83,13 +84,13 @@ export class HydratedReefEncounterPlayerState
 {
     declare playerId: string
     declare color: Color
-    declare knownScreenPolyps?: CoralCounts
-    declare secretScreenPolyps?: CoralCounts
-    declare secretScreenPolypCount?: number
+    declare knownSupplyPolyps?: CoralCounts
+    declare secretSupplyPolyps?: CoralCounts
+    declare secretSupplyPolypCount?: number
     declare secretParrotfishPolyps?: CoralCounts
     declare knownParrotfishPolyps?: CoralCounts
     declare larvaCubes?: CoralCounts
-    declare shrimpsBehindScreen?: number
+    declare shrimpsInSupply?: number
     declare shrimpOnOpenSea: boolean
     declare shrimpsInParrotfish?: number
     declare consumedPolyps: CoralCounts
@@ -102,17 +103,24 @@ export class HydratedReefEncounterPlayerState
         return totalCount(this.getSecretParrotfishPolyps()) > 0
     }
 
-    hasSecretScreenPolyp(color: CoralColor): boolean {
-        return this.getSecretScreenPolyps()[color] > 0
+    setupParrotfishPolyp(): CoralColor {
+        const secret = this.getSecretParrotfishPolyps()
+        const color = CoralColors.find((candidate) => secret[candidate] > 0)
+        assertExists(color, `Player ${this.playerId} has not fed their parrotfish`)
+        return color
+    }
+
+    hasSecretSupplyPolyp(color: CoralColor): boolean {
+        return this.getSecretSupplyPolyps()[color] > 0
     }
 
     feedParrotfish(color: CoralColor) {
         assert(!this.hasFedParrotfish(), `Player ${this.playerId} has already fed their parrotfish`)
         assert(
-            this.hasSecretScreenPolyp(color),
+            this.hasSecretSupplyPolyp(color),
             `Player ${this.playerId} has no ${color} polyp to feed`
         )
-        this.spendSecretScreenPolyp(color)
+        this.spendSecretSupplyPolyp(color)
         this.getSecretParrotfishPolyps()[color] += 1
     }
 
@@ -121,34 +129,34 @@ export class HydratedReefEncounterPlayerState
     }
 
     // Polyps taken from the open sea were seen by everyone, so they join the known polyps.
-    addKnownScreenPolyps(polyps: readonly CoralColor[]) {
-        const known = this.getKnownScreenPolyps()
+    addKnownSupplyPolyps(polyps: readonly CoralColor[]) {
+        const known = this.getKnownSupplyPolyps()
         for (const polyp of polyps) {
             known[polyp] += 1
         }
     }
 
-    hasScreenPolyp(color: CoralColor): boolean {
-        return this.getKnownScreenPolyps()[color] + this.getSecretScreenPolyps()[color] > 0
+    hasSupplyPolyp(color: CoralColor): boolean {
+        return this.getKnownSupplyPolyps()[color] + this.getSecretSupplyPolyps()[color] > 0
     }
 
     // Polyps others saw arrive are played first, so opponents learn only what they could track.
-    spendScreenPolyp(color: CoralColor) {
+    spendSupplyPolyp(color: CoralColor) {
         assert(
-            this.hasScreenPolyp(color),
-            `Player ${this.playerId} has no ${color} polyp behind the screen`
+            this.hasSupplyPolyp(color),
+            `Player ${this.playerId} has no ${color} polyp in the supply`
         )
-        const known = this.getKnownScreenPolyps()
+        const known = this.getKnownSupplyPolyps()
         if (known[color] > 0) {
             known[color] -= 1
         } else {
-            this.spendSecretScreenPolyp(color)
+            this.spendSecretSupplyPolyp(color)
         }
     }
 
-    private spendSecretScreenPolyp(color: CoralColor) {
-        this.getSecretScreenPolyps()[color] -= 1
-        this.secretScreenPolypCount = this.getSecretScreenPolypCount() - 1
+    private spendSecretSupplyPolyp(color: CoralColor) {
+        this.getSecretSupplyPolyps()[color] -= 1
+        this.secretSupplyPolypCount = this.getSecretSupplyPolypCount() - 1
     }
 
     spendConsumedPolyp(color: CoralColor) {
@@ -172,15 +180,12 @@ export class HydratedReefEncounterPlayerState
     }
 
     spendShrimp() {
-        assert(
-            this.getShrimpsBehindScreen() > 0,
-            `Player ${this.playerId} has no shrimp behind the screen`
-        )
-        this.shrimpsBehindScreen = this.getShrimpsBehindScreen() - 1
+        assert(this.getShrimpsInSupply() > 0, `Player ${this.playerId} has no shrimp in the supply`)
+        this.shrimpsInSupply = this.getShrimpsInSupply() - 1
     }
 
     returnShrimp() {
-        this.shrimpsBehindScreen = this.getShrimpsBehindScreen() + 1
+        this.shrimpsInSupply = this.getShrimpsInSupply() + 1
     }
 
     // Action 1: what is left of the eaten coral, and its shrimp, go into the parrotfish.
@@ -193,12 +198,16 @@ export class HydratedReefEncounterPlayerState
         }
     }
 
-    screenPolypCount(): number {
-        return totalCount(this.getKnownScreenPolyps()) + this.getSecretScreenPolypCount()
+    shrimpsEaten(): number {
+        return (this.shrimpOnOpenSea ? 1 : 0) + this.getShrimpsInParrotfish()
     }
 
-    getScreenPolyps(): CoralCounts {
-        return addCounts(this.getKnownScreenPolyps(), this.getSecretScreenPolyps())
+    supplyPolypCount(): number {
+        return totalCount(this.getKnownSupplyPolyps()) + this.getSecretSupplyPolypCount()
+    }
+
+    getSupplyPolyps(): CoralCounts {
+        return addCounts(this.getKnownSupplyPolyps(), this.getSecretSupplyPolyps())
     }
 
     getParrotfishPolyps(): CoralCounts {
@@ -211,9 +220,9 @@ export class HydratedReefEncounterPlayerState
             : undefined
     }
 
-    visibleScreenPolyps(): CoralCounts | undefined {
-        return this.knownScreenPolyps
-            ? addCounts(this.knownScreenPolyps, this.secretScreenPolyps)
+    visibleSupplyPolyps(): CoralCounts | undefined {
+        return this.knownSupplyPolyps
+            ? addCounts(this.knownSupplyPolyps, this.secretSupplyPolyps)
             : undefined
     }
 
@@ -233,28 +242,28 @@ export class HydratedReefEncounterPlayerState
         return this.shrimpsInParrotfish
     }
 
-    getKnownScreenPolyps(): CoralCounts {
+    getKnownSupplyPolyps(): CoralCounts {
         assertExists(
-            this.knownScreenPolyps,
-            'Known screen polyps are unavailable in this representation'
+            this.knownSupplyPolyps,
+            'Known supply polyps are unavailable in this representation'
         )
-        return this.knownScreenPolyps
+        return this.knownSupplyPolyps
     }
 
-    getSecretScreenPolyps(): CoralCounts {
+    getSecretSupplyPolyps(): CoralCounts {
         assertExists(
-            this.secretScreenPolyps,
-            'Secret screen polyps are unavailable in this representation'
+            this.secretSupplyPolyps,
+            'Secret supply polyps are unavailable in this representation'
         )
-        return this.secretScreenPolyps
+        return this.secretSupplyPolyps
     }
 
-    getSecretScreenPolypCount(): number {
+    getSecretSupplyPolypCount(): number {
         assertExists(
-            this.secretScreenPolypCount,
-            'The number of secret screen polyps is unavailable in this representation'
+            this.secretSupplyPolypCount,
+            'The number of secret supply polyps is unavailable in this representation'
         )
-        return this.secretScreenPolypCount
+        return this.secretSupplyPolypCount
     }
 
     getSecretParrotfishPolyps(): CoralCounts {
@@ -265,12 +274,12 @@ export class HydratedReefEncounterPlayerState
         return this.secretParrotfishPolyps
     }
 
-    getShrimpsBehindScreen(): number {
+    getShrimpsInSupply(): number {
         assertExists(
-            this.shrimpsBehindScreen,
-            'Shrimps behind the screen are unavailable in this representation'
+            this.shrimpsInSupply,
+            'Shrimps in the supply are unavailable in this representation'
         )
-        return this.shrimpsBehindScreen
+        return this.shrimpsInSupply
     }
 
     getLarvaCubes(): CoralCounts {

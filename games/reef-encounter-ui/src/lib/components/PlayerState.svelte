@@ -41,11 +41,8 @@
 {/snippet}
 
 <article class="panel reef-glass" class:turn={isTurn} style:--player={paint}>
-    <header
-        style:background-image="url({ParrotfishUrls[gameSession.colors.getPlayerColor(player.id)]})"
-    >
+    <header style:--art="url({ParrotfishUrls[gameSession.colors.getPlayerColor(player.id)]})">
         {#if isTurn}
-            <!-- The parrotfish whose turn it is breathes out a stream of bubbles. -->
             <span class="breath" aria-hidden="true"><i></i><i></i><i></i></span>
         {/if}
         <h3
@@ -58,18 +55,18 @@
     </header>
     <dl>
         <div class="row">
-            <dt>Screen</dt>
+            <dt>Supply</dt>
             <dd>
-                {#if view.screen}
-                    {#each view.screen as { color, count } (color)}
+                {#if view.supply}
+                    {#each view.supply as { color, count } (color)}
                         <PolypChip {color} {count} />
                     {/each}
                 {/if}
-                {#if view.hiddenScreenPolyps > 0}
-                    <span class="note">+{view.hiddenScreenPolyps} unseen</span>
-                {:else if !view.screen}
+                {#if view.hiddenSupplyPolyps > 0}
+                    <span class="note">+{view.hiddenSupplyPolyps} unseen</span>
+                {:else if !view.supply}
                     <span class="note">Concealed</span>
-                {:else if view.screen.length === 0}
+                {:else if view.supply.length === 0}
                     <span class="note">None</span>
                 {/if}
             </dd>
@@ -114,10 +111,10 @@
         <div class="row">
             <dt>Shrimps</dt>
             <dd>
-                {#if view.shrimpsBehindScreen !== undefined}
-                    {@render shrimps(view.shrimpsBehindScreen)}
+                {#if view.shrimpsInSupply !== undefined}
+                    {@render shrimps(view.shrimpsInSupply)}
                     <span class="note">
-                        {view.shrimpsBehindScreen} of {ShrimpsPerPlayer} in hand{shrimpsOnReefs
+                        {view.shrimpsInSupply} of {ShrimpsPerPlayer} in hand{shrimpsOnReefs
                             ? `, ${shrimpsOnReefs} on the reefs`
                             : ''}
                     </span>
@@ -167,13 +164,20 @@
             0 0 20px -2px color-mix(in srgb, var(--player) 60%, transparent);
     }
 
-    /* The art fades softly into the glass. */
     header {
         position: relative;
         height: 84px;
-        background-size: cover;
-        background-position: center;
-        mask: linear-gradient(black 70%, transparent);
+    }
+
+    header::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--art) right -16px top 42% / auto 120% no-repeat;
+        mask-image:
+            linear-gradient(black 70%, transparent),
+            linear-gradient(to left, black 170px, transparent 245px);
+        mask-composite: intersect;
     }
 
     .plaque {
@@ -191,8 +195,8 @@
 
     .breath {
         position: absolute;
-        top: 10px;
-        left: 30%;
+        top: 2px;
+        right: 150px;
         width: 24px;
         height: 60px;
         pointer-events: none;
@@ -299,7 +303,6 @@
         font-size: 14px;
     }
 
-    /* Points sit in a little pearl. */
     .points {
         margin-left: auto;
         padding: 0 9px;

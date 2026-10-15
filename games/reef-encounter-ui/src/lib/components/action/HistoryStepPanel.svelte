@@ -7,7 +7,11 @@
     const gameSession = getGameSession()
     const step = $derived(historyStep(gameSession.actions))
     const phrases = $derived(
-        describeActions(step, step[0]?.playerId === gameSession.myPlayer?.id ? 'your' : 'their')
+        describeActions(
+            step,
+            step[0]?.playerId === gameSession.myPlayer?.id ? 'your' : 'their',
+            gameSession.possessiveName
+        )
     )
 </script>
 

@@ -251,8 +251,18 @@ const ParrotfishCrops = {
 mkdirSync(path.join(images, 'parrotfish'), { recursive: true })
 for (const [color, { file, box }] of Object.entries(ParrotfishCrops)) {
     const [x0, y0, x1, y1] = box.map((value) => Math.round(value * BoxArtScale))
-    convert(from(file), '-crop', `${x1 - x0}x${y1 - y0}+${x0}+${y0}`, '+repage',
-        '-filter', 'Lanczos', '-resize', '640x240!', Jpeg, path.join(images, 'parrotfish', `${color}.jpg`))
+    convert(
+        from(file),
+        '-crop',
+        `${x1 - x0}x${y1 - y0}+${x0}+${y0}`,
+        '+repage',
+        '-filter',
+        'Lanczos',
+        '-resize',
+        '640x240!',
+        Jpeg,
+        path.join(images, 'parrotfish', `${color}.jpg`)
+    )
 }
 
 // The cover, from the user's colour-corrected copy of the CMYK original, at twice the catalog's
@@ -307,7 +317,10 @@ const coralRefs = Object.fromEntries(
 )
 const boardRefs = [1, 2, 3, 4].map((id) => ref(`./boards/board-${id}.jpg`))
 const openSeaRef = ref('./open-sea.jpg')
-const parrotfishRefs = Object.keys(ParrotfishCrops).map((color) => [color, ref(`./parrotfish/${color}.jpg`)])
+const parrotfishRefs = Object.keys(ParrotfishCrops).map((color) => [
+    color,
+    ref(`./parrotfish/${color}.jpg`)
+])
 lines.push(
     '',
     'export const PolypFaceUrls = {',

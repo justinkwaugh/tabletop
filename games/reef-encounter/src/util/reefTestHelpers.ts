@@ -46,11 +46,11 @@ export function give(
     })
 }
 
-export function giveScreenPolyps(session: TestSession, color: CoralColor, count: number) {
+export function giveSupplyPolyps(session: TestSession, color: CoralColor, count: number) {
     give(session, (player) => {
-        player.knownScreenPolyps = { ...coralCounts(0), [color]: count }
-        player.secretScreenPolyps = coralCounts(0)
-        player.secretScreenPolypCount = 0
+        player.knownSupplyPolyps = { ...coralCounts(0), [color]: count }
+        player.secretSupplyPolyps = coralCounts(0)
+        player.secretSupplyPolypCount = 0
         player.larvaCubes = { ...coralCounts(0), [color]: 2 }
     })
 }

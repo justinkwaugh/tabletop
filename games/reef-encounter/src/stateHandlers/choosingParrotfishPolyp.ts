@@ -3,7 +3,6 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedReefEncounterGameState } from '../model/gameState.js'
 import { HydratedFeedParrotfish, isFeedParrotfish } from '../actions/feedParrotfish.js'
-import { activateTurnPlayer, endTurnInOrder } from '../util/turns.js'
 
 export class ChoosingParrotfishPolypStateHandler implements MachineStateHandler<
     HydratedFeedParrotfish,
@@ -17,7 +16,7 @@ export class ChoosingParrotfishPolypStateHandler implements MachineStateHandler<
         return (
             isFeedParrotfish(action) &&
             gameState.activePlayerIds.includes(action.playerId) &&
-            gameState.getPlayerState(action.playerId).hasSecretScreenPolyp(action.color)
+            gameState.getPlayerState(action.playerId).hasSecretSupplyPolyp(action.color)
         )
     }
 
@@ -31,14 +30,15 @@ export class ChoosingParrotfishPolypStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedReefEncounterGameState>) {
-        activateTurnPlayer(context.gameState)
+        context.gameState.activateTurnPlayer()
     }
 
     onAction(
         action: HydratedFeedParrotfish,
         context: MachineContext<HydratedReefEncounterGameState>
     ): MachineState {
-        return endTurnInOrder(context.gameState, action.playerId)
+        context.gameState.finishTurn()
+        return context.gameState.isLastInTurnOrder(action.playerId)
             ? MachineState.ChoosingLarvaCubes
             : MachineState.ChoosingParrotfishPolyp
     }

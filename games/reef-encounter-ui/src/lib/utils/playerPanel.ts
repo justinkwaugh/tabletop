@@ -9,11 +9,11 @@ import {
 export type ColorCount = { color: CoralColor; count: number }
 
 export type PlayerPanelView = {
-    screen?: ColorCount[]
-    hiddenScreenPolyps: number
+    supply?: ColorCount[]
+    hiddenSupplyPolyps: number
     larvaCubes?: ColorCount[]
     consumed: ColorCount[]
-    shrimpsBehindScreen?: number
+    shrimpsInSupply?: number
     shrimpOnOpenSea: boolean
     shrimpsInParrotfish?: number
     parrotfish?: ColorCount[]
@@ -28,13 +28,13 @@ export function playerPanelView(
     parrotfishFed: boolean
 ): PlayerPanelView {
     const parrotfish = player.visibleParrotfishPolyps()
-    const screen = player.visibleScreenPolyps()
+    const supply = player.visibleSupplyPolyps()
     return {
-        screen: screen ? colorCounts(screen) : undefined,
-        hiddenScreenPolyps: player.secretScreenPolyps ? 0 : (player.secretScreenPolypCount ?? 0),
+        supply: supply ? colorCounts(supply) : undefined,
+        hiddenSupplyPolyps: player.secretSupplyPolyps ? 0 : (player.secretSupplyPolypCount ?? 0),
         larvaCubes: player.larvaCubes ? colorCounts(player.larvaCubes) : undefined,
         consumed: colorCounts(player.consumedPolyps),
-        shrimpsBehindScreen: player.shrimpsBehindScreen,
+        shrimpsInSupply: player.shrimpsInSupply,
         shrimpOnOpenSea: player.shrimpOnOpenSea,
         shrimpsInParrotfish: player.shrimpsInParrotfish,
         parrotfish: parrotfish ? colorCounts(parrotfish) : undefined,

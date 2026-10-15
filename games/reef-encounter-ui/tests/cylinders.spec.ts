@@ -1,25 +1,20 @@
 import { expect, test } from '@playwright/test'
-import { actionPanel, createGame, playSetup, playUntilConsumedPolyp } from './helpers'
+import { actionPanel, openScenario } from './helpers'
 
 test('a consumed polyp buys an alga cylinder, and Undo steps back through its choices', async ({
     page
 }) => {
-    test.setTimeout(120_000)
-    await createGame(page, 2)
-    await playSetup(page, 2)
-    await playUntilConsumedPolyp(page)
+    await openScenario(page, 'Consumed polyps to spend')
     const actions = actionPanel(page)
     const undo = page.getByRole('button', { name: 'Undo' })
+    const acquire = actions.getByRole('button', {
+        name: 'Acquire an alga cylinder, paying a consumed white polyp'
+    })
+    const firstColour = actions.getByRole('button', { name: /^A \w+ cylinder$/ }).first()
 
-    await actions
-        .getByRole('button', { name: /^Acquire an alga cylinder/ })
-        .first()
-        .click()
+    await acquire.click()
     await expect(actions).toContainText("Choose the cylinder's colour")
-    await actions
-        .getByRole('button', { name: /^A \w+ cylinder$/ })
-        .first()
-        .click()
+    await firstColour.click()
     await expect(actions).toContainText(/Put the \w+ cylinder on the open sea/)
     const cylinderSpace = page.getByRole('button', { name: /on the open-sea cylinder space$/ })
     await expect(cylinderSpace).toBeVisible()
@@ -30,15 +25,10 @@ test('a consumed polyp buys an alga cylinder, and Undo steps back through its ch
     await undo.click()
     await expect(actions).toContainText('Choose your actions')
 
-    await actions
-        .getByRole('button', { name: /^Acquire an alga cylinder/ })
-        .first()
-        .click()
-    await actions
-        .getByRole('button', { name: /^A \w+ cylinder$/ })
-        .first()
-        .click()
+    await acquire.click()
+    await firstColour.click()
     await cylinderSpace.click()
     await expect(actions).toContainText('Choose your actions')
     await expect(cylinderSpace).toHaveCount(0)
+    await expect(acquire).toHaveCount(0)
 })

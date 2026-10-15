@@ -6,7 +6,7 @@ import { HydratedReefEncounterGameState } from '../model/gameState.js'
 import { ReefSquare } from '../model/reef.js'
 
 // Action 5: any number of times a turn, a shrimp on the reef moves to another square,
-// or back behind the screen when no square is given.
+// or back to the supply when no square is given.
 export type MoveShrimp = Type.Static<typeof MoveShrimp>
 export const MoveShrimp = Type.Evaluate(
     Type.Intersect([

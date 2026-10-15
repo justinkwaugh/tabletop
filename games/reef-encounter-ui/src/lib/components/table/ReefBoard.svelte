@@ -5,6 +5,7 @@
     import { polypAt, type Reef, type ReefSquare } from '@tabletop/reef-encounter'
     import Pieces from './Pieces.svelte'
     import Target from './Target.svelte'
+    import { SquarePickerAnchorId } from './SquarePicker.svelte'
     import { BoardImageUrls } from '$lib/images/art.generated.js'
     import {
         BoardImage,
@@ -42,6 +43,12 @@
             ? intent.from.coords
             : undefined
     )
+    const chosenSquare = $derived(
+        gameSession.placementSquare?.boardId === reef.boardId
+            ? gameSession.placementSquare.coords
+            : undefined
+    )
+    const pickerAnchor = $derived(pickedUp ?? chosenSquare)
     const where = (coords: OffsetCoordinates) =>
         `on ${squareName({ boardId: reef.boardId, coords })}`
 </script>
@@ -61,7 +68,14 @@
         ></image>
         <Pieces container={reef.boardId} {rotation} />
         {#if pickedUp}
-            {@const square = boardSquare(pickedUp)}
+            <Target
+                box={boardSquare(pickedUp)}
+                tone="chosen"
+                label="Leave your shrimp {where(pickedUp)}"
+                onselect={() => gameSession.putDownShrimp()}
+            />
+        {:else if chosenSquare}
+            {@const square = boardSquare(chosenSquare)}
             <rect
                 x={square.x + 3}
                 y={square.y + 3}
@@ -71,6 +85,17 @@
                 fill="none"
                 stroke="#ef8f2e"
                 stroke-width="8"
+            ></rect>
+        {/if}
+        {#if pickerAnchor}
+            {@const square = boardSquare(pickerAnchor)}
+            <rect
+                id={SquarePickerAnchorId}
+                x={square.x + square.width - 1}
+                y={square.y + square.height / 2}
+                width="1"
+                height="1"
+                fill="none"
             ></rect>
         {/if}
         {#each movableShrimps as square (`${square.coords.row},${square.coords.col}`)}
@@ -122,7 +147,8 @@
                 label="{target.attack ? 'Attack with' : 'Place'} {withArticle(
                     placing?.color ?? ''
                 )} polyp {where(target.coords)}"
-                onselect={() => gameSession.placePolyp(reef.boardId, target.coords)}
+                onselect={() =>
+                    gameSession.placePolyp({ boardId: reef.boardId, coords: target.coords })}
             />
         {/each}
     </g>

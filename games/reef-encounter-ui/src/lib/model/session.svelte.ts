@@ -29,9 +29,14 @@ import {
 } from '@tabletop/reef-encounter'
 import { assert, assertExists } from '@tabletop/common'
 import {
+    chooseCylinderAlga,
+    chooseCylinderPayment,
+    chooseFirstLarvaCube,
+    choosePlacementSquare,
+    chooseShrimp,
     hasManualReefSelection,
     popReefSelection,
-    setReefSelection,
+    startEating,
     type PolypSource,
     type ReefSelection,
     type ShrimpIntent
@@ -39,7 +44,9 @@ import {
 import { PiecesAnimator } from '$lib/animators/piecesAnimator.js'
 import { tablePieces, type TablePiece } from '$lib/utils/tablePieces.js'
 
-const PolypSources: readonly PolypSource[] = ['screen', 'consumed']
+const PolypSources: readonly PolypSource[] = ['supply', 'consumed']
+
+const isConsumed = (source: PolypSource) => source === 'consumed'
 
 export type EdibleCoral = { square: ReefSquare; color: CoralColor; squares: OffsetCoordinates[] }
 
@@ -53,8 +60,7 @@ export class ReefEncounterGameSession extends GameSession<
     ReefEncounterProjectedState,
     HydratedReefEncounterGameState
 > {
-    // A full-action replay animates several actions while gameState stays frozen, so pieces
-    // keep the last transition's result until gameState catches up.
+    // A full-action replay animates several actions while gameState stays frozen.
     private settledPieces: TablePiece[] = $derived(tablePieces(this.gameState, this.game.id))
     private transitionPieces: TablePiece[] | undefined = $state()
     readonly tablePieces = $derived(this.transitionPieces ?? this.settledPieces)
@@ -72,6 +78,9 @@ export class ReefEncounterGameSession extends GameSession<
     })
 
     playerAidOpen = $state(false)
+
+    readonly possessiveName = (playerId: string): string =>
+        playerId === this.myPlayer?.id ? 'your' : `${this.getPlayerName(playerId)}'s`
 
     togglePlayerAid() {
         this.playerAidOpen = !this.playerAidOpen
@@ -104,7 +113,7 @@ export class ReefEncounterGameSession extends GameSession<
 
     readonly feedableColors: CoralColor[] = $derived.by(() => {
         if (!this.canFeedParrotfish) return []
-        const secret = this.myPlayerState?.secretScreenPolyps
+        const secret = this.myPlayerState?.secretSupplyPolyps
         return CoralColors.filter((color) => (secret?.[color] ?? 0) > 0)
     })
 
@@ -122,11 +131,11 @@ export class ReefEncounterGameSession extends GameSession<
         if (!this.canTake(ActionType.PlayLarvaCube)) return []
         const me = this.myPlayerId()
         const player = this.gameState.getPlayerState(me)
-        const screen = player.getScreenPolyps()
+        const supply = player.getSupplyPolyps()
         return CoralColors.filter((color) => this.gameState.canPlayLarvaCube(me, color)).map(
             (color) => ({
                 color,
-                polypsToPlace: screen[color] + player.consumedPolyps[color]
+                polypsToPlace: supply[color] + player.consumedPolyps[color]
             })
         )
     })
@@ -139,23 +148,22 @@ export class ReefEncounterGameSession extends GameSession<
         if (!this.placing) return []
         const me = this.myPlayerId()
         return PolypSources.filter((source) =>
-            this.gameState.hasPolypToPlace(me, source === 'consumed')
+            this.gameState.hasPolypToPlace(me, isConsumed(source))
         )
     })
 
-    readonly placementSource: PolypSource | undefined = $derived(
-        this.selection.polypSource?.value ?? this.placementSources[0]
+    readonly placementSquare: ReefSquare | undefined = $derived(
+        this.selection.placementSquare?.value
     )
 
     readonly placementTargets: PlacementTarget[] = $derived.by(() => {
-        const placing = this.placing
-        const source = this.placementSource
-        if (!placing || !source || this.turnChoiceOpen) return []
+        const source = this.placementSources[0]
+        if (!source || this.turnChoiceOpen) return []
         const me = this.myPlayerId()
         return this.gameState.reefs.flatMap((reef) =>
             ReefBoards[reef.boardId].rock
                 .filter((coords) =>
-                    this.gameState.canPlacePolyp(me, reef.boardId, coords, source === 'consumed')
+                    this.gameState.canPlacePolyp(me, reef.boardId, coords, isConsumed(source))
                 )
                 .map((coords) => ({
                     boardId: reef.boardId,
@@ -167,7 +175,7 @@ export class ReefEncounterGameSession extends GameSession<
 
     readonly shrimpProtectedPolyps: ReefSquare[] = $derived.by(() => {
         const placing = this.placing
-        if (!placing || !this.placementSource || this.turnChoiceOpen) return []
+        if (!placing || this.placementSources.length === 0 || this.turnChoiceOpen) return []
         return this.gameState.reefs.flatMap((reef) =>
             this.gameState
                 .shrimpProtectedPolyps(reef.boardId, placing.color)
@@ -188,9 +196,12 @@ export class ReefEncounterGameSession extends GameSession<
     readonly cylinderAlga: AlgaColor | undefined = $derived(this.selection.cylinderAlga?.value)
     readonly choosingCylinder = $derived(this.cylinderPayment !== undefined)
     readonly choosingCoralToEat = $derived(this.selection.eating?.value === true)
-    // An open shrimp, cylinder or eating choice takes over the table (see the visual contract).
+    // An open choice takes over the table (see the visual contract).
     readonly turnChoiceOpen = $derived(
-        this.shrimpIntent !== undefined || this.choosingCylinder || this.choosingCoralToEat
+        this.placementSquare !== undefined ||
+            this.shrimpIntent !== undefined ||
+            this.choosingCylinder ||
+            this.choosingCoralToEat
     )
     readonly canIntroduceShrimp = $derived(this.canTake(ActionType.IntroduceShrimp))
     readonly shrimpsOnBareRock: ReefSquare[] = $derived(
@@ -265,7 +276,6 @@ export class ReefEncounterGameSession extends GameSession<
     readonly canEatCoral = $derived(this.canTake(ActionType.EatCoral))
     readonly canPassFinalTurn = $derived(this.canTake(ActionType.PassFinalTurn))
 
-    // Each coral the viewer may feed their parrotfish, named by the square of their shrimp on it.
     readonly lockingLastTile: number | undefined = $derived(
         this.cylinderTargets.tileIds.find((tileId) =>
             this.gameState.lockingStartsFinalTurns(tileId)
@@ -284,11 +294,7 @@ export class ReefEncounterGameSession extends GameSession<
             .map((shrimp) => ({ boardId: shrimp.boardId, coords: shrimp.coords }))
             .filter((square) => this.gameState.canEatCoral(me, square))
             .map((square) => {
-                const reef = this.gameState.reefs.find(
-                    (candidate) => candidate.boardId === square.boardId
-                )
-                assertExists(reef, `Reef board ${square.boardId} is not in play`)
-                const coral = coralAt(reef, square.coords)
+                const coral = coralAt(this.gameState.reefOn(square.boardId), square.coords)
                 return {
                     square,
                     color: coral[0].color,
@@ -324,15 +330,13 @@ export class ReefEncounterGameSession extends GameSession<
     }
 
     async feedParrotfish(color: CoralColor) {
-        if (this.busy) return
         await this.applyAction(this.createPlayerAction(FeedParrotfish, { color }))
     }
 
     async chooseLarvaCube(color: CoralColor) {
-        if (this.busy) return
         const first = this.firstLarvaCube
         if (first === undefined) {
-            this.selection = setReefSelection(this.selection, 'firstLarvaCube', color)
+            this.stage((selection) => chooseFirstLarvaCube(selection, color))
             return
         }
         await this.applyAction(
@@ -340,47 +344,45 @@ export class ReefEncounterGameSession extends GameSession<
         )
     }
 
-    choosePlacementSource(source: PolypSource) {
-        if (this.busy) return
-        assert(this.placementSources.includes(source), `No ${source} polyp to place`)
-        this.selection = setReefSelection(this.selection, 'polypSource', source)
-    }
-
     async playLarvaCube(color: CoralColor) {
-        if (this.busy) return
         await this.applyAction(this.createPlayerAction(PlayLarvaCube, { color }))
     }
 
-    async placePolyp(boardId: ReefBoardId, coords: OffsetCoordinates) {
-        if (this.busy) return
-        const source = this.placementSource
-        assertExists(source, 'Placing a polyp needs a polyp to place')
-        await this.applyAction(
-            this.createPlayerAction(PlacePolyp, {
-                boardId,
-                coords,
-                fromConsumed: source === 'consumed'
-            })
-        )
+    async placePolyp(square: ReefSquare) {
+        const [only, other] = this.placementSources
+        assertExists(only, 'Placing a polyp needs a polyp to place')
+        if (other) {
+            this.stage((selection) => choosePlacementSquare(selection, square))
+            return
+        }
+        await this.applyPlacement(square, only)
+    }
+
+    async placePolypFrom(source: PolypSource) {
+        const square = this.placementSquare
+        assertExists(square, 'Choosing where a polyp comes from needs a square')
+        assert(this.placementSources.includes(source), `No ${source} polyp to place`)
+        await this.applyPlacement(square, source)
     }
 
     async takeOpenSeaSpace(larvaColor: CoralColor) {
-        if (this.busy) return
         await this.applyAction(this.createPlayerAction(TakeOpenSeaSpace, { larvaColor }))
     }
 
     startIntroducingShrimp() {
-        if (this.busy) return
-        this.selection = setReefSelection(this.selection, 'shrimp', { kind: 'introduce' })
+        this.stage((selection) => chooseShrimp(selection, { kind: 'introduce' }))
     }
 
     pickUpShrimp(from: ReefSquare) {
-        if (this.busy) return
-        this.selection = setReefSelection(this.selection, 'shrimp', { kind: 'move', from })
+        this.stage((selection) => chooseShrimp(selection, { kind: 'move', from }))
+    }
+
+    putDownShrimp() {
+        assert(this.shrimpIntent?.kind === 'move', 'Only a picked-up shrimp is put down')
+        this.stage(popReefSelection)
     }
 
     async placeShrimp(square: ReefSquare) {
-        if (this.busy) return
         const intent = this.shrimpIntent
         assertExists(intent, 'Placing a shrimp needs a shrimp choice')
         await this.applyAction(
@@ -393,35 +395,29 @@ export class ReefEncounterGameSession extends GameSession<
         )
     }
 
-    async returnShrimpBehindScreen() {
-        if (this.busy) return
+    async returnShrimpToSupply() {
         const intent = this.shrimpIntent
-        assert(intent?.kind === 'move', 'Only a picked-up shrimp returns behind the screen')
+        assert(intent?.kind === 'move', 'Only a picked-up shrimp returns to the supply')
         await this.applyAction(this.createPlayerAction(MoveShrimp, { from: intent.from }))
     }
 
     async exchangeConsumedPolyp(color: CoralColor) {
-        if (this.busy) return
         await this.applyAction(this.createPlayerAction(ExchangeConsumedPolyp, { color }))
     }
 
     async exchangeLarvaCube(color: CoralColor) {
-        if (this.busy) return
         await this.applyAction(this.createPlayerAction(ExchangeLarvaCube, { color }))
     }
 
     chooseCylinderPayment(color: CoralColor) {
-        if (this.busy) return
-        this.selection = setReefSelection(this.selection, 'cylinderPayment', color)
+        this.stage((selection) => chooseCylinderPayment(selection, color))
     }
 
     chooseCylinderAlga(alga: AlgaColor) {
-        if (this.busy) return
-        this.selection = setReefSelection(this.selection, 'cylinderAlga', alga)
+        this.stage((selection) => chooseCylinderAlga(selection, alga))
     }
 
     async playAlgaCylinder(tileId?: number) {
-        if (this.busy) return
         const consumedColor = this.cylinderPayment
         const alga = this.cylinderAlga
         assertExists(consumedColor, 'A cylinder needs a consumed polyp to pay for it')
@@ -432,20 +428,32 @@ export class ReefEncounterGameSession extends GameSession<
     }
 
     startChoosingCoralToEat() {
-        if (this.busy) return
-        this.selection = setReefSelection(this.selection, 'eating', true)
+        this.stage(startEating)
     }
 
     async eatCoral(square: ReefSquare) {
-        if (this.busy) return
         await this.applyAction(
             this.createPlayerAction(EatCoral, { boardId: square.boardId, coords: square.coords })
         )
     }
 
     async passFinalTurn() {
-        if (this.busy) return
         await this.applyAction(this.createPlayerAction(PassFinalTurn))
+    }
+
+    private stage(change: (selection: ReefSelection) => ReefSelection) {
+        if (this.busy) return
+        this.selection = change(this.selection)
+    }
+
+    private async applyPlacement({ boardId, coords }: ReefSquare, source: PolypSource) {
+        await this.applyAction(
+            this.createPlayerAction(PlacePolyp, {
+                boardId,
+                coords,
+                fromConsumed: isConsumed(source)
+            })
+        )
     }
 
     private myPlayerId(): string {

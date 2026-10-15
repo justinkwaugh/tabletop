@@ -3,7 +3,6 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedReefEncounterGameState } from '../model/gameState.js'
 import { HydratedChooseLarvaCubes, isChooseLarvaCubes } from '../actions/chooseLarvaCubes.js'
-import { activateTurnPlayer, endTurnInOrder } from '../util/turns.js'
 
 export class ChoosingLarvaCubesStateHandler implements MachineStateHandler<
     HydratedChooseLarvaCubes,
@@ -31,14 +30,15 @@ export class ChoosingLarvaCubesStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedReefEncounterGameState>) {
-        activateTurnPlayer(context.gameState)
+        context.gameState.activateTurnPlayer()
     }
 
     onAction(
         action: HydratedChooseLarvaCubes,
         context: MachineContext<HydratedReefEncounterGameState>
     ): MachineState {
-        return endTurnInOrder(context.gameState, action.playerId)
+        context.gameState.finishTurn()
+        return context.gameState.isLastInTurnOrder(action.playerId)
             ? MachineState.TakingTurn
             : MachineState.ChoosingLarvaCubes
     }

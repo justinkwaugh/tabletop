@@ -5,8 +5,6 @@ import { HydratedReefEncounterGameState } from '../model/gameState.js'
 import { HydratedEatCoral, isEatCoral } from '../actions/eatCoral.js'
 import { HydratedPassFinalTurn, isPassFinalTurn } from '../actions/passFinalTurn.js'
 import { EndGame } from '../actions/endGame.js'
-import { newTurnRecord } from '../model/turn.js'
-import { activateTurnPlayer } from '../util/turns.js'
 
 type FinalTurnAction = HydratedEatCoral | HydratedPassFinalTurn
 
@@ -47,7 +45,7 @@ export class FinalTurnsStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedReefEncounterGameState>) {
-        activateTurnPlayer(context.gameState)
+        context.gameState.activateTurnPlayer()
     }
 
     onAction(
@@ -55,8 +53,7 @@ export class FinalTurnsStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedReefEncounterGameState>
     ): MachineState {
         const gameState = context.gameState
-        gameState.turnManager.endTurn(gameState.actionCount)
-        gameState.turn = newTurnRecord()
+        gameState.finishTurn()
         if (gameState.turnManager.nextPlayer(action.playerId) === gameState.endingPlayerId) {
             context.addSystemAction(EndGame, { revealsInfo: true })
             return MachineState.EndingGame

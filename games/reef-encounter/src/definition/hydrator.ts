@@ -20,6 +20,7 @@ import { HydratedPlayAlgaCylinder, isPlayAlgaCylinder } from '../actions/playAlg
 import { HydratedEndGame, isEndGame } from '../actions/endGame.js'
 import { HydratedPassFinalTurn, isPassFinalTurn } from '../actions/passFinalTurn.js'
 import { HydratedRefillOpenSea, isRefillOpenSea } from '../actions/refillOpenSea.js'
+import { HydratedSearchBag, isSearchBag } from '../actions/searchBag.js'
 
 export class ReefEncounterHydrator implements GameHydrator<
     ReefEncounterProjectedState,
@@ -65,6 +66,9 @@ export class ReefEncounterHydrator implements GameHydrator<
             }
             case isEndGame(data): {
                 return new HydratedEndGame(data)
+            }
+            case isSearchBag(data): {
+                return new HydratedSearchBag(data)
             }
             case isRefillOpenSea(data): {
                 return new HydratedRefillOpenSea(data)

@@ -107,7 +107,7 @@ export function createTestSession(game: TestGame, initialState: ReefEncounterPro
 export type TestSession = ReturnType<typeof createTestSession>
 
 export function dealtColorOf(session: TestSession, playerId: string): CoralColor {
-    const polyps = session.hydrated().getPlayerState(playerId).getSecretScreenPolyps()
+    const polyps = session.hydrated().getPlayerState(playerId).getSecretSupplyPolyps()
     const color = CoralColors.find((candidate) => polyps[candidate] > 0)
     assertExists(color, `Player ${playerId} was dealt no polyps`)
     return color

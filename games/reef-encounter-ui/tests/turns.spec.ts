@@ -17,7 +17,7 @@ test('a turn plays a larva cube, places its polyps and ends by taking an open-se
     await expect(targets.first()).toBeVisible()
 
     const remaining = async () =>
-        Number((await actions.innerText()).match(/(\d+) more from behind your screen/)?.[1])
+        Number((await actions.innerText()).match(/(\d+) more from your supply/)?.[1])
     const before = await remaining()
     await targets.first().click()
     await expect.poll(remaining).toBe(before - 1)

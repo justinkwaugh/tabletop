@@ -55,16 +55,16 @@ describe('feeding the parrotfish at setup', () => {
         expect(session.state.activePlayerIds).toEqual([first])
     })
 
-    it('moves one dealt polyp behind the screen into the parrotfish', () => {
+    it('moves one dealt polyp from the supply into the parrotfish', () => {
         const session = startSession()
         const first = session.currentPlayerId()
         const color = dealtColorOf(session, first)
-        const before = session.hydrated().getPlayerState(first).getSecretScreenPolyps()[color]
+        const before = session.hydrated().getPlayerState(first).getSecretSupplyPolyps()[color]
 
         session.feedParrotfish(first, color)
 
         const player = session.hydrated().getPlayerState(first)
-        expect(player.getSecretScreenPolyps()[color]).toBe(before - 1)
+        expect(player.getSecretSupplyPolyps()[color]).toBe(before - 1)
         expect(player.getSecretParrotfishPolyps()).toMatchObject({ [color]: 1 })
         expect(totalCount(player.getSecretParrotfishPolyps())).toBe(1)
     })
@@ -72,7 +72,7 @@ describe('feeding the parrotfish at setup', () => {
     it('rejects a colour the player was not dealt', () => {
         const session = startSession()
         const first = session.currentPlayerId()
-        const polyps = session.hydrated().getPlayerState(first).getSecretScreenPolyps()
+        const polyps = session.hydrated().getPlayerState(first).getSecretSupplyPolyps()
         const missing = CoralColors.find((color) => polyps[color] === 0)
         assert(missing, 'The test seed deals the start player fewer than five colours')
 
@@ -131,13 +131,13 @@ describe('what each player sees during setup', () => {
         const asFirst = project(session, asPlayer(first))
         const own = asFirst.players.find((player) => player.playerId === first)
         const other = asFirst.players.find((player) => player.playerId === second)
-        expect(own?.secretScreenPolyps).toBeDefined()
+        expect(own?.secretSupplyPolyps).toBeDefined()
         expect(own?.secretParrotfishPolyps).toBeDefined()
-        expect(other?.secretScreenPolyps).toBeUndefined()
+        expect(other?.secretSupplyPolyps).toBeUndefined()
         expect(other?.secretParrotfishPolyps).toBeUndefined()
 
         for (const player of project(session, spectator).players) {
-            expect(player.secretScreenPolyps).toBeUndefined()
+            expect(player.secretSupplyPolyps).toBeUndefined()
             expect(player.secretParrotfishPolyps).toBeUndefined()
         }
     })
@@ -178,21 +178,21 @@ describe('what each player sees during setup', () => {
 
         const seenOpenly = project(open, asPlayer(first)).players.find((p) => p.playerId === second)
         expect(seenOpenly?.larvaCubes).toMatchObject({ [CoralColor.Pink]: 1, [CoralColor.Grey]: 1 })
-        expect(seenOpenly?.shrimpsBehindScreen).toBe(4)
+        expect(seenOpenly?.shrimpsInSupply).toBe(4)
         expect(seenOpenly?.knownParrotfishPolyps).toBeDefined()
         expect(seenOpenly?.shrimpsInParrotfish).toBe(0)
-        expect(seenOpenly?.secretScreenPolyps).toBeUndefined()
+        expect(seenOpenly?.secretSupplyPolyps).toBeUndefined()
         expect(seenOpenly?.secretParrotfishPolyps).toBeUndefined()
 
         const seenConcealed = project(concealed, asPlayer(first)).players.find(
             (p) => p.playerId === second
         )
         expect(seenConcealed?.larvaCubes).toBeUndefined()
-        expect(seenConcealed?.shrimpsBehindScreen).toBeUndefined()
+        expect(seenConcealed?.shrimpsInSupply).toBeUndefined()
         expect(seenConcealed?.knownParrotfishPolyps).toBeUndefined()
         expect(seenConcealed?.shrimpsInParrotfish).toBeUndefined()
         expect(seenConcealed?.shrimpOnOpenSea).toBe(false)
-        expect(seenConcealed?.secretScreenPolyps).toBeUndefined()
+        expect(seenConcealed?.secretSupplyPolyps).toBeUndefined()
         expect(seenConcealed?.secretParrotfishPolyps).toBeUndefined()
         expect(
             project(concealed, asPlayer(second)).players.find((p) => p.playerId === second)

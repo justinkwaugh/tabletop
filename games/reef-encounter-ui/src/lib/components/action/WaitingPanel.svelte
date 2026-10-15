@@ -13,7 +13,8 @@
         lastTurn
             ? describeActions(
                   lastTurn.actions,
-                  lastTurn.playerId === gameSession.myPlayer?.id ? 'your' : 'their'
+                  lastTurn.playerId === gameSession.myPlayer?.id ? 'your' : 'their',
+                  gameSession.possessiveName
               )
             : []
     )

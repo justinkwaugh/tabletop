@@ -18,7 +18,7 @@ type ProjectedPlayer = ReefEncounterProjectedState['players'][number]
 
 interface HiddenHolder {
     player: ProjectedPlayer
-    screen: number
+    supply: number
     parrotfish: number
 }
 
@@ -27,31 +27,36 @@ export class ReefEncounterGameExploration implements GameExploration<ReefEncount
         return new HydratedReefEncounterGameState(structuredClone(state)).dehydrate()
     }
 
-    // Deals every polyp the viewer hasn't seen at random between the hidden screens, the hidden
-    // parrotfish polyps and the bag. Earlier draws can hint where some polyps are (an empty
-    // bonus space meant the bag then held none of its colour), but every deal can be played on.
+    // Deals every polyp the viewer hasn't seen at random between the hidden supplies, the hidden
+    // parrotfish polyps and the bag, keeping out of the bag any colour a search failed to find.
     createFromProjectedState({
         state,
         random
     }: ExplorationPopulation<ReefEncounterProjectedState>): ReefEncounterProjectedState {
         const sample = structuredClone(state)
         const holders = sample.players
-            .filter((player) => !player.secretScreenPolyps || !player.secretParrotfishPolyps)
+            .filter((player) => !player.secretSupplyPolyps || !player.secretParrotfishPolyps)
             .map((player) => this.hiddenHolder(sample, player))
         const unseen = this.unseenPolyps(sample)
         assert(
             unseen.length ===
-                holders.reduce((total, holder) => total + holder.screen + holder.parrotfish, 0) +
+                holders.reduce((total, holder) => total + holder.supply + holder.parrotfish, 0) +
                     sample.polypBag.remaining,
             'Exploration polyp count does not match the source'
         )
 
-        shuffle(unseen, random)
+        const missing = new Set(sample.colorsMissingFromBag)
+        const mayBeInBag = unseen.filter((color) => !missing.has(color))
+        shuffle(mayBeInBag, random)
+        const bag = mayBeInBag.splice(0, sample.polypBag.remaining)
+        assert(bag.length === sample.polypBag.remaining, 'Too few polyps may be in the bag')
+        const held = [...unseen.filter((color) => missing.has(color)), ...mayBeInBag]
+        shuffle(held, random)
         for (const holder of holders) {
-            holder.player.secretScreenPolyps = this.deal(unseen, holder.screen)
-            holder.player.secretParrotfishPolyps = this.deal(unseen, holder.parrotfish)
+            holder.player.secretSupplyPolyps = this.deal(held, holder.supply)
+            holder.player.secretParrotfishPolyps = this.deal(held, holder.parrotfish)
         }
-        sample.polypBag.items = unseen
+        sample.polypBag.items = bag
 
         const result = new HydratedReefEncounterGameState(sample).dehydrate()
         assert(
@@ -66,16 +71,16 @@ export class ReefEncounterGameExploration implements GameExploration<ReefEncount
         player: ProjectedPlayer
     ): HiddenHolder {
         assertExists(
-            player.secretScreenPolypCount,
+            player.secretSupplyPolypCount,
             'Exploration is unavailable while the game is Concealed'
         )
         assert(
-            !player.secretScreenPolyps && !player.secretParrotfishPolyps,
+            !player.secretSupplyPolyps && !player.secretParrotfishPolyps,
             'A player’s secrets are shown or hidden together'
         )
         return {
             player,
-            screen: player.secretScreenPolypCount,
+            supply: player.secretSupplyPolypCount,
             parrotfish: isParrotfishFed(state, player.playerId) ? 1 : 0
         }
     }
@@ -97,13 +102,13 @@ export class ReefEncounterGameExploration implements GameExploration<ReefEncount
         add(state.bonusPolyps)
         for (const player of state.players) {
             assertExists(
-                player.knownScreenPolyps && player.knownParrotfishPolyps,
+                player.knownSupplyPolyps && player.knownParrotfishPolyps,
                 'Exploration is unavailable while the game is Concealed'
             )
-            add(player.knownScreenPolyps)
+            add(player.knownSupplyPolyps)
             add(player.knownParrotfishPolyps)
             add(player.consumedPolyps)
-            add(player.secretScreenPolyps)
+            add(player.secretSupplyPolyps)
             add(player.secretParrotfishPolyps)
         }
         return CoralColors.flatMap((color) => {

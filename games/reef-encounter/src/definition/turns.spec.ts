@@ -41,7 +41,7 @@ function emptyBagBut(session: TestSession, polyps: CoralColor[]) {
 }
 
 describe('taking an open-sea space', () => {
-    it('puts the larva cube and its polyps behind the screen as known polyps', () => {
+    it('puts the larva cube and its polyps in the supply as known polyps', () => {
         const session = startPlaying()
         const playerId = session.currentPlayerId()
         const taken = [...space(session.state, CoralColor.White).polyps]
@@ -52,9 +52,9 @@ describe('taking an open-sea space', () => {
 
         const player = session.hydrated().getPlayerState(playerId)
         expect(player.getLarvaCubes()[CoralColor.White]).toBe(cubesBefore + 1)
-        expect(totalCount(player.getKnownScreenPolyps())).toBe(taken.length)
+        expect(totalCount(player.getKnownSupplyPolyps())).toBe(taken.length)
         for (const color of taken) {
-            expect(player.getKnownScreenPolyps()[color]).toBeGreaterThan(0)
+            expect(player.getKnownSupplyPolyps()[color]).toBeGreaterThan(0)
         }
     })
 
@@ -207,7 +207,7 @@ describe('scoring', () => {
         })
     })
 
-    it('breaks a tie by unplayed larva cubes, then unplayed screen polyps', () => {
+    it('breaks a tie by unplayed larva cubes, then unplayed supply polyps', () => {
         const byCubes = startPlaying(2)
         endGameWith(byCubes, (draft) => {
             setParrotfish(draft, 0, CoralColor.Grey)
@@ -221,12 +221,12 @@ describe('scoring', () => {
             for (const player of draft.players) {
                 player.secretParrotfishPolyps = { ...coralCounts(0), [CoralColor.Grey]: 1 }
                 player.larvaCubes = coralCounts(0)
-                player.knownScreenPolyps = coralCounts(0)
-                player.secretScreenPolyps = coralCounts(0)
-                player.secretScreenPolypCount = 0
+                player.knownSupplyPolyps = coralCounts(0)
+                player.secretSupplyPolyps = coralCounts(0)
+                player.secretSupplyPolypCount = 0
             }
-            draft.players[0].secretScreenPolyps = { ...coralCounts(0), [CoralColor.White]: 2 }
-            draft.players[0].secretScreenPolypCount = 2
+            draft.players[0].secretSupplyPolyps = { ...coralCounts(0), [CoralColor.White]: 2 }
+            draft.players[0].secretSupplyPolypCount = 2
             evenOutTheEndingTake(draft)
         })
         expect(byPolyps.state.winningPlayerIds).toEqual([byPolyps.state.players[0].playerId])
@@ -238,9 +238,9 @@ describe('scoring', () => {
             for (const player of draft.players) {
                 player.secretParrotfishPolyps = { ...coralCounts(0), [CoralColor.Grey]: 1 }
                 player.larvaCubes = coralCounts(0)
-                player.knownScreenPolyps = coralCounts(0)
-                player.secretScreenPolyps = coralCounts(0)
-                player.secretScreenPolypCount = 0
+                player.knownSupplyPolyps = coralCounts(0)
+                player.secretSupplyPolyps = coralCounts(0)
+                player.secretSupplyPolypCount = 0
             }
             evenOutTheEndingTake(draft)
         })
@@ -265,11 +265,11 @@ describe('the end of the game', () => {
             { kind: 'player', playerId: session.state.players[0].playerId } as const
         ]) {
             for (const player of project(session, perspective).players) {
-                expect(player.secretScreenPolyps).toBeDefined()
+                expect(player.secretSupplyPolyps).toBeDefined()
                 expect(player.secretParrotfishPolyps).toBeDefined()
-                expect(player.knownScreenPolyps).toBeDefined()
+                expect(player.knownSupplyPolyps).toBeDefined()
                 expect(player.larvaCubes).toBeDefined()
-                expect(player.shrimpsBehindScreen).toBeDefined()
+                expect(player.shrimpsInSupply).toBeDefined()
             }
             expect(project(session, perspective).polypBag.items).toEqual([])
         }
