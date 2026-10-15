@@ -4,7 +4,7 @@ import type {
     ReefEncounterProjectedState,
     HydratedReefEncounterGameState
 } from '@tabletop/reef-encounter'
-import coverImg from '$lib/images/cover.jpg'
+import coverImg from '$lib/images/cover.webp'
 
 export const UiDefinition: GameUiDefinition<
     ReefEncounterProjectedState,

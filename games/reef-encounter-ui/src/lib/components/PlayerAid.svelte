@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
-    import ReferenceCard from '$lib/images/reference-card.jpg'
+    import ReferenceCard from '$lib/images/reference-card.webp'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()

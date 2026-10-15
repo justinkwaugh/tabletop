@@ -18,7 +18,16 @@ if (!source) {
 const images = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'lib', 'images')
 const from = (name) => path.join(source, name)
 const convert = (...args) => execFileSync('convert', args.flat(Infinity))
-const Jpeg = ['-strip', '-quality', '82']
+// Lossy WebP, the format the repository wants for opaque artwork.
+const Lossy = [
+    '-strip',
+    '-define',
+    'webp:lossless=false',
+    '-define',
+    'webp:method=6',
+    '-quality',
+    '82'
+]
 
 // Everything is scaled so a reef board square becomes 144 pixels: twice the 72 pixels the table
 // draws it at, so it stays sharp on high-density screens.
@@ -84,8 +93,8 @@ for (const id of [1, 2, 3, 4]) {
         'Lanczos',
         '-resize',
         `${Math.round(2717 * Scale)}x`,
-        Jpeg,
-        path.join(images, 'boards', `board-${id}.jpg`)
+        Lossy,
+        path.join(images, 'boards', `board-${id}.webp`)
     )
 }
 convert(
@@ -94,8 +103,8 @@ convert(
     'Lanczos',
     '-resize',
     `${Math.round(3744 * Scale)}x`,
-    Jpeg,
-    path.join(images, 'open-sea.jpg')
+    Lossy,
+    path.join(images, 'open-sea.webp')
 )
 
 // Polyp tiles: each colour's sheet holds 40 tiles, painted differently on each side. The back
@@ -121,7 +130,7 @@ for (const color of Colors) {
                 const x = Math.round(PolypOrigin.x + col * PolypPitch.x + PolypInset)
                 const y = Math.round(PolypOrigin.y + row * PolypPitch.y + PolypInset)
                 const size = PolypSize - 2 * PolypInset
-                const name = `${color}-${String(polypFaces[color].length).padStart(2, '0')}.jpg`
+                const name = `${color}-${String(polypFaces[color].length).padStart(2, '0')}.webp`
                 const file = path.join(images, 'polyps', name)
                 if (color === 'grey') {
                     const work = `${file}.png`
@@ -133,7 +142,7 @@ for (const color of Colors) {
                         'Lanczos',
                         '-resize',
                         `${PolypPixels}x${PolypPixels}`,
-                        Jpeg,
+                        Lossy,
                         file
                     )
                     execFileSync('rm', [work])
@@ -148,7 +157,7 @@ for (const color of Colors) {
                         'Lanczos',
                         '-resize',
                         `${PolypPixels}x${PolypPixels}`,
-                        Jpeg,
+                        Lossy,
                         file
                     )
                 }
@@ -191,7 +200,7 @@ for (const color of Colors) {
                 side === 'front' ? [frontStronger, frontWeaker] : [frontWeaker, frontStronger]
             const half = CoralTileSize / 2
             const face = side === 'front' ? 'starfish' : 'plain'
-            const name = `tile-${String(tileId).padStart(2, '0')}-${face}.jpg`
+            const name = `tile-${String(tileId).padStart(2, '0')}-${face}.webp`
             const file = path.join(images, 'coral-tiles', name)
             const work = `${file}.png`
             const piece = `${file}.piece.png`
@@ -230,7 +239,7 @@ for (const color of Colors) {
                 'Lanczos',
                 '-resize',
                 `${CoralTilePixels}x${CoralTilePixels}`,
-                Jpeg,
+                Lossy,
                 file
             )
             execFileSync('rm', [work, piece])
@@ -260,8 +269,8 @@ for (const [color, { file, box }] of Object.entries(ParrotfishCrops)) {
         'Lanczos',
         '-resize',
         '640x240!',
-        Jpeg,
-        path.join(images, 'parrotfish', `${color}.jpg`)
+        Lossy,
+        path.join(images, 'parrotfish', `${color}.webp`)
     )
 }
 
@@ -276,9 +285,11 @@ convert(
     '-unsharp',
     '0x0.8+0.5+0.01',
     '-strip',
+    '-define',
+    'webp:lossless=false',
     '-quality',
     '90',
-    path.join(images, 'cover.jpg')
+    path.join(images, 'cover.webp')
 )
 
 // The player aid: the English reference card from the back of the action card sheet, printed
@@ -295,9 +306,11 @@ convert(
     '-resize',
     '800x',
     '-strip',
+    '-define',
+    'webp:lossless=false',
     '-quality',
     '88',
-    path.join(images, 'reference-card.jpg')
+    path.join(images, 'reference-card.webp')
 )
 
 // The manifest: one static import per image.
@@ -315,11 +328,11 @@ const coralRefs = Object.fromEntries(
         { starfish: ref(faces.starfish), plain: ref(faces.plain) }
     ])
 )
-const boardRefs = [1, 2, 3, 4].map((id) => ref(`./boards/board-${id}.jpg`))
-const openSeaRef = ref('./open-sea.jpg')
+const boardRefs = [1, 2, 3, 4].map((id) => ref(`./boards/board-${id}.webp`))
+const openSeaRef = ref('./open-sea.webp')
 const parrotfishRefs = Object.keys(ParrotfishCrops).map((color) => [
     color,
-    ref(`./parrotfish/${color}.jpg`)
+    ref(`./parrotfish/${color}.webp`)
 ])
 lines.push(
     '',
