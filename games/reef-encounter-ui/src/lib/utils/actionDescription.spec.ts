@@ -1,0 +1,186 @@
+import { describe, expect, it } from 'vitest'
+import { ActionSource } from '@tabletop/common'
+import {
+    ActionType,
+    CoralColor,
+    type EatCoral,
+    type EndGame,
+    type ExchangeConsumedPolyp,
+    type ExchangeLarvaCube,
+    type FeedParrotfish,
+    type SearchBag,
+    type PlayLarvaCube,
+    type PlacePolyp
+} from '@tabletop/reef-encounter'
+import { capitalised, describeActions } from './actionDescription.js'
+
+let next = 0
+const base = () => ({ id: `action-${next++}`, gameId: 'game', source: ActionSource.User })
+
+const placed = (color: CoralColor, boardId: 1 | 2, attacked?: CoralColor): PlacePolyp => ({
+    ...base(),
+    type: ActionType.PlacePolyp,
+    playerId: 'a',
+    boardId,
+    coords: { row: 0, col: 0 },
+    fromConsumed: false,
+    metadata: { color, attacked }
+})
+
+const played = (color: CoralColor): PlayLarvaCube => ({
+    ...base(),
+    type: ActionType.PlayLarvaCube,
+    playerId: 'a',
+    color
+})
+
+const possessive = (playerId: string) => (playerId === 'a' ? 'your' : 'Bashir’s')
+
+const described = (actions: Parameters<typeof describeActions>[0], own: 'your' | 'their') =>
+    describeActions(actions, own, possessive)
+
+const texts = (...args: Parameters<typeof described>) =>
+    described(...args).map((phrase) => phrase.text)
+
+describe('describing a turn', () => {
+    it('merges plain placements of one colour on one board', () => {
+        const phrases = texts(
+            [
+                played(CoralColor.Orange),
+                placed(CoralColor.Orange, 1),
+                placed(CoralColor.Orange, 1),
+                placed(CoralColor.Orange, 2)
+            ],
+            'their'
+        )
+        expect(phrases).toEqual([
+            'played an orange larva cube.',
+            'placed 2 orange polyps on board 1.',
+            'placed an orange polyp on board 2.'
+        ])
+    })
+
+    it('keeps an attack on its own line', () => {
+        const phrases = texts(
+            [placed(CoralColor.White, 1), placed(CoralColor.White, 1, CoralColor.Yellow)],
+            'their'
+        )
+        expect(phrases).toEqual([
+            'placed a white polyp on board 1.',
+            'placed a white polyp on board 1, consuming a yellow polyp.'
+        ])
+    })
+
+    it('speaks to the viewer about their own parrotfish', () => {
+        const feed: FeedParrotfish = {
+            ...base(),
+            type: ActionType.FeedParrotfish,
+            playerId: 'a',
+            color: CoralColor.Grey
+        }
+        expect(described([feed], 'your')).toEqual([
+            expect.objectContaining({ text: 'fed a grey polyp to your parrotfish.', playerId: 'a' })
+        ])
+        expect(capitalised('fed a grey polyp.')).toBe('Fed a grey polyp.')
+    })
+
+    it('shows components as icons, with shorter words where the icons carry the meaning', () => {
+        const exchange: ExchangeConsumedPolyp = {
+            ...base(),
+            type: ActionType.ExchangeConsumedPolyp,
+            playerId: 'a',
+            color: CoralColor.Pink
+        }
+        const [trade] = described([exchange], 'their')
+        expect(trade.text).toBe('traded a consumed pink polyp for a pink larva cube.')
+        expect(trade.parts).toEqual([
+            'traded ',
+            expect.objectContaining({ icon: 'polyp', color: CoralColor.Pink, consumed: true }),
+            { text: ' for ', short: ' → ' },
+            expect.objectContaining({ icon: 'cube', color: CoralColor.Pink, count: 1 }),
+            '.'
+        ])
+    })
+
+    it('says when a move starts the final turns', () => {
+        const eat: EatCoral = {
+            ...base(),
+            type: ActionType.EatCoral,
+            playerId: 'a',
+            boardId: 1,
+            coords: { row: 0, col: 0 },
+            metadata: {
+                color: CoralColor.Pink,
+                polyps: 6,
+                returnedToBag: 4,
+                shrimpToOpenSea: false,
+                startsFinalTurns: true
+            }
+        }
+        expect(texts([eat], 'their')).toEqual([
+            'fed a coral of 6 pink polyps to their parrotfish, 4 of them going back into the bag.',
+            'That ends the game: every other player has one final turn.'
+        ])
+    })
+
+    it('tells of a search of the bag and what it found', () => {
+        const exchange: ExchangeLarvaCube = {
+            ...base(),
+            type: ActionType.ExchangeLarvaCube,
+            playerId: 'a',
+            color: CoralColor.Pink,
+            metadata: { searchesBag: true }
+        }
+        const search = (found: boolean, need: SearchBag['need']): SearchBag => ({
+            ...base(),
+            source: ActionSource.System,
+            type: ActionType.SearchBag,
+            revealsInfo: true,
+            color: CoralColor.Pink,
+            need,
+            metadata: { found }
+        })
+        const exchanging = { kind: 'exchange', playerId: 'a' } as const
+        const growing = { kind: 'extraGrowth', boardId: 2 } as const
+
+        expect(texts([exchange, search(true, exchanging)], 'their')).toEqual([
+            'reached into the bag to trade a pink larva cube for a pink polyp.',
+            'The bag held a pink polyp.'
+        ])
+        expect(texts([search(false, exchanging)], 'their')).toEqual([
+            'The bag held no pink polyp, so the cube stays.'
+        ])
+        expect(texts([search(true, growing)], 'their')).toEqual([
+            'The bag held a pink polyp, which grew beside it on board 2.'
+        ])
+        expect(texts([search(false, growing)], 'their')).toEqual([
+            'The bag held no pink polyp, so nothing grew there.'
+        ])
+    })
+
+    it('reveals every parrotfish polyp fed at setup when the game ends', () => {
+        const ended: EndGame = {
+            ...base(),
+            source: ActionSource.System,
+            type: ActionType.EndGame,
+            revealsInfo: true,
+            metadata: {
+                setupParrotfishPolyps: [
+                    { playerId: 'a', color: CoralColor.Grey },
+                    { playerId: 'b', color: CoralColor.White }
+                ]
+            }
+        }
+        expect(described([ended], 'their')).toEqual([
+            expect.objectContaining({ text: 'The game ended.' }),
+            expect.objectContaining({
+                text: 'your parrotfish had been fed a grey polyp at setup.',
+                playerId: 'a'
+            }),
+            expect.objectContaining({
+                text: 'Bashir’s parrotfish had been fed a white polyp at setup.',
+                playerId: 'b'
+            })
+        ])
+    })
+})

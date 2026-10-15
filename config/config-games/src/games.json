@@ -62,5 +62,9 @@
   {
     "gameId": "napoleons-triumph",
     "packageId": "napoleons-triumph"
+  },
+  {
+    "gameId": "reef-encounter",
+    "packageId": "reef-encounter"
   }
 ]
