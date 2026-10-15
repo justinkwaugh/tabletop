@@ -75,7 +75,7 @@ export class BugReportService {
         }
     }
 
-    // The file is a dev harness scenario: dropped into a UI package's src/scenarios, it opens the game as reported.
+    // The file is a dev harness scenario: opened with Load from file…, it shows the game as reported.
     private scenarioFile(game: Game, actions: GameAction[]): DiscordFile | undefined {
         const state = game.state
         if (!state) {

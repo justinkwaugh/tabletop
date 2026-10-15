@@ -159,7 +159,7 @@ describe('bugReportPost', () => {
 
         expect(post.message.attachments).toEqual([{ id: 0, filename: 'bug-report-game-1.json' }])
         expect(fieldValue(post, 'Scenario')).toBe(
-            "Put `bug-report-game-1.json` in the UI package's `src/scenarios` to open it in the dev harness"
+            "Open `bug-report-game-1.json` with **Load from file…** in the title's dev harness; it is a real game, so keep it out of the repository"
         )
     })
 

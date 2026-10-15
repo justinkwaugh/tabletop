@@ -4558,6 +4558,21 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  tools/bug-reports:
+    dependencies:
+      '@react-email/components':
+        specifier: 1.0.6
+        version: 1.0.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tabletop/email':
+        specifier: workspace:*
+        version: link:../../libs/email
+      react:
+        specifier: ^19.2.3
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.2.3
+        version: 19.3.0(react@19.3.0)
+
   tools/deploy:
     dependencies:
       '@tabletop/games-config':

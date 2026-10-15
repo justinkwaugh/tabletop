@@ -1,0 +1,19 @@
+{
+    "name": "@tabletop/bug-reports",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "bin": {
+        "tabletop-bug-reports": "./src/cli.mjs"
+    },
+    "scripts": {
+        "start": "node src/cli.mjs",
+        "test": "node --test scripts/*.test.mjs"
+    },
+    "dependencies": {
+        "@react-email/components": "1.0.6",
+        "@tabletop/email": "workspace:*",
+        "react": "^19.2.3",
+        "react-dom": "^19.2.3"
+    }
+}
