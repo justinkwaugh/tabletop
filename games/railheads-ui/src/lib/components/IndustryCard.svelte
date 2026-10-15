@@ -8,33 +8,68 @@
 
     const gameSession = getGameSession()
 
+    const TOKEN_SIZE = 30
+    const OFFSET_X = 4
+    const OFFSET_Y = 6
+
     const state = $derived(gameSession.shownState)
     const style = $derived(INDUSTRY_STYLE[industry])
     const level = $derived(state.industry(industry).level)
     const length = $derived(state.edition.definition.developmentTrackLength)
+    const forSale = $derived(state.industry(industry).available)
+    const held = $derived(state.tokensHeld(industry))
+    const steps = $derived(Math.max(0, state.edition.definition.industryTokensPerType - 1))
     const reached = $derived(state.industrySitesReached(industry))
     const sites = $derived(state.edition.industrySiteCount(industry))
 </script>
 
+{#snippet pile(count: number, label: string, title: string)}
+    <div class="pile" {title}>
+        {#if count > 0}
+            <span
+                class="stack"
+                style:width="{TOKEN_SIZE + OFFSET_X * steps}px"
+                style:height="{TOKEN_SIZE + OFFSET_Y * steps}px"
+            >
+                {#each Array.from({ length: count }, (_, index) => index) as step (step)}
+                    <span class="stacked" style:left="{OFFSET_X * step}px" style:top="{OFFSET_Y * step}px">
+                        <IndustryToken {industry} size={TOKEN_SIZE} />
+                    </span>
+                {/each}
+            </span>
+        {:else}
+            <span
+                class="empty-slot"
+                style:width="{TOKEN_SIZE}px"
+                style:height="{TOKEN_SIZE}px"
+            ></span>
+        {/if}
+        <span class="count">{count} {label}</span>
+    </div>
+{/snippet}
+
 <div class="card" style:--ring={style.ring}>
-    <div class="band">
-        <IndustryToken {industry} size={40} />
+    <div class="head">
         <span class="name">{style.name}</span>
-        <span class="pays" title="Each token pays this at the payout (the development level)">
-            <span class="figure">${level}</span><span class="unit">per token</span>
-        </span>
+        <span class="level" title="Development level, out of {length}">Level {level}</span>
+    </div>
+    <div class="body">
+        {@render pile(forSale, 'for sale', `${forSale} tokens still to be auctioned`)}
+        {@render pile(held, 'held', `${held} tokens held by investors`)}
+        <div class="figures">
+            <div
+                class="entry"
+                title="Each {style.name} token pays ${level} at the payout, equal to its development level"
+            >
+                <span>Payout</span><span class="money">${level}</span>
+            </div>
+            <div class="entry" title="Industry sites with a company disc on them, of all {sites}">
+                <span>Sites</span><span class="money">{reached}/{sites}</span>
+            </div>
+        </div>
     </div>
     <div class="track" role="img" aria-label="Level {level} of {length}">
         <span class="fill" style:width="{(100 * level) / length}%"></span>
-    </div>
-    <div class="entry" title="Tokens still to be auctioned">
-        <span>For sale</span><span class="money">{state.industry(industry).available}</span>
-    </div>
-    <div class="entry" title="Tokens held by investors">
-        <span>Held</span><span class="money">{state.tokensHeld(industry)}</span>
-    </div>
-    <div class="entry" title="Industry sites with a company disc on them: reached of total">
-        <span>Reached</span><span class="money">{reached}/{sites}</span>
     </div>
 </div>
 
@@ -52,67 +87,112 @@
         box-shadow: 0 1px 3px rgba(30, 36, 10, 0.2);
     }
 
-    .band {
+    .head {
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 4px 8px;
-        background: #ece6b8;
-        border-bottom: 2px solid var(--ring);
+        justify-content: space-between;
+        padding: 3px 8px;
+        background: var(--ring);
+        color: #ffffff;
         font-family: 'Libre Baskerville', Georgia, serif;
         font-weight: 700;
     }
 
     .name {
-        flex: 1;
-        font-size: 14px;
+        font-size: 16px;
     }
 
-    .pays {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        line-height: 1;
-    }
-
-    .figure {
+    .level {
         font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 24px;
+        font-size: 13px;
+    }
+
+    .body {
+        display: flex;
+        align-items: stretch;
+    }
+
+    .pile {
+        display: flex;
+        flex: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 3px;
+        width: 66px;
+        padding: 6px 0 4px;
+        border-right: 1px solid #d9d4a8;
+        background: #ece7c6;
+    }
+
+    .stack {
+        position: relative;
+    }
+
+    .stacked {
+        position: absolute;
+        display: flex;
+    }
+
+    .empty-slot {
+        box-sizing: border-box;
+        border: 1.5px dashed #b9b48a;
+        border-radius: 3px;
+    }
+
+    .count {
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .figures {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .entry {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: space-between;
+        padding-left: 8px;
+        border-bottom: 1px solid #e3dfb8;
+    }
+
+    .entry:last-child {
+        border-bottom: 0;
+    }
+
+    .money {
+        display: flex;
+        align-items: center;
+        align-self: stretch;
+        justify-content: flex-end;
+        min-width: 58px;
+        padding: 0 8px;
+        border-left: 1px solid #c9c493;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    .entry:first-child .money {
+        font-size: 22px;
         color: #a3311d;
     }
 
-    .unit {
-        font-family: 'Courier Prime', 'Courier New', monospace;
-        font-size: 10px;
-        font-weight: 400;
-    }
-
     .track {
-        height: 8px;
-        margin: 5px 8px;
-        border: 1px solid #8f8a5c;
-        border-radius: 4px;
+        height: 6px;
+        border-top: 1px solid #c9c493;
         background: #d9d4a8;
-        overflow: hidden;
     }
 
     .fill {
         display: block;
         height: 100%;
         background: var(--ring);
-    }
-
-    .entry {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1px 8px;
-        white-space: nowrap;
-        border-top: 1px solid #e3dfb8;
-    }
-
-    .money {
-        font-size: 14px;
-        font-weight: 700;
     }
 </style>
