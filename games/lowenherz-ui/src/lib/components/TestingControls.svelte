@@ -8,7 +8,8 @@
     // Master switch for the testing/fast-forward shortcuts (auto-place castles, seed
     // regions, fast-forward to placement, deal politics cards). Flipped off so none of
     // them render, but all the markup below - and the gameSession methods it calls -
-    // is kept intact so they can be brought back by setting this to true.
+    // is kept intact so they can be brought back by setting this to true. Even then they
+    // render only in the dev harness, never in a hosted game.
     const SHOW_TESTING_CONTROLS = false
 
     // Switched off again now the hand-splay layout it was for has been checked. Worth
@@ -27,7 +28,7 @@
     )
 </script>
 
-{#if SHOW_TESTING_CONTROLS}
+{#if SHOW_TESTING_CONTROLS && gameSession.isDeveloperHarness}
 <div class="flex flex-col gap-1">
     {#if !gameSession.setupComplete}
         <button
@@ -69,7 +70,7 @@
 </div>
 {/if}
 
-{#if SHOW_DEAL_POLITICS_CARDS && gameSession.setupComplete}
+{#if SHOW_DEAL_POLITICS_CARDS && gameSession.isDeveloperHarness && gameSession.setupComplete}
     <div class="flex flex-col gap-1">
         <button
             type="button"
