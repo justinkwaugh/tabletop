@@ -172,6 +172,32 @@ function memberCapability(objectName, propertyName) {
         : undefined
 }
 
+const tempCalls = new Set([
+    'tmpdir',
+    'os.tmpdir',
+    'mkdtemp',
+    'mkdtempSync',
+    'fs.mkdtemp',
+    'fs.mkdtempSync'
+])
+const spawnCalls = new Set([
+    'exec',
+    'execSync',
+    'execFile',
+    'execFileSync',
+    'spawn',
+    'spawnSync',
+    'fork'
+])
+
+function callCapability(callName) {
+    if (!callName) return undefined
+    if (/^console\.\w+$/.test(callName)) return 'logging'
+    if (tempCalls.has(callName)) return 'temp_files'
+    const bare = callName.replace(/^(?:child_process|childProcess|cp)\./, '')
+    return spawnCalls.has(bare) ? 'spawn' : undefined
+}
+
 function classifyImport(specifier) {
     if (specifier.startsWith('node:') || builtins.has(specifier.split('/')[0]))
         return 'node_builtin'
@@ -348,6 +374,8 @@ function scanScript(source, path) {
                 else record('computed_import', node)
             }
             const callName = ts.isIdentifier(callee) ? callee.text : memberText(callee)
+            const called = callCapability(callName)
+            if (called) record(called, node)
             if (
                 ['setTimeout', 'setInterval', 'window.setTimeout', 'window.setInterval'].includes(
                     callName ?? ''
@@ -507,6 +535,8 @@ function scanSvelte(source) {
                 const argument = node.arguments[0]
                 const callName =
                     node.callee.type === 'Identifier' ? node.callee.name : memberText(node.callee)
+                const called = callCapability(callName)
+                if (called) record(called, node)
                 if (callName === 'require') {
                     if (isStringLiteral(argument)) addImport(node, argument.value, 'require')
                     else record('computed_import', node)

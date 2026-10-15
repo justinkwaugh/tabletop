@@ -538,8 +538,10 @@ OTHER_SCRIPT_CAPABILITIES = {
 }
 HOST_ACCESS = re.compile(
     r"(?<![\w.])getContext\s*\(|\.(?:api|authorizationBridge|chatBridge|notifications|chatService|gameService|bridge)\b|"
-    r"\[\s*['\"`](?:api|authorizationBridge|chatBridge|notifications|chatService|gameService|bridge)['\"`]\s*\]"
+    r"\[\s*['\"`](?:api|authorizationBridge|chatBridge|notifications|chatService|gameService|bridge)['\"`]\s*\]|"
+    r"\bsetGameState\s*\("
 )
+DEVELOPER_GATES = re.compile(r"\b(?:isDeveloperHarness|isActingAdmin|showDebug)\b")
 SIGNATURES = [
     (b"\x89PNG\r\n\x1a\n", "png"), (b"\xff\xd8\xff", "jpeg"), (b"GIF87a", "gif"), (b"GIF89a", "gif"),
     (b"wOFF", "woff"), (b"wOF2", "woff2"), (b"\x00\x01\x00\x00", "ttf"), (b"OTTO", "otf"), (b"\x00asm", "wasm"),
@@ -701,6 +703,77 @@ def text_hazards(path: Path, text: str, repo: Path) -> list[dict[str, Any]]:
     return hazards
 
 
+CONFIG_FILE_PACKAGES = {
+    r"^\.prettierrc|^prettier\.config\.": "prettier",
+    r"^eslint\.config\.": "eslint",
+    r"^babel\.config\.|^\.babelrc": "@babel/core",
+    r"^postcss\.config\.": "postcss",
+    r"^tailwind\.config\.": "tailwindcss",
+    r"^vite\.config\.": "vite",
+    r"^vitest\.config\.": "vitest",
+    r"^playwright\.config\.": "@playwright/test",
+    r"^svelte\.config\.": "svelte",
+    r"^tsconfig.*\.json$": "typescript",
+}
+
+
+def installed_manifest(root: Path, name: str) -> dict[str, Any]:
+    path = root / "node_modules" / name / "package.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+
+def unused_dependencies(
+    roots: list[Path], declared: dict[Path, list[dict[str, Any]]], used_packages: dict[Path, set[str]],
+    files: list[Path], repo: Path,
+) -> list[dict[str, Any]]:
+    workspace = {}
+    for package_json in [*repo.glob("libs/*/package.json"), *repo.glob("config/*/package.json"), *repo.glob("tools/*/package.json")]:
+        manifest = json.loads(package_json.read_text(encoding="utf-8"))
+        workspace[manifest.get("name")] = manifest
+    unused: list[dict[str, Any]] = []
+    for root in roots:
+        own = [path for path in files if path.is_relative_to(root)]
+        texts = "\n".join(
+            path.read_text(encoding="utf-8", errors="ignore") for path in own
+            if path.name != "package.json" and path.suffix.lower() not in IMAGE_SUFFIXES | set(EXPECTED_SIGNATURE)
+        )
+        manifest = json.loads((root / "package.json").read_text(encoding="utf-8"))
+        script_words = set(re.findall(r"[\w@./:-]+", " ".join(manifest.get("scripts", {}).values())))
+        external = [
+            dependency["name"] for dependency in declared[root]
+            if dependency["source"] != "workspace" and dependency["field"] != "peerDependencies"
+        ]
+        used: set[str] = set()
+        for dependency in declared[root]:
+            if dependency["source"] == "workspace" and dependency["name"] in workspace:
+                used |= set(workspace[dependency["name"]].get("peerDependencies", {}))
+        for pattern, package in CONFIG_FILE_PACKAGES.items():
+            if any(path.parent == root and re.search(pattern, path.name) for path in own):
+                used.add(package)
+        for name in external:
+            base = name.removeprefix("@types/")
+            base = "@" + base.replace("__", "/") if name.startswith("@types/") and "__" in base else base
+            bins = installed_manifest(root, name).get("bin", {})
+            bin_names = {name.split("/")[-1]} if isinstance(bins, str) else set(bins)
+            if (
+                name in used_packages[root]
+                or (name != base and base in used_packages[root])
+                or re.search(r"['\"`]" + re.escape(name) + r"(?:/[^'\"`]*)?['\"`]|node_modules/" + re.escape(name) + r"\b", texts)
+                or bin_names & script_words
+            ):
+                used.add(name)
+        changed = True
+        while changed:
+            before = len(used)
+            for name in list(used):
+                used |= set(installed_manifest(root, name).get("peerDependencies", {}))
+            changed = len(used) != before
+        for dependency in declared[root]:
+            if dependency["name"] in external and dependency["name"] not in used:
+                unused.append({"package": root.relative_to(repo).as_posix(), "field": dependency["field"], "name": dependency["name"]})
+    return unused
+
+
 def untrusted_code(
     slug: str, logic_root: Path, ui_root: Path, merge_base: str, changes: list[str],
     lockfile: dict[str, Any] | None, repo: Path,
@@ -723,6 +796,8 @@ def untrusted_code(
     imports: dict[str, list[dict[str, Any]]] = {"node_builtin": [], "url": [], "undeclared_package": []}
     logic_packages: set[str] = set()
     host_access: list[dict[str, Any]] = []
+    developer_gates: list[dict[str, Any]] = []
+    used_packages: dict[Path, set[str]] = {root: set() for root in roots}
     unparsed: list[dict[str, Any]] = []
     for entry in json.loads(scan.stdout):
         path = Path(entry["path"])
@@ -734,6 +809,8 @@ def untrusted_code(
         for finding in entry["findings"]:
             if finding["kind"] == "timer" and package == ui_root:
                 continue
+            if finding["kind"] == "logging" and not (path.is_relative_to(logic_root / "src") and not is_test_file(path)):
+                continue
             capabilities.append({
                 "path": relative,
                 "test": is_test_file(path),
@@ -743,6 +820,9 @@ def untrusted_code(
         names = {dependency["name"] for dependency in declared[package]} | root_names
         for item in entry["imports"]:
             record = {"path": relative, "line": item["line"], "specifier": item["specifier"], "form": item["form"], "test": is_test_file(path)}
+            used_packages[package].add(item["package"])
+            if item["class"] == "node_builtin":
+                used_packages[package].add("node")
             if item["class"] in ("node_builtin", "url"):
                 imports[item["class"]].append(record)
             if path.is_relative_to(logic_root / "src") and item["class"] in ("external", "workspace") and not is_test_file(path):
@@ -782,8 +862,11 @@ def untrusted_code(
                 for kind, pattern in OTHER_SCRIPT_CAPABILITIES.items():
                     if pattern.search(line):
                         capabilities.append({**finding, "kind": kind})
-            if path.is_relative_to(ui_root) and suffix in UNTRUSTED_SCRIPT_SUFFIXES and not is_test_file(path) and HOST_ACCESS.search(line):
-                host_access.append({"path": relative, "line": number, "text": line.strip()[:200]})
+            if path.is_relative_to(ui_root) and suffix in UNTRUSTED_SCRIPT_SUFFIXES and not is_test_file(path):
+                if HOST_ACCESS.search(line):
+                    host_access.append({"path": relative, "line": number, "text": line.strip()[:200]})
+                if DEVELOPER_GATES.search(line):
+                    developer_gates.append({"path": relative, "line": number, "text": line.strip()[:200]})
         if suffix == ".svg":
             found = sorted(name for name, pattern in SVG_HAZARDS.items() if pattern.search(text))
             if found:
@@ -796,6 +879,8 @@ def untrusted_code(
         "imports": imports,
         "logic_packages": sorted(logic_packages),
         "host_access": host_access,
+        "developer_gates": developer_gates,
+        "unused_dependencies": unused_dependencies(roots, declared, used_packages, files, repo),
         "dependencies_to_review": [
             dependency for dependency in dependencies
             if dependency["source"] == "non-registry"
