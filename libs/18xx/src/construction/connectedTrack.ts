@@ -1,12 +1,13 @@
+import { assertExists } from '@tabletop/common'
 import type { RevenueCenter } from '../routes/route.js'
 import type { RailwayMapState } from '../map/mapState.js'
 import type { TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
-import { rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
+import { rotateTileFace } from '../tiles/topology.js'
 import { reachRoutes } from './routeReach.js'
 
 export class ConnectedTrack {
     private readonly blocked = new Map<string, Set<string>>()
-    private readonly reached = new Map<string, TileEndpoint[]>()
+    private readonly reached = new Map<string, Set<string>>()
     private readonly paths = new Map<string, Set<string>>()
     constructor(
         mapState: RailwayMapState,
@@ -25,31 +26,32 @@ export class ConnectedTrack {
                 ] as const
             })
         )
-        reachRoutes(mapState.map, (locationId) => faces.get(locationId)!, origins, blocked, {
-            reached: (locationId, endpoint) => {
-                const ends = this.reached.get(locationId) ?? []
-                if (!ends.some((end) => sameTileEndpoint(end, endpoint))) ends.push(endpoint)
-                this.reached.set(locationId, ends)
-            },
-            used: (locationId, pathId) => {
-                const paths = this.paths.get(locationId) ?? new Set<string>()
-                paths.add(pathId)
-                this.paths.set(locationId, paths)
-            },
-            stopped: (locationId, node) => {
-                const blocked = this.blocked.get(locationId) ?? new Set<string>()
-                blocked.add(node.id)
-                this.blocked.set(locationId, blocked)
-            }
+        const face = (locationId: string) => {
+            const face = faces.get(locationId)
+            assertExists(face, `Unknown map location: ${locationId}`)
+            return face
+        }
+        reachRoutes(mapState.map, face, origins, blocked, {
+            reached: (locationId, endpoint) => add(this.reached, locationId, endpointKey(endpoint)),
+            used: (locationId, pathId) => add(this.paths, locationId, pathId),
+            blocked: (locationId, node) => add(this.blocked, locationId, node.id)
         })
     }
     isBlocked(locationId: string, nodeId: string): boolean {
         return this.blocked.get(locationId)?.has(nodeId) ?? false
     }
     reaches(locationId: string, endpoint: TileEndpoint): boolean {
-        return this.reached.get(locationId)?.some((end) => sameTileEndpoint(end, endpoint)) ?? false
+        return this.reached.get(locationId)?.has(endpointKey(endpoint)) ?? false
     }
     usesPath(locationId: string, pathId: string): boolean {
         return this.paths.get(locationId)?.has(pathId) ?? false
     }
+}
+
+function add(sets: Map<string, Set<string>>, locationId: string, value: string): void {
+    sets.set(locationId, (sets.get(locationId) ?? new Set<string>()).add(value))
+}
+
+function endpointKey(endpoint: TileEndpoint): string {
+    return endpoint.kind === 'edge' ? `edge ${endpoint.edge}` : `node ${endpoint.nodeId}`
 }

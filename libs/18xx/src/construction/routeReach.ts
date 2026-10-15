@@ -1,25 +1,35 @@
+import { assertExists } from '@tabletop/common'
 import type { RailwayMap } from '../map/map.js'
 import type { RevenueCenter } from '../routes/route.js'
 import type { TileEdge, TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
-import { rotateTileEdge } from '../tiles/topology.js'
 
 export type RouteVisitor = {
-    entered?(locationId: string, edge?: TileEdge): void
+    entered?(locationId: string, edge: TileEdge): void
     reached?(locationId: string, endpoint: TileEndpoint): void
     used?(locationId: string, pathId: string): void
-    stopped?(locationId: string, node: TileNode): void
+    blocked?(locationId: string, node: TileNode): void
+}
+
+type Stop = { center: RevenueCenter; node: TileNode; pair: [number, number]; passable: boolean }
+type Side = {
+    locationId: string
+    edge: TileEdge
+    // The vertex across this side's matched edge; a route reaches it by reaching the side.
+    beyond: number
+    into?: { locationId: string; edge: TileEdge; tracked: boolean }
 }
 
 // Finds everything a legal route from the origins can reach: no stop, track or hex side used twice,
-// and no turning back at a hex side. Routes become alternating paths in a graph where every vertex
-// but the start is matched:
+// no turning back onto other track at a hex side, and no passing through a blocked stop or an
+// offboard. Routes become alternating paths in a graph where every vertex but the start is matched:
 // - a hex side is a matched pair, one vertex per tile, each joined to that tile's track there, so a
 //   route crosses the side and cannot turn onto other track on the same tile;
 // - a stop is a matched pair with its track joined to both, so a route passes it once, by
-//   different track; a stop the route cannot pass has its track joined to one vertex only;
-// - each path is a matched pair between its ends, so following it in a direction reaches the far
-//   vertex of the pair;
-// - the start joins each origin's pair.
+//   different track; a stop no route may pass has its track joined to one vertex only;
+// - each path is a matched pair between its ends, so following it in either direction reaches the
+//   vertex at the far end;
+// - the start joins the first vertex of each origin's pair, so a route leaves an origin unless it
+//   is blocked.
 // A vertex is reached by an alternating path ending in its matched edge exactly when Edmonds' search
 // from the start labels it outer.
 export function reachRoutes(
@@ -31,143 +41,102 @@ export function reachRoutes(
 ): void {
     const graph = new AlternatingGraph()
     const start = graph.vertex()
-    const sides = new Map<string, number>()
-    const stopVertices = new Map<string, { first: number; second: number; wall: boolean }>()
-    const pathVertices: {
-        locationId: string
-        pathId: string
-        towards: [number, number]
-    }[] = []
-    const sideCrossings: {
-        locationId: string
-        edge: TileEdge
-        other: number
-        neighbor?: { locationId: string; edge: TileEdge; tracked: boolean }
-    }[] = []
+    const sideVertices = new Map<string, number>()
+    const stops = new Map<string, Stop>()
+    const sides: Side[] = []
+    const paths: { locationId: string; pathId: string; ends: [number, number] }[] = []
+
+    const tracked = (locationId: string, edge: TileEdge) =>
+        face(locationId).paths.some((path) =>
+            path.endpoints.some((end) => end.kind === 'edge' && end.edge === edge)
+        )
 
     const sideVertex = (locationId: string, edge: TileEdge): number => {
-        const key = `${locationId} ${edge}`
-        let vertex = sides.get(key)
-        if (vertex !== undefined) return vertex
-        vertex = graph.vertex()
-        sides.set(key, vertex)
-        const neighbor = map.neighbor(locationId, edge)
-        const opposite = rotateTileEdge(edge, 3)
-        const passable =
-            neighbor &&
-            !map
-                .location(locationId)
-                .borders?.some((border) => border.edge === edge && border.kind === 'impassable') &&
-            !neighbor.borders?.some(
-                (border) => border.edge === opposite && border.kind === 'impassable'
-            )
-        if (!passable) {
-            const dead = graph.vertex()
-            graph.match(vertex, dead)
-            sideCrossings.push({ locationId, edge, other: dead })
+        const existing = sideVertices.get(`${locationId} ${edge}`)
+        if (existing !== undefined) return existing
+        const vertex = graph.vertex()
+        const beyond = graph.vertex()
+        graph.match(vertex, beyond)
+        sideVertices.set(`${locationId} ${edge}`, vertex)
+        const crossing = map.across(locationId, edge)
+        if (!crossing) {
+            sides.push({ locationId, edge, beyond })
             return vertex
         }
-        const other = graph.vertex()
-        sides.set(`${neighbor.id} ${opposite}`, other)
-        graph.match(vertex, other)
-        const tracked = (id: string, side: TileEdge) =>
-            face(id).paths.some((path) =>
-                path.endpoints.some((end) => end.kind === 'edge' && end.edge === side)
-            )
-        sideCrossings.push({
+        const into = crossing.location.id
+        sideVertices.set(`${into} ${crossing.edge}`, beyond)
+        sides.push({
             locationId,
             edge,
-            other,
-            neighbor: {
-                locationId: neighbor.id,
-                edge: opposite,
-                tracked: tracked(neighbor.id, opposite)
-            }
+            beyond,
+            into: { locationId: into, edge: crossing.edge, tracked: tracked(into, crossing.edge) }
         })
-        sideCrossings.push({
-            locationId: neighbor.id,
-            edge: opposite,
-            other: vertex,
-            neighbor: { locationId, edge, tracked: tracked(locationId, edge) }
+        sides.push({
+            locationId: into,
+            edge: crossing.edge,
+            beyond: vertex,
+            into: { locationId, edge, tracked: tracked(locationId, edge) }
         })
         return vertex
     }
 
-    const stopVertex = (locationId: string, nodeId: string) => {
+    const stop = (locationId: string, nodeId: string): Stop => {
         const key = `${locationId} ${nodeId}`
-        let pair = stopVertices.get(key)
-        if (!pair) {
-            const node = face(locationId).nodes.find((node) => node.id === nodeId)!
-            pair = {
-                first: graph.vertex(),
-                second: graph.vertex(),
-                wall: blocked(locationId, node)
-            }
-            graph.match(pair.first, pair.second)
-            stopVertices.set(key, pair)
+        const existing = stops.get(key)
+        if (existing) return existing
+        const node = face(locationId).nodes.find((node) => node.id === nodeId)
+        assertExists(node, `Track ends at a node on its tile: ${locationId} ${nodeId}`)
+        const pair: [number, number] = [graph.vertex(), graph.vertex()]
+        graph.match(...pair)
+        const created = {
+            center: { locationId, nodeId },
+            node,
+            pair,
+            passable: node.kind !== 'offboard' && !blocked(locationId, node)
         }
-        return pair
+        stops.set(key, created)
+        return created
     }
 
     const attach = (vertex: number, locationId: string, end: TileEndpoint) => {
-        if (end.kind === 'edge') graph.join(vertex, sideVertex(locationId, end.edge))
-        else {
-            const pair = stopVertex(locationId, end.nodeId)
-            graph.join(vertex, pair.first)
-            if (!pair.wall) graph.join(vertex, pair.second)
+        if (end.kind === 'edge') {
+            graph.join(vertex, sideVertex(locationId, end.edge))
+            return
         }
+        const { pair, passable } = stop(locationId, end.nodeId)
+        graph.join(vertex, pair[0])
+        if (passable) graph.join(vertex, pair[1])
     }
 
     for (const { id: locationId } of map.definition.locations) {
         for (const path of face(locationId).paths) {
-            // Following the path from its first end reaches `second`; from its second end, `first`.
-            const first = graph.vertex()
-            const second = graph.vertex()
-            graph.match(first, second)
-            attach(first, locationId, path.endpoints[0])
-            attach(second, locationId, path.endpoints[1])
-            pathVertices.push({
-                locationId,
-                pathId: path.id,
-                towards: [first, second]
-            })
+            // ends[i] joins the path's endpoint i.
+            const ends: [number, number] = [graph.vertex(), graph.vertex()]
+            graph.match(...ends)
+            attach(ends[0], locationId, path.endpoints[0])
+            attach(ends[1], locationId, path.endpoints[1])
+            paths.push({ locationId, pathId: path.id, ends })
         }
     }
-    for (const { locationId, nodeId } of origins) {
-        const pair = stopVertex(locationId, nodeId)
-        graph.join(start, pair.first)
-        graph.join(start, pair.second)
-    }
+    for (const { locationId, nodeId } of origins)
+        graph.join(start, stop(locationId, nodeId).pair[0])
 
     const outer = graph.outerFrom(start)
 
-    for (const { locationId, nodeId } of origins) {
-        visitor.entered?.(locationId)
-        visitor.reached?.(locationId, { kind: 'node', nodeId })
+    for (const { center, node, pair, passable } of stops.values()) {
+        if (!outer[pair[0]] && !outer[pair[1]]) continue
+        visitor.reached?.(center.locationId, { kind: 'node', nodeId: center.nodeId })
+        if (!passable && node.kind !== 'offboard') visitor.blocked?.(center.locationId, node)
     }
-    for (const [key, pair] of stopVertices) {
-        if (!outer[pair.first] && !outer[pair.second]) continue
-        const [locationId, nodeId] = key.split(' ')
-        visitor.reached?.(locationId, { kind: 'node', nodeId })
-        if (pair.wall) {
-            visitor.stopped?.(
-                locationId,
-                face(locationId).nodes.find((node) => node.id === nodeId)!
-            )
-        }
+    for (const { locationId, pathId, ends } of paths) {
+        if (outer[ends[0]] || outer[ends[1]]) visitor.used?.(locationId, pathId)
     }
-    for (const { locationId, pathId, towards } of pathVertices) {
-        if (outer[towards[0]] || outer[towards[1]]) visitor.used?.(locationId, pathId)
-    }
-    for (const { locationId, edge, other, neighbor } of sideCrossings) {
-        // The far vertex is reached across its matched edge exactly when a route reaches this side
-        // from inside the tile.
-        if (!outer[other]) continue
+    for (const { locationId, edge, beyond, into } of sides) {
+        if (!outer[beyond]) continue
         visitor.reached?.(locationId, { kind: 'edge', edge })
-        if (!neighbor) continue
-        visitor.entered?.(neighbor.locationId, neighbor.edge)
-        if (neighbor.tracked)
-            visitor.reached?.(neighbor.locationId, { kind: 'edge', edge: neighbor.edge })
+        if (!into) continue
+        visitor.entered?.(into.locationId, into.edge)
+        if (into.tracked) visitor.reached?.(into.locationId, { kind: 'edge', edge: into.edge })
     }
 }
 

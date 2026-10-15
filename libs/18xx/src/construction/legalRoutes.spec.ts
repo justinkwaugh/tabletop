@@ -3,7 +3,12 @@ import { HexOrientation } from '@tabletop/common'
 import { RailwayMap } from '../map/map.js'
 import { RailwayMapState } from '../map/mapState.js'
 import type { StationState } from '../map/station.js'
-import { createCityTileFace, createTownTileFace, createTrackTileFace } from '../tiles/faces.js'
+import {
+    createCityTileFace,
+    createOffboardTileFace,
+    createTownTileFace,
+    createTrackTileFace
+} from '../tiles/faces.js'
 import { TileSet } from '../tiles/inventory.js'
 import type { TileFace } from '../tiles/tile.js'
 import { ConstructionReachability } from './constructionReachability.js'
@@ -30,7 +35,7 @@ function board(locations: Record<string, TileFace>): RailwayMapState {
         tiles.createInventory()
     )
 }
-function home(locationId: string): StationState {
+function home(locationId: string, rivalAt?: string): StationState {
     return {
         stations: [
             {
@@ -38,11 +43,22 @@ function home(locationId: string): StationState {
                 companyId: 'A',
                 status: 'placed',
                 position: { locationId, nodeId: 'city' }
-            }
+            },
+            ...(rivalAt
+                ? [
+                      {
+                          id: 'rival',
+                          companyId: 'B',
+                          status: 'placed' as const,
+                          position: { locationId: rivalAt, nodeId: 'city' }
+                      }
+                  ]
+                : [])
         ],
         stationReservations: []
     }
 }
+const through = createCityTileFace('yellow', [3, 0], 20, 1)
 
 // Home leads through a switch into a dead-end city. The switch's other branch leads to -1,2, which
 // only a route leaving the dead end the way it came could reach.
@@ -113,4 +129,63 @@ it('does not cross a hex side twice', () => {
     const reachability = new ConstructionReachability(mapState, home('0,-1'), 'A')
     expect(reachability.canReach('1,1')).toBe(true)
     expect(reachability.canReach('-1,1')).toBe(false)
+})
+
+it('reaches a full rival city but goes no further', () => {
+    const mapState = board({
+        '0,0': createCityTileFace('yellow', [0], 20, 1),
+        '0,1': through,
+        '0,2': empty
+    })
+    const stations = home('0,0', '0,1')
+    const reachability = new ConstructionReachability(mapState, stations, 'A')
+    expect(reachability.canReach('0,1')).toBe(true)
+    expect(reachability.canReach('0,2')).toBe(false)
+    const network = new TrackNetwork(mapState, stations, 'A')
+    expect(network.reaches('0,1', { kind: 'node', nodeId: 'city' })).toBe(true)
+    expect(network.isBlocked('0,1', 'city')).toBe(true)
+    expect(network.usesPath('0,1', through.paths[1].id)).toBe(false)
+})
+
+it('does not pass through an offboard', () => {
+    const mapState = board({
+        '0,0': createCityTileFace('yellow', [0], 20, 1),
+        '0,1': createOffboardTileFace([3, 0], { kind: 'fixed', amount: 30 }),
+        '0,2': empty
+    })
+    const reachability = new ConstructionReachability(mapState, home('0,0'), 'A')
+    expect(reachability.canReach('0,1')).toBe(true)
+    expect(reachability.canReach('0,2')).toBe(false)
+    const network = new TrackNetwork(mapState, home('0,0'), 'A')
+    expect(network.reaches('0,1', { kind: 'node', nodeId: 'offboard' })).toBe(true)
+    expect(network.isBlocked('0,1', 'offboard')).toBe(false)
+})
+
+it('connects a replacement from a station on it', () => {
+    const upgraded = createCityTileFace('green', [0, 2], 30, 2)
+    const reachability = new ConstructionReachability(
+        board({ '0,0': createCityTileFace('yellow', [0], 20, 1), '0,1': empty, '-1,0': empty }),
+        home('0,0'),
+        'A'
+    )
+    const { paths, nodes } = reachability.connections('0,0', upgraded, home('0,0'))
+    expect(paths).toEqual(new Set(upgraded.paths.map((path) => path.id)))
+    expect(nodes).toEqual(new Set(['city']))
+})
+
+it('does not connect a replacement through a full rival city on it', () => {
+    const mapState = board({
+        '0,0': createCityTileFace('yellow', [0], 20, 1),
+        '0,1': through,
+        '0,2': empty
+    })
+    const stations = home('0,0', '0,1')
+    const upgraded = createCityTileFace('green', [3, 0, 1], 30, 1)
+    const { paths, nodes } = new ConstructionReachability(mapState, stations, 'A').connections(
+        '0,1',
+        upgraded,
+        stations
+    )
+    expect(paths).toEqual(new Set([upgraded.paths[0].id]))
+    expect(nodes).toEqual(new Set(['city']))
 })
