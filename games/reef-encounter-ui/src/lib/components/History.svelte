@@ -255,6 +255,8 @@
     }
 
     .empty {
+        margin: 0;
+        padding: 8px 12px;
         color: var(--reef-muted);
         font-size: 14px;
     }
