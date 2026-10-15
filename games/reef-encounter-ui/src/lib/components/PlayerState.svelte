@@ -247,7 +247,7 @@
     .plaque {
         position: absolute;
         left: 10px;
-        bottom: 14px;
+        top: 12px;
         padding: 1px 14px 2px;
         border-radius: 999px;
         font-size: 18px;
