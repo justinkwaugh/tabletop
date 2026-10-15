@@ -9,17 +9,22 @@
     import PolypChip from './PolypChip.svelte'
     import Shrimp from './table/Shrimp.svelte'
     import LarvaCube from './table/LarvaCube.svelte'
+    import ReefCrest from './ReefCrest.svelte'
     import { ParrotfishUrls } from '$lib/images/art.generated.js'
     import { playerPanelView } from '$lib/utils/playerPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let { player, playerState }: { player: Player; playerState: HydratedReefEncounterPlayerState } =
-        $props()
+    let {
+        player,
+        playerState,
+        seat
+    }: { player: Player; playerState: HydratedReefEncounterPlayerState; seat: number } = $props()
 
     const gameSession = getGameSession()
     const state = $derived(gameSession.gameState)
     const isTurn = $derived(state.activePlayerIds.includes(player.id))
     const paint = $derived(gameSession.colors.getPlayerBgColorValue(player.id))
+    const fishColor = $derived(gameSession.colors.getPlayerColor(player.id))
     const view = $derived(
         playerPanelView(
             playerState,
@@ -27,6 +32,13 @@
             isParrotfishFed(state, player.id)
         )
     )
+    const FarFish = [
+        [8, 8, 1],
+        [22, 4, 0.8],
+        [30, 14, 0.9],
+        [46, 9, 0.7],
+        [14, 20, 0.75]
+    ] as const
     const shrimpsOnReefs = $derived(
         state.shrimps.filter((shrimp) => shrimp.playerId === player.id).length
     )
@@ -40,18 +52,30 @@
     </svg>
 {/snippet}
 
-<article class="panel reef-glass" class:turn={isTurn} style:--player={paint}>
-    <header style:--art="url({ParrotfishUrls[gameSession.colors.getPlayerColor(player.id)]})">
-        {#if isTurn}
-            <span class="breath" aria-hidden="true"><i></i><i></i><i></i></span>
-        {/if}
+<article class="panel" class:turn={isTurn} style:--player={paint}>
+    <header>
+        <svg class="far-fish" viewBox="0 0 120 40" aria-hidden="true">
+            {#each FarFish as [x, y, scale], index (index)}
+                <path
+                    transform="translate({x} {y}) scale({scale})"
+                    d="M0 3 q5 -4 10 0 q-5 4 -10 0 z M10 3 l4 -3 v6 z"
+                ></path>
+            {/each}
+        </svg>
+        <div class="swim" class:tail-up={fishColor === 'yellow'}>
+            <img class="fish" src={ParrotfishUrls[fishColor]} alt="" />
+            {#if isTurn}
+                <span class="breath" aria-hidden="true"><i></i><i></i><i></i></span>
+            {/if}
+        </div>
         <h3
             class="plaque reef-display"
-            style:background={gameSession.colors.getPlayerBgColorValue(player.id)}
+            style:background={paint}
             style:color={gameSession.colors.getPlayerTextColorValue(player.id)}
         >
             {player.name}
         </h3>
+        <div class="crest"><ReefCrest id="crest-{player.id}" {seat} /></div>
     </header>
     <dl>
         <div class="row">
@@ -155,48 +179,90 @@
         position: relative;
         overflow: hidden;
         text-align: left;
-        transition: box-shadow 0.25s;
+        border-radius: 16px;
+        background: var(--reef-rock);
+        box-shadow: 0 8px 18px -12px rgb(4 30 26 / 0.8);
     }
 
-    .panel.turn {
-        box-shadow:
-            0 0 0 2px var(--player),
-            0 0 20px -2px color-mix(in srgb, var(--player) 60%, transparent);
+    /* Inside the card's edge: the side panel's scroll box clips anything drawn outside it */
+    .panel.turn::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        border: 3px solid var(--player);
+        border-radius: inherit;
+        pointer-events: none;
     }
 
     header {
         position: relative;
-        height: 84px;
+        height: 76px;
+        overflow: hidden;
+        background: #5e9e8e;
     }
 
     header::before {
         content: '';
         position: absolute;
-        inset: 0;
-        background: var(--art) right -16px top 42% / auto 120% no-repeat;
-        mask-image:
-            linear-gradient(black 70%, transparent),
-            linear-gradient(to left, black 170px, transparent 245px);
-        mask-composite: intersect;
+        inset: 0 0 20px;
+        background: #7cb8a7;
+        mask-image: linear-gradient(black, transparent);
+    }
+
+    .far-fish {
+        position: absolute;
+        left: 150px;
+        top: 6px;
+        width: 90px;
+        fill: #4a8a7b;
+    }
+
+    .swim {
+        position: absolute;
+        right: 16px;
+        top: 2px;
+        height: 50px;
+        z-index: 1;
+        animation: bob 5s ease-in-out infinite alternate;
+    }
+
+    /* The yellow fish's tail rises above its back, so it stands taller to keep its body the
+       others' size */
+    .swim.tail-up {
+        top: -2px;
+        height: 64px;
+    }
+
+    .fish {
+        display: block;
+        height: 100%;
+        width: auto;
+        filter: drop-shadow(0 6px 4px rgb(4 30 26 / 0.25));
     }
 
     .plaque {
         position: absolute;
         left: 10px;
-        bottom: 12px;
+        top: 10px;
+        z-index: 2;
         padding: 1px 14px 2px;
         border-radius: 999px;
         font-size: 18px;
-        box-shadow:
-            inset 0 9px 8px -6px rgb(255 255 255 / 0.4),
-            0 0 0 2px rgb(255 255 255 / 0.85),
-            0 3px 6px rgb(4 30 26 / 0.45);
+        box-shadow: 0 2px 0 rgb(4 30 26 / 0.35);
+    }
+
+    .crest {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
     }
 
     .breath {
         position: absolute;
-        top: 2px;
-        right: 150px;
+        left: -8px;
+        bottom: 14px;
         width: 24px;
         height: 60px;
         pointer-events: none;
@@ -240,7 +306,20 @@
         }
     }
 
+    @keyframes bob {
+        from {
+            transform: translateY(-2px) rotate(-1.5deg);
+        }
+        to {
+            transform: translateY(3px) rotate(1.5deg);
+        }
+    }
+
     @media (prefers-reduced-motion: reduce) {
+        .swim {
+            animation: none;
+        }
+
         .breath i {
             animation: none;
             opacity: 0.8;

@@ -21,7 +21,7 @@
 </script>
 
 <div class="space-y-2">
-    {#each seats as { player, playerState } (player.id)}
-        <PlayerState {player} {playerState} />
+    {#each seats as { player, playerState }, seat (player.id)}
+        <PlayerState {player} {playerState} {seat} />
     {/each}
 </div>
