@@ -48,13 +48,11 @@ export class AddingPassengersStateHandler implements MachineStateHandler<
         assert(activePlayerId, 'No active player for passengers')
 
         if (!context.gameState.actionsTaken) {
-            console.log('Starting passengers turn for player', activePlayerId)
             context.gameState.turnManager.startTurn(activePlayerId, context.gameState.actionCount)
             context.gameState.activePlayerIds = [activePlayerId]
         }
 
         const numAllowedActions = context.gameState.numAllowedActions()
-        console.log('calculated num actions for passengers', numAllowedActions)
         if (
             numAllowedActions === 0 ||
             !HydratedAddPassengers.canAddPassengers(context.gameState, activePlayerId)
