@@ -2,18 +2,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ActionSource, Color, assert, type GameAction } from '@tabletop/common'
 import {
     ActionType,
+    CURRENT_OATH_REVISION,
     HydratedOathGameState,
     HydratedTravel,
+    MachineState,
     PowerChoiceKind,
+    PowerQuestionKind,
     PowerTiming,
     Suit,
     isTravel,
     Region,
     powerIndexOf,
     type ModifierUse,
-    type Travel
+    Travel
 } from '@tabletop/oath'
-import { openTurn, served, testPlayer, testState } from '@tabletop/oath/testing'
+import { buildAction, openTurn, served, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { shroudedWoodState } from '$lib/testing/shroudedWoodTable.js'
 import { actionCards, actionMenuRows } from './actionCards.js'
@@ -358,6 +361,157 @@ describe('Hospitality’s bank as the way’s tolls leave it (R-7.1.4, R-7.4, R-
         // One favor to Rhys's nomad bank for the toll, then Hospitality's one back from it.
         expect(state.getPlayerState('dana').favor).toBe(before)
         expect(state.favorBank[Suit.Nomad]).toBe(0)
+    })
+})
+
+const FAST_STEED = 'denizen.nomad.a-fast-steed'
+const TENTS = 'denizen.nomad.tents'
+const VOW_OF_RENEWAL = 'denizen.discord.vow-of-renewal'
+const SECOND_WIND = 'denizen.discord.second-wind'
+const useOf = (cardId: string) => ({ cardId, powerIndex: powerIndexOf(cardId, PowerTiming.Modifier) })
+
+/**
+ * Dana keeps her favor in the nomad bank (Vow of Kinship), none on her board, and holds `card`, a
+ * Travel card whose cost places a favor (A Fast Steed, Tents). The Cradle site c2 holds Oracle, the
+ * one nomad card Hospitality matches there.
+ */
+function costly(card: string, nomad: number, dana: Partial<Seat> = {}) {
+    const state = scene(
+        {
+            favor: 0,
+            advisers: [HOSPITALITY, VOW_OF_KINSHIP, card].map((cardId) => ({ cardId, faceUp: true })),
+            ...dana
+        },
+        { c2: [ORACLE] }
+    )
+    state.favorBank[Suit.Nomad] = nomad
+    return state
+}
+
+const travelWith = (card: string, state: HydratedOathGameState) => {
+    const travel = travelling(state)
+    travel.session.modifiers.declare(useOf(card), true)
+    return travel
+}
+
+describe('Hospitality’s bank as the way’s card costs leave it (R-7.1.2, R-7.4, R-9.3)', () => {
+    it('the engine pays a Travel card’s cost before the gain: a nomad bank the cost empties gives nothing', () => {
+        const state = costly(FAST_STEED, 1)
+        const travel = new HydratedTravel(
+            buildAction(Travel, { playerId: 'dana', siteId: 'c2', modifiers: [useOf(FAST_STEED), withBank(Suit.Nomad)] })
+        )
+        travel.apply(state)
+        expect(state.tokensOn(FAST_STEED).favor).toBe(1)
+        expect(state.favorBank[Suit.Nomad]).toBe(0)
+        expect(travel.metadata?.modifierNotes).toContain(`Hospitality: gained 0 favor from the ${Suit.Nomad} bank`)
+    })
+
+    for (const card of [FAST_STEED, TENTS]) {
+        it(`${card}: its cost empties the nomad bank, so no gain shows, and the Travel is sent without Hospitality`, async () => {
+            const { session, sent } = travelWith(card, costly(card, 1))
+            expect(session.modifiers.isDeclared(useOf(card))).toBe(true)
+            expect(banksOf(rowAt(session, 'c2').ways)).toEqual([undefined])
+            await session.pickTravelSite('c2')
+            expect(sentTravel(sent).modifiers).toEqual([useOf(card)])
+        })
+
+        it(`${card}: two favor in the nomad bank leave one after its cost, so the gain stands, and the engine gives it`, async () => {
+            const { session, sent } = travelWith(card, costly(card, 2))
+            expect(banksOf(rowAt(session, 'c2').ways)).toEqual([Suit.Nomad])
+            await session.pickTravelSite('c2')
+            const action = sentTravel(sent)
+            expect(action.modifiers).toEqual([useOf(card), withBank(Suit.Nomad)])
+            const state = costly(card, 2)
+            new HydratedTravel(action).apply(state)
+            // One favor to the card from the nomad bank, then Hospitality's one into it (Vow of Kinship).
+            expect(state.tokensOn(card).favor).toBe(1)
+            expect(state.favorBank[Suit.Nomad]).toBe(1)
+        })
+    }
+
+    it('a cost paid from the board leaves the bank’s offer unchanged', () => {
+        const { session } = travelWith(FAST_STEED, costly(FAST_STEED, 1, { favor: 1 }))
+        expect(banksOf(rowAt(session, 'c2').ways)).toEqual([Suit.Nomad])
+    })
+
+    it('the cost and a toll add up: two favor in the nomad bank are both spent, so no gain shows', () => {
+        const state = costly(FAST_STEED, 2)
+        state.denizensBySite['c2'] = [ORACLE, TOLL_ROADS]
+        const { session } = travelWith(FAST_STEED, state)
+        expect(tollsAndBanks(rowAt(session, 'c2').ways)).toEqual([[[TOLL_ROADS], undefined]])
+    })
+
+    it('out of turn the placed favor goes to the card’s own bank (R-7.1.2.a), so the nomad bank keeps its favor and the gain stands', () => {
+        /** Second Wind out of turn: Rhys holds the turn, and Dana is asked "Travel now?". */
+        const outOfTurn = () => {
+            const state = costly(FAST_STEED, 1)
+            state.oathRevision = CURRENT_OATH_REVISION
+            state.machineState = MachineState.PowerQuestion
+            state.pendingQuestions = {
+                queue: [{ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: 'dana', action: ActionType.Travel }],
+                askingPlayerId: 'rhys',
+                resumeMachineState: MachineState.ActPhase
+            }
+            state.heldTurn = { queue: [], askingPlayerId: 'rhys', resumeMachineState: MachineState.ActPhase }
+            openTurn(state, 'rhys')
+            state.activePlayerIds = ['dana']
+            const dana = state.getPlayerState('dana')
+            dana.advisers = [...dana.advisers, { cardId: SECOND_WIND, faceUp: true }]
+            dana.freeTravelAtAction = state.actionCount
+            return state
+        }
+        expect(banksOf(travelRows(outOfTurn(), 'dana', [useOf(FAST_STEED), hospitality]).find((row) => row.slotId === 'c2')?.ways ?? [])).toEqual([Suit.Nomad])
+        const state = outOfTurn()
+        const travel = new HydratedTravel(
+            buildAction(Travel, { playerId: 'dana', siteId: 'c2', modifiers: [useOf(FAST_STEED), withBank(Suit.Nomad)] })
+        )
+        travel.apply(state)
+        expect(state.tokensOn(FAST_STEED).favor).toBe(0)
+        expect(travel.metadata?.modifierNotes).toContain(`Hospitality: gained 1 favor from the ${Suit.Nomad} bank`)
+    })
+
+    it('judges each way’s bank after its card costs on the seat’s projected state as on the server’s', () => {
+        const state = costly(FAST_STEED, 1)
+        state.getPlayerState('rhys').advisers = [{ cardId: 'denizen.nomad.tents', faceUp: false }]
+        const view = new HydratedOathGameState(served(state, { kind: 'player', playerId: 'dana' }))
+        const read = (s: HydratedOathGameState) =>
+            travelRows(s, 'dana', [useOf(FAST_STEED), hospitality]).map((row) => [row.slotId, banksOf(row.ways)])
+        const own = read(view)
+        expect(own).toEqual(read(state))
+        expect(own).toContainEqual(['c2', [undefined]])
+    })
+})
+
+/** Dana keeps her favor in the nomad bank, one there; Toll Roads stands at c2, which no one rules, so its toll goes to the bandits. */
+function banditToll(dana: Partial<Seat> = {}) {
+    const state = kinship(1, { c2: [ORACLE, TOLL_ROADS] })
+    state.warbandsBySite = {}
+    Object.assign(state.getPlayerState('dana'), dana)
+    return state
+}
+
+describe('Hospitality’s bank after a toll burned for the bandits (R-10.4, R-9.3)', () => {
+    it('the burned favor leaves the banks: the emptied nomad bank gives nothing', () => {
+        const { session } = travelling(banditToll())
+        expect(tollsAndBanks(rowAt(session, 'c2').ways)).toEqual([[[TOLL_ROADS], undefined]])
+    })
+
+    it('Vow of Renewal takes the burned favor back into its holder’s nomad bank: the gain shows, and the engine gives it', async () => {
+        const renewed = () =>
+            banditToll({ advisers: [HOSPITALITY, VOW_OF_KINSHIP, VOW_OF_RENEWAL].map((cardId) => ({ cardId, faceUp: true })) })
+        const { session, sent } = travelling(renewed())
+        const ways = rowAt(session, 'c2').ways
+        expect(tollsAndBanks(ways)).toEqual([[[TOLL_ROADS], Suit.Nomad]])
+        const [way] = ways
+        assert(way !== undefined, 'the toll way is offered')
+        await session.travelTo('c2', way)
+        const action = sentTravel(sent)
+        expect(action.modifiers).toEqual([withBank(Suit.Nomad)])
+        const state = renewed()
+        const travel = new HydratedTravel(action)
+        travel.apply(state)
+        expect(travel.metadata?.modifierNotes).toContain(`Hospitality: gained 1 favor from the ${Suit.Nomad} bank`)
+        expect(state.favorBank[Suit.Nomad]).toBe(1)
     })
 })
 

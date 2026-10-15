@@ -211,3 +211,29 @@ describe('Land Warden — Wild Cry and Welcoming Party look at both cards, and p
         expect(a.metadata?.modifierNotes?.some((n) => n.startsWith('Wild Cry'))).toBeFalsy()
     })
 })
+
+describe('Land Warden — Animal Host as the second card counts the beast cards at sites once the first has landed', () => {
+    const ANIMAL_HOST = 'denizen.beast.animal-host'
+
+    /** Wolves kept to the site, then Animal Host played to the advisers. */
+    function wolvesThenHost(oathRevision: number) {
+        const s = table(oathRevision)
+        s.requireVault().worldDeck = [WOLVES, ANIMAL_HOST, FILLER]
+        new HydratedSearch(search).apply(s)
+        const warbands = s.getPlayerState('me').warbandsOnBoard['me'] ?? 0
+        new HydratedSearchResolve(
+            buildAction(SearchResolve, { playerId: 'me', keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, secondPlay: { cardId: ANIMAL_HOST, play: SearchPlay.Adviser, faceUp: true } })
+        ).apply(s)
+        expect(s.denizensBySite['c1']).toEqual([WOLVES])
+        expect(s.getPlayerState('me').advisers).toContainEqual({ cardId: ANIMAL_HOST, faceUp: true })
+        return (s.getPlayerState('me').warbandsOnBoard['me'] ?? 0) - warbands
+    }
+
+    it('from revision 10, Wolves at the site is the one beast card at a site: one warband', () => {
+        expect(wolvesThenHost(OathRevision.EngineFixes6)).toBe(1)
+    })
+
+    it('before revision 10, Animal Host counted itself too: two warbands', () => {
+        expect(wolvesThenHost(OathRevision.EngineFixes5)).toBe(2)
+    })
+})
