@@ -66,11 +66,14 @@ registerEffect(
         choices: [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })],
         resolve: (ctx) => {
             const [bank] = chosen(ctx, PowerChoiceKind.FavorBank)
-            // "(including Fabled Feast)": counted even when played to a site you do not rule.
+            // "(including Fabled Feast)": counted as one of the hearth cards you rule, an adviser or at a site
+            // you rule. Before revision 10 it also counted itself at a site you do not rule.
             const ruled = ruledCardsOfSuit(ctx.state, ctx.playerId, Suit.Hearth)
-            const x = ruled.includes('denizen.hearth.fabled-feast')
-                ? ruled.length
-                : ruled.length + 1
+            const x =
+                isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6) ||
+                ruled.includes('denizen.hearth.fabled-feast')
+                    ? ruled.length
+                    : ruled.length + 1
             const gained = gainFavorFromBank(ctx.state, ctx.playerId, bank.suit, x)
             return {
                 summary: `took ${gained} favor (of ${x} hearth cards ruled) from the ${bank.suit} bank`
@@ -110,8 +113,13 @@ registerEffect(
         choices: [],
         resolve: (ctx) => {
             const onMap = denizensOnMap(ctx.state, Suit.Beast)
-            // Played as an adviser it is not "at a site"; the card still counts itself.
-            const x = onMap.includes('denizen.beast.animal-host') ? onMap.length : onMap.length + 1
+            // "(including Animal Host) at any sites": counted when played to a site, not as an adviser.
+            // Before revision 10 it also counted itself as an adviser.
+            const x =
+                isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6) ||
+                onMap.includes('denizen.beast.animal-host')
+                    ? onMap.length
+                    : onMap.length + 1
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, x)
             const words =
                 gainedWarbandsWords(ctx.state, ctx.playerId, gained) ?? `${gained} warbands`

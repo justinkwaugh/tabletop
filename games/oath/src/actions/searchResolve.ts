@@ -16,7 +16,8 @@ import { PowerChoice } from '../util/powerChoice.js'
 import { discardTargetOf, runAfter, searchPlayModifiers } from '../util/modifiers.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses, forgetHand } from '../util/knowledge.js'
-import { playCard, reasonCannotPlayCard } from '../util/cardPlay.js'
+import { playCard, playMapChanges, reasonCannotPlayCard } from '../util/cardPlay.js'
+import type { PlayMapChanges } from '../powers/registry.js'
 import type { ActiveModifier } from '../util/modifiers.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 
@@ -160,6 +161,7 @@ export class HydratedSearchResolve
         if (reason) {
             throw Error(`Cannot resolve search: ${reason}`)
         }
+        const keptMapChanges = keptPlayMapChanges(state, this.keptCardId, this)
         const reveal = revealForPlay(state, this)
 
         const region = regionOfPawn(state, this.playerId)
@@ -207,7 +209,8 @@ export class HydratedSearchResolve
                   faceUp: this.secondPlay.faceUp,
                   seen: shown,
                   discardTarget,
-                  carried: secondPlayModifiers(state, carried)
+                  carried: secondPlayModifiers(state, carried),
+                  earlierMapChanges: keptMapChanges
               })
             : undefined
 
@@ -277,7 +280,7 @@ export class HydratedSearchResolve
         const second = choice.secondPlay
         if (second) {
             const secondReason =
-                reasonCannotPlaySecondCard(state, playerId, choice.keptCardId, second) ??
+                reasonCannotPlaySecondCard(state, playerId, choice.keptCardId, second, choice) ??
                 reasonCannotPairSecondPlay(state, playerId, choice.play, second)
             if (secondReason) return secondReason
         }
@@ -318,12 +321,16 @@ export class HydratedSearchResolve
     }
 }
 
-/** Land Warden — the second drawn card and how it is played, judged apart from the kept card's play. */
+/**
+ * Land Warden — the second drawn card and how it is played. Given the kept card's play, its When Played power is
+ * judged on the map that play leaves; without it, on the map as it is.
+ */
 export function reasonCannotPlaySecondCard(
     state: HydratedOathGameState,
     playerId: string,
     keptCardId: string,
-    second: SearchSecondPlay
+    second: SearchSecondPlay,
+    kept?: KeptPlay
 ): string | undefined {
     const allowed = searchPlayModifiers(state).some((m) => m.hooks.secondPlay)
     if (!allowed) return 'only one drawn card may be played'
@@ -334,9 +341,22 @@ export function reasonCannotPlaySecondCard(
         return 'the second card is played to your site or as an adviser'
     const reason = reasonCannotPlayCard(state, playerId, second.cardId, second.play, {
         faceUp: second.faceUp,
-        carried: secondPlayModifiers(state, searchPlayModifiers(state))
+        carried: secondPlayModifiers(state, searchPlayModifiers(state)),
+        earlierMapChanges: kept && keptPlayMapChanges(state, keptCardId, kept)
     })
     return reason ? `second card: ${reason}` : undefined
+}
+
+/** Land Warden — the kept card's play, which comes before the second card's. */
+type KeptPlay = Pick<SearchResolveChoice, 'play' | 'discardFirstCardId'>
+
+/** Land Warden — the kept card's play lands before the second card's When Played power resolves. */
+function keptPlayMapChanges(
+    state: HydratedOathGameState,
+    keptCardId: string,
+    kept: KeptPlay
+): PlayMapChanges {
+    return playMapChanges(state, keptCardId, kept.play, { discardFirstCardId: kept.discardFirstCardId })
 }
 
 /** Land Warden — R-7.4: the Search's modifiers last the whole action, so they reach the second card's play as they reach the first. */

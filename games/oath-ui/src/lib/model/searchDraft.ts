@@ -335,11 +335,7 @@ export class SearchDraft implements PanelDraft {
                 this.secondPlay(cardId, SearchPlay.Adviser, 'adviser, faceup', true),
                 this.secondPlay(cardId, SearchPlay.Adviser, 'adviser, facedown', false)
             ])
-            .filter(
-                (option) =>
-                    reasonCannotPlaySecondCard(this.session.gameState, playerId, kept, option) ===
-                        undefined && this.pairsWithAnOpenPlacement(playerId, kept, option)
-            )
+            .filter((option) => this.pairsWithAnOpenPlacement(playerId, kept, option))
     }
 
     get second() {
@@ -582,20 +578,34 @@ export class SearchDraft implements PanelDraft {
         return PLACEMENTS.some(
             (option) =>
                 this.placementOption(playerId, kept, option).blockedBecause === undefined &&
-                reasonCannotPairSecondPlay(
-                    this.session.gameState,
-                    playerId,
-                    option.play,
-                    second
-                ) === undefined
+                this.reasonSecondCannotFollow(playerId, kept, option.play, second) === undefined
         )
     }
 
     private reasonSecondCannotPair(playerId: string, firstPlay: SearchPlay): string | undefined {
         const second = this.second
-        return second
-            ? reasonCannotPairSecondPlay(this.session.gameState, playerId, firstPlay, second)
+        const kept = this.kept
+        return second && kept
+            ? this.reasonSecondCannotFollow(playerId, kept, firstPlay, second)
             : undefined
+    }
+
+    // Land Warden — the second card as the engine judges it after the kept card's play: its When Played
+    // power counts the map that play leaves (Riots).
+    private reasonSecondCannotFollow(
+        playerId: string,
+        kept: string,
+        firstPlay: SearchPlay,
+        second: SearchSecondPlay
+    ): string | undefined {
+        const state = this.session.gameState
+        return (
+            reasonCannotPairSecondPlay(state, playerId, firstPlay, second) ??
+            reasonCannotPlaySecondCard(state, playerId, kept, second, {
+                play: firstPlay,
+                discardFirstCardId: firstPlay === SearchPlay.Site ? this.discardFirst : undefined
+            })
+        )
     }
 
     private samePlacement(a: SearchPlacement, b: SearchPlacement): boolean {

@@ -32,6 +32,7 @@ import {
     warbandOwnerGainedByPower
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 import { BANDIT_CHIEF } from '../util/bandits.js'
 import { soleOwner } from '../util/force.js'
 import { ownerIfAny } from '../util/warbands.js'
@@ -214,19 +215,24 @@ registerEffect(BANDIT_CHIEF, powerIndexOf(BANDIT_CHIEF, PowerTiming.WhenPlayed),
 
 // "Action: Swap this card with any faceup adviser." Cost: burn 1 secret.
 const ENCHANTRESS = 'denizen.discord.enchantress'
-// R-7.2.1, R-7.2.2 — the adviser goes where Enchantress was.
+// R-7.2.1, R-7.2.2 — the adviser goes where Enchantress was. From revision 10, held as an adviser
+// it leaves out its holder's own advisers: swapped among one player's advisers, nothing moves.
 const faceupAdvisersOfAnyone: ChoiceDomain = (state, playerId) => {
     const to = siteHolding(state, ENCHANTRESS) ? 'site' : 'advisers'
-    return state.players.flatMap((p) =>
-        p
-            .faceupAdviserIds()
-            .filter(
-                (cardId) =>
-                    cardId !== ENCHANTRESS &&
-                    reasonCannotMoveCardTo(state, playerId, cardId, to) === undefined
-            )
-            .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
-    )
+    const holderLeftOut =
+        to === 'advisers' && isAtLeastOathRevision(state, OathRevision.EngineFixes6)
+    return state.players
+        .filter((p) => !(holderLeftOut && p.isFaceupAdviser(ENCHANTRESS)))
+        .flatMap((p) =>
+            p
+                .faceupAdviserIds()
+                .filter(
+                    (cardId) =>
+                        cardId !== ENCHANTRESS &&
+                        reasonCannotMoveCardTo(state, playerId, cardId, to) === undefined
+                )
+                .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+        )
 }
 
 registerEffect(ENCHANTRESS, powerIndexOf(ENCHANTRESS, PowerTiming.Action), {

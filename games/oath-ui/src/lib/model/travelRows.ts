@@ -3,7 +3,11 @@ import {
     FAVOR_BANK_ORDER,
     HydratedTravel,
     PowerChoiceKind,
+    burnedFavorTaker,
     favorHomeBankOf,
+    holdsTheTurn,
+    resolveModifiers,
+    suitOf,
     tollsFor,
     type HydratedOathGameState,
     type ModifierUse,
@@ -70,25 +74,64 @@ export function travelModifiers(
     })
 }
 
-/**
- * R-7.1.4, R-7.4 — each bank as the way's tolls leave it, for Hospitality's gain after the move. A
- * toll's favor leaves the player's board first, then the bank the engine keeps their favor in
- * (Vow of Kinship, `favorHomeBankOf`), as `spendFavor` takes it; it reaches its payee as
- * `receiveFavor` gives it, into their bank under the same vow; a toll burned for the bandits leaves
- * the banks. An emptied bank gives nothing on that way (R-9.3); a way that leaves it favor still can.
- */
-function banksAfterTolls(
+/** A Travel card in use whose cost the player pays: what it places and burns, and where it is. */
+type CardCost = { cardId: string; placeFavor: number; burnFavor: number }
+
+/** R-7.1.2 — the favor costs of the cards a Travel to this site is sent with, as the engine pays them. */
+function cardCosts(
     state: HydratedOathGameState,
     playerId: string,
+    slotId: string,
+    modifiers: readonly ModifierUse[]
+): CardCost[] {
+    return resolveModifiers(state, playerId, ActionType.Travel, modifiers, {
+        destinationSiteId: slotId
+    })
+        .active.filter((m) => !m.mandatory)
+        .map(({ power }) => ({
+            cardId: power.cardId,
+            placeFavor: power.cost.placeFavor,
+            burnFavor: power.cost.burnFavor
+        }))
+}
+
+/**
+ * R-7.1.2, R-7.1.4, R-7.4 — each bank as the way's payments leave it, for Hospitality's gain after
+ * the move. The engine pays the cards' costs, then the tolls, before the move. Favor paid leaves the
+ * player's board first, then the bank the engine keeps their favor in (Vow of Kinship,
+ * `favorHomeBankOf`), as `spendFavor` takes it. A cost's placed favor goes onto its card, or out of
+ * turn into the card's own bank (R-7.1.2.a); a toll's favor reaches its payee as `receiveFavor`
+ * gives it, into their bank under the same vow; burned favor (a cost's burn, a toll for the bandits)
+ * goes to whoever takes it (Vow of Renewal, `burnedFavorTaker`), into their bank under the vow, or
+ * else leaves the banks. An emptied bank gives nothing on that way (R-9.3); a way that leaves it
+ * favor still can.
+ */
+function banksAfterPayments(
+    state: HydratedOathGameState,
+    playerId: string,
+    costs: readonly CardCost[],
     tolls: readonly Toll[]
 ): Record<Suit, number> {
     const banks = { ...state.favorBank }
-    const fromBank = Math.max(0, tolls.length - state.getPlayerState(playerId).favor)
-    const own = favorHomeBankOf(state, playerId)
-    if (own && fromBank > 0) banks[own] -= fromBank
+    const into = (suit: Suit | undefined, count: number) => {
+        if (suit) banks[suit] += count
+    }
+    const burned = (count: number) => {
+        const taker = burnedFavorTaker(state)
+        if (taker) into(favorHomeBankOf(state, taker), count)
+    }
+    const paid =
+        costs.reduce((n, cost) => n + cost.placeFavor + cost.burnFavor, 0) + tolls.length
+    const fromBank = Math.max(0, paid - state.getPlayerState(playerId).favor)
+    into(favorHomeBankOf(state, playerId), -fromBank)
+    const outOfTurn = !holdsTheTurn(state, playerId)
+    for (const { cardId, placeFavor, burnFavor } of costs) {
+        if (outOfTurn) into(suitOf(cardId), placeFavor)
+        burned(burnFavor)
+    }
     for (const { payeeId } of tolls) {
-        const theirs = payeeId ? favorHomeBankOf(state, payeeId) : undefined
-        if (theirs) banks[theirs] += 1
+        if (payeeId) into(favorHomeBankOf(state, payeeId), 1)
+        else burned(1)
     }
     return banks
 }
@@ -96,8 +139,8 @@ function banksAfterTolls(
 /**
  * Hospitality — the banks this way could gain from: each that matches a card at the destination
  * and one of the player's advisers, as the engine judges it with the way's other cards, and that
- * holds favor to give once the way's tolls are paid (an empty bank gives nothing, R-9.3). A
- * declaration naming a bank keeps to it.
+ * holds favor to give once those cards' costs and the way's tolls are paid (an empty bank gives
+ * nothing, R-9.3). A declaration naming a bank keeps to it.
  */
 function hospitalityBanks(
     state: HydratedOathGameState,
@@ -109,9 +152,10 @@ function hospitalityBanks(
     hospitality: ModifierUse
 ): Suit[] {
     const named = namedBank(hospitality)
-    const banks = banksAfterTolls(
+    const banks = banksAfterPayments(
         state,
         playerId,
+        cardCosts(state, playerId, slotId, others),
         tolls.filter((toll) => way.tolls.includes(toll.cardId))
     )
     return FAVOR_BANK_ORDER.filter(
