@@ -5,9 +5,10 @@ import {
     ReefEncounterGameStateValidator,
     type ReefEncounterProjectedState
 } from '../model/gameState.js'
+import { ShrimpsPerPlayer } from '../model/playerState.js'
 import { completeSetup, dealtColorOf, startTestGame, type TestSession } from '../util/testHelper.js'
 import type { ReefEncounterGameConfig } from './config.js'
-import { PolypsPerColor } from './initializer.js'
+import { LarvaCubesPerColor, PolypsPerColor } from './initializer.js'
 import { ReefEncounterRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 
@@ -177,10 +178,45 @@ describe('exploring from what a player can see', () => {
         expect(everyPolyp(sample)).toEqual(coralCounts(PolypsPerColor))
     })
 
-    it('is unavailable while the game is Concealed', () => {
-        const session = playTurns({ concealed: true })
-        const [viewer] = session.state.turnManager.turnOrder
-        expect(() => populate(session, asPlayer(viewer))).toThrow(/Concealed/)
+    it('samples what a Concealed game hides within what everyone can see', () => {
+        const atSetup = startTestGame(3, { concealed: true })
+        for (const session of [atSetup, playTurns({ concealed: true })]) {
+            for (const perspective of perspectivesFor(session.state)) {
+                const sample = populate(session, perspective)
+
+                expect(ReefEncounterGameStateValidator.Check(sample)).toBe(true)
+                expect(populate(session, perspective)).toEqual(sample)
+                expect(project(session, perspective, sample)).toEqual(project(session, perspective))
+                expect(everyPolyp(sample)).toEqual(coralCounts(PolypsPerColor))
+                expect(sample.polypBag.items).toHaveLength(sample.polypBag.remaining)
+                for (const color of CoralColors) {
+                    const held = sample.players.reduce(
+                        (total, player) => total + (player.larvaCubes?.[color] ?? 0),
+                        0
+                    )
+                    const onOpenSea = sample.openSea.filter(
+                        (space) => space.larvaColor === color && space.hasLarvaCube
+                    ).length
+                    expect(held + onOpenSea + sample.larvaCubeSupply[color]).toBe(
+                        LarvaCubesPerColor
+                    )
+                }
+                for (const player of sample.players) {
+                    const onReefs = sample.shrimps.filter(
+                        (shrimp) => shrimp.playerId === player.playerId
+                    ).length
+                    expect(
+                        (player.shrimpsInSupply ?? 0) +
+                            (player.shrimpsInParrotfish ?? 0) +
+                            onReefs +
+                            (player.shrimpOnOpenSea ? 1 : 0)
+                    ).toBe(ShrimpsPerPlayer)
+                    expect(totalCount(player.secretSupplyPolyps ?? coralCounts())).toBe(
+                        player.secretSupplyPolypCount
+                    )
+                }
+            }
+        }
     })
 
     it('keeps every secret shown at the end of the game, Concealed or not', () => {
