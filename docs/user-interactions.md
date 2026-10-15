@@ -22,7 +22,7 @@ A Game UI offers exactly one reversal control: the `Undo` button at the right en
 
 Auto selections never absorb a press: when only auto selections remain, Undo goes straight to action undo.
 
-Pressing Undo repeatedly therefore walks back through the staged selection one manual step at a time, then through committed actions. Players reverse every step through this one control, so no panel renders a `Back` or step-cancel button of its own.
+Pressing Undo repeatedly therefore walks back through the staged selection one manual step at a time, then through committed actions. Players reverse every step through this one control, so no panel renders a `Back` or step-cancel button of its own. A toggle is a selection, not a reversal control: choosing a selected piece or target again may deselect it.
 
 Implement this in the session's `undo()` override so every caller gets the contextual behavior:
 
