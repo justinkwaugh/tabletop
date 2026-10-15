@@ -85,7 +85,7 @@
     }
 
     .cost {
-        fill: #a3311d;
+        fill: #26300f;
         font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 14px;
         font-weight: 700;

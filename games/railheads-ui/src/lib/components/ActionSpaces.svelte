@@ -1,9 +1,7 @@
 <script lang="ts">
     import { ActionSpaceId, isLayTrackSpace } from '@tabletop/railheads'
-    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { SPACE_NAMES, spaceTerms } from '$lib/utils/describeAction.js'
-    import TrainIcon from './TrainIcon.svelte'
 
     const DISPLAY_ORDER = [
         ActionSpaceId.IssueShare,
@@ -40,15 +38,9 @@
 <div class="strip" aria-label="Action selection">
     <div class="timer" title="Coins left on the Round Timer; the round ends when they run out">
         <span class="round">
-            {#if state.round() === 0}Initial auction{:else}Round {state.round()} of {rounds}{/if}
+            {#if state.round() === 0}Initial auction{:else}Round<br /><span class="nowrap">{state.round()} of {rounds}</span>{/if}
         </span>
         <span class="coins"><span class="coin">$</span>{state.roundTimer}</span>
-        {#if state.startPlayerId}
-            <span class="starter" title="Start Player">
-                <TrainIcon size={16} />
-                <PlayerName playerId={state.startPlayerId} />
-            </span>
-        {/if}
     </div>
     {#each spaces as entry (entry.space)}
         <div class="space" class:active={entry.active} class:selectable={entry.selectable}>
@@ -111,6 +103,10 @@
         text-align: center;
     }
 
+    .nowrap {
+        white-space: nowrap;
+    }
+
     .round {
         font-size: 17px;
         font-weight: 700;
@@ -137,13 +133,6 @@
         border-radius: 999px;
         background: #e3c34a;
         color: #4a3a05;
-        font-size: 11px;
-    }
-
-    .starter {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
         font-size: 11px;
     }
 

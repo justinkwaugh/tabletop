@@ -53,7 +53,7 @@
         <span class="level" title="Development level, out of {length}">Level {level}</span>
     </div>
     <div class="body">
-        {@render pile(forSale, 'for sale', `${forSale} tokens still to be auctioned`)}
+        {@render pile(forSale, 'left', `${forSale} tokens left to be auctioned`)}
         <div class="figures">
             <div
                 class="entry"
