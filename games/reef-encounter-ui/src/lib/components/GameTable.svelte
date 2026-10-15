@@ -181,6 +181,28 @@
         letter-spacing: 0.01em;
     }
 
+    .reef-table :global(.reef-plaque) {
+        border-radius: 999px;
+        box-shadow:
+            inset 0 9px 8px -6px rgb(255 255 255 / 0.4),
+            0 0 0 2px color-mix(in srgb, var(--player) 45%, #082520),
+            0 3px 6px rgb(4 30 26 / 0.45);
+    }
+
+    /* A filter applies before a mask, so the outline goes on the wrapper to follow the bite. */
+    .reef-table :global(.reef-bitten) {
+        filter: drop-shadow(0 0 0.6px rgb(0 0 0 / 0.8));
+    }
+
+    .reef-table :global(.reef-bitten img) {
+        mask-image:
+            radial-gradient(circle at 100% 0, transparent 5.5px, black 6px),
+            radial-gradient(circle at calc(100% - 6.5px) 1px, transparent 2.8px, black 3.2px),
+            radial-gradient(circle at calc(100% - 4.6px) 4.6px, transparent 2.8px, black 3.2px),
+            radial-gradient(circle at calc(100% - 1px) 6.5px, transparent 2.8px, black 3.2px);
+        mask-composite: intersect;
+    }
+
     .reef-table :global(.reef-glass) {
         background: var(--reef-glass);
         backdrop-filter: blur(4px) saturate(1.15);

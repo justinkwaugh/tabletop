@@ -68,7 +68,6 @@ const cube = (color: CoralColor, count = 1): PhraseIcon => ({
     label: counted(count, `${color} larva cube`)
 })
 
-// What players call a reef board: its place on the table, not its printed number.
 export type BoardName = (boardId: number) => string
 
 const parrotfish = (own: 'your' | 'their'): PhraseIcon => ({
