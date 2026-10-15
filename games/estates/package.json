@@ -19,8 +19,6 @@
         "@tabletop/common": "workspace:*"
     },
     "devDependencies": {
-        "@babel/core": "^7.28.6",
-        "@babel/preset-env": "^7.28.6",
         "@tabletop/vitest-config": "workspace:*",
         "@tabletop/eslint-config": "workspace:*",
         "@tabletop/rollup-config": "workspace:*",
