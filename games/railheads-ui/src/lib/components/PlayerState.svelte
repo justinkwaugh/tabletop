@@ -56,7 +56,7 @@
         <div class="line" title="${line.each} a token at the next payout">
             <span class="items">
                 {#each Array.from({ length: line.count }, (_, index) => index) as token (token)}
-                    <IndustryToken industry={line.industry} size={30} />
+                    <IndustryToken industry={line.industry} size={20} />
                 {/each}
             </span>
             <span class="leader"></span>
