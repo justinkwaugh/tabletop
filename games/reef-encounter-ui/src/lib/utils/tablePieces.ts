@@ -189,6 +189,8 @@ export type PieceFlip = { piece: CoralTilePiece; from: CoralTilePiece }
 export type PieceChanges = {
     arriving: TablePiece[]
     leaving: TablePiece[]
+    // The leaving pieces that neither slide to a new place nor turn over: really taken away.
+    removed: TablePiece[]
     moves: PieceMove[]
     flips: PieceFlip[]
 }
@@ -223,7 +225,7 @@ export function pieceChanges(from: readonly TablePiece[], to: readonly TablePiec
         moves.push({ piece, source: unmatched[index] })
         unmatched.splice(index, 1)
     }
-    return { arriving, leaving, moves, flips }
+    return { arriving, leaving, removed: unmatched, moves, flips }
 }
 
 function isSamePieceMoved(a: TablePiece, b: TablePiece): boolean {

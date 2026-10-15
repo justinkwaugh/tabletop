@@ -15,6 +15,8 @@ type PiecesCallbacks = {
     isOwnLiveAction: (action: GameAction) => boolean
 }
 
+type Timing = typeof ACTION
+
 const ACTION = {
     leave: 0.25,
     arrive: 0.3,
@@ -23,7 +25,7 @@ const ACTION = {
     flipHalf: 0.2,
     hold: 0.45
 }
-const OWN = {
+const OWN: Timing = {
     leave: 0.15,
     arrive: 0.2,
     arriveAfterLeaving: 0.08,
@@ -32,7 +34,7 @@ const OWN = {
     hold: 0
 }
 // Undo and history steps: every path ends within 200ms.
-const FAST = {
+const FAST: Timing = {
     leave: 0.15,
     arrive: 0.15,
     arriveAfterLeaving: 0,
@@ -40,6 +42,20 @@ const FAST = {
     flipHalf: 0.09,
     hold: 0
 }
+
+// When arrivals and tile flips start. A polyp that replaces an attacked one lands once the old one
+// has gone, and tiles turn over in response to a cylinder, so with an action they wait for it to
+// land.
+export function arrivalSchedule(
+    removedCount: number,
+    timing: Timing,
+    hasAction: boolean
+): { arriveAt: number; flipAt: number } {
+    const arriveAt = removedCount > 0 ? timing.arriveAfterLeaving : 0
+    return { arriveAt, flipAt: hasAction ? arriveAt + timing.arrive : 0 }
+}
+
+export const PiecesTimings = { ACTION, OWN, FAST }
 
 export class PiecesAnimator {
     private elements = new Map<string, SVGGElement>()
@@ -73,10 +89,8 @@ export class PiecesAnimator {
         }
         const gameId = this.callbacks.gameId()
         const toPieces = tablePieces(to, gameId)
-        const { arriving, leaving, moves, flips } = pieceChanges(
-            tablePieces(from, gameId),
-            toPieces
-        )
+        const changes = pieceChanges(tablePieces(from, gameId), toPieces)
+        const { arriving, leaving, moves, flips } = changes
         if (arriving.length + leaving.length === 0) {
             return
         }
@@ -106,8 +120,11 @@ export class PiecesAnimator {
             )
         }
 
-        // A polyp that replaces an attacked one lands once the old one has gone.
-        const arriveAt = leaving.length > moves.length ? timing.arriveAfterLeaving : 0
+        const { arriveAt, flipAt } = arrivalSchedule(
+            changes.removed.length,
+            timing,
+            action !== undefined
+        )
         for (const piece of arriving) {
             const node = this.elements.get(piece.key)
             if (!node) continue
@@ -134,8 +151,6 @@ export class PiecesAnimator {
             timeline.to(node, { x: 0, y: 0, duration: timing.move, ease: 'power2.inOut' }, 0)
         }
 
-        // Tiles flip in response to the cylinder, so they wait for it to land.
-        const flipAt = action ? timing.arrive : 0
         for (const { piece, from } of flips) {
             const oldFace = this.elements.get(from.key)
             const newFace = this.elements.get(piece.key)

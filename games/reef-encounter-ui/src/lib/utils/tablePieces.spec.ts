@@ -62,18 +62,20 @@ describe('pieceChanges', () => {
         expect(pieceChanges(pieces, pieces)).toEqual({
             arriving: [],
             leaving: [],
+            removed: [],
             moves: [],
             flips: []
         })
     })
 
     it('slides a shrimp moved along its reef', () => {
-        const { arriving, leaving, moves } = pieceChanges(
+        const { arriving, leaving, removed, moves } = pieceChanges(
             [shrimp('from', 'p1', 0)],
             [shrimp('to', 'p1', 5)]
         )
         expect(arriving).toEqual([])
         expect(keys(leaving)).toEqual(['from'])
+        expect(removed).toEqual([])
         expect(moves.map(({ piece, source }) => [piece.key, source.key])).toEqual([['to', 'from']])
     })
 
@@ -90,12 +92,13 @@ describe('pieceChanges', () => {
     })
 
     it('replaces an attacked polyp on a reef rather than sliding one', () => {
-        const { arriving, leaving, moves } = pieceChanges(
+        const { arriving, leaving, removed, moves } = pieceChanges(
             [polyp('weak', CoralColor.Grey, 0)],
             [polyp('strong', CoralColor.Grey, 0)]
         )
         expect(keys(arriving)).toEqual(['strong'])
         expect(keys(leaving)).toEqual(['weak'])
+        expect(keys(removed)).toEqual(['weak'])
         expect(moves).toEqual([])
     })
 
@@ -114,10 +117,11 @@ describe('pieceChanges', () => {
     })
 
     it('turns a flipped coral tile over in place', () => {
-        const { arriving, leaving, flips } = pieceChanges(
+        const { arriving, leaving, removed, flips } = pieceChanges(
             [tile('1:starfish', 1), tile('2:starfish', 2)],
             [tile('1:plain', 1), tile('2:starfish', 2)]
         )
+        expect(removed).toEqual([])
         expect(flips.map(({ piece, from }) => [piece.key, from.key])).toEqual([
             ['1:plain', '1:starfish']
         ])
