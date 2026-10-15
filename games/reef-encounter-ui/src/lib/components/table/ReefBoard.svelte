@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { squareName } from '$lib/utils/reefSquare.js'
+    import { boardName, squareName } from '$lib/utils/reefSquare.js'
     import { withArticle } from '$lib/utils/actionDescription.js'
     import type { OffsetCoordinates } from '@tabletop/common'
     import { polypAt, type Reef, type ReefSquare } from '@tabletop/reef-encounter'
@@ -49,7 +49,7 @@
     )
     const pickerAnchor = $derived(pickedUp ?? chosenSquare)
     const where = (coords: OffsetCoordinates) =>
-        `on ${squareName({ boardId: reef.boardId, coords })}`
+        `on ${squareName(gameSession.gameState.reefs, { boardId: reef.boardId, coords })}`
 </script>
 
 <svg
@@ -57,7 +57,7 @@
     width={drawing.size.width * ImageToTable}
     height={drawing.size.height * ImageToTable}
     role="group"
-    aria-label="Reef board {reef.boardId}"
+    aria-label="Reef {boardName(gameSession.gameState.reefs, reef.boardId)}"
 >
     <g transform={drawing.transform}>
         <image

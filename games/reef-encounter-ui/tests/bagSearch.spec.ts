@@ -23,10 +23,10 @@ test('extra growth with its bonus space empty grows a polyp found in the bag', a
 
     await actions.getByRole('button', { name: /^Play a white larva cube/ }).click()
     await page
-        .getByRole('button', { name: 'Place a white polyp on board 3, row 3, column 3' })
+        .getByRole('button', { name: 'Place a white polyp on Board 1, row 3, column 3' })
         .click()
     await expect(
-        page.getByRole('img', { name: 'white polyp on board 3, row 4, column 3' })
+        page.getByRole('img', { name: 'white polyp on Board 1, row 4, column 3' })
     ).toBeVisible()
     await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
 })

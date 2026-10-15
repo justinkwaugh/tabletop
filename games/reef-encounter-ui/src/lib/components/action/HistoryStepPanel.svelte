@@ -1,6 +1,7 @@
 <script lang="ts">
     import Phrases from '$lib/components/Phrases.svelte'
     import { describeActions } from '$lib/utils/actionDescription.js'
+    import { boardName } from '$lib/utils/reefSquare.js'
     import { historyStep } from '$lib/utils/historyEntries.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -10,7 +11,8 @@
         describeActions(
             step,
             step[0]?.playerId === gameSession.myPlayer?.id ? 'your' : 'their',
-            gameSession.possessiveName
+            gameSession.possessiveName,
+            (boardId) => boardName(gameSession.gameState.reefs, boardId)
         )
     )
 </script>

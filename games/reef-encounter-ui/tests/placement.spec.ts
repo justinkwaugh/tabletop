@@ -7,7 +7,7 @@ test('with polyps in the supply and consumed, a popup by the square asks which t
     await openScenario(page, 'Both polyp sources')
     const actions = actionPanel(page)
     const square = page.getByRole('button', {
-        name: 'Place a white polyp on board 3, row 2, column 4'
+        name: 'Place a white polyp on Board 1, row 2, column 4'
     })
     const consumed = page.getByRole('button', { name: 'Place a consumed white polyp' })
 
@@ -25,13 +25,13 @@ test('with polyps in the supply and consumed, a popup by the square asks which t
     await square.click()
     await consumed.click()
     await expect(
-        page.getByRole('img', { name: 'white polyp on board 3, row 2, column 4' })
+        page.getByRole('img', { name: 'white polyp on Board 1, row 2, column 4' })
     ).toBeVisible()
     await page
-        .getByRole('button', { name: 'Place a white polyp on board 3, row 1, column 4' })
+        .getByRole('button', { name: 'Place a white polyp on Board 1, row 1, column 4' })
         .click()
     await expect(consumed).toHaveCount(0)
     await expect(
-        page.getByRole('img', { name: 'white polyp on board 3, row 1, column 4' })
+        page.getByRole('img', { name: 'white polyp on Board 1, row 1, column 4' })
     ).toBeVisible()
 })

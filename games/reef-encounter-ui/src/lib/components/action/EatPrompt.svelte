@@ -8,12 +8,13 @@
 
 <p class="prompt reef-display">Choose a coral for your parrotfish</p>
 <p class="detail">
-    {returned} of its polyps go back into the bag and the rest feed your parrotfish. Your shrimp on it
-    {shrimpGoesToOpenSea ? 'goes onto the open sea' : 'is eaten too'}. Undo cancels.
+    {returned} polyp{returned === 1 ? '' : 's'} go{returned === 1 ? 'es' : ''} back in the bag, the rest
+    to your parrotfish. Your shrimp
+    {shrimpGoesToOpenSea ? 'goes onto the open sea' : 'is eaten too'}.
 </p>
 {#if gameSession.eatingStartsFinalTurns}
     <p class="warning">
-        This is your parrotfish's fourth shrimp: eating ends the game, and every other player then
-        has one final turn.
+        Your parrotfish's fourth shrimp: eating ends the game, and everyone else gets one final
+        turn.
     </p>
 {/if}

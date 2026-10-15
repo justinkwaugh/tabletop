@@ -51,22 +51,20 @@
 {:else if gameSession.cylinderAlga}
     <p class="prompt reef-display">Put the {gameSession.cylinderAlga} cylinder on the open sea</p>
     <p class="detail">
-        On the cylinder space, where it turns every unlocked coral tile whose large alga is
-        {gameSession.cylinderAlga}{gameSession.cylinderTargets.tileIds.length > 0
+        On the cylinder space to turn every unlocked {gameSession.cylinderAlga}-alga tile{gameSession
+            .cylinderTargets.tileIds.length > 0
             ? ', or on one of those tiles to lock it'
-            : ''}. Undo goes back a step.
+            : ''}.
     </p>
     {#if gameSession.lockingLastTile !== undefined}
         <p class="warning">
-            Tile {gameSession.lockingLastTile} is the last unlocked coral tile: locking it ends the game,
-            and every other player then has one final turn.
+            Locking tile {gameSession.lockingLastTile}, the last unlocked one, ends the game:
+            everyone else gets one final turn.
         </p>
     {/if}
 {:else if gameSession.cylinderPayment}
     <p class="prompt reef-display">Choose the cylinder's colour</p>
-    <p class="detail">
-        Paid with a consumed {gameSession.cylinderPayment} polyp. Undo goes back a step.
-    </p>
+    <p class="detail">Paid with a consumed {gameSession.cylinderPayment} polyp.</p>
     <div class="choices">
         {#each gameSession.cylinderAlgas as alga (alga)}
             <ChoiceButton
@@ -82,16 +80,14 @@
     </div>
 {:else if intent?.kind === 'introduce'}
     <p class="prompt reef-display">Choose a polyp for your shrimp</p>
-    <p class="detail">It may go on any coral without a shrimp. Undo cancels.</p>
+    <p class="detail">Any coral without a shrimp.</p>
 {:else if intent?.kind === 'move'}
     <p class="prompt reef-display">Move your shrimp</p>
     <p class="detail">
-        Choose a polyp or bare rock, or put it back in your supply from beside it. Choose the shrimp
-        again, or Undo, to leave it where it is.
+        Choose a polyp or bare rock, or put it back in your supply. Choose it again to leave it.
     </p>
 {:else if placing && gameSession.placementSquare}
     <p class="prompt reef-display">Which {placing.color} polyp goes there?</p>
-    <p class="detail">One from your supply, or a consumed one. Undo cancels.</p>
 {:else if placing}
     <p class="prompt reef-display">Place {placing.color} polyps on the reefs</p>
     <p class="detail">
@@ -105,8 +101,7 @@
 
 {#if gameSession.cubeToPlay && !gameSession.turnChoiceOpen}
     <p class="warning">
-        Play the {gameSession.cubeToPlay} larva cube you just bought before anything else, or trade it
-        for a polyp.
+        Play the {gameSession.cubeToPlay} cube you bought first, or trade it for a polyp.
     </p>
 {/if}
 
@@ -207,17 +202,17 @@
         </ActionGroup>
     </div>
     {#if onBoard.length > 0}
-        <p class="detail">On the table, {onBoard.join(', or ')}.</p>
+        <p class="detail">Or {onBoard.join(', or ')}.</p>
     {/if}
 {/if}
 
 {#if parked.length > 0 && !gameSession.turnChoiceOpen}
-    {#each parked.map(squareName) as name (name)}
+    {#each parked.map((square) => squareName(gameSession.gameState.reefs, square)) as name (name)}
         <p class="warning">Your shrimp on {name} is on bare rock.</p>
     {/each}
     <p class="warning">
-        Before your turn can end, pick {parked.length === 1 ? 'it' : 'each one'} up and move it onto a
-        polyp, or put it back in your supply.
+        Move {parked.length === 1 ? 'it' : 'each'} onto a polyp or back to your supply before ending your
+        turn.
     </p>
 {/if}
 

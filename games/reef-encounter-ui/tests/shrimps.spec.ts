@@ -36,7 +36,7 @@ test('a shrimp is introduced onto a polyp, moved, and sent back to the supply', 
         .first()
         .click()
     await expect(actions).toContainText(
-        /Your shrimp on board \d, row \d, column \d is on bare rock./
+        /Your shrimp on Board \d, row \d, column \d is on bare rock./
     )
     await expect(takeSpace).toHaveCount(0)
 

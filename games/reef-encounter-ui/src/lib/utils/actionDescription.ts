@@ -27,7 +27,6 @@ export type PhraseIcon = { label: string } & (
     | { icon: 'unseen-polyp' }
     | { icon: 'cube'; color: CoralColor; count: number }
     | { icon: 'cylinder'; alga: AlgaColor }
-    | { icon: 'board'; boardId: number }
     | { icon: 'parrotfish' }
 )
 // Words may show shorter than they read, where the icons around them carry the meaning.
@@ -69,11 +68,8 @@ const cube = (color: CoralColor, count = 1): PhraseIcon => ({
     label: counted(count, `${color} larva cube`)
 })
 
-const board = (boardId: number): PhraseIcon => ({
-    icon: 'board',
-    boardId,
-    label: `board ${boardId}`
-})
+// What players call a reef board: its place on the table, not its printed number.
+export type BoardName = (boardId: number) => string
 
 const parrotfish = (own: 'your' | 'their'): PhraseIcon => ({
     icon: 'parrotfish',
@@ -94,7 +90,8 @@ function phrase(parts: PhrasePart[], text = phraseText(parts)): Omit<Phrase, 'pl
 // Undefined for actions the history leaves out.
 export function describeAction(
     action: GameAction,
-    own: 'your' | 'their'
+    own: 'your' | 'their',
+    board: BoardName
 ): Omit<Phrase, 'playerId'> | undefined {
     if (isFeedParrotfish(action)) {
         return phrase([
@@ -120,7 +117,7 @@ export function describeAction(
     if (isPlacePolyp(action)) {
         const placement = action.metadata
         if (!placement) return undefined
-        const parts = placedPolyps(1, placement.color, action.boardId, action.fromConsumed)
+        const parts = placedPolyps(1, placement.color, board(action.boardId), action.fromConsumed)
         if (placement.attacked) {
             parts.push(', consuming ', polyp(placement.attacked))
         }
@@ -223,7 +220,10 @@ export function describeAction(
     return undefined
 }
 
-export function describeSystemAction(action: GameAction): Omit<Phrase, 'playerId'> | undefined {
+export function describeSystemAction(
+    action: GameAction,
+    board: BoardName
+): Omit<Phrase, 'playerId'> | undefined {
     if (isRefillOpenSea(action)) {
         const refill = action.metadata
         if (!refill) return undefined
@@ -278,7 +278,7 @@ function setupParrotfishPhrases(action: GameAction, possessive: (playerId: strin
 function placedPolyps(
     count: number,
     color: CoralColor,
-    boardId: number,
+    boardName: string,
     consumed: boolean
 ): PhrasePart[] {
     const placed = polyp(color, count, consumed)
@@ -288,7 +288,7 @@ function placedPolyps(
             ? placed
             : { ...placed, label: `${count} ${consumed ? 'consumed ' : ''}${color} polyps` },
         ' on ',
-        board(boardId)
+        boardName
     ]
 }
 
@@ -296,7 +296,8 @@ function placedPolyps(
 export function describeActions(
     actions: readonly GameAction[],
     own: 'your' | 'their',
-    possessive: (playerId: string) => string
+    possessive: (playerId: string) => string,
+    board: BoardName
 ): Phrase[] {
     const phrases: Phrase[] = []
     let run:
@@ -311,7 +312,10 @@ export function describeActions(
         | undefined
     const closeRun = () => {
         if (run) {
-            const parts = [...placedPolyps(run.count, run.color, run.boardId, run.consumed), '.']
+            const parts = [
+                ...placedPolyps(run.count, run.color, board(run.boardId), run.consumed),
+                '.'
+            ]
             phrases.push({ ...phrase(parts), playerId: run.playerId })
         }
         run = undefined
@@ -337,8 +341,8 @@ export function describeActions(
         }
         closeRun()
         const described = action.playerId
-            ? describeAction(action, own)
-            : describeSystemAction(action)
+            ? describeAction(action, own, board)
+            : describeSystemAction(action, board)
         if (described) phrases.push({ ...described, playerId: action.playerId })
         phrases.push(...setupParrotfishPhrases(action, possessive))
         if (startsFinalTurns(action)) {

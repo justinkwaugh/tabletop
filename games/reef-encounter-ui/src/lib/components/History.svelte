@@ -10,6 +10,7 @@
         type HistoryEntry
     } from '$lib/utils/historyEntries.js'
     import { describeActions } from '$lib/utils/actionDescription.js'
+    import { boardName } from '$lib/utils/reefSquare.js'
     import PhraseLine from './PhraseLine.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -76,14 +77,7 @@
         {/if}
         {@const lastAt = entry.actions.at(-1)?.createdAt}
         {@const replaying = replay?.entryId === entry.actions[0].id}
-        <article
-            class="entry reef-glass"
-            class:replaying
-            class:dimmed={replay && !replaying}
-            style:--player={entry.playerId
-                ? gameSession.colors.getPlayerBgColorValue(entry.playerId)
-                : 'var(--reef-sun)'}
-        >
+        <article class="entry reef-glass" class:replaying class:dimmed={replay && !replaying}>
             {#if entry.playerId}
                 {@const name = gameSession.getPlayerName(entry.playerId)}
                 <header>
@@ -118,7 +112,7 @@
                 </header>
             {/if}
             <ul>
-                {#each describeActions(entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their', gameSession.possessiveName) as phrase, index (index)}
+                {#each describeActions( entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their', gameSession.possessiveName, (boardId) => boardName(gameSession.gameState.reefs, boardId) ) as phrase, index (index)}
                     <li><PhraseLine {phrase} capitalise /></li>
                 {/each}
             </ul>
@@ -162,19 +156,8 @@
 
     .entry {
         position: relative;
-        padding: 8px 10px 8px 14px;
+        padding: 8px 10px;
         text-align: left;
-    }
-
-    .entry::before {
-        content: '';
-        position: absolute;
-        left: 4px;
-        top: 9px;
-        bottom: 9px;
-        width: 3px;
-        border-radius: 4px;
-        background: var(--player);
     }
 
     .jumps {
