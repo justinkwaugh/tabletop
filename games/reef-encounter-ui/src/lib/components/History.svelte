@@ -68,75 +68,87 @@
 </script>
 
 <div class="history" bind:this={scrollContainer}>
-    {#each entries as entry, index (entry.actions[0].id)}
-        {#if isSetupEntry(entry) && (index === 0 || !isSetupEntry(entries[index - 1]))}
-            <h4 class="divider reef-display">Setup</h4>
-        {/if}
-        {#if finalTurns.has(entry) && (index === 0 || !finalTurns.has(entries[index - 1]))}
-            <h4 class="divider reef-display">Final turns</h4>
-        {/if}
-        {@const lastAt = entry.actions.at(-1)?.createdAt}
-        {@const replaying = replay?.entryId === entry.actions[0].id}
-        <article class="entry reef-glass" class:replaying class:dimmed={replay && !replaying}>
-            {#if entry.playerId}
-                {@const name = gameSession.getPlayerName(entry.playerId)}
-                <header>
-                    <div
-                        class="jumps"
-                        role="button"
-                        tabindex={replay ? -1 : 0}
-                        aria-label="Show the table as {name} left it"
-                        title="Show the table at this point"
-                        onclick={() => jumpTo(entry)}
-                        onkeydown={(event) => onActivate(event, () => jumpTo(entry))}
-                    >
-                        <PlayerName playerId={entry.playerId} />
-                        {#if lastAt}<time class="when">{timeAgo.format(lastAt)}</time>{/if}
-                    </div>
-                    {#if replaying}
-                        <span class="replaying">Replaying</span>
-                    {:else if movesPieces(entry)}
-                        <button
-                            class="replay reef-display"
-                            disabled={replay !== undefined}
-                            aria-label="Replay {name}'s moves"
-                            title="Replay these moves on the table"
-                            onclick={() => replayEntry(entry)}>Replay</button
-                        >
-                    {/if}
-                </header>
-            {:else}
-                <header>
-                    <span class="reef-display">End of the game</span>
-                    {#if lastAt}<time class="when">{timeAgo.format(lastAt)}</time>{/if}
-                </header>
+    <div class="log reef-glass">
+        {#each entries as entry, index (entry.actions[0].id)}
+            {#if isSetupEntry(entry) && (index === 0 || !isSetupEntry(entries[index - 1]))}
+                <h4 class="divider reef-display">Setup</h4>
             {/if}
-            <ul>
-                {#each describeActions( entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their', gameSession.possessiveName, (boardId) => boardName(gameSession.gameState.reefs, boardId) ) as phrase, index (index)}
-                    <li><PhraseLine {phrase} capitalise /></li>
-                {/each}
-            </ul>
-        </article>
-    {:else}
-        <p class="empty">Nothing has happened yet.</p>
-    {/each}
+            {#if finalTurns.has(entry) && (index === 0 || !finalTurns.has(entries[index - 1]))}
+                <h4 class="divider reef-display">Final turns</h4>
+            {/if}
+            {@const lastAt = entry.actions.at(-1)?.createdAt}
+            {@const replaying = replay?.entryId === entry.actions[0].id}
+            <article class="entry" class:replaying class:dimmed={replay && !replaying}>
+                {#if entry.playerId}
+                    {@const name = gameSession.getPlayerName(entry.playerId)}
+                    <header>
+                        <div
+                            class="jumps"
+                            style:--player={gameSession.colors.getPlayerBgColorValue(
+                                entry.playerId
+                            )}
+                            role="button"
+                            tabindex={replay ? -1 : 0}
+                            aria-label="Show the table as {name} left it"
+                            title="Show the table at this point"
+                            onclick={() => jumpTo(entry)}
+                            onkeydown={(event) => onActivate(event, () => jumpTo(entry))}
+                        >
+                            <PlayerName
+                                playerId={entry.playerId}
+                                fontFamily="'Reef Fredoka', 'Trebuchet MS', sans-serif"
+                                additionalClasses="plaque reef-display"
+                            />
+                            {#if lastAt}<time class="when">{timeAgo.format(lastAt)}</time>{/if}
+                        </div>
+                        {#if replaying}
+                            <span class="replaying">Replaying</span>
+                        {:else if movesPieces(entry)}
+                            <button
+                                class="replay reef-display"
+                                disabled={replay !== undefined}
+                                aria-label="Replay {name}'s moves"
+                                title="Replay these moves on the table"
+                                onclick={() => replayEntry(entry)}>Replay</button
+                            >
+                        {/if}
+                    </header>
+                {:else}
+                    <header>
+                        <span class="reef-display">End of the game</span>
+                        {#if lastAt}<time class="when">{timeAgo.format(lastAt)}</time>{/if}
+                    </header>
+                {/if}
+                <ul>
+                    {#each describeActions( entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their', gameSession.possessiveName, (boardId) => boardName(gameSession.gameState.reefs, boardId) ) as phrase, index (index)}
+                        <li><PhraseLine {phrase} capitalise /></li>
+                    {/each}
+                </ul>
+            </article>
+        {:else}
+            <p class="empty">Nothing has happened yet.</p>
+        {/each}
+    </div>
 </div>
 
 <style>
     .history {
-        display: grid;
-        gap: 8px;
         height: 100%;
         overflow-y: auto;
         padding: 2px 2px 8px;
-        align-content: start;
+    }
+
+    /* One sheet of glass for the whole log, its entries split by hairlines. */
+    .log {
+        position: relative;
+        padding: 2px 0;
     }
 
     .divider {
         display: flex;
         align-items: center;
         gap: 10px;
-        margin: 6px 2px 0;
+        margin: 8px 10px 4px;
         font-size: 15px;
         color: var(--reef-ink);
         text-shadow: 0 1px 3px rgb(4 30 26 / 0.5);
@@ -156,8 +168,12 @@
 
     .entry {
         position: relative;
-        padding: 8px 10px;
+        padding: 8px 12px;
         text-align: left;
+    }
+
+    .entry + .entry {
+        border-top: 1px solid rgb(255 255 255 / 0.12);
     }
 
     .jumps {
@@ -170,6 +186,17 @@
         margin: -4px -6px 4px;
         padding: 4px 6px;
         border-radius: 8px;
+    }
+
+    /* A small copy of the player panels' name plaque. */
+    .jumps :global(.plaque) {
+        padding: 0 10px 1px;
+        border-radius: 999px;
+        font-size: 13px;
+        line-height: 20px;
+        box-shadow:
+            inset 0 6px 6px -5px rgb(255 255 255 / 0.4),
+            0 0 0 1.5px color-mix(in srgb, var(--player) 45%, #082520);
     }
 
     .jumps:hover,
@@ -211,9 +238,7 @@
     }
 
     .entry.replaying {
-        box-shadow:
-            inset 0 0 0 2px var(--reef-sun),
-            0 0 16px rgb(255 217 138 / 0.4);
+        background: rgb(255 217 138 / 0.16);
     }
 
     .entry.dimmed {
