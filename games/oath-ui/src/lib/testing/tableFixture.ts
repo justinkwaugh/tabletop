@@ -562,7 +562,8 @@ const QUESTION_TABLES = {
                 ...asked,
                 actingPlayerId: 'ann',
                 count: 1,
-                receivedCardIds: ['denizen.discord.enchantress']
+                receivedCardIds: ['denizen.discord.enchantress'],
+                receivedFacedownCardIds: []
             },
             {
                 me: {

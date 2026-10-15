@@ -30,7 +30,11 @@ import {
 } from './relics.js'
 import { askQuestion } from './questions.js'
 import type { QuestionRules } from './questionAnswers.js'
-import { discardAdvisersToMeetLimit, reasonAdviserLimitDiscardsInvalid } from './adviserLimit.js'
+import {
+    discardAdvisersToMeetLimit,
+    reasonAdviserLimitDiscardsInvalid,
+    settleAdviserLimitsAfterExchange
+} from './adviserLimit.js'
 import {
     GATHERING_ALLOWS,
     applyExchange,
@@ -148,10 +152,14 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             return reasonExchangeInvalid(state, proposerPlayerId, askedPlayerId, terms)
         },
         apply: (state, playerId, matched) => {
-            const { proposerPlayerId, terms } = matched.question
+            const { cardId, proposerPlayerId, terms } = matched.question
             if (!matched.answer.accept) return `refused ${proposerPlayerId}'s exchange`
-            const disclosed = applyExchange(state, proposerPlayerId, playerId, terms)
-            return { summary: `accepted ${proposerPlayerId}'s exchange`, disclosed }
+            const applied = applyExchange(state, proposerPlayerId, playerId, terms)
+            settleAdviserLimitsAfterExchange(state, proposerPlayerId, cardId, applied.advisersMoved)
+            return {
+                summary: `accepted ${proposerPlayerId}'s exchange`,
+                disclosed: applied.disclosed
+            }
         }
     },
     [PowerQuestionKind.JoinSite]: {

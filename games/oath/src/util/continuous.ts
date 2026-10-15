@@ -118,10 +118,10 @@ function lowestAdviserLimit(base: number, held: readonly ContinuousHooks[]): num
 }
 
 /**
- * R-7.6.4 — how many advisers a player holds above their limit once `leaving` are gone, from
- * revision 11, when a held Pied Piper counts. A card just received that ignores the limit (Pied
- * Piper) is not counted on its arrival. Read from the public rows, besides the facedown cards
- * `leaving` names, so any view of the table counts the same.
+ * R-7.6.4 — how many advisers a player holds above their limit once `leaving` are gone. A card
+ * just received that ignores the limit (Pied Piper) is not counted on its arrival. Read from the
+ * public rows, besides the facedown cards `leaving` names, so any view of the table counts the
+ * same.
  */
 export function advisersOverLimit(
     state: HydratedOathGameState,
@@ -152,15 +152,48 @@ export function adviserExcess(
     facedownLeaving: number
 ): number {
     const player = state.getPlayerState(playerId)
-    const faceup = player.faceupAdviserIds().filter((cardId) => !faceupLeaving.includes(cardId))
-    const facedown = player.advisers.filter((row) => !row.faceUp).length - facedownLeaving
-    const held = [...faceup, ...player.relicIds].flatMap((cardId) => hooksOfCard(state, cardId))
-    const counted = faceup.filter(
+    return holdingExcess(
+        state,
+        {
+            faceup: player.faceupAdviserIds().filter((cardId) => !faceupLeaving.includes(cardId)),
+            facedown: player.advisers.filter((row) => !row.faceUp).length - facedownLeaving,
+            relicIds: player.relicIds,
+            baseLimit: player.adviserLimit
+        },
+        receivedCardIds
+    )
+}
+
+/** R-7.6.4 — a player's advisers as the public rows show them, and the relics held beside them. */
+export interface AdviserHolding {
+    faceup: readonly string[]
+    facedown: number
+    relicIds: readonly string[]
+    baseLimit: number
+}
+
+/**
+ * R-7.6.4 — how many advisers `holding` has above its limit, the limit and the exemptions read
+ * from the holding itself. A card just received that ignores the limit (Pied Piper) is not counted
+ * on its arrival; held, it counts from revision 11 and never before it.
+ */
+export function holdingExcess(
+    state: HydratedOathGameState,
+    holding: AdviserHolding,
+    receivedCardIds: readonly string[]
+): number {
+    const held = [...holding.faceup, ...holding.relicIds].flatMap((cardId) =>
+        hooksOfCard(state, cardId)
+    )
+    const piperCounts = isAtLeastOathRevision(state, OathRevision.EngineFixes7)
+    const counted = holding.faceup.filter(
         (cardId) =>
-            !(receivedCardIds.includes(cardId) && arrivesIgnoringAdviserLimit(state, cardId)) &&
-            !exemptFromAdviserLimit(held, cardId)
+            !(
+                arrivesIgnoringAdviserLimit(state, cardId) &&
+                (receivedCardIds.includes(cardId) || !piperCounts)
+            ) && !exemptFromAdviserLimit(held, cardId)
     ).length
-    return Math.max(0, facedown + counted - lowestAdviserLimit(player.adviserLimit, held))
+    return Math.max(0, holding.facedown + counted - lowestAdviserLimit(holding.baseLimit, held))
 }
 
 export function advisersTowardLimit(

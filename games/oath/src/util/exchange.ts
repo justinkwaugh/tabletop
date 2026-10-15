@@ -17,14 +17,16 @@ import {
     arrivesIgnoringAdviserLimit,
     cannotPlaceWarbandsAtSites,
     countsTowardAdviserLimit,
-    effectiveAdviserLimit
+    effectiveAdviserLimit,
+    holdingExcess
 } from './continuous.js'
 import { giveRelic } from './relics.js'
 import type { CitizenshipTransfer } from '../model/citizenship.js'
 import { countOf } from './warbands.js'
 import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import { reasonPersistentForbidsGivingSecrets } from './persistent.js'
-import { handedOver } from '../model/playerState.js'
+import { handedOver, type AdviserRow, type KnownAdviser } from '../model/playerState.js'
+import type { AdvisersMoved } from './adviserLimit.js'
 
 export const TINKERS_FAIR_ALLOWS: ExchangeAllowance = { relics: true }
 export const DEED_WRITER_ALLOWS: ExchangeAllowance = { sites: true }
@@ -67,21 +69,38 @@ export function reasonExchangeInvalid(
     if (!state.findPlayerState(counterpartyId)) return `no such player ${counterpartyId}`
     if (isEmptyTransfer(terms.fromProposer) && isEmptyTransfer(terms.fromCounterparty))
         return 'the exchange is empty'
+    // R-10.8 — "and vice versa": each side is judged with what comes back in the same exchange.
     return (
-        reasonTransferInvalid(state, proposerId, counterpartyId, terms.fromProposer) ??
-        reasonTransferInvalid(state, counterpartyId, proposerId, terms.fromCounterparty)
+        reasonTransferInvalid(
+            state,
+            proposerId,
+            counterpartyId,
+            terms.fromProposer,
+            terms.fromCounterparty
+        ) ??
+        reasonTransferInvalid(
+            state,
+            counterpartyId,
+            proposerId,
+            terms.fromCounterparty,
+            terms.fromProposer
+        )
     )
 }
 
 /** R-10.8, R-6.6.1 */
 export type Transfer = ExchangeTransfer & CitizenshipTransfer
 
-/** R-10.8 — what `fromId` promises `toId` must be theirs to give when the promise is made. */
+/**
+ * R-10.8 — what `fromId` promises `toId` must be theirs to give when the promise is made.
+ * `inReturn` is what `toId` gives `fromId` in the same exchange, when the terms are known.
+ */
 export function reasonTransferInvalid(
     state: HydratedOathGameState,
     fromId: string,
     toId: string,
-    transfer?: Transfer
+    transfer?: Transfer,
+    inReturn?: ExchangeTransfer
 ): string | undefined {
     if (!transfer) return undefined
     const from = state.getPlayerState(fromId)
@@ -171,7 +190,8 @@ export function reasonTransferInvalid(
             if (unmovable) return unmovable
         }
     }
-    if (rows.length > 0) {
+    // R-X.4 — from revision 11 an exchange that ends over the limit asks a discard once applied.
+    if (rows.length > 0 && !isAtLeastOathRevision(state, OathRevision.EngineFixes7)) {
         // R-7.2.1 — the receiver's adviser limit, counted as Search counts it.
         const incoming = rows.filter((row) => {
             const adviser = from.advisers[row]
@@ -183,11 +203,52 @@ export function reasonTransferInvalid(
                 countsTowardAdviserLimit(state, toId, adviser.cardId, true)
             )
         }).length
-        if (advisersTowardLimit(state, toId) + incoming > effectiveAdviserLimit(state, toId)) {
+        // R-10.8 — and refused only if the receiver also ends over on the exchange's result, so a
+        // swap at the limit or Family Wagon given away passes; what was accepted stays accepted.
+        if (
+            advisersTowardLimit(state, toId) + incoming > effectiveAdviserLimit(state, toId) &&
+            adviserExcessAfterExchange(state, toId, inReturn, fromId, transfer) > 0
+        ) {
             return `${toId} cannot hold ${incoming} more advisers`
         }
     }
     return undefined
+}
+
+/**
+ * R-10.8, R-7.6.4 — how far over the adviser limit `playerId` stands once the exchange has moved
+ * advisers and relics both ways: they give `gives`, and `otherId` gives them `gets`. Read from the
+ * public rows (R-9.4), so every view judges it alike.
+ */
+function adviserExcessAfterExchange(
+    state: HydratedOathGameState,
+    playerId: string,
+    gives: ExchangeTransfer | undefined,
+    otherId: string,
+    gets: ExchangeTransfer | undefined
+): number {
+    const player = state.getPlayerState(playerId)
+    const other = state.getPlayerState(otherId)
+    const leaving = new Set(gives?.adviserRows ?? [])
+    const kept = player.advisers.filter((_, row) => !leaving.has(row))
+    const arriving = (gets?.adviserRows ?? []).flatMap((row) => other.advisers[row] ?? [])
+    const faceupIds = (rows: readonly AdviserRow[]) =>
+        rows.flatMap((row) => (row.faceUp && row.cardId !== undefined ? [row.cardId] : []))
+    const rows = [...kept, ...arriving]
+    const givenRelics = gives?.relicCardIds ?? []
+    return holdingExcess(
+        state,
+        {
+            faceup: faceupIds(rows),
+            facedown: rows.filter((row) => !row.faceUp).length,
+            relicIds: [
+                ...player.relicIds.filter((cardId) => !givenRelics.includes(cardId)),
+                ...(gets?.relicCardIds ?? [])
+            ],
+            baseLimit: player.adviserLimit
+        },
+        faceupIds(arriving)
+    )
 }
 
 /** R-10.8 — the warbands a new ruler moves in: whichever of theirs their board holds most of. */
@@ -236,13 +297,21 @@ function movesFromBoard(
     return moves
 }
 
-/** R-10.8 — the caller validates first; true when a facedown adviser changed hands. */
+/** What an exchange did that its caller acts on. */
+export interface ExchangeApplied {
+    /** A facedown adviser changed hands. */
+    disclosed: boolean
+    /** The players whose advisers changed, and the cards each received. */
+    advisersMoved: AdvisersMoved[]
+}
+
+/** R-10.8 — the caller validates first. */
 export function applyExchange(
     state: HydratedOathGameState,
     proposerId: string,
     counterpartyId: string,
     terms: ExchangeTerms
-): boolean {
+): ExchangeApplied {
     const fromProposer = applyTransfer(state, proposerId, counterpartyId, terms.fromProposer)
     const fromCounterparty = applyTransfer(
         state,
@@ -250,16 +319,37 @@ export function applyExchange(
         proposerId,
         terms.fromCounterparty
     )
-    return fromProposer || fromCounterparty
+    return exchangeApplied(proposerId, counterpartyId, fromProposer, fromCounterparty)
 }
 
+function exchangeApplied(
+    proposerId: string,
+    counterpartyId: string,
+    fromProposer: readonly KnownAdviser[],
+    fromCounterparty: readonly KnownAdviser[]
+): ExchangeApplied {
+    const moved = [...fromProposer, ...fromCounterparty]
+    const cardIds = (advisers: readonly KnownAdviser[]) => advisers.map(({ cardId }) => cardId)
+    return {
+        disclosed: moved.some((adviser) => !adviser.faceUp),
+        advisersMoved:
+            moved.length === 0
+                ? []
+                : [
+                      { playerId: proposerId, receivedCardIds: cardIds(fromCounterparty) },
+                      { playerId: counterpartyId, receivedCardIds: cardIds(fromProposer) }
+                  ]
+    }
+}
+
+/** Returns the advisers that went from `fromId` to `toId`. */
 function applyTransfer(
     state: HydratedOathGameState,
     fromId: string,
     toId: string,
     transfer?: ExchangeTransfer
-): boolean {
-    if (!transfer) return false
+): KnownAdviser[] {
+    if (!transfer) return []
     const from = state.getPlayerState(fromId)
     const to = state.getPlayerState(toId)
     giveFavor(state, fromId, toId, transfer.favor ?? 0)
@@ -293,5 +383,5 @@ function applyTransfer(
         from.removeAdviser(adviser.cardId)
         to.setAdvisers([...to.knownAdvisers(), handedOver(adviser, fromId, toId)])
     }
-    return moving.some((adviser) => !adviser.faceUp)
+    return moving
 }

@@ -428,7 +428,8 @@ describe('discarding down to the adviser limit after a swap', () => {
                 askedPlayerId: ME,
                 actingPlayerId: 'ann',
                 count,
-                receivedCardIds: received
+                receivedCardIds: received,
+                receivedFacedownCardIds: []
             },
             [],
             { me: { advisers: advisers.map((cardId) => ({ cardId, faceUp: true })) } }

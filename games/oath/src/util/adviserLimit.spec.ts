@@ -176,13 +176,13 @@ describe('Pied Piper counts toward the adviser limit once held (revision 11)', (
         expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', choice)).toMatch(/adviser limit/)
     })
 
-    it('The Gathering: a holder of Pied Piper and two advisers cannot take a fourth (its Q&A)', () => {
+    it('The Gathering: a holder of Pied Piper and two advisers keeps a fourth only by a discard (its Q&A)', () => {
         const s = table([SCOUTS], OathRevision.EngineFixes7, {
             other: { advisers: [adviser(PIPER), adviser(WOLVES), adviser(INN)] }
         })
-        expect(reasonExchangeInvalid(s, 'ruler', 'other', { fromProposer: { adviserRows: [0] } })).toMatch(
-            /cannot hold 1 more advisers/
-        )
+        // The exchange is accepted and asks the discard: `exchangeAdviserLimit.spec.ts`.
+        expect(reasonExchangeInvalid(s, 'ruler', 'other', { fromProposer: { adviserRows: [0] } })).toBeUndefined()
+        expect(advisersTowardLimit(s, 'other')).toBe(3)
     })
 
     it('Pied Piper given in an exchange to a player with three advisers is not counted on its arrival', () => {
@@ -262,7 +262,8 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
                 askedPlayerId: 'other',
                 actingPlayerId: 'ruler',
                 count: 1,
-                receivedCardIds: [ENCHANTRESS]
+                receivedCardIds: [ENCHANTRESS],
+                receivedFacedownCardIds: []
             }
         ])
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(ENCHANTRESS))).toMatch(/just received/)
@@ -356,7 +357,8 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
                 askedPlayerId: 'ruler',
                 actingPlayerId: 'ruler',
                 count: 1,
-                receivedCardIds: [WAGON]
+                receivedCardIds: [WAGON],
+                receivedFacedownCardIds: []
             }
         ])
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(WAGON))).toMatch(/just received/)

@@ -1,6 +1,6 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { PileDeposit } from '../model/hidden.js'
-import { PowerQuestionKind, type QuestionOf } from '../model/question.js'
+import { PowerQuestionKind, PowerQuestionValidator, type QuestionOf } from '../model/question.js'
 import { adviserDiscardable } from './cardPlay.js'
 import { adviserExcess, shapesAdviserLimit } from './continuous.js'
 import { discardCards } from './discard.js'
@@ -31,19 +31,54 @@ export function settleAdviserLimitsAfterMove(
 ): void {
     if (!isAtLeastOathRevision(state, OathRevision.EngineFixes7)) return
     for (const playerId of turnOrderFrom(state, actingPlayerId)) {
-        const change = moved.find((entry) => entry.playerId === playerId)
-        if (!change) continue
-        const paths = new AdviserLimitPaths(state, playerId, change.receivedCardIds)
-        const count = paths.fewestFrom(START)
-        if (count === 0) continue
-        askQuestion(state, actingPlayerId, {
-            kind: PowerQuestionKind.DiscardAdvisers,
-            cardId: sourceCardId,
-            askedPlayerId: playerId,
-            actingPlayerId,
-            count,
-            receivedCardIds: [...change.receivedCardIds]
-        })
+        const question = adviserLimitQuestion(state, playerId, actingPlayerId, sourceCardId, moved)
+        if (question) askQuestion(state, actingPlayerId, question)
+    }
+}
+
+/**
+ * R-10.8 — an exchange that leaves a party over their adviser limit asks them to discard down, as
+ * a play does (R-5.1.4.II) and as `settleAdviserLimitsAfterMove` does for a swap. Each discards as
+ * the acting player of their own discard (R-10.5: the secrets on it come back to them), in turn
+ * order from the proposer, before any question already waiting (the Gathering's next proposal).
+ * From revision 11; before it an exchange asked nothing.
+ */
+export function settleAdviserLimitsAfterExchange(
+    state: HydratedOathGameState,
+    proposerId: string,
+    sourceCardId: string,
+    moved: readonly AdvisersMoved[]
+): void {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes7)) return
+    const questions = turnOrderFrom(state, proposerId).flatMap(
+        (playerId) => adviserLimitQuestion(state, playerId, playerId, sourceCardId, moved) ?? []
+    )
+    for (const question of [...questions].reverse()) askQuestion(state, proposerId, question, true)
+}
+
+/** The discard `playerId` owes when a move changed their advisers and left them over the limit. */
+function adviserLimitQuestion(
+    state: HydratedOathGameState,
+    playerId: string,
+    actingPlayerId: string,
+    sourceCardId: string,
+    moved: readonly AdvisersMoved[]
+): DiscardAdvisersQuestion | undefined {
+    const change = moved.find((entry) => entry.playerId === playerId)
+    if (!change) return undefined
+    const count = new AdviserLimitPaths(state, playerId, change.receivedCardIds).fewestFrom(START)
+    if (count === 0) return undefined
+    const player = state.getPlayerState(playerId)
+    return {
+        kind: PowerQuestionKind.DiscardAdvisers,
+        cardId: sourceCardId,
+        askedPlayerId: playerId,
+        actingPlayerId,
+        count,
+        receivedCardIds: change.receivedCardIds.filter((cardId) => player.isFaceupAdviser(cardId)),
+        receivedFacedownCardIds: change.receivedCardIds.filter(
+            (cardId) => !player.isFaceupAdviser(cardId)
+        )
     }
 }
 
@@ -81,7 +116,11 @@ class AdviserLimitPaths {
         this.faceup = player
             .faceupAdviserIds()
             .filter((cardId) => !received.includes(cardId) && !isLockedFor(state, playerId, cardId))
-        this.facedown = player.advisers.filter((row) => !row.faceUp).length
+        // A facedown adviser just received stays (R-9.4: its holder knows which one it is).
+        const facedownReceived = received.filter(
+            (cardId) => player.knownAdviser(cardId)?.faceUp === false
+        ).length
+        this.facedown = player.advisers.filter((row) => !row.faceUp).length - facedownReceived
         this.lowest = this.lowestReachable()
     }
 
@@ -173,15 +212,23 @@ function walk(paths: AdviserLimitPaths, discarded: readonly string[]): Position 
     return at
 }
 
+/** The discard question open for `playerId`, as their own view or the host's carries it. */
 function openDiscardQuestion(
     state: HydratedOathGameState,
     playerId: string
 ): DiscardAdvisersQuestion | undefined {
     const question = currentQuestion(state)
-    return question?.kind === PowerQuestionKind.DiscardAdvisers &&
+    return question !== undefined &&
+        PowerQuestionValidator.Check(question) &&
+        question.kind === PowerQuestionKind.DiscardAdvisers &&
         question.askedPlayerId === playerId
         ? question
         : undefined
+}
+
+/** Enchantress's Q&A — every card the move gave the asked player, faceup or facedown. */
+function receivedBy(question: DiscardAdvisersQuestion): string[] {
+    return [...question.receivedCardIds, ...question.receivedFacedownCardIds]
 }
 
 /**
@@ -195,7 +242,7 @@ export function adviserLimitDiscards(
 ): string[] {
     const question = openDiscardQuestion(state, playerId)
     if (!question) return []
-    const paths = new AdviserLimitPaths(state, playerId, question.receivedCardIds)
+    const paths = new AdviserLimitPaths(state, playerId, receivedBy(question))
     const at = walk(paths, picked)
     if (!at) return []
     return state
@@ -212,7 +259,7 @@ export function adviserLimitDiscardCount(
 ): number {
     const question = openDiscardQuestion(state, playerId)
     if (!question) return 0
-    const paths = new AdviserLimitPaths(state, playerId, question.receivedCardIds)
+    const paths = new AdviserLimitPaths(state, playerId, receivedBy(question))
     const at = walk(paths, picked)
     return picked.length + (at ? paths.fewestFrom(at) : 0)
 }
@@ -225,7 +272,7 @@ export function reasonAdviserLimitDiscardsInvalid(
     discarded: readonly string[]
 ): string | undefined {
     const player = state.getPlayerState(playerId)
-    const received = question.receivedCardIds
+    const received = receivedBy(question)
     if (new Set(discarded).size !== discarded.length) return 'an adviser is discarded once'
     for (const cardId of discarded) {
         if (received.includes(cardId)) return `${cardId} was just received, so it is not discarded`

@@ -167,7 +167,8 @@ export enum PowerQuestionKind {
     DragonskinDrum = 'dragonskinDrum',
     /**
      * Enchantress, Twin Brother, Horned Mask (revision 11) — a swap left the asked player over their
-     * adviser limit: they discard down to it, never a card the swap gave them (R-7.6.4).
+     * adviser limit: they discard down to it, never a card the swap gave them (R-7.6.4). An
+     * exchange that leaves a player over their limit asks the same (R-10.8).
      */
     DiscardAdvisers = 'discardAdvisers'
 }
@@ -424,8 +425,12 @@ export const PowerQuestion = Type.Union([
         actingPlayerId: Type.String(),
         /** The fewest discards that meet the limit, as far as discardable advisers go (R-7.6.4). */
         count: Type.Number(),
-        /** Enchantress's Q&A — the cards the move gave the asked player, which are not discarded. */
-        receivedCardIds: Type.Array(Type.String(), { maxItems: 8 })
+        /** Enchantress's Q&A — the faceup cards the move gave the asked player, not discarded. */
+        receivedCardIds: Type.Array(Type.String(), { maxItems: 8 }),
+        /** R-9.4 — the facedown advisers an exchange gave them, kept the same way: named to them alone. */
+        receivedFacedownCardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
+            policy: AskedPlayerPolicy
+        })
     })
 ])
 
