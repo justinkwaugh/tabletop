@@ -24,20 +24,30 @@ export class ConnectedTrack {
                 ] as const
             })
         )
-        const pending: { locationId: string; endpoint: TileEndpoint; exiting: boolean }[] =
-            origins.map(({ locationId, nodeId }) => ({
-                locationId,
-                endpoint: { kind: 'node', nodeId } satisfies TileEndpoint,
-                exiting: false
-            }))
-        const entered = new Map<string, TileEndpoint[]>()
-        const exited = new Map<string, TileEndpoint[]>()
+        // `via` is the path a route entered a node along; it cannot leave the node the same way.
+        const pending: {
+            locationId: string
+            endpoint: TileEndpoint
+            exiting: boolean
+            via?: string
+        }[] = origins.map(({ locationId, nodeId }) => ({
+            locationId,
+            endpoint: { kind: 'node', nodeId } satisfies TileEndpoint,
+            exiting: false
+        }))
+        const entered = new Map<string, { endpoint: TileEndpoint; via?: string }[]>()
+        const exited = new Map<string, { endpoint: TileEndpoint; via?: string }[]>()
         while (pending.length) {
-            const { locationId, endpoint, exiting } = pending.shift()!
+            const { locationId, endpoint, exiting, via } = pending.shift()!
             const visited = exiting ? exited : entered
             const visitedEnds = visited.get(locationId) ?? []
-            if (visitedEnds.some((end) => sameTileEndpoint(end, endpoint))) continue
-            visitedEnds.push(endpoint)
+            if (
+                visitedEnds.some(
+                    (visit) => visit.via === via && sameTileEndpoint(visit.endpoint, endpoint)
+                )
+            )
+                continue
+            visitedEnds.push({ endpoint, via })
             visited.set(locationId, visitedEnds)
             const ends = this.reached.get(locationId) ?? []
             if (!ends.some((end) => sameTileEndpoint(end, endpoint))) ends.push(endpoint)
@@ -55,11 +65,20 @@ export class ConnectedTrack {
             const paths = this.paths.get(locationId) ?? new Set<string>()
             if (!exiting) {
                 for (const path of face.paths) {
-                    if (!path.endpoints.some((end) => sameTileEndpoint(end, endpoint))) continue
+                    if (
+                        path.id === via ||
+                        !path.endpoints.some((end) => sameTileEndpoint(end, endpoint))
+                    )
+                        continue
                     paths.add(path.id)
                     for (const end of path.endpoints) {
                         if (sameTileEndpoint(end, endpoint)) continue
-                        pending.push({ locationId, endpoint: end, exiting: end.kind === 'edge' })
+                        pending.push({
+                            locationId,
+                            endpoint: end,
+                            exiting: end.kind === 'edge',
+                            ...(end.kind === 'node' ? { via: path.id } : {})
+                        })
                     }
                 }
             }

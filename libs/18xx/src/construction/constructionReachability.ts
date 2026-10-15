@@ -3,7 +3,8 @@ import { cityIsBlocked, type StationState } from '../map/station.js'
 import type { TileEdge, TileEndpoint, TileFace } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
 
-type Visit = { locationId: string; endpoint: TileEndpoint; exiting: boolean }
+// `via` is the path a route entered a node along; it cannot leave the node the same way.
+type Visit = { locationId: string; endpoint: TileEndpoint; exiting: boolean; via?: string }
 type Boundary = { entries: readonly TileEdge[]; returns: Map<TileEdge, readonly TileEdge[]> }
 export type ConstructionConnections = { paths: ReadonlySet<string>; nodes: ReadonlySet<string> }
 
@@ -60,21 +61,23 @@ export class ConstructionReachability {
             }
             this.boundaries.set(locationId, boundary)
         }
-        const queue: TileEndpoint[] = boundary.entries.map((edge) => ({ kind: 'edge', edge }))
+        const queue: { endpoint: TileEndpoint; via?: string }[] = boundary.entries.map((edge) => ({
+            endpoint: { kind: 'edge', edge }
+        }))
         for (const station of stations.stations) {
             if (
                 station.status === 'placed' &&
                 station.companyId === this.companyId &&
                 station.position.locationId === locationId
             )
-                queue.push({ kind: 'node', nodeId: station.position.nodeId })
+                queue.push({ endpoint: { kind: 'node', nodeId: station.position.nodeId } })
         }
         const visited = new Set<string>()
         const paths = new Set<string>()
         const nodes = new Set<string>()
         for (let index = 0; index < queue.length; index++) {
-            const endpoint = queue[index]
-            const key = this.endpointKey(endpoint)
+            const { endpoint, via } = queue[index]
+            const key = `${this.endpointKey(endpoint)} ${via}`
             if (visited.has(key)) continue
             visited.add(key)
             if (endpoint.kind === 'node') {
@@ -87,11 +90,15 @@ export class ConstructionReachability {
                     continue
             }
             for (const path of face.paths) {
-                if (!path.endpoints.some((end) => sameTileEndpoint(end, endpoint))) continue
+                if (
+                    path.id === via ||
+                    !path.endpoints.some((end) => sameTileEndpoint(end, endpoint))
+                )
+                    continue
                 paths.add(path.id)
                 for (const end of path.endpoints) {
                     if (sameTileEndpoint(end, endpoint)) continue
-                    if (end.kind === 'node') queue.push(end)
+                    if (end.kind === 'node') queue.push({ endpoint: end, via: path.id })
                     else {
                         let returns = boundary.returns.get(end.edge)
                         if (!returns) {
@@ -99,7 +106,7 @@ export class ConstructionReachability {
                             returns = neighbor ? this.walk([neighbor], locationId) : []
                             boundary.returns.set(end.edge, returns)
                         }
-                        for (const edge of returns) queue.push({ kind: 'edge', edge })
+                        for (const edge of returns) queue.push({ endpoint: { kind: 'edge', edge } })
                     }
                 }
             }
@@ -137,12 +144,12 @@ export class ConstructionReachability {
         const boundary = new Set<TileEdge>()
         for (let index = 0; index < queue.length; index++) {
             const visit = queue[index]
-            const { locationId, endpoint, exiting } = visit
+            const { locationId, endpoint, exiting, via } = visit
             if (locationId === excluded) {
                 if (endpoint.kind === 'edge') boundary.add(endpoint.edge)
                 continue
             }
-            const key = JSON.stringify([locationId, this.endpointKey(endpoint), exiting])
+            const key = JSON.stringify([locationId, this.endpointKey(endpoint), exiting, via])
             if (visited.has(key)) continue
             visited.add(key)
             if (!excluded) this.accessible.add(locationId)
@@ -160,10 +167,19 @@ export class ConstructionReachability {
                 if (neighbor) queue.push(neighbor)
             } else {
                 for (const path of face.paths) {
-                    if (!path.endpoints.some((end) => sameTileEndpoint(end, endpoint))) continue
+                    if (
+                        path.id === via ||
+                        !path.endpoints.some((end) => sameTileEndpoint(end, endpoint))
+                    )
+                        continue
                     for (const end of path.endpoints) {
                         if (!sameTileEndpoint(end, endpoint))
-                            queue.push({ locationId, endpoint: end, exiting: end.kind === 'edge' })
+                            queue.push({
+                                locationId,
+                                endpoint: end,
+                                exiting: end.kind === 'edge',
+                                ...(end.kind === 'node' ? { via: path.id } : {})
+                            })
                     }
                 }
             }

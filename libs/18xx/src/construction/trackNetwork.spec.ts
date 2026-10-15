@@ -8,22 +8,20 @@ import { TileSet } from '../tiles/inventory.js'
 import { TrackNetwork } from './trackNetwork.js'
 import type { TileFace } from '../tiles/tile.js'
 const tiles = new TileSet({ id: 'empty', entries: [] }, [])
-function map(middle: TileFace) {
+function map(middle: TileFace, end = createTrackTileFace('gray', [[3, 0]])) {
     return new RailwayMapState(
         new RailwayMap({
             id: 'network',
             name: 'Network',
             orientation: HexOrientation.Flat,
-            locations: [
-                createCityTileFace('yellow', [0], 20, 1),
-                middle,
-                createTrackTileFace('gray', [[3, 0]])
-            ].map((preprintedTile, r) => ({
-                id: String(r),
-                coordinates: { q: 0, r },
-                preprintedTile,
-                buildable: true
-            }))
+            locations: [createCityTileFace('yellow', [0], 20, 1), middle, end].map(
+                (preprintedTile, r) => ({
+                    id: String(r),
+                    coordinates: { q: 0, r },
+                    preprintedTile,
+                    buildable: true
+                })
+            )
         }),
         tiles,
         tiles.createInventory()
@@ -93,4 +91,19 @@ it('can choose either branch when entering their shared hex edge', () => {
     const network = new TrackNetwork(map(branching), ownOnly, 'A')
     expect(network.usesPath('1', branching.paths[0].id)).toBe(true)
     expect(network.usesPath('1', branching.paths[1].id)).toBe(true)
+})
+it('cannot leave a city along the track it arrived on', () => {
+    const branching = createTrackTileFace('green', [
+        [3, 0],
+        [0, 1]
+    ])
+    const ownOnly = { ...stations, stations: stations.stations.slice(0, 1) }
+    const network = new TrackNetwork(
+        map(branching, createCityTileFace('gray', [3], 10, 1)),
+        ownOnly,
+        'A'
+    )
+    expect(network.reaches('2', { kind: 'node', nodeId: 'city' })).toBe(true)
+    expect(network.usesPath('1', branching.paths[1].id)).toBe(false)
+    expect(network.reaches('1', { kind: 'edge', edge: 1 })).toBe(false)
 })
