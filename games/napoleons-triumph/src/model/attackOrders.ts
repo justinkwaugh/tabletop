@@ -3,7 +3,7 @@ import { UnitType } from '../components/pieces.js'
 import { CommandKind, type Attack, type MoveOrder } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { allCavalry, roadOrigin, traceRoadMove } from './movement.js'
-import { isLegal, legal } from './legality.js'
+import { distinct, isLegal, legal } from './legality.js'
 import {
     assertArrived,
     corpsCommandsLeft,
@@ -86,7 +86,7 @@ export function resolveAttackOrders(
     const approach = state.map.approach(site.attackApproach)
     const commands = orders.map((order) => resolveOrder(state, site.attackerId, order))
     const units = commands.flatMap((command) => command.units)
-    legal(new Set(units.map((unit) => unit.id)).size === units.length, 'A unit attacks once')
+    legal(distinct(units.map((unit) => unit.id)), 'A unit attacks once')
     const blocking: Position = { locale: approach.locale, approach: approach.id }
     const reserve: Position = { locale: approach.locale }
 

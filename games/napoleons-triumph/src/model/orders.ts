@@ -8,7 +8,7 @@ import { frenchArrivalRound } from '../components/timeTrack.js'
 import { CommandKind, type MoveOrder, type RoadMarch } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { areTheUnits, type Commander, type Position, type ProjectedUnit } from './pieces.js'
-import { legal } from './legality.js'
+import { distinct, legal } from './legality.js'
 
 export interface ResolvedOrder {
     order: MoveOrder
@@ -175,7 +175,7 @@ export function resolveOrder(
     playerId: string,
     order: MoveOrder
 ): ResolvedOrder {
-    legal(new Set(order.unitIds).size === order.unitIds.length, 'An order names each unit once')
+    legal(distinct(order.unitIds), 'An order names each unit once')
     const units = order.unitIds.map((id) => state.unit(id))
     for (const unit of units) {
         legal(unit.playerId === playerId, `Unit ${unit.id} belongs to the other army`)
