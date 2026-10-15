@@ -77,6 +77,19 @@ serving the new build takes over, and clients are never told to refresh into a b
 the backend does not yet serve. The deploy tool reads that header as the served
 frontend version and waits for it after a frontend publication.
 
+Game versions follow the same rule through the served manifest
+(`libs/backend-services/src/games/servedManifest.ts`). It is the live manifest
+with each game limited to what the child runs, and the frontend the child started
+with: a game whose logic version still
+matches the loaded logic reports its live publication, so a UI-only release reaches
+clients without a replacement; a game whose logic changed keeps the publication the
+child loaded until its replacement takes over; and a game the child never loaded is
+left out. A child loads its titles once; it never re-imports logic in place. `/api/v1/manifest`, `/api/v1/catalog`, `X-TABLETOP-GAME-UI-VERSION`,
+`X-Tabletop-Version` and the game names and thumbnails in Discord notifications
+all come from the served manifest, so clients never load a UI whose logic the backend
+does not run yet, and the deploy tool's wait on `/api/v1/manifest` ends only when
+the new logic is serving.
+
 Startup work that does not depend on the manifest stays out of the child. The
 supervisor derives the session key from `SESSION_SECRET` and `SESSION_SALT` once per
 instance, with the same derivation `@fastify/secure-session` performs, and passes it to
