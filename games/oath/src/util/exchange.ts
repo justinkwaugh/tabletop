@@ -14,6 +14,7 @@ import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { addWarbandsToBoard, addWarbandsToSite, removeWarbandsFrom } from './force.js'
 import {
     advisersTowardLimit,
+    arrivesIgnoringAdviserLimit,
     cannotPlaceWarbandsAtSites,
     countsTowardAdviserLimit,
     effectiveAdviserLimit
@@ -176,7 +177,11 @@ export function reasonTransferInvalid(
             const adviser = from.advisers[row]
             if (!adviser.faceUp) return true
             assertExists(adviser.cardId, 'A faceup adviser row names its card')
-            return countsTowardAdviserLimit(state, toId, adviser.cardId, true)
+            // Pied Piper arriving counts toward no limit, as before revision 11; held, it counts.
+            return (
+                !arrivesIgnoringAdviserLimit(state, adviser.cardId) &&
+                countsTowardAdviserLimit(state, toId, adviser.cardId, true)
+            )
         }).length
         if (advisersTowardLimit(state, toId) + incoming > effectiveAdviserLimit(state, toId)) {
             return `${toId} cannot hold ${incoming} more advisers`

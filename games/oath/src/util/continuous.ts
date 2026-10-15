@@ -2,6 +2,7 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
 import { effectFor, type ContinuousHooks } from '../powers/registry.js'
 import { suitOf } from '../data/cardRegistry.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 /** R-7.1.4-H1 — a continuous power binds its holder: faceup advisers and held relics; Master of Disguise lends another player's advisers. */
 export function continuousHooksOf(
@@ -69,7 +70,16 @@ function hooksOfCard(state: HydratedOathGameState, cardId: string): ContinuousHo
     return hooks
 }
 
-/** R-7.6.4 — a facedown card always counts; a faceup one is exempt by its own or a held card's text. */
+/** Pied Piper — "This card ignores the adviser limit": played faceup, it prompts no discard (its Q&A). */
+export function arrivesIgnoringAdviserLimit(state: HydratedOathGameState, cardId: string): boolean {
+    return hooksOfCard(state, cardId).some((h) => h.ignoresAdviserLimit)
+}
+
+/**
+ * R-7.6.4 — a facedown card always counts; a faceup one is exempt by a held card's text (Family
+ * Wagon's Nomads). Pied Piper's Q&A: once held it "still counts toward your total number of
+ * advisers"; before revision 11 it never counted.
+ */
 export function countsTowardAdviserLimit(
     state: HydratedOathGameState,
     playerId: string,
@@ -78,7 +88,12 @@ export function countsTowardAdviserLimit(
     withCardId?: string
 ): boolean {
     if (!faceUp) return true
-    if (hooksOfCard(state, cardId).some((h) => h.ignoresAdviserLimit)) return false
+    if (
+        !isAtLeastOathRevision(state, OathRevision.EngineFixes7) &&
+        arrivesIgnoringAdviserLimit(state, cardId)
+    ) {
+        return false
+    }
     const held = [
         ...continuousHooksOf(state, playerId),
         ...(withCardId ? hooksOfCard(state, withCardId) : [])
