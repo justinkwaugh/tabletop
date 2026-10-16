@@ -4,6 +4,7 @@ import {
     PlayerStatus,
     assertExists,
     type Game,
+    type GameAction,
     type GameConfig
 } from '@tabletop/common'
 import { AUSTERLITZ } from '../components/austerlitz.js'
@@ -74,17 +75,21 @@ export class TestGame {
     }
 
     act(type: ActionType, playerId: string, payload: Record<string, unknown> = {}) {
+        return this.play({
+            id: `action-${this.actionNumber++}`,
+            gameId: this.game.id,
+            source: ActionSource.User,
+            playerId,
+            type,
+            ...payload
+        })
+    }
+
+    protected play(action: GameAction): GameAction[] {
         const result = this.engine.executeCanonicalAction({
             game: this.game,
             state: this.state,
-            action: {
-                id: `action-${this.actionNumber++}`,
-                gameId: this.game.id,
-                source: ActionSource.User,
-                playerId,
-                type,
-                ...payload
-            }
+            action
         })
         this.state = result.updatedState
         return result.processedActions
