@@ -60,6 +60,11 @@ export class BackendChild {
         })
     }
 
+    // Tells the child how a replacement it asked for ended, so a request held open for it can end.
+    notify(outcome: 'superseded' | 'replacement-failed'): void {
+        if (this.child.connected) this.child.send(outcome)
+    }
+
     retain(): () => void {
         this.requests++
         let released = false

@@ -97,7 +97,11 @@ export const invalidateBackendManifest = (context: PublishContext) =>
     runStep(
         context,
         { label: 'invalidate-manifest', logPath: '/tmp/manifest-invalidate.log' },
-        () => invalidateBackendManifestCache(context.deployConfig)
+        async () => {
+            const replacement = await invalidateBackendManifestCache(context.deployConfig)
+            if (replacement && replacement !== 'none')
+                context.log(`invalidate-manifest: backend replacement ${replacement}`)
+        }
     )
 
 // The bucket manifest is the only record of what production serves. Every change backs up the

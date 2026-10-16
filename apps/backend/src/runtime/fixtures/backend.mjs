@@ -14,6 +14,19 @@ await new Promise((resolve) => setTimeout(resolve, config.startupDelay ?? 0))
 const server = createServer(async (request, response) => {
     const url = new URL(request.url, 'http://localhost')
     if (url.pathname === '/reload') process.send('reload')
+    if (url.pathname === '/reload-and-wait') {
+        const outcome = new Promise((resolve) => {
+            const settle = (message) => {
+                if (message !== 'superseded' && message !== 'replacement-failed') return
+                process.off('message', settle)
+                resolve(message)
+            }
+            process.on('message', settle)
+        })
+        process.send('reload')
+        response.end(JSON.stringify({ pid: process.pid, outcome: await outcome }))
+        return
+    }
     if (url.pathname === '/crash') process.exit(1)
     if (url.pathname === '/delay') {
         record('request-started')

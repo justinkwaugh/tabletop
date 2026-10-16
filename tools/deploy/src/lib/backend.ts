@@ -178,4 +178,7 @@ export const invalidateBackendManifestCache = async (
     if (!response.ok) {
         throw new Error(`manifest invalidate ${response.status} ${response.statusText}`)
     }
+    // The backend answers once a replacement the new manifest asked for has ended.
+    const body: { replacement?: unknown } = await response.json().catch(() => ({}))
+    return typeof body.replacement === 'string' ? body.replacement : undefined
 }

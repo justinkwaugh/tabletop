@@ -23,6 +23,7 @@ import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
+import type { ReplacementOutcome } from '../runtime/replacementRequest.js'
 
 const __dirname = import.meta.dirname
 
@@ -43,6 +44,7 @@ const SESSION_KEY = process.env['SESSION_KEY']
 export interface AppOptions {
     prefix?: string
     requestRestart: () => void
+    replacementOutcome: () => Promise<ReplacementOutcome>
 }
 
 async function frontendVersion(fastify: FastifyInstance): Promise<string> {
