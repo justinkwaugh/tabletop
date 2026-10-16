@@ -13,7 +13,7 @@ import { IndustryBoost, PlacementKind, networkKeys, trackAt } from './track.js'
 const BERLIN = printedHex(12, 14)
 const NORTH_OF_BERLIN = printedHex(12, 12)
 const NORTH_WEST_OF_BERLIN = printedHex(11, 13)
-const ANVIL_EAST_OF_BERLIN = printedHex(13, 13)
+const STEEL_EAST_OF_BERLIN = printedHex(13, 13)
 const STUTTGART = printedHex(5, 31)
 
 // p0 opens; every opening share goes to the named buyer at its minimum.
@@ -283,7 +283,7 @@ describe('Lay Track', () => {
         table.edit((state) => {
             state.company(CompanyId.KPEV).owners.push('p1')
             state.company(CompanyId.KPEV).treasury = 20
-            state.industry(Industry.Anvil).level = 3
+            state.industry(Industry.Steel).level = 3
         })
         choose(table, ActionSpaceId.LayTrackIII)
         table.act('p1', {
@@ -291,13 +291,13 @@ describe('Lay Track', () => {
             placements: [
                 {
                     companyId: CompanyId.KPEV,
-                    coords: ANVIL_EAST_OF_BERLIN,
+                    coords: STEEL_EAST_OF_BERLIN,
                     kind: PlacementKind.Disc
                 }
             ]
         })
         const state = table.hydrated
-        expect(state.industry(Industry.Anvil).level).toBe(4)
+        expect(state.industry(Industry.Steel).level).toBe(4)
         expect(state.company(CompanyId.KPEV).revenue).toBe(5 + 4)
         expect(state.company(CompanyId.KPEV).treasury).toBe(16)
     })
@@ -343,7 +343,7 @@ describe('Lay Track', () => {
         choose(table, ActionSpaceId.LayTrackII)
         const placements = [
             { companyId: CompanyId.KPEV, coords: NORTH_OF_BERLIN, kind: PlacementKind.Disc },
-            { companyId: CompanyId.KPEV, coords: ANVIL_EAST_OF_BERLIN, kind: PlacementKind.Disc },
+            { companyId: CompanyId.KPEV, coords: STEEL_EAST_OF_BERLIN, kind: PlacementKind.Disc },
             { companyId: CompanyId.KSSE, coords: printedHex(11, 17), kind: PlacementKind.Disc }
         ]
         expect(() =>
@@ -391,7 +391,7 @@ describe('Lay Track', () => {
         choose(table, ActionSpaceId.LayTrackIII)
         const disc = {
             companyId: CompanyId.KPEV,
-            coords: ANVIL_EAST_OF_BERLIN,
+            coords: STEEL_EAST_OF_BERLIN,
             kind: PlacementKind.Disc
         }
         expect(() => table.act('p1', { type: ActionType.LayTrack, placements: [disc] })).toThrow()
@@ -399,7 +399,7 @@ describe('Lay Track', () => {
             type: ActionType.LayTrack,
             placements: [{ ...disc, boost: IndustryBoost.Development }]
         })
-        expect(table.hydrated.industry(Industry.Anvil).level).toBe(3)
+        expect(table.hydrated.industry(Industry.Steel).level).toBe(3)
         expect(table.hydrated.company(CompanyId.KPEV).revenue).toBe(5)
     })
 })
@@ -542,18 +542,18 @@ describe('the end of the game', () => {
     it('shares $6 per industry site reached among that industry’s tokens, rounded up', () => {
         const table = openedTable()
         table.edit((state) => {
-            state.track.push({ coords: ANVIL_EAST_OF_BERLIN, discs: [CompanyId.KPEV] })
+            state.track.push({ coords: STEEL_EAST_OF_BERLIN, discs: [CompanyId.KPEV] })
             state.track.push({ coords: printedHex(6, 0), discs: [CompanyId.KPEV] })
             for (const player of state.players) {
                 player.industryTokens = player.industryTokens.filter(
-                    (token) => token !== Industry.Anvil
+                    (token) => token !== Industry.Steel
                 )
             }
-            state.getPlayerState('p0').industryTokens.push(Industry.Anvil, Industry.Anvil)
-            state.getPlayerState('p2').industryTokens.push(Industry.Anvil)
+            state.getPlayerState('p0').industryTokens.push(Industry.Steel, Industry.Steel)
+            state.getPlayerState('p2').industryTokens.push(Industry.Steel)
         })
-        expect(table.hydrated.industrySitesReached(Industry.Anvil)).toBe(2)
-        expect(table.hydrated.industryBonusPerToken(Industry.Anvil)).toBe(4)
+        expect(table.hydrated.industrySitesReached(Industry.Steel)).toBe(2)
+        expect(table.hydrated.industryBonusPerToken(Industry.Steel)).toBe(4)
     })
 
     it('ends after the fourth payout with the richest player winning', () => {

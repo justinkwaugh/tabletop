@@ -16,14 +16,14 @@ export enum Industry {
     Cloth = 'Cloth',
     Grain = 'Grain',
     Brick = 'Brick',
-    Anvil = 'Anvil'
+    Steel = 'Steel'
 }
 
 export const INDUSTRIES: readonly Industry[] = [
     Industry.Cloth,
     Industry.Grain,
     Industry.Brick,
-    Industry.Anvil
+    Industry.Steel
 ]
 
 export enum SiteKind {

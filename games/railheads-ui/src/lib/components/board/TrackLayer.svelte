@@ -4,6 +4,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexCenter } from '$lib/utils/boardLayout.js'
     import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
+    import { cubeFaces, type CubeSize } from '$lib/utils/cubeFaces.js'
 
     const gameSession = getGameSession()
 
@@ -14,6 +15,8 @@
     const HALO = '#fbf8e6'
     const HALO_WIDTH = 4
     const SITE_STACK_BASE = -3
+    // Foreshortened like the disc tops (ry = 0.8 rx).
+    const CUBE: CubeSize = { halfWidth: 8, halfDepth: 6.4, height: 7 }
 
     function discBody(x: number, y: number, ry: number): string {
         return `M ${x - DISC_RADIUS} ${y} L ${x - DISC_RADIUS} ${y + DISC_THICKNESS} A ${DISC_RADIUS} ${ry} 0 0 0 ${x + DISC_RADIUS} ${y + DISC_THICKNESS} L ${x + DISC_RADIUS} ${y} Z`
@@ -41,19 +44,22 @@
             const center = hexCenter(hex.coords)
             const site = state.edition.map.hex(hex.coords).kind !== HexKind.Countryside
             const baseY = site ? center.y + SITE_STACK_BASE : center.y
+            const discs = hex.discs.map((companyId, index) => ({
+                companyId,
+                x: center.x + fanOffset(index, hex.discs.length),
+                y: baseY - index * STACK_STEP,
+                ghost: staged(companyId, PlacementKind.Disc, hex.coords)
+            }))
+            // A crossing cube rests on the top disc, its base centred on the disc's top face.
+            const top = discs.at(-1) ?? { x: center.x, y: baseY }
             return {
                 key: hexKey(hex.coords),
-                discs: hex.discs.map((companyId, index) => ({
-                    companyId,
-                    x: center.x + fanOffset(index, hex.discs.length),
-                    y: baseY - index * STACK_STEP,
-                    ghost: staged(companyId, PlacementKind.Disc, hex.coords)
-                })),
+                discs,
                 cube: hex.cube
                     ? {
                           companyId: hex.cube,
-                          x: center.x + 12,
-                          y: center.y - 14,
+                          x: top.x,
+                          y: top.y - CUBE.height,
                           ghost: staged(hex.cube, PlacementKind.Cube, hex.coords)
                       }
                     : undefined
@@ -91,34 +97,32 @@
     {/each}
     {#if hex.cube}
         {@const style = COMPANY_STYLE[hex.cube.companyId]}
-        <rect
-            x={hex.cube.x - 7}
-            y={hex.cube.y - 7}
-            width="14"
-            height="14"
-            rx="2"
+        {@const faces = cubeFaces(hex.cube, CUBE)}
+        <path
+            d={faces.outline}
             fill={HALO}
             stroke={HALO}
             stroke-width={HALO_WIDTH}
+            stroke-linejoin="round"
         />
-        <rect
-            x={hex.cube.x - 7}
-            y={hex.cube.y - 7}
-            width="14"
-            height="14"
-            rx="2"
-            fill={style.fill}
+        <g
+            opacity={hex.cube.ghost ? 0.85 : 1}
             stroke={hex.cube.ghost ? '#fff6c8' : style.edge}
             stroke-width={hex.cube.ghost ? 2.5 : 1.5}
             stroke-dasharray={hex.cube.ghost ? '4 3' : undefined}
-        />
+            stroke-linejoin="round"
+        >
+            <path d={faces.left} fill={style.edge} />
+            <path d={faces.right} fill={style.edge} />
+            <path d={faces.right} fill="rgba(0,0,0,0.25)" stroke="none" />
+            <path d={faces.top} fill={style.fill} />
+        </g>
     {/if}
 {/each}
 
 <style>
     ellipse,
-    path,
-    rect {
+    path {
         pointer-events: none;
     }
 </style>

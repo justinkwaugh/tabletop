@@ -72,7 +72,7 @@
                 {/each}
             </span>
             <span class="leader"></span>
-            <span class="amount">${line.amount}</span>
+            <span class="amount">+${line.amount}</span>
         </div>
     {/each}
     {#each tokens as line (line.industry)}
@@ -83,7 +83,7 @@
                 {/each}
             </span>
             <span class="leader"></span>
-            <span class="amount">${line.amount}</span>
+            <span class="amount">+${line.amount}</span>
         </div>
     {/each}
     {#if shares.length === 0 && tokens.length === 0}
@@ -103,8 +103,8 @@
             ? ', game-end bonuses included'
             : ''}"
     >
-        <span>Payout due</span>
-        <span>${payout}</span>
+        <span>Next Payout</span>
+        <span class="total-amount">+${payout}</span>
     </div>
 </div>
 
@@ -197,12 +197,15 @@
 
     .amount {
         font-size: 14px;
-        font-weight: 700;
         font-variant-numeric: tabular-nums;
     }
 
     .bonus {
         background: #ece7c6;
+    }
+
+    .bonus .amount {
+        font-weight: 700;
     }
 
     .none {
@@ -215,10 +218,15 @@
     .total {
         display: flex;
         justify-content: space-between;
+        align-items: center;
         margin: 2px 6px 5px;
-        padding: 3px 6px 2px;
+        padding: 3px 4px 2px 6px;
         border-top: 1px solid #b9b48a;
+        font-size: 12.5px;
+    }
+
+    .total-amount {
         font-size: 14px;
-        font-weight: 700;
+        font-variant-numeric: tabular-nums;
     }
 </style>

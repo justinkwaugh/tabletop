@@ -2,6 +2,7 @@
     import { ActionSpaceId, CompanyId, HexKind, INDUSTRIES } from '@tabletop/railheads'
     import { hexPoints } from '$lib/utils/boardLayout.js'
     import { COMPANY_STYLE, HEX_FILL, INDUSTRY_STYLE } from '$lib/utils/companyStyle.js'
+    import { cubeFaces, type CubeSize } from '$lib/utils/cubeFaces.js'
     import IndustryMark from './board/IndustryMark.svelte'
 
     let { space, size = 36 }: { space: ActionSpaceId; size?: number } = $props()
@@ -11,6 +12,7 @@
     const DISC_RX = 7
     const DISC_RY = 5
     const DISC_THICKNESS = 4
+    const CUBE: CubeSize = { halfWidth: 6, halfDepth: 4.3, height: 5 }
     const SHARE_STACK = [CompanyId.KPEV, CompanyId.KSSE, CompanyId.GBSE]
     const SLOTS = [
         { x: 16, y: 17 },
@@ -96,16 +98,13 @@
         {#each pieces as piece (`${piece.x},${piece.y}`)}
             {@const style = COMPANY_STYLE[piece.companyId]}
             {#if piece.cube}
-                <rect
-                    x={piece.x - 6}
-                    y={piece.y - 4}
-                    width="12"
-                    height="12"
-                    rx="1.5"
-                    fill={style.fill}
-                    stroke={style.edge}
-                    stroke-width="1.2"
-                />
+                {@const faces = cubeFaces({ x: piece.x, y: piece.y - 1 }, CUBE)}
+                <g stroke={style.edge} stroke-width="1" stroke-linejoin="round">
+                    <path d={faces.left} fill={style.edge} />
+                    <path d={faces.right} fill={style.edge} />
+                    <path d={faces.right} fill="rgba(0,0,0,0.25)" stroke="none" />
+                    <path d={faces.top} fill={style.fill} />
+                </g>
             {:else}
                 <g stroke={style.edge} stroke-width="1">
                     <path d={discBody(piece.x, piece.y)} fill={style.edge} />

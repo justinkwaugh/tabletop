@@ -25,6 +25,7 @@
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import LibreBaskervilleFont from '$lib/fonts/LibreBaskerville.woff2'
     import LibreBaskervilleItalicFont from '$lib/fonts/LibreBaskerville-Italic.woff2'
+    import AlegreyaBoldFont from '$lib/fonts/Alegreya-Bold.woff2'
 
     let {
         gameSession
@@ -78,6 +79,7 @@
     fontWeight="400 700"
     fontStyle="italic"
 />
+<CustomFont fontFamily="Railheads Alegreya" url={AlegreyaBoldFont} format="woff2" fontWeight="700" />
 
 <div class="bg-[#e6e2c3]">
     <DefaultTableLayout>

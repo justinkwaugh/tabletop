@@ -42,4 +42,4 @@ export function revenueCell(revenue: number): Point {
 
 export const ENDGAME_RECT = { x: 52, y: 254, width: 156, height: 168 }
 export const LEGEND_RECT = { x: 52, y: 54, width: 240, height: 188 }
-export const LOGO_ORIGIN = { x: 680, y: 58 }
+export const LOGO_ORIGIN = { x: 680, y: 54 }

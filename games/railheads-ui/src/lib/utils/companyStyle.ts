@@ -16,7 +16,7 @@ export const INDUSTRY_STYLE: Record<Industry, IndustryStyle> = {
     [Industry.Cloth]: { name: 'Cloth', ring: '#4b4f9e', mark: '#3a3e8c', text: '#ffffff' },
     [Industry.Grain]: { name: 'Grain', ring: '#d3a92a', mark: '#c99a1e', text: '#2b2405' },
     [Industry.Brick]: { name: 'Brick', ring: '#7a2f17', mark: '#7a2f17', text: '#ffffff' },
-    [Industry.Anvil]: { name: 'Anvil', ring: '#6b6d68', mark: '#5c5e59', text: '#ffffff' }
+    [Industry.Steel]: { name: 'Steel', ring: '#6b6d68', mark: '#5c5e59', text: '#ffffff' }
 }
 
 export const HEX_FILL: Record<HexKind, string> = {

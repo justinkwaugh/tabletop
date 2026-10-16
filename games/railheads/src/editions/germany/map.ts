@@ -49,18 +49,18 @@ export const GERMANY_MAP: MapDefinition = {
         { industry: Industry.Grain, hex: printedHex(0, 22) },
         { industry: Industry.Cloth, hex: printedHex(0, 28) },
         { industry: Industry.Brick, hex: printedHex(1, 35) },
-        { industry: Industry.Anvil, hex: printedHex(2, 26) },
+        { industry: Industry.Steel, hex: printedHex(2, 26) },
         { industry: Industry.Cloth, hex: printedHex(4, 16) },
         { industry: Industry.Cloth, hex: printedHex(5, 7) },
         { industry: Industry.Grain, hex: printedHex(5, 11) },
-        { industry: Industry.Anvil, hex: printedHex(6, 0) },
+        { industry: Industry.Steel, hex: printedHex(6, 0) },
         { industry: Industry.Brick, hex: printedHex(6, 20) },
         { industry: Industry.Grain, hex: printedHex(6, 36) },
-        { industry: Industry.Anvil, hex: printedHex(8, 14) },
+        { industry: Industry.Steel, hex: printedHex(8, 14) },
         { industry: Industry.Brick, hex: printedHex(10, 6) },
         { industry: Industry.Cloth, hex: printedHex(11, 23) },
         { industry: Industry.Grain, hex: printedHex(12, 28) },
         { industry: Industry.Brick, hex: printedHex(12, 36) },
-        { industry: Industry.Anvil, hex: printedHex(13, 13) }
+        { industry: Industry.Steel, hex: printedHex(13, 13) }
     ]
 }
