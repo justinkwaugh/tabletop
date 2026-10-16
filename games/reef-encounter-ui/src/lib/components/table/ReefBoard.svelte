@@ -13,6 +13,7 @@
         ImageToTable,
         rotatedView,
         BoardView,
+        upright,
         type BoardRotation
     } from '$lib/utils/artGeometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -145,15 +146,42 @@
                 tone={target.attack ? 'attack' : 'plain'}
                 label="{target.attack ? 'Attack with' : 'Place'} {withArticle(
                     placing?.color ?? ''
-                )} polyp {where(target.coords)}"
+                )} polyp {where(target.coords)}{target.searchesBag
+                    ? ', growing a bonus polyp from the bag, which can’t be taken back'
+                    : ''}"
                 onselect={() =>
                     gameSession.placePolyp({ boardId: reef.boardId, coords: target.coords })}
             />
+            {#if target.searchesBag}
+                {@const box = boardSquare(target.coords)}
+                {@const center = { x: box.x + box.width - 38, y: box.y + 38 }}
+                <g class="bag-flag" transform={upright(rotation, center)} aria-hidden="true">
+                    <circle cx={center.x} cy={center.y} r="30"></circle>
+                    <text x={center.x} y={center.y} dy="0.36em" text-anchor="middle">!</text>
+                </g>
+            {/if}
         {/each}
     </g>
 </svg>
 
 <style>
+    .bag-flag {
+        pointer-events: none;
+    }
+
+    .bag-flag circle {
+        fill: #ffc04d;
+        stroke: rgb(0 0 0 / 0.45);
+        stroke-width: 2;
+    }
+
+    .bag-flag text {
+        font:
+            700 42px Fredoka,
+            sans-serif;
+        fill: #3a2200;
+    }
+
     .protected {
         fill: none;
         stroke: #bfe6ff;

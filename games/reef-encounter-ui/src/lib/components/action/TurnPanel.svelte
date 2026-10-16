@@ -26,6 +26,21 @@
             ? ['take a larva space on the open sea to end your turn']
             : [])
     ])
+    const fromBag = $derived(gameSession.cubesForPolypsFromBag)
+    const placementSearchesBag = $derived(
+        gameSession.placementTargets.some((target) => target.searchesBag)
+    )
+    // One warning for every way this turn could search the bag, which cannot be undone.
+    const bagSearch = $derived.by(() => {
+        const placed = placementSearchesBag && placing ? [placing.color] : []
+        const colors = [...new Set([...fromBag, ...placed])]
+        if (colors.length === 0) return undefined
+        const ways = [
+            ...(fromBag.length > 0 ? ['trading for one'] : []),
+            ...(placed.length > 0 ? ['placing on a ! square'] : [])
+        ].join(' or ')
+        return { colors, ways }
+    })
     const supplyLeft = $derived.by(() => {
         if (!placing || !me) return 0
         return Math.min(me.getSupplyPolyps()[placing.color], placing.supplyPolypsLeft)
@@ -188,11 +203,12 @@
             items={gameSession.cubesForPolyps}
             key={(color) => color}
             label={(color) =>
-                `Exchange ${withArticle(color)} larva cube for ${withArticle(color)} polyp`}
+                `Exchange ${withArticle(color)} larva cube for ${withArticle(color)} polyp${fromBag.includes(color) ? ' from the bag, which can’t be taken back' : ''}`}
             onselect={(color) => gameSession.exchangeLarvaCube(color)}
         >
             {#snippet icon(color)}
                 {@render cube(color)}
+                {#if fromBag.includes(color)}<span class="bag-flag reef-display">!</span>{/if}
             {/snippet}
             {#snippet result(color)}
                 <span class="arrow">→</span>
@@ -203,6 +219,12 @@
     </div>
     {#if onBoard.length > 0}
         <p class="detail">Or {onBoard.join(', or ')}.</p>
+    {/if}
+    {#if bagSearch}
+        <p class="warning">
+            No bonus {bagSearch.colors.join(' or ')} polyp: {bagSearch.ways} searches the bag, with no
+            Undo.
+        </p>
     {/if}
 {/if}
 
@@ -243,6 +265,21 @@
 
     .none {
         opacity: 0.45;
+    }
+
+    .bag-flag {
+        display: inline-grid;
+        place-items: center;
+        flex: none;
+        width: 15px;
+        height: 15px;
+        margin-left: -2px;
+        border-radius: 50%;
+        font-size: 11px;
+        font-weight: 700;
+        color: #3a2200;
+        background: #ffc04d;
+        box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
     }
 
     .any-polyp {

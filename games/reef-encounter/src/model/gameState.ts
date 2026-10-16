@@ -26,6 +26,7 @@ import {
 } from '../components/colors.js'
 import { CoralTileState, faceUp } from '../components/coralTiles.js'
 import {
+    type BonusSpaceRefill,
     type OpenSeaAddition,
     OpenSeaPolypLimit,
     type OpenSeaRefill,
@@ -105,6 +106,10 @@ export const ReefEncounterGameState = Type.Intersect([
         bonusPolypsInBag: Type.Boolean(),
         // Colours a search of the bag failed to find, until one is returned to it.
         colorsMissingFromBag: Type.Array(Type.Enum(CoralColor)),
+        // Empty bonus spaces are refilled from the bag at each turn end, inside that turn's open-sea
+        // refill, so the bag is searched mid-turn only when a player chooses to (user ruling).
+        // Absent in games begun before this rule, which keep their recorded behaviour.
+        bonusSpacesRefillAtTurnEnd: Type.Optional(Type.Boolean()),
         // The Advanced game option (rulebook p. 12): no extra growth, and eating returns more.
         advanced: Type.Boolean(),
         algaSupply: AlgaCounts,
@@ -157,6 +162,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     declare bonusPolyps: CoralCounts
     declare bonusPolypsInBag: boolean
     declare colorsMissingFromBag: CoralColor[]
+    declare bonusSpacesRefillAtTurnEnd?: boolean
     declare advanced: boolean
     declare algaSupply: AlgaCounts
     declare endReason?: GameEndReason
@@ -267,7 +273,23 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             space.polyps.push(polyp)
             return { larvaColor: space.larvaColor, polyp }
         })
-        return { larvaColor, additions, bonusPolypsReturned, shortage }
+        const refill: OpenSeaRefill = { larvaColor, additions, bonusPolypsReturned, shortage }
+        if (this.bonusSpacesRefillAtTurnEnd && !this.bonusPolypsInBag) {
+            refill.bonusRefills = this.refillBonusSpaces()
+        }
+        return refill
+    }
+
+    private refillBonusSpaces(): BonusSpaceRefill[] {
+        return CoralColors.filter((color) => this.bonusPolyps[color] === 0).map((color) => {
+            const found = this.polypBag.takeColor(color)
+            if (found) {
+                this.bonusPolyps[color] = 1
+            } else if (!this.colorsMissingFromBag.includes(color)) {
+                this.colorsMissingFromBag.push(color)
+            }
+            return { color, found }
+        })
     }
 
     canPlayLarvaCube(playerId: string, color: CoralColor): boolean {
@@ -452,6 +474,11 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             this.getPlayerState(playerId).getLarvaCubes()[color] > 0 &&
             (this.bonusPolyps[color] > 0 || this.bagMayHold(color))
         )
+    }
+
+    // With the colour's bonus space empty, the polyp must be searched for in the bag: a reveal.
+    exchangeSearchesBag(color: CoralColor): boolean {
+        return this.bonusPolyps[color] === 0
     }
 
     exchangeLarvaCube(playerId: string, color: CoralColor): LarvaCubeExchange {
@@ -888,6 +915,22 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     // A polyp placed next to an empty extra-growth square grows a bonus polyp there at once
     // (rulebook p. 7), except in the Advanced game (p. 12). It does not count towards the
     // cube's four polyps.
+    // Whether placing a polyp there would grow one on the extra-growth square with the colour's
+    // bonus space empty, so that the bag must be searched: a reveal.
+    placementSearchesBag(
+        boardId: ReefBoardId,
+        coords: OffsetCoordinates,
+        color: CoralColor
+    ): boolean {
+        if (this.bonusPolyps[color] > 0 || !this.bagMayHold(color)) {
+            return false
+        }
+        const reef = structuredClone(this.reefOn(boardId))
+        reef.polyps = reef.polyps.filter((polyp) => !sameCoordinates(polyp.coords, coords))
+        reef.polyps.push({ coords: structuredClone(coords), color })
+        return this.canGrowExtraPolyp(reef, coords, color)
+    }
+
     private canGrowExtraPolyp(reef: Reef, placedAt: OffsetCoordinates, color: CoralColor) {
         const square = ReefBoards[reef.boardId].extraGrowth
         const shrimps = this.shrimpsOn(reef.boardId)

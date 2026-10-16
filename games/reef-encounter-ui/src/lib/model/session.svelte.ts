@@ -55,7 +55,13 @@ export type CylinderTargets = { openSea: boolean; tileIds: number[] }
 
 export type LarvaCubeChoice = { color: CoralColor; polypsToPlace: number }
 
-export type PlacementTarget = { boardId: ReefBoardId; coords: OffsetCoordinates; attack: boolean }
+export type PlacementTarget = {
+    boardId: ReefBoardId
+    coords: OffsetCoordinates
+    attack: boolean
+    // Placing here grows a bonus polyp its space lacks, so the bag is searched: no Undo.
+    searchesBag: boolean
+}
 
 export class ReefEncounterGameSession extends GameSession<
     ReefEncounterProjectedState,
@@ -160,7 +166,8 @@ export class ReefEncounterGameSession extends GameSession<
 
     readonly placementTargets: PlacementTarget[] = $derived.by(() => {
         const source = this.placementSources[0]
-        if (!source || this.turnChoiceOpen) return []
+        const color = this.placing?.color
+        if (!source || !color || this.turnChoiceOpen) return []
         const me = this.myPlayerId()
         return this.gameState.reefs.flatMap((reef) =>
             ReefBoards[reef.boardId].rock
@@ -170,7 +177,8 @@ export class ReefEncounterGameSession extends GameSession<
                 .map((coords) => ({
                     boardId: reef.boardId,
                     coords,
-                    attack: polypAt(reef, coords) !== undefined
+                    attack: polypAt(reef, coords) !== undefined,
+                    searchesBag: this.gameState.placementSearchesBag(reef.boardId, coords, color)
                 }))
         )
     })
@@ -249,6 +257,11 @@ export class ReefEncounterGameSession extends GameSession<
         const me = this.myPlayerId()
         return CoralColors.filter((color) => this.gameState.canExchangeLarvaCube(me, color))
     })
+
+    // Colours whose trade must search the bag, their bonus space being empty.
+    readonly cubesForPolypsFromBag: CoralColor[] = $derived(
+        this.cubesForPolyps.filter((color) => this.gameState.exchangeSearchesBag(color))
+    )
 
     readonly cylinderPayments: CoralColor[] = $derived.by(() => {
         if (!this.canTake(ActionType.PlayAlgaCylinder) || this.shrimpIntent) return []

@@ -57,8 +57,9 @@ In the rulebook's order (pp. 3–4):
 
 User ruling: the bonus polyps are part of the bag's population, set aside only to save time when action 8 or extra growth needs a polyp of one colour.
 
-- **Taking a polyp of one colour.** Action 8 and extra growth take the colour's bonus polyp when its space holds one. An emptied space is not refilled from the bag straight away.
-- **Searching the bag.** When the space is empty, the bag is searched for a polyp of that colour. Nobody can see into the bag, so the search is a reveal, and Undo cannot step back past it. Action 8 is offered whenever the bag may hold that colour; a search that finds none leaves the turn as if the player had not tried, and extra growth then grows nothing.
+- **Taking a polyp of one colour.** Action 8 and extra growth take the colour's bonus polyp when its space holds one. Each space holds one polyp.
+- **Refilling at turn end.** When a turn ends, after the open sea is refilled, every empty bonus space is refilled from the bag (user ruling). The open-sea refill is already a reveal, so this keeps a whole turn of trades and growth undoable. A colour the bag lacks leaves its space empty and is ruled out as below. Games begun before this ruling refill only from returned polyps.
+- **Searching the bag.** When the space is empty, a player may still trade for that colour or grow onto the starfish square: the bag is then searched for a polyp of that colour. Nobody can see into the bag, so the search is a reveal, and Undo cannot step back past it; the UI warns before the player commits. Action 8 is offered whenever the bag may hold that colour; a search that finds none leaves the turn as if the player had not tried, and extra growth then grows nothing.
 - **A colour known to be missing.** After a search finds none, neither action 8 nor extra growth searches for that colour again until a polyp of it goes back into the bag.
 - **Returned polyps.** A polyp returned by eating, action 6 or action 7 fills an empty bonus space of its colour first; any others go into the bag. Once the bonus polyps have joined the bag (see the refill above), every returned polyp goes into the bag.
 

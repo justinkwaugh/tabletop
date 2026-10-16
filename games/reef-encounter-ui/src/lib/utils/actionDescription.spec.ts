@@ -215,6 +215,36 @@ describe('describing a turn', () => {
         ])
     })
 
+    it('tells the bonus spaces refilled at turn end, and colours the bag lacked', () => {
+        const take: TakeOpenSeaSpace = {
+            ...base(),
+            type: ActionType.TakeOpenSeaSpace,
+            playerId: 'a',
+            larvaColor: CoralColor.Grey,
+            metadata: { polyps: [CoralColor.Grey] }
+        }
+        const refill: RefillOpenSea = {
+            ...base(),
+            source: ActionSource.System,
+            type: ActionType.RefillOpenSea,
+            revealsInfo: true,
+            metadata: {
+                larvaColor: CoralColor.Grey,
+                additions: [{ larvaColor: CoralColor.Grey, polyp: CoralColor.Yellow }],
+                bonusPolypsReturned: false,
+                shortage: false,
+                bonusRefills: [
+                    { color: CoralColor.Pink, found: true },
+                    { color: CoralColor.White, found: true },
+                    { color: CoralColor.Orange, found: false }
+                ]
+            }
+        }
+        expect(texts([take, refill], 'their')).toEqual([
+            'ended their turn by taking the grey larva cube with a grey polyp. Refill: a yellow polyp on the grey space. Bonus: pink polyp, white polyp. No bonus orange polyp in the bag.'
+        ])
+    })
+
     it('reveals every parrotfish polyp fed at setup when the game ends', () => {
         const ended: EndGame = {
             ...base(),

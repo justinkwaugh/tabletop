@@ -29,12 +29,20 @@ export const OpenSeaAddition = Type.Object({
     polyp: Type.Enum(CoralColor)
 })
 
+// An empty bonus space refilled at turn end, or found to have no polyp of its colour in the bag.
+export type BonusSpaceRefill = Type.Static<typeof BonusSpaceRefill>
+export const BonusSpaceRefill = Type.Object({
+    color: Type.Enum(CoralColor),
+    found: Type.Boolean()
+})
+
 export type OpenSeaRefill = Type.Static<typeof OpenSeaRefill>
 export const OpenSeaRefill = Type.Object({
     larvaColor: Type.Enum(CoralColor),
     additions: Type.Array(OpenSeaAddition),
     bonusPolypsReturned: Type.Boolean(),
-    shortage: Type.Boolean()
+    shortage: Type.Boolean(),
+    bonusRefills: Type.Optional(Type.Array(BonusSpaceRefill))
 })
 
 export function spacesClockwiseFrom(first: CoralColor): CoralColor[] {

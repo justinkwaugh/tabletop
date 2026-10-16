@@ -17,6 +17,7 @@ import {
     isSearchBag,
     isTakeOpenSeaSpace,
     type AlgaColor,
+    type BonusSpaceRefill,
     type CoralColor,
     type OpenSeaAddition
 } from '@tabletop/reef-encounter'
@@ -226,8 +227,13 @@ export function describeSystemAction(action: GameAction): Omit<Phrase, 'playerId
             return phrase(['The open sea could not be refilled.'])
         }
         return refill.additions.length === 0
-            ? phrase(['The open sea was refilled.'])
-            : phrase(['Refill: ', ...refillParts(refill.additions), '.'])
+            ? phrase(['The open sea was refilled.', ...bonusRefillParts(refill.bonusRefills)])
+            : phrase([
+                  'Refill: ',
+                  ...refillParts(refill.additions),
+                  '.',
+                  ...bonusRefillParts(refill.bonusRefills)
+              ])
     }
     if (isSearchBag(action)) {
         const found = action.metadata?.found
@@ -263,6 +269,23 @@ function refillParts(additions: readonly OpenSeaAddition[]): PhrasePart[] {
     ])
 }
 
+// Empty bonus spaces refilled from the bag at turn end, and colours it had none of.
+function bonusRefillParts(refills: readonly BonusSpaceRefill[] = []): PhrasePart[] {
+    const icons = (found: boolean, joiner: string) =>
+        refills
+            .filter((refill) => refill.found === found)
+            .flatMap((refill, index) => [
+                ...(index > 0 ? [joiner] : []),
+                { ...polyp(refill.color), label: `${refill.color} polyp` }
+            ])
+    const found = icons(true, ', ')
+    const missing = icons(false, ' or ')
+    return [
+        ...(found.length > 0 ? [' Bonus: ', ...found, '.'] : []),
+        ...(missing.length > 0 ? [' No bonus ', ...missing, ' in the bag.'] : [])
+    ]
+}
+
 // What follows on from the action before it, told at the end of that action's phrase:
 // the open sea refilled after a turn ends, and a bonus polyp from the bag after a placement.
 function continuation(
@@ -271,8 +294,10 @@ function continuation(
 ): PhrasePart[] | undefined {
     if (isRefillOpenSea(action) && isTakeOpenSeaSpace(previous)) {
         const refill = action.metadata
-        if (!refill || refill.shortage || refill.additions.length === 0) return undefined
-        return ['. Refill: ', ...refillParts(refill.additions), '.']
+        if (!refill || refill.shortage) return undefined
+        const bonus = bonusRefillParts(refill.bonusRefills)
+        if (refill.additions.length === 0) return bonus.length > 0 ? ['.', ...bonus] : undefined
+        return ['. Refill: ', ...refillParts(refill.additions), '.', ...bonus]
     }
     if (isSearchBag(action) && action.need.kind === 'extraGrowth' && isPlacePolyp(previous)) {
         const found = action.metadata?.found
