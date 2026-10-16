@@ -10,7 +10,7 @@ const repoRequire = createRequire(join(uiRoot, '../../config/config-rollup/packa
 const pluginRequire = createRequire(repoRequire.resolve('rollup-plugin-postcss'))
 const postcss = pluginRequire('postcss')
 const { SourceMapConsumer } = pluginRequire('source-map')
-const ts = createRequire(join(uiRoot, 'package.json'))('typescript')
+const ts = createRequire(join(uiRoot, '../../libs/frontend-components/package.json'))('typescript')
 
 const packageName = JSON.parse(readFileSync(join(uiRoot, 'package.json'), 'utf8')).name ?? ''
 const packageSlug = packageName.replace(/^@/, '').replace(/\//g, '-').replace(/[^a-zA-Z0-9_-]/g, '-')

@@ -384,7 +384,7 @@ def lockfile_resolution(lines: list[str]) -> str:
     return "registry" if re.fullmatch(r"integrity: [\w+/=-]+", fields) else fields
 
 
-def lockfile_change(merge_base: str, slug: str, repo: Path) -> dict[str, Any] | None:
+def lockfile_change(merge_base: str, slug: str, repo: Path, static: bool) -> dict[str, Any] | None:
     try:
         before = lockfile_sections(git("show", f"{merge_base}:{LOCKFILE_PATH}", cwd=repo))
         after = lockfile_sections((repo / LOCKFILE_PATH).read_text(encoding="utf-8"))
@@ -408,6 +408,15 @@ def lockfile_change(merge_base: str, slug: str, repo: Path) -> dict[str, Any] | 
                     resolutions.append({"entry": key.rstrip(":"), "resolution": lockfile_resolution(new[key])})
                 continue
             outside.append(label)
+    if static:
+        return {
+            "changed": before != after,
+            "added_package_entries": added,
+            "added_package_resolutions": resolutions,
+            "changes_outside_title": outside,
+            "frozen_lockfile_check": "not run: --static",
+            "exempt": before != after and not outside,
+        }
     frozen = subprocess.run(
         ["pnpm", "install", "--frozen-lockfile", "--lockfile-only"],
         cwd=repo,
@@ -922,6 +931,11 @@ def main() -> int:
     parser.add_argument("slug", help="game directory slug, such as indonesia")
     parser.add_argument("--base", required=True, help="PR base ref or fixed comparison commit")
     parser.add_argument("--output", help="write JSON evidence to this file instead of stdout")
+    parser.add_argument(
+        "--static",
+        action="store_true",
+        help="run nothing the change can alter, for the untrusted-code gate before the title is installed",
+    )
     args = parser.parse_args()
 
     repo = Path(git("rev-parse", "--show-toplevel"))
@@ -939,7 +953,7 @@ def main() -> int:
     releases = release_tags(args.slug, repo)
     new_title = not releases["tags"]
     added_entry = catalogue_addition(merge_base, args.slug, repo) if new_title else None
-    lockfile = lockfile_change(merge_base, args.slug, repo)
+    lockfile = lockfile_change(merge_base, args.slug, repo, args.static)
     exempt_paths = [CATALOGUE_PATH] if added_entry is not None else []
     if lockfile is not None and lockfile["exempt"]:
         exempt_paths.append(LOCKFILE_PATH)
@@ -1004,6 +1018,7 @@ def main() -> int:
     evidence = {
         "game": args.slug,
         "base_ref": args.base,
+        "static": args.static,
         "merge_base": merge_base,
         "allowed_roots": list(allowed),
         "changed_paths": changes,

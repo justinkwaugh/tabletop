@@ -5,7 +5,8 @@ import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const require = createRequire(join(process.argv[2], 'package.json'))
+// The compilers come from the workspace's shared library, never the title under review.
+const require = createRequire(join(process.argv[2], '../../libs/frontend-components/package.json'))
 const ts = require('typescript')
 const { parse } = require('svelte/compiler')
 
