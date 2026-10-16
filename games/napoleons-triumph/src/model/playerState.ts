@@ -41,4 +41,9 @@ export class HydratedNapoleonsTriumphPlayerState
     constructor(data: NapoleonsTriumphPlayerState) {
         super(data, NapoleonsTriumphPlayerStateValidator)
     }
+
+    /** Rule 13: morale worn down never falls below one, so it cannot break the army. */
+    wearDownLoss(points: number): number {
+        return Math.min(points, this.morale - 1)
+    }
 }

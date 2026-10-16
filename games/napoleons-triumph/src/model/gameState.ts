@@ -280,9 +280,8 @@ export class HydratedNapoleonsTriumphGameState
         }
     }
 
-    /** Rule 13: morale lost this way never falls below one, so it cannot break the army. */
     private wearDown(player: HydratedNapoleonsTriumphPlayerState, points: number): number {
-        const lost = Math.min(points, player.morale - 1)
+        const lost = player.wearDownLoss(points)
         player.morale -= lost
         player.moraleLost += lost
         return lost
