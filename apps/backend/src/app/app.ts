@@ -164,7 +164,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin)
     await fastify.register(ServicesPlugin)
-    const hostingFallbackFrontendVersion = await frontendVersion(fastify)
 
     if (service !== 'local') {
         fastify.addHook('onRequest', async (request, _reply) => {
@@ -188,7 +187,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
     await fastify.register(GamesPlugin, { prefix: API_PREFIX })
 
-    // This sets up the service to handle the API and frontend
+    // This sets up the service to handle the API, game files and, locally, the frontend
     if (service === 'local' || service === 'backend') {
         console.log('Registering API routes')
         // This loads all API routes
@@ -291,22 +290,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
                 setPrecompressedHeaders(reply, pathName)
             }
         })
-
-        if (service === 'backend') {
-            const frontendRoot = path.join(STATIC_ROOT, 'frontend', hostingFallbackFrontendVersion)
-            console.log('Serving static content for root from: ' + frontendRoot)
-            await fastify.register(fastifyStatic, {
-                root: frontendRoot,
-                preCompressed: true,
-                cacheControl: false,
-                setHeaders: (reply, pathName) => {
-                    setFrontendCacheHeaders(reply, pathName, 60 * 60 * 24 * 365)
-
-                    setPrecompressedHeaders(reply, pathName)
-                }
-            })
-            frontendStaticReady = true
-        }
 
         if (frontendStaticReady) {
             // Override root path to serve index.html with no caching
