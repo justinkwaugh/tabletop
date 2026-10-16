@@ -256,20 +256,46 @@ function reasonCannotPayPlansInOrder(
     return undefined
 }
 
-/** R-5.5.3-H1 — the bandits' plans come from every site they rule, not only the targeted ones. */
-export function banditBattlePlans(state: HydratedOathGameState): ActiveBattlePlan[] {
+/**
+ * R-5.5.3-H1 — the bandits' plans come from every site they rule, not only the targeted ones.
+ * R-5.5.3-H4 — each passes the bans and added costs a player's plan does, before Code of Honor
+ * stands alone (R-X.4: from revision 14; before it, the printed cost alone was read).
+ */
+export function banditBattlePlans(
+    state: HydratedOathGameState,
+    parties: CampaignParties
+): ActiveBattlePlan[] {
+    const checked = isAtLeastOathRevision(state, OathRevision.EngineFixes10)
     const found: ActiveBattlePlan[] = []
     for (const cardId of banditRuledCardIds(state)) {
         for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
             if (!admits(power, BattlePlanSide.Defender) || !isFree(power.cost)) continue
             const hooks = effectFor(power)?.battlePlan
             if (!hooks) continue
+            if (checked && banditsCannotUse(state, power, parties)) continue
             found.push({ power, hooks, choices: [], compelled: true })
         }
     }
     // Code of Honor — "you cannot use other battle plans" binds the bandits' own too.
     const exclusive = found.find((plan) => plan.hooks.exclusive)
     return exclusive ? [exclusive] : found
+}
+
+/**
+ * R-9.2 — a "cannot" beats R-5.5.3's compelled use (True Names, Beast Tamer); and R-5.5.3's "no cost"
+ * reads the cost an enemy's card adds (Gleaming Armor, Insect Swarm), which the bandits could not
+ * pay anyway (R-10.3-H1).
+ */
+function banditsCannotUse(
+    state: HydratedOathGameState,
+    power: CardPower,
+    parties: CampaignParties
+): boolean {
+    const side = BattlePlanSide.Defender
+    if (reasonPersistentForbidsBattlePlan(state, BANDITS_PLAN_USER, power, parties, side)) {
+        return true
+    }
+    return !isFree(extraBattlePlanCost(state, BANDITS_PLAN_USER, parties, side))
 }
 
 export interface BattlePlanOutcome {

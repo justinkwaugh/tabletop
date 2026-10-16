@@ -22,7 +22,7 @@ import {
     hasFaceupAdviserOfSuit,
     pawnSiteId
 } from './vocabulary.js'
-import { defendingPlayerIds, partySideOf, sideOf } from '../util/battlePlans.js'
+import { BANDITS_PLAN_USER, defendingPlayerIds, partySideOf, sideOf } from '../util/battlePlans.js'
 import { cannotRecoverForbids } from '../util/seize.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
@@ -225,6 +225,14 @@ registerPersistent(MARSH_SPIRIT, powerIndexOf(MARSH_SPIRIT, PowerTiming.Persiste
             : undefined
 })
 
+/**
+ * R-10.7 — the bandits are every player's enemy (Tome Guardians' Q&A: "the bandits consider all
+ * players enemies"), with no player to look up.
+ */
+function planUserIsEnemyOf(ctx: PersistentContext, owner: string, userId: string): boolean {
+    return userId === BANDITS_PLAN_USER || areEnemies(ctx.state, owner, userId, ctx.scope)
+}
+
 // "Enemies cannot use beast or nomad battle plans against you."
 registerPersistent(
     'denizen.discord.beast-tamer',
@@ -232,7 +240,7 @@ registerPersistent(
     {
         forbidsBattlePlan: (ctx, userId, power, parties, side) => {
             const owner = againstOwner(ctx, userId, parties, side)
-            if (!owner || !areEnemies(ctx.state, owner, userId, ctx.scope)) return undefined
+            if (!owner || !planUserIsEnemyOf(ctx, owner, userId)) return undefined
             const suit = suitOf(power.cardId)
             return suit === Suit.Beast || suit === Suit.Nomad
                 ? `Beast Tamer: ${owner}'s enemies cannot use beast or nomad battle plans against them`

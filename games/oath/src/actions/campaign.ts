@@ -343,7 +343,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
                 ? applyBattlePlans(
                       state,
                       undefined,
-                      banditBattlePlans(state),
+                      banditBattlePlans(state, parties),
                       pools,
                       { parties, side: BattlePlanSide.Defender },
                       kills
