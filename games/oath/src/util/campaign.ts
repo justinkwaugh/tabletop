@@ -289,7 +289,7 @@ export function targetDefenseDice(state: HydratedOathGameState, parties: Campaig
                 dice += printed
                 // Sealing Ward — "your relics add one more defense die when targeted".
                 if (parties.defenderPlayerId)
-                    dice += persistentRelicDefenseBonus(state, parties.defenderPlayerId)
+                    dice += persistentRelicDefenseBonus(state, parties.defenderPlayerId, parties)
                 break
             }
             case CampaignTargetKind.Banner:
@@ -305,7 +305,7 @@ export function targetDefenseDice(state: HydratedOathGameState, parties: Campaig
                 dice += 2
                 // Circlet of Command — "banishing your pawn and favor adds one more".
                 if (parties.defenderPlayerId)
-                    dice += persistentPawnDefenseBonus(state, parties.defenderPlayerId)
+                    dice += persistentPawnDefenseBonus(state, parties.defenderPlayerId, parties)
                 break
         }
     }
@@ -543,7 +543,7 @@ function reasonCannotTarget(
             return `${target.slotId} is at ${siteId}, which is not a targeted site`
         }
         // Ancient Bloodline — a relic at a site its holder rules is locked for their enemies.
-        return siteLockedFor(state, parties.attackerPlayerId, siteId)
+        return siteLockedFor(state, parties.attackerPlayerId, siteId, parties)
             ? `the relics at ${siteId} are locked (Ancient Bloodline)`
             : undefined
     }
@@ -566,7 +566,8 @@ function reasonCannotTarget(
                 state,
                 parties.attackerPlayerId,
                 defender.playerId,
-                target.cardId
+                target.cardId,
+                parties
             )
         case CampaignTargetKind.Banner:
             if (bannerHolder(state, target.banner) !== defender.playerId) {
@@ -578,7 +579,8 @@ function reasonCannotTarget(
                 parties.attackerPlayerId,
                 target.banner,
                 'seize',
-                defender.playerId
+                defender.playerId,
+                parties
             )
         case CampaignTargetKind.PawnAndFavor:
             return undefined

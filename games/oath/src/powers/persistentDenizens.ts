@@ -133,7 +133,7 @@ function lostTongue(
     holderId: string | undefined
 ): string | undefined {
     if (!holderId || !ctx.ownerIds.includes(holderId) || actorId === holderId) return undefined
-    const rulesNomad = ruledFaceupCardIds(ctx.state, actorId).some(
+    const rulesNomad = ruledFaceupCardIds(ctx.state, actorId, ctx.scope).some(
         (id) => suitOf(id) === Suit.Nomad
     )
     return rulesNomad
@@ -232,7 +232,7 @@ registerPersistent(
     {
         forbidsBattlePlan: (ctx, userId, power, parties, side) => {
             const owner = againstOwner(ctx, userId, parties, side)
-            if (!owner || !areEnemies(ctx.state, owner, userId)) return undefined
+            if (!owner || !areEnemies(ctx.state, owner, userId, ctx.scope)) return undefined
             const suit = suitOf(power.cardId)
             return suit === Suit.Beast || suit === Suit.Nomad
                 ? `Beast Tamer: ${owner}'s enemies cannot use beast or nomad battle plans against them`
@@ -331,7 +331,8 @@ registerPersistent(
 const BOILING_LAKE = 'denizen.discord.boiling-lake'
 registerPersistent(BOILING_LAKE, powerIndexOf(BOILING_LAKE, PowerTiming.Persistent), {
     afterTravel: (ctx, actorId, _from, to) => {
-        if (to !== ctx.siteId || rulesCard(ctx.state, actorId, BOILING_LAKE)) return undefined
+        if (to !== ctx.siteId || rulesCard(ctx.state, actorId, BOILING_LAKE, ctx.scope))
+            return undefined
         const { killed, held } = killOnTravellersBoard(ctx.state, actorId, 2)
         if (!killed) return undefined
         return held

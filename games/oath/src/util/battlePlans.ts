@@ -99,7 +99,7 @@ export function usableBattlePlans(
         for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
             if (!admits(power, side)) continue
             if (!effectFor(power)?.battlePlan) continue
-            if (reasonCannotPayPowerCost(state, playerId, power)) continue
+            if (reasonCannotPayPowerCost(state, playerId, power, parties)) continue
             found.push(power)
         }
     }
@@ -161,7 +161,7 @@ export function resolveBattlePlans(
             effect?.battlePlan,
             `${use.cardId} power ${use.powerIndex} registers no battle plan`
         )
-        const unpayable = reasonCannotPayPowerCost(state, playerId, power)
+        const unpayable = reasonCannotPayPowerCost(state, playerId, power, parties)
         if (unpayable) return { reason: unpayable, active }
         // R-7.1.4 — Marsh Spirit, Beast Tamer, True Names.
         const barred = reasonPersistentForbidsBattlePlan(state, playerId, power, parties, side)
@@ -182,7 +182,7 @@ export function resolveBattlePlans(
             }
         // Spell Breaker — its Q&A names Gleaming Armor's added secret.
         if (secretsNeeded(total) > 0) {
-            const secretBarred = reasonPersistentForbidsSecretCost(state, playerId)
+            const secretBarred = reasonPersistentForbidsSecretCost(state, playerId, parties)
             if (secretBarred) return { reason: secretBarred, active }
         }
         const badChoice = reasonChoicesInvalid(state, playerId, power, use.choices)
