@@ -4,7 +4,6 @@
     import {
         Navbar,
         NavBrand,
-        Avatar,
         Button,
         Dropdown,
         DropdownHeader,
@@ -25,6 +24,7 @@
     import AuthModal from '$lib/components/AuthModal.svelte'
     import BugReportModal from '$lib/components/BugReportModal.svelte'
     import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
+    import AccountAvatar from '$lib/components/AccountAvatar.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
@@ -507,7 +507,7 @@
                         {/if}
 
                         <button id="user-drop" class="account-menu cursor-pointer text-gray-700 dark:text-gray-300" aria-label="Open account menu">
-                            <span class="account-avatar"><Avatar /></span>
+                            <span class="account-avatar"><AccountAvatar user={sessionUser} /></span>
                             <svg class="game-menu-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                                 <path d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
