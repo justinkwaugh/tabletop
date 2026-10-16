@@ -10,6 +10,7 @@ import {
     shareSaleValue,
     stockCertificateCount,
     titleComponents,
+    TileUpgrades,
     trainsOwnedBy,
     type EighteenXXPreferences,
     type EighteenXXState,
@@ -572,6 +573,10 @@ export class EighteenXXSession<
     }
     get phases() {
         return this.rules.phases
+    }
+    private cachedTileUpgrades: TileUpgrades | undefined
+    get tileUpgrades(): TileUpgrades {
+        return (this.cachedTileUpgrades ??= new TileUpgrades(this.rules.trackRules))
     }
     get operatingRules() {
         return this.rules.operatingRules

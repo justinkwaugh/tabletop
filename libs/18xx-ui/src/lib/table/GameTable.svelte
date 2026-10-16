@@ -1306,6 +1306,7 @@
                                 <TileManifest
                                     tiles={session.mapView.tileSet.definitions}
                                     inventory={session.map.tileCounts}
+                                    upgrades={session.tileUpgrades}
                                     layouts={session.mapView.layouts}
                                     orientation={session.mapView.map.definition.orientation}
                                     appearance={tileAppearance}

@@ -1,9 +1,11 @@
-import type { GameAction } from '@tabletop/common'
+import { assertExists, type GameAction, type Visibility } from '@tabletop/common'
 import { AUSTERLITZ } from '../components/austerlitz.js'
 import { Side } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphRuntime } from '../definition/runtime.js'
 import { CommandKind, type MoveOrder } from '../model/attack.js'
 import { FeintEnd } from '../model/attackDeclaration.js'
+import type { NapoleonsTriumphGameState } from '../model/gameState.js'
 import {
     TestGame,
     arrangeBattlefield,
@@ -21,6 +23,7 @@ export const BATTLE_REFUGE = 83
 /** A French turn with only the pieces of one attack on the map, keeping the actions played from then on. */
 export class BattleGame extends TestGame {
     readonly played: GameAction[] = []
+    private lastPlay?: { state: NapoleonsTriumphGameState; action: GameAction }
 
     constructor(placements: readonly PiecePlacement[], alliedMorale?: number) {
         super()
@@ -35,10 +38,24 @@ export class BattleGame extends TestGame {
         this.played.length = 0
     }
 
-    override act(type: ActionType, playerId: string, payload: Record<string, unknown> = {}) {
-        const processed = super.act(type, playerId, payload)
+    protected override play(action: GameAction): GameAction[] {
+        this.lastPlay = { state: this.canonical, action }
+        const processed = super.play(action)
         this.played.push(...processed)
         return processed
+    }
+
+    /** The last action played again as its player's browser runs it: on that player's view of the game. */
+    replayInPlayersView(): GameAction[] {
+        assertExists(this.lastPlay, 'Expected an action to have been played')
+        const { state, action } = this.lastPlay
+        assertExists(action.playerId, 'Expected a player action')
+        const perspective: Visibility.Perspective = { kind: 'player', playerId: action.playerId }
+        const view = NapoleonsTriumphRuntime.visibility.state.project(state, perspective, {
+            config: this.game.config
+        })
+        return this.engine.executeAction({ game: this.game, state: view, perspective, action })
+            .processedActions
     }
 
     by(side: Side, type: ActionType, payload: Record<string, unknown> = {}) {
@@ -171,6 +188,26 @@ export function feintAgainstOneReserve(): BattleGame {
     game.by(Side.French, ActionType.DeclareFeint, {
         orders: stHilaire(['F01']),
         end: FeintEnd.Reserve
+    })
+    return game
+}
+
+/** A feint against a reserve of a detached unit and a corps's last unit, which advance with their commander. */
+export function advanceWithTheCommanderAfterAFeint(): BattleGame {
+    const game = new BattleGame([
+        attacker('F01', infantry(3)),
+        defender('A01', cavalry(3), { commanderId: undefined }),
+        defender('A02', infantry(3))
+    ])
+    game.threaten()
+    game.by(Side.Allied, ActionType.DeclareDefense, { unitIds: ['A01', 'A02'] })
+    game.by(Side.French, ActionType.DeclareFeint, {
+        orders: stHilaire(['F01']),
+        end: FeintEnd.Reserve
+    })
+    game.by(Side.Allied, ActionType.Advance, {
+        unitIds: ['A01', 'A02'],
+        commanderIds: ['prebyshevsky']
     })
     return game
 }
