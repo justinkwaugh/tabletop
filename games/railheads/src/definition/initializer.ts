@@ -20,7 +20,7 @@ import {
 import { HydratedRailheadsPlayerState } from '../model/playerState.js'
 import { openInitialAuction } from '../model/shareAuctionRules.js'
 import { RailheadsColors } from './colors.js'
-import { readRailheadsSetup } from './gameConfig.js'
+import { readRailheadsSetup } from './setup.js'
 import { MachineState } from './states.js'
 
 export class RailheadsGameInitializer

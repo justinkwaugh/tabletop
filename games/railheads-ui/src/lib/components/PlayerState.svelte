@@ -117,7 +117,7 @@
         border-radius: 4px;
         background: #f6f2da;
         color: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         box-shadow:
             inset 0 0 0 3px #f6f2da,
             inset 0 0 0 4px #b9b48a,
@@ -147,7 +147,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 16px;
         font-weight: 700;
         letter-spacing: 0.06em;

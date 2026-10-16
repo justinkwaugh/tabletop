@@ -85,7 +85,7 @@ test('plays the opening auctions and lays track on the map', async ({ page }) =>
         .first()
         .click()
     await expect(page.getByRole('button', { name: /^Lay 1 piece/ })).toBeVisible()
-    await expect(page.locator('.panel .prompt')).toContainText('lay a disc for')
+    await expect(page.locator('.panel .prompt')).toContainText(/lay a disc for/i)
     await screenshot(page, '04-staged')
     const tracks = await page.evaluate(() => window.railheadsSession.gameState.track.length)
     await page.getByRole('button', { name: /^Lay 1 piece/ }).click()

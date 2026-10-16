@@ -30,7 +30,7 @@
     }
 
     text {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-weight: 700;
         text-anchor: middle;
         paint-order: stroke;

@@ -97,7 +97,7 @@
 
     .title {
         fill: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 14px;
         font-weight: 700;
         text-anchor: middle;
@@ -110,20 +110,20 @@
 
     .head {
         fill: #5b5a36;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 11px;
         font-weight: 700;
     }
 
     .label {
         fill: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 13px;
     }
 
     .cost {
         fill: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 14px;
         font-weight: 700;
     }
@@ -134,7 +134,7 @@
 
     .site-max-value {
         fill: #f4f0d8;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 18px;
         font-weight: 700;
         text-anchor: middle;
@@ -142,7 +142,7 @@
 
     .foot {
         fill: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 10px;
         text-anchor: middle;
     }

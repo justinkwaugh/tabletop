@@ -45,7 +45,7 @@
         gap: 6px;
         padding: 8px 12px;
         color: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
     }
 
     h1 {

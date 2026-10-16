@@ -94,7 +94,7 @@
         border-radius: 8px;
         background: #f6f2da;
         color: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 12.5px;
         box-shadow: 0 1px 3px rgba(30, 36, 10, 0.2);
     }
@@ -104,7 +104,7 @@
         align-items: center;
         justify-content: space-between;
         padding: 3px 8px;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-weight: 700;
     }
 
@@ -117,7 +117,7 @@
         display: inline-flex;
         align-items: baseline;
         gap: 6px;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
     }
 
     .level-label {

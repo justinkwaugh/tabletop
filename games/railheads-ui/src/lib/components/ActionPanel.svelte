@@ -123,7 +123,7 @@
                 Choose how the industry develops.
             {:else if gameSession.buildingCompany}
                 Lay a disc{gameSession.layRules?.allowsCrossingCubes ? ' or crossing cube' : ''} for
-                <CompanyBadge companyId={gameSession.buildingCompany} />.
+                <CompanyBadge companyId={gameSession.buildingCompany} />
             {:else}
                 Everything allowed is staged.
             {/if}
@@ -165,7 +165,7 @@
         gap: 6px;
         padding: 8px 12px;
         color: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
     }
 
     .prompt {
@@ -186,7 +186,7 @@
         display: inline-block;
         border-radius: 999px;
         padding: 0 6px;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 0.85em;
         font-weight: 700;
         line-height: 1.4;
@@ -244,7 +244,7 @@
 
         .guide dd {
             margin: 0;
-            font-family: 'Libre Baskerville', Georgia, serif;
+            font-family: 'Railheads Baskerville', Georgia, serif;
         }
 
         .guide .closed > * {

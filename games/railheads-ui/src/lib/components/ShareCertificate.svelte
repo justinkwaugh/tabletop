@@ -34,7 +34,7 @@
         border-radius: 2px;
         background: var(--co);
         color: var(--co-text);
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 9px;
         letter-spacing: -0.03em;
         font-weight: 700;

@@ -75,7 +75,7 @@
 
     .title {
         fill: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 13px;
         font-weight: 700;
         text-anchor: middle;
@@ -83,20 +83,20 @@
 
     .subtitle {
         fill: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 11px;
         font-weight: 700;
     }
 
     .body {
         fill: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 11px;
     }
 
     .plus {
         fill: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 12px;
         font-weight: 700;
         text-anchor: middle;

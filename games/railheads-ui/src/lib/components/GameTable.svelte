@@ -66,13 +66,13 @@
 {/snippet}
 
 <CustomFont
-    fontFamily="Libre Baskerville"
+    fontFamily="Railheads Baskerville"
     url={LibreBaskervilleFont}
     format="woff2"
     fontWeight="400 700"
 />
 <CustomFont
-    fontFamily="Libre Baskerville"
+    fontFamily="Railheads Baskerville"
     url={LibreBaskervilleItalicFont}
     format="woff2"
     fontWeight="400 700"

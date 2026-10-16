@@ -63,7 +63,7 @@
     }
 
     .code {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 17px;
         font-weight: 700;
         letter-spacing: 0.06em;
@@ -71,7 +71,7 @@
     }
 
     .home {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 11px;
         font-style: italic;
     }

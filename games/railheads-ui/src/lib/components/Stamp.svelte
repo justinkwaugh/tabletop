@@ -14,7 +14,7 @@
         border-radius: 2px;
         padding: 0 5px;
         color: #b0262e;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: var(--stamp-size, 14px);
         font-weight: 700;
         letter-spacing: 0.12em;

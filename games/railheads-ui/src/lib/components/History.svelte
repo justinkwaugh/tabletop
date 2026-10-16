@@ -114,7 +114,7 @@
         flex-direction: column;
         gap: 6px;
         color: #26300f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 13px;
     }
 
@@ -141,7 +141,7 @@
     }
 
     .number {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 11px;
         font-weight: 700;
         opacity: 0.7;

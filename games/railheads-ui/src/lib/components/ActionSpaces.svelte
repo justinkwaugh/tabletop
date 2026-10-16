@@ -97,7 +97,7 @@
         grid-template-columns: minmax(0, 0.9fr) repeat(5, minmax(0, 1fr));
         gap: 10px;
         margin: 12px 10px 0;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         color: #26300f;
     }
 
@@ -138,7 +138,7 @@
         background: #e3c34a;
         box-shadow: inset 0 0 0 3px #e3c34a, inset 0 0 0 4px rgba(122, 95, 10, 0.45);
         color: #4a3a05;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 20px;
         font-weight: 700;
         line-height: 1;
@@ -186,7 +186,7 @@
         height: 21px;
         padding: 0 4px;
         border-radius: 999px;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 13px;
         font-weight: 700;
         line-height: 1;
@@ -239,7 +239,7 @@
 
     .terms {
         align-self: stretch;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 12.5px;
         line-height: 1.2;
         color: #26300f;

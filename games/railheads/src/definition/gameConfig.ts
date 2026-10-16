@@ -1,6 +1,5 @@
 import * as Type from 'typebox'
-import { Compile } from 'typebox/compile'
-import { ConfigOptionType, assert, type GameConfig, type GameConfigOptions } from '@tabletop/common'
+import { ConfigOptionType, type GameConfigOptions } from '@tabletop/common'
 import { EditionId } from '../editions/types.js'
 
 export type RailheadsGameConfig = Type.Static<typeof RailheadsGameConfig>
@@ -8,21 +7,6 @@ export const RailheadsGameConfig = Type.Object({
     edition: Type.Optional(Type.Enum(EditionId)),
     offTheRails: Type.Optional(Type.Boolean())
 })
-
-export const RailheadsGameConfigValidator = Compile(RailheadsGameConfig)
-
-export type RailheadsSetup = { editionId: EditionId; offTheRails: boolean }
-
-export function readRailheadsSetup(config: GameConfig): RailheadsSetup {
-    assert(
-        RailheadsGameConfigValidator.Check(config),
-        'Game configuration is not a Railheads setup'
-    )
-    return {
-        editionId: config.edition ?? EditionId.Germany,
-        offTheRails: config.offTheRails ?? false
-    }
-}
 
 export const RailheadsGameConfigOptions: GameConfigOptions = [
     {
