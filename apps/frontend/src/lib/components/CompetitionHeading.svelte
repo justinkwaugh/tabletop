@@ -1,9 +1,10 @@
 <script lang="ts">
-    let { current }: { current: 'tournaments' | 'leagues' } = $props()
     const sections = [
         { id: 'tournaments', label: 'Tournaments', href: '/tournaments' },
         { id: 'leagues', label: 'Leagues', href: '/leagues' }
     ] as const
+
+    let { current }: { current: (typeof sections)[number]['id'] } = $props()
 </script>
 
 <nav aria-label="Competitions" class="flex items-baseline gap-3.5 sm:gap-6">

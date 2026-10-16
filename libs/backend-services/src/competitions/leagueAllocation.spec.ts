@@ -251,6 +251,39 @@ describe('leagueFinalAllocation', () => {
         )
     })
 
+    it('keeps those relegated into the Bottom Level there when a new Level is added', () => {
+        const stayed = Array.from({ length: 8 }, (_, index) => ({
+            userId: `c-${index}`,
+            level: 2
+        }))
+        const relegated = ['b-6', 'b-7'].map((userId) => ({
+            userId,
+            level: 2,
+            relegated: true as const
+        }))
+        const groups = leagueFinalAllocation({
+            shape: 'ladder',
+            sizes: sevens,
+            confirmed: [...lastSeason.filter((place) => place.level < 2), ...stayed, ...relegated],
+            newEntrantIds: Array.from({ length: 4 }, (_, index) => `new-${index}`),
+            seed: 3
+        })
+        expect(groups?.map((value) => value.entrantIds.length)).toEqual([7, 7, 7, 7])
+        expect(groups?.[2].entrantIds.sort()).toEqual(
+            ['c-0', 'c-1', 'c-2', 'c-3', 'c-4', 'b-6', 'b-7'].sort()
+        )
+        expect(groups?.[3].entrantIds).toEqual(expect.arrayContaining(['c-5', 'c-6', 'c-7']))
+    })
+
+    it('marks Held Places reached by relegation', () => {
+        expect(lastSeason.filter((place) => place.relegated).map((place) => place.userId)).toEqual([
+            'A-6',
+            'A-7',
+            'B-6',
+            'B-7'
+        ])
+    })
+
     it('lets new Entrants fill upper Levels when too few returning Entrants confirm', () => {
         const groups = leagueFinalAllocation({
             shape: 'ladder',

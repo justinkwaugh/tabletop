@@ -40,10 +40,16 @@ const resultText = ({
     }
 }
 
+export const leagueSeasonResultsName = ({
+    movement,
+    seasonNumber,
+}: Pick<LeagueSeasonResultsProps, 'movement' | 'seasonNumber'>): string =>
+    movement === 'seeded' ? 'Seeding season' : `Season ${seasonNumber}`
+
 export const LeagueSeasonResults = (props: LeagueSeasonResultsProps) => {
-    const { leagueName, title, seasonNumber, groupName, champion, standings, url = `` } = props
+    const { leagueName, title, groupName, champion, standings, url = `` } = props
     const result = resultText(props)
-    const season = props.movement === 'seeded' ? 'Seeding season' : `Season ${seasonNumber}`
+    const season = leagueSeasonResultsName(props)
     return (
         <DarkCardEmail
             preview={`${leagueName} ${season} is complete. ${result}`}

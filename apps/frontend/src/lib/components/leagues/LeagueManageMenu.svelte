@@ -1,9 +1,10 @@
 <script lang="ts">
-    import type {
-        League,
-        LeagueSeason,
-        LeagueSignUpOperation,
-        LeagueSignUpPolicy
+    import {
+        leagueSignUpDays,
+        type League,
+        type LeagueSeason,
+        type LeagueSignUpOperation,
+        type LeagueSignUpPolicy
     } from '@tabletop/common'
     import { localDateTimeInputValue } from '$lib/utils/dateTimeInput'
 
@@ -119,8 +120,8 @@
                         Sign-up lasts
                         <input
                             type="number"
-                            min="1"
-                            max="60"
+                            min={leagueSignUpDays.minimum}
+                            max={leagueSignUpDays.maximum}
                             class="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             bind:value={signUpDays}
                         />

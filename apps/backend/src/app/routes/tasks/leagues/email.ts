@@ -22,52 +22,50 @@ export default async function (fastify: FastifyInstance) {
                 )
                 return { status: 'skipped' }
             }
-            const title = definition.info.metadata.name
             const claim = `leagues:v1:email:${JSON.stringify([
                 content.leagueId,
                 content.seasonNumber,
                 content.kind,
+                request.body.closesAt ?? null,
                 recipient.id
             ])}`
             if (!(await fastify.cacheService.claimOnce(claim, EMAIL_CLAIM_SECONDS)))
                 return { status: 'duplicate' }
+            const email = {
+                leagueName: content.leagueName,
+                title: definition.info.metadata.name,
+                seasonNumber: content.seasonNumber,
+                toEmail: recipient.email
+            }
+            const leagueUrl = `${FRONTEND_HOST}/leagues/${encodeURIComponent(content.leagueId)}`
             try {
                 if (content.kind === 'seasonResults')
                     await fastify.emailService.sendLeagueSeasonResultsEmail({
-                        leagueName: content.leagueName,
-                        title,
-                        seasonNumber: content.seasonNumber,
+                        ...email,
                         groupName: content.groupName,
                         place: content.place,
                         movement: content.movement,
                         nextLevel: content.nextLevel,
                         ...(content.champion ? { champion: content.champion } : {}),
                         standings: content.standings,
-                        url: `${FRONTEND_HOST}/leagues/${encodeURIComponent(content.leagueId)}?season=${content.seasonNumber}`,
-                        toEmail: recipient.email
+                        url: `${leagueUrl}?season=${content.seasonNumber}`
                     })
                 else if (content.kind === 'seasonStart')
                     await fastify.emailService.sendLeagueSeasonStartEmail({
-                        leagueName: content.leagueName,
-                        title,
-                        seasonNumber: content.seasonNumber,
+                        ...email,
                         groupName: content.groupName,
                         ...(content.level ? { level: content.level } : {}),
                         opponents: content.opponents,
                         gamesEach: content.gamesEach,
-                        url: `${FRONTEND_HOST}/tournaments/${encodeURIComponent(content.tournamentId)}`,
-                        toEmail: recipient.email
+                        url: `${FRONTEND_HOST}/tournaments/${encodeURIComponent(content.tournamentId)}`
                     })
                 else
                     await fastify.emailService.sendLeagueSignUpEmail({
+                        ...email,
                         reminder: content.kind === 'signUpReminder',
-                        leagueName: content.leagueName,
-                        title,
-                        seasonNumber: content.seasonNumber,
                         level: content.level,
                         closesAt: content.closesAt,
-                        url: `${FRONTEND_HOST}/leagues/${encodeURIComponent(content.leagueId)}`,
-                        toEmail: recipient.email
+                        url: leagueUrl
                     })
             } catch (error) {
                 await fastify.cacheService.delete(claim)

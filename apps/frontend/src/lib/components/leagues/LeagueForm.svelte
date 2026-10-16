@@ -15,6 +15,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         leagueGroupSizesFor,
+        leagueSignUpDays,
         getMiniTournamentDefaults,
         range,
         type League,
@@ -206,8 +207,8 @@
                 id="league-sign-up-days"
                 type="number"
                 bind:value={signUpDays}
-                min="1"
-                max="60"
+                min={leagueSignUpDays.minimum}
+                max={leagueSignUpDays.maximum}
                 required
             />
             <Helper class="mt-1 text-xs"

@@ -66,6 +66,12 @@ export const TournamentRegistrationPolicy = Type.Union([
 ])
 export type TournamentRegistrationPolicy = Type.Static<typeof TournamentRegistrationPolicy>
 
+// Registration Policies players join themselves; the public lists show only these Tournaments.
+export const selfRegistrationKinds = ['whenFull', 'deadline'] as const satisfies readonly Exclude<
+    TournamentRegistrationPolicy['kind'],
+    'assigned'
+>[]
+
 export function tournamentCapacity(policy: TournamentRegistrationPolicy): number | undefined {
     return policy.kind === 'assigned' ? undefined : policy.capacity
 }

@@ -33,7 +33,9 @@ export const LeagueEmailTask = Type.Object(
         leagueId: LeagueId,
         season: Type.Integer({ minimum: 0 }),
         userId: Type.String(),
-        kind: LeagueEmailKind
+        kind: LeagueEmailKind,
+        // The sign-up close a reminder is for; moving the close sends a new reminder.
+        closesAt: Type.Optional(Type.Integer())
     },
     { additionalProperties: false }
 )

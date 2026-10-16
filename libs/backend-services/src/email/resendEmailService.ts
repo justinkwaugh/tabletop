@@ -32,6 +32,18 @@ export class ResendEmailService implements EmailService {
         return this.rendering
     }
 
+    private async send(to: string, subject: string, html: string): Promise<void> {
+        await this.resend.emails.send({
+            from: 'noreply@boardtogether.games',
+            to,
+            subject,
+            html,
+            headers: {
+                'X-Entity-Ref-ID': nanoid()
+            }
+        })
+    }
+
     static async createEmailService(secretsService: SecretsService): Promise<EmailService> {
         const emailService = new ResendEmailService()
         const resendKey = await secretsService.getSecret('RESEND_API_KEY')
@@ -45,29 +57,13 @@ export class ResendEmailService implements EmailService {
     async sendVerificationEmail(token: string, toEmail: string): Promise<void> {
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(templates.EmailVerification({ token }))
-        await this.resend.emails.send({
-            from: 'noreply@boardtogether.games',
-            to: toEmail,
-            subject: 'Verify your email address',
-            html: emailHTML,
-            headers: {
-                'X-Entity-Ref-ID': nanoid()
-            }
-        })
+        await this.send(toEmail, 'Verify your email address', emailHTML)
     }
 
     async sendPasswordResetEmail(token: string, url: string, toEmail: string): Promise<void> {
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(templates.PasswordReset({ url }))
-        await this.resend.emails.send({
-            from: 'noreply@boardtogether.games',
-            to: toEmail,
-            subject: 'Reset your password',
-            html: emailHTML,
-            headers: {
-                'X-Entity-Ref-ID': nanoid()
-            }
-        })
+        await this.send(toEmail, 'Reset your password', emailHTML)
     }
 
     async sendAccountChangedNotificationEmail(
@@ -79,15 +75,7 @@ export class ResendEmailService implements EmailService {
         const emailHTML = await render(
             templates.AccountChangeNotification({ changeType, timestamp })
         )
-        await this.resend.emails.send({
-            from: 'noreply@boardtogether.games',
-            to: toEmail,
-            subject: 'Account change notification',
-            html: emailHTML,
-            headers: {
-                'X-Entity-Ref-ID': nanoid()
-            }
-        })
+        await this.send(toEmail, 'Account change notification', emailHTML)
     }
 
     async sendGameInvitationEmail({
@@ -112,15 +100,11 @@ export class ResendEmailService implements EmailService {
                 url
             })
         )
-        await this.resend.emails.send({
-            from: 'noreply@boardtogether.games',
-            to: toEmail,
-            subject: `Join ${owner.username}'s game of ${definition.info.metadata.name}`,
-            html: emailHTML,
-            headers: {
-                'X-Entity-Ref-ID': nanoid()
-            }
-        })
+        await this.send(
+            toEmail,
+            `Join ${owner.username}'s game of ${definition.info.metadata.name}`,
+            emailHTML
+        )
     }
 
     async sendGameEndEmail({
@@ -151,15 +135,11 @@ export class ResendEmailService implements EmailService {
                 url
             })
         )
-        await this.resend.emails.send({
-            from: 'noreply@boardtogether.games',
-            to: toEmail,
-            subject: `Your game of ${definition.info.metadata.name} ${game.name} has ended`,
-            html: emailHTML,
-            headers: {
-                'X-Entity-Ref-ID': nanoid()
-            }
-        })
+        await this.send(
+            toEmail,
+            `Your game of ${definition.info.metadata.name} ${game.name} has ended`,
+            emailHTML
+        )
     }
 
     async sendTournamentResultsEmail({
@@ -198,45 +178,29 @@ export class ResendEmailService implements EmailService {
                 url
             })
         )
-        await this.resend.emails.send({
-            from: 'noreply@boardtogether.games',
-            to: toEmail,
-            subject: `Final results for ${detail.tournament.name}`,
-            html: emailHTML,
-            headers: {
-                'X-Entity-Ref-ID': nanoid()
-            }
-        })
+        await this.send(toEmail, `Final results for ${detail.tournament.name}`, emailHTML)
     }
 
     async sendLeagueSignUpEmail({ toEmail, ...props }: LeagueSignUpEmail): Promise<void> {
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(templates.LeagueSignUp(props))
-        await this.resend.emails.send({
-            from: 'noreply@boardtogether.games',
-            to: toEmail,
-            subject: props.reminder
+        await this.send(
+            toEmail,
+            props.reminder
                 ? `Sign-up for ${props.leagueName} closes soon`
                 : `Sign-up for ${props.leagueName} Season ${props.seasonNumber} is open`,
-            html: emailHTML,
-            headers: {
-                'X-Entity-Ref-ID': nanoid()
-            }
-        })
+            emailHTML
+        )
     }
 
     async sendLeagueSeasonStartEmail({ toEmail, ...props }: LeagueSeasonStartEmail): Promise<void> {
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(templates.LeagueSeasonStart(props))
-        await this.resend.emails.send({
-            from: 'noreply@boardtogether.games',
-            to: toEmail,
-            subject: `${props.leagueName} Season ${props.seasonNumber} has started`,
-            html: emailHTML,
-            headers: {
-                'X-Entity-Ref-ID': nanoid()
-            }
-        })
+        await this.send(
+            toEmail,
+            `${props.leagueName} Season ${props.seasonNumber} has started`,
+            emailHTML
+        )
     }
 
     async sendLeagueSeasonResultsEmail({
@@ -245,14 +209,10 @@ export class ResendEmailService implements EmailService {
     }: LeagueSeasonResultsEmail): Promise<void> {
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(templates.LeagueSeasonResults(props))
-        await this.resend.emails.send({
-            from: 'noreply@boardtogether.games',
-            to: toEmail,
-            subject: `${props.leagueName} ${props.movement === 'seeded' ? 'Seeding season' : `Season ${props.seasonNumber}`} results`,
-            html: emailHTML,
-            headers: {
-                'X-Entity-Ref-ID': nanoid()
-            }
-        })
+        await this.send(
+            toEmail,
+            `${props.leagueName} ${templates.leagueSeasonResultsName(props)} results`,
+            emailHTML
+        )
     }
 }

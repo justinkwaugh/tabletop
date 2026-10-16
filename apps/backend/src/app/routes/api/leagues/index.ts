@@ -3,6 +3,7 @@ import { Type, type Static } from 'typebox'
 import {
     assertExists,
     CreateLeagueRequest,
+    leagueEntrantOperations,
     LeagueParams,
     LeagueSeasonParams,
     LeagueSignUpCloseRequest,
@@ -172,7 +173,7 @@ export default async function (fastify: FastifyInstance) {
             }
         }
     )
-    for (const operation of ['signUp', 'withdraw'] as const) {
+    for (const operation of leagueEntrantOperations) {
         fastify.post<{ Params: Static<typeof LeagueParams>; Body: Static<typeof EmptyBody> }>(
             `/:id/${operation}`,
             { schema: { params: LeagueParams, body: EmptyBody } },

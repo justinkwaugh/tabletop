@@ -9,6 +9,7 @@ import {
     Role,
     UserStatus,
     type LeagueDraft,
+    type TournamentListQuery,
     type User,
     type LeagueGroupSizes
 } from '@tabletop/common'
@@ -262,7 +263,18 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 groupId: '1'
             })
 
+            const groupIds = seeding.groups.map((group) => group.tournamentId)
+            const listed = async (user: User, scope: TournamentListQuery['scope']) =>
+                (await tournaments.list(user, { scope })).tournaments
+                    .map((tournament) => tournament.id)
+                    .filter((tournamentId) => groupIds.includes(tournamentId))
+            const member = users.find((user) => user.id === seeding.groups[0].entrantIds[0])
+            assertExists(member)
+            expect(await listed(member, 'mine')).toEqual([groupIds[0]])
+            expect(await listed(member, 'inProgress')).toEqual([])
             await playSeason(id)
+            expect(await listed(member, 'mine')).toEqual([groupIds[0]])
+            expect(await listed(member, 'finished')).toEqual([])
             const seeded = await leagues.get(id, 0, users[0])
             expect(seeded.season?.status).toBe('finished')
             const levelA = seeded.groups.flatMap((group) =>
@@ -353,18 +365,28 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await leagues.runReminder(remind)
             await leagues.runReminder(remind)
             expect(emails('signUpReminder').map((task) => task.payload)).toEqual([
-                { leagueId: id, season: 1, userId: absent, kind: 'signUpReminder' }
+                { ...remind, userId: absent, kind: 'signUpReminder' }
             ])
             await expect(
-                leagues.emailContent({
-                    leagueId: id,
-                    season: 1,
-                    userId: vacancyFiller,
-                    kind: 'signUpReminder'
-                })
+                leagues.emailContent({ ...remind, userId: vacancyFiller, kind: 'signUpReminder' })
             ).resolves.toBeUndefined()
 
-            now = first.season.signUpClosesAt
+            const movedClose = { ...remind, closesAt: remind.closesAt + 3 * 86_400_000 }
+            await leagues.setSignUpClose(id, movedClose.closesAt, admin)
+            now = movedClose.closesAt - 86_400_000
+            enqueue.mockClear()
+            await leagues.runReminder(movedClose)
+            expect(emails('signUpReminder').map((task) => task.payload)).toEqual([
+                { ...movedClose, userId: absent, kind: 'signUpReminder' }
+            ])
+            await expect(
+                leagues.emailContent({ ...remind, userId: absent, kind: 'signUpReminder' })
+            ).resolves.toBeUndefined()
+            await expect(
+                leagues.emailContent({ ...movedClose, userId: absent, kind: 'signUpReminder' })
+            ).resolves.toMatchObject({ closesAt: movedClose.closesAt })
+
+            now = movedClose.closesAt
             await leagues.runTask({ leagueId: id })
             const started = await leagues.get(id, undefined, users[0])
             expect(started.season?.status).toBe('inProgress')

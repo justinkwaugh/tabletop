@@ -113,7 +113,11 @@ export function leagueHeldPlaces(placements: LeagueSeasonPlacement[]): LeagueHel
                 arrival(a.placement) - arrival(b.placement) ||
                 a.order - b.order
         )
-        .map(({ placement }) => ({ userId: placement.userId, level: placement.nextLevel }))
+        .map(({ placement }): LeagueHeldPlace => ({
+            userId: placement.userId,
+            level: placement.nextLevel,
+            ...(placement.movement === 'relegated' ? { relegated: true } : {})
+        }))
 }
 
 export function leagueFinalAllocation({
@@ -132,15 +136,20 @@ export function leagueFinalAllocation({
     const random = getPrng(seed)
     const newcomers = [...newEntrantIds]
     shuffle(newcomers, random)
-    const ordered = [
-        ...confirmed
-            .map((place, order) => ({ place, order }))
-            .sort((a, b) => a.place.level - b.place.level || a.order - b.order)
-            .map(({ place }) => place.userId),
-        ...newcomers
-    ]
-    const layout = leagueLayout(shape, sizes, ordered.length)
+    const layout = leagueLayout(shape, sizes, confirmed.length + newcomers.length)
     if (!layout) return undefined
+    const capacities = layout.map((level) => level.reduce((sum, size) => sum + size, 0))
+    const ordered: string[] = []
+    for (const places of heldLevels(confirmed)) {
+        // The first places taken from a Level fill Vacancies above and the last move down into a
+        // new Level, so those relegated into it sit between the two.
+        const above = capacities.slice(0, places[0].level).reduce((sum, size) => sum + size, 0)
+        const promoted = Math.max(0, above - ordered.length)
+        const kept = places.filter((place) => !place.relegated).map((place) => place.userId)
+        const relegated = places.filter((place) => place.relegated).map((place) => place.userId)
+        ordered.push(...kept.slice(0, promoted), ...relegated, ...kept.slice(promoted))
+    }
+    ordered.push(...newcomers)
     return splitByLevel(ordered, layout).flatMap((entrants, level) => {
         shuffle(entrants, random)
         return splitBySizes(entrants, layout[level]).map((entrantIds, index) => ({
@@ -254,6 +263,16 @@ function splitBySizes<T>(items: T[], sizes: number[]): T[][] {
         taken += size
         return part
     })
+}
+
+function heldLevels(places: LeagueHeldPlace[]): LeagueHeldPlace[][] {
+    const levels = new Map<number, LeagueHeldPlace[]>()
+    for (const place of places) {
+        const level = levels.get(place.level)
+        if (level) level.push(place)
+        else levels.set(place.level, [place])
+    }
+    return [...levels.entries()].sort(([a], [b]) => a - b).map(([, level]) => level)
 }
 
 function splitByLevel<T>(items: T[], layout: number[][]): T[][] {

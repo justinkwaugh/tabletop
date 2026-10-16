@@ -171,6 +171,25 @@ describe('league email task', () => {
         expect(sendLeagueSignUpEmail).toHaveBeenCalledTimes(2)
     })
 
+    it('sends a new reminder when the sign-up close moves', async () => {
+        const { server, sendLeagueSignUpEmail } = await setup({
+            ...base,
+            kind: 'signUpReminder',
+            level: 'B',
+            closesAt: 1_000
+        })
+        const remind = (closesAt: number) =>
+            server.inject({
+                method: 'POST',
+                url: '/email',
+                payload: { ...payload('signUpReminder'), closesAt }
+            })
+        expect((await remind(1_000)).json()).toEqual({ status: 'ok' })
+        expect((await remind(1_000)).json()).toEqual({ status: 'duplicate' })
+        expect((await remind(2_000)).json()).toEqual({ status: 'ok' })
+        expect(sendLeagueSignUpEmail).toHaveBeenCalledTimes(2)
+    })
+
     it('skips unknown recipients and emails that no longer apply', async () => {
         const missing = await setup({ ...base, kind: 'signUpOpen', level: 'A', closesAt: 1 })
         await missing.server.inject({

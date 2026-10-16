@@ -6,13 +6,11 @@ import {
     type StandingsRow,
 } from '../components/standings.js'
 
-export type TournamentResultsRow = StandingsRow
-
 interface TournamentResultsProps {
     tournamentName: string
     title: string
     winners: string[]
-    standings: TournamentResultsRow[]
+    standings: StandingsRow[]
     url?: string
 }
 

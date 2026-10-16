@@ -285,8 +285,8 @@ export class LeagueService {
         const season = await this.store.readSeason(leagueId, league.currentSeason)
         if (!season) return
         try {
-            const finished = season.status === 'finished' ? season.number : season.heldFrom
-            if (finished !== undefined) await this.announceResults(leagueId, finished)
+            const lastFinished = season.status === 'finished' ? season.number : season.heldFrom
+            if (lastFinished !== undefined) await this.announceResults(leagueId, lastFinished)
             if (season.status === 'signUp' && this.now() < season.signUpClosesAt)
                 await this.advanceAfter({ league, season })
             else if (season.status === 'signUp') await this.closeSignUp(leagueId)
@@ -327,7 +327,7 @@ export class LeagueService {
     }
 
     private async startGroups(league: League, season: LeagueSeason): Promise<void> {
-        for (const group of season.groups ?? [])
+        for (const group of this.startedGroups(season))
             await this.tournaments.createGroup({
                 id: group.tournamentId,
                 draft: this.groupDraft(
@@ -355,11 +355,12 @@ export class LeagueService {
     }
 
     private async finishSeason(league: League, season: LeagueSeason): Promise<void> {
+        const started = this.startedGroups(season)
         const results = await this.tournaments.groupResults(
-            (season.groups ?? []).map((group) => group.tournamentId)
+            started.map((group) => group.tournamentId)
         )
         if (results.some((result) => result.tournament.status !== 'finished')) return
-        const groups = this.allocationResults(season, results)
+        const groups = this.allocationResults(started, results)
         const rows = new Map(
             results.flatMap((result) => result.standings).map((row) => [row.userId, row])
         )
@@ -487,10 +488,10 @@ export class LeagueService {
     }
 
     private allocationResults(
-        season: LeagueSeason,
+        groups: LeagueSeasonGroup[],
         results: Pick<GroupTournamentResults, 'standings' | 'tables'>[]
     ) {
-        return (season.groups ?? []).map((group, index) => ({
+        return groups.map((group, index) => ({
             groupId: group.groupId,
             level: group.level,
             standings: results[index].standings,
@@ -507,7 +508,7 @@ export class LeagueService {
             season.placements ??
             leagueSeasonPlacements(
                 season.shape,
-                this.allocationResults(season, results),
+                this.allocationResults(groups, results),
                 season.seed
             )
         const frozen = season.placements
@@ -609,7 +610,8 @@ export class LeagueService {
                     .map((place) => place.userId),
             mark: (season) => {
                 season.remindedFor = closesAt
-            }
+            },
+            closesAt
         })
     }
 
@@ -617,7 +619,8 @@ export class LeagueService {
         leagueId,
         season: number,
         userId,
-        kind
+        kind,
+        closesAt
     }: LeagueEmailTask): Promise<LeagueEmailContent | undefined> {
         const [league, season] = await Promise.all([
             this.store.read(leagueId),
@@ -643,17 +646,17 @@ export class LeagueService {
                 kind,
                 groupName: group.groupId,
                 ...(season.seeding ? {} : { level: this.startLevel(season, group, held) }),
-                opponents: accounts.map((account) =>
-                    account?.status === UserStatus.Active && account.username
-                        ? account.username
-                        : 'Unavailable account'
-                ),
+                opponents: accounts.map((account) => this.displayName(account)),
                 gamesEach: season.rules.gamesPerEntrant,
                 tournamentId: group.tournamentId
             }
         }
         if (!held || season.status !== 'signUp') return undefined
-        if (kind === 'signUpReminder' && season.confirmedIds.includes(userId)) return undefined
+        if (
+            kind === 'signUpReminder' &&
+            (closesAt !== season.signUpClosesAt || season.confirmedIds.includes(userId))
+        )
+            return undefined
         return {
             ...base,
             kind,
@@ -678,18 +681,12 @@ export class LeagueService {
             : placements.find((value) => value.level === 0 && value.place === 1)
         const ids = [...group.map((value) => value.userId), ...(champion ? [champion.userId] : [])]
         const accounts = await this.users.getUsers(ids)
-        const names = new Map(
-            ids.map((id, index) => {
-                const account = accounts[index]
-                return [
-                    id,
-                    account?.status === UserStatus.Active && account.username
-                        ? account.username
-                        : 'Unavailable account'
-                ]
-            })
-        )
-        const name = (id: string) => names.get(id) ?? 'Unavailable account'
+        const names = new Map(ids.map((id, index) => [id, this.displayName(accounts[index])]))
+        const name = (id: string) => {
+            const value = names.get(id)
+            assertExists(value, `No name looked up for ${id}`)
+            return value
+        }
         return {
             ...base,
             kind: 'seasonResults',
@@ -709,15 +706,26 @@ export class LeagueService {
         }
     }
 
+    private displayName(account: User | undefined): string {
+        return account?.status === UserStatus.Active && account.username
+            ? account.username
+            : 'Unavailable account'
+    }
+
+    private startedGroups(season: LeagueSeason): LeagueSeasonGroup[] {
+        assertExists(season.groups, `Season ${season.number} has no Groups`)
+        return season.groups
+    }
+
     private startLevel(
         season: LeagueSeason,
         group: LeagueSeasonGroup,
         held: LeagueHeldPlace | undefined
     ): LeagueSeasonStartLevel {
-        const bottomLevel = Math.max(...(season.groups ?? []).map((value) => value.level))
+        const bottomLevel = Math.max(...this.startedGroups(season).map((value) => value.level))
         const earned = held?.level ?? bottomLevel
         const name = leagueLevelName(group.level)
-        if (group.level < earned) return { name, moved: 'up' }
+        if (group.level < earned) return { name, moved: earned > bottomLevel ? 'merged' : 'up' }
         if (group.level > earned) return { name, moved: 'down' }
         return { name }
     }
@@ -750,7 +758,7 @@ export class LeagueService {
         await this.emailOnce(leagueId, number, 'seasonStart', {
             due: (season) =>
                 season.status === 'inProgress' && season.startAnnouncedAt === undefined,
-            recipients: (season) => (season.groups ?? []).flatMap((group) => group.entrantIds),
+            recipients: (season) => this.startedGroups(season).flatMap((group) => group.entrantIds),
             mark: (season) => {
                 season.startAnnouncedAt = this.now()
             }
@@ -774,16 +782,21 @@ export class LeagueService {
         {
             due,
             recipients,
-            mark
+            mark,
+            closesAt
         }: {
             due: (season: LeagueSeason) => boolean
             recipients: (season: LeagueSeason) => string[]
             mark: (season: LeagueSeason) => void
+            closesAt?: number
         }
     ): Promise<LeagueSeason | undefined> {
         const season = await this.store.readSeason(leagueId, number)
         if (!season || !due(season)) return undefined
-        await this.emailPlayers(leagueId, number, recipients(season), kind)
+        await this.emailPlayers(
+            { leagueId, season: number, kind, ...(closesAt === undefined ? {} : { closesAt }) },
+            recipients(season)
+        )
         await this.store.updateSeason(leagueId, number, (current) => {
             if (!due(current)) return
             mark(current)
@@ -793,20 +806,13 @@ export class LeagueService {
     }
 
     private async emailPlayers(
-        leagueId: string,
-        season: number,
-        userIds: string[],
-        kind: LeagueEmailKind
+        email: Omit<LeagueEmailTask, 'userId'>,
+        userIds: string[]
     ): Promise<void> {
         const accounts = await this.users.getUsers(userIds)
         for (const account of accounts)
             if (account?.status === UserStatus.Active && account.email)
-                await enqueueLeagueEmail(this.tasks, {
-                    leagueId,
-                    season,
-                    userId: account.id,
-                    kind
-                })
+                await enqueueLeagueEmail(this.tasks, { ...email, userId: account.id })
     }
 
     private validateDraft(

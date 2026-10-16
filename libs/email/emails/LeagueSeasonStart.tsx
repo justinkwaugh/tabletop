@@ -9,7 +9,7 @@ import {
 
 export interface LeagueSeasonStartLevel {
     name: string
-    moved?: 'up' | 'down'
+    moved?: 'up' | 'down' | 'merged'
 }
 
 export interface LeagueSeasonStartProps {
@@ -54,6 +54,12 @@ export const LeagueSeasonStart = ({
                     <Text style={styles.panelDetail}>
                         You moved up to Level {level.name} to fill a place left by players who did
                         not return this season.
+                    </Text>
+                )}
+                {level?.moved === 'merged' && (
+                    <Text style={styles.panelDetail}>
+                        The league has fewer players this season, so its bottom level has joined
+                        Level {level.name}.
                     </Text>
                 )}
                 {level?.moved === 'down' && (

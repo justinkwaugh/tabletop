@@ -58,10 +58,12 @@ export const LeagueRules = Type.Object(
 )
 export type LeagueRules = Type.Static<typeof LeagueRules>
 
+export const leagueSignUpDays = { minimum: 1, maximum: 60 } as const
+
 export const LeagueSignUpPolicy = Type.Object(
     {
         opensAutomatically: Type.Boolean(),
-        days: Type.Integer({ minimum: 1, maximum: 60 })
+        days: Type.Integer(leagueSignUpDays)
     },
     { additionalProperties: false }
 )
@@ -100,7 +102,12 @@ export const League = Type.Object(
 export type League = Type.Static<typeof League>
 
 export const LeagueHeldPlace = Type.Object(
-    { userId: Type.String(), level: Type.Integer({ minimum: 0 }) },
+    {
+        userId: Type.String(),
+        level: Type.Integer({ minimum: 0 }),
+        // Relegated into this Level last Season, so not moved down again when a Level is added.
+        relegated: Type.Optional(Type.Literal(true))
+    },
     { additionalProperties: false }
 )
 export type LeagueHeldPlace = Type.Static<typeof LeagueHeldPlace>
@@ -277,6 +284,9 @@ export const UpdateLeagueRequest = Type.Object(
 )
 export const leagueSignUpOperations = ['publish', 'seasons/next', 'signUp/close'] as const
 export type LeagueSignUpOperation = (typeof leagueSignUpOperations)[number]
+
+export const leagueEntrantOperations = ['signUp', 'withdraw'] as const
+export type LeagueEntrantOperation = (typeof leagueEntrantOperations)[number]
 
 export const LeagueSignUpCloseRequest = Type.Object(
     { closesAt: Type.Integer({ minimum: 1 }) },

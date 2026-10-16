@@ -39,6 +39,7 @@ import {
     LeagueState,
     type LeagueDraft,
     type LeagueSignUpOperation,
+    type LeagueEntrantOperation,
     type LeagueSignUpPolicy,
     TournamentTitles,
     TournamentSchedule,
@@ -556,7 +557,7 @@ export class TabletopApi {
             {}
         )
     }
-    actOnLeague(id: string, operation: 'signUp' | 'withdraw') {
+    actOnLeague(id: string, operation: LeagueEntrantOperation) {
         return this.requestCompetition(
             `/leagues/${encodeURIComponent(id)}/${operation}`,
             LeagueState,

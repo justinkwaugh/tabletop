@@ -17,6 +17,7 @@ import {
     Role,
     Tournament,
     TournamentSchedule,
+    selfRegistrationKinds,
     UserStatus,
     type User,
     type TournamentListQuery,
@@ -217,6 +218,9 @@ export class FirestoreTournamentStore implements TournamentStore {
                 : query.scope === 'inProgress'
                   ? collection.where('status', 'in', ['locked', 'inProgress'])
                   : collection.where('status', '==', query.scope)
+        // League groups have assigned rosters and are listed only to their entrants.
+        if (query.scope === 'inProgress' || query.scope === 'finished')
+            request = request.where('rules.registration.kind', 'in', [...selfRegistrationKinds])
         if (query.titleId) request = request.where('rules.titleId', '==', query.titleId)
         request = request.orderBy(FieldPath.documentId())
         if (query.after) request = request.startAfter(query.after)
