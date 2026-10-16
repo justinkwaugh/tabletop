@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import type { HydratedOathGameState } from '../model/gameState.js'
+import { HydratedOathGameState } from '../model/gameState.js'
 import type { OathPlayerState } from '../model/playerState.js'
 import { CampaignTargetKind, type CampaignTarget, type WarbandGroup } from '../model/campaign.js'
 import { PlayerStatus } from '../model/oathEnums.js'
@@ -9,6 +9,8 @@ import { BattlePlanSide } from '../data/cardPowers.js'
 import { Campaign, HydratedCampaign } from '../actions/campaign.js'
 import { CampaignSacrifice, HydratedCampaignSacrifice } from '../actions/campaignSacrifice.js'
 import { CampaignSkullLosses, HydratedCampaignSkullLosses } from '../actions/campaignSkullLosses.js'
+import { HydratedCampaignDefeatKills } from '../actions/campaignDefeatKills.js'
+import { OathVisibility } from '../definition/runtime.js'
 import {
     CampaignResolveVictory,
     HydratedCampaignResolveVictory
@@ -18,6 +20,7 @@ import { buildAction, defendingSideChooses } from '../testing/actions.js'
 import { actionPowerUse, battlePlanUse, site, siteTarget } from '../testing/choices.js'
 import { ongoingCampaign } from '../testing/required.js'
 import { defend } from '../testing/steps.js'
+import { served } from '../testing/projection.js'
 import { enemyWarbandsKilledFor } from '../util/campaignRoll.js'
 import { OathRevision } from '../util/revision.js'
 import '../powers/index.js'
@@ -210,7 +213,7 @@ describe("a Citizen defender: the Empire's warbands at her targeted sites are he
     })
 
     it("the Ally's Hospital holds the Ally's own board, and only that", () => {
-        // R-5.5.6 — half the force of four: c1's one, then one from Ann's board.
+        // R-5.5.6 — half the force of four. Ann picks (see the loss pick below); the default is c1's one, then one from Ann's board.
         const s = citizenDefends(atRevision, ANN, { ann: { siteId: 'c1', warbandsOnBoard: { [I]: 3 } }, warbands: { c1: { [I]: 1 }, p1: { [I]: 1 } } })
         defendingSideChooses(s)
         expect(s.warbandsBySite['c1']?.[I] ?? 0).toBe(0)
@@ -335,5 +338,128 @@ describe('D: a Citizen attacking the Chancellor through Captains — the warband
         const s = captainsTable(atRevision)
         s.denizensBySite['c1'] = [CAPTAINS, HOSPITAL]
         expect(() => attack(s, BEA, ANN, [siteTarget('c2')], [HOSPITAL])).toThrow(/you do not rule denizen\.hearth\.hospital/)
+    })
+})
+
+describe("the defending side's loss pick: Hospital holding one group's dead and not another's makes it a choice (R-5.5.6, R-10.28-H2)", () => {
+    /**
+     * Dana attacks Bea (a Citizen) at c1, where one Imperial warband stands; Ann, the Chancellor, is
+     * there as an Ally with three on their board. Dana wins, so two of the four die, and Ann picks
+     * them for the Empire (R-5.5.6.a). Hospital is at p1.
+     */
+    function siteAndBoard(revision: number, hospitalUser?: string) {
+        const s = table({
+            revision,
+            dana: { warbandsOnBoard: { [DANA]: 8 } },
+            ann: { siteId: 'c1', warbandsOnBoard: { [I]: 3 } },
+            denizens: { p1: [HOSPITAL] },
+            warbands: { c1: { [I]: 1 }, p1: { [I]: 1 } },
+            turn: DANA
+        })
+        attack(s, DANA, BEA, [siteTarget('c1')])
+        expect(ongoingCampaign(s).allyPlayerIds).toEqual([ANN])
+        for (const playerId of [BEA, ANN]) {
+            if (ongoingCampaign(s).pendingDefenderPlans?.queue[0] === playerId) {
+                defend(playerId === hospitalUser ? [battlePlanUse(HOSPITAL)] : [], playerId).apply(s)
+            }
+        }
+        expect(ongoingCampaign(s).killRedirects).toEqual(hospitalUser ? [{ playerId: hospitalUser, siteId: 'p1' }] : [])
+        expect(ongoingCampaign(s).defendingForce).toEqual([atSite('c1', 1), onBoard(ANN, 3)])
+        Object.assign(ongoingCampaign(s), { swords: 9, defense: 0 })
+        sacrifice(s, DANA, { sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })
+        return s
+    }
+
+    const siteAndOne = [atSite('c1', 1), onBoard(ANN, 1)]
+    const twoFromBoard = [onBoard(ANN, 2)]
+
+    function answer(s: HydratedOathGameState, kills: WarbandGroup[]) {
+        expect(HydratedCampaignDefeatKills.reasonCannotChoose(s, ANN, kills)).toBeUndefined()
+        defendingSideChooses(s, kills)
+        expect(s.campaign?.pendingDefeatKills).toBeUndefined()
+        // c1's warband dies, or survives to the Chancellor's board (R-5.5.6): Ann keeps two either way.
+        expect(s.warbandsBySite['c1']?.[I] ?? 0).toBe(0)
+        expect(s.getPlayerState(ANN).warbandsOnBoard[I]).toBe(2)
+    }
+
+    it("Ann's Hospital holds Ann's board and not Bea's site: Ann is asked, and each answer kills and holds as picked", () => {
+        expect(HydratedCampaignDefeatKills.chooserId(siteAndBoard(atRevision, ANN))).toBe(ANN)
+
+        const one = siteAndBoard(atRevision, ANN)
+        answer(one, siteAndOne)
+        expect(heldFor(one, ANN)).toBe(1)
+        expect(imperialBank(one)).toBe(CHANCELLOR_BANK + 1)
+
+        const both = siteAndBoard(atRevision, ANN)
+        answer(both, twoFromBoard)
+        expect(heldFor(both, ANN)).toBe(2)
+        expect(imperialBank(both)).toBe(CHANCELLOR_BANK)
+        expect(enemyWarbandsKilledFor(both, ongoingCampaign(both), BattlePlanSide.Attacker)).toBe(0)
+    })
+
+    it("Bea's Hospital holds Bea's site and not Ann's board: Ann is asked, and each answer kills and holds as picked", () => {
+        expect(HydratedCampaignDefeatKills.chooserId(siteAndBoard(atRevision, BEA))).toBe(ANN)
+
+        const one = siteAndBoard(atRevision, BEA)
+        answer(one, siteAndOne)
+        expect(heldFor(one, BEA)).toBe(1)
+        expect(imperialBank(one)).toBe(CHANCELLOR_BANK + 1)
+
+        const both = siteAndBoard(atRevision, BEA)
+        answer(both, twoFromBoard)
+        expect(heldFor(both, BEA)).toBe(0)
+        expect(imperialBank(both)).toBe(CHANCELLOR_BANK + 2)
+    })
+
+    it('control: with no Hospital in force nothing differs, so the engine picks as before', () => {
+        const s = siteAndBoard(atRevision)
+        expect(HydratedCampaignDefeatKills.chooserId(s)).toBeUndefined()
+        expect(s.warbandsBySite['c1']?.[I] ?? 0).toBe(0)
+        expect(s.getPlayerState(ANN).warbandsOnBoard[I]).toBe(2)
+        expect(imperialBank(s)).toBe(CHANCELLOR_BANK + 2)
+    })
+
+    it("control: one Hospital holding every group (Ann defending Ann's own site) leaves nothing to pick", () => {
+        const s = table({
+            revision: atRevision,
+            dana: { warbandsOnBoard: { [DANA]: 8 } },
+            bea: { siteId: 'h1' },
+            ann: { siteId: 'c1', warbandsOnBoard: { [I]: 3 } },
+            denizens: { p1: [HOSPITAL] },
+            warbands: { c1: { [I]: 1 }, p1: { [I]: 1 } },
+            turn: DANA
+        })
+        attack(s, DANA, ANN, [siteTarget('c1')])
+        defend([battlePlanUse(HOSPITAL)], ANN).apply(s)
+        expect(ongoingCampaign(s).defendingForce).toEqual([atSite('c1', 1), onBoard(ANN, 3)])
+        Object.assign(ongoingCampaign(s), { swords: 9, defense: 0 })
+        sacrifice(s, DANA, { sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })
+        expect(HydratedCampaignDefeatKills.chooserId(s)).toBeUndefined()
+        expect(heldFor(s, ANN)).toBe(2)
+        expect(imperialBank(s)).toBe(CHANCELLOR_BANK)
+    })
+
+    it("Ann's own view offers the same pick: Ann may choose, and both answers pass there as on the server, changing nothing", () => {
+        const ann = { kind: 'player', playerId: ANN } as const
+        const s = siteAndBoard(atRevision, ANN)
+        const server = JSON.stringify(s.dehydrate())
+        const view = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, ann)), ann)
+        expect(HydratedCampaignDefeatKills.chooserId(view)).toBe(ANN)
+        expect(HydratedCampaignDefeatKills.canDoCampaignDefeatKills(view, ANN)).toBe(true)
+        expect(HydratedCampaignDefeatKills.required(view)).toBe(2)
+        for (const kills of [siteAndOne, twoFromBoard]) {
+            expect(HydratedCampaignDefeatKills.reasonCannotChoose(view, ANN, kills)).toBeUndefined()
+            expect(HydratedCampaignDefeatKills.reasonCannotChoose(s, ANN, kills)).toBeUndefined()
+        }
+        expect(JSON.stringify(s.dehydrate())).toBe(server)
+    })
+
+    it("R-X.4 — before revision 13 both groups were the Chancellor's for Hospital, so the engine picks, as recorded", () => {
+        const s = siteAndBoard(before, ANN)
+        expect(HydratedCampaignDefeatKills.chooserId(s)).toBeUndefined()
+        expect(s.warbandsBySite['c1']?.[I] ?? 0).toBe(0)
+        expect(s.getPlayerState(ANN).warbandsOnBoard[I]).toBe(2)
+        expect(heldFor(s, ANN)).toBe(2)
+        expect(imperialBank(s)).toBe(CHANCELLOR_BANK)
     })
 })

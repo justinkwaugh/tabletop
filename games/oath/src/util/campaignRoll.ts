@@ -5,6 +5,7 @@ import {
     type CampaignKillPath,
     type CampaignState,
     type HeldForHospital,
+    type KillRedirect,
     type LossSource,
     type RolledAttackFace,
     type RolledDefenseFace,
@@ -353,6 +354,31 @@ function forceHolderOf(
     return side === BattlePlanSide.Attacker ? kills.attackerPlayerId : kills.defenderPlayerId
 }
 
+/** R-10.28 — the Hospital in force, if any, that holds `side`'s warbands killed from `at`. */
+function hospitalRedirectOf(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    at: WarbandLocation,
+    owner: WarbandOwner
+): KillRedirect | undefined {
+    const playerId = forceHolderOf(state, kills, side, at, owner)
+    return kills.killRedirects.find((r) => r.playerId === playerId)
+}
+
+/**
+ * R-5.5.6, R-10.28-H2 — whose Hospital, if anyone's, would hold `side`'s warbands killed from `group`:
+ * from revision 13 two groups of one force can differ here, which makes a loss pick matter.
+ */
+export function hospitalHolderOf(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    group: LossSource
+): string | undefined {
+    return hospitalRedirectOf(state, kills, side, group.at, group.owner)?.playerId
+}
+
 /**
  * R-10.13, unless Hospital places them on its site; `side` is the force the warbands belong to. True
  * when Hospital holds them.
@@ -366,8 +392,7 @@ export function killOrRedirect(
     count: number
 ): boolean {
     if (count <= 0) return false
-    const playerId = forceHolderOf(state, kills, side, at, owner)
-    const redirect = kills.killRedirects.find((r) => r.playerId === playerId)
+    const redirect = hospitalRedirectOf(state, kills, side, at, owner)
     if (redirect) {
         // Hospital's Q&A — set aside now, placed when the Campaign ends if its ruler still rules it.
         removeWarbandsFrom(state, at, owner, count)

@@ -362,14 +362,17 @@ export function defeatChoiceMatters(force: readonly WarbandGroup[]): boolean {
  * R-5.5.6, R-10.13 — which of a defeated force's warbands die changes something only when the dead go
  * to more than one bank (the force mixes owners) or the survivors to more than one board. From
  * revision 7 a defeated attacker's survivors all end on their board, so for them only a force that
- * mixes owners, which a game created before revision 5 can hold, makes the pick matter.
+ * mixes owners, which a game created before revision 5 can hold, makes the pick matter. `heldBy`, when
+ * given, names whose Hospital would hold a group's dead (R-10.28-H2): groups that differ there matter too.
  */
 export function defeatPickMatters(
     state: HydratedOathGameState,
     force: readonly WarbandGroup[],
-    defeatedAttackerId?: string
+    defeatedAttackerId?: string,
+    heldBy?: (group: WarbandGroup) => string | undefined
 ): boolean {
     if (new Set(force.map((group) => group.owner)).size > 1) return true
     const boards = new Set(force.map((group) => survivorBoardOf(state, group, defeatedAttackerId)))
-    return boards.size > 1
+    if (boards.size > 1) return true
+    return heldBy !== undefined && new Set(force.map(heldBy)).size > 1
 }

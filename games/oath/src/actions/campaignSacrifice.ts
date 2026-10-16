@@ -7,6 +7,7 @@ import { commitHiddenOutputs, showTakenSiteRelics } from '../util/hiddenInputs.j
 import { tableWitnesses } from '../util/knowledge.js'
 import {
     banditPlanContext,
+    hospitalHolderOf,
     killOrRedirect,
     partiesOf,
     usedPlanContext,
@@ -212,7 +213,7 @@ export class HydratedCampaignSacrifice
         if (required === 0 || required >= forceTotal(force) || force.length < 2) return undefined
         if (
             isAtLeastOathRevision(state, OathRevision.TurnFlow) &&
-            !HydratedCampaignSacrifice.defendingLossesMatter(state, force)
+            !HydratedCampaignSacrifice.defendingLossesMatter(state, campaign, force)
         ) {
             return undefined
         }
@@ -223,14 +224,23 @@ export class HydratedCampaignSacrifice
             : defenderId
     }
 
-    /** R-5.5.6-H1 — from revision 7, only losses that can end in another bank or on another board. */
+    /**
+     * R-5.5.6-H1 — from revision 7, only losses that can end in another bank or on another board; from
+     * revision 13 (R-10.28-H2) also losses that another player's Hospital, or none, would hold.
+     */
     private static defendingLossesMatter(
         state: HydratedOathGameState,
+        campaign: CampaignState,
         force: readonly WarbandGroup[]
     ): boolean {
-        return isAtLeastOathRevision(state, OathRevision.EngineFixes3)
-            ? defeatPickMatters(state, force)
-            : defeatChoiceMatters(force)
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes3)) {
+            return defeatChoiceMatters(force)
+        }
+        const heldBy = isAtLeastOathRevision(state, OathRevision.EngineFixes9)
+            ? (group: WarbandGroup) =>
+                  hospitalHolderOf(state, campaign, BattlePlanSide.Defender, group)
+            : undefined
+        return defeatPickMatters(state, force, undefined, heldBy)
     }
 
     /** R-5.5.5, R-10.22 — sacrificing is choosing to kill your own warbands. */
