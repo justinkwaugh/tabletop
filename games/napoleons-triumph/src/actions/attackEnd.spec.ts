@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, assertExists } from '@tabletop/common'
+import { ActionSource, Visibility, assertExists } from '@tabletop/common'
 import { Side } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
 import { NapoleonsTriumphRuntime } from '../definition/runtime.js'
@@ -28,6 +28,8 @@ interface Ending {
     source?: ActionSource
     recorded: Partial<EndedAttack>
     demoralized?: Side
+    /** The ending turns on enemy blocks its player cannot see, so only the server can play it. */
+    needsHiddenBlocks?: true
 }
 
 const ENDINGS: Ending[] = [
@@ -35,7 +37,8 @@ const ENDINGS: Ending[] = [
         name: 'a counter-attack declined against an attack thrown back',
         fight: repulsedByBlockers,
         endedBy: ActionType.CounterAttack,
-        recorded: { attackingUnitIds: ['F01', 'F02'], finalResult: -2, attackerWon: false }
+        recorded: { attackingUnitIds: ['F01', 'F02'], finalResult: -2, attackerWon: false },
+        needsHiddenBlocks: true
     },
     {
         name: 'the retreat after a lost fight',
@@ -52,13 +55,15 @@ const ENDINGS: Ending[] = [
         fight: () => retreatToTheRefuge(wonBeforeTheRetreat(4)),
         endedBy: ActionType.Retreat,
         recorded: { attackerWon: true },
-        demoralized: Side.Allied
+        demoralized: Side.Allied,
+        needsHiddenBlocks: true
     },
     {
         name: 'the declaration of a bombardment nothing can counter-attack',
         fight: bombardment,
         endedBy: ActionType.DeclareAttack,
-        recorded: { attackingUnitIds: ['F01'], artilleryLed: true, attackerWon: true }
+        recorded: { attackingUnitIds: ['F01'], artilleryLed: true, attackerWon: true },
+        needsHiddenBlocks: true
     },
     {
         name: 'the loss a bombardment made the defender choose',
@@ -108,7 +113,8 @@ const ENDINGS: Ending[] = [
         fight: () => retreatBeforeCombat(1),
         endedBy: ActionType.Retreat,
         recorded: { retreatBeforeCombat: true },
-        demoralized: Side.Allied
+        demoralized: Side.Allied,
+        needsHiddenBlocks: true
     },
     {
         name: 'a fight whose losses break the defending army',
@@ -131,6 +137,25 @@ describe('the action that ends an attack', () => {
             expect(attackEndedBy(last)).toMatchObject(recorded)
             expect(attackEndedBy(last)?.demoralizedId).toBe(
                 demoralized === undefined ? undefined : game.playerOf(demoralized)
+            )
+        }
+    )
+
+    it.each(ENDINGS.filter((ending) => !ending.needsHiddenBlocks))(
+        'records the attack in the view of the player ending it: $name',
+        ({ fight, endedBy, recorded }) => {
+            const ending = fight().replayInPlayersView().at(-1)
+            expect(ending?.type).toBe(endedBy)
+            expect(attackEndedBy(ending)).toMatchObject(recorded)
+        }
+    )
+
+    it.each(ENDINGS.filter((ending) => ending.needsHiddenBlocks))(
+        'leaves the server to play an ending that turns on hidden blocks: $name',
+        ({ fight }) => {
+            const game = fight()
+            expect(() => game.replayInPlayersView()).toThrow(
+                Visibility.UnavailableProjectedValueError
             )
         }
     )

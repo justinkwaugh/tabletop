@@ -1,9 +1,11 @@
-import type { GameAction } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import { AUSTERLITZ } from '../components/austerlitz.js'
 import { Side } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
+import { NapoleonsTriumphRuntime } from '../definition/runtime.js'
 import { CommandKind, type MoveOrder } from '../model/attack.js'
 import { FeintEnd } from '../model/attackDeclaration.js'
+import type { NapoleonsTriumphGameState } from '../model/gameState.js'
 import {
     TestGame,
     arrangeBattlefield,
@@ -21,6 +23,12 @@ export const BATTLE_REFUGE = 83
 /** A French turn with only the pieces of one attack on the map, keeping the actions played from then on. */
 export class BattleGame extends TestGame {
     readonly played: GameAction[] = []
+    private lastPlay?: {
+        state: NapoleonsTriumphGameState
+        type: ActionType
+        playerId: string
+        payload: Record<string, unknown>
+    }
 
     constructor(placements: readonly PiecePlacement[], alliedMorale?: number) {
         super()
@@ -36,9 +44,33 @@ export class BattleGame extends TestGame {
     }
 
     override act(type: ActionType, playerId: string, payload: Record<string, unknown> = {}) {
+        this.lastPlay = { state: this.canonical, type, playerId, payload }
         const processed = super.act(type, playerId, payload)
         this.played.push(...processed)
         return processed
+    }
+
+    /** The last action played again as its player's browser runs it: on that player's view of the game. */
+    replayInPlayersView(): GameAction[] {
+        assertExists(this.lastPlay, 'Expected an action to have been played')
+        const { state, type, playerId, payload } = this.lastPlay
+        const perspective = { kind: 'player', playerId } as const
+        const view = NapoleonsTriumphRuntime.visibility.state.project(state, perspective, {
+            config: this.game.config
+        })
+        return this.engine.executeAction({
+            game: this.game,
+            state: view,
+            perspective,
+            action: {
+                id: 'replayed-in-view',
+                gameId: this.game.id,
+                source: ActionSource.User,
+                playerId,
+                type,
+                ...payload
+            }
+        }).processedActions
     }
 
     by(side: Side, type: ActionType, payload: Record<string, unknown> = {}) {

@@ -32,12 +32,12 @@ export function endedAttackOf(
     attack: Readonly<NonNullable<NapoleonsTriumphProjectedState['attack']>>,
     state: HydratedNapoleonsTriumphGameState
 ): EndedAttack {
-    const { attackPlan, defensePlan, awaits, orders, pending, lossesSettled, ...ended } =
-        structuredClone(attack)
+    // A player's own view guards the attack behind a proxy, which cannot be cloned; its public part can.
+    const { attackPlan, defensePlan, awaits, orders, pending, lossesSettled, ...ended } = attack
     const demoralizedId = [attack.attackerId, attack.defenderId].find((playerId) =>
         state.isDemoralized(playerId)
     )
-    return demoralizedId === undefined ? ended : { ...ended, demoralizedId }
+    return structuredClone(demoralizedId === undefined ? ended : { ...ended, demoralizedId })
 }
 
 const AttackEndMetadataValidator = Compile(AttackEndMetadata)
