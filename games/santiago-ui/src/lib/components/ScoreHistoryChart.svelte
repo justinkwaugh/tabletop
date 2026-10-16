@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    import type { PlayerRoundScores } from '@tabletop/santiago'
+    import type { PlayerRoundScores } from '$lib/model/scoreHistory.js'
     import { plotScoreHistory } from '$lib/utils/scoreHistoryPlot.js'
 
     let {
@@ -66,7 +66,7 @@
             </text>
         {/each}
         {#each plot.rounds as { round, x } (round)}
-            {#if round === 1 || round === lastRound || round % 2 === 1}
+            {#if round === lastRound || round % 2 === 1}
                 <text class="axis-label" {x} y={frame.height - 6} text-anchor="middle">{round}</text
                 >
             {/if}

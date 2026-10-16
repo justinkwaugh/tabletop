@@ -71,11 +71,6 @@ describe('plotScoreHistory', () => {
         ])
     })
 
-    it('centers a single round', () => {
-        const plot = plotScoreHistory([{ playerId: 'a', scores: [3] }], frame)
-        expect(plot.rounds).toEqual([{ round: 1, x: 100 }])
-    })
-
     it('finds the round nearest a horizontal position', () => {
         const plot = plotScoreHistory([{ playerId: 'a', scores: [0, 1, 2] }], frame)
         expect([-20, 49, 51, 160, 260].map((x) => plot.nearestRoundIndex(x))).toEqual([

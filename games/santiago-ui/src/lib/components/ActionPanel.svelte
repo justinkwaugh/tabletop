@@ -1,6 +1,5 @@
 <script lang="ts">
     import { flip } from 'svelte/animate'
-    import { roundScoreHistory } from '@tabletop/santiago'
     import ScoreHistoryChart from './ScoreHistoryChart.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
@@ -8,16 +7,13 @@
 
     const gameState = $derived(session.gameState)
 
-    const scoreHistory = $derived.by(() => {
-        const actions = session.actions
-        if (!session.hasCompleteHistory || actions.length !== gameState.actionCount) return undefined
-        return roundScoreHistory(gameState.dehydrate(), actions)
-    })
+    const scoreHistory = $derived(session.scoreHistory)
 
     let hoveredRoundIndex: number | null = $state(null)
+    const shownRoundIndex = $derived(scoreHistory ? hoveredRoundIndex : null)
 
     const standings = $derived.by(() => {
-        const index = hoveredRoundIndex
+        const index = shownRoundIndex
         const scores =
             scoreHistory && index !== null
                 ? scoreHistory.map(({ playerId, scores }) => ({ playerId, score: scores[index] }))
@@ -25,7 +21,7 @@
         return scores.toSorted((a, b) => b.score - a.score)
     })
     const highlightedPlayerIds = $derived.by(() => {
-        if (hoveredRoundIndex === null) return gameState.winningPlayerIds
+        if (shownRoundIndex === null) return gameState.winningPlayerIds
         const leadingScore = standings[0].score
         return standings.filter(({ score }) => score === leadingScore).map(({ playerId }) => playerId)
     })
@@ -33,7 +29,7 @@
 
 <div class="paper-texture bg-stone-900/90 rounded-xl p-4 text-white space-y-3 min-w-64">
     <p class="text-green-400 font-bold text-lg text-center">
-        {hoveredRoundIndex === null ? 'Final Scores' : `After Round ${hoveredRoundIndex + 1}`}
+        {shownRoundIndex === null ? 'Final Scores' : `After Round ${shownRoundIndex + 1}`}
     </p>
     <ul class="space-y-1">
         {#each standings as p, i (p.playerId)}

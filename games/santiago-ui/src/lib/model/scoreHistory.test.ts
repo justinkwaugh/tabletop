@@ -1,14 +1,16 @@
 import { GameEngine, PlayerStatus, Visibility, type GameAction } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { Definition } from './gameDefinition.js'
-import { SantiagoRuntime } from './runtime.js'
-import { ActionType } from './actions.js'
-import { MachineState } from './states.js'
-import type { SantiagoProjectedState } from '../model/gameState.js'
-import { calculateScores } from '../util/scoring.js'
-import { roundScoreHistory } from '../util/scoreHistory.js'
-import { isEndRoundEvent } from '../actions/endRoundEvent.js'
-import { nextAction } from './tests/autoplay.js'
+import {
+    ActionType,
+    Definition,
+    MachineState,
+    SantiagoRuntime,
+    calculateScores,
+    isEndRoundEvent,
+    type SantiagoProjectedState
+} from '@tabletop/santiago'
+import { nextAction } from '@tabletop/santiago/testing'
+import { roundScoresFromHistory } from './scoreHistory.js'
 
 const engine = new GameEngine(SantiagoRuntime)
 
@@ -61,20 +63,23 @@ function playToEnd(publicMoney: boolean) {
     return { game: startedGame, state, actions, scoresAtRoundEnds }
 }
 
-function spectatorHistory({ game, state, actions }: ReturnType<typeof playToEnd>) {
+function projectedHistory(
+    { game, state, actions }: ReturnType<typeof playToEnd>,
+    perspective: Visibility.Perspective = { kind: 'spectator' }
+) {
     return Visibility.projectActionHistory({
         currentState: state,
         actions,
         visibility: SantiagoRuntime.visibility,
-        perspective: { kind: 'spectator' },
+        perspective,
         replay: { game, runtime: SantiagoRuntime }
     })
 }
 
-describe('roundScoreHistory', () => {
+describe('roundScoresFromHistory', () => {
     it('scores every round as it stood when the round ended, ending at the final score', () => {
         const played = playToEnd(true)
-        const history = roundScoreHistory(played.state, played.actions)
+        const history = roundScoresFromHistory(played.state, played.actions)
 
         expect(history).toEqual(
             played.state.players.map(({ playerId }) => ({
@@ -92,14 +97,19 @@ describe('roundScoreHistory', () => {
 
     it('rebuilds the same history from a spectator view of a public-money game', () => {
         const played = playToEnd(true)
-        const projected = spectatorHistory(played)
-        const canonical = roundScoreHistory(played.state, played.actions)
+        const projected = projectedHistory(played)
+        const canonical = roundScoresFromHistory(played.state, played.actions)
         expect(canonical).toBeDefined()
-        expect(roundScoreHistory(projected.currentState, projected.actions)).toEqual(canonical)
+        expect(roundScoresFromHistory(projected.currentState, projected.actions)).toEqual(canonical)
     })
 
-    it('has no history when earlier balances are hidden', () => {
-        const projected = spectatorHistory(playToEnd(false))
-        expect(roundScoreHistory(projected.currentState, projected.actions)).toBeUndefined()
-    })
+    it.each<Visibility.Perspective>([{ kind: 'spectator' }, { kind: 'player', playerId: 'p0' }])(
+        'has no history when earlier balances are hidden from %o',
+        (perspective) => {
+            const projected = projectedHistory(playToEnd(false), perspective)
+            expect(
+                roundScoresFromHistory(projected.currentState, projected.actions)
+            ).toBeUndefined()
+        }
+    )
 })

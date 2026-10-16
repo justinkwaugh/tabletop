@@ -1,5 +1,5 @@
 import type { Point } from '@tabletop/common'
-import type { PlayerRoundScores } from '@tabletop/santiago'
+import type { PlayerRoundScores } from '$lib/model/scoreHistory.js'
 
 export type ScoreHistoryFrame = {
     width: number
@@ -39,13 +39,12 @@ export function plotScoreHistory(
     const roundCount = Math.max(...series.map((entry) => entry.scores.length))
     const plotWidth = width - inset.left - inset.right
     const plotHeight = height - inset.top - inset.bottom
-    const roundSpacing = roundCount > 1 ? plotWidth / (roundCount - 1) : 0
-    const firstRoundX = roundCount > 1 ? inset.left : inset.left + plotWidth / 2
+    const roundSpacing = plotWidth / (roundCount - 1)
 
     const ticks = niceScoreTicks(Math.max(...series.flatMap((entry) => entry.scores)))
     const topScore = ticks[ticks.length - 1]
 
-    const xForRound = (index: number) => firstRoundX + index * roundSpacing
+    const xForRound = (index: number) => inset.left + index * roundSpacing
     const yForScore = (score: number) => inset.top + plotHeight * (1 - score / topScore)
 
     return {
@@ -66,8 +65,7 @@ export function plotScoreHistory(
             }
         }),
         nearestRoundIndex(x: number) {
-            if (roundSpacing === 0) return 0
-            const index = Math.round((x - firstRoundX) / roundSpacing)
+            const index = Math.round((x - inset.left) / roundSpacing)
             return Math.min(roundCount - 1, Math.max(0, index))
         }
     }
