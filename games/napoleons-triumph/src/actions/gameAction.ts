@@ -17,7 +17,7 @@ export abstract class NapoleonsTriumphAction<
         const fought = state.attack
         this.perform(state)
         if (fought && !state.attack) {
-            this.metadata = { ...this.metadata, endedAttack: endedAttackOf(fought) }
+            this.metadata = { ...this.metadata, endedAttack: endedAttackOf(fought, state) }
         }
         if (hidden.some((id) => state.findUnit(id)?.shown !== undefined || !state.findUnit(id))) {
             this.revealsInfo = true

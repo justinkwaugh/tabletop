@@ -3,9 +3,6 @@ import {
     AUSTERLITZ,
     Side,
     attackEndedBy,
-    isAssignLosses,
-    isCounterAttack,
-    isDeclareAttack,
     isRetreat,
     isThreatenAttack,
     opposingSide,
@@ -21,7 +18,6 @@ export interface ConcludedBattle {
     unitsLastSeen: ReadonlyMap<string, ProjectedUnit>
     retreatedTo: LocaleId[]
     taken: boolean
-    demoralizedId?: string
 }
 
 export function concludedBattleOf(game: RecordedGame): ConcludedBattle | undefined {
@@ -48,8 +44,7 @@ export function concludedBattleOf(game: RecordedGame): ConcludedBattle | undefin
         ],
         taken: [...game.state.units, ...game.state.commanders].some(
             (piece) => piece.playerId === attack.attackerId && piece.position?.locale === attacked
-        ),
-        demoralizedId: fought.map((action) => demoralizedBy(action, attack)).find(Boolean)
+        )
     }
 }
 
@@ -66,16 +61,6 @@ function unitsLastSeen(
         }
     }
     return units
-}
-
-function demoralizedBy(action: GameAction, attack: EndedAttack): string | undefined {
-    if (isRetreat(action)) {
-        return action.metadata?.demoralized ? attack.defenderId : undefined
-    }
-    if (isDeclareAttack(action) || isCounterAttack(action) || isAssignLosses(action)) {
-        return action.metadata?.demoralizedId
-    }
-    return undefined
 }
 
 const ARMIES: Record<Side, { name: string; adjective: string }> = {
@@ -95,9 +80,9 @@ export function endingOf(
     const into = label(AUSTERLITZ.approach(fought.defenseApproach).locale)
     const retreated = battle.retreatedTo.map(label).join(' and ')
     const demoralized =
-        battle.demoralizedId === undefined
+        fought.demoralizedId === undefined
             ? undefined
-            : ARMIES[battle.demoralizedId === fought.attackerId ? attackerSide : defenderSide]
+            : ARMIES[fought.demoralizedId === fought.attackerId ? attackerSide : defenderSide]
     const outcome = (...clauses: (string | false)[]) =>
         sentence(
             clauses.filter((clause) => clause !== false),

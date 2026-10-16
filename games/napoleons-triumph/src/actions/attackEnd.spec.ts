@@ -27,6 +27,7 @@ interface Ending {
     endedBy: ActionType
     source?: ActionSource
     recorded: Partial<EndedAttack>
+    demoralized?: Side
 }
 
 const ENDINGS: Ending[] = [
@@ -50,7 +51,8 @@ const ENDINGS: Ending[] = [
         name: 'a retreat that breaks the defending army',
         fight: () => retreatToTheRefuge(wonBeforeTheRetreat(4)),
         endedBy: ActionType.Retreat,
-        recorded: { attackerWon: true }
+        recorded: { attackerWon: true },
+        demoralized: Side.Allied
     },
     {
         name: 'the declaration of a bombardment nothing can counter-attack',
@@ -105,25 +107,33 @@ const ENDINGS: Ending[] = [
         name: 'a retreat before combat that breaks the defending army',
         fight: () => retreatBeforeCombat(1),
         endedBy: ActionType.Retreat,
-        recorded: { retreatBeforeCombat: true }
+        recorded: { retreatBeforeCombat: true },
+        demoralized: Side.Allied
     },
     {
         name: 'a fight whose losses break the defending army',
         fight: brokenInCombat,
         endedBy: ActionType.CounterAttack,
-        recorded: { attackerWon: true }
+        recorded: { attackerWon: true },
+        demoralized: Side.Allied
     }
 ]
 
 describe('the action that ends an attack', () => {
-    it.each(ENDINGS)('records the attack: $name', ({ fight, endedBy, source, recorded }) => {
-        const game = fight()
-        const last = game.played.at(-1)
-        expect(game.state.attack).toBeUndefined()
-        expect(last?.type).toBe(endedBy)
-        expect(last?.source).toBe(source ?? ActionSource.User)
-        expect(attackEndedBy(last)).toMatchObject(recorded)
-    })
+    it.each(ENDINGS)(
+        'records the attack: $name',
+        ({ fight, endedBy, source, recorded, demoralized }) => {
+            const game = fight()
+            const last = game.played.at(-1)
+            expect(game.state.attack).toBeUndefined()
+            expect(last?.type).toBe(endedBy)
+            expect(last?.source).toBe(source ?? ActionSource.User)
+            expect(attackEndedBy(last)).toMatchObject(recorded)
+            expect(attackEndedBy(last)?.demoralizedId).toBe(
+                demoralized === undefined ? undefined : game.playerOf(demoralized)
+            )
+        }
+    )
 
     it('records nothing while the attack goes on', () => {
         const game = wonBeforeTheRetreat()

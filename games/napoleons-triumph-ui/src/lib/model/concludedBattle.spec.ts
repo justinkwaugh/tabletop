@@ -67,8 +67,8 @@ describe('the attack that has just ended', () => {
 
     it('names the army the attack demoralized', () => {
         const game = brokenInCombat()
-        expect(battle(game).demoralizedId).toBe(game.playerOf(Side.Allied))
-        expect(battle(retreatBeforeCombat(1)).demoralizedId).toBe(game.playerOf(Side.Allied))
+        expect(battle(game).attack.demoralizedId).toBe(game.playerOf(Side.Allied))
+        expect(battle(retreatBeforeCombat(1)).attack.demoralizedId).toBe(game.playerOf(Side.Allied))
     })
 
     it('is gone once anything else is done', () => {
