@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
-import { PassableBidding } from '@tabletop/18xx'
+import { PassableBidding, turnOrderFrom } from '@tabletop/18xx'
 import { CompanyId, Industry } from '../editions/types.js'
 import { ShareAuctionKind } from './components.js'
 import type { HydratedRailheadsGameState } from './gameState.js'
@@ -14,11 +14,6 @@ export const ShareSale = Type.Object({
     industry: Type.Optional(Type.Enum(Industry)),
     startPlayer: Type.Boolean()
 })
-
-export function seatOrderFrom(turnOrder: readonly string[], playerId: string): string[] {
-    const start = turnOrder.indexOf(playerId)
-    return [...turnOrder.slice(start), ...turnOrder.slice(0, start)]
-}
 
 function auctionId(state: HydratedRailheadsGameState, companyId: CompanyId): string {
     return `${companyId}-${state.actionCount}`
@@ -35,7 +30,7 @@ export function openInitialAuction(state: HydratedRailheadsGameState, openerId: 
         startPlayer: offer.startPlayer,
         bidding: PassableBidding.openWithoutBid(
             auctionId(state, offer.companyId),
-            seatOrderFrom(state.turnManager.turnOrder, openerId)
+            turnOrderFrom(state.turnManager.turnOrder, openerId)
         )
     }
 }
@@ -53,7 +48,7 @@ export function openIssueAuction(
         startPlayer: false,
         bidding: PassableBidding.open(
             auctionId(state, companyId),
-            seatOrderFrom(state.turnManager.turnOrder, openerId),
+            turnOrderFrom(state.turnManager.turnOrder, openerId),
             openerId,
             amount
         )
@@ -117,7 +112,7 @@ export function settleShareAuction(state: HydratedRailheadsGameState): ShareSale
         buyer.industryTokens.push(sale.industry)
     }
     if (sale.startPlayer) {
-        state.startPlayerId = sale.buyerId
+        state.turnManager.newFirstPlayer(sale.buyerId)
     }
     if (sale.kind === ShareAuctionKind.Initial) {
         state.initialOffers.shift()

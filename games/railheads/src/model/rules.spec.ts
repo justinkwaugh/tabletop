@@ -126,7 +126,7 @@ describe('the initial auction', () => {
     it('gives the K.B.S.B. buyer the Start Player token and the first turn', () => {
         const table = openedTable()
         const state = table.hydrated
-        expect(state.startPlayerId).toBe('p1')
+        expect(state.turnManager.turnOrder[0]).toBe('p1')
         expect(state.machineState).toBe(MachineState.ChoosingAction)
         expect(table.active).toBe('p1')
         expect(state.round()).toBe(1)
@@ -430,7 +430,7 @@ describe('the end of a round', () => {
         expect(state.getPlayerState('p0').cash).toBe(p0Cash + 25 + tokenIncome)
         expect(state.company(CompanyId.KPEV).revenue).toBe(25 - 6)
         expect(state.company(CompanyId.KSSE).revenue).toBe(5)
-        expect(state.startPlayerId).toBe('p2')
+        expect(state.turnManager.turnOrder[0]).toBe('p2')
         expect(table.active).toBe('p2')
         expect(state.round()).toBe(2)
         expect(state.roundTimer).toBe(15)

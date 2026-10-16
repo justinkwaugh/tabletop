@@ -26,7 +26,7 @@ export function startNextTurn(state: HydratedRailheadsGameState) {
     const roundStart = state.rounds.currentRound?.start ?? 0
     const lastTurn = state.turnManager.series.at(-1)
     if (lastTurn === undefined || lastTurn.start < roundStart) {
-        state.turnManager.startTurn(state.startPlayerId, state.actionCount)
+        state.turnManager.restartTurnOrder(state.actionCount)
     } else {
         state.turnManager.startNextTurn(state.actionCount)
     }

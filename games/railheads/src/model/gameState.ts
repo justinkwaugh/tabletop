@@ -74,7 +74,6 @@ export const RailheadsGameState = Type.Evaluate(
             editionId: Type.Enum(EditionId),
             offTheRails: Type.Boolean(),
             rounds: RoundManager,
-            startPlayerId: Type.Optional(Type.String()),
             companies: Type.Array(CompanyState),
             track: Type.Array(TrackHex),
             industries: Type.Array(IndustryState),
@@ -113,7 +112,6 @@ export class HydratedRailheadsGameState
     declare editionId: EditionId
     declare offTheRails: boolean
     declare rounds: HydratedRoundManager
-    declare startPlayerId?: string
     declare companies: CompanyState[]
     declare track: TrackHex[]
     declare industries: IndustryState[]

@@ -51,7 +51,9 @@
         state.playerIncome(playerId, state.roundPayouts()) +
             endBonuses.reduce((sum, bonus) => sum + bonus.amount, 0)
     )
-    const startPlayer = $derived(state.startPlayerId === playerId)
+    const startPlayer = $derived(
+        state.initialOffers.length === 0 && state.turnManager.turnOrder[0] === playerId
+    )
 </script>
 
 <div class="depot" class:acting style:--player={color}>

@@ -1,8 +1,8 @@
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
+import { turnOrderFrom } from '@tabletop/18xx'
 import type { Industry } from '../editions/types.js'
 import type { HydratedRailheadsGameState } from './gameState.js'
-import { seatOrderFrom } from './shareAuctionRules.js'
 
 export type RevealedBid = Type.Static<typeof RevealedBid>
 export const RevealedBid = Type.Object({
@@ -28,7 +28,7 @@ export function openIndustryAuction(
     developed.level = state.raisedLevel(industry, 1)
     developed.available -= 1
     const minimum = developed.level
-    const able = seatOrderFrom(state.turnManager.turnOrder, investorId).filter(
+    const able = turnOrderFrom(state.turnManager.turnOrder, investorId).filter(
         (playerId) => state.getPlayerState(playerId).cash >= minimum
     )
     state.industryAuction = {
@@ -72,7 +72,7 @@ export function resolveIndustryAuction(state: HydratedRailheadsGameState): Indus
     const auction = state.industryAuction
     assertExists(auction, 'No industry auction in progress')
     assert(auction.bidders.length === 0, 'Sealed bids are still awaited')
-    const bids = seatOrderFrom(state.turnManager.turnOrder, auction.investorId).map(
+    const bids = turnOrderFrom(state.turnManager.turnOrder, auction.investorId).map(
         (playerId): RevealedBid => {
             const sealed = auction.bids.find((bid) => bid.playerId === playerId)
             if (sealed) {

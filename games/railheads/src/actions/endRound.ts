@@ -50,8 +50,8 @@ export class HydratedEndRound extends HydratableAction<typeof EndRound> implemen
             this.metadata = { round, final: true, rates, income, obsolescence: [] }
             return
         }
-        const startPlayerId = state.turnManager.nextPlayer(state.startPlayerId)
-        state.startPlayerId = startPlayerId
+        const startPlayerId = state.turnManager.nextPlayer(state.turnManager.turnOrder[0])
+        state.turnManager.newFirstPlayer(startPlayerId)
         const obsolescence = state.companies.map((company) => {
             const from = company.revenue
             company.revenue = Math.max(0, from - state.edition.obsolescenceDrop(from))
