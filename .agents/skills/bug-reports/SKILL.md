@@ -64,9 +64,23 @@ Done when `show` prints the status line and the command reported the reporter to
 
 Fix it test-first with the `tdd` skill, keeping the red test as the regression test.
 
-Done when that test passes and the fix is committed.
+Done when that test passes along with the changed packages' specs, and the fix is committed.
 
-## 5. Close
+## 5. Review
+
+Run the `code-review` skill on the fix without pausing. Its fixed point is the parent of the
+first fix commit; its spec is the post, so give the Spec sub-agent the `show` output and the
+cause step 2 found.
+
+Then fix every finding from both axes, keeping the regression test green: a correctness finding
+test-first with `tdd`, the rest directly. A finding that is wrong (a false positive, or a smell
+a repo standard endorses) stays as it is; tell the user which and why. Commit the fixes on top
+of the fix.
+
+Done when each finding is fixed or declined with its reason, the changed packages' specs pass,
+and the fixes are committed.
+
+## 6. Close
 
 A post is `fixed` once the fix is **serving**, which the `release` skill checks. Then
 `close <post> --as fixed` with the release that carries it (`--version "Sol UI 6.4.2"`), and a
