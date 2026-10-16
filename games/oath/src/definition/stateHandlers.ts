@@ -22,12 +22,13 @@ import { PowerQuestionStateHandler } from '../stateHandlers/powerQuestion.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 import { EndOfRoundStateHandler } from '../stateHandlers/endOfRound.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
-import { applyForcedTitleChanges } from '../util/title.js'
+import { applyForcedTitleChanges, isTitleBoundary } from '../util/title.js'
 import { settleQueue } from '../util/questionAnswers.js'
 import { carryFreeActions } from '../util/freeActions.js'
 import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'
 import { HydratedLetPeek, isLetPeek } from '../actions/letPeek.js'
 import { TransferOathkeeper, isTransferOathkeeper } from '../actions/transferOathkeeper.js'
+import { isAnswerQuestion } from '../actions/answerQuestion.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { ActionType } from './actions.js'
 
@@ -47,7 +48,7 @@ function wrapOnAction(
     }
 }
 
-/** R-2.11-H1 — the Oathkeeper title is re-evaluated after every action. */
+/** R-2.11-H1 — the Oathkeeper title is judged after each Law action and each title moment. */
 function withContinuousTitle(handler: OathStateHandler): OathStateHandler {
     return {
         isValidAction: (action, context) =>
@@ -61,6 +62,8 @@ function withContinuousTitle(handler: OathStateHandler): OathStateHandler {
                 ? toMachineState(gameState.machineState)
                 : handler.onAction(action, context)
             if (gameState.winningPlayerIds.length > 0) return next
+            const answered = isAnswerQuestion(action) ? action.metadata?.kind : undefined
+            if (!isTitleBoundary(gameState, answered)) return next
 
             settleTitle(context, toMachineState(next))
 

@@ -146,6 +146,8 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.Exchange]: {
+        // R-2.11-H1 — each binding exchange is its own moment for the title.
+        titleMoment: true,
         reasonCannotAnswer: (state, _playerId, matched) => {
             if (!matched.answer.accept) return undefined
             const { proposerPlayerId, askedPlayerId, terms } = matched.question
@@ -457,6 +459,8 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.RelicThiefRoll]: {
+        // Its Q&A: the title is checked "at each moment that relics change hands".
+        titleMoment: true,
         reasonCannotAnswer: (state, playerId, matched) => {
             if (!matched.answer.roll) return undefined
             return reasonCannotUsePowerToReroll(state, playerId, matched.question)

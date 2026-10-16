@@ -20,6 +20,11 @@ import { askQuestion, currentQuestion, gatheringTurnOrder } from './questions.js
 import { QUESTION_RULES } from './questionRules.js'
 
 export interface QuestionRules<K extends PowerQuestionKind> {
+    /**
+     * R-2.11-H1 — answering it is its own moment for the title, judged even while a Campaign is
+     * open: a binding exchange, a take that moves relics.
+     */
+    titleMoment?: true
     reasonCannotAnswer(
         state: HydratedOathGameState,
         playerId: string,
@@ -62,6 +67,11 @@ export interface AnswerOutcome {
 
 function rulesOf<K extends PowerQuestionKind>(kind: K): QuestionRules<K> {
     return QUESTION_RULES[kind]
+}
+
+/** R-2.11-H1 */
+export function isTitleMoment(kind: PowerQuestionKind): boolean {
+    return rulesOf(kind).titleMoment === true
 }
 
 function answerMatches<K extends PowerQuestionKind>(
