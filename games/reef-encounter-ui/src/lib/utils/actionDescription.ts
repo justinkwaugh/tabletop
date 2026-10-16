@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import { ActionSource, type GameAction } from '@tabletop/common'
 import { startsFinalTurns } from './historyEntries.js'
 import {
     isChooseLarvaCubes,
@@ -17,7 +17,8 @@ import {
     isSearchBag,
     isTakeOpenSeaSpace,
     type AlgaColor,
-    type CoralColor
+    type CoralColor,
+    type OpenSeaAddition
 } from '@tabletop/reef-encounter'
 
 // A phrase reads as a sentence (`text`, for screen readers and tests) and shows as a line of
@@ -197,73 +198,100 @@ export function describeAction(
     }
     if (isTakeOpenSeaSpace(action)) {
         const taken = action.metadata?.polyps ?? []
-        const larva = cube(action.larvaColor)
-        const text =
-            taken.length === 0
-                ? `took the ${action.larvaColor} larva cube from the open sea.`
-                : `took the ${action.larvaColor} larva cube from the open sea with ${polypsLabel(taken)}.`
         return phrase(
             [
-                'took ',
-                larva,
-                ' from the open sea',
+                `ended ${own} turn by taking `,
+                cube(action.larvaColor),
                 ...(taken.length > 0 ? [' with ', ...polypsOf(taken)] : []),
                 '.'
             ],
-            text
+            taken.length === 0
+                ? `ended ${own} turn by taking the ${action.larvaColor} larva cube.`
+                : `ended ${own} turn by taking the ${action.larvaColor} larva cube with ${polypsLabel(taken)}.`
         )
     }
     if (isPassFinalTurn(action)) {
-        return phrase([`passed ${own} final turn.`])
+        return action.source === ActionSource.System
+            ? phrase(['had no coral that would score, so passed.'])
+            : phrase([`passed ${own} final turn.`])
     }
     return undefined
 }
 
-export function describeSystemAction(
-    action: GameAction,
-    board: BoardName
-): Omit<Phrase, 'playerId'> | undefined {
+export function describeSystemAction(action: GameAction): Omit<Phrase, 'playerId'> | undefined {
     if (isRefillOpenSea(action)) {
         const refill = action.metadata
         if (!refill) return undefined
         if (refill.shortage) {
             return phrase(['The open sea could not be refilled.'])
         }
-        const added = refill.additions.map((addition) => addition.polyp)
-        return added.length === 0
+        return refill.additions.length === 0
             ? phrase(['The open sea was refilled.'])
-            : phrase(
-                  ['The open sea was refilled with ', ...polypsOf(added), '.'],
-                  `The open sea was refilled with ${polypsLabel(added)}.`
-              )
+            : phrase(['Refill: ', ...refillParts(refill.additions), '.'])
     }
     if (isSearchBag(action)) {
         const found = action.metadata?.found
         if (found === undefined) return undefined
         const searched = polyp(action.color)
         if (!found) {
-            const outcome =
-                action.need.kind === 'exchange' ? 'the cube stays' : 'nothing grew there'
-            return phrase([
-                'The bag held no ',
-                { ...searched, label: `${action.color} polyp` },
-                `, so ${outcome}.`
-            ])
+            const color = { ...searched, label: `${action.color} polyp` }
+            return action.need.kind === 'exchange'
+                ? phrase(['The bag held no ', color, ', so the cube stays.'])
+                : phrase(['No bonus ', color, ' left in the bag.'])
         }
         return action.need.kind === 'exchange'
             ? phrase(['The bag held ', searched, '.'])
             : phrase([
-                  'The bag held ',
-                  searched,
-                  `, which grew beside it on `,
-                  board(action.need.boardId),
-                  '.'
+                  'Bonus ',
+                  { ...searched, label: `${action.color} polyp` },
+                  ' placed from the bag.'
               ])
     }
     if (isEndGame(action)) {
         return phrase(['The game ended.'])
     }
     return undefined
+}
+
+// Each refilled space as "polyp on cube", the cube standing for its larva space.
+function refillParts(additions: readonly OpenSeaAddition[]): PhrasePart[] {
+    return additions.flatMap((addition, index) => [
+        ...(index > 0 ? [', '] : []),
+        polyp(addition.polyp),
+        { text: ' on the ', short: ' on ' },
+        { ...cube(addition.larvaColor), label: `${addition.larvaColor} space` }
+    ])
+}
+
+// What follows on from the action before it, told at the end of that action's phrase:
+// the open sea refilled after a turn ends, and a bonus polyp from the bag after a placement.
+function continuation(
+    action: GameAction,
+    previous: GameAction | undefined
+): PhrasePart[] | undefined {
+    if (isRefillOpenSea(action) && isTakeOpenSeaSpace(previous)) {
+        const refill = action.metadata
+        if (!refill || refill.shortage || refill.additions.length === 0) return undefined
+        return ['. Refill: ', ...refillParts(refill.additions), '.']
+    }
+    if (isSearchBag(action) && action.need.kind === 'extraGrowth' && isPlacePolyp(previous)) {
+        const found = action.metadata?.found
+        if (found === undefined) return undefined
+        const color = { ...polyp(action.color), label: `${action.color} polyp` }
+        return found
+            ? ['; bonus ', color, ' from the bag.']
+            : ['; no bonus ', color, ' left in the bag.']
+    }
+    return undefined
+}
+
+// The phrase with more told at its end, in place of its closing full stop.
+function extended(base: Phrase, more: PhrasePart[]): Phrase {
+    const parts = [...base.parts]
+    const last = parts.at(-1)
+    if (last === '.') parts.pop()
+    const joined = [...parts, ...more]
+    return { ...base, parts: joined, text: base.text.replace(/\.$/, '') + phraseText(more) }
 }
 
 function setupParrotfishPhrases(action: GameAction, possessive: (playerId: string) => string) {
@@ -319,7 +347,10 @@ export function describeActions(
         }
         run = undefined
     }
+    let previous: GameAction | undefined
     for (const action of actions) {
+        const before = previous
+        previous = action
         const placement = isPlacePolyp(action) ? action.metadata : undefined
         if (isPlacePolyp(action) && placement && !placement.attacked && !placement.extraGrowth) {
             const key = `${action.playerId}:${placement.color}:${action.boardId}:${action.fromConsumed}`
@@ -339,9 +370,15 @@ export function describeActions(
             continue
         }
         closeRun()
+        const more = continuation(action, before)
+        const last = phrases.at(-1)
+        if (more && last) {
+            phrases[phrases.length - 1] = extended(last, more)
+            continue
+        }
         const described = action.playerId
             ? describeAction(action, own, board)
-            : describeSystemAction(action, board)
+            : describeSystemAction(action)
         if (described) phrases.push({ ...described, playerId: action.playerId })
         phrases.push(...setupParrotfishPhrases(action, possessive))
         if (startsFinalTurns(action)) {

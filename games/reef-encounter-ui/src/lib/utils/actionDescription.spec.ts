@@ -10,7 +10,9 @@ import {
     type FeedParrotfish,
     type SearchBag,
     type PlayLarvaCube,
-    type PlacePolyp
+    type PlacePolyp,
+    type RefillOpenSea,
+    type TakeOpenSeaSpace
 } from '@tabletop/reef-encounter'
 import { capitalised, describeActions } from './actionDescription.js'
 
@@ -151,10 +153,65 @@ describe('describing a turn', () => {
             'The bag held no pink polyp, so the cube stays.'
         ])
         expect(texts([search(true, growing)], 'their')).toEqual([
-            'The bag held a pink polyp, which grew beside it on Board 2.'
+            'Bonus pink polyp placed from the bag.'
         ])
         expect(texts([search(false, growing)], 'their')).toEqual([
-            'The bag held no pink polyp, so nothing grew there.'
+            'No bonus pink polyp left in the bag.'
+        ])
+    })
+
+    it('ends a placement with the bonus polyp the bag held for it', () => {
+        const place: PlacePolyp = {
+            ...base(),
+            type: ActionType.PlacePolyp,
+            playerId: 'a',
+            boardId: 2,
+            coords: { row: 0, col: 0 },
+            fromConsumed: false,
+            metadata: { color: CoralColor.Pink }
+        }
+        const search = (found: boolean): SearchBag => ({
+            ...base(),
+            source: ActionSource.System,
+            type: ActionType.SearchBag,
+            revealsInfo: true,
+            color: CoralColor.Pink,
+            need: { kind: 'extraGrowth', boardId: 2 },
+            metadata: { found }
+        })
+        expect(texts([place, search(true)], 'their')).toEqual([
+            'placed a pink polyp on Board 2; bonus pink polyp from the bag.'
+        ])
+        expect(texts([place, search(false)], 'their')).toEqual([
+            'placed a pink polyp on Board 2; no bonus pink polyp left in the bag.'
+        ])
+    })
+
+    it('ends a turn with the larva cube taken and the refill', () => {
+        const take: TakeOpenSeaSpace = {
+            ...base(),
+            type: ActionType.TakeOpenSeaSpace,
+            playerId: 'a',
+            larvaColor: CoralColor.Grey,
+            metadata: { polyps: [CoralColor.Grey, CoralColor.Orange] }
+        }
+        const refill: RefillOpenSea = {
+            ...base(),
+            source: ActionSource.System,
+            type: ActionType.RefillOpenSea,
+            revealsInfo: true,
+            metadata: {
+                larvaColor: CoralColor.Grey,
+                additions: [
+                    { larvaColor: CoralColor.Grey, polyp: CoralColor.Yellow },
+                    { larvaColor: CoralColor.Pink, polyp: CoralColor.White }
+                ],
+                bonusPolypsReturned: false,
+                shortage: false
+            }
+        }
+        expect(texts([take, refill], 'their')).toEqual([
+            'ended their turn by taking the grey larva cube with grey and orange polyps. Refill: a yellow polyp on the grey space, a white polyp on the pink space.'
         ])
     })
 
