@@ -27,12 +27,13 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'exploration'
 ])
 
-const SINK = { duration: 0.6, drop: 4, scale: 0.9 }
+const SINK = { duration: 0.5, drop: 4, scale: 0.9 }
 const LIFT = { duration: 0.55, rise: -14, scale: 1.15 }
 const JUMP = { duration: 0.5, peakScale: 1.28 }
 const CLAIMED_RING_DELAY = 0.1
 const CAPTURED_LIFT_AT = JUMP.duration * 0.45
 const FALLBACK_DURATION = 0.18
+const OUTLINE_FADE = 0.28
 
 export type Flight = { color: MarbleColor; from: AxialCoordinates; seed: number }
 
@@ -49,6 +50,7 @@ export class BoardAnimator {
     private readonly marbleNodes = new Map<string, SVGGElement>()
     private readonly shadowNodes = new Map<string, SVGGElement>()
     private flierNode: SVGGElement | undefined
+    private outlineLayer: SVGGElement | undefined
     private readonly listener = (step: Step) => this.onGameStateChange(step)
 
     constructor(private readonly session: ZertzGameSession) {}
@@ -68,6 +70,15 @@ export class BoardAnimator {
 
     shadow(key: string): Attachment<SVGGElement> {
         return (node) => this.track(this.shadowNodes, key, node)
+    }
+
+    outlines(): Attachment<SVGGElement> {
+        return (node) => {
+            this.outlineLayer = node
+            return () => {
+                if (this.outlineLayer === node) this.outlineLayer = undefined
+            }
+        }
     }
 
     flier(): Attachment<SVGGElement> {
@@ -137,6 +148,8 @@ export class BoardAnimator {
             }
         }
 
+        this.fadeOutlines(timeline, action === undefined ? FALLBACK_DURATION : OUTLINE_FADE)
+
         animationContext.afterAnimations(() => {
             this.rings = to.board.rings
             this.flight = undefined
@@ -161,6 +174,13 @@ export class BoardAnimator {
             { opacity: 0, scale: LIFT.scale, y: LIFT.rise, duration, ease: 'power1.out' },
             at
         )
+    }
+
+    // The move's targets are spent, so their outlines fade for as long as the move animates.
+    private fadeOutlines(timeline: Timeline, shortest: number) {
+        if (this.outlineLayer === undefined) return
+        const duration = Math.max(timeline.duration(), shortest)
+        timeline.to(this.outlineLayer, { opacity: 0, duration, ease: 'power1.out' }, 0)
     }
 
     // A sunken ring keeps its shadow until a later turn takes rings, or until the ring returns.

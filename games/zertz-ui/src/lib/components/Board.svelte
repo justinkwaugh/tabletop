@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { fade } from 'svelte/transition'
     import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import type { MarbleColor, Ring } from '@tabletop/zertz'
     import MarbleDefs from './MarbleDefs.svelte'
@@ -28,12 +29,15 @@
     })
 
     let hoveredKey: string | undefined = $state()
+    let focusedKey: string | undefined = $state()
 
     // The outline grows outward from a fixed gap, so a thicker line never covers the ring, and
     // stays within half the space between rings, so neighbouring outlines never meet.
     const HIGHLIGHT_GAP = 0.5
     const HIGHLIGHT_WIDTH = 1.4
     const EMPHASIZED_HIGHLIGHT_WIDTH = 2
+    const HIGHLIGHT_FADE_IN = 120
+    const HIGHLIGHT_FADE_OUT = 280
 
     function highlightWidth(role: RingRole, hovered: boolean): number {
         return hovered || role === 'chosen-jumper' ? EMPHASIZED_HIGHLIGHT_WIDTH : HIGHLIGHT_WIDTH
@@ -153,18 +157,15 @@
                 onkeydown={(event) => onKey(event, ring, role)}
                 onpointerenter={() => (hoveredKey = coordsKey(ring.coords))}
                 onpointerleave={() => (hoveredKey = undefined)}
+                onfocus={(event) => {
+                    if (event.currentTarget.matches(':focus-visible'))
+                        focusedKey = coordsKey(ring.coords)
+                }}
+                onblur={() => (focusedKey = undefined)}
             >
                 <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
                 <circle r={RING_MID_RADIUS} stroke-width={RING_WIDTH} class="ring-body"></circle>
                 <circle r={RING_OUTER_RADIUS - 1.5} class="ring-rim"></circle>
-                {#if interactive}
-                    {@const width = highlightWidth(role, isHovered(ring.coords))}
-                    <circle
-                        r={RING_OUTER_RADIUS + HIGHLIGHT_GAP + width / 2}
-                        stroke-width={width}
-                        class="ring-highlight"
-                    ></circle>
-                {/if}
                 {#if ring.marble}
                     <g {@attach animator.marble(coordsKey(ring.coords))}>
                         {@render marble(ring.marble, ring.coords, coordinatesToNumber(ring.coords))}
@@ -182,6 +183,32 @@
             </g>
         </g>
     {/each}
+
+    <!-- Outlines sit above the rings rather than in them, so a ring sinks without its outline. The
+         animator fades the whole layer with each move, and every new position gets a fresh one. -->
+    {#key session.gameState}
+        <g {@attach animator.outlines()}>
+            {#each rings as ring (coordsKey(ring.coords))}
+                {@const role = roleOf(ring)}
+                {#if role !== undefined}
+                    {@const center = ringCenter(ring.coords)}
+                    {@const emphasized =
+                        isHovered(ring.coords) || focusedKey === coordsKey(ring.coords)}
+                    {@const width = highlightWidth(role, emphasized)}
+                    <circle
+                        cx={center.x}
+                        cy={center.y}
+                        r={RING_OUTER_RADIUS + HIGHLIGHT_GAP + width / 2}
+                        stroke-width={width}
+                        class="ring-highlight role-{role}"
+                        class:emphasized
+                        in:fade|global={{ duration: HIGHLIGHT_FADE_IN }}
+                        out:fade={{ duration: HIGHLIGHT_FADE_OUT }}
+                    ></circle>
+                {/if}
+            {/each}
+        </g>
+    {/key}
 
     {#if animator.flight}
         {@const center = ringCenter(animator.flight.from)}
@@ -256,35 +283,27 @@
         cursor: pointer;
     }
 
-    .role-place .ring-highlight {
+    .ring-highlight.role-place {
         stroke: var(--zertz-place);
         stroke-opacity: 0.55;
     }
 
-    .role-remove .ring-highlight {
+    .ring-highlight.role-remove {
         stroke: var(--zertz-remove);
         stroke-dasharray: 5 3.5;
     }
 
-    .role-land .ring-highlight,
-    .role-jumper .ring-highlight {
+    .ring-highlight.role-land,
+    .ring-highlight.role-jumper,
+    .ring-highlight.role-chosen-jumper {
         stroke: var(--zertz-capture);
     }
 
-    .role-jumper .ring-highlight {
+    .ring-highlight.role-jumper {
         stroke-opacity: 0.6;
     }
 
-    .role-chosen-jumper .ring-highlight {
-        stroke: var(--zertz-capture);
-    }
-
-    .hovered .ring-highlight {
-        stroke-opacity: 1;
-    }
-
-    .interactive:focus-visible .ring-highlight {
-        stroke: var(--zertz-ink);
+    .ring-highlight.emphasized {
         stroke-opacity: 1;
     }
 

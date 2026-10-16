@@ -95,7 +95,14 @@
             <div class="shrink-0">
                 {@render turnControls()}
             </div>
-            <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
+            <div
+                class="relative isolate grow-0 overflow-hidden pt-2"
+                style="flex:1; min-height: 40dvh;"
+            >
+                <div
+                    class="zertz-ripples pointer-events-none absolute inset-0 -z-10"
+                    aria-hidden="true"
+                ></div>
                 <ScalingWrapper
                     justify="center"
                     controls="bottom-left"
@@ -116,7 +123,9 @@
                         <div {@attach watchExpansion}>
                             {#if expanded}
                                 <!-- The dialog paints its own dim backdrop, so full screen needs the water redrawn behind the board. -->
-                                <div class="fullscreen-water zertz-water" aria-hidden="true"></div>
+                                <div class="fullscreen-water zertz-water" aria-hidden="true">
+                                    <div class="zertz-ripples h-full w-full"></div>
+                                </div>
                                 <div class="fullscreen-controls">
                                     {@render turnControls()}
                                 </div>
