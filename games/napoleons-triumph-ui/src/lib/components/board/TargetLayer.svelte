@@ -23,6 +23,7 @@
         type WaySignArrow
     } from '$lib/utils/waySign.js'
     import {
+        ARROW_EDGE_WIDTH,
         ATTACK_ARROW_PATH,
         attackMarkerAngle,
         attackMarkerScale
@@ -102,7 +103,7 @@
 
 {#snippet threatArrow(approach: number)}
     <g transform="rotate({attackMarkerAngle(APPROACH_GEOMETRY[approach])})">
-        <path d={ATTACK_ARROW_PATH}></path>
+        <path d={ATTACK_ARROW_PATH} stroke-width={ARROW_EDGE_WIDTH}></path>
     </g>
 {/snippet}
 
@@ -318,7 +319,6 @@
     .nt-target-attack path {
         fill: #2b2620;
         stroke: #f1ecdc;
-        stroke-width: 2.5;
         stroke-linejoin: round;
     }
 

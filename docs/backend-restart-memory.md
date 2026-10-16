@@ -75,10 +75,10 @@ Firebase Hosting serves the site files, so a frontend publication needs no
 replacement: only a logic change in the manifest triggers one. `X-Tabletop-Version`
 reports the manifest's frontend version on every response, and the deploy tool
 publishes the manifest only after Hosting serves the new build, so the files and the
-header switch seconds apart. Each child still serves the frontend build it resolved at
-startup, as a fallback for a Hosting release that sends every path to the backend; after
-rolling Hosting back to such a release, replace the backend so the fallback matches the
-manifest. The deploy tool reads `X-Tabletop-Version` as the served frontend version.
+header switch seconds apart. The backend service serves only `/api` and `/games` (the tasks
+service serves `/tasks`); it has no copy of the site, so Hosting releases that send every path to the backend no longer
+work, and a frontend rollback goes through `rollback --frontend`. The deploy tool reads
+`X-Tabletop-Version` as the served frontend version.
 
 Game versions follow the same rule through the served manifest
 (`libs/backend-services/src/games/servedManifest.ts`). It is the live manifest

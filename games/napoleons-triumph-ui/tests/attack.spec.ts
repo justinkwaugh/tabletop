@@ -8,6 +8,8 @@ import {
     FRENCH_ARMY,
     leadButton,
     leadDefence,
+    moveCorps,
+    openMapMenu,
     openSeat,
     pickUp,
     retreat,
@@ -510,6 +512,76 @@ test('a Guard Attack is announced in two steps, the Guard unit to show chosen fi
     await expect(page.getByText('Guard Attack from locale 93 into locale 94')).toBeVisible()
 })
 
+test('the heading of an attack carries the marks printed on the defending side of the approach', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await rearrange(page, (state) => moveCorps(state, 'langeron', { locale: 54 }))
+    await pickUp(page, 'lannes')
+    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await expect(page.getByText('Attack from locale 64 into Santon')).toBeVisible()
+    await expect(page.locator('.nt-battle [data-approach-marks]')).toHaveAttribute(
+        'data-approach-marks',
+        'AOI'
+    )
+})
+
+test('approach symbols under an arrow slide out from under it, and back when it goes', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await rearrange(page, (state) => moveCorps(state, 'langeron', { locale: 81 }))
+    await openMapMenu(page)
+    await page.getByRole('button', { name: 'Approach symbols' }).click()
+    const slid = page.locator('[data-symbol-tag][data-slid]')
+    await expect(page.locator('[data-symbol-tag]').first()).toBeVisible()
+    await expect(slid).toHaveCount(0)
+
+    await pickUp(page, 'vandamme')
+    await expect(slid).not.toHaveCount(0)
+    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await expect(page.getByText('Attack from locale 72 into locale 81')).toBeVisible()
+    await expect(slid).toHaveCount(2)
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(page.getByText('Attack from locale 72 into locale 81')).toBeHidden()
+    await tap(page, 'svg[data-board]')
+    await expect(
+        page.locator('svg [aria-label="Threaten an attack across this approach"]')
+    ).toHaveCount(0)
+    await expect(slid).toHaveCount(0)
+})
+
+test('with approach symbols off, the marks an arrow covers are shown beside it until it goes', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await rearrange(page, (state) => moveCorps(state, 'langeron', { locale: 81 }))
+    const tags = page.locator('[data-symbol-tag]')
+    await expect(page.locator('[data-commander="vandamme"]').first()).toBeVisible()
+    await expect(tags).toHaveCount(0)
+
+    await pickUp(page, 'vandamme')
+    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await expect(page.getByText('Attack from locale 72 into locale 81')).toBeVisible()
+    await expect(tags).toHaveCount(2)
+    await expect(page.locator('[data-symbol-tag]:not([data-slid])')).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(page.getByText('Attack from locale 72 into locale 81')).toBeHidden()
+    await tap(page, 'svg[data-board]')
+    await expect(
+        page.locator('svg [aria-label="Threaten an attack across this approach"]')
+    ).toHaveCount(0)
+    await expect(tags).toHaveCount(0)
+})
+
 test('a unit chosen on its own is offered to the other commanders standing with it, beside the command', async ({
     page
 }) => {
@@ -519,13 +591,7 @@ test('a unit chosen on its own is offered to the other commanders standing with 
     await rearrange(page, (state) => {
         const murat = state.commanders.find((commander) => commander.id === 'murat')
         if (!murat?.position) throw new Error('Expected Murat on the map')
-        const together = { ...murat.position }
-        for (const unit of state.units.filter((unit) => unit.commanderId === 'vandamme')) {
-            unit.position = { ...together }
-        }
-        for (const commander of state.commanders.filter((entry) => entry.id === 'vandamme')) {
-            commander.position = { ...together }
-        }
+        moveCorps(state, 'vandamme', murat.position)
     })
     const attach = page.getByRole('button', { name: 'Attach to Vandamme' })
     const strip = page.getByRole('group', { name: 'Murat’s corps' })
@@ -548,15 +614,7 @@ test('a stack closed up for want of room spreads out when tapped, and when picke
 }) => {
     await createGame(page)
     await deployBothArmies(page)
-    await rearrange(page, (state) => {
-        const crowded = { locale: 110 }
-        for (const unit of state.units.filter((unit) => unit.commanderId === 'langeron')) {
-            unit.position = crowded
-        }
-        for (const commander of state.commanders.filter((entry) => entry.id === 'langeron')) {
-            commander.position = crowded
-        }
-    })
+    await rearrange(page, (state) => moveCorps(state, 'langeron', { locale: 110 }))
     const stack = page.locator('[data-commander="langeron"]')
     // Measured on the board, not on screen: picking a corps up can move and zoom the view, and the board may be turned.
     const extent = () =>

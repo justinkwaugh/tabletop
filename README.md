@@ -29,7 +29,7 @@ The project is setup as a monorepo using [pnpm workspaces](https://pnpm.io/works
 |--/scripts - Some useful scripts
 ```
 
-The frontend is run as a separate Vite process during development but for deployment is compiled into a static SPA and served by the backend. Game implementations are modular and could even be imported from external repositories.
+The frontend is run as a separate Vite process during development but for deployment is compiled into a static SPA and served by Firebase Hosting. Game implementations are modular and could even be imported from external repositories.
 
 ### Prerequisites
 

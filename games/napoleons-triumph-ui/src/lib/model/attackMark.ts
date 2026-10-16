@@ -6,6 +6,7 @@ import {
     isDeclareFeint,
     type Attack
 } from '@tabletop/napoleons-triumph'
+import type { ArrowDrawing } from '$lib/utils/attackMarker.js'
 
 export enum AttackMarkKind {
     /** Threatened and not yet pressed: nobody's colour. */
@@ -71,5 +72,12 @@ export function attackMarkOf(attack: MarkedAttack, action?: GameAction): AttackM
               : AttackMarkKind.Threat,
         attackerId: attack.attackerId,
         counterAttackerId: countered ? attack.defenderId : undefined
+    }
+}
+
+export function arrowDrawingOf(mark: AttackMark): ArrowDrawing {
+    return {
+        feint: mark.kind === AttackMarkKind.Feint,
+        countered: mark.counterAttackerId !== undefined
     }
 }

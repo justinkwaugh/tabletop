@@ -60,7 +60,7 @@ This service provides management of users of the website, such as creating, read
 
 ## Frontend
 
-The frontend is the visible website. It uses Svelte/SvelteKit as it's primary framework. It primarily provides the administrative features of the website such as user creation / login / game management. The website is a single page app (SPA) hosted statically in GCS and served by the backend, but served in a separate process when run locally. There is no technical reason it could not be its own full SvelteKit app with server side rending and so forth. The choice was made to make it an SPA because I did not want to dedicate instances to the frontend (the backend API itself will always be separate) and due to the nature of the site it lends itself to being an SPA.
+The frontend is the visible website. It uses Svelte/SvelteKit as it's primary framework. It primarily provides the administrative features of the website such as user creation / login / game management. The website is a single page app (SPA) served by Firebase Hosting, which sends `/api`, `/games` and `/tasks` to the backend; each release is also kept in GCS for rollbacks. It is served in a separate process when run locally. There is no technical reason it could not be its own full SvelteKit app with server side rending and so forth. The choice was made to make it an SPA because I did not want to dedicate instances to the frontend (the backend API itself will always be separate) and due to the nature of the site it lends itself to being an SPA.
 
 ## Games
 
