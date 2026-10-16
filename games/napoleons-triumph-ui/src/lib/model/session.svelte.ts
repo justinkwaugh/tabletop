@@ -62,7 +62,16 @@ import {
 } from '$lib/utils/flagLayout.js'
 import { topmostAt } from '$lib/utils/blockShape.js'
 import { approachPlates, plateSamples, type ApproachPlate } from '$lib/utils/approachPlates.js'
-import { SYMBOL_TAGS, type SymbolTag } from '$lib/utils/approachSymbols.js'
+import {
+    SYMBOL_TAGS,
+    approachSymbolScale,
+    placeSymbolTags,
+    printedMarksCovered,
+    type PlacedSymbolTag
+} from '$lib/utils/approachSymbols.js'
+import { THREAT_ARROW, arrowOutlines, attackMarkerScale } from '$lib/utils/attackMarker.js'
+import type { ConvexOutline } from '$lib/utils/convexOutline.js'
+import { boxSamples } from '$lib/utils/orientedBox.js'
 import {
     heldApproaches,
     layoutPieces,
@@ -150,7 +159,7 @@ import {
 import { guardUnitsToAnnounce } from './guardAttack.js'
 import { historyChapters, type HistoryChapter, type HistoryLine } from './historyChapters.js'
 import { lossesOfAttack, type AttackLosses } from './attackLosses.js'
-import { attackMarkOf, type AttackMark } from './attackMark.js'
+import { arrowDrawingOf, attackMarkOf, type AttackMark } from './attackMark.js'
 import { fightOf, recordedAccounts, verdictOf, type ResultAccounts } from './resultAccount.js'
 import { turnTrails, type Trail } from './turnTrails.js'
 import {
@@ -378,12 +387,31 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     approachPlates: ApproachPlate[] = $derived(approachPlates(this.heldApproaches))
 
-    approachSymbolTags: SymbolTag[] = $derived.by(() => {
-        if (!this.approachSymbolsShown) {
-            return []
-        }
+    approachSymbolTags: PlacedSymbolTag[] = $derived.by(() => {
         const onPlates = this.approachPlates.map((plate) => plate.side)
-        return SYMBOL_TAGS.filter((tag) => !onPlates.includes(tag.key))
+        const arrows = this.arrowOutlines
+        const shown = SYMBOL_TAGS.filter(
+            (tag) =>
+                !onPlates.includes(tag.key) &&
+                (this.approachSymbolsShown || printedMarksCovered(tag, arrows))
+        )
+        return placeSymbolTags(shown, approachSymbolScale(this.zoom), arrows)
+    })
+
+    private threatArrowApproaches: number[] = $derived.by(() => [
+        ...threatenedApproaches(this.targets),
+        ...(this.threatBeingDeclared ? [this.threatBeingDeclared.position.approach] : [])
+    ])
+
+    private arrowOutlines: ConvexOutline[] = $derived.by(() => {
+        const scale = attackMarkerScale(this.zoom)
+        const mark = this.attackMark
+        return [
+            ...(mark ? arrowOutlines(mark.approach, scale, arrowDrawingOf(mark)) : []),
+            ...this.threatArrowApproaches.flatMap((approach) =>
+                arrowOutlines(approach, scale, THREAT_ARROW)
+            )
+        ]
     })
 
     flagView: FlagView = $derived({ rotation: this.boardRotation, scale: flagScale(this.zoom) })
@@ -404,8 +432,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     flags: FlagMark[] = $derived.by(() => {
         const arrowApproaches = [
             ...(this.attack ? [this.attack.attackApproach] : []),
-            ...threatenedApproaches(this.targets),
-            ...(this.threatBeingDeclared ? [this.threatBeingDeclared.position.approach] : [])
+            ...this.threatArrowApproaches
         ]
         return flagMarks(
             this.sprites,
@@ -413,6 +440,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
             [
                 ...arrowsToKeepClear(arrowApproaches, this.zoom),
                 ...plateSamples(this.approachPlates),
+                ...this.approachSymbolTags.flatMap((tag) =>
+                    tag.slid ? boxSamples(tag.cover) : []
+                ),
                 ...this.movementTrails.flatMap((trail) => [
                     ...lineSamples(trail.line),
                     numberOfTrail(trail, this.flagView.scale).at

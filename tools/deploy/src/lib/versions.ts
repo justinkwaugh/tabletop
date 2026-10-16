@@ -55,6 +55,14 @@ const parseSemver = (version: string) => {
     }
 }
 
+export const isVersionAtLeast = (version: string, minimum: string) => {
+    const actual = parseSemver(version)
+    const required = parseSemver(minimum)
+    if (actual.major !== required.major) return actual.major > required.major
+    if (actual.minor !== required.minor) return actual.minor > required.minor
+    return actual.patch >= required.patch
+}
+
 export const bumpVersion = (version: string, bump: BumpType) => {
     const { major, minor, patch } = parseSemver(version)
     if (bump === 'major') return `${major + 1}.0.0`

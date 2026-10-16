@@ -14,7 +14,7 @@ import {
 import { TileEdge, TileFace, type ImmutableTileData } from '../tiles/tile.js'
 import { CityReservation, type StationReservation } from './station.js'
 import { assertTileTopology } from '../tiles/validation.js'
-import { tileEdgeDirection } from '../tiles/topology.js'
+import { rotateTileEdge, tileEdgeDirection } from '../tiles/topology.js'
 
 const Identifier = Type.String({ minLength: 1 })
 
@@ -177,6 +177,23 @@ export class RailwayMap {
             tileEdgeDirection(edge, this.definition.orientation)
         )
         return node ? this.locationsById.get(node.locationId) : undefined
+    }
+
+    // The neighbor and its matching edge, when track may cross this side.
+    across(id: string, edge: TileEdge): { location: MapLocation; edge: TileEdge } | undefined {
+        const neighbor = this.neighbor(id, edge)
+        if (!neighbor) return undefined
+        const opposite = rotateTileEdge(edge, 3)
+        if (
+            this.location(id).borders?.some(
+                (border) => border.edge === edge && border.kind === 'impassable'
+            ) ||
+            neighbor.borders?.some(
+                (border) => border.edge === opposite && border.kind === 'impassable'
+            )
+        )
+            return undefined
+        return { location: neighbor, edge: opposite }
     }
 }
 

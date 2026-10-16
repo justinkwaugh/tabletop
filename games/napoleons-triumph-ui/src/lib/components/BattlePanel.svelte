@@ -11,6 +11,8 @@
     import { StageKind } from '$lib/model/battleSelection.js'
     import { rolesBeforeTheCounterAttack } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { printedSideOf } from '$lib/utils/approachSymbols.js'
+    import ApproachMarks from './battle/ApproachMarks.svelte'
     import CounterStep from './battle/CounterStep.svelte'
     import DecisionStep from './battle/DecisionStep.svelte'
     import DeclareStep from './battle/DeclareStep.svelte'
@@ -70,12 +72,16 @@
     {@const roles = gameSession.foughtRoles}
     {@const losses = gameSession.attackLosses}
     {@const verdict = gameSession.attackVerdict}
+    {@const printedSide = printedSideOf(attack.defenseApproach)}
     <div class="nt-battle">
         <div class="nt-battle-title">
             {attack.guardAttack ? 'Guard Attack' : 'Attack'} from
             {game.map.label(game.map.approach(attack.attackApproach).locale)} into
             {game.map.label(game.map.approach(attack.defenseApproach).locale)}
             <span class="nt-battle-faint">· {terrain(attack.defenseApproach)}</span>
+            {#if printedSide}
+                <ApproachMarks marks={printedSide.marks} />
+            {/if}
         </div>
         {#if attackers.length > 0 || defenders.length > 0}
             <div class="nt-battle-sides">

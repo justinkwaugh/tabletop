@@ -44,7 +44,7 @@ async function registerGame(
                 const logicVersion = definition.info.metadata.version ?? '0.0.0'
                 let uiVersion = '0.0.0'
                 try {
-                    const manifest = await instance.libraryService.getManifest()
+                    const manifest = await instance.libraryService.getServedManifest()
                     const entry = manifest.games?.find((game) => game.gameId === definition.info.id)
                     if (entry?.uiVersion) {
                         uiVersion = entry.uiVersion
