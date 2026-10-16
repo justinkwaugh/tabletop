@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { NapoleonsTriumphAction } from './gameAction.js'
+import { AttackEndMetadata } from './attackEnd.js'
 import { advance } from '../model/attackDecisions.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
@@ -13,6 +14,7 @@ export const Advance = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.Advance),
             playerId: Type.String(),
+            metadata: Type.Optional(AttackEndMetadata),
             unitIds: Type.Array(Type.String(), { minItems: 1 }),
             commanderIds: Type.Array(Type.String())
         })

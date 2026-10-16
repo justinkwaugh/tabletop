@@ -33,6 +33,7 @@
         onFocusLocation,
         mapFocusExcludedCompanyIds = [],
         onFocusCompany,
+        onShowCompanyCard,
         portfolioCompanyIds = []
     }: {
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
@@ -44,6 +45,7 @@
         onFocusLocation: (locationId: string) => void
         mapFocusExcludedCompanyIds?: readonly string[]
         onFocusCompany: (companyId: string) => void
+        onShowCompanyCard?: (companyId: string) => void
         portfolioCompanyIds?: readonly string[]
     } = $props()
     const money = $derived(session.presentation.money)
@@ -140,6 +142,28 @@
                 .map((company) => company.id)
         )
     )
+    function showHoldingCard(companyId: string) {
+        return onShowCompanyCard ? () => onShowCompanyCard(companyId) : undefined
+    }
+    function companyButton(companyId: string) {
+        return onShowCompanyCard
+            ? { disabled: false, onclick: undefined }
+            : {
+                  disabled: !focusableCompanyIds.has(companyId),
+                  onclick: () => onFocusCompany(companyId)
+              }
+    }
+    function companyTokenLabel(companyId: string) {
+        return `Show ${session.companyName(companyId)} ${onShowCompanyCard ? 'card' : 'network'}`
+    }
+    function numberedShareButton(locationId: string | undefined) {
+        return onShowCompanyCard
+            ? { disabled: false, onclick: undefined }
+            : {
+                  disabled: !locationId,
+                  onclick: locationId ? () => onFocusLocation(locationId) : undefined
+              }
+    }
     function numberedShares(owner: Owner, companyId: string) {
         const names = numberedShareNames[companyId]
         if (!names) return []
@@ -313,13 +337,19 @@
                         >
                             {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
                                 {@const numbered = numberedShares(player.owner, entry.company.id)}
-                                <div class="compact-holding" class:president={entry.president}>
+                                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+                                <!-- A pointer shortcut: keyboard users open the card from the holding's buttons, whose clicks bubble here. -->
+                                <div
+                                    class="compact-holding"
+                                    class:card-holding={!!onShowCompanyCard}
+                                    class:president={entry.president}
+                                    onclick={showHoldingCard(entry.company.id)}
+                                >
                                     <div class="holding-line">
                                         <button
                                             class="company-focus compact-token"
-                                            aria-label={`Show ${session.companyName(entry.company.id)} network`}
-                                            disabled={!focusableCompanyIds.has(entry.company.id)}
-                                            onclick={() => onFocusCompany(entry.company.id)}
+                                            aria-label={companyTokenLabel(entry.company.id)}
+                                            {...companyButton(entry.company.id)}
                                             ><CompanyToken
                                                 appearance={session.mapView.stations[
                                                     entry.company.id
@@ -331,10 +361,7 @@
                                             <button
                                                 class="company-focus"
                                                 title={session.companyName(entry.company.id)}
-                                                disabled={!focusableCompanyIds.has(
-                                                    entry.company.id
-                                                )}
-                                                onclick={() => onFocusCompany(entry.company.id)}
+                                                {...companyButton(entry.company.id)}
                                                 >{companyNames[entry.company.id]?.initials ??
                                                     entry.company.id}</button
                                             >
@@ -354,11 +381,8 @@
                                                             class="company-focus"
                                                             title={share.name}
                                                             aria-label={share.name}
-                                                            disabled={!locationId}
-                                                            onclick={() => {
-                                                                if (locationId)
-                                                                    onFocusLocation(locationId)
-                                                            }}>{share.number}</button
+                                                            {...numberedShareButton(locationId)}
+                                                            >{share.number}</button
                                                         >{/each}</span
                                                 >{/if}<span
                                                 >{percent.format(entry.percentage)}%</span
@@ -370,8 +394,13 @@
                         </div>
                     {:else if player.ownership.length}
                         <table class="ownership" aria-label={`${player.name} company ownership`}>
-                            <tbody>
-                                {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
+                            {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
+                                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+                                <!-- A pointer shortcut: keyboard users open the card from the holding's buttons, whose clicks bubble here. -->
+                                <tbody
+                                    class:card-holding={!!onShowCompanyCard}
+                                    onclick={showHoldingCard(entry.company.id)}
+                                >
                                     <tr
                                         class:has-numbered-shares={!!numberedShareNames[
                                             entry.company.id
@@ -382,11 +411,8 @@
                                         <td class="token"
                                             ><button
                                                 class="company-focus"
-                                                aria-label={`Show ${session.companyName(entry.company.id)} network`}
-                                                disabled={!focusableCompanyIds.has(
-                                                    entry.company.id
-                                                )}
-                                                onclick={() => onFocusCompany(entry.company.id)}
+                                                aria-label={companyTokenLabel(entry.company.id)}
+                                                {...companyButton(entry.company.id)}
                                                 ><CompanyToken
                                                     appearance={session.mapView.stations[
                                                         entry.company.id
@@ -398,10 +424,7 @@
                                         <th scope="row"
                                             ><button
                                                 class="company-focus"
-                                                disabled={!focusableCompanyIds.has(
-                                                    entry.company.id
-                                                )}
-                                                onclick={() => onFocusCompany(entry.company.id)}
+                                                {...companyButton(entry.company.id)}
                                                 >{session.companyName(entry.company.id)}</button
                                             >{#if entry.president}<PresidentBadge />{/if}</th
                                         >
@@ -417,7 +440,7 @@
                                             <td colspan="2">
                                                 {#if locationId}<button
                                                         class="company-focus"
-                                                        onclick={() => onFocusLocation(locationId)}
+                                                        {...numberedShareButton(locationId)}
                                                         ><span class="share-number"
                                                             >{share.number}</span
                                                         >
@@ -429,8 +452,8 @@
                                             </td>
                                         </tr>
                                     {/each}
-                                {/each}
-                            </tbody>
+                                </tbody>
+                            {/each}
                         </table>
                     {:else}<p class="empty">None</p>{/if}
                 </section>
@@ -738,6 +761,9 @@
     }
     .company-focus:disabled {
         cursor: default;
+    }
+    .card-holding {
+        cursor: pointer;
     }
     .company-focus:focus-visible {
         outline: 1px solid var(--rail-focus, #796047);

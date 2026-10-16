@@ -1,7 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import {
     NapoleonsTriumphGameStateValidator,
-    type NapoleonsTriumphGameState
+    type NapoleonsTriumphGameState,
+    type Position
 } from '@tabletop/napoleons-triumph'
 
 const GAME_NAME = 'Austerlitz'
@@ -170,6 +171,19 @@ export async function threatenWithoutTheGuard(page: Page) {
 
 export async function pickUp(page: Page, commander: string) {
     await tap(page, `[data-commander="${commander}"][aria-label="Select these pieces"]`)
+}
+
+export function moveCorps(
+    state: NapoleonsTriumphGameState,
+    commanderId: string,
+    position: Position
+) {
+    for (const unit of state.units.filter((entry) => entry.commanderId === commanderId)) {
+        unit.position = { ...position }
+    }
+    for (const commander of state.commanders.filter((entry) => entry.id === commanderId)) {
+        commander.position = { ...position }
+    }
 }
 
 // Workaround: a position that takes many turns to reach is written into the dev harness's own copy of the game, which is then opened again.

@@ -110,8 +110,8 @@ const parseBuildId = (versionJson: string, source: string): string => {
 const stagingChannel = (version: string) =>
     `frontend-${version.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
 
-// The bucket copy is what the backend serves, so Hosting gets exactly those bytes; the
-// repository's firebase.json supplies the routing and headers.
+// Hosting gets exactly the bucket copy, which rollback --frontend and switch --frontend select
+// from; the repository's firebase.json supplies the routing and headers.
 const stageFrontendOnHosting = async (
     context: PublishContext,
     target: HostingTarget,

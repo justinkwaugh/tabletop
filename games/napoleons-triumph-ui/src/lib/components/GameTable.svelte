@@ -448,8 +448,13 @@
                         <div class="nt-turn-body">
                             {#if session.isViewingHistory}
                                 <ActionPanel bind:ordersDrawerHeight />
-                            {:else if session.attack}
+                            {:else if session.attack || session.showsConcludedBattle}
                                 <BattlePanel />
+                                {#if session.gameState.result}
+                                    <div class="nt-after-battle">
+                                        <ActionPanel bind:ordersDrawerHeight />
+                                    </div>
+                                {/if}
                             {:else if session.isAuction}
                                 <AuctionPanel />
                             {:else if session.isDeploying}
@@ -565,6 +570,12 @@
         color: var(--nt-ink);
         /* Workaround: iOS takes two quick taps for a double-tap zoom, and adding units or stepping a loss is tapped quickly. */
         touch-action: manipulation;
+    }
+
+    .nt-after-battle {
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid color-mix(in srgb, var(--nt-ink) 25%, transparent);
     }
 
     .nt-turn-body {
