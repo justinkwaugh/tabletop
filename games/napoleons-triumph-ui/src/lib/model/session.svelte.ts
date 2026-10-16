@@ -30,6 +30,7 @@ import {
     validateAttach,
     type CommandKind,
     type Commander,
+    type EndedAttack,
     type Face,
     type FeintEnd,
     type HydratedNapoleonsTriumphGameState,
@@ -217,6 +218,7 @@ import {
     type WayTarget
 } from './targets.js'
 import { traceWays, type Way, type WayChoice, type WayStep } from './ways.js'
+import { concludedBattleOf, type ConcludedBattle } from './concludedBattle.js'
 
 type ZoomSource = () => number | undefined
 
@@ -258,6 +260,18 @@ export class NapoleonsTriumphGameSession extends GameSession<
     boardRotation = $derived(viewRotation(this.boardView))
 
     attack = $derived(this.gameState.attack)
+
+    concludedBattle: ConcludedBattle | undefined = $derived(
+        this.isViewingHistory ? undefined : concludedBattleOf(this.history.visibleContext)
+    )
+
+    private concludedBattleSetAside = $state(false)
+
+    setConcludedBattleAside() {
+        this.concludedBattleSetAside = true
+    }
+
+    shownAttack: EndedAttack | undefined = $derived(this.attack ?? this.concludedBattle?.attack)
 
     myPlayerId = $derived(this.myPlayer?.id)
 
@@ -499,12 +513,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
     battleRoles: Record<string, BattleRole> = $derived(rolesShown(this.attack, this.battleStage))
     /** The roles the units of the fight were named to, whatever is being picked in the step now open. */
     foughtRoles: Record<string, BattleRole> = $derived(
-        this.attack ? committedRoles(this.attack) : {}
+        this.shownAttack ? committedRoles(this.shownAttack) : {}
     )
 
     /** Which way the settled result of the attack in progress decides it, and why. */
     attackVerdict: string | undefined = $derived.by(() => {
-        const attack = this.attack
+        const attack = this.shownAttack
         if (!attack || attack.finalResult === undefined || attack.attackerWon === undefined) {
             return undefined
         }
@@ -513,7 +527,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     attackLosses: AttackLosses | undefined = $derived(
-        this.attack ? lossesOfAttack(this.history.visibleContext.actions, this.attack) : undefined
+        this.shownAttack
+            ? lossesOfAttack(this.history.visibleContext.actions, this.shownAttack)
+            : undefined
     )
 
     attackMark: AttackMark | undefined = $derived(
@@ -533,6 +549,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     // Rule 11: cavalry that has taken a locale by road may ride on.
     private openRoadMarch = $derived(this.isCommanding ? this.gameState.roadMarch : undefined)
+
+    private turnedToOrders = $derived(
+        this.concludedBattleSetAside ||
+            hasManualCommandSelection(this.selection) ||
+            this.openRoadMarch !== undefined
+    )
+
+    showsConcludedBattle = $derived(
+        this.concludedBattle !== undefined && !(this.isCommanding && this.turnedToOrders)
+    )
 
     private riderIds: string[] = $derived(this.openRoadMarch?.unitIds ?? [])
 
@@ -1357,6 +1383,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     resetAction() {
+        this.concludedBattleSetAside = false
         this.spreadLocale = undefined
         this.wayUnderPointer = undefined
         this.selection = noCommandSelection()

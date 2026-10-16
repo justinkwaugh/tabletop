@@ -25,7 +25,7 @@
     } = $props()
 
     const gameSession = getGameSession()
-    const attack = $derived(gameSession.attack)
+    const attack = $derived(gameSession.shownAttack)
     const settled = $derived(attack?.initialResult ?? 0)
 
     const lines: AccountLine[] = $derived(
