@@ -59,38 +59,42 @@ const open: RailheadsGameSession[] = []
 
 export const SEATS = ['p1', 'p2', 'p3']
 
-const GAME: Game = {
-    ...RailheadsRuntime.initializer.initializeGame(
-        {
-            id: 'railheads-session',
-            typeId: Definition.info.id,
-            ownerId: 'owner',
-            seed: 7,
-            config: {},
-            players: SEATS.map((id) => ({
-                id,
-                name: id,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    ),
-    hotseat: true
+function gameWith(config: Record<string, boolean | string>): Game {
+    return {
+        ...RailheadsRuntime.initializer.initializeGame(
+            {
+                id: 'railheads-session',
+                typeId: Definition.info.id,
+                ownerId: 'owner',
+                seed: 7,
+                config,
+                players: SEATS.map((id) => ({
+                    id,
+                    name: id,
+                    isHuman: true,
+                    status: PlayerStatus.Joined
+                }))
+            },
+            Definition
+        ),
+        hotseat: true
+    }
 }
 
-export type PlayedTable = { state: RailheadsProjectedState; actions: GameAction[] }
+const GAME = gameWith({})
+
+export type PlayedTable = { state: RailheadsProjectedState; actions: GameAction[]; game?: Game }
 
 function played(table: PlayedTable, actions: readonly GameAction[]): PlayedTable {
     let state = table.state
     const processed = [...table.actions]
     for (const fields of actions) {
         const action = { ...fields, id: `a-${state.actionCount}`, index: state.actionCount }
-        const result = engine.executeAction({ action, state, game: GAME })
+        const result = engine.executeAction({ action, state, game: table.game ?? GAME })
         processed.push(...result.processedActions)
         state = result.updatedState
     }
-    return { state, actions: processed }
+    return { ...table, state, actions: processed }
 }
 
 function envelope(table: PlayedTable, playerId: string) {
@@ -122,12 +126,13 @@ function initialStep(table: PlayedTable): GameAction {
     return createAction(PassBid, envelope(table, playerId))
 }
 
-export function firstTurnTable(): PlayedTable {
-    const { initialState } = engine.startGame(GAME, {
+export function firstTurnTable(config: Record<string, boolean | string> = {}): PlayedTable {
+    const game = gameWith(config)
+    const { initialState } = engine.startGame(game, {
         masterSeed: '0123456789abcdef0123456789abcdef',
         startingPositions: { playerIds: SEATS }
     })
-    let table: PlayedTable = { state: initialState, actions: [] }
+    let table: PlayedTable = { state: initialState, actions: [], game }
     for (let step = 0; table.state.machineState !== MachineState.ChoosingAction; step++) {
         if (step >= 60) {
             throw Error('The opening auctions did not finish')
@@ -161,7 +166,7 @@ export function openSessionOn(table: PlayedTable): RailheadsGameSession {
         authorizationService: appContext.authorizationService,
         gameService: appContext.gameService,
         chatService: appContext.chatService,
-        gameId: GAME.id
+        gameId: (table.game ?? GAME).id
     })
     const session = new RailheadsGameSession({
         gameService: appContext.gameService,
@@ -170,7 +175,7 @@ export function openSessionOn(table: PlayedTable): RailheadsGameSession {
         chatService: appContext.chatService,
         api: appContext.api,
         runtime: RailheadsUiRuntime,
-        game: GAME,
+        game: table.game ?? GAME,
         state: table.state,
         actions: table.actions
     })
