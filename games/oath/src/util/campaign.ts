@@ -1,6 +1,7 @@
 import { bannerHolder } from './oathkeeper.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { attackingSiteOf, forceSitesOf, targetedSiteIds } from './campaignSite.js'
+import { attackingSiteOf, forceSitesOf, sitesWithTargets, targetedSiteIds } from './campaignSite.js'
+import { attackDiceFromSites } from './sitePowers.js'
 import { Banner, PlayerStatus } from '../model/oathEnums.js'
 import { reasonSitesForbidTargets, targetsNeedFlip } from './siteTravel.js'
 import { relicDefenseDice } from '../data/cardRegistry.js'
@@ -449,6 +450,23 @@ export function applyDiceDelta(pools: DicePools, delta: DiceDelta): DicePools {
     }
 
     return { attackPool, defensePool: Math.max(0, defensePool) }
+}
+
+/**
+ * R-5.5.2, R-11.4 — the pools as Step 2 leaves them: the attack dice declared, the targets' and
+ * titles' defense dice, then each targeted Plains or Mountain's die, folded one site at a time so
+ * a Mountain's die taken from an empty pool adds a defense die (R-11.4-H1).
+ */
+export function poolsAfterTargets(
+    state: HydratedOathGameState,
+    parties: CampaignParties,
+    attackDice: number
+): DicePools {
+    let pools = { attackPool: attackDice, defensePool: collectDefensePool(state, parties) }
+    for (const delta of attackDiceFromSites(state, sitesWithTargets(state, parties))) {
+        pools = applyDiceDelta(pools, { attack: delta.attack })
+    }
+    return pools
 }
 
 /** R-5.5.2 */

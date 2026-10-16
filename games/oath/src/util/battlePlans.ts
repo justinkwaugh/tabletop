@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { usableFavor } from './favor.js'
 import { burnedFavorTaker } from './burn.js'
 import type { ActionPayment } from './actionPayment.js'
@@ -112,9 +112,20 @@ export function resolveBattlePlans(
     side: BattlePlanSide,
     uses: readonly BattlePlanUse[] | undefined,
     parties: CampaignParties,
-    /** The Hidden Place's flipped secret, taken before the plans are paid. */
-    spentFirst?: ActionPayment
+    given: {
+        /** The Hidden Place's flipped secret, taken before the plans are paid. */
+        spentFirst?: ActionPayment
+        /** R-11.4-H1 — the attacker's pools as Step 2 leaves them, which each plan's check reads. */
+        pools?: DicePools
+    } = {}
 ): { reason?: string; active: ActiveBattlePlan[] } {
+    // R-X.4 — from revision 13 the attacker's plans are checked against the Step 2 pools.
+    assert(
+        given.pools !== undefined ||
+            side !== BattlePlanSide.Attacker ||
+            !isAtLeastOathRevision(state, OathRevision.EngineFixes9),
+        "the attacker's plans are checked against the pools as Step 2 leaves them"
+    )
     const active: ActiveBattlePlan[] = []
     const seen = new Set<string>()
     const scope = battleScopeOf(state, parties)
@@ -176,13 +187,14 @@ export function resolveBattlePlans(
         }
         const badChoice = reasonChoicesInvalid(state, playerId, power, use.choices)
         if (badChoice) return { reason: badChoice, active }
-        // The pools are not settled yet, so a cross-check reads them as zero.
+        // R-11.4-H1 — the attacker's check reads the pools Step 2 left; the defending side's are not
+        // settled here (R-X.4: nor the attacker's before revision 13), so they read as zero.
         const ctx: PlayerPlanContext = {
             state,
             playerId,
             power,
             choices: use.choices ?? [],
-            campaign: { parties, side, pools: { attackPool: 0, defensePool: 0 } }
+            campaign: { parties, side, pools: given.pools ?? { attackPool: 0, defensePool: 0 } }
         }
         const cross = effect.battlePlan.reasonCannotUse?.(ctx)
         if (cross) return { reason: cross, active }
@@ -204,7 +216,7 @@ export function resolveBattlePlans(
     // R-X.4 — a game created before this revision checked each plan alone.
     if (isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays)) {
         const extra = extraBattlePlanCost(state, playerId, parties, side)
-        const short = reasonCannotPayPlansInOrder(state, playerId, active, extra, spentFirst)
+        const short = reasonCannotPayPlansInOrder(state, playerId, active, extra, given.spentFirst)
         if (short) return { reason: short, active }
     }
     return { active }
