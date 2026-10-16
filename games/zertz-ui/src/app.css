@@ -54,6 +54,10 @@
 }
 
 .zertz-water {
+    background-color: #0f527c;
+}
+
+.zertz-water.rippled {
     background-color: var(--zertz-water-deep);
     background-image: radial-gradient(
         ellipse at 50% 30%,

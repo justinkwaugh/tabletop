@@ -32,6 +32,7 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         this.createPreferences(ZertzPreferenceDefinition)
 
     showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
+    rippleWater: boolean = $derived(this.preferences.values.rippleWater)
 
     notation: BoardNotation = $derived(boardNotation(boardFrame(this.gameState.setup).positions))
 
@@ -115,6 +116,10 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     toggleCoordinates() {
         this.preferences.set({ showCoordinates: !this.showCoordinates })
+    }
+
+    toggleRippleWater() {
+        this.preferences.set({ rippleWater: !this.rippleWater })
     }
 
     resetAction() {

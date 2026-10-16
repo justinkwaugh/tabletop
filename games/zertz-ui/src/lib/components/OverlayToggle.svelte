@@ -1,18 +1,21 @@
 <script lang="ts">
-    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-
-    const session = getGameSession()
+    let {
+        glyph,
+        label,
+        pressed,
+        onToggle
+    }: { glyph: string; label: string; pressed: boolean; onToggle: () => void } = $props()
 </script>
 
 <button
     type="button"
     class="toggle"
-    aria-pressed={session.showCoordinates}
-    title={session.showCoordinates ? 'Hide coordinates' : 'Show coordinates'}
-    onclick={() => session.toggleCoordinates()}
+    aria-pressed={pressed}
+    title={pressed ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+    onclick={onToggle}
 >
-    <span class="glyph">A1</span>
-    <span class="max-sm:hidden">Coordinates</span>
+    <span class="glyph">{glyph}</span>
+    <span class="max-sm:hidden">{label}</span>
 </button>
 
 <style>
