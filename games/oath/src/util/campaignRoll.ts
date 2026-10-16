@@ -335,6 +335,25 @@ export function killFromAttackingForce(
 }
 
 /**
+ * R-10.28-H2 — whose warbands they are, for Hospital: a board's player, and at a site the player whose
+ * force holds it (the attacker's force sites, the defender's targets), whatever their colour. Before
+ * revision 13 (R-X.4) a site's warbands were their bank's holder's, the Chancellor for the Empire's.
+ */
+function forceHolderOf(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    at: WarbandLocation,
+    owner: WarbandOwner
+): string | undefined {
+    if (at.kind === 'board') return at.playerId
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes9)) {
+        return state.warbandBankHolderOf(owner)
+    }
+    return side === BattlePlanSide.Attacker ? kills.attackerPlayerId : kills.defenderPlayerId
+}
+
+/**
  * R-10.13, unless Hospital places them on its site; `side` is the force the warbands belong to. True
  * when Hospital holds them.
  */
@@ -347,14 +366,14 @@ export function killOrRedirect(
     count: number
 ): boolean {
     if (count <= 0) return false
-    const playerId = at.kind === 'board' ? at.playerId : state.warbandBankHolderOf(owner)
+    const playerId = forceHolderOf(state, kills, side, at, owner)
     const redirect = kills.killRedirects.find((r) => r.playerId === playerId)
     if (redirect) {
         // Hospital's Q&A — set aside now, placed when the Campaign ends if its ruler still rules it.
         removeWarbandsFrom(state, at, owner, count)
         kills.heldForHospital = [
             ...(kills.heldForHospital ?? []),
-            { playerId, siteId: redirect.siteId, owner, count }
+            { playerId: redirect.playerId, siteId: redirect.siteId, owner, count }
         ]
         return true
     }

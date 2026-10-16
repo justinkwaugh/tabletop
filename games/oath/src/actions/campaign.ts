@@ -306,7 +306,11 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             resolved.reason === undefined,
             `the declared battle plans were checked against every possible ally: ${resolved.reason}`
         )
-        const kills: CampaignKillPath = { killRedirects: [] }
+        const kills: CampaignKillPath = {
+            attackerPlayerId,
+            defenderPlayerId: parties.defenderPlayerId,
+            killRedirects: []
+        }
         const attackerPlans = applyBattlePlans(
             state,
             attackerPlayerId,
@@ -374,7 +378,9 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             decidedVictor: attackerPlans.decidesVictor ? 'attacker' : undefined,
             ignoreDefeatKills:
                 attackerPlans.ignoreDefeatKills || bandits?.ignoreDefeatKills || undefined,
-            ...kills
+            killRedirects: kills.killRedirects,
+            heldForHospital: kills.heldForHospital,
+            enemyWarbandsKilled: kills.enemyWarbandsKilled
         }
         state.campaign = campaign
 
