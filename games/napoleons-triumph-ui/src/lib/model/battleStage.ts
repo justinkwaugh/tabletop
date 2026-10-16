@@ -26,6 +26,7 @@ import {
     type Attack,
     type CommandKind,
     type HydratedNapoleonsTriumphGameState,
+    type EndedAttack,
     type MoveOrder,
     type ThreatOrder,
     type ProjectedUnit,
@@ -970,16 +971,7 @@ export function knownToTheEnemy(units: readonly ProjectedUnit[]): SingledOut[] {
     }))
 }
 
-export function committedRoles(
-    attack: Pick<
-        VisibleAttack,
-        | 'attackingUnitIds'
-        | 'defendingUnitIds'
-        | 'attackLeaderIds'
-        | 'defenseLeaderIds'
-        | 'counterAttackingUnitIds'
-    >
-): Record<string, BattleRole> {
+export function committedRoles(attack: EndedAttack): Record<string, BattleRole> {
     return {
         ...Object.fromEntries(attack.attackingUnitIds.map((id) => [id, BattleRole.Attacks])),
         ...Object.fromEntries(attack.defendingUnitIds.map((id) => [id, BattleRole.Defends])),
@@ -993,7 +985,7 @@ export function committedRoles(
 
 /** The roles as they stood in the defence, for listing the defenders apart from the counter-attack some of them then made. */
 export function rolesBeforeTheCounterAttack(
-    attack: Pick<VisibleAttack, 'defenseLeaderIds' | 'counterAttackingUnitIds'>,
+    attack: EndedAttack,
     roles: Record<string, BattleRole>
 ): Record<string, BattleRole> {
     const defended = (id: string) =>

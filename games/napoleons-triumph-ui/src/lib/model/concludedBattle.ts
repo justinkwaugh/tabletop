@@ -8,6 +8,7 @@ import {
     isDeclareAttack,
     isRetreat,
     isThreatenAttack,
+    opposingSide,
     type EndedAttack,
     type LocaleId,
     type ProjectedUnit
@@ -28,12 +29,11 @@ export function concludedBattleOf(game: RecordedGame): ConcludedBattle | undefin
     if (!attack) {
         return undefined
     }
-    const fought = game.actions.slice(
-        Math.max(
-            0,
-            game.actions.findLastIndex((action) => isThreatenAttack(action))
-        )
-    )
+    const openedAt = game.actions.findLastIndex((action) => isThreatenAttack(action))
+    if (openedAt < 0) {
+        return undefined
+    }
+    const fought = game.actions.slice(openedAt)
     const attacked = AUSTERLITZ.approach(attack.defenseApproach).locale
     return {
         openedBy: fought[0].id,
@@ -88,7 +88,7 @@ export function endingOf(
     attackerSide: Side,
     label: (locale: LocaleId) => string
 ): string {
-    const defenderSide = attackerSide === Side.French ? Side.Allied : Side.French
+    const defenderSide = opposingSide(attackerSide)
     const attackers = ARMIES[attackerSide].name
     const defenders = ARMIES[defenderSide].name
     const fought = battle.attack

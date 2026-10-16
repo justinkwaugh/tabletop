@@ -1,8 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Value } from 'typebox/value'
 import type { GameAction } from '@tabletop/common'
 import { Attack } from '../model/attack.js'
+import type { NapoleonsTriumphProjectedState } from '../model/gameState.js'
 
 /** The public record of an attack, kept by the action that ended it: the game state no longer has the attack once it is over. */
 export type EndedAttack = Type.Static<typeof EndedAttack>
@@ -20,8 +20,12 @@ export const AttackEndMetadata = Type.Object({
     endedAttack: Type.Optional(EndedAttack)
 })
 
-export function endedAttackOf(attack: Readonly<EndedAttack>): EndedAttack {
-    return Value.Clean(EndedAttack, structuredClone(attack)) as EndedAttack
+export function endedAttackOf(
+    attack: Readonly<NonNullable<NapoleonsTriumphProjectedState['attack']>>
+): EndedAttack {
+    const { attackPlan, defensePlan, awaits, orders, pending, lossesSettled, ...ended } =
+        structuredClone(attack)
+    return ended
 }
 
 const AttackEndMetadataValidator = Compile(AttackEndMetadata)
