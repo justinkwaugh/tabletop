@@ -1,4 +1,5 @@
 import { DefaultStateLogger, Visibility, type GameRuntime } from '@tabletop/common'
+import { withArmyDisplays } from '../model/armyDisplay.js'
 import {
     NapoleonsTriumphGameState,
     NapoleonsTriumphGameStateValidator,
@@ -12,6 +13,8 @@ import { NapoleonsTriumphGameInitializer } from './initializer.js'
 import { NapoleonsTriumphScoring } from './scoring.js'
 import { NapoleonsTriumphStateHandlers } from './stateHandlers.js'
 
+const stateProjector = Visibility.createProjector(NapoleonsTriumphGameState)
+
 export const NapoleonsTriumphRuntime = {
     randomnessVersion: 1,
     initializer: new NapoleonsTriumphGameInitializer(),
@@ -23,7 +26,23 @@ export const NapoleonsTriumphRuntime = {
     stateLogger: new DefaultStateLogger(),
     scoring: new NapoleonsTriumphScoring(),
     visibility: {
-        state: Visibility.createProjector(NapoleonsTriumphGameState),
+        state: {
+            schema: stateProjector.schema,
+            project(
+                state: NapoleonsTriumphGameState,
+                perspective: Visibility.Perspective,
+                context?: Visibility.ProjectionContext
+            ) {
+                return stateProjector.project(withArmyDisplays(state), perspective, context)
+            },
+            guardForExecution<Value extends object>(
+                state: Value,
+                perspective: Visibility.Perspective,
+                context?: Visibility.ProjectionContext
+            ): Value {
+                return stateProjector.guardForExecution(state, perspective, context)
+            }
+        },
         actions: Visibility.createActionProjector(NapoleonsTriumphApiActions)
     }
 } satisfies GameRuntime<NapoleonsTriumphProjectedState, HydratedNapoleonsTriumphGameState>
