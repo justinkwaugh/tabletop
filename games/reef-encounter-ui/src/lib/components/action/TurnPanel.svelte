@@ -30,17 +30,6 @@
     const placementSearchesBag = $derived(
         gameSession.placementTargets.some((target) => target.searchesBag)
     )
-    // One warning for every way this turn could search the bag, which cannot be undone.
-    const bagSearch = $derived.by(() => {
-        const placed = placementSearchesBag && placing ? [placing.color] : []
-        const colors = [...new Set([...fromBag, ...placed])]
-        if (colors.length === 0) return undefined
-        const ways = [
-            ...(fromBag.length > 0 ? ['trading for one'] : []),
-            ...(placed.length > 0 ? ['placing on a ! square'] : [])
-        ].join(' or ')
-        return { colors, ways }
-    })
     const supplyLeft = $derived.by(() => {
         if (!placing || !me) return 0
         return Math.min(me.getSupplyPolyps()[placing.color], placing.supplyPolypsLeft)
@@ -220,10 +209,30 @@
     {#if onBoard.length > 0}
         <p class="detail">Or {onBoard.join(', or ')}.</p>
     {/if}
-    {#if bagSearch}
-        <p class="warning">
-            No bonus {bagSearch.colors.join(' or ')} polyp: {bagSearch.ways} searches the bag, with no
-            Undo.
+    {#if placing}
+        {#if placementSearchesBag}
+            <p class="warning icon-line">
+                <span class="sr-only"
+                    >Placing on a square marked ! searches the bag for a bonus {placing.color} polyp:
+                    no Undo.</span
+                >
+                <span class="icon-line" aria-hidden="true">
+                    Placing on <span class="bag-flag reef-display">!</span> searches the bag: no Undo.
+                </span>
+            </p>
+        {/if}
+    {:else if fromBag.length > 0}
+        <p class="warning icon-line">
+            <span class="sr-only"
+                >Exchanging {fromBag.join(' or ')} larva cubes searches the bag for the polyp: no Undo.</span
+            >
+            <span class="icon-line" aria-hidden="true">
+                <span class="chips"
+                    >{#each fromBag as color (color)}{@render cube(color)}{/each}</span
+                >
+                <span class="arrow">→</span><span class="any-polyp"></span>
+                exchange searches the bag: no Undo.
+            </span>
         </p>
     {/if}
 {/if}
@@ -265,6 +274,23 @@
 
     .none {
         opacity: 0.45;
+    }
+
+    .icon-line {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+    }
+
+    p.icon-line {
+        display: flex;
+    }
+
+    .chips {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
     }
 
     .bag-flag {

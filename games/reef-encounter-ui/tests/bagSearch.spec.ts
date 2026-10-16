@@ -31,12 +31,12 @@ test('extra growth with its bonus space empty grows a polyp found in the bag', a
     await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
 })
 
-test('warns once before a trade or placement that would search the bag', async ({ page }) => {
+test('warns before a trade, or while placing, that would search the bag', async ({ page }) => {
     await openScenario(page, 'Bag searches')
     const actions = actionPanel(page)
 
     await expect(actions).toContainText(
-        'No bonus pink or white polyp: trading for one searches the bag, with no Undo.'
+        'Exchanging pink or white larva cubes searches the bag for the polyp: no Undo.'
     )
     await expect(
         actions.getByRole('button', {
@@ -51,8 +51,8 @@ test('warns once before a trade or placement that would search the bag', async (
     ).toBeAttached()
 
     await actions.getByRole('button', { name: /^Play a white larva cube/ }).click()
-    await expect(actions.locator('.warning')).toHaveText(
-        'No bonus pink or white polyp: trading for one or placing on a ! square searches the bag, with no Undo.'
+    await expect(actions.locator('.warning .sr-only')).toHaveText(
+        'Placing on a square marked ! searches the bag for a bonus white polyp: no Undo.'
     )
     await expect(
         page.getByRole('button', {
@@ -66,7 +66,7 @@ test('refills the empty bonus spaces when the turn ends', async ({ page }) => {
 
     await page.getByRole('button', { name: /^Take the grey larva cube/ }).click()
 
-    await expect(actionPanel(page)).not.toContainText('No bonus')
+    await expect(actionPanel(page)).not.toContainText('searches the bag')
     await page.getByRole('tab', { name: 'History' }).click()
     await expect(page.getByText(/Bonus: pink polyp, white polyp\./)).toBeAttached()
 })
