@@ -16,8 +16,18 @@ describe('a replacement this child asked for', () => {
         replacement.request()
         const outcome = replacement.outcome()
         replacement.settle('superseded')
-        await expect(outcome).resolves.toBe('replaced')
+        await expect(outcome).resolves.toBe('superseded')
         expect(sent).toEqual(['reload', 'reload'])
+    })
+
+    it('answers at once and asks for nothing more once superseded', async () => {
+        const sent: string[] = []
+        const replacement = new ReplacementRequest((message) => sent.push(message))
+        replacement.request()
+        replacement.settle('superseded')
+        replacement.request()
+        await expect(replacement.outcome()).resolves.toBe('superseded')
+        expect(sent).toEqual(['reload'])
     })
 
     it('ends when the replacement fails and can be asked for again', async () => {
@@ -25,12 +35,12 @@ describe('a replacement this child asked for', () => {
         replacement.request()
         const failed = replacement.outcome()
         replacement.settle('replacement-failed')
-        await expect(failed).resolves.toBe('failed')
+        await expect(failed).resolves.toBe('replacement-failed')
         await expect(replacement.outcome()).resolves.toBe('none')
         replacement.request()
         const retried = replacement.outcome()
         replacement.settle('superseded')
-        await expect(retried).resolves.toBe('replaced')
+        await expect(retried).resolves.toBe('superseded')
     })
 
     it('ignores other supervisor messages', async () => {
@@ -39,6 +49,6 @@ describe('a replacement this child asked for', () => {
         const outcome = replacement.outcome()
         replacement.settle({ port: 1 })
         replacement.settle('superseded')
-        await expect(outcome).resolves.toBe('replaced')
+        await expect(outcome).resolves.toBe('superseded')
     })
 })

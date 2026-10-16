@@ -1,5 +1,6 @@
 import { createServer } from 'node:http'
 import { appendFileSync, readFileSync } from 'node:fs'
+import { tsImport } from 'tsx/esm/api'
 
 const configPath = process.env['BACKEND_FIXTURE_CONFIG']
 const config = JSON.parse(readFileSync(configPath, 'utf8'))
@@ -11,20 +12,16 @@ process.on('disconnect', () => process.exit(1))
 if (config.fail) process.exit(1)
 if (config.hang) await new Promise(() => {})
 await new Promise((resolve) => setTimeout(resolve, config.startupDelay ?? 0))
+let replacement
 const server = createServer(async (request, response) => {
     const url = new URL(request.url, 'http://localhost')
     if (url.pathname === '/reload') process.send('reload')
     if (url.pathname === '/reload-and-wait') {
-        const outcome = new Promise((resolve) => {
-            const settle = (message) => {
-                if (message !== 'superseded' && message !== 'replacement-failed') return
-                process.off('message', settle)
-                resolve(message)
-            }
-            process.on('message', settle)
-        })
-        process.send('reload')
-        response.end(JSON.stringify({ pid: process.pid, outcome: await outcome }))
+        replacement ??= (
+            await tsImport('../replacementRequest.ts', import.meta.url)
+        ).supervisedReplacement((message) => process.send(message))
+        replacement.request()
+        response.end(JSON.stringify({ pid: process.pid, outcome: await replacement.outcome() }))
         return
     }
     if (url.pathname === '/crash') process.exit(1)

@@ -147,10 +147,16 @@ is disconnected.
 
 Cloud Run request-based CPU allocation can throttle replacement work while the
 instance has no active requests. This is not a new Cloud Run instance startup and
-does not get startup CPU boost. Background replacement/retry timing requires
-instance-based CPU allocation if it must progress predictably while idle. With
-request-based allocation, traffic supplies CPU and the old backend keeps serving
-during replacement. No Cloud Run resource or billing setting is changed here.
+does not get startup CPU boost. On 2026-10-15 a backend replacement took 90 s and a
+tasks replacement 4 min 17 s, against 33 s for a fresh instance. The admin manifest
+invalidate call a release makes therefore stays open until the replacement it
+triggered ends: the supervisor tells the old child it is superseded before
+draining it, or tells the serving child its replacement failed
+(`ReplacementRequest`). That supplies CPU to the one backend instance the call
+reaches. Other backend instances, the tasks service and retries after a failure
+still progress only with traffic; predictable timing for them would need
+instance-based CPU allocation. No Cloud Run resource or billing setting is
+changed here.
 
 A game-only worker would require moving all version-owned imports, including
 schemas and route registration, into its isolate. The complete-backend child

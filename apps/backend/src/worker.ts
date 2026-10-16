@@ -4,12 +4,11 @@ import { app } from './app/app.js'
 import { installHandlerDrain } from './runtime/handlerDrain.js'
 import { ajvOptions } from './runtime/ajvOptions.js'
 import { lazyValidatorCompiler } from './runtime/lazyValidation.js'
-import { ReplacementRequest } from './runtime/replacementRequest.js'
+import { supervisedReplacement } from './runtime/replacementRequest.js'
 
 if (!process.send) throw new Error('Backend worker requires a supervisor IPC channel')
 const send = process.send.bind(process)
-const replacement = new ReplacementRequest(send)
-process.on('message', (message) => replacement.settle(message))
+const replacement = supervisedReplacement(send)
 
 const server = Fastify({
     logger: true,
@@ -40,10 +39,7 @@ process.on('disconnect', () => process.exit(1))
 
 try {
     await server.register(rawBody, { global: false, runFirst: true })
-    await server.register(app, {
-        requestRestart: () => replacement.request(),
-        replacementOutcome: () => replacement.outcome()
-    })
+    await server.register(app, { replacement })
     await server.listen({ port: 0, host: '127.0.0.1' })
     const address = server.server.address()
     if (!address || typeof address === 'string') throw new Error('Backend has no TCP address')

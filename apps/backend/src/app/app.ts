@@ -23,7 +23,7 @@ import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
-import type { ReplacementOutcome } from '../runtime/replacementRequest.js'
+import type { ReplacementRequest } from '../runtime/replacementRequest.js'
 
 const __dirname = import.meta.dirname
 
@@ -43,8 +43,7 @@ const SESSION_KEY = process.env['SESSION_KEY']
 
 export interface AppOptions {
     prefix?: string
-    requestRestart: () => void
-    replacementOutcome: () => Promise<ReplacementOutcome>
+    replacement: Pick<ReplacementRequest, 'request' | 'outcome'>
 }
 
 async function frontendVersion(fastify: FastifyInstance): Promise<string> {
@@ -183,7 +182,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
     const unsubscribeManifest = fastify.libraryService.onManifestMismatch(() => {
         console.log('Manifest mismatch detected, replacing backend process...')
-        opts.requestRestart()
+        opts.replacement.request()
     })
     fastify.addHook('onClose', async () => unsubscribeManifest())
 
