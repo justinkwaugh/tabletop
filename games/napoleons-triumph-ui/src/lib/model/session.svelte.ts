@@ -63,6 +63,7 @@ import {
 } from '$lib/utils/flagLayout.js'
 import { topmostAt } from '$lib/utils/blockShape.js'
 import { approachPlates, plateSamples, type ApproachPlate } from '$lib/utils/approachPlates.js'
+import { gunTags, type GunTag } from '$lib/utils/gunTags.js'
 import {
     SYMBOL_TAGS,
     approachSymbolScale,
@@ -428,6 +429,8 @@ export class NapoleonsTriumphGameSession extends GameSession<
         ]
     })
 
+    gunTags: GunTag[] = $derived(gunTags(this.gameState, this.boardRotation, this.arrowOutlines))
+
     flagView: FlagView = $derived({ rotation: this.boardRotation, scale: flagScale(this.zoom) })
 
     private plantedFlags: PlantedFlag[] = $derived.by(() => {
@@ -454,6 +457,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             [
                 ...arrowsToKeepClear(arrowApproaches, this.zoom),
                 ...plateSamples(this.approachPlates),
+                ...this.gunTags.flatMap((tag) => boxSamples(tag.box)),
                 ...this.approachSymbolTags.flatMap((tag) =>
                     tag.slid ? boxSamples(tag.cover) : []
                 ),

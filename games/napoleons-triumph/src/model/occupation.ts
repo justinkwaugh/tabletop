@@ -41,7 +41,7 @@ export function occupyAfterRetreat(
                 resolved.units.every((unit) => faceOf(unit).type === UnitType.Artillery) &&
                 resolved.units.every((unit) => !artilleryBarredOnSanton(state, unit)) &&
                 resolved.units.length <= unitsAbreast(approach.wide) &&
-                artilleryMayFire(state, attack.attackApproach),
+                artilleryMayFire(state, attack.attackerId, attack.attackApproach),
             'Only artillery that could have led the attack may stay in place'
         )
         state.revealAll(resolved.units)

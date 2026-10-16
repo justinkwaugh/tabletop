@@ -18,7 +18,9 @@ export const NapoleonsTriumphPlayerState = Type.Evaluate(
             guardCommitted: Type.Boolean(),
             guardAttackForfeited: Type.Boolean(),
             /** Rule 6, step 5: the army's units face-up on its display. Losses are public, so both players see it. */
-            armyDisplay: Type.Optional(Type.Array(Face))
+            armyDisplay: Type.Optional(Type.Array(Face)),
+            /** Rule 11, step 5: by attack approach, the last round this army's artillery led an attack from it. Absent in games begun before the bar was kept per army. */
+            artilleryFire: Type.Optional(Type.Record(Type.String(), Type.Integer()))
         })
     ])
 )
@@ -40,6 +42,7 @@ export class HydratedNapoleonsTriumphPlayerState
     declare guardCommitted: boolean
     declare guardAttackForfeited: boolean
     declare armyDisplay?: Face[]
+    declare artilleryFire?: Record<string, number>
 
     constructor(data: NapoleonsTriumphPlayerState) {
         super(data, NapoleonsTriumphPlayerStateValidator)
