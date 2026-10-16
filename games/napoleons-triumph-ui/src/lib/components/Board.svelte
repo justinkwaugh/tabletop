@@ -19,6 +19,7 @@
     import ContactShadow from './board/ContactShadow.svelte'
     import HeldApproaches from './board/HeldApproaches.svelte'
     import SetupLocales from './board/SetupLocales.svelte'
+    import ArmyDisplays from './board/ArmyDisplays.svelte'
 
     const gameSession = getGameSession()
 
@@ -70,6 +71,7 @@
             <defs>
                 <ContactShadow id="nt-contact-shadow" />
             </defs>
+            <g data-in-picture><ArmyDisplays /></g>
             <ApproachBars />
             <g data-in-picture>
                 <TrackMarkers />

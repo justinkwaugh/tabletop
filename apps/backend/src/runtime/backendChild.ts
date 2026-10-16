@@ -1,4 +1,5 @@
 import { fork, type ChildProcess } from 'node:child_process'
+import type { ReplacementEnded } from './replacementRequest.js'
 
 export class BackendChild {
     readonly exited: Promise<void>
@@ -58,6 +59,10 @@ export class BackendChild {
                 }
             })
         })
+    }
+
+    notify(ended: ReplacementEnded): void {
+        if (this.child.connected) this.child.send(ended)
     }
 
     retain(): () => void {

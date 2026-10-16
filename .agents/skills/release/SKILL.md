@@ -94,6 +94,13 @@ failing step and the error text, and then:
   and return to the branch afterwards.
 - A deploy that failed after uploading an artifact is safe to rerun: the tool reuses an
   existing artifact for the tagged version and continues with the remaining steps.
+- A frontend failure that prints a `hosting:` or `the manifest names` line came after the
+  site files started switching on Firebase Hosting; the line says which version Hosting and the
+  manifest name. Relay it, then rerun the deploy or run `sync-hosting` as it says, and confirm
+  `preflight --frontend` reports that Hosting serves the manifest's version. A frontend failure
+  without such a line changed nothing.
+- `Frontend releases need backend …` or `needs hosting.channel` means the frontend cannot be
+  released yet: release the backend first, or use the deploy config that sets `hosting.channel`.
 - `spawn gcloud ENOENT` or `No credentialed accounts` means this environment cannot upload.
   The Cloud CLI must be installed and logged in (`gcloud auth login --no-launch-browser`);
   that login is interactive, so hand it to the user.
