@@ -158,7 +158,7 @@ export function describeAction(action: GameAction): Description {
         ]
     }
     if (isScoreGame(action)) {
-        return ['Railroad and industry bonuses paid']
+        return ['Game-end bonuses paid']
     }
     return [action.type]
 }

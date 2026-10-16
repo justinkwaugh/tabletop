@@ -1,11 +1,22 @@
-import { ActionSource, PlayerStatus, assertExists, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    PlayerStatus,
+    assertExists,
+    distanceAxial,
+    type GameAction
+} from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { Definition } from '../definition/definition.js'
 import { RailheadsRuntime } from '../definition/runtime.js'
 import { MachineState } from '../definition/states.js'
 import { HexKind, isLayTrackSpace, type CompanyId, type LayTrackSpace } from '../editions/types.js'
 import { HydratedRailheadsGameState } from '../model/gameState.js'
-import { IndustryBoost, PlacementKind, type Placement } from '../model/track.js'
+import {
+    IndustryBoost,
+    PlacementKind,
+    type Placement,
+    type PlacementTarget
+} from '../model/track.js'
 
 export function createGame(count: number, config: Record<string, boolean | string> = {}) {
     return RailheadsRuntime.initializer.initializeGame(
@@ -65,11 +76,17 @@ function nextPlacement(
     const sites = targets.filter(
         (target) => state.edition.map.hex(target.coords).kind !== HexKind.Countryside
     )
-    const target = sites[0] ?? targets[step % Math.max(1, targets.length)]
+    const target =
+        sites[0] ??
+        (step % 2 === 0
+            ? towardGoals(state, companyId, targets)
+            : targets[step % Math.max(1, targets.length)])
     if (!target) return undefined
     const boost =
-        target.kind === PlacementKind.Disc && state.needsBoostChoice(target.coords)
-            ? step % 2 === 0
+        target.kind === PlacementKind.Disc &&
+        target.industry &&
+        state.needsBoostChoice(target.coords)
+            ? state.industry(target.industry).level % 2 === 0
                 ? IndustryBoost.Revenue
                 : IndustryBoost.Development
             : undefined
@@ -79,6 +96,23 @@ function nextPlacement(
         kind: target.kind,
         ...(boost ? { boost } : {})
     }
+}
+
+function towardGoals(
+    state: HydratedRailheadsGameState,
+    companyId: CompanyId,
+    targets: readonly PlacementTarget[]
+): PlacementTarget | undefined {
+    const { definition } = state.edition
+    const sites = definition.map.industrySites
+        .filter((site) =>
+            definition.industryInDemand(site.industry, companyId, state.track, state.edition.map)
+        )
+        .map((site) => site.hex)
+    const goals = sites.length > 0 ? sites : definition.map.demandAreas.map((area) => area.hex)
+    const distance = (target: PlacementTarget) =>
+        Math.min(...goals.map((goal) => distanceAxial(goal, target.coords)))
+    return targets.toSorted((a, b) => distance(a) - distance(b))[0]
 }
 
 export function botAction(

@@ -8,8 +8,10 @@ import {
     Industry,
     IndustryBoost,
     MachineState,
+    EditionId,
     PlacementKind,
-    printedHex
+    printedHex,
+    printedPointyHex
 } from '@tabletop/railheads'
 import {
     choose,
@@ -285,5 +287,73 @@ describe('history', () => {
         await session.chooseSpace(ActionSpaceId.LayTrackII)
         expect(session.isViewingHistory).toBe(true)
         expect(session.gameState.machineState).toBe(MachineState.LayingTrack)
+    })
+})
+
+describe('the Midwest', () => {
+    const STEEL_IN_INDIANA = printedPointyHex(10, 28)
+    const BESIDE_WASHINGTON = printedPointyHex(12, 36)
+
+    function withTrack(table: PlayedTable, companyId: CompanyId, rows: [number, number][]) {
+        const track = [
+            ...table.state.track,
+            ...rows.map(([row, col]) => ({
+                coords: printedPointyHex(row, col),
+                discs: [companyId]
+            }))
+        ]
+        return { ...table, state: { ...table.state, track } }
+    }
+
+    function besideSteel(): PlayedTable {
+        const table = withTrack(firstTurnTable({ edition: EditionId.Midwest }), CompanyId.BO, [
+            [11, 29],
+            [12, 32],
+            [12, 34]
+        ])
+        return choose(table, ActionSpaceId.LayTrackIII)
+    }
+
+    const offersSteel = (session: ReturnType<typeof openSessionOn>) =>
+        session.trackTargets.some((target) => sameCoordinates(target.coords, STEEL_IN_INDIANA))
+
+    it('opens with the NYC and gives the Start Player token with the PRR', () => {
+        const { actions, state } = firstTurnTable({ edition: EditionId.Midwest })
+        const offerings = historyEntries(actions).filter((entry) => entry.kind === 'offering')
+        expect(offerings.map((entry) => entry.kind === 'offering' && entry.companyId)).toEqual([
+            CompanyId.NYC,
+            CompanyId.ERIE,
+            CompanyId.IC,
+            CompanyId.BO,
+            CompanyId.PRR
+        ])
+        expect(state.turnManager.turnOrder[0]).toBe('p1')
+    })
+
+    it('rings an industry site once a staged disc reaches a demand area that wants it', async () => {
+        const session = openSessionOn(besideSteel())
+        const actionUndo = spyOnActionUndo()
+        session.chooseTrackCompany(CompanyId.BO)
+        expect(offersSteel(session)).toBe(false)
+
+        await session.clickHex(BESIDE_WASHINGTON)
+        expect(offersSteel(session)).toBe(true)
+
+        await session.undo()
+        expect(session.placements).toEqual([])
+        expect(offersSteel(session)).toBe(false)
+        expect(actionUndo).not.toHaveBeenCalled()
+    })
+
+    it('prices a second disc on a site $2 above the first', async () => {
+        const table = withTrack(firstTurnTable({ edition: EditionId.Midwest }), CompanyId.NYC, [
+            [11, 31]
+        ])
+        const session = openSessionOn(choose(table, ActionSpaceId.LayTrackIII))
+        session.chooseTrackCompany(CompanyId.NYC)
+        const indianapolis = session.trackTargets.find((target) =>
+            sameCoordinates(target.coords, printedPointyHex(12, 30))
+        )
+        expect(indianapolis?.cost).toBe(6)
     })
 })

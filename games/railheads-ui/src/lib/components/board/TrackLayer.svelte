@@ -2,7 +2,7 @@
     import { sameCoordinates } from '@tabletop/common'
     import { HexKind, PlacementKind, hexKey, type CompanyId } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { hexCenter } from '$lib/utils/boardLayout.js'
+    import { boardLayout } from '$lib/utils/boardLayout.js'
     import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
     import { cubeFaces, type CubeSize } from '$lib/utils/cubeFaces.js'
 
@@ -40,8 +40,9 @@
 
     const pieces = $derived.by(() => {
         const state = gameSession.shownState
+        const layout = boardLayout(state.editionId)
         return state.track.map((hex) => {
-            const center = hexCenter(hex.coords)
+            const center = layout.hexCenter(hex.coords)
             const site = state.edition.map.hex(hex.coords).kind !== HexKind.Countryside
             const baseY = site ? center.y + SITE_STACK_BASE : center.y
             const discs = hex.discs.map((companyId, index) => ({

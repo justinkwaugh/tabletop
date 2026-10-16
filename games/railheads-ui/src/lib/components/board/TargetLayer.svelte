@@ -1,15 +1,16 @@
 <script lang="ts">
     import { PlacementKind, hexKey } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { HEX_RADIUS, hexCenter, hexPoints } from '$lib/utils/boardLayout.js'
+    import { boardLayout } from '$lib/utils/boardLayout.js'
 
     const gameSession = getGameSession()
 
+    const layout = $derived(boardLayout(gameSession.gameState.editionId))
     const targets = $derived(
         gameSession.trackTargets.map((target) => ({
             ...target,
             key: hexKey(target.coords),
-            center: hexCenter(target.coords),
+            center: layout.hexCenter(target.coords),
             label: target.kind === PlacementKind.Cube ? `cube $${target.cost}` : `$${target.cost}`
         }))
     )
@@ -27,14 +28,23 @@
         class="target"
         role="button"
         tabindex="0"
-        aria-label="Lay a {target.kind === PlacementKind.Cube ? 'crossing cube' : 'disc'} here for {target.label}"
+        aria-label="Lay a {target.kind === PlacementKind.Cube
+            ? 'crossing cube'
+            : 'disc'} here for {target.label}"
         onclick={() => gameSession.clickHex(target.coords)}
         onkeydown={(event) => onKey(event, () => gameSession.clickHex(target.coords))}
     >
-        <polygon class="wash" points={hexPoints(target.center, HEX_RADIUS - 4)} />
-        <polygon class="ring" points={hexPoints(target.center, HEX_RADIUS - 5)} />
-        <g transform="translate({target.center.x} {target.center.y + 13})">
-            <rect x={-target.label.length * 3.6 - 4} y="-8" width={target.label.length * 7.2 + 8} height="15" rx="4" class="tag" />
+        <polygon class="wash" points={layout.hexPoints(target.center, layout.hexRadius - 4)} />
+        <polygon class="ring" points={layout.hexPoints(target.center, layout.hexRadius - 5)} />
+        <g transform="translate({target.center.x} {target.center.y + layout.hexRadius * 0.36})">
+            <rect
+                x={-target.label.length * 3.6 - 4}
+                y="-8"
+                width={target.label.length * 7.2 + 8}
+                height="15"
+                rx="4"
+                class="tag"
+            />
             <text y="3.5" class="price">{target.label}</text>
         </g>
     </g>
