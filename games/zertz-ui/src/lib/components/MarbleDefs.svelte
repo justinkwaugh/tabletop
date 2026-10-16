@@ -15,7 +15,7 @@
     </radialGradient>
 {/each}
 <radialGradient id="{prefix}-sheen" cx="0.34" cy="0.3" r="0.3">
-    <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"></stop>
-    <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.12"></stop>
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.42"></stop>
+    <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.08"></stop>
     <stop offset="1" stop-color="#ffffff" stop-opacity="0"></stop>
 </radialGradient>

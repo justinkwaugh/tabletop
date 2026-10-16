@@ -34,7 +34,7 @@ export type Speck = { x: number; y: number; r: number; opacity: number }
 const SPECK_COUNT: Record<MarbleColor, number> = {
     [MarbleColor.White]: 0,
     [MarbleColor.Grey]: 240,
-    [MarbleColor.Black]: 160
+    [MarbleColor.Black]: 130
 }
 const SPECK_REACH = 0.9
 

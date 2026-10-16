@@ -5,6 +5,7 @@
     import MarbleShape from './MarbleShape.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
+    import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import {
         boardFrame,
         coordsKey,
@@ -17,11 +18,14 @@
 
     const session = getGameSession()
 
+    const animator = new BoardAnimator(session)
+
     const frame = $derived(boardFrame(session.gameState.setup))
-    const rings = $derived(session.gameState.board.rings)
-    const removedPositions = $derived(
-        frame.positions.filter((coords) => !session.gameState.board.hasRing(coords))
-    )
+    const rings = $derived(animator.rings)
+    const removedPositions = $derived.by(() => {
+        const present = new Set(rings.map((ring) => coordsKey(ring.coords)))
+        return frame.positions.filter((coords) => !present.has(coordsKey(coords)))
+    })
 
     let hoveredKey: string | undefined = $state()
 
@@ -75,6 +79,7 @@
     height={frame.height}
     role="group"
     aria-label="ZÈRTZ board"
+    {@attach animator.attach}
 >
     <defs>
         <MarbleDefs prefix="zertz-board" />
@@ -100,18 +105,9 @@
         ></circle>
     {/snippet}
 
-    {#snippet marble(color: MarbleColor, coords: AxialCoordinates, preview: boolean)}
-        <g class:preview>
-            {#if !preview}
-                <circle r={MARBLE_RADIUS} cy="3" class="shadow" filter="url(#zertz-soft)"></circle>
-            {/if}
-            <MarbleShape
-                prefix="zertz-board"
-                {color}
-                radius={MARBLE_RADIUS}
-                seed={coordinatesToNumber(coords)}
-            />
-        </g>
+    {#snippet marble(color: MarbleColor, coords: AxialCoordinates, seed: number)}
+        <circle r={MARBLE_RADIUS} cy="3" class="shadow" filter="url(#zertz-soft)"></circle>
+        <MarbleShape prefix="zertz-board" {color} radius={MARBLE_RADIUS} {seed} />
     {/snippet}
 
     {#if session.showCoordinates}
@@ -125,7 +121,9 @@
     <!-- A removed ring leaves its shadow for the turn it sank in. -->
     <g filter="url(#zertz-soft)">
         {#each session.sinkingRings as coords (coordsKey(coords))}
-            {@render ringShadow(coords)}
+            <g {@attach animator.shadow(coordsKey(coords))}>
+                {@render ringShadow(coords)}
+            </g>
         {/each}
         {#each rings as ring (coordsKey(ring.coords))}
             {@render ringShadow(ring.coords)}
@@ -141,38 +139,58 @@
         {@const center = ringCenter(ring.coords)}
         {@const role = roleOf(ring)}
         {@const interactive = role !== undefined}
-        <g
-            class="ring role-{role ?? 'none'}"
-            class:interactive
-            class:hovered={interactive && isHovered(ring.coords)}
-            transform="translate({center.x} {center.y})"
-            role="button"
-            tabindex={interactive ? 0 : -1}
-            aria-disabled={!interactive}
-            aria-label="{role ?? 'ring'} {session.notation.name(ring.coords)}"
-            onclick={() => activate(ring, role)}
-            onkeydown={(event) => onKey(event, ring, role)}
-            onpointerenter={() => (hoveredKey = coordsKey(ring.coords))}
-            onpointerleave={() => (hoveredKey = undefined)}
-        >
-            <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
-            <circle r={RING_MID_RADIUS} stroke-width={RING_WIDTH} class="ring-body"></circle>
-            <circle r={RING_OUTER_RADIUS - 1.5} class="ring-rim"></circle>
-            {#if interactive}
-                {@const width = highlightWidth(role, isHovered(ring.coords))}
-                <circle
-                    r={RING_OUTER_RADIUS + HIGHLIGHT_GAP + width / 2}
-                    stroke-width={width}
-                    class="ring-highlight"
-                ></circle>
-            {/if}
-            {#if ring.marble}
-                {@render marble(ring.marble, ring.coords, false)}
-            {:else if role === 'place' && session.chosenColor && isHovered(ring.coords)}
-                {@render marble(session.chosenColor, ring.coords, true)}
-            {/if}
+        <g transform="translate({center.x} {center.y})">
+            <g
+                class="ring role-{role ?? 'none'}"
+                class:interactive
+                class:hovered={interactive && isHovered(ring.coords)}
+                {@attach animator.ring(coordsKey(ring.coords))}
+                role="button"
+                tabindex={interactive ? 0 : -1}
+                aria-disabled={!interactive}
+                aria-label="{role ?? 'ring'} {session.notation.name(ring.coords)}"
+                onclick={() => activate(ring, role)}
+                onkeydown={(event) => onKey(event, ring, role)}
+                onpointerenter={() => (hoveredKey = coordsKey(ring.coords))}
+                onpointerleave={() => (hoveredKey = undefined)}
+            >
+                <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
+                <circle r={RING_MID_RADIUS} stroke-width={RING_WIDTH} class="ring-body"></circle>
+                <circle r={RING_OUTER_RADIUS - 1.5} class="ring-rim"></circle>
+                {#if interactive}
+                    {@const width = highlightWidth(role, isHovered(ring.coords))}
+                    <circle
+                        r={RING_OUTER_RADIUS + HIGHLIGHT_GAP + width / 2}
+                        stroke-width={width}
+                        class="ring-highlight"
+                    ></circle>
+                {/if}
+                {#if ring.marble}
+                    <g {@attach animator.marble(coordsKey(ring.coords))}>
+                        {@render marble(ring.marble, ring.coords, coordinatesToNumber(ring.coords))}
+                    </g>
+                {:else if role === 'place' && session.chosenColor && isHovered(ring.coords)}
+                    <g class="preview">
+                        <MarbleShape
+                            prefix="zertz-board"
+                            color={session.chosenColor}
+                            radius={MARBLE_RADIUS}
+                            seed={coordinatesToNumber(ring.coords)}
+                        />
+                    </g>
+                {/if}
+            </g>
         </g>
     {/each}
+
+    {#if animator.flight}
+        {@const center = ringCenter(animator.flight.from)}
+        <g transform="translate({center.x} {center.y})" class="flight">
+            <g {@attach animator.flier()}>
+                {@render marble(animator.flight.color, animator.flight.from, animator.flight.seed)}
+            </g>
+        </g>
+    {/if}
 </svg>
 
 <style>
@@ -276,6 +294,10 @@
 
     .preview {
         opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .flight {
         pointer-events: none;
     }
 </style>

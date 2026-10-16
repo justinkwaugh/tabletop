@@ -15,7 +15,7 @@
 - **Ring highlight** (`Board.svelte`, `.ring-highlight`): one outline circle per interactive ring, styled by the ring's role. Inputs: the role from session targets. Must not encode game state beyond the role.
 - **Placement preview** (`Board.svelte`, `.preview`): translucent marble on the hovered placement ring. Inputs: `chosenColor` and local hover. Must not appear for any other role.
 - **Ghost position** (`Board.svelte`, `.ghost`): dashed outline where a ring has been removed. Inputs: layout positions minus current rings. Never interactive.
-- **Sinking ring** (`Board.svelte`, the shared `ringShadow` snippet): a removed ring keeps the soft drop shadow it cast on the board, under its ghost dashes, for every ring taken off during the latest turn that took any: the removed ring, any group it cut off, and any group claimed by a placement that turn. A later turn that takes rings replaces them; a capture-only turn leaves them. Inputs: `session.sinkingRings`, derived from the displayed actions' input and metadata (`board/sinkingRings.ts`). Never interactive.
+- **Sinking ring** (`Board.svelte`, the shared `ringShadow` snippet): a removed ring keeps the soft drop shadow it cast on the board, under its ghost dashes, for every ring taken off during the latest turn that took any: the removed ring, any group it cut off, and any group claimed by a placement that turn. A later turn that takes rings replaces them, the old shadows fading while the new rings sink; a capture-only turn leaves them. Inputs: `session.sinkingRings`, derived from the actions up to the displayed state's `actionCount` (the actions list moves ahead as soon as an action is taken, before its animation has played). Never interactive.
 - **Coordinate labels** (`Board.svelte`, `.coordinate-labels`, from `board/coordinates.ts`): each column's bottom and top ring names below and above it, BoardSpace style (A1 under the bottom-left ring, A4 over the top-left). Drawn from the setup's full layout, so they stay put as rings are removed. Shown while the `showCoordinates` title preference is on (`CoordinatesToggle.svelte` in the board overlay). Never interactive.
 - **Each-colour outline** (`PlayerTray.svelte`, `.trio`): rounded outline around the first `eachColor` slots of every tray row; lit (`.met`) once that colour reaches the each-colour target. Reflects captures only.
 - **Shadows** (`Board.svelte`, `.ring-shadow`, `.shadow`): blurred on their own layer and circles so rings and marbles are never rasterised through a filter and stay sharp when zoomed.
@@ -24,13 +24,16 @@
 
 ## 3. Layer Responsibilities
 
-| Layer              | Owns                                                                                                                          | Allowed Inputs                                      | Must Not Own      |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------- |
-| `ZertzGameSession` | Target lists (`placementRings`, `removableRings`, `jumpers`, `landingRings`), `chosenColor`, `chosenJumper`, staged selection | Game state, valid action types, staged selection    | Hover, styling    |
-| `Board.svelte`     | Ring roles, hover key, placement preview                                                                                      | Session target lists                                | Deciding legality |
-| `PoolStrip.svelte` | Pool chip states                                                                                                              | `placeableColors`, `chosenColor`, pool and captures | Board highlights  |
+| Layer                                                 | Owns                                                                                                                                                          | Allowed Inputs                                      | Must Not Own                |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------- |
+| `ZertzGameSession`                                    | Target lists (`placementRings`, `removableRings`, `jumpers`, `landingRings`), `chosenColor`, `chosenJumper`, staged selection                                 | Game state, valid action types, staged selection    | Hover, styling              |
+| `Board.svelte`                                        | Ring roles, hover key, placement preview                                                                                                                      | Session target lists                                | Deciding legality           |
+| `BoardAnimator` (`animators/boardAnimator.svelte.ts`) | Motion for committed transitions: ring sinking, marble jump (a flier above the board), captured/claimed marble lift and fade; the rings drawn during a replay | Transition kind, `from`/`to` states, the action     | Interaction state, legality |
+| `PoolStrip.svelte`                                    | Pool chip states                                                                                                                                              | `placeableColors`, `chosenColor`, pool and captures | Board highlights            |
 
 ## 4. Shared State Contracts
+
+- **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads (`initial`), server syncs (`reconciliation`), view switches and edits show the board at rest. Without an action (undo, state-only history) the animator reads a jump from the two boards (`board/inferJump.ts`) and flies it; other removed rings and vanished marbles fade, all within 0.18s.
 
 - **Staged selection** (`selection`: `color`, `jumper`): manual choices only. Produced by `chooseColor` and `chooseJumper`; consumed by the session's derived `chosenColor` and `chosenJumper`. Single-option choices are derived, never stored, so Undo skips them. Cleared in `beforeNewState` for every presented transition.
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
@@ -55,6 +58,7 @@
 - Removal: only free rings are outlined after a placement.
 - Capture: jumpers outlined; choosing one shows its landings; a chain fixes the jumper.
 - History View: no targets or pool interaction.
+- Animation: placing never animates; removal sinks; a jump flies above other rings; reloading or opening a game shows no motion.
 
 ## 8. Change Rules
 

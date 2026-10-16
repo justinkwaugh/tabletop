@@ -35,7 +35,11 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     notation: BoardNotation = $derived(boardNotation(boardFrame(this.gameState.setup).positions))
 
-    sinkingRings: AxialCoordinates[] = $derived(sinkingRingsAfter(this.actions))
+    // The actions list moves ahead as soon as an action is taken, so the sunken rings follow the
+    // actions behind the state on show, which an animated transition still holds back.
+    sinkingRings: AxialCoordinates[] = $derived(
+        sinkingRingsAfter(this.actions.slice(0, this.gameState.actionCount))
+    )
 
     canPlace = $derived(this.canAct(ActionType.PlaceMarble))
     canRemove = $derived(this.canAct(ActionType.RemoveRing))
@@ -94,7 +98,7 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     )
 
     private canAct(type: ActionType): boolean {
-        return this.isMyTurn && this.validActionTypes.includes(type)
+        return !this.isViewingHistory && this.isMyTurn && this.validActionTypes.includes(type)
     }
 
     hasManualSelection(): boolean {
