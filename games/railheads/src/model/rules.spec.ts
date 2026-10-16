@@ -463,6 +463,69 @@ describe('the end of a round', () => {
 })
 
 describe('rulings recorded in the interpretations', () => {
+    it('offers no space without a legal choice and makes such a player consolidate', () => {
+        const table = openedTable()
+        choose(table, ActionSpaceId.LayTrackII)
+        table.act('p1', { type: ActionType.LayTrack, placements: [] })
+        choose(table, ActionSpaceId.LayTrackII)
+        table.act('p2', { type: ActionType.LayTrack, placements: [] })
+        table.edit((state) => {
+            state.roundTimer = 1
+            state.getPlayerState('p3').cash = 0
+            for (const company of state.companies) {
+                company.owners = company.owners.filter((owner) => owner !== 'p3')
+            }
+        })
+        expect(table.active).toBe('p3')
+        expect(table.hydrated.availableSpaces('p3')).toEqual([])
+        expect(() => choose(table, ActionSpaceId.LayTrackI)).toThrow()
+        table.act('p3', { type: ActionType.Consolidate, space: ActionSpaceId.LayTrackII })
+        expect(table.active).toBe('p0')
+    })
+
+    it('offers Issue Share only for a share whose minimum bid the player can afford', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            state.getPlayerState('p1').cash = 2
+        })
+        expect(table.hydrated.minimumBid(CompanyId.KPEV)).toBe(3)
+        expect(table.hydrated.issuableCompanies('p1')).not.toContain(CompanyId.KPEV)
+        table.edit((state) => {
+            state.getPlayerState('p1').cash = 0
+        })
+        expect(table.hydrated.availableSpaces('p1')).not.toContain(ActionSpaceId.IssueShare)
+    })
+
+    it('offers Industry Investment only when the investor can afford the raised level', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            state.industry(Industry.Steel).level = 3
+            state.getPlayerState('p1').cash = 3
+        })
+        const industries = table.hydrated.investableIndustries('p1')
+        expect(industries).not.toContain(Industry.Steel)
+        expect(industries).toContain(Industry.Grain)
+        choose(table, ActionSpaceId.IndustryInvestment)
+        expect(() =>
+            table.act('p1', { type: ActionType.InvestInIndustry, industry: Industry.Steel })
+        ).toThrow()
+    })
+
+    it('sells to the investor at the new level when nobody else can bid', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            for (const playerId of ['p0', 'p2', 'p3']) state.getPlayerState(playerId).cash = 1
+        })
+        const cash = table.hydrated.getPlayerState('p1').cash
+        choose(table, ActionSpaceId.IndustryInvestment)
+        table.act('p1', { type: ActionType.InvestInIndustry, industry: Industry.Grain })
+        const state = table.hydrated
+        expect(state.industryAuction).toBeUndefined()
+        expect(state.getPlayerState('p1').cash).toBe(cash - 2)
+        expect(state.getPlayerState('p1').tokensOf(Industry.Grain)).toBeGreaterThan(0)
+        expect(table.active).toBe('p2')
+    })
+
     it('counts a crossing cube as part of the company’s network', () => {
         const table = openedTable()
         table.edit((state) => {
