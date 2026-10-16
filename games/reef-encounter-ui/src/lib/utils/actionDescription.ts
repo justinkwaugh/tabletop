@@ -17,9 +17,9 @@ import {
     isSearchBag,
     isTakeOpenSeaSpace,
     type AlgaColor,
-    type BonusSpaceRefill,
     type CoralColor,
-    type OpenSeaAddition
+    type OpenSeaAddition,
+    type OpenSeaRefill
 } from '@tabletop/reef-encounter'
 
 // A phrase reads as a sentence (`text`, for screen readers and tests) and shows as a line of
@@ -228,14 +228,10 @@ export function describeSystemAction(action: GameAction): Omit<Phrase, 'playerId
         if (refill.shortage) {
             return phrase(['The open sea could not be refilled.'])
         }
+        const told = refillSentences(refill)
         return refill.additions.length === 0
-            ? phrase(['The open sea was refilled.', ...bonusRefillParts(refill.bonusRefills)])
-            : phrase([
-                  'Refill: ',
-                  ...refillParts(refill.additions),
-                  '.',
-                  ...bonusRefillParts(refill.bonusRefills)
-              ])
+            ? phrase(joinSentences([['The open sea was refilled.'], ...told]))
+            : phrase(joinSentences(told))
     }
     if (isSearchBag(action)) {
         const found = action.metadata?.found
@@ -271,21 +267,28 @@ function refillParts(additions: readonly OpenSeaAddition[]): PhrasePart[] {
     ])
 }
 
-function bonusRefillParts(refills: readonly BonusSpaceRefill[] = []): PhrasePart[] {
+function refillSentences(refill: OpenSeaRefill): PhrasePart[][] {
+    const refills = refill.bonusRefills ?? []
     const icons = (found: boolean, joiner: string) =>
         refills
-            .filter((refill) => refill.found === found)
-            .flatMap((refill, index) => [
+            .filter((bonus) => bonus.found === found)
+            .flatMap((bonus, index) => [
                 ...(index > 0 ? [joiner] : []),
-                { ...polyp(refill.color), label: `${refill.color} polyp` }
+                { ...polyp(bonus.color), label: `${bonus.color} polyp` }
             ])
     const found = icons(true, ', ')
     const missing = icons(false, ' or ')
     return [
-        ...(found.length > 0 ? [' Bonus: ', ...found, '.'] : []),
-        ...(missing.length > 0 ? [' No bonus ', ...missing, ' in the bag.'] : [])
+        ...(refill.additions.length > 0
+            ? [['Refill: ', ...refillParts(refill.additions), '.']]
+            : []),
+        ...(found.length > 0 ? [['Bonus: ', ...found, '.']] : []),
+        ...(missing.length > 0 ? [['No bonus ', ...missing, ' in the bag.']] : [])
     ]
 }
+
+const joinSentences = (sentences: readonly PhrasePart[][]): PhrasePart[] =>
+    sentences.flatMap((sentence, index) => (index > 0 ? [' ', ...sentence] : sentence))
 
 // What follows on from the action before it, told at the end of that action's phrase:
 // the open sea refilled after a turn ends, and a bonus polyp from the bag after a placement.
@@ -296,9 +299,8 @@ function continuation(
     if (isRefillOpenSea(action) && isTakeOpenSeaSpace(previous)) {
         const refill = action.metadata
         if (!refill || refill.shortage) return undefined
-        const bonus = bonusRefillParts(refill.bonusRefills)
-        if (refill.additions.length === 0) return bonus.length > 0 ? ['.', ...bonus] : undefined
-        return ['. Refill: ', ...refillParts(refill.additions), '.', ...bonus]
+        const told = refillSentences(refill)
+        return told.length > 0 ? ['. ', ...joinSentences(told)] : undefined
     }
     if (isSearchBag(action) && action.need.kind === 'extraGrowth' && isPlacePolyp(previous)) {
         const found = action.metadata?.found
