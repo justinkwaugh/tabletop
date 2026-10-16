@@ -448,9 +448,7 @@
                         <div class="nt-turn-body">
                             {#if session.isViewingHistory}
                                 <ActionPanel bind:ordersDrawerHeight />
-                            {:else if session.attack}
-                                <BattlePanel />
-                            {:else if session.showsConcludedBattle}
+                            {:else if session.attack || session.showsConcludedBattle}
                                 <BattlePanel />
                                 {#if session.gameState.result}
                                     <div class="nt-after-battle">

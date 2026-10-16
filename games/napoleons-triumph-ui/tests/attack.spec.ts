@@ -161,7 +161,7 @@ test('a threat, a retreat before combat and the move into the vacated locale', a
     await expect(page.getByText('The attack is over.')).toBeVisible()
     await expect(
         page.getByText(
-            /The Allies fell back to .+ before the attack, and the French moved into locale 94\./
+            /The Allies fall back to .+ before the attack, and the French move into locale 94\./
         )
     ).toBeVisible()
     await expect(page.getByRole('button', { name: 'End turn' })).toBeHidden()
@@ -644,7 +644,7 @@ test('units named in a defence stay marked for the attacker until the turn ends'
         .first()
         .click()
     await page.getByRole('button', { name: 'Advance to the approach' }).click()
-    await expect(page.getByText('The French called the attack off as a feint.')).toBeVisible()
+    await expect(page.getByText('The French call the attack off as a feint.')).toBeVisible()
     await page.getByRole('button', { name: 'Continue', exact: true }).click()
     const endTurn = page.getByRole('button', { name: 'End turn' })
     await expect(endTurn).toBeVisible()

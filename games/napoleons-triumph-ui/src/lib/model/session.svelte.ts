@@ -30,6 +30,7 @@ import {
     validateAttach,
     type CommandKind,
     type Commander,
+    type EndedAttack,
     type Face,
     type FeintEnd,
     type HydratedNapoleonsTriumphGameState,
@@ -100,8 +101,7 @@ import {
     sendCommander,
     sendRetreatTo,
     type BattleRole,
-    type BattleStage,
-    type VisibleAttack
+    type BattleStage
 } from './battleStage.js'
 import {
     blockMarkOf,
@@ -252,7 +252,6 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     attack = $derived(this.gameState.attack)
 
-    /** The attack the latest action ended, while nothing has been done since. */
     concludedBattle: ConcludedBattle | undefined = $derived(
         this.isViewingHistory ? undefined : concludedBattleOf(this.history.visibleContext)
     )
@@ -263,8 +262,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.concludedBattleSetAside = true
     }
 
-    /** The attack the battle panel shows: the one being fought, or else the one that just ended. */
-    shownAttack: VisibleAttack | undefined = $derived(this.attack ?? this.concludedBattle?.attack)
+    shownAttack: EndedAttack | undefined = $derived(this.attack ?? this.concludedBattle?.attack)
 
     myPlayerId = $derived(this.myPlayer?.id)
 
@@ -524,11 +522,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     private turnedToOrders = $derived(
         this.concludedBattleSetAside ||
-            Object.keys(this.selection).length > 0 ||
+            hasManualCommandSelection(this.selection) ||
             this.openRoadMarch !== undefined
     )
 
-    /** Whether the battle panel keeps showing the attack that just ended, until its attacker turns to orders. */
     showsConcludedBattle = $derived(
         this.concludedBattle !== undefined && !(this.isCommanding && this.turnedToOrders)
     )

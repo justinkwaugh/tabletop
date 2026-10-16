@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { NapoleonsTriumphAction } from './gameAction.js'
+import { AttackEndMetadata } from './attackEnd.js'
 import { regroup } from '../model/attackDecisions.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 
@@ -13,6 +14,7 @@ export const Regroup = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.Regroup),
             playerId: Type.String(),
+            metadata: Type.Optional(AttackEndMetadata),
             keep: Type.Record(Type.String(), Type.String())
         })
     ])

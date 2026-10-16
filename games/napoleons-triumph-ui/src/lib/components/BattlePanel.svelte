@@ -2,7 +2,6 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         MachineState,
-        Side,
         UnitType,
         attackStep,
         type AttackStep,
@@ -28,7 +27,7 @@
     const gameSession = getGameSession()
     const game = $derived(gameSession.gameState)
     const attack = $derived(gameSession.shownAttack)
-    const concluded = $derived(gameSession.attack ? undefined : gameSession.concludedBattle)
+    const concluded = $derived(gameSession.concludedBattle)
     const stage = $derived(gameSession.battleStage)
 
     const PENALTY_NAMES: Record<UnitType, string> = {
@@ -61,15 +60,15 @@
         ].join(', ')
     }
 
-    function living(ids: string[]): ProjectedUnit[] {
-        return ids.flatMap((id) => game.findUnit(id) ?? concluded?.units.get(id) ?? [])
+    function unitsOf(ids: string[]): ProjectedUnit[] {
+        return ids.flatMap((id) => game.findUnit(id) ?? concluded?.unitsLastSeen.get(id) ?? [])
     }
 </script>
 
 {#if attack}
-    {@const attackers = living(attack.attackingUnitIds)}
-    {@const defenders = living(attack.defendingUnitIds)}
-    {@const counterAttackers = living(attack.counterAttackingUnitIds)}
+    {@const attackers = unitsOf(attack.attackingUnitIds)}
+    {@const defenders = unitsOf(attack.defendingUnitIds)}
+    {@const counterAttackers = unitsOf(attack.counterAttackingUnitIds)}
     {@const roles = gameSession.foughtRoles}
     {@const losses = gameSession.attackLosses}
     {@const verdict = gameSession.attackVerdict}
@@ -124,10 +123,8 @@
         {#if concluded}
             <div class="nt-battle-prompt nt-battle-ending">
                 <span class="nt-battle-over">The attack is over.</span>
-                {endingOf(
-                    concluded,
-                    game.sideOf(concluded.attack.attackerId) === Side.French,
-                    (locale) => game.map.label(locale)
+                {endingOf(concluded, game.sideOf(concluded.attack.attackerId), (locale) =>
+                    game.map.label(locale)
                 )}
             </div>
             {#if gameSession.isCommanding}

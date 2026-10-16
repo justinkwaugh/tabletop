@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists, type GameAction } from '@tabletop/common'
-import { AUSTERLITZ, ActionType, CommandKind, Side } from '@tabletop/napoleons-triumph'
+import { AUSTERLITZ, ActionType, CommandKind, FeintEnd, Side } from '@tabletop/napoleons-triumph'
 import {
     TestGame,
     arrangeBattlefield,
@@ -20,14 +20,25 @@ class Recorded {
     readonly game = new TestGame()
     readonly actions: GameAction[] = []
 
-    constructor(placements: readonly PiecePlacement[]) {
+    constructor(placements: readonly PiecePlacement[], alliedMorale?: number) {
         this.game.deployBoth()
         passTurns(this.game, 1)
         arrangeBattlefield(this.game, placements)
+        if (alliedMorale !== undefined) {
+            this.game.arrange((state) => {
+                state.playerOf(Side.Allied).morale = alliedMorale
+            })
+        }
     }
 
     act(type: ActionType, side: Side, payload: Record<string, unknown> = {}) {
         this.actions.push(...this.game.act(type, this.game.playerOf(side), payload))
+    }
+
+    threaten() {
+        this.act(ActionType.ThreatenAttack, Side.French, {
+            approach: AUSTERLITZ.approachBetween(FROM, INTO).id
+        })
     }
 
     concluded(): ConcludedBattle | undefined {
@@ -38,6 +49,10 @@ class Recorded {
         const battle = this.concluded()
         assertExists(battle, 'Expected an attack that has just ended')
         return battle
+    }
+
+    ending(): string {
+        return endingOf(this.battle(), Side.French, (locale) => `locale ${locale}`)
     }
 }
 
@@ -63,7 +78,6 @@ const stHilaire = (unitIds: string[]) => ({
     wide: true
 })
 
-/** Two weak French units against blockers: thrown back, with nothing left for anyone to decide. */
 function repulsed(): Recorded {
     const recorded = new Recorded([
         french('F01', infantry(2)),
@@ -72,37 +86,31 @@ function repulsed(): Recorded {
         allied('A02', infantry(2), { facing: FROM }),
         allied('A03', infantry(2))
     ])
-    recorded.act(ActionType.ThreatenAttack, Side.French, {
-        approach: AUSTERLITZ.approachBetween(FROM, INTO).id
-    })
+    recorded.threaten()
     recorded.act(ActionType.PressAttack, Side.French)
     recorded.act(ActionType.LeadDefense, Side.Allied, { leaderIds: ['A01'] })
     recorded.act(ActionType.DeclareAttack, Side.French, {
         ...stHilaire(['F01', 'F02']),
         leaderIds: ['F01']
     })
+    recorded.act(ActionType.CounterAttack, Side.Allied, { unitIds: [] })
     return recorded
 }
 
-/** A strong French attack on a defence from reserve, which the Allies leave, losing steps on the way. */
 function wonUntilTheRetreat(alliedMorale?: number): Recorded {
-    const recorded = new Recorded([
-        french('F01', infantry(3)),
-        french('F02', infantry(3)),
-        french('F03', cavalry(2)),
-        allied('A01', infantry(2)),
-        allied('A02', infantry(1)),
-        allied('A03', artillery()),
-        allied('A04', infantry(3))
-    ])
-    if (alliedMorale !== undefined) {
-        recorded.game.arrange((state) => {
-            state.playerOf(Side.Allied).morale = alliedMorale
-        })
-    }
-    recorded.act(ActionType.ThreatenAttack, Side.French, {
-        approach: AUSTERLITZ.approachBetween(FROM, INTO).id
-    })
+    const recorded = new Recorded(
+        [
+            french('F01', infantry(3)),
+            french('F02', infantry(3)),
+            french('F03', cavalry(2)),
+            allied('A01', infantry(2)),
+            allied('A02', infantry(1)),
+            allied('A03', artillery()),
+            allied('A04', infantry(3))
+        ],
+        alliedMorale
+    )
+    recorded.threaten()
     recorded.act(ActionType.DeclareDefense, Side.Allied, { unitIds: ['A01', 'A02'] })
     recorded.act(ActionType.PressAttack, Side.French)
     recorded.act(ActionType.LeadDefense, Side.Allied, { leaderIds: ['A01'] })
@@ -114,12 +122,13 @@ function wonUntilTheRetreat(alliedMorale?: number): Recorded {
     return recorded
 }
 
-function retreatedTo(recorded: Recorded, locale: number) {
+function retreated(recorded: Recorded): Recorded {
     recorded.act(ActionType.Retreat, Side.Allied, {
         losses: { A04: 2 },
-        destinations: { A03: locale, A04: locale },
+        destinations: { A03: REFUGE, A04: REFUGE },
         kept: { prebyshevsky: 'A04' }
     })
+    return recorded
 }
 
 describe('the attack that has just ended', () => {
@@ -129,9 +138,8 @@ describe('the attack that has just ended', () => {
         expect(recorded.concluded()).toBeUndefined()
     })
 
-    it('carries the result the actions settled, though the game no longer keeps the attack', () => {
+    it('is the attack the last action recorded, results included', () => {
         const recorded = repulsed()
-        recorded.act(ActionType.CounterAttack, Side.Allied, { unitIds: [] })
         expect(recorded.game.state.attack).toBeUndefined()
         const battle = recorded.battle()
         expect(battle.openedBy).toBe(recorded.actions[0].id)
@@ -146,52 +154,105 @@ describe('the attack that has just ended', () => {
 
     it('keeps the units the attack destroyed, as they were last seen', () => {
         const recorded = repulsed()
-        recorded.act(ActionType.CounterAttack, Side.Allied, { unitIds: [] })
         expect(recorded.game.hydrated.findUnit('F01')).toBeUndefined()
-        expect(recorded.battle().units.get('F01')?.face).toEqual(infantry(2))
+        expect(recorded.battle().unitsLastSeen.get('F01')?.face).toEqual(infantry(2))
     })
 
-    it('names where the defenders retreated to', () => {
-        const recorded = wonUntilTheRetreat()
-        retreatedTo(recorded, REFUGE)
-        const battle = recorded.battle()
+    it('names where the defenders retreated to and whether the attackers moved in', () => {
+        const battle = retreated(wonUntilTheRetreat()).battle()
         expect(battle.attack.attackerWon).toBe(true)
         expect(battle.retreatedTo).toEqual([REFUGE])
-        expect(battle.units.has('A03')).toBe(true)
+        expect(battle.taken).toBe(true)
+        expect(battle.unitsLastSeen.has('A03')).toBe(true)
     })
 
     it('is gone once anything else is done', () => {
-        const recorded = wonUntilTheRetreat()
-        retreatedTo(recorded, REFUGE)
+        const recorded = retreated(wonUntilTheRetreat())
         recorded.act(ActionType.EndTurn, Side.French)
         expect(recorded.concluded()).toBeUndefined()
     })
 })
 
 describe('the sentence that ends an attack', () => {
-    const ending = (recorded: Recorded) =>
-        endingOf(recorded.battle(), true, (locale) => `locale ${locale}`)
-
     it('says the defenders hold the locale when the attack is thrown back', () => {
-        const recorded = repulsed()
-        recorded.act(ActionType.CounterAttack, Side.Allied, { unitIds: [] })
-        expect(ending(recorded)).toBe('The Allies hold locale 94.')
+        expect(repulsed().ending()).toBe('The Allies hold locale 94.')
     })
 
     it('says where the defenders retreated to and that the attackers took the locale', () => {
-        const recorded = wonUntilTheRetreat()
-        retreatedTo(recorded, REFUGE)
-        expect(recorded.battle().taken).toBe(true)
-        expect(ending(recorded)).toBe(
+        expect(retreated(wonUntilTheRetreat()).ending()).toBe(
             'The Allies retreat to locale 83, and the French take locale 94.'
         )
     })
 
-    it('does not move the attackers in when the retreat breaks the defending army', () => {
-        const recorded = wonUntilTheRetreat(4)
-        retreatedTo(recorded, REFUGE)
+    it('says the army is demoralized when the retreat breaks it, and nobody moves in', () => {
+        const recorded = retreated(wonUntilTheRetreat(4))
         expect(recorded.game.state.victory).toBeDefined()
         expect(recorded.battle().taken).toBe(false)
-        expect(ending(recorded)).toBe('The Allies retreat to locale 83.')
+        expect(recorded.ending()).toBe(
+            'The Allies retreat to locale 83; the Allied army is demoralized.'
+        )
+    })
+
+    it('says the guns fired when artillery led an attack its declaration settled', () => {
+        const recorded = new Recorded([
+            french('F01', artillery(), { commanderId: undefined, facing: INTO }),
+            allied('A01', infantry(3))
+        ])
+        recorded.threaten()
+        recorded.act(ActionType.DeclareDefense, Side.Allied, { unitIds: ['A01'] })
+        recorded.act(ActionType.PressAttack, Side.French)
+        recorded.act(ActionType.LeadDefense, Side.Allied, { leaderIds: [] })
+        recorded.act(ActionType.DeclareAttack, Side.French, {
+            orders: [{ kind: CommandKind.Unit, unitIds: ['F01'] }],
+            wide: false,
+            leaderIds: ['F01']
+        })
+        expect(recorded.battle().attack).toMatchObject({
+            attackingUnitIds: ['F01'],
+            artilleryLed: true
+        })
+        expect(recorded.ending()).toBe('The guns fire, and the Allies keep locale 94.')
+    })
+
+    it('says the attack was a feint when it is called off against blockers', () => {
+        const recorded = new Recorded([
+            french('F01', infantry(3)),
+            allied('A01', infantry(3), { facing: FROM })
+        ])
+        recorded.threaten()
+        recorded.act(ActionType.DeclareFeint, Side.French, {
+            orders: stHilaire(['F01']).orders,
+            end: FeintEnd.Reserve
+        })
+        expect(recorded.ending()).toBe('The French call the attack off as a feint.')
+    })
+
+    it('says the defenders fell back and the attackers moved in after a retreat before combat', () => {
+        const recorded = new Recorded([french('F01', infantry(3)), allied('A01', infantry(3))])
+        recorded.threaten()
+        recorded.act(ActionType.Retreat, Side.Allied, {
+            losses: { A01: 2 },
+            destinations: { A01: REFUGE },
+            kept: {}
+        })
+        recorded.act(ActionType.Occupy, Side.French, {
+            orders: [{ kind: CommandKind.Corps, commanderId: 'st-hilaire', unitIds: ['F01'] }]
+        })
+        expect(recorded.ending()).toBe(
+            'The Allies fall back to locale 83 before the attack, and the French move into locale 94.'
+        )
+    })
+
+    it('says the defenders fell back and the army is demoralized when that retreat breaks it', () => {
+        const recorded = new Recorded([french('F01', infantry(3)), allied('A01', infantry(3))], 1)
+        recorded.threaten()
+        recorded.act(ActionType.Retreat, Side.Allied, {
+            losses: { A01: 2 },
+            destinations: { A01: REFUGE },
+            kept: {}
+        })
+        expect(recorded.ending()).toBe(
+            'The Allies fall back to locale 83 before the attack; the Allied army is demoralized.'
+        )
     })
 })
