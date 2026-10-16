@@ -192,6 +192,26 @@ export function feintAgainstOneReserve(): BattleGame {
     return game
 }
 
+/** A feint against a reserve of a detached unit and a corps's last unit, which advance with their commander. */
+export function advanceWithTheCommanderAfterAFeint(): BattleGame {
+    const game = new BattleGame([
+        attacker('F01', infantry(3)),
+        defender('A01', cavalry(3), { commanderId: undefined }),
+        defender('A02', infantry(3))
+    ])
+    game.threaten()
+    game.by(Side.Allied, ActionType.DeclareDefense, { unitIds: ['A01', 'A02'] })
+    game.by(Side.French, ActionType.DeclareFeint, {
+        orders: stHilaire(['F01']),
+        end: FeintEnd.Reserve
+    })
+    game.by(Side.Allied, ActionType.Advance, {
+        unitIds: ['A01', 'A02'],
+        commanderIds: ['prebyshevsky']
+    })
+    return game
+}
+
 /** A defender that gives ground before the attack, at the attacker's move into the locale. */
 export function retreatBeforeCombat(alliedMorale?: number): BattleGame {
     const game = new BattleGame(

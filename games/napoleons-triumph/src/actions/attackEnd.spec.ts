@@ -5,6 +5,7 @@ import { ActionType } from '../definition/actions.js'
 import { NapoleonsTriumphRuntime } from '../definition/runtime.js'
 import {
     advanceAfterARepulse,
+    advanceWithTheCommanderAfterAFeint,
     bombardment,
     bombardmentLossChosen,
     brokenInCombat,
@@ -85,6 +86,12 @@ const ENDINGS: Ending[] = [
         recorded: { feint: true, defendingUnitIds: ['A01'] }
     },
     {
+        name: 'the advance a defender chooses after a feint, its commander going too',
+        fight: advanceWithTheCommanderAfterAFeint,
+        endedBy: ActionType.Advance,
+        recorded: { feint: true, defendingUnitIds: ['A01', 'A02'] }
+    },
+    {
         name: 'the advance a defender chooses after holding',
         fight: advanceAfterARepulse,
         endedBy: ActionType.Advance,
@@ -144,9 +151,11 @@ describe('the action that ends an attack', () => {
     it.each(ENDINGS.filter((ending) => !ending.needsHiddenBlocks))(
         'records the attack in the view of the player ending it: $name',
         ({ fight, endedBy, recorded }) => {
-            const ending = fight().replayInPlayersView().at(-1)
+            const game = fight()
+            const ending = game.replayInPlayersView().at(-1)
             expect(ending?.type).toBe(endedBy)
             expect(attackEndedBy(ending)).toMatchObject(recorded)
+            expect(attackEndedBy(ending)).toEqual(attackEndedBy(game.played.at(-1)))
         }
     )
 
