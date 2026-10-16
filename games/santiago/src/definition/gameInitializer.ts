@@ -62,6 +62,7 @@ export class SantiagoGameInitializer
                 color: colors[index],
                 money: 10,
                 score: 0,
+                roundScores: [],
                 hasPersonalCanal: true
             })
         )

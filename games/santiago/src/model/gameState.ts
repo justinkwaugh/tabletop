@@ -19,7 +19,7 @@ export const CanalProposal = Type.Object({
 })
 import { MachineState } from '../definition/states.js'
 import { isIrrigated, connectedSpringIntersections } from '../util/irrigation.js'
-import { calculateScores } from '../util/scoring.js'
+import { calculateScores, type PlayerScores } from '../util/scoring.js'
 
 export type SantiagoGameState = Type.Static<typeof SantiagoGameState>
 export const SantiagoGameState = Type.Evaluate(
@@ -166,10 +166,27 @@ export class HydratedSantiagoGameState
         }
     }
 
-    score() {
-        const scores = calculateScores(this.board)
+    recordRoundScores() {
+        const scores = this.currentScores()
         for (const player of this.players) {
-            player.score = (scores[player.playerId] ?? 0) + player.getMoney()
+            player.roundScores?.push(scores[player.playerId])
         }
+    }
+
+    score() {
+        const scores = this.currentScores()
+        for (const player of this.players) {
+            player.score = scores[player.playerId]
+        }
+    }
+
+    private currentScores(): PlayerScores {
+        const plantationScores = calculateScores(this.board)
+        return Object.fromEntries(
+            this.players.map((player) => [
+                player.playerId,
+                (plantationScores[player.playerId] ?? 0) + player.getMoney()
+            ])
+        )
     }
 }

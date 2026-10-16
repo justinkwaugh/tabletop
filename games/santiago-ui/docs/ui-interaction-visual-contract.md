@@ -48,6 +48,10 @@ When the end of a round dries fields, the Game Session's drought dust animator t
 
 On narrow screens (under 640px wide, a phone held upright) the action bar stops centering itself over the board and uses the column's full width: prompts wrap rather than running off the screen, and the bid or bribe controls stack above the table of bids instead of sitting beside it. The status bar keeps each item on one line, drops its phase icons, and grows to two lines rather than crushing them. On short screens (under 500px tall, a phone held sideways), where every pixel above the board comes out of the board, the status bar shrinks to 30px, the tables of bids and bribes become one wrapping strip of player and amount with the Overseer pill shown only on its player, and the captions are hidden. On short screens the board area also keeps a minimum height of 260px, so rather than squeezing the board to nothing the game column scrolls to reach it. On both narrow and short screens everything above the board, the status bar, the last action, and the action bar, is drawn at 85% scale, text and controls alike, keeping the bid and bribe step buttons at about 34px so they stay tappable; the last action stays centered over the board by dividing its measured board center by that scale. Larger screens are unaffected.
 
+## Final scores and score history
+
+At EndOfGame the players panel opens with the final scores and, beneath them, a line chart of each player's score at the end of every round, one line per player in their colour. Pointing at the chart picks the nearest round: a dashed line marks it, a dot sits on each player's line there, and the list above becomes that round's standings, headed "After Round N", re-ranked by that round's scores with rows sliding to their new places over 0.2 seconds and the round's leaders highlighted. When the pointer leaves the chart the list returns to the final scores, headed "Final Scores", with the winners highlighted. On a touch screen the round shows only while a finger is down on the chart, since lifting it leaves the chart. A Game started before round scores were recorded has no complete history, so it shows only the final scores, without the chart.
+
 ## Coexistence and precedence
 
 EndOfGame disclosure takes precedence over private-money presentation. History uses the displayed state's phase, so navigating back before the end restores private presentation. Perspective changes replace the permitted state; values learned through Host View must not remain in a subsequent Player or Spectator representation.
@@ -61,6 +65,7 @@ These behaviors derive from displayed Game State, persisted configuration, and t
 - **Canal override, revealing key and offered spots** (canal build animator; board canals and survey spots). See "Canal construction".
 - **Bribe override** (bribe pop animator; bribe pills and twine colours). See "Bribes and planted fields arriving".
 - **Flipping cards and dust puffs** (drought dust animator; board): transient presence for one drying step. See "The land's mood".
+- **Hovered score round** (the score chart, from pointer movement; the chart's marker and the final scores list): the round being pointed at, cleared when the pointer leaves the chart. It lives in the end-of-game panel and ends when that panel unmounts, which happens whenever the displayed state leaves EndOfGame. See "Final scores and score history".
 - **Selected bribe spot** (the session, from a click; the spot's twine and the bar's bribe controls): a manual staged selection that holds until the next state publishes. See "Canal candidates".
 - **Selected field tile** (the session, from a click; the tile strip and the board's planting targets): a manual staged selection that holds until the next state publishes.
 
@@ -74,6 +79,8 @@ The land mood animator's ease is not shared state: it writes the light layers' a
 The players panel owns balance presentation. The table owns the tile-supply count and reads the public count through the hydrated state. The shared control owns the disabled Exploration button. Changing visibility does not change board hit targets or layer ordering.
 
 Paper texture paints behind content within an isolated stacking context. It may texture a panel background, but must not darken player names or other foreground content. The history panel owns its custom dots and suppresses Flowbite’s default markers only within that panel.
+
+The end-of-game panel owns the final scores list, its round standings and the hovered round; the score chart owns its marker and dots and reports the hovered round to the panel.
 
 ## Verification scenarios
 
@@ -94,3 +101,4 @@ Paper texture paints behind content within an isolated stacking context. It may 
 - On a phone held upright and sideways: the status bar, last action and action bar fit at 85% scale, bid and bribe step buttons stay tappable, prompts wrap, and sideways the board keeps at least 260px with the column scrolling to reach it. Manual browser verification at 390x844 and 844x390 viewports.
 - Create a Game and place a bid: panel and inline names retain full-white text; History shows one 12-pixel dot per entry aligned with the timeline. Verified in Chromium with rendered-pixel and geometry checks.
 - Choose a field tile while planting, then press Undo: the tile is no longer selected and the planting prompt remains; press Undo again and the last bid is undone. The same holds for a chosen bribe spot during canal building, whose twine goes slack. Automated for the field tile in `tests/actionBar.spec.ts`; manual for the bribe spot.
+- Finish a Game and point along the score chart: the list's heading follows the round, the rows re-rank to that round's scores with the leaders highlighted, and the dashed marker and dots follow the pointer; move off the chart and the final scores and winners return. On a phone, drag a finger across the chart for the same effect, and lift it to return to the final scores. Manual browser verification at 1440x900 and 390x844; the chart's scales and nearest-round lookup are covered by `scoreHistoryPlot.test.ts`, and the recorded round scores by `scoring.spec.ts`.

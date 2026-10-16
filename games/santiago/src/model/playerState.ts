@@ -18,6 +18,9 @@ export const SantiagoPlayerState = Type.Evaluate(
         Type.Object({
             money: Visibility.protect(Type.Number(), { policy: moneyPolicy }),
             score: Type.Number(),
+            roundScores: Visibility.protect(Type.Optional(Type.Array(Type.Number())), {
+                policy: moneyPolicy
+            }),
             bid: Type.Optional(Type.Number()),
             hasPersonalCanal: Type.Boolean({ default: true })
         })
@@ -38,6 +41,7 @@ export class HydratedSantiagoPlayerState
     declare color: Color
     declare money?: number
     declare score: number
+    declare roundScores?: number[]
     declare bid?: number
     declare hasPersonalCanal: boolean
 
