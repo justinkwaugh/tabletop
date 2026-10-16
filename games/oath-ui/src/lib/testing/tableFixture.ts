@@ -179,6 +179,7 @@ export type TableName =
     | 'usePower'
     | ModifierScene
     | FacedownScene
+    | 'greatHerdFlip'
     | 'showOne'
     | 'exileCitizens'
     | 'selfExile'
@@ -3445,6 +3446,49 @@ function facedownTable(scene: FacedownScene): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * R-6.1, R-5.1.4.I — the seat's facedown Great Herd, with Crop Rotation faceup; its site holds Book
+ * Binders and Tents, and the Oracle stands at the next Cradle site. Tents, a Nomad card, may go
+ * first, and then only the Oracle is left for Great Herd to swap with.
+ */
+function greatHerdFlipTable(): PlayedTable {
+    const [home, next] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 3,
+                advisers: [
+                    { cardId: 'denizen.nomad.great-herd', faceUp: false },
+                    { cardId: 'denizen.hearth.crop-rotation', faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            oathRevision: CURRENT_OATH_REVISION,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: {
+                [home]: ['denizen.hearth.book-binders', 'denizen.nomad.tents'],
+                [next]: ['denizen.nomad.oracle']
+            }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-5.1.4.IV: a Search drew Wolves, Toll Roads and the Conspiracy; no one here to take from. */
 function searchConspiracyNoTakeTable(): PlayedTable {
     return conspiracyNoTakeTable(MachineState.Searching, {
@@ -4561,6 +4605,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     facedownCards: () => facedownTable('facedownCards'),
     facedownFullSite: () => facedownTable('facedownFullSite'),
     facedownNewGrowth: () => facedownTable('facedownNewGrowth'),
+    greatHerdFlip: greatHerdFlipTable,
     modifierPair: () => modifierTable('modifierPair'),
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
