@@ -86,16 +86,45 @@ export function rollCampaign(
         campaign.swords = 0
         return []
     }
-    const prng = state.getProtectedPrng()
-    applyDefenseRoll(campaign, rollDefenseDice(prng, campaign.defensePool))
+    applyDefenseRoll(campaign, rollDefenseDice(state.getProtectedPrng(), campaign.defensePool))
+    // Before revision 14 both rolls are made, then both sides are asked.
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes10)) {
+        return rollAttack(state, campaign, skullLossOrder, ['attack', 'defense'])
+    }
+    // R-5.5.4-H1 — Step 4's reroll is settled before Step 5's roll.
+    if (askRerolls(state, campaign, ['defense'])) {
+        campaign.pendingAttackRoll = { order: [...(skullLossOrder ?? [])] }
+        return []
+    }
+    return rollAttack(state, campaign, skullLossOrder, ['attack'])
+}
 
+/** R-5.5.4-H1 — the attack held for the defender's reroll is rolled; true when it was held. */
+export function rollHeldAttack(state: HydratedOathGameState): boolean {
+    const campaign = state.campaign
+    if (!campaign?.pendingAttackRoll) return false
+    const { order } = campaign.pendingAttackRoll
+    campaign.pendingAttackRoll = undefined
+    rollAttack(state, campaign, order, ['attack'])
+    return true
+}
+
+/** R-5.5.5 — the attack roll, then the rerolls asked after it; the skulls kill once those are settled. */
+function rollAttack(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    skullLossOrder: readonly LossSource[] | undefined,
+    rerolledSides: ReadonlyArray<'attack' | 'defense'>
+): WarbandGroup[] {
     // R-5.5.5 — the skulls kill before the sacrifice, which is a separate action.
     // Mounted Patrol
-    if (rules.halveAttackPool) campaign.attackPool = Math.floor(campaign.attackPool / 2)
+    if (campaign.rollRules.halveAttackPool) {
+        campaign.attackPool = Math.floor(campaign.attackPool / 2)
+    }
+    const prng = state.getProtectedPrng()
     const skulls = applyAttackRoll(campaign, rollAttackDice(prng, campaign.attackPool))
     // Jinx — the skulls' kills wait on the answer, since a reroll replaces the roll.
-    const jinxed = askRerolls(state, campaign)
-    if (jinxed) {
+    if (askRerolls(state, campaign, rerolledSides)) {
         campaign.pendingSkullKills = { skulls, order: [...(skullLossOrder ?? [])] }
         return []
     }
@@ -145,14 +174,15 @@ export function applyAttackRoll(campaign: CampaignState, attackRoll: RolledAttac
     return skulls
 }
 
-/** Jinx */
-function askRerolls(state: HydratedOathGameState, campaign: CampaignState): boolean {
-    const rollers: Array<{ playerId: string | undefined; side: 'attack' | 'defense' }> = [
-        { playerId: campaign.attackerPlayerId, side: 'attack' },
-        { playerId: campaign.defenderPlayerId, side: 'defense' }
-    ]
+/** Jinx — "after you roll": the attacker rolls the attack, the defender the defense (R-5.5.4). */
+function askRerolls(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    sides: ReadonlyArray<'attack' | 'defense'>
+): boolean {
     let asked = false
-    for (const { playerId, side } of rollers) {
+    for (const side of sides) {
+        const playerId = side === 'attack' ? campaign.attackerPlayerId : campaign.defenderPlayerId
         if (!playerId) continue
         const roll = { kind: RerolledRollKind.Campaign as const, side }
         if (offerReroll(state, campaign.attackerPlayerId, playerId, roll)) asked = true

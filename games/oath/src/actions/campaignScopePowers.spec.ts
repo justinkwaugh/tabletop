@@ -175,6 +175,8 @@ describe('R-5.5.1.a-H2 — Jinx at a site only the Empire rules is judged in the
         const scoped = table({ revision: atRevision, atEmpireSite: [JINX] })
         declare(scoped, BEA, against(ANN), { targets: [siteTarget('c1')] })
         expect(offeredJinx(scoped)).toEqual([ANN])
+        // R-5.5.4-H1 — Ann, defending, is asked before the attack is rolled.
+        expect(ongoingCampaign(scoped).attackRoll).toEqual([])
 
         const recorded = table({ revision: before, atEmpireSite: [JINX] })
         declare(recorded, BEA, against(ANN), { targets: [siteTarget('c1')] })
@@ -185,6 +187,7 @@ describe('R-5.5.1.a-H2 — Jinx at a site only the Empire rules is judged in the
         const scoped = table({ revision: atRevision, atEmpireSite: [JINX] })
         declare(scoped, ANN, against(BEA), { targets: [pawnAndFavor] })
         expect(offeredJinx(scoped)).toEqual([ANN])
+        expect(ongoingCampaign(scoped).attackRoll).toHaveLength(ongoingCampaign(scoped).attackPool)
 
         const recorded = table({ revision: before, atEmpireSite: [JINX] })
         declare(recorded, ANN, against(BEA), { targets: [pawnAndFavor] })

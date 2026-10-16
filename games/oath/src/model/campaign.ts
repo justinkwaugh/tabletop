@@ -152,6 +152,13 @@ export const CampaignState = Type.Object({
     attackerSiteId: Type.Optional(Type.String()),
     /** Hearts and Minds, Peace Envoy — "you're victorious now": nothing is rolled. */
     decidedVictor: Type.Optional(Type.Union([Type.Literal('attacker'), Type.Literal('defender')])),
+    /**
+     * R-5.5.4-H1 — from revision 14 the attack waits until the defender's reroll is answered; the
+     * skulls' declared kill order (before revision 7) rides with it.
+     */
+    pendingAttackRoll: Type.Optional(
+        Type.Object({ order: Type.Array(LossSource, { maxItems: 16 }) })
+    ),
     /** Jinx — the skulls' kills, held until the reroll question is answered. */
     pendingSkullKills: Type.Optional(
         Type.Object({ skulls: Type.Number(), order: Type.Array(LossSource, { maxItems: 16 }) })
