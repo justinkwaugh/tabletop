@@ -24,6 +24,8 @@ export function roundScoresFromHistory(
         if (!scores) return undefined
         roundEndScores.push(scores)
     }
+    // Projection replaces actions it cannot reverse with redacted records, which hide their round ends.
+    if (roundEndScores.length !== finalState.round) return undefined
     return finalState.players.map(({ playerId }) => ({
         playerId,
         scores: roundEndScores.map((scores) => scores[playerId])

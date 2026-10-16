@@ -112,4 +112,23 @@ describe('roundScoresFromHistory', () => {
             ).toBeUndefined()
         }
     )
+
+    it('has no history when the earliest rounds were redacted', () => {
+        const played = playToEnd(true)
+        const roundEnds = played.actions.flatMap((action, index) =>
+            isEndRoundEvent(action) ? [index] : []
+        )
+        const redactedThrough = roundEnds[1]
+        const actions = played.actions.map((action, index) =>
+            index <= redactedThrough
+                ? {
+                      id: action.id,
+                      gameId: action.gameId,
+                      source: action.source,
+                      type: Visibility.RedactedActionType
+                  }
+                : action
+        )
+        expect(roundScoresFromHistory(played.state, actions)).toBeUndefined()
+    })
 })
