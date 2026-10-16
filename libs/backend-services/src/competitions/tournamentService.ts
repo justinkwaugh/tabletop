@@ -14,8 +14,13 @@ import {
     type CommitTournamentScheduleRequest,
     type User,
     assertExists,
-    type TournamentGameReference
+    type TournamentGameReference,
+    type TournamentGameLink,
+    type TournamentScore,
+    type LeagueGroupReference,
+    tournamentCapacity
 } from '@tabletop/common'
+import { requireActiveAccount, requireAdministrator, touchRevision } from './competitionAccess.js'
 import * as Value from 'typebox/value'
 import type { TournamentStore } from '../persistence/stores/tournamentStore.js'
 import type { UserService } from '../users/userService.js'
@@ -31,6 +36,7 @@ import { TournamentDispatcher } from './tournamentDispatcher.js'
 import { updateTournamentRegistration } from './tournamentRegistration.js'
 import { compareTournamentScores } from './tournamentScoring.js'
 import { enqueueTournamentResultsEmail, type TournamentTask } from './tournamentTasks.js'
+import { enqueueLeagueTask } from './leagueTasks.js'
 import type { TaskService } from '../tasks/taskService.js'
 
 import type { GameService } from '../games/gameService.js'
@@ -38,11 +44,18 @@ import type { GameService } from '../games/gameService.js'
 const seatsAssignedStartingOrder = (title: Pick<GameDefinition, 'runtime'>) =>
     title.runtime.initializer.supportsStartingPositions === true
 
+export interface GroupTournamentResults {
+    tournament: Tournament
+    standings: (TournamentScore & { userId: string })[]
+    tables: { id: string; entrantIds: string[]; winnerIds: string[] }[]
+    activeTableIds: string[]
+}
+
 export class TournamentService {
     private readonly dispatcher: TournamentDispatcher
     constructor(
         private readonly store: TournamentStore,
-        private readonly users: Pick<UserService, 'getUser'>,
+        private readonly users: Pick<UserService, 'getUsers'>,
         private readonly titles: Record<string, Pick<GameDefinition, 'info' | 'runtime'>>,
         private readonly notifications: Pick<NotificationService, 'sendNotification'>,
         private readonly games: Pick<GameService, 'provisionTournamentGame'>,
@@ -56,7 +69,7 @@ export class TournamentService {
                 await this.provisionTable({ tournamentId, stageId, tableId })
             },
             (tournament) => this.notify(tournament),
-            (tournament) => this.emailResults(tournament),
+            (tournament) => this.completed(tournament),
             now
         )
     }
@@ -70,12 +83,10 @@ export class TournamentService {
         operation: 'pause' | 'resume' | 'retry',
         user: User
     ): Promise<Tournament> {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const tournament = await this.store.update(id, user, true, (current) => {
-            const startAt =
-                current.rules.registration.kind === 'whenFull'
-                    ? current.startsAt
-                    : current.rules.registration.closesAt
+            const policy = current.rules.registration
+            const startAt = policy.kind === 'deadline' ? policy.closesAt : current.startsAt
             const retryDueStart =
                 operation === 'retry' &&
                 current.status === 'open' &&
@@ -86,7 +97,7 @@ export class TournamentService {
             current.paused = operation === 'pause'
             if (current.paused) delete current.nextTaskAt
             else current.nextTaskAt = this.now()
-            this.touch(current)
+            touchRevision(current, this.now())
         })
         await this.notify(tournament)
         await this.dispatcher.enqueue(tournament)
@@ -94,7 +105,7 @@ export class TournamentService {
     }
 
     async create(id: string, input: TournamentDraft, user: User): Promise<Tournament> {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const draft = this.validateDraft(input)
         const now = this.now()
         const tournament = await this.store.create(
@@ -115,13 +126,62 @@ export class TournamentService {
         return tournament
     }
 
+    async createGroup({
+        id,
+        draft: input,
+        organizerId,
+        league,
+        entrantIds
+    }: {
+        id: string
+        draft: TournamentDraft
+        organizerId: string
+        league: LeagueGroupReference
+        entrantIds: string[]
+    }): Promise<Tournament> {
+        const draft = this.validateGroupDraft(input)
+        if (new Set(entrantIds).size !== entrantIds.length)
+            throw new TournamentError('A league group cannot list a player twice', 400)
+        if (entrantIds.length < draft.rules.tableSize || entrantIds.length > 256)
+            throw new TournamentError('The roster must cover a full table', 400)
+        const now = this.now()
+        const tournament = await this.store.create(
+            {
+                ...draft,
+                id,
+                organizerId,
+                league,
+                status: 'locked',
+                revision: 1,
+                entrants: entrantIds.map((userId) => ({ userId, joinedAt: now })),
+                stages: [
+                    {
+                        id: draft.format.stages[0].id,
+                        status: 'awaitingSchedule',
+                        rosterRevision: 1,
+                        createdAt: now
+                    }
+                ],
+                createdAt: now,
+                updatedAt: now,
+                publishedAt: now,
+                lockedAt: now,
+                nextTaskAt: now
+            },
+            undefined
+        )
+        await this.notify(tournament)
+        await this.dispatcher.enqueue(tournament)
+        return tournament
+    }
+
     async update(
         id: string,
         input: TournamentDraft,
         revision: number,
         user: User
     ): Promise<Tournament> {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const draft = this.validateDraft(input)
         const result = await this.store.update(id, user, true, (tournament) => {
             if (tournament.revision !== revision)
@@ -131,7 +191,7 @@ export class TournamentService {
                     'Published rules cannot be changed. Create a new event instead.'
                 )
             Object.assign(tournament, draft)
-            this.touch(tournament)
+            touchRevision(tournament, this.now())
         })
         await this.notify(result)
         await this.dispatcher.enqueue(result)
@@ -139,7 +199,7 @@ export class TournamentService {
     }
 
     async publish(id: string, user: User): Promise<Tournament> {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const result = await this.store.update(id, user, true, (tournament) => {
             if (tournament.status === 'open' || tournament.status === 'locked') return
             if (tournament.status !== 'draft')
@@ -148,7 +208,7 @@ export class TournamentService {
             tournament.status = 'open'
             tournament.publishedAt = this.now()
             updateTournamentRegistration(tournament, this.now())
-            this.touch(tournament)
+            touchRevision(tournament, this.now())
         })
         await this.notify(result)
         await this.dispatcher.enqueue(result)
@@ -156,7 +216,7 @@ export class TournamentService {
     }
 
     async cancel(id: string, user: User): Promise<Tournament> {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const result = await this.store.update(id, user, true, (tournament) => {
             if (tournament.status === 'cancelled') return
             if (tournament.status === 'inProgress' || tournament.status === 'finished')
@@ -170,7 +230,7 @@ export class TournamentService {
             delete tournament.startsAt
             delete tournament.startId
             delete tournament.nextTaskAt
-            this.touch(tournament)
+            touchRevision(tournament, this.now())
         })
         await this.notify(result)
         await this.dispatcher.enqueue(result)
@@ -178,7 +238,7 @@ export class TournamentService {
     }
 
     async lock(id: string, user: User): Promise<Tournament> {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const result = await this.store.update(id, user, true, (registration) => {
             if (registration.status === 'locked' || registration.status === 'cancelled') return
             if (!this.closeRegistration(registration))
@@ -192,15 +252,18 @@ export class TournamentService {
     }
 
     async join(id: string, user: User): Promise<Tournament> {
-        this.requireActive(user)
+        requireActiveAccount(user)
         const result = await this.store.update(id, user, false, (tournament) => {
             if (tournament.entrants.some((entrant) => entrant.userId === user.id)) return
             this.closeRegistration(tournament)
             if (tournament.status !== 'open') return
-            if (tournament.entrants.length >= (tournament.rules.registration.capacity ?? 256))
+            if (
+                tournament.entrants.length >=
+                (tournamentCapacity(tournament.rules.registration) ?? 256)
+            )
                 throw new TournamentError('All registration places are currently taken')
             tournament.entrants.push({ userId: user.id, joinedAt: this.now() })
-            this.touch(tournament)
+            touchRevision(tournament, this.now())
             this.closeRegistration(tournament)
         })
         await this.notify(result)
@@ -211,7 +274,7 @@ export class TournamentService {
     }
 
     async leave(id: string, user: User): Promise<Tournament> {
-        this.requireActive(user)
+        requireActiveAccount(user)
         const result = await this.store.update(id, user, false, (registration) => {
             this.closeRegistration(registration)
             if (registration.status !== 'open') return
@@ -219,7 +282,7 @@ export class TournamentService {
             if (entrants.length === registration.entrants.length) return
             registration.entrants = entrants
             updateTournamentRegistration(registration, this.now())
-            this.touch(registration)
+            touchRevision(registration, this.now())
         })
         await this.notify(result)
         await this.dispatcher.enqueue(result)
@@ -230,39 +293,25 @@ export class TournamentService {
 
     async get(id: string, user: User): Promise<TournamentDetail> {
         const tournament = await this.readVisible(id, user)
-        const usernames: Record<string, string> = {}
-        await Promise.all(
-            tournament.entrants.map(async ({ userId }) => {
-                const account = await this.users.getUser(userId)
-                if (account?.status === UserStatus.Active && account.username)
-                    usernames[userId] = account.username
-            })
-        )
-        const games = ['inProgress', 'finished'].includes(tournament.status)
-            ? await this.store.readGameLinks(id)
-            : []
+        const games = await this.creditedGameLinks(tournament)
         const stage = tournament.stages[0]
-        for (const game of games) {
-            const correction = stage?.corrections?.findLast(
-                (value) => value.tableId === game.tableId
-            )
-            if (correction) game.winningUserIds = [...correction.winningUserIds]
-        }
-        await Promise.all(
-            [...new Set((stage?.corrections ?? []).map((value) => value.administratorId))].map(
-                async (id) => {
-                    const account = await this.users.getUser(id)
-                    if (account?.username) usernames[id] = account.username
-                }
-            )
-        )
+        const entrantIds = tournament.entrants.map((entrant) => entrant.userId)
+        const administratorIds = [
+            ...new Set((stage?.corrections ?? []).map((value) => value.administratorId))
+        ]
+        const accounts = await this.users.getUsers([...entrantIds, ...administratorIds])
+        const usernames: Record<string, string> = {}
+        accounts.forEach((account, index) => {
+            const listed = index < entrantIds.length ? account?.status === UserStatus.Active : true
+            if (account?.username && listed) usernames[account.id] = account.username
+        })
         const schedule =
             stage?.standings && stage.scheduleId
                 ? await this.store.readSchedule(id, stage.id)
                 : undefined
-        const ordered = (stage?.standings ?? [])
-            .map((row, index) => ({ ...row, userId: tournament.entrants[index].userId }))
-            .sort((a, b) => compareTournamentScores(a, b) || a.userId.localeCompare(b.userId))
+        const ordered = this.standingsWithUsers(tournament).sort(
+            (a, b) => compareTournamentScores(a, b) || a.userId.localeCompare(b.userId)
+        )
         const activeTables = new Set(stage?.dispatch?.active ?? [])
         const activeCounts = new Map<string, number>()
         for (const table of schedule?.tables ?? []) {
@@ -278,15 +327,91 @@ export class TournamentService {
         return { tournament, usernames, games, ...(stage?.standings ? { standings } : {}) }
     }
 
+    async groupResults(ids: string[]): Promise<GroupTournamentResults[]> {
+        const tournaments = (await this.store.readMany(ids)).map((tournament) => {
+            assertExists(tournament, 'League group tournament not found')
+            return tournament
+        })
+        const played = tournaments.filter((tournament) => this.hasGames(tournament))
+        const [schedules, links] = await Promise.all([
+            this.store.readSchedules(
+                tournaments.flatMap((tournament) => {
+                    const stage = tournament.stages[0]
+                    return stage?.scheduleId
+                        ? [{ tournamentId: tournament.id, stageId: stage.id }]
+                        : []
+                })
+            ),
+            this.store.readGameLinksMany(played.map((tournament) => tournament.id))
+        ])
+        const schedulesById = new Map(
+            schedules.map((schedule) => [schedule.tournamentId, schedule])
+        )
+        const linksById = new Map(played.map((tournament, index) => [tournament.id, links[index]]))
+        return tournaments.map((tournament) => {
+            const stage = tournament.stages[0]
+            const games = new Map(
+                this.withCorrections(tournament, linksById.get(tournament.id) ?? []).map((game) => [
+                    game.tableId,
+                    game
+                ])
+            )
+            return {
+                tournament,
+                standings: this.standingsWithUsers(tournament),
+                tables: (schedulesById.get(tournament.id)?.tables ?? []).map((table) => ({
+                    id: table.id,
+                    entrantIds: table.entrantIds,
+                    winnerIds: games.get(table.id)?.winningUserIds ?? []
+                })),
+                activeTableIds: stage?.dispatch?.active ?? []
+            }
+        })
+    }
+
+    validateGroupDraft(input: TournamentDraft): TournamentDraft {
+        const draft = this.validateRules(input)
+        if (draft.rules.registration.kind !== 'assigned')
+            throw new TournamentError('A league group has an assigned roster', 400)
+        return draft
+    }
+
+    private async creditedGameLinks(tournament: Tournament) {
+        if (!this.hasGames(tournament)) return []
+        return this.withCorrections(tournament, await this.store.readGameLinks(tournament.id))
+    }
+
+    private standingsWithUsers(tournament: Tournament) {
+        return (tournament.stages[0]?.standings ?? []).map((row, index) => ({
+            ...row,
+            userId: tournament.entrants[index].userId
+        }))
+    }
+
+    private hasGames(tournament: Tournament) {
+        return tournament.status === 'inProgress' || tournament.status === 'finished'
+    }
+
+    private withCorrections(
+        tournament: Tournament,
+        games: TournamentGameLink[]
+    ): TournamentGameLink[] {
+        const corrections = tournament.stages[0]?.corrections
+        return games.map((game) => {
+            const correction = corrections?.findLast((value) => value.tableId === game.tableId)
+            return correction ? { ...game, winningUserIds: [...correction.winningUserIds] } : game
+        })
+    }
+
     async correctResult(id: string, request: CorrectTournamentResultRequest, user: User) {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const tournament = await this.store.correctResult(id, request, user, this.now())
         await this.notify(tournament)
         return tournament
     }
 
     async rebuildStandings(id: string, revision: number, user: User) {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const before = await this.store.read(id)
         let tournament = await this.store.rebuildStandings(
             id,
@@ -298,9 +423,16 @@ export class TournamentService {
                 return scoring ? scoring.finalScores(await readState()) : undefined
             }
         )
-        if (before?.status !== 'finished') tournament = await this.emailResults(tournament)
+        if (before?.status !== 'finished') tournament = await this.completed(tournament)
         await this.notify(tournament)
         return tournament
+    }
+
+    private async completed(tournament: Tournament): Promise<Tournament> {
+        const current = await this.emailResults(tournament)
+        if (current.status === 'finished' && current.league)
+            await enqueueLeagueTask(this.tasks, { leagueId: current.league.leagueId })
+        return current
     }
 
     private async emailResults(tournament: Tournament): Promise<Tournament> {
@@ -311,15 +443,17 @@ export class TournamentService {
             claimed = value.status === 'finished' && value.resultsEmailedAt === undefined
             if (!claimed) return
             value.resultsEmailedAt = this.now()
-            this.touch(value)
+            touchRevision(value, this.now())
         })
         if (!claimed) return current
-        for (const { userId } of current.entrants) {
-            const account = await this.users.getUser(userId)
+        const accounts = await this.users.getUsers(
+            current.entrants.map((entrant) => entrant.userId)
+        )
+        for (const account of accounts) {
             if (account?.status !== UserStatus.Active || !account.email) continue
             await enqueueTournamentResultsEmail(this.tasks, {
                 tournamentId: current.id,
-                userId,
+                userId: account.id,
                 toEmail: account.email
             })
         }
@@ -351,7 +485,7 @@ export class TournamentService {
     }
 
     async previewSchedule(id: string, request: TournamentScheduleRequest, user: User) {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const tournament = await this.readVisible(id, user)
         if (tournament.stages[0]?.scheduleId)
             throw new TournamentError('This stage already has a saved schedule')
@@ -361,7 +495,7 @@ export class TournamentService {
     }
 
     async commitSchedule(id: string, request: CommitTournamentScheduleRequest, user: User) {
-        this.requireAdmin(user)
+        requireAdministrator(user)
         const tournament = await this.readVisible(id, user)
         const stage = tournament.stages[0]
         if (stage?.scheduleId && stage.scheduleId !== request.scheduleId)
@@ -380,7 +514,7 @@ export class TournamentService {
     }
 
     private async readVisible(id: string, user: User): Promise<Tournament> {
-        this.requireActive(user)
+        requireActiveAccount(user)
         let tournament = await this.store.read(id)
         if (!tournament || (!tournament.publishedAt && !user.roles.includes(Role.Admin)))
             throw new TournamentError('Tournament not found', 404)
@@ -406,8 +540,8 @@ export class TournamentService {
     }
 
     async list(user: User, query: TournamentListQuery) {
-        this.requireActive(user)
-        if (query.scope === 'draft') this.requireAdmin(user)
+        requireActiveAccount(user)
+        if (query.scope === 'draft') requireAdministrator(user)
         return this.store.list(user, query)
     }
 
@@ -436,6 +570,24 @@ export class TournamentService {
     }
 
     private validateDraft(input: TournamentDraft): TournamentDraft {
+        const draft = this.validateRules(input)
+        const rules = draft.rules
+        const registration = rules.registration
+        if (registration.kind === 'assigned')
+            throw new TournamentError('Only a league assigns a roster', 400)
+        const minimum =
+            registration.kind === 'whenFull' ? registration.capacity : registration.minimumEntrants
+        if (
+            minimum < rules.tableSize ||
+            (registration.capacity !== undefined && registration.capacity < minimum)
+        )
+            throw new TournamentError('The roster must cover the minimum and a full table', 400)
+        if (registration.kind === 'deadline' && registration.closesAt <= this.now())
+            throw new TournamentError('Registration must close in the future', 400)
+        return draft
+    }
+
+    private validateRules(input: TournamentDraft): TournamentDraft {
         const draft = {
             name: input.name.trim(),
             description: input.description.trim(),
@@ -459,14 +611,6 @@ export class TournamentService {
         const metadata = title.info.metadata
         if (rules.tableSize < metadata.minPlayers || rules.tableSize > metadata.maxPlayers)
             throw new TournamentError('This game does not support that table size', 400)
-        const registration = rules.registration
-        const minimum =
-            registration.kind === 'whenFull' ? registration.capacity : registration.minimumEntrants
-        if (
-            minimum < rules.tableSize ||
-            (registration.capacity !== undefined && registration.capacity < minimum)
-        )
-            throw new TournamentError('The roster must cover the minimum and a full table', 400)
         if (gamesPerEntrant % rules.tableSize !== 0)
             throw new TournamentError(
                 'Games per player must be a multiple of table size to balance positions',
@@ -474,8 +618,6 @@ export class TournamentService {
             )
         if (rules.concurrency > gamesPerEntrant)
             throw new TournamentError('Concurrent games cannot exceed games per player', 400)
-        if (registration.kind === 'deadline' && registration.closesAt <= this.now())
-            throw new TournamentError('Registration must close in the future', 400)
         try {
             if (title.info.configurator) title.info.configurator.validateConfig(rules.gameConfig)
             else if (Object.keys(rules.gameConfig).length)
@@ -484,21 +626,5 @@ export class TournamentService {
             throw new TournamentError('Invalid game configuration', 400)
         }
         return draft
-    }
-
-    private touch(tournament: Tournament) {
-        tournament.revision++
-        tournament.updatedAt = this.now()
-    }
-
-    private requireActive(user: User) {
-        if (user.status !== UserStatus.Active)
-            throw new TournamentError('An active account is required', 403)
-    }
-
-    private requireAdmin(user: User) {
-        this.requireActive(user)
-        if (!user.roles.includes(Role.Admin))
-            throw new TournamentError('Administrator access is required', 403)
     }
 }

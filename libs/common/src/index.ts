@@ -114,6 +114,8 @@ export * from './preferences/preferences.js'
 export * from './game/definition/gameMetadata.js'
 
 export * from './site/tournamentGameReference.js'
+export * from './site/leagueGroupReference.js'
+export * from './site/league.js'
 export * from './site/gameHistory.js'
 export * from './site/gameStats.js'
 export * from './site/bugReport.js'

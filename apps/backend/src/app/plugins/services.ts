@@ -20,6 +20,7 @@ import {
     FirestorePreferenceStore,
     FirestoreTokenStore,
     FirestoreTournamentStore,
+    FirestoreLeagueStore,
     FirestoreUserStore,
     GameService,
     LibraryService,
@@ -39,6 +40,7 @@ import {
     TaskService,
     TokenService,
     TournamentService,
+    LeagueService,
     UserService,
     WebPushTransport
 } from '@tabletop/backend-services'
@@ -65,6 +67,7 @@ declare module 'fastify' {
         libraryService: LibraryService
         catalogService: CatalogService
         tournamentService: TournamentService
+        leagueService: LeagueService
         bugReportService: BugReportService | undefined
     }
 }
@@ -174,6 +177,15 @@ export default fp(async (fastify: FastifyInstance) => {
         taskService
     )
     fastify.decorate('tournamentService', tournamentService)
+    fastify.decorate(
+        'leagueService',
+        new LeagueService(
+            new FirestoreLeagueStore(redisCacheService, fastify.firestore),
+            tournamentService,
+            userService,
+            taskService
+        )
+    )
     fastify.addHook('onClose', async () => {
         if (taskService instanceof LocalTaskService) taskService.close()
     })

@@ -44,10 +44,13 @@ function createService(supportsStartingPositions = true) {
     const store: TournamentStore = {
         create: vi.fn(async (tournament) => tournament),
         read: vi.fn(),
+        readMany: vi.fn(),
         readGameLinks: vi.fn(),
+        readGameLinksMany: vi.fn(),
         list: vi.fn(),
         update: vi.fn(),
         readSchedule: vi.fn(),
+        readSchedules: vi.fn(),
         commitSchedule: vi.fn(),
         correctResult: vi.fn(),
         rebuildStandings: vi.fn(),
@@ -55,7 +58,7 @@ function createService(supportsStartingPositions = true) {
     }
     return new TournamentService(
         store,
-        { getUser: vi.fn() },
+        { getUsers: vi.fn() },
         {
             test: {
                 info: {

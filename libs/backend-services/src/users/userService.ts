@@ -86,6 +86,10 @@ export class UserService {
         return this.userStore.findById(userId)
     }
 
+    async getUsers(userIds: string[]): Promise<(User | undefined)[]> {
+        return this.userStore.findByIds(userIds)
+    }
+
     async getUserByEmail(userId: string): Promise<User | undefined> {
         return this.userStore.findByEmail(userId)
     }

@@ -15,6 +15,7 @@ import {
     createGameFork,
     type GameState,
     type Tournament,
+    type TournamentDraft,
     type User
 } from '@tabletop/common'
 import { cacheFixture } from '../cache/tests/cacheFixture.js'
@@ -143,6 +144,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             enqueue.mockResolvedValue(undefined)
             vi.spyOn(userService, 'getUser').mockImplementation(async (id) =>
                 [...users, admin].find((user) => user.id === id)
+            )
+            vi.spyOn(userService, 'getUsers').mockImplementation(async (ids) =>
+                ids.map((id) => [...users, admin].find((user) => user.id === id))
             )
             notify = vi.spyOn(notifications, 'sendNotification').mockResolvedValue()
             vi.spyOn(tasks, 'sendGameInvitationEmail').mockRejectedValue(
@@ -460,6 +464,102 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(detail.games).toEqual(links)
             await service.runTask({ tournamentId: tournament.id })
             expect(await tournaments.readGameLinks(tournament.id)).toEqual(links)
+        })
+
+        it('creates a league group locked with its assigned roster, starts it, and accepts retried creation', async () => {
+            enqueue.mockReset()
+            enqueue.mockResolvedValue(undefined)
+            vi.spyOn(userService, 'getUser').mockImplementation(async (id) =>
+                [...users, admin].find((user) => user.id === id)
+            )
+            vi.spyOn(userService, 'getUsers').mockImplementation(async (ids) =>
+                ids.map((id) => [...users, admin].find((user) => user.id === id))
+            )
+            vi.spyOn(notifications, 'sendNotification').mockResolvedValue()
+            vi.spyOn(tasks, 'sendGameInvitationEmail').mockRejectedValue(
+                new Error('Must not invite')
+            )
+            const id = `${prefix}-${randomUUID()}`
+            const draft: TournamentDraft = {
+                name: 'League · Season 1 · B1',
+                description: '',
+                format: {
+                    kind: 'mini',
+                    stages: [{ id: 'main', name: 'Main', gamesPerEntrant: 4 }]
+                },
+                rules: {
+                    titleId: 'synthetic',
+                    tableSize: 4,
+                    gameConfig: {},
+                    concurrency: 4,
+                    scoring: 'splitWinsV1',
+                    registration: { kind: 'assigned' }
+                }
+            }
+            const group = {
+                id,
+                organizerId: admin.id,
+                league: { leagueId: 'league', leagueName: 'League', seasonId: '1', groupId: 'B1' },
+                entrantIds: users.slice(0, 7).map((user) => user.id),
+                draft
+            }
+            const created = await service.createGroup(group)
+            expect(created.status).toBe('locked')
+            expect(created.league).toEqual(group.league)
+            expect(created.entrants.map((entrant) => entrant.userId)).toEqual(group.entrantIds)
+            expect(enqueue).toHaveBeenCalledWith(
+                expect.objectContaining({ payload: { tournamentId: id }, inSeconds: 0 })
+            )
+            await expect(service.join(id, users[7])).rejects.toThrow('Registration is closed')
+
+            await service.runTask({ tournamentId: id })
+            const started = await tournaments.read(id)
+            expect(started?.status).toBe('inProgress')
+            expect(await tournaments.readGameLinks(id)).toHaveLength(7)
+
+            expect((await service.createGroup(group)).revision).toBe(started?.revision)
+            await expect(
+                service.createGroup({
+                    ...group,
+                    entrantIds: users.slice(1, 8).map((user) => user.id)
+                })
+            ).rejects.toThrow('already in use with different settings')
+        })
+
+        it('rejects assigned rosters through the draft path and duplicate group entrants', async () => {
+            const draft: TournamentDraft = {
+                name: 'Assigned',
+                description: '',
+                format: {
+                    kind: 'mini',
+                    stages: [{ id: 'main', name: 'Main', gamesPerEntrant: 4 }]
+                },
+                rules: {
+                    titleId: 'synthetic',
+                    tableSize: 4,
+                    gameConfig: {},
+                    concurrency: 4,
+                    scoring: 'splitWinsV1',
+                    registration: { kind: 'assigned' }
+                }
+            }
+            await expect(service.create(`${prefix}-${randomUUID()}`, draft, admin)).rejects.toThrow(
+                'Only a league assigns a roster'
+            )
+            await expect(
+                service.createGroup({
+                    id: `${prefix}-${randomUUID()}`,
+                    organizerId: admin.id,
+                    league: {
+                        leagueId: 'league',
+                        leagueName: 'League',
+                        seasonId: '1',
+                        groupId: 'A'
+                    },
+                    entrantIds: [users[0].id, ...users.slice(0, 6).map((user) => user.id)],
+                    draft
+                })
+            ).rejects.toThrow('cannot list a player twice')
         })
 
         it('rejects a draw without declared winners before committing completion', async () => {

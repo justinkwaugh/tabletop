@@ -1,10 +1,13 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { Role, type TournamentDetail } from '@tabletop/common'
+    import { Role, tournamentCapacity, type TournamentDetail } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import {
-        tournamentFormatText,
+        tournamentLeagueHref,
+        tournamentRosterText,
+        tournamentTag,
+        tournamentTagTitle,
         tournamentRegistrationText,
         tournamentRegistrationOpen,
         tournamentStatusText,
@@ -57,7 +60,8 @@
     )
     let full = $derived(
         tournament
-            ? tournament.entrants.length >= (tournament.rules.registration.capacity ?? 256)
+            ? tournament.entrants.length >=
+                  (tournamentCapacity(tournament.rules.registration) ?? 256)
             : false
     )
     let correcting = $state(false)
@@ -130,7 +134,8 @@
 >
     <a
         class="text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-        href="/tournaments">← Tournaments</a
+        href={tournament?.league ? tournamentLeagueHref(tournament.league) : '/tournaments'}
+        >← {tournament?.league ? tournament.league.leagueName : 'Tournaments'}</a
     >
     {#each [loadError, actionError].filter(Boolean) as message, i (i)}
         <p role="alert" class="mt-3 text-sm text-red-600 dark:text-red-300">{message}</p>
@@ -152,16 +157,22 @@
                         <h1
                             class="font-tournament break-words text-2xl font-semibold leading-tight sm:text-3xl"
                         >
-                            {tournament.name}
+                            {#if tournament.league}<a
+                                    class="hover:text-blue-700 dark:hover:text-blue-300"
+                                    href={tournamentLeagueHref(tournament.league)}
+                                    >{tournament.league.leagueName}</a
+                                >
+                                · Season {tournament.league.seasonId} · Group {tournament.league
+                                    .groupId}{:else}{tournament.name}{/if}
                         </h1>
                         <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 {title?.info.metadata.name ?? tournament.rules.titleId}
                             </p>
                             <span
-                                title={tournamentFormatText(tournament.format)}
+                                title={tournamentTagTitle(tournament)}
                                 class="rounded bg-gray-100 px-1.5 py-0.5 text-[0.6rem] leading-none text-gray-500 dark:bg-gray-700/60 dark:text-gray-400"
-                                >{tournament.format.kind === 'mini' ? 'Mini' : 'Multi-stage'}</span
+                                >{tournamentTag(tournament)}</span
                             >
                         </div>
                         <p
@@ -348,9 +359,7 @@
                 <div class="mb-2 flex items-baseline justify-between gap-3">
                     <h2 id="entrants-heading" class="font-tournament text-lg font-semibold">
                         Players <span class="ml-1 text-gray-500"
-                            >{tournament.entrants.length}{tournament.rules.registration.capacity
-                                ? ` / ${tournament.rules.registration.capacity}`
-                                : ''}</span
+                            >{tournamentRosterText(tournament)}</span
                         >
                     </h2>
                     {#if tournament.status === 'open' && !detail.tournament.entrants.length}<span
@@ -370,8 +379,7 @@
                                     {#if showTiebreak}
                                         <th
                                             class="w-24 pb-2 text-right font-normal"
-                                            title="Sum of final scores from each game"
-                                            >Tiebreak</th
+                                            title="Sum of final scores from each game">Tiebreak</th
                                         >
                                     {/if}
                                 {:else if joined && registrationOpen}

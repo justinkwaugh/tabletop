@@ -3,7 +3,13 @@ import { nanoid } from 'nanoid'
 import { Resend } from 'resend'
 import { SecretsService } from '../secrets/secretsService'
 import { Game, GameDefinition, TournamentDetail, User } from '@tabletop/common'
-import { AccountChangeType, EmailService } from './emailService.js'
+import {
+    AccountChangeType,
+    EmailService,
+    type LeagueSeasonResultsEmail,
+    type LeagueSeasonStartEmail,
+    type LeagueSignUpEmail
+} from './emailService.js'
 import { NullEmailService } from './nullEmailService.js'
 
 type EmailRendering = {
@@ -196,6 +202,53 @@ export class ResendEmailService implements EmailService {
             from: 'noreply@boardtogether.games',
             to: toEmail,
             subject: `Final results for ${detail.tournament.name}`,
+            html: emailHTML,
+            headers: {
+                'X-Entity-Ref-ID': nanoid()
+            }
+        })
+    }
+
+    async sendLeagueSignUpEmail({ toEmail, ...props }: LeagueSignUpEmail): Promise<void> {
+        const { render, templates } = await this.loadRendering()
+        const emailHTML = await render(templates.LeagueSignUp(props))
+        await this.resend.emails.send({
+            from: 'noreply@boardtogether.games',
+            to: toEmail,
+            subject: props.reminder
+                ? `Sign-up for ${props.leagueName} closes soon`
+                : `Sign-up for ${props.leagueName} Season ${props.seasonNumber} is open`,
+            html: emailHTML,
+            headers: {
+                'X-Entity-Ref-ID': nanoid()
+            }
+        })
+    }
+
+    async sendLeagueSeasonStartEmail({ toEmail, ...props }: LeagueSeasonStartEmail): Promise<void> {
+        const { render, templates } = await this.loadRendering()
+        const emailHTML = await render(templates.LeagueSeasonStart(props))
+        await this.resend.emails.send({
+            from: 'noreply@boardtogether.games',
+            to: toEmail,
+            subject: `${props.leagueName} Season ${props.seasonNumber} has started`,
+            html: emailHTML,
+            headers: {
+                'X-Entity-Ref-ID': nanoid()
+            }
+        })
+    }
+
+    async sendLeagueSeasonResultsEmail({
+        toEmail,
+        ...props
+    }: LeagueSeasonResultsEmail): Promise<void> {
+        const { render, templates } = await this.loadRendering()
+        const emailHTML = await render(templates.LeagueSeasonResults(props))
+        await this.resend.emails.send({
+            from: 'noreply@boardtogether.games',
+            to: toEmail,
+            subject: `${props.leagueName} ${props.movement === 'seeded' ? 'Seeding season' : `Season ${props.seasonNumber}`} results`,
             html: emailHTML,
             headers: {
                 'X-Entity-Ref-ID': nanoid()

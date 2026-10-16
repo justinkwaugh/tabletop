@@ -24,7 +24,10 @@ export function withTournamentCredit(
     }
 }
 
-export function compareTournamentScores(a: TournamentScore, b: TournamentScore): number {
+export function compareTournamentScores(
+    a: Pick<TournamentScore, 'score' | 'tiebreak'>,
+    b: Pick<TournamentScore, 'score' | 'tiebreak'>
+): number {
     return b.score - a.score || (b.tiebreak ?? 0) - (a.tiebreak ?? 0)
 }
 

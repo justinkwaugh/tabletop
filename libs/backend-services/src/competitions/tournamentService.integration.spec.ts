@@ -90,7 +90,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         const notifications = { sendNotification }
         const service = new TournamentService(
             store,
-            { getUser: async (id) => users.find((user) => user.id === id) },
+            { getUsers: async (ids) => ids.map((id) => users.find((user) => user.id === id)) },
             { test: title },
             notifications,
             GameService.prototype,
@@ -150,7 +150,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             })
             const reload = new TournamentService(
                 new FirestoreTournamentStore(cache, firestore, cachePrefix),
-                { getUser: async () => undefined },
+                { getUsers: async (ids) => ids.map(() => undefined) },
                 { test: title },
                 notifications,
                 GameService.prototype,
@@ -184,7 +184,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         it('validates table sizes and options through the existing title definition', async () => {
             const constrainedService = new TournamentService(
                 store,
-                { getUser: async (id) => users.find((user) => user.id === id) },
+                { getUsers: async (ids) => ids.map((id) => users.find((user) => user.id === id)) },
                 {
                     test: {
                         ...title,

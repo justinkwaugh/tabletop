@@ -1,5 +1,6 @@
 import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import { BaseError, ExternalAuthService, Role, User, UserStatus } from '@tabletop/common'
+import { requestForKey } from './cacheRequests.js'
 import {
     CollectionReference,
     DocumentData,
@@ -85,23 +86,34 @@ export class FirestoreUserStore implements UserStore {
 
     @Timed('store.user.findById')
     async findById(id: string): Promise<User | undefined> {
-        const cacheKey = this.makeUserCacheKey(id)
+        return await this.cacheService.cachingGet(this.makeUserCacheKey(id), () =>
+            this.readUser(id)
+        )
+    }
 
-        const getUser = async () => {
-            try {
-                const doc = this.users.doc(id)
-                const user = (
-                    await measure('firestore.user.get', () => doc.get())
-                ).data() as StoredUser
-                this.recordRead()
-                return this.sanitize(user)
-            } catch (error) {
-                this.handleError(error, id)
-                throw Error('unreachable')
-            }
+    @Timed('store.user.findByIds')
+    async findByIds(ids: string[]): Promise<(User | undefined)[]> {
+        if (!ids.length) return []
+        const idsByKey = new Map(ids.map((id) => [this.makeUserCacheKey(id), id]))
+        return this.cacheService.cachingGetMulti<User>([...idsByKey.keys()], async (keys) => {
+            return Promise.all(
+                keys.map((key) => {
+                    return this.readUser(requestForKey(idsByKey, key))
+                })
+            )
+        })
+    }
+
+    private async readUser(id: string): Promise<User | undefined> {
+        try {
+            const doc = this.users.doc(id)
+            const user = (await measure('firestore.user.get', () => doc.get())).data() as StoredUser
+            this.recordRead()
+            return this.sanitize(user)
+        } catch (error) {
+            this.handleError(error, id)
+            throw Error('unreachable')
         }
-
-        return await this.cacheService.cachingGet(cacheKey, getUser)
     }
 
     async findByUsernameAndPassword(username: string, password: string): Promise<User | undefined> {

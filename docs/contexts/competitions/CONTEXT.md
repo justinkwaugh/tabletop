@@ -54,10 +54,53 @@ The accepted outcome of a completed Table, final immediately when its Hosted Gam
 ## Leagues
 
 **League**:
-A recurring competition in which Entrants compete in Groups over successive Seasons, with promotion and relegation between levels.
+A recurring competition in one Game Title in which Entrants compete in Groups over successive Seasons, with promotion and relegation between Levels.
 
 **Season**:
 One cycle of League competition ending in Group standings and the determination of promotion and relegation for the next cycle.
 
+**Level**:
+A rank within a League, labelled A, B, C and so on, with A the highest. Every Group belongs to one Level.
+_Avoid_: Division, Tier
+
 **Group**:
-A field of Entrants at a division level competing together in a Mini Tournament within a League Season. The Group associates that Tournament with its League and Season.
+A field of Entrants at one Level competing together in a Mini Tournament within a League Season. The Group associates that Tournament with its League and Season. Groups are drawn afresh at random within each Level every Season.
+
+**League Shape**:
+How a League's Groups are arranged across Levels: a Ladder or a Pyramid, chosen per League.
+
+**Ladder**:
+A League Shape with one Group per Level. The top two of each Group are promoted and the bottom two relegated.
+
+**Pyramid**:
+A League Shape in which each Level holds twice as many Groups as the Level above. The winner of each Group is promoted and the bottom two are relegated; a Bottom Level with fewer Groups than that promotes the top two of each Group, never more than the Level above relegates.
+
+**Bottom Level**:
+The lowest Level of a League, where new Entrants start unless Vacancies above are left with no returning Entrant to fill them. Its Groups are the only ones whose size may differ from the standard Group size.
+
+**Seeding Season**:
+A Season in which all Entrants play at one Level in randomly drawn Groups; its results, ranked across Groups, set each Entrant's Level for the next Season. A League's first Season is a Seeding Season, and so is the Season that replaces a cancelled Seeding Season.
+_Avoid_: Initial Seeding, random placement
+
+**Sign-up Window**:
+The period before a Season starts in which returning Entrants confirm their Held Places and new Entrants join.
+
+**Held Place**:
+A place in the next Season reserved for an Entrant from the last finished Season at the Level their movement earned. It is kept only if the Entrant confirms it during the Sign-up Window.
+_Avoid_: Automatic entry
+
+**Vacancy**:
+A Held Place left unconfirmed when the Sign-up Window closes. It is filled by promoting the next eligible Entrant from the Level below, and so on down to the Bottom Level.
+
+**Cutoff Tie**:
+Equal standing between Entrants on either side of a promotion or relegation line. It is resolved by points, then Tiebreak Total, then head-to-head results, then a seeded draw.
+
+**Projected Allocation**:
+The Levels for the next Season implied by a finished Season's movement, before Held Places are confirmed. Groups are drawn only at the Final Allocation.
+
+**Final Allocation**:
+The Levels and Groups fixed when a Season starts, after Vacancies are filled and new Entrants are placed.
+_Avoid_: Projected Allocation once the Season has started
+
+**Cancelled Season**:
+A Season an administrator ended during its Sign-up Window. It starts no Groups and moves nobody; the next Season holds the same places it would have.

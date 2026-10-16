@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { GameResult } from '../game/model/gameResult.js'
 import { GameConfig } from '../game/model/gameConfig.js'
 import { TournamentGameReference } from './tournamentGameReference.js'
+import { LeagueGroupReference } from './leagueGroupReference.js'
 
 export const miniTournamentDefaults = {
     2: { capacity: 5, gamesPerEntrant: 4 },
@@ -60,9 +61,14 @@ export const TournamentRegistrationPolicy = Type.Union([
             capacity: Type.Optional(Type.Integer({ minimum: 2, maximum: 256 }))
         },
         { additionalProperties: false }
-    )
+    ),
+    Type.Object({ kind: Type.Literal('assigned') }, { additionalProperties: false })
 ])
 export type TournamentRegistrationPolicy = Type.Static<typeof TournamentRegistrationPolicy>
+
+export function tournamentCapacity(policy: TournamentRegistrationPolicy): number | undefined {
+    return policy.kind === 'assigned' ? undefined : policy.capacity
+}
 export const TournamentRules = Type.Object(
     {
         titleId: TournamentId,
@@ -162,6 +168,7 @@ export const Tournament = Type.Object(
         ...TournamentDraft.properties,
         id: TournamentId,
         organizerId: Type.String(),
+        league: Type.Optional(LeagueGroupReference),
         status: Type.Union([
             Type.Literal('draft'),
             Type.Literal('open'),
