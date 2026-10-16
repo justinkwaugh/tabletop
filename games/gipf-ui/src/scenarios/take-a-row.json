@@ -1,0 +1,358 @@
+{
+    "game": {
+        "id": "scenario-take-a-row",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "gipf",
+        "deleted": false,
+        "name": "Take a row",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "White",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Black",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "version": "Standard"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 2466067619,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-10-16T20:07:44.140Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-10-16T20:07:44.141Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "Q6zDqZrEns8ftbuuI7bkV",
+        "gameId": "scenario-take-a-row",
+        "seed": 2466067619,
+        "prng": {
+            "seed": 2466067619,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "seed": 3304200376,
+            "invocations": 0
+        },
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "white",
+                "reserve": 9,
+                "captured": 0,
+                "playedSingle": false
+            },
+            {
+                "playerId": "player-2",
+                "color": "black",
+                "reserve": 9,
+                "captured": 0,
+                "playedSingle": false
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "version": "Standard",
+        "board": {
+            "spots": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "piece": {
+                        "playerId": "player-1",
+                        "gipf": false
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "piece": {
+                        "playerId": "player-1",
+                        "gipf": false
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 2
+                    },
+                    "piece": {
+                        "playerId": "player-1",
+                        "gipf": false
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -1
+                    },
+                    "piece": {
+                        "playerId": "player-2",
+                        "gipf": false
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    },
+                    "piece": {
+                        "playerId": "player-1",
+                        "gipf": true
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": 0
+                    },
+                    "piece": {
+                        "playerId": "player-2",
+                        "gipf": true
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "piece": {
+                        "playerId": "player-1",
+                        "gipf": true
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 3
+                    },
+                    "piece": {
+                        "playerId": "player-2",
+                        "gipf": true
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 0
+                    },
+                    "piece": {
+                        "playerId": "player-1",
+                        "gipf": true
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -2
+                    },
+                    "piece": {
+                        "playerId": "player-2",
+                        "gipf": true
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -3
+                    },
+                    "piece": {
+                        "playerId": "player-2",
+                        "gipf": true
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -3
+                    }
+                }
+            ]
+        },
+        "resolvingPlayerIds": []
+    },
+    "actions": []
+}

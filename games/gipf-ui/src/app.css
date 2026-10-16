@@ -1,0 +1,67 @@
+@import 'tailwindcss';
+@plugin 'flowbite/plugin';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary-50: #fff5f2;
+    --color-primary-100: #fff1ee;
+    --color-primary-200: #ffe4de;
+    --color-primary-300: #ffd5cc;
+    --color-primary-400: #ffbcad;
+    --color-primary-500: #fe795d;
+    --color-primary-600: #ef562f;
+    --color-primary-700: #eb4f27;
+    --color-primary-800: #cc4522;
+    --color-primary-900: #a5371b;
+
+    --color-secondary-50: #f0f9ff;
+    --color-secondary-100: #e0f2fe;
+    --color-secondary-200: #bae6fd;
+    --color-secondary-300: #7dd3fc;
+    --color-secondary-400: #38bdf8;
+    --color-secondary-500: #0ea5e9;
+    --color-secondary-600: #0284c7;
+    --color-secondary-700: #0369a1;
+    --color-secondary-800: #075985;
+    --color-secondary-900: #0c4a6e;
+}
+
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+@source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
+@source "./**/*.{html,js,svelte,ts}";
+
+@layer base {
+    /* disable chrome cancel button */
+    input[type='search']::-webkit-search-cancel-button {
+        display: none;
+    }
+}
+
+:root {
+    --gipf-table: #16294a;
+    --gipf-table-deep: #0c1830;
+    --gipf-panel: rgb(9 19 38 / 0.9);
+    --gipf-panel-edge: #34507a;
+    --gipf-play: #4f74a8;
+    --gipf-line: #a8bcd8;
+    --gipf-line-opacity: 0.75;
+    --gipf-label: #9fb0c8;
+    --gipf-ink: #eef2f8;
+    --gipf-ink-quiet: #9fb0c8;
+    --gipf-target: #f0b04a;
+    --gipf-row: #f0644d;
+    --gipf-keep: #5fd39a;
+}
+
+/* Light board: the play area takes the dark board's grid colour, on a muted blue table, with
+   black lines and dots. Panels keep the dark theme. */
+.gipf-light {
+    --gipf-table: #5e7596;
+    --gipf-table-deep: #4d6282;
+    --gipf-play: #a8bcd8;
+    --gipf-line: #000000;
+    --gipf-line-opacity: 1;
+    --gipf-label: #0d1626;
+}
