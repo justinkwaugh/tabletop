@@ -6,7 +6,7 @@
 <script lang="ts">
     import type { CompanyId } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
+    import { COMPANY_STYLE, shareLabel } from '$lib/utils/companyStyle.js'
 
     let { companyId, labelled = true }: { companyId: CompanyId; labelled?: boolean } = $props()
 
@@ -22,7 +22,7 @@
     style:height="{CERTIFICATE_HEIGHT}px"
     style:--co={style.fill}
     style:--co-text={style.text}
-    title="{definition.name} share">{labelled ? definition.shortName : ''}</span
+    title="{definition.name} share">{labelled ? shareLabel(definition.shortName) : ''}</span
 >
 
 <style>

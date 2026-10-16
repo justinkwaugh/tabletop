@@ -107,7 +107,7 @@
     }
 
     .name {
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.06em;

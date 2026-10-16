@@ -3,6 +3,7 @@
     import CompaniesPanel from './CompaniesPanel.svelte'
     import IndustriesPanel from './IndustriesPanel.svelte'
     import PlayerState from './PlayerState.svelte'
+    import { companyPaneOnRight } from '$lib/utils/tableLayout.svelte.js'
 
     const gameSession = getGameSession()
 
@@ -17,6 +18,8 @@
     {#each orderedPlayers as playerState (playerState.playerId)}
         <PlayerState {playerState} />
     {/each}
-    <CompaniesPanel />
-    <IndustriesPanel />
+    {#if !companyPaneOnRight.current}
+        <CompaniesPanel />
+        <IndustriesPanel />
+    {/if}
 </div>

@@ -68,7 +68,7 @@
 
     .price {
         fill: #ffffff;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 11px;
         font-weight: 700;
         text-anchor: middle;

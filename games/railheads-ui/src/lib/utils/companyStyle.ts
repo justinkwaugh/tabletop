@@ -1,4 +1,4 @@
-import { CompanyId, Industry } from '@tabletop/railheads'
+import { CompanyId, HexKind, Industry } from '@tabletop/railheads'
 
 export type CompanyStyle = { fill: string; text: string; edge: string }
 
@@ -17,4 +17,15 @@ export const INDUSTRY_STYLE: Record<Industry, IndustryStyle> = {
     [Industry.Grain]: { name: 'Grain', ring: '#d3a92a', mark: '#c99a1e', text: '#2b2405' },
     [Industry.Brick]: { name: 'Brick', ring: '#7a2f17', mark: '#7a2f17', text: '#ffffff' },
     [Industry.Anvil]: { name: 'Anvil', ring: '#6b6d68', mark: '#5c5e59', text: '#ffffff' }
+}
+
+export const HEX_FILL: Record<HexKind, string> = {
+    [HexKind.Countryside]: '#a9be88',
+    [HexKind.City]: '#d9604c',
+    [HexKind.Town]: '#e8ad66',
+    [HexKind.Industry]: '#eee493'
+}
+
+export function shareLabel(shortName: string): string {
+    return shortName.replaceAll('.', '')
 }

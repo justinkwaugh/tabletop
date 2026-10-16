@@ -14,7 +14,9 @@ import {
     isPlaceSealedBid,
     isResolveIndustryAuction,
     isScoreGame,
+    isLayTrackSpace,
     type CompanyId,
+    type HydratedRailheadsGameState,
     type Industry,
     type LayTrackRules,
     type PlacementEffect,
@@ -32,6 +34,22 @@ export const SPACE_NAMES: Record<ActionSpaceId, string> = {
     [ActionSpaceId.LayTrackIII]: 'Lay Track III',
     [ActionSpaceId.LayTrackII]: 'Lay Track II',
     [ActionSpaceId.LayTrackI]: 'Lay Track I'
+}
+
+export const SPACE_DISPLAY_ORDER = [
+    ActionSpaceId.IssueShare,
+    ActionSpaceId.IndustryInvestment,
+    ActionSpaceId.LayTrackI,
+    ActionSpaceId.LayTrackII,
+    ActionSpaceId.LayTrackIII
+] as const
+
+export const SPACE_SHORT_NAMES: Record<ActionSpaceId, string> = {
+    [ActionSpaceId.IssueShare]: 'Share',
+    [ActionSpaceId.IndustryInvestment]: 'Industry',
+    [ActionSpaceId.LayTrackIII]: 'Track III',
+    [ActionSpaceId.LayTrackII]: 'Track II',
+    [ActionSpaceId.LayTrackI]: 'Track I'
 }
 
 export function industryName(industry: Industry): string {
@@ -159,7 +177,21 @@ export function withdrawnBidders(action: GameAction): string[] {
     return []
 }
 
-export function spaceTerms(space: ActionSpaceId, rules: LayTrackRules | undefined): string {
+export function spaceTerms(space: ActionSpaceId, rules: LayTrackRules | undefined): string[] {
+    if (!rules) {
+        return [space === ActionSpaceId.IssueShare ? 'Open auction' : 'Sealed bid']
+    }
+    const pieces = `${rules.placementsPerCompany} ${rules.allowsCrossingCubes ? 'disc/cube' : 'disc'}`
+    if (rules.maxCompanies > 1) {
+        return [
+            `${pieces} × ${rules.maxCompanies} cos`,
+            ...(rules.halfPriceWithoutShare ? ['½ unowned'] : [])
+        ]
+    }
+    return rules.requiresShare ? [pieces, 'Shareholder'] : [pieces]
+}
+
+export function spaceRules(space: ActionSpaceId, rules: LayTrackRules | undefined): string {
     if (!rules) {
         return space === ActionSpaceId.IssueShare ? 'Open auction' : 'Sealed second-price bid'
     }
@@ -167,7 +199,15 @@ export function spaceTerms(space: ActionSpaceId, rules: LayTrackRules | undefine
         ? `${rules.placementsPerCompany} discs or cubes`
         : `${rules.placementsPerCompany} discs`
     if (rules.maxCompanies > 1) {
-        return `${pieces} × ${rules.maxCompanies} companies${rules.halfPriceWithoutShare ? ', ½ price unowned' : ''}`
+        return `${pieces} for each of ${rules.maxCompanies} companies${rules.halfPriceWithoutShare ? ', half price for a company you hold no share in' : ''}`
     }
-    return rules.requiresShare ? `${pieces}, shareholder` : pieces
+    return rules.requiresShare ? `${pieces} for a company you hold a share in` : pieces
+}
+
+export function spaceText(
+    state: HydratedRailheadsGameState,
+    space: ActionSpaceId
+): { terms: string[]; rules: string } {
+    const rules = isLayTrackSpace(space) ? state.layTrackRules(space) : undefined
+    return { terms: spaceTerms(space, rules), rules: spaceRules(space, rules) }
 }

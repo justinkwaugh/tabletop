@@ -1,7 +1,9 @@
 <script lang="ts">
     import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/utils/boardLayout.js'
     import BoostPicker from './board/BoostPicker.svelte'
+    import EndgamePanel from './board/EndgamePanel.svelte'
     import Legend from './board/Legend.svelte'
+    import Logo from './board/Logo.svelte'
     import MapLayer from './board/MapLayer.svelte'
     import RevenueTrack from './board/RevenueTrack.svelte'
     import TargetLayer from './board/TargetLayer.svelte'
@@ -18,6 +20,8 @@
 >
     <RevenueTrack />
     <Legend />
+    <EndgamePanel />
+    <Logo />
     <MapLayer />
     <TrackLayer />
     <TargetLayer />

@@ -29,7 +29,28 @@
             return { industry, count, each, amount: count * each }
         }).filter((line) => line.count > 0)
     )
-    const payout = $derived(state.playerIncome(playerId, state.roundPayouts()))
+    const endBonuses = $derived.by(() => {
+        if (!state.isFinalRound()) {
+            return []
+        }
+        const { companies, industries } = state.finalPayouts()
+        return [
+            {
+                label: 'Game End Railroad',
+                title: 'Game-end Railroad Bonus on your shares, if the game ended now',
+                amount: state.playerIncome(playerId, { companies, industries: [] })
+            },
+            {
+                label: 'Game End Industry',
+                title: 'Game-end Industry Bonus on your tokens, if the game ended now',
+                amount: state.playerIncome(playerId, { companies: [], industries })
+            }
+        ]
+    })
+    const payout = $derived(
+        state.playerIncome(playerId, state.roundPayouts()) +
+            endBonuses.reduce((sum, bonus) => sum + bonus.amount, 0)
+    )
     const startPlayer = $derived(state.startPlayerId === playerId)
 </script>
 
@@ -39,7 +60,9 @@
         {#if startPlayer}
             <span class="start" title="Holds the Start Player token"><TrainIcon /></span>
         {/if}
-        <span class="cash" title="Cash in hand">${playerState.cash}</span>
+        <span class="cash" title="Cash in hand"
+            ><span class="cash-label">Cash</span>${playerState.cash}</span
+        >
     </div>
     {#each shares as line (line.companyId)}
         <div class="line" title="${line.each} a share at the next payout">
@@ -66,8 +89,21 @@
     {#if shares.length === 0 && tokens.length === 0}
         <div class="none">No shares or tokens yet</div>
     {/if}
-    <div class="total" title="What this player's shares and tokens would pay if the round ended now">
-        <span>PAYOUT DUE</span>
+    {#each endBonuses as bonus (bonus.label)}
+        <div class="line bonus" title={bonus.title}>
+            <span class="items">{bonus.label}</span>
+            <span class="leader"></span>
+            <span class="amount">${bonus.amount}</span>
+        </div>
+    {/each}
+    <div
+        class="total"
+        title="What this player's shares and tokens would pay if the round ended now{endBonuses.length >
+        0
+            ? ', game-end bonuses included'
+            : ''}"
+    >
+        <span>Payout due</span>
         <span>${payout}</span>
     </div>
 </div>
@@ -77,10 +113,11 @@
         position: relative;
         overflow: hidden;
         border: 1px solid #8f8a5c;
+        border-left: 10px solid var(--player);
         border-radius: 4px;
         background: #f6f2da;
         color: #26300f;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         box-shadow:
             inset 0 0 0 3px #f6f2da,
             inset 0 0 0 4px #b9b48a,
@@ -89,6 +126,7 @@
 
     .depot.acting {
         border-color: var(--player);
+        border-left-width: 10px;
         box-shadow:
             inset 0 0 0 3px #f6f2da,
             inset 0 0 0 4px var(--player),
@@ -99,10 +137,9 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 5px 10px 4px 12px;
-        border-left: 10px solid var(--player);
-        border-bottom: 1px solid #b9b48a;
-        background: linear-gradient(90deg, color-mix(in srgb, var(--player) 22%, #f6f2da), #f6f2da);
+        margin: 0 4px;
+        padding: 6px 6px 4px 8px;
+        border-bottom: 2px solid var(--player);
     }
 
     .name {
@@ -122,8 +159,19 @@
     }
 
     .cash {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
         font-size: 16px;
         font-weight: 700;
+    }
+
+    .cash-label {
+        font-size: 12px;
+        font-weight: 400;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 0.9;
     }
 
     .line {
@@ -151,6 +199,10 @@
         font-size: 14px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
+    }
+
+    .bonus {
+        background: #ece7c6;
     }
 
     .none {

@@ -29,7 +29,12 @@
 </script>
 
 {#snippet body()}
-    <div class="head" style:background={style.fill} style:color={style.text} title={definition.name}>
+    <div
+        class="head"
+        style:background={style.fill}
+        style:color={style.text}
+        title={definition.name}
+    >
         <span class="acronym">{definition.shortName}</span>
         <span class="treasury" title="Treasury: pays for track">
             <span class="treasury-label">Treasury</span>
@@ -73,11 +78,20 @@
                 title="Revenue Level{drop > 0 ? `; falls ${drop} at the end of the round` : ''}"
             >
                 <span>Revenue</span><span class="money"
-                    >{company.revenue}{#if drop > 0}<span class="drop">−{drop}</span>{/if}</span
+                    >${company.revenue}{#if drop > 0}<span class="drop">−{drop}</span>{/if}</span
                 >
             </div>
             <div class="entry" title="Payout per share: revenue ÷ shares sold, rounded up">
-                <span>Per share</span><span class="money">${state.dividendPerShare(companyId)}</span>
+                <span>Per share</span><span class="money">${state.dividendPerShare(companyId)}</span
+                >
+            </div>
+            <div
+                class="entry"
+                title="Game-end Railroad Bonus if the game ended now: at every city, town or industry site where this railroad has the top disc, $1 a share for each disc beneath it"
+            >
+                <span>End bonus / share</span><span class="money"
+                    >${state.railroadBonus(companyId)}</span
+                >
             </div>
             <div class="entry" title="Track discs and crossing cubes still on the charter">
                 <span>Discs · cubes</span><span class="money"
@@ -120,7 +134,7 @@
         border-radius: 8px;
         background: #f6f2da;
         color: #26300f;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 12.5px;
         box-shadow: 0 1px 3px rgba(30, 36, 10, 0.2);
     }
@@ -161,11 +175,11 @@
         display: inline-flex;
         align-items: baseline;
         gap: 6px;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
     }
 
     .treasury-label {
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 400;
         letter-spacing: 0.04em;
         text-transform: uppercase;
@@ -187,7 +201,7 @@
         flex: none;
         flex-direction: column;
         align-items: center;
-        justify-content: flex-end;
+        justify-content: center;
         gap: 3px;
         width: 74px;
         padding: 6px 0 4px;
@@ -246,6 +260,10 @@
 
     .entry:last-child {
         border-bottom: 0;
+    }
+
+    .entry:nth-child(even) {
+        background: #ece7c6;
     }
 
     .money {

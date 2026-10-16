@@ -23,7 +23,7 @@
         width: 20px;
         height: 20px;
         border-radius: 2px;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 13px;
         font-weight: 700;
         box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);

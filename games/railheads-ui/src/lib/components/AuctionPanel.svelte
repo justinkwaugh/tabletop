@@ -144,7 +144,7 @@
     }
 
     .name {
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.06em;
@@ -179,7 +179,7 @@
 
     .label {
         margin-right: 2px;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.06em;

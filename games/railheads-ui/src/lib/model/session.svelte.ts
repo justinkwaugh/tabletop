@@ -98,6 +98,16 @@ export class RailheadsGameSession extends GameSession<
         return playerId && this.choosingAction ? this.gameState.availableSpaces(playerId) : []
     })
 
+    roundEndingChoiceAvailable: boolean = $derived.by(() => {
+        const state = this.gameState
+        return (
+            state.machineState === MachineState.ChoosingAction &&
+            state
+                .availableSpaces(state.turnPlayerId())
+                .some((space) => state.spaceCost(space) === state.roundTimer)
+        )
+    })
+
     consolidatableSpaces: ActionSpaceId[] = $derived(
         this.choosingAction ? this.gameState.consolidatableSpaces() : []
     )

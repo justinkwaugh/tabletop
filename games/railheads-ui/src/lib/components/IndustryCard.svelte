@@ -20,6 +20,7 @@
     const steps = $derived(Math.max(0, state.edition.definition.industryTokensPerType - 1))
     const reached = $derived(state.industrySitesReached(industry))
     const sites = $derived(state.edition.industrySiteCount(industry))
+    const perSite = $derived(state.edition.definition.industryBonusPerSite)
 </script>
 
 {#snippet pile(count: number, label: string, title: string)}
@@ -31,16 +32,17 @@
                 style:height="{TOKEN_SIZE + OFFSET_Y * steps}px"
             >
                 {#each Array.from({ length: count }, (_, index) => index) as step (step)}
-                    <span class="stacked" style:left="{OFFSET_X * step}px" style:top="{OFFSET_Y * step}px">
+                    <span
+                        class="stacked"
+                        style:left="{OFFSET_X * step}px"
+                        style:top="{OFFSET_Y * step}px"
+                    >
                         <IndustryToken {industry} size={TOKEN_SIZE} />
                     </span>
                 {/each}
             </span>
         {:else}
-            <span
-                class="empty-slot"
-                style:width="{TOKEN_SIZE}px"
-                style:height="{TOKEN_SIZE}px"
+            <span class="empty-slot" style:width="{TOKEN_SIZE}px" style:height="{TOKEN_SIZE}px"
             ></span>
         {/if}
         <span class="count">{count} {label}</span>
@@ -67,10 +69,19 @@
             <div class="entry" title="Industry sites with a company disc on them, of all {sites}">
                 <span>Sites reached</span><span class="money">{reached}/{sites}</span>
             </div>
+            <div
+                class="entry"
+                title="Game-end Industry Bonus if the game ended now: ${perSite} for each {style.name} site with a disc on it, shared among the tokens held, rounded up"
+            >
+                <span>End bonus / token</span><span class="money"
+                    >${state.industryBonusPerToken(industry)}</span
+                >
+            </div>
         </div>
     </div>
     <div class="track" role="img" aria-label="Level {level} of {length}">
-        <span class="fill" style:width="{(100 * level) / length}%" style:background={style.ring}></span>
+        <span class="fill" style:width="{(100 * level) / length}%" style:background={style.ring}
+        ></span>
     </div>
 </div>
 
@@ -83,7 +94,7 @@
         border-radius: 8px;
         background: #f6f2da;
         color: #26300f;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 12.5px;
         box-shadow: 0 1px 3px rgba(30, 36, 10, 0.2);
     }
@@ -106,11 +117,11 @@
         display: inline-flex;
         align-items: baseline;
         gap: 6px;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
     }
 
     .level-label {
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 400;
         letter-spacing: 0.04em;
         text-transform: uppercase;
@@ -181,12 +192,18 @@
         border-bottom: 0;
     }
 
+    .entry:nth-child(even) {
+        background: #ece7c6;
+    }
+
     .money {
         display: flex;
         align-items: center;
         align-self: stretch;
         justify-content: flex-end;
-        min-width: 58px;
+        box-sizing: border-box;
+        flex: none;
+        width: 68px;
         padding: 0 8px;
         border-left: 1px solid #c9c493;
         font-size: 14px;

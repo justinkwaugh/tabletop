@@ -1,13 +1,18 @@
 <script lang="ts">
     import { MachineState, PlacementKind } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { SPACE_NAMES } from '$lib/utils/describeAction.js'
+    import {
+        SPACE_NAMES,
+        SPACE_SHORT_NAMES,
+        spaceText,
+        SPACE_DISPLAY_ORDER
+    } from '$lib/utils/describeAction.js'
     import AuctionPanel from './AuctionPanel.svelte'
     import BidStepper from './BidStepper.svelte'
+    import BigShareCertificate from './BigShareCertificate.svelte'
     import CompanyBadge from './CompanyBadge.svelte'
     import IndustryAuctionPanel from './IndustryAuctionPanel.svelte'
     import IndustryToken from './IndustryToken.svelte'
-    import ShareCertificate from './ShareCertificate.svelte'
     import WaitingView from './WaitingView.svelte'
 
     const gameSession = getGameSession()
@@ -19,6 +24,17 @@
     )
     const cubes = $derived(
         gameSession.placements.filter((placement) => placement.kind === PlacementKind.Cube).length
+    )
+    const spaceGuide = $derived(
+        SPACE_DISPLAY_ORDER.map((space) => ({
+            space,
+            name: SPACE_SHORT_NAMES[space],
+            rules: spaceText(state, space).rules,
+            open: gameSession.selectableSpaces.includes(space)
+        }))
+    )
+    const layRules = $derived(
+        gameSession.laySpace ? spaceText(state, gameSession.laySpace).rules : ''
     )
     const buildChoices = $derived(
         gameSession.placements.length === 0 && !gameSession.firstCompany
@@ -38,22 +54,29 @@
         <WaitingView />
     {:else if machineState === MachineState.ChoosingAction}
         <p class="prompt">
-            Choose an action space for the coins it costs, or consolidate the coins on a space.
-        </p>
-        <p class="effects">
             {#if gameSession.selectableSpaces.length === 0}
-                You can afford no action: consolidate a space.
+                You can afford no action: consolidate a space to take its
+                <span class="bubble pot">waiting</span> coins.
             {:else}
-                Highlighted spaces are open to you.
+                Choose an action space and pay its <span class="bubble cost">cost</span>, or
+                consolidate a space to take its <span class="bubble pot">waiting</span> coins.
             {/if}
         </p>
+        <dl class="guide">
+            {#each spaceGuide as entry (entry.space)}
+                <div class:closed={!entry.open}>
+                    <dt>{entry.name}</dt>
+                    <dd>{entry.rules}</dd>
+                </div>
+            {/each}
+        </dl>
     {:else if machineState === MachineState.IssuingShare}
         {#if gameSession.issueCompany}
             {@const companyId = gameSession.issueCompany}
             <p class="prompt">
                 Open the bidding on a <CompanyBadge {companyId} /> share (minimum ${state.minimumBid(
                     companyId
-                )}). Your bid goes to its treasury if nobody tops it.
+                )}).
             </p>
             <BidStepper
                 minimum={state.minimumBid(companyId)}
@@ -65,18 +88,18 @@
             <p class="prompt">Choose a share to put up for auction.</p>
             <div class="row" role="group" aria-label="Railroad shares">
                 {#each gameSession.issuableCompanies as companyId (companyId)}
-                    <button
-                        type="button"
-                        class="secondary"
+                    <BigShareCertificate
+                        {companyId}
+                        label="Auction a {state.companyDefinition(companyId).name} share"
                         onclick={() => gameSession.selectIssueCompany(companyId)}
-                    >
-                        <ShareCertificate {companyId} /> from ${state.minimumBid(companyId)}
-                    </button>
+                    />
                 {/each}
             </div>
         {/if}
     {:else if machineState === MachineState.ChoosingIndustry}
-        <p class="prompt">Choose an industry token to auction; its development level rises by one.</p>
+        <p class="prompt">
+            Choose an industry token to auction; its development level rises by one.
+        </p>
         <div class="row" role="group" aria-label="Industries">
             {#each gameSession.investableIndustries as industry (industry)}
                 <button
@@ -84,33 +107,35 @@
                     class="secondary"
                     onclick={() => gameSession.investIn(industry)}
                 >
-                    <IndustryToken {industry} size={22} labelled /> → level {state.raisedLevel(industry, 1)}
+                    <IndustryToken {industry} size={22} labelled /> → level {state.raisedLevel(
+                        industry,
+                        1
+                    )}
                 </button>
             {/each}
         </div>
     {:else if machineState === MachineState.LayingTrack && gameSession.laySpace}
+        <p class="effects">{SPACE_NAMES[gameSession.laySpace]}: {layRules}.</p>
         <p class="prompt">
-            {SPACE_NAMES[gameSession.laySpace]}:
             {#if !gameSession.firstCompany}
-                choose a company to build for.
+                Choose a company to build for.
             {:else if gameSession.boostHex}
-                choose how the industry develops.
+                Choose how the industry develops.
             {:else if gameSession.buildingCompany}
-                lay a disc{gameSession.layRules?.allowsCrossingCubes ? ' or crossing cube' : ''} for
-                <CompanyBadge companyId={gameSession.buildingCompany} /> on a ringed hex.
+                Lay a disc{gameSession.layRules?.allowsCrossingCubes ? ' or crossing cube' : ''} for
+                <CompanyBadge companyId={gameSession.buildingCompany} />.
             {:else}
-                everything allowed is staged.
+                Everything allowed is staged.
             {/if}
         </p>
         {#if buildChoices.length > 0}
             <div class="row" role="group" aria-label="Companies">
                 {#each buildChoices as companyId (companyId)}
-                    <button
-                        type="button"
-                        class="secondary"
+                    <BigShareCertificate
+                        {companyId}
+                        label="Build for {state.companyDefinition(companyId).name}"
                         onclick={() => gameSession.chooseTrackCompany(companyId)}
-                        ><CompanyBadge {companyId} /></button
-                    >
+                    />
                 {/each}
             </div>
         {/if}
@@ -157,6 +182,31 @@
         text-align: center;
     }
 
+    .bubble {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 0 6px;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 0.85em;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .bubble.cost {
+        border: 1px solid #7a5f0a;
+        background: #e3c34a;
+        color: #4a3a05;
+    }
+
+    .bubble.pot {
+        background: #33401a;
+        color: #f4f0d8;
+    }
+
+    .guide {
+        display: none;
+    }
+
     .row {
         display: flex;
         flex-wrap: wrap;
@@ -172,6 +222,33 @@
 
         .prompt {
             font-size: 14px;
+        }
+
+        .guide {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 1px 8px;
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.3;
+        }
+
+        .guide div {
+            display: contents;
+        }
+
+        .guide dt {
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .guide dd {
+            margin: 0;
+            font-family: 'Libre Baskerville', Georgia, serif;
+        }
+
+        .guide .closed > * {
+            color: #8d8a70;
         }
     }
 </style>

@@ -40,4 +40,6 @@ export function revenueCell(revenue: number): Point {
     return { x: 0, y: (100 - step) * TRACK_CELL }
 }
 
+export const ENDGAME_RECT = { x: 52, y: 254, width: 156, height: 168 }
 export const LEGEND_RECT = { x: 52, y: 54, width: 240, height: 188 }
+export const LOGO_ORIGIN = { x: 680, y: 58 }

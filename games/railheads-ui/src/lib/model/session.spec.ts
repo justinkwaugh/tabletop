@@ -27,6 +27,13 @@ describe('choosing an action', () => {
         expect(session.selectableSpaces).toContain(ActionSpaceId.LayTrackIII)
         expect(session.consolidatableSpaces).toEqual([])
     })
+
+    it('flags the round timer only when an open space costs every coin left on it', () => {
+        const table = firstTurnTable()
+        expect(openSessionOn(table).roundEndingChoiceAvailable).toBe(false)
+        const lastCoin = openSessionOn({ ...table, state: { ...table.state, roundTimer: 1 } })
+        expect(lastCoin.roundEndingChoiceAvailable).toBe(true)
+    })
 })
 
 describe('laying track for a choice of companies', () => {

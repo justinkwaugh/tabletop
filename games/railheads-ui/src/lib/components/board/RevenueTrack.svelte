@@ -130,7 +130,7 @@
 
     .band text {
         fill: #f4f0d8;
-        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 12px;
         font-weight: 700;
         text-anchor: middle;

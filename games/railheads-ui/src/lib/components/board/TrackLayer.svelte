@@ -8,8 +8,23 @@
     const gameSession = getGameSession()
 
     const DISC_RADIUS = 11
-    const STACK_STEP = 8
+    const STACK_STEP = 6
+    const FAN_OFFSET = 4
     const DISC_THICKNESS = 7
+    const HALO = '#fbf8e6'
+    const HALO_WIDTH = 4
+    const SITE_STACK_BASE = -3
+
+    function discBody(x: number, y: number, ry: number): string {
+        return `M ${x - DISC_RADIUS} ${y} L ${x - DISC_RADIUS} ${y + DISC_THICKNESS} A ${DISC_RADIUS} ${ry} 0 0 0 ${x + DISC_RADIUS} ${y + DISC_THICKNESS} L ${x + DISC_RADIUS} ${y} Z`
+    }
+
+    function fanOffset(index: number, count: number): number {
+        if (count === 1) {
+            return 0
+        }
+        return index % 2 === 0 ? -FAN_OFFSET : FAN_OFFSET
+    }
 
     function staged(companyId: CompanyId, kind: PlacementKind, coords: { q: number; r: number }) {
         return gameSession.placements.some(
@@ -25,12 +40,12 @@
         return state.track.map((hex) => {
             const center = hexCenter(hex.coords)
             const site = state.edition.map.hex(hex.coords).kind !== HexKind.Countryside
-            const baseY = site ? center.y + 2 + ((hex.discs.length - 1) * STACK_STEP) / 2 : center.y
+            const baseY = site ? center.y + SITE_STACK_BASE : center.y
             return {
                 key: hexKey(hex.coords),
                 discs: hex.discs.map((companyId, index) => ({
                     companyId,
-                    x: center.x,
+                    x: center.x + fanOffset(index, hex.discs.length),
                     y: baseY - index * STACK_STEP,
                     ghost: staged(companyId, PlacementKind.Disc, hex.coords)
                 })),
@@ -52,17 +67,40 @@
         {@const style = COMPANY_STYLE[disc.companyId]}
         {@const edge = disc.ghost ? '#fff6c8' : style.edge}
         {@const ry = DISC_RADIUS * 0.8}
-        <ellipse cx={disc.x} cy={disc.y + DISC_THICKNESS + 3} rx={DISC_RADIUS} ry={ry} fill="rgba(0,0,0,0.35)" />
-        <g opacity={disc.ghost ? 0.85 : 1} stroke={edge} stroke-width={disc.ghost ? 2.5 : 1.5} stroke-dasharray={disc.ghost ? '4 3' : undefined}>
-            <path
-                d="M {disc.x - DISC_RADIUS} {disc.y} L {disc.x - DISC_RADIUS} {disc.y + DISC_THICKNESS} A {DISC_RADIUS} {ry} 0 0 0 {disc.x + DISC_RADIUS} {disc.y + DISC_THICKNESS} L {disc.x + DISC_RADIUS} {disc.y} Z"
-                fill={style.edge}
-            />
-            <ellipse cx={disc.x} cy={disc.y} rx={DISC_RADIUS} ry={ry} fill={style.fill} />
+        {@const body = discBody(disc.x, disc.y, ry)}
+        <ellipse
+            cx={disc.x}
+            cy={disc.y + DISC_THICKNESS + 3}
+            rx={DISC_RADIUS + 1}
+            ry={ry + 1}
+            fill="rgba(0,0,0,0.5)"
+        />
+        <g fill={HALO} stroke={HALO} stroke-width={HALO_WIDTH} stroke-linejoin="round">
+            <path d={body} />
+            <ellipse cx={disc.x} cy={disc.y} rx={DISC_RADIUS} {ry} />
+        </g>
+        <g
+            opacity={disc.ghost ? 0.85 : 1}
+            stroke={edge}
+            stroke-width={disc.ghost ? 2.5 : 1.5}
+            stroke-dasharray={disc.ghost ? '4 3' : undefined}
+        >
+            <path d={body} fill={style.edge} />
+            <ellipse cx={disc.x} cy={disc.y} rx={DISC_RADIUS} {ry} fill={style.fill} />
         </g>
     {/each}
     {#if hex.cube}
         {@const style = COMPANY_STYLE[hex.cube.companyId]}
+        <rect
+            x={hex.cube.x - 7}
+            y={hex.cube.y - 7}
+            width="14"
+            height="14"
+            rx="2"
+            fill={HALO}
+            stroke={HALO}
+            stroke-width={HALO_WIDTH}
+        />
         <rect
             x={hex.cube.x - 7}
             y={hex.cube.y - 7}
@@ -79,6 +117,7 @@
 
 <style>
     ellipse,
+    path,
     rect {
         pointer-events: none;
     }
