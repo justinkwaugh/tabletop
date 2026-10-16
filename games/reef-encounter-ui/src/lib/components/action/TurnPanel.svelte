@@ -230,7 +230,10 @@
                 <span class="chips"
                     >{#each fromBag as color (color)}{@render cube(color)}{/each}</span
                 >
-                <span class="arrow">→</span><span class="any-polyp"></span>
+                <span class="arrow">→</span>{#if fromBag.length === 1}<PolypChip
+                        color={fromBag[0]}
+                        count={1}
+                    />{:else}<span class="any-polyp"></span>{/if}
                 exchange searches the bag: no Undo.
             </span>
         </p>

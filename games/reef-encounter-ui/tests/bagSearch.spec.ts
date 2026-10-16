@@ -13,6 +13,10 @@ test('trading a cube with its bonus space empty searches the bag, past which Und
         .click()
     await expect(actions).toContainText('Choose your actions')
     await expect(undo).toHaveCount(0)
+    await expect(actions.locator('.warning .sr-only')).toHaveText(
+        'Exchanging white larva cubes searches the bag for the polyp: no Undo.'
+    )
+    await expect(actions.locator('.warning img[alt="1 white polyp"]')).toBeAttached()
     await page.getByRole('tab', { name: 'History' }).click()
     await expect(page.getByText('The bag held a pink polyp.')).toBeAttached()
 })
