@@ -286,7 +286,7 @@ const formatArtifact = (artifact: ArtifactPreflight): string[] => {
 }
 
 const describeHosting = (hosting: HostingCheck) => {
-    if (!hosting.enabled) return 'not enabled (the backend serves the site files)'
+    if (!hosting.enabled) return 'not enabled (frontend releases need hosting.channel)'
     if ('error' in hosting) return `${hosting.channel} could not be checked: ${hosting.error}`
     const state = hosting.matches
         ? `serves the manifest's frontend ${hosting.version}`
