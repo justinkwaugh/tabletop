@@ -3,7 +3,12 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import { MachineState } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { actionSale, describeAction, saleDescription } from '$lib/utils/describeAction.js'
+    import {
+        actionSale,
+        describeAction,
+        revealedBids,
+        saleDescription
+    } from '$lib/utils/describeAction.js'
     import Description from './Description.svelte'
 
     const gameSession = getGameSession()
@@ -23,7 +28,8 @@
             .map((action) => ({
                 action,
                 description: describeAction(action),
-                sale: actionSale(action)
+                sale: actionSale(action),
+                bids: revealedBids(action)
             }))
             .filter((entry) => entry.description.length > 0)
     })
@@ -39,6 +45,14 @@
             {#if entry.sale}<span>·</span>
                 <Description description={saleDescription(entry.sale)} />{/if}
         </div>
+        {#if entry.bids.length > 0}
+            <div class="bids">
+                {#each entry.bids as bid, index (index)}
+                    {#if index > 0}<span>·</span>{/if}
+                    <Description description={bid} />
+                {/each}
+            </div>
+        {/if}
     {/each}
     {#if !gameSession.isViewingHistory && waitingOn && waitingText}
         <div class="next"><PlayerName playerId={waitingOn} /> {waitingText}</div>
@@ -61,6 +75,15 @@
         justify-content: center;
         gap: 4px;
         font-size: 16px;
+    }
+
+    .bids {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        font-size: 14px;
     }
 
     .next {

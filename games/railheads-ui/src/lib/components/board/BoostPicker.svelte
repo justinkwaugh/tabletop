@@ -8,10 +8,22 @@
     const WIDTH = 176
     const target = $derived(gameSession.boostTarget)
     const center = $derived(target ? hexCenter(target.coords) : undefined)
-    const level = $derived(target?.industry ? gameSession.shownState.industry(target.industry).level : 0)
+    // Levels stop at the end of the development track, so near the top a boost raises less.
+    const industry = $derived(target?.industry)
+    const level = $derived(industry ? gameSession.shownState.industry(industry).level : 0)
+    const revenueLevel = $derived(industry ? gameSession.shownState.raisedLevel(industry, 1) : 0)
+    const developmentLevel = $derived(
+        industry ? gameSession.shownState.raisedLevel(industry, 2) : 0
+    )
     const choices = $derived([
-        { boost: IndustryBoost.Revenue, label: `Industry +1, revenue +${level + 1}` },
-        { boost: IndustryBoost.Development, label: 'Industry +2, revenue +0' }
+        {
+            boost: IndustryBoost.Revenue,
+            label: `Industry +${revenueLevel - level}, revenue +${revenueLevel}`
+        },
+        {
+            boost: IndustryBoost.Development,
+            label: `Industry +${developmentLevel - level}, revenue +0`
+        }
     ])
 </script>
 

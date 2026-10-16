@@ -112,11 +112,26 @@ test('runs a sealed-bid industry auction', async ({ page }) => {
     }
     await expect.poll(() => machineState(page)).toBe('ChoosingAction')
     await screenshot(page, '07-after-industry-auction')
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    await expect(page.locator('.history .line.bid')).toHaveCount(4)
+    await screenshot(page, '07b-revealed-bids')
 })
 
 test('fits a phone screen without sideways scrolling in the action area', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 780 })
+    // The harness hides its New game button on narrow screens, so shrink once the game is open.
     await createGame(page)
+    await page.setViewportSize({ width: 390, height: 780 })
     await playInitialAuctions(page)
     await screenshot(page, '08-phone')
+    const overflow = await page.evaluate(() => ({
+        page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        actionAreas: [...document.querySelectorAll<HTMLElement>('.action-area')]
+            .filter((area) => area.offsetParent !== null)
+            .map((area) => area.scrollWidth - area.clientWidth)
+    }))
+    expect(overflow.actionAreas.length).toBeGreaterThan(0)
+    expect(overflow.page).toBeLessThanOrEqual(0)
+    for (const excess of overflow.actionAreas) {
+        expect(excess).toBeLessThanOrEqual(0)
+    }
 })

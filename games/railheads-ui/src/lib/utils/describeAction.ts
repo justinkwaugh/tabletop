@@ -170,6 +170,18 @@ export function actionSale(action: GameAction): ShareSale | undefined {
     return undefined
 }
 
+// Every sealed bid once the auction resolves, in seat order. A seat that never bid stood at the
+// minimum (the investor) or at $0.
+export function revealedBids(action: GameAction): Description[] {
+    if (!isResolveIndustryAuction(action) || !action.metadata) {
+        return []
+    }
+    return action.metadata.sale.bids.map((bid) => {
+        const note = bid.submitted ? '' : bid.amount > 0 ? ' (minimum)' : ' (no bid)'
+        return [{ playerId: bid.playerId }, ` bid $${bid.amount}${note}`]
+    })
+}
+
 export function withdrawnBidders(action: GameAction): string[] {
     if (isPlaceBid(action) || isIssueShare(action)) {
         return action.metadata?.withdrawnPlayerIds ?? []

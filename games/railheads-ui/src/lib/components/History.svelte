@@ -6,6 +6,7 @@
         SPACE_NAMES,
         actionSale,
         describeAction,
+        revealedBids,
         saleDescription,
         winVerb,
         withdrawnBidders
@@ -102,6 +103,9 @@
                     {#if sale}
                         <div class="line result"><Description description={saleDescription(sale)} /></div>
                     {/if}
+                    {#each revealedBids(action) as bid, index (index)}
+                        <div class="line bid"><Description description={bid} /></div>
+                    {/each}
                 {/each}
             </section>
         {/if}
@@ -168,6 +172,10 @@
     .line.sub {
         color: #6d6a45;
         font-style: italic;
+    }
+
+    .line.bid {
+        padding-left: 16px;
     }
 
     .line.result {
