@@ -6,7 +6,7 @@
 | -------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------- | -------------------------------- |
 | choose_marble  | Acting player may place and more than one colour is available | Selectable pool chips (amber border); the chosen chip              | Colours with none left (faded marble) | Board rings                      |
 | place_marble   | A colour is chosen (manually, or the only one available)      | Every vacant ring (amber outline); hover preview of the marble     | Nothing                               | Pool counts, player trays        |
-| remove_ring    | `RemovingRing` and the viewer is acting                       | Free rings (red dashed outline); hovered ring fades                | Nothing                               | Marbles, ghost positions         |
+| remove_ring    | `RemovingRing` and the viewer is acting                       | Free rings (white dashed outline); hovered ring fades              | Nothing                               | Marbles, ghost positions         |
 | choose_jumper  | A capture is required and no jumper is chosen                 | Marbles with a legal jump (green outline)                          | Nothing                               | Pool (inactive)                  |
 | choose_landing | A jumper is chosen, or a capture chain continues              | The chosen jumper (thick green); its landing rings (green outline) | Nothing                               | Other jumpers keep their outline |
 
@@ -15,6 +15,10 @@
 - **Ring highlight** (`Board.svelte`, `.ring-highlight`): one outline circle per interactive ring, styled by the ring's role. Inputs: the role from session targets. Must not encode game state beyond the role.
 - **Placement preview** (`Board.svelte`, `.preview`): translucent marble on the hovered placement ring. Inputs: `chosenColor` and local hover. Must not appear for any other role.
 - **Ghost position** (`Board.svelte`, `.ghost`): dashed outline where a ring has been removed. Inputs: layout positions minus current rings. Never interactive.
+- **Sinking ring** (`Board.svelte`, the shared `ringShadow` snippet): a removed ring keeps the soft drop shadow it cast on the board, under its ghost dashes, for every ring taken off during the latest turn that took any: the removed ring, any group it cut off, and any group claimed by a placement that turn. A later turn that takes rings replaces them; a capture-only turn leaves them. Inputs: `session.sinkingRings`, derived from the displayed actions' input and metadata (`board/sinkingRings.ts`). Never interactive.
+- **Coordinate labels** (`Board.svelte`, `.coordinate-labels`, from `board/coordinates.ts`): each column's bottom and top ring names below and above it, BoardSpace style (A1 under the bottom-left ring, A4 over the top-left). Drawn from the setup's full layout, so they stay put as rings are removed. Shown while the `showCoordinates` title preference is on (`CoordinatesToggle.svelte` in the board overlay). Never interactive.
+- **Each-colour outline** (`PlayerTray.svelte`, `.trio`): rounded outline around the first `eachColor` slots of every tray row; lit (`.met`) once that colour reaches the each-colour target. Reflects captures only.
+- **Shadows** (`Board.svelte`, `.ring-shadow`, `.shadow`): blurred on their own layer and circles so rings and marbles are never rasterised through a filter and stay sharp when zoomed.
 - **Pool chip** (`PoolStrip.svelte`): marble and count; selectable and chosen states.
 - **Marble** (`MarbleDefs.svelte` + `MarbleShape.svelte`, styled from `board/marbleStyle.ts`): body gradient, speckles (white on black, black on grey) and sheen. The board and every icon draw marbles through these, so a style change lands everywhere. Never carries interaction state.
 

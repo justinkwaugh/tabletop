@@ -49,6 +49,21 @@
     --zertz-ink: #f4efe4;
     --zertz-ink-quiet: #a6c8dc;
     --zertz-place: #f2c14e;
-    --zertz-remove: #ff7a59;
+    --zertz-remove: #ffffff;
     --zertz-capture: #6ee0a4;
+}
+
+.zertz-water {
+    background-color: var(--zertz-water-deep);
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='1200' viewBox='0 0 1600 1200' preserveAspectRatio='xMidYMid slice'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004 0.008' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -2.4 1.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)' opacity='0.22'/%3E%3C/svg%3E"),
+        radial-gradient(
+            ellipse at 50% 30%,
+            var(--zertz-water) 0%,
+            #125f8c 45%,
+            var(--zertz-water-deep) 100%
+        );
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }

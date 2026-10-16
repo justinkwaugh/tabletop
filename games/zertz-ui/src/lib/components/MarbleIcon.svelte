@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { MarbleColor } from '@tabletop/zertz'
+    import { MARBLE_COLORS, type MarbleColor } from '@tabletop/zertz'
     import MarbleDefs from './MarbleDefs.svelte'
     import MarbleShape from './MarbleShape.svelte'
 
@@ -21,8 +21,15 @@
     viewBox="-10 -10 20 20"
     aria-hidden="true"
 >
-    <defs><MarbleDefs {prefix} speckScale={0.55} /></defs>
-    <MarbleShape {prefix} {color} radius={10} />
+    <defs><MarbleDefs {prefix} /></defs>
+    <MarbleShape
+        {prefix}
+        {color}
+        radius={10}
+        seed={MARBLE_COLORS.indexOf(color) + 1}
+        speckDensity={0.28}
+        speckScale={1.7}
+    />
 </svg>
 
 <style>

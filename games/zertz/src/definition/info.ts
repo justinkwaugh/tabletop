@@ -1,6 +1,7 @@
 import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { ZertzConfigurator } from './config.js'
+import { ZertzPreferenceDefinition } from './preferences.js'
 
 export const ZertzInfo: GameInfo = {
     id: 'zertz',
@@ -16,5 +17,6 @@ export const ZertzInfo: GameInfo = {
         version: GAME_VERSION,
         beta: true
     },
-    configurator: new ZertzConfigurator()
+    configurator: new ZertzConfigurator(),
+    preferences: ZertzPreferenceDefinition
 }

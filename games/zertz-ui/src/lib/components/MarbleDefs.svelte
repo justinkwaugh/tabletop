@@ -2,9 +2,9 @@
 
 <script lang="ts">
     import { MARBLE_COLORS } from '@tabletop/zertz'
-    import { MARBLE_BODY_STOPS, SPECK_COLOR, SPECK_TILE, SPECKS } from '$lib/board/marbleStyle.js'
+    import { MARBLE_BODY_STOPS } from '$lib/board/marbleStyle.js'
 
-    let { prefix, speckScale = 1 }: { prefix: string; speckScale?: number } = $props()
+    let { prefix }: { prefix: string } = $props()
 </script>
 
 {#each MARBLE_COLORS as color (color)}
@@ -13,27 +13,9 @@
             <stop offset={stop.offset} stop-color={stop.color}></stop>
         {/each}
     </radialGradient>
-    {#if SPECK_COLOR[color]}
-        <pattern
-            id="{prefix}-speck-{color}"
-            width={SPECK_TILE.width}
-            height={SPECK_TILE.height}
-            patternUnits="userSpaceOnUse"
-            patternTransform="scale({speckScale})"
-        >
-            {#each SPECKS as speck, index (index)}
-                <circle
-                    cx={speck.x}
-                    cy={speck.y}
-                    r={speck.r}
-                    fill={SPECK_COLOR[color]}
-                    fill-opacity="0.85"
-                ></circle>
-            {/each}
-        </pattern>
-    {/if}
 {/each}
-<radialGradient id="{prefix}-sheen" cx="0.32" cy="0.28" r="0.42">
-    <stop offset="0" stop-color="#ffffff" stop-opacity="0.75"></stop>
+<radialGradient id="{prefix}-sheen" cx="0.34" cy="0.3" r="0.3">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"></stop>
+    <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.12"></stop>
     <stop offset="1" stop-color="#ffffff" stop-opacity="0"></stop>
 </radialGradient>

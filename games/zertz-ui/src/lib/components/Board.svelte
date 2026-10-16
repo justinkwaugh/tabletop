@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+    import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import type { MarbleColor, Ring } from '@tabletop/zertz'
     import MarbleDefs from './MarbleDefs.svelte'
     import MarbleShape from './MarbleShape.svelte'
@@ -15,11 +15,6 @@
         ringCenter
     } from '$lib/board/geometry.js'
 
-    // Turning the shared speckle tile per ring keeps neighbouring marbles from looking stamped.
-    function speckleTurn(coords: AxialCoordinates): number {
-        return (coords.q * 67 + coords.r * 131 + 360 * 4) % 360
-    }
-
     const session = getGameSession()
 
     const frame = $derived(boardFrame(session.gameState.setup))
@@ -29,6 +24,16 @@
     )
 
     let hoveredKey: string | undefined = $state()
+
+    // The outline grows outward from a fixed gap, so a thicker line never covers the ring, and
+    // stays within half the space between rings, so neighbouring outlines never meet.
+    const HIGHLIGHT_GAP = 0.5
+    const HIGHLIGHT_WIDTH = 1.4
+    const EMPHASIZED_HIGHLIGHT_WIDTH = 2
+
+    function highlightWidth(role: RingRole, hovered: boolean): number {
+        return hovered || role === 'chosen-jumper' ? EMPHASIZED_HIGHLIGHT_WIDTH : HIGHLIGHT_WIDTH
+    }
 
     type RingRole = 'place' | 'remove' | 'land' | 'jumper' | 'chosen-jumper' | undefined
 
@@ -78,22 +83,54 @@
             <stop offset="0.6" stop-color="#16191b"></stop>
             <stop offset="1" stop-color="#050607"></stop>
         </radialGradient>
-        <filter id="zertz-drop" x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#021624" flood-opacity="0.6"
-            ></feDropShadow>
+        <!-- Shadows are blurred on their own so the rings and marbles above them stay crisp. -->
+        <filter id="zertz-soft" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="2.5"></feGaussianBlur>
         </filter>
     </defs>
 
+    {#snippet ringShadow(coords: AxialCoordinates)}
+        {@const center = ringCenter(coords)}
+        <circle
+            cx={center.x}
+            cy={center.y + 3}
+            r={RING_MID_RADIUS}
+            stroke-width={RING_WIDTH}
+            class="ring-shadow"
+        ></circle>
+    {/snippet}
+
     {#snippet marble(color: MarbleColor, coords: AxialCoordinates, preview: boolean)}
-        <g class:preview filter={preview ? undefined : 'url(#zertz-drop)'}>
+        <g class:preview>
+            {#if !preview}
+                <circle r={MARBLE_RADIUS} cy="3" class="shadow" filter="url(#zertz-soft)"></circle>
+            {/if}
             <MarbleShape
                 prefix="zertz-board"
                 {color}
                 radius={MARBLE_RADIUS}
-                speckTurn={speckleTurn(coords)}
+                seed={coordinatesToNumber(coords)}
             />
         </g>
     {/snippet}
+
+    {#if session.showCoordinates}
+        <g class="coordinate-labels">
+            {#each session.notation.labels as label (label.key)}
+                <text x={label.at.x} y={label.at.y}>{label.text}</text>
+            {/each}
+        </g>
+    {/if}
+
+    <!-- A removed ring leaves its shadow for the turn it sank in. -->
+    <g filter="url(#zertz-soft)">
+        {#each session.sinkingRings as coords (coordsKey(coords))}
+            {@render ringShadow(coords)}
+        {/each}
+        {#each rings as ring (coordsKey(ring.coords))}
+            {@render ringShadow(ring.coords)}
+        {/each}
+    </g>
 
     {#each removedPositions as coords (coordsKey(coords))}
         {@const center = ringCenter(coords)}
@@ -112,22 +149,22 @@
             role="button"
             tabindex={interactive ? 0 : -1}
             aria-disabled={!interactive}
-            aria-label="{role ?? 'ring'} {ring.coords.q},{ring.coords.r}"
+            aria-label="{role ?? 'ring'} {session.notation.name(ring.coords)}"
             onclick={() => activate(ring, role)}
             onkeydown={(event) => onKey(event, ring, role)}
             onpointerenter={() => (hoveredKey = coordsKey(ring.coords))}
             onpointerleave={() => (hoveredKey = undefined)}
         >
             <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
-            <circle
-                r={RING_MID_RADIUS}
-                stroke-width={RING_WIDTH}
-                class="ring-body"
-                filter="url(#zertz-drop)"
-            ></circle>
+            <circle r={RING_MID_RADIUS} stroke-width={RING_WIDTH} class="ring-body"></circle>
             <circle r={RING_OUTER_RADIUS - 1.5} class="ring-rim"></circle>
             {#if interactive}
-                <circle r={RING_OUTER_RADIUS + 3} class="ring-highlight"></circle>
+                {@const width = highlightWidth(role, isHovered(ring.coords))}
+                <circle
+                    r={RING_OUTER_RADIUS + HIGHLIGHT_GAP + width / 2}
+                    stroke-width={width}
+                    class="ring-highlight"
+                ></circle>
             {/if}
             {#if ring.marble}
                 {@render marble(ring.marble, ring.coords, false)}
@@ -151,6 +188,27 @@
         stroke-dasharray: 4 5;
     }
 
+    .coordinate-labels {
+        pointer-events: none;
+        fill: var(--zertz-ink-quiet);
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+
+    .ring-shadow {
+        fill: none;
+        stroke: #021624;
+        stroke-opacity: 0.6;
+    }
+
+    .shadow {
+        fill: #021624;
+        fill-opacity: 0.55;
+    }
+
     .ring-hit {
         fill: transparent;
     }
@@ -169,13 +227,15 @@
 
     .ring-highlight {
         fill: none;
-        stroke-width: 4;
         pointer-events: none;
+    }
+
+    .ring {
+        outline: none;
     }
 
     .interactive {
         cursor: pointer;
-        outline: none;
     }
 
     .role-place .ring-highlight {
@@ -185,7 +245,7 @@
 
     .role-remove .ring-highlight {
         stroke: var(--zertz-remove);
-        stroke-dasharray: 7 5;
+        stroke-dasharray: 5 3.5;
     }
 
     .role-land .ring-highlight,
@@ -199,12 +259,14 @@
 
     .role-chosen-jumper .ring-highlight {
         stroke: var(--zertz-capture);
-        stroke-width: 7;
     }
 
-    .hovered .ring-highlight,
+    .hovered .ring-highlight {
+        stroke-opacity: 1;
+    }
+
     .interactive:focus-visible .ring-highlight {
-        stroke-width: 7;
+        stroke: var(--zertz-ink);
         stroke-opacity: 1;
     }
 

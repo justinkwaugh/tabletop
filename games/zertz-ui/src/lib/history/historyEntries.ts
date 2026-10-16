@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import type { AxialCoordinates, GameAction } from '@tabletop/common'
 import {
     isCapture,
     isPlaceMarble,
@@ -18,21 +18,20 @@ type TurnSpan = {
 export type PlacementEntry = TurnSpan & {
     kind: 'placement'
     color: MarbleColor
+    placedAt: AxialCoordinates
     fromCaptures: boolean
-    removedRing: boolean
-    claimed: MarbleColor[]
+    removedAt?: AxialCoordinates
+    claimed: Ring[]
 }
 
 export type CaptureEntry = TurnSpan & {
     kind: 'capture'
+    jumper: MarbleColor
+    path: AxialCoordinates[]
     captured: MarbleColor[]
 }
 
 export type HistoryEntry = PlacementEntry | CaptureEntry
-
-function claimedMarbles(rings: readonly Ring[]): MarbleColor[] {
-    return rings.flatMap((ring) => (ring.marble === undefined ? [] : [ring.marble]))
-}
 
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
@@ -49,15 +48,15 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                 lastIndex: index,
                 playerId: action.playerId,
                 color: action.color,
+                placedAt: action.coords,
                 fromCaptures: action.metadata?.source === MarbleSource.Captured,
-                removedRing: false,
-                claimed: claimedMarbles(action.metadata?.claimedRings ?? [])
+                claimed: [...(action.metadata?.claimedRings ?? [])]
             })
         } else if (isRemoveRing(action) && last?.kind === 'placement') {
             last.lastIndex = index
-            last.removedRing = true
-            last.claimed.push(...claimedMarbles(action.metadata?.claimedRings ?? []))
-        } else if (isCapture(action)) {
+            last.removedAt = action.coords
+            last.claimed.push(...(action.metadata?.claimedRings ?? []))
+        } else if (isCapture(action) && action.metadata !== undefined) {
             if (chain === undefined) {
                 chain = {
                     kind: 'capture',
@@ -65,15 +64,16 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                     firstIndex: index,
                     lastIndex: index,
                     playerId: action.playerId,
+                    jumper: action.metadata.jumper,
+                    path: [action.from],
                     captured: []
                 }
                 entries.push(chain)
             }
             chain.lastIndex = index
-            if (action.metadata !== undefined) {
-                chain.captured.push(action.metadata.captured)
-            }
-            if (action.metadata?.continues !== true) {
+            chain.path.push(action.to)
+            chain.captured.push(action.metadata.captured)
+            if (!action.metadata.continues) {
                 chain = undefined
             }
         }

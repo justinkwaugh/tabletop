@@ -2,7 +2,7 @@ import { flatHexCoordsToCenterPoint, type AxialCoordinates, type Point } from '@
 import { layoutCoordinates, SETUP_RULES, type ZertzSetup } from '@tabletop/zertz'
 
 export const RING_SPACING = 64
-export const RING_OUTER_RADIUS = RING_SPACING * 0.47
+export const RING_OUTER_RADIUS = RING_SPACING * 0.46
 export const RING_INNER_RADIUS = RING_SPACING * 0.2
 export const RING_WIDTH = RING_OUTER_RADIUS - RING_INNER_RADIUS
 export const RING_MID_RADIUS = (RING_OUTER_RADIUS + RING_INNER_RADIUS) / 2

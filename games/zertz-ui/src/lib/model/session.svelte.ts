@@ -1,11 +1,13 @@
-import { GameSession } from '@tabletop/frontend-components'
+import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
 import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import {
     ActionType,
     Capture,
     PlaceMarble,
     RemoveRing,
+    ZertzPreferenceDefinition,
     type HydratedZertzGameState,
+    type ZertzPreferences,
     type MarbleColor,
     type ZertzGameState
 } from '@tabletop/zertz'
@@ -15,6 +17,9 @@ import {
     setZertzSelection,
     type ZertzSelection
 } from './stagedSelection.js'
+import { boardFrame } from '$lib/board/geometry.js'
+import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
+import { sinkingRingsAfter } from '$lib/board/sinkingRings.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
     return list.some((candidate) => sameCoordinates(candidate, coords))
@@ -22,6 +27,15 @@ export function includesCoords(list: readonly AxialCoordinates[], coords: AxialC
 
 export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzGameState> {
     selection: ZertzSelection = $state({})
+
+    readonly preferences: TitlePreferences<typeof ZertzPreferences> =
+        this.createPreferences(ZertzPreferenceDefinition)
+
+    showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
+
+    notation: BoardNotation = $derived(boardNotation(boardFrame(this.gameState.setup).positions))
+
+    sinkingRings: AxialCoordinates[] = $derived(sinkingRingsAfter(this.actions))
 
     canPlace = $derived(this.canAct(ActionType.PlaceMarble))
     canRemove = $derived(this.canAct(ActionType.RemoveRing))
@@ -93,6 +107,10 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
             return
         }
         await super.undo()
+    }
+
+    toggleCoordinates() {
+        this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
 
     resetAction() {

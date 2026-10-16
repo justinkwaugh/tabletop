@@ -1,0 +1,300 @@
+{
+    "game": {
+        "id": "scenario-one-capture-from-winning",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "zertz",
+        "deleted": false,
+        "name": "One capture from winning",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Player 1",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Player 2",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "setup": "Standard"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 782582325,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-10-16T06:30:32.003Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-10-16T06:30:32.005Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "ZYNLFvndzTycwt9XCP_e3",
+        "gameId": "scenario-one-capture-from-winning",
+        "seed": 782582325,
+        "prng": {
+            "seed": 782582325,
+            "invocations": 2
+        },
+        "protectedPrng": {
+            "seed": 84474303,
+            "invocations": 0
+        },
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "red",
+                "captured": {
+                    "white": 3,
+                    "grey": 3,
+                    "black": 2
+                }
+            },
+            {
+                "playerId": "player-2",
+                "color": "blue",
+                "captured": {
+                    "white": 1,
+                    "grey": 2,
+                    "black": 1
+                }
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "setup": "Standard",
+        "board": {
+            "rings": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "marble": "white"
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "marble": "black"
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 0
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -1
+                    }
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -2
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -3
+                    }
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -3
+                    }
+                }
+            ]
+        },
+        "pool": {
+            "white": 1,
+            "grey": 3,
+            "black": 6
+        }
+    },
+    "actions": []
+}

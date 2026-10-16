@@ -11,9 +11,10 @@
     const isActive = $derived(session.gameState.activePlayerIds.includes(playerState.playerId))
     const isWinner = $derived(session.gameState.winningPlayerIds.includes(playerState.playerId))
     const name = $derived(session.getPlayerName(playerState.playerId))
-    const setsTowardEach = $derived(
-        Math.min(...MARBLE_COLORS.map((color) => playerState.captured[color]), win.eachColor)
-    )
+
+    function slotsBetween(from: number, to: number): number[] {
+        return Array.from({ length: Math.max(to - from, 0) }, (_, index) => from + index)
+    }
 </script>
 
 <div class="tray" class:active={isActive}>
@@ -32,7 +33,16 @@
             {@const target = win.singleColor[color]}
             {@const count = playerState.captured[color]}
             <div class="flex items-center gap-[5px]" aria-label="{count} of {target} {color}">
-                {#each Array.from({ length: target }, (_, slot) => slot) as slot (slot)}
+                <span
+                    class="trio"
+                    class:met={count >= win.eachColor}
+                    title="{win.eachColor} of each colour also wins"
+                >
+                    {#each slotsBetween(0, win.eachColor) as slot (slot)}
+                        <MarbleIcon {color} size={20} faded={slot >= count} />
+                    {/each}
+                </span>
+                {#each slotsBetween(win.eachColor, target) as slot (slot)}
                     <MarbleIcon {color} size={20} faded={slot >= count} />
                 {/each}
                 {#if count > target}
@@ -40,9 +50,6 @@
                 {/if}
             </div>
         {/each}
-        <div class="mt-1 text-[12px] tracking-[0.06em] text-(--zertz-ink-quiet)">
-            {win.eachColor} of each colour: {setsTowardEach}/{win.eachColor}
-        </div>
     </div>
 </div>
 
@@ -59,6 +66,25 @@
             0 3px 8px rgb(0 0 0 / 0.35);
         color: var(--zertz-ink);
         overflow: hidden;
+    }
+
+    .trio {
+        display: inline-flex;
+        gap: 5px;
+        margin: -3px 1px -3px -4px;
+        padding: 2px 3px;
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+        transition:
+            box-shadow 0.3s,
+            background 0.3s;
+    }
+
+    .trio.met {
+        background: rgb(242 193 78 / 0.14);
+        box-shadow:
+            inset 0 0 0 1.5px var(--zertz-place),
+            0 0 8px rgb(242 193 78 / 0.45);
     }
 
     .tray.active {

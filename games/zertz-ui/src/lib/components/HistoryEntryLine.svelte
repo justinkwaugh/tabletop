@@ -1,6 +1,6 @@
 <script lang="ts">
-    import type { MarbleColor } from '@tabletop/zertz'
     import type { HistoryEntry } from '$lib/history/historyEntries.js'
+    import { entrySegments } from '$lib/history/entryText.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import MarbleIcon from './MarbleIcon.svelte'
 
@@ -8,28 +8,35 @@
 
     const session = getGameSession()
 
-    const name = $derived(
-        entry.playerId === session.myPlayer?.id ? 'You' : session.getPlayerName(entry.playerId)
-    )
+    const isMe = $derived(entry.playerId === session.myPlayer?.id)
+    const name = $derived(isMe ? 'You' : session.getPlayerName(entry.playerId))
+    const segments = $derived(entrySegments(entry, isMe))
 </script>
 
-{#snippet marbles(colors: readonly MarbleColor[])}
-    <span class="inline-flex translate-y-[3px] gap-[2px]">
-        {#each colors as color, index (index)}
-            <MarbleIcon {color} size={14} />
-        {/each}
-    </span>
-{/snippet}
+<span
+    ><span class="font-semibold">{name}</span
+    >{#each segments as segment, index (index)}{#if segment.kind === 'text'}{segment.text}{:else if segment.kind === 'marble'}<span
+                class="marble"><MarbleIcon color={segment.color} size={14} /></span
+            >{:else if segment.kind === 'ring'}<span class="coordinate"
+                >{session.notation.name(segment.coords)}</span
+            >{:else}<span class="step">→</span>{/if}{/each}</span
+>
 
-<span>
-    <span class="font-semibold">{name}</span>
-    {#if entry.kind === 'placement'}
-        placed {@render marbles([entry.color])}{#if entry.fromCaptures}
-            from {name === 'You' ? 'your' : 'their'} captures{/if}{#if entry.removedRing}, removed a
-            ring{/if}{#if entry.claimed.length > 0}
-            and claimed {@render marbles(entry.claimed)}{/if}
-    {:else}
-        captured {@render marbles(entry.captured)}{#if entry.captured.length > 1}
-            in {entry.captured.length} jumps{/if}
-    {/if}
-</span>
+<style>
+    .marble {
+        display: inline-flex;
+        transform: translateY(2px);
+        margin: 0 1px;
+    }
+
+    .coordinate {
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+    }
+
+    .step {
+        margin: 0 3px;
+        color: var(--zertz-ink-quiet);
+    }
+</style>
