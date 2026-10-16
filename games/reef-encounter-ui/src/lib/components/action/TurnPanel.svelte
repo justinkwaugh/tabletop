@@ -1,6 +1,6 @@
 <script lang="ts">
     import { squareName } from '$lib/utils/reefSquare.js'
-    import { withArticle } from '$lib/utils/actionDescription.js'
+    import { BagSearchLabel, withArticle } from '$lib/utils/actionDescription.js'
     import ChoiceButton from './ChoiceButton.svelte'
     import LarvaCube from '$lib/components/table/LarvaCube.svelte'
     import Shrimp from '$lib/components/table/Shrimp.svelte'
@@ -26,10 +26,7 @@
             ? ['take a larva space on the open sea to end your turn']
             : [])
     ])
-    const fromBag = $derived(gameSession.cubesForPolypsFromBag)
-    const placementSearchesBag = $derived(
-        gameSession.placementTargets.some((target) => target.searchesBag)
-    )
+    const cubesSearchingBag = $derived(gameSession.cubesForPolypsFromBag)
     const supplyLeft = $derived.by(() => {
         if (!placing || !me) return 0
         return Math.min(me.getSupplyPolyps()[placing.color], placing.supplyPolypsLeft)
@@ -192,12 +189,13 @@
             items={gameSession.cubesForPolyps}
             key={(color) => color}
             label={(color) =>
-                `Exchange ${withArticle(color)} larva cube for ${withArticle(color)} polyp${fromBag.includes(color) ? ' from the bag, which can’t be taken back' : ''}`}
+                `Exchange ${withArticle(color)} larva cube for ${withArticle(color)} polyp${cubesSearchingBag.includes(color) ? BagSearchLabel : ''}`}
             onselect={(color) => gameSession.exchangeLarvaCube(color)}
         >
             {#snippet icon(color)}
                 {@render cube(color)}
-                {#if fromBag.includes(color)}<span class="bag-flag reef-display">!</span>{/if}
+                {#if cubesSearchingBag.includes(color)}<span class="bag-flag reef-display">!</span
+                    >{/if}
             {/snippet}
             {#snippet result(color)}
                 <span class="arrow">→</span>
@@ -210,7 +208,7 @@
         <p class="detail">Or {onBoard.join(', or ')}.</p>
     {/if}
     {#if placing}
-        {#if placementSearchesBag}
+        {#if gameSession.placementSearchesBag}
             <p class="warning icon-line">
                 <span class="sr-only"
                     >Placing on a square marked ! searches the bag for a bonus {placing.color} polyp:
@@ -221,17 +219,18 @@
                 </span>
             </p>
         {/if}
-    {:else if fromBag.length > 0}
+    {:else if cubesSearchingBag.length > 0}
         <p class="warning icon-line">
             <span class="sr-only"
-                >Exchanging {fromBag.join(' or ')} larva cubes searches the bag for the polyp: no Undo.</span
+                >Exchanging {cubesSearchingBag.join(' or ')} larva cubes searches the bag for the polyp:
+                no Undo.</span
             >
             <span class="icon-line" aria-hidden="true">
                 <span class="chips"
-                    >{#each fromBag as color (color)}{@render cube(color)}{/each}</span
+                    >{#each cubesSearchingBag as color (color)}{@render cube(color)}{/each}</span
                 >
-                <span class="arrow">→</span>{#if fromBag.length === 1}<PolypChip
-                        color={fromBag[0]}
+                <span class="arrow">→</span>{#if cubesSearchingBag.length === 1}<PolypChip
+                        color={cubesSearchingBag[0]}
                         count={1}
                     />{:else}<span class="any-polyp"></span>{/if}
                 exchange searches the bag: no Undo.
@@ -306,8 +305,8 @@
         border-radius: 50%;
         font-size: 11px;
         font-weight: 700;
-        color: #3a2200;
-        background: #ffc04d;
+        color: var(--reef-flag-ink);
+        background: var(--reef-flag);
         box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
     }
 

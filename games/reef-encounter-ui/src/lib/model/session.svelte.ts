@@ -59,7 +59,6 @@ export type PlacementTarget = {
     boardId: ReefBoardId
     coords: OffsetCoordinates
     attack: boolean
-    // Placing here grows a bonus polyp its space lacks, so the bag is searched: no Undo.
     searchesBag: boolean
 }
 
@@ -183,6 +182,10 @@ export class ReefEncounterGameSession extends GameSession<
         )
     })
 
+    readonly placementSearchesBag = $derived(
+        this.placementTargets.some((target) => target.searchesBag)
+    )
+
     readonly shrimpProtectedPolyps: ReefSquare[] = $derived.by(() => {
         const placing = this.placing
         if (!placing || this.placementSources.length === 0 || this.turnChoiceOpen) return []
@@ -258,7 +261,6 @@ export class ReefEncounterGameSession extends GameSession<
         return CoralColors.filter((color) => this.gameState.canExchangeLarvaCube(me, color))
     })
 
-    // Colours whose trade must search the bag, their bonus space being empty.
     readonly cubesForPolypsFromBag: CoralColor[] = $derived(
         this.cubesForPolyps.filter((color) => this.gameState.exchangeSearchesBag(color))
     )

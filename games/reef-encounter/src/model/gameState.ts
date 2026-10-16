@@ -45,6 +45,7 @@ import {
     neighboringCorals,
     orthogonalNeighbors,
     polypAt,
+    putPolyp,
     PolypPlacement,
     Reef,
     type ReefSquare,
@@ -285,8 +286,8 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             const found = this.polypBag.takeColor(color)
             if (found) {
                 this.bonusPolyps[color] = 1
-            } else if (!this.colorsMissingFromBag.includes(color)) {
-                this.colorsMissingFromBag.push(color)
+            } else {
+                this.markMissingFromBag(color)
             }
             return { color, found }
         })
@@ -420,23 +421,20 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
 
         const reef = this.reefOn(boardId)
         const placement: PolypPlacement = { color }
-        const occupant = polypAt(reef, coords)
+        const occupant = putPolyp(reef, coords, color)
         if (occupant) {
-            reef.polyps = reef.polyps.filter((polyp) => polyp !== occupant)
             player.addConsumedPolyp(occupant.color)
             placement.attacked = occupant.color
         }
-        reef.polyps.push({ coords: structuredClone(coords), color })
 
-        if (this.canGrowExtraPolyp(reef, coords, color)) {
-            if (this.bonusPolyps[color] > 0) {
-                this.bonusPolyps[color] -= 1
-                const square = ReefBoards[boardId].extraGrowth
-                reef.polyps.push({ coords: structuredClone(square), color })
-                placement.extraGrowth = structuredClone(square)
-            } else if (this.bagMayHold(color)) {
-                placement.extraGrowthSearchesBag = true
-            }
+        const growth = this.extraGrowthSource(reef, coords, color)
+        if (growth === 'bonus') {
+            this.bonusPolyps[color] -= 1
+            const square = ReefBoards[boardId].extraGrowth
+            reef.polyps.push({ coords: structuredClone(square), color })
+            placement.extraGrowth = structuredClone(square)
+        } else if (growth === 'bag') {
+            placement.extraGrowthSearchesBag = true
         }
         return placement
     }
@@ -476,7 +474,6 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         )
     }
 
-    // With the colour's bonus space empty, the polyp must be searched for in the bag: a reveal.
     exchangeSearchesBag(color: CoralColor): boolean {
         return this.bonusPolyps[color] === 0
     }
@@ -486,7 +483,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
             this.canExchangeLarvaCube(playerId, color),
             `Player ${playerId} cannot exchange a ${color} larva cube`
         )
-        if (this.bonusPolyps[color] === 0) {
+        if (this.exchangeSearchesBag(color)) {
             return { searchesBag: true }
         }
         this.bonusPolyps[color] -= 1
@@ -497,7 +494,7 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
     searchBag(color: CoralColor, need: BagSearchNeed): BagSearchResult {
         assert(this.bagMayHold(color), `A search of the bag cannot find a ${color} polyp`)
         if (!this.polypBag.takeColor(color)) {
-            this.colorsMissingFromBag.push(color)
+            this.markMissingFromBag(color)
             return { found: false }
         }
         if (need.kind === 'exchange') {
@@ -912,25 +909,35 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         return this.shrimps.filter((shrimp) => shrimp.boardId === boardId)
     }
 
-    // A polyp placed next to an empty extra-growth square grows a bonus polyp there at once
-    // (rulebook p. 7), except in the Advanced game (p. 12). It does not count towards the
-    // cube's four polyps.
-    // Whether placing a polyp there would grow one on the extra-growth square with the colour's
-    // bonus space empty, so that the bag must be searched: a reveal.
     placementSearchesBag(
         boardId: ReefBoardId,
         coords: OffsetCoordinates,
         color: CoralColor
     ): boolean {
-        if (this.bonusPolyps[color] > 0 || !this.bagMayHold(color)) {
-            return false
-        }
         const reef = structuredClone(this.reefOn(boardId))
-        reef.polyps = reef.polyps.filter((polyp) => !sameCoordinates(polyp.coords, coords))
-        reef.polyps.push({ coords: structuredClone(coords), color })
-        return this.canGrowExtraPolyp(reef, coords, color)
+        putPolyp(reef, coords, color)
+        return this.extraGrowthSource(reef, coords, color) === 'bag'
     }
 
+    // The extra-growth polyp is the colour's bonus polyp, or failing that one searched for in
+    // the bag.
+    private extraGrowthSource(
+        reef: Reef,
+        placedAt: OffsetCoordinates,
+        color: CoralColor
+    ): 'bonus' | 'bag' | undefined {
+        if (!this.canGrowExtraPolyp(reef, placedAt, color)) {
+            return undefined
+        }
+        if (this.bonusPolyps[color] > 0) {
+            return 'bonus'
+        }
+        return this.bagMayHold(color) ? 'bag' : undefined
+    }
+
+    // A polyp placed next to an empty extra-growth square grows a bonus polyp there at once
+    // (rulebook p. 7), except in the Advanced game (p. 12). It does not count towards the
+    // cube's four polyps.
     private canGrowExtraPolyp(reef: Reef, placedAt: OffsetCoordinates, color: CoralColor) {
         const square = ReefBoards[reef.boardId].extraGrowth
         const shrimps = this.shrimpsOn(reef.boardId)
@@ -950,6 +957,12 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         player.addKnownSupplyPolyps([color])
         this.turn.cubeToPlay = undefined
         this.endAction()
+    }
+
+    private markMissingFromBag(color: CoralColor) {
+        if (!this.colorsMissingFromBag.includes(color)) {
+            this.colorsMissingFromBag.push(color)
+        }
     }
 
     private bagMayHold(color: CoralColor): boolean {

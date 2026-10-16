@@ -146,6 +146,8 @@
         --reef-coral-deep: #c95436;
         --reef-accent: #ef8f2e;
         --reef-sun: #ffd98a;
+        --reef-flag: #ffc04d;
+        --reef-flag-ink: #3a2200;
         --reef-wobble: 15px 11px 16px 10px / 11px 16px 10px 15px;
         --reef-pearl: conic-gradient(
             from 200deg,

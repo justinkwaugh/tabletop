@@ -29,7 +29,6 @@ export const OpenSeaAddition = Type.Object({
     polyp: Type.Enum(CoralColor)
 })
 
-// An empty bonus space refilled at turn end, or found to have no polyp of its colour in the bag.
 export type BonusSpaceRefill = Type.Static<typeof BonusSpaceRefill>
 export const BonusSpaceRefill = Type.Object({
     color: Type.Enum(CoralColor),

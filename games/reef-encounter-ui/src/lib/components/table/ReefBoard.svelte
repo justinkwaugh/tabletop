@@ -1,6 +1,6 @@
 <script lang="ts">
     import { boardName, squareName } from '$lib/utils/reefSquare.js'
-    import { withArticle } from '$lib/utils/actionDescription.js'
+    import { BagSearchLabel, withArticle } from '$lib/utils/actionDescription.js'
     import type { OffsetCoordinates } from '@tabletop/common'
     import { polypAt, type Reef, type ReefSquare } from '@tabletop/reef-encounter'
     import Pieces from './Pieces.svelte'
@@ -147,7 +147,7 @@
                 label="{target.attack ? 'Attack with' : 'Place'} {withArticle(
                     placing?.color ?? ''
                 )} polyp {where(target.coords)}{target.searchesBag
-                    ? ', growing a bonus polyp from the bag, which can’t be taken back'
+                    ? `, growing a bonus polyp${BagSearchLabel}`
                     : ''}"
                 onselect={() =>
                     gameSession.placePolyp({ boardId: reef.boardId, coords: target.coords })}
@@ -170,7 +170,7 @@
     }
 
     .bag-flag circle {
-        fill: #ffc04d;
+        fill: var(--reef-flag);
         stroke: rgb(0 0 0 / 0.45);
         stroke-width: 2;
     }
@@ -179,7 +179,7 @@
         font:
             700 42px Fredoka,
             sans-serif;
-        fill: #3a2200;
+        fill: var(--reef-flag-ink);
     }
 
     .protected {

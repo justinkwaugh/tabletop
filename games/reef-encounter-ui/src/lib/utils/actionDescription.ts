@@ -36,6 +36,8 @@ export type PhraseWords = string | { text: string; short: string }
 export type PhrasePart = PhraseWords | PhraseIcon
 export type Phrase = { text: string; parts: PhrasePart[]; playerId?: string }
 
+export const BagSearchLabel = ' from the bag, which can’t be taken back'
+
 const listed = (words: readonly string[]): string =>
     words.length <= 1
         ? (words[0] ?? '')
@@ -269,7 +271,6 @@ function refillParts(additions: readonly OpenSeaAddition[]): PhrasePart[] {
     ])
 }
 
-// Empty bonus spaces refilled from the bag at turn end, and colours it had none of.
 function bonusRefillParts(refills: readonly BonusSpaceRefill[] = []): PhrasePart[] {
     const icons = (found: boolean, joiner: string) =>
         refills
