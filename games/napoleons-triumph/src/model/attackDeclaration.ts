@@ -129,7 +129,7 @@ export function checkAttackDeclaration(
     })
     const artilleryLed = isArtilleryLed(leaders.map(faceOf))
     legal(
-        !artilleryLed || artilleryMayFire(state, attack.attackApproach),
+        !artilleryLed || artilleryMayFire(state, attack.attackerId, attack.attackApproach),
         'Artillery may not lead an attack here now'
     )
     legal(

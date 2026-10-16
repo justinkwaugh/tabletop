@@ -46,7 +46,8 @@ export class NapoleonsTriumphGameInitializer
                     independentCommandsUsed: 0,
                     heavyCavalryCommitted: false,
                     guardCommitted: false,
-                    guardAttackForfeited: false
+                    guardAttackForfeited: false,
+                    artilleryFire: {}
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
@@ -61,7 +62,6 @@ export class NapoleonsTriumphGameInitializer
             units: [],
             commanders: [],
             frenchReinforcementsEntered: false,
-            artilleryFire: {},
             limits: emptyTurnLimits(),
             auction: auction ? openMoraleAuction(turnManager.turnOrder) : undefined
         })

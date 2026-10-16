@@ -40,17 +40,23 @@ function frameOf(bar: ApproachGeometry): BarFrame {
     return { along, across: { x: -along.y, y: along.x } }
 }
 
+/** Which way along its bar, 1 or -1, lies the end on the left of the pieces as they face across it. */
+export function leftEndOf(bar: ApproachGeometry): number {
+    const { along } = frameOf(bar)
+    return -bar.inward.y * along.x + bar.inward.x * along.y > 0 ? 1 : -1
+}
+
 function plateOf(approach: number): ApproachPlate | undefined {
     const side = printedSideOf(approach)
     if (!side) {
         return undefined
     }
     const bar = APPROACH_GEOMETRY[approach]
-    const { along, across } = frameOf(bar)
+    const { across } = frameOf(bar)
     const intoLocale = bar.inward.x * across.x + bar.inward.y * across.y > 0
     // Deliberate: the end on the left of the pieces as they face across the bar, so two armies
     // facing each other across one bar never take the same end.
-    const towardsPositive = -bar.inward.y * along.x + bar.inward.x * along.y > 0
+    const towardsPositive = leftEndOf(bar) > 0
     const width = PLATE_MARK.width + PADDING * 2
     const rows = side.marks.length
     const height = rows * PLATE_MARK.height + (rows - 1) * MARK_GAP + PADDING * 2

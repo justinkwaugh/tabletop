@@ -7,6 +7,7 @@ import { screenAxes } from './boardView.js'
 import { boxHolds } from './boundingBox.js'
 import { blockSamples, type BlockFootprint } from './blockShape.js'
 import type { GroupSprite, PieceGroup } from './pieceLayout.js'
+import { textWidth, type GlyphAdvances } from './textWidth.js'
 
 export const STAFF_HEIGHT = 30
 export const BANNER_HEIGHT = 18
@@ -39,36 +40,30 @@ export function flagScale(zoom: number): number {
     return Math.min(3.2, Math.max(1, 0.62 / zoom))
 }
 
-// Workaround: no text can be measured where the banner's width is needed, so these are the advances of 13px italic Libre Baskerville as the browser reports them.
-const GLYPH_ADVANCES: Record<number, string> = {
-    3: '.',
-    4: 'fijl ',
-    5: 'stI',
-    6: 'cerè',
-    7: 'abghkopqyzJ',
-    8: 'dnuvxS',
-    9: 'CFLPYZ',
-    10: 'ABERTVX',
-    11: 'mwDGKNOQU',
-    12: 'H',
-    13: 'M',
-    14: 'W'
+// These are the advances of 13px italic Libre Baskerville.
+const NAME_ADVANCES: GlyphAdvances = {
+    listed: {
+        3: '.',
+        4: 'fijl ',
+        5: 'stI',
+        6: 'cerè',
+        7: 'abghkopqyzJ',
+        8: 'dnuvxS',
+        9: 'CFLPYZ',
+        10: 'ABERTVX',
+        11: 'mwDGKNOQU',
+        12: 'H',
+        13: 'M',
+        14: 'W'
+    },
+    unlisted: 8
 }
-const UNLISTED_GLYPH_ADVANCE = 8
 export const NAME_INSET = 11
 const NAME_GAP = 9
 const COUNT_ROOM = 16
 
-function textWidth(text: string): number {
-    const advances = Object.entries(GLYPH_ADVANCES)
-    return [...text].reduce((width, glyph) => {
-        const listed = advances.find(([, glyphs]) => glyphs.includes(glyph))
-        return width + (listed ? Number(listed[0]) : UNLISTED_GLYPH_ADVANCE)
-    }, 0)
-}
-
 export function bannerWidth(name: string): number {
-    return NAME_INSET + textWidth(name) + NAME_GAP + COUNT_ROOM
+    return NAME_INSET + textWidth(name, NAME_ADVANCES) + NAME_GAP + COUNT_ROOM
 }
 
 function steps(from: number, to: number): number[] {
