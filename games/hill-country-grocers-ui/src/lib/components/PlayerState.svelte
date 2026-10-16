@@ -36,7 +36,7 @@
                     {/each}
                 </span>
                 <span class="leader"></span>
-                <span class="amount">${line.amount}</span>
+                <span class="amount">+${line.amount}</span>
             </div>
         {:else}
             <div class="none">No shares yet</div>
@@ -46,7 +46,8 @@
             class="total"
             title="What this player's shares would pay if dividends were paid now"
         >
-            <span>PAYOUT DUE <strong>${dividend}</strong></span>
+            <span>NEXT PAYOUT</span>
+            <span class="amount">+${dividend}</span>
         </div>
     </div>
 </div>
@@ -153,16 +154,11 @@
 
     .total {
         display: flex;
-        align-items: flex-end;
+        align-items: baseline;
         justify-content: flex-end;
+        gap: 5px;
         margin-top: 1px;
         font-size: 16px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-    }
-
-    .total strong {
-        letter-spacing: 0;
     }
 
 </style>
