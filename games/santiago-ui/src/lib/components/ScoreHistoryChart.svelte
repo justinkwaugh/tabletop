@@ -1,12 +1,13 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
-    import { plotScoreHistory, type ScoreHistorySeries } from '$lib/utils/scoreHistoryPlot.js'
+    import type { PlayerRoundScores } from '@tabletop/santiago'
+    import { plotScoreHistory } from '$lib/utils/scoreHistoryPlot.js'
 
     let {
         series,
         hoveredIndex = $bindable(null)
     }: {
-        series: ScoreHistorySeries[]
+        series: PlayerRoundScores[]
         hoveredIndex?: number | null
     } = $props()
 

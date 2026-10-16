@@ -1,5 +1,6 @@
 <script lang="ts">
     import { flip } from 'svelte/animate'
+    import { roundScoreHistory } from '@tabletop/santiago'
     import ScoreHistoryChart from './ScoreHistoryChart.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
@@ -8,11 +9,9 @@
     const gameState = $derived(session.gameState)
 
     const scoreHistory = $derived.by(() => {
-        const series = gameState.players.map(({ playerId, roundScores }) => ({
-            playerId,
-            scores: roundScores ?? []
-        }))
-        return series.every(({ scores }) => scores.length === gameState.round) ? series : undefined
+        const actions = session.actions
+        if (!session.hasCompleteHistory || actions.length !== gameState.actionCount) return undefined
+        return roundScoreHistory(gameState.dehydrate(), actions)
     })
 
     let hoveredRoundIndex: number | null = $state(null)

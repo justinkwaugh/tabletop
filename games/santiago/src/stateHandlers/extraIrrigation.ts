@@ -101,7 +101,6 @@ export class ExtraIrrigationStateHandler
             const isLastRound = state.isBagEmpty()
             state.applyDrought(isLastRound)
             if (!isLastRound) state.collectEscudos()
-            state.recordRoundScores()
             return isLastRound ? MachineState.EndOfGame : MachineState.TileReveal
         }
 

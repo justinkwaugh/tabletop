@@ -96,39 +96,6 @@ describe.each([3, 4, 5])('Santiago final scores with %i players', (count) => {
     })
 })
 
-it('records each player\'s end-of-round score, ending at the final score', () => {
-    const state = playToEnd(4, '0123456789abcdef0123456789abcdef', () => 0)
-    for (const player of state.players) {
-        assertExists(player.roundScores, 'Canonical state records round scores')
-        expect(player.roundScores).toHaveLength(state.round)
-        expect(player.roundScores.at(-1)).toBe(player.score)
-    }
-    expect(state.players.map((player) => player.roundScores?.slice(0, 3))).toMatchInlineSnapshot(`
-      [
-        [
-          12,
-          18,
-          20,
-        ],
-        [
-          12,
-          14,
-          16,
-        ],
-        [
-          16,
-          18,
-          21,
-        ],
-        [
-          12,
-          14,
-          20,
-        ],
-      ]
-    `)
-})
-
 it('shares a tied final score as a draw', () => {
     const state = playToEnd(4, '0123456789abcdef0123456789abcdef', () => 0)
     expect(SantiagoRuntime.scoring.finalScores(state)).toEqual({ p0: 42, p1: 47, p2: 42, p3: 47 })

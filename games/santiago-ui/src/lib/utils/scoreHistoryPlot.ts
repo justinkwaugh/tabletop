@@ -1,9 +1,5 @@
 import type { Point } from '@tabletop/common'
-
-export type ScoreHistorySeries = {
-    playerId: string
-    scores: number[]
-}
+import type { PlayerRoundScores } from '@tabletop/santiago'
 
 export type ScoreHistoryFrame = {
     width: number
@@ -37,7 +33,7 @@ export function niceScoreTicks(maxScore: number): number[] {
 }
 
 export function plotScoreHistory(
-    series: ScoreHistorySeries[],
+    series: PlayerRoundScores[],
     { width, height, inset }: ScoreHistoryFrame
 ): ScoreHistoryPlot {
     const roundCount = Math.max(...series.map((entry) => entry.scores.length))

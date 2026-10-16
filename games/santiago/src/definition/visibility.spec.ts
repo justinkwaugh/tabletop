@@ -116,7 +116,6 @@ describe('Santiago visibility', () => {
         }).updatedState
         expect({
             ...revealed,
-            players: revealed.players.map(({ roundScores: _, ...player }) => player),
             actionCount: legacy.initial.actionCount,
             actionChecksum: legacy.initial.actionChecksum
         }).toEqual(legacy.initial)
@@ -194,21 +193,6 @@ describe('Santiago visibility', () => {
         expect(project(state).players).toEqual(state.players)
         expect(project(state, { ...game, config: { publicMoney: true } }).players).toEqual(
             state.players
-        )
-    })
-
-    it('delivers round scores only to their owner during private-money play', () => {
-        const source = { ...game, config: { publicMoney: false } }
-        const s = scenario(source)
-        while (s.state.round < 3) s.act()
-        const owner = { kind: 'player', playerId: 'p1' } as const
-        const visible = project(s.state, source, owner)
-        expect(visible.players.map((p) => p.roundScores)).toEqual(
-            s.state.players.map((p) => (p.playerId === owner.playerId ? p.roundScores : undefined))
-        )
-        expect(visible.players.find((p) => p.playerId === owner.playerId)?.roundScores).toHaveLength(2)
-        expect(project(s.state, source).players.map((p) => p.roundScores)).toEqual(
-            s.state.players.map(() => undefined)
         )
     })
 
@@ -450,10 +434,7 @@ describe('Santiago visibility', () => {
                                 perspective.kind === 'spectator' ||
                                 player.playerId !== perspective.playerId
                             )
-                                expect([player.money, player.roundScores]).toEqual([
-                                    undefined,
-                                    undefined
-                                ])
+                                expect(player.money).toBeUndefined()
                         }
                     }
                 }
