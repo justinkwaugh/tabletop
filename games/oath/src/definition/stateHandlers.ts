@@ -26,6 +26,7 @@ import { applyForcedTitleChanges, isTitleBoundary } from '../util/title.js'
 import { settleQueue } from '../util/questionAnswers.js'
 import { carryFreeActions } from '../util/freeActions.js'
 import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'
+import { canUseGrandScepter, grandScepterHolderId } from '../util/imperial.js'
 import { HydratedLetPeek, isLetPeek } from '../actions/letPeek.js'
 import { TransferOathkeeper, isTransferOathkeeper } from '../actions/transferOathkeeper.js'
 import { isAnswerQuestion } from '../actions/answerQuestion.js'
@@ -109,13 +110,25 @@ function withFreeActionsCarried(handler: OathStateHandler): OathStateHandler {
     })
 }
 
-/** R-6.4-H1 — a Grand Scepter changing hands teaches its new holder the Reliquary (R-X.3). */
+/**
+ * R-6.4-H1 — a Grand Scepter changing hands teaches its new holder the Reliquary (R-X.3). From
+ * revision 12 (R-X.4) a holder who took it learns it once the card's lock lifts ("You cannot use
+ * this if you took it on this turn"); one it was given to, or granted at setup, learns it at once.
+ */
 function withReliquaryKnownToScepterHolder(handler: OathStateHandler): OathStateHandler {
     return wrapOnAction(handler, (action, context) => {
         const next = handler.onAction(action, context)
-        if (teachReliquaryToScepterHolder(context.gameState)) action.revealsInfo = true
+        const gameState = context.gameState
+        if (!mayKnowReliquary(gameState)) return next
+        if (teachReliquaryToScepterHolder(gameState)) action.revealsInfo = true
         return next
     })
+}
+
+function mayKnowReliquary(state: HydratedOathGameState): boolean {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes8)) return true
+    const holderId = grandScepterHolderId(state)
+    return holderId === undefined || canUseGrandScepter(state, holderId)
 }
 
 /** R-9.4, R-6.6.1 — letting another peek is allowed in every state and moves no state. */
