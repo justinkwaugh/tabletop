@@ -165,8 +165,8 @@ registerPersistent(
     {
         forbidsCampaign: (ctx, actorId) =>
             ctx.ownerIds.includes(actorId) ? 'Vow of Peace: you cannot campaign' : undefined,
-        forbidsSacrifice: (ctx, _attackerId, defenderId) =>
-            defenderId && ctx.ownerIds.includes(defenderId)
+        forbidsSacrifice: (ctx, _attackerId, defendingIds) =>
+            defendingIds.some((playerId) => ctx.ownerIds.includes(playerId))
                 ? 'Vow of Peace: attackers cannot sacrifice against its holder'
                 : undefined
     }

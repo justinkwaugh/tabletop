@@ -415,11 +415,18 @@ export class HydratedCampaignSacrifice
     ): string | undefined {
         if (sacrifice < 0) return 'must sacrifice at least 0 warbands'
         if (sacrifice === 0) return undefined
-        // R-7.1.4 — Vow of Peace: attackers cannot sacrifice against its holder.
+        // R-7.1.4 — Vow of Peace: attackers cannot sacrifice against its holder. R-5.5.2-H1: the
+        // Campaign modifiers ruled by the defender and every Ally are active, so an Ally's Vow counts
+        // as the defender's does; R-X.4: before revision 13, only the defender's.
+        const defending = isAtLeastOathRevision(state, OathRevision.EngineFixes9)
+            ? playerIdsOnSide(campaign, BattlePlanSide.Defender)
+            : campaign.defenderPlayerId === undefined
+              ? []
+              : [campaign.defenderPlayerId]
         const forbidden = reasonPersistentForbidsSacrifice(
             state,
             campaign.attackerPlayerId,
-            campaign.defenderPlayerId
+            defending
         )
         if (forbidden) return forbidden
 

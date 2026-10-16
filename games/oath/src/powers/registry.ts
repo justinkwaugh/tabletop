@@ -259,10 +259,11 @@ export interface PersistentHooks {
     /** Vow of Silence */
     forbidsGivingSecrets?: (ctx: PersistentContext, actorId: string) => string | undefined
     forbidsCampaign?: (ctx: PersistentContext, actorId: string) => string | undefined
+    /** R-5.5.2-H1 — `defendingIds`: the players on the side being attacked. */
     forbidsSacrifice?: (
         ctx: PersistentContext,
         attackerId: string,
-        defenderId: string | undefined
+        defendingIds: readonly string[]
     ) => string | undefined
     forbidsExile?: (ctx: PersistentContext, citizenId: string) => string | undefined
     forbidsBattlePlan?: (
