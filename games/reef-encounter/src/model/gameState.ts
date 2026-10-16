@@ -594,6 +594,20 @@ export class HydratedReefEncounterGameState extends HydratableGameState<
         )
     }
 
+    // Whether eating a coral would put any polyp into the player's parrotfish. In the final turns
+    // the first five polyps go back into the bag, so a coral of five or fewer scores nothing.
+    hasScoringCoral(playerId: string): boolean {
+        return (
+            !this.turn.acted &&
+            this.shrimps.some(
+                (shrimp) =>
+                    shrimp.playerId === playerId &&
+                    (this.edibleCoral(playerId, shrimp)?.length ?? 0) >
+                        this.polypsReturnedWhenEating()
+            )
+        )
+    }
+
     // The first four polyps go back into the bag, which is shaken, and the rest into the
     // parrotfish with the guarding shrimp (rulebook p. 11).
     eatCoral(playerId: string, square: ReefSquare): CoralEaten {
