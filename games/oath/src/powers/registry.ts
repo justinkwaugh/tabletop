@@ -183,8 +183,10 @@ export interface BattlePlanHooks {
     onBanditOutcome?: (ctx: BattlePlanContext, victorious: boolean) => string | undefined
     /** Specialist */
     locksEnemyPlans?: boolean
-    /** Code of Honor, R-10.28-H1 — binds the user's whole side. */
+    /** Code of Honor, Peace Envoy — "you cannot use other battle plans" in the same declaration. */
     exclusive?: boolean
+    /** Code of Honor, R-10.28-H1, R-5.5.3-H3 — binds the user's whole side, before and after its use. */
+    locksOwnSide?: boolean
     /** Hearts and Minds, Peace Envoy — nothing is rolled. */
     decidesVictor?: boolean
     /** Peace Envoy — no skulls, and R-5.5.6 kills nothing. */

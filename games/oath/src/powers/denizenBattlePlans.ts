@@ -633,7 +633,7 @@ registerBattlePlan(
     'denizen.order.code-of-honor',
     powerIndexOf('denizen.order.code-of-honor', PowerTiming.BattlePlan),
     {
-        hooks: { dice: (ctx) => pm(ctx, 2), exclusive: true }
+        hooks: { dice: (ctx) => pm(ctx, 2), exclusive: true, locksOwnSide: true }
     }
 )
 
