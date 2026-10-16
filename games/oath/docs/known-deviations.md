@@ -31,6 +31,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Relic Hunter:** cannot put on the bottom a relic the defender held; only relics taken from sites.
 - **Encirclement, Zealots:** in a game created before revision 5 (R-X.4) they count only the attacker's board, not the whole force (R-10.9), and an attacker's plan judges the defending force from the attacker's pawn, not the site Wild Allies or Captains names.
 - **Wrestlers:** the engine picks the sacrificed warband, and an ally's board is never offered.
+- **Hospital, the Campaign's other kills:** in a game created before revision 13 (R-X.4) Hospital does not catch Bear Traps' kill (the bandits' included), Wrestlers' sacrifice (even with Hospital declared first), or the kill Boiling Lake or Grasping Vines makes during the banish: each is killed past it, and the banish's kill does not count for Cursed Cauldron. Hospital's text reaches any of its user's warbands that would be killed while the Campaign is open (R-5.5.3-H2).
 - **Martial Culture:** "may become a Citizen" is decided before the roll.
 - **Buried Giant to The Hidden Place:** one flipped secret pays both flips.
 - **Master of Disguise:** the engine accepts the other player's Trade modifiers, but the modifier picker does not list them.

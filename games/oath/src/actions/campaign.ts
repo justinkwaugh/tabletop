@@ -12,6 +12,7 @@ import { ActionType } from '../definition/actions.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import {
     CampaignTarget,
+    type CampaignKillPath,
     type CampaignState,
     CampaignTargetKind,
     LossSource,
@@ -305,18 +306,27 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             resolved.reason === undefined,
             `the declared battle plans were checked against every possible ally: ${resolved.reason}`
         )
-        const attackerPlans = applyBattlePlans(state, attackerPlayerId, resolved.active, pools, {
-            parties,
-            side: BattlePlanSide.Attacker
-        })
+        const kills: CampaignKillPath = { killRedirects: [] }
+        const attackerPlans = applyBattlePlans(
+            state,
+            attackerPlayerId,
+            resolved.active,
+            pools,
+            { parties, side: BattlePlanSide.Attacker },
+            kills
+        )
         pools = attackerPlans.pools
         // Specialist — "your enemy cannot use battle plans", the bandits included.
         const bandits =
             declaration.defenderPlayerId === undefined && !attackerPlans.locksEnemyPlans
-                ? applyBattlePlans(state, undefined, banditBattlePlans(state), pools, {
-                      parties,
-                      side: BattlePlanSide.Defender
-                  })
+                ? applyBattlePlans(
+                      state,
+                      undefined,
+                      banditBattlePlans(state),
+                      pools,
+                      { parties, side: BattlePlanSide.Defender },
+                      kills
+                  )
                 : undefined
         if (bandits) pools = bandits.pools
 
@@ -364,7 +374,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             decidedVictor: attackerPlans.decidesVictor ? 'attacker' : undefined,
             ignoreDefeatKills:
                 attackerPlans.ignoreDefeatKills || bandits?.ignoreDefeatKills || undefined,
-            killRedirects: attackerPlans.killRedirects
+            ...kills
         }
         state.campaign = campaign
 

@@ -78,7 +78,8 @@ export class HydratedCampaignDefend
             this.playerId,
             active,
             { attackPool: campaign.attackPool, defensePool: campaign.defensePool },
-            { parties: partiesOf(state, campaign), side: BattlePlanSide.Defender }
+            { parties: partiesOf(state, campaign), side: BattlePlanSide.Defender },
+            campaign
         )
         campaign.attackPool = outcome.pools.attackPool
         campaign.defensePool = outcome.pools.defensePool
@@ -94,7 +95,6 @@ export class HydratedCampaignDefend
         if (outcome.decidesVictor && !campaign.decidedVictor) campaign.decidedVictor = 'defender'
         if (outcome.ignoreDefeatKills) campaign.ignoreDefeatKills = true
         if (outcome.ignoreSkulls) campaign.ignoreSkulls = true
-        campaign.killRedirects = [...campaign.killRedirects, ...outcome.killRedirects]
 
         const remaining = campaign.defenderPlansLocked
             ? []

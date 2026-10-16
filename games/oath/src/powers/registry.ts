@@ -11,7 +11,7 @@ import {
 } from '../data/cardPowers.js'
 import type { CampaignParties, DiceDelta, DicePools } from '../util/campaign.js'
 import type { ImperialScope } from '../util/rule.js'
-import type { RollRules, WarbandGroup } from '../model/campaign.js'
+import type { CampaignKillPath, RollRules, WarbandGroup } from '../model/campaign.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
@@ -68,6 +68,8 @@ export interface CampaignContext {
     parties: CampaignParties
     side: BattlePlanSide
     pools: DicePools
+    /** Set while the plans are used (`applyBattlePlans`), the bandits' in the muster included. */
+    kills?: CampaignKillPath
 }
 
 /** R-5.5.3 — `playerId` is undefined for the bandits' compelled plans (R-5.5.3-H1). */

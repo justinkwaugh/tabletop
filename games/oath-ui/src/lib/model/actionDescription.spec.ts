@@ -1405,6 +1405,9 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             expect(pieces(sacrifice)).toEqual([{ count: 3, owner: IMPERIAL_WARBANDS }, { count: 3, owner: 'p3' }, { count: 2, owner: 'p3' }])
             const planNotes = ["Bear Traps: killed a warband on p2's board"]
             expect(describeAction(action({ type: ActionType.CampaignDefend, playerId: 'p3', plans: [], metadata: { plansUsed: ['Bear Traps'], swords: 2, defense: 3, planNotes } }), nameOf)).toBe("used Bear Traps; 2 swords against 3 defense; killed a warband on Bob's board (Bear Traps)")
+            // Hospital — the warband is held for its site, not killed (revision 13).
+            const heldNotes = ["Bear Traps: a warband on p2's board goes to Hospital's site"]
+            expect(describeAction(action({ type: ActionType.CampaignDefend, playerId: 'p3', plans: [], metadata: { plansUsed: ['Bear Traps'], swords: 2, defense: 3, planNotes: heldNotes } }), nameOf)).toBe("used Bear Traps; 2 swords against 3 defense; a warband on Bob's board goes to Hospital's site (Bear Traps)")
             expect(describeAction(action({ type: ActionType.CampaignDefeatKills, playerId: 'p3', kills: [], metadata: { defeatKilled: 1, planNotes } }), nameOf)).toBe("picked the defense's losses: 1 warband killed; killed a warband on Bob's board (Bear Traps)")
             const battle = { attackPool: 2, defensePool: 1, swords: 2, defense: 1, skullsKilled: 0, planNotes }
             expect(describeAction(action({ type: ActionType.Campaign, playerId: 'p2', defender: { kind: 'bandits' }, targets: [], attackDice: 1, metadata: { battle } }), nameOf)).toBe("campaigned against the bandits; 2 swords against 1 defense; killed a warband on their own board (Bear Traps)")

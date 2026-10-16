@@ -27,7 +27,7 @@ import {
 } from './powerCost.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
 import { applyDiceDelta, battleScopeOf, type CampaignParties, type DicePools } from './campaign.js'
-import type { CampaignState, KillRedirect, RollRules } from '../model/campaign.js'
+import type { CampaignKillPath, CampaignState, KillRedirect, RollRules } from '../model/campaign.js'
 import type { BattlePlanUse } from '../model/battlePlanUse.js'
 import {
     effectFor,
@@ -277,17 +277,20 @@ export interface BattlePlanOutcome {
     decidesVictor: boolean
     /** Peace Envoy, R-5.5.6 */
     ignoreDefeatKills: boolean
-    /** Hospital */
-    killRedirects: KillRedirect[]
 }
 
-/** In order, so R-5.5.3's underflow crosses over per plan; `playerId` is undefined for the bandits. */
+/**
+ * In order, so R-5.5.3's underflow crosses over per plan; `playerId` is undefined for the bandits.
+ * Hospital's redirect joins `kills` before any plan resolves: Law 5.5.3 lets a side use its plans
+ * "once each", in no order of their own.
+ */
 export function applyBattlePlans(
     state: HydratedOathGameState,
     playerId: string | undefined,
     active: readonly ActiveBattlePlan[],
     pools: DicePools,
-    campaign: Omit<CampaignContext, 'pools'>
+    campaign: Omit<CampaignContext, 'pools' | 'kills'>,
+    kills: CampaignKillPath
 ): BattlePlanOutcome {
     const out: BattlePlanOutcome = {
         pools,
@@ -299,17 +302,26 @@ export function applyBattlePlans(
         locksEnemyPlans: false,
         exclusive: false,
         decidesVictor: false,
-        ignoreDefeatKills: false,
-        killRedirects: []
+        ignoreDefeatKills: false
+    }
+    const contextOf = (plan: ActiveBattlePlan): BattlePlanContext => ({
+        state,
+        playerId,
+        power: plan.power,
+        choices: plan.choices,
+        campaign: { ...campaign, pools: out.pools, kills }
+    })
+    if (playerId !== undefined) {
+        kills.killRedirects = [
+            ...kills.killRedirects,
+            ...active.flatMap((plan): KillRedirect[] => {
+                const siteId = plan.hooks.redirectKillsTo?.(contextOf(plan))
+                return siteId ? [{ playerId, siteId }] : []
+            })
+        ]
     }
     for (const plan of active) {
-        const ctx: BattlePlanContext = {
-            state,
-            playerId,
-            power: plan.power,
-            choices: plan.choices,
-            campaign: { ...campaign, pools: out.pools }
-        }
+        const ctx = contextOf(plan)
         if (!plan.compelled && playerId !== undefined) {
             payPowerCost(state, playerId, plan.power)
             payCostOnCard(
@@ -344,9 +356,6 @@ export function applyBattlePlans(
             out.ignoreSkulls = true
             out.ignoreDefeatKills = true
         }
-        const redirect = plan.hooks.redirectKillsTo?.(ctx)
-        if (redirect && playerId !== undefined)
-            out.killRedirects.push({ playerId, siteId: redirect })
         out.used.push(plan.power.cardId)
     }
     return out

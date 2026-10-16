@@ -39,6 +39,18 @@ export function boardOwnersOwnFirst(
     ]
 }
 
+/** R-10.13 — a kill of up to `count` on a board takes one owner's warbands, their own first. */
+export function boardGroupToKill(
+    state: HydratedOathGameState,
+    playerId: string,
+    count: number
+): WarbandGroup | undefined {
+    const board = state.getPlayerState(playerId).warbandsOnBoard
+    const owner = boardOwnersOwnFirst(state, playerId).find((o) => countOf(board, o) > 0)
+    if (!owner) return undefined
+    return { at: { kind: 'board', playerId }, owner, count: Math.min(count, countOf(board, owner)) }
+}
+
 export function boardWarbandGroups(state: HydratedOathGameState, playerId: string): WarbandGroup[] {
     return warbandEntries(state.getPlayerState(playerId).warbandsOnBoard)
         .filter(([, count]) => count > 0)
