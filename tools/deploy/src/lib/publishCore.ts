@@ -1,4 +1,8 @@
-import { fetchBackendManifest, invalidateBackendManifestCache } from './backend.js'
+import {
+    fetchBackendManifest,
+    invalidateBackendManifestCache,
+    type BackendReplacement
+} from './backend.js'
 import {
     backupManifestCommand,
     dedupeCommandSpecs,
@@ -97,8 +101,26 @@ export const invalidateBackendManifest = (context: PublishContext) =>
     runStep(
         context,
         { label: 'invalidate-manifest', logPath: '/tmp/manifest-invalidate.log' },
-        () => invalidateBackendManifestCache(context.deployConfig)
+        async () =>
+            context.log(
+                `invalidate-manifest: ${describeReplacement(
+                    await invalidateBackendManifestCache(context.deployConfig)
+                )}`
+            )
     )
+
+const describeReplacement = (replacement: BackendReplacement | undefined) => {
+    switch (replacement) {
+        case 'none':
+            return 'no backend replacement was needed'
+        case 'superseded':
+            return 'the backend finished replacing its process'
+        case 'replacement-failed':
+            return 'WARNING the backend replacement failed; it keeps serving and retries in 30 s'
+        case undefined:
+            return 'the backend did not report a replacement (it predates backend 1.25.0)'
+    }
+}
 
 // The bucket manifest is the only record of what production serves. Every change backs up the
 // current copy, then rereads it, writes the changed copy, and invalidates the backend cache.

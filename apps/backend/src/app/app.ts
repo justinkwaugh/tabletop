@@ -23,6 +23,7 @@ import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
+import type { ReplacementRequest } from '../runtime/replacementRequest.js'
 
 const __dirname = import.meta.dirname
 
@@ -42,7 +43,7 @@ const SESSION_KEY = process.env['SESSION_KEY']
 
 export interface AppOptions {
     prefix?: string
-    requestRestart: () => void
+    replacement: Pick<ReplacementRequest, 'request' | 'outcome'>
 }
 
 async function frontendVersion(fastify: FastifyInstance): Promise<string> {
@@ -163,7 +164,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin)
     await fastify.register(ServicesPlugin)
-    const hostingFallbackFrontendVersion = await frontendVersion(fastify)
 
     if (service !== 'local') {
         fastify.addHook('onRequest', async (request, _reply) => {
@@ -181,60 +181,24 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
     const unsubscribeManifest = fastify.libraryService.onManifestMismatch(() => {
         console.log('Manifest mismatch detected, replacing backend process...')
-        opts.requestRestart()
+        opts.replacement.request()
     })
     fastify.addHook('onClose', async () => unsubscribeManifest())
 
     await fastify.register(GamesPlugin, { prefix: API_PREFIX })
 
-    // This sets up the service to handle the API and frontend
     if (service === 'local' || service === 'backend') {
         console.log('Registering API routes')
-        // This loads all API routes
         await fastify.register(AutoLoad, {
             ...routeAutoloadOptions,
             dir: path.join(__dirname, 'routes/api'),
             options: { ...opts, prefix: API_PREFIX }
         })
 
-        let frontendStaticReady = false
-
         const setNoCacheHeaders = (reply: FastifyReply) => {
             reply.header('Cache-Control', 'no-store, max-age=0')
             reply.header('Pragma', 'no-cache')
             reply.header('Expires', '0')
-        }
-
-        const isHtmlAsset = (pathName: string) =>
-            pathName.endsWith('.html') ||
-            pathName.endsWith('.html.br') ||
-            pathName.endsWith('.html.gz')
-
-        const isServiceWorkerAsset = (pathName: string) =>
-            pathName.endsWith('service-worker.js') ||
-            pathName.endsWith('service-worker.js.br') ||
-            pathName.endsWith('service-worker.js.gz')
-
-        const isWebManifestAsset = (pathName: string) =>
-            pathName.endsWith('.webmanifest') ||
-            pathName.endsWith('.webmanifest.br') ||
-            pathName.endsWith('.webmanifest.gz')
-
-        const setFrontendCacheHeaders = (
-            reply: FastifyReply,
-            pathName: string,
-            maxAgeSeconds: number
-        ) => {
-            if (
-                isHtmlAsset(pathName) ||
-                isServiceWorkerAsset(pathName) ||
-                isWebManifestAsset(pathName)
-            ) {
-                setNoCacheHeaders(reply)
-                return
-            }
-
-            reply.header('Cache-Control', `public, max-age=${maxAgeSeconds}, immutable`)
         }
 
         const setPrecompressedHeaders = (reply: FastifyReply, pathName: string) => {
@@ -254,26 +218,41 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         }
 
         if (service === 'local') {
-            // Serve the frontend as static files
+            const isUncachedFrontendFile = (pathName: string) =>
+                ['.html', 'service-worker.js', '.webmanifest'].some((suffix) =>
+                    [suffix, `${suffix}.br`, `${suffix}.gz`].some((name) => pathName.endsWith(name))
+                )
+
             console.log('Registering local static handlers')
             await fastify.register(fastifyStatic, {
                 root: path.join(__dirname, 'static'),
                 preCompressed: true,
                 cacheControl: false,
                 setHeaders: (reply, pathName) => {
-                    setFrontendCacheHeaders(reply, pathName, 60 * 60 * 24)
-
+                    if (isUncachedFrontendFile(pathName)) {
+                        setNoCacheHeaders(reply)
+                    } else {
+                        reply.header('Cache-Control', 'public, max-age=86400, immutable')
+                    }
                     setPrecompressedHeaders(reply, pathName)
                 }
             })
-            frontendStaticReady = true
+
+            fastify.get('/', async function (req, reply) {
+                setNoCacheHeaders(reply)
+                await reply.sendFile('index.html', { cacheControl: false })
+            })
+
+            fastify.get('/service-worker.js', async function (req, reply) {
+                setNoCacheHeaders(reply)
+                await reply.sendFile('service-worker.js', { cacheControl: false })
+            })
         }
 
         await fastify.register(GameAssetRedirectPlugin)
 
         const gameAssetsAreImmutable = service !== 'local'
 
-        // Serve assets from GCS as static files
         await fastify.register(fastifyStatic, {
             root: path.join(STATIC_ROOT, 'games'),
             prefix: '/games/',
@@ -291,41 +270,11 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             }
         })
 
-        if (service === 'backend') {
-            const frontendRoot = path.join(STATIC_ROOT, 'frontend', hostingFallbackFrontendVersion)
-            console.log('Serving static content for root from: ' + frontendRoot)
-            await fastify.register(fastifyStatic, {
-                root: frontendRoot,
-                preCompressed: true,
-                cacheControl: false,
-                setHeaders: (reply, pathName) => {
-                    setFrontendCacheHeaders(reply, pathName, 60 * 60 * 24 * 365)
-
-                    setPrecompressedHeaders(reply, pathName)
-                }
-            })
-            frontendStaticReady = true
-        }
-
-        if (frontendStaticReady) {
-            // Override root path to serve index.html with no caching
-            fastify.get('/', async function (req, reply) {
-                setNoCacheHeaders(reply)
-                await reply.sendFile('index.html', { cacheControl: false })
-            })
-
-            fastify.get('/service-worker.js', async function (req, reply) {
-                setNoCacheHeaders(reply)
-                await reply.sendFile('service-worker.js', { cacheControl: false })
-            })
-        }
-
-        // Handle 404 differently for API and frontend
         console.log('Registering 404 handlers')
         fastify.setNotFoundHandler(async (request, reply) => {
             if (request.url.startsWith(API_PREFIX) || request.url.startsWith(TASKS_PREFIX)) {
                 await reply.code(404).send({ message: 'Not Found' })
-            } else if (frontendStaticReady) {
+            } else if (service === 'local') {
                 console.log('Serving index.html for unknown frontend path:', request.url)
                 setNoCacheHeaders(reply)
                 await reply.sendFile('index.html', { cacheControl: false })

@@ -25,6 +25,7 @@
         RailwayMapState,
         getCompany,
         nextOperatingCompany,
+        type Company,
         type OperatingRules,
         type CertificatePool
     } from '@tabletop/18xx'
@@ -34,6 +35,7 @@
     import type { StockMenuOption } from '../stock/stockActionSelection.js'
     import CompanyDetails from './CompanyDetails.svelte'
     import CompanyCardLayout from './CompanyCardLayout.svelte'
+    import Lightbox from '../presentation/Lightbox.svelte'
     import CompanyOrder from './CompanyOrder.svelte'
     import CompanyOrderOverview from './CompanyOrderOverview.svelte'
     import { untrack, tick, type Snippet } from 'svelte'
@@ -273,6 +275,10 @@
     const displayedScene = $derived(session.map.displayedScene)
     const paneLayout = new MediaQuery('(min-width: 64rem)')
     const phoneLayout = new MediaQuery('(width < 40rem)')
+    let shownCompanyCardId: string | undefined = $derived.by(() => {
+        paneLayout.current
+        return undefined
+    })
     const boardAvailable = untrack(() => !!session.mapView.boardAreas)
     const boardMode = $derived(boardAvailable && !paneLayout.current)
     const mapOverpan = $derived(paneLayout.current ? 'both' : 'focus')
@@ -716,7 +722,21 @@
         onFocusLocation={focusLocation}
         {mapFocusExcludedCompanyIds}
         onFocusCompany={focusCompany}
+        onShowCompanyCard={paneLayout.current
+            ? undefined
+            : (companyId) => (shownCompanyCardId = companyId)}
         {portfolioCompanyIds}
+    />{/snippet}
+
+{#snippet companyCard(company: Company)}<CompanyDetails
+        pricePresentation={companyPricePresentation}
+        vertical
+        displayName={companyNames?.[company.id]?.card}
+        {company}
+        {session}
+        {trainColors}
+        {poolName}
+        onPreviewMap={previewHistoryMap}
     />{/snippet}
 
 {#snippet sidebarTabIcon(id: string)}
@@ -1277,16 +1297,7 @@
                                     itemCount={startedCompanies.length}
                                 >
                                     {#each startedCompanies as company (company.id)}
-                                        <CompanyDetails
-                                            pricePresentation={companyPricePresentation}
-                                            vertical
-                                            displayName={companyNames?.[company.id]?.card}
-                                            {company}
-                                            {session}
-                                            {trainColors}
-                                            {poolName}
-                                            onPreviewMap={previewHistoryMap}
-                                        />
+                                        {@render companyCard(company)}
                                     {:else}<p class="widget-empty">
                                             No companies have started.
                                         </p>{/each}
@@ -1295,6 +1306,7 @@
                                 <TileManifest
                                     tiles={session.mapView.tileSet.definitions}
                                     inventory={session.map.tileCounts}
+                                    upgrades={session.tileUpgrades}
                                     layouts={session.mapView.layouts}
                                     orientation={session.mapView.map.definition.orientation}
                                     appearance={tileAppearance}
@@ -1353,6 +1365,15 @@
                 tileColorNames={tileAppearance.colorNames}
                 onclose={() => (showPhaseChart = false)}
             />{/if}
+
+        {#if shownCompanyCardId}
+            <Lightbox
+                label={session.companyName(shownCompanyCardId)}
+                onclose={() => (shownCompanyCardId = undefined)}
+            >
+                {@render companyCard(getCompany(gameState, shownCompanyCardId))}
+            </Lightbox>
+        {/if}
 
         {#if session.historicalMap}
             <HistoricalMapViewer
