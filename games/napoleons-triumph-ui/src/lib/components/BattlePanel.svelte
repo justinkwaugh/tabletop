@@ -2,12 +2,14 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         MachineState,
+        Side,
         UnitType,
         attackStep,
         type AttackStep,
         type ProjectedUnit
     } from '@tabletop/napoleons-triumph'
     import { anyLoss } from '$lib/model/attackLosses.js'
+    import { endingOf } from '$lib/model/concludedBattle.js'
     import { StageKind } from '$lib/model/battleSelection.js'
     import { rolesBeforeTheCounterAttack } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -25,7 +27,8 @@
 
     const gameSession = getGameSession()
     const game = $derived(gameSession.gameState)
-    const attack = $derived(gameSession.attack)
+    const attack = $derived(gameSession.shownAttack)
+    const concluded = $derived(gameSession.attack ? undefined : gameSession.concludedBattle)
     const stage = $derived(gameSession.battleStage)
 
     const PENALTY_NAMES: Record<UnitType, string> = {
@@ -59,7 +62,7 @@
     }
 
     function living(ids: string[]): ProjectedUnit[] {
-        return ids.flatMap((id) => game.findUnit(id) ?? [])
+        return ids.flatMap((id) => game.findUnit(id) ?? concluded?.units.get(id) ?? [])
     }
 </script>
 
@@ -118,11 +121,35 @@
         {#if losses && anyLoss(losses)}
             <LossRule {losses} />
         {/if}
-        {#if !stage}
-            <div class="nt-battle-prompt">
-                Waiting for <PlayerName playerId={game.activePlayerIds[0]} />
-                {WAITING[attackStep(attack)]}.
+        {#if concluded}
+            <div class="nt-battle-prompt nt-battle-ending">
+                <span class="nt-battle-over">The attack is over.</span>
+                {endingOf(
+                    concluded,
+                    game.sideOf(concluded.attack.attackerId) === Side.French,
+                    (locale) => game.map.label(locale)
+                )}
             </div>
+            {#if gameSession.isCommanding}
+                <div class="nt-battle-continue">
+                    <button
+                        type="button"
+                        class="nt-plain-button"
+                        onclick={() => gameSession.setConcludedBattleAside()}>Continue</button
+                    >
+                </div>
+            {:else if !game.result}
+                <div class="nt-battle-prompt nt-battle-faint">
+                    Waiting for <PlayerName playerId={game.activePlayerIds[0]} />.
+                </div>
+            {/if}
+        {:else if !stage}
+            {#if gameSession.attack}
+                <div class="nt-battle-prompt">
+                    Waiting for <PlayerName playerId={game.activePlayerIds[0]} />
+                    {WAITING[attackStep(gameSession.attack)]}.
+                </div>
+            {/if}
         {:else if stage.kind === StageKind.Defence}
             <DefenseStep {stage} />
         {:else if stage.kind === StageKind.DefenceLeaders}
@@ -177,6 +204,18 @@
     .nt-battle :global(.nt-battle-prompt) {
         line-height: 1.3;
         max-width: 60ch;
+    }
+
+    .nt-battle-ending {
+        padding-top: 2px;
+    }
+
+    .nt-battle-continue {
+        padding-top: 10px;
+    }
+
+    .nt-battle-over {
+        font-style: italic;
     }
 
     .nt-battle-verdict {

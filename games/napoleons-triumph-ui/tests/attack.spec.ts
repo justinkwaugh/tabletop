@@ -158,6 +158,14 @@ test('a threat, a retreat before combat and the move into the vacated locale', a
     await expect(morale(page, 'Allied')).toHaveText('25')
 
     await page.getByRole('button', { name: 'Move into the locale' }).click()
+    await expect(page.getByText('The attack is over.')).toBeVisible()
+    await expect(
+        page.getByText(
+            /The Allies fell back to .+ before the attack, and the French moved into locale 94\./
+        )
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'End turn' })).toBeHidden()
+    await page.getByRole('button', { name: 'Continue', exact: true }).click()
     await expect(page.getByText('Attack from locale 93 into locale 94')).toBeHidden()
     await expect(page.getByRole('button', { name: 'End turn' })).toBeVisible()
     await expect(morale(page, 'French')).toHaveText('23')
@@ -636,6 +644,8 @@ test('units named in a defence stay marked for the attacker until the turn ends'
         .first()
         .click()
     await page.getByRole('button', { name: 'Advance to the approach' }).click()
+    await expect(page.getByText('The French called the attack off as a feint.')).toBeVisible()
+    await page.getByRole('button', { name: 'Continue', exact: true }).click()
     const endTurn = page.getByRole('button', { name: 'End turn' })
     await expect(endTurn).toBeVisible()
     await expect(page.locator('.nt-masthead-turn')).toHaveText('French turn')
