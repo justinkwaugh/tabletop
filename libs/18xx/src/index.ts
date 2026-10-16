@@ -79,6 +79,8 @@ export * from './construction/layTile.js'
 export * from './construction/trackConstruction.js'
 export * from './construction/trackNetwork.js'
 export * from './construction/trackUpgrade.js'
+export * from './construction/tileReplacement.js'
+export * from './construction/tileUpgrades.js'
 export * from './operating/exportTrains.js'
 export * from './operating/startOperatingTurn.js'
 

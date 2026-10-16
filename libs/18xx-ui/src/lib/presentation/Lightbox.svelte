@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
+    import { showModal } from './modalDialog.js'
 
     let {
         label,
@@ -10,9 +11,6 @@
         onclose: () => void
         children: Snippet
     } = $props()
-    function showModal(node: HTMLDialogElement) {
-        node.showModal()
-    }
 </script>
 
 <dialog class="lightbox" aria-label={label} use:showModal {onclose} onclick={onclose}>

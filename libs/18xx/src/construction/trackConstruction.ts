@@ -15,12 +15,14 @@ import { TilePlacement, type TileInventory, type TileSet } from '../tiles/invent
 import { TileRotation, type TileDefinition, type TileFace, type TileEdge } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import { ConstructionReachability } from './constructionReachability.js'
+import { preservesPath, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
 import {
-    tileUpgradeMappings,
-    preservesPath,
-    fixedNodeRevenue,
-    type TileNodeMapping
-} from './trackUpgrade.js'
+    replacementMappings,
+    replacesColorAndStops,
+    requiredLabels,
+    sameLabels,
+    tileExitCount
+} from './tileReplacement.js'
 import { assert, assertExists } from '@tabletop/common'
 
 export const TrackStep = Type.Object(
@@ -92,9 +94,9 @@ export interface TrackRules {
     /**
      * A replacement in the same colour the title allows on this hex, such as a medium city's
      * yellow town becoming a yellow city; the title then judges its stops, and towns may become
-     * cities.
+     * cities. When it becomes allowed is the title's ``restriction``.
      */
-    upgradesWithinColor?(state: ConstructionState, locationId: string, after: TileFace): boolean
+    upgradesWithinColor?(locationId: string, before: TileFace, after: TileFace): boolean
     /** Whether the company's network may continue through a revenue center, as its routes may. */
     stopAllowed?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
     preservesStops(before: TileFace, after: TileFace): boolean
@@ -185,7 +187,7 @@ export class TrackConstruction {
             for (const rotation of Rotations) {
                 const before = this.mapState.tile(locationId)
                 const after = rotateTileFace(definition.face, rotation)
-                for (const nodeMapping of this.upgradeMappings(
+                for (const nodeMapping of replacementMappings(
                     rotateTileFace(before.face, before.rotation),
                     after
                 )) {
@@ -222,9 +224,9 @@ export class TrackConstruction {
         return this.rules.tileSet.definitions.some(
             (other) =>
                 other.face.color === definition.face.color &&
-                this.exitCount(other.face) > this.exitCount(definition.face) &&
+                tileExitCount(other.face) > tileExitCount(definition.face) &&
                 Rotations.some((rotation) =>
-                    this.upgradeMappings(before, rotateTileFace(other.face, rotation)).some(
+                    replacementMappings(before, rotateTileFace(other.face, rotation)).some(
                         (nodeMapping) =>
                             !!this.evaluatePlacement({
                                 ...request,
@@ -235,13 +237,6 @@ export class TrackConstruction {
                     )
                 )
         )
-    }
-    private exitCount(face: TileFace): number {
-        return new Set(
-            face.paths.flatMap((path) =>
-                path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
-            )
-        ).size
     }
     private tileDefinition(definitionId: string): TileDefinition | undefined {
         return this.rules.tileSet.definitions.find((tile) => tile.id === definitionId)
@@ -273,7 +268,7 @@ export class TrackConstruction {
         const before = rotateTileFace(previous.face, previous.rotation)
         const after = rotateTileFace(definition.face, rotation)
         if (
-            !this.upgradeMappings(before, after).some(
+            !replacementMappings(before, after).some(
                 (mapping) =>
                     Object.keys(mapping).length === Object.keys(nodeMapping).length &&
                     Object.entries(mapping).every(([id, target]) => nodeMapping[id] === target)
@@ -421,18 +416,13 @@ export class TrackConstruction {
                 this.availablePieces(definition.id).length > 0 &&
                 Rotations.some(
                     (rotation) =>
-                        this.upgradeMappings(before, rotateTileFace(definition.face, rotation))
+                        replacementMappings(before, rotateTileFace(definition.face, rotation))
                             .length > 0
                 )
         )
     }
     private replacesTile(locationId: string): boolean {
         return this.rules.colorOrder.indexOf(this.mapState.tile(locationId).face.color) > 0
-    }
-    private upgradeMappings(before: TileFace, after: TileFace): TileNodeMapping[] {
-        return tileUpgradeMappings(before, after, {
-            townsBecomeCities: before.color === after.color
-        })
     }
     private basicTileAllowed(
         locationId: string,
@@ -442,24 +432,18 @@ export class TrackConstruction {
         const location = this.rules.map.location(locationId)
         const before = this.mapState.tile(locationId).face
         const after = definition.face
-        if (!location.buildable || !colors.includes(after.color)) return false
-        const colorStep =
-            this.rules.colorOrder.indexOf(after.color) - this.rules.colorOrder.indexOf(before.color)
-        if (colorStep === 0) {
-            if (!this.rules.upgradesWithinColor?.(this.state, locationId, after)) return false
-        } else if (colorStep !== 1 || !this.rules.preservesStops(before, after)) return false
-        const future = location.upgradeLabels
-            ?.filter(
-                (label) =>
-                    this.rules.colorOrder.indexOf(label.color) <=
-                    this.rules.colorOrder.indexOf(after.color)
-            )
-            .at(-1)
-        if (this.rules.relabels?.(locationId, definition.id)) return true
-        const labels = future ? [future.label] : before.labels
+        if (
+            !location.buildable ||
+            !colors.includes(after.color) ||
+            !replacesColorAndStops(this.rules, locationId, before, after)
+        )
+            return false
         return (
-            labels.length === after.labels.length &&
-            labels.every((label) => after.labels.includes(label))
+            !!this.rules.relabels?.(locationId, definition.id) ||
+            sameLabels(
+                requiredLabels(location, after.color, this.rules.colorOrder, before.labels),
+                after.labels
+            )
         )
     }
     private migrateStations(
