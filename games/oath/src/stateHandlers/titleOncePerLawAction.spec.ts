@@ -4,7 +4,7 @@
 // relics after you have completed this action." Relic Thief's Q&A judges "at each moment that
 // relics change hands", and each binding exchange is its own moment too.
 import { describe, expect, it } from 'vitest'
-import { Color, assertExists, type GameAction } from '@tabletop/common'
+import { Color, Visibility, assert, assertExists, type GameAction } from '@tabletop/common'
 import { engine } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
 import { campaignRecords, testBanners, testPlayer, testState } from '../testing/fixture.js'
@@ -16,7 +16,12 @@ import '../powers/index.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { Banner, OathType, PlayerStatus } from '../model/oathEnums.js'
-import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
+import {
+    HydratedOathGameState,
+    OathGameStateValidator,
+    type OathGameState,
+    type OathProjectedState
+} from '../model/gameState.js'
 import type { OathPlayerState } from '../model/playerState.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { CampaignTargetKind, type CampaignTarget } from '../model/campaign.js'
@@ -39,6 +44,7 @@ import { UseActionPower } from '../actions/useActionPower.js'
 import { AnswerQuestion } from '../actions/answerQuestion.js'
 import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { OathRevision } from '../util/revision.js'
+import { OathRuntime, OathVisibility } from '../definition/runtime.js'
 
 const DANA = 'Dana'
 const RHYS = 'Rhys'
@@ -62,6 +68,7 @@ const SECOND_WIND = 'denizen.discord.second-wind'
 const RELIC_THIEF = 'denizen.discord.relic-thief'
 const TOLL_ROADS = 'denizen.order.toll-roads'
 const PEACE_ENVOY = 'denizen.order.peace-envoy'
+const JINX = 'denizen.arcane.jinx'
 
 const U1 = 'relic.unnamed-1'
 const U2 = 'relic.unnamed-2'
@@ -1385,12 +1392,31 @@ describe.each([
 
 // ---------------------------------------------------------------- a title moment inside a Campaign
 
+interface BanishTableOptions {
+    maraAdvisers?: string[]
+    beaAdvisers?: string[]
+}
+
+interface ThiefScene extends BanishTableOptions {
+    /** Mara's answer to Jinx's question; left out when she does not hold Jinx. */
+    reroll?: boolean
+    /** Whether the roll that stands takes the Horn. */
+    takes: boolean
+}
+
+function canonical(state: unknown): OathGameState {
+    assert(OathGameStateValidator.Check(state), 'Expected complete canonical state')
+    return state
+}
+
 describe('R-2.11-H1 — a Relic Thief take answered while the Campaign waits on a banish is judged at that answer', () => {
     // Protection. Rhys (the attacker, ruling c1 with Toll Roads) has won against Dana (the holder:
     // the Horn and the Book) at c2, taking the Horn and banishing her to c1. Mara holds Relic Thief
     // and the Sticks, in the Cradle. The thief's question comes first, then Dana's toll; the
     // Campaign stays open until the toll is answered.
-    function build(revision: OathRevision, seed: number) {
+    function build(revision: OathRevision, seed: number, more: BanishTableOptions = {}) {
+        const { maraAdvisers = [], beaAdvisers = [] } = more
+        const faceUp = (cardId: string) => ({ cardId, faceUp: true })
         const start = table(
             revision,
             [
@@ -1398,9 +1424,10 @@ describe('R-2.11-H1 — a Relic Thief take answered while the Campaign waits on 
                 exile(DANA, Color.Red, 'c2', { relicIds: [HORN, BOOK], favor: 6 }),
                 exile(MARA, Color.White, 'c2', {
                     relicIds: [STICKS],
-                    advisers: [{ cardId: RELIC_THIEF, faceUp: true }]
+                    secrets: 2 + maraAdvisers.length,
+                    advisers: [RELIC_THIEF, ...maraAdvisers].map(faceUp)
                 }),
-                chancellor(BEA, 'h3')
+                chancellor(BEA, 'h3', { advisers: beaAdvisers.map(faceUp) })
             ],
             {
                 chancellorPlayerId: BEA,
@@ -1435,6 +1462,13 @@ describe('R-2.11-H1 — a Relic Thief take answered while the Campaign waits on 
         )
         return start
     }
+
+    const BANISH = buildAction(CampaignResolveVictory, {
+        playerId: RHYS,
+        placements: [],
+        banishToSiteId: 'c1',
+        burnFavor: false
+    })
 
     function thiefThenToll(revision: OathRevision) {
         for (let seed = 1; seed < 3000; seed++) {
@@ -1477,5 +1511,147 @@ describe('R-2.11-H1 — a Relic Thief take answered while the Campaign waits on 
             transfers: [`${DANA}->${RHYS}`, `${RHYS}->${MARA}`],
             holder: MARA
         })
+    })
+
+    /** The holder and the moves so far after each answer, from the thief's roll to the toll. */
+    function throughToll(revision: OathRevision, scene: ThiefScene) {
+        for (let seed = 1; seed < 3000; seed++) {
+            const r = runner(build(revision, seed, scene))
+            r.step(BANISH)
+            const moments: { after: string; holder: string | undefined; transfers: string[] }[] = []
+            const note = (after: string) =>
+                moments.push({
+                    after,
+                    holder: r.state.oathkeeperPlayerId,
+                    transfers: r.transfers()
+                })
+            r.step(answer(MARA, { kind: PowerQuestionKind.RelicThiefRoll, roll: true }))
+            note('roll')
+            if (scene.reroll !== undefined) {
+                expect(r.state.pendingQuestions?.queue.map((q) => q.kind)).toEqual([
+                    PowerQuestionKind.RerollDice,
+                    PowerQuestionKind.PayTravelToll
+                ])
+                r.step(answer(MARA, { kind: PowerQuestionKind.RerollDice, reroll: scene.reroll }))
+                note('jinx')
+            }
+            if (r.player(MARA).relicIds.includes(HORN) !== scene.takes) continue
+            expect(r.state.campaign?.banishPending).toEqual({})
+            r.step(answer(DANA, { kind: PowerQuestionKind.PayTravelToll, pay: true }))
+            expect(r.state.campaign).toBeUndefined()
+            note('toll')
+            return { r, seed, moments }
+        }
+        throw Error('no seed for the scene')
+    }
+
+    const favorOf = (r: Runner) => [BEA, RHYS, MARA].map((id) => r.player(id).favor)
+
+    describe('with Jinx, the answer that lands the take is the moment', () => {
+        const jinxed: ThiefScene = {
+            maraAdvisers: [JINX],
+            beaAdvisers: [CHAOS_CULT],
+            reroll: true,
+            takes: true
+        }
+
+        it('Jinx rerolls and the take lands: the title goes from Dana to Mara at the reroll, not at the roll or the toll, and Chaos Cult (Bea) takes favor once', () => {
+            // Bea 4 + 1 from Mara; Rhys 4 + Dana's toll; Mara 4 - Relic Thief's favor - Chaos Cult's.
+            const { r, moments } = throughToll(NOW, jinxed)
+            expect(moments).toEqual([
+                { after: 'roll', holder: DANA, transfers: [] },
+                { after: 'jinx', holder: MARA, transfers: [`${DANA}->${MARA}`] },
+                { after: 'toll', holder: MARA, transfers: [`${DANA}->${MARA}`] }
+            ])
+            expect(favorOf(r)).toEqual([5, 5, 2])
+        })
+
+        it('Jinx declined and the kept roll takes: the title moves at that answer', () => {
+            const { moments } = throughToll(NOW, { ...jinxed, reroll: false })
+            expect(moments).toEqual([
+                { after: 'roll', holder: DANA, transfers: [] },
+                { after: 'jinx', holder: MARA, transfers: [`${DANA}->${MARA}`] },
+                { after: 'toll', holder: MARA, transfers: [`${DANA}->${MARA}`] }
+            ])
+        })
+
+        it('Jinx rerolls and the take fails: nothing moves until the toll ends the Campaign, then Dana to Rhys', () => {
+            const { moments } = throughToll(NOW, { ...jinxed, takes: false })
+            expect(moments).toEqual([
+                { after: 'roll', holder: DANA, transfers: [] },
+                { after: 'jinx', holder: DANA, transfers: [] },
+                { after: 'toll', holder: RHYS, transfers: [`${DANA}->${RHYS}`] }
+            ])
+        })
+
+        it("every seat's view, rebuilt from what it is sent for the reroll answer, equals the server's: Mara holds the title", () => {
+            const { seed } = throughToll(NOW, jinxed)
+            const start = build(NOW, seed, jinxed)
+            const game = {
+                ...testGame(start.players.map((p) => p.playerId)),
+                hotseat: false,
+                protectedInformation: true as const
+            }
+            let state = start
+            for (const action of [
+                BANISH,
+                answer(MARA, { kind: PowerQuestionKind.RelicThiefRoll, roll: true })
+            ]) {
+                state = engine.runNext(action, state, game).updatedState
+            }
+            const before = canonical(state)
+            const reroll = answer(MARA, { kind: PowerQuestionKind.RerollDice, reroll: true })
+            const result = engine.executeCanonicalAction({
+                action: { ...reroll, id: `a-${before.actionCount}`, index: before.actionCount },
+                state: before,
+                game
+            })
+            const after = canonical(result.updatedState)
+            expect(after.oathkeeperPlayerId).toBe(MARA)
+            const perspectives: Visibility.Perspective[] = [
+                ...after.players.map((p) => ({ kind: 'player', playerId: p.playerId }) as const),
+                { kind: 'spectator' }
+            ]
+            for (const perspective of perspectives) {
+                const history = Visibility.projectActionHistory({
+                    game,
+                    currentState: after,
+                    startIndex: before.actionCount,
+                    actions: result.processedActions,
+                    visibility: OathVisibility,
+                    perspective,
+                    replay: { game, runtime: OathRuntime }
+                })
+                let view = OathVisibility.state.project(before, perspective)
+                for (const action of history.actions) {
+                    view = engine.applyProcessedAction({ game, state: view, action })
+                }
+                expect(view).toEqual(OathVisibility.state.project(after, perspective))
+                expect(view.oathkeeperPlayerId).toBe(MARA)
+                expect(history.actions.filter(isTransferOathkeeper)).toHaveLength(1)
+            }
+        })
+
+        it('before revision 12 (R-X.4) Rhys takes it with the spoils and Mara at the reroll, and Chaos Cult takes from each', () => {
+            const { r, moments } = throughToll(BEFORE, jinxed)
+            expect(moments).toEqual([
+                { after: 'roll', holder: RHYS, transfers: [`${DANA}->${RHYS}`] },
+                {
+                    after: 'jinx',
+                    holder: MARA,
+                    transfers: [`${DANA}->${RHYS}`, `${RHYS}->${MARA}`]
+                },
+                { after: 'toll', holder: MARA, transfers: [`${DANA}->${RHYS}`, `${RHYS}->${MARA}`] }
+            ])
+            expect(favorOf(r)).toEqual([6, 4, 2])
+        })
+    })
+
+    it('a thief roll that takes nothing is no moment: the title moves once the toll ends the Campaign, Dana to Rhys', () => {
+        const { moments } = throughToll(NOW, { takes: false })
+        expect(moments).toEqual([
+            { after: 'roll', holder: DANA, transfers: [] },
+            { after: 'toll', holder: RHYS, transfers: [`${DANA}->${RHYS}`] }
+        ])
     })
 })

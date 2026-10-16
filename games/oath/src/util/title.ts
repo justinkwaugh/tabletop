@@ -5,23 +5,19 @@ import { MachineState } from '../definition/states.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { playersMeetingOathkeeperGoal } from './oathkeeper.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
-import type { PowerQuestionKind } from '../model/question.js'
-import { isTitleMoment } from './questionAnswers.js'
 
 /**
  * R-2.11-H1 — the title is judged after each Law action, and a Campaign's Steps 1–8 (R-5.5) are
  * one: `state.campaign` is set from its declaration until R-5.5.8 ends it, before any "after …
- * campaign" power. An answer to a question marked as a title moment (a binding exchange, a take
- * that moves relics) is its own moment even then. In a game created before revision 12 (R-X.4)
- * every step is judged, so the title can change hands mid-Campaign.
+ * campaign" power. A title moment is judged even then: an answer that made a binding exchange or
+ * landed a Relic Thief take, whichever question it answered (an answer that only postpones the
+ * take, as a roll waiting on Jinx, is none). In a game created before revision 12 (R-X.4) every
+ * step is judged, so the title can change hands mid-Campaign.
  */
-export function isTitleBoundary(
-    state: HydratedOathGameState,
-    answeredKind: PowerQuestionKind | undefined
-): boolean {
+export function isTitleBoundary(state: HydratedOathGameState, titleMoment: boolean): boolean {
     if (!isAtLeastOathRevision(state, OathRevision.EngineFixes8)) return true
     if (state.campaign === undefined) return true
-    return answeredKind !== undefined && isTitleMoment(answeredKind)
+    return titleMoment
 }
 
 export type TitleEvaluation =

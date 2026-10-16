@@ -63,8 +63,8 @@ function withContinuousTitle(handler: OathStateHandler): OathStateHandler {
                 ? toMachineState(gameState.machineState)
                 : handler.onAction(action, context)
             if (gameState.winningPlayerIds.length > 0) return next
-            const answered = isAnswerQuestion(action) ? action.metadata?.kind : undefined
-            if (!isTitleBoundary(gameState, answered)) return next
+            const titleMoment = isAnswerQuestion(action) && action.metadata?.titleMoment === true
+            if (!isTitleBoundary(gameState, titleMoment)) return next
 
             settleTitle(context, toMachineState(next))
 

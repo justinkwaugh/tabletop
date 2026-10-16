@@ -33,21 +33,37 @@ export function offerReroll(
     return asked
 }
 
+/** What a roll outside a Campaign did once it stood. */
+export interface SettledRoll {
+    summary: string
+    /** Relic Thief — the relics changed hands. */
+    relicsTaken: boolean
+}
+
 /** Gambling Hall, Relic Thief — what a roll outside a Campaign does once it stands. */
 export function settleRoll(
     state: HydratedOathGameState,
     rollerId: string,
     roll: Exclude<RerolledRoll, { kind: RerolledRollKind.Campaign }>
-): string {
+): SettledRoll {
     if (roll.kind === RerolledRollKind.GamblingHall) {
         const gained = gainFavorFromBank(state, rollerId, roll.bank, roll.shields)
-        return `rolled ${roll.shields} shields and took ${gained} favor from the ${roll.bank} bank`
+        return {
+            summary: `rolled ${roll.shields} shields and took ${gained} favor from the ${roll.bank} bank`,
+            relicsTaken: false
+        }
     }
     const taker = state.getPlayerState(roll.takerPlayerId)
     const relics = roll.relicCardIds.filter((id) => taker.relicIds.includes(id))
     if (roll.shields > 0) {
-        return `Relic Thief: rolled ${roll.shields} shields; ${relics.join(', ')} stayed with ${roll.takerPlayerId}`
+        return {
+            summary: `Relic Thief: rolled ${roll.shields} shields; ${relics.join(', ')} stayed with ${roll.takerPlayerId}`,
+            relicsTaken: false
+        }
     }
     const notes = takeRelicsFrom(state, roll.takerPlayerId, rollerId, relics)
-    return `Relic Thief: rolled no shields and took ${relics.join(', ')} from ${roll.takerPlayerId}${takeNotes(notes)}`
+    return {
+        summary: `Relic Thief: rolled no shields and took ${relics.join(', ')} from ${roll.takerPlayerId}${takeNotes(notes)}`,
+        relicsTaken: true
+    }
 }
