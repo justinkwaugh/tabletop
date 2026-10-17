@@ -27,7 +27,7 @@ import { siteHolding } from '../util/access.js'
 import { nextActionIndex } from '../util/freeActions.js'
 import { playerChoicesAtYourSite } from './choiceDomains.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
-import { askPowerMoveToll, powerMoveToll } from '../util/powerMoveTolls.js'
+import { askBeforePowerMove } from '../util/powerMoveTolls.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { shroudedWoodChooser } from '../util/siteTravel.js'
 import { askQuestion } from '../util/questions.js'
@@ -451,25 +451,33 @@ registerEffect(
             const [target] = chosen(ctx, PowerChoiceKind.Player)
             const [site] = chosen(ctx, PowerChoiceKind.Site)
             const chooser = shroudedWoodChooser(ctx.state, target.playerId)
-            // Toll Roads — a refusal blocks the move, so neither pawn goes; the card's cost stays paid.
-            const toll =
+            // The Hidden Place, Toll Roads — asked of the carried player before either pawn moves: a
+            // refusal blocks the move, so neither goes; the card's cost stays paid.
+            const move = {
+                move: PowerMoveKind.Palanquin,
+                powerCardId: PALANQUIN,
+                moverPlayerId: ctx.playerId,
+                movedPlayerId: target.playerId,
+                toSiteId: site.siteId
+            }
+            const waits =
                 chooser === undefined
-                    ? powerMoveToll(ctx.state, target.playerId, site.siteId)
+                    ? askBeforePowerMove(ctx.state, move, ctx.playerId)
                     : undefined
-            if (toll) {
-                const move = {
-                    move: PowerMoveKind.Palanquin,
-                    powerCardId: PALANQUIN,
-                    moverPlayerId: ctx.playerId,
-                    movedPlayerId: target.playerId,
-                    toSiteId: site.siteId
+            if (waits?.kind === 'flip') {
+                return {
+                    summary: `Palanquin: ${target.playerId} is asked to flip a secret to travel to ${site.siteId}`,
+                    targetPlayerId: target.playerId
                 }
-                const tollMove = askPowerMoveToll(ctx.state, move, toll, ctx.playerId)
+            }
+            if (waits?.kind === 'toll') {
+                const { tollMove } = waits
+                const card = tollMove.toll.cardId
                 return {
                     summary:
                         tollMove.outcome === PowerMoveTollOutcome.Asked
-                            ? `Palanquin: ${target.playerId} is asked for ${toll.cardId}'s favor`
-                            : `Palanquin: ${target.playerId} had no favor for ${toll.cardId}, and neither moved`,
+                            ? `Palanquin: ${target.playerId} is asked for ${card}'s favor`
+                            : `Palanquin: ${target.playerId} had no favor for ${card}, and neither moved`,
                     targetPlayerId: target.playerId,
                     tollMove
                 }

@@ -43,7 +43,7 @@ import {
 } from './exchange.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
-import { reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
+import { powerTravelNeedsFlip, reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
 import { reasonWoodPickRefused, settleWoodPick, shroudedWoodDestinations } from './shroudedWood.js'
 import { settleBanishedVictory } from './campaignVictory.js'
 import {
@@ -51,10 +51,12 @@ import {
     canPayPowerMoveToll,
     giveWhistleSecret,
     powerMoveToll,
+    settlePowerMoveFlip,
     settlePowerMoveToll,
     whistleUserOnArrival
 } from './powerMoveTolls.js'
 import { payToll } from './tolls.js'
+import { flipSecretFacedown, reasonFlipInvalid } from './siteTravel.js'
 import { gainFromDrum, reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { forgoFreeActionNow } from './freeActions.js'
@@ -422,22 +424,32 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!canPayPowerMoveToll(state, playerId, siteId)) {
                 return `travelling to ${siteId} takes a favor for its toll and you have none`
             }
-            return reasonCannotTravelByPower(state, playerId, siteId)
+            const unable = reasonCannotTravelByPower(state, playerId, siteId)
+            if (unable) return unable
+            // R-11.13-H1 — the user's own flip rides the answer, for a site that asks for one only.
+            const needsFlip = powerTravelNeedsFlip(state, playerId, siteId)
+            if (needsFlip && !matched.answer.flipSecret) {
+                return `travelling to ${siteId} takes a faceup secret flipped facedown`
+            }
+            return reasonFlipInvalid(state, playerId, needsFlip, matched.answer.flipSecret === true)
         },
         apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const siteId = matched.answer.siteId
             // Toll Roads — Brass Horse's user travels, so they pay as they go.
             const toll = powerMoveToll(state, playerId, siteId)
             if (toll) payToll(state, playerId, toll)
+            const flipped = matched.answer.flipSecret === true
+            if (flipped) flipSecretFacedown(state, playerId)
             const { notes } = travelByPower(state, playerId, siteId, {
                 playerId: askingPlayerId,
                 next: true
             })
             const after = notes.length ? ` (${notes.join('; ')})` : ''
-            if (!toll) return `travelled to ${siteId} for no Supply${after}`
+            const travelled = `${flipped ? 'flipped a secret facedown and travelled' : 'travelled'} to ${siteId} for no Supply`
+            if (!toll) return `${travelled}${after}`
             // The History's form for a toll inside a row: what was paid, then the card.
             const paid = toll.payeeId ? `paid ${toll.payeeId}` : 'burned'
-            return `travelled to ${siteId} for no Supply; ${paid} 1 favor (${toll.cardId})${after}`
+            return `${travelled}; ${paid} 1 favor (${toll.cardId})${after}`
         }
     },
     [PowerQuestionKind.RerollDice]: {
@@ -654,6 +666,36 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 tollMove,
                 woodPick: pick,
                 ...endTravelOutOfTurn(state, question.askedPlayerId)
+            }
+        }
+    },
+    [PowerQuestionKind.FlipToTravel]: {
+        reasonCannotAnswer: (state, playerId, matched) =>
+            matched.answer.flip ? reasonFlipInvalid(state, playerId, true, true) : undefined,
+        apply: (state, _playerId, matched, _asked, askingPlayerId) => {
+            const { question } = matched
+            // R-11.13-H1 — no flip, no travel: the pawn stays; a banish's burn, plans and end follow.
+            if (!matched.answer.flip) {
+                return {
+                    summary: `kept their secrets and stayed at ${question.fromSiteId}`,
+                    ...settleBanishedVictory(state)
+                }
+            }
+            const settled = settlePowerMoveFlip(state, question, askingPlayerId)
+            if ('tollMove' in settled) {
+                // Toll Roads follows; the secret is flipped once the toll is paid.
+                const summary = `chose to flip a secret to travel to ${question.siteId}`
+                return settled.tollMove.outcome === PowerMoveTollOutcome.Asked
+                    ? summary
+                    : { summary, tollMove: settled.tollMove, ...settleBanishedVictory(state) }
+            }
+            const { notes, revealed, secretsTaken } = settled.arrived
+            const secret = secretsTaken ? `, taking ${secretsTaken} secret from the Whistle` : ''
+            const after = notes.length ? ` (${notes.join('; ')})` : ''
+            return {
+                summary: `flipped a secret facedown and travelled to ${question.siteId}${secret}${after}`,
+                disclosed: revealed ? true : undefined,
+                ...settleBanishedVictory(state)
             }
         }
     },

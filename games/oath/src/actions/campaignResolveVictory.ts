@@ -32,7 +32,7 @@ import { pawnSiteId } from '../util/pawn.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
-import { askPowerMoveToll, powerMoveToll } from '../util/powerMoveTolls.js'
+import { askBeforePowerMove } from '../util/powerMoveTolls.js'
 import { PowerMoveKind, PowerMoveToll, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 
 /** R-5.5.7.I */
@@ -243,21 +243,24 @@ export class HydratedCampaignResolveVictory
         let banishedToSiteId: string | undefined
         let revealed: SiteFlip | undefined
         let banishNotes: string[] = []
-        // Toll Roads — the banished player gives the favor or refuses, and refusing keeps them here.
-        const toll = this.banishToSiteId
-            ? powerMoveToll(state, defender.playerId, this.banishToSiteId)
+        // The Hidden Place, Toll Roads — the banished player flips a secret, gives the favor, or
+        // refuses, and refusing keeps them here.
+        const waits = this.banishToSiteId
+            ? askBeforePowerMove(
+                  state,
+                  {
+                      move: PowerMoveKind.Banish,
+                      moverPlayerId: campaign.attackerPlayerId,
+                      movedPlayerId: defender.playerId,
+                      toSiteId: this.banishToSiteId,
+                      burnFavor: this.burnFavor || undefined
+                  },
+                  campaign.attackerPlayerId
+              )
             : undefined
-        let tollMove: PowerMoveToll | undefined
-        if (this.banishToSiteId && toll) {
-            const move = {
-                move: PowerMoveKind.Banish,
-                moverPlayerId: campaign.attackerPlayerId,
-                movedPlayerId: defender.playerId,
-                toSiteId: this.banishToSiteId,
-                burnFavor: this.burnFavor || undefined
-            }
-            tollMove = askPowerMoveToll(state, move, toll, campaign.attackerPlayerId)
-        } else if (this.banishToSiteId) {
+        const tollMove = waits?.kind === 'toll' ? waits.tollMove : undefined
+        const flipWaits = waits?.kind === 'flip'
+        if (this.banishToSiteId && waits === undefined) {
             // R-5.6.2 via R-5.5.7.III; Grasping Vines, Boiling Lake.
             const moved = travelByPower(state, defender.playerId, this.banishToSiteId, {
                 playerId: campaign.attackerPlayerId,
@@ -282,13 +285,16 @@ export class HydratedCampaignResolveVictory
         }
 
         // R-5.5.7.III — the travel, then the burn, then R-5.5.8: an asked toll's answer comes first,
-        // and from `UiBatch1` the Wood ruler's pick does too (R-X.4).
+        // and from `UiBatch1` the Wood ruler's pick does too (R-X.4), and the defender's flip
+        // (R-11.13-H1) from revision 15.
         const tollWaits = tollMove?.outcome === PowerMoveTollOutcome.Asked
         const woodWaits = woodPicks && isAtLeastOathRevision(state, OathRevision.UiBatch1)
         if (tollWaits) campaign.banishPending = {}
-        if (woodWaits) campaign.banishPending = this.burnFavor ? { burnFavor: true } : {}
+        if (woodWaits || flipWaits) {
+            campaign.banishPending = this.burnFavor ? { burnFavor: true } : {}
+        }
         const favorBurned =
-            this.burnFavor && !tollWaits && !woodWaits
+            this.burnFavor && !tollWaits && !woodWaits && !flipWaits
                 ? burnHalfTheirFavor(state, defender.playerId)
                 : 0
 

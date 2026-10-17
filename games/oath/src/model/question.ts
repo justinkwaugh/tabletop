@@ -170,7 +170,12 @@ export enum PowerQuestionKind {
      * adviser limit: they discard down to it, never a card the swap gave them (R-7.6.4). An
      * exchange that leaves a player over their limit asks the same (R-10.8).
      */
-    DiscardAdvisers = 'discardAdvisers'
+    DiscardAdvisers = 'discardAdvisers',
+    /**
+     * The Hidden Place, the Buried Giant (revision 15) — a power moves the asked player to a site
+     * they reach only by flipping a faceup secret facedown: flip and travel, or stay (R-11.13-H1).
+     */
+    FlipToTravel = 'flipToTravel'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -420,7 +425,9 @@ export const PowerQuestion = Type.Union([
         /** R-11.7 — the traveller's own Travel out of the Shrouded Wood, which pays its Supply once the toll is paid. */
         travel: Type.Optional(ShroudedWoodTravel),
         /** R-11.7-H1 — the power whose move the Shrouded Wood's ruler redirected. */
-        power: Type.Optional(ShroudedWoodPower)
+        power: Type.Optional(ShroudedWoodPower),
+        /** R-11.13-H1 — the secret the asked player chose to flip, flipped once the toll is paid. */
+        flipSecret: Type.Optional(Type.Boolean())
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
@@ -433,6 +440,18 @@ export const PowerQuestion = Type.Union([
         kind: Type.Literal(PowerQuestionKind.DragonskinDrum),
         cardId: Type.String(),
         askedPlayerId: Type.String()
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.FlipToTravel),
+        /** The power's card; for a banish, the site whose rule asks: The Hidden Place, or the Buried Giant left. */
+        cardId: Type.String(),
+        askedPlayerId: Type.String(),
+        move: Type.Enum(PowerMoveKind),
+        /** The Whistle or Palanquin; absent for a banish. */
+        powerCardId: Type.Optional(Type.String()),
+        moverPlayerId: Type.String(),
+        fromSiteId: Type.String(),
+        siteId: Type.String()
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
@@ -490,7 +509,12 @@ export const QuestionAnswer = Type.Union([
             Visibility.protect(Type.String(), { policy: Visibility.Policy.Actor })
         )
     }),
-    Type.Object({ kind: Type.Literal(PowerQuestionKind.TravelFreeTo), siteId: Type.String() }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.TravelFreeTo),
+        siteId: Type.String(),
+        /** R-11.13-H1 — a faceup secret flipped facedown, for a site that asks for one. */
+        flipSecret: Type.Optional(Type.Boolean())
+    }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.RerollDice), reroll: Type.Boolean() }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.PlayOrDiscardVision),
@@ -531,6 +555,7 @@ export const QuestionAnswer = Type.Union([
         take: Type.Literal(false)
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.DragonskinDrum), gain: Type.Boolean() }),
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.FlipToTravel), flip: Type.Boolean() }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** R-10.5 — in the order they go down, the last on top; a facedown one is named to its holder alone. */
