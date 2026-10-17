@@ -1,31 +1,49 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import Phrases from '$lib/components/Phrases.svelte'
-    import { describeActions } from '$lib/utils/actionDescription.js'
+    import PhraseLine from '$lib/components/PhraseLine.svelte'
     import { boardName } from '$lib/utils/reefSquare.js'
     import { previousTurn } from '$lib/utils/historyEntries.js'
+    import { turnSummary } from '$lib/utils/turnRecap.js'
     import { waitingActivity } from '$lib/utils/statusText.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    const state = $derived(gameSession.gameState)
-    const lastTurn = $derived(previousTurn(gameSession.actions, state.activePlayerIds))
-    const phrases = $derived(
+    const game = $derived(gameSession.gameState)
+    const lastTurn = $derived(previousTurn(gameSession.actions, game.activePlayerIds))
+    const summary = $derived(
         lastTurn
-            ? describeActions(
+            ? turnSummary(
                   lastTurn.actions,
                   lastTurn.playerId === gameSession.myPlayer?.id ? 'your' : 'their',
-                  gameSession.possessiveName,
                   (boardId) => boardName(gameSession.gameState.reefs, boardId)
               )
-            : []
+            : undefined
     )
 </script>
 
-{#each state.activePlayerIds as playerId (playerId)}
-    {@const activity = waitingActivity(state.machineState, playerId === gameSession.myPlayer?.id)}
+{#each game.activePlayerIds as playerId (playerId)}
+    {@const activity = waitingActivity(game.machineState, playerId === gameSession.myPlayer?.id)}
     {#if activity}
         <p class="prompt"><PlayerName {playerId} /> {activity}</p>
     {/if}
 {/each}
-<Phrases {phrases} />
+{#if summary}
+    <p class="detail summary">
+        {#if lastTurn?.playerId}
+            <PlayerName playerId={lastTurn.playerId} />
+            <PhraseLine phrase={{ ...summary, playerId: lastTurn.playerId }} />
+        {/if}
+    </p>
+{/if}
+
+<style>
+    /* One line; the History tab holds the rest. */
+    .summary {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
+        line-height: 1.55;
+    }
+</style>

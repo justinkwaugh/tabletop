@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Player } from '@tabletop/common'
+    import { assert, type Player } from '@tabletop/common'
     import {
         coralValues,
         isParrotfishFed,
@@ -27,16 +27,18 @@
             isParrotfishFed(state, player.id)
         )
     )
-    // A few corals at the panel's foot, a different few for each seat so the panels tell apart.
+    // Each seat gets its own corals, so the panels tell apart.
     const SeatCorals = [
         ['orange', 'yellow', 'white'],
         ['pink', 'grey', 'orange'],
         ['white', 'pink', 'yellow'],
         ['grey', 'orange', 'pink']
     ]
-    const corals = $derived(
-        SeatCorals[Math.max(state.turnManager.turnOrder.indexOf(player.id), 0) % SeatCorals.length]
-    )
+    const corals = $derived.by(() => {
+        const seat = state.turnManager.turnOrder.indexOf(player.id)
+        assert(seat >= 0, `Player ${player.id} has no seat`)
+        return SeatCorals[seat % SeatCorals.length]
+    })
     const shrimpsOnReefs = $derived(
         state.shrimps.filter((shrimp) => shrimp.playerId === player.id).length
     )
@@ -69,7 +71,7 @@
             <img src={ParrotfishUrls[gameSession.colors.getPlayerColor(player.id)]} alt="" />
         </div>
         <h3
-            class="plaque reef-display"
+            class="name reef-plaque reef-display"
             style:background={gameSession.colors.getPlayerBgColorValue(player.id)}
             style:color={gameSession.colors.getPlayerTextColorValue(player.id)}
         >
@@ -180,7 +182,6 @@
         text-align: left;
     }
 
-    /* The player whose turn it is: the glass's pearl edge becomes a band of their colour. */
     article.panel.turn::after {
         padding: 3px;
         background: var(--player);
@@ -188,7 +189,6 @@
         z-index: 1;
     }
 
-    /* Shallow, sunlit water above the reef, deepening into the panel below. */
     header {
         position: relative;
         height: 72px;
@@ -245,17 +245,12 @@
         filter: drop-shadow(0 3px 3px rgb(4 30 26 / 0.3));
     }
 
-    .plaque {
+    .name {
         position: absolute;
         left: 10px;
         top: 12px;
         padding: 1px 14px 2px;
-        border-radius: 999px;
         font-size: 18px;
-        box-shadow:
-            inset 0 9px 8px -6px rgb(255 255 255 / 0.4),
-            0 0 0 2px color-mix(in srgb, var(--player) 45%, #082520),
-            0 3px 6px rgb(4 30 26 / 0.45);
     }
 
     .breath {
