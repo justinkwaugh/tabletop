@@ -41,7 +41,8 @@ import {
     type ProjectedUnit,
     Side
 } from '@tabletop/napoleons-triumph'
-import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
+import { inwardsFromTheEdge } from '$lib/map/battlefield.js'
+import { CAPACITY_BOXES, ENTRY_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { shadeOf, type ArmyColors } from '$lib/utils/armyColors.js'
 import { BoardView, viewRotation } from '$lib/utils/boardView.js'
 import { commandDiscs } from '$lib/utils/commandTrack.js'
@@ -50,19 +51,33 @@ import { sameIds } from '$lib/utils/ids.js'
 import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
 import { timeMarker } from '$lib/utils/timeTrack.js'
 import { inReadingOrder } from '$lib/utils/unitTypeOrder.js'
-import { numberOfTrail } from '$lib/utils/trailNumber.js'
-import { lineSamples } from '$lib/utils/wayArrow.js'
+import { numberOfTrail, trailNumberOutline } from '$lib/utils/trailNumber.js'
+import { drawnArrowOutlines, lineSamples } from '$lib/utils/wayArrow.js'
+import {
+    WAY_SIGN_REACH,
+    waySignArrow,
+    waySignOutline,
+    type WaySignArrow
+} from '$lib/utils/waySign.js'
+import { retreatArrowOutlines, retreatArrows, type RetreatArrow } from '$lib/utils/retreatArrows.js'
 import {
     arrowsToKeepClear,
     flagMarks,
+    flagOutlines,
     flagScale,
     type FlagBearer,
     type FlagMark,
     type FlagView,
     type PlantedFlag
 } from '$lib/utils/flagLayout.js'
-import { topmostAt } from '$lib/utils/blockShape.js'
-import { approachPlates, plateSamples, type ApproachPlate } from '$lib/utils/approachPlates.js'
+import { blockOutline, topmostAt } from '$lib/utils/blockShape.js'
+import {
+    approachPlates,
+    plateOutlines,
+    plateSamples,
+    type ApproachPlate
+} from '$lib/utils/approachPlates.js'
+import { capacityTags, type CapacityTag } from '$lib/utils/capacityTags.js'
 import { gunTags, type GunTag } from '$lib/utils/gunTags.js'
 import {
     SYMBOL_TAGS,
@@ -73,7 +88,7 @@ import {
 } from '$lib/utils/approachSymbols.js'
 import { THREAT_ARROW, arrowOutlines, attackMarkerScale } from '$lib/utils/attackMarker.js'
 import type { ConvexOutline } from '$lib/utils/convexOutline.js'
-import { boxSamples } from '$lib/utils/orientedBox.js'
+import { boxSamples, cornersOf } from '$lib/utils/orientedBox.js'
 import {
     heldApproaches,
     layoutPieces,
@@ -216,9 +231,10 @@ import {
     type AttackTarget,
     type MarchTarget,
     type MoveTarget,
+    type WaySign,
     type WayTarget
 } from './targets.js'
-import { traceWays, type Way, type WayChoice, type WayStep } from './ways.js'
+import { WayStepKind, traceWays, type Way, type WayChoice, type WayStep } from './ways.js'
 import { concludedBattleOf, type ConcludedBattle } from './concludedBattle.js'
 
 type ZoomSource = () => number | undefined
@@ -252,7 +268,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     approachSymbolsShown = $state(false)
 
-    movementTrailsShown = $state(false)
+    movementTrailsShown = $derived(this.preferences.values.movementTrails)
+
+    capacitiesShown = $derived(this.preferences.values.localeCapacities)
 
     pictureShowsUnitTypes = $state(true)
 
@@ -431,7 +449,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     gunTags: GunTag[] = $derived(gunTags(this.gameState, this.boardRotation, this.arrowOutlines))
 
-    flagView: FlagView = $derived({ rotation: this.boardRotation, scale: flagScale(this.zoom) })
+    // A number, not the view object, so what is sized by it is worked out again only when the scale changes.
+    private flagSize: number = $derived(flagScale(this.zoom))
+
+    flagView: FlagView = $derived({ rotation: this.boardRotation, scale: this.flagSize })
 
     private plantedFlags: PlantedFlag[] = $derived.by(() => {
         const playerId = this.myPlayerId
@@ -461,6 +482,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
                 ...this.approachSymbolTags.flatMap((tag) =>
                     tag.slid ? boxSamples(tag.cover) : []
                 ),
+                ...Object.values(CAPACITY_BOXES),
                 ...this.movementTrails.flatMap((trail) => [
                     ...lineSamples(trail.line),
                     numberOfTrail(trail, this.flagView.scale).at
@@ -469,6 +491,59 @@ export class NapoleonsTriumphGameSession extends GameSession<
             (group) => this.flagBearer(group, this.hasCommanded(group)),
             this.plantedFlags
         )
+    })
+
+    waySigns: WaySign[] = $derived.by(() => {
+        const scale = this.flagSize
+        return this.targets.flatMap((target) =>
+            target.kind === TargetKind.Way ? [{ target, ...this.waySignOf(target, scale) }] : []
+        )
+    })
+
+    private waySignOf({ step }: WayTarget, scale: number): { at: Point; arrow: WaySignArrow } {
+        const anchorOf = (locale: number | undefined): Point | undefined =>
+            locale === undefined ? undefined : LOCALE_GEOMETRY[locale].anchor
+        if (step.kind === WayStepKind.Entry) {
+            const entry = ENTRY_GEOMETRY[step.entryId].at
+            const inwards = inwardsFromTheEdge(entry)
+            const clear = WAY_SIGN_REACH * scale
+            const at = { x: entry.x + inwards.x * clear, y: entry.y + inwards.y * clear }
+            return { at, arrow: waySignArrow(at, entry, undefined) }
+        }
+        const at = LOCALE_GEOMETRY[step.locale].anchor
+        const comesFrom = anchorOf(step.before) ?? this.selectedSprite?.centre
+        return { at, arrow: waySignArrow(at, comesFrom, anchorOf(step.after)) }
+    }
+
+    retreatArrows: RetreatArrow[] = $derived.by(() => {
+        const stage = this.battleStage
+        const [, from] = this.battleLocales
+        return stage?.kind === StageKind.Retreat && from !== undefined
+            ? retreatArrows(from, stage.plan.destinations)
+            : []
+    })
+
+    // Placed after the flags and kept off them, so no flag hides a capacity; the flags keep off the printed boxes instead.
+    capacityTags: CapacityTag[] = $derived.by(() => {
+        const map = this.gameState.map
+        return capacityTags((locale) => map.locale(locale).capacity, {
+            allShown: this.capacitiesShown,
+            scale: this.flagSize,
+            obstacles: [
+                ...this.sprites.flatMap((sprite) => sprite.blocks.map(blockOutline)),
+                ...this.arrowOutlines,
+                ...plateOutlines(this.approachPlates),
+                ...this.gunTags.map((tag) => cornersOf(tag.box)),
+                ...this.approachSymbolTags.map((tag) => cornersOf(tag.cover)),
+                ...this.movementTrails.flatMap((trail) => [
+                    ...drawnArrowOutlines(trail.arrow),
+                    trailNumberOutline(numberOfTrail(trail, this.flagSize))
+                ]),
+                ...this.retreatArrows.flatMap(retreatArrowOutlines),
+                ...this.waySigns.map(({ at }) => waySignOutline(at, this.flagSize)),
+                ...this.flags.flatMap((flag) => flagOutlines(flag, this.flagView))
+            ]
+        })
     })
 
     chapters: HistoryChapter[] = $derived(
@@ -1353,6 +1428,14 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     setDarkBorders(darkBorders: boolean) {
         this.preferences.set({ darkBorders })
+    }
+
+    setMovementTrailsShown(movementTrails: boolean) {
+        this.preferences.set({ movementTrails })
+    }
+
+    setCapacitiesShown(localeCapacities: boolean) {
+        this.preferences.set({ localeCapacities })
     }
 
     async visitMoveReplay() {

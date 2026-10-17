@@ -3,8 +3,10 @@ import type { Point } from '@tabletop/common'
 import {
     aroundArc,
     grownOutline,
+    outlinesOverlap,
     overlapWhileSliding,
     shortestClearSlide,
+    strokeOutline,
     type ConvexOutline
 } from './convexOutline.js'
 import { cornersOf } from './orientedBox.js'
@@ -87,5 +89,31 @@ describe('the outline round an arc', () => {
             expect(Math.hypot(x, y)).toBeGreaterThanOrEqual(10 - 1e-9)
             expect(Math.hypot(x, y)).toBeLessThanOrEqual(10 / Math.cos(Math.PI / 8) + 1e-9)
         }
+    })
+})
+
+describe('the outline of a straight stroke', () => {
+    it('runs from end to end at the given half width on either side', () => {
+        const stroke = strokeOutline({ x: 0, y: 0 }, { x: 10, y: 0 }, 2)
+        expect(stroke.map(({ x, y }) => ({ x, y: y + 0 }))).toEqual([
+            { x: 0, y: 2 },
+            { x: 10, y: 2 },
+            { x: 10, y: -2 },
+            { x: 0, y: -2 }
+        ])
+        const touching = cornersOf({
+            centre: { x: 5, y: 3 },
+            along: EAST,
+            halfLength: 1,
+            halfWidth: 1.5
+        })
+        const clear = cornersOf({
+            centre: { x: 5, y: 5 },
+            along: EAST,
+            halfLength: 1,
+            halfWidth: 1.5
+        })
+        expect(outlinesOverlap(stroke, touching)).toBe(true)
+        expect(outlinesOverlap(stroke, clear)).toBe(false)
     })
 })

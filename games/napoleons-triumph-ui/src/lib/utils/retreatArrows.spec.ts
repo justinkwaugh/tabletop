@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
-import { retreatArrows } from './retreatArrows.js'
+import { boundsOfPoints, boxHolds } from './boundingBox.js'
+import { COUNT_RADIUS, retreatArrowOutlines, retreatArrows } from './retreatArrows.js'
 
 const FROM = 94
 const NORTH = 93
@@ -41,5 +42,20 @@ describe('the arrows of a retreat being arranged', () => {
 
     it('draws nothing when no unit has a place to go', () => {
         expect(retreatArrows(FROM, {})).toEqual([])
+    })
+})
+
+describe('the outline of a retreat arrow', () => {
+    it('holds its shaft and head between the locales and the disc of its count', () => {
+        const [arrow] = retreatArrows(FROM, { a: EAST })
+        const [shaft, head, disc] = retreatArrowOutlines(arrow)
+        const middle = {
+            x: (arrow.start.x + arrow.end.x) / 2,
+            y: (arrow.start.y + arrow.end.y) / 2
+        }
+        expect(boxHolds(boundsOfPoints([...shaft, ...head]), middle)).toBe(true)
+        const discBounds = boundsOfPoints(disc)
+        expect(boxHolds(discBounds, arrow.end)).toBe(true)
+        expect(discBounds.width).toBeGreaterThanOrEqual(COUNT_RADIUS * 2)
     })
 })

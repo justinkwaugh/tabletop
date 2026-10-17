@@ -89,16 +89,33 @@ function stepsAcross(length: number): number[] {
     return Array.from({ length: count + 1 }, (_, index) => (length * index) / count)
 }
 
+function onTheBoard(approach: number): (right: number, down: number) => Point {
+    const bar = APPROACH_GEOMETRY[approach]
+    const { along, across } = frameOf(bar)
+    return (right, down) => ({
+        x: bar.centre.x + along.x * right + across.x * down,
+        y: bar.centre.y + along.y * right + across.y * down
+    })
+}
+
+export function plateOutlines(plates: readonly ApproachPlate[]): Point[][] {
+    return plates.map(({ approach, box }) => {
+        const at = onTheBoard(approach)
+        return [
+            at(box.x, box.y),
+            at(box.x + box.width, box.y),
+            at(box.x + box.width, box.y + box.height),
+            at(box.x, box.y + box.height)
+        ]
+    })
+}
+
 /** Points on the board that cover every plate, for whatever has to keep off them. */
 export function plateSamples(plates: readonly ApproachPlate[]): Point[] {
     return plates.flatMap(({ approach, box }) => {
-        const bar = APPROACH_GEOMETRY[approach]
-        const { along, across } = frameOf(bar)
+        const at = onTheBoard(approach)
         return stepsAcross(box.width).flatMap((right) =>
-            stepsAcross(box.height).map((down) => ({
-                x: bar.centre.x + along.x * (box.x + right) + across.x * (box.y + down),
-                y: bar.centre.y + along.y * (box.x + right) + across.y * (box.y + down)
-            }))
+            stepsAcross(box.height).map((down) => at(box.x + right, box.y + down))
         )
     })
 }

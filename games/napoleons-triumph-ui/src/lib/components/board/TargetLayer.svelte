@@ -1,7 +1,5 @@
 <script lang="ts">
-    import type { Point } from '@tabletop/common'
-    import { APPROACH_GEOMETRY, ENTRY_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
-    import { inwardsFromTheEdge } from '$lib/map/battlefield.js'
+    import { APPROACH_GEOMETRY, ENTRY_GEOMETRY } from '$lib/map/boardGeometry.js'
     import { localeOutlinePoints } from '$lib/map/localeOutline.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
@@ -16,11 +14,10 @@
     } from '$lib/model/targets.js'
     import { WayStepKind } from '$lib/model/ways.js'
     import {
+        WAY_SIGN_EDGE,
         WAY_SIGN_HEAD,
         WAY_SIGN_REACH,
-        WAY_SIGN_SHAFT_WIDTH,
-        waySignArrow,
-        type WaySignArrow
+        WAY_SIGN_SHAFT_WIDTH
     } from '$lib/utils/waySign.js'
     import {
         ARROW_EDGE_WIDTH,
@@ -80,24 +77,6 @@
         return step.kind === WayStepKind.Entry
             ? 'Come on by this road'
             : `March by way of ${gameSession.gameState.map.label(step.locale)}`
-    }
-
-    const SIGN_EDGE = 3
-
-    const anchorOf = (locale: number | undefined): Point | undefined =>
-        locale === undefined ? undefined : LOCALE_GEOMETRY[locale].anchor
-
-    function signOf({ step }: WayTarget): { at: Point; arrow: WaySignArrow } {
-        if (step.kind === WayStepKind.Entry) {
-            const entry = ENTRY_GEOMETRY[step.entryId].at
-            const inwards = inwardsFromTheEdge(entry)
-            const clear = WAY_SIGN_REACH * gameSession.flagView.scale
-            const at = { x: entry.x + inwards.x * clear, y: entry.y + inwards.y * clear }
-            return { at, arrow: waySignArrow(at, entry, undefined) }
-        }
-        const at = LOCALE_GEOMETRY[step.locale].anchor
-        const comesFrom = anchorOf(step.before) ?? gameSession.selectedSprite?.centre
-        return { at, arrow: waySignArrow(at, comesFrom, anchorOf(step.after)) }
     }
 </script>
 
@@ -184,8 +163,7 @@
         </g>
     {/each}
 {:else}
-    {#each steps as target (target.key)}
-        {@const { at, arrow } = signOf(target)}
+    {#each gameSession.waySigns as { target, at, arrow } (target.key)}
         {@const shaft = `M${arrow.tail.x} ${arrow.tail.y} Q${arrow.knee.x} ${arrow.knee.y} ${arrow.shaftEnd.x} ${arrow.shaftEnd.y}`}
         {@const head = `translate(${arrow.tip.x} ${arrow.tip.y}) rotate(${arrow.angle})`}
         <g
@@ -199,16 +177,16 @@
             onclick={(event) => choose(event, target)}
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         >
-            <circle r={WAY_SIGN_REACH + SIGN_EDGE} fill="transparent"></circle>
+            <circle r={WAY_SIGN_REACH + WAY_SIGN_EDGE} fill="transparent"></circle>
             <path
                 d={shaft}
-                stroke-width={WAY_SIGN_SHAFT_WIDTH + SIGN_EDGE * 2}
+                stroke-width={WAY_SIGN_SHAFT_WIDTH + WAY_SIGN_EDGE * 2}
                 class="nt-way-sign-shaft nt-way-sign-edge"
             ></path>
             <path
                 d={WAY_SIGN_HEAD}
                 transform={head}
-                stroke-width={SIGN_EDGE * 2}
+                stroke-width={WAY_SIGN_EDGE * 2}
                 class="nt-way-sign-head nt-way-sign-edge"
             ></path>
             <path d={shaft} stroke-width={WAY_SIGN_SHAFT_WIDTH} class="nt-way-sign-shaft"></path>

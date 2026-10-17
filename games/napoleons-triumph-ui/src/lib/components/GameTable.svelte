@@ -32,15 +32,8 @@
     import MapMenu from '$lib/components/MapMenu.svelte'
     import MoveReplay from '$lib/components/MoveReplay.svelte'
     import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
-    import { battleLocalesOf } from '$lib/model/battleStage.js'
     import { blockCorners } from '$lib/utils/blockShape.js'
-    import {
-        boundsOf,
-        focusWhereSeen,
-        viewFor,
-        type BoardView,
-        type Focus
-    } from '$lib/utils/boardView.js'
+    import { boundsOf, focusWhereSeen, viewFor, type Focus } from '$lib/utils/boardView.js'
     import { boardPicture, boardPictureName, picturedLayers } from '$lib/utils/boardPicture.js'
     import boardArt from '$lib/images/board.webp'
     import setupMarks from '$lib/images/setup-marks.webp'
@@ -62,7 +55,6 @@
     setGameSession(session)
 
     let wrapper: ScalingWrapper | undefined = $state()
-    let restoreView: ReturnType<ScalingWrapper['captureView']> | undefined
     let boardHost: HTMLElement | undefined = $state()
     let table: HTMLElement | undefined = $state()
     let ordersDrawerHeight = $state(0)
@@ -106,7 +98,6 @@
             : undefined
     })
 
-    const BATTLE_FOCUS = { maxScale: 1.15, padding: 36 }
     const SELECTION_FOCUS_BELOW_ZOOM = 0.3
     const SELECTION_FOCUS = { maxScale: 0.62, padding: 24 }
 
@@ -118,7 +109,6 @@
 
     function showOnMap(locale: number) {
         if (!wrapper) return
-        restoreView = undefined
         const surroundings = [locale, ...session.gameState.map.adjacentLocales(locale)]
         wrapper.focusRect(boundsOf(outlines(surroundings), session.boardRotation), {
             animate: true,
@@ -128,28 +118,6 @@
     }
 
     const UNCOVERED_PADDING = 60
-
-    // A view can only be gone back to if it was taken before the battle and the board has not been
-    // turned since. Where there is none, the battle ends on the whole board.
-    // Workaround: the wrapper drops a fit it is still animating when the map area changes size, as
-    // it does when the battle panel closes, so this one is cut to.
-    function returnToTheWholeBoard() {
-        restoreView = () => wrapper?.fitToContent()
-    }
-
-    function showBattle(locales: number[], animate: boolean) {
-        if (!wrapper) return
-        if (locales.length === 0) {
-            restoreView?.({ animate })
-            restoreView = undefined
-            return
-        }
-        restoreView ??= wrapper.captureView()
-        wrapper.focusRect(boundsOf(outlines(locales), session.boardRotation), {
-            animate,
-            ...BATTLE_FOCUS
-        })
-    }
 
     function showWholeFieldPick(group: PieceGroup, animate: boolean) {
         const locales = [
@@ -310,27 +278,13 @@
         }
     }
 
-    async function turnBoardTo(view: BoardView) {
-        session.boardView = view
-        await tick()
-        if (session.battleLocales.length > 0) {
-            returnToTheWholeBoard()
-            showBattle(session.battleLocales, false)
-        }
-    }
-
-    // A committed action animates the view to and from a battle; Undo, history steps and restores cut to it.
+    // A committed action animates the view to the pieces picked up for a road march; Undo, history steps and restores cut to it.
     const followGame: GameStateChangeListener<HydratedNapoleonsTriumphGameState> = async ({
         from,
         to,
         action,
         animationContext
     }) => {
-        const before = from ? battleLocalesOf(from) : []
-        const after = battleLocalesOf(to)
-        if (before.join() !== after.join()) {
-            animationContext.afterAnimations(() => showBattle(after, action !== undefined))
-        }
         if (to.roadMarch && !from?.roadMarch) {
             animationContext.afterAnimations(() => void showPickedUp(action !== undefined))
         }
@@ -361,10 +315,6 @@
         if (window.innerWidth > window.innerHeight) {
             session.boardView = viewFor(session.mySide)
         }
-        if (session.battleLocales.length > 0) {
-            returnToTheWholeBoard()
-        }
-        showBattle(session.battleLocales, false)
         void showSetup()
         session.addGameStateChangeListener(followGame)
         const stopListening = session.onPickUp(() => void showPickedUp(true))
@@ -479,12 +429,11 @@
                             renderAtViewScale
                             insetTop={boardCovered}
                             coverBelowScale={0.4}
-                            onManualViewChange={() => (restoreView = undefined)}
                         >
                             <Board />
                             {#snippet overlay()}
                                 <MapMenu
-                                    onview={turnBoardTo}
+                                    onview={(view) => (session.boardView = view)}
                                     onsavepicture={savePicture}
                                     {savingPicture}
                                 />

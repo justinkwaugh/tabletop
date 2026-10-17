@@ -139,6 +139,27 @@ export interface FlagMark {
     hasCommanded: boolean
 }
 
+/** The banner and the staff of a flag as it stands on the board. */
+export function flagOutlines(flag: FlagMark, view: FlagView): Point[][] {
+    const { right, down } = screenAxes(view.rotation)
+    const onBoard = (across: number, up: number): Point => ({
+        x: flag.at.x + right.x * across + down.x * up,
+        y: flag.at.y + right.y * across + down.y * up
+    })
+    const reach = bannerWidth(flag.name) * view.scale * (flag.side === FlagSide.Left ? -1 : 1)
+    const top = -STAFF_HEIGHT * view.scale
+    const bottom = top + BANNER_HEIGHT * view.scale
+    return [
+        [onBoard(0, top), onBoard(reach, top), onBoard(reach, bottom), onBoard(0, bottom)],
+        [
+            onBoard(-STAFF_HALF_WIDTH, top),
+            onBoard(STAFF_HALF_WIDTH, top),
+            onBoard(STAFF_HALF_WIDTH, 0),
+            onBoard(-STAFF_HALF_WIDTH, 0)
+        ]
+    ]
+}
+
 export interface FlagBearer {
     colors: ArmyColors
     hasCommanded: boolean

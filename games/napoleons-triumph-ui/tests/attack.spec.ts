@@ -833,7 +833,7 @@ test('the results of an attack are set in a rule of their own in the action area
     await expect(losses).toBeHidden()
 })
 
-test('an attack already under way when the table opens ends on the whole board, not in a corner of it', async ({
+test('an attack leaves the view where it was, whether played or already under way when the table opens', async ({
     page
 }) => {
     const acrossTheMapArea = async () => {
@@ -855,14 +855,17 @@ test('an attack already under way when the table opens ends on the whole board, 
     const advance = page.getByRole('button', { name: 'Advance to the approach' })
     await expect(advance).toBeVisible()
     await expect(page.locator('.nt-result-rule')).toHaveText('Feint')
+    await page.waitForTimeout(800)
+    expect(await acrossTheMapArea()).toBe(true)
 
     await page.reload()
     await page.getByRole('button', { name: 'Games' }).click()
     await page.getByRole('button', { name: 'Austerlitz' }).click()
-    await expect.poll(acrossTheMapArea).toBe(false)
+    await expect(advance).toBeVisible()
+    await page.waitForTimeout(800)
+    expect(await acrossTheMapArea()).toBe(true)
     await advance.click()
     await expect(page.locator('.nt-masthead-turn')).toHaveText('French turn')
-    await expect.poll(acrossTheMapArea).toBe(true)
     await page.waitForTimeout(800)
     expect(await acrossTheMapArea()).toBe(true)
 })

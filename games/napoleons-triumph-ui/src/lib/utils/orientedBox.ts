@@ -10,6 +10,11 @@ export interface OrientedBox {
 
 const SAMPLE_STEP = 8
 
+/** A square standing level on the board, for what is drawn upright in every board view: the board only turns by quarter turns. */
+export function squareAround(centre: Point, half: number): OrientedBox {
+    return { centre, along: { x: 1, y: 0 }, halfLength: half, halfWidth: half }
+}
+
 function pointAt(box: OrientedBox, ahead: number, aside: number): Point {
     return {
         x: box.centre.x + box.along.x * ahead - box.along.y * aside,

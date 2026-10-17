@@ -26,6 +26,68 @@ function turnsClockwise(outline: ConvexOutline): boolean {
     return doubleArea > 0
 }
 
+/** A straight stroke of the given half width from one point to another. */
+export function strokeOutline(from: Point, to: Point, halfWidth: number): Point[] {
+    const length = Math.hypot(to.x - from.x, to.y - from.y) || 1
+    const side = {
+        x: ((from.y - to.y) / length) * halfWidth,
+        y: ((to.x - from.x) / length) * halfWidth
+    }
+    return [
+        { x: from.x + side.x, y: from.y + side.y },
+        { x: to.x + side.x, y: to.y + side.y },
+        { x: to.x - side.x, y: to.y - side.y },
+        { x: from.x - side.x, y: from.y - side.y }
+    ]
+}
+
+function cross(origin: Point, a: Point, b: Point): number {
+    return (a.x - origin.x) * (b.y - origin.y) - (a.y - origin.y) * (b.x - origin.x)
+}
+
+/**
+ * Every place the centre of a level square of the given half size can stand and still touch the
+ * outline: the outline grown by the square, the hull of its corners moved to the square's corners.
+ */
+export function grownBySquare(outline: ConvexOutline, half: number): Point[] {
+    const points = outline
+        .flatMap((corner) =>
+            [-half, half].flatMap((dx) =>
+                [-half, half].map((dy) => ({ x: corner.x + dx, y: corner.y + dy }))
+            )
+        )
+        .sort((a, b) => a.x - b.x || a.y - b.y)
+    const chain = (ordered: Point[]) =>
+        ordered.reduce<Point[]>((hull, point) => {
+            while (
+                hull.length >= 2 &&
+                cross(hull[hull.length - 2], hull[hull.length - 1], point) <= 0
+            ) {
+                hull.pop()
+            }
+            hull.push(point)
+            return hull
+        }, [])
+    const lower = chain(points)
+    const upper = chain([...points].reverse())
+    return [...lower.slice(0, -1), ...upper.slice(0, -1)]
+}
+
+/** Whether the point lies inside the outline or on its edge. */
+export function outlineHolds(outline: ConvexOutline, point: Point): boolean {
+    let sign = 0
+    for (let index = 0; index < outline.length; index++) {
+        const turn = cross(outline[index], outline[(index + 1) % outline.length], point)
+        if (turn !== 0) {
+            if (sign !== 0 && Math.sign(turn) !== sign) {
+                return false
+            }
+            sign = Math.sign(turn)
+        }
+    }
+    return true
+}
+
 /** The outline moved out by `distance` on every side, its corners kept sharp. */
 export function grownOutline(outline: ConvexOutline, distance: number): Point[] {
     const sign = turnsClockwise(outline) ? -1 : 1
