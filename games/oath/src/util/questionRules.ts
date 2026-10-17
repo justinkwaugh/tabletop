@@ -49,8 +49,10 @@ import { settleBanishedVictory } from './campaignVictory.js'
 import {
     askPowerMoveToll,
     canPayPowerMoveToll,
+    giveWhistleSecret,
     powerMoveToll,
-    settlePowerMoveToll
+    settlePowerMoveToll,
+    whistleUserOnArrival
 } from './powerMoveTolls.js'
 import { payToll } from './tolls.js'
 import { gainFromDrum, reasonDrumBankEmpty } from './dragonskinDrum.js'
@@ -327,12 +329,17 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             const siteId = matched.answer.siteId
             // R-11.7 — the traveller's own Travel goes only where they can pay.
             if (travel) return reasonWoodPickRefused(state, travelerPlayerId, siteId, travel.free)
+            // R-11.7-H1 — after the Brass Horse, only among the sites its suit allows (its Q&A).
+            const allowed = matched.question.power?.siteIds
+            if (allowed && !allowed.includes(siteId)) {
+                return `${siteId} is not one of the sites the Brass Horse named`
+            }
             return shroudedWoodDestinations(state, travelerPlayerId, fromSiteId).includes(siteId)
                 ? undefined
                 : `${siteId} is not a site ${travelerPlayerId} can be sent to`
         },
         apply: (state, playerId, matched, _asked, askingPlayerId) => {
-            const { travelerPlayerId, travel } = matched.question
+            const { travelerPlayerId, travel, power } = matched.question
             const siteId = matched.answer.siteId
             const toll = powerMoveToll(state, travelerPlayerId, siteId)
             if (travel && toll) {
@@ -369,9 +376,11 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (toll) {
                 const move = {
                     move: PowerMoveKind.ShroudedWood,
+                    powerCardId: power?.powerCardId,
                     moverPlayerId: playerId,
                     movedPlayerId: travelerPlayerId,
-                    toSiteId: siteId
+                    toSiteId: siteId,
+                    power
                 }
                 const tollMove = askPowerMoveToll(state, move, toll, askingPlayerId, true)
                 const summary = `chose ${siteId} for ${travelerPlayerId}`
@@ -384,7 +393,18 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 playerId: askingPlayerId,
                 next: true
             })
-            const summary = `sent ${travelerPlayerId} to ${siteId}${notes.length ? ` (${notes.join('; ')})` : ''}`
+            // Whistle — its secret only for a pawn the pick brought to its user's site.
+            const whistler = whistleUserOnArrival(state, {
+                move: PowerMoveKind.ShroudedWood,
+                moverPlayerId: playerId,
+                siteId,
+                power
+            })
+            const given =
+                whistler === undefined ? 0 : giveWhistleSecret(state, whistler, travelerPlayerId)
+            const secret =
+                given > 0 ? `; ${travelerPlayerId} took ${given} secret from the Whistle` : ''
+            const summary = `sent ${travelerPlayerId} to ${siteId}${notes.length ? ` (${notes.join('; ')})` : ''}${secret}`
             // R-5.5.7.III, R-5.5.8 — a banish's burn, plans and end follow the move.
             return {
                 summary,

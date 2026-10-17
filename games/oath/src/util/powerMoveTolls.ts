@@ -1,7 +1,12 @@
 import { assert } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PowerMoveKind, PowerMoveTollOutcome, type PowerMoveToll } from '../model/powerMoveToll.js'
-import { PowerQuestionKind, type QuestionOf, type ShroudedWoodTravel } from '../model/question.js'
+import {
+    PowerQuestionKind,
+    type QuestionOf,
+    type ShroudedWoodPower,
+    type ShroudedWoodTravel
+} from '../model/question.js'
 import { WHISTLE_ID } from '../data/relics.js'
 import { burnHalfTheirFavor } from './burn.js'
 import { usableFavor } from './favor.js'
@@ -24,6 +29,8 @@ export interface PowerMove {
     burnFavor?: boolean
     /** R-11.7 — the Shrouded Wood's ruler picked for the traveller's own Travel. */
     travel?: ShroudedWoodTravel
+    /** R-11.7-H1 — the Shrouded Wood's ruler picked for the Whistle's or the Brass Horse's move. */
+    power?: ShroudedWoodPower
 }
 
 /** Toll Roads' Q&A — a move a power makes is travel, so the toll is owed (R-X.4: from this revision). */
@@ -74,7 +81,8 @@ export function askPowerMoveToll(
             fromSiteId,
             siteId: move.toSiteId,
             burnFavor: move.burnFavor,
-            travel: move.travel
+            travel: move.travel,
+            power: move.power
         },
         front
     )
@@ -126,13 +134,28 @@ export function settlePowerMoveToll(
             'Toll Roads asks only for a site its ruler rules, and a ruled site is faceup'
         )
         if (notes.length > 0) record.notes = notes
-        if (question.move === PowerMoveKind.Whistle) {
-            record.secretsTaken = giveWhistleSecret(state, question.moverPlayerId, moved)
+        const whistler = whistleUserOnArrival(state, question)
+        if (whistler !== undefined) {
+            record.secretsTaken = giveWhistleSecret(state, whistler, moved)
         }
     }
     // R-5.5.7.III — "make them travel … and you may burn half of their favor", in that order.
     if (question.burnFavor) record.favorBurned = burnHalfTheirFavor(state, moved)
     return record
+}
+
+/**
+ * Whistle — "If they do, give them the [secret] here": the user, when the pulled pawn has just
+ * arrived at the user's site. After the Shrouded Wood's ruler picked (R-11.7-H1), a pawn sent
+ * elsewhere did not travel to the user's site, so nothing is given.
+ */
+export function whistleUserOnArrival(
+    state: HydratedOathGameState,
+    move: Pick<TollQuestion, 'move' | 'moverPlayerId' | 'siteId' | 'power'>
+): string | undefined {
+    if (move.move === PowerMoveKind.Whistle) return move.moverPlayerId
+    const user = move.power?.powerCardId === WHISTLE_ID ? move.power.userPlayerId : undefined
+    return user !== undefined && pawnSiteId(state, user) === move.siteId ? user : undefined
 }
 
 /** Whistle — "If they do, give them the [secret] here"; Vow of Silence forbids the gift, not the pull. */

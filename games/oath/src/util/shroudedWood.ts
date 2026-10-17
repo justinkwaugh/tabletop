@@ -1,14 +1,19 @@
 import { HydratedOathGameState } from '../model/gameState.js'
-import type { ShroudedWoodPick } from '../model/question.js'
+import {
+    PowerQuestionKind,
+    type ShroudedWoodPick,
+    type ShroudedWoodPower
+} from '../model/question.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import { ActionType } from '../definition/actions.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { pawnSiteId } from './pawn.js'
 import { afterTravelPersistent, reasonPersistentForbidsTravel } from './persistent.js'
-import { siteTravelTerms } from './siteTravel.js'
+import { shroudedWoodChooser, siteTravelTerms } from './siteTravel.js'
 import { foldSupplyCost, resolveModifiers, runAfter, type ActiveModifier } from './modifiers.js'
 import { flipSiteFromVault, type SiteFlip } from './hiddenInputs.js'
 import { canPayPowerMoveToll } from './powerMoveTolls.js'
+import { askQuestion } from './questions.js'
 
 /** R-11.7 — from a Shrouded Wood the Narrow Pass and The Hidden Place are ignored; any other site the traveler may go to. */
 export function shroudedWoodDestinations(
@@ -149,4 +154,38 @@ export function settleWoodPick(
         },
         revealed
     }
+}
+
+/**
+ * R-11.7-H1 — who picks where the Whistle or the Brass Horse sends a pawn out of a Shrouded Wood
+ * an enemy rules: that ruler, "even if another player is making you travel". Undefined when no
+ * enemy rules the pawn's Wood, and in a game created before revision 15 (R-X.4), where the power
+ * moves the pawn itself.
+ */
+export function woodChooserForPower(
+    state: HydratedOathGameState,
+    travelerId: string
+): string | undefined {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes11)
+        ? shroudedWoodChooser(state, travelerId)
+        : undefined
+}
+
+/** R-11.7-H1 — the ruler is asked in the power's place; the pick moves the pawn (and any toll follows it). */
+export function askWoodPickForPower(
+    state: HydratedOathGameState,
+    askingPlayerId: string,
+    chooserId: string,
+    travelerId: string,
+    power: ShroudedWoodPower
+): void {
+    const fromSiteId = pawnSiteId(state, travelerId)
+    askQuestion(state, askingPlayerId, {
+        kind: PowerQuestionKind.ShroudedWoodDestination,
+        cardId: state.siteCardAt(fromSiteId) ?? fromSiteId,
+        askedPlayerId: chooserId,
+        travelerPlayerId: travelerId,
+        fromSiteId,
+        power
+    })
 }

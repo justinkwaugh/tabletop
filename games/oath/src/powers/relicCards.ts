@@ -43,6 +43,7 @@ import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js
 import { askPowerMoveToll, giveWhistleSecret, powerMoveToll } from '../util/powerMoveTolls.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { WHISTLE_ID } from '../data/relics.js'
+import { askWoodPickForPower, woodChooserForPower } from '../util/shroudedWood.js'
 import { seeWorldDeckTop } from '../util/knowledge.js'
 
 // "Action: Put this relic on the bottom of the relic deck to gain 4 Supply."
@@ -195,6 +196,18 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
         if (unable) {
             return {
                 summary: `Whistle: ${them.playerId} cannot travel to ${here}`,
+                targetPlayerId: them.playerId
+            }
+        }
+        // R-11.7-H1 — out of a Shrouded Wood an enemy rules, its ruler picks the site; a toll follows the pick.
+        const chooser = woodChooserForPower(ctx.state, them.playerId)
+        if (chooser !== undefined) {
+            askWoodPickForPower(ctx.state, ctx.playerId, chooser, them.playerId, {
+                powerCardId: WHISTLE,
+                userPlayerId: ctx.playerId
+            })
+            return {
+                summary: `Whistle: the Shrouded Wood's ruler chooses ${them.playerId}'s destination`,
                 targetPlayerId: them.playerId
             }
         }

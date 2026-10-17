@@ -215,6 +215,20 @@ export const ShroudedWoodTravel = Type.Object({
     free: Type.Boolean()
 })
 
+/**
+ * R-11.7-H1 (revision 15) — the power that moves a pawn out of an enemy's Shrouded Wood, whose
+ * ruler then picks the site: the Whistle (any site the pawn can travel to) or the Brass Horse
+ * (only among the sites its revealed suit allows).
+ */
+export type ShroudedWoodPower = Type.Static<typeof ShroudedWoodPower>
+export const ShroudedWoodPower = Type.Object({
+    powerCardId: Type.String(),
+    /** Whistle — its secret goes to the pawn only at its user's site. */
+    userPlayerId: Type.String(),
+    /** Brass Horse — the sites the ruler may pick among; absent, any site the pawn can travel to. */
+    siteIds: Type.Optional(Type.Array(Type.String(), { maxItems: 8 }))
+})
+
 /** R-11.7 — what the ruler's pick settled for the traveller's Travel. */
 export type ShroudedWoodPick = Type.Static<typeof ShroudedWoodPick>
 export const ShroudedWoodPick = Type.Object({
@@ -378,7 +392,9 @@ export const PowerQuestion = Type.Union([
         travelerPlayerId: Type.String(),
         fromSiteId: Type.String(),
         /** Absent when a power moves the pawn, and in a game created before `UiBatch1`. */
-        travel: Type.Optional(ShroudedWoodTravel)
+        travel: Type.Optional(ShroudedWoodTravel),
+        /** The Whistle or the Brass Horse moved the pawn (revision 15). */
+        power: Type.Optional(ShroudedWoodPower)
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.OrderDiscards),
@@ -402,7 +418,9 @@ export const PowerQuestion = Type.Union([
         /** R-5.5.7.III — the attacker's burn, which waits on the answer. */
         burnFavor: Type.Optional(Type.Boolean()),
         /** R-11.7 — the traveller's own Travel out of the Shrouded Wood, which pays its Supply once the toll is paid. */
-        travel: Type.Optional(ShroudedWoodTravel)
+        travel: Type.Optional(ShroudedWoodTravel),
+        /** R-11.7-H1 — the power whose move the Shrouded Wood's ruler redirected. */
+        power: Type.Optional(ShroudedWoodPower)
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
