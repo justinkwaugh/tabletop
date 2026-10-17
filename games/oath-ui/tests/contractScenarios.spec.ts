@@ -6850,7 +6850,9 @@ test.describe('power questions', () => {
             ['askGatheringJoin', ['Go', 'Stay']],
             ['askInquisitor', ['Adviser, facedown', 'Play it', 'Discard']],
             ['askFalseProphet', ['As your Vision', 'Discard']],
-            ['askBrassHorse', [/^Travel to /]]
+            ['askBrassHorse', [/^Travel to /]],
+            ['askFlipToTravel', ['Travel, paying flip 1 secret', 'Stay']],
+            ['askBrassHorseHidden', [/^Travel to /]]
         ] as const) {
             test(`${table}: no label is wider than its button; the answers share one width, at least 44 px tall`, async ({ page }) => {
                 await openTable(page, table)
@@ -9119,5 +9121,47 @@ test.describe('Hospitality on a Travel', () => {
             await expect(gainOf(page, hidden).getByRole('img', { name: /^the (Beast|Nomad) bank$/ })).toHaveCount(2)
             await twoRowsOnItsCard(page, hidden)
         })
+    })
+})
+
+/**
+ * R-11.13-H1 — a power-made travel to The Hidden Place asks the moved player to flip: "Travel to The
+ * Hidden Place?" with Travel · flip 1 [secret] and Stay; the Brass Horse's own site button ends
+ * "· +[secret]".
+ */
+test.describe('The Hidden Place on a power-made travel', () => {
+    const questionLine = (page: Page) => grid(page).locator('.question-line')
+
+    test('the flip: the line names the site, the card is the Whistle, and Travel pays the flip in gold', async ({ page }) => {
+        await openTable(page, 'askFlipToTravel')
+        await expect(questionLine(page)).toHaveText('Travel to The Hidden Place?')
+        await expect(grid(page).getByRole('heading', { name: 'Whistle' })).toBeVisible()
+        await expect(grid(page).locator('.question-form img[alt="Whistle"]')).toBeVisible()
+        const travel = answer(page, 'Travel, paying flip 1 secret')
+        await expect(travel).toHaveText(/^Travel\s*·\s*flip 1$/)
+        await expect(travel.locator('.text-oath-accent img[alt="secret"]')).toHaveCount(1)
+        await expect(travel).toHaveClass(/border-oath-primary-border/)
+        await expect(answer(page, 'Stay')).toBeVisible()
+        await travel.click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+    })
+
+    test('Stay leaves the pawn where it is', async ({ page }) => {
+        await openTable(page, 'askFlipToTravel')
+        await answer(page, 'Stay').click()
+        await expect(answer(page, 'Stay')).toHaveCount(0)
+        expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+    })
+
+    test('the Brass Horse: The Hidden Place ends "· +[secret]", the other site does not, and picking it travels there', async ({ page }) => {
+        await openTable(page, 'askBrassHorseHidden')
+        const hidden = grid(page).getByRole('button', { name: 'Travel to The Hidden Place, flipping 1 secret', exact: true })
+        await expect(hidden).toHaveText(/^The Hidden Place\s*·\s*\+$/)
+        await expect(hidden.locator('img')).toHaveCount(1)
+        const others = grid(page).getByRole('button', { name: /^Travel to / })
+        await expect(others).toHaveCount(2)
+        await expect(others.locator('img')).toHaveCount(1)
+        await hidden.click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
     })
 })

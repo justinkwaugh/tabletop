@@ -186,10 +186,11 @@
             <div class="flex flex-wrap gap-1.5">
                 {#each mine.siteIds as siteId (siteId)}
                     {@const toll = draft.travelTollAt(siteId)}
+                    {@const flip = draft.travelFlipAt(siteId)}
                     <MenuChoice
                         label="Travel to {siteName(gameState, siteId)}{toll
                             ? ', paying 1 favor'
-                            : ''}"
+                            : ''}{flip ? ', flipping 1 secret' : ''}"
                         disabled={busy}
                         width={siteWidth}
                         onclick={() => draft.travelTo(siteId)}
@@ -198,7 +199,7 @@
                             >{siteName(gameState, siteId)}{#if toll}{' · '}<FavorCost
                                     sign="+"
                                     count={1}
-                                />{/if}</span
+                                />{/if}{#if flip}{' · +'}<TokenText text="secret" />{/if}</span
                         >
                     </MenuChoice>
                 {/each}
@@ -309,6 +310,12 @@
                     Discard
                 </AnswerButton>
             {/if}
+        </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.FlipToTravel}
+        <!-- R-11.13-H1 — The Hidden Place (or the Narrow Pass from the Buried Giant) only with a flip. -->
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}Travel to {siteName(gameState, mine.siteId)}?{/snippet}
+            <QuestionYesNo yes="Travel" no="Stay" cost="flip 1 secret" />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.DragonskinDrum}
         <QuestionForm cardId={mine.cardId}>

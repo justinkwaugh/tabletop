@@ -33,6 +33,7 @@ import {
     OfferCitizenship,
     OathType,
     PlayerStatus,
+    PowerMoveKind,
     PowerQuestionKind,
     Region,
     RecoverTargetKind,
@@ -309,7 +310,8 @@ const faceup = (cardId: string) => ({ cardId, faceUp: true })
  */
 function questionTable(
     question: PowerQuestion,
-    seats: { me?: Partial<Seat>; ann?: Partial<Seat> } = {}
+    seats: { me?: Partial<Seat>; ann?: Partial<Seat> } = {},
+    board: { siteCards?: Record<string, string>; oathRevision?: number } = {}
 ): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -335,7 +337,8 @@ function questionTable(
             machineState: MachineState.PowerQuestion,
             chancellorPlayerId: 'ann',
             map: allMapSlots(),
-            siteCards: fixtureSitesOnTheBoard(),
+            siteCards: { ...fixtureSitesOnTheBoard(), ...board.siteCards },
+            oathRevision: board.oathRevision,
             pendingQuestions: {
                 queue: [question],
                 askingPlayerId: 'ann',
@@ -350,6 +353,8 @@ function questionTable(
 }
 
 const asked = { askedPlayerId: 'me' } as const
+
+const HIDDEN_PLACE = 'site.the-hidden-place'
 
 /** R-7.3.3 — a Search kept Fabled Feast, whose When Played power asks for one favor bank of several. */
 function fabledFeastTable(): PlayedTable {
@@ -498,6 +503,36 @@ const QUESTION_TABLES = {
                 mapSlotsFor(Region.Hinterland)[0]
             ]
         }),
+    // R-11.13-H1 — The Hidden Place dealt to the second Cradle site, beside this seat's.
+    askFlipToTravel: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.FlipToTravel,
+                cardId: 'relic.whistle',
+                ...asked,
+                move: PowerMoveKind.Whistle,
+                powerCardId: 'relic.whistle',
+                moverPlayerId: 'ann',
+                fromSiteId: mapSlotsFor(Region.Cradle)[0],
+                siteId: mapSlotsFor(Region.Cradle)[1]
+            },
+            { ann: { relicIds: ['relic.whistle'], siteId: mapSlotsFor(Region.Cradle)[1] } },
+            { siteCards: { [mapSlotsFor(Region.Cradle)[1]]: HIDDEN_PLACE } }
+        ),
+    askBrassHorseHidden: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.TravelFreeTo,
+                cardId: 'relic.brass-horse',
+                ...asked,
+                siteIds: [mapSlotsFor(Region.Cradle)[1], mapSlotsFor(Region.Provinces)[0]]
+            },
+            { me: { relicIds: ['relic.brass-horse'] } },
+            {
+                siteCards: { [mapSlotsFor(Region.Cradle)[1]]: HIDDEN_PLACE },
+                oathRevision: CURRENT_OATH_REVISION
+            }
+        ),
     askSneakAttack: () =>
         questionTable({
             kind: PowerQuestionKind.SneakAttack,

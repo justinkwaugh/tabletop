@@ -14,6 +14,7 @@ import {
     payableWoodPicks,
     playersAt,
     powerMoveToll,
+    powerTravelNeedsFlip,
     shroudedWoodDestinations,
     usableFavor,
     warbandOwnerGainedByPower,
@@ -482,8 +483,21 @@ export class QuestionDraft implements PanelDraft {
         )
     }
 
+    /** R-11.13-H1 — Brass Horse's user reaches The Hidden Place (or passes the Narrow Pass) only by flipping a secret. */
+    travelFlipAt(siteId: string): boolean {
+        const question = this.question
+        return (
+            question?.kind === PowerQuestionKind.TravelFreeTo &&
+            powerTravelNeedsFlip(this.session.gameState, question.askedPlayerId, siteId)
+        )
+    }
+
     async travelTo(siteId: string): Promise<void> {
-        await this.send({ kind: PowerQuestionKind.TravelFreeTo, siteId })
+        await this.send(
+            this.travelFlipAt(siteId)
+                ? { kind: PowerQuestionKind.TravelFreeTo, siteId, flipSecret: true }
+                : { kind: PowerQuestionKind.TravelFreeTo, siteId }
+        )
     }
 
     /** R-11.7 — the sites the Shrouded Wood's ruler may send the traveler to. */
@@ -491,11 +505,14 @@ export class QuestionDraft implements PanelDraft {
         const question = this.question
         if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination) return []
         if (question.travel) return this.woodRegions.flatMap((row) => row.siteIds)
-        return shroudedWoodDestinations(
+        const sites = shroudedWoodDestinations(
             this.session.gameState,
             question.travelerPlayerId,
             question.fromSiteId
         )
+        // R-11.7-H1 — after the Brass Horse, only among the sites it allows.
+        const allowed = question.power?.siteIds
+        return allowed ? sites.filter((siteId) => allowed.includes(siteId)) : sites
     }
 
     /** R-11.7 — the traveller's own Travel: the sites they can pay for, by region and price. */
@@ -602,6 +619,8 @@ export class QuestionDraft implements PanelDraft {
                 return { kind: question.kind, pay: yes }
             case PowerQuestionKind.DragonskinDrum:
                 return { kind: question.kind, gain: yes }
+            case PowerQuestionKind.FlipToTravel:
+                return { kind: question.kind, flip: yes }
             case PowerQuestionKind.SneakAttack:
                 assert(!yes, 'A Sneak Attack is taken by campaigning, not by an answer')
                 return { kind: question.kind, campaign: false }
