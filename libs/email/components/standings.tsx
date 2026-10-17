@@ -9,7 +9,11 @@ export interface StandingsRow {
     score: number
     tiebreak?: number
     recipient: boolean
+    // Set when the champion is not simply first place, such as when a substitute finished first.
+    champion?: boolean
 }
+
+export const isChampion = (row: StandingsRow) => row.champion ?? row.rank === 1
 
 const palette = {
     ...darkPalette,
@@ -128,7 +132,7 @@ export const StandingsTable = ({
     })
     const nameStyle = (row: StandingsRow): CSSProperties => ({
         ...styles.cell,
-        fontWeight: row.recipient || row.rank === 1 ? 600 : 400,
+        fontWeight: row.recipient || isChampion(row) ? 600 : 400,
         color: row.recipient ? palette.you : palette.text,
         paddingLeft: '8px',
         paddingRight: '8px',
@@ -167,7 +171,7 @@ export const StandingsTable = ({
                         <Column style={numeric('left')}>
                             <Text style={nameStyle(row)}>
                                 {row.name}
-                                {starWinner && row.rank === 1 && (
+                                {starWinner && isChampion(row) && (
                                     <span style={{ color: palette.gold }}> ★</span>
                                 )}
                             </Text>

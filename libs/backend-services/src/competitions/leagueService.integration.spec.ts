@@ -129,7 +129,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             vi.spyOn(userService, 'getUser').mockImplementation(async (id) =>
                 [...users, admin].find((user) => user.id === id)
             )
+            vi.spyOn(userService, 'getUserByUsername').mockImplementation(async (name) =>
+                [...users, admin].find((user) => user.username === name)
+            )
             vi.spyOn(notifications, 'sendNotification').mockResolvedValue()
+            vi.spyOn(localTasks, 'createPushTask').mockResolvedValue()
             vi.spyOn(localTasks, 'sendGameInvitationEmail').mockRejectedValue(
                 new Error('Must not invite')
             )
@@ -525,6 +529,107 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(finished.season).toMatchObject({ number: 1, status: 'finished' })
             expect(emails('seasonResults')).toHaveLength(21)
             expect(emails('signUpOpen')).toEqual([])
+        })
+
+        it('drops a withdrawn player and holds a Bottom Level place for a substitute', async () => {
+            const id = `${prefix}-dropouts`
+            await leagues.create(id, draft, admin)
+            await leagues.publish(id, now + 1000, admin)
+            for (const user of users.slice(0, 21)) await leagues.signUp(id, user)
+            now += 1000
+            await leagues.runTask({ leagueId: id })
+            const { season } = await leagues.get(id, undefined, admin)
+            assertExists(season?.groups)
+            for (const group of season.groups)
+                await tournaments.runTask({ tournamentId: group.tournamentId })
+            const [first, second] = season.groups
+            const replaced = first.entrantIds[0]
+            const leaving = second.entrantIds[0]
+            const substitute = users[23]
+            const revision = async (tournamentId: string) =>
+                (await tournamentStore.read(tournamentId))?.revision ?? 0
+            await tournaments.substituteEntrant(
+                first.tournamentId,
+                {
+                    revision: await revision(first.tournamentId),
+                    userId: replaced,
+                    substituteUsername: substitute.username ?? '',
+                    tables: {}
+                },
+                admin
+            )
+            await tournaments.withdrawEntrant(
+                second.tournamentId,
+                { revision: await revision(second.tournamentId), userId: leaving },
+                admin
+            )
+            const live = await leagues.get(id, undefined, admin)
+            expect(live.groups[0].standings.find((row) => row.userId === replaced)?.playedBy).toBe(
+                substitute.id
+            )
+            expect(live.groups[1].standings.at(-1)).toMatchObject({
+                userId: leaving,
+                withdrawn: true
+            })
+            expect(live.usernames[substitute.id]).toBe(substitute.username)
+            await leagues.runTask({ leagueId: id })
+            const myPlace = async (user: User) =>
+                (await leagues.list(user)).find((entry) => entry.league.id === id)?.season?.myPlace
+            expect(await myPlace(substitute)).toMatchObject({
+                status: 'inGroup',
+                groupId: first.groupId
+            })
+            const account = (userId: string) => users.find((user) => user.id === userId) ?? admin
+            expect(await myPlace(account(replaced))).toBeUndefined()
+            expect(await myPlace(account(leaving))).toBeUndefined()
+
+            for (let round = 0; round < 10; round++) {
+                const groups = await tournamentStore.readMany(
+                    season.groups.map((group) => group.tournamentId)
+                )
+                if (groups.every((group) => group?.status === 'finished')) break
+                for (const group of season.groups) {
+                    const active = new Set(
+                        (await tournamentStore.read(group.tournamentId))?.stages[0].dispatch?.active
+                    )
+                    for (const link of await tournamentStore.readGameLinks(group.tournamentId))
+                        if (active.has(link.tableId)) await finishGame(link.gameId)
+                    await tournaments.runTask({ tournamentId: group.tournamentId })
+                }
+            }
+            enqueue.mockClear()
+            await leagues.runTask({ leagueId: id })
+            const finished = await leagues.get(id, 0, admin)
+            const placements = finished.season?.placements ?? []
+            expect(placements).toHaveLength(20)
+            expect(placements.some((placement) => placement.userId === leaving)).toBe(false)
+            expect(
+                placements.find((placement) => placement.userId === replaced)?.substituteId
+            ).toBe(substitute.id)
+            const next = await leagues.get(id, undefined, admin)
+            const held = next.season?.heldPlaces ?? []
+            expect(
+                held.some((place) => place.userId === replaced || place.userId === leaving)
+            ).toBe(false)
+            expect(held.find((place) => place.userId === substitute.id)?.level).toBe(
+                Math.max(...held.map((place) => place.level))
+            )
+            const recipients = emails('seasonResults').map((task) =>
+                typeof task.payload === 'object' && task.payload && 'userId' in task.payload
+                    ? task.payload.userId
+                    : undefined
+            )
+            expect(recipients).toContain(substitute.id)
+            expect(recipients).not.toContain(replaced)
+            expect(recipients).not.toContain(leaving)
+            await expect(
+                leagues.emailContent({
+                    leagueId: id,
+                    season: 0,
+                    userId: substitute.id,
+                    kind: 'seasonResults'
+                })
+            ).resolves.toMatchObject({ movement: 'substitute', nextLevel: 'B' })
         })
 
         it('rejects sign-up after the close and sets Group sizes from the preset', async () => {

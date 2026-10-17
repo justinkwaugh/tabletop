@@ -9,7 +9,9 @@ import {
     TournamentScheduleRequest,
     CommitTournamentScheduleRequest,
     CorrectTournamentResultRequest,
-    TournamentParams
+    SubstituteTournamentEntrantRequest,
+    TournamentParams,
+    WithdrawTournamentEntrantRequest
 } from '@tabletop/common'
 import {
     competitionRequestValidator,
@@ -91,6 +93,48 @@ export default async function (fastify: FastifyInstance) {
             return {
                 status: 'ok',
                 payload: await fastify.tournamentService.correctResult(
+                    request.params.id,
+                    request.body,
+                    request.user
+                )
+            }
+        }
+    )
+    fastify.post<{
+        Params: Static<typeof TournamentParams>
+        Body: Static<typeof WithdrawTournamentEntrantRequest>
+    }>(
+        '/:id/entrants/withdraw',
+        {
+            schema: { params: TournamentParams, body: WithdrawTournamentEntrantRequest },
+            preHandler: fastify.verifyRoleAdmin
+        },
+        async (request) => {
+            assertExists(request.user, 'Authenticated administrator required')
+            return {
+                status: 'ok',
+                payload: await fastify.tournamentService.withdrawEntrant(
+                    request.params.id,
+                    request.body,
+                    request.user
+                )
+            }
+        }
+    )
+    fastify.post<{
+        Params: Static<typeof TournamentParams>
+        Body: Static<typeof SubstituteTournamentEntrantRequest>
+    }>(
+        '/:id/entrants/substitute',
+        {
+            schema: { params: TournamentParams, body: SubstituteTournamentEntrantRequest },
+            preHandler: fastify.verifyRoleAdmin
+        },
+        async (request) => {
+            assertExists(request.user, 'Authenticated administrator required')
+            return {
+                status: 'ok',
+                payload: await fastify.tournamentService.substituteEntrant(
                     request.params.id,
                     request.body,
                     request.user

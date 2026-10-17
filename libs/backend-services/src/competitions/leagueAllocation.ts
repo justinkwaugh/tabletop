@@ -17,7 +17,10 @@ import { compareTournamentScores } from './tournamentScoring.js'
 export interface LeagueGroupResult {
     groupId: string
     level: number
-    standings: (Pick<TournamentScore, 'score' | 'tiebreak'> & { userId: string })[]
+    standings: (Pick<TournamentScore, 'score' | 'tiebreak'> & {
+        userId: string
+        playedBy?: string
+    })[]
     tables: { entrantIds: string[]; winnerIds: string[] }[]
 }
 
@@ -66,8 +69,13 @@ export function leagueSeedingPlacements(
     seed: number
 ): LeagueSeasonPlacement[] {
     const ranked = rankedLevels(groups, seed).flat()
-    const layout = leagueLayout(shape, sizes, ranked.length)
-    assertExists(layout, 'A seeding season needs enough players for two full levels')
+    // Withdrawals can leave fewer than two full Levels; the next Sign-up Window fills the gap.
+    const layout = leagueLayout(
+        shape,
+        sizes,
+        Math.max(ranked.length, leagueMinimumEntrants(shape, sizes))
+    )
+    assertExists(layout, 'Two full levels always have a layout')
     splitByLevel(ranked, layout).forEach((placements, level) => {
         for (const placement of placements) {
             placement.movement = 'seeded'
@@ -105,8 +113,10 @@ export function leagueSeedingAllocation({
 export function leagueHeldPlaces(placements: LeagueSeasonPlacement[]): LeagueHeldPlace[] {
     const arrival = (placement: LeagueSeasonPlacement) =>
         placement.nextLevel === placement.level ? 0 : placement.nextLevel < placement.level ? 1 : 2
-    return placements
+    const bottomLevel = leagueBottomLevel(placements)
+    const held = placements
         .map((placement, order) => ({ placement, order }))
+        .filter(({ placement }) => !placement.substituteId)
         .sort(
             (a, b) =>
                 a.placement.nextLevel - b.placement.nextLevel ||
@@ -118,6 +128,21 @@ export function leagueHeldPlaces(placements: LeagueSeasonPlacement[]): LeagueHel
             level: placement.nextLevel,
             ...(placement.movement === 'relegated' ? { relegated: true } : {})
         }))
+    // A Substitute holds a place at the Bottom Level whatever their place's result, unless they
+    // earned one of their own in another Group.
+    const holding = new Set(held.map((place) => place.userId))
+    const substitutes: LeagueHeldPlace[] = []
+    for (const placement of placements) {
+        if (!placement.substituteId || holding.has(placement.substituteId)) continue
+        holding.add(placement.substituteId)
+        substitutes.push({ userId: placement.substituteId, level: bottomLevel })
+    }
+    return [...held, ...substitutes]
+}
+
+/** The lowest Level the next Season's placements reach. */
+export function leagueBottomLevel(placements: Pick<LeagueSeasonPlacement, 'nextLevel'>[]): number {
+    return Math.max(0, ...placements.map((placement) => placement.nextLevel))
 }
 
 export function leagueFinalAllocation({
@@ -170,16 +195,18 @@ function rankedLevels(groups: LeagueGroupResult[], seed: number): LeagueSeasonPl
     for (const group of groups) {
         for (const row of group.standings) scores.set(row.userId, row)
         const placements = (levels[group.level] ??= [])
-        groupPlaces(group, draw).forEach((userId, index) =>
+        groupPlaces(group, draw).forEach((userId, index) => {
+            const substituteId = entry(scores, userId).playedBy
             placements.push({
                 userId,
                 groupId: group.groupId,
                 level: group.level,
                 place: index + 1,
                 movement: 'stayed',
-                nextLevel: group.level
+                nextLevel: group.level,
+                ...(substituteId ? { substituteId } : {})
             })
-        )
+        })
     }
     const crossGroup = (a: LeagueSeasonPlacement, b: LeagueSeasonPlacement) =>
         a.place - b.place ||

@@ -11,10 +11,10 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         leagueLevelText,
-        leagueUsername,
         leagueSeasonStatusColor,
         leagueSeasonStatusText
     } from '$lib/utils/leaguePresentation'
+    import { accountName } from '$lib/utils/accountName'
     import LeagueFormatCard from './LeagueFormatCard.svelte'
     import LeagueSignUpPanel from './LeagueSignUpPanel.svelte'
     import LeagueManageMenu from './LeagueManageMenu.svelte'
@@ -52,7 +52,7 @@
     let request = 0
 
     function username(userId: string) {
-        return leagueUsername(detail?.usernames ?? {}, userId)
+        return accountName(detail?.usernames ?? {}, userId)
     }
 
     async function refresh() {

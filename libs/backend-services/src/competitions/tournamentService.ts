@@ -10,6 +10,7 @@ import {
     type Tournament,
     type TournamentDetail,
     type TournamentListQuery,
+    type TournamentSchedule,
     type TournamentScheduleRequest,
     type CommitTournamentScheduleRequest,
     type User,
@@ -18,7 +19,19 @@ import {
     type TournamentGameLink,
     type TournamentScore,
     type LeagueGroupReference,
-    tournamentCapacity
+    tournamentCapacity,
+    tournamentAccountIds,
+    tournamentActiveTables,
+    tournamentEntrantAccount,
+    tournamentEntrantAccounts,
+    tournamentEntrantIndex,
+    tournamentInPlay,
+    tournamentTableReference,
+    tournamentTableSettled,
+    type SubstituteTournamentEntrantRequest,
+    type TournamentEntrant,
+    type TournamentStanding,
+    type WithdrawTournamentEntrantRequest
 } from '@tabletop/common'
 import { requireActiveAccount, requireAdministrator, touchRevision } from './competitionAccess.js'
 import * as Value from 'typebox/value'
@@ -35,8 +48,10 @@ import {
 import { TournamentDispatcher } from './tournamentDispatcher.js'
 import { updateTournamentRegistration } from './tournamentRegistration.js'
 import { compareTournamentScores } from './tournamentScoring.js'
+import { entrantTableCounts } from './tournamentDispatch.js'
 import { enqueueTournamentResultsEmail, type TournamentTask } from './tournamentTasks.js'
 import { enqueueLeagueTask } from './leagueTasks.js'
+import { tournamentGameId } from '../games/tournamentGames.js'
 import type { TaskService } from '../tasks/taskService.js'
 
 import type { GameService } from '../games/gameService.js'
@@ -44,21 +59,27 @@ import type { GameService } from '../games/gameService.js'
 const seatsAssignedStartingOrder = (title: Pick<GameDefinition, 'runtime'>) =>
     title.runtime.initializer.supportsStartingPositions === true
 
+type EntrantScore = TournamentScore & Pick<TournamentStanding, 'userId' | 'playedBy' | 'withdrawn'>
+
 export interface GroupTournamentResults {
     tournament: Tournament
-    standings: (TournamentScore & { userId: string })[]
+    standings: EntrantScore[]
     tables: { id: string; entrantIds: string[]; winnerIds: string[] }[]
     activeTableIds: string[]
+    voidedTableIds: string[]
 }
 
 export class TournamentService {
     private readonly dispatcher: TournamentDispatcher
     constructor(
         private readonly store: TournamentStore,
-        private readonly users: Pick<UserService, 'getUsers'>,
+        private readonly users: Pick<UserService, 'getUsers' | 'getUserByUsername'>,
         private readonly titles: Record<string, Pick<GameDefinition, 'info' | 'runtime'>>,
         private readonly notifications: Pick<NotificationService, 'sendNotification'>,
-        private readonly games: Pick<GameService, 'provisionTournamentGame'>,
+        private readonly games: Pick<
+            GameService,
+            'provisionTournamentGame' | 'voidTournamentGame' | 'handOverTournamentSeat'
+        >,
         private readonly tasks: Pick<TaskService, 'createPushTask'>,
         private readonly now: () => number = Date.now
     ) {
@@ -92,7 +113,7 @@ export class TournamentService {
                 current.status === 'open' &&
                 startAt !== undefined &&
                 startAt <= this.now()
-            if (!['locked', 'inProgress'].includes(current.status) && !retryDueStart)
+            if (!tournamentInPlay(current.status) && !retryDueStart)
                 throw new TournamentError('The tournament has not reached scheduling')
             current.paused = operation === 'pause'
             if (current.paused) delete current.nextTaskAt
@@ -295,7 +316,7 @@ export class TournamentService {
         const tournament = await this.readVisible(id, user)
         const games = await this.creditedGameLinks(tournament)
         const stage = tournament.stages[0]
-        const entrantIds = tournament.entrants.map((entrant) => entrant.userId)
+        const entrantIds = tournamentAccountIds(tournament)
         const administratorIds = [
             ...new Set((stage?.corrections ?? []).map((value) => value.administratorId))
         ]
@@ -309,22 +330,154 @@ export class TournamentService {
             stage?.standings && stage.scheduleId
                 ? await this.store.readSchedule(id, stage.id)
                 : undefined
-        const ordered = this.standingsWithUsers(tournament).sort(
-            (a, b) => compareTournamentScores(a, b) || a.userId.localeCompare(b.userId)
+        const tables = schedule?.tables ?? []
+        const activeCounts = entrantTableCounts(tables, stage?.dispatch?.active ?? [])
+        const voidedCounts = entrantTableCounts(tables, stage?.dispatch?.voided ?? [])
+        const gamesPerEntrant = tournament.format.stages[0]?.gamesPerEntrant ?? 0
+        const standings = this.rankStandings(tournament, this.standingsWithUsers(tournament)).map(
+            (row) => ({
+                ...row,
+                active: activeCounts.get(row.userId) ?? 0,
+                remaining: Math.max(
+                    0,
+                    gamesPerEntrant - row.completed - (voidedCounts.get(row.userId) ?? 0)
+                )
+            })
         )
-        const activeTables = new Set(stage?.dispatch?.active ?? [])
-        const activeCounts = new Map<string, number>()
-        for (const table of schedule?.tables ?? []) {
-            if (!activeTables.has(table.id)) continue
-            for (const id of table.entrantIds) activeCounts.set(id, (activeCounts.get(id) ?? 0) + 1)
-        }
-        const standings = ordered.map((row) => ({
-            ...row,
-            rank: ordered.findIndex((other) => compareTournamentScores(other, row) === 0) + 1,
-            active: activeCounts.get(row.userId) ?? 0,
-            remaining: (tournament.format.stages[0]?.gamesPerEntrant ?? 0) - row.completed
-        }))
         return { tournament, usernames, games, ...(stage?.standings ? { standings } : {}) }
+    }
+
+    /**
+     * Ranks places by points, withdrawn places last and unranked; the champion is the best place
+     * no Substitute played.
+     */
+    private rankStandings(tournament: Tournament, rows: EntrantScore[]) {
+        const ranked = rows
+            .filter((row) => !row.withdrawn)
+            .sort((a, b) => compareTournamentScores(a, b) || a.userId.localeCompare(b.userId))
+        const withdrawn = rows.filter((row) => row.withdrawn)
+        const best = ranked.find((row) => !row.playedBy)
+        return [
+            ...ranked.map((row) => ({
+                ...row,
+                rank: ranked.findIndex((other) => compareTournamentScores(other, row) === 0) + 1,
+                ...(tournament.status === 'finished' &&
+                best &&
+                !row.playedBy &&
+                compareTournamentScores(best, row) === 0
+                    ? { champion: true }
+                    : {})
+            })),
+            ...withdrawn.map((row) => ({ ...row, rank: ranked.length + 1 }))
+        ]
+    }
+
+    async withdrawEntrant(id: string, request: WithdrawTournamentEntrantRequest, user: User) {
+        return this.replacePlace(id, request, user, {
+            // Repeating a withdrawal voids any Games an interrupted one missed.
+            withdrawn: 'allowed',
+            record: (current, place, schedule) => {
+                place.withdrawn ??= { administratorId: user.id, createdAt: this.now() }
+                const dispatch = this.dispatchOf(current)
+                for (const table of schedule.tables) {
+                    if (
+                        !table.entrantIds.includes(place.userId) ||
+                        tournamentTableSettled(dispatch, table.id)
+                    )
+                        continue
+                    dispatch.reserved = dispatch.reserved.filter((tableId) => tableId !== table.id)
+                    ;(dispatch.voided ??= []).push(table.id)
+                }
+            },
+            handOver: (gameId) => this.games.voidTournamentGame(gameId, 'void')
+        })
+    }
+
+    async substituteEntrant(id: string, request: SubstituteTournamentEntrantRequest, user: User) {
+        const account = await this.users.getUserByUsername(request.substituteUsername)
+        if (account?.status !== UserStatus.Active || !account.username)
+            throw new TournamentError('The substitute needs an active account', 400)
+        const substitute = { id: account.id, username: account.username }
+        return this.replacePlace(id, request, user, {
+            withdrawn: 'rejected',
+            record: (current, place) => {
+                if (tournamentEntrantAccount(place) === substitute.id) return
+                if (tournamentAccountIds(current).includes(substitute.id))
+                    throw new TournamentError('The substitute is already in this tournament', 400)
+                ;(place.substitutes ??= []).push({
+                    userId: substitute.id,
+                    administratorId: user.id,
+                    createdAt: this.now()
+                })
+            },
+            // Hand over from whichever earlier account of the place still holds the seat.
+            handOver: (gameId, tableId, place) =>
+                this.games.handOverTournamentSeat(
+                    gameId,
+                    tournamentEntrantAccounts(place).filter((userId) => userId !== substitute.id),
+                    substitute,
+                    request.tables[tableId] ?? 'takeOver'
+                )
+        })
+    }
+
+    private async replacePlace(
+        id: string,
+        request: { revision: number; userId: string },
+        user: User,
+        replacement: {
+            withdrawn: 'allowed' | 'rejected'
+            record: (
+                tournament: Tournament,
+                place: TournamentEntrant,
+                schedule: TournamentSchedule
+            ) => void
+            handOver: (gameId: string, tableId: string, place: TournamentEntrant) => Promise<void>
+        }
+    ): Promise<Tournament> {
+        requireAdministrator(user)
+        const current = await this.store.read(id)
+        const scheduled = current?.stages[0]
+        if (!scheduled?.scheduleId)
+            throw new TournamentError('Players can be replaced once the tournament has a schedule')
+        const schedule = await this.store.readSchedule(id, scheduled.id)
+        let place: TournamentEntrant | undefined
+        const updated = await this.store.update(id, user, true, (tournament) => {
+            if (tournament.revision !== request.revision)
+                throw new TournamentError('The tournament changed. Reload and try again.', 409)
+            if (!tournamentInPlay(tournament.status))
+                throw new TournamentError('Only a tournament in play can replace players')
+            place = tournament.entrants[tournamentEntrantIndex(tournament, request.userId)]
+            if (!place) throw new TournamentError('That player is not in this tournament', 404)
+            if (place.withdrawn && replacement.withdrawn === 'rejected')
+                throw new TournamentError('That player has been withdrawn')
+            replacement.record(tournament, place, schedule)
+            tournament.nextTaskAt = this.now()
+            touchRevision(tournament, this.now())
+        })
+        assertExists(place, 'Replaced place not found')
+        const stage = updated.stages[0]
+        assertExists(stage, 'Tournament has no stage')
+        for (const tableId of tournamentActiveTables(updated, schedule.tables, place.userId))
+            await replacement.handOver(
+                tournamentGameId(tournamentTableReference(updated.id, stage, tableId)),
+                tableId,
+                place
+            )
+        let settled = await this.store.read(id)
+        assertExists(settled, 'Tournament disappeared')
+        if (settled.status === 'finished') settled = await this.completed(settled)
+        else if (settled.league)
+            await enqueueLeagueTask(this.tasks, { leagueId: settled.league.leagueId })
+        await this.notify(settled)
+        await this.dispatcher.enqueue(settled)
+        return settled
+    }
+
+    private dispatchOf(tournament: Tournament) {
+        const stage = tournament.stages[0]
+        assertExists(stage, 'Tournament has no stage')
+        return (stage.dispatch ??= { reserved: [], active: [], finished: [] })
     }
 
     async groupResults(ids: string[]): Promise<GroupTournamentResults[]> {
@@ -362,9 +515,15 @@ export class TournamentService {
                 tables: (schedulesById.get(tournament.id)?.tables ?? []).map((table) => ({
                     id: table.id,
                     entrantIds: table.entrantIds,
-                    winnerIds: games.get(table.id)?.winningUserIds ?? []
+                    winnerIds: (games.get(table.id)?.winningUserIds ?? []).map((userId) => {
+                        const place =
+                            tournament.entrants[tournamentEntrantIndex(tournament, userId)]
+                        assertExists(place, `Winner ${userId} has no place in the tournament`)
+                        return place.userId
+                    })
                 })),
-                activeTableIds: stage?.dispatch?.active ?? []
+                activeTableIds: stage?.dispatch?.active ?? [],
+                voidedTableIds: stage?.dispatch?.voided ?? []
             }
         })
     }
@@ -381,11 +540,17 @@ export class TournamentService {
         return this.withCorrections(tournament, await this.store.readGameLinks(tournament.id))
     }
 
-    private standingsWithUsers(tournament: Tournament) {
-        return (tournament.stages[0]?.standings ?? []).map((row, index) => ({
-            ...row,
-            userId: tournament.entrants[index].userId
-        }))
+    private standingsWithUsers(tournament: Tournament): EntrantScore[] {
+        return (tournament.stages[0]?.standings ?? []).map((row, index) => {
+            const entrant = tournament.entrants[index]
+            const account = tournamentEntrantAccount(entrant)
+            return {
+                ...row,
+                userId: entrant.userId,
+                ...(account !== entrant.userId ? { playedBy: account } : {}),
+                ...(entrant.withdrawn ? { withdrawn: true } : {})
+            }
+        })
     }
 
     private hasGames(tournament: Tournament) {
@@ -447,7 +612,9 @@ export class TournamentService {
         })
         if (!claimed) return current
         const accounts = await this.users.getUsers(
-            current.entrants.map((entrant) => entrant.userId)
+            current.entrants
+                .filter((entrant) => !entrant.withdrawn)
+                .map((entrant) => tournamentEntrantAccount(entrant))
         )
         for (const account of accounts) {
             if (account?.status !== UserStatus.Active || !account.email) continue

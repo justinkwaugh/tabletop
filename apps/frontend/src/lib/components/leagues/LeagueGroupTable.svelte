@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { leagueLevelText, leagueUsername } from '$lib/utils/leaguePresentation'
+    import { leagueLevelText } from '$lib/utils/leaguePresentation'
+    import { accountName } from '$lib/utils/accountName'
     import {
         leagueLevelName,
         type LeagueGroupDetail,
@@ -21,18 +22,25 @@
     const movementLabel = { promoted: 'Promoted', relegated: 'Relegated' }
 
     function gameStates(row: LeagueGroupStanding) {
+        const voided = row.voided ?? 0
         return Array.from({ length: gamesPerEntrant }, (_, index) =>
             index < row.completed
                 ? 'finished'
                 : index < row.completed + row.active
                   ? 'active'
-                  : 'waiting'
+                  : index >= gamesPerEntrant - voided
+                    ? 'void'
+                    : 'waiting'
         )
     }
 
     function gamesTitle(row: LeagueGroupStanding) {
-        const waiting = gamesPerEntrant - row.completed - row.active
-        return `${row.completed} finished · ${row.active} in progress · ${waiting} waiting`
+        const voided = row.voided ?? 0
+        const waiting = gamesPerEntrant - row.completed - row.active - voided
+        return [
+            `${row.completed} finished · ${row.active} in progress · ${waiting} waiting`,
+            ...(voided ? [`${voided} void`] : [])
+        ].join(' · ')
     }
 </script>
 
@@ -92,18 +100,29 @@
         </thead>
         <tbody class="divide-y divide-gray-200/60 dark:divide-gray-700/40">
             {#each group.standings as row (row.userId)}
-                <tr>
-                    <td class="py-1.5 text-xs tabular-nums text-gray-500">{row.place}</td>
+                {@const account = row.playedBy ?? row.userId}
+                <tr class={row.withdrawn ? 'text-gray-400 dark:text-gray-500' : ''}>
+                    <td class="py-1.5 text-xs tabular-nums text-gray-500"
+                        >{row.withdrawn ? '–' : row.place}</td
+                    >
                     <td class="py-1.5 pr-2">
                         <span class="flex min-w-0 items-center gap-1.5">
                             <span
-                                class="truncate {row.userId === userId
+                                class="truncate {account === userId
                                     ? 'text-orange-700 dark:text-orange-300'
-                                    : ''}"
-                                title={leagueUsername(usernames, row.userId)}
-                                >{leagueUsername(usernames, row.userId)}</span
+                                    : ''} {row.withdrawn ? 'line-through' : ''}"
+                                title={row.withdrawn
+                                    ? `${accountName(usernames, account)} withdrew`
+                                    : accountName(usernames, account)}
+                                >{accountName(usernames, account)}</span
                             >
-                            {#if row.movement === 'seeded' && row.nextLevel !== undefined}
+                            {#if row.playedBy}
+                                <span
+                                    class="shrink-0 rounded bg-gray-100 px-1 text-[0.65rem] leading-4 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                                    title={`Substitute for ${accountName(usernames, row.userId)}. This place doesn't move up or down.`}
+                                    >Sub</span
+                                >
+                            {:else if row.movement === 'seeded' && row.nextLevel !== undefined}
                                 <span
                                     class="shrink-0 rounded bg-gray-100 px-1 text-[0.65rem] leading-4 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
                                     title={`${leagueLevelText(row.nextLevel)} next season`}
@@ -128,13 +147,20 @@
                     <td class="py-1.5 text-right" title={gamesTitle(row)}>
                         <span class="inline-flex gap-0.5" aria-label={gamesTitle(row)}>
                             {#each gameStates(row) as state, index (index)}
-                                <span
-                                    class="size-1.5 rounded-full {state === 'finished'
-                                        ? 'bg-gray-500 dark:bg-gray-300'
-                                        : state === 'active'
-                                          ? 'bg-blue-500'
-                                          : 'border border-gray-300 dark:border-gray-600'}"
-                                ></span>
+                                {#if state === 'void'}
+                                    <span class="flex size-1.5 items-center"
+                                        ><span class="h-px w-full bg-gray-400 dark:bg-gray-500"
+                                        ></span></span
+                                    >
+                                {:else}
+                                    <span
+                                        class="size-1.5 rounded-full {state === 'finished'
+                                            ? 'bg-gray-500 dark:bg-gray-300'
+                                            : state === 'active'
+                                              ? 'bg-blue-500'
+                                              : 'border border-gray-300 dark:border-gray-600'}"
+                                    ></span>
+                                {/if}
                             {/each}
                         </span>
                     </td>

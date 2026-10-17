@@ -58,7 +58,7 @@ function createService(supportsStartingPositions = true) {
     }
     return new TournamentService(
         store,
-        { getUsers: vi.fn() },
+        { getUsers: vi.fn(), getUserByUsername: vi.fn() },
         {
             test: {
                 info: {
@@ -87,7 +87,11 @@ function createService(supportsStartingPositions = true) {
             }
         },
         { sendNotification: vi.fn() },
-        { provisionTournamentGame: vi.fn() },
+        {
+            provisionTournamentGame: vi.fn(),
+            voidTournamentGame: vi.fn(),
+            handOverTournamentSeat: vi.fn()
+        },
         { createPushTask: vi.fn() }
     )
 }

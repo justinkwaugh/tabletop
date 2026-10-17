@@ -42,8 +42,14 @@ const players: User[] = ['a', 'b'].map((id) => ({
 function fixture({
     activePlayerIds = ['p0'],
     local = false,
-    recipient = {}
-}: { activePlayerIds?: string[]; local?: boolean; recipient?: Partial<User> } = {}) {
+    recipient = {},
+    status = GameStatus.Started
+}: {
+    activePlayerIds?: string[]
+    local?: boolean
+    recipient?: Partial<User>
+    status?: GameStatus
+} = {}) {
     const game: Game = {
         id: 'turns',
         typeId: 'synthetic',
@@ -55,7 +61,7 @@ function fixture({
         config: {},
         createdAt: new Date(),
         winningPlayerIds: [],
-        status: GameStatus.Started,
+        status,
         activePlayerIds,
         players: players.map((player, index) => ({
             id: `p${index}`,
@@ -174,6 +180,15 @@ describe('turn reminder chain', () => {
     it('stops once the player is no longer active', async () => {
         const { service, startChain, sentReminders, queuedReminders } = fixture({
             activePlayerIds: ['p1']
+        })
+        await service.notifyIsYourTurn(startChain({ reminderIndex: 0 }))
+        expect(sentReminders()).toEqual([])
+        expect(queuedReminders()).toEqual([])
+    })
+
+    it('stops once the game has ended, even if it still lists the player as active', async () => {
+        const { service, startChain, sentReminders, queuedReminders } = fixture({
+            status: GameStatus.Finished
         })
         await service.notifyIsYourTurn(startChain({ reminderIndex: 0 }))
         expect(sentReminders()).toEqual([])

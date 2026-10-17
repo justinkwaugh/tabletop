@@ -166,15 +166,18 @@ export class ResendEmailService implements EmailService {
             templates.TournamentResults({
                 tournamentName: detail.tournament.name,
                 title: definition.info.metadata.name,
-                winners: standings.filter((row) => row.rank === 1).map((row) => name(row.userId)),
-                standings: standings.map((row) => ({
-                    rank: row.rank,
-                    name: name(row.userId),
-                    wins: row.wins,
-                    score: row.score,
-                    ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {}),
-                    recipient: row.userId === recipientId
-                })),
+                winners: standings.filter((row) => row.champion).map((row) => name(row.userId)),
+                standings: standings
+                    .filter((row) => !row.withdrawn)
+                    .map((row) => ({
+                        rank: row.rank,
+                        name: name(row.playedBy ?? row.userId),
+                        wins: row.wins,
+                        score: row.score,
+                        ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {}),
+                        recipient: (row.playedBy ?? row.userId) === recipientId,
+                        champion: row.champion === true
+                    })),
                 url
             })
         )

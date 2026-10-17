@@ -51,10 +51,6 @@ export function leagueDateText(time: number): string {
     })
 }
 
-export function leagueUsername(usernames: Record<string, string>, userId: string): string {
-    return usernames[userId] ?? 'Unavailable account'
-}
-
 export function leagueLevelText(level: number): string {
     return `Level ${leagueLevelName(level)}`
 }

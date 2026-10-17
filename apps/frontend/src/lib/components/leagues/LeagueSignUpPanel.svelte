@@ -5,9 +5,9 @@
         leagueDateText,
         leagueLevelText,
         leagueSeasonName,
-        leagueSignUpOpen,
-        leagueUsername
+        leagueSignUpOpen
     } from '$lib/utils/leaguePresentation'
+    import { accountName } from '$lib/utils/accountName'
 
     let {
         season,
@@ -56,7 +56,7 @@
     )
 
     function name(id: string) {
-        return leagueUsername(usernames, id)
+        return accountName(usernames, id)
     }
 </script>
 

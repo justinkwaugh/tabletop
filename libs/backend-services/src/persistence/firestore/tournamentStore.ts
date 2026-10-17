@@ -23,7 +23,10 @@ import {
     type TournamentListQuery,
     TournamentList,
     TournamentGameReference,
-    type TournamentGameLink
+    type TournamentGameLink,
+    tournamentAccountIds,
+    tournamentEntrantIndex,
+    tournamentTableReference
 } from '@tabletop/common'
 import { requestForKey } from './cacheRequests.js'
 import * as Value from 'typebox/value'
@@ -166,6 +169,10 @@ export class FirestoreTournamentStore implements TournamentStore {
                             gameId: document.id,
                             stageId: reference.stageId,
                             tableId: reference.tableId,
+                            ...(reference.attempt ? { attempt: reference.attempt } : {}),
+                            userIds: data.players.flatMap((player) =>
+                                player.userId ? [player.userId] : []
+                            ),
                             ...(data.result
                                 ? {
                                       result: data.result,
@@ -182,7 +189,7 @@ export class FirestoreTournamentStore implements TournamentStore {
                         })
                     }
                 }
-                return missing.map((id) => found.get(id))
+                return missing.map((id) => this.latestAttempts(found.get(id) ?? []))
             }
         )
         return links.map((value) => {
@@ -381,11 +388,9 @@ export class FirestoreTournamentStore implements TournamentStore {
                 const stage = tournament.stages[0]
                 if (!stage?.dispatch?.finished.includes(request.tableId) || !stage.standings)
                     throw new TournamentError('This table has no accepted result')
-                const gameId = tournamentGameId({
-                    tournamentId: id,
-                    stageId: stage.id,
-                    tableId: request.tableId
-                })
+                const gameId = tournamentGameId(
+                    tournamentTableReference(id, stage, request.tableId)
+                )
                 const gameRef = this.firestore.collection('games').doc(gameId)
                 const game = (await transaction.get(gameRef)).data()
                 const state = await this.readState(transaction, gameRef, gameId)
@@ -396,13 +401,22 @@ export class FirestoreTournamentStore implements TournamentStore {
                 assertExists(game.tournament, 'Game has no tournament')
                 assert(game.tournament.scheduleId === stage.scheduleId, 'Game schedule changed')
                 const reason = request.reason.trim()
+                // A winner may be named by any account of their place; credit the one seated here.
+                const seated = request.winningUserIds.map((userId) => {
+                    const place = tournamentEntrantIndex(tournament, userId)
+                    return game.players.find(
+                        (player) =>
+                            place >= 0 &&
+                            player.userId !== undefined &&
+                            tournamentEntrantIndex(tournament, player.userId) === place
+                    )?.userId
+                })
+                const winningUserIds = seated.filter((userId) => userId !== undefined)
                 if (
                     !reason ||
-                    !request.winningUserIds.length ||
-                    new Set(request.winningUserIds).size !== request.winningUserIds.length ||
-                    !request.winningUserIds.every((id) =>
-                        game.players.some((player) => player.userId === id)
-                    )
+                    !winningUserIds.length ||
+                    winningUserIds.length !== seated.length ||
+                    new Set(winningUserIds).size !== winningUserIds.length
                 )
                     throw new TournamentError(
                         'Specify distinct players from this table and a reason'
@@ -425,12 +439,12 @@ export class FirestoreTournamentStore implements TournamentStore {
                 applyTournamentGameScore(
                     tournament,
                     stage.standings,
-                    withTournamentCredit(game, request.winningUserIds)
+                    withTournamentCredit(game, winningUserIds)
                 )
                 stage.corrections ??= []
                 stage.corrections.push({
                     tableId: request.tableId,
-                    winningUserIds: request.winningUserIds,
+                    winningUserIds,
                     administratorId: user.id,
                     reason,
                     createdAt: now,
@@ -542,6 +556,17 @@ export class FirestoreTournamentStore implements TournamentStore {
             .map((account) => account.id)
     }
 
+    // A restarted Table has a Game per attempt; only the latest one is the Table's Game.
+    private latestAttempts(links: TournamentGameLink[]): TournamentGameLink[] {
+        const latest = new Map<string, TournamentGameLink>()
+        for (const link of links) {
+            const key = JSON.stringify([link.stageId, link.tableId])
+            const current = latest.get(key)
+            if (!current || (link.attempt ?? 1) > (current.attempt ?? 1)) latest.set(key, link)
+        }
+        return [...latest.values()]
+    }
+
     private async protectLists(
         locks: CacheWriteLocks,
         before: Tournament | undefined,
@@ -568,7 +593,7 @@ export class FirestoreTournamentStore implements TournamentStore {
     }
 
     private serialize(tournament: Tournament) {
-        return { ...tournament, entrantIds: tournament.entrants.map((entrant) => entrant.userId) }
+        return { ...tournament, entrantIds: tournamentAccountIds(tournament) }
     }
 
     private parse(data: DocumentData | undefined): Tournament | undefined {

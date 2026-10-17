@@ -15,7 +15,11 @@ import {
     type LeagueSeasonDetail,
     type LeagueSignUpPolicy,
     type LeagueHeldPlace,
+    tournamentEntrantAccount,
+    type LeagueFinalPlacement,
+    type LeagueGroupStanding,
     type LeagueSeasonGroup,
+    type LeagueSeasonPlacement,
     type LeagueListEntry,
     type LeagueMyPlace,
     type LeagueSeasonSummary,
@@ -45,9 +49,11 @@ import {
     leagueFinalAllocation,
     leagueSeedingAllocation,
     leagueSeedingPlacements,
+    leagueBottomLevel,
     leagueHeldPlaces,
     leagueSeasonPlacements
 } from './leagueAllocation.js'
+import { entrantTableCounts } from './tournamentDispatch.js'
 
 const DAY = 86_400_000
 const REMINDER_LEAD = 2 * DAY
@@ -260,6 +266,9 @@ export class LeagueService {
         const { groups } = season ? await this.seasonDetails(season) : { groups: [] }
         const userIds = new Set([
             ...groups.flatMap((group) => group.entrantIds),
+            ...groups.flatMap((group) =>
+                group.standings.flatMap((row) => (row.playedBy ? [row.playedBy] : []))
+            ),
             ...(season?.heldPlaces ?? []).map((place) => place.userId),
             ...(season?.newEntrants ?? []).map((entrant) => entrant.userId)
         ])
@@ -359,7 +368,10 @@ export class LeagueService {
         const results = await this.tournaments.groupResults(
             started.map((group) => group.tournamentId)
         )
-        if (results.some((result) => result.tournament.status !== 'finished')) return
+        if (results.some((result) => result.tournament.status !== 'finished')) {
+            await this.recordGroupAccounts(league.id, season, started, results)
+            return
+        }
         const groups = this.allocationResults(started, results)
         const rows = new Map(
             results.flatMap((result) => result.standings).map((row) => [row.userId, row])
@@ -391,6 +403,34 @@ export class LeagueService {
         )
         await this.announceResults(league.id, season.number)
         await this.advanceAfter(state)
+    }
+
+    // Substitutes and Withdrawals change who plays a Group; "my place" reads the Season's copy.
+    private async recordGroupAccounts(
+        leagueId: string,
+        season: LeagueSeason,
+        groups: LeagueSeasonGroup[],
+        results: Pick<GroupTournamentResults, 'tournament'>[]
+    ): Promise<void> {
+        const accounts = results.map((result) =>
+            result.tournament.entrants
+                .filter((entrant) => !entrant.withdrawn)
+                .map((entrant) => tournamentEntrantAccount(entrant))
+                .sort()
+        )
+        if (
+            groups.every((group, index) =>
+                Value.Equal([...(group.accounts ?? group.entrantIds)].sort(), accounts[index])
+            )
+        )
+            return
+        await this.store.updateSeason(leagueId, season.number, (current) => {
+            current.groups?.forEach((group, index) => {
+                if (group.tournamentId === groups[index]?.tournamentId)
+                    group.accounts = accounts[index]
+            })
+            touchRevision(current, this.now())
+        })
     }
 
     private openSeason(league: League, closesAt: number, previous?: LeagueSeason): LeagueSeason {
@@ -427,7 +467,7 @@ export class LeagueService {
     private summarize(season: LeagueSeason, userId: string): LeagueSeasonSummary {
         const groups = season.groups ?? []
         const signUp = season.status === 'signUp'
-        const group = groups.find((value) => value.entrantIds.includes(userId))
+        const group = groups.find((value) => (value.accounts ?? value.entrantIds).includes(userId))
         const held = season.heldPlaces.find((place) => place.userId === userId)
         const signedUp =
             season.confirmedIds.includes(userId) ||
@@ -494,7 +534,7 @@ export class LeagueService {
         return groups.map((group, index) => ({
             groupId: group.groupId,
             level: group.level,
-            standings: results[index].standings,
+            standings: results[index].standings.filter((row) => !row.withdrawn),
             tables: results[index].tables
         }))
     }
@@ -518,12 +558,12 @@ export class LeagueService {
             groups: groups.map((group, index) => {
                 const result = results[index]
                 const rows = new Map(result.standings.map((row) => [row.userId, row]))
-                const activeTables = new Set(result.activeTableIds)
-                const active = new Map<string, number>()
-                for (const table of result.tables)
-                    if (activeTables.has(table.id))
-                        for (const userId of table.entrantIds)
-                            active.set(userId, (active.get(userId) ?? 0) + 1)
+                const active = entrantTableCounts(result.tables, result.activeTableIds)
+                const voided = entrantTableCounts(result.tables, result.voidedTableIds)
+                const voidedFields = (userId: string) => {
+                    const count = voided.get(userId)
+                    return count ? { voided: count } : {}
+                }
                 return {
                     ...group,
                     tournamentStatus: result.tournament.status,
@@ -531,25 +571,42 @@ export class LeagueService {
                     activeGames: result.activeTableIds.length,
                     totalGames:
                         (group.entrantIds.length * season.rules.gamesPerEntrant) /
-                        season.rules.tableSize,
-                    standings: placements
-                        .filter((placement) => placement.groupId === group.groupId)
-                        .sort((a, b) => a.place - b.place)
-                        .map((placement) => {
-                            const row = (frozen ?? rows).get(placement.userId)
-                            return {
-                                userId: placement.userId,
-                                place: placement.place,
-                                ...this.scoreFields(row ?? NO_GAMES),
-                                active: active.get(placement.userId) ?? 0,
-                                ...(frozen
-                                    ? {
-                                          movement: placement.movement,
-                                          nextLevel: placement.nextLevel
-                                      }
-                                    : {})
-                            }
-                        })
+                            season.rules.tableSize -
+                        result.voidedTableIds.length,
+                    standings: [
+                        ...placements
+                            .filter((placement) => placement.groupId === group.groupId)
+                            .sort((a, b) => a.place - b.place)
+                            .map((placement) => {
+                                const row = (frozen ?? rows).get(placement.userId)
+                                const playedBy =
+                                    placement.substituteId ?? rows.get(placement.userId)?.playedBy
+                                return {
+                                    userId: placement.userId,
+                                    ...(playedBy ? { playedBy } : {}),
+                                    place: placement.place,
+                                    ...this.scoreFields(row ?? NO_GAMES),
+                                    active: active.get(placement.userId) ?? 0,
+                                    ...voidedFields(placement.userId),
+                                    ...(frozen
+                                        ? {
+                                              movement: placement.movement,
+                                              nextLevel: placement.nextLevel
+                                          }
+                                        : {})
+                                }
+                            }),
+                        ...result.standings
+                            .filter((row) => row.withdrawn)
+                            .map((row, order, withdrawn): LeagueGroupStanding => ({
+                                userId: row.userId,
+                                withdrawn: true,
+                                place: group.entrantIds.length - withdrawn.length + order + 1,
+                                ...this.scoreFields(row),
+                                active: 0,
+                                ...voidedFields(row.userId)
+                            }))
+                    ]
                 }
             })
         }
@@ -671,15 +728,19 @@ export class LeagueService {
         userId: string
     ): Promise<LeagueEmailContent | undefined> {
         const placements = season.placements ?? []
-        const placement = placements.find((value) => value.userId === userId)
+        const account = (value: LeagueFinalPlacement) => this.placementAccount(value)
+        const placement = placements.find((value) => account(value) === userId)
         if (!placement) return undefined
         const group = placements
             .filter((value) => value.groupId === placement.groupId)
             .sort((a, b) => a.place - b.place)
+        // A place a Substitute finished cannot be champion.
         const champion = season.seeding
             ? undefined
-            : placements.find((value) => value.level === 0 && value.place === 1)
-        const ids = [...group.map((value) => value.userId), ...(champion ? [champion.userId] : [])]
+            : placements
+                  .filter((value) => value.level === 0 && !value.substituteId)
+                  .sort((a, b) => a.place - b.place)[0]
+        const ids = [...group.map(account), ...(champion ? [champion.userId] : [])]
         const accounts = await this.users.getUsers(ids)
         const names = new Map(ids.map((id, index) => [id, this.displayName(accounts[index])]))
         const name = (id: string) => {
@@ -692,18 +753,30 @@ export class LeagueService {
             kind: 'seasonResults',
             groupName: placement.groupId,
             place: placement.place,
-            movement: placement.movement,
-            nextLevel: leagueLevelName(placement.nextLevel),
+            ...(placement.substituteId
+                ? {
+                      movement: 'substitute',
+                      nextLevel: leagueLevelName(leagueBottomLevel(placements))
+                  }
+                : {
+                      movement: placement.movement,
+                      nextLevel: leagueLevelName(placement.nextLevel)
+                  }),
             ...(champion ? { champion: name(champion.userId) } : {}),
             standings: group.map((value) => ({
                 rank: value.place,
-                name: name(value.userId),
+                name: name(account(value)),
                 wins: value.wins,
                 score: value.score,
                 ...(value.tiebreak !== undefined ? { tiebreak: value.tiebreak } : {}),
-                recipient: value.userId === userId
+                recipient: account(value) === userId
             }))
         }
+    }
+
+    /** The account that finished a place: its Substitute, if a Substitute replaced the Entrant. */
+    private placementAccount(placement: LeagueSeasonPlacement): string {
+        return placement.substituteId ?? placement.userId
     }
 
     private displayName(account: User | undefined): string {
@@ -747,7 +820,8 @@ export class LeagueService {
     private async announceResults(leagueId: string, number: number): Promise<void> {
         await this.emailOnce(leagueId, number, 'seasonResults', {
             due: (season) => season.status === 'finished' && season.resultsEmailedAt === undefined,
-            recipients: (season) => (season.placements ?? []).map((placement) => placement.userId),
+            recipients: (season) =>
+                (season.placements ?? []).map((placement) => this.placementAccount(placement)),
             mark: (season) => {
                 season.resultsEmailedAt = this.now()
             }

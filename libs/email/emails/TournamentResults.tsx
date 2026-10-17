@@ -1,6 +1,7 @@
 import { ButtonFallback, CardButton, DarkCardEmail, formatNames } from '../components/darkCard.js'
 import {
     ChampionPanel,
+    isChampion,
     ordinal,
     StandingsTable,
     type StandingsRow,
@@ -40,7 +41,7 @@ export const TournamentResults = ({
         >
             <ChampionPanel winners={winners}>
                 {recipient &&
-                    (recipient.rank === 1
+                    (isChampion(recipient)
                         ? shared
                             ? 'You share the top of the table. Congratulations!'
                             : 'That is you. Congratulations!'

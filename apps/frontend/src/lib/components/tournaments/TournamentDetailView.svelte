@@ -1,6 +1,14 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import { Role, tournamentCapacity, type TournamentDetail } from '@tabletop/common'
+    import {
+        Role,
+        tournamentAccountIds,
+        tournamentCapacity,
+        tournamentEntrantAccount,
+        tournamentInPlay,
+        type TournamentDetail,
+        type TournamentEntrant
+    } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import {
@@ -13,9 +21,11 @@
         tournamentStatusText,
         tournamentStatusColor
     } from '$lib/utils/tournamentPresentation'
+    import { accountName } from '$lib/utils/accountName'
     import TournamentScheduleView from './TournamentScheduleView.svelte'
     import TournamentForm from './TournamentForm.svelte'
     import TournamentResultCorrection from './TournamentResultCorrection.svelte'
+    import TournamentReplacePlayer from './TournamentReplacePlayer.svelte'
     import TournamentGameOptions from './TournamentGameOptions.svelte'
 
     let { id }: { id: string } = $props()
@@ -40,11 +50,7 @@
               )
             : (tournament?.entrants ?? [])
     )
-    let winners = $derived(
-        tournament?.status === 'finished'
-            ? (detail?.standings?.filter((row) => row.rank === 1) ?? [])
-            : []
-    )
+    let winners = $derived(detail?.standings?.filter((row) => row.champion) ?? [])
     let showTiebreak = $derived(
         detail?.standings?.some((row) => row.tiebreak !== undefined) ?? false
     )
@@ -53,7 +59,7 @@
         tournament ? libraryService.titlesById[tournament.rules.titleId] : undefined
     )
     let joined = $derived(
-        detail?.tournament.entrants.some((entrant) => entrant.userId === user?.id)
+        !!detail && !!user && tournamentAccountIds(detail.tournament).includes(user.id)
     )
     let registrationOpen = $derived(
         tournament ? tournamentRegistrationOpen(tournament, now) : false
@@ -65,11 +71,20 @@
             : false
     )
     let correcting = $state(false)
+    let replacing = $state(false)
     let editingDraft = $state(false)
     let loadError = $state('')
     let actionError = $state('')
     let busy = $state(false)
     let request = 0
+
+    function username(userId: string) {
+        return accountName(detail?.usernames ?? {}, userId)
+    }
+    // The account playing a place: a Substitute's once they have replaced the Entrant.
+    function playing(entrant: TournamentEntrant) {
+        return standingByUser.get(entrant.userId)?.playedBy ?? tournamentEntrantAccount(entrant)
+    }
 
     async function refresh() {
         const current = ++request
@@ -256,6 +271,14 @@
                                         >
                                     {/if}
                                 {/if}
+                                {#if tournament.stages[0]?.scheduleId && tournamentInPlay(tournament.status)}
+                                    <button
+                                        class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        disabled={busy}
+                                        onclick={() => (replacing = !replacing)}
+                                        >Replace a player</button
+                                    >
+                                {/if}
                                 {#if showStandings}
                                     <button
                                         class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -297,7 +320,7 @@
                             class={winner.userId === user?.id
                                 ? 'text-orange-700 dark:text-orange-300'
                                 : 'text-blue-700 dark:text-blue-300'}
-                            >{detail.usernames[winner.userId] ?? 'Unavailable account'}</span
+                            >{username(winner.userId)}</span
                         >
                     {/each}
                 </p>
@@ -316,6 +339,15 @@
                 {/if}
             </p>
         </header>
+        {#if isAdmin && replacing && tournamentInPlay(tournament.status)}
+            <TournamentReplacePlayer
+                {detail}
+                onchanged={() => {
+                    replacing = false
+                    void refresh()
+                }}
+            />
+        {/if}
         {#if isAdmin && correcting && showStandings}
             <TournamentResultCorrection {detail} onchanged={() => void refresh()} />
         {/if}
@@ -390,30 +422,47 @@
                         <tbody class="divide-y divide-gray-200/60 dark:divide-gray-700/40">
                             {#each entrants as entrant (entrant.userId)}
                                 {@const standing = standingByUser.get(entrant.userId)}
-                                <tr>
+                                {@const account = playing(entrant)}
+                                <tr
+                                    class={standing?.withdrawn
+                                        ? 'text-gray-400 dark:text-gray-500'
+                                        : ''}
+                                >
                                     <td class="py-2.5 pr-3">
                                         <div class="flex min-w-0 items-center gap-2">
                                             {#if standing}<span
                                                     class="w-4 shrink-0 text-xs tabular-nums text-gray-500"
-                                                    >{standing.rank}</span
+                                                    >{standing.withdrawn
+                                                        ? '–'
+                                                        : standing.rank}</span
                                                 >{/if}
                                             <span
-                                                class="truncate {entrant.userId === user?.id
+                                                class="truncate {account === user?.id
                                                     ? 'text-orange-700 dark:text-orange-300'
                                                     : ''}"
-                                                title={detail.usernames[entrant.userId] ??
-                                                    'Unavailable account'}
+                                                title={username(account)}
                                             >
-                                                {detail.usernames[entrant.userId] ??
-                                                    'Unavailable account'}
+                                                {username(account)}
                                             </span>
+                                            {#if account !== entrant.userId}<span
+                                                    class="shrink-0 truncate text-xs text-gray-500"
+                                                    title="Substitute for {username(
+                                                        entrant.userId
+                                                    )}">for {username(entrant.userId)}</span
+                                                >{/if}
+                                            {#if standing?.withdrawn}<span
+                                                    class="shrink-0 rounded border border-gray-300 px-1 text-[10px] dark:border-gray-600"
+                                                    >Withdrawn</span
+                                                >{/if}
                                             {#if winners.some((winner) => winner.userId === entrant.userId)}<span
                                                     class="shrink-0 text-amber-600 dark:text-amber-400"
                                                     aria-label="Tournament winner"
                                                     title="Tournament winner">★</span
                                                 >{/if}
                                         </div>
-                                        {#if standing}<p class="mt-1 text-[11px] text-gray-500">
+                                        {#if standing && !standing.withdrawn}<p
+                                                class="mt-1 text-[11px] text-gray-500"
+                                            >
                                                 {standing.completed} finished · {standing.active} active
                                                 · {standing.remaining - standing.active} waiting
                                             </p>{/if}

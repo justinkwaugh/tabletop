@@ -70,6 +70,14 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('correctTournamentResult')
     }
 
+    async withdrawTournamentEntrant(): Promise<Tournament> {
+        return this.fail('withdrawTournamentEntrant')
+    }
+
+    async substituteTournamentEntrant(): Promise<Tournament> {
+        return this.fail('substituteTournamentEntrant')
+    }
+
     async rebuildTournamentStandings(): Promise<Tournament> {
         return this.fail('rebuildTournamentStandings')
     }

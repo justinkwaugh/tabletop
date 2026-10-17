@@ -275,6 +275,50 @@ describe('leagueFinalAllocation', () => {
         expect(groups?.[3].entrantIds).toEqual(expect.arrayContaining(['c-5', 'c-6', 'c-7']))
     })
 
+    it('holds a Bottom Level place for a Substitute and none for the place they finished', () => {
+        const placements = leagueSeasonPlacements(
+            'ladder',
+            season('ladder', [1, 1, 1]).map((group) =>
+                group.groupId === 'B'
+                    ? {
+                          ...group,
+                          standings: group.standings.map((row) =>
+                              row.userId === 'B-1' ? { ...row, playedBy: 'sub' } : row
+                          )
+                      }
+                    : group
+            ),
+            1
+        )
+        expect(placements.find((placement) => placement.userId === 'B-1')).toMatchObject({
+            movement: 'promoted',
+            substituteId: 'sub'
+        })
+        const held = leagueHeldPlaces(placements)
+        expect(held.find((place) => place.userId === 'B-1')).toBeUndefined()
+        expect(held.at(-1)).toEqual({ userId: 'sub', level: 2 })
+        expect(held.filter((place) => place.level === 0)).toHaveLength(6)
+    })
+
+    it('keeps a Substitute to the place they earned in another Group', () => {
+        const placements = leagueSeasonPlacements(
+            'ladder',
+            season('ladder', [1, 1, 1]).map((group) =>
+                group.groupId === 'A'
+                    ? {
+                          ...group,
+                          standings: group.standings.map((row) =>
+                              row.userId === 'A-3' ? { ...row, playedBy: 'C-1' } : row
+                          )
+                      }
+                    : group
+            ),
+            1
+        )
+        const held = leagueHeldPlaces(placements).filter((place) => place.userId === 'C-1')
+        expect(held).toEqual([{ userId: 'C-1', level: 1 }])
+    })
+
     it('marks Held Places reached by relegation', () => {
         expect(lastSeason.filter((place) => place.relegated).map((place) => place.userId)).toEqual([
             'A-6',

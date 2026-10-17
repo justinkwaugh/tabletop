@@ -31,6 +31,8 @@ import {
     Tournament,
     TournamentDetail,
     type CorrectTournamentResultRequest,
+    type SubstituteTournamentEntrantRequest,
+    type WithdrawTournamentEntrantRequest,
     TournamentList,
     League,
     LeagueAllocationPreview,
@@ -438,6 +440,22 @@ export class TabletopApi {
     correctTournamentResult(id: string, request: CorrectTournamentResultRequest) {
         return this.requestCompetition(
             `/tournaments/${encodeURIComponent(id)}/results/correct`,
+            Tournament,
+            'POST',
+            request
+        )
+    }
+    withdrawTournamentEntrant(id: string, request: WithdrawTournamentEntrantRequest) {
+        return this.requestCompetition(
+            `/tournaments/${encodeURIComponent(id)}/entrants/withdraw`,
+            Tournament,
+            'POST',
+            request
+        )
+    }
+    substituteTournamentEntrant(id: string, request: SubstituteTournamentEntrantRequest) {
+        return this.requestCompetition(
+            `/tournaments/${encodeURIComponent(id)}/entrants/substitute`,
             Tournament,
             'POST',
             request
@@ -1051,8 +1069,7 @@ export class TabletopApi {
             })
             if (apiError.name === 'GameVersionMismatch') {
                 const metadata = apiError.metadata as
-                    | { requestedVersion?: string; serverVersion?: string }
-                    | undefined
+                    { requestedVersion?: string; serverVersion?: string } | undefined
                 const requestedVersion = metadata?.requestedVersion
                 const serverVersion = metadata?.serverVersion
                 if (requestedVersion && serverVersion) {

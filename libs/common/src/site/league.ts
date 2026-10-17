@@ -123,7 +123,9 @@ export const LeagueSeasonGroup = Type.Object(
         groupId: Type.String(),
         level: Type.Integer({ minimum: 0 }),
         tournamentId: Type.String(),
-        entrantIds: Type.Array(Type.String(), { maxItems: 256 })
+        entrantIds: Type.Array(Type.String(), { maxItems: 256 }),
+        // The accounts playing the Group now, once a Substitute or a Withdrawal changes them.
+        accounts: Type.Optional(Type.Array(Type.String(), { maxItems: 256 }))
     },
     { additionalProperties: false }
 )
@@ -144,7 +146,10 @@ export const LeagueSeasonPlacement = Type.Object(
         level: Type.Integer({ minimum: 0 }),
         place: Type.Integer({ minimum: 1 }),
         movement: LeagueMovement,
-        nextLevel: Type.Integer({ minimum: 0 })
+        nextLevel: Type.Integer({ minimum: 0 }),
+        // A Substitute finished this place: its movement goes to nobody, and the Substitute
+        // holds a place at the Bottom Level next Season.
+        substituteId: Type.Optional(Type.String())
     },
     { additionalProperties: false }
 )
@@ -204,12 +209,17 @@ export type LeagueSeason = Type.Static<typeof LeagueSeason>
 
 export const LeagueGroupStanding = Type.Object({
     userId: Type.String(),
+    // The Substitute playing or who finished the place, when it is not the Entrant.
+    playedBy: Type.Optional(Type.String()),
+    withdrawn: Type.Optional(Type.Literal(true)),
     place: Type.Integer({ minimum: 1 }),
     wins: Type.Integer({ minimum: 0 }),
     score: Type.Number({ minimum: 0 }),
     completed: Type.Integer({ minimum: 0 }),
     tiebreak: Type.Optional(Type.Number()),
     active: Type.Integer({ minimum: 0 }),
+    // Games that will never count because a player was withdrawn or the game was abandoned.
+    voided: Type.Optional(Type.Integer({ minimum: 0 })),
     movement: Type.Optional(LeagueMovement),
     nextLevel: Type.Optional(Type.Integer({ minimum: 0 }))
 })

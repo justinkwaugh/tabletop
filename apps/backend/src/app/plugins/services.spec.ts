@@ -35,6 +35,7 @@ vi.mock('@tabletop/backend-services', async () => {
                 'PubSubTransport',
                 'TokenService',
                 'TournamentService',
+                'TournamentStallAlerts',
                 'UserService',
                 'DiscordTransport'
             ].map((name) => [name, Empty])

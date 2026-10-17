@@ -51,6 +51,19 @@ _Avoid_: Game Score when referring to the tournament tiebreak rather than one Ga
 **Final Table Result**:
 The accepted outcome of a completed Table, final immediately when its Hosted Game finishes. Players cannot reopen that Game Instance through Undo; an Administrator may make an explicitly attributed correction.
 
+**Substitute**:
+An account an Administrator puts into an Entrant's place after the Schedule is saved. The Substitute finishes the place's Tables, taking over each Game in progress or restarting its Table; the place keeps its results, and the replaced Entrant is dropped. A Substitute's place cannot win a Tournament, and in a League it moves nobody.
+_Avoid_: Replacement player, reserve
+
+**Withdrawal**:
+An Administrator removing an Entrant who has no Substitute. Their unfinished Tables become Void Tables, their finished results stay, and they are not ranked.
+
+**Void Table**:
+A Table that will never count for anyone, because its Game was abandoned or an Entrant at it was withdrawn. Its Game ends with no winners and keeps its history. An event finishes when every Table is finished or void.
+
+**Stall Alert**:
+A one-time Discord message to Administrators when a Tournament Game has had no move for two days.
+
 ## Leagues
 
 **League**:

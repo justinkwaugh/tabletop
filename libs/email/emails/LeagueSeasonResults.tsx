@@ -13,7 +13,7 @@ export interface LeagueSeasonResultsProps {
     seasonNumber: number
     groupName: string
     place: number
-    movement: 'promoted' | 'relegated' | 'stayed' | 'seeded'
+    movement: 'promoted' | 'relegated' | 'stayed' | 'seeded' | 'substitute'
     nextLevel: string
     champion?: string
     standings: StandingsRow[]
@@ -37,6 +37,8 @@ const resultText = ({
             return `${finished} and move down to Level ${nextLevel}.`
         case 'stayed':
             return `${finished} and stay in Level ${nextLevel}.`
+        case 'substitute':
+            return `${finished} as a substitute. Substitutes start the next season in Level ${nextLevel}, the bottom level.`
     }
 }
 
