@@ -137,7 +137,9 @@ export const CampaignBattleMetadata = Type.Object({
         Type.Array(Type.Object({ siteId: Type.String(), attack: Type.Number() }))
     ),
     planNotes: Type.Optional(Type.Array(Type.String())),
-    awaitingDefender: Type.Optional(Type.Boolean())
+    awaitingDefender: Type.Optional(Type.Boolean()),
+    /** R-5.5.4-H1 — the attack dice held for the defender's reroll, as they will be rolled. */
+    heldAttackDice: Type.Optional(Type.Number())
 })
 
 export type CampaignMetadata = Type.Static<typeof CampaignMetadata>
@@ -430,7 +432,8 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             plansUsed: campaign.plansUsed.length > 0 ? campaign.plansUsed : undefined,
             siteDice: siteDice.length > 0 ? siteDice : undefined,
             planNotes: planNotes.length > 0 ? planNotes : undefined,
-            awaitingDefender: awaitingDefender || undefined
+            awaitingDefender: awaitingDefender || undefined,
+            heldAttackDice: campaign.pendingAttackRoll ? campaign.attackPool : undefined
         }
     }
 

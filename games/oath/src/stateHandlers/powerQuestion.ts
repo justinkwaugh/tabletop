@@ -74,7 +74,7 @@ export class PowerQuestionStateHandler implements MachineStateHandler<
         if (isTravel(action)) return stateAfterTravelOutOfTurn(context.gameState, action.metadata)
         if (isAnswerQuestion(action)) {
             const gameState = context.gameState
-            const queueIsEmpty = settleQueue(gameState, action)
+            const queueIsEmpty = settleQueue(gameState, action, action.metadata)
             if (!queueIsEmpty) {
                 const next = currentQuestion(gameState)
                 assertExists(next, 'A non-empty question queue must have a current question')

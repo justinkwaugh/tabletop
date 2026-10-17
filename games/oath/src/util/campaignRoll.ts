@@ -1,5 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
+import type { HeldAttackRoll } from '../actions/answerQuestion.js'
 import type { PileDeposit } from '../model/hidden.js'
 import {
     type CampaignKillPath,
@@ -87,6 +88,10 @@ export function rollCampaign(
         return []
     }
     applyDefenseRoll(campaign, rollDefenseDice(state.getProtectedPrng(), campaign.defensePool))
+    // Mounted Patrol — the pool as it will be rolled, so an attack held for a reroll counts its dice.
+    if (rules.halveAttackPool) {
+        campaign.attackPool = Math.floor(campaign.attackPool / 2)
+    }
     // Before revision 14 both rolls are made, then both sides are asked.
     if (!isAtLeastOathRevision(state, OathRevision.EngineFixes10)) {
         return rollAttack(state, campaign, skullLossOrder, ['attack', 'defense'])
@@ -99,14 +104,19 @@ export function rollCampaign(
     return rollAttack(state, campaign, skullLossOrder, ['attack'])
 }
 
-/** R-5.5.4-H1 — the attack held for the defender's reroll is rolled; true when it was held. */
-export function rollHeldAttack(state: HydratedOathGameState): boolean {
+/** R-5.5.4-H1 — the attack held for the defender's reroll is rolled; what it rolled, when it was held. */
+export function rollHeldAttack(state: HydratedOathGameState): HeldAttackRoll | undefined {
     const campaign = state.campaign
-    if (!campaign?.pendingAttackRoll) return false
+    if (!campaign?.pendingAttackRoll) return undefined
     const { order } = campaign.pendingAttackRoll
     campaign.pendingAttackRoll = undefined
-    rollAttack(state, campaign, order, ['attack'])
-    return true
+    const killed = rollAttack(state, campaign, order, ['attack'])
+    return {
+        attackerPlayerId: campaign.attackerPlayerId,
+        swords: campaign.swords,
+        defense: campaign.defense,
+        skullsKilled: forceTotal(killed)
+    }
 }
 
 /** R-5.5.5 — the attack roll, then the rerolls asked after it; the skulls kill once those are settled. */
@@ -117,10 +127,6 @@ function rollAttack(
     rerolledSides: ReadonlyArray<'attack' | 'defense'>
 ): WarbandGroup[] {
     // R-5.5.5 — the skulls kill before the sacrifice, which is a separate action.
-    // Mounted Patrol
-    if (campaign.rollRules.halveAttackPool) {
-        campaign.attackPool = Math.floor(campaign.attackPool / 2)
-    }
     const prng = state.getProtectedPrng()
     const skulls = applyAttackRoll(campaign, rollAttackDice(prng, campaign.attackPool))
     // Jinx — the skulls' kills wait on the answer, since a reroll replaces the roll.

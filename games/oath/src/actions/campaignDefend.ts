@@ -27,7 +27,9 @@ export const CampaignDefendMetadata = Type.Object({
     swords: Type.Number(),
     skullsKilled: Type.Number(),
     /** R-5.5.3.a */
-    awaitingMore: Type.Optional(Type.Array(Type.String()))
+    awaitingMore: Type.Optional(Type.Array(Type.String())),
+    /** R-5.5.4-H1 — the attack dice held for the defender's reroll, as they will be rolled. */
+    heldAttackDice: Type.Optional(Type.Number())
 })
 
 export type CampaignDefend = Type.Static<typeof CampaignDefend>
@@ -130,7 +132,8 @@ export class HydratedCampaignDefend
             defense: campaign.defense,
             swords: campaign.swords,
             skullsKilled,
-            awaitingMore: remaining.length > 0 ? remaining : undefined
+            awaitingMore: remaining.length > 0 ? remaining : undefined,
+            heldAttackDice: campaign.pendingAttackRoll ? campaign.attackPool : undefined
         }
     }
 
