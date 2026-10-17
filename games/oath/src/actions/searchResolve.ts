@@ -295,7 +295,7 @@ export class HydratedSearchResolve
         if (second) {
             const secondReason =
                 reasonCannotPlaySecondCard(state, playerId, choice.keptCardId, second, choice) ??
-                reasonCannotPairSecondPlay(state, playerId, choice.play, second)
+                reasonCannotPairSecondPlay(state, playerId, choice.play, second, choice.toSiteId)
             if (secondReason) return secondReason
         }
         const expected = player
@@ -406,18 +406,29 @@ function shownSecondCardForAfter(
     return playShowsCard(second.play, second.faceUp) ? second.cardId : undefined
 }
 
-/** Land Warden — "if you play at least one card to a site", with room for both there. */
+/**
+ * Land Warden — "if you play at least one card to a site", with room for both at your site when both go there.
+ * `keptToSiteId` is where the kept card goes: the People's Favor may send it to another site (R-5.1.4.I), and its
+ * Q&A lets both cards use it.
+ */
 export function reasonCannotPairSecondPlay(
     state: HydratedOathGameState,
     playerId: string,
     firstPlay: SearchPlay,
-    second: SearchSecondPlay
+    second: SearchSecondPlay,
+    keptToSiteId?: string
 ): string | undefined {
     if (firstPlay !== SearchPlay.Site && second.play !== SearchPlay.Site)
         return 'Land Warden: at least one of the two cards must be played to a site'
     if (firstPlay === SearchPlay.Site && second.play === SearchPlay.Site) {
         const here = pawnSiteId(state, playerId)
-        if (state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here))
+        // Each site's room counts the cards that go there; the second card's own check counts it alone. Before
+        // revision 16 (R-X.4), both counted at your site wherever the kept card went.
+        const keptHere =
+            keptToSiteId === undefined ||
+            keptToSiteId === here ||
+            !isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+        if (keptHere && state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here))
             return 'no room at your site for two cards'
     }
     return undefined

@@ -759,3 +759,49 @@ describe("R-5.1.4.I, R-11.10 — Salt the Earth's cards to discard first, as the
         expect(draft.discardFirstOptions).toEqual([STORYTELLER, WOLVES])
     })
 })
+
+describe("Land Warden's Q&A — the kept card sent to another site leaves the seat's own site to the second card", () => {
+    const WOLVES = 'denizen.beast.wolves'
+    const INN = 'denizen.hearth.wayside-inn'
+    const ONE_SPACE_LEFT = ['denizen.hearth.storyteller', 'denizen.beast.rangers']
+
+    /** The seat holds the People's Favor at c1, which has one space left; c2, in the same region, is empty. */
+    function warden(oathRevision: OathRevision) {
+        const { session, draft, sent } = searchingWith([WOLVES, INN, TUTOR], [], {
+            oathRevision,
+            denizensBySite: { c1: ONE_SPACE_LEFT, c2: [], p1: [], h1: [] },
+            banners: FAVOR_HELD,
+            ...WARDEN_CARRIED
+        })
+        draft.keep(WOLVES)
+        return { session, draft, sent }
+    }
+    const innToYourSite = (draft: ReturnType<typeof warden>['draft']) =>
+        draft.secondPlays.find((option) => option.cardId === INN && option.play === SearchPlay.Site)
+
+    const sitePlacements = (draft: ReturnType<typeof warden>['draft']) =>
+        draft.placements.filter((option) => option.play === SearchPlay.Site)
+
+    it('from revision 16, with the kept card to c2, the second card to the seat\'s site pairs with the site play, and the engine accepts it', async () => {
+        expect(ONE_SPACE_LEFT).toHaveLength(FIXTURE_SITE_CAPACITY - 1)
+        const { session, draft, sent } = warden(OathRevision.EngineFixes12)
+        draft.setSecondPlay(innToYourSite(draft)?.key)
+        expect(draft.second?.cardId).toBe(INN)
+        expect(sitePlacements(draft)).toEqual([])
+        draft.setToSite('c2')
+        expect(sitePlacements(draft)).toHaveLength(1)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ keptCardId: WOLVES, toSiteId: 'c2', secondPlay: { cardId: INN, play: SearchPlay.Site } })
+        )
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('before revision 16, the site play does not pair with it, wherever the kept card goes', () => {
+        const { draft } = warden(OathRevision.EngineFixes11)
+        draft.setSecondPlay(innToYourSite(draft)?.key)
+        expect(draft.second?.cardId).toBe(INN)
+        draft.setToSite('c2')
+        expect(sitePlacements(draft)).toEqual([])
+    })
+})
