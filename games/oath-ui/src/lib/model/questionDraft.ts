@@ -12,6 +12,7 @@ import {
     currentQuestion,
     heldRelicsToBottom,
     payableWoodPicks,
+    reasonWoodStayRefused,
     playersAt,
     powerMoveToll,
     powerTravelNeedsFlip,
@@ -532,6 +533,26 @@ export class QuestionDraft implements PanelDraft {
     async sendThrough(siteId: string): Promise<void> {
         if (!this.woodDestinations.includes(siteId)) return
         await this.send({ kind: PowerQuestionKind.ShroudedWoodDestination, siteId })
+    }
+
+    /**
+     * R-11.7-H2 — the ruler may keep the traveller at the Wood only when they can pay for no site
+     * without the cards they declared (Forest Paths' Q&A), as the engine judges it.
+     */
+    get woodStayOffered(): boolean {
+        const question = this.question
+        if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination || !question.travel) {
+            return false
+        }
+        const state = this.session.gameState
+        return (
+            reasonWoodStayRefused(state, question.travelerPlayerId, question.travel) === undefined
+        )
+    }
+
+    async keepTravelerInPlace(): Promise<void> {
+        if (!this.woodStayOffered) return
+        await this.send({ kind: PowerQuestionKind.ShroudedWoodDestination, stay: true })
     }
 
     async playVision(play: SearchPlay): Promise<void> {

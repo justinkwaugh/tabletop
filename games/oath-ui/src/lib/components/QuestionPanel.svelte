@@ -21,6 +21,7 @@
     import QuestionVision from '$lib/components/QuestionVision.svelte'
     import QuestionYesNo from '$lib/components/QuestionYesNo.svelte'
     import QuestionWoodPick from '$lib/components/QuestionWoodPick.svelte'
+    import WoodStay from '$lib/components/WoodStay.svelte'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
@@ -210,6 +211,7 @@
             <QuestionWoodPick question={mine} />
         {:else}
             <p class="text-sm">Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.</p>
+            <WoodStay travelerId={mine.travelerPlayerId} spacing="mt-2.5" />
         {/if}
     {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination}
         <p class="text-sm mb-2">Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.</p>
@@ -319,7 +321,7 @@
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.WayStationFavor}
         <!-- R-11.7-H3 — Way Station at the Shrouded Wood's pick: its ruler's favor instead of the Supply;
-             either answer travels. The bandits' favor is burned. -->
+             either answer travels: "Give 1 [favor]" / "Pay 2 Supply". The bandits' favor is burned. -->
         <QuestionForm cardId={mine.cardId}>
             {#snippet line()}Spend no Supply by {#if mine.payeeId}giving <PlayerName
                         playerId={mine.payeeId}
@@ -328,6 +330,7 @@
             <QuestionYesNo
                 yes={mine.payeeId ? 'Give' : 'Burn'}
                 cost="1 favor"
+                dot={!mine.payeeId}
                 no="Pay {mine.supplyCost} Supply"
             />
         </QuestionForm>

@@ -2,9 +2,10 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import { CardKind, PowerQuestionKind, type PowerQuestion } from '@tabletop/oath'
     import FavorCost from '$lib/components/FavorCost.svelte'
+    import WoodStay from '$lib/components/WoodStay.svelte'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import { regionName, siteName } from '$lib/model/names.js'
-    import { woodCostNoteShort } from '$lib/model/woodTravel.js'
+    import { woodCostNoteShort, woodRegionKey } from '$lib/model/woodTravel.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -30,10 +31,11 @@
 </script>
 
 <p class="text-sm mb-2.5">Pick where <PlayerName playerId={question.travelerPlayerId} /> goes.</p>
+<WoodStay travelerId={question.travelerPlayerId} spacing="mb-2.5" />
 <div
     class="inline-grid auto-cols-fr grid-flow-col items-start gap-x-5 max-sm:flex max-sm:flex-col max-sm:gap-2"
 >
-    {#each draft.woodRegions as row (`${row.region}:${row.cost}`)}
+    {#each draft.woodRegions as row (woodRegionKey(row))}
         <div class="min-w-0" role="group" aria-label="Sites in the {regionName(row.region)}">
             <div class="mb-1.5 max-sm:mb-1 max-sm:flex max-sm:items-baseline max-sm:gap-2">
                 <h4 class="text-[10.5px] font-bold uppercase tracking-[0.14em] text-oath-heading">

@@ -90,6 +90,14 @@ import {
     type PlayedTable
 } from './sessionHarness.js'
 import { shroudedWoodState } from './shroudedWoodTable.js'
+import {
+    FOREST_PATHS,
+    TENTS,
+    woodCardsLowState,
+    travelCard,
+    woodCardsState,
+    type WoodCardsScene
+} from './woodCardsTable.js'
 import { heldAttackTable } from './heldAttackTable.js'
 import { RecordedStory } from './recordedStory.js'
 
@@ -197,6 +205,10 @@ export type TableName =
     | 'woodRuler'
     | 'woodRulerToll'
     | 'woodTollAsked'
+    | 'woodCards'
+    | 'woodCardsRuler'
+    | 'woodCardsLow'
+    | 'woodStays'
     | 'banditCrown'
     | 'banditCrownChancellor'
     | 'banditCrownExile'
@@ -3898,6 +3910,18 @@ function woodTollState(): HydratedOathGameState {
     return state
 }
 
+/** R-11.7-H2 — Dana has set out from Bea's Wood declaring `cards`; Bea picks with them counted. */
+function woodCardsRulerTable(scene: WoodCardsScene, cards: string[]): PlayedTable {
+    const table = tableOf(woodCardsState(scene))
+    return played(table, [
+        createAction(Travel, {
+            ...envelope(table),
+            playerId: 'Dana',
+            modifiers: cards.map(travelCard)
+        })
+    ])
+}
+
 /** Dana has set out from Rhys's Wood; Rhys picks, the Great Slum marked with its toll. */
 function woodRulerTollTable(): PlayedTable {
     const table = tableOf(woodTollState())
@@ -4769,6 +4793,11 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,
     woodTollAsked: woodTollAskedTable,
+    woodCards: () => tableOf(woodCardsState()),
+    woodCardsRuler: () => woodCardsRulerTable({}, [TENTS, FOREST_PATHS]),
+    woodCardsLow: () => tableOf(woodCardsLowState()),
+    woodStays: () =>
+        woodCardsRulerTable({ supply: 1, favor: 1, advisers: [FOREST_PATHS] }, [FOREST_PATHS]),
     tollAsked: tollAskedTable,
     oracleToll: () => oracleTable(4),
     oracleNoFavor: () => oracleTable(0),

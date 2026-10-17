@@ -42,7 +42,7 @@ import {
     SearchPlay,
     woodChooserForTravel,
     isFreeTravelNow,
-    payableWoodPicks,
+    woodPicksBeforeTravel,
     playMapChanges,
     woodTravelPaysAtPick,
     SearchResolve,
@@ -87,8 +87,8 @@ import { warbandOwnerName } from './names.js'
 import { OathSelection } from './oathSelection.svelte.js'
 import { SearchDraft } from './searchDraft.js'
 import { QuestionDraft } from './questionDraft.js'
-import { woodRegions, type WoodRegion } from './woodTravel.js'
-import { gridRefusal, refusalWords } from './actionAvailability.js'
+import { woodRegions, woodTravelCards, type WoodRegion } from './woodTravel.js'
+import { refusalWords, woodTravelRefusal } from './actionAvailability.js'
 import {
     AttackPlansDraft,
     AttackerLossesDraft,
@@ -1575,14 +1575,27 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return woodChooserForTravel(this.gameState, playerId, this.modifiers.declared)
     }
 
-    /** R-11.7 — what each region the ruler may pick would cost, once the Travel pays at the pick. */
+    /** R-11.7-H2 — the cards in use that this seat's Travel out of an enemy's Wood declares. */
+    get woodTravelCards(): ModifierUse[] {
+        const playerId = this.liveTurnSeatId
+        if (!playerId) return []
+        return woodTravelCards(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    /**
+     * R-11.7 — what each region the ruler may pick would cost, once the Travel pays at the pick;
+     * R-11.7-H2 — with the cards in use counted, as the ruler will then be offered them.
+     */
     get woodRegions(): WoodRegion[] | undefined {
         const playerId = this.liveTurnSeatId
         if (!playerId || !this.shroudedWoodChooser || !woodTravelPaysAtPick(this.gameState)) {
             return undefined
         }
-        const picks = payableWoodPicks(this.gameState, playerId, { free: this.woodTravelIsFree })
-        return woodRegions(this.gameState, picks)
+        const picks = woodPicksBeforeTravel(this.gameState, playerId, this.woodTravelCards)
+        return woodRegions(
+            this.gameState,
+            picks.map(({ pick }) => pick)
+        )
     }
 
     /** Second Wind, Brass Horse */
@@ -1594,14 +1607,19 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     get woodTravelReason(): string | undefined {
         const playerId = this.liveTurnSeatId
         if (!playerId) return undefined
-        return HydratedTravel.reasonCannotLeaveShroudedWood(this.gameState, playerId, {})
+        return HydratedTravel.reasonCannotLeaveShroudedWood(this.gameState, playerId, {
+            modifiers: this.woodTravelCards
+        })
     }
 
-    /** The red line under a Wood Travel nobody can pay, in the grid's words ("Needs 2 Supply; you have 1."). */
+    /**
+     * The red line under a Wood Travel nobody can pay with the cards in use, in the grid's words
+     * ("Needs 2 Supply; you have 1."). The tile may be open on a card not yet in use (R-11.7-H2).
+     */
     get woodTravelRefusal(): string | undefined {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.woodTravelReason === undefined) return undefined
-        const refusal = gridRefusal(this.gameState, playerId, ActionType.Travel)
+        const refusal = woodTravelRefusal(this.gameState, playerId, this.woodTravelCards)
         if (!refusal) return undefined
         return refusal.cause === 'engine'
             ? this.humanizeReason(refusal.reason)
@@ -1611,7 +1629,10 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     async travelFromShroudedWood(): Promise<void> {
         if (!this.shroudedWoodChooser || this.woodTravelReason !== undefined) return
         await this.commit(
-            this.createPlayerAction(Travel, { type: ActionType.Travel, modifiers: [] })
+            this.createPlayerAction(Travel, {
+                type: ActionType.Travel,
+                modifiers: this.woodTravelCards
+            })
         )
     }
 

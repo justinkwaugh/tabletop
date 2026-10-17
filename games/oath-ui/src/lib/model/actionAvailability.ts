@@ -20,7 +20,8 @@ import {
     isFreeTravelNow,
     woodPick,
     woodTravelPaysAtPick,
-    type HydratedOathGameState
+    type HydratedOathGameState,
+    type ModifierUse
 } from '@tabletop/oath'
 import type { MajorAction, MajorEntry } from './actionCatalogue.js'
 
@@ -36,8 +37,12 @@ export function reasonActionUnavailable(
 
     switch (type) {
         case ActionType.Travel: {
-            // R-11.7 — leaving an enemy's Shrouded Wood names no site (the tile: no card declared yet).
+            // R-11.7 — leaving an enemy's Shrouded Wood names no site. The tile opens as the engine's
+            // does, when some card the traveller can use leaves a pick they can pay for, or Portal
+            // from its own site makes it an ordinary Travel (R-11.7-H2, R-11.7-H4); closed, it says
+            // why with no card in use.
             if (woodChooserForTravel(gameState, playerId, []) !== undefined) {
+                if (HydratedTravel.canDoTravel(gameState, playerId)) return undefined
                 return HydratedTravel.reasonCannotLeaveShroudedWood(gameState, playerId, {})
             }
             if (HydratedTravel.legalDestinations(gameState, playerId).length > 0) return undefined
@@ -141,6 +146,21 @@ export function gridRefusal(
     return knownCause(gameState, playerId, type) ?? { cause: 'engine', reason }
 }
 
+/**
+ * R-11.7 — why the Travel out of an enemy's Shrouded Wood cannot be sent with these cards in use:
+ * with none, in the grid's words (the cheapest pick); with cards, in the engine's own sentence.
+ */
+export function woodTravelRefusal(
+    gameState: HydratedOathGameState,
+    playerId: string,
+    modifiers: readonly ModifierUse[]
+): GridRefusal | undefined {
+    const reason = HydratedTravel.reasonCannotLeaveShroudedWood(gameState, playerId, { modifiers })
+    if (reason === undefined) return undefined
+    const known = modifiers.length === 0 ? woodCause(gameState, playerId) : undefined
+    return known ?? { cause: 'engine', reason }
+}
+
 function knownCause(
     gameState: HydratedOathGameState,
     playerId: string,
@@ -151,7 +171,7 @@ function knownCause(
     }
     switch (type) {
         case ActionType.Travel:
-            // R-11.7 — leaving an enemy's Shrouded Wood, the ruler picks: the cheapest pick is the price.
+            // R-11.7 — leaving an enemy's Shrouded Wood, closed with no card that helps: the cheapest pick.
             if (woodChooserForTravel(gameState, playerId, []) !== undefined) {
                 return woodCause(gameState, playerId)
             }

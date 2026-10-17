@@ -136,9 +136,11 @@ export function rowActorOf(action: GameAction): string | undefined {
     return woodTravelerOf(action) ?? tollMoverOf(action) ?? action.playerId
 }
 
-/** R-11.7 — the ruler's pick settles the traveller's Travel, so the row is the traveller's. */
+/** R-11.7 — the ruler's pick (or stay, R-11.7-H2) settles the traveller's Travel, so the row is the traveller's. */
 function woodTravelerOf(action: GameAction): string | undefined {
-    return isAnswerQuestion(action) ? action.metadata?.woodPick?.travelerPlayerId : undefined
+    if (!isAnswerQuestion(action)) return undefined
+    const meta = action.metadata
+    return meta?.woodPick?.travelerPlayerId ?? meta?.woodStay?.travelerPlayerId
 }
 
 /** R-5.5.4-H1 — the attacker whose warbands the held attack's skulls took, on the answer that rolled it. */
@@ -596,7 +598,9 @@ function describeActionCited(
             const chooser = meta?.destinationChooser
             const ruler = chooser ? nameOf(chooser) : 'its ruler'
             if (meta?.paysAtPick) {
-                return `set out from Shrouded Wood${freeActionClause(meta.freeActionOf)}; ${ruler} picks where`
+                // R-11.7-H2 — the cards declared at the start, in brackets, as a plain Travel names them.
+                const cards = cardsInBrackets(meta.modifiers, named)
+                return `set out from Shrouded Wood${cards}${freeActionClause(meta.freeActionOf)}; ${ruler} picks where`
             }
             return `left Shrouded Wood${supply(meta?.supplySpent)}; ${ruler} picks where`
         }
@@ -833,6 +837,15 @@ function describeActionCited(
             const rulerId = meta.woodPick.chooserPlayerId ?? toll?.moverPlayerId ?? action.playerId
             return describeWoodPick(meta.woodPick, rulerId, names, viewerId, toll?.toll)
         }
+        // R-11.7-H2 — the ruler kept the traveller in place: the traveller's row, the ruler's pick.
+        if (meta?.woodStay) {
+            return nameSeats(
+                `stayed at ${names.site(meta.woodStay.siteId)} (${action.playerId}'s pick)`,
+                names,
+                viewerId,
+                meta.woodStay.travelerPlayerId
+            )
+        }
         if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)
         if (!meta) return 'answered a question'
         if (meta.kind === PowerQuestionKind.DragonskinDrum) return drumText(meta.cardId, meta.warbandGain)
@@ -1040,8 +1053,10 @@ function describeWoodPick(
             return clause ? [`; ${clause.text}`] : []
         })
         .join('')
+    // R-11.7-H2 — a declared card is named only where it set the price ("spending 0 Supply (Tents)").
+    const cost = costWith(pick.supplySpent, inBrackets((pick.pricedBy ?? []).map(cardName)))
     return nameSeats(
-        `traveled from Shrouded Wood to ${names.site(pick.siteId)} (${rulerId}'s pick)${supply(pick.supplySpent)}${tollClause}${notes}`,
+        `traveled from Shrouded Wood to ${names.site(pick.siteId)} (${rulerId}'s pick)${cost}${tollClause}${notes}`,
         names,
         viewerId,
         pick.travelerPlayerId

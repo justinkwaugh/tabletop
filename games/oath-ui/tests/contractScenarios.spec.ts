@@ -9180,7 +9180,8 @@ test.describe('Way Station at the Shrouded Wood’s pick', () => {
         await expect(questionLine(page).locator('img[alt="favor"]')).toHaveCount(1)
         await expect(grid(page).getByRole('heading', { name: 'Way Station' })).toBeVisible()
         const give = answer(page, 'Give, paying 1 favor')
-        await expect(give).toHaveText(/^Give\s*·\s*1$/)
+        // "Give 1 [favor]": the cost straight after the word, no dot.
+        await expect(give).toHaveText(/^Give\s*1$/)
         await expect(give.locator('.text-oath-accent img')).toHaveCount(1)
         await expect(give).toHaveClass(/border-oath-primary-border/)
         await expect(answer(page, 'Pay 2 Supply')).toBeVisible()
