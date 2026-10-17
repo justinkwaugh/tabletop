@@ -83,6 +83,7 @@ export class HydratedCampaignAttackPlans
             playerId,
             HydratedCampaign.partiesOfDeclaration(state, declaration),
             declaration.targets,
+            declaration.attackDice,
             plans
         )
     }

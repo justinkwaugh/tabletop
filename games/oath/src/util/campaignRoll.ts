@@ -2,8 +2,10 @@ import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { PileDeposit } from '../model/hidden.js'
 import {
+    type CampaignKillPath,
     type CampaignState,
     type HeldForHospital,
+    type KillRedirect,
     type LossSource,
     type RolledAttackFace,
     type RolledDefenseFace,
@@ -29,6 +31,7 @@ import {
 import { attackingSiteOf } from './campaignSite.js'
 import {
     addWarbandsToSite,
+    boardGroupToKill,
     forceTotal,
     killWarbands,
     removeWarbandsFrom,
@@ -332,42 +335,106 @@ export function killFromAttackingForce(
     return killed
 }
 
-/** R-10.13, unless Hospital places them on its site; `side` is the force the warbands belong to. */
+/**
+ * R-10.28-H2 — whose warbands they are, for Hospital: a board's player, and at a site the player whose
+ * force holds it (the attacker's force sites, the defender's targets), whatever their colour. Before
+ * revision 13 (R-X.4) a site's warbands were their bank's holder's, the Chancellor for the Empire's.
+ */
+function forceHolderOf(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    at: WarbandLocation,
+    owner: WarbandOwner
+): string | undefined {
+    if (at.kind === 'board') return at.playerId
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes9)) {
+        return state.warbandBankHolderOf(owner)
+    }
+    return side === BattlePlanSide.Attacker ? kills.attackerPlayerId : kills.defenderPlayerId
+}
+
+/** R-10.28 — the Hospital in force, if any, that holds `side`'s warbands killed from `at`. */
+function hospitalRedirectOf(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    at: WarbandLocation,
+    owner: WarbandOwner
+): KillRedirect | undefined {
+    const playerId = forceHolderOf(state, kills, side, at, owner)
+    return kills.killRedirects.find((r) => r.playerId === playerId)
+}
+
+/**
+ * R-5.5.6, R-10.28-H2 — whose Hospital, if anyone's, would hold `side`'s warbands killed from `group`:
+ * from revision 13 two groups of one force can differ here, which makes a loss pick matter.
+ */
+export function hospitalHolderOf(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    group: LossSource
+): string | undefined {
+    return hospitalRedirectOf(state, kills, side, group.at, group.owner)?.playerId
+}
+
+/**
+ * R-10.13, unless Hospital places them on its site; `side` is the force the warbands belong to. True
+ * when Hospital holds them.
+ */
 export function killOrRedirect(
     state: HydratedOathGameState,
-    campaign: CampaignState,
+    kills: CampaignKillPath,
     side: BattlePlanSide,
     at: WarbandLocation,
     owner: WarbandOwner,
     count: number
-): void {
-    if (count <= 0) return
-    const playerId = at.kind === 'board' ? at.playerId : state.warbandBankHolderOf(owner)
-    const redirect = campaign.killRedirects.find((r) => r.playerId === playerId)
+): boolean {
+    if (count <= 0) return false
+    const redirect = hospitalRedirectOf(state, kills, side, at, owner)
     if (redirect) {
         // Hospital's Q&A — set aside now, placed when the Campaign ends if its ruler still rules it.
         removeWarbandsFrom(state, at, owner, count)
-        campaign.heldForHospital = [
-            ...(campaign.heldForHospital ?? []),
-            { playerId, siteId: redirect.siteId, owner, count }
+        kills.heldForHospital = [
+            ...(kills.heldForHospital ?? []),
+            { playerId: redirect.playerId, siteId: redirect.siteId, owner, count }
         ]
-        return
+        return true
     }
     removeWarbandsFrom(state, at, owner, count)
     killWarbands(state, owner, count)
-    countKilled(state, campaign, side, count)
+    countKilled(state, kills, side, count)
+    return false
+}
+
+/**
+ * Hospital, R-10.13 — up to `count` of `playerId`'s warbands on their board, their own first, killed
+ * through the Campaign's kill path so a redirect in force sees them (revision 13).
+ */
+export function killBoardWarbandsInCampaign(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    playerId: string,
+    count: number
+): { killed: number; held: boolean } {
+    const group = boardGroupToKill(state, playerId, count)
+    if (!group) return { killed: 0, held: false }
+    const held = killOrRedirect(state, kills, side, group.at, group.owner, group.count)
+    return { killed: group.count, held }
 }
 
 /** Cursed Cauldron, R-10.22 — warbands of `side`'s force killed are enemy warbands killed for the other side. */
 export function countKilled(
     state: HydratedOathGameState,
-    campaign: CampaignState,
+    kills: CampaignKillPath,
     side: BattlePlanSide,
     count: number
 ): void {
     if (count <= 0 || !isAtLeastOathRevision(state, OathRevision.CardFixes1)) return
-    const tally = campaign.enemyWarbandsKilled ?? { attacker: 0, defender: 0 }
-    campaign.enemyWarbandsKilled =
+    const tally = kills.enemyWarbandsKilled ?? { attacker: 0, defender: 0 }
+    kills.enemyWarbandsKilled =
         side === BattlePlanSide.Attacker
             ? { ...tally, defender: tally.defender + count }
             : { ...tally, attacker: tally.attacker + count }

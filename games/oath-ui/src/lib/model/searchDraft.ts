@@ -2,6 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     MachineState,
     SearchPlay,
+    playMapChanges,
     reasonCannotPairSecondPlay,
     reasonCannotPlaceCard,
     reasonCannotPlayCard,
@@ -181,12 +182,15 @@ export class SearchDraft implements PanelDraft {
         const playerId = this.playerId
         const placement = this.placement
         if (!cardId || !playerId || !placement) return []
+        const state = this.session.gameState
         return whenPlayedChoices(
-            this.session.gameState,
+            state,
             playerId,
             cardId,
             placement.play,
-            placement.faceUp
+            placement.faceUp,
+            // R-5.1.4.I, R-11.10 — the card picked beside the site play goes first.
+            playMapChanges(state, cardId, placement.play, { discardFirstCardId: this.discardFirst })
         )
     }
 

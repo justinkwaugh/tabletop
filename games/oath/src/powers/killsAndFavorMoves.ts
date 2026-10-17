@@ -33,6 +33,7 @@ import {
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
+import { settleAdviserLimitsAfterMove } from '../util/adviserLimit.js'
 import { BANDIT_CHIEF } from '../util/bandits.js'
 import { soleOwner } from '../util/force.js'
 import { ownerIfAny } from '../util/warbands.js'
@@ -252,6 +253,9 @@ registerEffect(ENCHANTRESS, powerIndexOf(ENCHANTRESS, PowerTiming.Action), {
                 id === ENCHANTRESS ? target.cardId : id
             )
             owner.replaceAdviser(target.cardId, { cardId: ENCHANTRESS, faceUp: true })
+            settleAdviserLimitsAfterMove(ctx.state, ctx.playerId, ENCHANTRESS, [
+                { playerId: owner.playerId, receivedCardIds: [ENCHANTRESS] }
+            ])
             return {
                 summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${site}`,
                 targetPlayerId: owner.playerId
@@ -261,6 +265,10 @@ registerEffect(ENCHANTRESS, powerIndexOf(ENCHANTRESS, PowerTiming.Action), {
         assertExists(holder, 'Enchantress is used from a site or as an adviser')
         holder.replaceAdviser(ENCHANTRESS, { cardId: target.cardId, faceUp: true })
         owner.replaceAdviser(target.cardId, { cardId: ENCHANTRESS, faceUp: true })
+        settleAdviserLimitsAfterMove(ctx.state, ctx.playerId, ENCHANTRESS, [
+            { playerId: holder.playerId, receivedCardIds: [target.cardId] },
+            { playerId: owner.playerId, receivedCardIds: [ENCHANTRESS] }
+        ])
         return {
             summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${holder.playerId}'s advisers`,
             targetPlayerId: owner.playerId

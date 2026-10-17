@@ -68,12 +68,17 @@ registerBattlePlan(PEACE_ENVOY, powerIndexOf(PEACE_ENVOY, PowerTiming.BattlePlan
         decidesVictor: true,
         ignoreKills: true,
         // Its victory is bought with the whole payment: one favor per defense die, beyond its cost.
+        // Its Q&A: "Consider the favor you're giving them as part of the cost", so the check counts
+        // the pool it pays from: the attacker's as Step 2 leaves it (R-11.4-H1). R-X.4: before
+        // revision 13 the attacker's check counted the targets and titles alone.
         reasonCannotUse: (ctx) => {
             if (!envoyPaysEnemy(ctx.state, ctx.playerId, ctx.campaign)) return undefined
             const pool =
                 ctx.campaign.side === BattlePlanSide.Defender && ctx.state.campaign
                     ? ctx.state.campaign.defensePool
-                    : collectDefensePool(ctx.state, ctx.campaign.parties)
+                    : isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes9)
+                      ? ctx.campaign.pools.defensePool
+                      : collectDefensePool(ctx.state, ctx.campaign.parties)
             const cost = favorNeeded(
                 addCosts(
                     ctx.power.cost,

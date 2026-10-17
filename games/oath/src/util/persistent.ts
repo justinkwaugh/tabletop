@@ -186,10 +186,10 @@ export function reasonPersistentForbidsCampaign(state: HydratedOathGameState, ac
 export function reasonPersistentForbidsSacrifice(
     state: HydratedOathGameState,
     attackerId: string,
-    defenderId: string | undefined
+    defendingIds: readonly string[]
 ) {
     return firstPersistentReason(state, (h, ctx) =>
-        h.forbidsSacrifice?.(ctx, attackerId, defenderId)
+        h.forbidsSacrifice?.(ctx, attackerId, defendingIds)
     )
 }
 export function reasonPersistentForbidsExile(state: HydratedOathGameState, citizenId: string) {

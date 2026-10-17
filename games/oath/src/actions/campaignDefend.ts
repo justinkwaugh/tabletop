@@ -5,10 +5,17 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { type CampaignState } from '../model/campaign.js'
 import { BattlePlanSide, type CardPower } from '../data/cardPowers.js'
-import { applyBattlePlans, resolveBattlePlans, usableBattlePlans } from '../util/battlePlans.js'
+import {
+    applyBattlePlans,
+    playerIdsOnSide,
+    resolveBattlePlans,
+    usableBattlePlans
+} from '../util/battlePlans.js'
 import { partiesOf, rollCampaign } from '../util/campaignRoll.js'
 import { forceTotal } from '../util/force.js'
 import { BattlePlanUse, BattlePlanUses } from '../model/battlePlanUse.js'
+import { effectFor } from '../powers/registry.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 export type CampaignDefendMetadata = Type.Static<typeof CampaignDefendMetadata>
 export const CampaignDefendMetadata = Type.Object({
@@ -78,7 +85,8 @@ export class HydratedCampaignDefend
             this.playerId,
             active,
             { attackPool: campaign.attackPool, defensePool: campaign.defensePool },
-            { parties: partiesOf(state, campaign), side: BattlePlanSide.Defender }
+            { parties: partiesOf(state, campaign), side: BattlePlanSide.Defender },
+            campaign
         )
         campaign.attackPool = outcome.pools.attackPool
         campaign.defensePool = outcome.pools.defensePool
@@ -94,7 +102,6 @@ export class HydratedCampaignDefend
         if (outcome.decidesVictor && !campaign.decidedVictor) campaign.decidedVictor = 'defender'
         if (outcome.ignoreDefeatKills) campaign.ignoreDefeatKills = true
         if (outcome.ignoreSkulls) campaign.ignoreSkulls = true
-        campaign.killRedirects = [...campaign.killRedirects, ...outcome.killRedirects]
 
         const remaining = campaign.defenderPlansLocked
             ? []
@@ -151,13 +158,43 @@ export class HydratedCampaignDefend
         // R-5.5.3 — "a specific battle plan cannot be used by multiple players".
         const taken = plans?.find((plan) => campaign.plansUsed.includes(plan.cardId))
         if (taken) return `${taken.cardId}'s battle plan is already used in this Campaign`
-        return resolveBattlePlans(
+        const resolved = resolveBattlePlans(
             state,
             playerId,
             BattlePlanSide.Defender,
             plans,
             partiesOf(state, campaign)
-        ).reason
+        )
+        if (resolved.reason) return resolved.reason
+        for (const plan of resolved.active) {
+            const locked = HydratedCampaignDefend.reasonSideHasUsedPlans(
+                state,
+                campaign,
+                plan.power
+            )
+            if (locked) return locked
+        }
+        return undefined
+    }
+
+    /**
+     * R-5.5.3-H3 — Code of Honor binds its whole side whatever order the side answers in: once anyone
+     * on the defending side has used another battle plan, no one on it may use Code of Honor. The
+     * attacker's plans are the other side's. R-X.4: before revision 13 it was judged forward only.
+     */
+    private static reasonSideHasUsedPlans(
+        state: HydratedOathGameState,
+        campaign: CampaignState,
+        power: CardPower
+    ): string | undefined {
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes9)) return undefined
+        if (!effectFor(power)?.battlePlan?.locksOwnSide) return undefined
+        const sideHasUsed = playerIdsOnSide(campaign, BattlePlanSide.Defender).some(
+            (sidePlayerId) => (campaign.plansUsedBy[sidePlayerId]?.length ?? 0) > 0
+        )
+        return sideHasUsed
+            ? `${power.cardId}: your side has already used another battle plan`
+            : undefined
     }
 
     static usablePlans(state: HydratedOathGameState, playerId: string): CardPower[] {
@@ -170,7 +207,11 @@ export class HydratedCampaignDefend
             playerId,
             BattlePlanSide.Defender,
             partiesOf(state, campaign)
-        ).filter((plan) => !campaign.plansUsed.includes(plan.cardId))
+        ).filter(
+            (plan) =>
+                !campaign.plansUsed.includes(plan.cardId) &&
+                !HydratedCampaignDefend.reasonSideHasUsedPlans(state, campaign, plan)
+        )
     }
 
     static canDoCampaignDefend(state: HydratedOathGameState, playerId: string): boolean {

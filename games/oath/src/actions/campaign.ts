@@ -12,6 +12,7 @@ import { ActionType } from '../definition/actions.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import {
     CampaignTarget,
+    type CampaignKillPath,
     type CampaignState,
     CampaignTargetKind,
     LossSource,
@@ -27,11 +28,13 @@ import {
     collectDefensePool,
     declaredParties,
     defendersOpenTo,
+    poolsAfterTargets,
     reasonCannotChooseDefender,
     reasonCannotDeclareTargets,
     scopeOf,
     suspendedImperialsFor,
-    type CampaignParties
+    type CampaignParties,
+    type DicePools
 } from '../util/campaign.js'
 import { attackDiceFromSites } from '../util/sitePowers.js'
 import { isImperialPlayer } from '../util/rule.js'
@@ -66,24 +69,35 @@ import { secretPayment } from '../util/actionPayment.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 import { campaignAsIfSiteNow } from '../util/freeActions.js'
 
+/**
+ * R-11.4-H1 — the pools the attacker's plans meet: as Step 2 leaves them. R-X.4: a game created
+ * before revision 13 added the site dice after the plans, and its plans' checks read the pools as zero.
+ */
+function stepTwoPoolsFor(
+    state: HydratedOathGameState,
+    parties: CampaignParties,
+    attackDice: number
+): DicePools | undefined {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes9)
+        ? poolsAfterTargets(state, parties, attackDice)
+        : undefined
+}
+
 /** R-5.5.3, R-7.5.1 — the attacker's plans against the sides as they stand; Relic Hunter must be among them to target a facedown relic. */
 export function reasonAttackerPlansInvalid(
     state: HydratedOathGameState,
     playerId: string,
     parties: CampaignParties,
     targets: readonly CampaignTarget[],
+    attackDice: number,
     plans: readonly BattlePlanUse[] | undefined,
     /** The Hidden Place — the secret flipped with the declaration is not there to pay a plan. */
     flipSecret = false
 ): string | undefined {
-    const resolved = resolveBattlePlans(
-        state,
-        playerId,
-        BattlePlanSide.Attacker,
-        plans,
-        parties,
-        flipSecret ? secretPayment(1) : undefined
-    )
+    const resolved = resolveBattlePlans(state, playerId, BattlePlanSide.Attacker, plans, parties, {
+        spentFirst: flipSecret ? secretPayment(1) : undefined,
+        pools: stepTwoPoolsFor(state, parties, attackDice)
+    })
     if (resolved.reason) return resolved.reason
     if (
         targets.some((t) => t.kind === CampaignTargetKind.SiteRelic) &&
@@ -288,41 +302,61 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         const attackerPlayerId = declaration.attackerPlayerId
         const parties = HydratedCampaign.partiesOfDeclaration(state, declaration)
 
-        let pools = {
+        // R-5.5.2, R-11.4-H1 — a targeted Plains or Mountain changes the attack pool when the targets
+        // are declared, before any battle plan.
+        const stepTwo = stepTwoPoolsFor(state, parties, declaration.attackDice)
+        let pools = stepTwo ?? {
             attackPool: declaration.attackDice,
             defensePool: collectDefensePool(state, parties)
         }
 
-        // R-5.5.3, R-5.5.3-H1 — the attacker's plans first, then the bandits' compelled ones.
+        // R-5.5.3, R-5.5.3-H1 — Step 3: the attacker's plans first, then the bandits' compelled ones.
         const resolved = resolveBattlePlans(
             state,
             attackerPlayerId,
             BattlePlanSide.Attacker,
             declaration.plans,
-            parties
+            parties,
+            { pools: stepTwo }
         )
         assert(
             resolved.reason === undefined,
             `the declared battle plans were checked against every possible ally: ${resolved.reason}`
         )
-        const attackerPlans = applyBattlePlans(state, attackerPlayerId, resolved.active, pools, {
-            parties,
-            side: BattlePlanSide.Attacker
-        })
+        const kills: CampaignKillPath = {
+            attackerPlayerId,
+            defenderPlayerId: parties.defenderPlayerId,
+            killRedirects: []
+        }
+        const attackerPlans = applyBattlePlans(
+            state,
+            attackerPlayerId,
+            resolved.active,
+            pools,
+            { parties, side: BattlePlanSide.Attacker },
+            kills
+        )
         pools = attackerPlans.pools
         // Specialist — "your enemy cannot use battle plans", the bandits included.
         const bandits =
             declaration.defenderPlayerId === undefined && !attackerPlans.locksEnemyPlans
-                ? applyBattlePlans(state, undefined, banditBattlePlans(state), pools, {
-                      parties,
-                      side: BattlePlanSide.Defender
-                  })
+                ? applyBattlePlans(
+                      state,
+                      undefined,
+                      banditBattlePlans(state),
+                      pools,
+                      { parties, side: BattlePlanSide.Defender },
+                      kills
+                  )
                 : undefined
         if (bandits) pools = bandits.pools
 
         const siteDice = attackDiceFromSites(state, sitesWithTargets(state, parties))
-        for (const delta of siteDice) {
-            pools = applyDiceDelta(pools, { attack: delta.attack })
+        // R-X.4 — a game created before revision 13 adds the site dice after the plans.
+        if (!stepTwo) {
+            for (const delta of siteDice) {
+                pools = applyDiceDelta(pools, { attack: delta.attack })
+            }
         }
 
         const plansUsed = [...attackerPlans.used, ...(bandits?.used ?? [])]
@@ -364,7 +398,9 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             decidedVictor: attackerPlans.decidesVictor ? 'attacker' : undefined,
             ignoreDefeatKills:
                 attackerPlans.ignoreDefeatKills || bandits?.ignoreDefeatKills || undefined,
-            killRedirects: attackerPlans.killRedirects
+            killRedirects: kills.killRedirects,
+            heldForHospital: kills.heldForHospital,
+            enemyWarbandsKilled: kills.enemyWarbandsKilled
         }
         state.campaign = campaign
 
@@ -490,6 +526,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             playerId,
             parties,
             choice.targets,
+            choice.attackDice,
             choice.plans,
             choice.flipSecret === true
         )

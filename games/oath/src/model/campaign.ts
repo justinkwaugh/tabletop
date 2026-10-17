@@ -190,6 +190,20 @@ export const CampaignState = Type.Object({
     banishPending: Type.Optional(Type.Object({ burnFavor: Type.Optional(Type.Literal(true)) }))
 })
 
+/**
+ * Hospital, Cursed Cauldron — what a Campaign's kills go through: whose force each side is, the
+ * redirects in force, the warbands held for the end, and the tally. The Campaign itself once it
+ * exists; while it is mustered, the part its plans already need.
+ */
+export type CampaignKillPath = Pick<
+    CampaignState,
+    | 'attackerPlayerId'
+    | 'defenderPlayerId'
+    | 'killRedirects'
+    | 'heldForHospital'
+    | 'enemyWarbandsKilled'
+>
+
 export function campaignTargetKey(target: CampaignTarget): string {
     switch (target.kind) {
         case CampaignTargetKind.Site:
