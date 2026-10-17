@@ -39,11 +39,8 @@ import type { TournamentStore } from '../persistence/stores/tournamentStore.js'
 import type { UserService } from '../users/userService.js'
 import { TournamentError } from './tournamentError.js'
 import { generateTournamentSchedule } from './tournamentScheduler.js'
-import { nanoid } from 'nanoid'
-import {
-    NotificationDistributionMethod,
-    type NotificationService
-} from '../notifications/notificationService.js'
+import type { NotificationService } from '../notifications/notificationService.js'
+import { sendCompetitionUpdate } from './competitionUpdates.js'
 
 import { TournamentDispatcher } from './tournamentDispatcher.js'
 import { updateTournamentRegistration } from './tournamentRegistration.js'
@@ -716,23 +713,16 @@ export class TournamentService {
     }
 
     private async notify(tournament: Tournament): Promise<void> {
-        try {
-            const topics = tournament.publishedAt
+        await sendCompetitionUpdate(
+            this.notifications,
+            {
+                type: NotificationCategory.Tournament,
+                data: { tournamentId: tournament.id, revision: tournament.revision }
+            },
+            tournament.publishedAt
                 ? ['global']
-                : (await this.store.administratorIds()).map((id) => `user-${id}`)
-            await this.notifications.sendNotification({
-                notification: {
-                    id: nanoid(),
-                    type: NotificationCategory.Tournament,
-                    action: 'update',
-                    data: { tournamentId: tournament.id, revision: tournament.revision }
-                },
-                topics,
-                channels: [NotificationDistributionMethod.Topical]
-            })
-        } catch (error) {
-            console.error('Tournament realtime update failed', error)
-        }
+                : async () => (await this.store.administratorIds()).map((id) => `user-${id}`)
+        )
     }
 
     private closeRegistration(tournament: Tournament): boolean {

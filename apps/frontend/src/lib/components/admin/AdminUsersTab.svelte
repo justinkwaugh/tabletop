@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { LatestRequest } from '$lib/utils/latestRequest'
     import { ADMIN_ASSIGNABLE_ROLES, Role, type User } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import AdminUserRoles from './AdminUserRoles.svelte'
@@ -18,24 +19,24 @@
     let busy = $state(false)
     let searched = $state(false)
     let error = $state('')
-    let request = 0
+    const requests = new LatestRequest()
 
     async function search(event: SubmitEvent) {
         event.preventDefault()
-        const current = ++request
+        const current = requests.begin()
         busy = true
         error = ''
         try {
             const results = await api.searchUsers(query)
-            if (current !== request) return
+            if (!current()) return
             users = results
             searched = true
             selected = results.find((user) => user.id === selected?.id)
         } catch (failure) {
-            if (current === request)
+            if (current())
                 error = failure instanceof Error ? failure.message : 'Could not search users'
         } finally {
-            if (current === request) busy = false
+            if (current()) busy = false
         }
     }
 

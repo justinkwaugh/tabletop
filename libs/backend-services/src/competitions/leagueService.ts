@@ -32,11 +32,8 @@ import {
 import { requireActiveAccount, requireAdministrator, touchRevision } from './competitionAccess.js'
 import * as Value from 'typebox/value'
 import type { LeagueSeasonResultsProps, LeagueSeasonStartLevel } from '@tabletop/email'
-import { nanoid } from 'nanoid'
-import {
-    NotificationDistributionMethod,
-    type NotificationService
-} from '../notifications/notificationService.js'
+import type { NotificationService } from '../notifications/notificationService.js'
+import { sendCompetitionUpdate } from './competitionUpdates.js'
 import type { LeagueChange, LeagueStore } from '../persistence/stores/leagueStore.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { UserService } from '../users/userService.js'
@@ -85,6 +82,27 @@ export type LeagueEmailContent = {
           'leagueName' | 'title' | 'seasonNumber' | 'url'
       >)
 )
+
+/** Season fields no League page shows; changing only these sends no update. */
+function shownSeason(season: LeagueSeason) {
+    const {
+        announcedAt,
+        startAnnouncedAt,
+        resultsEmailedAt,
+        remindedFor,
+        nextTaskAt,
+        revision,
+        updatedAt,
+        ...shown
+    } = season
+    return shown
+}
+
+/** Draft Leagues are seen by administrators only and send no updates. */
+function shownLeagueState({ league, season }: LeagueState) {
+    if (league.status !== 'active') return undefined
+    return { league, season: season && shownSeason(season) }
+}
 
 export class LeagueService {
     constructor(
@@ -213,6 +231,12 @@ export class LeagueService {
             await this.write(id, user, true, ({ season }) => {
                 if (season?.status !== 'signUp')
                     throw new LeagueError('Sign-up is not open for this league')
+                if (
+                    season.signUpClosesAt === closesAt &&
+                    season.nextTaskAt === closesAt &&
+                    !season.undersubscribed
+                )
+                    return
                 season.signUpClosesAt = closesAt
                 season.nextTaskAt = closesAt
                 delete season.undersubscribed
@@ -228,7 +252,8 @@ export class LeagueService {
         return this.write(id, user, false, ({ season }) => {
             this.requireSignUpOpen(season)
             if (season.heldPlaces.some((place) => place.userId === user.id)) {
-                if (!season.confirmedIds.includes(user.id)) season.confirmedIds.push(user.id)
+                if (season.confirmedIds.includes(user.id)) return
+                season.confirmedIds.push(user.id)
             } else if (!season.newEntrants.some((entrant) => entrant.userId === user.id)) {
                 season.newEntrants.push({ userId: user.id, joinedAt: this.now() })
             } else return
@@ -315,8 +340,9 @@ export class LeagueService {
         } catch (error) {
             const message = error instanceof Error ? error.message : 'League advance failed'
             await this.write(leagueId, undefined, false, ({ season: current }) => {
-                if (!current || current.number !== season.number) return
-                current.error = message.slice(0, 512)
+                const error = message.slice(0, 512)
+                if (!current || current.number !== season.number || current.error === error) return
+                current.error = error
                 touchRevision(current, this.now())
             })
             throw error
@@ -919,25 +945,15 @@ export class LeagueService {
         return { ...draft, rules }
     }
 
-    /**
-     * Every League write goes through here, so open League pages hear of each change. A write
-     * that changes nothing sends nothing; a retried transaction decides again.
-     */
     private async write(
         id: string,
         user: User | undefined,
         administrative: boolean,
         change: LeagueChange
     ): Promise<LeagueState> {
-        let changed = false
-        const state = await this.store.update(id, user, administrative, (current) => {
-            const before = structuredClone(current)
-            const next = change(current)
-            changed = next !== undefined || !Value.Equal(before, current)
-            return next
-        })
-        if (changed && state.league.status === 'active') await this.notify(id)
-        return state
+        return this.notifyingWrite(id, change, shownLeagueState, (watched) =>
+            this.store.update(id, user, administrative, watched)
+        )
     }
 
     private async writeSeason(
@@ -945,32 +961,35 @@ export class LeagueService {
         number: number,
         change: (season: LeagueSeason) => void
     ): Promise<LeagueSeason | undefined> {
-        let changed = false
-        const season = await this.store.updateSeason(id, number, (current) => {
-            const before = structuredClone(current)
-            change(current)
-            changed = !Value.Equal(before, current)
-        })
-        // Only a published League has Seasons.
-        if (changed) await this.notify(id)
-        return season
+        return this.notifyingWrite(id, change, shownSeason, (watched) =>
+            this.store.updateSeason(id, number, watched)
+        )
     }
 
-    private async notify(leagueId: string): Promise<void> {
-        try {
-            await this.notifications.sendNotification({
-                notification: {
-                    id: nanoid(),
-                    type: NotificationCategory.League,
-                    action: 'update',
-                    data: { leagueId }
-                },
-                topics: ['global'],
-                channels: [NotificationDistributionMethod.Topical]
-            })
-        } catch (error) {
-            console.error('League realtime update failed', error)
-        }
+    /**
+     * Notifies open League pages when a write changes what they show. The check runs inside
+     * the write, so a retried transaction decides again.
+     */
+    private async notifyingWrite<State, Next, Result>(
+        leagueId: string,
+        change: (state: State) => Next,
+        shown: (state: State) => unknown,
+        write: (watched: (state: State) => Next) => Promise<Result>
+    ): Promise<Result> {
+        let changed = false
+        const result = await write((state) => {
+            const before = structuredClone(shown(state))
+            const next = change(state)
+            changed = next !== undefined || !Value.Equal(before, shown(state))
+            return next
+        })
+        if (changed)
+            await sendCompetitionUpdate(
+                this.notifications,
+                { type: NotificationCategory.League, data: { leagueId } },
+                ['global']
+            )
+        return result
     }
 
     private async readVisible(id: string, user: User): Promise<League> {
