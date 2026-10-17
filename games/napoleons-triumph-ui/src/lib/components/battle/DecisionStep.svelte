@@ -14,7 +14,10 @@
     import Force from './Force.svelte'
     import CommanderChip from './CommanderChip.svelte'
 
-    let { stage }: { stage: OddLossStage | ExcessLossStage | RegroupStage | AdvanceStage } =
+    let {
+        stage,
+        folded = false
+    }: { stage: OddLossStage | ExcessLossStage | RegroupStage | AdvanceStage; folded?: boolean } =
         $props()
 
     const gameSession = getGameSession()
@@ -24,9 +27,13 @@
 
 {#if stage.kind === StageKind.OddLoss}
     <div class="nt-battle-prompt">
-        The loss is odd. Choose which enemy leading unit takes the extra step.
+        The loss is odd. Choose which enemy leading unit takes the extra step{folded
+            ? ': tap it on the map'
+            : ''}.
     </div>
-    <Force units={stage.units} onpick={pick} />
+    {#if !folded}
+        <Force units={stage.units} onpick={pick} />
+    {/if}
 {:else if stage.kind === StageKind.ExcessLosses}
     <div class="nt-battle-prompt">
         Your other units in the fight must lose {stage.amount} step{stage.amount === 1 ? '' : 's'}.

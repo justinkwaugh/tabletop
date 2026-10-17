@@ -116,6 +116,7 @@ import {
     battleStageOf,
     commandersGoing,
     committedUnits,
+    foldsAway,
     knownToTheEnemy,
     liftRetreatingCommander,
     keptByCommander,
@@ -588,6 +589,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
             ? battleStageOf(this.gameState, attack, this.battle)
             : undefined
     })
+
+    battlePanelFolded = $derived(this.preferences.values.battlePanelFolded)
+
+    battlePanelFoldable: boolean = $derived(foldsAway(this.battleStage))
+
+    battlePanelFolds: boolean = $derived(this.battlePanelFolded && this.battlePanelFoldable)
 
     battleRoles: Record<string, BattleRole> = $derived(rolesShown(this.attack, this.battleStage))
     /** The roles the units of the fight were named to, whatever is being picked in the step now open. */
@@ -1436,6 +1443,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     setCapacitiesShown(localeCapacities: boolean) {
         this.preferences.set({ localeCapacities })
+    }
+
+    setBattlePanelFolded(battlePanelFolded: boolean) {
+        this.preferences.set({ battlePanelFolded })
     }
 
     async visitMoveReplay() {

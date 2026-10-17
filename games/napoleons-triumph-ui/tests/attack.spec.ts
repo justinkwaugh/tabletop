@@ -976,3 +976,73 @@ test('pressing an attack shows nothing and can be taken back until the defender 
     await expect(shown).toHaveCount(1)
     await expect(undo).toBeHidden()
 })
+
+async function standAgainstAThreat(page: Page) {
+    await createGame(page)
+    await deployBothArmies(page)
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await pickUp(page, 'st-hilaire')
+    await threatenWithoutTheGuard(page)
+    await tap(page, 'svg [aria-label="Choose this unit"]')
+    await page.getByRole('button', { name: /^Defend/ }).click()
+}
+
+test('the battle panel folds to what cannot be done on the map, and stays folded after a reload', async ({
+    page
+}) => {
+    await standAgainstAThreat(page)
+    await page.getByRole('button', { name: 'Press the attack' }).click()
+    await leadDefence(page)
+
+    const panelUnits = page.locator('.nt-turn button[aria-label="Choose this unit"]')
+    const fold = page.getByRole('button', { name: 'Fold', exact: true })
+    const unfold = page.getByRole('button', { name: 'Unfold', exact: true })
+    const attack = page.getByRole('button', { name: /^Attack/ })
+    await expect(panelUnits).not.toHaveCount(0)
+    const unitsWhenOpen = await panelUnits.count()
+    await expect(page.locator('.nt-result-rule')).toHaveCount(1)
+
+    await fold.click()
+    await expect(unfold).toHaveAttribute('aria-expanded', 'false')
+    await expect(panelUnits).toHaveCount(0)
+    await expect(page.getByText('Attacking', { exact: true })).toHaveCount(0)
+    await expect(page.getByText('Command', { exact: true })).toHaveCount(0)
+    await expect(page.locator('.nt-result-rule')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Initial result/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Corps Move' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Wide', exact: true })).toBeVisible()
+    await expect(attack).toHaveText('Attack with no leading unit')
+
+    await tap(page, 'svg [aria-label="Choose this unit"]')
+    await expect(attack).toHaveText('Attack')
+    await expect
+        .poll(() => page.evaluate(() => JSON.stringify({ ...localStorage })))
+        .toContain('battlePanelFolded')
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Austerlitz' }).click()
+    await expect(unfold).toBeVisible()
+    await expect(panelUnits).toHaveCount(0)
+
+    await unfold.click()
+    await expect(fold).toHaveAttribute('aria-expanded', 'true')
+    await expect(panelUnits).toHaveCount(unitsWhenOpen)
+})
+
+test('a step settled only in the panel shows open while the battle panel is folded', async ({
+    page
+}) => {
+    await standAgainstAThreat(page)
+    await page.getByRole('button', { name: 'Fold', exact: true }).click()
+    await expect(page.getByText('The defence stands.', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Call it a feint' }).click()
+    await expect(page.locator('.nt-turn button[aria-label="Choose this unit"]')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Feint, staying in reserve' }).click()
+
+    await expect(page.getByRole('button', { name: 'Advance to the approach' })).toBeVisible()
+    await expect(page.locator('[data-commander-chip="langeron"]')).toBeVisible()
+    await expect(page.getByRole('button', { name: /^(Fold|Unfold)$/ })).toHaveCount(0)
+})

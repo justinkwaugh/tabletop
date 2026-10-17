@@ -7,12 +7,14 @@
     let {
         initialResult,
         finalResult,
-        feint = false
+        feint = false,
+        inline = false
     }: {
         initialResult?: number
         finalResult?: number
         /** The attack was called off as a feint, so it has no result to give. */
         feint?: boolean
+        inline?: boolean
     } = $props()
 
     const gameSession = getGameSession()
@@ -34,36 +36,39 @@
     {/if}
 {/snippet}
 
-<div class="nt-result-rule">
-    <SwelledRule>
-        <span class="nt-result-rule-words">
-            {#if feint}
-                <span>Feint</span>
-            {/if}
-            {#if initialResult !== undefined}
-                {@render result(
-                    'Initial result',
-                    initialResult,
-                    'initial',
-                    accounts.initial !== undefined
-                )}
-            {/if}
-            {#if initialResult !== undefined && finalResult !== undefined}
-                <svg viewBox="0 0 10 10" aria-hidden="true"
-                    ><path d="M5 0 L10 5 L5 10 L0 5 Z"></path></svg
-                >
-            {/if}
-            {#if finalResult !== undefined}
-                {@render result(
-                    'Final result',
-                    finalResult,
-                    'final',
-                    accounts.counter !== undefined
-                )}
-            {/if}
-        </span>
-    </SwelledRule>
-</div>
+{#snippet words()}
+    <span class="nt-result-rule-words">
+        {#if feint}
+            <span>Feint</span>
+        {/if}
+        {#if initialResult !== undefined}
+            {@render result(
+                'Initial result',
+                initialResult,
+                'initial',
+                accounts.initial !== undefined
+            )}
+        {/if}
+        {#if initialResult !== undefined && finalResult !== undefined}
+            <svg viewBox="0 0 10 10" aria-hidden="true"
+                ><path d="M5 0 L10 5 L5 10 L0 5 Z"></path></svg
+            >
+        {/if}
+        {#if finalResult !== undefined}
+            {@render result('Final result', finalResult, 'final', accounts.counter !== undefined)}
+        {/if}
+    </span>
+{/snippet}
+
+{#if inline}
+    {@render words()}
+{:else}
+    <div class="nt-result-rule">
+        <SwelledRule>
+            {@render words()}
+        </SwelledRule>
+    </div>
+{/if}
 {#if explaining === 'initial' && accounts.initial}
     <ResultAccount initial={accounts.initial} onclose={() => (explaining = undefined)} />
 {:else if explaining === 'final' && accounts.counter}

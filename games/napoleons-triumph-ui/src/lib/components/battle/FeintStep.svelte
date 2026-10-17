@@ -4,7 +4,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import AttackerPicker from './AttackerPicker.svelte'
 
-    let { stage }: { stage: FeintStage } = $props()
+    let { stage, folded = false }: { stage: FeintStage; folded?: boolean } = $props()
 
     const gameSession = getGameSession()
 
@@ -16,7 +16,9 @@
 
 {#if stage.feinting}
     <div class="nt-battle-prompt">
-        {#if stage.canPress}
+        {#if folded}
+            A feint: name its pieces on the map, then say where they end.
+        {:else if stage.canPress}
             A feint: name the pieces that make it, then say where they end. Undo goes back to
             pressing the attack.
         {:else}
@@ -24,7 +26,7 @@
             make it, then say where they end.
         {/if}
     </div>
-    <AttackerPicker {stage} />
+    <AttackerPicker {stage} {folded} />
     <div class="flex flex-wrap gap-2 pt-1">
         {#each stage.ends as end (end)}
             <button type="button" class="nt-plain-button" onclick={() => gameSession.feint(end)}
@@ -36,7 +38,9 @@
     </div>
 {:else}
     <div class="nt-battle-prompt">
-        {#if stage.pressShowsLeaders}
+        {#if folded}
+            The defence stands.
+        {:else if stage.pressShowsLeaders}
             The defence stands and has named its leading units. Press the attack, and they are shown
             to you; or call it a feint.
         {:else}

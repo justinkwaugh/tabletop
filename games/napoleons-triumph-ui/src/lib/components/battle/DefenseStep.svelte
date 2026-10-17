@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Force from './Force.svelte'
 
-    let { stage }: { stage: DefenceStage } = $props()
+    let { stage, folded = false }: { stage: DefenceStage; folded?: boolean } = $props()
 
     const gameSession = getGameSession()
 </script>
@@ -12,15 +12,19 @@
     {#if stage.forced}
         Your pieces on the approach must defend.
     {:else}
-        Tap units, here or on the map, to defend with them. Or retreat.
+        {folded
+            ? 'Tap units on the map to defend with them, or retreat.'
+            : 'Tap units, here or on the map, to defend with them. Or retreat.'}
     {/if}
 </div>
-<Force
-    units={stage.candidates}
-    selected={stage.defenders}
-    roles={stage.roles}
-    onpick={stage.forced ? undefined : (id) => gameSession.pickBattleUnit(id)}
-/>
+{#if !folded}
+    <Force
+        units={stage.candidates}
+        selected={stage.defenders}
+        roles={stage.roles}
+        onpick={stage.forced ? undefined : (id) => gameSession.pickBattleUnit(id)}
+    />
+{/if}
 {#if stage.problem}
     <div class="nt-battle-warning">{stage.problem}.</div>
 {/if}

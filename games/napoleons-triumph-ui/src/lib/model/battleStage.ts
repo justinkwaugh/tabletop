@@ -1016,3 +1016,39 @@ export function battleLocalesOf(state: HydratedNapoleonsTriumphGameState): numbe
         ? [map.approach(attack.attackApproach).locale, map.approach(attack.defenseApproach).locale]
         : []
 }
+
+export interface AttackResults {
+    initial?: number
+    final?: number
+}
+
+/** The results of the attack as they stand, with those still being decided in the step now open. */
+export function resultsSoFar(attack: EndedAttack, stage: BattleStage | undefined): AttackResults {
+    if (attack.feint) {
+        return {}
+    }
+    if (stage?.kind === StageKind.Declaration) {
+        return stage.problem ? {} : { initial: stage.initialResult }
+    }
+    if (stage?.kind === StageKind.Counter) {
+        return {
+            initial: attack.initialResult,
+            final: stage.problem ? undefined : stage.finalResult
+        }
+    }
+    return { initial: attack.initialResult, final: attack.finalResult }
+}
+
+/** The panel folds a step down to its prompt and buttons only where its choices can be made on the map. */
+export function foldsAway(stage: BattleStage | undefined): boolean {
+    switch (stage?.kind) {
+        case StageKind.ExcessLosses:
+        case StageKind.Regroup:
+        case StageKind.Advance:
+            return false
+        case StageKind.Retreat:
+            return !stage.choosingLosses
+        default:
+            return true
+    }
+}
