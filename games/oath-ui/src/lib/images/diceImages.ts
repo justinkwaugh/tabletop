@@ -18,6 +18,11 @@ export function defenseFaceImage(face: RolledDefenseFace): string {
     return imageNamed(byName, 'defense.blank')
 }
 
+/** R-5.5.5 — the skull, as a History row draws it: the attack die's skull face. */
+export function skullImage(): string {
+    return imageNamed(byName, 'attack.skull')
+}
+
 export function attackDieBlank(): string {
     return imageNamed(byName, 'attack.sword')
 }

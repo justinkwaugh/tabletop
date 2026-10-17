@@ -89,6 +89,7 @@ import {
     type PlayedTable
 } from './sessionHarness.js'
 import { shroudedWoodState } from './shroudedWoodTable.js'
+import { heldAttackTable } from './heldAttackTable.js'
 import { RecordedStory } from './recordedStory.js'
 
 export type TableName =
@@ -156,6 +157,9 @@ export type TableName =
     | 'searchConspiracyNoTake'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
+    | 'heldAttack'
+    | 'heldAttackKept'
+    | 'heldAttackRerolled'
     | 'battleDefenderPlans'
     | 'battlePlanCosts'
     | 'attackerPlans'
@@ -4673,6 +4677,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     searchConspiracyNoTake: searchConspiracyNoTakeTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
+    heldAttack: () => heldAttackTable(),
+    heldAttackKept: () => heldAttackTable('keep'),
+    heldAttackRerolled: () => heldAttackTable('reroll'),
     battleDefenderPlans: () => battleTable('defenderPlans'),
     // R-7.1.2 — plans that cost favor beside a free one: Shield Wall 1, Hearts and Minds 3.
     battlePlanCosts: () =>

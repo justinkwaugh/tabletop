@@ -5700,6 +5700,90 @@ test('scenario 63: a seat named inside a History line is its colour chip, for ev
     await expect(sacrificed).toContainText("def picks the defense's losses")
 })
 
+/**
+ * R-5.5.4-H1 — while the defender may reroll the defense, the attack waits: its dice not rolled, with
+ * no total. History's Campaign row says the dice brought; the answer's row carries the roll, the lost
+ * warband as its token and the skull as its symbol.
+ */
+test.describe('the attack held for the defender’s Jinx', () => {
+    const dice = (page: Page) => page.getByRole('region', { name: "the Campaign's dice" })
+    const historyRow = (page: Page, hasText: string) =>
+        page.locator('.history p').filter({ hasText })
+
+    async function heldPanel(page: Page) {
+        const asked = await openTable(page, 'heldAttack')
+        expect(asked.seatId).toBe('Bea')
+        await expect(dice(page).locator('.die--unrolled.die--attack')).toHaveCount(4)
+        await expect(dice(page).locator('.die img')).toHaveCount(3)
+        await expect(dice(page)).toContainText('6 defense')
+        await expect(dice(page)).not.toContainText('sword')
+        await expect(answer(page, 'Keep')).toBeVisible()
+    }
+
+    test('while Bea decides, the attack is 4 not-rolled dice and no total; the Campaign row says the dice brought', async ({
+        page
+    }) => {
+        await heldPanel(page)
+        await page.getByRole('tab', { name: 'History' }).click()
+        const campaign = historyRow(page, 'campaigned against')
+        await expect(campaign).toContainText('; 4 attack dice against 6 defense')
+        await expect(campaign).not.toContainText('swords')
+    })
+
+    test('kept: the dice as today; Bea’s row carries the swords and the loss, the warband and skull drawn', async ({
+        page
+    }) => {
+        await openTable(page, 'heldAttackKept')
+        await expect(dice(page).locator('.die--unrolled')).toHaveCount(0)
+        await expect(dice(page).locator('.die img')).toHaveCount(7)
+        await expect(dice(page)).toContainText('4 swords')
+        await page.getByRole('tab', { name: 'History' }).click()
+        const kept = historyRow(page, 'kept the roll')
+        await expect(kept).toContainText('Jinx: kept the roll. 4 swords against 6 defense;')
+        await expect(kept).toContainText('lost 1')
+        await expect(kept.locator('img[alt="warband"]')).toHaveCount(1)
+        await expect(kept.locator('img[alt="skull"]')).toHaveCount(1)
+        await expect(kept).not.toContainText('skull')
+        expect(await rowChips(page, 'kept the roll')).toEqual(['Bea', 'you'])
+        await expect(historyRow(page, 'campaigned against')).toContainText(
+            '; 4 attack dice against 6 defense'
+        )
+    })
+
+    test('rerolled: Bea’s row adds the attack against the new defense, and no skull', async ({
+        page
+    }) => {
+        await openTable(page, 'heldAttackRerolled')
+        await expect(dice(page)).toContainText('2 swords')
+        await expect(dice(page)).toContainText('7 defense')
+        await page.getByRole('tab', { name: 'History' }).click()
+        const rerolled = historyRow(page, 'rerolled the defense')
+        await expect(rerolled).toContainText(
+            'Jinx: rerolled the defense — 7 defense. 2 swords against 7 defense'
+        )
+        await expect(rerolled.locator('img[alt="skull"]')).toHaveCount(0)
+    })
+
+    test.describe('on a phone', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        test('the not-rolled dice fit the width; the History row with its symbols wraps', async ({
+            page
+        }) => {
+            await heldPanel(page)
+            const box = await dice(page).boundingBox()
+            expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(375)
+
+            await openTable(page, 'heldAttackKept')
+            await page.getByRole('tab', { name: 'History' }).click()
+            const kept = historyRow(page, 'kept the roll')
+            await expect(kept.locator('img[alt="skull"]')).toBeVisible()
+            const row = await kept.boundingBox()
+            expect((row?.x ?? 0) + (row?.width ?? 0)).toBeLessThanOrEqual(375)
+        })
+    })
+})
+
 /** Scenario 65: the History says what each row did from its record, a card's part as what happened then the card. */
 test.describe('scenario 65: the History’s words', () => {
     const history = (page: Page) => page.locator('.history')
