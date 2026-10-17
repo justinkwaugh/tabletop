@@ -5,10 +5,9 @@
     import RubberMarker from '$lib/components/RubberMarker.svelte'
     import SiapSajiMarker from '$lib/components/SiapSajiMarker.svelte'
     import SpiceMarker from '$lib/components/SpiceMarker.svelte'
+    import type { MarkerDirection, MarkerGood } from '$lib/definitions/productionMarkers.js'
     import { shadeHexColor } from '$lib/utils/color.js'
 
-    type MarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
-    type MarkerDirection = 'north' | 'east' | 'south' | 'west'
     const TAG_FILL_BY_GOOD: Readonly<Record<MarkerGood, string>> = {
         spice: companyDeedStyleForType('spice').overlayFill,
         siapsaji: companyDeedStyleForType('siapsaji').overlayFill,
