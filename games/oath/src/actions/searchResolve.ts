@@ -164,7 +164,7 @@ export class HydratedSearchResolve
         if (reason) {
             throw Error(`Cannot resolve search: ${reason}`)
         }
-        const keptMapChanges = keptPlayMapChanges(state, this.keptCardId, this)
+        const keptMapChanges = keptPlayMapChanges(state, this.playerId, this.keptCardId, this)
         const reveal = revealForPlay(state, this)
 
         const region = regionOfPawn(state, this.playerId)
@@ -356,21 +356,34 @@ export function reasonCannotPlaySecondCard(
     const reason = reasonCannotPlayCard(state, playerId, second.cardId, second.play, {
         faceUp: second.faceUp,
         carried: secondPlayModifiers(state, searchPlayModifiers(state)),
-        earlierMapChanges: kept && keptPlayMapChanges(state, keptCardId, kept)
+        earlierMapChanges: kept && keptPlayMapChanges(state, playerId, keptCardId, kept)
     })
     return reason ? `second card: ${reason}` : undefined
 }
 
 /** Land Warden — the kept card's play, which comes before the second card's. */
-type KeptPlay = Pick<SearchResolveChoice, 'play' | 'discardFirstCardId'>
+type KeptPlay = Pick<
+    SearchResolveChoice,
+    'play' | 'discardFirstCardId' | 'toSiteId' | 'faceUp' | 'discardedAdviserCardIds'
+>
 
-/** Land Warden — the kept card's play lands before the second card's When Played power resolves. */
+/**
+ * Land Warden — the kept card's play lands before the second card's When Played power resolves: its map changes,
+ * and what it gains first (R-7.3.3), with the Search's carried modifiers, as `playCard` plays it.
+ */
 function keptPlayMapChanges(
     state: HydratedOathGameState,
+    playerId: string,
     keptCardId: string,
     kept: KeptPlay
 ): PlayMapChanges {
-    return playMapChanges(state, keptCardId, kept.play, { discardFirstCardId: kept.discardFirstCardId })
+    return playMapChanges(state, playerId, keptCardId, kept.play, {
+        carried: searchPlayModifiers(state),
+        discardFirstCardId: kept.discardFirstCardId,
+        toSiteId: kept.toSiteId,
+        faceUp: kept.faceUp,
+        discardedAdviserCardIds: kept.discardedAdviserCardIds
+    })
 }
 
 /** Land Warden — R-7.4: the Search's modifiers last the whole action, so they reach the second card's play as they reach the first. */

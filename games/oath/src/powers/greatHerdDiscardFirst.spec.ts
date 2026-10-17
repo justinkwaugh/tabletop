@@ -181,7 +181,9 @@ describe('Great Herd cannot name a card the play discards first (R-5.1.4.I, R-11
         it('the play map changes and the refusal are the same as on the server', () => {
             const s = board(peoplesFavorTable)
             const own = ownView(s)
-            expect(playMapChanges(own, HERD, SearchPlay.Site, { discardFirstCardId: TENTS })).toEqual({ leaving: [TENTS], arriving: [HERD] })
+            const changes = playMapChanges(own, 'dana', HERD, SearchPlay.Site, { discardFirstCardId: TENTS })
+            expect(changes).toMatchObject({ leaving: [TENTS], arriving: [HERD] })
+            expect(changes).toEqual(playMapChanges(s, 'dana', HERD, SearchPlay.Site, { discardFirstCardId: TENTS }))
             const refusal = `${TENTS} is discarded before Great Herd is played, so it is no longer at a site`
             expect(HydratedSearchResolve.reasonCannotResolve(s, 'dana', herdPlay(TENTS, TENTS))).toBe(refusal)
             expect(HydratedSearchResolve.reasonCannotResolve(own, 'dana', herdPlay(TENTS, TENTS))).toBe(refusal)

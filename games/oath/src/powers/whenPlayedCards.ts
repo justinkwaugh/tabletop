@@ -39,10 +39,16 @@ registerEffect(
             if (new Set(suits).size !== suits.length)
                 return 'the three favor banks must be different'
             if (!isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes4)) return undefined
+            // R-7.3.3 — judged on the banks the play leaves: its site favor and Homeland taken, the favor on a card
+            // it discards given back. Before revision 16, on the banks before the play.
+            const banks =
+                (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes12)
+                    ? ctx.mapChanges?.gains?.favorBank
+                    : undefined) ?? ctx.state.favorBank
             // R-7.1.3 — a favor from each of three banks that hold favor, or from every one that does.
-            const holding = Object.values(ctx.state.favorBank).filter((n) => n > 0).length
+            const holding = Object.values(banks).filter((n) => n > 0).length
             const required = Math.min(3, holding)
-            const obtainable = favorObtainableFromPicks(ctx.state, suits)
+            const obtainable = favorObtainableFromPicks(banks, suits)
             return obtainable < required
                 ? `Salad Days gains a favor from each of three banks: the banks named yield ${obtainable}, and ${required} can be had`
                 : undefined

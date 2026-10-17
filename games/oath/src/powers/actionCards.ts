@@ -150,7 +150,7 @@ registerEffect(
         reasonCannotResolve: (ctx) => {
             const picks = chosen(ctx, PowerChoiceKind.FavorBank).map((b) => b.suit)
             const required = alchemistFavor(ctx.state).total
-            const obtainable = favorObtainableFromPicks(ctx.state, picks)
+            const obtainable = favorObtainableFromPicks(ctx.state.favorBank, picks)
             return obtainable < required
                 ? `Alchemist gains four favor: the banks named yield ${obtainable}, and ${required} can be had`
                 : undefined
@@ -490,7 +490,7 @@ registerEffect(
                 return 'the beast bank cannot be a source for itself'
             const required = memoryOfNatureFavor(ctx.state).total
             const obtainable = favorObtainableFromPicks(
-                ctx.state,
+                ctx.state.favorBank,
                 picks.map((b) => b.suit)
             )
             if (obtainable < required) {

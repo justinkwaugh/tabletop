@@ -1,7 +1,8 @@
 import { pawnSiteId } from './pawn.js'
 import { gainFavorFromBank } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { sitePowerCategory, siteRecord } from '../data/sites.js'
+import { sitePowerCategory, siteRecord, type HomelandReward } from '../data/sites.js'
+import type { Suit } from '../model/oathEnums.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { rulesSite } from './rule.js'
 import { gainedWarbandsWords, gainWarbandsToBoard } from './force.js'
@@ -69,6 +70,39 @@ export function homelandRelicSlot(
     return state.relicSlotsAt(siteId)[0]?.slotId
 }
 
+/** R-11.2 — a site's Homeland power, met by a card of its suit played there. */
+export interface HomelandPower {
+    name: string
+    suit: Suit
+    reward: HomelandReward
+    amount: number
+    /** "you have not discarded a card here of this suit during this turn". */
+    barred: boolean
+}
+
+/**
+ * R-11.2 — the Homeland power a card played to this site meets, if any. `discardedFirst` holds the ledger keys
+ * (`homelandLedgerKey`) of the discards the play makes before the card lands, which a plan of the play reads
+ * before they are written to the player's ledger.
+ */
+export function homelandPowerFor(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string,
+    cardId: string,
+    discardedFirst: readonly string[] = []
+): HomelandPower | undefined {
+    const card = state.siteCardAt(siteId)
+    const record = card ? siteRecord(card) : undefined
+    const suit = suitOf(cardId)
+    if (!record?.homeland || !suit || record.homeland.suit !== suit) return undefined
+    const key = homelandLedgerKey(siteId, suit)
+    const barred =
+        state.getPlayerState(playerId).homelandUsedThisTurn.includes(key) ||
+        discardedFirst.includes(key)
+    return { ...record.homeland, name: record.name, suit, barred }
+}
+
 export function homelandPayout(
     state: HydratedOathGameState,
     playerId: string,
@@ -76,46 +110,45 @@ export function homelandPayout(
     cardId: string,
     reveal?: HiddenReveal
 ): string | undefined {
-    const card = state.siteCardAt(siteId)
-    const record = card ? siteRecord(card) : undefined
-    const suit = suitOf(cardId)
-    if (!record?.homeland || !suit || record.homeland.suit !== suit) return undefined
+    const homeland = homelandPowerFor(state, playerId, siteId, cardId)
+    if (!homeland) return undefined
+    const { name, suit } = homeland
 
     const player = state.getPlayerState(playerId)
-    if (player.homelandUsedThisTurn.includes(homelandLedgerKey(siteId, suit))) {
-        return `${record.name}: no Homeland gain — a ${suit} card was discarded here this turn (R-11.2)`
+    if (homeland.barred) {
+        return `${name}: no Homeland gain — a ${suit} card was discarded here this turn (R-11.2)`
     }
 
-    switch (record.homeland.reward) {
+    switch (homeland.reward) {
         case 'favor': {
             const gained = gainFavorFromBank(state, playerId, suit, 1)
-            return `${record.name} (Homeland): gained ${gained} ${suit} favor`
+            return `${name} (Homeland): gained ${gained} ${suit} favor`
         }
         case 'secret': {
             player.secrets += 1
-            return `${record.name} (Homeland): gained a secret`
+            return `${name} (Homeland): gained a secret`
         }
         case 'warbands': {
-            const gained = gainWarbandsToBoard(state, playerId, record.homeland.amount)
+            const gained = gainWarbandsToBoard(state, playerId, homeland.amount)
             const words = gainedWarbandsWords(state, playerId, gained) ?? `${gained} warbands`
-            return `${record.name} (Homeland): gained ${words}`
+            return `${name} (Homeland): gained ${words}`
         }
         case 'relic': {
             // The resolver's reveal; absent on the client's optimistic run, which is discarded, and for Land
             // Warden's second card, whose play draws no hidden card (docs/known-deviations.md).
             const slot = state.relicSlotsAt(siteId)[0]
-            if (!slot) return `${record.name} (Homeland): no relic here to take`
+            if (!slot) return `${name} (Homeland): no relic here to take`
             if (siteLockedFor(state, playerId, siteId)) {
-                return `${record.name} (Homeland): the relic here is locked (Ancient Bloodline)`
+                return `${name} (Homeland): the relic here is locked (Ancient Bloodline)`
             }
             const relicCardId = reveal?.kind === 'relic' ? reveal.relicCardId : undefined
             if (!relicCardId)
-                return `${record.name} (Homeland): no relic was drawn for this play, so none was taken`
+                return `${name} (Homeland): no relic was drawn for this play, so none was taken`
             clearSiteRelicSlot(state, siteId, slot.slotId)
             takeRelic(state, player.playerId, relicCardId)
             // R-11.2-H1 — taken as a Recover takes it, so "after a player takes relics" powers fire.
             const notes = afterRelicsTakenPersistent(state, playerId, [relicCardId])
-            return `${record.name} (Homeland): took ${relicCardId}${notes.length ? ` (${notes.join('; ')})` : ''}`
+            return `${name} (Homeland): took ${relicCardId}${notes.length ? ` (${notes.join('; ')})` : ''}`
         }
     }
 }

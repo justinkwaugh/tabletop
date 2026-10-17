@@ -43,7 +43,6 @@ import {
     woodChooserForTravel,
     isFreeTravelNow,
     woodPicksBeforeTravel,
-    playMapChanges,
     woodTravelPaysAtPick,
     SearchResolve,
     SelfExile,
@@ -660,7 +659,19 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                         cards.placing,
                         carried
                     ).length > 0)) ||
-            whenPlayedChoices(this.gameState, playerId, cardId, play, true).length > 0 ||
+            // R-7.3.3 — with what the play gains first, as the engine plans it (Bewitch's yes).
+            whenPlayedChoices(
+                this.gameState,
+                playerId,
+                cardId,
+                play,
+                true,
+                HydratedPlayFacedownAdviser.playMapChanges(this.gameState, playerId, {
+                    cardId,
+                    play,
+                    modifiers: carried
+                })
+            ).length > 0 ||
             // R-5.1.4.IV — the take, or why there is none to make.
             play === SearchPlay.Conspiracy ||
             // R-6.1, R-7.4 — a card the play may use is shown in the step it changes.
@@ -945,9 +956,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const cardId = this.adviserCardId
         const play = this.adviserPlay
         if (!playerId || !cardId || play === undefined) return []
-        // R-5.1.4.I, R-11.10 — the card picked to discard before the site play goes first.
-        const mapChanges = playMapChanges(this.gameState, cardId, play, {
-            discardFirstCardId: this.adviserDiscardFirst
+        // R-5.1.4.I, R-11.10 — the card picked to discard before the site play goes first; R-7.3.3 — the
+        // play's gains come before the power, as the engine plans them for this play (R-6.1).
+        const mapChanges = HydratedPlayFacedownAdviser.playMapChanges(this.gameState, playerId, {
+            cardId,
+            play,
+            discardedAdviserCardIds: this.adviserPlayDiscards,
+            toSiteId: this.adviserToSite,
+            discardFirstCardId: this.adviserDiscardFirst,
+            modifiers: this.adviserModifiers
         })
         return whenPlayedChoices(this.gameState, playerId, cardId, play, true, mapChanges)
     }

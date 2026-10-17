@@ -236,16 +236,16 @@ export interface DiscardedDenizens {
     pileDeposits: PileDeposit[]
 }
 
-/** R-7.1.3 */
+/** R-7.1.3 — what picks of these banks yield from the counts the banks hold. */
 export function favorObtainableFromPicks(
-    state: HydratedOathGameState,
+    favorBank: Readonly<Record<Suit, number>>,
     suits: readonly Suit[]
 ): number {
     const wanted = new Map<Suit, number>()
     for (const suit of suits) wanted.set(suit, (wanted.get(suit) ?? 0) + 1)
     let obtainable = 0
     for (const [suit, count] of wanted) {
-        obtainable += Math.min(count, state.favorBank[suit])
+        obtainable += Math.min(count, favorBank[suit])
     }
     return obtainable
 }

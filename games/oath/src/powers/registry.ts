@@ -62,6 +62,26 @@ export interface PlayMapChanges {
     leaving: readonly string[]
     /** Put at a site: the played card, and Land Warden's kept card before the second card. */
     arriving: readonly string[]
+    /** R-5.1.4.I — the site the card is played to: the pawn's, or the one the People's Favor or New Growth names. */
+    siteId?: string
+    /**
+     * R-7.3.3 — what the play gains before its When Played power, planned on the state before the play. Unlike the
+     * map, these are not set-like: a check adds them to the state it reads, while the resolve's state holds them.
+     */
+    gains?: PlayGains
+}
+
+/** R-7.3.3 — "Gain favor from playing to site, resolve Homeland site powers, and resolve modifiers before resolving this." */
+export interface PlayGains {
+    /** The player's own: Book of Records' secret instead of favor, a secret Homeland's (R-11.2). */
+    secrets: number
+    /**
+     * R-10.5 — the cards the play discards before its power (the card discarded first, the advisers discarded to
+     * meet the limit): their favor goes back to its bank, and their secrets to the player facedown.
+     */
+    returning: readonly string[]
+    /** Each favor bank once the play has taken its favor and the cards discarded have given theirs back. */
+    favorBank: Readonly<Record<Suit, number>>
 }
 
 export interface CampaignContext {

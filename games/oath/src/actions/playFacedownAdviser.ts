@@ -10,12 +10,17 @@ import { ActionType } from '../definition/actions.js'
 import { Region } from '../model/oathEnums.js'
 import { ConspiracyPlay } from '../model/conspiracy.js'
 import { playShowsCard, SearchPlay } from './searchResolve.js'
-import { playCard, reasonCannotPlaceCard, reasonCannotPlayCard } from '../util/cardPlay.js'
+import {
+    playCard,
+    playMapChanges,
+    reasonCannotPlaceCard,
+    reasonCannotPlayCard
+} from '../util/cardPlay.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
 import { regionOfPawn } from '../powers/vocabulary.js'
 import { cardPowers } from '../data/cardPowers.js'
-import { effectFor, type ModifierHooks } from '../powers/registry.js'
+import { effectFor, type ModifierHooks, type PlayMapChanges } from '../powers/registry.js'
 import {
     discardTargetOf,
     ModifierUse,
@@ -281,6 +286,38 @@ export class HydratedPlayFacedownAdviser
                 carried: active
             })
         )
+    }
+
+    /**
+     * R-6.1, R-7.3.3 — what the play does to the map and gains before its When Played power, as its check plans
+     * it: with the modifiers that act on the play (Book of Records) and the advisers it discards.
+     */
+    static playMapChanges(
+        state: HydratedOathGameState,
+        playerId: string,
+        choice: {
+            cardId: string
+            play: SearchPlay
+            discardedAdviserCardIds?: readonly string[]
+            toSiteId?: string
+            discardFirstCardId?: string
+            modifiers?: readonly ModifierUse[]
+        }
+    ): PlayMapChanges {
+        const { active } = HydratedPlayFacedownAdviser.playModifiers(
+            state,
+            playerId,
+            choice.play,
+            choice.modifiers
+        )
+        return playMapChanges(state, playerId, choice.cardId, choice.play, {
+            faceUp: true,
+            fromAdvisers: true,
+            discardedAdviserCardIds: choice.discardedAdviserCardIds,
+            toSiteId: choice.toSiteId,
+            discardFirstCardId: choice.discardFirstCardId,
+            carried: active
+        })
     }
 
     /**

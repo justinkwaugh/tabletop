@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, HydratedSearchResolve, MachineState, OathRevision, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf, type LegalChoice } from '@tabletop/oath'
+import { Banner, HydratedSearchResolve, IMPERIAL_WARBANDS, MachineState, OathRevision, PlayerStatus, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf, type LegalChoice } from '@tabletop/oath'
 import { FIXTURE_SITE_CAPACITY, openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     disposeSessions,
@@ -658,5 +658,46 @@ describe("R-5.1.4.I — Great Herd is not offered the card the People's Favor di
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(cardTargets(draft.whenPlayed)).toEqual([ORACLE])
         expect(draft.picks).toEqual(emptyPicks())
+    })
+})
+
+describe("R-7.3.3 — Bewitch's yes is offered once the play's own secret counts", () => {
+    const BEWITCH = 'denizen.arcane.bewitch'
+
+    /** The seat, an Exile with 2 secrets, searches at Standing Stones (the Arcane Homeland: a secret); the Chancellor holds 2. */
+    function bewitching(oathRevision: OathRevision) {
+        const state = testState(
+            [
+                testPlayer({ playerId: ME, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 2, secrets: 2, handIds: [BEWITCH, TUTOR] }),
+                testPlayer({ playerId: 'ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', secrets: 2, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } })
+            ],
+            {
+                machineState: MachineState.Searching,
+                oathRevision,
+                chancellorPlayerId: 'ann',
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
+                siteCards: { c1: 'site.standing-stones', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+            }
+        )
+        openTurn(state, ME)
+        const session = openSessionOn(tableOf(state))
+        vi.spyOn(session, 'resolveSearch').mockResolvedValue()
+        return session.search
+    }
+
+    it('from revision 16, the site play asks the yes, and the engine accepts it', async () => {
+        const draft = bewitching(OathRevision.EngineFixes12)
+        draft.keep(BEWITCH)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.whenPlayed.map((legal) => legal.options)).toEqual([[{ kind: PowerChoiceKind.Yes }]])
+        draft.setPicks({ ...emptyPicks(), option: { 0: 0 } })
+        expect(draft.whenPlayedReason).toBeUndefined()
+    })
+
+    it('before revision 16, 2 against 2 leaves nothing to ask', async () => {
+        const draft = bewitching(OathRevision.EngineFixes11)
+        draft.keep(BEWITCH)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.whenPlayed).toEqual([])
     })
 })

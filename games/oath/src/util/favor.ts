@@ -68,6 +68,11 @@ export function removeFavorFromBoard(
     return removed
 }
 
+/** R-9.3 — component-limited: a gain takes as much of what it wants as the bank holds. */
+export function favorTakenFrom(held: number, wanted: number): number {
+    return Math.max(0, Math.min(wanted, held))
+}
+
 /** R-10.10, R-9.3 */
 export function gainFavorFromBank(
     state: HydratedOathGameState,
@@ -75,7 +80,7 @@ export function gainFavorFromBank(
     suit: Suit,
     wanted: number
 ): number {
-    const gained = Math.max(0, Math.min(wanted, state.favorBank[suit]))
+    const gained = favorTakenFrom(state.favorBank[suit], wanted)
     state.favorBank[suit] -= gained
     receiveFavor(state, playerId, gained)
     return gained

@@ -1,7 +1,7 @@
 import { bannerHolder } from './oathkeeper.js'
 import { siteHolding } from './access.js'
-import { gainFavorFromBank, settleBoardFavor } from './favor.js'
-import { Banner, SearchPlay, CardKind, PlayerStatus, Region } from '../model/oathEnums.js'
+import { favorHomeBankOf, favorTakenFrom, gainFavorFromBank, settleBoardFavor } from './favor.js'
+import { Banner, SearchPlay, CardKind, PlayerStatus, Region, type Suit } from '../model/oathEnums.js'
 import { ConspiracyPlay, type ConspiracyTake } from '../model/conspiracy.js'
 import { isLockedFor } from './locked.js'
 import { assertExists } from '@tabletop/common'
@@ -10,11 +10,23 @@ import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { cardDefinition, CONSPIRACY_ID, kindOf, suitOf } from '../data/cardRegistry.js'
 import { effectiveSiteCapacity, SALT_THE_EARTH } from './capacity.js'
-import { detachFromPlay, discardCards, noteSiteDiscard, type DiscardTarget } from './discard.js'
+import {
+    detachFromPlay,
+    discardCards,
+    noteSiteDiscard,
+    siteDiscardLedgerKey,
+    tokensReturnedBy,
+    type DiscardTarget
+} from './discard.js'
 import { discardRevealedVision } from './revealedVision.js'
 import { seizeBanner } from './seize.js'
 import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
-import { effectFor, type EffectContext, type PlayMapChanges } from '../powers/registry.js'
+import {
+    effectFor,
+    type EffectContext,
+    type PlayGains,
+    type PlayMapChanges
+} from '../powers/registry.js'
 import { pawnSiteId } from './pawn.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
@@ -38,7 +50,7 @@ import {
     persistentRefusesRelicTake,
     persistentRefusesSecretCost
 } from './persistent.js'
-import { categoryAt, homelandPayout } from './sitePowers.js'
+import { categoryAt, homelandPayout, homelandPowerFor } from './sitePowers.js'
 import { takeRelicsFrom } from './relics.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
@@ -241,22 +253,95 @@ function cardDiscardedFirst(
     return first && at && state.isMusterableCard(at, first) ? first : undefined
 }
 
+/** R-5.1.4.I — the site a site play puts the card at: the pawn's, or the one the People's Favor or New Growth names. */
+function sitePlayedTo(
+    state: HydratedOathGameState,
+    playerId: string,
+    options: CardPlayOptions
+): string {
+    return options.toSiteId ?? pawnSiteId(state, playerId)
+}
+
+/** Book of Records — "you must gain a secret instead of favor" from a site play. */
+function sitePlayGainsSecret(options: CardPlayOptions): boolean {
+    return (options.carried ?? []).some((m) => m.hooks.sitePlayGainsSecret)
+}
+
 /**
  * R-5.1.4 — what a play does to the map before its When Played power resolves, read from the state before the
- * play: the check and the resolve both judge the power on the map these leave.
+ * play: the check and the resolve both judge the power on the map these leave. With it, the site played to and
+ * what the play gains first (R-7.3.3), which only a check adds to the state it reads.
  */
 export function playMapChanges(
     state: HydratedOathGameState,
+    playerId: string,
     cardId: string,
     play: SearchPlay,
     options: CardPlayOptions = {}
 ): PlayMapChanges {
     const first = cardDiscardedFirst(state, play, options)
     const earlier = options.earlierMapChanges
+    const siteId = play === SearchPlay.Site ? sitePlayedTo(state, playerId, options) : undefined
     return {
         leaving: [...(earlier?.leaving ?? []), ...(first ? [first] : [])],
-        arriving: [...(earlier?.arriving ?? []), ...(play === SearchPlay.Site ? [cardId] : [])]
+        arriving: [...(earlier?.arriving ?? []), ...(play === SearchPlay.Site ? [cardId] : [])],
+        ...(siteId !== undefined ? { siteId } : {}),
+        gains: playGains(state, playerId, cardId, play, siteId, first, options)
     }
+}
+
+/**
+ * R-7.3.3 — the play's own gains, planned from the steps `playCard` takes and in its order, on the state before
+ * the play: the card discarded first gives its tokens back (R-10.5) and writes the Homeland ledger (R-11.2), the
+ * site gives its favor (Book of Records: a secret instead), then the Homeland pays. An adviser play gives back the
+ * tokens of the advisers it discards. Land Warden's second card starts from the kept card's gains. The relic a
+ * Homeland gives is not planned: no check reads it, and its identity is the vault's.
+ */
+function playGains(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    siteId: string | undefined,
+    first: string | undefined,
+    options: CardPlayOptions
+): PlayGains {
+    const earlier = options.earlierMapChanges
+    const favorBank: Record<Suit, number> = { ...(earlier?.gains?.favorBank ?? state.favorBank) }
+    const returning = [...(earlier?.gains?.returning ?? [])]
+    let secrets = earlier?.gains?.secrets ?? 0
+    const giveBack = (id: string) => {
+        returning.push(id)
+        const back = tokensReturnedBy(state, id)
+        if (back.suit) favorBank[back.suit] += back.favor
+    }
+    // R-10.10, R-9.3 — as `gainFavorFromBank` takes it; Vow of Kinship keeps it in a bank.
+    const homeBank = favorHomeBankOf(state, playerId)
+    const gainOneFavor = (suit: Suit) => {
+        const gained = favorTakenFrom(favorBank[suit], 1)
+        favorBank[suit] -= gained
+        if (homeBank) favorBank[homeBank] += gained
+    }
+
+    if (siteId !== undefined) {
+        if (first) giveBack(first)
+        const suit = suitOf(cardId)
+        if (suit) {
+            if (sitePlayGainsSecret(options)) secrets += 1
+            else gainOneFavor(suit)
+            const discardedFirst = [...(earlier?.leaving ?? []), ...(first ? [first] : [])].flatMap(
+                (id) => siteDiscardLedgerKey(state, id) ?? []
+            )
+            const homeland = homelandPowerFor(state, playerId, siteId, cardId, discardedFirst)
+            if (homeland && !homeland.barred) {
+                if (homeland.reward === 'favor') gainOneFavor(suit)
+                if (homeland.reward === 'secret') secrets += 1
+            }
+        }
+    } else if (play === SearchPlay.Adviser) {
+        for (const id of options.discardedAdviserCardIds ?? []) giveBack(id)
+    }
+    return { secrets, returning, favorBank }
 }
 
 /** R-5.1.4.I */
@@ -295,12 +380,12 @@ export function playCard(
     let secretsGained = 0
     let sitePower: string | undefined
     // Read before the play changes the map, as the check reads it.
-    const mapChanges = playMapChanges(state, cardId, play, options)
+    const mapChanges = playMapChanges(state, playerId, cardId, play, options)
 
     switch (play) {
         case SearchPlay.Site: {
             // R-5.1.4.I — New Growth may name another site.
-            const siteId = options.toSiteId ?? pawnSiteId(state, playerId)
+            const siteId = sitePlayedTo(state, playerId, options)
             // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — a denizen discarded first.
             const first = cardDiscardedFirst(state, play, options)
             if (first) {
@@ -312,7 +397,7 @@ export function playCard(
 
             const suit = suitOf(cardId)
             assertExists(suit, `${cardId} has no suit`)
-            if ((options.carried ?? []).some((m) => m.hooks.sitePlayGainsSecret)) {
+            if (sitePlayGainsSecret(options)) {
                 // Book of Records — "you must gain a secret instead of favor".
                 secretsGained = 1
                 player.secrets += secretsGained
@@ -464,7 +549,7 @@ export function reasonWhenPlayedChoicesInvalid(
         playerId,
         power,
         choices: options.choices ?? [],
-        mapChanges: playMapChanges(state, cardId, play, options)
+        mapChanges: playMapChanges(state, playerId, cardId, play, options)
     })
 }
 

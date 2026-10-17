@@ -13,7 +13,8 @@ import {
 /**
  * R-7.3.3 — the choices a card's When Played text opens, asked only when the play shows the card.
  * A "may" the seat cannot take now leaves nothing to ask (a Citizen's Long-Lost Heir), so the
- * play goes straight on and sends no choices. `mapChanges` is what the play does to the map first.
+ * play goes straight on and sends no choices. `mapChanges` is what the play does to the map first, and
+ * what it gains before the power (R-7.3.3), which a "may" can depend on (Bewitch).
  */
 export function whenPlayedChoices(
     state: HydratedOathGameState,
@@ -26,7 +27,7 @@ export function whenPlayedChoices(
     if (!playShowsCard(play, faceUp)) return []
     const power = powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
     if (!power) return []
-    const offered = offeredChoices(state, playerId, power).map((legal) =>
+    const offered = offeredChoices(state, playerId, power, mapChanges).map((legal) =>
         withoutLeaving(legal, mapChanges?.leaving ?? [])
     )
     return offered.some((legal) => legal.spec.min > 0 || legal.options.length > 0) ? offered : []

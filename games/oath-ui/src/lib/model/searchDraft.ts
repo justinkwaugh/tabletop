@@ -189,8 +189,13 @@ export class SearchDraft implements PanelDraft {
             cardId,
             placement.play,
             placement.faceUp,
-            // R-5.1.4.I, R-11.10 — the card picked beside the site play goes first.
-            playMapChanges(state, cardId, placement.play, { discardFirstCardId: this.discardFirst })
+            // R-5.1.4.I, R-11.10 — the card picked beside the site play goes first; R-7.3.3 — the play's gains
+            // come before the power, as the engine plans them.
+            playMapChanges(state, playerId, cardId, placement.play, {
+                faceUp: placement.faceUp,
+                discardedAdviserCardIds: this.displaced,
+                ...this.playExtras(placement.play)
+            })
         )
     }
 
