@@ -480,8 +480,8 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### SSE channel identity and connection state are corrupted
 
 - **Classification**: Defects
-- **Observed**: SSE collapses Public Catalog events and discontinuities into the User channel. Disconnect closes every feed but sets overall state to Connected; an error on one feed closes all feeds and retries only the failing feed, potentially stranding the others.
-- **Evidence**: `apps/frontend/src/lib/network/sseConnection.svelte.ts:86`; `apps/frontend/src/lib/network/sseConnection.svelte.ts:124`; `apps/frontend/src/lib/network/sseConnection.svelte.ts:144`
+- **Observed**: SSE collapses Public Catalog events and discontinuities into the User channel. An error on one feed closes all feeds and retries only the failing feed, potentially stranding the others.
+- **Evidence**: `apps/frontend/src/lib/network/sseConnection.svelte.ts:124`; `apps/frontend/src/lib/network/sseConnection.svelte.ts:144`
 - **Invariant**: Every event and Discontinuity retains its exact Audience identity, and connection state describes the feeds that are actually live. Recovery re-establishes every affected feed.
 
 ### Player fanout can target an undefined User audience
