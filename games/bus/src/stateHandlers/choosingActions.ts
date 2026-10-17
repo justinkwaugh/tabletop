@@ -57,7 +57,6 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
                 .filter((p) => p.actions === 0)
                 .map((p) => p.playerId)
 
-
             const nextPlayer = gameState.turnManager.turnOrder.find(
                 (playerId) => !gameState.passedPlayers.includes(playerId)
             )
