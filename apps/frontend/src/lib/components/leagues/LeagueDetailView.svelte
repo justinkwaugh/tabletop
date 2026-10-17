@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { listenForCompetitionChanges } from '$lib/services/competitionUpdates'
+    import { LatestRequest } from '$lib/utils/latestRequest'
     import { onMount } from 'svelte'
     import {
         Role,
@@ -15,8 +17,6 @@
         leagueSeasonStatusText
     } from '$lib/utils/leaguePresentation'
     import { accountName } from '$lib/utils/accountName'
-    import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
-    import { listenForLeagueChanges } from '$lib/services/leagueUpdates'
     import LeagueFormatCard from './LeagueFormatCard.svelte'
     import LeagueSignUpPanel from './LeagueSignUpPanel.svelte'
     import LeagueManageMenu from './LeagueManageMenu.svelte'
@@ -51,22 +51,22 @@
     let loadError = $state('')
     let actionError = $state('')
     let busy = $state(false)
-    let request = 0
+    const requests = new LatestRequest()
 
     function username(userId: string) {
         return accountName(detail?.usernames ?? {}, userId)
     }
 
     async function refresh() {
-        const current = ++request
+        const current = requests.begin()
         try {
             const value = await api.getLeague(id, seasonNumber)
-            if (current === request) {
+            if (current()) {
                 detail = value
                 loadError = ''
             }
         } catch (failure) {
-            if (current === request)
+            if (current())
                 loadError = failure instanceof Error ? failure.message : 'Could not load league'
         }
     }
@@ -102,15 +102,17 @@
         const clock = setInterval(() => {
             now = Date.now()
         }, 1000)
-        // Play in the Groups arrives as Tournament notifications, everything else as League ones.
-        const stopGroups = listenForTournamentChanges(notificationService, refresh)
-        const stopLeague = listenForLeagueChanges(notificationService, refresh, id)
+        const stopUpdates = listenForCompetitionChanges(notificationService, refresh, {
+            league: (leagueId) => leagueId === id,
+            // Until the first load names the Groups, any Tournament update may be one of them.
+            tournament: (tournamentId) =>
+                detail?.groups.some((group) => group.tournamentId === tournamentId) ?? true
+        })
         void refresh()
         return () => {
             clearInterval(clock)
-            stopGroups()
-            stopLeague()
-            request++
+            stopUpdates()
+            requests.cancel()
         }
     })
 </script>

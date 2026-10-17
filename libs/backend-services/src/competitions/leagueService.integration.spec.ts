@@ -100,6 +100,16 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             clock
         )
         const leagueNotifications = { sendNotification: vi.fn(async () => undefined) }
+        const leagueUpdated = leagueNotifications.sendNotification
+        const leagueUpdate = (leagueId: string) =>
+            expect.objectContaining({
+                notification: expect.objectContaining({
+                    type: NotificationCategory.League,
+                    action: 'update',
+                    data: { leagueId }
+                }),
+                topics: ['global']
+            })
         const leagues = new LeagueService(
             leagueStore,
             tournaments,
@@ -211,7 +221,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     payload: { leagueId }
                 })
             )
+            leagueUpdated.mockClear()
             await leagues.runTask({ leagueId })
+            expect(leagueUpdated).toHaveBeenCalledWith(leagueUpdate(leagueId))
             const finished = await leagues.get(leagueId, season.number, admin)
             for (const group of finished.groups) {
                 expect(group.finishedGames).toBe(group.totalGames)
@@ -332,20 +344,26 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 delete season.announcedAt
             })
             enqueue.mockClear()
-            let reminderFails = true
+            let reminderFailures = 2
             enqueue.mockImplementation(async (task) => {
-                if (task.path !== '/leagues/remind' || !reminderFails) return
-                reminderFails = false
+                if (task.path !== '/leagues/remind' || reminderFailures === 0) return
+                reminderFailures--
                 throw new Error('Queue unavailable')
             })
+            leagueUpdated.mockClear()
+            await expect(leagues.runTask({ leagueId: id })).rejects.toThrow('Queue unavailable')
+            expect(leagueUpdated).toHaveBeenCalledExactlyOnceWith(leagueUpdate(id))
+            leagueUpdated.mockClear()
             await expect(leagues.runTask({ leagueId: id })).rejects.toThrow('Queue unavailable')
             expect(emails('signUpOpen')).toEqual([])
             expect((await leagueStore.readSeason(id, 1))?.announcedAt).toBeUndefined()
             await leagues.runTask({ leagueId: id })
             expect(
                 enqueue.mock.calls.filter(([task]) => task.path === '/leagues/remind')
-            ).toHaveLength(2)
+            ).toHaveLength(3)
             expect((await leagueStore.readSeason(id, 1))?.announcedAt).toBeDefined()
+            // The same error again and the sent-email marker show nothing new.
+            expect(leagueUpdated).not.toHaveBeenCalled()
             expect(
                 seeded.season?.placements?.every((placement) => typeof placement.score === 'number')
             ).toBe(true)
@@ -371,6 +389,16 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     )
             for (const user of users.slice(21, 24)) await leagues.signUp(id, user)
             expect(await leagues.preview(id, admin)).toHaveLength(3)
+            const confirmed = users.find((user) => user.id === held[1].userId) ?? admin
+            leagueUpdated.mockClear()
+            await leagues.signUp(id, confirmed)
+            await leagues.withdraw(id, admin)
+            expect(leagueUpdated).not.toHaveBeenCalled()
+            await leagues.withdraw(id, confirmed)
+            expect(leagueUpdated).toHaveBeenCalledExactlyOnceWith(leagueUpdate(id))
+            leagueUpdated.mockClear()
+            await leagues.signUp(id, confirmed)
+            expect(leagueUpdated).toHaveBeenCalledExactlyOnceWith(leagueUpdate(id))
 
             enqueue.mockClear()
             await leagues.runReminder({
@@ -389,8 +417,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 season: 1,
                 closesAt: first.season.signUpClosesAt
             }
+            leagueUpdated.mockClear()
             await leagues.runReminder(remind)
             await leagues.runReminder(remind)
+            expect(leagueUpdated).not.toHaveBeenCalled()
             expect(emails('signUpReminder').map((task) => task.payload)).toEqual([
                 { ...remind, userId: absent, kind: 'signUpReminder' }
             ])
@@ -399,7 +429,12 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             ).resolves.toBeUndefined()
 
             const movedClose = { ...remind, closesAt: remind.closesAt + 3 * 86_400_000 }
+            leagueUpdated.mockClear()
             await leagues.setSignUpClose(id, movedClose.closesAt, admin)
+            expect(leagueUpdated).toHaveBeenCalledExactlyOnceWith(leagueUpdate(id))
+            leagueUpdated.mockClear()
+            await leagues.setSignUpClose(id, movedClose.closesAt, admin)
+            expect(leagueUpdated).not.toHaveBeenCalled()
             now = movedClose.closesAt - 86_400_000
             enqueue.mockClear()
             await leagues.runReminder(movedClose)
@@ -415,6 +450,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
 
             now = movedClose.closesAt
             await leagues.runTask({ leagueId: id })
+            expect(leagueUpdated).toHaveBeenCalledWith(leagueUpdate(id))
             const started = await leagues.get(id, undefined, users[0])
             expect(started.season?.status).toBe('inProgress')
             expect(started.groups.map((group) => [group.groupId, group.entrantIds.length])).toEqual(
@@ -512,30 +548,20 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
 
         it('cancels a season in sign-up and reopens it as a seeding season', async () => {
             const id = `${prefix}-cancelled`
-            const leagueUpdate = expect.objectContaining({
-                notification: expect.objectContaining({
-                    type: NotificationCategory.League,
-                    action: 'update',
-                    data: { leagueId: id }
-                }),
-                topics: ['global']
-            })
-            leagueNotifications.sendNotification.mockClear()
+            leagueUpdated.mockClear()
             const created = await leagues.create(id, draft, admin)
             await leagues.update(id, draft, created.revision, admin)
-            expect(leagueNotifications.sendNotification).not.toHaveBeenCalled()
+            expect(leagueUpdated).not.toHaveBeenCalled()
             await leagues.publish(id, now + 1000, admin)
-            expect(leagueNotifications.sendNotification).toHaveBeenCalledWith(leagueUpdate)
+            expect(leagueUpdated).toHaveBeenCalledWith(leagueUpdate(id))
             for (const user of users.slice(0, 5)) await leagues.signUp(id, user)
             await expect(leagues.cancelSeason(id, users[0])).rejects.toThrow('Administrator')
-            leagueNotifications.sendNotification.mockClear()
+            leagueUpdated.mockClear()
             const cancelled = await leagues.cancelSeason(id, admin)
-            expect(leagueNotifications.sendNotification).toHaveBeenCalledExactlyOnceWith(
-                leagueUpdate
-            )
-            leagueNotifications.sendNotification.mockClear()
+            expect(leagueUpdated).toHaveBeenCalledExactlyOnceWith(leagueUpdate(id))
+            leagueUpdated.mockClear()
             await leagues.updateSignUpPolicy(id, cancelled.league.signUp, admin)
-            expect(leagueNotifications.sendNotification).not.toHaveBeenCalled()
+            expect(leagueUpdated).not.toHaveBeenCalled()
             expect(cancelled.season).toMatchObject({ number: 0, status: 'cancelled' })
             expect(cancelled.season?.nextTaskAt).toBeUndefined()
             await expect(leagues.signUp(id, users[6])).rejects.toThrow('Sign-up is closed')
@@ -614,7 +640,12 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 withdrawn: true
             })
             expect(live.usernames[substitute.id]).toBe(substitute.username)
+            leagueUpdated.mockClear()
             await leagues.runTask({ leagueId: id })
+            expect(leagueUpdated).toHaveBeenCalledExactlyOnceWith(leagueUpdate(id))
+            leagueUpdated.mockClear()
+            await leagues.runTask({ leagueId: id })
+            expect(leagueUpdated).not.toHaveBeenCalled()
             const myPlace = async (user: User) =>
                 (await leagues.list(user)).find((entry) => entry.league.id === id)?.season?.myPlace
             expect(await myPlace(substitute)).toMatchObject({

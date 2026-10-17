@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { everyCompetition, listenForCompetitionChanges } from '$lib/services/competitionUpdates'
+    import { LatestRequest } from '$lib/utils/latestRequest'
     import CompetitionHeading from '$lib/components/CompetitionHeading.svelte'
     import { onMount } from 'svelte'
     import { goto } from '$app/navigation'
@@ -6,7 +8,6 @@
     import { Hr, Dropdown, DropdownGroup, DropdownItem, Modal } from 'flowbite-svelte'
     import { Role, type Tournament, type TournamentListQuery } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import {
         tournamentRosterText,
@@ -50,7 +51,7 @@
     let pageStart: string | undefined
     let busy = $state(true)
     let error = $state('')
-    let request = 0
+    const requests = new LatestRequest()
     let now = $state(Date.now())
     let emptyText = $derived(
         titleId
@@ -67,7 +68,7 @@
     )
 
     async function refresh(after = pageStart) {
-        const current = ++request
+        const current = requests.begin()
         if (after !== pageStart) {
             tournaments = []
             cursor = undefined
@@ -77,22 +78,22 @@
         error = ''
         try {
             let result = await api.listTournaments({ scope, after, titleId: titleId || undefined })
-            if (current !== request) return
+            if (!current()) return
             if (chooseInitialScope) {
                 chooseInitialScope = false
                 if (!result.tournaments.length) {
                     scope = 'open'
                     result = await api.listTournaments({ scope, titleId: titleId || undefined })
-                    if (current !== request) return
+                    if (!current()) return
                 }
             }
             tournaments = result.tournaments
             cursor = result.nextCursor
         } catch (failure) {
-            if (current === request)
+            if (current())
                 error = failure instanceof Error ? failure.message : 'Could not load tournaments'
         } finally {
-            if (current === request) busy = false
+            if (current()) busy = false
         }
     }
 
@@ -127,11 +128,13 @@
         const clock = setInterval(() => {
             now = Date.now()
         }, 1000)
-        const unsubscribe = listenForTournamentChanges(notificationService, () => refresh())
+        const unsubscribe = listenForCompetitionChanges(notificationService, () => refresh(), {
+            tournament: everyCompetition
+        })
         void refresh()
         return () => {
             clearInterval(clock)
-            request++
+            requests.cancel()
             unsubscribe()
         }
     })

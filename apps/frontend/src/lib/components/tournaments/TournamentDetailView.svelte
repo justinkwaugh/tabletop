@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { listenForCompetitionChanges } from '$lib/services/competitionUpdates'
+    import { LatestRequest } from '$lib/utils/latestRequest'
     import { onMount } from 'svelte'
     import {
         Role,
@@ -10,7 +12,6 @@
         type TournamentEntrant
     } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import {
         tournamentLeagueHref,
         tournamentRosterText,
@@ -76,7 +77,7 @@
     let loadError = $state('')
     let actionError = $state('')
     let busy = $state(false)
-    let request = 0
+    const requests = new LatestRequest()
 
     function username(userId: string) {
         return accountName(detail?.usernames ?? {}, userId)
@@ -87,15 +88,15 @@
     }
 
     async function refresh() {
-        const current = ++request
+        const current = requests.begin()
         try {
             const value = await api.getTournament(id)
-            if (current === request) {
+            if (current()) {
                 detail = value
                 loadError = ''
             }
         } catch (failure) {
-            if (current === request)
+            if (current())
                 loadError = failure instanceof Error ? failure.message : 'Could not load tournament'
         }
     }
@@ -132,11 +133,13 @@
         const clock = setInterval(() => {
             now = Date.now()
         }, 1000)
-        const unsubscribe = listenForTournamentChanges(notificationService, refresh, id)
+        const unsubscribe = listenForCompetitionChanges(notificationService, refresh, {
+            tournament: (tournamentId) => tournamentId === id
+        })
         void refresh()
         return () => {
             clearInterval(clock)
-            request++
+            requests.cancel()
             unsubscribe()
         }
     })
