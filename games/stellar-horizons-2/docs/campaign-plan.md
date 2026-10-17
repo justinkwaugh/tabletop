@@ -23,23 +23,23 @@ Footfall and These are the Voyages already play the core turn: build and repair,
 
 Rule 1.0 says play within a phase is simultaneous and initiative decides order where it matters. Each phase keeps its Parallel Span where Players act independently, and plays on the Main Line in turn where they contend for something shared or act on each other. This follows `docs/parallel-spans.md`: combat and selling to a shared market stay in ordinary ordered Machine States.
 
-| Step | Rulebook order | How it is played |
-| --- | --- | --- |
-| Economic: roll initiative | IP declared, then everyone rolls; then discard half the escalation markers | Barrier span for the IP declaration and the discard choice; the rolls follow on the Main Line |
-| Economic: draw event | the worst initiative with a base places a challenge | Main Line, that Player |
-| Economic: Earth production | automatic | System Actions |
-| Economic: base production | blockades in reverse initiative, then each base picks cash or a tech type | blockades on the Main Line in reverse initiative; the choices in a Barrier span |
-| Economic: draw trade goods | draw, then assign | goods dealt on the Main Line, assigned in a Barrier span |
-| Economic: growth and migration | blockades, rolls, then conversions | blockades and conversion choices on the Main Line in initiative order; rolls are System Actions |
-| Economic: terraforming | each Player with the tech | Main Line in initiative order, as now, since draws come from the shared world pool |
-| Reduce transfer markers | automatic | System Action |
-| Build and repair | reverse initiative | Ordered span, as now |
-| Combat | initiative order | Main Line: the attacker declares, the defender answers, hits are assigned alternately |
-| Cargo transfer and trade | initiative order | Main Line in turn (agreed) |
-| Movement | reverse initiative | Ordered span, as now |
-| Exploration | simultaneous; surveys in initiative order | Barrier span, as now; markers, mining payments, anomaly and event attempts, surveys and finds settle after it in initiative order |
-| Develop techs and buy cards | simultaneous | Barrier span, as now; replacement cards are drawn after it in initiative order |
-| Shuffle discarded cards | automatic | System Action |
+| Step                           | Rulebook order                                                             | How it is played                                                                                                                  |
+| ------------------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Economic: roll initiative      | IP declared, then everyone rolls; then discard half the escalation markers | Barrier span for the IP declaration and the discard choice; the rolls follow on the Main Line                                     |
+| Economic: draw event           | the worst initiative with a base places a challenge                        | Main Line, that Player                                                                                                            |
+| Economic: Earth production     | automatic                                                                  | System Actions                                                                                                                    |
+| Economic: base production      | blockades in reverse initiative, then each base picks cash or a tech type  | blockades on the Main Line in reverse initiative; the choices in a Barrier span                                                   |
+| Economic: draw trade goods     | draw, then assign                                                          | goods dealt on the Main Line, assigned in a Barrier span                                                                          |
+| Economic: growth and migration | blockades, rolls, then conversions                                         | blockades and conversion choices on the Main Line in initiative order; rolls are System Actions                                   |
+| Economic: terraforming         | each Player with the tech                                                  | Main Line in initiative order, as now, since draws come from the shared world pool                                                |
+| Reduce transfer markers        | automatic                                                                  | System Action                                                                                                                     |
+| Build and repair               | reverse initiative                                                         | Ordered span, as now                                                                                                              |
+| Combat                         | initiative order                                                           | Main Line: the attacker declares, the defender answers, hits are assigned alternately                                             |
+| Cargo transfer and trade       | initiative order                                                           | Main Line in turn (agreed)                                                                                                        |
+| Movement                       | reverse initiative                                                         | Ordered span, as now                                                                                                              |
+| Exploration                    | simultaneous; surveys in initiative order                                  | Barrier span, as now; markers, mining payments, anomaly and event attempts, surveys and finds settle after it in initiative order |
+| Develop techs and buy cards    | simultaneous                                                               | Barrier span, as now; replacement cards are drawn after it in initiative order                                                    |
+| Shuffle discarded cards        | automatic                                                                  | System Action                                                                                                                     |
 
 The first turn has only exploration and development (forum ruling).
 
@@ -61,7 +61,7 @@ A title can be bought at any time, but titles are a shared pool and two Players 
 
 Rule 1.16 lets ships of several Players resolve an anomaly together if they agree how to split the reward. The rulebook counts a joint resolution for each partner's anomaly directives and for the Guardian and Mastermind titles.
 
-Exploration is a Barrier, so partners cannot see each other's commitments. They agree outside the game, in chat or at the table, and each commits their own ships to a **pact** in their own Branch: the partners, and who gets each part of the reward. After the span, a pact resolves only if every partner committed the same terms and their combined strength reaches the difficulty. It takes its place in initiative order at its earliest partner. A pact whose partners did not all commit, or committed different terms, fails, and the ships' actions are spent, as at a table where a partner did not show up.
+Being worked out as **Shared Actions** in `docs/parallel-spans.md`: partners negotiate a pact on the Main Line during the exploration span, Löwenherz-style, and the agreed pact is binding. Each partner then commits ships to it in their own Branch, and the pact resolves after the span in initiative order at its earliest partner. The earlier idea of committing blind to matching terms is dropped.
 
 - **The campaign:** the front reward (IP, cash, markers, goods, settlements, a card) is divided item by item. The tile itself is not kept by anyone: its back stays in the system or leaves the game.
 - **These are the Voyages:** rewards are ignored and the resolved tile is kept, so a pact names the one partner who keeps it.

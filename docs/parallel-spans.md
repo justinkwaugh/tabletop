@@ -1,6 +1,6 @@
 # Parallel Spans: working design
 
-**Status:** design agreed in discussion, 2026-10-12. Build steps 1 and 2 are implemented in the Game Runtime and covered by specs against a toy title (`libs/common/src/game/engine/parallelSpan.spec.ts` and `branchMerge.spec.ts`), and have been through a standards and spec review. The host is built. The Game Client is built for Local and Hosted Games. Stellar Horizons has adopted it, one span per phase of the decade. The [build order](#build-order) has the detail. Everything outside the [Open](#open) section is agreed. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
+**Status:** design agreed in discussion, 2026-10-12. Build steps 1 and 2 are implemented in the Game Runtime and covered by specs against a toy title (`libs/common/src/game/engine/parallelSpan.spec.ts` and `branchMerge.spec.ts`), and have been through a standards and spec review. The host is built. The Game Client is built for Local and Hosted Games. Stellar Horizons has adopted it, one span per phase of the decade. The [build order](#build-order) has the detail. Everything outside the [Open](#open) section and the [Shared Actions](#shared-actions) section is agreed; Shared Actions are a proposal under discussion. Two independent reviews on 2026-10-12 found gaps; their corrections are folded in below and the decisions they raised are listed under Open. Where this document differs from [the exploration](./parallel-phases-exploration.md), this document is current; the exploration is kept for its reasoning.
 
 ## The model in brief
 
@@ -37,6 +37,18 @@ The part of Game State that one Player's Branch may change: what that Player own
 
 **Branch Independence**:
 The property that the result of every Action in a Branch is the same whether or not the Branches ahead of it in Merge Order are on the Main Line. A Branch may freely read what any Player had before the span began.
+
+**Shared Scope** _(proposed)_:
+The part of Game State that no Player owns: everything outside every Player's Branch Scope, apart from what the engine maintains. Only Shared Actions change it during a Parallel Span.
+_Avoid_: common state, public state, the intersection
+
+**Shared Action** _(proposed)_:
+A User Action, of a type the Game Title declares for a Parallel Span, that a Player of the span takes on the Main Line while the span is in progress and that changes only the Shared Scope. It is to the Main Line what a Branch Action is to a Branch.
+_Avoid_: Out-of-Turn Action, table action, side action
+
+**Binding Action** _(proposed)_:
+A Shared Action that no Player can undo once it is on the Main Line, such as accepting a deal. What it settles stays as it is until Span Completion, so a Branch may rely on it.
+_Avoid_: Information-Revealing Action (a different barrier), commitment
 
 **Completion Queue**:
 Entries that Branches record within their own Branch Scope for consequences that touch Game State outside it. They are settled at Span Completion, in the order the Game Title's rules give.
@@ -105,7 +117,7 @@ _Avoid_: presented state
 9. **Game State records the span.** A Branch can take the Main Line through other Machine States, so the current Machine State cannot say whether a span is in progress. Game State records the span's Branch Point, its Players, which Players have closed, which Players' Branches are on the Main Line, whose Branch is being played, if any, and the identities of each Branch Start, each Branch Close and Span Completion. The Branch Start identities are how a handler or a System Action knows whose Branch it is in. Closing is a public act, as it is at a table, so it is recorded on the Main Line when it happens: in a Hosted Game the write that stores a Branch's closing Action also puts that Player's Branch Close on the Main Line, while the closing Action itself stays private until the Merge, since it only makes sense on top of the rest of that Branch. A Branch's own record still says it is closed, because that follows from its Machine State; the two are written together.
 10. **Who takes part is the Active Players.** The Branching Machine State's entry sets the Active Players, as any Machine State's entry does, and the span's Players are exactly those. A Player it leaves out has no Branch and plays no part. That entry runs again each time a Branch returns; whatever it sets then is replaced at once by the engine.
 11. **What a Game Title declares** for a Branching Machine State: the Merge Order, which must place every Active Player; Barrier Merge or Ordered Merge; and the Branch Start and Span Completion Actions.
-12. **Out-of-Turn Actions are rejected during a Parallel Span,** for now.
+12. **Out-of-Turn Actions are rejected during a Parallel Span,** for now. Shared Actions, [proposed below](#shared-actions), would be the one kind of Main Line User Action a span accepts.
 13. **Contested and interactive play,** such as selling to a shared market or combat, stays in ordinary ordered Machine States.
 14. **A Parallel Span lies within one turn.** Turns start and end on the Main Line, outside a span. A Branch never starts or ends one, so the shared turn records are not touched inside it.
 
@@ -119,6 +131,47 @@ _Avoid_: presented state
     - **Deal it at the start of the span,** when a Player needs the result during the span. The Main Line hands each Player their own share before Branches begin.
     - **Queue it for the end of the span,** when the result can wait. The Branch records a Completion Queue entry.
     - **Keep the Action in an ordered Machine State,** when Players truly contend for it.
+
+## Shared Actions
+
+**Status:** proposed 2026-10-17, under discussion. Nothing here is built. It comes from joint resolution of anomalies in the Stellar Horizons campaign, where Players negotiate while each is privately exploring (`games/stellar-horizons-2/docs/campaign-plan.md`).
+
+Picture each Player's Branch Scope as a circle in a Venn diagram of Game State. The rules above guarantee that a Branch writes only inside its own circle, so the circles never overlap and no Branch touches what lies outside them all. A Shared Action is the converse: a Main Line Action, taken while the span is in progress, that writes only outside every circle. The two kinds of write are disjoint by construction, so neither can disturb the other. A Shared Action lands at an exact place in Main Line history while everyone else is busy, much as a Sequenced Out-of-Turn Action does in an 18xx stock round ([ADR 0009](./adr/0009-sequenced-out-of-turn-actions.md)); here "out of turn" means outside one's Branch.
+
+### The rules
+
+1. **The Shared Scope is what no Player owns,** judged by the ownership rule of [What a Branch may change](#what-a-branch-may-change) rule 2: Game State outside every object that carries a Player's identity. The fields the engine maintains are not part of it. A record a title keeps in the Shared Scope must not carry one Player's identity in the field that marks ownership, or it would belong to that Player; it names Players in other fields, such as a list of partners or who proposed it.
+2. **A span declares its Shared Actions.** The title's definition of a Branching Machine State lists the Action types that are Shared Actions in that span. Any Player of the span may take one, whether their Branch is open, closed or already merged, from the Branch Point until Span Completion. Players outside the span and spectators may not.
+3. **A Shared Action does not pass through the Game State Machine.** No Machine State Handler validates it, reacts to it or is entered after it. It never changes the Machine State, the Active Players or the span record, and it generates no System Actions. The engine checks that its type is declared for the span in progress and runs the Action's own application, which validates it against the Game State. Two things require this. In a Hosted Game the Main Line rests in the Branching Machine State, where no User Action is valid. In a Local Game the Main Line is part-way through another Player's Branch, whose Machine State must not move.
+4. **The engine checks every Shared Action** with the Branch Scope check inverted: one that adds, removes or replaces anything inside an object that carries any Player's identity, before or after it, is rejected.
+5. **A Shared Action reads only what everyone shares:** the Shared Scope, the span record and the Players. Its validity and effect never depend on what a Player owns. In a Hosted Game the Main Line holds each Player's own Game State as it was at the Branch Point or at their Merge; in a Local Game it holds another Player's Branch in progress. Reading owned state would make the two disagree, and would show one Player another's private play. The engine cannot check reads. A title's specs check them by playing the same Actions both ways.
+6. **Consequences for what Players own settle after the span.** A Shared Action changes records in the Shared Scope. Anything they imply for what a Player owns, such as cash, markers or influence, follows at Span Completion or later on the Main Line, read together with the Completion Queue entries in the Players' own Game State.
+7. **A Branch may rely only on what is binding.** A Branch Action may read the Shared Scope, and a Player sees Shared Actions arrive in their Branch View as they would any Main Line Action. But its result may depend only on records a Binding Action has settled, because nothing can change them before Span Completion. A pending offer can still be withdrawn or countered, so a Branch that relied on one might run differently when merged. The Merge's replay catches that, as it catches every read ([Merge](#merge) rule 1), and refuses the Merge: a defect in the title like any other.
+8. **Everyone sees a Shared Action at once.** It is a Main Line Action, published to every Player and projected by the title's visibility like any other. At a table, negotiation happens out loud.
+9. **Undo.** A Player may undo their own latest Shared Action unless it is binding or another Player's Shared Action has followed it, since that Player may have answered it. Branch Closes and Merges that came after it stay: the host takes the Shared Action out and replays what followed, as it does when a Branch Close is taken off. They replay the same, because a Branch relies only on binding records and a Shared Action changes nothing a Branch owns. Undo inside a Branch is unchanged. Shared Actions sit outside every Branch, so an administrator's Undo may land just before or after one; the landing rules of [Host](#host) rule 9 are otherwise unchanged.
+10. **Races in a Hosted Game.** A Shared Action is taken at an exact Main Line position. If the Main Line has moved before it arrives:
+    - **Only Branch Closes and Merges came between.** It is executed again on the current Main Line and recorded there if it makes exactly the same changes. It commutes with them by construction: they change nothing in the Shared Scope, and no Merge relied on anything it can change.
+    - **Another Player's Shared Action came between.** It is recorded after it only if the Commutation Proof succeeds, as for a Sequenced Out-of-Turn Action. Otherwise it is rejected as raced and the Game Client resynchronises, so a Player never has a move recorded against an offer they did not see.
+    - **The span has completed.** It is rejected.
+
+    A Shared Action is an ordinary Main Line write: it reads and writes no Unmerged Branch, so it collides only with other Main Line writes, such as a close and the Merges it brings, and is retried like them.
+
+11. **Routing.** The host runs a declared Shared Action on the Main Line even when its Player has an open Branch. The Game Client applies it optimistically to the Main Line, not to the Branch View, and the Branch View follows as it follows any Main Line Action.
+12. **Local Games.** A Shared Action may be taken while the Main Line is part-way through another Player's Branch. It is recorded there but is not part of that Branch: that Branch's scope check skips it and the inverted check applies, and replay treats it as a run of its own. In a hotseat Game it is offered to the Players who are not acting, as Out-of-Turn Actions are.
+13. **Available actions.** A Player of the span who is not acting, or is waiting with a closed Branch, is offered the span's Shared Action types that the title says they may take now.
+
+### Example: negotiating a joint attempt in Stellar Horizons
+
+During the exploration span, Players negotiate a pact on the Main Line with Shared Actions, in the manner of Löwenherz's negotiation. A pact names an anomaly, its partners and how the reward is split, and lives in the Shared Scope listing its partners by identity in a field of its own. A partner proposes terms; another counters with different terms or accepts by proposing the same terms back. A pact is agreed once every partner has accepted the same terms, and that acceptance is a Binding Action. Any partner may withdraw before then.
+
+Inside their own Branch, each partner then commits ships to the agreed pact. That writes only their ships and their own attempt record, and it may read the pact because nothing can change it now. After the span, the pact resolves in initiative order at its earliest partner: it succeeds if every partner committed and the ships' total reaches the difficulty, and the reward is split as agreed. Nobody commits to a pact that does not exist, so the blind matching of terms in the earlier plan is no longer needed.
+
+### Decisions
+
+- **Names.** Shared Scope, Shared Action and Binding Action are proposals. Table is taken by Competitions.
+- **How a title marks a Binding Action.** Proposal: a literal on the Action schema, like `outOfTurn`. Marking it Information-Revealing, as Löwenherz does to stop Undo crossing an accepted deal, would also make every Commutation Proof that involves it fail. Then an acceptance that raced an unrelated Branch Close would be rejected.
+- **Validation outside the Game State Machine** (rule 3), rather than through a Machine State Handler.
+- **The Undo rule** (rule 9): only one's own latest, unbound Shared Action, before anyone answers it.
 
 ## An Unmerged Branch
 
@@ -159,7 +212,7 @@ _Avoid_: presented state
 7. **Forks** see only the Main Line. A Fork whose Main Line rests in a span, as one taken at the Branch Point or from inside a merged Branch does, is settled as a span is when it begins: it is written with a fresh Branch for each Player still to merge, and with the Branch Close of any whose fresh Branch closes at once, in the one write that creates the Game. A Fork carries no Unmerged Branches, so it lands before any Branch Close whose Branch is not yet merged.
 8. **Hosted Games flagged as hotseat** are not a case this design covers; in practice they do not occur.
 9. **An administrator's Undo and a Fork land only at the edge of a Branch,** for now: before a Player's Branch Start or after their Branch has closed. A position inside a merged Branch would leave that Player part-way through a Branch on the Main Line of a Hosted Game, with no private Branch to continue in. A request for such a position lands at the start of that Branch instead: the host reverses back through that Branch's Actions and its Branch Start, and takes that Player's Branch Close off the Main Line. The rule it keeps is that a Player is closed on the Main Line only while their stored Branch is closed: every Player whose merged Branch the Undo reverses has their Branch Close taken off and starts their Branch afresh, while a Player whose Branch Close the Undo merely passes over stays closed, with their Branch untouched. The same write gives that Player, and any other Player the Undo left without one, a fresh Branch, since a Game Client cannot offer an Action to a Player who has no Branch View to act in. The site waits on them again; it still does not wait on a Player whose Branch is closed. If something the Undo relied on changed while it was being worked out, the Undo is refused and can be tried again; what it relies on is the same as for a close, in rule 13. An administrator's Undo that would have to replay other Actions after landing inside a merged Branch is refused. An administrator's Undo that leaves the span altogether removes every stored Branch and clears any hold, which for now is the only way to release one. An administrator who replaces the Game State with one resting in a span likewise removes every stored Branch, and the same write gives each Player still to merge a fresh one.
-10. **One endpoint for Actions.** A Player submits an Action the same way everywhere. The host routes it: when the Game rests in a span and the Player has an open Branch, the Action runs in their Branch; otherwise it runs on the Main Line. While a span is in progress the host accepts nothing else: an Action from a Player with no open Branch in it is refused.
+10. **One endpoint for Actions.** A Player submits an Action the same way everywhere. The host routes it: when the Game rests in a span and the Player has an open Branch, the Action runs in their Branch; otherwise it runs on the Main Line. While a span is in progress the host accepts nothing else: an Action from a Player with no open Branch in it is refused. Shared Actions, if adopted, change this rule: see [Shared Actions](#shared-actions), rule 11.
 11. **What each Player is sent.** Everyone is sent the same projected main-line Game State. A Player with an Unmerged Branch is also sent that Branch and its Actions, projected for them.
 12. **A refused Merge holds the span.** The host records the hold on the Game with the Player and the reason, logs it as an error, and attempts no further Merges while it stands. Players keep playing their own open Branches. An administrator clears it once the title is fixed.
 13. **Whatever could make a Branch ready is settled in the same transaction.** The Action that begins a span creates every Branch and merges any that closed on Branch Start. The Action that closes a Branch is written together with every Merge it makes possible, and with Span Completion and the next span's Branches when it gets that far. Before it commits, that write checks what it relied on when the host decided what to merge: that the Main Line is where it was, that every Closed Branch is as it was, and that no Branch has appeared for a Player it is creating one for. If any of that has changed, as when two Players close at the same moment, the whole submission is retried from fresh data. A Player's open Branch is not part of the check: what they play in it changes nothing about a close, so playing never throws out somebody else's close. A Closed Branch is checked on its own because a Player can close, reopen and close again differently and leave the Main Line exactly where it was. Nothing is left half done, so no Closed Branch can be stranded waiting for a Merge.
@@ -188,6 +241,8 @@ Decided 2026-10-13, replacing the earlier plan of one span per decade with dealt
     2. Hosted Games: the Branch View. Built: the Game Session holds the Player's Branch as a second context beside the Main Line and shows it in place of the Main Line while the Player has an Unmerged Branch. Play in it is optimistic, as on the Main Line, and numbered by its place in the Branch. Undo, sync, reload and deferred history load all carry the Branch, and History View runs from the present back through the Branch to the start of the game. When the Main Line moves under it, the view is rebuilt with the function the host uses and the arriving Actions are animated; the Player's own Actions are skipped at their own Merge. The Site Frontend's API client passes the Branch through, and the game page hands it to the session. Specs: `libs/frontend-components/tests/spanSession.spec.ts`, against an in-memory host for the toy title (`libs/common/src/game/engine/tests/spanHost.ts`). A Fork asked for from inside the Player's own Branch is taken at the Main Line's latest Action, or at the position being viewed when History View is on the Main Line's part of the history. Not yet: an Exploration started from inside a Branch, and what an administrator's Host View shows, neither of which has a spec. Every session of a Player follows that Player's Branch as its Actions are published: a session one step behind applies them as it applies Actions arriving on the Main Line, and one further out of step falls back to a sync check. What is published can arrive late, after the session has moved on, so a session ignores an Action it already holds or has since undone, and applies an Undo only when it still holds one of the Actions that Undo names. Which other Players have closed reaches every table as a Branch Close on the Main Line.
 5. Branch Close on the Main Line. Built across the engine, the host and the Game Client: `libs/common/src/game/engine/parallelSpan.spec.ts`, `hostedSpan.spec.ts` and `branchMerge.spec.ts`; `libs/backend-services/src/games/gameSpans.spec.ts`; and `libs/frontend-components/tests/spanSession.spec.ts`.
 6. Stellar Horizons adoption. Done: the logic package (`games/stellar-horizons-2`, `src/definition/spans.spec.ts` for the spans, private play merged against play in turn, the Barrier and the settlement of draws) and the UI (`games/stellar-horizons-2-ui`). Not yet: cooperative Voyages and the later scenarios, which only need plan data and queues.
+
+7. Shared Actions, if adopted: the engine (declaration, the inverted scope check, execution outside the Game State Machine, replay and Undo), then the host (routing, races), then the Game Client (routing, available actions, hotseat), each against the toy title before Stellar Horizons uses them.
 
 The host is deployed first, then the Site Frontend, and only then does a title adopt this by republishing its UI Artifact. A Game Session reaches its Player's Branch only through the Site Frontend's API client, which before this change dropped it; a session that is sent no Branch asks for it with a sync check, once for each position the Main Line reaches, so a newer session on an older Site Frontend would be left on the Main Line unable to act. Titles that do not adopt it are unaffected: every field added to the Game UI Host Bridge Contract is optional, and an older session ignores them.
 
@@ -224,31 +279,31 @@ Not yet examined:
 
 Numbers refer to the list at the end of the exploration.
 
-| #   | Question                                               | Status                                                                          |
-| --- | ------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| 1   | What a Branch may change                               | Agreed: Branch Scope by ownership, with stable addresses                        |
-| 2   | Shared things touched inside a Branch                  | Agreed: deal, queue, or keep ordered. Stellar Horizons queues its marker draws  |
-| 3   | Form of the stored net change                          | Agreed: patch operations                                                        |
-| 4   | Where a Branch's Machine State and bookkeeping sit     | Agreed: on the Branch; the engine runs on the Branch View unchanged             |
-| 5   | The Merge in detail                                    | Agreed: replay on the Main Line, then Span Completion                           |
-| 6   | System Action Identity inside a Branch                 | Agreed: a stream per Starting Position                                          |
-| 7   | Randomness opt-in                                      | Agreed: created when a title declares a Branching Machine State                 |
-| 8   | Exploration, Forks and History with an Unmerged Branch | Forks see only the Main Line. History covers the whole game. Exploration open   |
-| 9   | Change signals when only a Branch moved                | Agreed: published to its Player only; others' checksum and entity tag unmoved   |
-| 10  | Active Players, turn indicator, timers                 | Agreed: the Game State's Active Players are who has not closed. Timers open     |
-| 11  | Out-of-Turn Actions and interactive sequences          | Agreed for now: rejected during a Parallel Span. Interactive play stays ordered |
-| 12  | Local Games and hotseat                                | Agreed: Branches played on the Main Line, one at a time in Merge Order          |
-| 13  | Shared Game Client changes and republishing            | Each adopting title republishes its UI Artifact; other titles are unaffected    |
-| 14  | Tournament Undo restrictions                           | Open                                                                            |
-| 15  | Overriding the title's form of Merge                   | Open                                                                            |
-| 16  | Whether a Player's own rolls show before their Merge   | To that Player at once; to others not until the Merge                           |
-| 17  | Spectators                                             | Agreed: the Main Line only. A view of Branches for administrators is deferred   |
-| 18  | Reopening a Closed Branch                              | Agreed: undoing the Action that closed it reopens it, until it merges           |
-| 19  | Undo inside a Branch in the Game Client                | Built: offered in the Player's own Unmerged Branch, open or closed              |
-| 20  | Abuse of waiting                                       | Open                                                                            |
-| 21  | Simultaneous Action Groups alongside Parallel Spans    | Open                                                                            |
-| 22  | Whether Footfall moves to this model                   | Yes, as build step 6. Stellar Horizons is unreleased, so no Games in progress   |
-| 23  | A Branch inside a Branch                               | Open                                                                            |
+| #   | Question                                               | Status                                                                                                   |
+| --- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| 1   | What a Branch may change                               | Agreed: Branch Scope by ownership, with stable addresses                                                 |
+| 2   | Shared things touched inside a Branch                  | Agreed: deal, queue, or keep ordered. Stellar Horizons queues its marker draws                           |
+| 3   | Form of the stored net change                          | Agreed: patch operations                                                                                 |
+| 4   | Where a Branch's Machine State and bookkeeping sit     | Agreed: on the Branch; the engine runs on the Branch View unchanged                                      |
+| 5   | The Merge in detail                                    | Agreed: replay on the Main Line, then Span Completion                                                    |
+| 6   | System Action Identity inside a Branch                 | Agreed: a stream per Starting Position                                                                   |
+| 7   | Randomness opt-in                                      | Agreed: created when a title declares a Branching Machine State                                          |
+| 8   | Exploration, Forks and History with an Unmerged Branch | Forks see only the Main Line. History covers the whole game. Exploration open                            |
+| 9   | Change signals when only a Branch moved                | Agreed: published to its Player only; others' checksum and entity tag unmoved                            |
+| 10  | Active Players, turn indicator, timers                 | Agreed: the Game State's Active Players are who has not closed. Timers open                              |
+| 11  | Out-of-Turn Actions and interactive sequences          | Agreed for now: rejected during a Parallel Span. Interactive play stays ordered. Shared Actions proposed |
+| 12  | Local Games and hotseat                                | Agreed: Branches played on the Main Line, one at a time in Merge Order                                   |
+| 13  | Shared Game Client changes and republishing            | Each adopting title republishes its UI Artifact; other titles are unaffected                             |
+| 14  | Tournament Undo restrictions                           | Open                                                                                                     |
+| 15  | Overriding the title's form of Merge                   | Open                                                                                                     |
+| 16  | Whether a Player's own rolls show before their Merge   | To that Player at once; to others not until the Merge                                                    |
+| 17  | Spectators                                             | Agreed: the Main Line only. A view of Branches for administrators is deferred                            |
+| 18  | Reopening a Closed Branch                              | Agreed: undoing the Action that closed it reopens it, until it merges                                    |
+| 19  | Undo inside a Branch in the Game Client                | Built: offered in the Player's own Unmerged Branch, open or closed                                       |
+| 20  | Abuse of waiting                                       | Open                                                                                                     |
+| 21  | Simultaneous Action Groups alongside Parallel Spans    | Open                                                                                                     |
+| 22  | Whether Footfall moves to this model                   | Yes, as build step 6. Stellar Horizons is unreleased, so no Games in progress                            |
+| 23  | A Branch inside a Branch                               | Open                                                                                                     |
 
 ## What the exploration says that no longer holds
 
