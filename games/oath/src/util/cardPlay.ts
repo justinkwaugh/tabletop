@@ -648,10 +648,10 @@ export function reasonCannotPlaceCard(
             if (definition?.placement === 'adviser') {
                 return `${cardId} can only be played to your advisers`
             }
+            const target = options.toSiteId ?? here
             // R-5.1.4.I — the People's Favor's holder may play to any site in their region;
             // New Growth to another site when a carried modifier allows it for this card.
-            if (options.toSiteId !== undefined && options.toSiteId !== here) {
-                const target = options.toSiteId
+            if (target !== here) {
                 const byFavor =
                     holdsPeoplesFavor(state, playerId) && sameRegion(state, target, here)
                 const allowed =
@@ -664,6 +664,18 @@ export function reasonCannotPlaceCard(
                     )
                 if (!allowed) return `${cardId} can only be played to your own site`
                 if (!state.isSiteFaceup(target)) return `${target} is not a faceup site`
+            }
+            // Salt the Earth — "cannot play to a site with any locked cards"; and, when played, "ignore this
+            // site's capacity": the site it is played to. Before revision 16 (R-X.4), a play to another site was
+            // judged as any other card's.
+            const saltTheEarth =
+                cardId === SALT_THE_EARTH &&
+                (target === here || isAtLeastOathRevision(state, OathRevision.EngineFixes12))
+            if (saltTheEarth) {
+                if (state.denizensAt(target).some((id) => isLockedFor(state, playerId, id))) {
+                    return 'Salt the Earth cannot be played to a site with any locked cards'
+                }
+            } else {
                 const first = options.discardFirstCardId
                 if (first !== undefined) {
                     const firstReason = reasonDiscardFirstInvalid(
@@ -681,35 +693,6 @@ export function reasonCannotPlaceCard(
                 const capacity = effectiveSiteCapacity(state, target)
                 if (state.denizensAt(target).length - freed >= capacity) {
                     return `site ${target} is at its capacity of ${capacity}`
-                }
-                return suitOf(cardId)
-                    ? undefined
-                    : `${cardId} has no suit, so no favor bank matches it`
-            }
-            // Salt the Earth — "cannot play to a site with any locked cards";
-            // and, when played, "ignore this site's capacity".
-            if (cardId === SALT_THE_EARTH) {
-                if (state.denizensAt(here).some((id) => isLockedFor(state, playerId, id))) {
-                    return 'Salt the Earth cannot be played to a site with any locked cards'
-                }
-            } else {
-                const first = options.discardFirstCardId
-                if (first !== undefined) {
-                    const firstReason = reasonDiscardFirstInvalid(
-                        state,
-                        playerId,
-                        here,
-                        here,
-                        first,
-                        options.carried ?? []
-                    )
-                    if (firstReason) return firstReason
-                }
-                const capacity = effectiveSiteCapacity(state, here)
-                const freed = first !== undefined && state.denizensAt(here).includes(first) ? 1 : 0
-                const atSite = state.denizensAt(here).length - freed
-                if (atSite >= capacity) {
-                    return `site ${here} is at its capacity of ${capacity}`
                 }
             }
             if (!suitOf(cardId)) {

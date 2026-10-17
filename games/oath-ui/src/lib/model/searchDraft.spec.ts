@@ -701,3 +701,33 @@ describe("R-7.3.3 — Bewitch's yes is offered once the play's own secret counts
         expect(draft.whenPlayed).toEqual([])
     })
 })
+
+describe("R-5.1.4.I — Salt the Earth's \"Play to:\" sites, as the engine judges a play to another site", () => {
+    const SALT = 'denizen.discord.salt-the-earth'
+    const FULL = ['denizen.beast.wolves', 'denizen.hearth.storyteller', 'denizen.beast.rangers']
+    const LOCKED = 'denizen.beast.vow-of-union'
+
+    /** The seat holds the People's Favor at c1; c2, in the same region, holds these cards. */
+    function salting(oathRevision: OathRevision, c2: string[]) {
+        const { draft } = searchingWith([SALT, TUTOR], [], {
+            oathRevision,
+            denizensBySite: { c1: [], c2, p1: [], h1: [] },
+            banners: {
+                [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: ME },
+                [Banner.DarkestSecret]: { value: 1, mobSide: false }
+            }
+        })
+        draft.keep(SALT)
+        return draft
+    }
+
+    it('from revision 16, a full site is offered and a site with a locked card is not', () => {
+        expect(FULL).toHaveLength(FIXTURE_SITE_CAPACITY)
+        expect(salting(OathRevision.EngineFixes12, FULL).otherSites).toEqual(['c2'])
+        expect(salting(OathRevision.EngineFixes12, [LOCKED]).otherSites).toEqual([])
+    })
+
+    it('before revision 16, the site with a locked card is offered', () => {
+        expect(salting(OathRevision.EngineFixes11, [LOCKED]).otherSites).toEqual(['c2'])
+    })
+})

@@ -207,6 +207,21 @@ export function denizensAtYourSite(state: HydratedOathGameState, playerId: strin
     return state.denizensAt(pawnSiteId(state, playerId))
 }
 
+/**
+ * "This site" on a card played to a site: the site holding it, which the People's Favor or New Growth may make
+ * another than its player's (R-5.1.4.I). Before revision 16 (R-X.4), its player's own site.
+ */
+export function siteOfPlayedCard(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string
+): string {
+    const holding = isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+        ? siteHolding(state, cardId)
+        : undefined
+    return holding ?? pawnSiteId(state, playerId)
+}
+
 export function faceupSitesInYourRegion(state: HydratedOathGameState, playerId: string): string[] {
     const region = regionOfPawn(state, playerId)
     return state.faceupSiteIds().filter((s) => state.regionOf(s) === region)
