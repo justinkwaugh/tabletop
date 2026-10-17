@@ -3,14 +3,11 @@
 // global objects, the network, storage, navigation, messaging, HTML injection, evaluated code, prototype
 // changes, decoders, remote URLs, encoded blobs, and ID-shaped literals.
 // Usage: node scan_untrusted_code.mjs <UI package root> < files.json
-import { builtinModules, createRequire } from 'node:module'
+import { builtinModules } from 'node:module'
 import { readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { workspaceRequire } from './workspace_compilers.mjs'
 
-// The compilers come from the workspace's shared library, never the title under review.
-const require = createRequire(
-    join(resolve(process.argv[2]), '../../libs/frontend-components/package.json')
-)
+const require = workspaceRequire(process.argv[2])
 const ts = require('typescript')
 const { parse } = require('svelte/compiler')
 
@@ -57,7 +54,11 @@ const capabilityGlobals = {
     unescape: 'decoding',
     TextDecoder: 'decoding',
     setImmediate: 'timer',
-    queueMicrotask: 'timer'
+    queueMicrotask: 'timer',
+    BroadcastChannel: 'messaging',
+    window: 'browser_global',
+    document: 'browser_global',
+    navigator: 'browser_global'
 }
 const capabilityMembers = {
     'document.cookie': 'storage',
@@ -73,6 +74,24 @@ const capabilityMembers = {
     'location.href': 'navigation',
     'location.assign': 'navigation',
     'location.replace': 'navigation',
+    'location.search': 'url_read',
+    'location.hash': 'url_read',
+    'location.pathname': 'url_read',
+    'location.host': 'url_read',
+    'location.hostname': 'url_read',
+    'location.origin': 'url_read',
+    'window.history': 'navigation',
+    'history.pushState': 'navigation',
+    'history.replaceState': 'navigation',
+    'history.back': 'navigation',
+    'history.forward': 'navigation',
+    'history.go': 'navigation',
+    'document.querySelector': 'page_query',
+    'document.querySelectorAll': 'page_query',
+    'document.getElementById': 'page_query',
+    'document.getElementsByClassName': 'page_query',
+    'document.getElementsByTagName': 'page_query',
+    'document.getElementsByName': 'page_query',
     'navigator.sendBeacon': 'network',
     'navigator.serviceWorker': 'worker',
     'navigator.clipboard': 'clipboard',
@@ -175,14 +194,7 @@ function memberCapability(objectName, propertyName) {
         : undefined
 }
 
-const tempCalls = new Set([
-    'tmpdir',
-    'os.tmpdir',
-    'mkdtemp',
-    'mkdtempSync',
-    'fs.mkdtemp',
-    'fs.mkdtempSync'
-])
+const tempCalls = new Set(['tmpdir', 'mkdtemp', 'mkdtempSync'])
 const spawnCalls = new Set([
     'exec',
     'execSync',
@@ -196,7 +208,7 @@ const spawnCalls = new Set([
 function callCapability(callName) {
     if (!callName) return undefined
     if (/^console\.\w+$/.test(callName)) return 'logging'
-    if (tempCalls.has(callName)) return 'temp_files'
+    if (tempCalls.has(callName.split('.').pop())) return 'temp_files'
     const bare = callName.replace(/^(?:child_process|childProcess|cp)\./, '')
     return spawnCalls.has(bare) ? 'spawn' : undefined
 }
@@ -215,7 +227,10 @@ function packageOf(specifier) {
     return specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0]
 }
 
+const importMetaCapabilities = { env: 'environment', glob: 'module_loading' }
+
 function checkString(value, record, node) {
+    if (/^\s*javascript:/i.test(value)) record('evaluated_code', node, 'javascript: URL')
     const remote = (value.match(urlPattern) ?? []).filter(
         (url) => !xmlNamespaces.has(url) && !localHost.test(url)
     )
@@ -317,10 +332,15 @@ function scanScript(source, path) {
         const inner = unwrap(node)
         return inner && ts.isIdentifier(inner) ? inner.text : ''
     }
-    const memberText = (node) =>
-        ts.isPropertyAccessExpression(node) && nameOf(node.expression)
-            ? `${nameOf(node.expression)}.${node.name.text}`
-            : undefined
+    const dottedName = (node) => {
+        const inner = unwrap(node)
+        if (inner && ts.isIdentifier(inner)) return inner.text
+        if (inner && ts.isPropertyAccessExpression(inner)) {
+            const object = dottedName(inner.expression)
+            return object ? `${object}.${inner.name.text}` : undefined
+        }
+        return undefined
+    }
     const isGlobalMember = (node) => {
         const inner = unwrap(node)
         return (
@@ -376,7 +396,7 @@ function scanScript(source, path) {
                     addImport(node, argument.text, form)
                 else record('computed_import', node)
             }
-            const callName = ts.isIdentifier(callee) ? callee.text : memberText(callee)
+            const callName = dottedName(callee)
             const called = callCapability(callName)
             if (called) record(called, node)
             if (
@@ -428,7 +448,9 @@ function scanScript(source, path) {
         ) {
             record('global_object', node, 'alias of a global object')
         } else if (ts.isPropertyAccessExpression(node)) {
-            const capability = memberCapability(nameOf(node.expression), node.name.text)
+            const capability = ts.isMetaProperty(node.expression)
+                ? importMetaCapabilities[node.name.text]
+                : memberCapability(nameOf(node.expression), node.name.text)
             if (capability) record(capability, node)
             if (
                 node.name.text === 'prototype' &&
@@ -503,13 +525,27 @@ function scanSvelte(source) {
         return node
     }
     const nameOf = (node) => (unwrap(node)?.type === 'Identifier' ? unwrap(node).name : '')
-    const memberText = (node) =>
-        node?.type === 'MemberExpression' &&
-        !node.computed &&
-        nameOf(node.object) &&
-        node.property.type === 'Identifier'
-            ? `${nameOf(node.object)}.${node.property.name}`
-            : undefined
+    const dottedName = (node) => {
+        const inner = unwrap(node)
+        if (inner?.type === 'Identifier') return inner.name
+        if (
+            inner?.type === 'MemberExpression' &&
+            !inner.computed &&
+            inner.property.type === 'Identifier'
+        ) {
+            const object = dottedName(inner.object)
+            return object ? `${object}.${inner.property.name}` : undefined
+        }
+        return undefined
+    }
+    const tsContainers = new Set([
+        'TSModuleDeclaration',
+        'TSModuleBlock',
+        'TSEnumDeclaration',
+        'TSEnumMember',
+        'TSExportAssignment',
+        'TSParameterProperty'
+    ])
     const isGlobalMember = (node) =>
         unwrap(node)?.type === 'MemberExpression' && globalObjects.has(nameOf(unwrap(node).object))
     const isStringLiteral = (node) => node?.type === 'Literal' && typeof node.value === 'string'
@@ -520,7 +556,12 @@ function scanSvelte(source) {
             return
         }
         if (expressionWrappers.has(node.type)) return walk(node.expression, node, 'expression')
-        if (typeof node.type === 'string' && node.type.startsWith('TS')) return
+        if (
+            typeof node.type === 'string' &&
+            node.type.startsWith('TS') &&
+            !tsContainers.has(node.type)
+        )
+            return
         switch (node.type) {
             case 'ImportDeclaration':
                 if (node.importKind !== 'type') addImport(node, node.source.value, 'static')
@@ -536,8 +577,7 @@ function scanSvelte(source) {
                 break
             case 'CallExpression': {
                 const argument = node.arguments[0]
-                const callName =
-                    node.callee.type === 'Identifier' ? node.callee.name : memberText(node.callee)
+                const callName = dottedName(node.callee)
                 const called = callCapability(callName)
                 if (called) record(called, node)
                 if (callName === 'require') {
@@ -589,7 +629,9 @@ function scanSvelte(source) {
             case 'MemberExpression': {
                 const capability = node.computed
                     ? undefined
-                    : memberCapability(nameOf(node.object), node.property?.name ?? '')
+                    : node.object.type === 'MetaProperty'
+                      ? importMetaCapabilities[node.property?.name ?? '']
+                      : memberCapability(nameOf(node.object), node.property?.name ?? '')
                 if (capability) record(capability, node)
                 if (
                     !node.computed &&
@@ -652,7 +694,17 @@ function scanSvelte(source) {
             case 'SvelteHead':
             case 'SvelteBody':
             case 'SvelteDocument':
-                record('page_element', node, node.name)
+            case 'SvelteWindow':
+                if (node.type !== 'SvelteWindow') record('page_element', node, node.name)
+                for (const attribute of node.attributes ?? []) {
+                    const event =
+                        attribute.type === 'OnDirective'
+                            ? attribute.name
+                            : attribute.type === 'Attribute' && attribute.name.startsWith('on')
+                              ? attribute.name.slice(2)
+                              : undefined
+                    if (event && Object.hasOwn(eventKinds, event)) record(eventKinds[event], node)
+                }
                 break
         }
         for (const [childKey, child] of Object.entries(node)) {
