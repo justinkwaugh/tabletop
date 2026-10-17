@@ -22,8 +22,8 @@
     const groups: { key: HoursGroup; name: string }[] = $derived(
         separateWeekend
             ? [
-                  { key: 'weekday', name: 'Weekdays' },
-                  { key: 'weekend', name: 'Weekends' }
+                  { key: 'weekday', name: 'Monday to Friday' },
+                  { key: 'weekend', name: 'Saturday and Sunday' }
               ]
             : [{ key: 'weekday', name: 'Every day' }]
     )
@@ -53,11 +53,11 @@
 </script>
 
 <div class="flex flex-col gap-4">
-    <div class="text-sm text-gray-700 dark:text-gray-300">
-        Pick the hours you'd like turn reminders. Tap or drag across hours to toggle them. Reminders
-        in the first hour of your turn come right away; later ones wait for your next selected hour.
-        With no hours selected, reminders come at any time.
-    </div>
+    <p class="text-sm text-gray-700 dark:text-gray-300">
+        Pick the hours you'd like for turn reminders. Tap or drag across hours to toggle them.
+        Reminders in the first hour of your turn come right away; later ones wait for your next
+        selected hour. With no hours selected, reminders come at any time.
+    </p>
     {#each groups as group (group.key)}
         <div class="flex flex-col gap-2">
             <div class="flex items-baseline justify-between gap-2">
@@ -79,5 +79,4 @@
         >Different hours on weekends</Toggle
     >
     <TimeZonePicker />
-    <div class="text-xs text-gray-600 dark:text-gray-400">Weekends are Saturday and Sunday.</div>
 </div>
