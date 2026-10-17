@@ -1,6 +1,5 @@
 <script lang="ts">
     import { MachineState } from '@tabletop/zertz'
-    import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries } from '$lib/history/historyEntries.js'
     import PoolStrip from './PoolStrip.svelte'
@@ -8,7 +7,6 @@
 
     const session = getGameSession()
 
-    const activePlayerId = $derived(session.gameState.activePlayerIds[0])
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
 
     const prompt = $derived.by(() => {
@@ -28,37 +26,39 @@
         }
         return undefined
     })
-
-    const waitingFor = $derived.by(() => {
-        switch (session.gameState.machineState) {
-            case MachineState.RemovingRing:
-                return 'remove a ring'
-            case MachineState.ContinuingCapture:
-                return 'keep jumping'
-            default:
-                return session.gameState.board.hasAnyJump() ? 'capture' : 'place a marble'
-        }
-    })
 </script>
 
-<div class="flex flex-col items-center gap-2 px-3 py-2 text-center text-(--zertz-ink)">
-    {#if session.isViewingHistory}
-        {#if lastEntry}
-            <div class="text-[16px]"><HistoryEntryLine entry={lastEntry} /></div>
+<!-- One message row, as Bus and Magna Grecia do: the last move while you wait, the prompt on
+     your turn. The pool strip below is the same height in every state, so the board never moves. -->
+<div class="flex flex-col items-center gap-1 px-3 py-1 text-center text-(--zertz-ink)">
+    <div class="message">
+        {#if session.isViewingHistory || !prompt}
+            {#if lastEntry}
+                <HistoryEntryLine entry={lastEntry} />
+            {:else}
+                <span>{session.isViewingHistory ? 'The game begins' : 'Waiting for turn'}</span>
+            {/if}
         {:else}
-            <div class="text-[16px] italic text-(--zertz-ink-quiet)">The game begins</div>
+            <span>{prompt}</span>
         {/if}
-    {:else if prompt}
-        <div class="text-[18px] max-sm:text-[16px] font-semibold">{prompt}</div>
-    {:else if activePlayerId}
-        <div class="text-[17px] max-sm:text-[15px]">
-            Waiting for <PlayerName playerId={activePlayerId} /> to {waitingFor}
-        </div>
-        {#if lastEntry}
-            <div class="text-[14px] text-(--zertz-ink-quiet)">
-                Last: <HistoryEntryLine entry={lastEntry} />
-            </div>
-        {/if}
-    {/if}
+    </div>
     <PoolStrip />
 </div>
+
+<style>
+    .message {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        font-size: 18px;
+        letter-spacing: 0.02em;
+    }
+
+    @media (max-width: 639px) {
+        .message {
+            font-size: 16px;
+        }
+    }
+</style>
