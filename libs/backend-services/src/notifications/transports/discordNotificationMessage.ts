@@ -36,7 +36,8 @@ const Color = {
     Started: 0x3b82f6,
     Invited: 0xa855f7,
     Joined: 0x14b8a6,
-    Declined: 0x6b7280
+    Declined: 0x6b7280,
+    Vote: 0xf59e0b
 } as const
 
 export function discordNotificationMessage(
@@ -124,6 +125,14 @@ function notificationCopy(notification: UserNotification): NotificationCopy {
                 color: Color.Declined,
                 path: DASHBOARD_PATH,
                 buttonLabel: 'Open dashboard'
+            }
+        case UserNotificationAction.PlayerVoteRequested:
+            return {
+                summary: `${notification.data.initiator.name} asks to go back in ${gameName}`,
+                heading: `${notification.data.initiator.name} asks everyone to go back`,
+                color: Color.Vote,
+                path: gamePath,
+                buttonLabel: 'Vote'
             }
     }
 }

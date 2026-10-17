@@ -37,7 +37,8 @@ import {
     type CommitTournamentScheduleRequest,
     type TournamentScheduleRequest,
     type TournamentDraft,
-    type TournamentListQuery
+    type TournamentListQuery,
+    UndoVotePreview
 } from '@tabletop/common'
 import type {
     AblyTokenResponse,
@@ -54,6 +55,7 @@ import type {
     HasActiveGamesResponse,
     TokenResponse,
     UndoActionResponse,
+    UndoVotePreviewResponse,
     UsernameSearchResponse,
     UserResponse,
     UsersResponse
@@ -596,13 +598,7 @@ export class TabletopApi {
     /** Game Specific Endpoints */
 
     async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ game, options }, `/game/${game.typeId}/create`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -612,13 +608,7 @@ export class TabletopApi {
     }
 
     async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id, actionIndex, name }, `/game/${game.typeId}/fork`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -628,13 +618,7 @@ export class TabletopApi {
     }
 
     async startGame(game: Game): Promise<Game> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id }, `/game/${game.typeId}/start`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -647,13 +631,7 @@ export class TabletopApi {
         game: Game,
         action: GameAction
     ): Promise<{ actions: GameAction[]; game: Game; missingActions?: GameAction[] }> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id, action }, `/game/${game.typeId}/action/${action.type}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -684,13 +662,7 @@ export class TabletopApi {
         redoneActions?: GameAction[]
         perspective?: Visibility.Perspective
     }> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id, actionId }, `/game/${game.typeId}/undo`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -732,6 +704,55 @@ export class TabletopApi {
     }
 
     /** End of Game Specific Endpoints */
+
+    async previewUndoVote(game: Game, actionIndex: number): Promise<UndoVotePreview> {
+        const response = await this.titleRequest(game.typeId)
+            .post({ gameId: game.id, actionIndex }, `/game/${game.typeId}/vote/undo/preview`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UndoVotePreviewResponse>()
+
+        const preview = Value.Convert(UndoVotePreview, response.payload.preview)
+        Value.Assert(UndoVotePreview, preview)
+        return preview
+    }
+
+    async openUndoVote(game: Game, actionIndex: number, targetActionId: string): Promise<Game> {
+        return this.postVote(game, 'undo/open', { actionIndex, targetActionId })
+    }
+
+    async approveVote(game: Game, voteId: string): Promise<Game> {
+        return this.postVote(game, 'approve', { voteId })
+    }
+
+    async declineVote(game: Game, voteId: string): Promise<Game> {
+        return this.postVote(game, 'decline', { voteId })
+    }
+
+    async withdrawVote(game: Game, voteId: string): Promise<Game> {
+        return this.postVote(game, 'withdraw', { voteId })
+    }
+
+    private async postVote(
+        game: Game,
+        route: VoteRoute,
+        body: { actionIndex: number; targetActionId: string } | { voteId: string }
+    ): Promise<Game> {
+        const response = await this.titleRequest(game.typeId)
+            .post({ gameId: game.id, ...body }, `/game/${game.typeId}/vote/${route}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameResponse>()
+
+        return this.validateGame(response.payload.game)
+    }
+
+    private titleRequest(typeId: string) {
+        return this.wretch.headers({
+            'X-TABLETOP-GAME-LOGIC-VERSION': this.getGameLogicVersion(typeId),
+            'X-TABLETOP-GAME-UI-VERSION': this.getGameUiVersion(typeId)
+        })
+    }
 
     async checkSync(
         gameId: string,
@@ -1008,6 +1029,8 @@ export class TabletopApi {
         })
     }
 }
+
+type VoteRoute = 'undo/open' | 'approve' | 'decline' | 'withdraw'
 
 export type TabletopApiPublic = Pick<TabletopApi, keyof TabletopApi>
 

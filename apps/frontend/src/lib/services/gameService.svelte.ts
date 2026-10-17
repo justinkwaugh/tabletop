@@ -33,7 +33,9 @@ import {
     gameUserIds,
     isListedOpenGame,
     isListedPublicGame,
-    isYourTurnNotification
+    isYourTurnNotification,
+    omitGameState,
+    type UndoVotePreview
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
@@ -378,6 +380,46 @@ export class GameService implements GameServiceInterface {
         const game = await this.api.declineGame(gameId)
         this.upsertCachedGame(game)
         return game
+    }
+
+    cachedGame(gameId: string): Game | undefined {
+        return this.gamesById.get(gameId)
+    }
+
+    rememberGame(game: Game) {
+        this.upsertCachedGame(omitGameState(game))
+    }
+
+    async previewUndoVote(game: Game, actionIndex: number): Promise<UndoVotePreview> {
+        return this.api.previewUndoVote(game, actionIndex)
+    }
+
+    async openUndoVote(game: Game, preview: UndoVotePreview): Promise<Game> {
+        const updatedGame = await this.api.openUndoVote(
+            game,
+            preview.targetActionIndex,
+            preview.targetActionId
+        )
+        this.upsertCachedGame(updatedGame)
+        return updatedGame
+    }
+
+    async approveVote(game: Game, voteId: string): Promise<Game> {
+        const updatedGame = await this.api.approveVote(game, voteId)
+        this.upsertCachedGame(updatedGame)
+        return updatedGame
+    }
+
+    async declineVote(game: Game, voteId: string): Promise<Game> {
+        const updatedGame = await this.api.declineVote(game, voteId)
+        this.upsertCachedGame(updatedGame)
+        return updatedGame
+    }
+
+    async withdrawVote(game: Game, voteId: string): Promise<Game> {
+        const updatedGame = await this.api.withdrawVote(game, voteId)
+        this.upsertCachedGame(updatedGame)
+        return updatedGame
     }
 
     private upsertCachedGame(game: Game) {

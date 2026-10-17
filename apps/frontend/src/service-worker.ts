@@ -107,6 +107,12 @@ async function generateLocalNotification(
                 body: `It's your turn in game ${notification.data.game.name}`,
                 tag: notification.data.game.id
             }
+        } else if (notification.action === UserNotificationAction.PlayerVoteRequested) {
+            title = `${notification.data.initiator.name} asks to go back`
+            options = {
+                body: `Vote in game ${notification.data.game.name}`,
+                tag: notification.data.game.id
+            }
         }
     }
     if (title && options) {
