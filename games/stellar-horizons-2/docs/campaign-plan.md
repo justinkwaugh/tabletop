@@ -1,6 +1,6 @@
 # Stellar Horizons II campaign: plan
 
-Status: proposed 2026-10-17, awaiting decisions. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
+Status: proposed 2026-10-17. Decisions 1 and 3 agreed 2026-10-17; decision 2 under discussion. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
 
 ## What the campaign adds
 
@@ -35,7 +35,7 @@ Rule 1.0 says play within a phase is simultaneous and initiative decides order w
 | Reduce transfer markers | automatic | System Action |
 | Build and repair | reverse initiative | Ordered span, as now |
 | Combat | initiative order | Main Line: the attacker declares, the defender answers, hits are assigned alternately |
-| Cargo transfer and trade | initiative order | Main Line in turn (decision 1) |
+| Cargo transfer and trade | initiative order | Main Line in turn (agreed) |
 | Movement | reverse initiative | Ordered span, as now |
 | Exploration | simultaneous; surveys in initiative order | Barrier span, as now; markers, mining payments, anomaly and event attempts, surveys and finds settle after it in initiative order |
 | Develop techs and buy cards | simultaneous | Barrier span, as now; replacement cards are drawn after it in initiative order |
@@ -57,7 +57,7 @@ Spending IP for $1B or for tech points, discarding goods for $1B and destroying 
 
 A title can be bought at any time, but titles are a shared pool and two Players may qualify at once. A purchase made inside a span is queued with its IP held, and settled after the span in initiative order, as the rulebook's priority rule says.
 
-## Joint resolution of anomalies and events (decision 2)
+## Joint resolution of anomalies and events (decision 2, under discussion)
 
 Rule 1.16 lets ships of several Players resolve an anomaly together if they agree how to split the reward. The rulebook counts a joint resolution for each partner's anomaly directives and for the Guardian and Mastermind titles.
 
@@ -118,6 +118,6 @@ The rulebook leaves these open. Each is decided in its slice, recorded in `docs/
 
 ## Decisions
 
-1. **Cargo transfer and trade in the campaign.** Proposal: the whole phase on the Main Line in initiative order, because selling takes the shared demand marker and the rulebook lets a Player sell and then buy settlements in either order. The alternative keeps cargo as an Ordered span and adds a trade step on the Main Line after it, which is faster online but stops a Player selling first and spending the money on settlements in the same phase.
+1. **Cargo transfer and trade in the campaign.** Agreed 2026-10-17: the whole phase on the Main Line in initiative order, because selling takes the shared demand marker and the rulebook lets a Player sell and then buy settlements in either order. The alternative keeps cargo as an Ordered span and adds a trade step on the Main Line after it, which is faster online but stops a Player selling first and spending the money on settlements in the same phase.
 2. **Joint resolution** as the pacts above, for the campaign and for These are the Voyages.
-3. **The slice order** above.
+3. **The slice order** above. Agreed 2026-10-17.
