@@ -292,7 +292,7 @@
                                         onclick={rebuildStandings}>Rebuild standings</button
                                     >
                                 {/if}
-                                {#if tournament.status !== 'inProgress' && tournament.status !== 'finished'}
+                                {#if !tournament.league && tournament.status !== 'inProgress' && tournament.status !== 'finished'}
                                     <button
                                         class="w-full rounded px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-950/30"
                                         disabled={busy}

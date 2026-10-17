@@ -323,6 +323,26 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             })
             await leagues.runTask({ leagueId: id })
             expect(emails('signUpOpen')).toHaveLength(21)
+
+            // A reminder that could not be scheduled leaves the announcement to be retried.
+            await leagueStore.updateSeason(id, 1, (season) => {
+                delete season.announcedAt
+            })
+            enqueue.mockClear()
+            let reminderFails = true
+            enqueue.mockImplementation(async (task) => {
+                if (task.path !== '/leagues/remind' || !reminderFails) return
+                reminderFails = false
+                throw new Error('Queue unavailable')
+            })
+            await expect(leagues.runTask({ leagueId: id })).rejects.toThrow('Queue unavailable')
+            expect(emails('signUpOpen')).toEqual([])
+            expect((await leagueStore.readSeason(id, 1))?.announcedAt).toBeUndefined()
+            await leagues.runTask({ leagueId: id })
+            expect(
+                enqueue.mock.calls.filter(([task]) => task.path === '/leagues/remind')
+            ).toHaveLength(2)
+            expect((await leagueStore.readSeason(id, 1))?.announcedAt).toBeDefined()
             expect(
                 seeded.season?.placements?.every((placement) => typeof placement.score === 'number')
             ).toBe(true)

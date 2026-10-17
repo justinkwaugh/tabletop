@@ -511,6 +511,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 expect.objectContaining({ payload: { tournamentId: id }, inSeconds: 0 })
             )
             await expect(service.join(id, users[7])).rejects.toThrow('Registration is closed')
+            await expect(service.cancel(id, admin)).rejects.toThrow(
+                'A league group cannot be cancelled'
+            )
 
             await service.runTask({ tournamentId: id })
             const started = await tournaments.read(id)
@@ -1198,9 +1201,16 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(afterFinish.stages[0].dispatch?.voided).toContain(tableId)
             expect(afterFinish.stages[0].dispatch?.finished).not.toContain(tableId)
             expect(afterFinish.stages[0].standings?.[0].completed).toBe(0)
+            const rebuilt = await service.rebuildStandings(
+                tournament.id,
+                afterFinish.revision,
+                admin
+            )
+            expect(rebuilt.stages[0].dispatch?.finished).not.toContain(tableId)
+            expect(rebuilt.stages[0].standings?.[0].completed).toBe(0)
             await service.withdrawEntrant(
                 tournament.id,
-                { revision: afterFinish.revision, userId: leaving },
+                { revision: rebuilt.revision, userId: leaving },
                 admin
             )
             for (const gameId of theirs.slice(1)) {

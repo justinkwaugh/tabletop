@@ -511,7 +511,8 @@ export class FirestoreTournamentStore implements TournamentStore {
                     if (
                         game.status !== GameStatus.Finished ||
                         !game.result ||
-                        game.result === GameResult.Abandoned
+                        game.result === GameResult.Abandoned ||
+                        stage.dispatch.voided?.includes(game.tournament.tableId)
                     )
                         continue
                     const correction = stage.corrections?.findLast(

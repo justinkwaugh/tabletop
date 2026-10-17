@@ -115,6 +115,19 @@ describe('tournament stall alerts', () => {
         expect(createPushTask).toHaveBeenCalledTimes(1)
     })
 
+    it('releases the pending check when its task cannot be created', async () => {
+        const cache = fakeCache()
+        const createPushTask = vi
+            .fn(async () => undefined)
+            .mockRejectedValueOnce(new Error('Queue unavailable'))
+        const game = tournamentGame(0)
+        await expect(watchTournamentGame(cache, { createPushTask }, game)).rejects.toThrow(
+            'Queue unavailable'
+        )
+        await watchTournamentGame(cache, { createPushTask }, game)
+        expect(createPushTask).toHaveBeenCalledTimes(2)
+    })
+
     it('waits for two days after the latest move', async () => {
         const { alerts, createPushTask, sendMessage } = setup(tournamentGame(10 * DAY), 11 * DAY)
         await alerts.check({ gameId: 'game-1' })

@@ -15,6 +15,7 @@
         leagueSeasonStatusText
     } from '$lib/utils/leaguePresentation'
     import { accountName } from '$lib/utils/accountName'
+    import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import LeagueFormatCard from './LeagueFormatCard.svelte'
     import LeagueSignUpPanel from './LeagueSignUpPanel.svelte'
     import LeagueManageMenu from './LeagueManageMenu.svelte'
@@ -22,7 +23,7 @@
     import LeagueGroupTable from './LeagueGroupTable.svelte'
 
     let { id, season: seasonNumber }: { id: string; season?: number } = $props()
-    const { api, authorizationService, libraryService } = getAppContext()
+    const { api, authorizationService, libraryService, notificationService } = getAppContext()
     let user = $derived(authorizationService.getSessionUser())
     let isAdmin = $derived(user?.roles.includes(Role.Admin))
     let now = $state(Date.now())
@@ -100,9 +101,14 @@
         const clock = setInterval(() => {
             now = Date.now()
         }, 1000)
+        // Group changes arrive as Tournament notifications; League-only changes have none yet.
+        const unsubscribe = listenForTournamentChanges(notificationService, refresh)
+        const poll = setInterval(() => void refresh(), 60_000)
         void refresh()
         return () => {
             clearInterval(clock)
+            clearInterval(poll)
+            unsubscribe()
             request++
         }
     })

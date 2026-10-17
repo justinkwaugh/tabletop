@@ -94,14 +94,20 @@ export class FirestoreUserStore implements UserStore {
     @Timed('store.user.findByIds')
     async findByIds(ids: string[]): Promise<(User | undefined)[]> {
         if (!ids.length) return []
+        // Read each account once, but answer every requested position, repeats included.
         const idsByKey = new Map(ids.map((id) => [this.makeUserCacheKey(id), id]))
-        return this.cacheService.cachingGetMulti<User>([...idsByKey.keys()], async (keys) => {
+        const keys = [...idsByKey.keys()]
+        const users = await this.cacheService.cachingGetMulti<User>(keys, async (keys) => {
             return Promise.all(
                 keys.map((key) => {
                     return this.readUser(requestForKey(idsByKey, key))
                 })
             )
         })
+        const usersById = new Map(
+            keys.map((key, index) => [requestForKey(idsByKey, key), users[index]])
+        )
+        return ids.map((id) => usersById.get(id))
     }
 
     private async readUser(id: string): Promise<User | undefined> {

@@ -57,6 +57,12 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 expect(first.map((user) => user?.username)).toEqual([undefined, username])
                 const cached = await users.findByIds([userId, missing])
                 expect(cached.map((user) => user?.username)).toEqual([username, undefined])
+                const repeated = await users.findByIds([userId, missing, userId])
+                expect(repeated.map((user) => user?.username)).toEqual([
+                    username,
+                    undefined,
+                    username
+                ])
             } finally {
                 await db.doc(`userUsernames/${username}`).delete()
             }

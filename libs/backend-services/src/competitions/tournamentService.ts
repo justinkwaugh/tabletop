@@ -240,6 +240,9 @@ export class TournamentService {
         requireAdministrator(user)
         const result = await this.store.update(id, user, true, (tournament) => {
             if (tournament.status === 'cancelled') return
+            // The League's Season waits for every Group to finish, so a Group cannot end early.
+            if (tournament.league)
+                throw new TournamentError('A league group cannot be cancelled', 409)
             if (tournament.status === 'inProgress' || tournament.status === 'finished')
                 throw new TournamentError(
                     'A running tournament requires the game recovery workflow'

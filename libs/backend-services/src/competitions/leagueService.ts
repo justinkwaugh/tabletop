@@ -804,17 +804,22 @@ export class LeagueService {
     }
 
     private async announceSignUp(leagueId: string, number: number): Promise<void> {
-        const season = await this.emailOnce(leagueId, number, 'signUpOpen', {
-            due: (current) =>
-                current.status === 'signUp' &&
-                current.heldPlaces.length > 0 &&
-                current.announcedAt === undefined,
+        const due = (current: LeagueSeason) =>
+            current.status === 'signUp' &&
+            current.heldPlaces.length > 0 &&
+            current.announcedAt === undefined
+        const season = await this.store.readSeason(leagueId, number)
+        if (!season || !due(season)) return
+        // Scheduled before the announcement is marked: a repeated reminder sends nothing, but
+        // a missing one would never be retried.
+        await this.scheduleReminder(leagueId, season)
+        await this.emailOnce(leagueId, number, 'signUpOpen', {
+            due,
             recipients: (current) => current.heldPlaces.map((place) => place.userId),
             mark: (current) => {
                 current.announcedAt = this.now()
             }
         })
-        if (season) await this.scheduleReminder(leagueId, season)
     }
 
     private async announceResults(leagueId: string, number: number): Promise<void> {

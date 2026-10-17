@@ -52,13 +52,19 @@ async function enqueueStallCheck(tasks: StallTasks, gameId: string, inSeconds: n
 
 /** Starts a stall check for a Tournament Game in play, unless one is already pending. */
 export async function watchTournamentGame(
-    cache: Pick<StallCache, 'claimOnce'>,
+    cache: Pick<StallCache, 'claimOnce' | 'delete'>,
     tasks: StallTasks,
     game: Pick<Game, 'id' | 'tournament' | 'status'>
 ): Promise<void> {
     if (!game.tournament || game.status !== GameStatus.Started) return
     if (!(await cache.claimOnce(checkKey(game.id), TOURNAMENT_STALL_SECONDS + DAY_SECONDS))) return
-    await enqueueStallCheck(tasks, game.id, TOURNAMENT_STALL_SECONDS)
+    try {
+        await enqueueStallCheck(tasks, game.id, TOURNAMENT_STALL_SECONDS)
+    } catch (error) {
+        // Without a task the claim would block every later check; the next move tries again.
+        await cache.delete(checkKey(game.id))
+        throw error
+    }
 }
 
 /**
