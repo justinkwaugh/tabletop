@@ -60,7 +60,7 @@
     {#if gameSession.lockingLastTile !== undefined}
         <p class="warning">
             Locking tile {gameSession.lockingLastTile}, the last unlocked one, ends the game:
-            everyone else gets one final turn.
+            everyone else may eat a final coral.
         </p>
     {/if}
 {:else if gameSession.cylinderPayment}

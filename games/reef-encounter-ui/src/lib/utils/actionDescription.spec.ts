@@ -121,7 +121,7 @@ describe('describing a turn', () => {
         }
         expect(texts([eat], 'their')).toEqual([
             'fed a coral of 6 pink polyps to their parrotfish, 4 of them going back into the bag.',
-            'That ends the game: every other player has one final turn.'
+            'That ends the game: everyone else may eat a final coral.'
         ])
     })
 

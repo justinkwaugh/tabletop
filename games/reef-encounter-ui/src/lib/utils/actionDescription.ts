@@ -410,7 +410,7 @@ export function describeActions(
         if (described) phrases.push({ ...described, playerId: action.playerId })
         phrases.push(...setupParrotfishPhrases(action, possessive))
         if (startsFinalTurns(action)) {
-            phrases.push(phrase(['That ends the game: every other player has one final turn.']))
+            phrases.push(phrase(['That ends the game: everyone else may eat a final coral.']))
         }
     }
     closeRun()

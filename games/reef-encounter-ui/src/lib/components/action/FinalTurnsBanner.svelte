@@ -4,11 +4,14 @@
 
     const gameSession = getGameSession()
     const endingPlayerId = $derived(gameSession.gameState.endingPlayerId)
+    // The banner shows only in the final turns, when eating returns the larger number.
+    const returned = $derived(gameSession.gameState.polypsReturnedWhenEating())
 </script>
 
 {#if endingPlayerId}
     <p role="status" class="banner">
-        <PlayerName playerId={endingPlayerId} /> ended the game. Last round.
+        <PlayerName playerId={endingPlayerId} /> ended the game. Everyone else may eat a final coral,
+        {returned} polyps back to the bag.
     </p>
 {/if}
 
