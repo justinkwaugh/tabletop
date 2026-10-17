@@ -103,11 +103,9 @@
         }, 1000)
         // Group changes arrive as Tournament notifications; League-only changes have none yet.
         const unsubscribe = listenForTournamentChanges(notificationService, refresh)
-        const poll = setInterval(() => void refresh(), 60_000)
         void refresh()
         return () => {
             clearInterval(clock)
-            clearInterval(poll)
             unsubscribe()
             request++
         }
