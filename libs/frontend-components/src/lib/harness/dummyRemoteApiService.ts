@@ -164,7 +164,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('updateUserPreferences')
     }
 
-    async updateUserTimeZone(_timeZone: string): Promise<User> {
+    async updateUserTimeZone(
+        _timeZone: string,
+        _options?: { onlyIfUnset?: boolean }
+    ): Promise<User> {
         return this.fail('updateUserTimeZone')
     }
 

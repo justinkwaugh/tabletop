@@ -1,7 +1,9 @@
 import { assert, type ReminderDay, type ReminderHours } from '@tabletop/common'
 
-const HOUR_MS = 60 * 60 * 1000
-const SEARCH_HOURS = 8 * 24
+const MINUTE_MS = 60 * 1000
+const HOUR_MS = 60 * MINUTE_MS
+// Two steps per hour covers the extra stop after a clock change that lands mid-hour.
+const SEARCH_STEPS = 2 * 8 * 24
 
 const REMINDER_DAY_BY_WEEKDAY: Partial<Record<string, ReminderDay>> = {
     Mon: 'mon',
@@ -23,23 +25,21 @@ export function nextReminderHour(due: Date, timeZone: string, hours: ReminderHou
         minute: 'numeric',
         hourCycle: 'h23'
     })
-    const dueLocal = localHour(formatter, due)
-    if (isReminderHour(hours, dueLocal)) {
-        return due
-    }
-
-    const dueHourStart =
-        due.getTime() -
-        dueLocal.minute * 60 * 1000 -
-        due.getUTCSeconds() * 1000 -
-        due.getUTCMilliseconds()
-    for (let hoursAhead = 1; hoursAhead <= SEARCH_HOURS; hoursAhead++) {
-        const candidate = new Date(dueHourStart + hoursAhead * HOUR_MS)
-        if (isReminderHour(hours, localHour(formatter, candidate))) {
+    let candidate = due
+    for (let step = 0; step <= SEARCH_STEPS; step++) {
+        const local = localHour(formatter, candidate)
+        if (isReminderHour(hours, local)) {
             return candidate
         }
+        candidate = nextLocalHourStart(candidate, local)
     }
-    assert(false, `No reminder hour within ${SEARCH_HOURS} hours of ${due.toISOString()}`)
+    assert(false, `No reminder hour within a week of ${due.toISOString()}`)
+}
+
+function nextLocalHourStart(time: Date, local: LocalHour): Date {
+    const intoHour =
+        local.minute * MINUTE_MS + time.getUTCSeconds() * 1000 + time.getUTCMilliseconds()
+    return new Date(time.getTime() - intoHour + HOUR_MS)
 }
 
 function isReminderHour(hours: ReminderHours, { day, hour }: LocalHour): boolean {

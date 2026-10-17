@@ -133,13 +133,21 @@ export class UserService {
         return updatedUser
     }
 
-    async updateUserTimeZone(userId: string, timeZone: string): Promise<User> {
+    async updateUserTimeZone(
+        userId: string,
+        timeZone: string,
+        { onlyIfUnset = false }: { onlyIfUnset?: boolean } = {}
+    ): Promise<User> {
         if (!this.isKnownTimeZone(timeZone)) {
             throw new InvalidTimeZoneError(timeZone)
         }
         const [updatedUser] = await this.userStore.updateUser({
             userId,
-            fields: { timeZone }
+            fields: { timeZone },
+            validator: (existingUser) =>
+                onlyIfUnset && existingUser.timeZone
+                    ? UpdateValidationResult.Cancel
+                    : UpdateValidationResult.Proceed
         })
         return updatedUser
     }

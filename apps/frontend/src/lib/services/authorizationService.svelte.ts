@@ -179,7 +179,9 @@ export class AuthorizationService {
             return
         }
         try {
-            const updatedUser = await this.api.updateUserTimeZone(browserTimeZone())
+            const updatedUser = await this.api.updateUserTimeZone(browserTimeZone(), {
+                onlyIfUnset: true
+            })
             if (this.sessionUser?.id === updatedUser.id) {
                 this.setSessionUser(updatedUser)
             }

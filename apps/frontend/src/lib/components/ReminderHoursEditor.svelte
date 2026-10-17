@@ -1,9 +1,6 @@
 <script lang="ts">
     import { Toggle } from 'flowbite-svelte'
-    import { toast } from 'svelte-sonner'
-    import { assertExists } from '@tabletop/common'
-    import { getAppContext } from '@tabletop/frontend-components'
-    import { UserPreferencesEditor } from '$lib/services/userPreferencesEditor.svelte'
+    import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         reminderHoursForm,
         reminderHoursFromForm,
@@ -15,20 +12,12 @@
 
     type HoursGroup = 'weekday' | 'weekend'
 
-    const { authorizationService, api } = getAppContext()
-    const user = authorizationService.getSessionUser()
-    assertExists(user, 'Reminder hours require a signed-in user')
+    const { userPreferencesEditor: editor } = getAppContext()
 
-    const editor = new UserPreferencesEditor(
-        user.id,
-        () => authorizationService.getSessionUser()?.preferences,
-        api,
-        (savedUser) => authorizationService.setSessionUser(savedUser),
-        () => toast.error('Could not save your reminder hours. Please try again.')
-    )
     const shown = $derived(reminderHoursForm(editor.values.reminderHours))
-    let separateWeekend = $state(reminderHoursForm(user.preferences?.reminderHours).separateWeekend)
+    let weekendRequested = $state(false)
     let hiddenWeekend: number[] | undefined = $state(undefined)
+    const separateWeekend = $derived(weekendRequested || shown.separateWeekend)
 
     const groups: { key: HoursGroup; name: string }[] = $derived(
         separateWeekend
@@ -48,14 +37,18 @@
     }
 
     function showWeekend() {
-        separateWeekend = true
-        save({ weekday: shown.weekday, weekend: hiddenWeekend ?? shown.weekday, separateWeekend })
+        weekendRequested = true
+        save({
+            weekday: shown.weekday,
+            weekend: hiddenWeekend ?? shown.weekday,
+            separateWeekend: true
+        })
     }
 
     function hideWeekend() {
         hiddenWeekend = shown.weekend
-        separateWeekend = false
-        save({ ...shown, separateWeekend })
+        weekendRequested = false
+        save({ ...shown, separateWeekend: false })
     }
 </script>
 

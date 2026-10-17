@@ -29,13 +29,7 @@ function fixture() {
         session.user = saved
     })
     const onFailed = vi.fn()
-    const editor = new UserPreferencesEditor(
-        user.id,
-        () => session.user.preferences,
-        api,
-        onSaved,
-        onFailed
-    )
+    const editor = new UserPreferencesEditor(() => session.user, api, onSaved, onFailed)
     return { editor, requests, session, onSaved, onFailed }
 }
 
@@ -117,4 +111,16 @@ it('keeps preferences another editor saved in the meantime', () => {
         preferredColorsEnabled: true,
         colorBlindPalette: true
     })
+})
+
+it('leaves the saved colour order alone when reordering fails', async () => {
+    const { editor, requests, session, onFailed } = fixture()
+    editor.update({ preferredColors: [Color.Blue, Color.Red] })
+    expect(editor.values.preferredColors).toEqual([Color.Blue, Color.Red])
+    vi.advanceTimersByTime(500)
+    requests[0].result.reject(new Error('offline'))
+
+    await vi.waitFor(() => expect(onFailed).toHaveBeenCalledOnce())
+    expect(session.user.preferences?.preferredColors).toEqual([Color.Red, Color.Blue])
+    expect(editor.values.preferredColors).toEqual([Color.Red, Color.Blue])
 })

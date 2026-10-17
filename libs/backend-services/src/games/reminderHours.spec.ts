@@ -63,4 +63,10 @@ describe('next reminder hour', () => {
             '2026-11-01T07:15:00.000Z'
         )
     })
+
+    it('starts the selected hour on time after a half-hour clock change', () => {
+        expect(
+            alignedTime('2026-10-03T14:30:00.000Z', 'Australia/Lord_Howe', weekReminderHours([3]))
+        ).toBe('2026-10-03T16:00:00.000Z')
+    })
 })

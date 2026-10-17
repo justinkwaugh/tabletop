@@ -17,8 +17,7 @@ export class UserPreferencesEditor {
     private saveTimer: ReturnType<typeof setTimeout> | undefined
 
     constructor(
-        private readonly userId: string,
-        private readonly currentPreferences: () => UserPreferences | undefined,
+        private readonly sessionUser: () => User | undefined,
         private readonly api: Pick<TabletopApi, 'updateUserPreferences'>,
         private readonly onSaved: (user: User) => void,
         private readonly onFailed: () => void
@@ -26,17 +25,13 @@ export class UserPreferencesEditor {
 
     update(change: Partial<UserPreferences>) {
         Object.assign(this.pending, change)
-        this.save()
-    }
-
-    save() {
         this.unsaved = true
         clearTimeout(this.saveTimer)
         this.saveTimer = setTimeout(() => void this.flush(), SAVE_DELAY_MS)
     }
 
     private savedPreferences(): UserPreferences {
-        return this.currentPreferences() ?? defaultPreferences
+        return this.sessionUser()?.preferences ?? defaultPreferences
     }
 
     private async flush() {
@@ -44,10 +39,14 @@ export class UserPreferencesEditor {
         this.saving = true
         while (this.unsaved) {
             this.unsaved = false
+            const user = this.sessionUser()
+            if (!user) {
+                this.pending = {}
+                break
+            }
             const preferences = $state.snapshot({ ...this.savedPreferences(), ...this.pending })
             try {
-                const user = await this.api.updateUserPreferences(this.userId, preferences)
-                this.onSaved(user)
+                this.onSaved(await this.api.updateUserPreferences(user.id, preferences))
                 if (!this.unsaved) {
                     this.pending = {}
                 }
