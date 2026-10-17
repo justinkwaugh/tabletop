@@ -96,8 +96,13 @@ export class HydratedCampaignDefend
             campaign.plansUsedBy = { ...campaign.plansUsedBy, [this.playerId]: outcome.used }
         }
         campaign.rollRules = { ...campaign.rollRules, ...outcome.rollRules }
-        // Code of Honor — the rest of the defending side may use none (R-10.28-H1).
-        if (outcome.exclusive) campaign.defenderPlansLocked = true
+        // Code of Honor — the rest of the defending side may use none (R-10.28-H1). Peace Envoy's
+        // "you cannot use other battle plans" binds its user alone; before revision 14 it locked
+        // the side too.
+        const locksSide = isAtLeastOathRevision(state, OathRevision.EngineFixes10)
+            ? outcome.locksOwnSide
+            : outcome.exclusive
+        if (locksSide) campaign.defenderPlansLocked = true
         // Hearts and Minds — "as defender, you're victorious now"; the first decision stands.
         if (outcome.decidesVictor && !campaign.decidedVictor) campaign.decidedVictor = 'defender'
         if (outcome.ignoreDefeatKills) campaign.ignoreDefeatKills = true

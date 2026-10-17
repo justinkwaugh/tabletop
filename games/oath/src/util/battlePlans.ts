@@ -309,8 +309,10 @@ export interface BattlePlanOutcome {
     rollRules: RollRules
     /** Specialist */
     locksEnemyPlans: boolean
-    /** Code of Honor — nobody else on this side may use one either (R-10.28-H1). */
+    /** Code of Honor, Peace Envoy — "you cannot use other battle plans". */
     exclusive: boolean
+    /** Code of Honor — nobody else on this side may use one either (R-10.28-H1, R-5.5.3-H3). */
+    locksOwnSide: boolean
     /** Hearts and Minds, Peace Envoy */
     decidesVictor: boolean
     /** Peace Envoy, R-5.5.6 */
@@ -339,6 +341,7 @@ export function applyBattlePlans(
         rollRules: {},
         locksEnemyPlans: false,
         exclusive: false,
+        locksOwnSide: false,
         decidesVictor: false,
         ignoreDefeatKills: false
     }
@@ -389,6 +392,7 @@ export function applyBattlePlans(
         if (rules) out.rollRules = { ...out.rollRules, ...rules }
         if (plan.hooks.locksEnemyPlans) out.locksEnemyPlans = true
         if (plan.hooks.exclusive) out.exclusive = true
+        if (plan.hooks.locksOwnSide) out.locksOwnSide = true
         if (plan.hooks.decidesVictor) out.decidesVictor = true
         if (plan.hooks.ignoreKills) {
             out.ignoreSkulls = true
