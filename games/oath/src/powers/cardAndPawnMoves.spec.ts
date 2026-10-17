@@ -86,10 +86,15 @@ describe('Beast', () => {
     })
 
     it('Pied Piper — ignores the adviser limit, and moves to another player taking two favor', () => {
-        const s = rulerTable([], [PIPER, WOLVES, INN])
-        expect(advisersTowardLimit(s, 'ruler')).toBe(2)
-        playDrawnCard(s, ELDERS, SearchPlay.Adviser)
-        expect(s.getPlayerState('ruler').advisers).toHaveLength(4)
+        // Its Q&A: played, it prompts no discard; held, it "still counts toward your total number of advisers".
+        const s = rulerTable([], [PIPER, WOLVES, INN], {}, { oathRevision: OathRevision.EngineFixes7 })
+        expect(advisersTowardLimit(s, 'ruler')).toBe(3)
+        expect(() => playDrawnCard(s, ELDERS, SearchPlay.Adviser)).toThrow(/adviser limit/)
+        // Before revision 11 it never counted, so a fourth adviser was kept.
+        const old = rulerTable([], [PIPER, WOLVES, INN], {}, { oathRevision: OathRevision.EngineFixes6 })
+        expect(advisersTowardLimit(old, 'ruler')).toBe(2)
+        playDrawnCard(old, ELDERS, SearchPlay.Adviser)
+        expect(old.getPlayerState('ruler').advisers).toHaveLength(4)
         const down = rulerTable([], [], { ruler: { advisers: [{ cardId: PIPER, faceUp: false }, { cardId: WOLVES, faceUp: true }, { cardId: INN, faceUp: true }] } })
         expect(() => playDrawnCard(down, ELDERS, SearchPlay.Adviser)).toThrow(/adviser limit/)
 

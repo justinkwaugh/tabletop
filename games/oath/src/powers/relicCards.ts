@@ -36,6 +36,7 @@ import { cardChoicesAtYourSite } from './choiceDomains.js'
 import { ignoresKillAll, opposingLeadId } from '../util/battlePlans.js'
 import { enemyWarbandsKilledFor } from '../util/campaignRoll.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import { settleAdviserLimitsAfterMove } from '../util/adviserLimit.js'
 import { releaseRelic } from '../util/relics.js'
 import { reasonCannotMoveCardTo } from '../util/locked.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
@@ -147,6 +148,9 @@ registerEffect(HORNED_MASK, powerIndexOf(HORNED_MASK, PowerTiming.Action), {
     resolve: (ctx) => {
         const [adviser, site] = chosen(ctx, PowerChoiceKind.Card)
         swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, adviser.cardId, site.cardId)
+        settleAdviserLimitsAfterMove(ctx.state, ctx.playerId, HORNED_MASK, [
+            { playerId: ctx.playerId, receivedCardIds: [site.cardId] }
+        ])
         return { summary: `Horned Mask: swapped ${adviser.cardId} with ${site.cardId}` }
     }
 })
