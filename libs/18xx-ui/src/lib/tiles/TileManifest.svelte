@@ -279,7 +279,7 @@
         background: var(--rail-surface-raised, #e9e1d5);
     }
     .chain-body {
-        flex: 1;
+        flex: 0 1 auto;
         min-height: 0;
         padding: 12px 12px 20px;
         overflow-y: auto;
@@ -291,7 +291,7 @@
         gap: 2px;
     }
     .chain-tiles .tile {
-        width: clamp(60px, 17vw, 112px);
+        width: clamp(52px, min(17vw, 16dvh), 112px);
     }
     .step {
         display: flex;
@@ -307,6 +307,21 @@
         content: '';
         flex: 1;
         border-top: 1px solid var(--rail-border, #443c3433);
+    }
+    @media (max-height: 560px) {
+        .chain {
+            width: calc(100vw - 16px);
+            max-height: calc(100dvh - 16px);
+        }
+        .chain header {
+            padding: 4px 8px 4px 16px;
+        }
+        .chain-body {
+            padding: 4px 8px 8px;
+        }
+        .step {
+            margin: 0;
+        }
     }
     .tiles {
         display: grid;
