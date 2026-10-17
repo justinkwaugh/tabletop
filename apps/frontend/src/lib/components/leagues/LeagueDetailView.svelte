@@ -16,6 +16,7 @@
     } from '$lib/utils/leaguePresentation'
     import { accountName } from '$lib/utils/accountName'
     import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
+    import { listenForLeagueChanges } from '$lib/services/leagueUpdates'
     import LeagueFormatCard from './LeagueFormatCard.svelte'
     import LeagueSignUpPanel from './LeagueSignUpPanel.svelte'
     import LeagueManageMenu from './LeagueManageMenu.svelte'
@@ -101,12 +102,14 @@
         const clock = setInterval(() => {
             now = Date.now()
         }, 1000)
-        // Group changes arrive as Tournament notifications; League-only changes have none yet.
-        const unsubscribe = listenForTournamentChanges(notificationService, refresh)
+        // Play in the Groups arrives as Tournament notifications, everything else as League ones.
+        const stopGroups = listenForTournamentChanges(notificationService, refresh)
+        const stopLeague = listenForLeagueChanges(notificationService, refresh, id)
         void refresh()
         return () => {
             clearInterval(clock)
-            unsubscribe()
+            stopGroups()
+            stopLeague()
             request++
         }
     })

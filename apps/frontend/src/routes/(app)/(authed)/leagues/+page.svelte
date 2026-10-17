@@ -6,6 +6,7 @@
     import { Role, type LeagueListEntry, type LeagueSeasonSummary } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import LeagueForm from '$lib/components/leagues/LeagueForm.svelte'
+    import { listenForLeagueChanges } from '$lib/services/leagueUpdates'
     import {
         leagueClosesInText,
         leagueMyPlaceText,
@@ -15,7 +16,7 @@
         leagueShapeText
     } from '$lib/utils/leaguePresentation'
 
-    const { api, authorizationService, libraryService } = getAppContext()
+    const { api, authorizationService, libraryService, notificationService } = getAppContext()
     let isAdmin = $derived(authorizationService.getSessionUser()?.roles.includes(Role.Admin))
     let leagues = $state<LeagueListEntry[]>([])
     let now = $state(Date.now())
@@ -35,22 +36,35 @@
             : `${season.players} of ${season.minimumPlayers} needed`
     }
 
+    let request = 0
+
     async function load() {
+        const current = ++request
         try {
-            leagues = (await api.listLeagues()).leagues.sort((a, b) =>
+            const value = (await api.listLeagues()).leagues.sort((a, b) =>
                 a.league.name.localeCompare(b.league.name)
             )
+            if (current === request) {
+                leagues = value
+                error = ''
+            }
         } catch (failure) {
-            error = failure instanceof Error ? failure.message : 'Could not load leagues'
+            if (current === request)
+                error = failure instanceof Error ? failure.message : 'Could not load leagues'
         } finally {
-            busy = false
+            if (current === request) busy = false
         }
     }
 
     onMount(() => {
         const clock = setInterval(() => (now = Date.now()), 30_000)
+        const stop = listenForLeagueChanges(notificationService, load)
         void load()
-        return () => clearInterval(clock)
+        return () => {
+            clearInterval(clock)
+            stop()
+            request++
+        }
     })
 </script>
 
