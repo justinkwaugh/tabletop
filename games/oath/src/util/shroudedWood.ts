@@ -26,6 +26,8 @@ import { modifierPayment, reasonCannotPayInAll } from './actionPayment.js'
 import { usableFavor } from './favor.js'
 import { flipSiteFromVault, type SiteFlip } from './hiddenInputs.js'
 import { powerMoveToll } from './powerMoveTolls.js'
+import { payToll, tollsFor, wayStationRuledAt, type Toll } from './tolls.js'
+import { cardDefinition } from '../data/cardRegistry.js'
 import { askQuestion } from './questions.js'
 
 /** R-11.7 — from a Shrouded Wood the Narrow Pass and The Hidden Place are ignored; any other site the traveler may go to. */
@@ -73,8 +75,16 @@ export interface WoodPick {
     cost: number
     /** The Wood's own price to leave, before any modifier. */
     base: number
-    /** The cards that changed `base` for this site: a declared one that counts here (Tents, Forest Paths), or Decadent. */
+    /**
+     * The cards that changed `base` for this site: a declared one that counts here (Tents, Forest
+     * Paths), Decadent, or a Way Station the traveller rules there.
+     */
     foldedBy: string[]
+    /**
+     * R-11.7-H3 — Way Station there, and the favor to give its ruler instead of the Supply (to the
+     * Chancellor for the Empire, burned for the bandits), when the traveller has it to give.
+     */
+    favorInstead?: Toll
 }
 
 /**
@@ -137,7 +147,8 @@ function planWoodPick(
     state: HydratedOathGameState,
     travelerId: string,
     siteId: string,
-    travel: WoodTravel
+    travel: WoodTravel,
+    stationFavor: number
 ): { pick: WoodPick; active: ActiveModifier[] } {
     const here = pawnSiteId(state, travelerId)
     const base = siteTravelTerms(state, here, here, 0, false).cost
@@ -147,10 +158,50 @@ function planWoodPick(
     )
     const mandatory = resolveModifiers(state, travelerId, ActionType.Travel, [], particulars).active
     const active = [...declared, ...mandatory]
-    const cost = travel.free ? 0 : foldSupplyCost(base, state, travelerId, active, particulars)
+    const folded = travel.free ? 0 : foldSupplyCost(base, state, travelerId, active, particulars)
+    // R-11.7-H3 — Way Station there: free for its ruler; for anyone else, a favor instead.
+    const station = woodTravelTakesCards(state)
+        ? wayStationAt(state, travelerId, siteId)
+        : undefined
+    const ruledStation = station?.ruled
+    const cost = ruledStation ? 0 : folded
     const foldedBy =
-        travel.free || cost === base ? [] : priceSetters(state, travelerId, active, particulars)
-    return { pick: { siteId, cost, base, foldedBy }, active }
+        travel.free || cost === base
+            ? []
+            : ruledStation && folded > 0
+              ? [ruledStation]
+              : priceSetters(state, travelerId, active, particulars)
+    const favorInstead = station?.offer && cost > 0 && stationFavor >= 1 ? station.offer : undefined
+    return {
+        pick: { siteId, cost, base, foldedBy, ...(favorInstead ? { favorInstead } : {}) },
+        active
+    }
+}
+
+/** Way Station at `toSiteId`: the one the traveller rules, or the one whose ruler they may give a favor. */
+function wayStationAt(
+    state: HydratedOathGameState,
+    travelerId: string,
+    toSiteId: string
+): { ruled?: string; offer?: Toll } {
+    const ruled = wayStationRuledAt(state, travelerId, toSiteId)
+    if (ruled) return { ruled }
+    const offer = tollsFor(state, travelerId, { kind: 'travel', toSiteId }).find((t) => t.discount)
+    return offer ? { offer } : {}
+}
+
+/**
+ * The favor left for Way Station at the pick: what the traveller holds, less what the declared
+ * cards will place (R-11.7-H2) and Toll Roads' favor at the same site, asked first.
+ */
+function stationFavorAt(
+    state: HydratedOathGameState,
+    travelerId: string,
+    siteId: string,
+    committedFavor: number
+): number {
+    const toll = powerMoveToll(state, travelerId, siteId) === undefined ? 0 : 1
+    return usableFavor(state, travelerId) - committedFavor - toll
 }
 
 /** R-11.7 — what the traveller pays when the ruler picks `siteId`: the Wood's 2, folded for that site. */
@@ -158,9 +209,33 @@ export function woodPick(
     state: HydratedOathGameState,
     travelerId: string,
     siteId: string,
-    travel: WoodTravel
+    travel: WoodTravel,
+    committedFavor = 0
 ): WoodPick {
-    return planWoodPick(state, travelerId, siteId, travel).pick
+    const favor = stationFavorAt(state, travelerId, siteId, committedFavor)
+    return planWoodPick(state, travelerId, siteId, travel, favor).pick
+}
+
+/** R-11.7, R-11.7-H3 — a pick is payable with the Supply, or with Way Station's favor instead. */
+function isPayable(state: HydratedOathGameState, travelerId: string, pick: WoodPick): boolean {
+    return pick.cost <= state.getPlayerState(travelerId).supply || pick.favorInstead !== undefined
+}
+
+/**
+ * R-11.7-H3 — once the pick has landed (and any Toll Roads toll is paid): Way Station's favor, if
+ * the traveller may give it, and whether the Supply is payable too, so that they choose.
+ */
+export function wayStationChoiceAt(
+    state: HydratedOathGameState,
+    travelerId: string,
+    siteId: string,
+    travel: WoodTravel
+): { toll: Toll; supplyCost: number; supplyPayable: boolean } | undefined {
+    const favor = usableFavor(state, travelerId)
+    const { pick } = planWoodPick(state, travelerId, siteId, travel, favor)
+    if (!pick.favorInstead) return undefined
+    const supplyPayable = pick.cost <= state.getPlayerState(travelerId).supply
+    return { toll: pick.favorInstead, supplyCost: pick.cost, supplyPayable }
 }
 
 /**
@@ -186,10 +261,9 @@ export function payableWoodPicks(
     travel: WoodTravel,
     committedFavor = 0
 ): WoodPick[] {
-    const supply = state.getPlayerState(travelerId).supply
     return tollPayableWoodSites(state, travelerId, committedFavor)
-        .map((siteId) => woodPick(state, travelerId, siteId, travel))
-        .filter((pick) => pick.cost <= supply)
+        .map((siteId) => woodPick(state, travelerId, siteId, travel, committedFavor))
+        .filter((pick) => isPayable(state, travelerId, pick))
 }
 
 export function reasonWoodPickRefused(
@@ -205,11 +279,11 @@ export function reasonWoodPickRefused(
     if (!tollPayableWoodSites(state, travelerId).includes(siteId)) {
         return `${travelerId} has no favor for the toll to travel to ${siteId}`
     }
-    const { cost } = woodPick(state, travelerId, siteId, travel)
+    const pick = woodPick(state, travelerId, siteId, travel)
     const supply = state.getPlayerState(travelerId).supply
-    return supply < cost
-        ? `${travelerId} cannot pay the ${cost} Supply to travel to ${siteId}: they have ${supply}`
-        : undefined
+    return isPayable(state, travelerId, pick)
+        ? undefined
+        : `${travelerId} cannot pay the ${pick.cost} Supply to travel to ${siteId}: they have ${supply}`
 }
 
 /**
@@ -231,6 +305,22 @@ export function reasonWoodStayRefused(
         : undefined
 }
 
+/**
+ * R-11.7-H3 — how the pick settles: `favorInstead`, Way Station's favor given instead of the
+ * Supply; `chooserPlayerId`, the ruler, recorded when the traveller's own answer settles it.
+ */
+export interface WoodSettle {
+    favorInstead?: Toll
+    chooserPlayerId?: string
+}
+
+/** "Way Station: paid Ann 1 favor", as History reads a card's note. */
+function giveWayStationFavor(state: HydratedOathGameState, travelerId: string, toll: Toll): string {
+    payToll(state, travelerId, toll)
+    const name = cardDefinition(toll.cardId)?.name ?? toll.cardId
+    return toll.payeeId ? `${name}: paid ${toll.payeeId} 1 favor` : `${name}: burned 1 favor`
+}
+
 function soleWarbandOwner(owners: readonly WarbandOwner[]): WarbandOwner | undefined {
     const distinct = new Set(owners)
     return distinct.size === 1 ? owners[0] : undefined
@@ -246,24 +336,34 @@ export function settleWoodPick(
     state: HydratedOathGameState,
     travelerId: string,
     siteId: string,
-    travel: WoodTravel
+    travel: WoodTravel,
+    settle: WoodSettle = {}
 ): { pick: ShroudedWoodPick; revealed?: SiteFlip; endsActPhase: boolean } {
     const fromSiteId = pawnSiteId(state, travelerId)
-    const { pick, active } = planWoodPick(state, travelerId, siteId, travel)
+    const { pick, active } = planWoodPick(state, travelerId, siteId, travel, 0)
     const traveler = state.getPlayerState(travelerId)
-    traveler.spendSupply(pick.cost)
+    // R-11.7-H3 — Way Station's favor instead of the Supply, given as the traveller goes.
+    const station = settle.favorInstead
+    const given = station ? [giveWayStationFavor(state, travelerId, station)] : []
+    const spent = station ? 0 : pick.cost
+    traveler.spendSupply(spent)
     traveler.siteId = siteId
     const revealed = state.isSiteFaceup(siteId) ? undefined : flipSiteFromVault(state, siteId)
     const after = runAfter(state, travelerId, active, { destinationSiteId: siteId })
-    const notes = [...after.notes, ...afterTravelPersistent(state, travelerId, fromSiteId, siteId)]
+    const notes = [
+        ...given,
+        ...after.notes,
+        ...afterTravelPersistent(state, travelerId, fromSiteId, siteId)
+    ]
     return {
         pick: {
             travelerPlayerId: travelerId,
             siteId,
-            supplySpent: pick.cost,
+            supplySpent: spent,
             supplyRemaining: traveler.supply,
             notes: notes.length > 0 ? notes : undefined,
-            warbandOwner: soleWarbandOwner(after.warbandOwners)
+            warbandOwner: soleWarbandOwner(after.warbandOwners),
+            ...(settle.chooserPlayerId ? { chooserPlayerId: settle.chooserPlayerId } : {})
         },
         revealed,
         endsActPhase: after.endsActPhase && woodTravelTakesCards(state)

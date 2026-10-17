@@ -144,6 +144,8 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
     },
     // R-10.5 — the discards are the asked player's to choose and order, and their pile is secret.
     [PowerQuestionKind.DiscardAdvisers]: () => undefined,
+    // R-11.7-H3 — asked only while both ways are open; with one, the pick takes it unasked.
+    [PowerQuestionKind.WayStationFavor]: () => undefined,
     // R-11.13-H1 — with no faceup secret to flip (or under Spell Breaker) the move is unable.
     [PowerQuestionKind.FlipToTravel]: (state, question) => {
         const invalid = reasonFlipInvalid(state, question.askedPlayerId, true, true)

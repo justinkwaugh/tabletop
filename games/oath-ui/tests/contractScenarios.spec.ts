@@ -6852,7 +6852,8 @@ test.describe('power questions', () => {
             ['askFalseProphet', ['As your Vision', 'Discard']],
             ['askBrassHorse', [/^Travel to /]],
             ['askFlipToTravel', ['Travel, paying flip 1 secret', 'Stay']],
-            ['askBrassHorseHidden', [/^Travel to /]]
+            ['askBrassHorseHidden', [/^Travel to /]],
+            ['askWayStation', ['Give, paying 1 favor', 'Pay 2 Supply']]
         ] as const) {
             test(`${table}: no label is wider than its button; the answers share one width, at least 44 px tall`, async ({ page }) => {
                 await openTable(page, table)
@@ -9163,5 +9164,37 @@ test.describe('The Hidden Place on a power-made travel', () => {
         await expect(others.locator('img')).toHaveCount(1)
         await hidden.click()
         await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+    })
+})
+
+/**
+ * R-11.7-H3 — the Shrouded Wood's ruler sent the traveller to Way Station's site, and both ways are
+ * open: "Spend no Supply by giving Ann 1 [favor]?" with Give 1 [favor] and Pay 2 Supply; both travel.
+ */
+test.describe('Way Station at the Shrouded Wood’s pick', () => {
+    const questionLine = (page: Page) => grid(page).locator('.question-line')
+
+    test('the line names the payee; Give pays the favor in gold, travels, and History names Way Station and the ruler’s pick', async ({ page }) => {
+        await openTable(page, 'askWayStation')
+        await expect(questionLine(page)).toHaveText(/^Spend no Supply by giving \S+\s*1\s*\?$/)
+        await expect(questionLine(page).locator('img[alt="favor"]')).toHaveCount(1)
+        await expect(grid(page).getByRole('heading', { name: 'Way Station' })).toBeVisible()
+        const give = answer(page, 'Give, paying 1 favor')
+        await expect(give).toHaveText(/^Give\s*·\s*1$/)
+        await expect(give.locator('.text-oath-accent img')).toHaveCount(1)
+        await expect(give).toHaveClass(/border-oath-primary-border/)
+        await expect(answer(page, 'Pay 2 Supply')).toBeVisible()
+        await give.click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+        expect((await call(page, 'tableFacts')).favorOf).toMatchObject({ me: 3, ann: 4 })
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.locator('.history')).toContainText(/traveled from Shrouded Wood to \S+ \((your|ann's) pick\); paid (you|ann) 1\s*\(Way Station\)/)
+    })
+
+    test('Pay 2 Supply travels and gives no favor', async ({ page }) => {
+        await openTable(page, 'askWayStation')
+        await answer(page, 'Pay 2 Supply').click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+        expect((await call(page, 'tableFacts')).favorOf).toMatchObject({ me: 4, ann: 3 })
     })
 })

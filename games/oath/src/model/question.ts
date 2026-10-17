@@ -175,7 +175,13 @@ export enum PowerQuestionKind {
      * The Hidden Place, the Buried Giant (revision 15) — a power moves the asked player to a site
      * they reach only by flipping a faceup secret facedown: flip and travel, or stay (R-11.13-H1).
      */
-    FlipToTravel = 'flipToTravel'
+    FlipToTravel = 'flipToTravel',
+    /**
+     * Way Station (revision 15) — the Shrouded Wood's ruler sent the asked player's Travel to its
+     * site, and they can both pay the Supply and give its ruler a favor: give it and spend no
+     * Supply, or pay the Supply; either way they travel (R-11.7-H3).
+     */
+    WayStationFavor = 'wayStationFavor'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -259,7 +265,9 @@ export const ShroudedWoodPick = Type.Object({
     /** R-7.4 (Tyrant), R-7.1.4 (Grasping Vines, Boiling Lake) */
     notes: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
     /** R-10.13 — whose warband Tyrant killed. */
-    warbandOwner: Type.Optional(WarbandOwner)
+    warbandOwner: Type.Optional(WarbandOwner),
+    /** R-11.7-H3 — the ruler who picked, when the traveller's own Way Station answer settles the pick. */
+    chooserPlayerId: Type.Optional(Type.String())
 })
 
 /** Dragonskin Drum — the warbands an answer put on its player's board, and whose they are (R-10.13). */
@@ -469,6 +477,22 @@ export const PowerQuestion = Type.Union([
         siteId: Type.String()
     }),
     Type.Object({
+        kind: Type.Literal(PowerQuestionKind.WayStationFavor),
+        /** Way Station. */
+        cardId: Type.String(),
+        /** The traveller. */
+        askedPlayerId: Type.String(),
+        /** Absent: the bandits rule Way Station, so the favor is burned (R-10.3-H1). */
+        payeeId: Type.Optional(Type.String()),
+        /** The Shrouded Wood's ruler, who picked the site. */
+        chooserPlayerId: Type.String(),
+        fromSiteId: Type.String(),
+        siteId: Type.String(),
+        /** What the other answer spends: the Wood's price for this site, the cards counted. */
+        supplyCost: Type.Number(),
+        travel: ShroudedWoodTravel
+    }),
+    Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** The power that moved the advisers. */
         cardId: Type.String(),
@@ -573,6 +597,8 @@ export const QuestionAnswer = Type.Union([
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.DragonskinDrum), gain: Type.Boolean() }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.FlipToTravel), flip: Type.Boolean() }),
+    /** `give`: the favor to Way Station's ruler and no Supply; otherwise the Supply. Both travel. */
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.WayStationFavor), give: Type.Boolean() }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** R-10.5 — in the order they go down, the last on top; a facedown one is named to its holder alone. */

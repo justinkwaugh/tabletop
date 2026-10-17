@@ -624,6 +624,8 @@ export class QuestionDraft implements PanelDraft {
                 return { kind: question.kind, gain: yes }
             case PowerQuestionKind.FlipToTravel:
                 return { kind: question.kind, flip: yes }
+            case PowerQuestionKind.WayStationFavor:
+                return { kind: question.kind, give: yes }
             case PowerQuestionKind.SneakAttack:
                 assert(!yes, 'A Sneak Attack is taken by campaigning, not by an answer')
                 return { kind: question.kind, campaign: false }

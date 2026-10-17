@@ -76,3 +76,54 @@ describe('R-11.7-H2 — the Shrouded Wood’s ruler is offered what the engine a
         expect(draft.woodDestinations).toEqual([])
     })
 })
+
+describe('R-11.7-H3 — Way Station at the pick: Give 1 [favor] / Pay 2 Supply', () => {
+    /** I (3 Supply) was sent to c2, where Way Station stands and Dana rules it. */
+    function wayStation(favor: number) {
+        const question: PowerQuestion = {
+            kind: PowerQuestionKind.WayStationFavor,
+            cardId: 'denizen.nomad.way-station',
+            askedPlayerId: ME,
+            payeeId: DANA,
+            chooserPlayerId: DANA,
+            fromSiteId: 'p1',
+            siteId: 'c2',
+            supplyCost: 2,
+            travel: { free: false }
+        }
+        const state = testState(
+            [
+                testPlayer({ playerId: ME, color: Color.Red, siteId: 'p1', supply: 3, favor }),
+                testPlayer({ playerId: DANA, color: Color.Blue, siteId: 'h1', favor: 2, warbandsOnBoard: { [DANA]: 3 } }),
+                testPlayer({ playerId: 'bea', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c1' })
+            ],
+            {
+                oathRevision: OathRevision.EngineFixes11,
+                chancellorPlayerId: 'bea',
+                machineState: MachineState.PowerQuestion,
+                siteCards: { c1: 'site.plains', c2: 'site.great-slums', p1: 'site.shrouded-wood', h1: 'site.mountain' },
+                denizensBySite: { c1: [], c2: ['denizen.nomad.way-station'], p1: [], h1: [] },
+                warbandsBySite: { p1: { [DANA]: 1 }, c2: { [DANA]: 1 } },
+                pendingQuestions: { queue: [question], askingPlayerId: ME, resumeMachineState: MachineState.ActPhase }
+            }
+        )
+        const session = openSessionOn(tableOf(state))
+        const sent = vi.spyOn(session, 'answerQuestion').mockResolvedValue()
+        return { draft: session.question, sent }
+    }
+
+    it('Give sends the favor, Pay the Supply', async () => {
+        const { draft, sent } = wayStation(1)
+        expect(draft.acceptComplete).toBe(true)
+        expect(draft.acceptRefusedBecause).toBeUndefined()
+        await draft.accept()
+        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.WayStationFavor, give: true })
+        await draft.decline()
+        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.WayStationFavor, give: false })
+    })
+
+    it('with no favor left, the engine refuses Give and says why', () => {
+        const { draft } = wayStation(0)
+        expect(draft.acceptRefusedBecause).toBe('giving takes 1 favor and you have 0')
+    })
+})

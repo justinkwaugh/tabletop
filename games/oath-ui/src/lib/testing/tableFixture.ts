@@ -533,6 +533,27 @@ const QUESTION_TABLES = {
                 oathRevision: CURRENT_OATH_REVISION
             }
         ),
+    // R-11.7-H3 — Ann picked Way Station's site for this seat's Travel out of the Shrouded Wood
+    // here, and this seat can pay the Wood's 2 Supply or give Ann the favor.
+    askWayStation: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.WayStationFavor,
+                cardId: 'denizen.nomad.way-station',
+                ...asked,
+                payeeId: 'ann',
+                chooserPlayerId: 'ann',
+                fromSiteId: mapSlotsFor(Region.Cradle)[0],
+                siteId: mapSlotsFor(Region.Cradle)[1],
+                supplyCost: 2,
+                travel: { free: false }
+            },
+            {},
+            {
+                siteCards: { [mapSlotsFor(Region.Cradle)[0]]: 'site.shrouded-wood' },
+                oathRevision: CURRENT_OATH_REVISION
+            }
+        ),
     askSneakAttack: () =>
         questionTable({
             kind: PowerQuestionKind.SneakAttack,

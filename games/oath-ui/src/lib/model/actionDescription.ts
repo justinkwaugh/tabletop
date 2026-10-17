@@ -826,10 +826,11 @@ function describeActionCited(
     }
     if (isAnswerQuestion(action)) {
         const meta = action.metadata
-        // R-11.7 — the pick, or the toll's answer that settled it (the ruler is then the mover).
+        // R-11.7 — the pick, or the toll's answer that settled it (the ruler is then the mover), or
+        // the traveller's Way Station answer, which records the ruler (R-11.7-H3).
         if (meta?.woodPick) {
             const toll = meta.tollMove
-            const rulerId = toll?.moverPlayerId ?? action.playerId
+            const rulerId = meta.woodPick.chooserPlayerId ?? toll?.moverPlayerId ?? action.playerId
             return describeWoodPick(meta.woodPick, rulerId, names, viewerId, toll?.toll)
         }
         if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)

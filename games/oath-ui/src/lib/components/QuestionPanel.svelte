@@ -317,6 +317,20 @@
             {#snippet line()}Travel to {siteName(gameState, mine.siteId)}?{/snippet}
             <QuestionYesNo yes="Travel" no="Stay" cost="flip 1 secret" />
         </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.WayStationFavor}
+        <!-- R-11.7-H3 — Way Station at the Shrouded Wood's pick: its ruler's favor instead of the Supply;
+             either answer travels. The bandits' favor is burned. -->
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}Spend no Supply by {#if mine.payeeId}giving <PlayerName
+                        playerId={mine.payeeId}
+                    />{:else}burning{/if}
+                <FavorCost count={1} />?{/snippet}
+            <QuestionYesNo
+                yes={mine.payeeId ? 'Give' : 'Burn'}
+                cost="1 favor"
+                no="Pay {mine.supplyCost} Supply"
+            />
+        </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.DragonskinDrum}
         <QuestionForm cardId={mine.cardId}>
             {#snippet line()}Gain <TokenText
