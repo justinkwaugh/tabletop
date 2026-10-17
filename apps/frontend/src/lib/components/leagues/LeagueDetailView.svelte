@@ -104,8 +104,9 @@
         }, 1000)
         const stopUpdates = listenForCompetitionChanges(notificationService, refresh, {
             league: (leagueId) => leagueId === id,
+            // Until the first load names the Groups, any Tournament update may be one of them.
             tournament: (tournamentId) =>
-                detail?.groups.some((group) => group.tournamentId === tournamentId) ?? false
+                detail?.groups.some((group) => group.tournamentId === tournamentId) ?? true
         })
         void refresh()
         return () => {
