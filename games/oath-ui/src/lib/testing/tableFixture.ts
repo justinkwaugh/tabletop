@@ -98,6 +98,7 @@ import {
     woodCardsState,
     type WoodCardsScene
 } from './woodCardsTable.js'
+import { woodPickTable } from './woodPicksTable.js'
 import { heldAttackTable } from './heldAttackTable.js'
 import { RecordedStory } from './recordedStory.js'
 
@@ -209,6 +210,14 @@ export type TableName =
     | 'woodCardsRuler'
     | 'woodCardsLow'
     | 'woodStays'
+    | 'woodWayStationPick'
+    | 'woodPickWhistle'
+    | 'woodPickWhistleAway'
+    | 'woodPickWhistleToll'
+    | 'woodPickHorse'
+    | 'woodPickPalanquin'
+    | 'woodPickBanish'
+    | 'horseOwnPick'
     | 'banditCrown'
     | 'banditCrownChancellor'
     | 'banditCrownExile'
@@ -4798,6 +4807,15 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     woodCardsLow: () => tableOf(woodCardsLowState()),
     woodStays: () =>
         woodCardsRulerTable({ supply: 1, favor: 1, advisers: [FOREST_PATHS] }, [FOREST_PATHS]),
+    // R-11.7-H3 — Dana set out with no card; a pick of the Great Slum asks Way Station's question.
+    woodWayStationPick: () => woodCardsRulerTable({ advisers: [] }, []),
+    woodPickWhistle: () => woodPickTable('whistle'),
+    woodPickWhistleAway: () => woodPickTable('whistleAway'),
+    woodPickWhistleToll: () => woodPickTable('whistleToll'),
+    woodPickHorse: () => woodPickTable('horseWood'),
+    woodPickPalanquin: () => woodPickTable('palanquin'),
+    woodPickBanish: () => woodPickTable('banish'),
+    horseOwnPick: () => woodPickTable('horseOwn'),
     tollAsked: tollAskedTable,
     oracleToll: () => oracleTable(4),
     oracleNoFavor: () => oracleTable(0),

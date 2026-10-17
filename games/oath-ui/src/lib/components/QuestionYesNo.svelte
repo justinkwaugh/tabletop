@@ -8,7 +8,8 @@
         yes,
         no,
         cost,
-        dot = true
+        dot = true,
+        yesLabel
     }: {
         yes: string
         no: string
@@ -16,6 +17,8 @@
         cost?: string
         /** A dot between the word and its cost ("Travel · flip 1 secret"), or none ("Give 1 favor"). */
         dot?: boolean
+        /** The yes read aloud, where "<yes>, paying <cost>" does not say it ("Travel and flip 1 secret"). */
+        yesLabel?: string
     } = $props()
 
     let gameSession = getGameSession()
@@ -37,7 +40,7 @@
             primary
             {width}
             disabled={busy}
-            label={cost ? `${yes}, paying ${cost}` : undefined}
+            label={yesLabel ?? (cost ? `${yes}, paying ${cost}` : undefined)}
             onclick={() => draft.accept()}
         >
             {yes}{#if cost}{#if dot}<span aria-hidden="true">·</span>{/if}<span

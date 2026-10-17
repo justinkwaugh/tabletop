@@ -6651,13 +6651,12 @@ test.describe('power questions', () => {
         await expect(answer(page, 'Pass')).toBeVisible()
     })
 
-    test('Brass Horse: "Travel where? Free.", each site an equal choice of one width', async ({ page }) => {
+    test('Brass Horse: "Travel where? Free.", its sites lit on the map, none listed in the panel', async ({ page }) => {
         await openTable(page, 'askBrassHorse')
         await expect(line(page)).toHaveText('Travel where? Free.')
-        const sites = grid(page).getByRole('button', { name: /^Travel to / })
-        await expect(sites).toHaveCount(3)
-        const widths = await sites.evaluateAll((buttons) => buttons.map((b) => b.getBoundingClientRect().width))
-        expect(new Set(widths.map(Math.round)).size).toBe(1)
+        await expect(smallCard(page, 'Brass Horse')).toBeVisible()
+        await expect(grid(page).getByRole('button', { name: /^Travel to / })).toHaveCount(0)
+        expect(await litSlots(page)).toEqual(['slot.hinterland.0', 'slot.provinces.0', 'slot.provinces.1'])
     })
 
     test('Sneak Attack: "Campaign against <chip> now? Free.", and Pass', async ({ page }) => {
@@ -6850,9 +6849,7 @@ test.describe('power questions', () => {
             ['askGatheringJoin', ['Go', 'Stay']],
             ['askInquisitor', ['Adviser, facedown', 'Play it', 'Discard']],
             ['askFalseProphet', ['As your Vision', 'Discard']],
-            ['askBrassHorse', [/^Travel to /]],
-            ['askFlipToTravel', ['Travel, paying flip 1 secret', 'Stay']],
-            ['askBrassHorseHidden', [/^Travel to /]],
+            ['askFlipToTravel', ['Travel and flip 1 secret', 'Stay']],
             ['askWayStation', ['Give, paying 1 favor', 'Pay 2 Supply']]
         ] as const) {
             test(`${table}: no label is wider than its button; the answers share one width, at least 44 px tall`, async ({ page }) => {
@@ -7981,7 +7978,7 @@ test.describe('Dragonskin Drum when a power moves its holder', () => {
 
     test('after Brass Horse its user is asked the same question once they arrive', async ({ page }) => {
         await openTable(page, 'drumAfterBrassHorse')
-        await grid(page).getByRole('button', { name: /Travel to/ }).click()
+        await siteCard(page, 'slot.provinces.1').click()
         await expect(grid(page).getByRole('heading', { name: 'Dragonskin Drum' })).toBeVisible()
         expect((await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.1')
         await expect(answers(page).gain).toBeVisible()
@@ -9127,8 +9124,8 @@ test.describe('Hospitality on a Travel', () => {
 
 /**
  * R-11.13-H1 — a power-made travel to The Hidden Place asks the moved player to flip: "Travel to The
- * Hidden Place?" with Travel · flip 1 [secret] and Stay; the Brass Horse's own site button ends
- * "· +[secret]".
+ * Hidden Place?" with Travel · flip 1 [secret] and Stay; on the Brass Horse's own pick its lit site
+ * carries "+[secret]".
  */
 test.describe('The Hidden Place on a power-made travel', () => {
     const questionLine = (page: Page) => grid(page).locator('.question-line')
@@ -9138,7 +9135,7 @@ test.describe('The Hidden Place on a power-made travel', () => {
         await expect(questionLine(page)).toHaveText('Travel to The Hidden Place?')
         await expect(grid(page).getByRole('heading', { name: 'Whistle' })).toBeVisible()
         await expect(grid(page).locator('.question-form img[alt="Whistle"]')).toBeVisible()
-        const travel = answer(page, 'Travel, paying flip 1 secret')
+        const travel = answer(page, 'Travel and flip 1 secret')
         await expect(travel).toHaveText(/^Travel\s*·\s*flip 1$/)
         await expect(travel.locator('.text-oath-accent img[alt="secret"]')).toHaveCount(1)
         await expect(travel).toHaveClass(/border-oath-primary-border/)
@@ -9154,16 +9151,15 @@ test.describe('The Hidden Place on a power-made travel', () => {
         expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
     })
 
-    test('the Brass Horse: The Hidden Place ends "· +[secret]", the other site does not, and picking it travels there', async ({ page }) => {
+    test('the Brass Horse on the lit map: The Hidden Place’s chip is "+[secret]", the other site has none, and a click travels there', async ({ page }) => {
         await openTable(page, 'askBrassHorseHidden')
-        const hidden = grid(page).getByRole('button', { name: 'Travel to The Hidden Place, flipping 1 secret', exact: true })
-        await expect(hidden).toHaveText(/^The Hidden Place\s*·\s*\+$/)
-        await expect(hidden.locator('img')).toHaveCount(1)
-        const others = grid(page).getByRole('button', { name: /^Travel to / })
-        await expect(others).toHaveCount(2)
-        await expect(others.locator('img')).toHaveCount(1)
-        await hidden.click()
-        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+        const hidden = 'slot.cradle.1'
+        await expect(siteAt(page, hidden).locator('.travel-cost')).toHaveText(/^\+$/)
+        await expect(siteAt(page, hidden).locator('.travel-cost img[alt="secret"]')).toHaveCount(1)
+        await expect(siteAt(page, hidden).getByRole('button', { name: 'The Hidden Place, flip 1 secret', exact: true })).toHaveCount(1)
+        await expect(siteAt(page, 'slot.provinces.0').locator('.travel-cost')).toHaveCount(0)
+        await siteCard(page, hidden).click()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe(hidden)
     })
 })
 

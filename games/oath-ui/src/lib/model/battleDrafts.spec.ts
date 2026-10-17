@@ -325,7 +325,8 @@ describe('the spoils one step at a time', () => {
         expect(session.mapPick).toEqual({
             kind: 'banish',
             sites: session.victory.mapSites,
-            choosing: true
+            choosing: true,
+            moverId: FOE
         })
         session.victory.leavePawn()
         expect(session.siteOffers).toEqual([])

@@ -119,7 +119,7 @@ describe('a power’s site on the lit map: one pick for the whole panel', () => 
         ])
         expect(ringed(session)).toEqual([])
         expect(session.mapDimmed).toBe(true)
-        expect(session.mapPick).toEqual({ kind: 'power', sites: expect.arrayContaining(['c1', 'c2', 'p1']), choosing: true })
+        expect(session.mapPick).toEqual({ kind: 'power', sites: expect.arrayContaining(['c1', 'c2', 'p1']), choosing: true, moverId: session.myPlayer?.id })
         // Picks start empty: no Use until a tap.
         for (const cardId of [CAPTAINS, SIEGE_ENGINES]) {
             expect(session.actionPowers.picksComplete(powerOf(session, cardId))).toBe(false)

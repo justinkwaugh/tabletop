@@ -19,6 +19,7 @@ import {
     shroudedWoodDestinations,
     usableFavor,
     warbandOwnerGainedByPower,
+    woodTravelPaysAtPick,
     type ConspiracyPlay,
     PowerQuestionValidator,
     type PowerQuestion,
@@ -26,6 +27,7 @@ import {
     type QuestionAnswer
 } from '@tabletop/oath'
 import { answerCostText } from './actionCards.js'
+import type { TravelPick } from './actionOffers.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
 import { exchangeComplete, noExchangePicks, type ExchangePicks } from './exchangeTerms.js'
 import {
@@ -533,6 +535,71 @@ export class QuestionDraft implements PanelDraft {
     async sendThrough(siteId: string): Promise<void> {
         if (!this.woodDestinations.includes(siteId)) return
         await this.send({ kind: PowerQuestionKind.ShroudedWoodDestination, siteId })
+    }
+
+    /**
+     * R-11.7, R-11.13-H1 — this seat's open Travel question, answered on the map: the Shrouded
+     * Wood ruler's pick, priced for the traveller's own Travel and free after a card or a banish
+     * (R-11.7-H1), or the Brass Horse user's own free pick.
+     */
+    get travelPick(): TravelPick | undefined {
+        const question = this.question
+        if (question?.kind === PowerQuestionKind.TravelFreeTo) {
+            return {
+                moverId: question.askedPlayerId,
+                ruler: false,
+                free: true,
+                sites: question.siteIds.map((siteId) => ({
+                    siteId,
+                    cost: undefined,
+                    foldedBy: [],
+                    toll: this.travelTollAt(siteId),
+                    flip: this.travelFlipAt(siteId)
+                }))
+            }
+        }
+        if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination) return undefined
+        const moverId = question.travelerPlayerId
+        if (question.travel) {
+            return {
+                moverId,
+                ruler: true,
+                free: false,
+                sites: this.woodRegions.flatMap(({ cost, foldedBy, siteIds }) =>
+                    siteIds.map((siteId) => ({
+                        siteId,
+                        cost,
+                        foldedBy,
+                        toll: this.woodTollAt(siteId),
+                        flip: false
+                    }))
+                )
+            }
+        }
+        // R-11.7 — leaving the Wood ignores The Hidden Place, so no pick from it flips a secret.
+        // Before `UiBatch1` the traveller's own Travel paid before the pick, so nothing is free.
+        return {
+            moverId,
+            ruler: true,
+            free: woodTravelPaysAtPick(this.session.gameState),
+            sites: this.woodDestinations.map((siteId) => ({
+                siteId,
+                cost: undefined,
+                foldedBy: [],
+                toll: this.woodTollAt(siteId),
+                flip: false
+            }))
+        }
+    }
+
+    /** A tap on a site the open Travel question offers sends it. */
+    async pickTravelSite(siteId: string): Promise<void> {
+        const question = this.question
+        if (question?.kind === PowerQuestionKind.TravelFreeTo) {
+            if (question.siteIds.includes(siteId)) await this.travelTo(siteId)
+            return
+        }
+        await this.sendThrough(siteId)
     }
 
     /**

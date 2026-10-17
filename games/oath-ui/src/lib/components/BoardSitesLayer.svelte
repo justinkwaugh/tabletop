@@ -7,11 +7,10 @@
     import { cardName, siteName, slotLabel, suitName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { dimsTheMap, type SiteOffer } from '$lib/model/actionOffers.js'
-    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import {
         chipWords,
+        pickChip,
         travelChip,
-        woodChip,
         type ChipWay,
         type TravelChip
     } from '$lib/model/travelOnTheMap.js'
@@ -25,15 +24,10 @@
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
 
-    // The lit map is Setup's start-site menu, the spoils' banish, Travel's and the site of a power
-    // in Use a power, at every width: a tap on a lit site picks it. On a desktop it is the Shrouded
-    // Wood ruler's too; a phone keeps that pick in the panel, so its map lights nothing for it.
-    const layout = new PhoneLayout()
-    let offers = $derived(
-        layout.phone
-            ? gameSession.siteOffers.filter((offer) => offer.intent !== 'wood')
-            : gameSession.siteOffers
-    )
+    // The lit map is Setup's start-site menu, the spoils' banish, Travel's, a Travel question's
+    // (the Shrouded Wood ruler's pick, the Brass Horse's own) and the site of a power in Use a
+    // power, at every width: a tap on a lit site picks it.
+    let offers = $derived(gameSession.siteOffers)
     let dimmed = $derived(dimsTheMap(offers))
 
     function pickOnMap(offer: SiteOffer | undefined): (() => void) | undefined {
@@ -46,8 +40,8 @@
         if (offer?.intent === 'travel') {
             return () => void gameSession.pickTravelSite(offer.slotId)
         }
-        if (offer?.intent === 'wood') {
-            return () => void gameSession.question.sendThrough(offer.slotId)
+        if (offer?.intent === 'question') {
+            return () => void gameSession.question.pickTravelSite(offer.slotId)
         }
         if (offer?.intent === 'power') {
             return () => gameSession.actionPowers.pickSite(offer.slotId)
@@ -86,10 +80,11 @@
             case 'power':
                 // What a tap there does: the words of every row it fills.
                 return { chip: { words: offer.rows.join(' · ') }, note: '' }
-            case 'wood':
+            case 'question':
                 // R-11.7 — what the traveller pays there; the card that changed it is named after it.
+                // A free move draws only what it still costs (R-7.1.4, R-11.13-H1).
                 return {
-                    chip: woodChip(offer.cost, offer.toll),
+                    chip: pickChip(offer),
                     note:
                         offer.foldedBy.length > 0
                             ? ` (${offer.foldedBy.map(cardName).join(', ')})`
@@ -129,7 +124,7 @@
         offer?.intent === 'travel' ||
         offer?.intent === 'start' ||
         offer?.intent === 'banish' ||
-        offer?.intent === 'wood' ||
+        offer?.intent === 'question' ||
         offer?.intent === 'power'}
 
     <div
@@ -169,6 +164,21 @@
             >
                 {#if 'words' in text.chip}
                     {text.chip.words}
+                {:else if 'free' in text.chip}
+                    <!-- A free move: Toll Roads' "toll 1 [favor]", The Hidden Place's "+[secret]". -->
+                    <span class="travel-cost__cost"
+                        >{#if text.chip.free.toll}toll 1<img
+                                class="travel-cost__token"
+                                src={favorTokenImage()}
+                                alt="favor"
+                            />{/if}{#if text.chip.free.toll && text.chip.free.secret}<span
+                                class="travel-cost__or">{' · '}</span
+                            >{/if}{#if text.chip.free.secret}+<img
+                                class="travel-cost__token"
+                                src={secretTokenImage()}
+                                alt="secret"
+                            />{/if}</span
+                    >
                 {:else}
                     <span class="travel-cost__cost">
                         {#each text.chip.ways as way, index (index)}

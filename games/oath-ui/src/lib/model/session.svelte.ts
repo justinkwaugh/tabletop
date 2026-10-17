@@ -1151,18 +1151,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         // R-5.5.7.III — the spoils' pawn step, which a Sneak Attack may open off the seat's turn.
         const banish = this.victory.mapSites
         if (banish.length > 0) return banish.map((slotId) => ({ slotId, intent: 'banish' }))
-        // R-11.7 — the Shrouded Wood ruler's pick for the traveller's own Travel, asked off his turn.
-        const wood = this.question.woodRegions
-        if (wood.length > 0) {
-            return wood.flatMap(({ cost, foldedBy, siteIds }) =>
-                siteIds.map((slotId) => ({
-                    slotId,
-                    intent: 'wood',
-                    cost,
-                    foldedBy,
-                    toll: this.question.woodTollAt(slotId)
-                }))
-            )
+        // R-11.7, R-11.13-H1 — a Travel question's pick (the Shrouded Wood ruler's, asked off their
+        // turn, or the Brass Horse user's own), made on the map at every width.
+        const question = this.question.travelPick
+        if (question && question.sites.length > 0) {
+            return question.sites.map(({ siteId, ...site }) => ({
+                slotId: siteId,
+                intent: 'question',
+                ...site
+            }))
         }
         const playerId = this.liveTurnSeatId
         if (!playerId) return []
@@ -1228,25 +1225,42 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /**
      * A choice made by tapping the map, which a phone frames while its step is open: Setup's start
      * sites, all of them until the send, so the frame and its chips hold while the discards are
-     * ordered; Travel's destinations; where the spoils banish the defeated pawn; or the sites the
-     * powers in Use a power can take.
+     * ordered; Travel's destinations; where the spoils banish the defeated pawn; a Travel
+     * question's sites (the Shrouded Wood ruler's pick, the Brass Horse user's own); or the sites
+     * the powers in Use a power can take. Each names the pawn it moves, whose region it opens on.
      */
     get mapPick(): MapPick | undefined {
+        const moverId = this.liveTurnSeatId
         if (this.setup.boardPick) {
             const sites = this.setup.sites
-            return { kind: 'start', sites, choosing: sites.length > 1 }
+            return { kind: 'start', sites, choosing: sites.length > 1, moverId }
         }
         const banish = this.victory.mapSites
-        if (banish.length > 0) return { kind: 'banish', sites: banish, choosing: banish.length > 1 }
+        if (banish.length > 0) {
+            // R-5.5.7.III — the banished pawn is the defender's.
+            const defenderId = this.gameState.campaign?.defenderPlayerId
+            return { kind: 'banish', sites: banish, choosing: banish.length > 1, moverId: defenderId }
+        }
+        const question = this.question.travelPick
+        if (question && question.sites.length > 0) {
+            return {
+                kind: question.ruler ? 'ruler' : 'travel',
+                sites: question.sites.map(({ siteId }) => siteId),
+                choosing: true,
+                moverId: question.moverId
+            }
+        }
         const destinations = this.siteOffers.flatMap((offer) =>
             offer.intent === 'travel' ? [offer.slotId] : []
         )
-        if (destinations.length > 0) return { kind: 'travel', sites: destinations, choosing: true }
+        if (destinations.length > 0) {
+            return { kind: 'travel', sites: destinations, choosing: true, moverId }
+        }
         const powerSites = this.siteOffers.flatMap((offer) =>
             offer.intent === 'power' ? [offer.slotId] : []
         )
         return powerSites.length > 0
-            ? { kind: 'power', sites: powerSites, choosing: true }
+            ? { kind: 'power', sites: powerSites, choosing: true, moverId }
             : undefined
     }
 

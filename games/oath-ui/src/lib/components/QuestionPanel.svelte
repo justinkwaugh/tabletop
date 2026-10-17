@@ -5,7 +5,6 @@
     import { assertExists } from '@tabletop/common'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
-    import MenuChoice from '$lib/components/MenuChoice.svelte'
     import {
         ActionType,
         PowerQuestionKind,
@@ -20,7 +19,6 @@
     import FavorCost from '$lib/components/FavorCost.svelte'
     import QuestionVision from '$lib/components/QuestionVision.svelte'
     import QuestionYesNo from '$lib/components/QuestionYesNo.svelte'
-    import QuestionWoodPick from '$lib/components/QuestionWoodPick.svelte'
     import WoodStay from '$lib/components/WoodStay.svelte'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -29,7 +27,6 @@
     import { favorToken } from '$lib/images/tileImages.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
     import { cardName, listed, siteName, transferText } from '$lib/model/names.js'
-    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // Every "no" is a first-class button: silence is not an answer (R-X.1).
@@ -39,12 +36,7 @@
     let busy = $derived(gameSession.busy)
     let question = $derived(draft.open)
     let mine = $derived(draft.mine)
-    // Brass Horse's sites are equal choices, one width.
-    const siteWidth = new ChoiceWidth()
     const discardWidth = new ChoiceWidth()
-    // R-11.7 — the Shrouded Wood ruler's pick for the traveller's own Travel is made on the lit
-    // map on a desktop (`BoardSitesLayer`), as Travel's is; a phone lists the sites here.
-    const layout = new PhoneLayout()
 
     // Jinx — "after you roll … for any reason".
     function rolledDice(roll: RerolledRoll): string {
@@ -182,52 +174,19 @@
             <QuestionYesNo yes="Reroll" no="Keep" cost={draft.acceptCost} />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.TravelFreeTo}
+        <!-- R-11.13-H1 — the sites are lit on the map (`BoardSitesLayer`); a tap there travels. -->
         <QuestionForm cardId={mine.cardId}>
             {#snippet line()}Travel where? Free.{/snippet}
-            <div class="flex flex-wrap gap-1.5">
-                {#each mine.siteIds as siteId (siteId)}
-                    {@const toll = draft.travelTollAt(siteId)}
-                    {@const flip = draft.travelFlipAt(siteId)}
-                    <MenuChoice
-                        label="Travel to {siteName(gameState, siteId)}{toll
-                            ? ', paying 1 favor'
-                            : ''}{flip ? ', flipping 1 secret' : ''}"
-                        disabled={busy}
-                        width={siteWidth}
-                        onclick={() => draft.travelTo(siteId)}
-                    >
-                        <span class="whitespace-nowrap"
-                            >{siteName(gameState, siteId)}{#if toll}{' · '}<FavorCost
-                                    sign="+"
-                                    count={1}
-                                />{/if}{#if flip}{' · +'}<TokenText text="secret" />{/if}</span
-                        >
-                    </MenuChoice>
-                {/each}
-            </div>
         </QuestionForm>
-    {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination && mine.travel}
-        {#if layout.phone}
-            <QuestionWoodPick question={mine} />
-        {:else}
-            <p class="text-sm">Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.</p>
-            <WoodStay travelerId={mine.travelerPlayerId} spacing="mt-2.5" />
-        {/if}
     {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination}
-        <p class="text-sm mb-2">Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.</p>
-        <div class="flex flex-wrap gap-1">
-            {#each draft.woodDestinations as siteId (siteId)}
-                <button
-                    class="rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
-                    disabled={busy}
-                    onclick={() => draft.sendThrough(siteId)}
-                >
-                    {siteName(gameState, siteId)}{#if draft.woodTollAt(siteId)}<span
-                            class="whitespace-nowrap">{' · toll '}<FavorCost count={1} /></span
-                        >{/if}
-                </button>
-            {/each}
-        </div>
+        <!-- R-11.7 — the ruler picks on the lit map at every width, as for a Travel; a move that
+             spends no Supply says so once. -->
+        <p class="text-sm">
+            Pick where <PlayerName playerId={mine.travelerPlayerId} /> goes.{draft.travelPick?.free
+                ? ' Free.'
+                : ''}
+        </p>
+        <WoodStay travelerId={mine.travelerPlayerId} />
     {:else if mine.kind === PowerQuestionKind.PlayOrDiscardConspiracy}
         <QuestionConspiracy />
     {:else if mine.kind === PowerQuestionKind.TakeOrLeaveRelic}
@@ -317,7 +276,12 @@
         <!-- R-11.13-H1 — The Hidden Place (or the Narrow Pass from the Buried Giant) only with a flip. -->
         <QuestionForm cardId={mine.cardId}>
             {#snippet line()}Travel to {siteName(gameState, mine.siteId)}?{/snippet}
-            <QuestionYesNo yes="Travel" no="Stay" cost="flip 1 secret" />
+            <QuestionYesNo
+                yes="Travel"
+                no="Stay"
+                cost="flip 1 secret"
+                yesLabel="Travel and flip 1 secret"
+            />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.WayStationFavor}
         <!-- R-11.7-H3 — Way Station at the Shrouded Wood's pick: its ruler's favor instead of the Supply;

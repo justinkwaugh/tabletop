@@ -66,61 +66,7 @@ for (const { name, viewport, phone } of SIZES) {
             expect(facts.siteOf.Dana).toBe('slot.provinces.0')
         })
 
-        // On a phone the ruler picks in the panel; on a desktop on the lit map (below).
-        if (phone) {
-            test('the ruler is offered only the sites the traveller can pay for, by region with the cost', async ({ page }) => {
-                await openTable(page, 'woodRuler')
-                await expect(panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)).toBeVisible()
-                await expect(panel(page)).not.toContainText('has 2 Supply')
-
-                const cradle = panel(page).getByRole('group', { name: 'Sites in the Cradle' })
-                const provinces = panel(page).getByRole('group', { name: 'Sites in the Provinces' })
-                await expect(cradle).toContainText(/0\s*Supply\s*Decadent/)
-                await expect(provinces).toContainText(/2\s*Supply/)
-                await expect(cradle.getByRole('button')).toHaveText(['Drowned City', 'Plains'])
-                await expect(provinces.getByRole('button')).toHaveText(['Great Slum', 'River'])
-                await expect(panel(page).getByRole('group', { name: 'Sites in the Hinterland' })).toHaveCount(0)
-                await expect(panel(page).getByRole('button', { name: 'Mountain' })).toHaveCount(0)
-
-                // A region's buttons wrap side by side, as wide as the widest label, never stretched.
-                const [cradleBox, provincesBox] = [await boxOf(page, cradle), await boxOf(page, provinces)]
-                const [drowned, plains] = [await boxOf(page, cradle.getByRole('button').first()), await boxOf(page, cradle.getByRole('button').last())]
-                expect(provincesBox.y).toBeGreaterThanOrEqual(cradleBox.y + cradleBox.height - 1)
-                expect(Math.abs(drowned.y - plains.y)).toBeLessThan(1)
-                expect(Math.abs(drowned.width - plains.width)).toBeLessThan(1)
-                expect(drowned.width + plains.width).toBeLessThan((await boxOf(page, panel(page))).width * 0.9)
-                expect(drowned.height).toBeGreaterThanOrEqual(44)
-
-                await provinces.getByRole('button', { name: 'Great Slum' }).click()
-                await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.1')
-            })
-
-            test('Toll Roads: the ruler sees the toll site marked, and the pick waits on the traveller', async ({ page }) => {
-                await openTable(page, 'woodRulerToll')
-                const provinces = panel(page).getByRole('group', { name: 'Sites in the Provinces' })
-                await expect(provinces.getByRole('button')).toHaveText([/^\s*Great Slum\s*·\s*toll\s*1\s*$/, 'River'])
-                const mark = provinces.getByRole('button').first().locator('.favor-cost')
-                await expect(mark.locator('img[alt="favor"]')).toBeVisible()
-                // The toll's count is gold, as a cost is.
-                const gold = await page.evaluate(() => {
-                    const probe = document.createElement('span')
-                    probe.style.color = 'var(--oath-accent)'
-                    document.querySelector('.panel')?.append(probe)
-                    const color = getComputedStyle(probe).color
-                    probe.remove()
-                    return color
-                })
-                await expect(mark.locator('.favor-cost__count')).toHaveCSS('color', gold)
-
-                await provinces.getByRole('button', { name: /^Great Slum/ }).click()
-                // The table passes to the traveller, asked before anything is paid or moved.
-                await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
-                const facts = await call(page, 'tableFacts')
-                expect(facts.seatId).toBe('Dana')
-                expect(facts.siteOf.Dana).toBe('slot.provinces.0')
-                expect(facts.favorOf.Dana).toBe(2)
-            })
-        }
+        // The ruler picks on the lit map at every width (below).
 
         /** The traveller's Toll Roads question, in the question form, its Pay and Refuse at a standard size. */
         async function tollQuestion(page: Page) {
@@ -255,5 +201,50 @@ test.describe('the Shrouded Wood ruler’s pick on a desktop at 1280', () => {
         expect(facts.siteOf.Dana).toBe('slot.provinces.0')
         expect(facts.favorOf.Dana).toBe(2)
         await expect(page.locator('.board-card.offered')).toHaveCount(0)
+    })
+})
+
+const regionChips = (page: Page) => page.getByRole('group', { name: 'Frame the map on a region' })
+const regionChip = (page: Page, region: string) =>
+    regionChips(page).getByRole('button', { name: new RegExp(`^${region}:`) })
+
+async function framed(page: Page, slotId: string): Promise<boolean> {
+    const [card, view] = [await boxOf(page, siteAt(page, slotId).locator('.board-card')), await boxOf(page, page.locator('.scaling-surface'))]
+    return card.x >= view.x - 0.5 && card.y >= view.y - 0.5 && card.x + card.width <= view.x + view.width + 0.5 && card.y + card.height <= view.y + view.height + 0.5
+}
+
+/** R-11.7 — on a phone the ruler picks on the map too, one region at a time, as the ordinary Travel. */
+test.describe('the Shrouded Wood ruler’s pick on a phone at 375', () => {
+    test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
+
+    test('only the sites the traveller can pay for are lit, priced; the chips leave out the Hinterland; a tap sends the pick', async ({ page }) => {
+        await openTable(page, 'woodRuler')
+        await expect(panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)).toBeVisible()
+        await expect(panel(page).getByRole('group', { name: /^Sites in the / })).toHaveCount(0)
+        expect(await litSlots(page)).toEqual(['slot.cradle.0', 'slot.cradle.1', 'slot.provinces.1', 'slot.provinces.2'])
+        await expect(regionChip(page, 'Cradle')).toHaveAccessibleName('Cradle: 2 lit sites')
+        await expect(regionChip(page, 'Provinces')).toHaveAccessibleName('Provinces: 2 lit sites')
+        await expect(regionChip(page, 'Hinterland')).toHaveCount(0)
+        // Dana stands at the Wood, in the Provinces.
+        await expect(regionChip(page, 'Provinces')).toHaveAttribute('aria-pressed', 'true')
+        await expect.poll(() => framed(page, 'slot.provinces.1')).toBe(true)
+        await expect(siteAt(page, 'slot.provinces.1').locator('.travel-cost')).toHaveText('2 Supply')
+
+        await siteAt(page, 'slot.provinces.1').locator('.board-card').tap()
+        await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.1')
+    })
+
+    test('Toll Roads: the toll site’s chip carries the favor, and a tap passes the pick to the traveller', async ({ page }) => {
+        await openTable(page, 'woodRulerToll')
+        const chip = siteAt(page, 'slot.provinces.1').locator('.travel-cost')
+        await expect(chip).toHaveText(/^\s*2\+$/)
+        await expect(chip.getByRole('img', { name: 'favor' })).toBeVisible()
+        await expect.poll(() => framed(page, 'slot.provinces.1')).toBe(true)
+        await siteAt(page, 'slot.provinces.1').locator('.board-card').tap()
+        await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
+        const facts = await call(page, 'tableFacts')
+        expect(facts.seatId).toBe('Dana')
+        expect(facts.siteOf.Dana).toBe('slot.provinces.0')
+        expect(facts.favorOf.Dana).toBe(2)
     })
 })

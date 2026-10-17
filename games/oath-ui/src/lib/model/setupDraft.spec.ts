@@ -260,7 +260,7 @@ describe('the start sites on the map', () => {
             sites.map((slotId) => ({ slotId, picked: false, pickable: true }))
         )
         expect(session.mapDimmed).toBe(true)
-        expect(session.mapPick).toEqual({ kind: 'start', sites, choosing: true })
+        expect(session.mapPick).toEqual({ kind: 'start', sites, choosing: true, moverId: session.myPlayer?.id })
     })
 
     it('a picked site stays lit with the others, marked and no longer pickable; a tap on another moves the pick', () => {
@@ -304,7 +304,7 @@ describe('the start sites on the map', () => {
         expect(startOffers(session)).toEqual([{ slotId: site, picked: true, pickable: false }])
         expect(session.mapDimmed).toBe(false)
         // The frame and its region chips stay on every start site until the send.
-        expect(session.mapPick).toEqual({ kind: 'start', sites, choosing: true })
+        expect(session.mapPick).toEqual({ kind: 'start', sites, choosing: true, moverId: session.myPlayer?.id })
     })
 
     it('the Chancellor’s one legal site is shown picked and not pickable, with nothing dimmed', () => {
@@ -319,6 +319,6 @@ describe('the start sites on the map', () => {
             { slotId: TOP_CRADLE_SLOT, picked: true, pickable: false }
         ])
         expect(session.mapDimmed).toBe(false)
-        expect(session.mapPick).toEqual({ kind: 'start', sites: [TOP_CRADLE_SLOT], choosing: false })
+        expect(session.mapPick).toEqual({ kind: 'start', sites: [TOP_CRADLE_SLOT], choosing: false, moverId: session.myPlayer?.id })
     })
 })
