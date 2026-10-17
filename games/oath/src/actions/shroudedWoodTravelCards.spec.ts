@@ -17,7 +17,7 @@ import { testGame } from '../testing/game.js'
 import { served } from '../testing/projection.js'
 import { DECADENT } from '../util/reliquaryTraits.js'
 import { reliquarySlotId } from '../util/setup.js'
-import { askWoodPickForPower, payableWoodPicks } from '../util/shroudedWood.js'
+import { askWoodPickForPower, payableWoodPicks, woodPicksBeforeTravel } from '../util/shroudedWood.js'
 import { OathRevision } from '../util/revision.js'
 import '../powers/index.js'
 
@@ -395,6 +395,81 @@ describe('R-X.4 — before revision 15 the Wood’s Travel declares nothing', ()
     })
 })
 
+/** What the traveller's panel shows before the Travel is sent: each pick, its price and the cards that count there. */
+const beforeTravel = (s: HydratedOathGameState, ...cards: string[]) =>
+    woodPicksBeforeTravel(s, DANA, cards.map((cardId) => modifierUse(cardId))).map(({ pick, counted }) => [
+        pick.siteId,
+        pick.cost,
+        pick.foldedBy,
+        counted.map((use) => use.cardId)
+    ])
+
+describe('R-11.7-H2 — the Travel out of the Wood as its panel shows it, before it is sent', () => {
+    it('each pick with its price and the declared cards that count there: Tents in Dana’s region, Forest Paths at the Beast site', () => {
+        const s = table({ advisers: [TENTS, PATHS] })
+        expect(beforeTravel(s, TENTS, PATHS)).toEqual([
+            ['c1', 0, [PATHS], [PATHS]],
+            ['c2', 2, [], []],
+            ['p2', 0, [TENTS], [TENTS]],
+            ['p3', 0, [TENTS], [TENTS]],
+            ['h1', 2, [], []],
+            ['h2', 2, [], []],
+            ['h3', 2, [], []]
+        ])
+    })
+
+    it('a card that changes no price still counts at every pick it applies to (the Dragonskin Drum)', () => {
+        const s = table({ relics: [DRUM] })
+        expect(beforeTravel(s, DRUM).map(([siteId, cost, , counted]) => [siteId, cost, counted])).toEqual(
+            ['c1', 'c2', 'p2', 'p3', 'h1', 'h2', 'h3'].map((siteId) => [siteId, 2, [DRUM]])
+        )
+    })
+
+    it('the cards’ favor is counted as placed: the ruler is then offered exactly these picks', () => {
+        const s = table({ advisers: [TENTS], favor: 1, tollRoads: true, rhysAlsoRules: ['p2'] })
+        const shown = beforeTravel(s, TENTS).map(([siteId, cost]) => [siteId, cost])
+        expect(shown.map(([siteId]) => siteId)).not.toContain('p2')
+        expect(shown).toContainEqual(['p3', 0])
+        leaveWith(s, TENTS)
+        expect(priced(s, TENTS).map(([siteId, cost]) => [siteId, cost])).toEqual(shown)
+    })
+
+    it('nothing while the declaration is refused: a cost Dana cannot pay, Hospitality, or any card before revision 15', () => {
+        expect(beforeTravel(table({ advisers: [TENTS], favor: 0 }), TENTS)).toEqual([])
+        expect(beforeTravel(table({ advisers: [HOSPITALITY] }), HOSPITALITY)).toEqual([])
+        expect(beforeTravel(table({ revision: before, advisers: [TENTS] }), TENTS)).toEqual([])
+        expect(beforeTravel(table({ revision: before, advisers: [TENTS] }))).toHaveLength(7)
+    })
+})
+
+describe('R-11.7-H2 — what the History reads from the pick', () => {
+    it('the pick records the declared cards that set its price; a pick they do not reach records none', () => {
+        const s = table({ advisers: [TENTS, PATHS] })
+        leaveWith(s, TENTS, PATHS)
+        expect(pick(s, 'p2').metadata?.woodPick?.pricedBy).toEqual([TENTS])
+        const other = table({ advisers: [TENTS, PATHS] })
+        leaveWith(other, TENTS, PATHS)
+        expect(pick(other, 'h1').metadata?.woodPick).not.toHaveProperty('pricedBy')
+    })
+
+    it('a stay records who stayed and where, for its own History row', () => {
+        const s = table({ advisers: [PATHS], supply: 1, favor: 1 })
+        leaveWith(s, PATHS)
+        const stayed = new HydratedAnswerQuestion(answer(stayAnswer))
+        stayed.apply(s)
+        expect(stayed.metadata?.woodStay).toEqual({ travelerPlayerId: DANA, siteId: 'p1' })
+    })
+
+    it('a pick with no card declared records neither, so a game recorded before revision 15 replays as it was', () => {
+        const s = table({ revision: before })
+        leaveWith(s)
+        const picked = pick(s, 'p2')
+        expect(picked.metadata?.woodPick).toMatchObject({ siteId: 'p2', supplySpent: 2 })
+        expect(picked.metadata?.woodPick).not.toHaveProperty('pricedBy')
+        expect(picked.metadata?.woodStay).toBeUndefined()
+    })
+})
+
 describe('R-11.7-H2 on the seats’ own views', () => {
     const view = (playerId: string): Visibility.Perspective => ({ kind: 'player', playerId })
     const ownView = (s: HydratedOathGameState, playerId: string) =>
@@ -430,5 +505,10 @@ describe('R-11.7-H2 on the seats’ own views', () => {
         const server = engine.getValidActionTypesForPlayer(game, d, DANA)
         expect(server).toContain(ActionType.Travel)
         expect(engine.getValidActionTypesForPlayer(game, served(d, view(DANA)), DANA, { perspective: view(DANA) })).toEqual(server)
+    })
+
+    it('Dana’s panel before the Travel: the picks with Forest Paths counted', () => {
+        const s = table({ advisers: [PATHS], supply: 1, favor: 1 })
+        sameOnOwnView(s, DANA, (state) => beforeTravel(state, PATHS), [['c1', 0, [PATHS], [PATHS]]])
     })
 })

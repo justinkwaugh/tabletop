@@ -138,6 +138,21 @@ function priceSetters(
     return setters.map((m) => m.power.cardId)
 }
 
+/** R-11.7-H2 — the declared cards whose condition the site picked meets, in the order declared. */
+function declaredCountingAt(
+    state: HydratedOathGameState,
+    travelerId: string,
+    siteId: string,
+    uses: readonly ModifierUse[] | undefined
+): ModifierUse[] {
+    const particulars = { destinationSiteId: siteId }
+    return (uses ?? []).filter((use) =>
+        carriedModifiers(state, [use]).every(
+            (m) => reasonModifierDoesNotApply(state, travelerId, m, particulars) === undefined
+        )
+    )
+}
+
 /**
  * R-7.4.1, R-11.7-H2 — the mandatory modifiers fold for the site picked, and so does each declared
  * card whose condition that site meets (Tents' Q&A: "If the ruler makes you travel to another
@@ -153,8 +168,9 @@ function planWoodPick(
     const here = pawnSiteId(state, travelerId)
     const base = siteTravelTerms(state, here, here, 0, false).cost
     const particulars = { destinationSiteId: siteId }
-    const declared = carriedModifiers(state, travel.modifiers).filter(
-        (m) => reasonModifierDoesNotApply(state, travelerId, m, particulars) === undefined
+    const declared = carriedModifiers(
+        state,
+        declaredCountingAt(state, travelerId, siteId, travel.modifiers)
     )
     const mandatory = resolveModifiers(state, travelerId, ActionType.Travel, [], particulars).active
     const active = [...declared, ...mandatory]
@@ -266,6 +282,36 @@ export function payableWoodPicks(
         .filter((pick) => isPayable(state, travelerId, pick))
 }
 
+/** R-11.7-H2 — a pick the ruler would have, with the declared cards that count there. */
+export interface DeclaredWoodPick {
+    pick: WoodPick
+    counted: ModifierUse[]
+}
+
+/**
+ * R-11.7-H2 — the picks the ruler would be offered if the traveller sent their Travel now with
+ * `uses` declared: the cards' costs counted as paid (R-7.1.2), as the Travel will pay them before the
+ * ruler is asked. None while the declaration would be refused (before revision 15, any card).
+ */
+export function woodPicksBeforeTravel(
+    state: HydratedOathGameState,
+    travelerId: string,
+    uses: readonly ModifierUse[]
+): DeclaredWoodPick[] {
+    if (uses.length > 0 && !woodTravelTakesCards(state)) return []
+    const declared = resolveWoodDeclaration(state, travelerId, uses)
+    if (declared.reason) return []
+    const committed = modifierPayment(declared.active).favor
+    const travel = {
+        free: isFreeTravelNow(state, travelerId),
+        ...(uses.length > 0 ? { modifiers: uses } : {})
+    }
+    return payableWoodPicks(state, travelerId, travel, committed).map((pick) => ({
+        pick,
+        counted: declaredCountingAt(state, travelerId, pick.siteId, uses)
+    }))
+}
+
 export function reasonWoodPickRefused(
     state: HydratedOathGameState,
     travelerId: string,
@@ -355,6 +401,9 @@ export function settleWoodPick(
         ...after.notes,
         ...afterTravelPersistent(state, travelerId, fromSiteId, siteId)
     ]
+    // R-11.7-H2 — for the History: the declared cards that set what was paid here.
+    const declaredIds = (travel.modifiers ?? []).map((use) => use.cardId)
+    const pricedBy = station ? [] : pick.foldedBy.filter((cardId) => declaredIds.includes(cardId))
     return {
         pick: {
             travelerPlayerId: travelerId,
@@ -363,7 +412,8 @@ export function settleWoodPick(
             supplyRemaining: traveler.supply,
             notes: notes.length > 0 ? notes : undefined,
             warbandOwner: soleWarbandOwner(after.warbandOwners),
-            ...(settle.chooserPlayerId ? { chooserPlayerId: settle.chooserPlayerId } : {})
+            ...(settle.chooserPlayerId ? { chooserPlayerId: settle.chooserPlayerId } : {}),
+            ...(pricedBy.length > 0 ? { pricedBy } : {})
         },
         revealed,
         endsActPhase: after.endsActPhase && woodTravelTakesCards(state)

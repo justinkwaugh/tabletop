@@ -433,6 +433,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 // R-11.7-H2 — the Travel is spent and its cards stay paid; no Supply is spent.
                 return {
                     summary: `kept ${travelerPlayerId} at ${fromSiteId}`,
+                    woodStay: { travelerPlayerId, siteId: fromSiteId },
                     ...endTravelOutOfTurn(state, travelerPlayerId)
                 }
             }

@@ -267,7 +267,16 @@ export const ShroudedWoodPick = Type.Object({
     /** R-10.13 — whose warband Tyrant killed. */
     warbandOwner: Type.Optional(WarbandOwner),
     /** R-11.7-H3 — the ruler who picked, when the traveller's own Way Station answer settles the pick. */
-    chooserPlayerId: Type.Optional(Type.String())
+    chooserPlayerId: Type.Optional(Type.String()),
+    /** R-11.7-H2 — the declared cards that set the price of this pick (Tents, Forest Paths), when any did. */
+    pricedBy: Type.Optional(Type.Array(Type.String(), { maxItems: 8 }))
+})
+
+/** R-11.7-H2 — the ruler kept the traveller at the Shrouded Wood their Travel set out from. */
+export type ShroudedWoodStay = Type.Static<typeof ShroudedWoodStay>
+export const ShroudedWoodStay = Type.Object({
+    travelerPlayerId: Type.String(),
+    siteId: Type.String()
 })
 
 /** Dragonskin Drum — the warbands an answer put on its player's board, and whose they are (R-10.13). */
