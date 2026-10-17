@@ -489,20 +489,25 @@ export function reasonCannotDeclareTargets(
     }
 
     const sites = targetedSiteIds(parties)
-    // A non-site target needs the defender's pawn at your site, so it counts as one there.
-    const atAttackerSite =
-        sites.includes(attackerSiteId) ||
-        parties.targets.some((t) => t.kind !== CampaignTargetKind.Site)
-    if (!atAttackerSite) {
-        return 'must declare at least one target at your site'
-    }
+    if (needsTargetAtNamedSite(state, parties)) {
+        // A non-site target needs the defender's pawn at your site, so it counts as one there.
+        const atAttackerSite =
+            sites.includes(attackerSiteId) ||
+            parties.targets.some((t) => t.kind !== CampaignTargetKind.Site)
+        if (!atAttackerSite) {
+            return 'must declare at least one target at your site'
+        }
 
-    const defenderId = parties.defenderPlayerId
-    const defenderRulesAttackerSite = defenderId
-        ? rulesSite(state, defenderId, attackerSiteId, scopeOf(parties))
-        : banditsRuleSite(state, attackerSiteId)
-    if (defenderRulesAttackerSite && !sites.includes(attackerSiteId)) {
-        return `the defender rules ${attackerSiteId}, so you must target your site`
+        const defenderId = parties.defenderPlayerId
+        const defenderRulesAttackerSite = defenderId
+            ? rulesSite(state, defenderId, attackerSiteId, scopeOf(parties))
+            : banditsRuleSite(state, attackerSiteId)
+        if (defenderRulesAttackerSite && !sites.includes(attackerSiteId)) {
+            return `the defender rules ${attackerSiteId}, so you must target your site`
+        }
+    } else if (parties.targets.length === 0) {
+        // Law 5.5.2 — at least one target still.
+        return 'must declare at least one target'
     }
 
     // R-7.1.4 — Giant Python: the targets must add an even total of defense dice; its Q&A
@@ -511,6 +516,20 @@ export function reasonCannotDeclareTargets(
         ? targetDefenseDice(state, parties)
         : collectDefensePool(state, parties)
     return reasonPersistentForbidsTargets(state, parties, targetDice)
+}
+
+/**
+ * R-5.5.2-H2 — Law 5.5.2's two demands at "your site" (a target there; the site itself if the
+ * defender rules it) bind every Campaign but one: a Citizen outside the Empire for the Campaign
+ * (R-5.5.1.a) who acts from the site Captains or Wild Allies names "do[es] not need to target the
+ * site", as Captains' Q&A rules. Before revision 14 (R-X.4) they bound that Citizen too.
+ */
+function needsTargetAtNamedSite(state: HydratedOathGameState, parties: CampaignParties): boolean {
+    return !(
+        isAtLeastOathRevision(state, OathRevision.EngineFixes10) &&
+        parties.asIfSiteId !== undefined &&
+        parties.nonImperialPlayerIds.includes(parties.attackerPlayerId)
+    )
 }
 
 function reasonCannotTarget(

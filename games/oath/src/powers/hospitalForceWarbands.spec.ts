@@ -341,6 +341,62 @@ describe('D: a Citizen attacking the Chancellor through Captains — the warband
     })
 })
 
+describe('D, untargeted: from revision 14 the Captains site need not be targeted (R-5.5.2-H2), and its warbands are still the Citizen’s for Hospital', () => {
+    const fixed = OathRevision.EngineFixes10
+
+    /**
+     * Bea (a Citizen) names c2 (two Imperial warbands) with Captains against Ann, the Chancellor,
+     * without targeting it: Ann's pawn and favor at c2, or h1, a site Ann rules elsewhere, where
+     * Ann uses Hospital.
+     */
+    function untargeted(annAt: string, targets: CampaignTarget[], annBoard = 3) {
+        const s = table({
+            revision: fixed,
+            bea: { warbandsOnBoard: { [I]: 3 } },
+            ann: { siteId: annAt, warbandsOnBoard: { [I]: annBoard } },
+            denizens: { c1: [CAPTAINS], h1: [HOSPITAL] },
+            warbands: { c1: { [I]: 1 }, c2: { [I]: 2 }, h1: { [I]: 2 } },
+            turn: BEA
+        })
+        actionPowerUse(BEA, CAPTAINS, [site('c2')]).apply(s)
+        s.actionCount += 1
+        attack(s, BEA, ANN, targets)
+        expect(ongoingCampaign(s).nonImperialPlayerIds).toEqual([BEA])
+        expect(ongoingCampaign(s).forceSiteIds).toContain('c2')
+        defend([battlePlanUse(HOSPITAL)], ANN).apply(s)
+        expect(ongoingCampaign(s).killRedirects).toEqual([{ playerId: ANN, siteId: 'h1' }])
+        return s
+    }
+
+    const scenes: Array<[string, string, CampaignTarget[]]> = [
+        ['only Ann’s pawn and favor', 'c2', [{ kind: CampaignTargetKind.PawnAndFavor }]],
+        ['only h1, a site elsewhere', 'h1', [siteTarget('h1')]]
+    ]
+    for (const [what, annAt, targets] of scenes) {
+        it(`${what}: the skulls’ kills at c2 die, count for Ann’s Cauldron, and Ann’s Hospital holds none`, () => {
+            const s = untargeted(annAt, targets)
+            ongoingCampaign(s).pendingSkullLosses = { skulls: 2 }
+            new HydratedCampaignSkullLosses(buildAction(CampaignSkullLosses, { playerId: BEA, kills: [atSite('c2', 2)] })).apply(s)
+            expect(s.warbandsBySite['c2']?.[I] ?? 0).toBe(0)
+            expect(heldFor(s, ANN)).toBe(0)
+            expect(imperialBank(s)).toBe(CHANCELLOR_BANK + 2)
+            expect(enemyWarbandsKilledFor(s, ongoingCampaign(s), BattlePlanSide.Defender)).toBe(2)
+        })
+
+    }
+
+    it('only Ann’s pawn and favor, Ann’s board empty so the defending side loses nothing: the sacrifice at c2 dies the same way', () => {
+        const s = untargeted('c2', [{ kind: CampaignTargetKind.PawnAndFavor }], 0)
+        expect(ongoingCampaign(s).defendingForce).toEqual([])
+        Object.assign(ongoingCampaign(s), { swords: 0, defense: 1 })
+        sacrifice(s, BEA, { sacrifice: 2, sacrificeKills: [atSite('c2', 2)] })
+        expect(s.warbandsBySite['c2']?.[I] ?? 0).toBe(0)
+        expect(heldFor(s, ANN)).toBe(0)
+        expect(imperialBank(s)).toBe(CHANCELLOR_BANK + 2)
+        expect(enemyWarbandsKilledFor(s, ongoingCampaign(s), BattlePlanSide.Defender)).toBe(2)
+    })
+})
+
 describe("the defending side's loss pick: Hospital holding one group's dead and not another's makes it a choice (R-5.5.6, R-10.28-H2)", () => {
     /**
      * Dana attacks Bea (a Citizen) at c1, where one Imperial warband stands; Ann, the Chancellor, is
