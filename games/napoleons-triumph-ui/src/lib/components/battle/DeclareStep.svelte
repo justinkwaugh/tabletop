@@ -17,18 +17,17 @@
     ])
 </script>
 
-{#if folded}
-    <div class="nt-battle-prompt">
-        Declare the attack: tap pieces on the map, once to attack, twice to lead.
-    </div>
-{:else}
-    <div class="nt-battle-prompt">
+<div class="nt-battle-prompt">
+    {#if folded}
+        Declare the attack: tap pieces on the map, once to attack, twice to lead, three times to
+        leave out.
+    {:else}
         Declare the attack{stage.startsFromThreat
             ? ': the pieces that made the threat are named to start with'
             : ''}. Tap a piece, here or on the map, to attack with it, again to lead, and once more
         to leave it out.
-    </div>
-{/if}
+    {/if}
+</div>
 <AttackerPicker {stage} {folded} />
 {#if stage.approachWide && !folded}
     <div class="nt-battle-faint pt-1">Attack width</div>

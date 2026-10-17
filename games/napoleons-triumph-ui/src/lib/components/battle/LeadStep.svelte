@@ -8,17 +8,17 @@
     const gameSession = getGameSession()
 </script>
 
-{#if folded}
-    <div class="nt-battle-prompt">
+<div class="nt-battle-prompt">
+    {#if folded}
         The attack is pressed. Tap {stage.leaderLimit === 1 ? 'a unit' : 'up to two units'} on the map
-        to lead the defence.
-    </div>
-{:else}
-    <div class="nt-battle-prompt">
+        to lead the defence. Leading units are shown to the enemy when you lead with them.
+    {:else}
         The attack is pressed. Tap {stage.leaderLimit === 1 ? 'a unit' : 'up to two units'}, here or
         on the map, to lead the defence. Leading units are shown to the enemy when you lead with
         them.
-    </div>
+    {/if}
+</div>
+{#if !folded}
     <Force
         units={stage.defenders}
         selected={stage.leaders}

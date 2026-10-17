@@ -1042,12 +1042,11 @@ export function resultsSoFar(attack: EndedAttack, stage: BattleStage | undefined
 /** The panel folds a step down to its prompt and buttons only where its choices can be made on the map. */
 export function foldsAway(stage: BattleStage | undefined): boolean {
     switch (stage?.kind) {
+        case StageKind.Retreat:
         case StageKind.ExcessLosses:
         case StageKind.Regroup:
         case StageKind.Advance:
             return false
-        case StageKind.Retreat:
-            return !stage.choosingLosses
         default:
             return true
     }

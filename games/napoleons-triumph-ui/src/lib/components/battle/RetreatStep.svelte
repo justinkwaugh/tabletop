@@ -14,7 +14,7 @@
     import CommanderChip from './CommanderChip.svelte'
     import RetreatCostRule from './RetreatCostRule.svelte'
 
-    let { stage, folded = false }: { stage: RetreatStage; folded?: boolean } = $props()
+    let { stage }: { stage: RetreatStage } = $props()
 
     const gameSession = getGameSession()
     const plan = $derived(stage.plan)
@@ -105,55 +105,51 @@
     {#if hint}
         <div class="nt-battle-faint">{hint}</div>
     {/if}
-    {#if !folded}
-        <div class="nt-retreat-rows">
-            {#each rows as row (row.kind === RetreatRowKind.Retreats ? row.locale : row.kind)}
-                <div class="nt-retreat-to">
-                    {rowName(row)}
-                    {#if row.kind === RetreatRowKind.Retreats && row.full && plan.stranded > 0}
-                        <span class="nt-battle-faint">full</span>
-                    {/if}
-                </div>
-                <div class="nt-retreat-units">
-                    {#each row.units as retreating (retreating.unit.id)}
-                        {@const unit = retreating.unit}
-                        {@const commander = commanderOf(retreating)}
-                        <span class="nt-retreat-unit">
-                            <UnitTile
+    <div class="nt-retreat-rows">
+        {#each rows as row (row.kind === RetreatRowKind.Retreats ? row.locale : row.kind)}
+            <div class="nt-retreat-to">
+                {rowName(row)}
+                {#if row.kind === RetreatRowKind.Retreats && row.full && plan.stranded > 0}
+                    <span class="nt-battle-faint">full</span>
+                {/if}
+            </div>
+            <div class="nt-retreat-units">
+                {#each row.units as retreating (retreating.unit.id)}
+                    {@const unit = retreating.unit}
+                    {@const commander = commanderOf(retreating)}
+                    <span class="nt-retreat-unit">
+                        <UnitTile
+                            playerId={unit.playerId}
+                            {...gameSession.lookOf(unit)}
+                            label="Choose this unit"
+                            roleMark={lossMark(retreating.loss)}
+                            marker={FATES[retreating.fate]}
+                            dimmed={row.kind !== RetreatRowKind.Retreats}
+                            selected={stage.alone === unit.id}
+                            onclick={stage.pickableIds.includes(unit.id)
+                                ? () => gameSession.pickBattleUnit(unit.id)
+                                : undefined}
+                        />
+                        {#if commander}
+                            {@const name = commanderDefinition(commander.commanderId).name}
+                            <CommanderChip
+                                commanderId={commander.commanderId}
                                 playerId={unit.playerId}
-                                {...gameSession.lookOf(unit)}
-                                label="Choose this unit"
-                                roleMark={lossMark(retreating.loss)}
-                                marker={FATES[retreating.fate]}
-                                dimmed={row.kind !== RetreatRowKind.Retreats}
-                                selected={stage.alone === unit.id}
-                                onclick={stage.pickableIds.includes(unit.id)
-                                    ? () => gameSession.pickBattleUnit(unit.id)
+                                label={commander.movable
+                                    ? `Choose the unit ${name} stays with`
+                                    : `${name} stays with this unit`}
+                                chosen={stage.movingCommander === commander.commanderId}
+                                onclick={commander.movable
+                                    ? () =>
+                                          gameSession.liftRetreatingCommander(commander.commanderId)
                                     : undefined}
                             />
-                            {#if commander}
-                                {@const name = commanderDefinition(commander.commanderId).name}
-                                <CommanderChip
-                                    commanderId={commander.commanderId}
-                                    playerId={unit.playerId}
-                                    label={commander.movable
-                                        ? `Choose the unit ${name} stays with`
-                                        : `${name} stays with this unit`}
-                                    chosen={stage.movingCommander === commander.commanderId}
-                                    onclick={commander.movable
-                                        ? () =>
-                                              gameSession.liftRetreatingCommander(
-                                                  commander.commanderId
-                                              )
-                                        : undefined}
-                                />
-                            {/if}
-                        </span>
-                    {/each}
-                </div>
-            {/each}
-        </div>
-    {/if}
+                        {/if}
+                    </span>
+                {/each}
+            </div>
+        {/each}
+    </div>
     <div class="pt-1">
         <button
             type="button"

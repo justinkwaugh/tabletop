@@ -16,14 +16,18 @@
 
 {#if stage.feinting}
     <div class="nt-battle-prompt">
-        {#if folded}
-            A feint: name its pieces on the map, then say where they end.
-        {:else if stage.canPress}
-            A feint: name the pieces that make it, then say where they end. Undo goes back to
-            pressing the attack.
+        {#if stage.canPress}
+            A feint.
         {:else}
-            The defence stands, and an attack by road must then be a feint. Name the pieces that
-            make it, then say where they end.
+            The defence stands, and an attack by road must then be a feint.
+        {/if}
+        {#if folded}
+            Tap the pieces that make it on the map, then say where they end.
+        {:else}
+            Name the pieces that make it, then say where they end.
+        {/if}
+        {#if stage.canPress}
+            Undo goes back to pressing the attack.
         {/if}
     </div>
     <AttackerPicker {stage} {folded} />
@@ -38,9 +42,7 @@
     </div>
 {:else}
     <div class="nt-battle-prompt">
-        {#if folded}
-            The defence stands.
-        {:else if stage.pressShowsLeaders}
+        {#if stage.pressShowsLeaders}
             The defence stands and has named its leading units. Press the attack, and they are shown
             to you; or call it a feint.
         {:else}

@@ -11,10 +11,10 @@
 <div class="nt-battle-prompt">
     {#if stage.forced}
         Your pieces on the approach must defend.
+    {:else if folded}
+        Tap units on the map to defend with them. Or retreat.
     {:else}
-        {folded
-            ? 'Tap units on the map to defend with them, or retreat.'
-            : 'Tap units, here or on the map, to defend with them. Or retreat.'}
+        Tap units, here or on the map, to defend with them. Or retreat.
     {/if}
 </div>
 {#if !folded}

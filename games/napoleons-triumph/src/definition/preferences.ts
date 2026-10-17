@@ -6,7 +6,7 @@ export const NapoleonsTriumphPreferences = Type.Object(
         darkBorders: Type.Boolean(),
         movementTrails: Type.Boolean(),
         localeCapacities: Type.Boolean(),
-        battlePanelFolded: Type.Boolean()
+        actionPanelFolded: Type.Boolean()
     },
     { additionalProperties: false }
 )
@@ -18,7 +18,7 @@ export const NapoleonsTriumphPreferenceDefinition = {
             darkBorders: false,
             movementTrails: false,
             localeCapacities: false,
-            battlePanelFolded: false
+            actionPanelFolded: false
         },
         version: 1
     }

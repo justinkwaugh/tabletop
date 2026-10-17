@@ -32,7 +32,7 @@
     const attack = $derived(gameSession.shownAttack)
     const concluded = $derived(gameSession.concludedBattle)
     const stage = $derived(gameSession.battleStage)
-    const folded = $derived(gameSession.battlePanelFolds)
+    const folded = $derived(gameSession.battlePanelShownFolded)
 
     const PENALTY_NAMES: Record<UnitType, string> = {
         [UnitType.Infantry]: 'infantry',
@@ -182,7 +182,7 @@
                 {:else if stage.kind === StageKind.DefenceLeaders}
                     <LeadStep {stage} {folded} />
                 {:else if stage.kind === StageKind.Retreat}
-                    <RetreatStep {stage} {folded} />
+                    <RetreatStep {stage} />
                 {:else if stage.kind === StageKind.Feint}
                     <FeintStep {stage} {folded} />
                 {:else if stage.kind === StageKind.Declaration}

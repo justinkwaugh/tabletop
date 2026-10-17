@@ -9,9 +9,13 @@
 </script>
 
 <div class="nt-battle-prompt">
-    The defender has retreated. Name the units that made the threat{folded ? ' on the map' : ''};
-    they move into the locale.
-    {#if !folded && (stage.roadOrders || stage.byRoad)}
+    {#if folded}
+        The defender has retreated. Tap the units that made the threat on the map; they move into
+        the locale.
+    {:else}
+        The defender has retreated. Name the units that made the threat; they move into the locale.
+    {/if}
+    {#if stage.roadOrders || stage.byRoad}
         Cavalry that rides in by road may ride on or threaten again, and is shown when its move
         ends.
     {/if}

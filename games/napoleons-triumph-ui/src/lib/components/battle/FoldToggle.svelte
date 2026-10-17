@@ -2,14 +2,14 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    const folded = $derived(gameSession.battlePanelFolded)
+    const folded = $derived(gameSession.actionPanelFolded)
 </script>
 
 <button
     type="button"
     class="nt-fold"
     aria-expanded={!folded}
-    onclick={() => gameSession.setBattlePanelFolded(!folded)}
+    onclick={() => gameSession.setActionPanelFolded(!folded)}
 >
     {folded ? 'Unfold' : 'Fold'}
     <svg viewBox="0 0 12 8" aria-hidden="true" class:nt-fold-down={folded}>

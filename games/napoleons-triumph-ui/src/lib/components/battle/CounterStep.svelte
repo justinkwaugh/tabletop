@@ -16,8 +16,14 @@
             ? ''
             : ': infantry may only when the attack is winning'}.
     {:else}
-        Up to two units may counter-attack{folded ? ': tap them on the map' : ''}; each loses a step
-        first.{stage.attackWinning ? '' : ' Infantry may only when the attack is winning.'}
+        {#if folded}
+            Tap up to two units on the map to counter-attack;
+        {:else}
+            Up to two units may counter-attack;
+        {/if}
+        each loses a step first.{stage.attackWinning
+            ? ''
+            : ' Infantry may only when the attack is winning.'}
     {/if}
 </div>
 {#if !folded}
