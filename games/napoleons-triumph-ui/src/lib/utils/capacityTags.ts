@@ -22,6 +22,7 @@ export interface CapacityTag {
     capacity: number
     centre: Point
     moved: boolean
+    crossesBorder: boolean
     cover: OrientedBox
 }
 
@@ -50,36 +51,12 @@ function holds(outline: readonly Point[], corners: Point[]): boolean {
     )
 }
 
-function clearSpot(
-    locale: number,
+// Ring by ring outwards, so the first spot found is about the nearest.
+function nearestFitting(
     printedAt: Point,
-    halfSize: number,
-    obstacles: readonly Obstacle[]
+    bounds: BoundingBox,
+    fits: (centre: Point) => boolean
 ): Point | undefined {
-    const outline = LOCALE_GEOMETRY[locale].outline
-    const bounds = boundsOfPoints(outline)
-    const room = {
-        x: bounds.x + halfSize,
-        y: bounds.y + halfSize,
-        width: bounds.width - halfSize * 2,
-        height: bounds.height - halfSize * 2
-    }
-    if (room.width < 0 || room.height < 0) {
-        return undefined
-    }
-    // Grown by the tag once, each obstacle then rules a candidate out by its centre alone.
-    const forbidden = obstacles
-        .filter((obstacle) => boxesOverlap(bounds, obstacle.bounds))
-        .map(({ outline: covering }) => {
-            const grown = grownBySquare(covering, halfSize + CLEAR_OF_OBSTACLES)
-            return { outline: grown, bounds: boundsOfPoints(grown) }
-        })
-    const fits = (centre: Point) =>
-        boxHolds(room, centre) &&
-        !forbidden.some(
-            (zone) => boxHolds(zone.bounds, centre) && outlineHolds(zone.outline, centre)
-        ) &&
-        holds(outline, cornersOf(squareAround(centre, halfSize)))
     const farthest = Math.max(
         ...[bounds.x, bounds.x + bounds.width].flatMap((x) =>
             [bounds.y, bounds.y + bounds.height].map((y) =>
@@ -87,7 +64,6 @@ function clearSpot(
             )
         )
     )
-    // Ring by ring outwards, so the first spot found is about the nearest.
     for (let reach = SEARCH_STEP; reach <= farthest; reach += SEARCH_STEP) {
         const count = Math.ceil((2 * Math.PI * reach) / SEARCH_STEP)
         for (let index = 0; index < count; index++) {
@@ -104,7 +80,55 @@ function clearSpot(
     return undefined
 }
 
-// A tag kept wholly inside its locale is never read as a neighbour's, so it needs no line back to its box.
+function clearSpot(
+    locale: number,
+    printedAt: Point,
+    halfSize: number,
+    obstacles: readonly Obstacle[]
+): { centre: Point; crossesBorder: boolean } | undefined {
+    const outline = LOCALE_GEOMETRY[locale].outline
+    const bounds = boundsOfPoints(outline)
+    // Grown by the tag once, each obstacle then rules a candidate out by its centre alone.
+    const forbidden = obstacles
+        .filter((obstacle) => boxesOverlap(bounds, obstacle.bounds))
+        .map(({ outline: covering }) => {
+            const grown = grownBySquare(covering, halfSize + CLEAR_OF_OBSTACLES)
+            return { outline: grown, bounds: boundsOfPoints(grown) }
+        })
+    const clear = (centre: Point) =>
+        !forbidden.some(
+            (zone) => boxHolds(zone.bounds, centre) && outlineHolds(zone.outline, centre)
+        )
+    const room = {
+        x: bounds.x + halfSize,
+        y: bounds.y + halfSize,
+        width: bounds.width - halfSize * 2,
+        height: bounds.height - halfSize * 2
+    }
+    const wholeRoom =
+        room.width >= 0 && room.height >= 0
+            ? nearestFitting(
+                  printedAt,
+                  bounds,
+                  (centre) =>
+                      boxHolds(room, centre) &&
+                      clear(centre) &&
+                      holds(outline, cornersOf(squareAround(centre, halfSize)))
+              )
+            : undefined
+    if (wholeRoom) {
+        return { centre: wholeRoom, crossesBorder: false }
+    }
+    // Zoomed out, a tag grows with the flags until the pieces leave it no whole room: its middle in the locale still names it.
+    const middleRoom = nearestFitting(
+        printedAt,
+        bounds,
+        (centre) => boxHolds(bounds, centre) && clear(centre) && insidePolygon(centre, outline)
+    )
+    return middleRoom ? { centre: middleRoom, crossesBorder: true } : undefined
+}
+
+// A tag kept inside its locale is never read as a neighbour's, so it needs no line back to its box.
 // Where the locale has no room it stays on its box: a capacity over a piece is better than none.
 export function capacityTags(
     capacityOf: (locale: number) => number,
@@ -127,13 +151,14 @@ export function capacityTags(
             measured
         )
         const moved = roomOnTheBox ? undefined : clearSpot(locale, printedAt, halfSize, measured)
-        const centre = moved ?? printedAt
+        const centre = moved?.centre ?? printedAt
         return [
             {
                 locale,
                 capacity: capacityOf(locale),
                 centre,
                 moved: moved !== undefined,
+                crossesBorder: moved?.crossesBorder ?? false,
                 cover: squareAround(centre, halfSize)
             }
         ]

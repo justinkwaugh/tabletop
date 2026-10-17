@@ -51,11 +51,11 @@ describe('capacity tags', () => {
         )
     })
 
-    it('never cross the outline of their locale where it bends in between their corners', () => {
+    it('never cross the outline of their locale where it bends in between their corners while it has room', () => {
         const scale = 3
         const obstacles = Object.values(CAPACITY_BOXES).map((at) => cornersOf(squareAround(at, 4)))
         for (const tag of capacityTags(capacityOf, { allShown: false, scale, obstacles })) {
-            if (!tag.moved) continue
+            if (!tag.moved || tag.crossesBorder) continue
             const corners = cornersOf(tag.cover)
             const outline = LOCALE_GEOMETRY[tag.locale].outline
             const sides = outline.map((corner, index) => [
@@ -64,6 +64,16 @@ describe('capacity tags', () => {
             ])
             expect(sides.some((side) => outlinesOverlap(corners, side))).toBe(false)
         }
+    })
+
+    it('keep their middle in their locale when it has no clear room for the whole tag', () => {
+        const stack = cornersOf(squareAround(CAPACITY_BOXES[96], 30))
+        const bounds = boundsOfPoints(LOCALE_GEOMETRY[96].outline)
+        const scale = Math.ceil(bounds.width / CAPACITY_TAG_SIZE) + 1
+        const [tag] = capacityTags(capacityOf, { allShown: false, scale, obstacles: [stack] })
+        expect(tag).toMatchObject({ moved: true, crossesBorder: true })
+        expect(insidePolygon(tag.centre, LOCALE_GEOMETRY[96].outline)).toBe(true)
+        expect(outlinesOverlap(cornersOf(tag.cover), stack)).toBe(false)
     })
 
     it('stay on their box over whatever covers it when the locale has no clear spot', () => {
