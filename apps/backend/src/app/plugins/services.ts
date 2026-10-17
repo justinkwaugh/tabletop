@@ -199,7 +199,8 @@ export default fp(async (fastify: FastifyInstance) => {
             new FirestoreLeagueStore(redisCacheService, fastify.firestore),
             tournamentService,
             userService,
-            taskService
+            taskService,
+            notificationService
         )
     )
     fastify.addHook('onClose', async () => {
