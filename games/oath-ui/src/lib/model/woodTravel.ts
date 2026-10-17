@@ -1,18 +1,23 @@
 import {
     Region,
+    banksOnArrival,
     resolveWoodDeclaration,
+    woodPicksBeforeTravel,
     woodTravelTakesCards,
     type HydratedOathGameState,
     type ModifierUse,
     type WoodPick
 } from '@tabletop/oath'
 import { cardName } from '$lib/model/names.js'
+import { isHospitality } from '$lib/model/travelRows.js'
 
 /**
  * R-11.7-H2 — of the cards in use, those a Travel out of an enemy's Shrouded Wood declares: from
  * revision 15, each the engine accepts there. A Travel starts with its free gains and Hospitality
- * in use, so a card the Wood's Travel cannot take (Hospitality, whose bank depends on the site not
- * yet picked; any card before revision 15) is in use without being declared there.
+ * in use, so a card the Wood's Travel cannot take (any card before revision 15) is in use without
+ * being declared there. Hospitality names no bank there: its bank is settled once the ruler's pick
+ * has landed the traveller. It is declared only when some pick the ruler may make could give its
+ * favor, as on any Travel, where it goes only with a way that gains.
  */
 export function woodTravelCards(
     state: HydratedOathGameState,
@@ -20,9 +25,28 @@ export function woodTravelCards(
     inUse: readonly ModifierUse[]
 ): ModifierUse[] {
     if (!woodTravelTakesCards(state)) return []
-    return inUse.filter(
-        (use) => resolveWoodDeclaration(state, playerId, [use]).reason === undefined
+    const accepted = inUse
+        .map((use) => (isHospitality(use) ? { ...use, choices: [] } : use))
+        .filter((use) => resolveWoodDeclaration(state, playerId, [use]).reason === undefined)
+    const hospitality = accepted.find(isHospitality)
+    if (!hospitality) return accepted
+    const gains = woodPicksBeforeTravel(state, playerId, accepted).some(
+        ({ pick }) => banksOnArrival(state, playerId, hospitality, pick.siteId).length > 0
     )
+    return gains ? accepted : accepted.filter((use) => !isHospitality(use))
+}
+
+/** R-11.7-H2 — the declared Hospitality, if a bank at the site the ruler picks would give its favor. */
+export function hospitalityGainsAt(
+    state: HydratedOathGameState,
+    playerId: string,
+    cards: readonly ModifierUse[],
+    siteId: string
+): ModifierUse[] {
+    const hospitality = cards.find(isHospitality)
+    return hospitality && banksOnArrival(state, playerId, hospitality, siteId).length > 0
+        ? [hospitality]
+        : []
 }
 
 /** R-11.7 — the sites the Shrouded Wood's ruler may pick in one region, at one price, set by the same cards. */

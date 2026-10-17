@@ -25,8 +25,9 @@
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { favorToken } from '$lib/images/tileImages.js'
+    import { suitImage } from '$lib/images/suitImages.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
-    import { cardName, listed, siteName, transferText } from '$lib/model/names.js'
+    import { cardName, listed, siteName, suitName, transferText } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // Every "no" is a first-class button: silence is not an answer (R-X.1).
@@ -37,6 +38,7 @@
     let question = $derived(draft.open)
     let mine = $derived(draft.mine)
     const discardWidth = new ChoiceWidth()
+    const bankWidth = new ChoiceWidth()
 
     // Jinx — "after you roll … for any reason".
     function rolledDice(roll: RerolledRoll): string {
@@ -297,6 +299,29 @@
                 dot={!mine.payeeId}
                 no="Pay {mine.supplyCost} Supply"
             />
+        </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.HospitalityBank}
+        <!-- R-11.7-H2 — Hospitality after the Shrouded Wood ruler's pick, two or more banks matching:
+             one button per bank, "+1 [favor] [suit]" as on any Travel; one tap gains. -->
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}<TokenText text="Gain 1 favor from:" />{/snippet}
+            <div class="flex flex-wrap gap-2">
+                {#each mine.banks as suit (suit)}
+                    <AnswerButton
+                        width={bankWidth}
+                        disabled={busy}
+                        label="+1 favor from the {suitName(suit)} bank"
+                        onclick={() => draft.gainHospitalityFavor(suit)}
+                    >
+                        <FavorCost count={1} sign="+" />
+                        <img
+                            class="inline-block h-[1.1em] w-auto"
+                            src={suitImage(suit)}
+                            alt="the {suitName(suit)} bank"
+                        />
+                    </AnswerButton>
+                {/each}
+            </div>
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.DragonskinDrum}
         <QuestionForm cardId={mine.cardId}>

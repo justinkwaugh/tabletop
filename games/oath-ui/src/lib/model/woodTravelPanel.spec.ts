@@ -194,7 +194,8 @@ describe('R-11.7-H2 — the Wood’s Travel cards with the other Travel cards an
         const HOSPITALITY = 'denizen.nomad.hospitality'
         const { session, sent } = travellerSession({ advisers: [TENTS, HOSPITALITY] })
         expect(session.modifiers.isDeclared(travelCard(HOSPITALITY))).toBe(true)
-        expect(listedCards(session)).toEqual([PORTAL, TENTS].sort())
+        // Way Station (Nomad) at the Great Slum matches Hospitality (Nomad): a pick there gains.
+        expect(listedCards(session)).toEqual([HOSPITALITY, PORTAL, TENTS].sort())
         session.modifiers.declare(travelCard(TENTS), true)
         expect(session.woodRegions?.find((r) => r.region === Region.Provinces)).toMatchObject({ cost: 0, foldedBy: [TENTS] })
         expect(session.woodTravelReason).toBeUndefined()

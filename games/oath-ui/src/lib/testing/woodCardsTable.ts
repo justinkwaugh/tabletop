@@ -18,6 +18,8 @@ export const TENTS = 'denizen.nomad.tents'
 export const FOREST_PATHS = 'denizen.beast.forest-paths'
 export const PORTAL = 'denizen.arcane.portal'
 export const WAY_STATION = 'denizen.nomad.way-station'
+export const HOSPITALITY = 'denizen.nomad.hospitality'
+export const COUNCIL_SEAT = 'denizen.order.council-seat'
 
 /** A Travel card as the Travel declares it. */
 export function travelCard(cardId: string): ModifierUse {
@@ -127,5 +129,20 @@ export function woodCardsLowState(advisers: string[] = [FOREST_PATHS]): Hydrated
     const state = woodCardsState({ supply: 1, favor: 1, advisers })
     state.getPlayerState('Dana').secrets = 0
     state.denizensBySite = { ...state.denizensBySite, [GREAT_SLUM]: [] }
+    return state
+}
+
+/**
+ * R-11.7-H2 — Dana holds Hospitality (Nomad) and Council Seat (Order; an Exile may hold it) and sets
+ * out from Bea's Wood, which holds no card. The River holds Bear Traps (Order) and Oracle (Nomad),
+ * so the Order and Nomad banks both match there; the Mountain's Captains (Order) match one.
+ */
+export function woodHospitalityState(): HydratedOathGameState {
+    const state = woodCardsState({ advisers: [HOSPITALITY, COUNCIL_SEAT] })
+    state.denizensBySite = {
+        ...state.denizensBySite,
+        [WOOD]: [],
+        [RIVER]: ['denizen.order.bear-traps', 'denizen.nomad.oracle']
+    }
     return state
 }

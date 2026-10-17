@@ -447,6 +447,11 @@ export class QuestionDraft implements PanelDraft {
         await this.send({ kind: PowerQuestionKind.PickFavorBank, suit })
     }
 
+    /** R-11.7-H2 — Hospitality's bank, after the Shrouded Wood ruler's pick: one tap gains. */
+    async gainHospitalityFavor(suit: Suit): Promise<void> {
+        await this.send({ kind: PowerQuestionKind.HospitalityBank, suit })
+    }
+
     /** Fae Merchant — the relics held before the draw that may go down; the Grand Scepter never does. */
     get heldRelicsToBottom(): string[] {
         const question = this.question

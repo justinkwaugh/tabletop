@@ -92,10 +92,12 @@ import {
 import { shroudedWoodState } from './shroudedWoodTable.js'
 import {
     FOREST_PATHS,
+    HOSPITALITY,
     TENTS,
     woodCardsLowState,
     travelCard,
     woodCardsState,
+    woodHospitalityState,
     type WoodCardsScene
 } from './woodCardsTable.js'
 import { woodPickTable } from './woodPicksTable.js'
@@ -210,6 +212,8 @@ export type TableName =
     | 'woodCardsRuler'
     | 'woodCardsLow'
     | 'woodStays'
+    | 'woodHospitality'
+    | 'woodHospitalityAsked'
     | 'woodWayStationPick'
     | 'woodPickWhistle'
     | 'woodPickWhistleAway'
@@ -574,6 +578,19 @@ const QUESTION_TABLES = {
                 siteCards: { [mapSlotsFor(Region.Cradle)[0]]: 'site.shrouded-wood' },
                 oathRevision: CURRENT_OATH_REVISION
             }
+        ),
+    askHospitalityBank: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.HospitalityBank,
+                cardId: HOSPITALITY,
+                powerIndex: travelCard(HOSPITALITY).powerIndex,
+                ...asked,
+                siteId: mapSlotsFor(Region.Cradle)[1],
+                banks: [Suit.Order, Suit.Nomad]
+            },
+            {},
+            { oathRevision: CURRENT_OATH_REVISION }
         ),
     askSneakAttack: () =>
         questionTable({
@@ -3931,6 +3948,29 @@ function woodCardsRulerTable(scene: WoodCardsScene, cards: string[]): PlayedTabl
     ])
 }
 
+/**
+ * R-11.7-H2 — Dana set out from Bea's Wood with Hospitality, and Bea picked the River: two banks
+ * match there, so Dana is asked which.
+ */
+function woodHospitalityAskedTable(): PlayedTable {
+    const table = tableOf(woodHospitalityState())
+    return played(table, [
+        createAction(Travel, {
+            ...envelope(table),
+            playerId: 'Dana',
+            modifiers: [{ ...travelCard(HOSPITALITY), choices: [] }]
+        }),
+        createAction(AnswerQuestion, {
+            ...envelope(table),
+            playerId: 'Bea',
+            answer: {
+                kind: PowerQuestionKind.ShroudedWoodDestination,
+                siteId: mapSlotsFor(Region.Provinces)[2]
+            }
+        })
+    ])
+}
+
 /** Dana has set out from Rhys's Wood; Rhys picks, the Great Slum marked with its toll. */
 function woodRulerTollTable(): PlayedTable {
     const table = tableOf(woodTollState())
@@ -4809,6 +4849,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
         woodCardsRulerTable({ supply: 1, favor: 1, advisers: [FOREST_PATHS] }, [FOREST_PATHS]),
     // R-11.7-H3 — Dana set out with no card; a pick of the Great Slum asks Way Station's question.
     woodWayStationPick: () => woodCardsRulerTable({ advisers: [] }, []),
+    woodHospitality: () => tableOf(woodHospitalityState()),
+    woodHospitalityAsked: woodHospitalityAskedTable,
     woodPickWhistle: () => woodPickTable('whistle'),
     woodPickWhistleAway: () => woodPickTable('whistleAway'),
     woodPickWhistleToll: () => woodPickTable('whistleToll'),

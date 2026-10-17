@@ -27,7 +27,7 @@ import { recoverRows } from './recoverRows.js'
 import { searchRows } from './searchRows.js'
 import { tradeRows } from './tradeRows.js'
 import { travelOffer, travelRows } from './travelRows.js'
-import { woodTravelCards } from './woodTravel.js'
+import { hospitalityGainsAt, woodTravelCards } from './woodTravel.js'
 
 /** R-7.4 — the major actions a modifier card is declared on. */
 export const CARD_ACTIONS = [
@@ -179,8 +179,8 @@ export function actionMenu(
         case ActionType.Travel:
             // R-11.7-H2 — out of an enemy's Shrouded Wood each pick the ruler may make is a row, priced
             // with the cards in use that the Wood's Travel declares, each fitting the cards that
-            // count there. Portal from its own site leaves the ruler out (R-11.7-H4): an ordinary
-            // Travel, below.
+            // count there, and Hospitality where a bank there would give its favor. Portal from its
+            // own site leaves the ruler out (R-11.7-H4): an ordinary Travel, below.
             if (woodChooserForTravel(state, playerId, modifiers) !== undefined) {
                 const cards = woodTravelCards(state, playerId, modifiers)
                 return woodPicksBeforeTravel(state, playerId, cards).map(({ pick, counted }) => ({
@@ -189,7 +189,10 @@ export function actionMenu(
                         cost: pick.cost,
                         foldedBy: pick.foldedBy
                     }),
-                    modifiers: counted
+                    modifiers: [
+                        ...counted,
+                        ...hospitalityGainsAt(state, playerId, cards, pick.siteId)
+                    ]
                 }))
             }
             // R-7.4 — Hospitality's gain comes after the move, so a destination offers the same

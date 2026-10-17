@@ -849,6 +849,11 @@ function describeActionCited(
         if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)
         if (!meta) return 'answered a question'
         if (meta.kind === PowerQuestionKind.DragonskinDrum) return drumText(meta.cardId, meta.warbandGain)
+        // R-11.7-H2 — Hospitality's bank after the Wood ruler's pick, as any Travel's gain reads.
+        if (meta.kind === PowerQuestionKind.HospitalityBank) {
+            const gain = noteClause(meta.summary, action.playerId)?.text ?? meta.summary
+            return namedNote(gain, action.playerId, names, viewerId)
+        }
         const answer = action.answer
         // The Gathering — the proposal's terms, from the answer's own record.
         if (answer.kind === PowerQuestionKind.GatheringFloor && answer.proposal) {
@@ -1055,11 +1060,14 @@ function describeWoodPick(
         .join('')
     // R-11.7-H2 — a declared card is named only where it set the price ("spending 0 Supply (Tents)").
     const cost = costWith(pick.supplySpent, inBrackets((pick.pricedBy ?? []).map(cardName)))
-    return nameSeats(
-        `traveled from Shrouded Wood to ${names.site(pick.siteId)} (${rulerId}'s pick)${cost}${tollClause}${notes}`,
-        names,
-        viewerId,
-        pick.travelerPlayerId
+    // R-11.7-H2 — Hospitality's gain names its bank as any Travel's does ("the Order bank").
+    return namedBanks(
+        nameSeats(
+            `traveled from Shrouded Wood to ${names.site(pick.siteId)} (${rulerId}'s pick)${cost}${tollClause}${notes}`,
+            names,
+            viewerId,
+            pick.travelerPlayerId
+        )
     )
 }
 
