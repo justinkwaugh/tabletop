@@ -15,7 +15,7 @@ import {
     freeActionTypesNow,
     reasonFreeActionComesFirst,
     usableFavor,
-    shroudedWoodChooser,
+    woodChooserForTravel,
     tollPayableWoodSites,
     isFreeTravelNow,
     woodPick,
@@ -36,8 +36,8 @@ export function reasonActionUnavailable(
 
     switch (type) {
         case ActionType.Travel: {
-            // R-11.7 — leaving an enemy's Shrouded Wood names no site.
-            if (shroudedWoodChooser(gameState, playerId) !== undefined) {
+            // R-11.7 — leaving an enemy's Shrouded Wood names no site (the tile: no card declared yet).
+            if (woodChooserForTravel(gameState, playerId, []) !== undefined) {
                 return HydratedTravel.reasonCannotLeaveShroudedWood(gameState, playerId, {})
             }
             if (HydratedTravel.legalDestinations(gameState, playerId).length > 0) return undefined
@@ -152,7 +152,7 @@ function knownCause(
     switch (type) {
         case ActionType.Travel:
             // R-11.7 — leaving an enemy's Shrouded Wood, the ruler picks: the cheapest pick is the price.
-            if (shroudedWoodChooser(gameState, playerId) !== undefined) {
+            if (woodChooserForTravel(gameState, playerId, []) !== undefined) {
                 return woodCause(gameState, playerId)
             }
             return sharedCause(gameState, playerId, travelCandidates(gameState, playerId))

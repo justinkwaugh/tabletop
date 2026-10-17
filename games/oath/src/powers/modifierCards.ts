@@ -86,7 +86,12 @@ registerModifier(
                     : `you are travelling neither to nor from ${here}, where Portal sits`
             },
             spendsNoSupply: spendNoSupply,
-            ignoresSitePowers: true
+            ignoresSitePowers: true,
+            // R-11.7-H4 — travelling from its own site: the Shrouded Wood there picks nothing.
+            ignoresOriginShroudedWood: (ctx) => {
+                const here = siteHolding(ctx.state, 'denizen.arcane.portal')
+                return here !== undefined && here === player(ctx).siteId
+            }
         }
     }
 )

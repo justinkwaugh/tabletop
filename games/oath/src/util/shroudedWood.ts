@@ -7,7 +7,7 @@ import {
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import { ActionType } from '../definition/actions.js'
 import { cardPowers } from '../data/cardPowers.js'
-import { choiceSpecsFor, type EffectContext } from '../powers/registry.js'
+import { choiceSpecsFor, effectFor, type EffectContext } from '../powers/registry.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { pawnSiteId } from './pawn.js'
 import { afterTravelPersistent, reasonPersistentForbidsTravel } from './persistent.js'
@@ -368,6 +368,35 @@ export function settleWoodPick(
         revealed,
         endsActPhase: after.endsActPhase && woodTravelTakesCards(state)
     }
+}
+
+/**
+ * R-11.7, R-11.7-H4 — who picks where the traveller's own Travel goes: the enemy who rules the
+ * Shrouded Wood they stand at, unless a card they declare ignores that Wood's power from its own
+ * site (Portal), and then they name the site themselves. Before revision 15 (R-X.4) none does.
+ */
+export function woodChooserForTravel(
+    state: HydratedOathGameState,
+    travelerId: string,
+    uses: readonly ModifierUse[] | undefined
+): string | undefined {
+    const chooser = shroudedWoodChooser(state, travelerId)
+    if (chooser === undefined || !woodTravelTakesCards(state)) return chooser
+    return declaresIgnoreOfOriginWood(state, travelerId, uses) ? undefined : chooser
+}
+
+function declaresIgnoreOfOriginWood(
+    state: HydratedOathGameState,
+    travelerId: string,
+    uses: readonly ModifierUse[] | undefined
+): boolean {
+    return (uses ?? []).some((use) => {
+        const power = cardPowers(use.cardId)[use.powerIndex]
+        if (!power) return false
+        const ignores = effectFor(power)?.modifier?.ignoresOriginShroudedWood
+        const ctx = { state, playerId: travelerId, power, choices: use.choices ?? [] }
+        return ignores?.(ctx) === true
+    })
 }
 
 /**

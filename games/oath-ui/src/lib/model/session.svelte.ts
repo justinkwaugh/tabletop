@@ -40,7 +40,7 @@ import {
     HydratedRollEndDie,
     Search,
     SearchPlay,
-    shroudedWoodChooser,
+    woodChooserForTravel,
     isFreeTravelNow,
     payableWoodPicks,
     playMapChanges,
@@ -1565,11 +1565,14 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.travelRows.find((row) => row.slotId === siteId)?.ways ?? []
     }
 
-    /** R-11.7 — who chooses where this seat's Travel goes, when an enemy rules its Shrouded Wood. */
+    /**
+     * R-11.7 — who chooses where this seat's Travel goes, when an enemy rules its Shrouded Wood:
+     * nobody once Portal is declared at its own site there (R-11.7-H4).
+     */
     get shroudedWoodChooser(): string | undefined {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Travel) return undefined
-        return shroudedWoodChooser(this.gameState, playerId)
+        return woodChooserForTravel(this.gameState, playerId, this.modifiers.declared)
     }
 
     /** R-11.7 — what each region the ruler may pick would cost, once the Travel pays at the pick. */

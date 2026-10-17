@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { afterTravelPersistent } from '../util/persistent.js'
 import { payTolls } from '../util/tolls.js'
-import { flipSecretFacedown, shroudedWoodChooser } from '../util/siteTravel.js'
+import { flipSecretFacedown } from '../util/siteTravel.js'
 import { ActionType } from '../definition/actions.js'
 import {
     modifierSummary,
@@ -17,6 +17,7 @@ import { flipSiteFromVault } from '../util/hiddenInputs.js'
 import {
     isFreeTravelNow,
     resolveWoodDeclaration,
+    woodChooserForTravel,
     woodTravelPaysAtPick
 } from '../util/shroudedWood.js'
 import { nextActionIndex } from '../util/freeActions.js'
@@ -115,7 +116,8 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         this.revealsInfo = false
         // Second Wind out of turn (revision 7) — the Travel is the holder's answer to "Travel now?".
         const outOfTurn = freeActionOutOfTurnOfferedTo(state, this.playerId, ActionType.Travel)
-        const chooser = shroudedWoodChooser(state, this.playerId)
+        // R-11.7-H4 — Portal declared at its own site leaves the Wood's ruler nothing to pick.
+        const chooser = woodChooserForTravel(state, this.playerId, this.modifiers)
         if (chooser !== undefined) {
             this.leaveShroudedWood(state, chooser, outOfTurn?.cardId)
             return

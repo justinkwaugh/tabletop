@@ -22,6 +22,7 @@ import {
     resolveWoodDeclaration,
     tollPayableWoodSites,
     woodPick,
+    woodChooserForTravel,
     woodTravelPaysAtPick,
     woodTravelTakesCards
 } from './shroudedWood.js'
@@ -64,6 +65,10 @@ export function reasonCannotLeaveShroudedWood(
     const chooser = shroudedWoodChooser(state, playerId)
     if (chooser === undefined) {
         return 'no enemy rules the Shrouded Wood you stand at'
+    }
+    // R-11.7-H4 — Portal from its own site ignores the Wood: a normal Travel, with its site named.
+    if (woodChooserForTravel(state, playerId, choice.modifiers) === undefined) {
+        return 'Portal ignores the Shrouded Wood: name the site you travel to'
     }
     if (choice.siteId !== undefined) return "the Shrouded Wood's ruler chooses where you go"
     const cardsDeclared = (choice.modifiers?.length ?? 0) > 0
@@ -110,7 +115,7 @@ export function travelPlan(
     flipSecret = false
 ): ActionPlan & { siteNotes: string[] } {
     const player = state.getPlayerState(playerId)
-    if (shroudedWoodChooser(state, playerId) !== undefined) {
+    if (woodChooserForTravel(state, playerId, modifiers) !== undefined) {
         return {
             reason: "the Shrouded Wood's ruler chooses where you go",
             cost: 0,
@@ -268,9 +273,11 @@ function woodDeclarationsToTry(state: HydratedOathGameState, playerId: string): 
 
 export function canTravel(state: HydratedOathGameState, playerId: string): boolean {
     if (shroudedWoodChooser(state, playerId) !== undefined) {
-        return woodDeclarationsToTry(state, playerId).some(
-            (modifiers) =>
-                reasonCannotLeaveShroudedWood(state, playerId, { modifiers }) === undefined
+        // R-11.7-H4 — a declaration with Portal from its own site is a normal Travel.
+        return woodDeclarationsToTry(state, playerId).some((modifiers) =>
+            woodChooserForTravel(state, playerId, modifiers) === undefined
+                ? legalTravelDestinations(state, playerId, modifiers).length > 0
+                : reasonCannotLeaveShroudedWood(state, playerId, { modifiers }) === undefined
         )
     }
     return legalTravelDestinations(state, playerId).length > 0

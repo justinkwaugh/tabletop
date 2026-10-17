@@ -159,6 +159,12 @@ export interface ModifierHooks {
     ) => { summary?: string; endsActPhase?: boolean; warbandOwner?: WarbandOwner } | undefined
     /** Portal */
     ignoresSitePowers?: boolean
+    /**
+     * R-11.7-H4 — Portal used from its own site, an enemy's Shrouded Wood: the Wood's "you travel to
+     * the site of the ruler's choice" is ignored with the other site powers (R-9.2-H1), so the
+     * traveller names the site. Forest Paths ignores site powers too, but keeps the ruler's pick.
+     */
+    ignoresOriginShroudedWood?: (ctx: EffectContext) => boolean
 }
 
 /** R-7.5, R-5.5.3 */
