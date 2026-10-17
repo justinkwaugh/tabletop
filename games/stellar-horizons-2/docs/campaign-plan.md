@@ -61,7 +61,7 @@ A title can be bought at any time, but titles are a shared pool and two Players 
 
 Rule 1.16 lets ships of several Players resolve an anomaly together if they agree how to split the reward. The rulebook counts a joint resolution for each partner's anomaly directives and for the Guardian and Mastermind titles.
 
-Being worked out as **Shared Actions** in `docs/parallel-spans.md`: partners negotiate a pact on the Main Line during the exploration span, Löwenherz-style, and the agreed pact is binding. Each partner then commits ships to it in their own Branch, and the pact resolves after the span in initiative order at its earliest partner. The earlier idea of committing blind to matching terms is dropped.
+Being worked out as **Common Actions** in `docs/parallel-spans.md`: partners negotiate a pact on the Main Line during the exploration span, Löwenherz-style, and the agreed pact is binding. Each partner then commits ships to it in their own Branch, and the pact resolves after the span in initiative order at its earliest partner. The earlier idea of committing blind to matching terms is dropped.
 
 - **The campaign:** the front reward (IP, cash, markers, goods, settlements, a card) is divided item by item. The tile itself is not kept by anyone: its back stays in the system or leaves the game.
 - **These are the Voyages:** rewards are ignored and the resolved tile is kept, so a pact names the one partner who keeps it.
