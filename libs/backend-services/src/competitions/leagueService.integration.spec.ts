@@ -533,6 +533,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(leagueNotifications.sendNotification).toHaveBeenCalledExactlyOnceWith(
                 leagueUpdate
             )
+            leagueNotifications.sendNotification.mockClear()
+            await leagues.updateSignUpPolicy(id, cancelled.league.signUp, admin)
+            expect(leagueNotifications.sendNotification).not.toHaveBeenCalled()
             expect(cancelled.season).toMatchObject({ number: 0, status: 'cancelled' })
             expect(cancelled.season?.nextTaskAt).toBeUndefined()
             await expect(leagues.signUp(id, users[6])).rejects.toThrow('Sign-up is closed')

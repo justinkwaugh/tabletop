@@ -37,7 +37,7 @@ import {
     NotificationDistributionMethod,
     type NotificationService
 } from '../notifications/notificationService.js'
-import type { LeagueStore } from '../persistence/stores/leagueStore.js'
+import type { LeagueChange, LeagueStore } from '../persistence/stores/leagueStore.js'
 import type { TaskService } from '../tasks/taskService.js'
 import type { UserService } from '../users/userService.js'
 import type { GroupTournamentResults, TournamentService } from './tournamentService.js'
@@ -919,19 +919,40 @@ export class LeagueService {
         return { ...draft, rules }
     }
 
-    /** Every League write goes through here, so open League pages hear of each change. */
-    private async write(...change: Parameters<LeagueStore['update']>): Promise<LeagueState> {
-        const state = await this.store.update(...change)
-        if (state.league.status === 'active') await this.notify(state.league.id)
+    /**
+     * Every League write goes through here, so open League pages hear of each change. A write
+     * that changes nothing sends nothing; a retried transaction decides again.
+     */
+    private async write(
+        id: string,
+        user: User | undefined,
+        administrative: boolean,
+        change: LeagueChange
+    ): Promise<LeagueState> {
+        let changed = false
+        const state = await this.store.update(id, user, administrative, (current) => {
+            const before = structuredClone(current)
+            const next = change(current)
+            changed = next !== undefined || !Value.Equal(before, current)
+            return next
+        })
+        if (changed && state.league.status === 'active') await this.notify(id)
         return state
     }
 
     private async writeSeason(
-        ...change: Parameters<LeagueStore['updateSeason']>
+        id: string,
+        number: number,
+        change: (season: LeagueSeason) => void
     ): Promise<LeagueSeason | undefined> {
-        const season = await this.store.updateSeason(...change)
+        let changed = false
+        const season = await this.store.updateSeason(id, number, (current) => {
+            const before = structuredClone(current)
+            change(current)
+            changed = !Value.Equal(before, current)
+        })
         // Only a published League has Seasons.
-        if (season) await this.notify(change[0])
+        if (changed) await this.notify(id)
         return season
     }
 
