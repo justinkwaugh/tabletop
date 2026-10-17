@@ -22,6 +22,7 @@ import {
     type SpanGameOptions
 } from '@tabletop/common/test-fixtures/span-game'
 import { GameService } from './gameService.js'
+import { FIRST_TURN_REMINDER_INDEX } from './turnReminders.js'
 import { DisallowedActionError, DisallowedUndoError, GameUpdateCollisionError } from './errors.js'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { UserService } from '../users/userService.js'
@@ -35,6 +36,11 @@ import {
     openEmulatorStore,
     type EmulatorStore
 } from '../persistence/firestore/tests/emulatorStore.js'
+
+// The reminder scheduling is private to the service; the spec watches it to see who is told.
+type TurnReminderScheduler = {
+    scheduleTurnNotification(user: User, gameId: string, reminderIndex: number): Promise<void>
+}
 
 function user(id: string): User {
     return { id, status: UserStatus.Active, roles: [Role.User], externalIds: [] }
@@ -69,7 +75,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 sendAuthVerificationEmail: unused,
                 sendAccountChangeNotificationEmail: unused,
                 sendGameInvitationEmail: unused,
-                sendTurnNotification: unused,
                 sendGameEndEmail: unused
             }
             sendNotification = vi.fn<NotificationService['sendNotification']>(async () => {})
@@ -1276,14 +1281,17 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             await host({ spans: 2, merge: 'barrier' })
             vi.mocked(UserService.prototype.getUser).mockImplementation(async (id) => user(id))
             const scheduled = vi
-                .spyOn(service, 'scheduleTurnNotification')
+                .spyOn(service as unknown as TurnReminderScheduler, 'scheduleTurnNotification')
                 .mockResolvedValue(undefined)
             await act('p1', 'begin', 'begin')
             await act('p3', 'finish', 'f3')
             await act('p2', 'finish', 'f2')
             scheduled.mockClear()
             await act('p1', 'finish', 'f1')
-            expect(scheduled.mock.calls.map(([userId]) => userId).toSorted()).toEqual(['p2', 'p3'])
+            const toldItIsTheirTurn = scheduled.mock.calls
+                .filter(([, , reminderIndex]) => reminderIndex === FIRST_TURN_REMINDER_INDEX)
+                .map(([user]) => user.id)
+            expect(toldItIsTheirTurn.toSorted()).toEqual(['p2', 'p3'])
         })
 
         it('starts afresh a Player whose stored Branch is from an earlier span', async () => {

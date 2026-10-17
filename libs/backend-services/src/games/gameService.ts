@@ -1497,10 +1497,8 @@ export class GameService {
         )
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
 
-        const waitedOnBefore = game.activePlayerIds ?? priorState.activePlayerIds
-        const waitedOnNow = updatedGame.activePlayerIds ?? updatedState.activePlayerIds
-        const newlyActivePlayerIds = waitedOnNow.filter(
-            (playerId) => !waitedOnBefore.includes(playerId)
+        const newlyActivePlayerIds = updatedState.activePlayerIds.filter(
+            (playerId) => !priorState.activePlayerIds.includes(playerId)
         )
         await this.scheduleTurnNotifications(
             representation.game,
@@ -1509,8 +1507,8 @@ export class GameService {
         )
         const actingPlayerKeepsTurn =
             actingPlayerId !== undefined &&
-            waitedOnBefore.includes(actingPlayerId) &&
-            waitedOnNow.includes(actingPlayerId)
+            priorState.activePlayerIds.includes(actingPlayerId) &&
+            updatedState.activePlayerIds.includes(actingPlayerId)
         if (actingPlayerKeepsTurn) {
             await this.scheduleTurnNotifications(
                 representation.game,
