@@ -28,6 +28,7 @@
         type CompanyDeedTextLayout
     } from '$lib/definitions/deedTextLayout.js'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
+    import { MARKER_GOOD_BY_GOOD, type MarkerGood } from '$lib/definitions/productionMarkers.js'
     import {
         PRODUCTION_ZONE_MARKER_OFFSETS,
         PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY
@@ -157,10 +158,9 @@
 
     type RegionLabel = { regionId: string } & Point
 
-    type ProductionMarkerType = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
     type ProductionMarkerPlacement = {
         areaId: string
-        markerType: ProductionMarkerType | 'bead'
+        markerType: MarkerGood | 'bead'
         beadTone?: BeadTone
     } & Point
 
@@ -195,7 +195,7 @@
         targetX: number
         targetY: number
         ownerColor: string
-        goodType: ProductionMarkerType
+        goodType: MarkerGood
         goodsCount: number
         hatchPatternId: string | null
         direction: CompanyMarkerDirection
@@ -283,7 +283,7 @@
     const DEBUG_COMPANY_MARKER_RADIAL_STEP_DISTANCE = 18
     const DEBUG_COMPANY_MARKER_LATERAL_SPREAD_DISTANCE = 62
     const DEBUG_COMPANY_MARKER_EDGE_PADDING = 68
-    const DEBUG_COMPANY_MARKER_COLOR_BY_GOOD: Record<ProductionMarkerType, string> = {
+    const DEBUG_COMPANY_MARKER_COLOR_BY_GOOD: Record<MarkerGood, string> = {
         rice: '#8eb15d',
         spice: '#b57949',
         rubber: '#6a4b3d',
@@ -333,7 +333,7 @@
     const COMPANIES_RUBBER_CARD_B02_Y = B02_MARKER_POSITION.y + 110
     const COMPANIES_SPICE_CARD_C09_X = C09_MARKER_POSITION.x + 10
     const COMPANIES_SPICE_CARD_C09_Y = C09_MARKER_POSITION.y + 160
-    const PRODUCTION_MARKER_TYPES: ProductionMarkerType[] = [
+    const PRODUCTION_MARKER_TYPES: MarkerGood[] = [
         'spice',
         'siapsaji',
         'oil',
@@ -438,21 +438,6 @@
         return `hsl(${hue} 62% 54%)`
     }
 
-    function markerGoodForGood(good: Good): ProductionMarkerType {
-        if (good === Good.Rice) {
-            return 'rice'
-        }
-        if (good === Good.Spice) {
-            return 'spice'
-        }
-        if (good === Good.Rubber) {
-            return 'rubber'
-        }
-        if (good === Good.Oil) {
-            return 'oil'
-        }
-        return 'siapsaji'
-    }
 
     function companyMarkerDirectionTowardTarget(
         markerX: number,
@@ -1500,7 +1485,7 @@
                     DEBUG_COMPANY_MARKER_EDGE_PADDING,
                     DEBUG_COMPANY_MARKER_BOARD_HEIGHT - DEBUG_COMPANY_MARKER_EDGE_PADDING
                 )
-                const markerGood = markerGoodForGood(deed.good)
+                const markerGood = MARKER_GOOD_BY_GOOD[deed.good]
 
                 markers.push({
                     key: `${regionId}|${deed.id}`,
@@ -2025,7 +2010,7 @@
         return LAND_DEBUG_AREAS_BY_ID.get(markerSelectedAreaId) ?? null
     })
 
-    const PRODUCTION_MARKER_BY_AREA: Map<string, ProductionMarkerType> = $derived.by(() => {
+    const PRODUCTION_MARKER_BY_AREA: Map<string, MarkerGood> = $derived.by(() => {
         const regionIds = [
             ...new Set(
                 LAND_DEBUG_MAP_AREAS.map((area) => area.region).filter(
@@ -2034,7 +2019,7 @@
             )
         ].sort((left, right) => left.localeCompare(right))
 
-        const markerByRegion = new Map<string, ProductionMarkerType>()
+        const markerByRegion = new Map<string, MarkerGood>()
         for (const [regionIndex, regionId] of regionIds.entries()) {
             markerByRegion.set(
                 regionId,
@@ -2042,7 +2027,7 @@
             )
         }
 
-        const markerByArea = new Map<string, ProductionMarkerType>()
+        const markerByArea = new Map<string, MarkerGood>()
         for (const [areaIndex, area] of LAND_DEBUG_MAP_AREAS.entries()) {
             if (area.region) {
                 markerByArea.set(area.id, markerByRegion.get(area.region) ?? 'spice')

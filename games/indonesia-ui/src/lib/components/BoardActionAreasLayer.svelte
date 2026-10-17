@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/definitions/boardSize.js'
     import Area from '$lib/components/Area.svelte'
     import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
     import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
@@ -68,8 +69,6 @@
 
     const gameSession = getGameSession()
     const productionZoneMarkers = getProductionZoneMarkersContext()
-    const BOARD_WIDTH = 2646
-    const BOARD_HEIGHT = 1280
     const PRODUCTION_HOVER_SPOTLIGHT_MASK_ID = 'production-company-hover-spotlight-mask'
     const EXPANSION_SELECTION_SPOTLIGHT_MASK_ID = 'expansion-selection-spotlight-mask'
     const CITY_PLACEMENT_SPOTLIGHT_MASK_ID = 'city-placement-spotlight-mask'

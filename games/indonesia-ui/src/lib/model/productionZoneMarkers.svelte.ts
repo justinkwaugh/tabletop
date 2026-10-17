@@ -2,7 +2,6 @@ import type { Point } from '@tabletop/common'
 import {
     CompanyType,
     Deeds,
-    Good,
     INDONESIA_REGION_BY_AREA_ID,
     IndonesiaNeighborDirection,
     INDONESIA_REGIONS,
@@ -10,14 +9,17 @@ import {
     type IndonesiaNodeId,
     type ProductionDeed
 } from '@tabletop/indonesia'
+import { BOARD_CENTER, BOARD_HEIGHT, BOARD_WIDTH } from '$lib/definitions/boardSize.js'
+import {
+    MARKER_GOOD_BY_GOOD,
+    type MarkerDirection,
+    type MarkerGood
+} from '$lib/definitions/productionMarkers.js'
 import { PRODUCTION_ZONE_MARKER_OFFSETS } from '$lib/definitions/productionZoneMarkerOffsets.js'
 import { resolveLandMarkerPosition } from '$lib/utils/boardMarkers.js'
 import { productionHatchVariantByCompanyId } from '$lib/utils/productionHatching.js'
 import { resolveProductionZoneBoundaryTarget } from '$lib/utils/productionZoneMarkerBoundary.js'
 import type { IndonesiaGameSession } from './session.svelte.js'
-
-export type MarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
-export type MarkerDirection = 'north' | 'east' | 'south' | 'west'
 
 type PendingProductionZoneMarker = {
     key: string
@@ -60,9 +62,6 @@ export type ProductionZoneMarkerEntry = {
     direction: MarkerDirection
 }
 
-const BOARD_WIDTH = 2646
-const BOARD_HEIGHT = 1280
-const BOARD_CENTER: Point = { x: BOARD_WIDTH / 2, y: BOARD_HEIGHT / 2 }
 const EDGE_PADDING = 68
 const BASE_OFFSET_DISTANCE = 100
 const RADIAL_STEP_DISTANCE = 18
@@ -187,7 +186,7 @@ export class ProductionZoneMarkers {
             }
 
             const ownerColor = this.gameSession.colors.getPlayerUiColor(company.owner)
-            const markerGood = this.asMarkerGood(company.good)
+            const markerGood = MARKER_GOOD_BY_GOOD[company.good]
             const hatchVariant = hatchVariantByCompanyId.get(company.id)
             const hatchPatternId =
                 hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant]
@@ -507,22 +506,6 @@ export class ProductionZoneMarkers {
         }
 
         return deltaX >= 0 ? 'east' : 'west'
-    }
-
-    private asMarkerGood(good: Good): MarkerGood {
-        if (good === Good.Rice) {
-            return 'rice'
-        }
-        if (good === Good.Spice) {
-            return 'spice'
-        }
-        if (good === Good.Rubber) {
-            return 'rubber'
-        }
-        if (good === Good.Oil) {
-            return 'oil'
-        }
-        return 'siapsaji'
     }
 
     private clamp(value: number, min: number, max: number): number {
