@@ -326,6 +326,11 @@ export class FirestoreUserStore implements UserStore {
                 updatedFields.push('preferences')
             }
 
+            if (fieldsToUpdate.timeZone && existingUser.timeZone !== fieldsToUpdate.timeZone) {
+                updatedUser.timeZone = fieldsToUpdate.timeZone
+                updatedFields.push('timeZone')
+            }
+
             if (
                 fieldsToUpdate.roles &&
                 (fieldsToUpdate.roles.length !== existingUser.roles.length ||

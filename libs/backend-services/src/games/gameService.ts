@@ -123,7 +123,7 @@ import {
     enqueueTurnReminder,
     FIRST_TURN_REMINDER_INDEX,
     nextTurnReminderIndex,
-    TURN_REMINDER_DELAYS,
+    turnReminderDelaySeconds,
     turnReminderIndex,
     type TurnReminderTask
 } from './turnReminders.js'
@@ -1842,29 +1842,30 @@ export class GameService {
             if (!user) {
                 continue
             }
-            await this.scheduleTurnNotification(user.id, game.id, reminderIndex)
+            await this.scheduleTurnNotification(user, game.id, reminderIndex)
         }
     }
 
     @Timed('game.scheduleTurnNotification')
     private async scheduleTurnNotification(
-        userId: string,
+        user: User,
         gameId: string,
         reminderIndex: number
     ): Promise<void> {
         const notificationId = nanoid()
-        const cacheKey = this.makeTurnNotificationCacheKey(userId, gameId)
-        await this.cacheService.set(
-            cacheKey,
-            notificationId,
-            TURN_REMINDER_DELAYS[reminderIndex] + 60
-        )
-        enqueueTurnReminder(this.taskService, {
-            userId,
-            gameId,
-            notificationId,
-            reminderIndex
-        }).catch((e) => {
+        const cacheKey = this.makeTurnNotificationCacheKey(user.id, gameId)
+        const inSeconds = turnReminderDelaySeconds(reminderIndex, new Date(), user)
+        await this.cacheService.set(cacheKey, notificationId, inSeconds + 60)
+        enqueueTurnReminder(
+            this.taskService,
+            {
+                userId: user.id,
+                gameId,
+                notificationId,
+                reminderIndex
+            },
+            inSeconds
+        ).catch((e) => {
             console.error('Failed to send turn notification', e)
         })
     }
@@ -1914,7 +1915,7 @@ export class GameService {
                 ? undefined
                 : nextTurnReminderIndex(turnReminderIndex(task))
             if (nextReminderIndex !== undefined) {
-                await this.scheduleTurnNotification(userId, gameId, nextReminderIndex)
+                await this.scheduleTurnNotification(user, gameId, nextReminderIndex)
             }
         } catch (e) {
             console.log('error in notifyIsYourTurn', e)

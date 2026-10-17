@@ -5,6 +5,7 @@
         isEnabled as isDiscordSigninEnabled
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext } from '@tabletop/frontend-components'
+    import ReminderHoursEditor from '$lib/components/ReminderHoursEditor.svelte'
 
     let { authorizationService, api } = getAppContext()
 
@@ -23,7 +24,7 @@
     })
 </script>
 
-<div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
+<div class="min-h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6 py-6">
     <Card class="bg-gray-300 p-4 sm:p-6">
         <div class="flex flex-col space-y-6">
             <h3 class="text-xl font-medium text-gray-900 dark:text-white">Web Notifications</h3>
@@ -73,6 +74,12 @@
                     </div>
                 {/if}
             {/if}
+        </div>
+    </Card>
+    <Card size="md" class="bg-gray-300 p-4 sm:p-6">
+        <div class="flex flex-col space-y-4">
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Reminder Hours</h3>
+            <ReminderHoursEditor />
         </div>
     </Card>
 </div>

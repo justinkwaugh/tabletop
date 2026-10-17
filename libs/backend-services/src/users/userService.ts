@@ -14,6 +14,7 @@ import { TaskService } from '../tasks/taskService.js'
 import {
     EmailVerificationError,
     InvalidPasswordError,
+    InvalidTimeZoneError,
     InvalidTokenError,
     UnauthenticatedUpdateError
 } from './errors.js'
@@ -130,6 +131,34 @@ export class UserService {
             fields: { preferences }
         })
         return updatedUser
+    }
+
+    async updateUserTimeZone(
+        userId: string,
+        timeZone: string,
+        { onlyIfUnset = false }: { onlyIfUnset?: boolean } = {}
+    ): Promise<User> {
+        if (!this.isKnownTimeZone(timeZone)) {
+            throw new InvalidTimeZoneError(timeZone)
+        }
+        const [updatedUser] = await this.userStore.updateUser({
+            userId,
+            fields: { timeZone },
+            validator: (existingUser) =>
+                onlyIfUnset && existingUser.timeZone
+                    ? UpdateValidationResult.Cancel
+                    : UpdateValidationResult.Proceed
+        })
+        return updatedUser
+    }
+
+    private isKnownTimeZone(timeZone: string): boolean {
+        try {
+            new Intl.DateTimeFormat('en-US', { timeZone })
+            return true
+        } catch {
+            return false
+        }
     }
 
     async updateUser(
