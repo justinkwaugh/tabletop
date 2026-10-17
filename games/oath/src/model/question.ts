@@ -213,11 +213,26 @@ export const ExchangeTerms = Type.Object({
     fromCounterparty: Type.Optional(ExchangeTransfer)
 })
 
+/**
+ * R-11.7-H2 — a card declared on a Travel out of an enemy's Shrouded Wood. No choice rides it: a
+ * card that asks one (Hospitality) is refused there, as its choice depends on the site.
+ */
+export type WoodTravelCard = Type.Static<typeof WoodTravelCard>
+export const WoodTravelCard = Type.Object({
+    cardId: Type.String(),
+    powerIndex: Type.Integer({ minimum: 0, maximum: 9 })
+})
+
 /** R-11.7 — the traveller's own Travel, which pays when the Shrouded Wood's ruler names the site. */
 export type ShroudedWoodTravel = Type.Static<typeof ShroudedWoodTravel>
 export const ShroudedWoodTravel = Type.Object({
     /** Second Wind, Brass Horse — the Travel spends no Supply wherever it goes. */
-    free: Type.Boolean()
+    free: Type.Boolean(),
+    /**
+     * R-11.7-H2 (revision 15) — the optional cards declared at the Travel's start, already paid; each
+     * counts only for a pick that meets its condition. Public, as a Travel's declared cards are.
+     */
+    modifiers: Type.Optional(Type.Array(WoodTravelCard, { maxItems: 8 }))
 })
 
 /**
@@ -539,9 +554,11 @@ export const QuestionAnswer = Type.Union([
         kind: Type.Literal(PowerQuestionKind.OrderDrawnCards),
         order: Type.Array(Type.Number(), { maxItems: 16 })
     }),
+    /** The site picked; or, R-11.7-H2 (revision 15), `stay`: the ruler keeps the traveller in place. */
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.ShroudedWoodDestination),
-        siteId: Type.String()
+        siteId: Type.Optional(Type.String()),
+        stay: Type.Optional(Type.Literal(true))
     }),
     /** Positions in the question's `cardIds`, first discarded first, so the last lies on top. */
     Type.Object({

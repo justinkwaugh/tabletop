@@ -14,7 +14,11 @@ import {
     runAfter
 } from '../util/modifiers.js'
 import { flipSiteFromVault } from '../util/hiddenInputs.js'
-import { isFreeTravelNow, woodTravelPaysAtPick } from '../util/shroudedWood.js'
+import {
+    isFreeTravelNow,
+    resolveWoodDeclaration,
+    woodTravelPaysAtPick
+} from '../util/shroudedWood.js'
 import { nextActionIndex } from '../util/freeActions.js'
 import {
     endStepOutOfTurn,
@@ -189,21 +193,33 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
     ) {
         const reason = HydratedTravel.reasonCannotLeaveShroudedWood(state, this.playerId, this)
         if (reason) throw Error(`Cannot travel: ${reason}`)
+        const declared = resolveWoodDeclaration(state, this.playerId, this.modifiers).active
         if (outOfTurnBy) holdTurnForFreeActionOutOfTurn(state, this.playerId, ActionType.Travel)
         const player = state.getPlayerState(this.playerId)
         const fromSiteId = pawnSiteId(state, this.playerId)
         const paysAtPick = woodTravelPaysAtPick(state)
         const free = isFreeTravelNow(state, this.playerId)
+        // R-11.7-H2 — the declared cards are paid now, whatever the ruler picks (R-7.1.2, R-7.4).
+        payModifierCosts(state, this.playerId, declared)
         const cost = paysAtPick ? 0 : HydratedTravel.shroudedWoodCost(state, this.playerId)
         player.spendSupply(cost)
         HydratedTravel.useFreeTravel(state, this.playerId)
+        const cards =
+            declared.length > 0
+                ? {
+                      modifiers: declared.map(({ power }) => ({
+                          cardId: power.cardId,
+                          powerIndex: power.powerIndex
+                      }))
+                  }
+                : {}
         askQuestion(state, this.playerId, {
             kind: PowerQuestionKind.ShroudedWoodDestination,
             cardId: state.siteCardAt(fromSiteId) ?? fromSiteId,
             askedPlayerId: chooser,
             travelerPlayerId: this.playerId,
             fromSiteId,
-            ...(paysAtPick ? { travel: { free } } : {})
+            ...(paysAtPick ? { travel: { free, ...cards } } : {})
         })
         this.metadata = {
             fromSiteId,
@@ -211,6 +227,7 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
             paysAtPick: paysAtPick || undefined,
             supplySpent: cost,
             supplyRemaining: player.supply,
+            modifiers: declared.length > 0 ? modifierSummary(declared) : undefined,
             // Second Wind out of turn — the free Campaign is judged once the pick lands the pawn.
             ...(outOfTurnBy === undefined
                 ? {}

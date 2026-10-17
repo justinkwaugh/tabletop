@@ -1578,7 +1578,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (!playerId || !this.shroudedWoodChooser || !woodTravelPaysAtPick(this.gameState)) {
             return undefined
         }
-        const picks = payableWoodPicks(this.gameState, playerId, this.woodTravelIsFree)
+        const picks = payableWoodPicks(this.gameState, playerId, { free: this.woodTravelIsFree })
         return woodRegions(this.gameState, picks)
     }
 

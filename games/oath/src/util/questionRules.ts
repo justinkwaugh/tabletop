@@ -44,7 +44,12 @@ import {
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
 import { powerTravelNeedsFlip, reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
-import { reasonWoodPickRefused, settleWoodPick, shroudedWoodDestinations } from './shroudedWood.js'
+import {
+    reasonWoodPickRefused,
+    reasonWoodStayRefused,
+    settleWoodPick,
+    shroudedWoodDestinations
+} from './shroudedWood.js'
 import { settleBanishedVictory } from './campaignVictory.js'
 import {
     askPowerMoveToll,
@@ -66,6 +71,23 @@ import {
     holdTurnForSkippedFreeAction
 } from './sneakAttack.js'
 import { ActionType } from '../definition/actions.js'
+import { MachineState } from '../definition/states.js'
+
+/**
+ * The Travel out of a Shrouded Wood has landed. Second Wind out of turn judges its free Campaign
+ * from here and ends nothing else; in the traveller's own turn a declared Special Envoy ends their
+ * Act Phase (R-11.7-H2), as on any Travel.
+ */
+function woodTravelLanded(
+    state: HydratedOathGameState,
+    travelerId: string,
+    endsActPhase: boolean
+): { resumeMachineState?: MachineState } {
+    if (state.heldTurn !== undefined) return endTravelOutOfTurn(state, travelerId)
+    if (!endsActPhase) return {}
+    if (state.pendingQuestions) state.pendingQuestions.resumeMachineState = MachineState.RestPhase
+    return { resumeMachineState: MachineState.RestPhase }
+}
 
 function listOf(id: string | undefined): string[] {
     return id === undefined ? [] : [id]
@@ -328,9 +350,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     [PowerQuestionKind.ShroudedWoodDestination]: {
         reasonCannotAnswer: (state, _playerId, matched) => {
             const { travelerPlayerId, fromSiteId, travel } = matched.question
-            const siteId = matched.answer.siteId
+            const { siteId, stay } = matched.answer
+            if (stay && siteId !== undefined) {
+                return `name a site or keep ${travelerPlayerId} in place, not both`
+            }
+            // R-11.7-H2 — kept in place only when nothing is payable without the declared cards.
+            if (stay) return reasonWoodStayRefused(state, travelerPlayerId, travel)
+            if (siteId === undefined) return `name the site ${travelerPlayerId} travels to`
             // R-11.7 — the traveller's own Travel goes only where they can pay.
-            if (travel) return reasonWoodPickRefused(state, travelerPlayerId, siteId, travel.free)
+            if (travel) return reasonWoodPickRefused(state, travelerPlayerId, siteId, travel)
             // R-11.7-H1 — after the Brass Horse, only among the sites its suit allows (its Q&A).
             const allowed = matched.question.power?.siteIds
             if (allowed && !allowed.includes(siteId)) {
@@ -341,8 +369,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 : `${siteId} is not a site ${travelerPlayerId} can be sent to`
         },
         apply: (state, playerId, matched, _asked, askingPlayerId) => {
-            const { travelerPlayerId, travel, power } = matched.question
+            const { travelerPlayerId, fromSiteId, travel, power } = matched.question
             const siteId = matched.answer.siteId
+            if (siteId === undefined) {
+                // R-11.7-H2 — the Travel is spent and its cards stay paid; no Supply is spent.
+                return {
+                    summary: `kept ${travelerPlayerId} at ${fromSiteId}`,
+                    ...endTravelOutOfTurn(state, travelerPlayerId)
+                }
+            }
             const toll = powerMoveToll(state, travelerPlayerId, siteId)
             if (travel && toll) {
                 // R-11.7, Toll Roads — the toll is asked before any Supply: paid, the Travel settles.
@@ -361,16 +396,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 return { summary: `chose ${siteId} for ${travelerPlayerId}`, tollMove }
             }
             if (travel) {
-                const { pick, revealed } = settleWoodPick(
+                const { pick, revealed, endsActPhase } = settleWoodPick(
                     state,
                     travelerPlayerId,
                     siteId,
-                    travel.free
+                    travel
                 )
                 const notes = pick.notes ?? []
                 const summary = `sent ${travelerPlayerId} to ${siteId}, who paid ${pick.supplySpent} Supply${notes.length ? ` (${notes.join('; ')})` : ''}`
-                // Second Wind out of turn — the pawn has landed, so the free Campaign is judged from here.
-                const landed = endTravelOutOfTurn(state, travelerPlayerId)
+                const landed = woodTravelLanded(state, travelerPlayerId, endsActPhase)
                 return revealed
                     ? { summary, woodPick: pick, disclosed: true, ...landed }
                     : { summary, woodPick: pick, ...landed }
@@ -651,11 +685,11 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!question.travel)
                 return { summary: paid, tollMove, ...settleBanishedVictory(state) }
             // R-11.7 — the toll paid, the Travel pays the Wood's Supply folded for the site, then Tyrant and the site's powers.
-            const { pick, revealed } = settleWoodPick(
+            const { pick, revealed, endsActPhase } = settleWoodPick(
                 state,
                 question.askedPlayerId,
                 question.siteId,
-                question.travel.free
+                question.travel
             )
             assert(
                 revealed === undefined,
@@ -665,7 +699,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 summary: `${paid}, paying ${pick.supplySpent} Supply`,
                 tollMove,
                 woodPick: pick,
-                ...endTravelOutOfTurn(state, question.askedPlayerId)
+                ...woodTravelLanded(state, question.askedPlayerId, endsActPhase)
             }
         }
     },

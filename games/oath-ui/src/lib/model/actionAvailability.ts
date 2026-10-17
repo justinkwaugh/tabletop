@@ -241,7 +241,7 @@ function woodCause(gameState: HydratedOathGameState, playerId: string): KnownRef
     if (sites.length === 0) return { cause: 'favor', has: usableFavor(gameState, playerId) }
     const free = isFreeTravelNow(gameState, playerId)
     const needs = Math.min(
-        ...sites.map((siteId) => woodPick(gameState, playerId, siteId, free).cost)
+        ...sites.map((siteId) => woodPick(gameState, playerId, siteId, { free }).cost)
     )
     return player.supply < needs ? { cause: 'supply', needs, has: player.supply } : undefined
 }

@@ -6,13 +6,26 @@ import {
 } from '../model/question.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import { ActionType } from '../definition/actions.js'
+import { cardPowers } from '../data/cardPowers.js'
+import { choiceSpecsFor, type EffectContext } from '../powers/registry.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { pawnSiteId } from './pawn.js'
 import { afterTravelPersistent, reasonPersistentForbidsTravel } from './persistent.js'
 import { shroudedWoodChooser, siteTravelTerms } from './siteTravel.js'
-import { foldSupplyCost, resolveModifiers, runAfter, type ActiveModifier } from './modifiers.js'
+import {
+    carriedModifiers,
+    foldSupplyCost,
+    modifierContext,
+    reasonModifierDoesNotApply,
+    resolveModifiers,
+    runAfter,
+    type ActiveModifier,
+    type ModifierUse
+} from './modifiers.js'
+import { modifierPayment, reasonCannotPayInAll } from './actionPayment.js'
+import { usableFavor } from './favor.js'
 import { flipSiteFromVault, type SiteFlip } from './hiddenInputs.js'
-import { canPayPowerMoveToll } from './powerMoveTolls.js'
+import { powerMoveToll } from './powerMoveTolls.js'
 import { askQuestion } from './questions.js'
 
 /** R-11.7 — from a Shrouded Wood the Narrow Pass and The Hidden Place are ignored; any other site the traveler may go to. */
@@ -40,31 +53,103 @@ export function isFreeTravelNow(state: HydratedOathGameState, playerId: string):
     return state.getPlayerState(playerId).freeTravelAtAction === state.actionCount
 }
 
+/**
+ * R-11.7-H2 — a Travel out of an enemy's Shrouded Wood declares its optional cards at its start
+ * (Law 7.4, 7.4.1) and pays them then (7.1.2), before the ruler names the site (R-X.4: from
+ * revision 15; before it, nothing is declared there).
+ */
+export function woodTravelTakesCards(state: HydratedOathGameState): boolean {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes11)
+}
+
+/** R-11.7 — the traveller's own Travel, as the ruler's question carries it (`ShroudedWoodTravel`). */
+export interface WoodTravel {
+    free: boolean
+    modifiers?: readonly ModifierUse[]
+}
+
 export interface WoodPick {
     siteId: string
     cost: number
     /** The Wood's own price to leave, before any modifier. */
     base: number
-    /** The modifiers that changed `base` for this site (Decadent). */
+    /** The cards that changed `base` for this site: a declared one that counts here (Tents, Forest Paths), or Decadent. */
     foldedBy: string[]
 }
 
-// R-7.4.1 — no modifier is declared on this Travel; the mandatory ones fold for the site picked.
+/**
+ * R-11.7-H2 — the declared cards as the Travel takes them: everything that does not depend on the
+ * destination is checked, and the costs must be payable together. A card whose choice names
+ * something at the destination (Hospitality's bank) is refused: the site is not picked yet.
+ */
+export function resolveWoodDeclaration(
+    state: HydratedOathGameState,
+    travelerId: string,
+    uses: readonly ModifierUse[] | undefined
+): { reason?: string; active: ActiveModifier[] } {
+    for (const use of uses ?? []) {
+        const power = cardPowers(use.cardId)[use.powerIndex]
+        if (power && choiceSpecsFor(power).length > 0) {
+            return {
+                reason: `${use.cardId}: what it chooses depends on the site, which the Shrouded Wood's ruler has not picked yet`,
+                active: []
+            }
+        }
+    }
+    const resolved = resolveModifiers(
+        state,
+        travelerId,
+        ActionType.Travel,
+        uses,
+        {},
+        {
+            destinationUnknown: true
+        }
+    )
+    if (resolved.reason) return resolved
+    const unaffordable = reasonCannotPayInAll(state, travelerId, [modifierPayment(resolved.active)])
+    return unaffordable ? { reason: unaffordable, active: [] } : resolved
+}
+
+// R-7.6.2 — a "spend no Supply" card sets the price, ignoring any increase; otherwise the folds that changed it.
+function priceSetters(
+    state: HydratedOathGameState,
+    travelerId: string,
+    active: readonly ActiveModifier[],
+    particulars: Partial<EffectContext['particulars']>
+): string[] {
+    const spendsNone = active.filter(
+        (m) =>
+            m.hooks.spendsNoSupply?.({ ...modifierContext(state, travelerId, m), particulars }) ===
+            true
+    )
+    const setters =
+        spendsNone.length > 0 ? spendsNone : active.filter((m) => m.hooks.supplyCost !== undefined)
+    return setters.map((m) => m.power.cardId)
+}
+
+/**
+ * R-7.4.1, R-11.7-H2 — the mandatory modifiers fold for the site picked, and so does each declared
+ * card whose condition that site meets (Tents' Q&A: "If the ruler makes you travel to another
+ * region, Tents does not work"; Forest Paths' Q&A: a Beast site the enemy ruler picks costs no Supply).
+ */
 function planWoodPick(
     state: HydratedOathGameState,
     travelerId: string,
     siteId: string,
-    free: boolean
+    travel: WoodTravel
 ): { pick: WoodPick; active: ActiveModifier[] } {
     const here = pawnSiteId(state, travelerId)
     const base = siteTravelTerms(state, here, here, 0, false).cost
     const particulars = { destinationSiteId: siteId }
-    const { active } = resolveModifiers(state, travelerId, ActionType.Travel, [], particulars)
-    const cost = free ? 0 : foldSupplyCost(base, state, travelerId, active, particulars)
+    const declared = carriedModifiers(state, travel.modifiers).filter(
+        (m) => reasonModifierDoesNotApply(state, travelerId, m, particulars) === undefined
+    )
+    const mandatory = resolveModifiers(state, travelerId, ActionType.Travel, [], particulars).active
+    const active = [...declared, ...mandatory]
+    const cost = travel.free ? 0 : foldSupplyCost(base, state, travelerId, active, particulars)
     const foldedBy =
-        free || cost === base
-            ? []
-            : active.filter((m) => m.hooks.supplyCost !== undefined).map((m) => m.power.cardId)
+        travel.free || cost === base ? [] : priceSetters(state, travelerId, active, particulars)
     return { pick: { siteId, cost, base, foldedBy }, active }
 }
 
@@ -73,18 +158,24 @@ export function woodPick(
     state: HydratedOathGameState,
     travelerId: string,
     siteId: string,
-    free: boolean
+    travel: WoodTravel
 ): WoodPick {
-    return planWoodPick(state, travelerId, siteId, free).pick
+    return planWoodPick(state, travelerId, siteId, travel).pick
 }
 
 /**
  * R-11.7, Toll Roads — the sites whose toll the traveller can pay: the toll is asked at the pick,
- * before any Supply, so a site they have no favor for is never picked.
+ * before any Supply, so a site they have no favor for is never picked. `committedFavor`: what the
+ * declared cards will place, when judged before the Travel pays them (R-11.7-H2).
  */
-export function tollPayableWoodSites(state: HydratedOathGameState, travelerId: string): string[] {
+export function tollPayableWoodSites(
+    state: HydratedOathGameState,
+    travelerId: string,
+    committedFavor = 0
+): string[] {
+    const favor = usableFavor(state, travelerId) - committedFavor
     return shroudedWoodDestinations(state, travelerId, pawnSiteId(state, travelerId)).filter(
-        (siteId) => canPayPowerMoveToll(state, travelerId, siteId)
+        (siteId) => powerMoveToll(state, travelerId, siteId) === undefined || favor >= 1
     )
 }
 
@@ -92,11 +183,12 @@ export function tollPayableWoodSites(state: HydratedOathGameState, travelerId: s
 export function payableWoodPicks(
     state: HydratedOathGameState,
     travelerId: string,
-    free: boolean
+    travel: WoodTravel,
+    committedFavor = 0
 ): WoodPick[] {
     const supply = state.getPlayerState(travelerId).supply
-    return tollPayableWoodSites(state, travelerId)
-        .map((siteId) => woodPick(state, travelerId, siteId, free))
+    return tollPayableWoodSites(state, travelerId, committedFavor)
+        .map((siteId) => woodPick(state, travelerId, siteId, travel))
         .filter((pick) => pick.cost <= supply)
 }
 
@@ -104,19 +196,38 @@ export function reasonWoodPickRefused(
     state: HydratedOathGameState,
     travelerId: string,
     siteId: string,
-    free: boolean
+    travel: WoodTravel
 ): string | undefined {
     const here = pawnSiteId(state, travelerId)
     if (!shroudedWoodDestinations(state, travelerId, here).includes(siteId)) {
         return `${siteId} is not a site ${travelerId} can be sent to`
     }
-    if (!canPayPowerMoveToll(state, travelerId, siteId)) {
+    if (!tollPayableWoodSites(state, travelerId).includes(siteId)) {
         return `${travelerId} has no favor for the toll to travel to ${siteId}`
     }
-    const { cost } = woodPick(state, travelerId, siteId, free)
+    const { cost } = woodPick(state, travelerId, siteId, travel)
     const supply = state.getPlayerState(travelerId).supply
     return supply < cost
         ? `${travelerId} cannot pay the ${cost} Supply to travel to ${siteId}: they have ${supply}`
+        : undefined
+}
+
+/**
+ * R-11.7-H2 — the ruler may keep the traveller in place only when they can pay for no site without
+ * the cards they declared (Forest Paths' Q&A: "If you have less than 2 Supply, the enemy could either
+ * force your Travel action to fail, or could let you travel to a Beast site for free"). The Travel is
+ * spent and the cards' costs stay paid.
+ */
+export function reasonWoodStayRefused(
+    state: HydratedOathGameState,
+    travelerId: string,
+    travel: WoodTravel | undefined
+): string | undefined {
+    if (!travel || (travel.modifiers?.length ?? 0) === 0) {
+        return `the ruler names where ${travelerId} goes`
+    }
+    return payableWoodPicks(state, travelerId, { free: travel.free }).length > 0
+        ? `${travelerId} can pay for a site without the cards they declared, so the ruler names one`
         : undefined
 }
 
@@ -127,16 +238,18 @@ function soleWarbandOwner(owners: readonly WarbandOwner[]): WarbandOwner | undef
 
 /**
  * R-11.7, R-5.6.2 — the traveller pays and arrives, a facedown site is revealed, then the Travel's
- * after-travel modifiers fire (Tyrant) and the sites' after-travel powers (Grasping Vines, Boiling Lake).
+ * after-travel modifiers fire (Tyrant, a declared Dragonskin Drum) and the sites' after-travel
+ * powers (Grasping Vines, Boiling Lake). `endsActPhase`: a declared Special Envoy's "After
+ * traveling, end your Act Phase" (R-11.7-H2).
  */
 export function settleWoodPick(
     state: HydratedOathGameState,
     travelerId: string,
     siteId: string,
-    free: boolean
-): { pick: ShroudedWoodPick; revealed?: SiteFlip } {
+    travel: WoodTravel
+): { pick: ShroudedWoodPick; revealed?: SiteFlip; endsActPhase: boolean } {
     const fromSiteId = pawnSiteId(state, travelerId)
-    const { pick, active } = planWoodPick(state, travelerId, siteId, free)
+    const { pick, active } = planWoodPick(state, travelerId, siteId, travel)
     const traveler = state.getPlayerState(travelerId)
     traveler.spendSupply(pick.cost)
     traveler.siteId = siteId
@@ -152,7 +265,8 @@ export function settleWoodPick(
             notes: notes.length > 0 ? notes : undefined,
             warbandOwner: soleWarbandOwner(after.warbandOwners)
         },
-        revealed
+        revealed,
+        endsActPhase: after.endsActPhase && woodTravelTakesCards(state)
     }
 }
 

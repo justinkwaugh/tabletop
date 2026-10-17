@@ -152,12 +152,22 @@ export function disguisedAs(
     return choice?.kind === PowerChoiceKind.Player ? choice.playerId : undefined
 }
 
+/**
+ * R-11.7-H2 — `destinationUnknown`: the Travel out of an enemy's Shrouded Wood declares its cards
+ * before the ruler names the site, so a card's condition is judged per pick (`modifierApplies`),
+ * and the mandatory ones fold there too: only what does not depend on the destination is checked.
+ */
+export interface ResolveMode {
+    destinationUnknown?: boolean
+}
+
 export function resolveModifiers(
     state: HydratedOathGameState,
     playerId: string,
     action: ActionType,
     uses: readonly ModifierUse[] | undefined,
-    particulars: Partial<EffectContext['particulars']> = {}
+    particulars: Partial<EffectContext['particulars']> = {},
+    mode: ResolveMode = {}
 ): { reason?: string; active: ActiveModifier[] } {
     const active: ActiveModifier[] = []
     const seen = new Set<string>()
@@ -226,19 +236,19 @@ export function resolveModifiers(
         if (unpayable) return { reason: unpayable, active }
         const badChoice = reasonChoicesInvalid(state, playerId, power, use.choices)
         if (badChoice) return { reason: badChoice, active }
-        const ctx: EffectContext = {
-            state,
-            playerId,
+        const declared: ActiveModifier = {
             power,
+            hooks: effect.modifier,
             choices: use.choices ?? [],
-            particulars
+            mandatory: false
         }
-        const unmet = effect.modifier.condition?.(ctx)
-        if (unmet) return { reason: `${use.cardId}: ${unmet}`, active }
-        const cross = effect.reasonCannotResolve?.(ctx)
-        if (cross) return { reason: cross, active }
-        active.push({ power, hooks: effect.modifier, choices: use.choices ?? [], mandatory: false })
+        if (!mode.destinationUnknown) {
+            const unmet = reasonModifierDoesNotApply(state, playerId, declared, particulars)
+            if (unmet) return { reason: unmet, active }
+        }
+        active.push(declared)
     }
+    if (mode.destinationUnknown) return { active }
     for (const m of mandatoryModifiers(state, playerId, action)) {
         const ctx: EffectContext = { ...modifierContext(state, playerId, m), particulars }
         // R-9.2.a — a mandatory modifier whose "if able" does not hold is skipped.
@@ -246,6 +256,19 @@ export function resolveModifiers(
         active.push(m)
     }
     return { active }
+}
+
+/** A declared modifier's printed condition, and its cross-check, for the action's particulars. */
+export function reasonModifierDoesNotApply(
+    state: HydratedOathGameState,
+    playerId: string,
+    m: ActiveModifier,
+    particulars: Partial<EffectContext['particulars']>
+): string | undefined {
+    const ctx: EffectContext = { ...modifierContext(state, playerId, m), particulars }
+    const unmet = m.hooks.condition?.(ctx)
+    if (unmet) return `${m.power.cardId}: ${unmet}`
+    return effectFor(m.power)?.reasonCannotResolve?.(ctx)
 }
 
 /** R-7.4 — already validated and paid by the Search. */

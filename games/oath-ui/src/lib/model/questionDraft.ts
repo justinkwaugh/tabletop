@@ -515,14 +515,17 @@ export class QuestionDraft implements PanelDraft {
         return allowed ? sites.filter((siteId) => allowed.includes(siteId)) : sites
     }
 
-    /** R-11.7 — the traveller's own Travel: the sites they can pay for, by region and price. */
+    /**
+     * R-11.7 — the traveller's own Travel: the sites they can pay for, by region and price, with
+     * the cards they declared counted for each site, as the engine counts them (R-11.7-H2).
+     */
     get woodRegions(): WoodRegion[] {
         const question = this.question
         if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination || !question.travel) {
             return []
         }
         const state = this.session.gameState
-        const picks = payableWoodPicks(state, question.travelerPlayerId, question.travel.free)
+        const picks = payableWoodPicks(state, question.travelerPlayerId, question.travel)
         return woodRegions(state, picks)
     }
 

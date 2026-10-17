@@ -12,7 +12,7 @@ import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { Suit } from '../model/oathEnums.js'
 import { CRADLE, HINTERLAND, PROVINCES, testPlayer, testState, withChancellor } from '../testing/fixture.js'
-import { battlePlanUse } from '../testing/choices.js'
+import { battlePlanUse, modifierUse } from '../testing/choices.js'
 import { testGame } from '../testing/game.js'
 import { adviser } from '../testing/tables.js'
 import { OathRevision } from '../util/revision.js'
@@ -34,6 +34,8 @@ const SHROUDED_WOOD = 'site.shrouded-wood'
 const VOW_OF_UNION = 'denizen.beast.vow-of-union'
 const GIANT_PYTHON = 'denizen.beast.giant-python'
 const TOLL_ROADS = 'denizen.order.toll-roads'
+const SPECIAL_ENVOY = 'denizen.nomad.special-envoy'
+const TENTS = 'denizen.nomad.tents'
 
 const atRevision = OathRevision.EngineFixes3
 const before = OathRevision.UiBatch1
@@ -277,6 +279,23 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
         expect(t.state.activePlayerIds).toEqual([Y])
         t.answer(Y, skip)
         expect(t.state.machineState).toBe(MachineState.ActPhase)
+        expect(t.state.heldTurn).toBeUndefined()
+    })
+
+    it('R-11.7-H2 (revision 15) — leaving the Wood out of turn with Special Envoy and Tents declared: Tents’ favor is placed, and the Envoy ends nobody’s Act Phase', () => {
+        const sites = { ...Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((id) => [id, id])), c1: SHROUDED_WOOD }
+        const advisers = [adviser(SNEAK_ATTACK), adviser(SECOND_WIND), adviser(SPECIAL_ENVOY), adviser(TENTS)]
+        const t = yWinsOutOfTurn({ revision: OathRevision.EngineFixes11, y: { advisers }, state: { siteCards: sites, warbandsBySite: { c1: { [H]: 1 } } } })
+        const favor = t.player(Y).favor
+        t.run({ type: ActionType.Travel, playerId: Y, modifiers: [modifierUse(SPECIAL_ENVOY), modifierUse(TENTS)] })
+        expect(t.player(Y).favor).toBe(favor - 1)
+        expect(t.question).toMatchObject({ kind: PowerQuestionKind.ShroudedWoodDestination, askedPlayerId: H, travel: { free: true, modifiers: [SPECIAL_ENVOY, TENTS].map((cardId) => ({ cardId, powerIndex: modifierUse(cardId).powerIndex })) } })
+        t.answer(H, { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'h1' })
+        expect(t.player(Y)).toMatchObject({ siteId: 'h1', supply: 0 })
+        expect(t.question).toMatchObject({ kind: PowerQuestionKind.FreeActionOutOfTurn, askedPlayerId: Y, action: ActionType.Campaign })
+        t.answer(Y, skip)
+        expect(t.state.machineState).toBe(MachineState.ActPhase)
+        expect(t.state.activePlayerIds).toEqual([X])
         expect(t.state.heldTurn).toBeUndefined()
     })
 
