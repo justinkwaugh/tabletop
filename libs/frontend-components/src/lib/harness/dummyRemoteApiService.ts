@@ -23,7 +23,12 @@ import type {
     TournamentList,
     TournamentTitles,
     TournamentSchedule,
-    UndoVotePreview
+    UndoVotePreview,
+    League,
+    LeagueAllocationPreview,
+    LeagueList,
+    LeagueSeasonDetail,
+    LeagueState
 } from '@tabletop/common'
 import type { GameVersionProvider, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
@@ -63,6 +68,14 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async correctTournamentResult(): Promise<Tournament> {
         return this.fail('correctTournamentResult')
+    }
+
+    async withdrawTournamentEntrant(): Promise<Tournament> {
+        return this.fail('withdrawTournamentEntrant')
+    }
+
+    async substituteTournamentEntrant(): Promise<Tournament> {
+        return this.fail('substituteTournamentEntrant')
     }
 
     async rebuildTournamentStandings(): Promise<Tournament> {
@@ -107,6 +120,42 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async joinTournament(): Promise<Tournament> {
         return this.fail('joinTournament')
+    }
+
+    async listLeagues(): Promise<LeagueList> {
+        return this.fail('listLeagues')
+    }
+
+    async getLeague(): Promise<LeagueSeasonDetail> {
+        return this.fail('getLeague')
+    }
+
+    async previewLeagueAllocation(): Promise<LeagueAllocationPreview> {
+        return this.fail('previewLeagueAllocation')
+    }
+
+    async createLeague(): Promise<League> {
+        return this.fail('createLeague')
+    }
+
+    async updateLeague(): Promise<League> {
+        return this.fail('updateLeague')
+    }
+
+    async scheduleLeagueSignUp(): Promise<LeagueState> {
+        return this.fail('scheduleLeagueSignUp')
+    }
+
+    async updateLeagueSignUpPolicy(): Promise<League> {
+        return this.fail('updateLeagueSignUpPolicy')
+    }
+
+    async cancelLeagueSeason(): Promise<LeagueState> {
+        return this.fail('cancelLeagueSeason')
+    }
+
+    async actOnLeague(): Promise<LeagueState> {
+        return this.fail('actOnLeague')
     }
 
     async getSelf(): Promise<User | undefined> {

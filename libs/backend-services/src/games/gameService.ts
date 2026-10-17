@@ -1,4 +1,5 @@
 import { enqueueTournamentTask } from '../competitions/tournamentTasks.js'
+import { watchTournamentGame } from '../competitions/tournamentStalls.js'
 import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
 import {
     GameCreationOptions,
@@ -61,6 +62,10 @@ import {
     Visibility,
     assertExists,
     type Tournament,
+    tournamentSeatAccounts,
+    tournamentTableReference,
+    tournamentTableSettled,
+    type TournamentTableHandover,
     type TournamentSchedule
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
@@ -125,7 +130,8 @@ import {
     assertOrdinaryGame,
     assertTournamentUndoAllowed,
     tournamentGameId,
-    TournamentGameError
+    TournamentGameError,
+    type TournamentTableRelease
 } from './tournamentGames.js'
 import * as Value from 'typebox/value'
 import { enqueueGameAutoStart, type GameAutoStartTask } from './gameAutoStart.js'
@@ -262,12 +268,10 @@ export class GameService {
     ): Promise<Game> {
         const table = schedule.tables.find((table) => table.id === tableId)
         assertExists(table, 'Scheduled tournament table not found')
-        const reference = {
-            tournamentId: tournament.id,
-            stageId: schedule.stageId,
-            tableId,
-            scheduleId: schedule.id
-        }
+        const stage = tournament.stages.find((stage) => stage.id === schedule.stageId)
+        assertExists(stage, 'Scheduled tournament stage not found')
+        assert(stage.scheduleId === schedule.id, 'Tournament schedule changed')
+        const reference = tournamentTableReference(tournament.id, stage, tableId)
         const gameId = tournamentGameId(reference)
         const existing = await this.gameStore.findGameById(gameId, false)
         if (existing) {
@@ -275,11 +279,7 @@ export class GameService {
                 Value.Equal(existing.tournament, reference),
                 'Game identity belongs to another tournament table'
             )
-            const dispatch = tournament.stages.find(
-                (stage) => stage.id === schedule.stageId
-            )?.dispatch
-            if (dispatch?.active.includes(tableId) || dispatch?.finished.includes(tableId))
-                return existing
+            if (tournamentTableSettled(stage.dispatch, tableId)) return existing
             return this.gameStore.createGame(existing)
         }
         const definition = this.getTitle(tournament.rules.titleId)
@@ -300,13 +300,15 @@ export class GameService {
                 hotseat: false,
                 config: structuredClone(tournament.rules.gameConfig),
                 ...(masterSeed ? { seed: deriveGameSeeds(masterSeed).publicSeed } : {}),
-                players: table.entrantIds.map((userId, index) => ({
-                    id: `player-${index + 1}`,
-                    userId,
-                    name: '',
-                    isHuman: true,
-                    status: PlayerStatus.Joined
-                }))
+                players: tournamentSeatAccounts(tournament, table.entrantIds).map(
+                    (userId, index) => ({
+                        id: `player-${index + 1}`,
+                        userId,
+                        name: '',
+                        isHuman: true,
+                        status: PlayerStatus.Joined
+                    })
+                )
             },
             definition
         )
@@ -327,7 +329,51 @@ export class GameService {
         await this.notifyGamePlayers(GameNotificationAction.Create, { game: created })
         await this.notifyGameStarted(created)
         await this.scheduleStartingTurnNotifications(created)
+        await this.startStallCheck(created)
         return created
+    }
+
+    private async startStallCheck(game: Game): Promise<void> {
+        try {
+            await watchTournamentGame(this.cacheService, this.taskService, game)
+        } catch (error) {
+            console.error('Failed to start a tournament stall check', error)
+        }
+    }
+
+    /** Ends a Tournament Game that will never count, voiding its Table or restarting it. */
+    async voidTournamentGame(gameId: string, outcome: TournamentTableRelease): Promise<void> {
+        const game = await this.gameStore.voidTournamentGame(gameId, outcome)
+        await this.notifyGamePlayers(GameNotificationAction.Update, { game })
+    }
+
+    /**
+     * Passes a Tournament Game seat from one account to a Substitute, by taking over the Game in
+     * progress or restarting its Table. A seat already handed over is left alone.
+     */
+    async handOverTournamentSeat(
+        gameId: string,
+        fromUserIds: string[],
+        substitute: { id: string; username: string },
+        handover: TournamentTableHandover
+    ): Promise<void> {
+        const game = await this.gameStore.findGameById(gameId, false)
+        const seated = game?.players.find(
+            (player) => player.userId && fromUserIds.includes(player.userId)
+        )?.userId
+        if (!game?.tournament || game.status !== GameStatus.Started || !seated) return
+        if (handover === 'restart') return this.voidTournamentGame(gameId, 'restart')
+        const updated = await this.gameStore.replaceTournamentSeat({
+            gameId,
+            fromUserIds,
+            toUserId: substitute.id,
+            toName: substitute.username
+        })
+        await this.cacheService.delete(this.makeTurnNotificationCacheKey(seated, gameId))
+        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updated })
+        const seat = updated.players.find((player) => player.userId === substitute.id)
+        if (seat && updated.activePlayerIds?.includes(seat.id))
+            await this.scheduleTurnNotifications(updated, [seat.id], FIRST_TURN_REMINDER_INDEX)
     }
 
     async deleteGame(user: User, gameId: string): Promise<void> {
@@ -1192,6 +1238,7 @@ export class GameService {
                 console.error('Failed to enqueue tournament completion task', error)
             }
         }
+        await this.startStallCheck(updatedGame)
 
         const representation = measureSync('projection.response.action', () =>
             createActionResultsRepresentation({
@@ -2205,8 +2252,8 @@ export class GameService {
         try {
             const playerId = this.findValidPlayerForUser({ user, game }).id
 
-            // Make sure it's still the user's turn
-            if (!game.activePlayerIds?.includes(playerId)) {
+            // Make sure the game is still in play and it's still the user's turn
+            if (game.status !== GameStatus.Started || !game.activePlayerIds?.includes(playerId)) {
                 return
             }
 

@@ -4,7 +4,11 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import { loadTitleTournaments } from '$lib/services/titleTournaments'
-    import { tournamentSummaryText, tournamentStatusText } from '$lib/utils/tournamentPresentation'
+    import {
+        tournamentRosterText,
+        tournamentSummaryText,
+        tournamentStatusText
+    } from '$lib/utils/tournamentPresentation'
     import TitleSection from '$lib/components/TitleSection.svelte'
     import { ArrowRightOutline } from 'flowbite-svelte-icons'
 
@@ -68,9 +72,7 @@
             <a class="tournament" href={`/tournaments/${tournament.id}`}>
                 <div class="status-row">
                     <span>{tournamentStatusText(tournament, now)}</span><span class="entrants"
-                        >{tournament.entrants.length}{tournament.rules.registration.capacity
-                            ? ` / ${tournament.rules.registration.capacity}`
-                            : ''} joined</span
+                        >{tournamentRosterText(tournament)} joined</span
                     >
                 </div>
                 <h3>{tournament.name}</h3>

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import CompetitionHeading from '$lib/components/CompetitionHeading.svelte'
     import { onMount } from 'svelte'
     import { goto } from '$app/navigation'
     import TournamentForm from '$lib/components/tournaments/TournamentForm.svelte'
@@ -8,7 +9,9 @@
     import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import {
-        tournamentFormatText,
+        tournamentRosterText,
+        tournamentTag,
+        tournamentTagTitle,
         tournamentSummaryText,
         tournamentStatusText,
         tournamentStatusColor
@@ -137,7 +140,7 @@
 <svelte:head><title>Tournaments · Tabletop</title></svelte:head>
 <main class="collection-page pb-10 text-gray-900 dark:text-gray-100">
     <header class="collection-header flex items-center gap-3">
-        <h1 class="collection-heading">Tournaments</h1>
+        <CompetitionHeading current="tournaments" />
         {#if isAdmin}
             <button
                 onclick={() => (creating = true)}
@@ -277,9 +280,7 @@
                             ></span>{tournamentStatusText(tournament, now)}</span
                         >
                         <span class="text-gray-500 dark:text-gray-400"
-                            >{tournament.entrants.length}{tournament.rules.registration.capacity
-                                ? ` / ${tournament.rules.registration.capacity}`
-                                : ''} joined</span
+                            >{tournamentRosterText(tournament)} joined</span
                         >
                     </div>
                     <div class="flex items-center gap-3">
@@ -306,10 +307,10 @@
                                     {libraryService.getNameForTitle(tournament.rules.titleId)}
                                 </p>
                                 <span
-                                    title={tournamentFormatText(tournament.format)}
+                                    title={tournamentTagTitle(tournament)}
                                     class="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[0.6rem] leading-none text-gray-500 dark:bg-gray-700/60 dark:text-gray-400"
                                 >
-                                    {tournament.format.kind === 'mini' ? 'Mini' : 'Multi-stage'}
+                                    {tournamentTag(tournament)}
                                 </span>
                             </div>
                         </div>

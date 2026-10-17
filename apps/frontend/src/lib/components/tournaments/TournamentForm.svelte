@@ -11,20 +11,19 @@
         Hr
     } from 'flowbite-svelte'
     import TournamentSelect from './TournamentSelect.svelte'
+    import GameConfigFields from './GameConfigFields.svelte'
+    import { localDateTimeInputValue } from '$lib/utils/dateTimeInput'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
-        defaultGameConfig,
-        normalizeGameConfig,
         range,
         getMiniTournamentDefaults,
         miniTournamentDefaults,
-        ConfigOptionType,
+        tournamentCapacity,
         type Tournament,
-        type TournamentDraft,
-        type GameConfig,
-        type ConfigOption
+        type TournamentDraft
     } from '@tabletop/common'
     import { onMount, untrack } from 'svelte'
+    import { CompetitionGameChoice } from './competitionGameChoice.svelte'
     import { nanoid } from 'nanoid'
 
     let {
@@ -43,10 +42,9 @@
     const id = initial?.id ?? nanoid()
     let name = $state(initial?.name ?? '')
     let description = $state(initial?.description ?? '')
-    let titleId = $state(initial?.rules.titleId ?? '')
     let tableSize = $state(initial?.rules.tableSize ?? 4)
     let registrationKind = $state<'whenFull' | 'deadline'>(
-        initial?.rules.registration.kind ?? 'whenFull'
+        initial?.rules.registration.kind === 'deadline' ? 'deadline' : 'whenFull'
     )
     let minimumEntrants = $state(
         initial?.rules.registration.kind === 'deadline'
@@ -54,55 +52,43 @@
             : miniTournamentDefaults[4].capacity
     )
     let capacity = $state(
-        initial?.rules.registration.capacity ?? miniTournamentDefaults[4].capacity
+        (initial && tournamentCapacity(initial.rules.registration)) ??
+            miniTournamentDefaults[4].capacity
     )
-    let capped = $state(initial?.rules.registration.capacity !== undefined)
+    let capped = $state(
+        initial !== undefined && tournamentCapacity(initial.rules.registration) !== undefined
+    )
     let gamesPerEntrant = $state(
         initial?.format.stages[0].gamesPerEntrant ?? miniTournamentDefaults[4].gamesPerEntrant
     )
     let concurrency = $state(
         initial?.rules.concurrency ?? miniTournamentDefaults[4].gamesPerEntrant
     )
-    let rawConfig: GameConfig = $state({ ...initial?.rules.gameConfig })
-    const initialDeadline = new Date(
-        initial?.rules.registration.kind === 'deadline'
-            ? initial.rules.registration.closesAt
-            : Date.now() + 7 * 86_400_000
-    )
     let deadline = $state(
-        new Date(initialDeadline.getTime() - initialDeadline.getTimezoneOffset() * 60_000)
-            .toISOString()
-            .slice(0, 16)
+        localDateTimeInputValue(
+            initial?.rules.registration.kind === 'deadline'
+                ? initial.rules.registration.closesAt
+                : Date.now() + 7 * 86_400_000
+        )
     )
     let busy = $state(false)
     let error = $state('')
-    let title = $derived(libraryService.titlesById[titleId])
-    let config = $derived(normalizeGameConfig(rawConfig, title?.info.configurator))
-    let tournamentTitleIds: Set<string> | undefined = $state()
-    let titlesError = $state('')
-    let titles = $derived(
-        Object.values(libraryService.titlesById)
-            .filter(
-                (item) =>
-                    tournamentTitleIds?.has(item.info.id) || item.info.id === initial?.rules.titleId
-            )
-            .sort((a, b) => a.info.metadata.name.localeCompare(b.info.metadata.name))
+
+    const game = new CompetitionGameChoice(
+        libraryService,
+        initial?.rules.titleId,
+        initial?.rules.gameConfig
+    )
+    let title = $derived(game.title)
+    let config = $derived(game.config)
+
+    onMount(() =>
+        game.loadEligibleTitles(api, 'Could not load the games available for tournaments.')
     )
 
-    onMount(async () => {
-        try {
-            tournamentTitleIds = new Set((await api.listTournamentTitles()).titleIds)
-        } catch {
-            titlesError = 'Could not load the games available for tournaments.'
-        }
-    })
-
     function selectTitle(selectedTitleId: string) {
-        titleId = selectedTitleId
-        const selected = libraryService.titlesById[titleId]
-        if (!selected) return
-        setTableSize(selected.info.metadata.defaultPlayerCount)
-        rawConfig = defaultGameConfig(selected.info.configurator?.options ?? [])
+        const selected = game.select(selectedTitleId)
+        if (selected) setTableSize(selected.info.metadata.defaultPlayerCount)
     }
 
     function setTableSize(value: number) {
@@ -119,12 +105,6 @@
     function updateGamesPerEntrant(value: number) {
         concurrency = concurrency === gamesPerEntrant ? value : Math.min(concurrency, value)
         gamesPerEntrant = value
-    }
-
-    function updateOption(option: ConfigOption, value: string | number | boolean | null) {
-        const updated = { ...config }
-        title?.info.configurator?.updateConfig(updated, { id: option.id, value })
-        rawConfig = updated
     }
 
     async function save() {
@@ -154,7 +134,7 @@
                     ]
                 },
                 rules: {
-                    titleId,
+                    titleId: game.titleId,
                     tableSize,
                     registration,
                     concurrency,
@@ -205,18 +185,18 @@
             <Label for="tournament-game" class="mb-2">Game</Label>
             <TournamentSelect
                 id="tournament-game"
-                value={titleId}
+                value={game.titleId}
                 placeholder="Choose a game"
-                options={titles.map((item) => ({
+                options={game.titles.map((item) => ({
                     value: item.info.id,
                     name: item.info.metadata.name
                 }))}
                 onchange={selectTitle}
             />
-            {#if titlesError}<Helper color="red" class="mt-1">{titlesError}</Helper
-                >{:else if libraryService.loading || !tournamentTitleIds}<Helper class="mt-1"
+            {#if game.titlesError}<Helper color="red" class="mt-1">{game.titlesError}</Helper
+                >{:else if libraryService.loading || !game.eligibleTitleIds}<Helper class="mt-1"
                     >Loading game titles…</Helper
-                >{:else if !titles.length}<Helper color="red" class="mt-1"
+                >{:else if !game.titles.length}<Helper color="red" class="mt-1"
                     >Game titles are unavailable.</Helper
                 >{/if}
         </div>
@@ -238,63 +218,11 @@
         {/if}
         {#if title?.info.configurator?.options.length}
             <Hr class="my-4" />
-            <div class="space-y-3">
-                {#each title.info.configurator.options as option (option.id)}
-                    {@const value = config[option.id]}
-                    <div>
-                        {#if option.type === ConfigOptionType.Boolean}
-                            <Toggle
-                                id={`tournament-option-${option.id}`}
-                                checked={config[option.id] === true}
-                                onchange={(event) =>
-                                    updateOption(option, event.currentTarget.checked)}
-                            >
-                                <div class="flex flex-col items-start leading-tight">
-                                    {option.name}
-                                    <Helper class="text-[.65rem] leading-tight dark:text-gray-400"
-                                        >{option.description}</Helper
-                                    >
-                                </div>
-                            </Toggle>
-                        {:else}
-                            <Label for={`tournament-option-${option.id}`} class="mb-2"
-                                >{option.name}</Label
-                            >
-                            {#if option.type === ConfigOptionType.List}
-                                <TournamentSelect
-                                    id={`tournament-option-${option.id}`}
-                                    value={String(config[option.id] ?? '')}
-                                    options={option.options}
-                                    onchange={(value) => updateOption(option, value)}
-                                />
-                            {:else if option.type === ConfigOptionType.NumberInput}
-                                <Input
-                                    id={`tournament-option-${option.id}`}
-                                    type="number"
-                                    value={typeof value === 'number' ? value : undefined}
-                                    onchange={(event) =>
-                                        updateOption(
-                                            option,
-                                            event.currentTarget.value === ''
-                                                ? null
-                                                : event.currentTarget.valueAsNumber
-                                        )}
-                                />
-                            {:else}
-                                <Input
-                                    id={`tournament-option-${option.id}`}
-                                    value={String(config[option.id] ?? '')}
-                                    onchange={(event) =>
-                                        updateOption(option, event.currentTarget.value)}
-                                />
-                            {/if}
-                            {#if option.description}<Helper class="mt-1 text-[.65rem] leading-tight"
-                                    >{option.description}</Helper
-                                >{/if}
-                        {/if}
-                    </div>
-                {/each}
-            </div>
+            <GameConfigFields
+                options={title.info.configurator.options}
+                {config}
+                onupdate={(option, value) => game.updateOption(option, value)}
+            />
         {/if}
         <Hr class="my-4" />
         <div>
@@ -414,7 +342,7 @@
         {#if error}<Helper color="red" role="alert">{error}</Helper>{/if}
         <div class="flex items-center justify-between pt-2">
             <Button color="light" type="button" onclick={oncancel}>Cancel</Button>
-            <Button type="submit" disabled={!titleId}
+            <Button type="submit" disabled={!game.titleId}
                 >{busy ? 'Saving…' : tournament ? 'Save draft' : 'Create draft'}</Button
             >
         </div>
