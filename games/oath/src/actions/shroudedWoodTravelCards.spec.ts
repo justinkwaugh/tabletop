@@ -316,9 +316,10 @@ describe('R-11.7-H2 — opening the Travel, and what a declaration must afford',
         expect(HydratedTravel.canDoTravel(two, DANA)).toBe(true)
     })
 
-    it('Hospitality is refused: its bank depends on the site, which is not picked yet; tolls and a flip stay refused', () => {
+    it('Hospitality names no bank: its bank depends on the site, which is not picked yet; tolls and a flip stay refused', () => {
         const s = table({ advisers: [HOSPITALITY] })
-        expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { modifiers: [modifierUse(HOSPITALITY, [bank(Suit.Nomad)])] })).toMatch(/depends on the site/)
+        expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { modifiers: [modifierUse(HOSPITALITY, [bank(Suit.Nomad)])] })).toMatch(/declared with no bank/)
+        expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { modifiers: [modifierUse(HOSPITALITY)] })).toBeUndefined()
         expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { tolls: [TOLL_ROADS] })).toMatch(/no toll or flip is declared/)
         expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { flipSecret: true })).toMatch(/no toll or flip is declared/)
         expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, DANA, { siteId: 'p2' })).toBe("the Shrouded Wood's ruler chooses where you go")
@@ -434,9 +435,9 @@ describe('R-11.7-H2 — the Travel out of the Wood as its panel shows it, before
         expect(priced(s, TENTS).map(([siteId, cost]) => [siteId, cost])).toEqual(shown)
     })
 
-    it('nothing while the declaration is refused: a cost Dana cannot pay, Hospitality, or any card before revision 15', () => {
+    it('nothing while the declaration is refused: a cost Dana cannot pay, Hospitality naming a bank, or any card before revision 15', () => {
         expect(beforeTravel(table({ advisers: [TENTS], favor: 0 }), TENTS)).toEqual([])
-        expect(beforeTravel(table({ advisers: [HOSPITALITY] }), HOSPITALITY)).toEqual([])
+        expect(woodPicksBeforeTravel(table({ advisers: [HOSPITALITY] }), DANA, [modifierUse(HOSPITALITY, [bank(Suit.Nomad)])])).toEqual([])
         expect(beforeTravel(table({ revision: before, advisers: [TENTS] }), TENTS)).toEqual([])
         expect(beforeTravel(table({ revision: before, advisers: [TENTS] }))).toHaveLength(7)
     })

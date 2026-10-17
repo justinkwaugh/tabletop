@@ -51,11 +51,14 @@ import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
 import { powerTravelNeedsFlip, reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
 import {
+    gainOnArrival,
     reasonWoodPickRefused,
     reasonWoodStayRefused,
     settleWoodPick,
     shroudedWoodDestinations,
-    wayStationChoiceAt
+    wayStationChoiceAt,
+    type WoodSettle,
+    type WoodTravel
 } from './shroudedWood.js'
 import { settleBanishedVictory } from './campaignVictory.js'
 import {
@@ -105,6 +108,49 @@ interface WoodArrival {
     askingPlayerId: string
 }
 
+/** The pick has landed the traveller: what it records, and how the step goes on. */
+interface WoodLanding {
+    pick: ShroudedWoodPick
+    revealed?: SiteFlip
+    landed: { resumeMachineState?: MachineState }
+}
+
+/**
+ * R-11.7, R-11.7-H2 — the traveller pays and arrives (`settleWoodPick`); then a declared
+ * Hospitality's bank: one is gained unasked (the question's forced outcome, noted with the pick),
+ * and with two or more the traveller is asked, and the Travel lands with their answer.
+ */
+function landFromWood(
+    state: HydratedOathGameState,
+    travelerId: string,
+    siteId: string,
+    travel: WoodTravel,
+    settle: WoodSettle,
+    askingPlayerId: string
+): WoodLanding {
+    const settled = settleWoodPick(state, travelerId, siteId, travel, settle)
+    const { revealed, endsActPhase, bankOnArrival } = settled
+    let pick = settled.pick
+    if (bankOnArrival) {
+        const forced = askQuestion(
+            state,
+            askingPlayerId,
+            {
+                kind: PowerQuestionKind.HospitalityBank,
+                ...bankOnArrival.card,
+                askedPlayerId: travelerId,
+                siteId,
+                banks: bankOnArrival.banks,
+                ...(endsActPhase ? { endsActPhase: true as const } : {})
+            },
+            true
+        )
+        if (forced === undefined) return { pick, revealed, landed: {} }
+        pick = { ...pick, notes: [...(pick.notes ?? []), forced] }
+    }
+    return { pick, revealed, landed: woodTravelLanded(state, travelerId, endsActPhase) }
+}
+
 /**
  * R-11.7, R-11.7-H3 — the ruler's pick for the traveller's own Travel lands, any Toll Roads toll
  * paid: Way Station's favor is asked when the traveller could pay either way, given unasked when
@@ -113,9 +159,7 @@ interface WoodArrival {
 function arriveFromWood(
     state: HydratedOathGameState,
     { travelerId, siteId, travel, chooserId, askingPlayerId }: WoodArrival
-):
-    | { pick: ShroudedWoodPick; revealed?: SiteFlip; landed: { resumeMachineState?: MachineState } }
-    | undefined {
+): WoodLanding | undefined {
     const station = wayStationChoiceAt(state, travelerId, siteId, travel)
     if (station?.supplyPayable) {
         const forced = askQuestion(
@@ -140,11 +184,14 @@ function arriveFromWood(
         )
         return undefined
     }
-    const settled = settleWoodPick(state, travelerId, siteId, travel, {
-        favorInstead: station?.toll
-    })
-    const landed = woodTravelLanded(state, travelerId, settled.endsActPhase)
-    return { pick: settled.pick, revealed: settled.revealed, landed }
+    return landFromWood(
+        state,
+        travelerId,
+        siteId,
+        travel,
+        { favorInstead: station?.toll },
+        askingPlayerId
+    )
 }
 
 function listOf(id: string | undefined): string[] {
@@ -811,27 +858,42 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             const cost = matched.question.supplyCost
             return supply < cost ? `paying takes ${cost} Supply and you have ${supply}` : undefined
         },
-        apply: (state, playerId, matched) => {
+        apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const { question } = matched
             // R-11.7-H3 — either answer travels: the favor and no Supply, or the Supply.
             const favorInstead = matched.answer.give
                 ? { cardId: question.cardId, payeeId: question.payeeId }
                 : undefined
-            const { pick, revealed, endsActPhase } = settleWoodPick(
+            const { pick, revealed, landed } = landFromWood(
                 state,
                 playerId,
                 question.siteId,
                 question.travel,
-                { favorInstead, chooserPlayerId: question.chooserPlayerId }
+                { favorInstead, chooserPlayerId: question.chooserPlayerId },
+                askingPlayerId
             )
             assert(revealed === undefined, 'Way Station stands at a faceup site')
             const how = favorInstead
                 ? `${question.payeeId ? `paid ${question.payeeId}` : 'burned'} 1 favor`
                 : `paid ${pick.supplySpent} Supply`
+            return { summary: `${how} and went to ${question.siteId}`, woodPick: pick, ...landed }
+        }
+    },
+    [PowerQuestionKind.HospitalityBank]: {
+        reasonCannotAnswer: (_state, _playerId, matched) => {
+            const { banks, siteId } = matched.question
+            return banks.includes(matched.answer.suit)
+                ? undefined
+                : `${matched.answer.suit} is not a bank Hospitality matches at ${siteId}: choose ${banks.join(' or ')}`
+        },
+        apply: (state, playerId, matched) => {
+            const { question } = matched
+            const card = { cardId: question.cardId, powerIndex: question.powerIndex }
+            // R-11.7-H2 — "gain [favor] from one favor bank": the one the traveller chose.
+            const notes = gainOnArrival(state, playerId, card, matched.answer.suit, question.siteId)
             return {
-                summary: `${how} and went to ${question.siteId}`,
-                woodPick: pick,
-                ...woodTravelLanded(state, playerId, endsActPhase)
+                summary: notes.join('; '),
+                ...woodTravelLanded(state, playerId, question.endsActPhase === true)
             }
         }
     },

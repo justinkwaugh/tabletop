@@ -190,7 +190,7 @@ describe('R-11.7-H2 — the Wood’s Travel cards with the other Travel cards an
         expect(action.modifiers).toEqual([travelCard(DRUM)])
     })
 
-    it('Hospitality, in use from the start of any Travel, is not declared at the Wood: Tents is still listed and sent alone', async () => {
+    it('Hospitality, in use from the start of any Travel, is declared at the Wood with no bank (revision 15), and sent with Tents', async () => {
         const HOSPITALITY = 'denizen.nomad.hospitality'
         const { session, sent } = travellerSession({ advisers: [TENTS, HOSPITALITY] })
         expect(session.modifiers.isDeclared(travelCard(HOSPITALITY))).toBe(true)
@@ -201,7 +201,7 @@ describe('R-11.7-H2 — the Wood’s Travel cards with the other Travel cards an
         await session.travelFromShroudedWood()
         const action = sent.mock.calls[0]?.[0]
         assert(action && isTravel(action), 'the Travel is sent')
-        expect(action.modifiers).toEqual([travelCard(TENTS)])
+        expect(action.modifiers).toEqual([{ ...travelCard(HOSPITALITY), choices: [] }, travelCard(TENTS)])
     })
 
     it('before revision 15 the Dragonskin Drum, in use from the start, is not declared: the Travel goes as before', async () => {

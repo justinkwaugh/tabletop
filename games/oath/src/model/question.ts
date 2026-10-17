@@ -181,7 +181,13 @@ export enum PowerQuestionKind {
      * site, and they can both pay the Supply and give its ruler a favor: give it and spend no
      * Supply, or pay the Supply; either way they travel (R-11.7-H3).
      */
-    WayStationFavor = 'wayStationFavor'
+    WayStationFavor = 'wayStationFavor',
+    /**
+     * Hospitality (revision 15) — declared on a Travel out of an enemy's Shrouded Wood, it names no
+     * bank; once the ruler's pick has landed the asked player, two or more banks match: they choose
+     * the one they gain from (R-11.7-H2).
+     */
+    HospitalityBank = 'hospitalityBank'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -220,8 +226,9 @@ export const ExchangeTerms = Type.Object({
 })
 
 /**
- * R-11.7-H2 — a card declared on a Travel out of an enemy's Shrouded Wood. No choice rides it: a
- * card that asks one (Hospitality) is refused there, as its choice depends on the site.
+ * R-11.7-H2 — a card declared on a Travel out of an enemy's Shrouded Wood. No choice rides it:
+ * Hospitality's bank is chosen once the pick has landed the traveller, and any other card that asks
+ * a choice is refused there, as its choice depends on the site.
  */
 export type WoodTravelCard = Type.Static<typeof WoodTravelCard>
 export const WoodTravelCard = Type.Object({
@@ -502,6 +509,19 @@ export const PowerQuestion = Type.Union([
         travel: ShroudedWoodTravel
     }),
     Type.Object({
+        kind: Type.Literal(PowerQuestionKind.HospitalityBank),
+        /** Hospitality. */
+        cardId: Type.String(),
+        powerIndex: Type.Integer({ minimum: 0, maximum: 9 }),
+        /** The traveller, at the site the Shrouded Wood's ruler picked. */
+        askedPlayerId: Type.String(),
+        siteId: Type.String(),
+        /** The banks that match a card at the site and one of their advisers, and hold favor. */
+        banks: Type.Array(Type.Enum(Suit), { maxItems: 6 }),
+        /** A declared Special Envoy: the Act Phase ends once the bank is answered. */
+        endsActPhase: Type.Optional(Type.Literal(true))
+    }),
+    Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** The power that moved the advisers. */
         cardId: Type.String(),
@@ -608,6 +628,8 @@ export const QuestionAnswer = Type.Union([
     Type.Object({ kind: Type.Literal(PowerQuestionKind.FlipToTravel), flip: Type.Boolean() }),
     /** `give`: the favor to Way Station's ruler and no Supply; otherwise the Supply. Both travel. */
     Type.Object({ kind: Type.Literal(PowerQuestionKind.WayStationFavor), give: Type.Boolean() }),
+    /** The bank Hospitality gains from: one of the question's `banks`. */
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.HospitalityBank), suit: Type.Enum(Suit) }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** R-10.5 — in the order they go down, the last on top; a facedown one is named to its holder alone. */

@@ -19,6 +19,7 @@ import { reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { reasonPersistentForbidsCampaign } from './persistent.js'
 import { pawnSiteId } from './pawn.js'
 import { reasonFlipInvalid } from './siteTravel.js'
+import { gainOnArrival } from './shroudedWood.js'
 
 type ForcedOutcome<K extends PowerQuestionKind> = (
     state: HydratedOathGameState,
@@ -146,6 +147,13 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
     [PowerQuestionKind.DiscardAdvisers]: () => undefined,
     // R-11.7-H3 — asked only while both ways are open; with one, the pick takes it unasked.
     [PowerQuestionKind.WayStationFavor]: () => undefined,
+    // R-11.7-H2 — one bank matches: Hospitality gains from it, with nothing to choose.
+    [PowerQuestionKind.HospitalityBank]: (state, question) => {
+        const [only, ...more] = question.banks
+        if (only === undefined || more.length > 0) return undefined
+        const card = { cardId: question.cardId, powerIndex: question.powerIndex }
+        return gainOnArrival(state, question.askedPlayerId, card, only, question.siteId).join('; ')
+    },
     // R-11.13-H1 — with no faceup secret to flip (or under Spell Breaker) the move is unable.
     [PowerQuestionKind.FlipToTravel]: (state, question) => {
         const invalid = reasonFlipInvalid(state, question.askedPlayerId, true, true)

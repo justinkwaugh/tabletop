@@ -156,6 +156,8 @@ export function disguisedAs(
  * R-11.7-H2 — `destinationUnknown`: the Travel out of an enemy's Shrouded Wood declares its cards
  * before the ruler names the site, so a card's condition is judged per pick (`modifierApplies`),
  * and the mandatory ones fold there too: only what does not depend on the destination is checked.
+ * A card whose bank is chosen on arrival (Hospitality) is declared with no bank, so its choice is
+ * not checked here either.
  */
 export interface ResolveMode {
     destinationUnknown?: boolean
@@ -234,7 +236,13 @@ export function resolveModifiers(
         }
         const unpayable = reasonCannotPayPowerCost(state, playerId, power)
         if (unpayable) return { reason: unpayable, active }
-        const badChoice = reasonChoicesInvalid(state, playerId, power, use.choices)
+        const bankOnArrival =
+            mode.destinationUnknown === true &&
+            effect.modifier.bankChosenOnArrival === true &&
+            (use.choices ?? []).length === 0
+        const badChoice = bankOnArrival
+            ? undefined
+            : reasonChoicesInvalid(state, playerId, power, use.choices)
         if (badChoice) return { reason: badChoice, active }
         const declared: ActiveModifier = {
             power,

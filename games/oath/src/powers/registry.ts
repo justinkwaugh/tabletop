@@ -165,6 +165,12 @@ export interface ModifierHooks {
      * traveller names the site. Forest Paths ignores site powers too, but keeps the ruler's pick.
      */
     ignoresOriginShroudedWood?: (ctx: EffectContext) => boolean
+    /**
+     * R-11.7-H2 — Hospitality, whose one choice is a favor bank matching a card at the destination:
+     * on a Travel out of an enemy's Shrouded Wood it is declared with no bank, and the bank is
+     * chosen once the ruler's pick has landed the traveller (Law 7.1.4).
+     */
+    bankChosenOnArrival?: boolean
 }
 
 /** R-7.5, R-5.5.3 */

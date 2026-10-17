@@ -2,8 +2,12 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import {
     PowerQuestionKind,
     type ShroudedWoodPick,
-    type ShroudedWoodPower
+    type ShroudedWoodPower,
+    type WoodTravelCard
 } from '../model/question.js'
+import type { Suit } from '../model/oathEnums.js'
+import { FAVOR_BANK_ORDER } from '../data/favorBanks.js'
+import { PowerChoiceKind } from './powerChoice.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import { ActionType } from '../definition/actions.js'
 import { cardPowers } from '../data/cardPowers.js'
@@ -87,10 +91,17 @@ export interface WoodPick {
     favorInstead?: Toll
 }
 
+/** R-11.7-H2 — Hospitality: declared with no bank, its bank chosen once the pick has landed. */
+function choosesBankOnArrival(cardId: string, powerIndex: number): boolean {
+    const power = cardPowers(cardId)[powerIndex]
+    return power !== undefined && effectFor(power)?.modifier?.bankChosenOnArrival === true
+}
+
 /**
  * R-11.7-H2 — the declared cards as the Travel takes them: everything that does not depend on the
- * destination is checked, and the costs must be payable together. A card whose choice names
- * something at the destination (Hospitality's bank) is refused: the site is not picked yet.
+ * destination is checked, and the costs must be payable together. Hospitality is declared with no
+ * bank, since its bank must match a card at a site not picked yet (Law 7.4, 7.1.4); any other card
+ * whose choice names something at the destination is refused.
  */
 export function resolveWoodDeclaration(
     state: HydratedOathGameState,
@@ -99,9 +110,16 @@ export function resolveWoodDeclaration(
 ): { reason?: string; active: ActiveModifier[] } {
     for (const use of uses ?? []) {
         const power = cardPowers(use.cardId)[use.powerIndex]
-        if (power && choiceSpecsFor(power).length > 0) {
+        if (!power || choiceSpecsFor(power).length === 0) continue
+        if (!choosesBankOnArrival(use.cardId, use.powerIndex)) {
             return {
                 reason: `${use.cardId}: what it chooses depends on the site, which the Shrouded Wood's ruler has not picked yet`,
+                active: []
+            }
+        }
+        if ((use.choices ?? []).length > 0) {
+            return {
+                reason: `${use.cardId} is declared with no bank here: its bank is chosen once the Shrouded Wood's ruler has picked the site`,
                 active: []
             }
         }
@@ -367,6 +385,64 @@ function giveWayStationFavor(state: HydratedOathGameState, travelerId: string, t
     return toll.payeeId ? `${name}: paid ${toll.payeeId} 1 favor` : `${name}: burned 1 favor`
 }
 
+/** R-11.7-H2 — Hospitality as a declared card, with the bank chosen on arrival. */
+function withBank(card: WoodTravelCard, suit: Suit): ModifierUse {
+    return { ...card, choices: [{ kind: PowerChoiceKind.FavorBank, suit }] }
+}
+
+/**
+ * R-11.7-H2 — the banks Hospitality could gain from at the site the traveller has arrived at: each
+ * whose suit its own condition accepts there (a card at the site and one of their advisers), and
+ * that holds favor, since an empty bank gives nothing (R-9.3). In the banks' order.
+ */
+export function banksOnArrival(
+    state: HydratedOathGameState,
+    travelerId: string,
+    card: WoodTravelCard,
+    siteId: string
+): Suit[] {
+    const particulars = { destinationSiteId: siteId }
+    return FAVOR_BANK_ORDER.filter(
+        (suit) =>
+            state.favorBank[suit] > 0 &&
+            carriedModifiers(state, [withBank(card, suit)]).every(
+                (m) => reasonModifierDoesNotApply(state, travelerId, m, particulars) === undefined
+            )
+    )
+}
+
+/** R-11.7-H2 — Hospitality's gain from the bank chosen, as its own "after" says it. */
+export function gainOnArrival(
+    state: HydratedOathGameState,
+    travelerId: string,
+    card: WoodTravelCard,
+    suit: Suit,
+    siteId: string
+): string[] {
+    const active = carriedModifiers(state, [withBank(card, suit)])
+    return runAfter(state, travelerId, active, { destinationSiteId: siteId }).notes
+}
+
+/** R-11.7-H2 — the declared Hospitality's banks at the site, when one is declared and any matches. */
+function bankOnArrivalAt(
+    state: HydratedOathGameState,
+    travelerId: string,
+    siteId: string,
+    travel: WoodTravel
+): WoodBankOnArrival | undefined {
+    const use = (travel.modifiers ?? []).find((m) => choosesBankOnArrival(m.cardId, m.powerIndex))
+    if (!use || !woodTravelTakesCards(state)) return undefined
+    const card = { cardId: use.cardId, powerIndex: use.powerIndex }
+    const banks = banksOnArrival(state, travelerId, card, siteId)
+    return banks.length > 0 ? { card, banks } : undefined
+}
+
+/** R-11.7-H2 — a declared Hospitality's card and the banks it may gain from where the pick landed. */
+export interface WoodBankOnArrival {
+    card: WoodTravelCard
+    banks: Suit[]
+}
+
 function soleWarbandOwner(owners: readonly WarbandOwner[]): WarbandOwner | undefined {
     const distinct = new Set(owners)
     return distinct.size === 1 ? owners[0] : undefined
@@ -376,7 +452,8 @@ function soleWarbandOwner(owners: readonly WarbandOwner[]): WarbandOwner | undef
  * R-11.7, R-5.6.2 — the traveller pays and arrives, a facedown site is revealed, then the Travel's
  * after-travel modifiers fire (Tyrant, a declared Dragonskin Drum) and the sites' after-travel
  * powers (Grasping Vines, Boiling Lake). `endsActPhase`: a declared Special Envoy's "After
- * traveling, end your Act Phase" (R-11.7-H2).
+ * traveling, end your Act Phase" (R-11.7-H2). `bankOnArrival`: a declared Hospitality's banks at
+ * the site, settled last by the caller (R-11.7-H2).
  */
 export function settleWoodPick(
     state: HydratedOathGameState,
@@ -384,7 +461,12 @@ export function settleWoodPick(
     siteId: string,
     travel: WoodTravel,
     settle: WoodSettle = {}
-): { pick: ShroudedWoodPick; revealed?: SiteFlip; endsActPhase: boolean } {
+): {
+    pick: ShroudedWoodPick
+    revealed?: SiteFlip
+    endsActPhase: boolean
+    bankOnArrival?: WoodBankOnArrival
+} {
     const fromSiteId = pawnSiteId(state, travelerId)
     const { pick, active } = planWoodPick(state, travelerId, siteId, travel, 0)
     const traveler = state.getPlayerState(travelerId)
@@ -404,6 +486,7 @@ export function settleWoodPick(
     // R-11.7-H2 — for the History: the declared cards that set what was paid here.
     const declaredIds = (travel.modifiers ?? []).map((use) => use.cardId)
     const pricedBy = station ? [] : pick.foldedBy.filter((cardId) => declaredIds.includes(cardId))
+    const bank = bankOnArrivalAt(state, travelerId, siteId, travel)
     return {
         pick: {
             travelerPlayerId: travelerId,
@@ -416,7 +499,8 @@ export function settleWoodPick(
             ...(pricedBy.length > 0 ? { pricedBy } : {})
         },
         revealed,
-        endsActPhase: after.endsActPhase && woodTravelTakesCards(state)
+        endsActPhase: after.endsActPhase && woodTravelTakesCards(state),
+        ...(bank ? { bankOnArrival: bank } : {})
     }
 }
 

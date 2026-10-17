@@ -29,6 +29,7 @@ registerModifier(
             })
         ],
         hooks: {
+            bankChosenOnArrival: true,
             condition: (ctx) => {
                 const [bank] = chosen(ctx, PowerChoiceKind.FavorBank)
                 const to = ctx.particulars?.destinationSiteId
