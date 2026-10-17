@@ -5,11 +5,16 @@ import { sitesWithTargets, targetedSiteIds } from './campaignSite.js'
 import { areEnemies, isImperialPlayer, rulersOfSite, rulesSite } from './rule.js'
 import { pawnSiteId } from './pawn.js'
 import type { CampaignParties } from './campaign.js'
-import { reasonPersistentForbidsSecretCost } from './persistent.js'
+import {
+    powerScopeOf,
+    reasonPersistentForbidsSecretCost,
+    type ScopedParties
+} from './persistent.js'
 
 /**
  * R-11.7 — leaving a Shrouded Wood an enemy rules, that ruler chooses where the pawn goes, the
- * Chancellor when the Empire rules it; the bandits choose nothing.
+ * Chancellor when the Empire rules it; the bandits choose nothing. A banish is judged in its
+ * Campaign's scope (R-5.5.1.a-H2).
  */
 export function shroudedWoodChooser(
     state: HydratedOathGameState,
@@ -17,9 +22,14 @@ export function shroudedWoodChooser(
 ): string | undefined {
     const here = pawnSiteId(state, travelerId)
     if (categoryAt(state, here) !== 'shroudedWood') return undefined
-    const enemies = rulersOfSite(state, here).filter((id) => areEnemies(state, id, travelerId))
+    const scope = powerScopeOf(state)
+    const enemies = rulersOfSite(state, here, scope).filter((id) =>
+        areEnemies(state, id, travelerId, scope)
+    )
     if (enemies.length === 0) return undefined
-    return enemies.some((id) => isImperialPlayer(state, id)) ? state.chancellorId() : enemies[0]
+    return enemies.some((id) => isImperialPlayer(state, id, scope))
+        ? state.chancellorId()
+        : enemies[0]
 }
 
 // R-11.3 to R-11.13, R-9.2 — a named ignore beats a must; the player's secret flip rides the action.
@@ -85,20 +95,24 @@ export function narrowPassIn(state: HydratedOathGameState, region: Region): stri
         )
 }
 
-/** `secretsPaid`: faceup secrets a power's cost takes first, as Wild Allies' does before its Campaign is declared. */
+/**
+ * `secretsPaid`: faceup secrets a power's cost takes first, as Wild Allies' does before its Campaign
+ * is declared. `parties`: the Campaign a secret is flipped to target in.
+ */
 export function reasonFlipInvalid(
     state: HydratedOathGameState,
     playerId: string,
     offered: boolean,
     flipSecret: boolean,
-    secretsPaid = 0
+    secretsPaid = 0,
+    parties?: ScopedParties
 ): string | undefined {
     if (!flipSecret) return undefined
     if (!offered) return 'no site here asks for a secret to be flipped'
     const player = state.getPlayerState(playerId)
     if (player.secrets - secretsPaid < 1) return 'you have no faceup secret to flip'
     // Spell Breaker — its Q&A names the secret flipped to travel or to target.
-    return reasonPersistentForbidsSecretCost(state, playerId)
+    return reasonPersistentForbidsSecretCost(state, playerId, parties)
 }
 
 /** R-11.8, R-11.13 */
@@ -151,15 +165,28 @@ export function reasonSitesForbidTargets(
 ): string | undefined {
     const sites = targetedSiteIds(parties)
     const hidden = targetsNeedFlip(state, parties)
-    const flip = reasonFlipInvalid(state, parties.attackerPlayerId, hidden, flipSecret, secretsPaid)
+    const flip = reasonFlipInvalid(
+        state,
+        parties.attackerPlayerId,
+        hidden,
+        flipSecret,
+        secretsPaid,
+        parties
+    )
     if (flip) return flip
     if (hidden && !flipSecret)
         return 'The Hidden Place: you cannot declare targets here unless you flip a secret facedown'
     const myRegion = state.regionOf(parties.attackerSiteId)
+    // R-5.5.1.a-H2 — "unless you rule it", in the Campaign's scope.
+    const scope = powerScopeOf(state, parties)
     for (const region of new Set(sites.map((siteId) => state.regionOf(siteId)))) {
         if (region === myRegion) continue
         const pass = narrowPassIn(state, region)
-        if (!pass || sites.includes(pass) || rulesSite(state, parties.attackerPlayerId, pass))
+        if (
+            !pass ||
+            sites.includes(pass) ||
+            rulesSite(state, parties.attackerPlayerId, pass, scope)
+        )
             continue
         return `Narrow Pass: targeting the ${region} from another region, you must target ${pass} unless you rule it`
     }

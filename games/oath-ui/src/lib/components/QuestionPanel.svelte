@@ -1,5 +1,6 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
+    import AnswerButton from '$lib/components/AnswerButton.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { assertExists } from '@tabletop/common'
     import TokenRow from '$lib/components/TokenRow.svelte'
@@ -39,6 +40,7 @@
     let mine = $derived(draft.mine)
     // Brass Horse's sites are equal choices, one width.
     const siteWidth = new ChoiceWidth()
+    const discardWidth = new ChoiceWidth()
     // R-11.7 — the Shrouded Wood ruler's pick for the traveller's own Travel is made on the lit
     // map on a desktop (`BoardSitesLayer`), as Travel's is; a phone lists the sites here.
     const layout = new PhoneLayout()
@@ -278,6 +280,36 @@
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.PayTravelToll}
         <QuestionToll question={mine} />
+    {:else if mine.kind === PowerQuestionKind.DiscardAdvisers}
+        <!-- R-7.6.4 — the adviser-discard pick of a question at the limit (Inquisitor's), after a
+             swap; the card it gave is not offered. -->
+        {@const refused = draft.adviserDiscardsBlockedBecause}
+        <QuestionForm>
+            {#snippet line()}Over the adviser limit: discard {draft.adviserDiscardCount}.{/snippet}
+            <div class="mb-2">
+                <CardChoiceRow
+                    choices={cardChoices(draft.adviserDiscardChoices)}
+                    picked={draft.adviserDiscards}
+                    onpick={(cardId) => draft.toggleAdviserDiscard(cardId)}
+                    {busy}
+                    height={80}
+                    discard
+                />
+            </div>
+            {#if refused}<p class="mb-2 text-[11px] text-oath-danger">
+                    <TokenText text={gameSession.humanizeReason(refused) ?? ''} />
+                </p>{/if}
+            {#if draft.adviserDiscardsComplete}
+                <AnswerButton
+                    primary
+                    width={discardWidth}
+                    disabled={busy}
+                    onclick={() => draft.discardAdvisers()}
+                >
+                    Discard
+                </AnswerButton>
+            {/if}
+        </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.DragonskinDrum}
         <QuestionForm cardId={mine.cardId}>
             {#snippet line()}Gain <TokenText

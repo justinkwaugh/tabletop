@@ -205,6 +205,14 @@ registerEffect(
                 domain: nomadCardsAtSites
             })
         ],
+        // R-5.1.4.I, R-11.10 — the domain reads the map before the play; a card the play discards first is no
+        // longer at a site when Great Herd resolves.
+        reasonCannotResolve: (ctx) => {
+            const [target] = chosen(ctx, PowerChoiceKind.Card)
+            return target && ctx.mapChanges?.leaving.includes(target.cardId)
+                ? `${target.cardId} is discarded before Great Herd is played, so it is no longer at a site`
+                : undefined
+        },
         resolve: (ctx) => {
             const [target] = chosen(ctx, PowerChoiceKind.Card)
             if (!target) return { summary: 'kept Great Herd where it was played' }

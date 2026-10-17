@@ -55,6 +55,7 @@ import {
     type ExchangeTerms,
     type ExchangeTransfer,
     type CampaignBattleMetadata,
+    type HeldAttackRoll,
     type CampaignPlacement,
     type CampaignResolveVictory,
     type CampaignTarget,
@@ -140,6 +141,16 @@ function woodTravelerOf(action: GameAction): string | undefined {
     return isAnswerQuestion(action) ? action.metadata?.woodPick?.travelerPlayerId : undefined
 }
 
+/** R-5.5.4-H1 — the attacker whose warbands the held attack's skulls took, on the answer that rolled it. */
+function heldAttackerOf(action: GameAction): string | undefined {
+    return isAnswerQuestion(action) ? action.metadata?.heldAttack?.attackerPlayerId : undefined
+}
+
+/** R-5.5.4-H1 — a row whose skulls are drawn as the skull: the answer that rolled a held attack. */
+export function drawsSkulls(action: GameAction): boolean {
+    return heldAttackerOf(action) !== undefined
+}
+
 /** Toll Roads — the moved player's answer tells the mover's story, so it starts with the mover. */
 function tollMoverOf(action: GameAction): string | undefined {
     return isAnswerQuestion(action) ? action.metadata?.tollMove?.moverPlayerId : undefined
@@ -149,7 +160,7 @@ function tollMoverOf(action: GameAction): string | undefined {
  * R-10.13 — whose warbands a row counts, from the record alone so the row never changes: those a
  * move names, the owner a Muster (R-5.2.2: a Citizen's are Imperial), an Action power, a
  * sacrifice or a choice of losses recorded, the ones an exile leaves Imperial (R-9.3), the seat a
- * power acted on, else the actor's own.
+ * power acted on, the attacker a held attack's skulls took them from, else the actor's own.
  */
 export function rowWarbandOwner(
     action: GameAction,
@@ -162,6 +173,7 @@ export function rowWarbandOwner(
             ? action.metadata?.targetPlayerId
             : undefined) ??
         woodTravelerOf(action) ??
+        heldAttackerOf(action) ??
         action.playerId
     return seat === undefined ? undefined : ownWarbandsOf(seat)
 }
@@ -266,6 +278,7 @@ export function recordedNotes(action: GameAction): readonly string[] {
         return [
             ...(meta?.triggered ?? []),
             ...(meta?.sitePower ? [meta.sitePower] : []),
+            ...(meta?.secondSitePower ? [meta.secondSitePower] : []),
             ...(meta?.modifierNotes ?? [])
         ]
     }
@@ -704,11 +717,14 @@ function describeActionCited(
     if (isCampaignDefend(action)) {
         const meta = action.metadata
         if (!meta) return usedPlans([])
-        // R-5.5.3.a — while another defender still chooses, nothing is rolled.
+        // R-5.5.3.a — while another defender still chooses, nothing is rolled; R-5.5.4-H1 — while
+        // the defender may reroll, the attack waits.
         const pools =
             (meta.awaitingMore ?? []).length > 0
                 ? `${meta.attackPool} attack dice against ${meta.defensePool} defense dice`
-                : `${meta.swords} swords against ${meta.defense} defense`
+                : meta.heldAttackDice !== undefined
+                  ? `${meta.heldAttackDice} attack dice against ${meta.defense} defense`
+                  : `${meta.swords} swords against ${meta.defense} defense`
         return `${usedPlans(meta.plansUsed)}; ${pools}`
     }
     if (isCampaignSacrifice(action)) {
@@ -834,7 +850,8 @@ function describeActionCited(
                     : describePlay(answer.play)
             return `${cardName(meta.cardId)}: 1 warband on ${cardName(vision)} died; ${play}`
         }
-        return `${cardName(meta.cardId)}: ${namedSummary(meta.summary, meta.cardId, action.playerId, names, viewerId)}`
+        const summary = meta.summary + heldAttackClause(meta.heldAttack)
+        return `${cardName(meta.cardId)}: ${namedSummary(summary, meta.cardId, action.playerId, names, viewerId)}`
     }
     if (isExileCitizen(action)) {
         // R-6.7 — the exiler pays the Citizen they throw out; R-9.3's leftover Imperial warbands are worth a clause.
@@ -1193,12 +1210,16 @@ function describeSkullLosses(killed: readonly WarbandGroup[], site: HistoryNames
 
 /**
  * R-5.5.4, R-5.5.5 — the roll and what the skulls killed, the dice while the defending side
- * still chooses its plans. The skulls kill the attacker's warbands: on another seat's row the
- * attacker is named, with no piece in that seat's colour.
+ * still chooses its plans, and the attack dice against the defense while the defender may reroll
+ * (R-5.5.4-H1). The skulls kill the attacker's warbands: on another seat's row the attacker is
+ * named, with no piece in that seat's colour.
  */
 function describeBattle(battle: CampaignBattleMetadata, attackersRow: boolean): string {
     if (battle.awaitingDefender) {
         return `${battle.attackPool} attack dice against ${battle.defensePool} defense dice`
+    }
+    if (battle.heldAttackDice !== undefined) {
+        return `${battle.heldAttackDice} attack dice against ${battle.defense} defense`
     }
     const skulls = battle.skullsKilled
     const lost =
@@ -1208,6 +1229,20 @@ function describeBattle(battle: CampaignBattleMetadata, attackersRow: boolean): 
               ? `; lost ${plural(skulls, 'warband')} to skulls`
               : `; the attacker lost ${skulls} to skulls`
     return `${battle.swords} swords against ${battle.defense} defense${lost}`
+}
+
+/**
+ * R-5.5.4-H1 — the held attack the answer rolled: its swords against the defense, and the attacker's
+ * warbands its skulls took, the attacker by id for the row to name.
+ */
+function heldAttackClause(held: HeldAttackRoll | undefined): string {
+    if (!held) return ''
+    const skulls = held.skullsKilled === 1 ? 'a skull' : 'skulls'
+    const lost =
+        held.skullsKilled > 0
+            ? `; ${held.attackerPlayerId} lost ${plural(held.skullsKilled, 'warband')} to ${skulls}`
+            : ''
+    return `. ${held.swords} swords against ${held.defense} defense${lost}`
 }
 
 // R-6.5.a, R-6.5.b, R-5.5.2.a — the answer names what was asked of the answering player.

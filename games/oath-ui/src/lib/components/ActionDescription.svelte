@@ -2,7 +2,7 @@
     import { type GameAction } from '@tabletop/common'
     import ShownCards from '$lib/components/ShownCards.svelte'
     import TokenText from '$lib/components/TokenText.svelte'
-    import { describeAction } from '$lib/model/actionDescription.js'
+    import { describeAction, drawsSkulls } from '$lib/model/actionDescription.js'
     import { actorOnlyCards } from '$lib/model/actionOutcomes.js'
     import { seatsById } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -18,9 +18,10 @@
     let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })
     let seen = $derived(actorOnlyCards(action, gameSession.myPlayer?.id))
     let warbandColor = $derived(gameSession.historyWarbandColor(action))
+    let skulls = $derived(drawsSkulls(action))
 </script>
 
-<span><TokenText {text} {warbandColor} {seats} /></span>
+<span><TokenText {text} {warbandColor} {seats} {skulls} /></span>
 {#if seen.length > 0}
     <span class="mt-1 block"><ShownCards cardIds={seen} height={48} /></span>
 {/if}

@@ -11,7 +11,7 @@ import {
 } from '../data/cardPowers.js'
 import type { CampaignParties, DiceDelta, DicePools } from '../util/campaign.js'
 import type { ImperialScope } from '../util/rule.js'
-import type { RollRules, WarbandGroup } from '../model/campaign.js'
+import type { CampaignKillPath, RollRules, WarbandGroup } from '../model/campaign.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
@@ -68,6 +68,8 @@ export interface CampaignContext {
     parties: CampaignParties
     side: BattlePlanSide
     pools: DicePools
+    /** Set while the plans are used (`applyBattlePlans`), the bandits' in the muster included. */
+    kills?: CampaignKillPath
 }
 
 /** R-5.5.3 — `playerId` is undefined for the bandits' compelled plans (R-5.5.3-H1). */
@@ -181,8 +183,10 @@ export interface BattlePlanHooks {
     onBanditOutcome?: (ctx: BattlePlanContext, victorious: boolean) => string | undefined
     /** Specialist */
     locksEnemyPlans?: boolean
-    /** Code of Honor, R-10.28-H1 — binds the user's whole side. */
+    /** Code of Honor, Peace Envoy — "you cannot use other battle plans" in the same declaration. */
     exclusive?: boolean
+    /** Code of Honor, R-10.28-H1, R-5.5.3-H3 — binds the user's whole side, before and after its use. */
+    locksOwnSide?: boolean
     /** Hearts and Minds, Peace Envoy — nothing is rolled. */
     decidesVictor?: boolean
     /** Peace Envoy — no skulls, and R-5.5.6 kills nothing. */
@@ -257,10 +261,11 @@ export interface PersistentHooks {
     /** Vow of Silence */
     forbidsGivingSecrets?: (ctx: PersistentContext, actorId: string) => string | undefined
     forbidsCampaign?: (ctx: PersistentContext, actorId: string) => string | undefined
+    /** R-5.5.2-H1 — `defendingIds`: the players on the side being attacked. */
     forbidsSacrifice?: (
         ctx: PersistentContext,
         attackerId: string,
-        defenderId: string | undefined
+        defendingIds: readonly string[]
     ) => string | undefined
     forbidsExile?: (ctx: PersistentContext, citizenId: string) => string | undefined
     forbidsBattlePlan?: (

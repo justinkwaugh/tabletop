@@ -19,6 +19,19 @@ import { applyAnswer, reasonCannotAnswer } from '../util/questionAnswers.js'
 import { commitHiddenOutputs } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
 
+/**
+ * R-5.5.4-H1 — the attack held for the defender's reroll, as the answer that rolled it left it: the
+ * swords and defense before any later reroll or sacrifice, and the warbands its skulls took then (read as
+ * a Campaign's battle record reads them).
+ */
+export type HeldAttackRoll = Type.Static<typeof HeldAttackRoll>
+export const HeldAttackRoll = Type.Object({
+    attackerPlayerId: Type.String(),
+    swords: Type.Number(),
+    defense: Type.Number(),
+    skullsKilled: Type.Number()
+})
+
 export type AnswerQuestionMetadata = Type.Static<typeof AnswerQuestionMetadata>
 export const AnswerQuestionMetadata = Type.Object({
     cardId: Type.String(),
@@ -44,7 +57,11 @@ export const AnswerQuestionMetadata = Type.Object({
     /** R-5.5.8 — a banish's answer: its burn, the "if you're victorious" plans and the end. */
     triggered: Type.Optional(Type.Array(Type.String())),
     // Dragonskin Drum on a power's move
-    warbandGain: Type.Optional(WarbandGain)
+    warbandGain: Type.Optional(WarbandGain),
+    /** R-2.11-H1 — a binding exchange, or the answer that landed a Relic Thief take. */
+    titleMoment: Type.Optional(Type.Boolean()),
+    /** R-5.5.4-H1 — the held attack, when this answer's settling rolled it. */
+    heldAttack: Type.Optional(HeldAttackRoll)
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -111,7 +128,8 @@ export class HydratedAnswerQuestion
             woodPick: outcome.woodPick,
             tollMove: outcome.tollMove,
             triggered: outcome.triggered,
-            warbandGain: outcome.warbandGain
+            warbandGain: outcome.warbandGain,
+            titleMoment: outcome.titleMoment
         }
         commitHiddenOutputs(this, state, witnesses)
     }

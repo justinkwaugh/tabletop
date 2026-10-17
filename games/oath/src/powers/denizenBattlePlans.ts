@@ -2,9 +2,9 @@ import { assertExists } from '@tabletop/common'
 import { bannerHolder } from '../util/oathkeeper.js'
 import { removeFavorFromBoard } from '../util/favor.js'
 import { burnFavor, burnFavorFromBank } from '../util/burn.js'
-import { countKilled } from '../util/campaignRoll.js'
+import { countKilled, killBoardWarbandsInCampaign, killOrRedirect } from '../util/campaignRoll.js'
 import { Banner, Suit } from '../model/oathEnums.js'
-import { CampaignTargetKind } from '../model/campaign.js'
+import { type CampaignKillPath, CampaignTargetKind, type WarbandGroup } from '../model/campaign.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import {
@@ -117,14 +117,52 @@ function holdsDarkestSecretWide(ctx: BattlePlanContext): boolean {
 }
 
 /**
- * Cursed Cauldron — a plan's own kill, of `dying`'s force. The bandits' plans resolve while the
- * Campaign is mustered, before its state exists, and no player stands on their side to count one.
+ * Cursed Cauldron — before revision 13 (R-X.4) a plan's own kill, of `dying`'s force, skipped the
+ * Campaign's kill path and was counted here; from 13 `killOrRedirect` counts it. The bandits' plans
+ * resolve while the Campaign is mustered, before its state exists, and no player stands on their side
+ * to count one.
  */
 function countPlanKill(ctx: BattlePlanContext, dying: BattlePlanSide, count: number): void {
     if (ctx.playerId === undefined) return
     const campaign = ctx.state.campaign
     assertExists(campaign, "a player's defending plan is used inside a Campaign")
     countKilled(ctx.state, campaign, dying, count)
+}
+
+function killPathOf(ctx: BattlePlanContext): CampaignKillPath {
+    const kills = ctx.campaign.kills
+    assertExists(kills, 'a plan kills only while it is used, which gives it the kill path')
+    return kills
+}
+
+/** Hospital — from revision 13 a plan's kill goes through the Campaign's kill path (R-X.4). */
+function planKillsOnBoard(
+    ctx: BattlePlanContext,
+    dying: BattlePlanSide,
+    playerId: string,
+    count: number
+): { killed: number; held: boolean } {
+    if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes9)) {
+        return killBoardWarbandsInCampaign(ctx.state, killPathOf(ctx), dying, playerId, count)
+    }
+    const { killed } = killWarbandsOnBoard(ctx.state, playerId, count)
+    countPlanKill(ctx, dying, killed)
+    return { killed, held: false }
+}
+
+/** Hospital — the same for warbands the plan picked from a force, all standing where it names. */
+function planKillsGroup(
+    ctx: BattlePlanContext,
+    dying: BattlePlanSide,
+    group: WarbandGroup
+): number {
+    if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes9)) {
+        killOrRedirect(ctx.state, killPathOf(ctx), dying, group.at, group.owner, group.count)
+        return group.count
+    }
+    const killed = killWarbandGroup(ctx.state, group)
+    countPlanKill(ctx, dying, killed)
+    return killed
 }
 
 /** R-10.3-H1 — favor a bank would pay the bandits is burned. */
@@ -487,11 +525,16 @@ registerBattlePlan(
             dice: () => ({ attack: -1 }),
             onUse: (ctx) => {
                 const attackerId = ctx.campaign.parties.attackerPlayerId
-                const { killed } = killWarbandsOnBoard(ctx.state, attackerId, 1)
-                countPlanKill(ctx, BattlePlanSide.Attacker, killed)
-                return killed
-                    ? `Bear Traps: killed a warband on ${attackerId}'s board`
-                    : "Bear Traps: no warband on the attacker's board to kill"
+                const { killed, held } = planKillsOnBoard(
+                    ctx,
+                    BattlePlanSide.Attacker,
+                    attackerId,
+                    1
+                )
+                if (!killed) return "Bear Traps: no warband on the attacker's board to kill"
+                return held
+                    ? `Bear Traps: a warband on ${attackerId}'s board goes to Hospital's site`
+                    : `Bear Traps: killed a warband on ${attackerId}'s board`
             }
         }
     }
@@ -578,8 +621,7 @@ registerBattlePlan(
                 )
                 const group = force.find((g) => g.at.kind === 'board') ?? force[0]
                 if (!group) return undefined
-                const killed = killWarbandGroup(ctx.state, { ...group, count: 1 })
-                countPlanKill(ctx, BattlePlanSide.Defender, killed)
+                const killed = planKillsGroup(ctx, BattlePlanSide.Defender, { ...group, count: 1 })
                 return killed > 0 ? { defense: 1 } : undefined
             }
         }
@@ -591,7 +633,7 @@ registerBattlePlan(
     'denizen.order.code-of-honor',
     powerIndexOf('denizen.order.code-of-honor', PowerTiming.BattlePlan),
     {
-        hooks: { dice: (ctx) => pm(ctx, 2), exclusive: true }
+        hooks: { dice: (ctx) => pm(ctx, 2), exclusive: true, locksOwnSide: true }
     }
 )
 

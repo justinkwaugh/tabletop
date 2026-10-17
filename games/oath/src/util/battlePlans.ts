@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { usableFavor } from './favor.js'
 import { burnedFavorTaker } from './burn.js'
 import type { ActionPayment } from './actionPayment.js'
@@ -27,7 +27,7 @@ import {
 } from './powerCost.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
 import { applyDiceDelta, battleScopeOf, type CampaignParties, type DicePools } from './campaign.js'
-import type { CampaignState, KillRedirect, RollRules } from '../model/campaign.js'
+import type { CampaignKillPath, CampaignState, KillRedirect, RollRules } from '../model/campaign.js'
 import type { BattlePlanUse } from '../model/battlePlanUse.js'
 import {
     effectFor,
@@ -99,7 +99,7 @@ export function usableBattlePlans(
         for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
             if (!admits(power, side)) continue
             if (!effectFor(power)?.battlePlan) continue
-            if (reasonCannotPayPowerCost(state, playerId, power)) continue
+            if (reasonCannotPayPowerCost(state, playerId, power, parties)) continue
             found.push(power)
         }
     }
@@ -112,9 +112,20 @@ export function resolveBattlePlans(
     side: BattlePlanSide,
     uses: readonly BattlePlanUse[] | undefined,
     parties: CampaignParties,
-    /** The Hidden Place's flipped secret, taken before the plans are paid. */
-    spentFirst?: ActionPayment
+    given: {
+        /** The Hidden Place's flipped secret, taken before the plans are paid. */
+        spentFirst?: ActionPayment
+        /** R-11.4-H1 — the attacker's pools as Step 2 leaves them, which each plan's check reads. */
+        pools?: DicePools
+    } = {}
 ): { reason?: string; active: ActiveBattlePlan[] } {
+    // R-X.4 — from revision 13 the attacker's plans are checked against the Step 2 pools.
+    assert(
+        given.pools !== undefined ||
+            side !== BattlePlanSide.Attacker ||
+            !isAtLeastOathRevision(state, OathRevision.EngineFixes9),
+        "the attacker's plans are checked against the pools as Step 2 leaves them"
+    )
     const active: ActiveBattlePlan[] = []
     const seen = new Set<string>()
     const scope = battleScopeOf(state, parties)
@@ -150,7 +161,7 @@ export function resolveBattlePlans(
             effect?.battlePlan,
             `${use.cardId} power ${use.powerIndex} registers no battle plan`
         )
-        const unpayable = reasonCannotPayPowerCost(state, playerId, power)
+        const unpayable = reasonCannotPayPowerCost(state, playerId, power, parties)
         if (unpayable) return { reason: unpayable, active }
         // R-7.1.4 — Marsh Spirit, Beast Tamer, True Names.
         const barred = reasonPersistentForbidsBattlePlan(state, playerId, power, parties, side)
@@ -171,18 +182,19 @@ export function resolveBattlePlans(
             }
         // Spell Breaker — its Q&A names Gleaming Armor's added secret.
         if (secretsNeeded(total) > 0) {
-            const secretBarred = reasonPersistentForbidsSecretCost(state, playerId)
+            const secretBarred = reasonPersistentForbidsSecretCost(state, playerId, parties)
             if (secretBarred) return { reason: secretBarred, active }
         }
         const badChoice = reasonChoicesInvalid(state, playerId, power, use.choices)
         if (badChoice) return { reason: badChoice, active }
-        // The pools are not settled yet, so a cross-check reads them as zero.
+        // R-11.4-H1 — the attacker's check reads the pools Step 2 left; the defending side's are not
+        // settled here (R-X.4: nor the attacker's before revision 13), so they read as zero.
         const ctx: PlayerPlanContext = {
             state,
             playerId,
             power,
             choices: use.choices ?? [],
-            campaign: { parties, side, pools: { attackPool: 0, defensePool: 0 } }
+            campaign: { parties, side, pools: given.pools ?? { attackPool: 0, defensePool: 0 } }
         }
         const cross = effect.battlePlan.reasonCannotUse?.(ctx)
         if (cross) return { reason: cross, active }
@@ -204,7 +216,7 @@ export function resolveBattlePlans(
     // R-X.4 — a game created before this revision checked each plan alone.
     if (isAtLeastOathRevision(state, OathRevision.PlanCostsAndSearchPlays)) {
         const extra = extraBattlePlanCost(state, playerId, parties, side)
-        const short = reasonCannotPayPlansInOrder(state, playerId, active, extra, spentFirst)
+        const short = reasonCannotPayPlansInOrder(state, playerId, active, extra, given.spentFirst)
         if (short) return { reason: short, active }
     }
     return { active }
@@ -244,20 +256,46 @@ function reasonCannotPayPlansInOrder(
     return undefined
 }
 
-/** R-5.5.3-H1 — the bandits' plans come from every site they rule, not only the targeted ones. */
-export function banditBattlePlans(state: HydratedOathGameState): ActiveBattlePlan[] {
+/**
+ * R-5.5.3-H1 — the bandits' plans come from every site they rule, not only the targeted ones.
+ * R-5.5.3-H4 — each passes the bans and added costs a player's plan does, before Code of Honor
+ * stands alone (R-X.4: from revision 14; before it, the printed cost alone was read).
+ */
+export function banditBattlePlans(
+    state: HydratedOathGameState,
+    parties: CampaignParties
+): ActiveBattlePlan[] {
+    const checked = isAtLeastOathRevision(state, OathRevision.EngineFixes10)
     const found: ActiveBattlePlan[] = []
     for (const cardId of banditRuledCardIds(state)) {
         for (const power of powersWithTiming(cardId, PowerTiming.BattlePlan)) {
             if (!admits(power, BattlePlanSide.Defender) || !isFree(power.cost)) continue
             const hooks = effectFor(power)?.battlePlan
             if (!hooks) continue
+            if (checked && banditsCannotUse(state, power, parties)) continue
             found.push({ power, hooks, choices: [], compelled: true })
         }
     }
     // Code of Honor — "you cannot use other battle plans" binds the bandits' own too.
     const exclusive = found.find((plan) => plan.hooks.exclusive)
     return exclusive ? [exclusive] : found
+}
+
+/**
+ * R-9.2 — a "cannot" beats R-5.5.3's compelled use (True Names, Beast Tamer); and R-5.5.3's "no cost"
+ * reads the cost an enemy's card adds (Gleaming Armor, Insect Swarm), which the bandits could not
+ * pay anyway (R-10.3-H1).
+ */
+function banditsCannotUse(
+    state: HydratedOathGameState,
+    power: CardPower,
+    parties: CampaignParties
+): boolean {
+    const side = BattlePlanSide.Defender
+    if (reasonPersistentForbidsBattlePlan(state, BANDITS_PLAN_USER, power, parties, side)) {
+        return true
+    }
+    return !isFree(extraBattlePlanCost(state, BANDITS_PLAN_USER, parties, side))
 }
 
 export interface BattlePlanOutcome {
@@ -271,23 +309,28 @@ export interface BattlePlanOutcome {
     rollRules: RollRules
     /** Specialist */
     locksEnemyPlans: boolean
-    /** Code of Honor — nobody else on this side may use one either (R-10.28-H1). */
+    /** Code of Honor, Peace Envoy — "you cannot use other battle plans". */
     exclusive: boolean
+    /** Code of Honor — nobody else on this side may use one either (R-10.28-H1, R-5.5.3-H3). */
+    locksOwnSide: boolean
     /** Hearts and Minds, Peace Envoy */
     decidesVictor: boolean
     /** Peace Envoy, R-5.5.6 */
     ignoreDefeatKills: boolean
-    /** Hospital */
-    killRedirects: KillRedirect[]
 }
 
-/** In order, so R-5.5.3's underflow crosses over per plan; `playerId` is undefined for the bandits. */
+/**
+ * In order, so R-5.5.3's underflow crosses over per plan; `playerId` is undefined for the bandits.
+ * Hospital's redirect joins `kills` before any plan resolves: Law 5.5.3 lets a side use its plans
+ * "once each", in no order of their own.
+ */
 export function applyBattlePlans(
     state: HydratedOathGameState,
     playerId: string | undefined,
     active: readonly ActiveBattlePlan[],
     pools: DicePools,
-    campaign: Omit<CampaignContext, 'pools'>
+    campaign: Omit<CampaignContext, 'pools' | 'kills'>,
+    kills: CampaignKillPath
 ): BattlePlanOutcome {
     const out: BattlePlanOutcome = {
         pools,
@@ -298,18 +341,28 @@ export function applyBattlePlans(
         rollRules: {},
         locksEnemyPlans: false,
         exclusive: false,
+        locksOwnSide: false,
         decidesVictor: false,
-        ignoreDefeatKills: false,
-        killRedirects: []
+        ignoreDefeatKills: false
+    }
+    const contextOf = (plan: ActiveBattlePlan): BattlePlanContext => ({
+        state,
+        playerId,
+        power: plan.power,
+        choices: plan.choices,
+        campaign: { ...campaign, pools: out.pools, kills }
+    })
+    if (playerId !== undefined) {
+        kills.killRedirects = [
+            ...kills.killRedirects,
+            ...active.flatMap((plan): KillRedirect[] => {
+                const siteId = plan.hooks.redirectKillsTo?.(contextOf(plan))
+                return siteId ? [{ playerId, siteId }] : []
+            })
+        ]
     }
     for (const plan of active) {
-        const ctx: BattlePlanContext = {
-            state,
-            playerId,
-            power: plan.power,
-            choices: plan.choices,
-            campaign: { ...campaign, pools: out.pools }
-        }
+        const ctx = contextOf(plan)
         if (!plan.compelled && playerId !== undefined) {
             payPowerCost(state, playerId, plan.power)
             payCostOnCard(
@@ -339,14 +392,12 @@ export function applyBattlePlans(
         if (rules) out.rollRules = { ...out.rollRules, ...rules }
         if (plan.hooks.locksEnemyPlans) out.locksEnemyPlans = true
         if (plan.hooks.exclusive) out.exclusive = true
+        if (plan.hooks.locksOwnSide) out.locksOwnSide = true
         if (plan.hooks.decidesVictor) out.decidesVictor = true
         if (plan.hooks.ignoreKills) {
             out.ignoreSkulls = true
             out.ignoreDefeatKills = true
         }
-        const redirect = plan.hooks.redirectKillsTo?.(ctx)
-        if (redirect && playerId !== undefined)
-            out.killRedirects.push({ playerId, siteId: redirect })
         out.used.push(plan.power.cardId)
     }
     return out

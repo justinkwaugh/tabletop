@@ -89,6 +89,7 @@ import {
     type PlayedTable
 } from './sessionHarness.js'
 import { shroudedWoodState } from './shroudedWoodTable.js'
+import { heldAttackTable } from './heldAttackTable.js'
 import { RecordedStory } from './recordedStory.js'
 
 export type TableName =
@@ -156,6 +157,9 @@ export type TableName =
     | 'searchConspiracyNoTake'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
+    | 'heldAttack'
+    | 'heldAttackKept'
+    | 'heldAttackRerolled'
     | 'battleDefenderPlans'
     | 'battlePlanCosts'
     | 'attackerPlans'
@@ -179,6 +183,7 @@ export type TableName =
     | 'usePower'
     | ModifierScene
     | FacedownScene
+    | 'greatHerdFlip'
     | 'showOne'
     | 'exileCitizens'
     | 'selfExile'
@@ -553,6 +558,30 @@ const QUESTION_TABLES = {
         questionTable(prophet('vision.conquest'), {
             me: { advisers: PROPHET_ADVISERS.map((cardId) => ({ cardId, faceUp: false })) }
         }),
+    // Enchantress's Q&A — ann swapped it for the Pied Piper that came to my three advisers by its Action.
+    askEnchantressDiscard: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.DiscardAdvisers,
+                cardId: 'denizen.discord.enchantress',
+                ...asked,
+                actingPlayerId: 'ann',
+                count: 1,
+                receivedCardIds: ['denizen.discord.enchantress'],
+                receivedFacedownCardIds: []
+            },
+            {
+                me: {
+                    advisers: [
+                        'denizen.beast.wolves',
+                        'denizen.hearth.wayside-inn',
+                        'denizen.order.scouts',
+                        'denizen.discord.enchantress'
+                    ].map(faceup)
+                },
+                ann: { advisers: [faceup('denizen.beast.pied-piper')] }
+            }
+        ),
     fabledFeast: fabledFeastTable
 } satisfies Record<string, () => PlayedTable>
 
@@ -2195,7 +2224,11 @@ function deedWriterTable(): PlayedTable {
 }
 
 type ExchangeScene =
-    'exchangeDeed' | 'exchangeDeedEmptyBoard' | 'exchangeTinkers' | 'exchangeGathering'
+    | 'exchangeDeed'
+    | 'exchangeDeedEmptyBoard'
+    | 'exchangeDeedSwap'
+    | 'exchangeTinkers'
+    | 'exchangeGathering'
 
 const VOW_OF_SILENCE = 'denizen.arcane.vow-of-silence'
 
@@ -2204,13 +2237,15 @@ const VOW_OF_SILENCE = 'denizen.arcane.vow-of-silence'
  * Great Slum (Imperial warbands) and holds the Grand Scepter and the Cup of Plenty. Rhys, an
  * Exile, rules the Mountain and holds the Bandit Crown with 2 warbands on his board; Ann is a
  * Citizen. `exchangeDeedEmptyBoard`: Rhys holds no Crown and his board is empty.
+ * `exchangeDeedSwap`: the same, in a game at the current revision, where the Mountain's warband
+ * comes home before Rhys moves in.
  * `exchangeTinkers`: Rhys holds Vow of Silence. `exchangeGathering`: The Gathering's round asks
  * Dana, who holds 2 advisers of 3; Rhys holds Vow of Peace (locked), Tents and a facedown card.
  */
 function exchangeTable(scene: ExchangeScene): PlayedTable {
     const [home, slums] = mapSlotsFor(Region.Cradle)
     const mountain = mapSlotId(Region.Provinces, 0)
-    const crowned = scene !== 'exchangeDeedEmptyBoard'
+    const crowned = scene !== 'exchangeDeedEmptyBoard' && scene !== 'exchangeDeedSwap'
     const card =
         scene === 'exchangeTinkers' ? 'denizen.hearth.tinkers-fair' : 'denizen.hearth.deed-writer'
     const gathering = scene === 'exchangeGathering'
@@ -2261,7 +2296,8 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
         ],
         {
             machineState: gathering ? MachineState.PowerQuestion : MachineState.ActPhase,
-            oathRevision: OathRevision.UiBatch1,
+            oathRevision:
+                scene === 'exchangeDeedSwap' ? CURRENT_OATH_REVISION : OathRevision.UiBatch1,
             chancellorPlayerId: 'dana',
             map: allMapSlots(),
             vault: testVaultWithRelics(RELIQUARY),
@@ -3414,6 +3450,49 @@ function facedownTable(scene: FacedownScene): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * R-6.1, R-5.1.4.I — the seat's facedown Great Herd, with Crop Rotation faceup; its site holds Book
+ * Binders and Tents, and the Oracle stands at the next Cradle site. Tents, a Nomad card, may go
+ * first, and then only the Oracle is left for Great Herd to swap with.
+ */
+function greatHerdFlipTable(): PlayedTable {
+    const [home, next] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 3,
+                advisers: [
+                    { cardId: 'denizen.nomad.great-herd', faceUp: false },
+                    { cardId: 'denizen.hearth.crop-rotation', faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            oathRevision: CURRENT_OATH_REVISION,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: {
+                [home]: ['denizen.hearth.book-binders', 'denizen.nomad.tents'],
+                [next]: ['denizen.nomad.oracle']
+            }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-5.1.4.IV: a Search drew Wolves, Toll Roads and the Conspiracy; no one here to take from. */
 function searchConspiracyNoTakeTable(): PlayedTable {
     return conspiracyNoTakeTable(MachineState.Searching, {
@@ -4530,6 +4609,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     facedownCards: () => facedownTable('facedownCards'),
     facedownFullSite: () => facedownTable('facedownFullSite'),
     facedownNewGrowth: () => facedownTable('facedownNewGrowth'),
+    greatHerdFlip: greatHerdFlipTable,
     modifierPair: () => modifierTable('modifierPair'),
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
@@ -4597,6 +4677,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     searchConspiracyNoTake: searchConspiracyNoTakeTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
+    heldAttack: () => heldAttackTable(),
+    heldAttackKept: () => heldAttackTable('keep'),
+    heldAttackRerolled: () => heldAttackTable('reroll'),
     battleDefenderPlans: () => battleTable('defenderPlans'),
     // R-7.1.2 — plans that cost favor beside a free one: Shield Wall 1, Hearts and Minds 3.
     battlePlanCosts: () =>
@@ -4623,6 +4706,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     deedWriter: deedWriterTable,
     exchangeDeed: () => exchangeTable('exchangeDeed'),
     exchangeDeedEmptyBoard: () => exchangeTable('exchangeDeedEmptyBoard'),
+    exchangeDeedSwap: () => exchangeTable('exchangeDeedSwap'),
     exchangeTinkers: () => exchangeTable('exchangeTinkers'),
     exchangeGathering: () => exchangeTable('exchangeGathering'),
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),

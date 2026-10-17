@@ -3779,6 +3779,59 @@ test.describe('the exchange editor', () => {
         await expect(pieces(page, 'dana')).toHaveCount(6)
     })
 
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 }]) {
+        test(`Deed Writer: an empty board takes a site once its own site is handed over, counted to the warbands that come home (${viewport.width} px)`, async ({ page }) => {
+            await page.setViewportSize(viewport)
+            await openPower(page, 'exchangeDeedSwap')
+            await chip(page, DEED_WRITER, 'rhys').click()
+            const rhysOne = grid(page).getByRole('button', { name: 'rhys moves 1 in from their board', exact: true })
+
+            // Plains waits for a site from Rhys: listed, and picked first with no count until then.
+            await expect(site(page, 'Great Slum')).toBeVisible()
+            await site(page, 'Plains').click()
+            await expect(site(page, 'Plains')).toHaveAttribute('aria-pressed', 'true')
+            await expect(pieces(page, 'rhys')).toHaveCount(0)
+            await expect(answer(page, 'Use')).toHaveCount(0)
+            await expect(red(page)).toHaveCount(0)
+
+            // The Mountain's one warband comes home to Rhys first, so he can move it into Plains.
+            await site(page, 'Mountain').click()
+            await grid(page).getByRole('button', { name: 'dana moves 1 in from their board', exact: true }).click()
+            await expect(pieces(page, 'rhys')).toHaveCount(1)
+            await expect(rhysOne).toHaveAttribute('aria-pressed', 'false')
+            await expect(answer(page, 'Use')).toHaveCount(0)
+            await rhysOne.click()
+            await expect(rhysOne).toHaveAttribute('aria-pressed', 'true')
+            await expect(red(page)).toHaveCount(0)
+            await expect(answer(page, 'Use')).toBeVisible()
+
+            // A second tap on the Mountain takes it out: Plains stays picked, its count cleared, and waits again.
+            await site(page, 'Mountain').click()
+            await expect(site(page, 'Plains')).toHaveAttribute('aria-pressed', 'true')
+            await expect(pieces(page, 'rhys')).toHaveCount(0)
+            await expect(answer(page, 'Use')).toHaveCount(0)
+            await expect(red(page)).toHaveCount(0)
+            await site(page, 'Mountain').click()
+            await grid(page).getByRole('button', { name: 'dana moves 1 in from their board', exact: true }).click()
+            await expect(rhysOne).toHaveAttribute('aria-pressed', 'false')
+            await expect(answer(page, 'Use')).toHaveCount(0)
+            await rhysOne.click()
+            await expect(rhysOne).toHaveAttribute('aria-pressed', 'true')
+
+            const home = (await call(page, 'tableFacts')).siteOf.dana
+            if (!home) throw Error('Dana stands at a site')
+            await answer(page, 'Use').click()
+            await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('rhys')
+            await answer(page, 'Accept').click()
+            await expect.poll(async () => (await call(page, 'openQuestionKind')) ?? 'none').toBe('none')
+            const facts = await call(page, 'tableFacts')
+            expect(facts.warbandsAt[home]?.rhys).toBe(1)
+            expect(facts.warbandsAt[home]?.imperial ?? 0).toBe(0)
+            expect(facts.boardOf.dana).toEqual({ imperial: 7 })
+            expect(facts.boardOf.rhys?.rhys ?? 0).toBe(0)
+        })
+    }
+
     test('two sites share one board: the second site’s count stops at the warbands the first leaves; the Crown’s 0 alone is picked at once', async ({ page }) => {
         await openPower(page, 'exchangeDeed')
         await chip(page, DEED_WRITER, 'rhys').click()
@@ -5647,6 +5700,90 @@ test('scenario 63: a seat named inside a History line is its colour chip, for ev
     await expect(sacrificed).toContainText("def picks the defense's losses")
 })
 
+/**
+ * R-5.5.4-H1 — while the defender may reroll the defense, the attack waits: its dice not rolled, with
+ * no total. History's Campaign row says the dice brought; the answer's row carries the roll, the lost
+ * warband as its token and the skull as its symbol.
+ */
+test.describe('the attack held for the defender’s Jinx', () => {
+    const dice = (page: Page) => page.getByRole('region', { name: "the Campaign's dice" })
+    const historyRow = (page: Page, hasText: string) =>
+        page.locator('.history p').filter({ hasText })
+
+    async function heldPanel(page: Page) {
+        const asked = await openTable(page, 'heldAttack')
+        expect(asked.seatId).toBe('Bea')
+        await expect(dice(page).locator('.die--unrolled.die--attack')).toHaveCount(4)
+        await expect(dice(page).locator('.die img')).toHaveCount(3)
+        await expect(dice(page)).toContainText('6 defense')
+        await expect(dice(page)).not.toContainText('sword')
+        await expect(answer(page, 'Keep')).toBeVisible()
+    }
+
+    test('while Bea decides, the attack is 4 not-rolled dice and no total; the Campaign row says the dice brought', async ({
+        page
+    }) => {
+        await heldPanel(page)
+        await page.getByRole('tab', { name: 'History' }).click()
+        const campaign = historyRow(page, 'campaigned against')
+        await expect(campaign).toContainText('; 4 attack dice against 6 defense')
+        await expect(campaign).not.toContainText('swords')
+    })
+
+    test('kept: the dice as today; Bea’s row carries the swords and the loss, the warband and skull drawn', async ({
+        page
+    }) => {
+        await openTable(page, 'heldAttackKept')
+        await expect(dice(page).locator('.die--unrolled')).toHaveCount(0)
+        await expect(dice(page).locator('.die img')).toHaveCount(7)
+        await expect(dice(page)).toContainText('4 swords')
+        await page.getByRole('tab', { name: 'History' }).click()
+        const kept = historyRow(page, 'kept the roll')
+        await expect(kept).toContainText('Jinx: kept the roll. 4 swords against 6 defense;')
+        await expect(kept).toContainText('lost 1')
+        await expect(kept.locator('img[alt="warband"]')).toHaveCount(1)
+        await expect(kept.locator('img[alt="skull"]')).toHaveCount(1)
+        await expect(kept).not.toContainText('skull')
+        expect(await rowChips(page, 'kept the roll')).toEqual(['Bea', 'you'])
+        await expect(historyRow(page, 'campaigned against')).toContainText(
+            '; 4 attack dice against 6 defense'
+        )
+    })
+
+    test('rerolled: Bea’s row adds the attack against the new defense, and no skull', async ({
+        page
+    }) => {
+        await openTable(page, 'heldAttackRerolled')
+        await expect(dice(page)).toContainText('2 swords')
+        await expect(dice(page)).toContainText('7 defense')
+        await page.getByRole('tab', { name: 'History' }).click()
+        const rerolled = historyRow(page, 'rerolled the defense')
+        await expect(rerolled).toContainText(
+            'Jinx: rerolled the defense — 7 defense. 2 swords against 7 defense'
+        )
+        await expect(rerolled.locator('img[alt="skull"]')).toHaveCount(0)
+    })
+
+    test.describe('on a phone', () => {
+        test.use({ viewport: { width: 375, height: 812 } })
+
+        test('the not-rolled dice fit the width; the History row with its symbols wraps', async ({
+            page
+        }) => {
+            await heldPanel(page)
+            const box = await dice(page).boundingBox()
+            expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(375)
+
+            await openTable(page, 'heldAttackKept')
+            await page.getByRole('tab', { name: 'History' }).click()
+            const kept = historyRow(page, 'kept the roll')
+            await expect(kept.locator('img[alt="skull"]')).toBeVisible()
+            const row = await kept.boundingBox()
+            expect((row?.x ?? 0) + (row?.width ?? 0)).toBeLessThanOrEqual(375)
+        })
+    })
+})
+
 /** Scenario 65: the History says what each row did from its record, a card's part as what happened then the card. */
 test.describe('scenario 65: the History’s words', () => {
     const history = (page: Page) => page.locator('.history')
@@ -6640,6 +6777,25 @@ test.describe('power questions', () => {
         await expect.poll(() => asked(page)).toBe(false)
     })
 
+    test('Enchantress: "Over the adviser limit: discard 1."; the card received is not offered; "Discard" once one is picked', async ({ page }) => {
+        await openTable(page, 'askEnchantressDiscard')
+        await expect(line(page)).toHaveText('Over the adviser limit: discard 1.')
+        for (const name of ['Wolves', 'Wayside Inn', 'Scouts']) {
+            await expect(grid(page).getByRole('button', { name, exact: true })).toBeVisible()
+        }
+        await expect(grid(page).getByRole('button', { name: 'Enchantress', exact: true })).toHaveCount(0)
+        await expect(answer(page, 'Discard')).toHaveCount(0)
+        await expect(red(page)).toHaveCount(0)
+
+        const wolves = grid(page).getByRole('button', { name: 'Wolves', exact: true })
+        await wolves.click()
+        await expect(wolves).toHaveAttribute('aria-pressed', 'true')
+        await expect(wolves).toHaveClass(/ring-oath-danger/)
+        await expect(answer(page, 'Discard')).toBeVisible()
+        await answer(page, 'Discard').click()
+        await expect.poll(() => asked(page)).toBe(false)
+    })
+
     test('a When Played bank starts with none ringed; "Play" shows once one is tapped (Fabled Feast)', async ({ page }) => {
         await openTable(page, 'fabledFeast')
         await grid(page).getByRole('button', { name: 'Fabled Feast', exact: true }).click()
@@ -6671,6 +6827,18 @@ test.describe('power questions', () => {
             expect(shape.width).toBeGreaterThan(shape.height)
             expect(shape.width).toBeGreaterThanOrEqual(60)
             expect(Math.abs(shape.width / shape.height - shape.natural)).toBeLessThan(0.05)
+        })
+
+        test('askEnchantressDiscard: the page does not scroll sideways, and "Discard" is at least 44 px tall', async ({ page }) => {
+            await openTable(page, 'askEnchantressDiscard')
+            await expect(line(page)).toBeVisible()
+            await grid(page).getByRole('button', { name: 'Scouts', exact: true }).click()
+            const discard = answer(page, 'Discard')
+            await expect(discard).toBeVisible()
+            const box = await discard.boundingBox()
+            expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+            expect(overflow).toBeLessThanOrEqual(0)
         })
 
         for (const [table, names] of [
@@ -8291,6 +8459,27 @@ test.describe('the facedown play: the card beside its plays, each card in the st
         await confirm(page, 'Play').click()
         await page.getByRole('tab', { name: 'History' }).click()
         await expect(history(page)).toContainText(`played War Tortoise to ${far} (New Growth)`)
+    })
+
+    test('Great Herd: Tents picked to go first is no longer offered to swap with, and the Oracle is', async ({ page }) => {
+        await openTable(page, 'greatHerdFlip')
+        await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
+        await grid(page).getByRole('button', { name: 'To your site: Great Herd', exact: true }).click()
+        const tents = grid(page).getByRole('button', { name: 'Tents', exact: true })
+        const oracle = grid(page).getByRole('button', { name: 'Oracle', exact: true })
+        // Under "Discard first" and as a card to swap with.
+        await expect(tents).toHaveCount(2)
+        await expect(oracle).toHaveCount(1)
+
+        await tents.first().click()
+        await expect(tents).toHaveCount(1)
+        await expect(tents).toHaveAttribute('aria-pressed', 'true')
+        await expect(oracle).toHaveCount(1)
+        await oracle.click()
+        await grid(page).getByRole('button', { name: 'Play Great Herd', exact: true }).click()
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText('discarding Tents first (Crop Rotation)')
+        await expect(history(page)).toContainText('swapped Great Herd with Oracle')
     })
 
     for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {

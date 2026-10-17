@@ -12,7 +12,7 @@ import {
     addWarbandsToSite,
     killWarbands,
     removeWarbandsFrom,
-    boardOwnersOwnFirst,
+    boardGroupToKill,
     boardWarbandGroups
 } from '../util/force.js'
 import { suitOf } from '../data/cardRegistry.js'
@@ -135,13 +135,11 @@ export function killWarbandsOnBoard(
     playerId: string,
     count: number
 ): { owner?: WarbandOwner; killed: number } {
-    const board = state.getPlayerState(playerId).warbandsOnBoard
-    const owner = boardOwnersOwnFirst(state, playerId).find((o) => countOf(board, o) > 0)
-    if (!owner) return { killed: 0 }
-    const killed = Math.min(count, countOf(board, owner))
-    removeWarbandsFrom(state, { kind: 'board', playerId }, owner, killed)
-    killWarbands(state, owner, killed)
-    return { owner, killed }
+    const group = boardGroupToKill(state, playerId, count)
+    if (!group) return { killed: 0 }
+    removeWarbandsFrom(state, group.at, group.owner, group.count)
+    killWarbands(state, group.owner, group.count)
+    return { owner: group.owner, killed: group.count }
 }
 
 /** R-10.13 — largest owner's group first. */
