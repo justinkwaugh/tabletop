@@ -671,23 +671,29 @@ export function reasonCannotPlaceCard(
             const saltTheEarth =
                 cardId === SALT_THE_EARTH &&
                 (target === here || isAtLeastOathRevision(state, OathRevision.EngineFixes12))
+            // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — every site play's card
+            // discarded first; Salt the Earth's own "Discard all other denizens at this site" is none. Before
+            // revision 16 (R-X.4), Salt the Earth's play to its player's own site left it unchecked.
+            const first = options.discardFirstCardId
+            if (
+                first !== undefined &&
+                (!saltTheEarth || isAtLeastOathRevision(state, OathRevision.EngineFixes12))
+            ) {
+                const firstReason = reasonDiscardFirstInvalid(
+                    state,
+                    playerId,
+                    here,
+                    target,
+                    first,
+                    options.carried ?? []
+                )
+                if (firstReason) return firstReason
+            }
             if (saltTheEarth) {
                 if (state.denizensAt(target).some((id) => isLockedFor(state, playerId, id))) {
                     return 'Salt the Earth cannot be played to a site with any locked cards'
                 }
             } else {
-                const first = options.discardFirstCardId
-                if (first !== undefined) {
-                    const firstReason = reasonDiscardFirstInvalid(
-                        state,
-                        playerId,
-                        here,
-                        target,
-                        first,
-                        options.carried ?? []
-                    )
-                    if (firstReason) return firstReason
-                }
                 const freed =
                     first !== undefined && state.denizensAt(target).includes(first) ? 1 : 0
                 const capacity = effectiveSiteCapacity(state, target)

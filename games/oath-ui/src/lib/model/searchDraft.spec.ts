@@ -731,3 +731,31 @@ describe("R-5.1.4.I — Salt the Earth's \"Play to:\" sites, as the engine judge
         expect(salting(OathRevision.EngineFixes11, [LOCKED]).otherSites).toEqual(['c2'])
     })
 })
+
+describe("R-5.1.4.I, R-11.10 — Salt the Earth's cards to discard first, as the engine judges them", () => {
+    const SALT = 'denizen.discord.salt-the-earth'
+    const WOLVES = 'denizen.beast.wolves'
+    const STORYTELLER = 'denizen.hearth.storyteller'
+
+    /** No People's Favor, Great Slum or Crop Rotation: a card at the seat's site and one at another site. */
+    function salting(oathRevision: OathRevision) {
+        const { draft } = searchingWith([SALT, TUTOR], [], {
+            oathRevision,
+            denizensBySite: { c1: [STORYTELLER], c2: [WOLVES], p1: [], h1: [] }
+        })
+        draft.keep(SALT)
+        return draft
+    }
+
+    it('from revision 16, none is offered', async () => {
+        const draft = salting(OathRevision.EngineFixes12)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.discardFirstOptions).toEqual([])
+    })
+
+    it('before revision 16, every denizen on the map is, as the engine then accepted', async () => {
+        const draft = salting(OathRevision.EngineFixes11)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.discardFirstOptions).toEqual([STORYTELLER, WOLVES])
+    })
+})

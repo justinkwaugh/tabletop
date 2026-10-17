@@ -157,6 +157,46 @@ describe('The Gathering played to another site gathers there (R-7.6.3-H3)', () =
     })
 })
 
+describe("Salt the Earth's card discarded first is judged as any site play's (R-5.1.4.I, R-11.10)", () => {
+    const noFavor = { banners: testBanners() }
+    const firstWolves = { discardFirstCardId: WOLVES }
+
+    function search(s: HydratedOathGameState, extra: Partial<SearchResolve> = {}) {
+        s.getPlayerState('ruler').handIds = [SALT, FILLER]
+        return { playerId: 'ruler', keptCardId: SALT, discardOrder: [FILLER], play: SearchPlay.Site, ...extra }
+    }
+
+    it("without the People's Favor, the Great Slum or Crop Rotation, a card at another site is refused, on the Search and on a facedown adviser's play", () => {
+        const s = table(NOW, [INN], [WOLVES], { ruler: { advisers: [{ cardId: SALT, faceUp: false }] } }, noFavor)
+        const refusal = "only the Great Slum, Crop Rotation, or holding the People's Favor, lets a card be discarded first"
+        expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', search(s, firstWolves))).toBe(refusal)
+        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'ruler', { cardId: SALT, play: SearchPlay.Site, ...firstWolves })).toBe(refusal)
+        expect(HydratedPlayFacedownAdviser.reasonCannotPlace(s, 'ruler', { cardId: SALT, play: SearchPlay.Site, ...firstWolves })).toBe(refusal)
+        expect(s.denizensBySite['c2']).toEqual([WOLVES])
+    })
+
+    it("with the People's Favor, a card at another site in its holder's region is discarded first", () => {
+        const s = table(NOW, [INN], [WOLVES])
+        const data = search(s, firstWolves)
+        expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', data)).toBeUndefined()
+        new HydratedSearchResolve(buildAction(SearchResolve, data)).apply(s)
+        expect(s.denizensBySite).toMatchObject({ c1: [SALT], c2: [] })
+    })
+
+    it("with the People's Favor, a card outside its holder's region is refused", () => {
+        const s = table(NOW, [INN], [], {}, { denizensBySite: { c1: [INN], c2: [], p1: [WOLVES], h1: [] } })
+        expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', search(s, firstWolves))).toMatch(/lets a card be discarded first/)
+    })
+
+    it('R-X.4 — before revision 16, Salt the Earth to its own site leaves the card unchecked, so it is discarded', () => {
+        const s = table(BEFORE, [INN], [WOLVES], {}, noFavor)
+        const data = search(s, firstWolves)
+        expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', data)).toBeUndefined()
+        new HydratedSearchResolve(buildAction(SearchResolve, data)).apply(s)
+        expect(s.denizensBySite).toMatchObject({ c1: [SALT], c2: [] })
+    })
+})
+
 describe("on the player's own view, where another player's facedown adviser and the vault cannot be read", () => {
     const ruler: Visibility.Perspective = { kind: 'player', playerId: 'ruler' }
     const ownView = (s: HydratedOathGameState) =>
@@ -172,7 +212,7 @@ describe("on the player's own view, where another player's facedown adviser and 
         expect(JSON.stringify(served(s, ruler))).toBe(seen)
     }
 
-    it("Salt the Earth's play to a full site, to a locked one, and to one Ancient Bloodline locks", () => {
+    it("Salt the Earth's play to a full site, to a locked one, to one Ancient Bloodline locks, and with a card discarded first", () => {
         const hidden = { other: { advisers: [{ cardId: STORYTELLER, faceUp: false }] } }
         sameOnOwnView(table(NOW, [INN], [WOLVES, 'denizen.beast.rangers'], hidden), (v) => placeSalt(v, 'c2'), undefined)
         sameOnOwnView(table(NOW, [INN], [LOCKED], hidden), (v) => placeSalt(v, 'c2'), 'Salt the Earth cannot be played to a site with any locked cards')
@@ -180,5 +220,7 @@ describe("on the player's own view, where another player's facedown adviser and 
             warbandsBySite: { c1: { ruler: 1 }, c2: { other: 2 }, p1: { other: 3 } }
         })
         sameOnOwnView(bloodline, (v) => placeSalt(v, 'c2'), 'Salt the Earth cannot be played to a site with any locked cards')
+        const elsewhere = table(NOW, [INN], [WOLVES], hidden, { banners: testBanners() })
+        sameOnOwnView(elsewhere, (v) => reasonCannotPlaceCard(v, 'ruler', SALT, SearchPlay.Site, { discardFirstCardId: WOLVES }), "only the Great Slum, Crop Rotation, or holding the People's Favor, lets a card be discarded first")
     })
 })
