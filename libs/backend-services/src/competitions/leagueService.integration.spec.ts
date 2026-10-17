@@ -6,6 +6,7 @@ import {
     assertExists,
     Color,
     GameResult,
+    NotificationCategory,
     Role,
     UserStatus,
     type LeagueDraft,
@@ -98,11 +99,13 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             { createPushTask: enqueue },
             clock
         )
+        const leagueNotifications = { sendNotification: vi.fn(async () => undefined) }
         const leagues = new LeagueService(
             leagueStore,
             tournaments,
             userService,
             { createPushTask: enqueue },
+            leagueNotifications,
             clock
         )
         const draft: LeagueDraft = {
@@ -509,11 +512,27 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
 
         it('cancels a season in sign-up and reopens it as a seeding season', async () => {
             const id = `${prefix}-cancelled`
-            await leagues.create(id, draft, admin)
+            const leagueUpdate = expect.objectContaining({
+                notification: expect.objectContaining({
+                    type: NotificationCategory.League,
+                    action: 'update',
+                    data: { leagueId: id }
+                }),
+                topics: ['global']
+            })
+            leagueNotifications.sendNotification.mockClear()
+            const created = await leagues.create(id, draft, admin)
+            await leagues.update(id, draft, created.revision, admin)
+            expect(leagueNotifications.sendNotification).not.toHaveBeenCalled()
             await leagues.publish(id, now + 1000, admin)
+            expect(leagueNotifications.sendNotification).toHaveBeenCalledWith(leagueUpdate)
             for (const user of users.slice(0, 5)) await leagues.signUp(id, user)
             await expect(leagues.cancelSeason(id, users[0])).rejects.toThrow('Administrator')
+            leagueNotifications.sendNotification.mockClear()
             const cancelled = await leagues.cancelSeason(id, admin)
+            expect(leagueNotifications.sendNotification).toHaveBeenCalledExactlyOnceWith(
+                leagueUpdate
+            )
             expect(cancelled.season).toMatchObject({ number: 0, status: 'cancelled' })
             expect(cancelled.season?.nextTaskAt).toBeUndefined()
             await expect(leagues.signUp(id, users[6])).rejects.toThrow('Sign-up is closed')

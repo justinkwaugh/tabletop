@@ -82,6 +82,7 @@ export * from './site/titleVisibility.js'
 export * from './site/tournament.js'
 export * from './site/tournamentSchedule.js'
 export * from './site/notifications/tournamentNotification.js'
+export * from './site/notifications/leagueNotification.js'
 
 export * from './util/assertions.js'
 export * from './util/freeze.js'
