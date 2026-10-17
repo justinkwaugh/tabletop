@@ -2,9 +2,9 @@
     import { HexKind, hexKey } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { boardLayout } from '$lib/utils/boardLayout.js'
-    import { INDUSTRY_STYLE, WATER_FILL } from '$lib/utils/companyStyle.js'
+    import { DEMAND_FILL, INDUSTRY_STYLE, WATER_FILL } from '$lib/utils/companyStyle.js'
     import { editionStyle } from '$lib/utils/editionStyle.js'
-    import { regionBorders, regionLabels } from '$lib/utils/mapFeatures.js'
+    import { regionBorders, regionLabels, waterSeams } from '$lib/utils/mapFeatures.js'
     import DemandArea from './DemandArea.svelte'
     import IndustryMark from './IndustryMark.svelte'
 
@@ -12,15 +12,20 @@
 
     const GERMANY_RADIUS = 36
     const ARC_RADIUS = 21
-    const EDGE_WIDTH = 2.5
     const HEX_INSET = 1
-    // Edge stroke plus the inset gap on both sides, so the map's outer border matches the seam between hexes.
-    const OUTLINE_WIDTH = EDGE_WIDTH + 4 * HEX_INSET * Math.cos(Math.PI / 6)
+    // The gap between two inset hexes.
+    const INSET_GAP = 2 * HEX_INSET * Math.cos(Math.PI / 6)
+    // Demand areas sit on a disc wider than their hex, which shows beyond the map edge.
+    const DEMAND_DISC_RADIUS = 1.45
     const NAME_SIZE = 11
     const LONG_NAME_SIZE = 9.5
     const GLYPH_WIDTH = 0.6
 
     const edition = $derived(gameSession.gameState.edition)
+    const style = $derived(editionStyle(gameSession.gameState.editionId))
+    const edgeWidth = $derived(style.hexEdgeWidth)
+    // Edge stroke plus the inset gap on both sides, so the map's outer border matches the seam between hexes.
+    const outlineWidth = $derived(edgeWidth + 2 * INSET_GAP)
     const layout = $derived(boardLayout(gameSession.gameState.editionId))
     const revenue = $derived(edition.definition.siteRevenue)
     const scale = $derived(layout.hexRadius / GERMANY_RADIUS)
@@ -32,6 +37,10 @@
             return {
                 key: hexKey(place.coords),
                 kind: place.kind,
+                fill:
+                    (place.kind === HexKind.Countryside && place.regionId !== undefined
+                        ? style.regionFill[place.regionId]
+                        : undefined) ?? style.hexFill[place.kind],
                 industry: place.industry,
                 center: layout.hexCenter(place.coords),
                 name: site?.name,
@@ -45,8 +54,8 @@
             center: layout.hexCenter(coords)
         }))
     )
+    const seams = $derived(waterSeams(edition.map.water, layout))
     const borders = $derived(regionBorders(edition.map, layout))
-    const style = $derived(editionStyle(gameSession.gameState.editionId))
     const states = $derived(regionLabels(edition.map, layout, style.regionLabels))
     const lakes = $derived(
         style.lakeLabels.map((lake) => ({
@@ -65,22 +74,37 @@
     }
 </script>
 
+{#each edition.map.demandAreas as area (area.id)}
+    {@const center = layout.hexCenter(area.hex)}
+    <circle
+        cx={center.x}
+        cy={center.y}
+        r={layout.hexRadius * DEMAND_DISC_RADIUS}
+        class="demand-disc"
+        fill={DEMAND_FILL}
+    />
+{/each}
 {#each [...hexes, ...water] as hex (hex.key)}
     <polygon
         points={layout.hexPoints(hex.center, layout.hexRadius - HEX_INSET)}
         fill="#1d1d1b"
         stroke="#1d1d1b"
-        stroke-width={OUTLINE_WIDTH}
+        stroke-width={outlineWidth}
         stroke-linejoin="round"
     />
 {/each}
 {#each water as hex (hex.key)}
-    <polygon
-        points={layout.hexPoints(hex.center, layout.hexRadius - HEX_INSET)}
-        fill={WATER_FILL}
-        stroke="#1d1d1b"
-        stroke-width={EDGE_WIDTH}
-        stroke-linejoin="round"
+    <polygon points={layout.hexPoints(hex.center, layout.hexRadius - HEX_INSET)} fill={WATER_FILL} />
+{/each}
+<!-- Fill the gap between neighbouring water hexes so each lake reads as one body. -->
+{#each seams as seam, index (index)}
+    <line
+        x1={seam.from.x}
+        y1={seam.from.y}
+        x2={seam.to.x}
+        y2={seam.to.y}
+        stroke={WATER_FILL}
+        stroke-width={2 * INSET_GAP}
     />
 {/each}
 {#each lakes as lake, index (index)}
@@ -94,9 +118,9 @@
 {#each hexes as hex (hex.key)}
     <polygon
         points={layout.hexPoints(hex.center, layout.hexRadius - HEX_INSET)}
-        fill={style.hexFill[hex.kind]}
+        fill={hex.fill}
         stroke="#1d1d1b"
-        stroke-width={EDGE_WIDTH}
+        stroke-width={edgeWidth}
         stroke-linejoin="round"
     />
     {#if hex.industry}
@@ -148,6 +172,7 @@
 
 <style>
     polygon,
+    circle,
     line,
     text {
         pointer-events: none;
@@ -182,6 +207,11 @@
         stroke: #e8141c;
         stroke-width: 4.5;
         stroke-linecap: round;
+    }
+
+    .demand-disc {
+        stroke: #3b2508;
+        stroke-width: 2.5;
     }
 
     .lake {

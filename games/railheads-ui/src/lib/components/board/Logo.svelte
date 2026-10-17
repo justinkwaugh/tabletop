@@ -69,6 +69,7 @@
         />
     </g>
     <text y="124" class="edition" style:stroke={style.titleStroke}>{style.title}</text>
+    <text y="143.2" class="designer">By Pontus Nilsson</text>
 </g>
 
 <style>
@@ -115,5 +116,11 @@
         fill: #ffffff;
         stroke-width: 6px;
         font-size: 25px;
+    }
+
+    .designer {
+        fill: #f4f0d8;
+        font-size: 8.5px;
+        letter-spacing: 0.04em;
     }
 </style>

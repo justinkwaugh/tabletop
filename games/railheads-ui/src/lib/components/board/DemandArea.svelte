@@ -1,14 +1,14 @@
 <script lang="ts">
     import type { Point } from '@tabletop/common'
     import type { DemandAreaDefinition } from '@tabletop/railheads'
-    import { DEMAND_FILL, INDUSTRY_STYLE } from '$lib/utils/companyStyle.js'
+    import { INDUSTRY_STYLE } from '$lib/utils/companyStyle.js'
     import IndustryMark from './IndustryMark.svelte'
 
     let { area, center, radius }: { area: DemandAreaDefinition; center: Point; radius: number } =
         $props()
 
     const MARK_SPACING = 0.42
-    const NAME_WIDTH = 1.7
+    const NAME_WIDTH = 1.6
 
     const label = $derived(
         `${area.name} wants ${area.industries.map((industry) => INDUSTRY_STYLE[industry].name).join(' and ')}`
@@ -17,7 +17,6 @@
 
 <g transform="translate({center.x} {center.y})" role="img" aria-label="Towards {label}">
     <title>Towards {label}: track beside it lets a company build those industry sites</title>
-    <circle r={radius * 1.12} class="disc" fill={DEMAND_FILL} />
     {#each area.industries as industry, index (industry)}
         <g transform="translate({(index - 0.5) * 2 * MARK_SPACING * radius} {-radius * 0.38})">
             <IndustryMark {industry} scale={radius / 44} />
@@ -36,11 +35,6 @@
 <style>
     g {
         pointer-events: none;
-    }
-
-    .disc {
-        stroke: #3b2508;
-        stroke-width: 2.5;
     }
 
     text {

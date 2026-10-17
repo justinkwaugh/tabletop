@@ -14,6 +14,9 @@ export type EditionStyle = {
     flag: Flag
     titleStroke: string
     hexFill: Readonly<Record<HexKind, string>>
+    // Countryside fill per region, so neighbouring regions read apart.
+    regionFill: Readonly<Record<string, string>>
+    hexEdgeWidth: number
     endBonusName: string
     endBonusShort: string
     endBonusRule: string
@@ -25,12 +28,22 @@ export type EditionStyle = {
     regionLabels: Readonly<Record<string, AxialCoordinates>>
 }
 
+// Four beige shades; no two neighbouring Midwest states share one.
+const STATE_FILL = {
+    Sand: '#e2d5ab',
+    Tan: '#c6ad7c',
+    Wheat: '#d9c189',
+    Khaki: '#bfb999'
+}
+
 const EDITION_STYLES: Record<EditionId, EditionStyle> = {
     [EditionId.Germany]: {
         title: 'Germany',
         flag: Flag.Germany,
         titleStroke: '#3c5816',
         hexFill: HEX_FILL,
+        regionFill: {},
+        hexEdgeWidth: 2.5,
         endBonusName: 'Railroad Bonus',
         endBonusShort: 'Railroad',
         endBonusRule:
@@ -47,6 +60,21 @@ const EDITION_STYLES: Record<EditionId, EditionStyle> = {
         flag: Flag.UnitedStates,
         titleStroke: '#2f6ea5',
         hexFill: MIDWEST_HEX_FILL,
+        regionFill: {
+            ND: STATE_FILL.Sand,
+            NE: STATE_FILL.Sand,
+            WI: STATE_FILL.Sand,
+            IN: STATE_FILL.Sand,
+            SD: STATE_FILL.Tan,
+            KS: STATE_FILL.Tan,
+            IL: STATE_FILL.Tan,
+            MN: STATE_FILL.Wheat,
+            MO: STATE_FILL.Wheat,
+            MI: STATE_FILL.Wheat,
+            IA: STATE_FILL.Khaki,
+            OH: STATE_FILL.Khaki
+        },
+        hexEdgeWidth: 1.5,
         endBonusName: 'State Subsidies',
         endBonusShort: 'Subsidies',
         endBonusRule:

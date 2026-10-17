@@ -1,4 +1,4 @@
-import { assertExists, type AxialCoordinates, type Point } from '@tabletop/common'
+import { assertExists, distanceAxial, type AxialCoordinates, type Point } from '@tabletop/common'
 import type { EditionMap } from '@tabletop/railheads'
 import type { BoardLayout } from './boardLayout.js'
 
@@ -23,6 +23,18 @@ export function regionBorders(map: EditionMap, layout: BoardLayout): Segment[] {
                     layout.hexCenter(neighbour.coords),
                     layout.hexRadius
                 )
+            )
+    )
+}
+
+// Edges between neighbouring water hexes, so a lake can be drawn without seams.
+export function waterSeams(water: readonly AxialCoordinates[], layout: BoardLayout): Segment[] {
+    return water.flatMap((coords, index) =>
+        water
+            .slice(index + 1)
+            .filter((other) => distanceAxial(coords, other) === 1)
+            .map((other) =>
+                sharedEdge(layout.hexCenter(coords), layout.hexCenter(other), layout.hexRadius)
             )
     )
 }
