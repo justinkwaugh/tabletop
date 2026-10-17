@@ -15,7 +15,8 @@
     assertExists(user, 'Preferences require a signed-in user')
 
     const editor = new UserPreferencesEditor(
-        user,
+        user.id,
+        () => authorizationService.getSessionUser()?.preferences,
         api,
         (savedUser) => authorizationService.setSessionUser(savedUser),
         () => toast.error('Could not save your preferences. Please try again.')

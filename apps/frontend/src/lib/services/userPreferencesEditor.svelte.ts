@@ -1,6 +1,8 @@
 import { Color, type User, type UserPreferences } from '@tabletop/common'
 import type { TabletopApi } from '@tabletop/frontend-components'
 
+const SAVE_DELAY_MS = 500
+
 const defaultPreferences: UserPreferences = {
     preventWebNotificationPrompt: false,
     preferredColors: Object.values(Color),
@@ -8,29 +10,33 @@ const defaultPreferences: UserPreferences = {
 }
 
 export class UserPreferencesEditor {
-    values: UserPreferences
-    private saved: UserPreferences
+    private pending: Partial<UserPreferences> = $state({})
+    values: UserPreferences = $derived({ ...this.savedPreferences(), ...this.pending })
     private saving = false
     private unsaved = false
+    private saveTimer: ReturnType<typeof setTimeout> | undefined
 
     constructor(
-        private readonly user: User,
+        private readonly userId: string,
+        private readonly currentPreferences: () => UserPreferences | undefined,
         private readonly api: Pick<TabletopApi, 'updateUserPreferences'>,
         private readonly onSaved: (user: User) => void,
         private readonly onFailed: () => void
-    ) {
-        this.saved = $state.snapshot(user.preferences ?? defaultPreferences)
-        this.values = $state(structuredClone(this.saved))
-    }
+    ) {}
 
     update(change: Partial<UserPreferences>) {
-        Object.assign(this.values, change)
+        Object.assign(this.pending, change)
         this.save()
     }
 
     save() {
         this.unsaved = true
-        void this.flush()
+        clearTimeout(this.saveTimer)
+        this.saveTimer = setTimeout(() => void this.flush(), SAVE_DELAY_MS)
+    }
+
+    private savedPreferences(): UserPreferences {
+        return this.currentPreferences() ?? defaultPreferences
     }
 
     private async flush() {
@@ -38,15 +44,17 @@ export class UserPreferencesEditor {
         this.saving = true
         while (this.unsaved) {
             this.unsaved = false
-            const preferences = $state.snapshot(this.values)
+            const preferences = $state.snapshot({ ...this.savedPreferences(), ...this.pending })
             try {
-                const user = await this.api.updateUserPreferences(this.user.id, preferences)
-                this.saved = preferences
+                const user = await this.api.updateUserPreferences(this.userId, preferences)
                 this.onSaved(user)
+                if (!this.unsaved) {
+                    this.pending = {}
+                }
             } catch (error) {
                 console.error('Could not save preferences', error)
                 this.unsaved = false
-                this.values = structuredClone(this.saved)
+                this.pending = {}
                 this.onFailed()
             }
         }

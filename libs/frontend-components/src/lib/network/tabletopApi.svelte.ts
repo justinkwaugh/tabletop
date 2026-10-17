@@ -291,6 +291,16 @@ export class TabletopApi {
         return response.payload.user
     }
 
+    async updateUserTimeZone(timeZone: string): Promise<User> {
+        const response = await this.wretch
+            .post({ timeZone }, '/user/updateTimeZone')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
     async unlinkExternalAccount(externalId: string): Promise<User> {
         const response = await this.wretch
             .post({ externalId }, '/user/unlinkExternalAccount')
