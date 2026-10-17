@@ -70,9 +70,6 @@
         }
     }
 
-    const playerName = (id: string) =>
-        session.game?.players.find((p) => p.id === id)?.name ?? id
-
     // Board.svelte doesn't expose a bindable root element, so this wraps it in a plain div below
     // for centerOverBoard to measure.
     let boardEl: HTMLDivElement | undefined

@@ -21,7 +21,7 @@ import { buildTileBag } from '../util/tileBag.js'
 import { validCanalPlacements } from '../util/placement.js'
 import { isPlaceBid } from '../actions/placeBid.js'
 import legacy from './tests/v2-continuation.json'
-import { nextAction } from './tests/autoplay.js'
+import { nextAction } from '../testing/autoplay.js'
 
 const game: Game = {
     ...legacy.game,

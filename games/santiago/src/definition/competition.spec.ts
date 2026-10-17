@@ -15,7 +15,7 @@ import { MachineState } from './states.js'
 import type { PlaceSpring } from '../actions/placeSpring.js'
 import type { PlaceBid } from '../actions/placeBid.js'
 import type { RevealTiles } from '../actions/revealTiles.js'
-import { nextAction } from './tests/autoplay.js'
+import { nextAction } from '../testing/autoplay.js'
 
 const engine = new GameEngine(SantiagoRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
