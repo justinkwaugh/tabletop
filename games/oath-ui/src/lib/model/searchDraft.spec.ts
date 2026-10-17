@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, HydratedSearchResolve, MachineState, OathRevision, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf } from '@tabletop/oath'
+import { Banner, HydratedSearchResolve, MachineState, OathRevision, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf, type LegalChoice } from '@tabletop/oath'
 import { FIXTURE_SITE_CAPACITY, openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     disposeSessions,
@@ -606,5 +606,57 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
             })
         )
         expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+})
+
+const GREAT_HERD = 'denizen.nomad.great-herd'
+const ORACLE = 'denizen.nomad.oracle'
+
+/** The cards a When Played choice offers, in order. */
+function cardTargets(choices: readonly LegalChoice[]): string[] {
+    return choices.flatMap((legal) => legal.options.flatMap((option) => (option.kind === PowerChoiceKind.Card ? [option.cardId] : [])))
+}
+
+/** Contract rule 2: the card a site play discards first is no longer at a site, so Great Herd is not offered it. */
+describe("R-5.1.4.I — Great Herd is not offered the card the People's Favor discards first", () => {
+    const herdTable = { denizensBySite: { c1: [], c2: [TENTS], p1: [], h1: [ORACLE] }, banners: FAVOR_HELD }
+
+    it('with Tents discarded first, only the Oracle is offered, and the play is sent with it', async () => {
+        const { session, draft, sent } = searchingWith([GREAT_HERD, TUTOR], [], herdTable)
+        draft.keep(GREAT_HERD)
+        expect(draft.discardFirstOptions).toContain(TENTS)
+        draft.setDiscardFirst(TENTS)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.needsWhenPlayed).toBe(true)
+        expect(cardTargets(draft.whenPlayed)).toEqual([ORACLE])
+
+        draft.setPicks({ ...emptyPicks(), option: { 0: 0 } })
+        expect(draft.whenPlayedReason).toBeUndefined()
+        await draft.confirmWhenPlayed()
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ keptCardId: GREAT_HERD, discardFirstCardId: TENTS, choices: [{ kind: PowerChoiceKind.Card, cardId: ORACLE }] })
+        )
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('with nothing discarded first, Tents is offered as before', async () => {
+        const { draft } = searchingWith([GREAT_HERD, TUTOR], [], herdTable)
+        draft.keep(GREAT_HERD)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(cardTargets(draft.whenPlayed)).toEqual([TENTS, ORACLE])
+    })
+
+    it('a pick of Tents made before Tents is picked to go first is dropped with it', async () => {
+        const { draft } = searchingWith([GREAT_HERD, TUTOR], [], herdTable)
+        draft.keep(GREAT_HERD)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        draft.setPicks({ ...emptyPicks(), option: { 0: cardTargets(draft.whenPlayed).indexOf(TENTS) } })
+        expect(draft.picks.option).toEqual({ 0: 0 })
+
+        draft.setDiscardFirst(TENTS)
+        expect(draft.picks).toEqual(emptyPicks())
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(cardTargets(draft.whenPlayed)).toEqual([ORACLE])
+        expect(draft.picks).toEqual(emptyPicks())
     })
 })

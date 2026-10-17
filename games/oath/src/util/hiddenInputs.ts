@@ -97,7 +97,8 @@ export function peekRelicInVault(state: HydratedOathGameState, slotId: string): 
 
 /**
  * R-6.4-H1 — the Grand Scepter's holder may peek at any Reliquary relic at will, so they know
- * every one; a new holder learns them all, and a former holder keeps what they saw.
+ * every one; a new holder learns them all (from revision 12, once the card's lock lets them use
+ * it), and a former holder keeps what they saw.
  */
 export function teachReliquaryToScepterHolder(state: HydratedOathGameState): boolean {
     const holderId = grandScepterHolderId(state)

@@ -101,7 +101,8 @@ export function homelandPayout(
             return `${record.name} (Homeland): gained ${words}`
         }
         case 'relic': {
-            // The resolver's reveal; absent on the client's optimistic run, which is discarded.
+            // The resolver's reveal; absent on the client's optimistic run, which is discarded, and for Land
+            // Warden's second card, whose play draws no hidden card (docs/known-deviations.md).
             const slot = state.relicSlotsAt(siteId)[0]
             if (!slot) return `${record.name} (Homeland): no relic here to take`
             if (siteLockedFor(state, playerId, siteId)) {
@@ -109,7 +110,7 @@ export function homelandPayout(
             }
             const relicCardId = reveal?.kind === 'relic' ? reveal.relicCardId : undefined
             if (!relicCardId)
-                return `${record.name} (Homeland): the relic's identity is not yet known`
+                return `${record.name} (Homeland): no relic was drawn for this play, so none was taken`
             clearSiteRelicSlot(state, siteId, slot.slotId)
             takeRelic(state, player.playerId, relicCardId)
             // R-11.2-H1 — taken as a Recover takes it, so "after a player takes relics" powers fire.

@@ -21,6 +21,7 @@ import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
 import { modifierContext, type ActiveModifier } from './modifiers.js'
 import {
     advisersTowardLimit,
+    arrivesIgnoringAdviserLimit,
     cannotPlayVisionsFaceup,
     countsTowardAdviserLimit,
     effectiveAdviserLimit
@@ -489,7 +490,10 @@ export function adviserDiscardsNeeded(
     options: Pick<CardPlayOptions, 'faceUp' | 'fromAdvisers'>
 ): number {
     const withCardId = options.faceUp ? cardId : undefined
-    const played = countsTowardAdviserLimit(state, playerId, cardId, !!options.faceUp, withCardId)
+    // Pied Piper's Q&A: "it does not prompt a discard when you play it", though it counts once held.
+    const played =
+        !(options.faceUp && arrivesIgnoringAdviserLimit(state, cardId)) &&
+        countsTowardAdviserLimit(state, playerId, cardId, !!options.faceUp, withCardId)
     const held = advisersTowardLimit(state, playerId, withCardId) - (options.fromAdvisers ? 1 : 0)
     // R-7.6.4 — a limiter lowering the limit forces discards even when it does not count itself (Family Wagon).
     return Math.max(0, held + (played ? 1 : 0) - effectiveAdviserLimit(state, playerId, withCardId))

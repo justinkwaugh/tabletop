@@ -31,6 +31,11 @@ import {
 import { askQuestion } from './questions.js'
 import type { QuestionRules } from './questionAnswers.js'
 import {
+    discardAdvisersToMeetLimit,
+    reasonAdviserLimitDiscardsInvalid,
+    settleAdviserLimitsAfterExchange
+} from './adviserLimit.js'
+import {
     GATHERING_ALLOWS,
     applyExchange,
     reasonExchangeInvalid,
@@ -147,10 +152,16 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             return reasonExchangeInvalid(state, proposerPlayerId, askedPlayerId, terms)
         },
         apply: (state, playerId, matched) => {
-            const { proposerPlayerId, terms } = matched.question
+            const { cardId, proposerPlayerId, terms } = matched.question
             if (!matched.answer.accept) return `refused ${proposerPlayerId}'s exchange`
-            const disclosed = applyExchange(state, proposerPlayerId, playerId, terms)
-            return { summary: `accepted ${proposerPlayerId}'s exchange`, disclosed }
+            const applied = applyExchange(state, proposerPlayerId, playerId, terms)
+            settleAdviserLimitsAfterExchange(state, proposerPlayerId, cardId, applied.advisersMoved)
+            return {
+                summary: `accepted ${proposerPlayerId}'s exchange`,
+                disclosed: applied.disclosed,
+                // R-2.11-H1 — each binding exchange is its own moment for the title.
+                titleMoment: true
+            }
         }
     },
     [PowerQuestionKind.JoinSite]: {
@@ -417,15 +428,24 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         apply: (state, playerId, matched) => {
             const { roll } = matched.question
             if (roll.kind !== RerolledRollKind.Campaign) {
-                if (!matched.answer.reroll)
-                    return `kept the roll; ${settleRoll(state, playerId, roll)}`
+                // What the roll postponed (Gambling Hall's favor, Relic Thief's take) lands now;
+                // a take is a title moment (its Q&A: "at each moment that relics change hands").
+                if (!matched.answer.reroll) {
+                    const kept = settleRoll(state, playerId, roll)
+                    return {
+                        summary: `kept the roll; ${kept.summary}`,
+                        titleMoment: kept.relicsTaken
+                    }
+                }
                 payPowerCost(state, playerId, powerForQuestion(state, matched.question))
                 const dice =
                     roll.kind === RerolledRollKind.GamblingHall ? 4 : roll.relicCardIds.length
                 const shields = rollDefenseShields(state.getProtectedPrng(), dice)
+                const rerolled = settleRoll(state, playerId, { ...roll, shields })
                 return {
-                    summary: `Jinx: rerolled — ${settleRoll(state, playerId, { ...roll, shields })}`,
-                    rolled: true
+                    summary: `Jinx: rerolled — ${rerolled.summary}`,
+                    rolled: true,
+                    titleMoment: rerolled.relicsTaken
                 }
             }
             if (!matched.answer.reroll) return 'kept the roll'
@@ -465,14 +485,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 relicCardIds: relics,
                 shields
             }
-            // Jinx — the take waits on the reroll's answer, asked next.
+            // Jinx — the take waits on the reroll's answer, asked next, so this one moves nothing.
             if (offerReroll(state, playerId, playerId, roll, true)) {
                 return {
                     summary: `Relic Thief: rolled ${shields} shields; Jinx may reroll them`,
                     rolled: true
                 }
             }
-            return { summary: settleRoll(state, playerId, roll), rolled: true }
+            const settled = settleRoll(state, playerId, roll)
+            return { summary: settled.summary, rolled: true, titleMoment: settled.relicsTaken }
         }
     },
     [PowerQuestionKind.PlayOrDiscardVision]: {
@@ -621,6 +642,22 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             matched.answer.gain ? reasonDrumBankEmpty(state, playerId) : undefined,
         apply: (state, playerId, matched) =>
             matched.answer.gain ? gainFromDrum(state, playerId) : 'skipped'
+    },
+    [PowerQuestionKind.DiscardAdvisers]: {
+        reasonCannotAnswer: (state, playerId, matched) =>
+            reasonAdviserLimitDiscardsInvalid(
+                state,
+                playerId,
+                matched.question,
+                matched.answer.discardedAdviserCardIds
+            ),
+        apply: (state, playerId, matched) =>
+            discardAdvisersToMeetLimit(
+                state,
+                playerId,
+                matched.question,
+                matched.answer.discardedAdviserCardIds
+            )
     },
     [PowerQuestionKind.OrderDrawnCards]: {
         reasonCannotAnswer: (_state, _playerId, matched) => {

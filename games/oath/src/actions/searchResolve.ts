@@ -53,6 +53,7 @@ export const SearchResolveMetadata = Type.Object({
     revealedKeptCardId: Type.Optional(Type.String()),
     /** Cracked Horn */
     discardToWorldDeck: Type.Optional(Type.Boolean()),
+    /** R-5.1.4.I — with Land Warden, both cards' favor. */
     favorGained: Type.Number(),
     /** Book of Records — one for each card played to a site. */
     secretsGained: Type.Optional(Type.Number()),
@@ -60,12 +61,14 @@ export const SearchResolveMetadata = Type.Object({
     whenPlayed: Type.Optional(Type.String()),
     /** Land Warden — the second card's When Played power, as it resolved. */
     secondWhenPlayed: Type.Optional(Type.String()),
-    /** R-7.1.4 */
+    /** R-7.1.4 — with Land Warden, the kept card's then the second card's. */
     triggered: Type.Optional(Type.Array(Type.String())),
     /** R-7.3.3 */
     endsActPhase: Type.Optional(Type.Boolean()),
     /** R-11.2 */
     sitePower: Type.Optional(Type.String()),
+    /** Land Warden — the second card's Homeland (R-11.2). */
+    secondSitePower: Type.Optional(Type.String()),
     /** R-7.4 (Wild Cry, Welcoming Party) */
     modifierNotes: Type.Optional(Type.Array(Type.String()))
 })
@@ -230,6 +233,16 @@ export class HydratedSearchResolve
             ...played.discarded,
             ...(second?.discarded ?? [])
         ]
+        // Land Warden — the record holds what both plays did. Of the second play's `PowerOutcome` only its pile
+        // deposits can be set, since that play takes no choices and no hidden draw (docs/known-deviations.md).
+        const triggered = [...(played.triggered ?? []), ...(second?.triggered ?? [])]
+        // R-7.3.3 — either card's power ends the Act Phase. Before revision 12 a Search ended it on the kept card's
+        // alone, and recorded the kept card's favor alone (the History of such a game reads as it was recorded).
+        const bothPlays = isAtLeastOathRevision(state, OathRevision.EngineFixes8)
+        const endsActPhase = bothPlays
+            ? played.endsActPhase || second?.endsActPhase
+            : played.endsActPhase
+        const favorGained = played.favorGained + (bothPlays ? (second?.favorGained ?? 0) : 0)
         this.metadata = {
             ...played.outcome,
             reveal,
@@ -245,13 +258,14 @@ export class HydratedSearchResolve
             discardPileRegion: discardTarget?.region ?? discardRegionFor(region),
             discardToBottom: discardTarget?.bottom || undefined,
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
-            favorGained: played.favorGained,
+            favorGained,
             secretsGained: played.secretsGained + (second?.secretsGained ?? 0) || undefined,
             whenPlayed: played.whenPlayed,
             secondWhenPlayed: second?.whenPlayed,
-            triggered: played.triggered,
-            endsActPhase: played.endsActPhase,
+            triggered: triggered.length > 0 ? triggered : undefined,
+            endsActPhase,
             sitePower: played.sitePower,
+            secondSitePower: second?.sitePower,
             modifierNotes: after.notes.length > 0 ? after.notes : undefined
         }
 

@@ -164,7 +164,13 @@ export enum PowerQuestionKind {
      * Dragonskin Drum (revision 7) — a power moved its holder, who "after traveling" may gain one
      * warband, as its Q&A rules a forced travel does: gain it, or skip.
      */
-    DragonskinDrum = 'dragonskinDrum'
+    DragonskinDrum = 'dragonskinDrum',
+    /**
+     * Enchantress, Twin Brother, Horned Mask (revision 11) — a swap left the asked player over their
+     * adviser limit: they discard down to it, never a card the swap gave them (R-7.6.4). An
+     * exchange that leaves a player over their limit asks the same (R-10.8).
+     */
+    DiscardAdvisers = 'discardAdvisers'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -409,6 +415,22 @@ export const PowerQuestion = Type.Union([
         kind: Type.Literal(PowerQuestionKind.DragonskinDrum),
         cardId: Type.String(),
         askedPlayerId: Type.String()
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
+        /** The power that moved the advisers. */
+        cardId: Type.String(),
+        askedPlayerId: Type.String(),
+        /** R-10.5 — the power's user, who takes the secrets on the discards. */
+        actingPlayerId: Type.String(),
+        /** The fewest discards that meet the limit, as far as discardable advisers go (R-7.6.4). */
+        count: Type.Number(),
+        /** Enchantress's Q&A — the faceup cards the move gave the asked player, not discarded. */
+        receivedCardIds: Type.Array(Type.String(), { maxItems: 8 }),
+        /** R-9.4 — the facedown advisers an exchange gave them, kept the same way: named to them alone. */
+        receivedFacedownCardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
+            policy: AskedPlayerPolicy
+        })
     })
 ])
 
@@ -490,7 +512,14 @@ export const QuestionAnswer = Type.Union([
         kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
         take: Type.Literal(false)
     }),
-    Type.Object({ kind: Type.Literal(PowerQuestionKind.DragonskinDrum), gain: Type.Boolean() })
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.DragonskinDrum), gain: Type.Boolean() }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
+        /** R-10.5 — in the order they go down, the last on top; a facedown one is named to its holder alone. */
+        discardedAdviserCardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
+            policy: Visibility.Policy.Actor
+        })
+    })
 ])
 
 export type QuestionOf<K extends PowerQuestionKind> = Extract<PowerQuestion, { kind: K }>

@@ -266,6 +266,7 @@ export function recordedNotes(action: GameAction): readonly string[] {
         return [
             ...(meta?.triggered ?? []),
             ...(meta?.sitePower ? [meta.sitePower] : []),
+            ...(meta?.secondSitePower ? [meta.secondSitePower] : []),
             ...(meta?.modifierNotes ?? [])
         ]
     }
