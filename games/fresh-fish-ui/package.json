@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/fresh-fish-ui",
-    "version": "7.12.3",
+    "version": "7.13.0",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",
