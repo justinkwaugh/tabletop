@@ -1534,9 +1534,6 @@ importers:
 
   games/hill-country-grocers:
     dependencies:
-      '@tabletop/18xx':
-        specifier: workspace:*
-        version: link:../../libs/18xx
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common

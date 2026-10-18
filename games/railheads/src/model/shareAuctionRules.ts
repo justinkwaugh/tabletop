@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
-import { assertExists } from '@tabletop/common'
-import { PassableBidding, turnOrderFrom } from '@tabletop/18xx'
+import { assertExists, PassableBidding } from '@tabletop/common'
+import { turnOrderFrom } from '@tabletop/18xx'
 import { CompanyId, Industry } from '../editions/types.js'
 import { ShareAuctionKind } from './components.js'
 import type { HydratedRailheadsGameState } from './gameState.js'

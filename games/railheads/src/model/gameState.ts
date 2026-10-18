@@ -6,6 +6,7 @@ import {
     HydratableGameState,
     HydratedRoundManager,
     HydratedTurnManager,
+    PassableBidding,
     PrngState,
     RoundManager,
     Visibility,
@@ -15,7 +16,6 @@ import {
     type AxialCoordinates,
     type RandomState
 } from '@tabletop/common'
-import { PassableBidding } from '@tabletop/18xx'
 import { MachineState } from '../definition/states.js'
 import { edition, type Edition } from '../editions/editions.js'
 import {
