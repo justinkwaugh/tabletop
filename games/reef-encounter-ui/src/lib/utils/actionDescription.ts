@@ -56,12 +56,6 @@ const polyp = (color: CoralColor, count = 1, consumed = false): PhraseIcon => ({
     label: counted(count, `${consumed ? 'consumed ' : ''}${color} polyp`).replace(/^two /, '2 ')
 })
 
-const polypsOf = (colors: readonly CoralColor[]): PhraseIcon[] => {
-    const counts = new Map<CoralColor, number>()
-    for (const color of colors) counts.set(color, (counts.get(color) ?? 0) + 1)
-    return [...counts].map(([color, count]) => polyp(color, count))
-}
-
 const polypsLabel = (colors: readonly CoralColor[]): string =>
     colors.length === 1 ? `${withArticle(colors[0])} polyp` : `${listed(colors)} polyps`
 
@@ -205,7 +199,8 @@ export function describeAction(
             [
                 `ended ${own} turn by taking `,
                 cube(action.larvaColor),
-                ...(taken.length > 0 ? [' with ', ...polypsOf(taken)] : []),
+                // At most three, so each shows on its own rather than as a count.
+                ...(taken.length > 0 ? [' with ', ...taken.map((color) => polyp(color))] : []),
                 '.'
             ],
             taken.length === 0

@@ -17,13 +17,6 @@ const polyp = (color: CoralColor, count: number): PolypIcon => ({
     label: `${count} ${color} polyp${count === 1 ? '' : 's'}`
 })
 
-// Polyps of one colour, counted, in the order each colour first appears.
-const polypsOf = (colors: readonly CoralColor[]): PolypIcon[] => {
-    const counts = new Map<CoralColor, PolypIcon>()
-    for (const color of colors) counts.set(color, polyp(color, (counts.get(color)?.count ?? 0) + 1))
-    return [...counts.values()]
-}
-
 const phrase = (parts: PhrasePart[]): Phrase => ({
     parts,
     text: parts
@@ -59,7 +52,8 @@ export function turnSummary(
                 count: 1,
                 label: `the ${ending.larvaColor} larva cube`
             },
-            ...(taken.length > 0 ? [' with ', ...polypsOf(taken)] : [])
+            // At most three, so each shows on its own rather than as a count.
+            ...(taken.length > 0 ? [' with ', ...taken.map((color) => polyp(color, 1))] : [])
         ])
     }
     const described = describeAction(ending, own, board)
