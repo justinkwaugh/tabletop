@@ -1,6 +1,6 @@
 # Stellar Horizons II campaign: plan
 
-Status: proposed 2026-10-17. Decisions 1 and 3 agreed 2026-10-17; decision 2 under discussion. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
+Status: proposed 2026-10-17. Decisions 1 and 3 agreed 2026-10-17; decision 2's pact rules settled 2026-10-18, with the engine's Common Actions still under discussion. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
 
 ## What the campaign adds
 
@@ -57,11 +57,11 @@ Spending IP for $1B or for tech points, discarding goods for $1B and destroying 
 
 A title can be bought at any time, but titles are a shared pool and two Players may qualify at once. A purchase made inside a span is queued with its IP held, and settled after the span in initiative order, as the rulebook's priority rule says.
 
-## Joint resolution of anomalies and events (decision 2, under discussion)
+## Joint resolution of anomalies and events (decision 2)
 
 Rule 1.16 lets ships of several Players resolve an anomaly together if they agree how to split the reward. The rulebook counts a joint resolution for each partner's anomaly directives and for the Guardian and Mastermind titles.
 
-Being worked out as **Common Actions** in `docs/parallel-spans.md`: partners negotiate a pact on the Main Line during the exploration span, Löwenherz-style, and the agreed pact is binding. Each partner then commits ships to it in their own Branch, and the pact resolves after the span in initiative order at its earliest partner. The earlier idea of committing blind to matching terms is dropped.
+Played with **Common Actions** (`docs/parallel-spans.md`, which has the full example, settled 2026-10-18). During the exploration span, partners negotiate a pact on the Main Line, Löwenherz-style: an anomaly, the partners, the ships each pledges and the split. Each Player guarantees only their own side: proposing or accepting is valid only if their own pledged ships are free in their Branch, and it holds those ships. A proposal's pledged ships must reach the difficulty at the values everyone can see. The acceptance that completes a pact is binding. A Player closing their Branch makes any pending proposal naming them lapse. An agreed pact needs nothing more in a Branch: after the span it resolves in initiative order at its earliest partner, using its pledged ships, and the UI says from the agreement on that it resolves when everyone has finished exploring.
 
 - **The campaign:** the front reward (IP, cash, markers, goods, settlements, a card) is divided item by item. The tile itself is not kept by anyone: its back stays in the system or leaves the game.
 - **These are the Voyages:** rewards are ignored and the resolved tile is kept, so a pact names the one partner who keeps it.
@@ -119,5 +119,5 @@ The rulebook leaves these open. Each is decided in its slice, recorded in `docs/
 ## Decisions
 
 1. **Cargo transfer and trade in the campaign.** Agreed 2026-10-17: the whole phase on the Main Line in initiative order, because selling takes the shared demand marker and the rulebook lets a Player sell and then buy settlements in either order. The alternative keeps cargo as an Ordered span and adds a trade step on the Main Line after it, which is faster online but stops a Player selling first and spending the money on settlements in the same phase.
-2. **Joint resolution** as the pacts above, for the campaign and for These are the Voyages.
+2. **Joint resolution** as the pacts above, for the campaign and for These are the Voyages. The pact rules were settled 2026-10-18; what remains open is in the Common Actions decisions of `docs/parallel-spans.md`.
 3. **The slice order** above. Agreed 2026-10-17.
