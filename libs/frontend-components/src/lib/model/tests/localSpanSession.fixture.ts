@@ -176,6 +176,57 @@ export async function runLocalSpanCommonAction() {
     }
 }
 
+export async function runLocalSpanCommonActionByAnyWaitingPlayer() {
+    const { sessions, open } = await setup()
+    try {
+        const session = await open()
+        await session.act('begin', 'begin')
+        await session.act('work', 'w3')
+        session.setViewingAsNonActivePlayer(true)
+        const firstWaitingPlayerByDefault = session.myPlayer?.id === 'p1'
+        session.viewAsNonActivePlayer('p2')
+        const anotherWaitingPlayerCanBeChosen =
+            session.myPlayer?.id === 'p2' &&
+            session.nonActivePlayers.map((player) => player.id).join() === 'p1,p2' &&
+            session.validActionTypes.join() === 'propose,chant'
+        await session.act('propose', 'o2', { partnerId: 'p3', itemId: 'start-p2' })
+        const actsAsThatPlayer =
+            summary(session.actions).join() === 'begin:p1,openBranch:p3,work:p3,propose:p2' &&
+            session.spanState.offers.o2?.proposerId === 'p2' &&
+            session.gameState.parallelSpan?.branchPlayerId === 'p3'
+
+        session.setViewingAsNonActivePlayer(false)
+        await session.act('work', 'w3b')
+        const laterBranchPlayComesOffFirst = session.undoableAction?.id === 'w3b'
+        await session.act('finish', 'f3')
+        const nextBranchOpened = session.gameState.parallelSpan?.branchPlayerId === 'p2'
+        session.viewAsNonActivePlayer('p3')
+        const closedPlayerCanBeChosen =
+            session.isViewingAsNonActivePlayer &&
+            session.myPlayer?.id === 'p3' &&
+            session.nonActivePlayers.map((player) => player.id).join() === 'p1,p3' &&
+            session.validActionTypes.join() === 'propose,chant'
+        await session.act('chant', 'c3')
+        const closedPlayerActs =
+            summary(session.actions).at(-1) === 'chant:p3' &&
+            session.gameState.parallelSpan?.branchPlayerId === 'p2'
+        session.setViewingAsNonActivePlayer(false)
+        const branchPlayerResumes = session.myPlayer?.id === 'p2' && session.isMyTurn
+        return {
+            firstWaitingPlayerByDefault,
+            anotherWaitingPlayerCanBeChosen,
+            actsAsThatPlayer,
+            laterBranchPlayComesOffFirst,
+            nextBranchOpened,
+            closedPlayerCanBeChosen,
+            closedPlayerActs,
+            branchPlayerResumes
+        }
+    } finally {
+        sessions.dispose()
+    }
+}
+
 export async function runProtectedLocalSpanCommonAction() {
     const { sessions, open } = await setup()
     try {

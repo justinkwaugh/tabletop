@@ -19,6 +19,7 @@ import {
     type HydratedGameState,
     PlayerAction,
     GameStorage,
+    assert,
     assertExists,
     branchFromView,
     createAction,
@@ -162,6 +163,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private historySource: GameContext<T, U>
 
     private nonActivePlayerViewEnabled = $state(false)
+    private chosenNonActivePlayerId: string | undefined = $state()
 
     history: GameHistory<T, U>
     private explorationReturnPosition?: HistoryPosition<T, U>
@@ -377,8 +379,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         )
     }
 
-    private nonActivePlayer: Player | undefined = $derived.by(() =>
-        this.findNonActivePlayer(this.gameState)
+    // In a hotseat Game, the Players who are not acting: any of them may be viewed as, to take
+    // an Out-of-Turn Action or a Common Action (Common Actions rule 12). The first is the default.
+    nonActivePlayers: Player[] = $derived.by(() => this.findNonActivePlayers(this.gameState))
+
+    private nonActivePlayer: Player | undefined = $derived.by(
+        () =>
+            this.nonActivePlayers.find((player) => player.id === this.chosenNonActivePlayerId) ??
+            this.nonActivePlayers.at(0)
     )
 
     canViewAsNonActivePlayer: boolean = $derived(
@@ -517,8 +525,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     })
 
-    setViewingAsNonActivePlayer(enabled: boolean) {
+    setViewingAsNonActivePlayer(enabled: boolean, playerId?: string) {
+        if (playerId !== undefined) this.chosenNonActivePlayerId = playerId
         this.nonActivePlayerViewEnabled = enabled && this.canViewAsNonActivePlayer
+    }
+
+    viewAsNonActivePlayer(playerId: string) {
+        assert(
+            this.nonActivePlayers.some((player) => player.id === playerId),
+            `Player ${playerId} is acting, or is not in this Game`
+        )
+        this.setViewingAsNonActivePlayer(true, playerId)
     }
 
     setActingPlayer(playerId: string) {
@@ -539,13 +556,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.setViewAsActingPlayer(false)
     }
 
-    private findNonActivePlayer(state: U): Player | undefined {
-        return this.game.players.find((player) => !state.activePlayerIds.includes(player.id))
+    private findNonActivePlayers(state: U): Player[] {
+        return this.game.players.filter((player) => !state.activePlayerIds.includes(player.id))
     }
 
     private reconcilePlayerPerspective(state: U) {
-        if (!this.findNonActivePlayer(state)) {
+        const nonActivePlayers = this.findNonActivePlayers(state)
+        if (nonActivePlayers.length === 0) {
             this.nonActivePlayerViewEnabled = false
+        }
+        if (!nonActivePlayers.some((player) => player.id === this.chosenNonActivePlayerId)) {
+            this.chosenNonActivePlayerId = undefined
         }
 
         if (

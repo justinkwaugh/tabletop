@@ -5,6 +5,7 @@ const scenarios = {
         'runLocalSpan',
         'runProtectedLocalSpan',
         'runLocalSpanCommonAction',
+        'runLocalSpanCommonActionByAnyWaitingPlayer',
         'runProtectedLocalSpanCommonAction'
     ],
     hostedSpanSession: [
