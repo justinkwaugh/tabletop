@@ -11,7 +11,7 @@ export const SubmitBid = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.SubmitBid),
             playerId: Type.String(),
-            bidAmount: Type.Number()
+            bidAmount: Type.Integer({ minimum: 0 })
         })
     ])
 )

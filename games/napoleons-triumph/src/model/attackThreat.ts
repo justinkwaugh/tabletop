@@ -7,7 +7,7 @@ import { currentAttack, attackLocale, defenseLocale } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { validateDefenseLeaders } from './leaders.js'
 import { faceOf, samePosition, type ProjectedUnit } from './pieces.js'
-import { legal } from './legality.js'
+import { distinct, legal } from './legality.js'
 import { hasUsableCommand } from './orders.js'
 
 /** Rule 11, step 1. */
@@ -116,7 +116,7 @@ export function declareDefense(
 ) {
     const attack = currentAttack(state)
     legal(unitIds.length > 0, 'A defense names at least one unit')
-    legal(new Set(unitIds).size === unitIds.length, 'A defending unit is named once')
+    legal(distinct(unitIds), 'A defending unit is named once')
     const units = unitIds.map((id) => state.unit(id))
     const forced = forcedDefense(state)
     if (forced) {
@@ -167,7 +167,7 @@ export function checkDefenseLeaders(
         leaderIds.every((id) => attack.defendingUnitIds.includes(id)),
         'Leading units are defending pieces'
     )
-    legal(new Set(leaderIds).size === leaderIds.length, 'A leading unit is named once')
+    legal(distinct(leaderIds), 'A leading unit is named once')
     validateDefenseLeaders(
         state,
         leaderIds.map((id) => state.unit(id)),

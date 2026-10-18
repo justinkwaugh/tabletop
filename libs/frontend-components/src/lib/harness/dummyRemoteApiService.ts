@@ -22,7 +22,13 @@ import type {
     TournamentDetail,
     TournamentList,
     TournamentTitles,
-    TournamentSchedule
+    TournamentSchedule,
+    UndoVotePreview,
+    League,
+    LeagueAllocationPreview,
+    LeagueList,
+    LeagueSeasonDetail,
+    LeagueState
 } from '@tabletop/common'
 import type { GameVersionProvider, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
@@ -62,6 +68,14 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async correctTournamentResult(): Promise<Tournament> {
         return this.fail('correctTournamentResult')
+    }
+
+    async withdrawTournamentEntrant(): Promise<Tournament> {
+        return this.fail('withdrawTournamentEntrant')
+    }
+
+    async substituteTournamentEntrant(): Promise<Tournament> {
+        return this.fail('substituteTournamentEntrant')
     }
 
     async rebuildTournamentStandings(): Promise<Tournament> {
@@ -106,6 +120,42 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async joinTournament(): Promise<Tournament> {
         return this.fail('joinTournament')
+    }
+
+    async listLeagues(): Promise<LeagueList> {
+        return this.fail('listLeagues')
+    }
+
+    async getLeague(): Promise<LeagueSeasonDetail> {
+        return this.fail('getLeague')
+    }
+
+    async previewLeagueAllocation(): Promise<LeagueAllocationPreview> {
+        return this.fail('previewLeagueAllocation')
+    }
+
+    async createLeague(): Promise<League> {
+        return this.fail('createLeague')
+    }
+
+    async updateLeague(): Promise<League> {
+        return this.fail('updateLeague')
+    }
+
+    async scheduleLeagueSignUp(): Promise<LeagueState> {
+        return this.fail('scheduleLeagueSignUp')
+    }
+
+    async updateLeagueSignUpPolicy(): Promise<League> {
+        return this.fail('updateLeagueSignUpPolicy')
+    }
+
+    async cancelLeagueSeason(): Promise<LeagueState> {
+        return this.fail('cancelLeagueSeason')
+    }
+
+    async actOnLeague(): Promise<LeagueState> {
+        return this.fail('actOnLeague')
     }
 
     async getSelf(): Promise<User | undefined> {
@@ -162,6 +212,13 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async updateUserPreferences(_userId: string, _preferences: UserPreferences): Promise<User> {
         return this.fail('updateUserPreferences')
+    }
+
+    async updateUserTimeZone(
+        _timeZone: string,
+        _options?: { onlyIfUnset?: boolean }
+    ): Promise<User> {
+        return this.fail('updateUserTimeZone')
     }
 
     async unlinkExternalAccount(_externalId: string): Promise<User> {
@@ -267,6 +324,26 @@ export class DummyRemoteApiService implements RemoteApiService {
         perspective?: Visibility.Perspective
     }> {
         return this.fail('undoAction')
+    }
+
+    async previewUndoVote(_game: Game, _actionIndex: number): Promise<UndoVotePreview> {
+        return this.fail('previewUndoVote')
+    }
+
+    async openUndoVote(_game: Game, _actionIndex: number, _targetActionId: string): Promise<Game> {
+        return this.fail('openUndoVote')
+    }
+
+    async approveVote(_game: Game, _voteId: string): Promise<Game> {
+        return this.fail('approveVote')
+    }
+
+    async declineVote(_game: Game, _voteId: string): Promise<Game> {
+        return this.fail('declineVote')
+    }
+
+    async withdrawVote(_game: Game, _voteId: string): Promise<Game> {
+        return this.fail('withdrawVote')
     }
 
     async checkSync(

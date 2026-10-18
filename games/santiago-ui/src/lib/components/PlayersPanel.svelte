@@ -16,9 +16,6 @@
         isEndOfGame ? calculateScores(state.board) : calculateLiveScores(state.board)
     )
 
-    const playerName = (id: string) =>
-        session.game?.players.find((p) => p.id === id)?.name ?? id
-
     const projectedOverseerId = $derived(session.projectedOverseerId)
     const previousOverseerId = $derived(session.previousOverseerHoldoverId)
 
@@ -52,7 +49,7 @@
             <!-- Colored name bar -->
             <div class="font-heading px-[10px] py-[7px] flex items-center gap-[7px] font-bold uppercase tracking-widest {textColor} text-[15px]"
                  style="background-color: {color}">
-                <span class="truncate min-w-0 flex-1 text-[18px]" style="text-shadow: {nameShadow}">{playerName(p.playerId)}</span>
+                <span class="truncate min-w-0 flex-1 text-[18px]" style="text-shadow: {nameShadow}">{session.getPlayerName(p.playerId)}</span>
                 {#if isOverseer}
                     <OverseerPill />
                 {:else if isPreviousOverseer}

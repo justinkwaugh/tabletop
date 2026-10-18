@@ -357,6 +357,14 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('cache protocol against Redi
         expect(await live.client.get(key)).toBeNull()
     }
 
+    it('claims a key once until it expires or is released', async () => {
+        expect(await live.cache.claimOnce(keys[0], 60)).toBe(true)
+        expect(await live.cache.claimOnce(keys[0], 60)).toBe(false)
+        expect(await live.client.ttl(keys[0])).toBeGreaterThan(0)
+        await live.cache.delete(keys[0])
+        expect(await live.cache.claimOnce(keys[0], 60)).toBe(true)
+    })
+
     it('revokes a newer read token when an expired writer completes', async () => {
         let token: string | undefined
         await live.cache.lockWhileWriting([keys[0]], async () => {

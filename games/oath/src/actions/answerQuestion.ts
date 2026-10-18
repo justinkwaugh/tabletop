@@ -44,7 +44,9 @@ export const AnswerQuestionMetadata = Type.Object({
     /** R-5.5.8 — a banish's answer: its burn, the "if you're victorious" plans and the end. */
     triggered: Type.Optional(Type.Array(Type.String())),
     // Dragonskin Drum on a power's move
-    warbandGain: Type.Optional(WarbandGain)
+    warbandGain: Type.Optional(WarbandGain),
+    /** R-2.11-H1 — a binding exchange, or the answer that landed a Relic Thief take. */
+    titleMoment: Type.Optional(Type.Boolean())
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -111,7 +113,8 @@ export class HydratedAnswerQuestion
             woodPick: outcome.woodPick,
             tollMove: outcome.tollMove,
             triggered: outcome.triggered,
-            warbandGain: outcome.warbandGain
+            warbandGain: outcome.warbandGain,
+            titleMoment: outcome.titleMoment
         }
         commitHiddenOutputs(this, state, witnesses)
     }

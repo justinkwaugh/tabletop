@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/indonesia",
-    "version": "1.5.2",
+    "version": "1.6.0",
     "type": "module",
     "exports": {
         "import": "./esm/index.js",
@@ -16,12 +16,9 @@
     },
     "dependencies": {
         "@tabletop/common": "workspace:*",
-        "es-iterator-helpers": "^1.2.2",
         "typebox": "^1.0.79"
     },
     "devDependencies": {
-        "@babel/core": "^7.28.6",
-        "@babel/preset-env": "^7.28.6",
         "@tabletop/eslint-config": "workspace:*",
         "@tabletop/rollup-config": "workspace:*",
         "@tabletop/vitest-config": "workspace:*",

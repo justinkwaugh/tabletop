@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { NapoleonsTriumphAction } from './gameAction.js'
+import { AttackEndMetadata } from './attackEnd.js'
 import { MoveOrder } from '../model/attack.js'
 import { FeintEnd, declareFeint } from '../model/attackDeclaration.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
@@ -14,6 +15,7 @@ export const DeclareFeint = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.DeclareFeint),
             playerId: Type.String(),
+            metadata: Type.Optional(AttackEndMetadata),
             orders: Type.Array(MoveOrder, { minItems: 1 }),
             end: Type.Enum(FeintEnd)
         })

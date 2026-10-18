@@ -1,25 +1,11 @@
 <script lang="ts">
     import { Helper, Toggle } from 'flowbite-svelte'
-    import { toast } from 'svelte-sonner'
     import { flip } from 'svelte/animate'
-    import { assertExists, type Color } from '@tabletop/common'
-    import {
-        ColorblindColorizer,
-        DefaultColorizer,
-        getAppContext
-    } from '@tabletop/frontend-components'
-    import { UserPreferencesEditor } from '$lib/services/userPreferencesEditor.svelte'
+    import type { Color } from '@tabletop/common'
+    import { ColorblindColorizer, DefaultColorizer } from '@tabletop/frontend-components'
+    import { getAppContext } from '$lib/stores/appContext.svelte'
 
-    const { authorizationService, api } = getAppContext()
-    const user = authorizationService.getSessionUser()
-    assertExists(user, 'Preferences require a signed-in user')
-
-    const editor = new UserPreferencesEditor(
-        user,
-        api,
-        (savedUser) => authorizationService.setSessionUser(savedUser),
-        () => toast.error('Could not save your preferences. Please try again.')
-    )
+    const { userPreferencesEditor: editor } = getAppContext()
     const preferences = $derived(editor.values)
 
     const colorblindColorizer = new ColorblindColorizer()
@@ -33,29 +19,27 @@
 
     let draggedColor: Color | undefined = $state(undefined)
     let draggedIndex: number | undefined = $state(undefined)
-    let startIndex: number | undefined
 
     function dragStart(index: number, color: Color) {
         draggedColor = color
         draggedIndex = index
-        startIndex = index
     }
 
     function dragEnter(index: number) {
         if (draggedIndex === undefined || !draggedColor) return
         if (preferences.preferredColors[index] === draggedColor) return
 
-        preferences.preferredColors.splice(draggedIndex, 1)
-        preferences.preferredColors.splice(index, 0, draggedColor)
+        const preferredColors = preferences.preferredColors.filter(
+            (color) => color !== draggedColor
+        )
+        preferredColors.splice(index, 0, draggedColor)
+        editor.update({ preferredColors })
         draggedIndex = index
     }
 
     function dragEnd() {
-        const moved = draggedIndex !== startIndex
         draggedIndex = undefined
         draggedColor = undefined
-        startIndex = undefined
-        if (moved) editor.save()
     }
 </script>
 

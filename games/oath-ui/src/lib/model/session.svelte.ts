@@ -43,6 +43,7 @@ import {
     shroudedWoodChooser,
     isFreeTravelNow,
     payableWoodPicks,
+    playMapChanges,
     woodTravelPaysAtPick,
     SearchResolve,
     SelfExile,
@@ -944,7 +945,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const cardId = this.adviserCardId
         const play = this.adviserPlay
         if (!playerId || !cardId || play === undefined) return []
-        return whenPlayedChoices(this.gameState, playerId, cardId, play, true)
+        // R-5.1.4.I, R-11.10 — the card picked to discard before the site play goes first.
+        const mapChanges = playMapChanges(this.gameState, cardId, play, {
+            discardFirstCardId: this.adviserDiscardFirst
+        })
+        return whenPlayedChoices(this.gameState, playerId, cardId, play, true, mapChanges)
     }
 
     get adviserPlayPicks(): PowerChoicePicks {

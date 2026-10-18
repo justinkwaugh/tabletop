@@ -1,18 +1,11 @@
 import fastifyAuth from '@fastify/auth'
-import {
-    ActionSource,
-    GameAction,
-    type GameDefinition,
-    Role,
-    type User,
-    UserStatus,
-    Visibility
-} from '@tabletop/common'
+import { ActionSource, GameAction, Role, type User, UserStatus, Visibility } from '@tabletop/common'
 import Fastify from 'fastify'
 import { Type, type TSchema } from 'typebox'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { errorStatusCode } from '../../lib/errorStatusCode.js'
 import applyActionRoute from './action.js'
+import { routeTestDefinition } from './tests/routeTestDefinition.js'
 
 const user: User = {
     id: 'user-1',
@@ -21,43 +14,7 @@ const user: User = {
     externalIds: []
 }
 
-const definition: GameDefinition = {
-    info: {
-        id: 'action-test',
-        metadata: {
-            name: 'Action Test',
-            designer: 'Test',
-            description: 'Tests applying an Action to a hosted Game.',
-            year: '2026',
-            minPlayers: 1,
-            maxPlayers: 1,
-            defaultPlayerCount: 1,
-            version: '1.0.0',
-            beta: true
-        }
-    },
-    runtime: {
-        initializer: {
-            initializeGame() {
-                throw new Error('Unused by route test')
-            },
-            initializeGameState() {
-                throw new Error('Unused by route test')
-            }
-        },
-        hydrator: {
-            hydrateAction() {
-                throw new Error('Unused by route test')
-            },
-            hydrateState() {
-                throw new Error('Unused by route test')
-            }
-        },
-        playerColors: [],
-        apiActions: {},
-        stateHandlers: {}
-    }
-}
+const definition = routeTestDefinition('action-test', 'Tests applying an Action to a hosted Game.')
 
 const TestAction = Type.Omit(GameAction, ['undoPatch', 'forwardPatch'])
 

@@ -522,9 +522,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -601,9 +598,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -641,9 +635,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -720,9 +711,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -760,9 +748,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -821,9 +806,6 @@ importers:
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.9)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -839,9 +821,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -876,9 +855,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -937,9 +913,6 @@ importers:
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.9)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -955,9 +928,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -974,12 +944,6 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -1013,34 +977,10 @@ importers:
       '@tabletop/frontend-components':
         specifier: workspace:*
         version: link:../../libs/frontend-components
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: 5.1.6
-        version: 5.1.6
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-alias':
-        specifier: ^6.0.0
-        version: 6.0.0(rollup@4.55.2)
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -1065,15 +1005,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -1098,15 +1029,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1116,9 +1038,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1131,19 +1050,10 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      es-iterator-helpers:
-        specifier: ^1.2.2
-        version: 1.4.0
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -1168,9 +1078,6 @@ importers:
 
   games/bus-ui:
     dependencies:
-      '@floating-ui/dom':
-        specifier: ^1.7.4
-        version: 1.8.0
       '@tabletop/bus':
         specifier: workspace:*
         version: link:../bus
@@ -1183,31 +1090,10 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: 5.1.6
-        version: 5.1.6
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -1232,15 +1118,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -1265,15 +1142,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1283,9 +1151,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1301,19 +1166,10 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      es-iterator-helpers:
-        specifier: ^1.2.1
-        version: 1.4.0
       typebox:
         specifier: ^1.0.53
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.25.2
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.25.3
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -1335,9 +1191,6 @@ importers:
 
   games/container-ui:
     dependencies:
-      '@floating-ui/dom':
-        specifier: ^1.7.4
-        version: 1.8.0
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -1347,12 +1200,6 @@ importers:
       '@tabletop/frontend-components':
         specifier: workspace:*
         version: link:../../libs/frontend-components
-      gsap:
-        specifier: ^3.14.2
-        version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
       nanoid:
         specifier: 5.1.6
         version: 5.1.6
@@ -1360,21 +1207,6 @@ importers:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -1399,15 +1231,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -1432,15 +1255,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1450,9 +1264,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1472,12 +1283,6 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -1502,9 +1307,6 @@ importers:
 
   games/estates-ui:
     dependencies:
-      '@svgdotjs/svg.js':
-        specifier: ^3.2.4
-        version: 3.2.8
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -1529,18 +1331,6 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: 5.1.6
-        version: 5.1.6
-      runed:
-        specifier: ^0.37.1
-        version: 0.37.1(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(zod@4.6.5)
-      svelte-tweakpane-ui:
-        specifier: ^1.5.13
-        version: 1.6.0(svelte@5.49.0)
       three:
         specifier: 0.182.0
         version: 0.182.0
@@ -1548,21 +1338,6 @@ importers:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -1587,15 +1362,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -1623,15 +1389,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1641,9 +1398,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1656,12 +1410,6 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      chalk:
-        specifier: ^5.6.2
-        version: 5.6.2
-      es-iterator-helpers:
-        specifier: ^1.2.2
-        version: 1.4.0
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -1711,31 +1459,10 @@ importers:
       '@tabletop/frontend-components':
         specifier: workspace:*
         version: link:../../libs/frontend-components
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: 5.1.6
-        version: 5.1.6
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -1760,15 +1487,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -1793,15 +1511,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1811,9 +1520,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -1836,12 +1542,6 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -1878,31 +1578,10 @@ importers:
       '@tabletop/hill-country-grocers':
         specifier: workspace:*
         version: link:../hill-country-grocers
-      gsap:
-        specifier: ^3.14.2
-        version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -1927,15 +1606,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -1951,24 +1621,9 @@ importers:
       postcss:
         specifier: ^8.4.38
         version: 8.5.28
-      prettier:
-        specifier: ^3.8.0
-        version: 3.9.9
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.9)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -1978,9 +1633,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1996,19 +1648,10 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      es-iterator-helpers:
-        specifier: ^1.2.2
-        version: 1.4.0
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -2033,9 +1676,6 @@ importers:
 
   games/indonesia-ui:
     dependencies:
-      '@floating-ui/dom':
-        specifier: ^1.7.4
-        version: 1.8.0
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -2048,9 +1688,6 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
       nanoid:
         specifier: 5.1.6
         version: 5.1.6
@@ -2058,21 +1695,6 @@ importers:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -2097,15 +1719,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -2130,15 +1743,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2148,9 +1752,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2170,12 +1771,6 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -2200,9 +1795,6 @@ importers:
 
   games/kaivai-ui:
     dependencies:
-      '@svgdotjs/svg.js':
-        specifier: ^3.2.4
-        version: 3.2.8
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -2215,31 +1807,10 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: 5.1.6
-        version: 5.1.6
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -2264,15 +1835,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -2297,15 +1859,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2315,9 +1868,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2330,19 +1880,10 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      es-iterator-helpers:
-        specifier: ^1.2.2
-        version: 1.4.0
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -2367,9 +1908,6 @@ importers:
 
   games/lowenherz-ui:
     dependencies:
-      '@floating-ui/dom':
-        specifier: ^1.7.4
-        version: 1.8.0
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -2382,31 +1920,10 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: 5.1.6
-        version: 5.1.6
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -2431,15 +1948,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -2464,15 +1972,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2482,9 +1981,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2504,12 +2000,6 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -2546,31 +2036,10 @@ importers:
       '@tabletop/magna-grecia':
         specifier: workspace:*
         version: link:../magna-grecia
-      gsap:
-        specifier: ^3.14.2
-        version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -2595,15 +2064,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -2628,15 +2088,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2646,9 +2097,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2664,19 +2112,10 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      es-iterator-helpers:
-        specifier: ^1.2.2
-        version: 1.4.0
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -2701,9 +2140,6 @@ importers:
 
   games/marracash-ui:
     dependencies:
-      '@floating-ui/dom':
-        specifier: ^1.7.4
-        version: 1.8.0
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -2716,31 +2152,10 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: ^5.1.6
-        version: 5.1.6
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -2765,15 +2180,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -2798,15 +2204,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2816,9 +2213,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2838,12 +2232,6 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -2880,31 +2268,10 @@ importers:
       '@tabletop/napoleons-triumph':
         specifier: workspace:*
         version: link:../napoleons-triumph
-      gsap:
-        specifier: ^3.14.2
-        version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -2929,15 +2296,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -2962,15 +2320,9 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2980,9 +2332,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3002,12 +2351,6 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -3041,28 +2384,10 @@ importers:
       '@tabletop/oath':
         specifier: workspace:*
         version: link:../oath
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -3087,15 +2412,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -3120,15 +2436,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -3138,9 +2445,119 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vite-plugin-devtools-json:
+        specifier: ^1.0.0
+        version: 1.1.0(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  games/railheads:
+    dependencies:
+      '@tabletop/18xx':
+        specifier: workspace:*
+        version: link:../../libs/18xx
+      '@tabletop/common':
+        specifier: workspace:*
+        version: link:../../libs/common
+      typebox:
+        specifier: ^1.0.79
+        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+    devDependencies:
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
+      '@tabletop/rollup-config':
+        specifier: workspace:*
+        version: link:../../config/config-rollup
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
+      '@typescript/native-preview':
+        specifier: 7.0.0-dev.20260707.2
+        version: 7.0.0-dev.20260707.2
+      rimraf:
+        specifier: ^6.1.0
+        version: 6.1.3
+      rollup:
+        specifier: 4.55.2
+        version: 4.55.2
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.12
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  games/railheads-ui:
+    dependencies:
+      '@tabletop/common':
+        specifier: workspace:*
+        version: link:../../libs/common
+      '@tabletop/frontend-components':
+        specifier: workspace:*
+        version: link:../../libs/frontend-components
+      '@tabletop/railheads':
+        specifier: workspace:*
+        version: link:../railheads
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.42.1
+        version: 1.63.0
+      '@sveltejs/adapter-static':
+        specifier: ^3.0.10
+        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
+      '@sveltejs/kit':
+        specifier: ^2.48.4
+        version: 2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@sveltejs/package':
+        specifier: ^2.5.7
+        version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^6.2.4
+        version: 6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
+      '@tabletop/rollup-config':
+        specifier: workspace:*
+        version: link:../../config/config-rollup
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
+      '@tailwindcss/postcss':
+        specifier: ^4.1.18
+        version: 4.3.3
+      eslint:
+        specifier: ^9.39.2
+        version: 9.39.5(jiti@2.7.0)
+      flowbite:
+        specifier: ^3.1.2
+        version: 3.1.2(rollup@4.55.2)
+      flowbite-svelte:
+        specifier: ^1.31.0
+        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+      flowbite-svelte-icons:
+        specifier: ^3.1.0
+        version: 3.1.0(svelte@5.49.0)
+      postcss:
+        specifier: ^8.4.38
+        version: 8.5.28
+      rollup:
+        specifier: 4.55.2
+        version: 4.55.2
+      svelte:
+        specifier: ^5.0.0
+        version: 5.49.0
+      svelte-check:
+        specifier: ^4.3.5
+        version: 4.7.6(picomatch@4.0.7)(svelte@5.49.0)(typescript@5.9.3)
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.3.3
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3357,25 +2774,10 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      chalk:
-        specifier: ^5.6.2
-        version: 5.6.2
-      es-iterator-helpers:
-        specifier: ^1.2.2
-        version: 1.4.0
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
-      uuid:
-        specifier: ^13.0.0
-        version: 13.0.2
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -3385,9 +2787,6 @@ importers:
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
-      '@types/uuid':
-        specifier: ^10.0.0
-        version: 10.0.0
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260707.2
         version: 7.0.0-dev.20260707.2
@@ -3415,31 +2814,10 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: 5.1.6
-        version: 5.1.6
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -3464,15 +2842,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -3500,15 +2869,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -3518,9 +2878,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3558,9 +2915,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -3637,9 +2991,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3652,19 +3003,10 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      es-iterator-helpers:
-        specifier: ^1.2.2
-        version: 1.4.0
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -3701,9 +3043,6 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
       nanoid:
         specifier: 5.1.6
         version: 5.1.6
@@ -3711,21 +3050,6 @@ importers:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -3750,15 +3074,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -3783,15 +3098,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -3801,9 +3107,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3847,9 +3150,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3923,9 +3223,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -3938,19 +3235,10 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      es-iterator-helpers:
-        specifier: ^1.2.2
-        version: 1.4.0
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -3991,21 +3279,6 @@ importers:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -4045,27 +3318,12 @@ importers:
       postcss:
         specifier: ^8.4.38
         version: 8.5.28
-      prettier:
-        specifier: ^3.8.0
-        version: 3.9.9
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.9)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -4075,9 +3333,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -6249,60 +5504,6 @@ packages:
   '@jsdevtools/ono@7.1.3':
     resolution: {integrity: sha512-4JQNk+3mVzK3xh2rqd6RB4J46qUR19azEHBneZyTZM+c456qOrbbM/5xcR8huNCCcbVt7+UmizG6GuUvPvKUYg==}
 
-  '@kitschpatrol/tweakpane-plugin-camerakit@0.3.1-beta.3':
-    resolution: {integrity: sha512-Tg9TyaaeG7bfo4d6Bx1qtRBKWzs+8uYpN4FaxtyIcOJES6YjOXNAe7f23G2auSDuhkA8H62nqo4lnqxYOoyGEQ==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
-  '@kitschpatrol/tweakpane-plugin-essentials@0.2.2-beta.3':
-    resolution: {integrity: sha512-ucqdSQ16G8vCtifuQSr2sCtKCNWzhScOp4g+6p+uXRHIpOC73zHRAlLUndB2ZgjhOyA+0+2zQqBx22QnJkybaw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
-  '@kitschpatrol/tweakpane-plugin-file-import@1.1.2-beta.2':
-    resolution: {integrity: sha512-+W5DIOu2B/J0pmwSmxnF93TemJCvpMfvrcx5Opt8DYwsbtmFm0hRaHBO1dHmTeMJaBckOxWxIq22nJ4jcuwB4w==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
-  '@kitschpatrol/tweakpane-plugin-image@2.0.1-beta.8':
-    resolution: {integrity: sha512-QiJtvKPwrPWQ9rBR8DLWV0dY6AUiLuE8QcuuseK5EKXaTfc4KNMGI7ihaWw4FVayIzsEQyb7D6vwjeiW3dIqvA==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
-  '@kitschpatrol/tweakpane-plugin-inputs@1.0.4-beta.5':
-    resolution: {integrity: sha512-R6YRWWCGtyBn14KXofgUJH7bV3mD5Vjhw8QyFTMQD6q8R9R7jD7uCsIxbU9hcduQID2diBvxT8bnLtWkyhrhVw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
-  '@kitschpatrol/tweakpane-plugin-profiler@0.4.2-beta.3':
-    resolution: {integrity: sha512-9vri0Oew3eO0K/F/jT58VAO3ersaQEfNfEqn5C0Np0zOOuFE+f1d/XgUKfiRPln9p3hrfNjbJ0kGBIfhBw+vzQ==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
-  '@kitschpatrol/tweakpane-plugin-rotation@0.2.1-beta.2':
-    resolution: {integrity: sha512-chGPIPjdiP18C71xDbO88IkpgaxwBSaFa6W5+XbmxTT5LpHXSyOTtOEv4cjPg85HDUG2Fc+h7tpnTw/3caCFRw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
-  '@kitschpatrol/tweakpane-plugin-textarea@2.0.1-beta.2':
-    resolution: {integrity: sha512-VHV6dJRlceyELapEd38Cwqtu+aG7VPX4e1anPxxVESQmb1uzr4LvsDWPYY6s+9XLzT7O1CZHg63Rd7rRn3bsDQ==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
-  '@kitschpatrol/tweakpane-plugin-waveform@1.0.4-beta.3':
-    resolution: {integrity: sha512-UVzLSoLQNnyvG3xwno+Mxl/O2rED0b7yz3UIl8gbU3eggJOsHMltywHpSuF7oIJYbbtQtjns6um/fhYyvzXnRQ==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
   '@leeoniya/ufuzzy@1.0.19':
     resolution: {integrity: sha512-0pikDeYt0IHEUPza5RTCDXc/17S1pTrYnReEMp8Aa6k1ovzw5QdZLwicW8TjljwEZRb6oYag0xmALohrcq/yOQ==}
 
@@ -6856,15 +6057,6 @@ packages:
     peerDependencies:
       '@redis/client': ^5.10.0
 
-  '@rollup/plugin-alias@6.0.0':
-    resolution: {integrity: sha512-tPCzJOtS7uuVZd+xPhoy5W4vThe6KWXNmsFCNktaAh5RTqcLiSfT4huPQIXkgJ6YCOjJHvecOAzQxLFhPxKr+g==}
-    engines: {node: '>=20.19.0'}
-    peerDependencies:
-      rollup: '>=4.0.0'
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
   '@rollup/plugin-commonjs@29.0.3':
     resolution: {integrity: sha512-ZaOxZceP7SOUW7Lqw5IRVweSQYWaeIPnXIGLiB690EBA3FGJTO40EEr2L5yZplJWsgTCogILRSpcAe7+U0Otdg==}
     engines: {node: '>=16.0.0 || 14 >= 14.17'}
@@ -7307,9 +6499,6 @@ packages:
       svelte: ^5.0.0
       vite: ^6.3.0 || ^7.0.0
 
-  '@svgdotjs/svg.js@3.2.8':
-    resolution: {integrity: sha512-NUdbI/7FDdqGpzKmqr09IQoy9MUcrAC/3bC8gLgXi6OfJuyri450zMLvJekFUhuq3iN5gpdPjoSoStNl9Eijfg==}
-
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
 
@@ -7475,9 +6664,6 @@ packages:
     resolution: {integrity: sha512-88Xv2f7SLGVJ68lRRx8o375dKmnZYNdDtvlKcPA0kZpcF93eAQd8l96BKQ0/AMHG0bMJA0Z5QqoqtetxzNsC+g==}
     cpu: [arm64]
     os: [win32]
-
-  '@tweakpane/core@2.0.5':
-    resolution: {integrity: sha512-punBgD5rKCF5vcNo6BsSOXiDR/NSs9VM7SG65QSLJIxfRaGgj54ree9zQW6bO3pNFf3AogiGgaNODUVQRk9YqQ==}
 
   '@tweenjs/tween.js@23.1.3':
     resolution: {integrity: sha512-vJmvvwFxYuGnF2axRtPYocag6Clbb5YS7kLL+SO/TeVFzHqDIWrNKYtcsPMibjDx9O+bu+psAy9NKfWklassUA==}
@@ -9078,9 +8264,6 @@ packages:
     resolution: {integrity: sha512-6ypT4XfgqJk/F3Yuv4SX26I3doUjt0GTG4a+JgWxXQpxXzTBq8fPUeGHfcYMMDPHJHm3yPOSjaeBwBGAHWXCdA==}
     engines: {node: '>=18.0.0'}
 
-  fast-copy@4.1.1:
-    resolution: {integrity: sha512-A4QTJmuiztpGtr6AMeJts9R4hbj2ZBUwtOaKrG6rw2y7t6+IaJKjz5M3XDs8BUznxDH43FVc6A0y/gWlMl4UtA==}
-
   fast-decode-uri-component@1.0.1:
     resolution: {integrity: sha512-WKgKWg5eUxvRZGwW8FvfbaH7AXSh2cL+3j5fMGzUMCxWBJ3dV3a7Wz8y2f/uQ0e3B6WmodD3oS54jTQ9HVTIIg==}
 
@@ -9089,10 +8272,6 @@ packages:
 
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
-
-  fast-equals@6.0.4:
-    resolution: {integrity: sha512-JiBeR0k76FIahi9zAtQR7X1jgZDKLE+fs5S9ryjOGYZWZCOcm8QiwgeahkFvaboS3i6PkGBopRznHKuKhm9zpg==}
-    engines: {node: '>=6.0.0'}
 
   fast-fifo@1.3.2:
     resolution: {integrity: sha512-/d9sfos4yxzpwkDkuN7k2SqFKtYNmCTzgfEpz82x34IM9/zc8KGxQoXg1liNC/izpRM/MBdt44Nmx41ZWqk+FQ==}
@@ -10506,11 +9685,6 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
 
-  nanoid@6.0.1:
-    resolution: {integrity: sha512-3wVS3i51pE2pi1k5FFL/95BGfVS0kSsvDVuGXHOtxox/TywUmtgq+3qiTOTbs9J7KfHaXPiN171k/A6dBnaXFw==}
-    engines: {node: ^22 || ^24 || >=26}
-    hasBin: true
-
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
@@ -11917,21 +11091,10 @@ packages:
       svelte:
         optional: true
 
-  svelte-persisted-store@0.12.0:
-    resolution: {integrity: sha512-BdBQr2SGSJ+rDWH8/aEV5GthBJDapVP0GP3fuUCA7TjYG5ctcB+O9Mj9ZC0+Jo1oJMfZUd1y9H68NFRR5MyIJA==}
-    engines: {node: '>=0.14'}
-    peerDependencies:
-      svelte: ^3.48.0 || ^4 || ^5
-
   svelte-sonner@0.3.28:
     resolution: {integrity: sha512-K3AmlySeFifF/cKgsYNv5uXqMVNln0NBAacOYgmkQStLa/UoU0LhfAACU6Gr+YYC8bOCHdVmFNoKuDbMEsppJg==}
     peerDependencies:
       svelte: ^3.0.0 || ^4.0.0 || ^5.0.0-next.1
-
-  svelte-tweakpane-ui@1.6.0:
-    resolution: {integrity: sha512-8/DFij14bBhVqDJOCJ4ogtS8e8UH76dPURxcbd+phfsoA19Vyvqdh7jh+fA8ffLPsdjLRs81AxseTmOpdzkZyg==}
-    peerDependencies:
-      svelte: ^4.0.0 || ^5.0.0
 
   svelte2tsx@0.7.61:
     resolution: {integrity: sha512-EpQ/+UHITBULeUojx/LLD3uTYasZXcX1BrqlrzfLUnT9vdUhaOWK59a3ryWcFU8L0sY1SP+gRhJ2Beiis98+qw==}
@@ -12164,17 +11327,8 @@ packages:
     resolution: {integrity: sha512-RhXHbqfvY6o3xt/zSHCwSNwLrZlXiqHzewi4eAj9PtZ1T1CqgMJ2yIDb7SKPTG9IikTm925mfzL6hldQVdyNWw==}
     hasBin: true
 
-  tweakpane-plugin-color-plus@0.6.1:
-    resolution: {integrity: sha512-iRQmLgnFhN+kgSP9SD0qJqSAuBcOHponykPjIaF5aefClKt9wFiEO/Nl6EQU1r3rdFPg6KAZdjSMVDeVddvoqA==}
-    engines: {node: '>=20.19.0'}
-    peerDependencies:
-      tweakpane: ^4.0.0
-
   tweakpane@3.1.10:
     resolution: {integrity: sha512-rqwnl/pUa7+inhI2E9ayGTqqP0EPOOn/wVvSWjZsRbZUItzNShny7pzwL3hVlaN4m9t/aZhsP0aFQ9U5VVR2VQ==}
-
-  tweakpane@4.0.5:
-    resolution: {integrity: sha512-rxEXdSI+ArlG1RyO6FghC4ZUX8JkEfz8F3v1JuteXSV0pEtHJzyo07fcDG+NsJfN5L39kSbCYbB9cBGHyuI/tQ==}
 
   twemoji-parser@12.1.3:
     resolution: {integrity: sha512-ND4LZXF4X92/PFrzSgGkq6KPPg8swy/U0yRw1k/+izWRVmq1HYi3khPwV3XIB6FRudgVICAaBhJfW8e8G3HC7Q==}
@@ -14070,8 +13224,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.34.5':
     optionalDependencies:
@@ -14476,51 +13629,6 @@ snapshots:
   '@js-sdsl/ordered-map@4.4.2': {}
 
   '@jsdevtools/ono@7.1.3': {}
-
-  '@kitschpatrol/tweakpane-plugin-camerakit@0.3.1-beta.3(tweakpane@4.0.5)':
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
-
-  '@kitschpatrol/tweakpane-plugin-essentials@0.2.2-beta.3(tweakpane@4.0.5)':
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
-
-  '@kitschpatrol/tweakpane-plugin-file-import@1.1.2-beta.2(tweakpane@4.0.5)':
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
-
-  '@kitschpatrol/tweakpane-plugin-image@2.0.1-beta.8(tweakpane@4.0.5)':
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
-
-  '@kitschpatrol/tweakpane-plugin-inputs@1.0.4-beta.5(tweakpane@4.0.5)':
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
-
-  '@kitschpatrol/tweakpane-plugin-profiler@0.4.2-beta.3(tweakpane@4.0.5)':
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
-
-  '@kitschpatrol/tweakpane-plugin-rotation@0.2.1-beta.2(tweakpane@4.0.5)':
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
-
-  '@kitschpatrol/tweakpane-plugin-textarea@2.0.1-beta.2(tweakpane@4.0.5)':
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
-
-  '@kitschpatrol/tweakpane-plugin-waveform@1.0.4-beta.3(tweakpane@4.0.5)':
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
 
   '@leeoniya/ufuzzy@1.0.19': {}
 
@@ -14949,10 +14057,6 @@ snapshots:
     dependencies:
       '@redis/client': 5.10.0
 
-  '@rollup/plugin-alias@6.0.0(rollup@4.55.2)':
-    optionalDependencies:
-      rollup: 4.55.2
-
   '@rollup/plugin-commonjs@29.0.3(rollup@4.55.2)':
     dependencies:
       '@rollup/pluginutils': 5.4.0(rollup@4.55.2)
@@ -15380,8 +14484,6 @@ snapshots:
       vite: 7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vitefu: 1.1.3(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
-  '@svgdotjs/svg.js@3.2.8': {}
-
   '@swc/helpers@0.5.15':
     dependencies:
       tslib: 2.8.1
@@ -15526,8 +14628,6 @@ snapshots:
 
   '@turbo/windows-arm64@2.11.7':
     optional: true
-
-  '@tweakpane/core@2.0.5': {}
 
   '@tweenjs/tween.js@23.1.3': {}
 
@@ -17448,15 +16548,11 @@ snapshots:
 
   farmhash-modern@1.1.0: {}
 
-  fast-copy@4.1.1: {}
-
   fast-decode-uri-component@1.0.1: {}
 
   fast-deep-equal@2.0.1: {}
 
   fast-deep-equal@3.1.3: {}
-
-  fast-equals@6.0.4: {}
 
   fast-fifo@1.3.2: {}
 
@@ -19082,8 +18178,6 @@ snapshots:
 
   nanoid@5.1.6: {}
 
-  nanoid@6.0.1: {}
-
   natural-compare@1.4.0: {}
 
   nearley@2.20.1:
@@ -20384,7 +19478,6 @@ snapshots:
       '@img/sharp-win32-arm64': 0.34.5
       '@img/sharp-win32-ia32': 0.34.5
       '@img/sharp-win32-x64': 0.34.5
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:
@@ -20715,34 +19808,9 @@ snapshots:
     optionalDependencies:
       svelte: 5.49.0
 
-  svelte-persisted-store@0.12.0(svelte@5.49.0):
-    dependencies:
-      svelte: 5.49.0
-
   svelte-sonner@0.3.28(svelte@5.49.0):
     dependencies:
       svelte: 5.49.0
-
-  svelte-tweakpane-ui@1.6.0(svelte@5.49.0):
-    dependencies:
-      '@kitschpatrol/tweakpane-plugin-camerakit': 0.3.1-beta.3(tweakpane@4.0.5)
-      '@kitschpatrol/tweakpane-plugin-essentials': 0.2.2-beta.3(tweakpane@4.0.5)
-      '@kitschpatrol/tweakpane-plugin-file-import': 1.1.2-beta.2(tweakpane@4.0.5)
-      '@kitschpatrol/tweakpane-plugin-image': 2.0.1-beta.8(tweakpane@4.0.5)
-      '@kitschpatrol/tweakpane-plugin-inputs': 1.0.4-beta.5(tweakpane@4.0.5)
-      '@kitschpatrol/tweakpane-plugin-profiler': 0.4.2-beta.3(tweakpane@4.0.5)
-      '@kitschpatrol/tweakpane-plugin-rotation': 0.2.1-beta.2(tweakpane@4.0.5)
-      '@kitschpatrol/tweakpane-plugin-textarea': 2.0.1-beta.2(tweakpane@4.0.5)
-      '@kitschpatrol/tweakpane-plugin-waveform': 1.0.4-beta.3(tweakpane@4.0.5)
-      '@tweakpane/core': 2.0.5
-      esm-env: 1.2.2
-      fast-copy: 4.1.1
-      fast-equals: 6.0.4
-      nanoid: 6.0.1
-      svelte: 5.49.0
-      svelte-persisted-store: 0.12.0(svelte@5.49.0)
-      tweakpane: 4.0.5
-      tweakpane-plugin-color-plus: 0.6.1(tweakpane@4.0.5)
 
   svelte2tsx@0.7.61(svelte@5.49.0)(typescript@5.9.3):
     dependencies:
@@ -21006,14 +20074,7 @@ snapshots:
       '@turbo/windows-64': 2.11.7
       '@turbo/windows-arm64': 2.11.7
 
-  tweakpane-plugin-color-plus@0.6.1(tweakpane@4.0.5):
-    dependencies:
-      '@tweakpane/core': 2.0.5
-      tweakpane: 4.0.5
-
   tweakpane@3.1.10: {}
-
-  tweakpane@4.0.5: {}
 
   twemoji-parser@12.1.3: {}
 

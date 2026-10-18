@@ -8,6 +8,8 @@ import {
     FRENCH_ARMY,
     leadButton,
     leadDefence,
+    moveCorps,
+    openMapMenu,
     openSeat,
     pickUp,
     retreat,
@@ -19,6 +21,24 @@ import {
 } from './table.js'
 
 failOnPageErrors()
+
+/** Langeron's corps moves into locale 94 and St. Hilaire threatens it from locale 93. */
+async function threatenLangeronInLocale94(page: Page) {
+    await createGame(page)
+    await deployBothArmies(page)
+    await pickUp(page, 'langeron')
+    await tap(page, '[aria-label="Move to locale 94"]')
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await pickUp(page, 'st-hilaire')
+    await threatenWithoutTheGuard(page)
+}
+
+/** The threat on Langeron, met by one unit standing to defend. */
+async function standAgainstAThreat(page: Page) {
+    await threatenLangeronInLocale94(page)
+    await tap(page, 'svg [aria-label="Choose this unit"]')
+    await page.getByRole('button', { name: /^Defend/ }).click()
+}
 
 function morale(page: Page, side: 'Allied' | 'French') {
     return page.getByLabel(new RegExp(`^${side} morale \\d+$`))
@@ -158,19 +178,21 @@ test('a threat, a retreat before combat and the move into the vacated locale', a
     await expect(morale(page, 'Allied')).toHaveText('25')
 
     await page.getByRole('button', { name: 'Move into the locale' }).click()
+    await expect(page.getByText('The attack is over.')).toBeVisible()
+    await expect(
+        page.getByText(
+            /The Allies fall back to .+ before the attack, and the French move into locale 94\./
+        )
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'End turn' })).toBeHidden()
+    await page.getByRole('button', { name: 'Continue', exact: true }).click()
     await expect(page.getByText('Attack from locale 93 into locale 94')).toBeHidden()
     await expect(page.getByRole('button', { name: 'End turn' })).toBeVisible()
     await expect(morale(page, 'French')).toHaveText('23')
 })
 
 test('cavalry that rides in by road stays picked up, riding on', async ({ page }) => {
-    await createGame(page)
-    await deployBothArmies(page)
-    await pickUp(page, 'langeron')
-    await tap(page, '[aria-label="Move to locale 94"]')
-    await page.getByRole('button', { name: 'End turn' }).click()
-    await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
+    await threatenLangeronInLocale94(page)
     await page.getByRole('button', { name: 'Retreat before combat' }).click()
     await retreat(page)
 
@@ -208,15 +230,7 @@ test('cavalry that rides in by road stays picked up, riding on', async ({ page }
 })
 
 test('when the defence stands the attacker is asked only to press or feint', async ({ page }) => {
-    await createGame(page)
-    await deployBothArmies(page)
-    await pickUp(page, 'langeron')
-    await tap(page, '[aria-label="Move to locale 94"]')
-    await page.getByRole('button', { name: 'End turn' }).click()
-    await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
-    await tap(page, 'svg [aria-label="Choose this unit"]')
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await standAgainstAThreat(page)
 
     const press = page.getByRole('button', { name: 'Press the attack' })
     const callFeint = page.getByRole('button', { name: 'Call it a feint' })
@@ -257,15 +271,7 @@ test('when the defence stands the attacker is asked only to press or feint', asy
 })
 
 test('a commander stays behind when a defender steps up, unless he is sent', async ({ page }) => {
-    await createGame(page)
-    await deployBothArmies(page)
-    await pickUp(page, 'langeron')
-    await tap(page, '[aria-label="Move to locale 94"]')
-    await page.getByRole('button', { name: 'End turn' }).click()
-    await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
-    await tap(page, 'svg [aria-label="Choose this unit"]')
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await standAgainstAThreat(page)
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await page.getByRole('button', { name: 'Feint, staying in reserve' }).click()
 
@@ -291,15 +297,7 @@ test('a commander stays behind when a defender steps up, unless he is sent', asy
 test('the pieces that made the threat are still named after the page is reloaded', async ({
     page
 }) => {
-    await createGame(page)
-    await deployBothArmies(page)
-    await pickUp(page, 'langeron')
-    await tap(page, '[aria-label="Move to locale 94"]')
-    await page.getByRole('button', { name: 'End turn' }).click()
-    await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
-    await tap(page, 'svg [aria-label="Choose this unit"]')
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await standAgainstAThreat(page)
     const press = page.getByRole('button', { name: 'Press the attack' })
     await expect(press).toBeVisible()
 
@@ -502,6 +500,76 @@ test('a Guard Attack is announced in two steps, the Guard unit to show chosen fi
     await expect(page.getByText('Guard Attack from locale 93 into locale 94')).toBeVisible()
 })
 
+test('the heading of an attack carries the marks printed on the defending side of the approach', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await rearrange(page, (state) => moveCorps(state, 'langeron', { locale: 54 }))
+    await pickUp(page, 'lannes')
+    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await expect(page.getByText('Attack from locale 64 into Santon')).toBeVisible()
+    await expect(page.locator('.nt-battle [data-approach-marks]')).toHaveAttribute(
+        'data-approach-marks',
+        'AOI'
+    )
+})
+
+test('approach symbols under an arrow slide out from under it, and back when it goes', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await rearrange(page, (state) => moveCorps(state, 'langeron', { locale: 81 }))
+    await openMapMenu(page)
+    await page.getByRole('button', { name: 'Approach symbols' }).click()
+    const slid = page.locator('[data-symbol-tag][data-slid]')
+    await expect(page.locator('[data-symbol-tag]').first()).toBeVisible()
+    await expect(slid).toHaveCount(0)
+
+    await pickUp(page, 'vandamme')
+    await expect(slid).not.toHaveCount(0)
+    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await expect(page.getByText('Attack from locale 72 into locale 81')).toBeVisible()
+    await expect(slid).toHaveCount(2)
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(page.getByText('Attack from locale 72 into locale 81')).toBeHidden()
+    await tap(page, 'svg[data-board]')
+    await expect(
+        page.locator('svg [aria-label="Threaten an attack across this approach"]')
+    ).toHaveCount(0)
+    await expect(slid).toHaveCount(0)
+})
+
+test('with approach symbols off, the marks an arrow covers are shown beside it until it goes', async ({
+    page
+}) => {
+    await createGame(page)
+    await deployBothArmies(page)
+    await page.getByRole('button', { name: 'End turn' }).click()
+    await rearrange(page, (state) => moveCorps(state, 'langeron', { locale: 81 }))
+    const tags = page.locator('[data-symbol-tag]')
+    await expect(page.locator('[data-commander="vandamme"]').first()).toBeVisible()
+    await expect(tags).toHaveCount(0)
+
+    await pickUp(page, 'vandamme')
+    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await expect(page.getByText('Attack from locale 72 into locale 81')).toBeVisible()
+    await expect(tags).toHaveCount(2)
+    await expect(page.locator('[data-symbol-tag]:not([data-slid])')).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(page.getByText('Attack from locale 72 into locale 81')).toBeHidden()
+    await tap(page, 'svg[data-board]')
+    await expect(
+        page.locator('svg [aria-label="Threaten an attack across this approach"]')
+    ).toHaveCount(0)
+    await expect(tags).toHaveCount(0)
+})
+
 test('a unit chosen on its own is offered to the other commanders standing with it, beside the command', async ({
     page
 }) => {
@@ -511,13 +579,7 @@ test('a unit chosen on its own is offered to the other commanders standing with 
     await rearrange(page, (state) => {
         const murat = state.commanders.find((commander) => commander.id === 'murat')
         if (!murat?.position) throw new Error('Expected Murat on the map')
-        const together = { ...murat.position }
-        for (const unit of state.units.filter((unit) => unit.commanderId === 'vandamme')) {
-            unit.position = { ...together }
-        }
-        for (const commander of state.commanders.filter((entry) => entry.id === 'vandamme')) {
-            commander.position = { ...together }
-        }
+        moveCorps(state, 'vandamme', murat.position)
     })
     const attach = page.getByRole('button', { name: 'Attach to Vandamme' })
     const strip = page.getByRole('group', { name: 'Murat’s corps' })
@@ -540,15 +602,7 @@ test('a stack closed up for want of room spreads out when tapped, and when picke
 }) => {
     await createGame(page)
     await deployBothArmies(page)
-    await rearrange(page, (state) => {
-        const crowded = { locale: 110 }
-        for (const unit of state.units.filter((unit) => unit.commanderId === 'langeron')) {
-            unit.position = crowded
-        }
-        for (const commander of state.commanders.filter((entry) => entry.id === 'langeron')) {
-            commander.position = crowded
-        }
-    })
+    await rearrange(page, (state) => moveCorps(state, 'langeron', { locale: 110 }))
     const stack = page.locator('[data-commander="langeron"]')
     // Measured on the board, not on screen: picking a corps up can move and zoom the view, and the board may be turned.
     const extent = () =>
@@ -578,13 +632,7 @@ test('a stack closed up for want of room spreads out when tapped, and when picke
 test('the attacker sees the defenders named at the end of their stack nearest the approach, whichever they are', async ({
     page
 }) => {
-    await createGame(page)
-    await deployBothArmies(page)
-    await pickUp(page, 'langeron')
-    await tap(page, '[aria-label="Move to locale 94"]')
-    await page.getByRole('button', { name: 'End turn' }).click()
-    await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
+    await threatenLangeronInLocale94(page)
     const choices = page.locator('svg [aria-label="Choose this unit"]')
     await choices.first().dispatchEvent('click')
     await choices.last().dispatchEvent('click')
@@ -618,13 +666,7 @@ test('the attacker sees the defenders named at the end of their stack nearest th
 test('units named in a defence stay marked for the attacker until the turn ends', async ({
     page
 }) => {
-    await createGame(page)
-    await deployBothArmies(page)
-    await pickUp(page, 'langeron')
-    await tap(page, '[aria-label="Move to locale 94"]')
-    await page.getByRole('button', { name: 'End turn' }).click()
-    await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
+    await threatenLangeronInLocale94(page)
     const choices = page.locator('svg [aria-label="Choose this unit"]')
     await choices.nth(0).dispatchEvent('click')
     await choices.nth(1).dispatchEvent('click')
@@ -636,6 +678,8 @@ test('units named in a defence stay marked for the attacker until the turn ends'
         .first()
         .click()
     await page.getByRole('button', { name: 'Advance to the approach' }).click()
+    await expect(page.getByText('The French call the attack off as a feint.')).toBeVisible()
+    await page.getByRole('button', { name: 'Continue', exact: true }).click()
     const endTurn = page.getByRole('button', { name: 'End turn' })
     await expect(endTurn).toBeVisible()
     await expect(page.locator('.nt-masthead-turn')).toHaveText('French turn')
@@ -676,15 +720,7 @@ test('units named in a defence stay marked for the attacker until the turn ends'
 test('the results of an attack are set in a rule of their own in the action area', async ({
     page
 }) => {
-    await createGame(page)
-    await deployBothArmies(page)
-    await pickUp(page, 'langeron')
-    await tap(page, '[aria-label="Move to locale 94"]')
-    await page.getByRole('button', { name: 'End turn' }).click()
-    await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
-    await tap(page, 'svg [aria-label="Choose this unit"]')
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await standAgainstAThreat(page)
     const result = page.locator('.nt-result-rule')
     await expect(result).toHaveCount(0)
     await expect(page.locator('.nt-loss-rule')).toHaveCount(0)
@@ -765,7 +801,7 @@ test('the results of an attack are set in a rule of their own in the action area
     await expect(losses).toBeHidden()
 })
 
-test('an attack already under way when the table opens ends on the whole board, not in a corner of it', async ({
+test('an attack leaves the view where it was, whether played or already under way when the table opens', async ({
     page
 }) => {
     const acrossTheMapArea = async () => {
@@ -773,28 +809,23 @@ test('an attack already under way when the table opens ends on the whole board, 
         const host = await page.locator('.nt-board-host').boundingBox()
         return board && host ? Math.round(board.width) <= Math.round(host.width) : undefined
     }
-    await createGame(page)
-    await deployBothArmies(page)
-    await pickUp(page, 'langeron')
-    await tap(page, '[aria-label="Move to locale 94"]')
-    await page.getByRole('button', { name: 'End turn' }).click()
-    await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
-    await tap(page, 'svg [aria-label="Choose this unit"]')
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await standAgainstAThreat(page)
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await page.getByRole('button', { name: 'Feint, staying in reserve' }).click()
     const advance = page.getByRole('button', { name: 'Advance to the approach' })
     await expect(advance).toBeVisible()
     await expect(page.locator('.nt-result-rule')).toHaveText('Feint')
+    await page.waitForTimeout(800)
+    expect(await acrossTheMapArea()).toBe(true)
 
     await page.reload()
     await page.getByRole('button', { name: 'Games' }).click()
     await page.getByRole('button', { name: 'Austerlitz' }).click()
-    await expect.poll(acrossTheMapArea).toBe(false)
+    await expect(advance).toBeVisible()
+    await page.waitForTimeout(800)
+    expect(await acrossTheMapArea()).toBe(true)
     await advance.click()
     await expect(page.locator('.nt-masthead-turn')).toHaveText('French turn')
-    await expect.poll(acrossTheMapArea).toBe(true)
     await page.waitForTimeout(800)
     expect(await acrossTheMapArea()).toBe(true)
 })
@@ -859,13 +890,7 @@ test('the fixed battery is marked for both players and carries no eye of its own
 test('pressing an attack shows nothing and can be taken back until the defender has named the leading units', async ({
     page
 }) => {
-    await createGame(page)
-    await deployBothArmies(page)
-    await pickUp(page, 'langeron')
-    await tap(page, '[aria-label="Move to locale 94"]')
-    await page.getByRole('button', { name: 'End turn' }).click()
-    await pickUp(page, 'st-hilaire')
-    await threatenWithoutTheGuard(page)
+    await threatenLangeronInLocale94(page)
     const turn = page.locator('.nt-masthead-turn')
     const choices = page.locator('svg [aria-label="Choose this unit"]')
     await choices.first().dispatchEvent('click')
@@ -904,4 +929,77 @@ test('pressing an attack shows nothing and can be taken back until the defender 
     await expect(page.getByRole('button', { name: /^Attack/ })).toBeVisible()
     await expect(shown).toHaveCount(1)
     await expect(undo).toBeHidden()
+})
+
+test('the battle panel folds to what cannot be done on the map, and stays folded after a reload', async ({
+    page
+}) => {
+    await standAgainstAThreat(page)
+    await page.getByRole('button', { name: 'Press the attack' }).click()
+    await leadDefence(page)
+
+    const panelUnits = page.locator('.nt-turn button[aria-label="Choose this unit"]')
+    const fold = page.getByRole('button', { name: 'Fold', exact: true })
+    const unfold = page.getByRole('button', { name: 'Unfold', exact: true })
+    const attack = page.getByRole('button', { name: /^Attack/ })
+    await expect(panelUnits).not.toHaveCount(0)
+    const unitsWhenOpen = await panelUnits.count()
+    await expect(page.locator('.nt-result-rule')).toHaveCount(1)
+
+    await fold.click()
+    await expect(unfold).toHaveAttribute('aria-expanded', 'false')
+    await expect(panelUnits).toHaveCount(0)
+    await expect(page.getByText('Attacking', { exact: true })).toHaveCount(0)
+    await expect(page.getByText('Command', { exact: true })).toHaveCount(0)
+    await expect(page.locator('.nt-result-rule')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Initial result/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Corps Move' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Wide', exact: true })).toBeVisible()
+    await expect(attack).toHaveText('Attack with no leading unit')
+
+    await tap(page, 'svg [aria-label="Choose this unit"]')
+    await expect(attack).toHaveText('Attack')
+    await expect
+        .poll(() => page.evaluate(() => JSON.stringify({ ...localStorage })))
+        .toContain('actionPanelFolded')
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Games' }).click()
+    await page.getByRole('button', { name: 'Austerlitz' }).click()
+    await expect(unfold).toBeVisible()
+    await expect(panelUnits).toHaveCount(0)
+
+    await unfold.click()
+    await expect(fold).toHaveAttribute('aria-expanded', 'true')
+    await expect(panelUnits).toHaveCount(unitsWhenOpen)
+})
+
+test('a retreat and an advance show open while the battle panel is folded', async ({ page }) => {
+    await threatenLangeronInLocale94(page)
+    const foldControl = page.getByRole('button', { name: /^(Fold|Unfold)$/ })
+    await page.getByRole('button', { name: 'Fold', exact: true }).click()
+    await page.getByRole('button', { name: 'Retreat before combat' }).click()
+    const takeLosses = page.getByRole('button', { name: 'Take these losses' })
+    await expect(takeLosses.or(page.locator('.nt-retreat-rows'))).toBeVisible()
+    await expect(foldControl).toHaveCount(0)
+    if (await takeLosses.isVisible()) {
+        await takeLosses.click()
+    }
+    await expect(page.locator('.nt-retreat-rows')).toBeVisible()
+    await expect(foldControl).toHaveCount(0)
+
+    const retreatBeforeCombat = page.getByRole('button', { name: 'Retreat before combat' })
+    while (!(await retreatBeforeCombat.isVisible())) {
+        await page.getByRole('button', { name: 'Undo' }).click()
+    }
+    await expect(page.getByRole('button', { name: 'Unfold', exact: true })).toBeVisible()
+    await tap(page, 'svg [aria-label="Choose this unit"]')
+    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Call it a feint' }).click()
+    await expect(page.locator('.nt-turn button[aria-label="Choose this unit"]')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Feint, staying in reserve' }).click()
+
+    await expect(page.getByRole('button', { name: 'Advance to the approach' })).toBeVisible()
+    await expect(page.locator('[data-commander-chip="langeron"]')).toBeVisible()
+    await expect(foldControl).toHaveCount(0)
 })

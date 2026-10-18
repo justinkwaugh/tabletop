@@ -22,6 +22,7 @@ enum GameServiceError {
     DuplicatePlayer = 'DuplicatePlayerError',
     UnauthorizedAccess = 'UnauthorizedAccessError',
     DisallowedUndo = 'DisallowedUndoError',
+    DisallowedPlayerVote = 'DisallowedPlayerVoteError',
     DisallowedAction = 'DisallowedActionError',
     RacedAction = 'RacedActionError'
 }
@@ -250,6 +251,16 @@ export class DisallowedUndoError extends BaseError {
             name: GameServiceError.DisallowedUndo,
             message: `Action ${actionId} cannot be undone in game ${gameId} because ${reason}`,
             metadata: { gameId: gameId, actionId: actionId, reason: reason }
+        })
+    }
+}
+
+export class DisallowedPlayerVoteError extends BaseError {
+    constructor({ gameId, reason }: { gameId: string; reason: string }) {
+        super({
+            name: GameServiceError.DisallowedPlayerVote,
+            message: `Player vote not allowed in game ${gameId} because ${reason}`,
+            metadata: { gameId, reason }
         })
     }
 }

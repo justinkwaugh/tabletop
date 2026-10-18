@@ -267,7 +267,7 @@ registerEffect(
             if (offerReroll(ctx.state, ctx.playerId, ctx.playerId, roll)) {
                 return { summary: `rolled ${shields} shields; Jinx may reroll them`, rolled: true }
             }
-            return { summary: settleRoll(ctx.state, ctx.playerId, roll), rolled: true }
+            return { summary: settleRoll(ctx.state, ctx.playerId, roll).summary, rolled: true }
         }
     }
 )

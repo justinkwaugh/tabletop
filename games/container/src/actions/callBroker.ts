@@ -13,7 +13,7 @@ export const CallBroker = Type.Evaluate(
             playerId: Type.String(),
             brokerIndex: Type.Optional(Type.Number()),
             offerType: Type.Optional(Type.Union([Type.Literal('money'), Type.Literal('containers')])),
-            bidAmount: Type.Optional(Type.Number()),
+            bidAmount: Type.Optional(Type.Integer({ minimum: 1 })),
             factoryIndices: Type.Optional(Type.Array(Type.Number())),
             harborIndices: Type.Optional(Type.Array(Type.Number()))
         })

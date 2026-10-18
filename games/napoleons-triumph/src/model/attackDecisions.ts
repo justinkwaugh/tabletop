@@ -10,7 +10,7 @@ import {
 import { currentAttack, defensePosition } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { faceOf, samePosition } from './pieces.js'
-import { legal } from './legality.js'
+import { distinct, legal } from './legality.js'
 
 export function nextDecision(
     state: HydratedNapoleonsTriumphGameState
@@ -123,6 +123,7 @@ export function advance(
     const attack = currentAttack(state)
     const decision = takeDecision(state, DecisionKind.Advance, playerId)
     legal(unitIds.length > 0, 'At least one unit must advance to the approach')
+    legal(distinct(unitIds) && distinct(commanderIds), 'A piece advances once')
     legal(
         unitIds.every((id) => decision.unitIds.includes(id)),
         'Only defending pieces advance'

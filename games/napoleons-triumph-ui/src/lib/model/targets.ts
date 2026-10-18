@@ -16,7 +16,9 @@ import {
     type Position,
     type RoadWake
 } from '@tabletop/napoleons-triumph'
+import type { Point } from '@tabletop/common'
 import { firstOfEach } from '$lib/utils/ids.js'
+import type { WaySignArrow } from '$lib/utils/waySign.js'
 import type { Way, WayStep } from './ways.js'
 
 export enum TargetKind {
@@ -65,6 +67,13 @@ export interface WayTarget {
     kind: TargetKind.Way
     position: ReservePosition
     step: WayStep
+}
+
+/** The sign over the pieces that offers a step of the march, where it stands and its arrow. */
+export interface WaySign {
+    target: WayTarget
+    at: Point
+    arrow: WaySignArrow
 }
 
 export type MarchTarget = ReserveTarget | ApproachTarget

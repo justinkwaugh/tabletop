@@ -11,6 +11,8 @@
     import ApproachPlates from './board/ApproachPlates.svelte'
     import ApproachBars from './board/ApproachBars.svelte'
     import ApproachSymbols from './board/ApproachSymbols.svelte'
+    import CapacityTags from './board/CapacityTags.svelte'
+    import GunTags from './board/GunTags.svelte'
     import BattleMarker from './board/BattleMarker.svelte'
     import TrackMarkers from './board/TrackMarkers.svelte'
     import FlagLayer from './board/FlagLayer.svelte'
@@ -83,8 +85,10 @@
             <TargetLayer />
             <g data-in-picture><PiecesLayer /></g>
             <g data-in-picture><ApproachPlates /></g>
+            <g data-in-picture><GunTags /></g>
             <MovementTrails />
             <ApproachSymbols />
+            <CapacityTags />
             <g data-in-picture><FlagLayer /></g>
             <TargetLayer overThePieces />
             <BattleMarker />

@@ -31,13 +31,25 @@ import {
     Tournament,
     TournamentDetail,
     type CorrectTournamentResultRequest,
+    type SubstituteTournamentEntrantRequest,
+    type WithdrawTournamentEntrantRequest,
     TournamentList,
+    League,
+    LeagueAllocationPreview,
+    LeagueList,
+    LeagueSeasonDetail,
+    LeagueState,
+    type LeagueDraft,
+    type LeagueSignUpOperation,
+    type LeagueEntrantOperation,
+    type LeagueSignUpPolicy,
     TournamentTitles,
     TournamentSchedule,
     type CommitTournamentScheduleRequest,
     type TournamentScheduleRequest,
     type TournamentDraft,
-    type TournamentListQuery
+    type TournamentListQuery,
+    UndoVotePreview
 } from '@tabletop/common'
 import type {
     AblyTokenResponse,
@@ -54,6 +66,7 @@ import type {
     HasActiveGamesResponse,
     TokenResponse,
     UndoActionResponse,
+    UndoVotePreviewResponse,
     UsernameSearchResponse,
     UserResponse,
     UsersResponse
@@ -291,6 +304,19 @@ export class TabletopApi {
         return response.payload.user
     }
 
+    async updateUserTimeZone(
+        timeZone: string,
+        { onlyIfUnset = false }: { onlyIfUnset?: boolean } = {}
+    ): Promise<User> {
+        const response = await this.wretch
+            .post({ timeZone, onlyIfUnset }, '/user/updateTimeZone')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
     async unlinkExternalAccount(externalId: string): Promise<User> {
         const response = await this.wretch
             .post({ externalId }, '/user/unlinkExternalAccount')
@@ -401,26 +427,42 @@ export class TabletopApi {
         const params = new URLSearchParams({ scope: query.scope })
         if (query.after) params.set('after', query.after)
         if (query.titleId) params.set('titleId', query.titleId)
-        return this.requestTournament(`/tournaments/?${params}`, TournamentList)
+        return this.requestCompetition(`/tournaments/?${params}`, TournamentList)
     }
 
     listTournamentTitles() {
-        return this.requestTournament('/tournaments/titles', TournamentTitles)
+        return this.requestCompetition('/tournaments/titles', TournamentTitles)
     }
 
     getTournament(id: string) {
-        return this.requestTournament(`/tournaments/${encodeURIComponent(id)}`, TournamentDetail)
+        return this.requestCompetition(`/tournaments/${encodeURIComponent(id)}`, TournamentDetail)
     }
     correctTournamentResult(id: string, request: CorrectTournamentResultRequest) {
-        return this.requestTournament(
+        return this.requestCompetition(
             `/tournaments/${encodeURIComponent(id)}/results/correct`,
             Tournament,
             'POST',
             request
         )
     }
+    withdrawTournamentEntrant(id: string, request: WithdrawTournamentEntrantRequest) {
+        return this.requestCompetition(
+            `/tournaments/${encodeURIComponent(id)}/entrants/withdraw`,
+            Tournament,
+            'POST',
+            request
+        )
+    }
+    substituteTournamentEntrant(id: string, request: SubstituteTournamentEntrantRequest) {
+        return this.requestCompetition(
+            `/tournaments/${encodeURIComponent(id)}/entrants/substitute`,
+            Tournament,
+            'POST',
+            request
+        )
+    }
     rebuildTournamentStandings(id: string, revision: number) {
-        return this.requestTournament(
+        return this.requestCompetition(
             `/tournaments/${encodeURIComponent(id)}/standings/rebuild`,
             Tournament,
             'POST',
@@ -428,13 +470,13 @@ export class TabletopApi {
         )
     }
     getTournamentSchedule(id: string) {
-        return this.requestTournament(
+        return this.requestCompetition(
             `/tournaments/${encodeURIComponent(id)}/schedule`,
             TournamentSchedule
         )
     }
     previewTournamentSchedule(id: string, request: TournamentScheduleRequest) {
-        return this.requestTournament(
+        return this.requestCompetition(
             `/tournaments/${encodeURIComponent(id)}/schedule/preview`,
             TournamentSchedule,
             'POST',
@@ -442,7 +484,7 @@ export class TabletopApi {
         )
     }
     commitTournamentSchedule(id: string, request: CommitTournamentScheduleRequest) {
-        return this.requestTournament(
+        return this.requestCompetition(
             `/tournaments/${encodeURIComponent(id)}/schedule`,
             TournamentSchedule,
             'POST',
@@ -450,10 +492,10 @@ export class TabletopApi {
         )
     }
     createTournament(id: string, draft: TournamentDraft) {
-        return this.requestTournament('/tournaments/', Tournament, 'POST', { id, draft })
+        return this.requestCompetition('/tournaments/', Tournament, 'POST', { id, draft })
     }
     updateTournament(tournament: Tournament, draft: TournamentDraft) {
-        return this.requestTournament(
+        return this.requestCompetition(
             `/tournaments/${encodeURIComponent(tournament.id)}`,
             Tournament,
             'PUT',
@@ -467,7 +509,7 @@ export class TabletopApi {
         id: string,
         operation: 'publish' | 'cancel' | 'lock' | 'leave' | 'pause' | 'resume' | 'retry'
     ) {
-        return this.requestTournament(
+        return this.requestCompetition(
             `/tournaments/${encodeURIComponent(id)}/${operation}`,
             Tournament,
             'POST',
@@ -475,9 +517,68 @@ export class TabletopApi {
         )
     }
     joinTournament(id: string) {
-        return this.requestTournament(
+        return this.requestCompetition(
             `/tournaments/${encodeURIComponent(id)}/join`,
             Tournament,
+            'POST',
+            {}
+        )
+    }
+    listLeagues() {
+        return this.requestCompetition('/leagues/', LeagueList)
+    }
+    getLeague(id: string, season?: number) {
+        const path = `/leagues/${encodeURIComponent(id)}`
+        return this.requestCompetition(
+            season === undefined ? path : `${path}/seasons/${season}`,
+            LeagueSeasonDetail
+        )
+    }
+    previewLeagueAllocation(id: string) {
+        return this.requestCompetition(
+            `/leagues/${encodeURIComponent(id)}/preview`,
+            LeagueAllocationPreview
+        )
+    }
+    createLeague(id: string, draft: LeagueDraft) {
+        return this.requestCompetition('/leagues/', League, 'POST', { id, draft })
+    }
+    updateLeague(league: League, draft: LeagueDraft) {
+        return this.requestCompetition(
+            `/leagues/${encodeURIComponent(league.id)}/update`,
+            League,
+            'POST',
+            { draft, revision: league.revision }
+        )
+    }
+    scheduleLeagueSignUp(id: string, operation: LeagueSignUpOperation, closesAt: number) {
+        return this.requestCompetition(
+            `/leagues/${encodeURIComponent(id)}/${operation}`,
+            LeagueState,
+            'POST',
+            { closesAt }
+        )
+    }
+    updateLeagueSignUpPolicy(id: string, policy: LeagueSignUpPolicy) {
+        return this.requestCompetition(
+            `/leagues/${encodeURIComponent(id)}/signUp/policy`,
+            League,
+            'POST',
+            policy
+        )
+    }
+    cancelLeagueSeason(id: string) {
+        return this.requestCompetition(
+            `/leagues/${encodeURIComponent(id)}/seasons/cancel`,
+            LeagueState,
+            'POST',
+            {}
+        )
+    }
+    actOnLeague(id: string, operation: LeagueEntrantOperation) {
+        return this.requestCompetition(
+            `/leagues/${encodeURIComponent(id)}/${operation}`,
+            LeagueState,
             'POST',
             {}
         )
@@ -583,13 +684,7 @@ export class TabletopApi {
     /** Game Specific Endpoints */
 
     async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ game, options }, `/game/${game.typeId}/create`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -599,13 +694,7 @@ export class TabletopApi {
     }
 
     async forkGame(game: Partial<Game>, actionIndex: number, name: string): Promise<Game> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id, actionIndex, name }, `/game/${game.typeId}/fork`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -615,13 +704,7 @@ export class TabletopApi {
     }
 
     async startGame(game: Game): Promise<Game> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id }, `/game/${game.typeId}/start`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -634,13 +717,7 @@ export class TabletopApi {
         game: Game,
         action: GameAction
     ): Promise<{ actions: GameAction[]; game: Game; missingActions?: GameAction[] }> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id, action }, `/game/${game.typeId}/action/${action.type}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -671,13 +748,7 @@ export class TabletopApi {
         redoneActions?: GameAction[]
         perspective?: Visibility.Perspective
     }> {
-        const logicVersion = this.getGameLogicVersion(game.typeId!)
-        const uiVersion = this.getGameUiVersion(game.typeId!)
-        const response = await this.wretch
-            .headers({
-                'X-TABLETOP-GAME-LOGIC-VERSION': logicVersion,
-                'X-TABLETOP-GAME-UI-VERSION': uiVersion
-            })
+        const response = await this.titleRequest(game.typeId!)
             .post({ gameId: game.id, actionId }, `/game/${game.typeId}/undo`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
@@ -719,6 +790,55 @@ export class TabletopApi {
     }
 
     /** End of Game Specific Endpoints */
+
+    async previewUndoVote(game: Game, actionIndex: number): Promise<UndoVotePreview> {
+        const response = await this.titleRequest(game.typeId)
+            .post({ gameId: game.id, actionIndex }, `/game/${game.typeId}/vote/undo/preview`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UndoVotePreviewResponse>()
+
+        const preview = Value.Convert(UndoVotePreview, response.payload.preview)
+        Value.Assert(UndoVotePreview, preview)
+        return preview
+    }
+
+    async openUndoVote(game: Game, actionIndex: number, targetActionId: string): Promise<Game> {
+        return this.postVote(game, 'undo/open', { actionIndex, targetActionId })
+    }
+
+    async approveVote(game: Game, voteId: string): Promise<Game> {
+        return this.postVote(game, 'approve', { voteId })
+    }
+
+    async declineVote(game: Game, voteId: string): Promise<Game> {
+        return this.postVote(game, 'decline', { voteId })
+    }
+
+    async withdrawVote(game: Game, voteId: string): Promise<Game> {
+        return this.postVote(game, 'withdraw', { voteId })
+    }
+
+    private async postVote(
+        game: Game,
+        route: VoteRoute,
+        body: { actionIndex: number; targetActionId: string } | { voteId: string }
+    ): Promise<Game> {
+        const response = await this.titleRequest(game.typeId)
+            .post({ gameId: game.id, ...body }, `/game/${game.typeId}/vote/${route}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameResponse>()
+
+        return this.validateGame(response.payload.game)
+    }
+
+    private titleRequest(typeId: string) {
+        return this.wretch.headers({
+            'X-TABLETOP-GAME-LOGIC-VERSION': this.getGameLogicVersion(typeId),
+            'X-TABLETOP-GAME-UI-VERSION': this.getGameUiVersion(typeId)
+        })
+    }
 
     async checkSync(
         gameId: string,
@@ -882,7 +1002,7 @@ export class TabletopApi {
         this.gameVersionProvider = provider
     }
 
-    private async requestTournament<T extends TSchema>(
+    private async requestCompetition<T extends TSchema>(
         path: string,
         schema: T,
         method = 'GET',
@@ -949,8 +1069,7 @@ export class TabletopApi {
             })
             if (apiError.name === 'GameVersionMismatch') {
                 const metadata = apiError.metadata as
-                    | { requestedVersion?: string; serverVersion?: string }
-                    | undefined
+                    { requestedVersion?: string; serverVersion?: string } | undefined
                 const requestedVersion = metadata?.requestedVersion
                 const serverVersion = metadata?.serverVersion
                 if (requestedVersion && serverVersion) {
@@ -995,6 +1114,8 @@ export class TabletopApi {
         })
     }
 }
+
+type VoteRoute = 'undo/open' | 'approve' | 'decline' | 'withdraw'
 
 export type TabletopApiPublic = Pick<TabletopApi, keyof TabletopApi>
 

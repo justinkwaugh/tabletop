@@ -2,6 +2,7 @@ import {
     assert,
     assertExists,
     GameResult,
+    tournamentEntrantIndex,
     type Game,
     type Tournament,
     type TournamentScore
@@ -24,7 +25,10 @@ export function withTournamentCredit(
     }
 }
 
-export function compareTournamentScores(a: TournamentScore, b: TournamentScore): number {
+export function compareTournamentScores(
+    a: Pick<TournamentScore, 'score' | 'tiebreak'>,
+    b: Pick<TournamentScore, 'score' | 'tiebreak'>
+): number {
     return b.score - a.score || (b.tiebreak ?? 0) - (a.tiebreak ?? 0)
 }
 
@@ -58,8 +62,8 @@ export function applyTournamentGameScore(
     }
     const points = scale / game.winningPlayerIds.length
     for (const player of game.players) {
-        const row =
-            standings[tournament.entrants.findIndex((entrant) => entrant.userId === player.userId)]
+        assertExists(player.userId, 'Tournament seat has no account')
+        const row = standings[tournamentEntrantIndex(tournament, player.userId)]
         assertExists(row, 'Game player is not a tournament entrant')
         row.completed += direction
         if (game.winningPlayerIds.includes(player.id)) {
@@ -76,12 +80,15 @@ export function finalizeTournament(tournament: Tournament, now: number): void {
     const total =
         (tournament.entrants.length * tournament.format.stages[0].gamesPerEntrant) /
         tournament.rules.tableSize
-    if (stage?.dispatch?.finished.length !== total) return
-    assertExists(stage.standings, 'Finished tournament has no standings')
+    const dispatch = stage?.dispatch
+    if (!dispatch || dispatch.finished.length + (dispatch.voided?.length ?? 0) !== total) return
+    // Every Table can be void, so a finished event may have no scored Game. Void Tables also
+    // leave Entrants with different counts, so only the total can be checked here.
+    const standings = stage.standings ?? createTournamentStandings(tournament)
+    stage.standings = standings
     assert(
-        stage.standings.every(
-            (row) => row.completed === tournament.format.stages[0].gamesPerEntrant
-        ),
+        standings.reduce((sum, row) => sum + row.completed, 0) ===
+            dispatch.finished.length * tournament.rules.tableSize,
         'Standings do not account for every game'
     )
     tournament.status = 'finished'

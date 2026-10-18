@@ -5,8 +5,9 @@
         isEnabled as isDiscordSigninEnabled
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext } from '@tabletop/frontend-components'
+    import ReminderHoursEditor from '$lib/components/ReminderHoursEditor.svelte'
 
-    let { authorizationService, api } = getAppContext()
+    let { authorizationService } = getAppContext()
 
     let user = $derived.by(() => {
         return authorizationService.getSessionUser()
@@ -23,56 +24,61 @@
     })
 </script>
 
-<div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
-    <Card class="bg-gray-300 p-4 sm:p-6">
-        <div class="flex flex-col space-y-6">
+<div class="flex min-h-[calc(100dvh-70px)] flex-col items-center justify-center gap-6 px-2 py-6">
+    <Card size="md" class="bg-gray-300 p-4 sm:p-6">
+        <div class="flex flex-col gap-3">
             <h3 class="text-xl font-medium text-gray-900 dark:text-white">Web Notifications</h3>
-            <div class="text-white-600 text-sm dark:text-gray-300 mb-4">
-                You can receive notifications from Board Together directly in your web browser. <br
-                /><br />Just accept the permission prompt that your browser shows you.
-            </div>
+            <p class="text-sm text-gray-700 dark:text-gray-300">
+                You can receive notifications from Board Together directly in your web browser. Just
+                accept the permission prompt your browser shows you.
+            </p>
+        </div>
 
-            {#if isDiscordSigninEnabled}
-                <Hr class="my-4" />
+        {#if isDiscordSigninEnabled}
+            <Hr class="my-6" />
+            <div class="flex flex-col gap-3">
                 <h3 class="text-xl font-medium text-gray-900 dark:text-white">
                     Discord Notifications
                 </h3>
-                <div class="text-white-600 text-sm dark:text-gray-300 mb-4">
+                <p class="text-sm text-gray-700 dark:text-gray-300">
                     Board Together has a Discord bot that can send you direct notification messages.
                     No server webhook configuration is needed, and the messages will come to you
                     regardless of what server you are in.
-                </div>
+                </p>
                 {#if linkedAccountIdsByType.get(ExternalAuthService.Discord)}
-                    <div class="text-white-600 text-sm dark:text-gray-300 mt-4">
-                        Click the button to add the bot to your Discord account. It will start
-                        sending you notifications right away.
-                    </div>
-                    <div class="flex flex-row justify-center">
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Add the bot to your Discord account and it will start sending you
+                        notifications right away.
+                    </p>
+                    <div class="flex justify-center py-1">
                         <DiscordSignIn mode="bot" />
                     </div>
-                    <div class="mt-2text-white-600 text-sm dark:text-gray-300">
-                        Bot Commands:
-                        <div class="dark:bg-gray-700 p-4 mt-2 rounded-sm">
-                            <ul>
-                                <li>
-                                    <span class="tracking-wider">/notify</span> - Enable notifications
-                                </li>
-                                <li>
-                                    <span class="tracking-wider">/stop</span> - Disable notifications
-                                </li>
-                            </ul>
-                        </div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300">
+                        Bot commands:
+                        <ul class="mt-2 rounded-sm bg-gray-200 p-3 dark:bg-gray-700">
+                            <li>
+                                <span class="tracking-wider">/notify</span> - Enable notifications
+                            </li>
+                            <li>
+                                <span class="tracking-wider">/stop</span> - Disable notifications
+                            </li>
+                        </ul>
                     </div>
                 {:else}
-                    <div class="text-white-600 text-sm dark:text-gray-300 mt-4">
-                        First you need to link your Discord account. Click the "link" button below
-                        to do so.
-                    </div>
-                    <div class="flex flex-row justify-center">
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        First link your Discord account.
+                    </p>
+                    <div class="flex justify-center py-1">
                         <DiscordSignIn mode="link" />
                     </div>
                 {/if}
-            {/if}
+            </div>
+        {/if}
+    </Card>
+    <Card size="md" class="bg-gray-300 p-4 sm:p-6">
+        <div class="flex flex-col gap-3">
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Reminder Hours</h3>
+            <ReminderHoursEditor />
         </div>
     </Card>
 </div>

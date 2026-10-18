@@ -79,7 +79,8 @@ export const NapoleonsTriumphGameState = Type.Object({
     units: Type.Array(Unit),
     commanders: Type.Array(Commander),
     frenchReinforcementsEntered: Type.Boolean(),
-    artilleryFire: Type.Record(Type.String(), Type.Integer()),
+    /** Games begun before the bar was kept per army recorded artillery fire here, for both armies. */
+    artilleryFire: Type.Optional(Type.Record(Type.String(), Type.Integer())),
     limits: TurnLimits,
     attack: Type.Optional(Attack),
     roadMarch: Type.Optional(RoadMarch),
@@ -122,7 +123,7 @@ export class HydratedNapoleonsTriumphGameState
     declare units: ProjectedUnit[]
     declare commanders: Commander[]
     declare frenchReinforcementsEntered: boolean
-    declare artilleryFire: Record<string, number>
+    declare artilleryFire?: Record<string, number>
     declare limits: TurnLimits
     declare attack?: NapoleonsTriumphProjectedState['attack']
     declare roadMarch?: RoadMarch

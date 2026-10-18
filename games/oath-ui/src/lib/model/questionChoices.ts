@@ -43,6 +43,14 @@ export function stackOrderAnswer(
         : { kind: PowerQuestionKind.OrderDrawnCards, order }
 }
 
+// R-7.6.4 — after a swap, the advisers discarded down to the limit, in the order they go down.
+export function adviserDiscardsAnswer(discardedAdviserCardIds: readonly string[]): QuestionAnswer {
+    return {
+        kind: PowerQuestionKind.DiscardAdvisers,
+        discardedAdviserCardIds: [...discardedAdviserCardIds]
+    }
+}
+
 // R-5.1.4.II — at the adviser limit a Vision goes facedown only over a discarded adviser.
 export function advisersToDiscardForVision(
     state: HydratedOathGameState,

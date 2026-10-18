@@ -40,6 +40,7 @@ export * from './network/responseTypes.js'
 export * from './network/errors.js'
 export * from './network/versionChecker.js'
 export * from './model/gameSession.svelte.js'
+export * from './model/viewedHistoryPosition.js'
 export * from './model/gameContext.svelte.js'
 export * from './model/gameReconciliation.js'
 export type {

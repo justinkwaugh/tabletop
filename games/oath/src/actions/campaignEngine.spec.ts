@@ -290,13 +290,14 @@ describe('R-5.5.2.a — a Citizen joins the defence, through the engine', () => 
     })
 })
 
-describe('R-2.11-H1 — from the turn-flow revision, a title moved inside a Campaign is its own System Action there', () => {
+describe('R-2.11-H1 — from the turn-flow revision to revision 11, a title moved inside a Campaign is its own System Action there (R-X.4)', () => {
     const VOW_OF_UNION = 'denizen.beast.vow-of-union'
     const processed = (actions: readonly GameAction[]) => actions.map((a) => `${a.type}/${a.source}`)
     const transferIn = (actions: readonly GameAction[]) => actions.find((a) => a.type === ActionType.TransferOathkeeper)
 
-    function supremacy(state: OathProjectedState, oathkeeperPlayerId: string): OathProjectedState {
-        return { ...state, oathType: OathType.Supremacy, oathkeeperPlayerId, oathRevision: OathRevision.TurnFlow }
+    // From revision 12 the title is judged once, after the Campaign; recorded games before it replay as here.
+    function supremacy(state: OathProjectedState, oathkeeperPlayerId: string, oathRevision: OathRevision = OathRevision.EngineFixes7): OathProjectedState {
+        return { ...state, oathType: OathType.Supremacy, oathkeeperPlayerId, oathRevision }
     }
 
     it('the defender’s last warband dying vacates the title in Campaign Victory; the spoils give it to the attacker in the Act Phase', () => {
@@ -328,7 +329,8 @@ describe('R-2.11-H1 — from the turn-flow revision, a title moved inside a Camp
     it('a sacrifice from a site the attacker rules moves the title while the defending side chooses its losses, with the defender on the clock', () => {
         // R-10.21 (Vow of Union) — the warband the attacker rules c2 with is in the force, so it can be sacrificed.
         const forTable = (seed: number) => {
-            const state = supremacy(buildState(seed), ATTACKER)
+            // Before revision 7 (R-5.5.6-H1) the defender is asked for their losses here.
+            const state = supremacy(buildState(seed), ATTACKER, OathRevision.TurnFlow)
             state.players[0].advisers = [{ cardId: VOW_OF_UNION, faceUp: true }]
             state.players[1].warbandsOnBoard = { [DEFENDER]: 1 }
             state.warbandsBySite = { ...state.warbandsBySite, c2: { [ATTACKER]: 1 } }
