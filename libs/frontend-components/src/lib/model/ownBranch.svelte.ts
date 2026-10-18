@@ -283,11 +283,14 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
     }
 }
 
+// A Main Line that went back, as after an Undo, has no steps to show on the way; the view is
+// swapped, as an undo when that is what moved it and as a reconciliation otherwise.
 function stepsRequest<T extends GameState>(
     steps: VisibleStep<T>[] | undefined,
     kind: TransitionKind = 'other-action'
 ): TransitionRequest<T> {
-    return steps === undefined ? { kind: 'reconciliation', intent: 'state' } : { kind, steps }
+    if (steps !== undefined) return { kind, steps }
+    return { kind: kind === 'undo' ? kind : 'reconciliation', intent: 'state' }
 }
 
 function positionOf(state: GameState): ActionHistoryPosition {

@@ -1466,11 +1466,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (this.mode === GameSessionMode.Play) this.processingActions = true
         try {
             try {
-                const preview = new GameUndo(context).preview(
-                    targetAction,
-                    this.projectedExecutionPerspective(context)
-                )
+                const perspective = this.projectedExecutionPerspective(context)
+                const gameUndo = new GameUndo(context)
+                const preview =
+                    context === this.gameContext &&
+                    isCommonAction(targetAction) &&
+                    isRestingInSpan(context.state)
+                        ? gameUndo.previewOutsideBranches(targetAction, perspective)
+                        : gameUndo.preview(targetAction, perspective)
                 this.presenter.present({ kind: 'undo' }, () => context.restoreFrom(preview))
+                if (context !== this.currentModifiableContext) this.ownBranch.follow('undo')
                 optimisticState = context.state
             } catch (error) {
                 if (!hosted) throw error

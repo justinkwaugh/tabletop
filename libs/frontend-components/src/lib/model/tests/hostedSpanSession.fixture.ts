@@ -52,6 +52,7 @@ class Remote extends DummyRemoteApiService {
     onBranch?: (unmergedBranch: UnmergedBranch, undoneActionIds?: string[]) => Promise<void>
     onReplaced?: (startIndex: number) => Promise<void>
     pendingAcceptance?: Promise<void>
+    pendingUndo?: Promise<void>
     syncChecks = 0
     submissions = 0
 
@@ -194,6 +195,7 @@ class Remote extends DummyRemoteApiService {
     }
 
     async undoAction(_game: Game, actionId: string) {
+        await this.pendingUndo
         const checksumBefore = this.host.state.actionChecksum
         const undone = this.host.undo(this.playerId, actionId)
         const unmergedBranch = this.project(undone.unmergedBranch)
@@ -1336,6 +1338,47 @@ export async function runHostedSpanCommonActionUndo() {
             othersFollow,
             answeredOfferStays: p3.session.undoableAction === undefined
         }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanCommonActionUndoKeepsCloses() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        const p3 = await t.join('p3')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        await p3.session.act('propose', 'o3', { partnerId: 'p2', itemId: 'start-p3' })
+        await p1.session.act('finish', 'f1')
+        await t.settleAll()
+        p3.session.shownKinds.length = 0
+        p2.session.shownKinds.length = 0
+
+        const answer = Promise.withResolvers<void>()
+        p3.api.pendingUndo = answer.promise
+        const undoing = p3.session.undo()
+        await settle(p3.session)
+        const previewKeepsTheClose =
+            p3.session.spanState.offers.o3 === undefined &&
+            p3.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p1' &&
+            p3.session.shownKinds.join() === 'undo:state'
+        answer.resolve()
+        await undoing
+        p3.api.pendingUndo = undefined
+        await t.settleAll()
+        const answerChangesNothingShown =
+            p3.session.shownKinds.join() === 'undo:state' &&
+            p3.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p1' &&
+            played(p3.session) === 'openBranch:p3' &&
+            summary(t.host.actions).join() === 'begin:p1,closeBranch:p1'
+        const othersKeepTheClose =
+            p2.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p1' &&
+            p2.session.spanState.offers.o3 === undefined &&
+            !p2.session.shownKinds.some((shown) => shown.endsWith('closeBranch:p1'))
+        return { previewKeepsTheClose, answerChangesNothingShown, othersKeepTheClose }
     } finally {
         t.dispose()
     }

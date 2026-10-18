@@ -3,8 +3,11 @@ import {
     calculateActionChecksum,
     createPatch,
     ExplorationHistory,
+    isBranchClose,
     isOutOfTurnDeclaration,
     isSameSimultaneousGroup,
+    restingSpan,
+    spanRuns,
     type GameAction,
     type GameState,
     type HydratedGameState,
@@ -50,6 +53,39 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
         return result
     }
 
+    /**
+     * Previews taking a Common Action out of the Main Line during a Parallel Span: its run comes
+     * off and the Branch Closes and Merges that followed are put back in place, as the host does
+     * (Common Actions rule 9).
+     */
+    previewOutsideBranches(
+        target: GameAction,
+        perspective?: Visibility.Perspective
+    ): GameContext<T, U> {
+        const result = this.context.clone()
+        const span = restingSpan(result.state)
+        const history = new ExplorationHistory(result.engine)
+        const removed: GameAction[] = []
+        let state = result.state
+        let action: GameAction
+        do {
+            const last = result.popAction()
+            assertExists(last, 'Undo target is not in Action History')
+            action = last
+            removed.unshift(action)
+            state = history.undo(state, action, this.context.state.explorationState)
+        } while (action.id !== target.id)
+
+        state = history.afterUndo(this.context.state, state, removed)
+        if (perspective === undefined) result.engine.validateCanonicalState(state)
+        result.updateGameState(state)
+        const run = spanRuns(removed, span)[0]
+        for (const later of removed.slice(run.length)) this.redo(result, later, perspective)
+        result.runtime.hydrator.hydrateState(result.state)
+        result.verifyFullChecksum()
+        return result
+    }
+
     private redo(
         context: GameContext<T, U>,
         original: GameAction,
@@ -59,7 +95,13 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
         action.index = context.nextActionIndex
         delete action.undoPatch
         const state = context.state
-        if (perspective !== undefined && action.forwardPatch !== undefined) {
+        // A Branch Close is the engine's own and is always applied as recorded; a projected
+        // Action is applied by its forward patch, since it cannot be executed again.
+        if (
+            isBranchClose(action) ||
+            (perspective !== undefined && action.forwardPatch !== undefined)
+        ) {
+            const hadForwardPatch = action.forwardPatch !== undefined
             const updatedState = context.engine.applyProcessedAction({
                 action,
                 state,
@@ -68,7 +110,7 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
             updatedState.actionCount = action.index + 1
             updatedState.actionChecksum = calculateActionChecksum(state.actionChecksum, [action])
             action.undoPatch = createPatch(updatedState, state)
-            action.forwardPatch = createPatch(state, updatedState)
+            if (hadForwardPatch) action.forwardPatch = createPatch(state, updatedState)
             context.applyActionResults(new GameActionResults([action], updatedState))
             return
         }
