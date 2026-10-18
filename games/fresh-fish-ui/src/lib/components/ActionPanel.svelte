@@ -6,7 +6,6 @@
     import { UNCLAIMED_STALL } from '$lib/utils/pieceColors.js'
     import Disk from '$lib/components/Disk.svelte'
     import BagIcon from '$lib/components/BagIcon.svelte'
-    import { wonStallPrice } from '$lib/utils/auctionBids.js'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession()
@@ -60,7 +59,7 @@
 
     let wonFor = $derived(
         gameSession.chosenAction === ActionType.PlaceStall
-            ? wonStallPrice(gameSession.gameState.machineState, gameSession.actions)
+            ? gameSession.gameState.currentAuction?.highBid
             : undefined
     )
 
