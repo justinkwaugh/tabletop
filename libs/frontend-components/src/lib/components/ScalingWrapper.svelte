@@ -143,6 +143,10 @@
     let currentTranslateX = $state(0)
     let currentTranslateY = $state(0)
     let isExpanded = $state(false)
+    // The view size the content was last placed for, so a resize keeps the content point at its old centre.
+    let syncedView = { width: 0, height: 0, centerY: 0 }
+    // Set on entering or leaving full screen until the view takes its new size.
+    let keepShownAreaOnResize = false
     let fullscreenLayer: HTMLDialogElement | undefined = $state()
     $effect(() => {
         if (!fullscreenLayer) return
@@ -500,10 +504,10 @@
         }
     }
 
-    function getViewportCenterContentPoint() {
+    function getViewportCenterContentPoint(centerX = wrapperWidth / 2, centerY = viewportCenterY()) {
         return {
-            x: clamp((wrapperWidth / 2 - currentTranslateX) / currentScale, 0, contentWidth),
-            y: clamp((viewportCenterY() - currentTranslateY) / currentScale, 0, contentHeight)
+            x: clamp((centerX - currentTranslateX) / currentScale, 0, contentWidth),
+            y: clamp((centerY - currentTranslateY) / currentScale, 0, contentHeight)
         }
     }
 
@@ -794,8 +798,16 @@
         const nextRestScale = computeRestScale(nextMinScale)
         const wasAtRestScale = initialized && Math.abs(currentScale - restScale) < EPSILON
         const centerPoint = initialized
-            ? getViewportCenterContentPoint()
+            ? getViewportCenterContentPoint(syncedView.width / 2, syncedView.centerY)
             : { x: contentWidth / 2, y: contentHeight / 2 }
+        const resized = initialized && (Math.abs(wrapperWidth - syncedView.width) > EPSILON ||
+            Math.abs(availableHeight() - syncedView.height) > EPSILON)
+        // Leaving full screen zooms out until the area it showed fits the smaller view.
+        const shownAreaFit = keepShownAreaOnResize && resized
+            ? Math.min(1, wrapperWidth / syncedView.width, availableHeight() / syncedView.height)
+            : 1
+        if (resized) keepShownAreaOnResize = false
+        syncedView = { width: wrapperWidth, height: availableHeight(), centerY: viewportCenterY() }
 
         minScale = nextMinScale
         restScale = nextRestScale
@@ -816,7 +828,7 @@
         const targetScale =
             !initialized || wasAtRestScale
                 ? nextRestScale
-                : clampScale(currentScale)
+                : clampScale(currentScale * shownAreaFit)
         const targetView = getViewForContentPointAtViewportPoint(
             centerPoint.x,
             centerPoint.y,
@@ -907,6 +919,7 @@
     }
 
     function setExpanded(nextExpanded: boolean) {
+        if (nextExpanded !== isExpanded) keepShownAreaOnResize = true
         isExpanded = nextExpanded
     }
 

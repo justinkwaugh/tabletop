@@ -318,6 +318,44 @@ for (const [overpan, expected] of [['none', { x: 0, y: 0 }], ['focus', { x: 632,
     })
 }
 
+// The board point at the centre of the view, and the scale the board is drawn at.
+function viewCentre(board: Locator) {
+    return board.evaluate(element => {
+        const view = element.closest('.scaling-surface')?.firstElementChild
+        if (!view) throw new Error('Missing view')
+        const boardBounds = element.getBoundingClientRect()
+        const viewBounds = view.getBoundingClientRect()
+        const scale = boardBounds.width / (element as HTMLElement).offsetWidth
+        return {
+            scale,
+            x: (viewBounds.x + viewBounds.width / 2 - boardBounds.x) / scale,
+            y: (viewBounds.y + viewBounds.height / 2 - boardBounds.y) / scale
+        }
+    })
+}
+
+test('leaving full screen keeps the zoomed view centred, zoomed out until the area it showed fits', async ({ page }) => {
+    await mountWrapper(page, { maxScale: 2, expandable: true })
+    const board = page.getByTestId('board')
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+    await page.getByLabel('Enter full screen').click()
+    await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(880)
+    await page.mouse.move(640, 360)
+    await page.mouse.wheel(0, -200)
+    await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(880 * Math.exp(0.6), 1)
+    await page.mouse.down()
+    await page.mouse.move(740, 420, { steps: 5 })
+    await page.mouse.up()
+    const expanded = await viewCentre(board)
+    await page.getByLabel('Exit full screen').click()
+    // The full screen view is 1264 by 704 inside its padding; the pane is 400 by 300.
+    const fitted = expanded.scale * Math.min(400 / 1264, 300 / 704)
+    await expect.poll(async () => (await viewCentre(board)).scale).toBeCloseTo(fitted, 2)
+    const collapsed = await viewCentre(board)
+    expect(collapsed.x).toBeCloseTo(expanded.x, 0)
+    expect(collapsed.y).toBeCloseTo(expanded.y, 0)
+})
+
 test('content drawn at its view scale is laid out at that scale once the view settles', async ({ page }) => {
     await mountWrapper(page, { renderAtViewScale: true })
     const board = page.getByTestId('board')
