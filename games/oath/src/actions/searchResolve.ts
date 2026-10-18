@@ -16,7 +16,13 @@ import { PowerChoice } from '../util/powerChoice.js'
 import { discardTargetOf, runAfter, searchPlayModifiers } from '../util/modifiers.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses, forgetHand } from '../util/knowledge.js'
-import { playCard, playMapChanges, reasonCannotPlayCard } from '../util/cardPlay.js'
+import {
+    FavorShort,
+    favorShortOf,
+    playCard,
+    playMapChanges,
+    reasonCannotPlayCard
+} from '../util/cardPlay.js'
 import type { PlayMapChanges } from '../powers/registry.js'
 import type { ActiveModifier } from '../util/modifiers.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
@@ -55,6 +61,8 @@ export const SearchResolveMetadata = Type.Object({
     discardToWorldDeck: Type.Optional(Type.Boolean()),
     /** R-5.1.4.I — with Land Warden, both cards' favor. */
     favorGained: Type.Number(),
+    /** R-9.3 — the banks that could not give the favor a site play takes, the site's or a Homeland's. */
+    favorShort: Type.Optional(Type.Array(FavorShort)),
     /** Book of Records — one for each card played to a site. */
     secretsGained: Type.Optional(Type.Number()),
     /** R-7.3.3 */
@@ -243,6 +251,10 @@ export class HydratedSearchResolve
             ? played.endsActPhase || second?.endsActPhase
             : played.endsActPhase
         const favorGained = played.favorGained + (bothPlays ? (second?.favorGained ?? 0) : 0)
+        const favorShort = favorShortOf([
+            ...played.favorTaken,
+            ...(bothPlays ? (second?.favorTaken ?? []) : [])
+        ])
         this.metadata = {
             ...played.outcome,
             reveal,
@@ -259,6 +271,7 @@ export class HydratedSearchResolve
             discardToBottom: discardTarget?.bottom || undefined,
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
             favorGained,
+            favorShort: favorShort.length > 0 ? favorShort : undefined,
             secretsGained: played.secretsGained + (second?.secretsGained ?? 0) || undefined,
             whenPlayed: played.whenPlayed,
             secondWhenPlayed: second?.whenPlayed,

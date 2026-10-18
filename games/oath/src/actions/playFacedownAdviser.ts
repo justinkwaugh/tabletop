@@ -11,6 +11,8 @@ import { Region } from '../model/oathEnums.js'
 import { ConspiracyPlay } from '../model/conspiracy.js'
 import { playShowsCard, SearchPlay } from './searchResolve.js'
 import {
+    FavorShort,
+    favorShortOf,
     playCard,
     playMapChanges,
     reasonCannotPlaceCard,
@@ -60,6 +62,8 @@ export const PlayFacedownAdviserMetadata = Type.Object({
     /** R-9.4 — only when the play shows it. */
     playedCardId: Type.Optional(Type.String()),
     favorGained: Type.Number(),
+    /** R-9.3 — the banks that could not give the favor a site play takes, the site's or a Homeland's. */
+    favorShort: Type.Optional(Type.Array(FavorShort)),
     /** Book of Records */
     secretsGained: Type.Optional(Type.Number()),
     /** R-7.4 — the cards whose Search modifiers applied to this play. */
@@ -171,6 +175,7 @@ export class HydratedPlayFacedownAdviser
         })
         const playedCardId = playShowsCard(this.play, true) ? this.cardId : undefined
         const after = runAfter(state, this.playerId, active, { playedCardId, playedTo: this.play })
+        const short = favorShortOf(played.favorTaken)
 
         this.metadata = {
             ...played.outcome,
@@ -181,6 +186,7 @@ export class HydratedPlayFacedownAdviser
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
             playedCardId,
             favorGained: played.favorGained,
+            favorShort: short.length > 0 ? short : undefined,
             secretsGained: played.secretsGained || undefined,
             modifiers: active.length > 0 ? active.map((m) => m.power.cardId) : undefined,
             modifierNotes: after.notes.length > 0 ? after.notes : undefined,

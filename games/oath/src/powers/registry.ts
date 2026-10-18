@@ -82,6 +82,24 @@ export interface PlayGains {
     returning: readonly string[]
     /** Each favor bank once the play has taken its favor and the cards discarded have given theirs back. */
     favorBank: Readonly<Record<Suit, number>>
+    /**
+     * R-5.1.4.I, R-11.2, R-9.3 — each favor this play takes before its power, the site's then a Homeland's, with
+     * what its bank gave. This play's own: unlike the rest, Land Warden's second card does not repeat the kept
+     * card's.
+     */
+    favorTaken: readonly FavorTake[]
+    /**
+     * R-7.4 — the favor a carried modifier gains once a site play is made (Welcoming Party), from the banks this
+     * plan leaves. It is gained after the power, so it is not taken from `favorBank`; a modifier gains once per
+     * action (R-7.4.2), so Land Warden's second card plans none.
+     */
+    favorAfter: number
+}
+
+/** R-9.3 — one favor a play takes from a bank, and how much the bank gave: 0 when it was empty. */
+export interface FavorTake {
+    suit: Suit
+    gained: number
 }
 
 export interface CampaignContext {
@@ -167,6 +185,8 @@ export interface ModifierHooks {
     discardFirstAtSitePlay?: boolean
     /** Book of Records — instead of R-5.1.4.I's favor. */
     sitePlayGainsSecret?: boolean
+    /** Welcoming Party — the bank its `after` gains 1 favor from once a denizen is played; read to plan it. */
+    playFavorFrom?: Suit
     /** New Growth */
     playAnywhere?: (ctx: EffectContext) => boolean
     /** Land Warden — if at least one play is to a site. */

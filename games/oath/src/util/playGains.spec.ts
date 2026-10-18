@@ -304,12 +304,12 @@ describe('the planned gains are what the play gains', () => {
         s.addTokensOn(DISSENT, { favor: 2 })
         const kept = playMapChanges(s, 'dana', ARCANE_CARD, SearchPlay.Site, { discardFirstCardId: DISSENT })
         const second = playMapChanges(s, 'dana', BEWITCH, SearchPlay.Site, { earlierMapChanges: kept })
-        expect(kept.gains).toEqual({ secrets: 1, returning: [DISSENT], favorBank: { ...s.favorBank, [Suit.Arcane]: 2, [Suit.Discord]: 5 } })
+        expect(kept.gains).toEqual({ secrets: 1, returning: [DISSENT], favorBank: { ...s.favorBank, [Suit.Arcane]: 2, [Suit.Discord]: 5 }, favorTaken: [{ suit: Suit.Arcane, gained: 1 }], favorAfter: 0 })
         expect(second).toEqual({
             leaving: [DISSENT],
             arriving: [ARCANE_CARD, BEWITCH],
             siteId: 'c1',
-            gains: { secrets: 2, returning: [DISSENT], favorBank: { ...s.favorBank, [Suit.Arcane]: 1, [Suit.Discord]: 5 } }
+            gains: { secrets: 2, returning: [DISSENT], favorBank: { ...s.favorBank, [Suit.Arcane]: 1, [Suit.Discord]: 5 }, favorTaken: [{ suit: Suit.Arcane, gained: 1 }], favorAfter: 0 }
         })
         // The second play takes no choices, but its offer would see four secrets against the Chancellor's two.
         const [power] = powersWithTiming(BEWITCH, PowerTiming.WhenPlayed)
@@ -351,7 +351,7 @@ describe("on Dana's own view, where Ann's facedown adviser and the vault cannot 
 
     it('a relic Homeland (Deep Woods): the plan gains nothing from it and reads no relic', () => {
         const s = board(NOW, hidden, { ...at('site.deep-woods'), relicsBySite: { c1: [{ slotId: 'c1-r1' }] }, vault: testVaultWithRelics({ 'c1-r1': BOOK }) })
-        sameOnOwnView(s, (v) => playMapChanges(v, 'dana', WOLVES, SearchPlay.Site).gains, { secrets: 0, returning: [], favorBank: { ...s.favorBank, [Suit.Beast]: 2 } })
+        sameOnOwnView(s, (v) => playMapChanges(v, 'dana', WOLVES, SearchPlay.Site).gains, { secrets: 0, returning: [], favorBank: { ...s.favorBank, [Suit.Beast]: 2 }, favorTaken: [{ suit: Suit.Beast, gained: 1 }], favorAfter: 0 })
     })
 
     it('Salad Days at Fertile Valley, and with Dissent discarded first', () => {

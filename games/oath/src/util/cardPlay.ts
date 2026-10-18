@@ -1,7 +1,8 @@
+import * as Type from 'typebox'
 import { bannerHolder } from './oathkeeper.js'
 import { siteHolding } from './access.js'
 import { favorHomeBankOf, favorTakenFrom, gainFavorFromBank, settleBoardFavor } from './favor.js'
-import { Banner, SearchPlay, CardKind, PlayerStatus, Region, type Suit } from '../model/oathEnums.js'
+import { Banner, SearchPlay, CardKind, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import { ConspiracyPlay, type ConspiracyTake } from '../model/conspiracy.js'
 import { isLockedFor } from './locked.js'
 import { assertExists } from '@tabletop/common'
@@ -24,6 +25,7 @@ import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
 import {
     effectFor,
     type EffectContext,
+    type FavorTake,
     type PlayGains,
     type PlayMapChanges
 } from '../powers/registry.js'
@@ -317,10 +319,12 @@ function playGains(
     }
     // R-10.10, R-9.3 — as `gainFavorFromBank` takes it; Vow of Kinship keeps it in a bank.
     const homeBank = favorHomeBankOf(state, playerId)
+    const favorTaken: FavorTake[] = []
     const gainOneFavor = (suit: Suit) => {
         const gained = favorTakenFrom(favorBank[suit], 1)
         favorBank[suit] -= gained
         if (homeBank) favorBank[homeBank] += gained
+        favorTaken.push({ suit, gained })
     }
 
     if (siteId !== undefined) {
@@ -341,7 +345,59 @@ function playGains(
     } else if (play === SearchPlay.Adviser) {
         for (const id of options.discardedAdviserCardIds ?? []) giveBack(id)
     }
-    return { secrets, returning, favorBank }
+    const favorAfter =
+        siteId !== undefined && !earlier && kindOf(cardId) === CardKind.Denizen
+            ? favorGainedAfterPlay(favorBank, homeBank, options.carried ?? [])
+            : 0
+    return { secrets, returning, favorBank, favorTaken, favorAfter }
+}
+
+/** R-7.4 — Welcoming Party's favor once the play is made, each carried card's bank in turn, from the banks given. */
+function favorGainedAfterPlay(
+    banks: Readonly<Record<Suit, number>>,
+    homeBank: Suit | undefined,
+    carried: readonly ActiveModifier[]
+): number {
+    const favorBank = { ...banks }
+    let gained = 0
+    for (const suit of carried.flatMap((m) => m.hooks.playFavorFrom ?? [])) {
+        const taken = favorTakenFrom(favorBank[suit], 1)
+        favorBank[suit] -= taken
+        if (homeBank) favorBank[homeBank] += taken
+        gained += taken
+    }
+    return gained
+}
+
+/** R-5.1.4.I — what a site play gains you, the banks as they stand. */
+export interface SitePlayGain {
+    favor: number
+    secrets: number
+}
+
+/**
+ * R-5.1.4.I, R-11.2, R-7.4 — all a site play gains you, from its plan on the banks as they stand: the site's favor
+ * (Book of Records: a secret instead), a Homeland's favor or secret, and a carried card's favor once the play is
+ * made (Welcoming Party). Not what its When Played power gains. Undefined for a play that goes to no site.
+ */
+export function sitePlayGain(changes: PlayMapChanges): SitePlayGain | undefined {
+    const gains = changes.gains
+    if (changes.siteId === undefined || !gains) return undefined
+    const taken = gains.favorTaken.reduce((sum, take) => sum + take.gained, 0)
+    return { favor: taken + gains.favorAfter, secrets: gains.secrets }
+}
+
+/** R-9.3 — a bank that could not give a favor the play took: empty from the start, or run out by the play. */
+export type FavorShort = Type.Static<typeof FavorShort>
+export const FavorShort = Type.Object({ suit: Type.Enum(Suit), ranOut: Type.Boolean() })
+
+/** R-9.3 — the banks that came up short of the favor the play took (`PlayGains.favorTaken`), each once. */
+export function favorShortOf(taken: readonly FavorTake[]): FavorShort[] {
+    const suits = [...new Set(taken.filter((take) => take.gained === 0).map((take) => take.suit))]
+    return suits.map((suit) => ({
+        suit,
+        ranOut: taken.some((take) => take.suit === suit && take.gained > 0)
+    }))
 }
 
 /** R-5.1.4.I */
@@ -349,6 +405,8 @@ export interface CardPlayResult {
     favorGained: number
     /** Book of Records */
     secretsGained: number
+    /** R-9.3 — each favor the play took before its power, the site's and a Homeland's, as its plan took them. */
+    favorTaken: readonly FavorTake[]
     discarded: string[]
     /** R-7.3.3 */
     whenPlayed?: string
@@ -486,6 +544,7 @@ export function playCard(
     return {
         favorGained,
         secretsGained,
+        favorTaken: mapChanges.gains?.favorTaken ?? [],
         discarded,
         whenPlayed,
         sitePower,
