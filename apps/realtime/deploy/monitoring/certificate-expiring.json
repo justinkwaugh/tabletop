@@ -1,0 +1,29 @@
+{
+	"displayName": "Realtime relay certificate expiring",
+	"combiner": "OR",
+	"conditions": [
+		{
+			"displayName": "events.boardtogether.games certificate has under 14 days left",
+			"conditionThreshold": {
+				"filter": "metric.type=\"monitoring.googleapis.com/uptime_check/time_until_ssl_cert_expires\" AND resource.type=\"uptime_url\" AND metric.label.check_id=\"CHECK_ID\"",
+				"aggregations": [
+					{
+						"alignmentPeriod": "1200s",
+						"perSeriesAligner": "ALIGN_NEXT_OLDER",
+						"crossSeriesReducer": "REDUCE_MEAN",
+						"groupByFields": ["resource.label.host"]
+					}
+				],
+				"comparison": "COMPARISON_LT",
+				"thresholdValue": 14,
+				"duration": "600s",
+				"trigger": { "count": 1 }
+			}
+		}
+	],
+	"documentation": {
+		"mimeType": "text/markdown",
+		"content": "Caddy renews at 30 days left, so renewal has been failing for about two weeks. Check `journalctl -u caddy` on the `realtime` VM for ACME errors, and that the `events` A record still points at the VM."
+	},
+	"notificationChannels": ["CHANNEL"]
+}
