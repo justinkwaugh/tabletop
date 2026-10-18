@@ -19,10 +19,14 @@ import { resolveProductionZoneBoundaryTarget } from '$lib/utils/productionZoneMa
 import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
 import { shipSlotKey } from '$lib/utils/shipSlotKey.js'
 import { shadeHexColor } from '$lib/utils/color.js'
+import { BOARD_CENTER, BOARD_HEIGHT, BOARD_WIDTH } from '$lib/definitions/boardSize.js'
+import {
+    MARKER_GOOD_BY_GOOD,
+    type MarkerDirection,
+    type MarkerGood
+} from '$lib/definitions/productionMarkers.js'
 import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
 
-export type StartedMarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
-export type StartedMarkerDirection = 'north' | 'east' | 'south' | 'west'
 
 export type StartedProductionZoneMarkerEntry = {
     key: string
@@ -33,10 +37,10 @@ export type StartedProductionZoneMarkerEntry = {
     targetX: number
     targetY: number
     ownerColor: string
-    goodType: StartedMarkerGood
+    goodType: MarkerGood
     goodsCount: number
     hatchPatternId: string | null
-    direction: StartedMarkerDirection
+    direction: MarkerDirection
 }
 
 export type StartedCultivatedAreaEntry = {
@@ -70,9 +74,6 @@ export type StartedShipMarkerEntry = {
     animationRole: 'move' | 'pop'
 }
 
-const BOARD_WIDTH = 2646
-const BOARD_HEIGHT = 1280
-const BOARD_CENTER: Point = { x: BOARD_WIDTH / 2, y: BOARD_HEIGHT / 2 }
 const EDGE_PADDING = 68
 const BASE_OFFSET_DISTANCE = 100
 const RADIAL_STEP_DISTANCE = 18
@@ -158,7 +159,7 @@ function directionTowardTarget(
     markerY: number,
     targetX: number,
     targetY: number
-): StartedMarkerDirection {
+): MarkerDirection {
     const deltaX = targetX - markerX
     const deltaY = targetY - markerY
     return Math.abs(deltaX) >= Math.abs(deltaY)
@@ -170,21 +171,6 @@ function directionTowardTarget(
           : 'north'
 }
 
-function asMarkerGood(good: Good): StartedMarkerGood {
-    if (good === Good.Rice) {
-        return 'rice'
-    }
-    if (good === Good.Spice) {
-        return 'spice'
-    }
-    if (good === Good.Rubber) {
-        return 'rubber'
-    }
-    if (good === Good.Oil) {
-        return 'oil'
-    }
-    return 'siapsaji'
-}
 
 export function startedProductionZoneMarkerEntryForAction(args: {
     gameState: HydratedIndonesiaGameState
@@ -267,7 +253,7 @@ export function startedProductionZoneMarkerEntryForAction(args: {
         targetX: boundaryTarget.x,
         targetY: boundaryTarget.y,
         ownerColor,
-        goodType: asMarkerGood(company.good),
+        goodType: MARKER_GOOD_BY_GOOD[company.good],
         goodsCount: 1,
         hatchPatternId: hatchVariant === undefined ? null : HATCH_PATTERN_IDS[hatchVariant],
         direction: directionTowardTarget(x, y, boundaryTarget.x, boundaryTarget.y)

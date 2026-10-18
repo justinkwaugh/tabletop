@@ -18,7 +18,7 @@ import {
 } from './combat.js'
 import { VictoryKind, type HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { validateCounterAttackers } from './leaders.js'
-import { legal } from './legality.js'
+import { distinct, legal } from './legality.js'
 import { faceOf, type Commander, type ProjectedUnit } from './pieces.js'
 import { declareVictory } from './victory.js'
 
@@ -117,7 +117,7 @@ export function counterAttack(
     const attack = currentAttack(state)
     assertExists(attack.initialResult, 'The attack has not been declared')
     const candidates = counterAttackCandidates(state)
-    legal(new Set(unitIds).size === unitIds.length, 'A counter-attacking unit is named once')
+    legal(distinct(unitIds), 'A counter-attacking unit is named once')
     const units = unitIds.map((id) => state.unit(id))
     legal(
         units.every((unit) => candidates.includes(unit)),

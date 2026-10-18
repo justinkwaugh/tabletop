@@ -1,10 +1,10 @@
 import { ActionSource, assert } from '@tabletop/common'
-import { SantiagoRuntime } from '../runtime.js'
-import { ActionType } from '../actions.js'
-import { MachineState } from '../states.js'
-import type { SantiagoProjectedState } from '../../model/gameState.js'
-import { SquareType } from '../../model/board.js'
-import { validCanalPlacements, validNeutralTilePlacements } from '../../util/placement.js'
+import { SantiagoRuntime } from '../definition/runtime.js'
+import { ActionType } from '../definition/actions.js'
+import { MachineState } from '../definition/states.js'
+import type { SantiagoProjectedState } from '../model/gameState.js'
+import { SquareType } from '../model/board.js'
+import { validCanalPlacements, validNeutralTilePlacements } from '../util/placement.js'
 
 export function nextAction(state: SantiagoProjectedState, gameId: string) {
     const playerId = state.activePlayerIds[0]

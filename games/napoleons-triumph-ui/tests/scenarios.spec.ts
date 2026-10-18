@@ -1,7 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
 import { writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { failOnPageErrors } from './table.js'
 
 failOnPageErrors()
@@ -18,7 +16,9 @@ async function loadFromFile(page: Page, path: string) {
     await (await chooser).setFiles(path)
 }
 
-test('a game saved as a scenario opens again from its file, with its history', async ({ page }) => {
+test('a game saved as a scenario opens again from its file, with its history', async ({
+    page
+}, testInfo) => {
     await page.goto('/')
     await chooseScenario(page, 'Second attack after a repulse or feint')
     const legrand = page.locator('[data-commander="legrand"][aria-label="Select these pieces"]')
@@ -32,7 +32,7 @@ test('a game saved as a scenario opens again from its file, with its history', a
     await page.getByRole('button', { name: 'Save as scenario' }).click()
     const file = await download
     expect(file.suggestedFilename()).toBe('a-second-attack-after-a-repulse-or-a-feint.json')
-    const saved = join(tmpdir(), `saved-${Date.now()}.json`)
+    const saved = testInfo.outputPath('saved.json')
     await file.saveAs(saved)
 
     await chooseScenario(page, 'Second attack after a repulse or feint')
@@ -44,9 +44,9 @@ test('a game saved as a scenario opens again from its file, with its history', a
     await expect(legrand).toBeVisible()
 })
 
-test('a file that is not a scenario is reported and opens nothing', async ({ page }) => {
+test('a file that is not a scenario is reported and opens nothing', async ({ page }, testInfo) => {
     await page.goto('/')
-    const broken = join(tmpdir(), `broken-${Date.now()}.json`)
+    const broken = testInfo.outputPath('broken.json')
     writeFileSync(broken, JSON.stringify({ game: {} }))
     await loadFromFile(page, broken)
     await expect(page.getByRole('alert')).toContainText('is not a scenario this game can open')
