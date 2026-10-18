@@ -2,6 +2,7 @@ import type { GameAction } from '@tabletop/common'
 import { isEatCoral, isTakeOpenSeaSpace, type CoralColor } from '@tabletop/reef-encounter'
 import {
     describeAction,
+    polypsLabel,
     type BoardName,
     type Phrase,
     type PhraseIcon,
@@ -17,11 +18,15 @@ const polyp = (color: CoralColor, count: number): PolypIcon => ({
     label: `${count} ${color} polyp${count === 1 ? '' : 's'}`
 })
 
-const phrase = (parts: PhrasePart[]): Phrase => ({
+const phrase = (parts: PhrasePart[], text?: string): Phrase => ({
     parts,
-    text: parts
-        .map((part) => (typeof part === 'string' ? part : 'icon' in part ? part.label : part.text))
-        .join('')
+    text:
+        text ??
+        parts
+            .map((part) =>
+                typeof part === 'string' ? part : 'icon' in part ? part.label : part.text
+            )
+            .join('')
 })
 
 // One line for a finished turn: the coral eaten if there was one, otherwise how the turn ended.
@@ -44,17 +49,26 @@ export function turnSummary(
     if (!ending) return undefined
     if (isTakeOpenSeaSpace(ending)) {
         const taken = ending.metadata?.polyps ?? []
-        return phrase([
-            'took ',
-            {
-                icon: 'cube',
-                color: ending.larvaColor,
-                count: 1,
-                label: `the ${ending.larvaColor} larva cube`
-            },
-            // At most three, so each shows on its own rather than as a count.
-            ...(taken.length > 0 ? [' with ', ...taken.map((color) => polyp(color, 1))] : [])
-        ])
+        const took = `took the ${ending.larvaColor} larva cube`
+        return phrase(
+            [
+                'took ',
+                {
+                    icon: 'cube',
+                    color: ending.larvaColor,
+                    count: 1,
+                    label: `the ${ending.larvaColor} larva cube`
+                },
+                // At most three, so each shows on its own rather than as a count.
+                ...(taken.length > 0
+                    ? [
+                          ' with ',
+                          ...taken.map((color) => ({ ...polyp(color, 1), label: `${color} polyp` }))
+                      ]
+                    : [])
+            ],
+            taken.length > 0 ? `${took} with ${polypsLabel(taken)}` : took
+        )
     }
     const described = describeAction(ending, own, board)
     if (!described) return undefined
