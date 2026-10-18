@@ -19,8 +19,20 @@ function attackOf(game: BattleGame) {
 describe('what the other player is waited on for in an attack', () => {
     it('names the army whose leading unit the odd step falls on', () => {
         const game = oddLossOnTheAttackers()
-        expect(awaitedStep(attackOf(game), (playerId) => game.hydrated.sideOf(playerId))).toBe(
+        expect(awaitedStep(attackOf(game), game.hydrated)).toBe(
             'to choose which French leading unit takes the extra step'
+        )
+    })
+
+    it('names counter-attacking units when the extra step falls between them', () => {
+        const game = oddLossOnTheAttackers()
+        const attack = attackOf(game)
+        attack.counterAttackingUnitIds = ['A02', 'A03']
+        attack.pending = [
+            { kind: DecisionKind.OddLoss, playerId: attack.attackerId, unitIds: ['A02', 'A03'] }
+        ]
+        expect(awaitedStep(attack, game.hydrated)).toBe(
+            'to choose which Allied counter-attacking unit takes the extra step'
         )
     })
 
@@ -35,7 +47,7 @@ describe('what the other player is waited on for in an attack', () => {
                 unitIds: ['A01', 'A02']
             }
         ]
-        expect(awaitedStep(attack, (playerId) => game.hydrated.sideOf(playerId))).toBe(
+        expect(awaitedStep(attack, game.hydrated)).toBe(
             'to choose which Allied units lose the 2 steps still owed'
         )
     })
@@ -43,8 +55,6 @@ describe('what the other player is waited on for in an attack', () => {
     it('says what the step of the attack is for when nothing is owed', () => {
         const game = new BattleGame([attacker('F01', infantry(3)), defender('A01', infantry(2))])
         game.threaten()
-        expect(awaitedStep(attackOf(game), (playerId) => game.hydrated.sideOf(playerId))).toBe(
-            'to defend or retreat'
-        )
+        expect(awaitedStep(attackOf(game), game.hydrated)).toBe('to defend or retreat')
     })
 })

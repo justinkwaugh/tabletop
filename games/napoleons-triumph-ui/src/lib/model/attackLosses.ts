@@ -1,20 +1,20 @@
 import type { GameAction } from '@tabletop/common'
 import {
-    DecisionKind,
     MoralePenaltyKind,
     ResultTermKind,
     UnitType,
     isAssignLosses,
     isCounterAttack,
     isDeclareAttack,
+    isLossDecision,
     isRetreat,
     isThreatenAttack,
+    lossOwnerOf,
+    stepsOwed,
     type Attack,
-    type ExcessLossesDecision,
     type Face,
     type LossEntry,
     type MoralePenalty,
-    type OddLossDecision,
     type PendingDecision,
     type ResultTerm
 } from '@tabletop/napoleons-triumph'
@@ -30,7 +30,6 @@ export interface StepLoss {
 export interface SideLosses {
     playerId: string
     steps: number
-    /** Steps the side owes that wait on a player choosing the units to lose them. */
     owed: number
     /** Every point of morale the attack has cost this side so far. */
     morale: number
@@ -47,35 +46,15 @@ export interface AttackLosses {
 
 type FoughtAttack = Pick<Attack, 'attackerId' | 'defenderId' | 'attackingUnitIds'>
 
-type LossDecision = OddLossDecision | ExcessLossesDecision
-
 function noLosses(playerId: string): SideLosses {
     return { playerId, steps: 0, owed: 0, morale: 0, taken: [], paidForSteps: 0, penalties: [] }
-}
-
-function isLossDecision(decision: PendingDecision): decision is LossDecision {
-    return decision.kind === DecisionKind.OddLoss || decision.kind === DecisionKind.ExcessLosses
-}
-
-/** Rule 11, step 9: the enemy places an odd step, so it is owed by the side whose units it falls between. */
-export function ownerOfLoss(attack: FoughtAttack, decision: LossDecision): string {
-    if (decision.kind === DecisionKind.ExcessLosses) {
-        return decision.playerId
-    }
-    return attack.attackingUnitIds.includes(decision.unitIds[0])
-        ? attack.attackerId
-        : attack.defenderId
-}
-
-export function stepsOwedBy(decision: LossDecision): number {
-    return decision.kind === DecisionKind.OddLoss ? 1 : decision.amount
 }
 
 function stepsIn(losses: readonly LossEntry[]): number {
     return losses.reduce((sum, loss) => sum + loss.steps, 0)
 }
 
-/** What the attack in progress has cost each side, from what its actions recorded since it was threatened and the losses still waiting on a choice. */
+/** What the attack in progress has cost each side, from what its actions recorded since it was threatened. */
 export function lossesOfAttack(
     actions: readonly GameAction[],
     attack: FoughtAttack,
@@ -125,7 +104,7 @@ export function lossesOfAttack(
         }
     }
     for (const decision of pending.filter(isLossDecision)) {
-        sideOf(ownerOfLoss(attack, decision)).owed += stepsOwedBy(decision)
+        sideOf(lossOwnerOf(attack, decision)).owed += stepsOwed(decision)
     }
     for (const side of [attacker, defender]) {
         side.morale =

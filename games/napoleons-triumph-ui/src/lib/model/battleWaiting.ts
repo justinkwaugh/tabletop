@@ -1,12 +1,17 @@
 import {
     DecisionKind,
     MachineState,
-    Side,
     attackStep,
+    lossOwnerOf,
+    stepsOwed,
+    type Attack,
     type AttackState,
-    type AttackStep
+    type AttackStep,
+    type HydratedNapoleonsTriumphGameState,
+    type OddLossDecision
 } from '@tabletop/napoleons-triumph'
-import { counted, ownerOfLoss, stepsOwedBy } from './attackLosses.js'
+import { counted } from './attackLosses.js'
+import { ARMIES } from './concludedBattle.js'
 
 const WAITING: Record<AttackStep, string> = {
     [MachineState.DefenseResponse]: 'to defend or retreat',
@@ -19,19 +24,23 @@ const WAITING: Record<AttackStep, string> = {
     [MachineState.Occupying]: 'to move in'
 }
 
-const ARMIES: Record<Side, string> = {
-    [Side.French]: 'French',
-    [Side.Allied]: 'Allied'
+export function oddStepTakers(
+    attack: Pick<Attack, 'counterAttackingUnitIds'>,
+    decision: OddLossDecision
+): string {
+    return decision.unitIds.every((id) => attack.counterAttackingUnitIds.includes(id))
+        ? 'counter-attacking'
+        : 'leading'
 }
 
-/** What the player an attack waits on is to do, as the other player is told it. */
-export function awaitedStep(attack: AttackState, sideOf: (playerId: string) => Side): string {
+export function awaitedStep(attack: AttackState, state: HydratedNapoleonsTriumphGameState): string {
     const decision = attack.pending[0]
-    if (decision?.kind === DecisionKind.OddLoss) {
-        return `to choose which ${ARMIES[sideOf(ownerOfLoss(attack, decision))]} leading unit takes the extra step`
+    if (decision?.kind !== DecisionKind.OddLoss && decision?.kind !== DecisionKind.ExcessLosses) {
+        return WAITING[attackStep(attack)]
     }
-    if (decision?.kind === DecisionKind.ExcessLosses) {
-        return `to choose which ${ARMIES[sideOf(ownerOfLoss(attack, decision))]} units lose the ${counted(stepsOwedBy(decision), 'step')} still owed`
+    const army = ARMIES[state.sideOf(lossOwnerOf(attack, decision))].adjective
+    if (decision.kind === DecisionKind.OddLoss) {
+        return `to choose which ${army} ${oddStepTakers(attack, decision)} unit takes the extra step`
     }
-    return WAITING[attackStep(attack)]
+    return `to choose which ${army} units lose the ${counted(stepsOwed(decision), 'step')} still owed`
 }

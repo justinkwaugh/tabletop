@@ -63,7 +63,7 @@ function unitsLastSeen(
     return units
 }
 
-const ARMIES: Record<Side, { name: string; adjective: string }> = {
+export const ARMIES: Record<Side, { name: string; adjective: string }> = {
     [Side.French]: { name: 'the French', adjective: 'French' },
     [Side.Allied]: { name: 'the Allies', adjective: 'Allied' }
 }

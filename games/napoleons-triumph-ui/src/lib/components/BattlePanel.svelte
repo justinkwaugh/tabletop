@@ -156,7 +156,7 @@
             {#if gameSession.attack}
                 <div class="nt-battle-prompt">
                     Waiting for <PlayerName playerId={game.activePlayerIds[0]} />
-                    {awaitedStep(gameSession.attack, (playerId) => game.sideOf(playerId))}.
+                    {awaitedStep(gameSession.attack, game)}.
                 </div>
             {/if}
         {:else}
