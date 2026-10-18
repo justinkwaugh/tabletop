@@ -84,6 +84,23 @@ without serving it, `promote-backend` shifts both services to their latest revis
 `rollback-backend <revision> --service=backend|tasks` selects a particular service revision. No Docker is needed
 locally. The image tag is immutable: a version already in Artifact Registry is refused.
 
+The realtime relay follows the same model with `release-realtime (--major | --minor | --patch)
+[--no-deploy]` and `deploy-realtime`. The release bumps `apps/realtime/package.json` and tags
+`realtime-v<version>`. The deploy builds a static linux/amd64 binary with the version stamped in
+(Go must be on `PATH`), copies it with `apps/realtime/deploy` to the VM named by `realtime` in
+the deploy config over IAP, and runs `install-release.sh` there: it keeps the running binary as
+`realtime.previous`, reruns `setup-vm.sh` so the VM's Caddyfile, unit and scripts match the
+repository, restarts the relay, and waits for its local stats to report the new version with
+Redis connected. A relay that does not come up within 30 seconds is replaced by the previous
+binary and the deploy fails. The deploy then checks that `realtime.healthUrl` answers 200, and
+the serving lines come from the relay's stats over SSH. `rollback-realtime` swaps the previous
+binary back in; running it again swaps back. `preflight --realtime` counts `apps/realtime`. A
+restart closes every stream, and clients reconnect within their 0–5 second jitter and resync.
+The deploy service account needs `roles/iap.tunnelResourceAccessor`, `roles/compute.osAdminLogin`
+on the instance, `roles/iam.serviceAccountUser` on the VM's service account, and
+`compute.projects.get` and `compute.instances.get`; SSH runs as that account, named through
+`CLOUDSDK_CORE_ACCOUNT` from the key file.
+
 ### History, rollback, and switch
 
 Every manifest change appends to a publication history: per game a list of logic and UI
@@ -257,6 +274,11 @@ Create `tools/deploy/deploy.config.json` (see `tools/deploy/deploy.config.exampl
         "region": "us-central1",
         "project": "your-gcp-project",
         "deployCommand": []
+    },
+    "realtime": {
+        "instance": "realtime",
+        "zone": "us-central1-a",
+        "healthUrl": "https://events.example.com/health"
     }
 }
 ```

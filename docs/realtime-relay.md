@@ -119,7 +119,7 @@ The token format, Topic names, event framing and control messages are a contract
 - **Updates.** `unattended-upgrades` installs security updates daily and Caddy's own repository, and reboots for kernel updates at 10:00 UTC. A reboot is a reconnect for every client.
 - **Observability.** Logs go to the journal. The Ops Agent is left out at first, because it takes a large share of 1 GB. Detailed numbers stay on the relay's local stats endpoint, read through the IAP tunnel.
 - **Alerts.** A Cloud Monitoring uptime check requests `https://events.boardtogether.games/health` every 5 minutes from three regions. The public `/health` answers only 200 or 503, and answers 200 only when the relay is up and its Redis subscriber is connected. One alert fires after about 10 minutes of failures, so a scheduled reboot stays quiet. A second fires when the certificate has under 14 days left, which means Caddy's renewal at 30 days has been failing for two weeks. Both are emailed to the site owner.
-- **Deploy.** A `realtime` target in `tools/deploy` builds the binary, copies it over IAP, and restarts the service.
+- **Deploy.** `release-realtime` and `deploy-realtime` in `tools/deploy` build the binary with its version stamped in, copy it and `apps/realtime/deploy` over IAP, keep the running binary as the previous one, rerun `setup-vm.sh`, restart, and check that the relay reports the new version with Redis connected and that the public `/health` answers 200. A relay that does not come up is replaced by the previous binary; `rollback-realtime` swaps it back by hand (`tools/deploy/README.md`).
 
 ## Backend changes
 

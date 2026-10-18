@@ -15,5 +15,10 @@
     "region": "us-central1",
     "project": "your-gcp-project",
     "deployCommand": []
+  },
+  "realtime": {
+    "instance": "realtime",
+    "zone": "us-central1-a",
+    "healthUrl": "https://events.example.com/health"
   }
 }
