@@ -10,7 +10,7 @@ afterEach(() => {
 })
 
 /** R-5.4.2 any amount above the value; R-5.4.4 the People's Favor's start bank is the player's. */
-function recovering(banner: Banner) {
+async function recovering(banner: Banner) {
     const state = testState(
         [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 5, secrets: 6 })],
         {
@@ -22,14 +22,14 @@ function recovering(banner: Banner) {
         }
     )
     openTurn(state, 'me')
-    const session = openSessionOn(tableOf(state))
+    const session = await openSessionOn(tableOf(state))
     const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
     session.chooseAction(ActionType.Recover)
     session.pickBanner(banner)
     return { session, sent }
 }
 
-function sentRecover(sent: ReturnType<typeof recovering>['sent']) {
+function sentRecover(sent: Awaited<ReturnType<typeof recovering>>['sent']) {
     const action = sent.mock.calls[0][0]
     assert(isRecover(action), 'a Recover is sent')
     return action
@@ -37,7 +37,7 @@ function sentRecover(sent: ReturnType<typeof recovering>['sent']) {
 
 describe('recovering a banner', () => {
     it('offers every bid from value + 1 to what the player holds, and sends the one chosen', async () => {
-        const { session, sent } = recovering(Banner.DarkestSecret)
+        const { session, sent } = await recovering(Banner.DarkestSecret)
         expect(session.bannerAmounts).toEqual([3, 4, 5, 6])
         expect(session.bannerAmount).toBe(3)
         expect(sent).not.toHaveBeenCalled()
@@ -52,7 +52,7 @@ describe('recovering a banner', () => {
     })
 
     it("asks where the People's Favor's old favor starts returning, and sends that bank", async () => {
-        const { session, sent } = recovering(Banner.PeoplesFavor)
+        const { session, sent } = await recovering(Banner.PeoplesFavor)
         expect(session.needsFavorStart).toBe(true)
         expect(session.bannerRecoverReason).toMatch(/favor bank/)
         await session.recoverBanner()
@@ -64,20 +64,20 @@ describe('recovering a banner', () => {
         expect(sentRecover(sent).redistributeFrom).toBe(Suit.Hearth)
     })
 
-    it('the Darkest Secret’s picks are complete with its bid, the least picked at once', () => {
-        const { session } = recovering(Banner.DarkestSecret)
+    it('the Darkest Secret’s picks are complete with its bid, the least picked at once', async () => {
+        const { session } = await recovering(Banner.DarkestSecret)
         expect(session.bannerPicksComplete).toBe(true)
     })
 
-    it('the People’s Favor’s picks are complete once its start bank is picked too', () => {
-        const { session } = recovering(Banner.PeoplesFavor)
+    it('the People’s Favor’s picks are complete once its start bank is picked too', async () => {
+        const { session } = await recovering(Banner.PeoplesFavor)
         expect(session.bannerPicksComplete).toBe(false)
         session.setFavorStart(Suit.Hearth)
         expect(session.bannerPicksComplete).toBe(true)
     })
 
     it('Undo from the bid returns to the lit banners', async () => {
-        const { session } = recovering(Banner.DarkestSecret)
+        const { session } = await recovering(Banner.DarkestSecret)
         session.setBannerAmount(4)
         await session.undo()
         expect(session.bannerAmount).toBe(3)

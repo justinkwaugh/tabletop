@@ -4766,7 +4766,7 @@ async function settled(): Promise<void> {
 export async function open(name: TableName): Promise<{ seatId: string | undefined }> {
     if (component) await unmount(component)
     disposeSessions()
-    session = openSessionOn(TABLES[name]())
+    session = await openSessionOn(TABLES[name]())
     const target = document.createElement('div')
     target.style.height = '100vh'
     document.body.replaceChildren(target)

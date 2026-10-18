@@ -24,14 +24,14 @@ const campaignOf = (table: PlayedTable) => actionOf(table, isCampaign)
 const answerOf = (table: PlayedTable) => actionOf(table, isAnswerQuestion)
 
 /** The row as each viewer's History says it, with the table's own names. */
-function rows(table: PlayedTable, action: GameAction): Record<(typeof VIEWERS)[number], string> {
-    const names = openSessionOn(table).historyNames
+async function rows(table: PlayedTable, action: GameAction): Promise<Record<(typeof VIEWERS)[number], string>> {
+    const names = (await openSessionOn(table)).historyNames
     return { Dana: describeAction(action, names, 'Dana'), Bea: describeAction(action, names, 'Bea'), Ann: describeAction(action, names, 'Ann') }
 }
 
 /** The row's parts as `ActionDescription` draws them for `viewerId`. */
-function partsOf(table: PlayedTable, action: GameAction, viewerId: string) {
-    const names = openSessionOn(table).historyNames
+async function partsOf(table: PlayedTable, action: GameAction, viewerId: string) {
+    const names = (await openSessionOn(table)).historyNames
     return tokenParts(describeAction(action, seatsById(names), viewerId), { warbands: true, skulls: drawsSkulls(action), seats: { names, viewerId } })
 }
 
@@ -52,9 +52,9 @@ function answerRow(summary: string, heldAttack?: Record<string, unknown>): GameA
 const names = { player: (playerId: string) => playerId, site: (slotId: string) => slotId, seats: ['Dana', 'Bea', 'Ann', 'Rhys'] }
 
 describe('R-5.5.4-H1 — History while the attack waits on the defender’s Jinx', () => {
-    it('the Campaign row ends with the attack dice held against the defense rolled, never “0 swords”', () => {
+    it('the Campaign row ends with the attack dice held against the defense rolled, never “0 swords”', async () => {
         const table = heldAttackTable()
-        const row = rows(table, campaignOf(table))
+        const row = await rows(table, campaignOf(table))
         expect(row.Ann).toBe('campaigned against Bea for Fertile Valley and their pawn and favor, spending 2 Supply; 4 attack dice against 6 defense')
         for (const text of Object.values(row)) {
             expect(text).toMatch(/; 4 attack dice against 6 defense$/)
@@ -62,29 +62,29 @@ describe('R-5.5.4-H1 — History while the attack waits on the defender’s Jinx
         }
     })
 
-    it('Bea keeps the roll: their answer row carries the attack, and the skull’s loss under Dana’s name', () => {
+    it('Bea keeps the roll: their answer row carries the attack, and the skull’s loss under Dana’s name', async () => {
         const table = heldAttackTable('keep')
-        expect(rows(table, answerOf(table))).toEqual({
+        expect(await rows(table, answerOf(table))).toEqual({
             Dana: 'Jinx: kept the roll. 4 swords against 6 defense; you lost 1 warband to a skull',
             Bea: 'Jinx: kept the roll. 4 swords against 6 defense; Dana lost 1 warband to a skull',
             Ann: 'Jinx: kept the roll. 4 swords against 6 defense; Dana lost 1 warband to a skull'
         })
         // The Campaign row, written before the roll, still says what was brought.
-        expect(rows(table, campaignOf(table)).Ann).toMatch(/; 4 attack dice against 6 defense$/)
+        expect((await rows(table, campaignOf(table))).Ann).toMatch(/; 4 attack dice against 6 defense$/)
     })
 
-    it('Bea rerolls: the answer row adds the attack against the new defense, with no loss', () => {
+    it('Bea rerolls: the answer row adds the attack against the new defense, with no loss', async () => {
         const table = heldAttackTable('reroll')
         const row = 'Jinx: rerolled the defense — 7 defense. 2 swords against 7 defense'
-        expect(rows(table, answerOf(table))).toEqual({ Dana: row, Bea: row, Ann: row })
+        expect(await rows(table, answerOf(table))).toEqual({ Dana: row, Bea: row, Ann: row })
     })
 
-    it('the warband is its token and the skull its symbol, Dana a seat chip, for every viewer', () => {
+    it('the warband is its token and the skull its symbol, Dana a seat chip, for every viewer', async () => {
         const table = heldAttackTable('keep')
         const answer = answerOf(table)
         expect(drawsSkulls(answer)).toBe(true)
         for (const viewer of VIEWERS) {
-            const parts = partsOf(table, answer, viewer)
+            const parts = await partsOf(table, answer, viewer)
             expect(parts.slice(-5), viewer).toEqual([
                 { kind: 'seat', playerId: 'Dana', possessive: false },
                 { kind: 'text', text: ' lost ' },
@@ -96,10 +96,10 @@ describe('R-5.5.4-H1 — History while the attack waits on the defender’s Jinx
         }
     })
 
-    it('R-10.13 — the warband token is drawn in the attacker’s colour, not the answering defender’s', () => {
+    it('R-10.13 — the warband token is drawn in the attacker’s colour, not the answering defender’s', async () => {
         const table = heldAttackTable('keep')
         const answer = answerOf(table)
-        const session = openSessionOn(table)
+        const session = await openSessionOn(table)
         expect(rowWarbandOwner(answer, (playerId) => ownWarbandOwner(session.gameState, playerId))).toBe('Dana')
         expect(session.historyWarbandColor(answer)({ kind: 'row' })).toBe(session.warbandColor('Dana'))
         expect(session.warbandColor('Dana')).not.toBe(session.warbandColor('Bea'))

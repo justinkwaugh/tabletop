@@ -101,7 +101,8 @@ export function played(table: PlayedTable, actions: readonly GameAction[]): Play
     return { state, actions: processed }
 }
 
-export function openSessionOn(table: PlayedTable): OathGameSession {
+/** Opens a session on the table and resolves once the platform has shown its opening state. */
+export async function openSessionOn(table: PlayedTable): Promise<OathGameSession> {
     const game = gameOf(table.state)
     const appContext = createHarnessAppContext(HARNESS_DEFINITION)
     const bridgedContext = new BridgedContext({
@@ -123,6 +124,7 @@ export function openSessionOn(table: PlayedTable): OathGameSession {
     })
     open.push(session)
     flushSync()
+    await session.waitForVisibleTransitionSettled()
     return session
 }
 

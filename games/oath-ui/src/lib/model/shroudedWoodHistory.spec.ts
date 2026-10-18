@@ -16,17 +16,17 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules, as the traveller re
         expect(actionName(ActionType.Travel)).toBe('Travel')
     })
 
-    it('with no site payable, the Travel tile says why', () => {
-        const session = openSessionOn(tableOf(shroudedWoodState(1, { inCradle: true })))
+    it('with no site payable, the Travel tile says why', async () => {
+        const session = await openSessionOn(tableOf(shroudedWoodState(1, { inCradle: true })))
         expect(session.validActionTypes).not.toContain(ActionType.Travel)
         expect(session.humanizeReason(reasonActionUnavailable(session.gameState, 'Dana', ActionType.Travel))).toBe('Rhys would pick where you go, and you can pay for no site: the cheapest is 2 Supply, you have 1')
     })
 
-    it('the Narrow Pass and The Hidden Place are picks like any other: with 1 Supply the tile is lit, as the engine allows', () => {
+    it('the Narrow Pass and The Hidden Place are picks like any other: with 1 Supply the tile is lit, as the engine allows', async () => {
         const state = shroudedWoodState(1)
         state.siteCards = { ...state.siteCards, c1: 'site.narrow-pass', c2: 'site.the-hidden-place' }
         expect(HydratedTravel.reasonCannotLeaveShroudedWood(state, 'Dana', {})).toBeUndefined()
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         expect(session.validActionTypes).toContain(ActionType.Travel)
         expect(gridRefusal(session.gameState, 'Dana', ActionType.Travel)).toBeUndefined()
         session.chooseAction(ActionType.Travel)
