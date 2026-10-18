@@ -1,6 +1,6 @@
 # Stellar Horizons II campaign: plan
 
-Status: proposed 2026-10-17. Decisions 1 and 3 agreed 2026-10-17; decision 2's pact rules settled 2026-10-18, with the engine's Common Actions still under discussion. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
+Status: proposed 2026-10-17. Decisions 1 and 3 agreed 2026-10-17; decision 2 agreed 2026-10-18, with Common Actions in the engine. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
 
 ## What the campaign adds
 
@@ -119,5 +119,5 @@ The rulebook leaves these open. Each is decided in its slice, recorded in `docs/
 ## Decisions
 
 1. **Cargo transfer and trade in the campaign.** Agreed 2026-10-17: the whole phase on the Main Line in initiative order, because selling takes the shared demand marker and the rulebook lets a Player sell and then buy settlements in either order. The alternative keeps cargo as an Ordered span and adds a trade step on the Main Line after it, which is faster online but stops a Player selling first and spending the money on settlements in the same phase.
-2. **Joint resolution** as the pacts above, for the campaign and for These are the Voyages. The pact rules were settled 2026-10-18; what remains open is in the Common Actions decisions of `docs/parallel-spans.md`.
+2. **Joint resolution** as the pacts above, for the campaign and for These are the Voyages. Agreed 2026-10-18, with every Common Actions decision in `docs/parallel-spans.md`.
 3. **The slice order** above. Agreed 2026-10-17.
