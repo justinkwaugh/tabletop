@@ -19,6 +19,10 @@ import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedMoveShip, isMoveShip } from '../actions/moveShip.js'
 import { HydratedPassTerraform, isPassTerraform } from '../actions/passTerraform.js'
+import {
+    HydratedPlaceRewardSettlements,
+    isPlaceRewardSettlements
+} from '../actions/placeRewardSettlements.js'
 import { HydratedPlaceStartingBase, isPlaceStartingBase } from '../actions/placeStartingBase.js'
 import { HydratedRepairShip, isRepairShip } from '../actions/repairShip.js'
 import { HydratedResolveAnomaly, isResolveAnomaly } from '../actions/resolveAnomaly.js'
@@ -80,6 +84,8 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedAttemptAnomaly(data)
             case isResolveAnomaly(data):
                 return new HydratedResolveAnomaly(data)
+            case isPlaceRewardSettlements(data):
+                return new HydratedPlaceRewardSettlements(data)
             case isDevelopTech(data):
                 return new HydratedDevelopTech(data)
             case isResolveSurvey(data):

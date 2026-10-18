@@ -141,7 +141,7 @@ export const CAMPAIGN: ScenarioDefinition = {
     evenDecadeIncome: 0,
     settlementCost: 5,
     terraforming: true,
-    anomalies: { chance: 20, rewards: false },
+    anomalies: { chance: 20, rewards: true },
     campaign: {
         setAsideWorlds: {
             [WorldClass.M]: 8,

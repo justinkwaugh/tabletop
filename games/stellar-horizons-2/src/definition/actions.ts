@@ -26,6 +26,7 @@ export enum ActionType {
     AttemptAnomaly = 'AttemptAnomaly',
     DevelopTech = 'DevelopTech',
     ResolveAnomaly = 'ResolveAnomaly',
+    PlaceRewardSettlements = 'PlaceRewardSettlements',
     ResolveSurvey = 'ResolveSurvey',
     ChooseSurveyWorld = 'ChooseSurveyWorld',
     Terraform = 'Terraform',

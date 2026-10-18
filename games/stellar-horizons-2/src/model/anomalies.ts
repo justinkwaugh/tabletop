@@ -1,9 +1,11 @@
 import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import {
+    AnomalyBackKind,
     AnomalyChallenge,
     anomalyDefinition,
-    type AnomalyDefinition
+    type AnomalyDefinition,
+    type BaseEffects
 } from '../components/anomalies.js'
 import { shipDefinition } from '../components/ships.js'
 import { factionAbilities, gainInfluence } from './campaign.js'
@@ -24,8 +26,30 @@ export function systemAnomaly(
     state: HydratedStellarHorizonsGameState,
     systemId: string
 ): AnomalyDefinition | undefined {
-    const anomalyId = state.systemState(systemId).anomaly
-    return anomalyId === undefined ? undefined : anomalyDefinition(anomalyId)
+    const system = state.systemState(systemId)
+    return system.anomaly === undefined || system.anomalyResolved
+        ? undefined
+        : anomalyDefinition(system.anomaly)
+}
+
+// The anomaly turned over in a system, whose back gives bases there a permanent effect.
+export function resolvedAnomaly(
+    state: HydratedStellarHorizonsGameState,
+    systemId: string
+): AnomalyDefinition | undefined {
+    const system = state.systemState(systemId)
+    return system.anomaly !== undefined && system.anomalyResolved
+        ? anomalyDefinition(system.anomaly)
+        : undefined
+}
+
+// What the anomaly turned over in a system does for bases there (rulebook 1.16).
+export function baseEffects(
+    state: HydratedStellarHorizonsGameState,
+    systemId: string
+): BaseEffects {
+    const back = resolvedAnomaly(state, systemId)?.back
+    return back?.kind === AnomalyBackKind.Bases ? back.effects : {}
 }
 
 export function blocksExploration(state: HydratedStellarHorizonsGameState, systemId: string) {
@@ -218,11 +242,14 @@ export function resolveNextAnomalyAttempt(
     const player = nextAttempter(state)
     const [attempt, ...remaining] = player.anomalyAttempts
     player.anomalyAttempts = remaining
-    const system = state.systemState(attempt.systemId)
-    const resolved = system.anomaly === attempt.anomalyId
+    const resolved = systemAnomaly(state, attempt.systemId)?.id === attempt.anomalyId
     if (resolved) {
-        system.anomaly = undefined
         player.anomalies.push(attempt.anomalyId)
+        // Without rewards the resolver keeps the tile (These are the Voyages); with them it is
+        // turned over where it lies.
+        if (!usesAnomalyRewards(state)) {
+            state.systemState(attempt.systemId).anomaly = undefined
+        }
     }
     return { playerId: player.playerId, ...attempt, resolved }
 }

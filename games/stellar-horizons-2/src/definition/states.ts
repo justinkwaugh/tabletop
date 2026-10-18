@@ -21,6 +21,7 @@ export enum MachineState {
     Exploring = 'Exploring',
     SettlingExplorations = 'SettlingExplorations',
     ResolvingAnomalies = 'ResolvingAnomalies',
+    PlacingRewardSettlements = 'PlacingRewardSettlements',
     ResolvingSurveys = 'ResolvingSurveys',
     ChoosingSurveyWorld = 'ChoosingSurveyWorld',
     DevelopmentPhase = 'DevelopmentPhase',

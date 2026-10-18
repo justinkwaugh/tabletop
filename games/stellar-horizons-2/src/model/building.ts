@@ -1,6 +1,6 @@
 import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { ShipKind, factionShips, shipDefinition, type ShipDefinition } from '../components/ships.js'
-import { blocksBases } from './anomalies.js'
+import { baseEffects, blocksBases } from './anomalies.js'
 import { atShipLimit } from './campaign.js'
 import { capabilitiesOf, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
@@ -33,6 +33,17 @@ export function shipsAvailableToBuild(
     )
 }
 
+// Nanobot Swarm's back makes ships built at a base in its system $1B cheaper.
+export function buildCost(
+    state: HydratedStellarHorizonsGameState,
+    shipId: string,
+    systemId: string
+): number {
+    const reduction =
+        systemId === SOL_SYSTEM_ID ? 0 : (baseEffects(state, systemId).shipCostReduction ?? 0)
+    return Math.max(0, shipDefinition(shipId).cost - reduction)
+}
+
 export function buildLocations(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
@@ -41,7 +52,11 @@ export function buildLocations(
     const cost = shipDefinition(shipId).cost
     const bases = state
         .basesOf(playerId)
-        .filter((base) => base.settlements >= cost && base.spent + cost <= base.settlements)
+        .filter(
+            (base) =>
+                base.settlements >= cost &&
+                base.spent + buildCost(state, shipId, base.systemId) <= base.settlements
+        )
         .map((base) => base.systemId)
     return [SOL_SYSTEM_ID, ...bases]
 }
@@ -52,10 +67,9 @@ export function canBuildShip(
     shipId: string,
     systemId: string
 ): boolean {
-    const definition = shipDefinition(shipId)
     return (
         shipsAvailableToBuild(state, playerId).some((candidate) => candidate.id === shipId) &&
-        state.getPlayerState(playerId).cash >= definition.cost &&
+        state.getPlayerState(playerId).cash >= buildCost(state, shipId, systemId) &&
         buildLocations(state, playerId, shipId).includes(systemId)
     )
 }

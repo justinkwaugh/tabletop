@@ -5,10 +5,9 @@ import {
     isResolveAnomaly
 } from '../actions/resolveAnomaly.js'
 import type { ActionType } from '../definition/actions.js'
-import { MachineState } from '../definition/states.js'
-import { anyAnomalyAttempts } from '../model/anomalies.js'
+import type { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { stateAfterAnomalies } from './transitions.js'
+import { stateAfterAnomaly } from './transitions.js'
 
 export class ResolvingAnomaliesStateHandler implements MachineStateHandler<
     HydratedResolveAnomaly,
@@ -34,9 +33,6 @@ export class ResolvingAnomaliesStateHandler implements MachineStateHandler<
         _action: HydratedResolveAnomaly,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        const state = context.gameState
-        return anyAnomalyAttempts(state)
-            ? MachineState.ResolvingAnomalies
-            : stateAfterAnomalies(state)
+        return stateAfterAnomaly(context.gameState)
     }
 }

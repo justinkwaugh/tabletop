@@ -23,6 +23,7 @@ import { EndOfTurnStateHandler } from '../stateHandlers/endOfTurn.js'
 import { ExploringStateHandler } from '../stateHandlers/exploring.js'
 import { MovingStateHandler } from '../stateHandlers/moving.js'
 import { PhaseStateHandler } from '../stateHandlers/phase.js'
+import { PlacingRewardSettlementsStateHandler } from '../stateHandlers/placingRewardSettlements.js'
 import { PlacingStartingBasesStateHandler } from '../stateHandlers/placingStartingBases.js'
 import { ResolvingAnomaliesStateHandler } from '../stateHandlers/resolvingAnomalies.js'
 import { ResolvingSurveysStateHandler } from '../stateHandlers/resolvingSurveys.js'
@@ -57,6 +58,7 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.Exploring]: new ExploringStateHandler(),
     [MachineState.SettlingExplorations]: new SettlingExplorationsStateHandler(),
     [MachineState.ResolvingAnomalies]: new ResolvingAnomaliesStateHandler(),
+    [MachineState.PlacingRewardSettlements]: new PlacingRewardSettlementsStateHandler(),
     [MachineState.ResolvingSurveys]: new ResolvingSurveysStateHandler(),
     [MachineState.ChoosingSurveyWorld]: new ChoosingSurveyWorldStateHandler(),
     [MachineState.DevelopmentPhase]: new PhaseStateHandler(TurnPhase.Development),

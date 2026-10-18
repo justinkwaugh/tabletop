@@ -11,6 +11,7 @@ import { EndPhase } from '../actions/endPhase.js'
 import { EndTurn } from '../actions/endTurn.js'
 import { Explore } from '../actions/explore.js'
 import { MoveShip } from '../actions/moveShip.js'
+import { PlaceRewardSettlements } from '../actions/placeRewardSettlements.js'
 import { PlaceStartingBase } from '../actions/placeStartingBase.js'
 import { PassTerraform } from '../actions/passTerraform.js'
 import { RepairShip } from '../actions/repairShip.js'
@@ -52,6 +53,7 @@ export const StellarHorizonsApiActions = {
     [ActionType.AttemptAnomaly]: AttemptAnomaly,
     [ActionType.DevelopTech]: DevelopTech,
     [ActionType.ResolveAnomaly]: ResolveAnomaly,
+    [ActionType.PlaceRewardSettlements]: PlaceRewardSettlements,
     [ActionType.ResolveSurvey]: ResolveSurvey,
     [ActionType.ChooseSurveyWorld]: ChooseSurveyWorld,
     [ActionType.Terraform]: Terraform,

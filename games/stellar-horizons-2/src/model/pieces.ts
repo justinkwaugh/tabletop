@@ -13,7 +13,8 @@ export const SystemState = Type.Object({
     systemId: Type.String(),
     explorationMarker: Type.Number(),
     worlds: Type.Array(WorldPlacement),
-    anomaly: Type.Optional(Type.String())
+    anomaly: Type.Optional(Type.String()),
+    anomalyResolved: Type.Optional(Type.Boolean())
 })
 
 export type ShipState = Type.Static<typeof ShipState>
@@ -79,6 +80,14 @@ export const PendingAnomalyAttempt = Type.Object({
     systemId: Type.String(),
     anomalyId: Type.String(),
     shipIds: Type.Array(Type.String())
+})
+
+// Settlements an anomaly's reward gives, waiting to be placed (rulebook 1.16).
+export type SettlementReward = Type.Static<typeof SettlementReward>
+export const SettlementReward = Type.Object({
+    playerId: Type.String(),
+    systemId: Type.String(),
+    settlements: Type.Number()
 })
 
 export type SurveyWorldChoice = Type.Static<typeof SurveyWorldChoice>

@@ -20,6 +20,7 @@ import {
     SystemState,
     TechPools,
     TerraformChoice,
+    SettlementReward,
     TerraformRecord,
     baseKey
 } from './pieces.js'
@@ -43,6 +44,7 @@ export const StellarHorizonsGameState = Type.Object({
     terraformQueue: Type.Array(Type.String()),
     terraformChoice: Type.Optional(TerraformChoice),
     terraformedWorlds: Type.Array(TerraformRecord),
+    settlementReward: Type.Optional(SettlementReward),
     setAsideWorlds: Type.Array(Type.String()),
     economicTilePool: Type.Array(Type.Enum(EconomicTile)),
     economicTile: Type.Optional(Type.Enum(EconomicTile))
@@ -92,6 +94,7 @@ export class HydratedStellarHorizonsGameState
     declare terraformQueue: string[]
     declare terraformChoice?: TerraformChoice
     declare terraformedWorlds: TerraformRecord[]
+    declare settlementReward?: SettlementReward
     declare setAsideWorlds: string[]
     declare economicTilePool: EconomicTile[]
     declare economicTile?: EconomicTile

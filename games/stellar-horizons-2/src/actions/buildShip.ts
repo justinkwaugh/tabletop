@@ -2,8 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { shipDefinition } from '../components/ships.js'
-import { canBuildAnyShip, canBuildShip } from '../model/building.js'
+import { buildCost, canBuildAnyShip, canBuildShip } from '../model/building.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
 export type BuildShip = Type.Static<typeof BuildShip>
@@ -39,7 +38,7 @@ export class HydratedBuildShip extends HydratableAction<typeof BuildShip> implem
         if (!canBuildShip(state, this.playerId, this.shipId, this.systemId)) {
             throw Error('Invalid BuildShip action')
         }
-        const cost = shipDefinition(this.shipId).cost
+        const cost = buildCost(state, this.shipId, this.systemId)
         state.getPlayerState(this.playerId).cash -= cost
         const base = state.base(this.playerId, this.systemId)
         if (base) {

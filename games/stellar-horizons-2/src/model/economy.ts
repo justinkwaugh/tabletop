@@ -4,7 +4,7 @@ import { baseProductionRow } from '../components/factionSheets.js'
 import { ECONOMIC_TILES, EconomicTile } from '../components/economicTiles.js'
 import { TECH_FIELDS } from '../components/techFields.js'
 import { worldFace } from '../components/worlds.js'
-import { blocksBases } from './anomalies.js'
+import { baseEffects, blocksBases } from './anomalies.js'
 import { effectiveHabitability, factionAbilities } from './campaign.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { CASH_PRODUCTION, Production, type Base } from './pieces.js'
@@ -88,9 +88,18 @@ export function productionYield(
     base: Base,
     production: Production
 ): number {
-    const row = baseProductionRow(base.settlements)
+    const effects = baseEffects(state, base.systemId)
+    const row = baseProductionRow(
+        effects.settlementsDoubledForProduction ? base.settlements * 2 : base.settlements
+    )
+    const anomaly =
+        production === CASH_PRODUCTION
+            ? (effects.cashProduction ?? 0)
+            : effects.markerProduction?.fields.includes(production)
+              ? effects.markerProduction.count
+              : 0
     const bonus = production === CASH_PRODUCTION ? row.cashBonus : row.techBonus
-    return productionValue(state, base.systemId, production) + bonus
+    return productionValue(state, base.systemId, production) + bonus + anomaly
 }
 
 // A base in a system with a "no bases" anomaly produces nothing until it is resolved (1.16).
@@ -123,8 +132,25 @@ export const BaseProductionResult = Type.Object({
     production: Production,
     amount: Type.Number(),
     markers: Type.Array(Type.Number()),
-    cash: Type.Number()
+    cash: Type.Number(),
+    settlements: Type.Number()
 })
+
+// Hostile Xenomorphs take a settlement during production; Symbiotic Spores add one after it,
+// even above the population limit.
+function settleProductionEffects(state: HydratedStellarHorizonsGameState, base: Base): number {
+    const effects = baseEffects(state, base.systemId)
+    for (let loss = 0; loss < (effects.settlementLossInProduction ?? 0); loss++) {
+        if (state.base(base.playerId, base.systemId)) {
+            removeBaseSettlement(state, base.playerId, base.systemId)
+        }
+    }
+    const gain = effects.settlementAfterProduction ?? 0
+    if (gain > 0 && state.base(base.playerId, base.systemId)) {
+        addSettlements(state, base.playerId, base.systemId, gain)
+    }
+    return gain - (effects.settlementLossInProduction ?? 0)
+}
 
 function payCash(state: HydratedStellarHorizonsGameState, playerId: string, amount: number) {
     state.getPlayerState(playerId).cash += amount
@@ -147,7 +173,16 @@ export function produceAtBases(state: HydratedStellarHorizonsGameState): BasePro
                 production === CASH_PRODUCTION
                     ? payCash(state, playerId, amount)
                     : awardTechMarkers(state, playerId, production, amount)
-            results.push({ playerId, systemId: base.systemId, production, amount, markers, cash })
+            const settlements = settleProductionEffects(state, base)
+            results.push({
+                playerId,
+                systemId: base.systemId,
+                production,
+                amount,
+                markers,
+                cash,
+                settlements
+            })
         }
     }
     return results
@@ -172,7 +207,8 @@ export function systemPopulationLimit(
     const rivals = state
         .allBases()
         .filter((base) => base.systemId === systemId && base.playerId !== playerId).length
-    return worlds - POPULATION_LIMIT_PER_RIVAL * rivals
+    const tunnels = baseEffects(state, systemId).populationLimit ?? 0
+    return worlds + tunnels - POPULATION_LIMIT_PER_RIVAL * rivals
 }
 
 export function totalSettlements(state: HydratedStellarHorizonsGameState, playerId: string) {
@@ -186,7 +222,8 @@ export function migrationChance(
     behindLeader: number
 ): number {
     const bonus = Math.floor(Math.max(0, behindLeader) / CATCH_UP_STEP) * CATCH_UP_BONUS
-    return Math.min(MAX_CHANCE, effectiveHabitability(state, playerId, systemId) + bonus)
+    const anomaly = baseEffects(state, systemId).migrationHabitability ?? 0
+    return Math.min(MAX_CHANCE, effectiveHabitability(state, playerId, systemId) + anomaly + bonus)
 }
 
 export type GrowthResult = Type.Static<typeof GrowthResult>
@@ -233,7 +270,10 @@ export function growSettlements(state: HydratedStellarHorizonsGameState): Growth
                 base.systemId,
                 leader - startTotals[playerId]
             )
-            const migration = migrationRoll <= chance ? 1 : 0
+            // Stunning Vistas add a settlement in migration, within the limit like the rest.
+            const migration =
+                (migrationRoll <= chance ? 1 : 0) +
+                (baseEffects(state, base.systemId).migrationSettlement ?? 0)
             const limit = systemPopulationLimit(state, playerId, base.systemId)
             const after = Math.max(before, Math.min(limit, before + growth + migration))
             base.settlements = after
