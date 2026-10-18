@@ -24,6 +24,9 @@ import { StartPhase } from '../actions/startPhase.js'
 import { StartTurn } from '../actions/startTurn.js'
 import { Terraform } from '../actions/terraform.js'
 import { TransferCargo } from '../actions/transferCargo.js'
+import { Mine } from '../actions/mine.js'
+import { Research } from '../actions/research.js'
+import { SettleSyndicateTakes } from '../actions/settleSyndicateTakes.js'
 import { DrawEconomicTile } from '../actions/drawEconomicTile.js'
 import { DeclareInitiative } from '../actions/declareInitiative.js'
 import { RollInitiative } from '../actions/rollInitiative.js'
@@ -68,5 +71,8 @@ export const StellarHorizonsApiActions = {
     [ActionType.ConvertSettlement]: ConvertSettlement,
     [ActionType.PassConversion]: PassConversion,
     [ActionType.SpendInfluence]: SpendInfluence,
+    [ActionType.Mine]: Mine,
+    [ActionType.Research]: Research,
+    [ActionType.SettleSyndicateTakes]: SettleSyndicateTakes,
     [ActionType.EndTurn]: EndTurn
 }

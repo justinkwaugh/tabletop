@@ -57,8 +57,23 @@ export const TechPools = Type.Object({
 
 export enum MarkerReason {
     Exploration = 'Exploration',
-    Loss = 'Loss'
+    Loss = 'Loss',
+    Research = 'Research'
 }
+
+export enum OperationKind {
+    Mining = 'Mining',
+    Research = 'Research'
+}
+
+// A mining or research action this turn (rulebook 1.17), kept for the once-per-system limit and
+// the Syndicate's take.
+export type Operation = Type.Static<typeof Operation>
+export const Operation = Type.Object({
+    shipId: Type.String(),
+    systemId: Type.String(),
+    kind: Type.Enum(OperationKind)
+})
 
 export type EarnedMarkers = Type.Static<typeof EarnedMarkers>
 export const EarnedMarkers = Type.Object({

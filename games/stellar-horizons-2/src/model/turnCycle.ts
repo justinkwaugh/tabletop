@@ -29,6 +29,7 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
         player.cash += income
         player.remoteRepairUsed = false
         player.fieldsDeveloped = []
+        player.operations = []
     }
     return { income, arrivedShipIds }
 }

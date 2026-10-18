@@ -5,6 +5,8 @@ import { canDevelopAnyTech } from './development.js'
 import { canExploreAnyShip } from './exploration.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { canMoveAnyShip } from './movement.js'
+import { canOperateAnyShip } from './operations.js'
+import { OperationKind } from './pieces.js'
 import { TurnPhase } from './turn.js'
 
 // A phase ends by itself once the player can do nothing more in it. Exploring is the exception:
@@ -29,6 +31,8 @@ export function isIdleInPhase(
             return (
                 !canExploreAnyShip(state, playerId) &&
                 attemptableSystemIds(state, playerId).length === 0 &&
+                !canOperateAnyShip(state, playerId, OperationKind.Mining) &&
+                !canOperateAnyShip(state, playerId, OperationKind.Research) &&
                 !hasExploredThisDecade(state, playerId)
             )
         case TurnPhase.Development:
@@ -41,5 +45,9 @@ export function isIdleInPhase(
 
 function hasExploredThisDecade(state: HydratedStellarHorizonsGameState, playerId: string) {
     const player = state.getPlayerState(playerId)
-    return player.earnedMarkers.length > 0 || player.anomalyAttempts.length > 0
+    return (
+        player.earnedMarkers.length > 0 ||
+        player.anomalyAttempts.length > 0 ||
+        player.operations.length > 0
+    )
 }

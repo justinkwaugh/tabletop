@@ -24,6 +24,7 @@ export interface FactionAbilities {
     anomalyChance?: number
     scienceAnomalyDifficulty?: number
     combatAnomalyDifficulty?: number
+    takesFromOperations?: true
     extraTerraforms?: number
     habitabilityBonus?: number
     converts?: true
@@ -163,7 +164,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
             ship('syndicate-viper', 'barnards-star', 1),
             ship('syndicate-cobra', 'luhman-16', 2)
         ],
-        abilities: { combatAnomalyDifficulty: -2 }
+        abilities: { combatAnomalyDifficulty: -2, takesFromOperations: true }
     },
     {
         faction: Faction.Transhumanists,

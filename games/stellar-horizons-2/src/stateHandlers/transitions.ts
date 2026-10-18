@@ -4,6 +4,7 @@ import { MachineState } from '../definition/states.js'
 import { anyAnomalyAttempts } from '../model/anomalies.js'
 import { isCampaign } from '../model/campaign.js'
 import { converters } from '../model/economy.js'
+import { pendingSyndicateTakes } from '../model/operations.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { playersWithEarnedMarkers } from '../model/settlement.js'
 import { anyPendingSurveys } from '../model/surveys.js'
@@ -82,6 +83,12 @@ export function stateAfterExploring(state: HydratedStellarHorizonsGameState): Ma
 }
 
 export function stateAfterSettlement(state: HydratedStellarHorizonsGameState): MachineState {
+    return pendingSyndicateTakes(state).length > 0
+        ? MachineState.SettlingSyndicateTakes
+        : stateAfterSyndicateTakes(state)
+}
+
+export function stateAfterSyndicateTakes(state: HydratedStellarHorizonsGameState): MachineState {
     return anyAnomalyAttempts(state) ? MachineState.ResolvingAnomalies : stateAfterAnomalies(state)
 }
 

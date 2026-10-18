@@ -73,6 +73,7 @@ export class StellarHorizonsGameInitializer
                     anomalyAttempts: [],
                     anomalies: [],
                     influence: 0,
+                    operations: [],
                     explorationMarkers: 0
                 })
         )
