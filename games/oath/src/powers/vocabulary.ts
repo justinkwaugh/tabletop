@@ -334,6 +334,36 @@ export function moveWarbandsBoardToSite(
     return moved
 }
 
+/**
+ * R-6.5 — the state a run of `playerId`'s warband moves is checked on: the warbands at sites and on
+ * their board are copied and every other read goes to `state`, so the check reads nothing their own
+ * view lacks (a whole-state copy reads host-only and hidden values). Other writes are refused.
+ */
+export function warbandMovesOverlay(
+    state: HydratedOathGameState,
+    playerId: string
+): HydratedOathGameState {
+    const mover = state.getPlayerState(playerId)
+    const board = withOverrides(mover, { warbandsOnBoard: { ...mover.warbandsOnBoard } })
+    const warbandsBySite: Record<string, WarbandCounts> = Object.fromEntries(
+        Object.entries(state.warbandsBySite).map(([siteId, counts]) => [siteId, { ...counts }])
+    )
+    return withOverrides(state, {
+        players: state.players.map((player) => (player.playerId === playerId ? board : player)),
+        warbandsBySite
+    })
+}
+
+function withOverrides<T extends object>(target: T, overrides: Partial<T>): T {
+    return new Proxy(target, {
+        get: (from, property, receiver) =>
+            Object.hasOwn(overrides, property)
+                ? Reflect.get(overrides, property)
+                : Reflect.get(from, property, receiver),
+        set: () => false
+    })
+}
+
 /** R-6.5 — never the last warband at the site, which keeps rule of the site stable. */
 export function moveWarbandsSiteToBoard(
     state: HydratedOathGameState,

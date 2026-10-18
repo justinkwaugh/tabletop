@@ -34,6 +34,7 @@ import {
 import {
     moveWarbandsBoardToSite,
     moveWarbandsSiteToBoard,
+    warbandMovesOverlay,
     otherPlayersAtYourSite,
     regionOfPawn
 } from './vocabulary.js'
@@ -184,10 +185,11 @@ registerBattlePlan(WARNING_SIGNALS, powerIndexOf(WARNING_SIGNALS, PowerTiming.Ba
             sequential: true
         })
     ]).flat(),
-    stateAfter: (ctx) => warningSignalsOnCopy(ctx.state, ctx.playerId, ctx.choices).state,
+    stateAfter: (ctx) => warningSignalsChecked(ctx.state, ctx.playerId, ctx.choices).state,
     hooks: {
         discardAtEnd: true,
-        reasonCannotUse: (ctx) => warningSignalsOnCopy(ctx.state, ctx.playerId, ctx.choices).reason,
+        reasonCannotUse: (ctx) =>
+            warningSignalsChecked(ctx.state, ctx.playerId, ctx.choices).reason,
         onUse: (ctx) => {
             const { playerId, choices } = ctx
             const notes: string[] = []
@@ -228,21 +230,21 @@ function isBoardGroup(choice: PowerChoice | undefined): boolean {
     return choice?.kind === PowerChoiceKind.Warbands && choice.group.at.kind === 'board'
 }
 
-function warningSignalsOnCopy(
+function warningSignalsChecked(
     state: HydratedOathGameState,
     playerId: string,
     choices: readonly PowerChoice[]
 ): { state: HydratedOathGameState; reason?: string } {
-    const copy = new HydratedOathGameState(state.dehydrate())
-    return { state: copy, reason: applyWarningSignals(copy, playerId, choices, true).reason }
+    const after = warbandMovesOverlay(state, playerId)
+    return { state: after, reason: applyWarningSignals(after, playerId, choices, true).reason }
 }
 
 /**
- * R-6.5 with the card's text — the moves in turn. Checked (the declaration, on a copy): refused at
- * the first move the rules or the warbands there do not allow. Unchecked (the plan's use, as it
- * always was): each move moves what it can.
+ * R-6.5 with the card's text — the moves in turn. Checked (the declaration, on an overlay of the
+ * warbands): refused at the first move the rules or the warbands there do not allow. Unchecked (the
+ * plan's use, as it always was): each move moves what it can.
  */
-function applyWarningSignals(
+export function applyWarningSignals(
     state: HydratedOathGameState,
     playerId: string,
     choices: readonly PowerChoice[],

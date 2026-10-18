@@ -403,7 +403,7 @@ export interface EffectDefinition {
     /** R-7.1.4 — the tolls its use owes, paid with its cost (Forced Labor on Oracle). */
     tollOccasion?: TollOccasion
     resolve: (ctx: EffectContext) => EffectResult
-    /** A copy of the state as `ctx.choices` leave it, which `sequential` choices are read on. */
+    /** The state `ctx.choices` leave, `ctx.state` unchanged: what `sequential` choices read. */
     stateAfter?: (ctx: EffectContext) => HydratedOathGameState
     /** R-7.4 — never read by the doorway. */
     modifier?: ModifierHooks
