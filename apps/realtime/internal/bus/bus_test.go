@@ -108,3 +108,42 @@ func killClient(t *testing.T, ctx context.Context, admin *redis.Client, name str
 	}
 	t.Fatalf("no redis client named %s", name)
 }
+
+func TestSubscriptionRequestsNeverWaitOnRedis(t *testing.T) {
+	b := New(Config{
+		Options:        &redis.Options{Addr: "192.0.2.1:6379", Protocol: 2, DialTimeout: 5 * time.Second},
+		CommandTimeout: time.Second,
+		Now:            time.Now,
+	})
+	b.setPubSub(b.client.Subscribe(context.Background()))
+
+	started := time.Now()
+	for range commandQueueSize {
+		if err := b.Subscribe("topic"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if elapsed := time.Since(started); elapsed > 100*time.Millisecond {
+		t.Fatalf("queueing subscriptions took %s", elapsed)
+	}
+	if err := b.Subscribe("topic"); err != errQueueFull {
+		t.Fatalf("got %v, want errQueueFull", err)
+	}
+}
+
+func TestCommandsFromAnEndedSessionAreDropped(t *testing.T) {
+	b := New(Config{Options: &redis.Options{Addr: "192.0.2.1:6379", Protocol: 2}, CommandTimeout: time.Second, Now: time.Now})
+	b.setPubSub(b.client.Subscribe(context.Background()))
+	sent := false
+	if err := b.enqueue(func(context.Context, *redis.PubSub) error {
+		sent = true
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	b.setPubSub(b.client.Subscribe(context.Background()))
+	b.execute(<-b.commands)
+	if sent {
+		t.Fatal("a command queued in an ended session was sent on the next one")
+	}
+}

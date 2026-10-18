@@ -156,3 +156,31 @@ it('fetches again when a load is requested while one is running', async () => {
     expect(getMyGames).toHaveBeenCalledTimes(2)
     expect(names(service)).toEqual(['later'])
 })
+
+it('keeps a game removed by a newer update when an older update arrives after it', async () => {
+    const { service, olderResponse, notify } = fixture()
+    const loading = service.loadGames()
+    const withoutUser = game('left', {
+        updatedAt: later,
+        players: [
+            { id: 'p1', userId: 'other', name: 'Other', status: PlayerStatus.Joined, isHuman: true }
+        ]
+    })
+    await notify(GameNotificationAction.Update, withoutUser)
+    await notify(GameNotificationAction.Update, game('left', { updatedAt: earlier }))
+    olderResponse.resolve([game('left', { updatedAt: new Date('2026-10-02T09:00:00Z') })])
+    await loading
+
+    expect(names(service)).toEqual([])
+})
+
+it('stores the list as replayed for the next page load', async () => {
+    const { service, olderResponse, notify } = fixture()
+    const loading = service.loadGames()
+    await notify(GameNotificationAction.Update, game('g', { name: 'renamed', updatedAt: later }))
+    olderResponse.resolve([game('g', { name: 'original', updatedAt: earlier })])
+    await loading
+
+    const stored = JSON.parse(localStorage.getItem('currentGames') ?? '{}')
+    expect(stored.games.map((storedGame: Game) => storedGame.name)).toEqual(['renamed'])
+})

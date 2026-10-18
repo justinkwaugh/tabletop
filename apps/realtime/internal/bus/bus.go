@@ -35,15 +35,31 @@ type Bus struct {
 	config   Config
 	client   *redis.Client
 	listener Listener
+	commands chan command
 
-	mu     sync.Mutex
-	pubsub *redis.PubSub
+	mu         sync.Mutex
+	pubsub     *redis.PubSub
+	generation uint64
 }
 
-var errNotConnected = errors.New("redis subscriber is not connected")
+type command struct {
+	generation uint64
+	send       func(context.Context, *redis.PubSub) error
+}
+
+const commandQueueSize = 4096
+
+var (
+	errNotConnected = errors.New("redis subscriber is not connected")
+	errQueueFull    = errors.New("redis command queue is full")
+)
 
 func New(config Config) *Bus {
-	return &Bus{config: config, client: redis.NewClient(config.Options)}
+	return &Bus{
+		config:   config,
+		client:   redis.NewClient(config.Options),
+		commands: make(chan command, commandQueueSize),
+	}
 }
 
 func (b *Bus) SetListener(listener Listener) {
@@ -51,18 +67,19 @@ func (b *Bus) SetListener(listener Listener) {
 }
 
 func (b *Bus) Subscribe(topic string) error {
-	return b.command(func(ctx context.Context, pubsub *redis.PubSub) error {
+	return b.enqueue(func(ctx context.Context, pubsub *redis.PubSub) error {
 		return pubsub.Subscribe(ctx, topic)
 	})
 }
 
 func (b *Bus) Unsubscribe(topic string) error {
-	return b.command(func(ctx context.Context, pubsub *redis.PubSub) error {
+	return b.enqueue(func(ctx context.Context, pubsub *redis.PubSub) error {
 		return pubsub.Unsubscribe(ctx, topic)
 	})
 }
 
 func (b *Bus) Run(ctx context.Context) {
+	go b.executeCommands(ctx)
 	backoff := b.config.MinBackoff
 	for ctx.Err() == nil {
 		connected := b.session(ctx)
@@ -142,24 +159,53 @@ func (b *Bus) ping(ctx context.Context, pubsub *redis.PubSub) {
 	}
 }
 
-func (b *Bus) command(send func(context.Context, *redis.PubSub) error) error {
-	b.mu.Lock()
-	pubsub := b.pubsub
-	b.mu.Unlock()
+func (b *Bus) enqueue(send func(context.Context, *redis.PubSub) error) error {
+	pubsub, generation := b.current()
 	if pubsub == nil {
 		return errNotConnected
 	}
+	select {
+	case b.commands <- command{generation: generation, send: send}:
+		return nil
+	default:
+		_ = pubsub.Close()
+		return errQueueFull
+	}
+}
+
+func (b *Bus) executeCommands(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case next := <-b.commands:
+			b.execute(next)
+		}
+	}
+}
+
+func (b *Bus) execute(next command) {
+	pubsub, generation := b.current()
+	if pubsub == nil || generation != next.generation {
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), b.config.CommandTimeout)
 	defer cancel()
-	if err := send(ctx, pubsub); err != nil {
+	if err := next.send(ctx, pubsub); err != nil {
+		slog.Warn("redis subscription command failed", "error", err)
 		_ = pubsub.Close()
-		return err
 	}
-	return nil
+}
+
+func (b *Bus) current() (*redis.PubSub, uint64) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.pubsub, b.generation
 }
 
 func (b *Bus) setPubSub(pubsub *redis.PubSub) {
 	b.mu.Lock()
 	b.pubsub = pubsub
+	b.generation++
 	b.mu.Unlock()
 }

@@ -350,7 +350,10 @@ func (h *Hub) control(payload string) {
 		slog.Error("malformed control message", "payload", payload, "error", err)
 		return
 	}
-	revokedAt := time.Unix(0, int64(message.At*float64(time.Second)))
+	revokedAt := h.config.Now()
+	if message.At > 0 {
+		revokedAt = time.Unix(0, int64(message.At*float64(time.Second)))
+	}
 	h.revocations[message.Revoke] = revokedAt
 	for _, conn := range slices.Clone(h.accounts[message.Revoke]) {
 		h.drop(conn)

@@ -160,6 +160,7 @@ export class GameService implements GameServiceInterface {
             this.loadingPromise = this.loadCurrentGames().finally(() => {
                 this.loading = false
                 this.loadingPromise = null
+                this.changesDuringLoad = undefined
             })
         }
         return this.loadingPromise
@@ -178,7 +179,6 @@ export class GameService implements GameServiceInterface {
             this.changesDuringLoad = changes
             fetched = await this.fetchCurrentGames(sessionUser)
             if (!fetched) {
-                this.changesDuringLoad = undefined
                 return
             }
         } while (this.reloadRequested)
@@ -201,12 +201,26 @@ export class GameService implements GameServiceInterface {
         this.replayChanges(changes)
         this.currentGamesFetched = true
         if (sessionUser) {
-            writeStoredValue(GameService.storedCurrentGamesKey, { userId: sessionUser.id, games })
+            writeStoredValue(GameService.storedCurrentGamesKey, {
+                userId: sessionUser.id,
+                games: [...this.gamesById.values()]
+            })
         }
     }
 
     private replayChanges(changes: GameListChange[]) {
-        for (const { game, removed } of changes) {
+        const newestByGame = new Map<string, GameListChange>()
+        for (const change of changes) {
+            const newest = newestByGame.get(change.game.id)
+            if (
+                !newest ||
+                change.removed ||
+                (!newest.removed && this.isNewer(change.game, newest.game))
+            ) {
+                newestByGame.set(change.game.id, change)
+            }
+        }
+        for (const { game, removed } of newestByGame.values()) {
             if (removed) {
                 this.removeFromPrivateCache(game.id)
                 continue

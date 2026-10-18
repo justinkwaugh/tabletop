@@ -470,3 +470,20 @@ func TestNonJSONPayloadsAreNotForwarded(t *testing.T) {
 		t.Fatalf("frames %q", got)
 	}
 }
+
+func TestARevocationWithoutATimeRevokesAsOfItsArrival(t *testing.T) {
+	arrival := issuedAt.Add(2 * time.Second)
+	h := newHarness(t, func(c *Config) { c.Now = func() time.Time { return arrival } })
+	conn := h.open("a", "global")
+	beforeArrival := h.registration("a", "global")
+	beforeArrival.IssuedAt = arrival.Add(-time.Second)
+
+	h.hub.Published(token.ControlChannel, `{"revoke":"a"}`)
+	h.settle()
+	if !isClosed(conn) {
+		t.Fatal("revoked connection still open")
+	}
+	if _, err := h.hub.Open(beforeArrival); !errors.Is(err, ErrRejected) {
+		t.Fatalf("token issued before the revocation arrived: got %v, want ErrRejected", err)
+	}
+}
