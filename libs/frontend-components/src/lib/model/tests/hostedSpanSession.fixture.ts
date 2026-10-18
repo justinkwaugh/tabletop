@@ -53,6 +53,7 @@ class Remote extends DummyRemoteApiService {
     onReplaced?: (startIndex: number) => Promise<void>
     pendingAcceptance?: Promise<void>
     syncChecks = 0
+    submissions = 0
 
     constructor(
         private readonly host: SpanHost,
@@ -155,6 +156,7 @@ class Remote extends DummyRemoteApiService {
     }
 
     async applyAction(_game: Game, action: GameAction) {
+        this.submissions += 1
         await this.pendingAcceptance
         const submission = this.host.submit(action)
         const unmergedBranch = this.project(submission.unmergedBranch)
@@ -1255,6 +1257,38 @@ export async function runHostedSpanCommonAction() {
             closedPlayerActs,
             settledAtSpanCompletion
         }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanCommonActionOwnSide() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        await p2.session.act('drop', 'd2', { itemId: 'start-p2' })
+        const submissionsBefore = p2.api.submissions
+        p2.session.shownKinds.length = 0
+
+        await p2.session.act('propose', 'o2', { partnerId: 'p1', itemId: 'start-p2' })
+        const refusedBeforeSubmitting =
+            p2.api.submissions === submissionsBefore &&
+            summary(t.host.actions).join() === 'begin:p1' &&
+            p2.session.shownKinds.length === 0
+        const keepsTheBranchView =
+            p2.session.spanState.offers.o2 === undefined &&
+            played(p2.session) === 'openBranch:p2,drop:p2' &&
+            p2.session.isMyTurn
+
+        await p2.session.act('chant', 'c2')
+        const playsOnAfterwards =
+            p2.api.submissions === submissionsBefore + 1 &&
+            summary(t.host.actions).join() === 'begin:p1,chant:p2' &&
+            p2.session.spanState.log.join() === 'span,chant:p2'
+        return { refusedBeforeSubmitting, keepsTheBranchView, playsOnAfterwards }
     } finally {
         t.dispose()
     }

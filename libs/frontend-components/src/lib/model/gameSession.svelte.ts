@@ -20,7 +20,9 @@ import {
     PlayerAction,
     GameStorage,
     assertExists,
+    branchFromView,
     createAction,
+    executeCommonAction,
     executeInLocalGame,
     isCommonAction,
     isCommonActionType,
@@ -79,6 +81,15 @@ import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 import type { Static, TSchema } from 'typebox'
 import { VersionChange } from '$lib/network/versionChecker.js'
 import { shouldInvalidateAdminActingPlayerChoice } from './adminActingPlayer.js'
+
+// A Common Action the Player's own Branch View shows to be unavailable, found before it is
+// applied or sent (Common Actions rule 5): refused here with a message rather than by the host.
+export class CommonActionRefusedError extends Error {
+    constructor(reason: string) {
+        super(reason)
+        this.name = 'CommonActionRefusedError'
+    }
+}
 
 export enum GameSessionMode {
     Play = 'play',
@@ -1273,6 +1284,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     relevantContext.restoreFrom(priorContext)
                 )
             }
+            if (e instanceof CommonActionRefusedError) {
+                toast.error(
+                    'That action is not available: it does not fit what you have already played'
+                )
+                return
+            }
             if (!this.isMajorChange()) {
                 toast.error(
                     e instanceof Error && e.name === 'RacedActionError'
@@ -1576,12 +1593,38 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     ): GameActionResults<T> {
         const perspective = this.projectedExecutionPerspective(context)
         const execution = { engine: this.engine, action, state, game }
+        const ownSide = this.ownSideToCheck(action, state, context)
+        if (ownSide !== undefined) {
+            const outcome = executeCommonAction({ ...execution, branch: ownSide, perspective })
+            if (outcome.kind === 'refused') throw new CommonActionRefusedError(outcome.reason)
+            return new GameActionResults(
+                outcome.result.processedActions,
+                outcome.result.updatedState
+            )
+        }
         const { processedActions, updatedState } = this.ownsHistory(context)
             ? executeInLocalGame(execution)
             : perspective === undefined
               ? this.engine.executeCanonicalAction(execution)
               : this.engine.executeAction({ ...execution, perspective })
         return new GameActionResults(processedActions, updatedState)
+    }
+
+    // A Common Action taken on the Main Line while the Player has an open Branch is checked
+    // against that Branch first, as the host checks it against the stored Branch (rule 5).
+    private ownSideToCheck(action: GameAction, state: T, context: GameContext<T, U>) {
+        const branch = this.ownBranch.context
+        const playerId = action.playerId
+        if (
+            context !== this.gameContext ||
+            branch === undefined ||
+            playerId === undefined ||
+            !isCommonActionType(this.runtime.apiActions, action.type) ||
+            !isRestingInSpan(state)
+        ) {
+            return undefined
+        }
+        return branchFromView(state, branch.state, playerId)
     }
 
     private ownsHistory(context: GameContext<T, U>): boolean {

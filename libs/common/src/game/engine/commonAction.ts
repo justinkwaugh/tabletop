@@ -23,6 +23,19 @@ import {
 } from './parallelSpan.js'
 import { createPatch } from './statePatch.js'
 import type { GameState, HydratedGameState, ParallelSpanState } from '../model/gameState.js'
+import type { Perspective } from '../visibility/valueProjector.js'
+
+// The Game Client checks a Player's own side on the states it holds, which are projected for
+// that Player, so it executes with their perspective; the host executes canonically.
+function executeFrom<T extends GameState, U extends HydratedGameState<T>>(
+    { engine, game, state }: MainLine<T, U>,
+    action: GameAction,
+    perspective: Perspective | undefined
+): ActionCascadeResult<T> {
+    return perspective === undefined
+        ? engine.executeCanonicalAction({ action, state, game })
+        : engine.executeAction({ action, state, game, perspective })
+}
 
 function sinceBranchPoint(actions: readonly GameAction[], span: ParallelSpanState): GameAction[] {
     return actions.filter((action) => {
@@ -82,13 +95,18 @@ export function executeInBranchView<T extends GameState, U extends HydratedGameS
     game,
     state,
     branch,
-    action
-}: MainLine<T, U> & { branch: Branch; action: GameAction }): ActionCascadeResult<T> {
-    return engine.executeCanonicalAction({
-        action: unprocessed(action),
-        state: branchView(state, branch),
-        game
-    })
+    action,
+    perspective
+}: MainLine<T, U> & {
+    branch: Branch
+    action: GameAction
+    perspective?: Perspective
+}): ActionCascadeResult<T> {
+    return executeFrom(
+        { engine, game, state: branchView(state, branch) },
+        unprocessed(action),
+        perspective
+    )
 }
 
 export type CommonActionOutcome<T extends GameState> =
@@ -99,18 +117,24 @@ export function executeCommonAction<T extends GameState, U extends HydratedGameS
     game,
     state,
     action,
-    branch
-}: MainLine<T, U> & { action: GameAction; branch?: Branch }): CommonActionOutcome<T> {
+    branch,
+    perspective
+}: MainLine<T, U> & {
+    action: GameAction
+    branch?: Branch
+    perspective?: Perspective
+}): CommonActionOutcome<T> {
+    const mainLine = { engine, game, state }
     if (branch === undefined) {
-        return { kind: 'executed', result: engine.executeCanonicalAction({ action, state, game }) }
+        return { kind: 'executed', result: executeFrom(mainLine, action, perspective) }
     }
     let inBranchView: ActionCascadeResult<T>
     try {
-        inBranchView = executeInBranchView({ engine, game, state, branch, action })
+        inBranchView = executeInBranchView({ ...mainLine, branch, action, perspective })
     } catch (error) {
         return { kind: 'refused', reason: `it is not valid in your Branch: ${errorMessage(error)}` }
     }
-    const result = engine.executeCanonicalAction({ action, state, game })
+    const result = executeFrom(mainLine, action, perspective)
     return sameRun(inBranchView.processedActions, result.processedActions)
         ? { kind: 'executed', result }
         : { kind: 'refused', reason: 'it runs differently in your Branch than on the Main Line' }

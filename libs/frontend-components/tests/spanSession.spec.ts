@@ -25,6 +25,7 @@ const scenarios = {
         'runHostedSpanUndoBehindTheMainLine',
         'runHostedSpanReopenBehindTheMainLine',
         'runHostedSpanCommonAction',
+        'runHostedSpanCommonActionOwnSide',
         'runHostedSpanCommonActionUndo',
         'runHostedSpanCommonActionRace'
     ]
