@@ -22,7 +22,7 @@ const HIDDEN_PLACE = 'site.the-hidden-place'
 type Seat = Partial<Parameters<typeof testPlayer>[0]>
 
 /** I stand at c1; The Hidden Place is c2; Ann rules the Shrouded Wood at h1, where Bo stands. */
-function asked(question: PowerQuestion, me: Seat = {}, oathRevision: number = OathRevision.EngineFixes11) {
+async function asked(question: PowerQuestion, me: Seat = {}, oathRevision: number = OathRevision.EngineFixes11) {
     const state = testState(
         [
             testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, ...me }),
@@ -43,7 +43,7 @@ function asked(question: PowerQuestion, me: Seat = {}, oathRevision: number = Oa
             }
         }
     )
-    const session = openSessionOn(tableOf(state))
+    const session = await openSessionOn(tableOf(state))
     const sent = vi.spyOn(session, 'answerQuestion').mockResolvedValue()
     return { session, draft: session.question, sent }
 }
@@ -68,7 +68,7 @@ const horse = (): PowerQuestion => ({
 
 describe('The Hidden Place — "Travel to The Hidden Place?": Travel · flip 1 [secret] / Stay', () => {
     it('Travel sends the flip, and Stay its refusal', async () => {
-        const { draft, sent } = asked(flipQuestion())
+        const { draft, sent } = await asked(flipQuestion())
         expect(draft.acceptComplete).toBe(true)
         expect(draft.acceptRefusedBecause).toBeUndefined()
         await draft.accept()
@@ -77,15 +77,15 @@ describe('The Hidden Place — "Travel to The Hidden Place?": Travel · flip 1 [
         expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.FlipToTravel, flip: false })
     })
 
-    it('with no faceup secret left, the engine refuses the flip and says why', () => {
-        const { draft } = asked(flipQuestion(), { secrets: 0 })
+    it('with no faceup secret left, the engine refuses the flip and says why', async () => {
+        const { draft } = await asked(flipQuestion(), { secrets: 0 })
         expect(draft.acceptRefusedBecause).toBe('you have no faceup secret to flip')
     })
 })
 
 describe('the Brass Horse offers The Hidden Place with its flip', () => {
     it('marks The Hidden Place alone as flipping, and its answer carries the flip', async () => {
-        const { draft, sent } = asked(horse())
+        const { draft, sent } = await asked(horse())
         expect(draft.travelFlipAt('c2')).toBe(true)
         expect(draft.travelFlipAt('p1')).toBe(false)
         await draft.travelTo('c2')
@@ -94,8 +94,8 @@ describe('the Brass Horse offers The Hidden Place with its flip', () => {
         expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.TravelFreeTo, siteId: 'p1' })
     })
 
-    it('in a game created before revision 15 nothing flips', () => {
-        const { draft } = asked(horse(), {}, OathRevision.EngineFixes10)
+    it('in a game created before revision 15 nothing flips', async () => {
+        const { draft } = await asked(horse(), {}, OathRevision.EngineFixes10)
         expect(draft.travelFlipAt('c2')).toBe(false)
     })
 })
@@ -111,7 +111,7 @@ describe("the Shrouded Wood's ruler after the Brass Horse picks only among the H
     })
 
     it('offers the allowed sites and sends nothing for another', async () => {
-        const { draft, sent } = asked(pick(['c2', 'p1']))
+        const { draft, sent } = await asked(pick(['c2', 'p1']))
         expect(draft.woodDestinations).toEqual(['c2', 'p1'])
         await draft.sendThrough('c1')
         expect(sent).not.toHaveBeenCalled()
@@ -119,8 +119,8 @@ describe("the Shrouded Wood's ruler after the Brass Horse picks only among the H
         expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'p1' })
     })
 
-    it('after the Whistle (no set) every site the pawn can travel to', () => {
-        const { draft } = asked(pick())
+    it('after the Whistle (no set) every site the pawn can travel to', async () => {
+        const { draft } = await asked(pick())
         expect(draft.woodDestinations).toEqual(expect.arrayContaining(['c1', 'c2', 'p1']))
         expect(draft.woodDestinations).not.toContain('h1')
     })

@@ -13,16 +13,16 @@ afterEach(() => {
 
 const { drownedCity, plains, wood, greatSlum, river, mountain, hiddenPlace, wastes } = WOOD_SLOTS
 
-function sessionOf(table: ReturnType<typeof woodPickTable>) {
-    const session = openSessionOn(table)
+async function sessionOf(table: ReturnType<typeof woodPickTable>) {
+    const session = await openSessionOn(table)
     const sent = vi.spyOn(session, 'answerQuestion').mockResolvedValue()
     return { session, sent }
 }
 
 /** Dana has set out from Bea's Wood declaring `cards`; Bea's view. */
-function rulerOfOwnTravel(scene: WoodCardsScene, cards: string[]) {
+async function rulerOfOwnTravel(scene: WoodCardsScene, cards: string[]) {
     const state = woodCardsState(scene)
-    return sessionOf(
+    return await sessionOf(
         played(tableOf(state), [
             createAction(Travel, {
                 gameId: state.gameId,
@@ -36,7 +36,7 @@ function rulerOfOwnTravel(scene: WoodCardsScene, cards: string[]) {
 
 const scene = (name: WoodPickScene) => sessionOf(woodPickTable(name))
 
-type Session = ReturnType<typeof sessionOf>['session']
+type Session = Awaited<ReturnType<typeof sessionOf>>['session']
 
 const offered = (session: Session) =>
     session.siteOffers.flatMap((offer) => (offer.intent === 'question' ? [offer.slotId] : [])).sort()
@@ -50,8 +50,8 @@ const opening = (session: Session) => {
 const anySite = (session: Session) => [...shroudedWoodDestinations(session.gameState, 'Dana', wood)].sort()
 
 describe('R-11.7 — the Shrouded Wood ruler’s pick for the traveller’s own Travel is made on the map', () => {
-    it('each lit site is priced as Dana pays there with the cards counted; the map pick is the ruler’s, opening on Dana’s region', () => {
-        const { session } = rulerOfOwnTravel({}, [TENTS, FOREST_PATHS])
+    it('each lit site is priced as Dana pays there with the cards counted; the map pick is the ruler’s, opening on Dana’s region', async () => {
+        const { session } = await rulerOfOwnTravel({}, [TENTS, FOREST_PATHS])
         expect(session.myPlayer?.id).toBe('Bea')
         const pick = session.question.travelPick
         expect(pick).toMatchObject({ moverId: 'Dana', ruler: true, free: false })
@@ -73,23 +73,23 @@ describe('R-11.7 — the Shrouded Wood ruler’s pick for the traveller’s own 
         expect(Object.fromEntries(chips)[mountain]).toEqual({ words: '2 Supply' })
     })
 
-    it('"Dana stays": the sites only the cards pay for are lit, and the stay is offered beside them', () => {
-        const { session } = rulerOfOwnTravel({ supply: 1, favor: 1, advisers: [FOREST_PATHS] }, [FOREST_PATHS])
+    it('"Dana stays": the sites only the cards pay for are lit, and the stay is offered beside them', async () => {
+        const { session } = await rulerOfOwnTravel({ supply: 1, favor: 1, advisers: [FOREST_PATHS] }, [FOREST_PATHS])
         expect(offered(session)).toEqual([plains, hiddenPlace].sort())
         expect(session.question.woodStayOffered).toBe(true)
         expect(session.mapPick?.kind).toBe('ruler')
     })
 
     it('one tap sends the pick', async () => {
-        const { session, sent } = rulerOfOwnTravel({}, [TENTS, FOREST_PATHS])
+        const { session, sent } = await rulerOfOwnTravel({}, [TENTS, FOREST_PATHS])
         await session.question.pickTravelSite(river)
         expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.ShroudedWoodDestination, siteId: river })
     })
 })
 
 describe('R-11.7-H1 — the ruler’s pick after a card or a banish moves the pawn is made on the map, free', () => {
-    it('after the Whistle: any site Dana can travel to, free, with no chip; the map opens on Dana’s region', () => {
-        const { session } = scene('whistle')
+    it('after the Whistle: any site Dana can travel to, free, with no chip; the map opens on Dana’s region', async () => {
+        const { session } = await scene('whistle')
         expect(session.myPlayer?.id).toBe('Bea')
         expect(session.question.travelPick).toMatchObject({ moverId: 'Dana', ruler: true, free: true })
         expect(offered(session)).toEqual(anySite(session))
@@ -98,14 +98,14 @@ describe('R-11.7-H1 — the ruler’s pick after a card or a banish moves the pa
         expect(opening(session)).toBe(Region.Provinces)
     })
 
-    it('after the Whistle used from another region, the map still opens on the moved pawn’s region, not the user’s', () => {
-        const { session } = scene('whistleAway')
+    it('after the Whistle used from another region, the map still opens on the moved pawn’s region, not the user’s', async () => {
+        const { session } = await scene('whistleAway')
         expect(session.gameState.regionOf(session.gameState.getPlayerState('Ann').siteId ?? '')).toBe(Region.Hinterland)
         expect(opening(session)).toBe(Region.Provinces)
     })
 
-    it('Toll Roads on a free pick: the toll site’s chip is its toll alone', () => {
-        const { session } = scene('whistleToll')
+    it('Toll Roads on a free pick: the toll site’s chip is its toll alone', async () => {
+        const { session } = await scene('whistleToll')
         const slum = session.question.travelPick?.sites.find((site) => site.siteId === greatSlum)
         expect(slum).toMatchObject({ cost: undefined, toll: true, flip: false })
         const chip = slum ? pickChip(slum) : undefined
@@ -113,15 +113,15 @@ describe('R-11.7-H1 — the ruler’s pick after a card or a banish moves the pa
         expect(chip ? chipWords(chip) : undefined).toBe('toll 1 favor')
     })
 
-    it('after the Brass Horse at the Wood: only the sites it allows', () => {
-        const { session } = scene('horseWood')
+    it('after the Brass Horse at the Wood: only the sites it allows', async () => {
+        const { session } = await scene('horseWood')
         expect(session.myPlayer?.id).toBe('Bea')
         expect(offered(session)).toEqual([...HORSE_WOOD_SITES].sort())
         expect(session.question.travelPick).toMatchObject({ moverId: 'Dana', ruler: true, free: true })
     })
 
-    it('after Palanquin: the moved player’s pick, opening on their region', () => {
-        const { session } = scene('palanquin')
+    it('after Palanquin: the moved player’s pick, opening on their region', async () => {
+        const { session } = await scene('palanquin')
         expect(session.myPlayer?.id).toBe('Bea')
         expect(session.gameState.getPlayerState('Ann').siteId).toBe(river)
         expect(session.question.travelPick).toMatchObject({ moverId: 'Dana', ruler: true, free: true })
@@ -129,8 +129,8 @@ describe('R-11.7-H1 — the ruler’s pick after a card or a banish moves the pa
         expect(opening(session)).toBe(Region.Provinces)
     })
 
-    it('after a banish: the defender’s pick, opening on their region', () => {
-        const { session } = scene('banish')
+    it('after a banish: the defender’s pick, opening on their region', async () => {
+        const { session } = await scene('banish')
         expect(session.myPlayer?.id).toBe('Bea')
         expect(session.question.travelPick).toMatchObject({ moverId: 'Dana', ruler: true, free: true })
         expect(offered(session)).toEqual(anySite(session))
@@ -139,15 +139,15 @@ describe('R-11.7-H1 — the ruler’s pick after a card or a banish moves the pa
     })
 
     it('one tap sends the pick', async () => {
-        const { session, sent } = scene('horseWood')
+        const { session, sent } = await scene('horseWood')
         await session.question.pickTravelSite(mountain)
         expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.ShroudedWoodDestination, siteId: mountain })
     })
 })
 
 describe('R-11.13-H1 — the Brass Horse user’s own pick is made on the map', () => {
-    it('the Plains with no chip and The Hidden Place with "+[secret]"; the map opens on the first region with a lit site', () => {
-        const { session } = scene('horseOwn')
+    it('the Plains with no chip and The Hidden Place with "+[secret]"; the map opens on the first region with a lit site', async () => {
+        const { session } = await scene('horseOwn')
         expect(session.myPlayer?.id).toBe('Dana')
         const pick = session.question.travelPick
         expect(pick).toMatchObject({ moverId: 'Dana', ruler: false, free: true })
@@ -162,7 +162,7 @@ describe('R-11.13-H1 — the Brass Horse user’s own pick is made on the map', 
     })
 
     it('one tap on The Hidden Place sends the flip with the travel', async () => {
-        const { session, sent } = scene('horseOwn')
+        const { session, sent } = await scene('horseOwn')
         await session.question.pickTravelSite(hiddenPlace)
         expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.TravelFreeTo, siteId: hiddenPlace, flipSecret: true })
         await session.question.pickTravelSite(plains)

@@ -29,10 +29,10 @@ afterEach(() => {
 const { wood, greatSlum, river, mountain } = WOOD_SLOTS
 const declaredHospitality = { ...travelCard(HOSPITALITY), choices: [] }
 
-type Session = ReturnType<typeof openSessionOn>
+type Session = Awaited<ReturnType<typeof openSessionOn>>
 
-function travellerSession(table: PlayedTable): Session {
-    const session = openSessionOn(table)
+async function travellerSession(table: PlayedTable): Promise<Session> {
+    const session = await openSessionOn(table)
     session.chooseAction(ActionType.Travel)
     return session
 }
@@ -59,8 +59,8 @@ function playedTo(siteId: string, then: { playerId: string; answer: QuestionAnsw
 }
 
 describe('R-11.7-H2 — Hospitality in the Wood’s Travel panel', () => {
-    it('listed with the other Travel cards and today’s "+1 favor" line, in use from the start, no bank named', () => {
-        const session = travellerSession(tableOf(woodHospitalityState()))
+    it('listed with the other Travel cards and today’s "+1 favor" line, in use from the start, no bank named', async () => {
+        const session = await travellerSession(tableOf(woodHospitalityState()))
         expect(session.shroudedWoodChooser).toBe('Bea')
         expect(listedCards(session)).toContain(HOSPITALITY)
         expect(session.modifiers.isDeclared(travelCard(HOSPITALITY))).toBe(true)
@@ -71,8 +71,8 @@ describe('R-11.7-H2 — Hospitality in the Wood’s Travel panel', () => {
     })
 
     it('sent with no bank; put down, it is not sent, and it can be put back', async () => {
-        expect(await sentModifiers(travellerSession(tableOf(woodHospitalityState())))).toEqual([declaredHospitality])
-        const down = travellerSession(tableOf(woodHospitalityState()))
+        expect(await sentModifiers(await travellerSession(tableOf(woodHospitalityState())))).toEqual([declaredHospitality])
+        const down = await travellerSession(tableOf(woodHospitalityState()))
         down.modifiers.declare(travelCard(HOSPITALITY), false)
         expect(listedCards(down)).toContain(HOSPITALITY)
         expect(down.woodTravelCards).toEqual([])
@@ -83,7 +83,7 @@ describe('R-11.7-H2 — Hospitality in the Wood’s Travel panel', () => {
     it('not listed or sent where no pick could give its favor (no Nomad card on the map, no other adviser)', async () => {
         const state = woodCardsState({ advisers: [HOSPITALITY] })
         state.denizensBySite = { ...state.denizensBySite, [greatSlum]: [] }
-        const session = travellerSession(tableOf(state))
+        const session = await travellerSession(tableOf(state))
         expect(listedCards(session)).not.toContain(HOSPITALITY)
         expect(await sentModifiers(session)).toEqual([])
     })
@@ -91,7 +91,7 @@ describe('R-11.7-H2 — Hospitality in the Wood’s Travel panel', () => {
     it('listed beside Tents, and sent with it', async () => {
         const state = woodHospitalityState()
         state.getPlayerState('Dana').advisers = [...state.getPlayerState('Dana').advisers, { cardId: TENTS, faceUp: true }]
-        const session = travellerSession(tableOf(state))
+        const session = await travellerSession(tableOf(state))
         session.modifiers.declare(travelCard(TENTS), true)
         expect(listedCards(session)).toEqual(expect.arrayContaining([HOSPITALITY, TENTS]))
         expect(await sentModifiers(session)).toEqual([declaredHospitality, travelCard(TENTS)])
@@ -100,15 +100,15 @@ describe('R-11.7-H2 — Hospitality in the Wood’s Travel panel', () => {
 
 describe('R-11.7-H2 — the bank question after Bea’s pick', () => {
     it('two banks at the River: Dana is asked, one button per bank; a tap sends that bank', async () => {
-        const session = openSessionOn(playedTo(river))
+        const session = await openSessionOn(playedTo(river))
         expect(session.question.mine).toMatchObject({ kind: PowerQuestionKind.HospitalityBank, askedPlayerId: 'Dana', banks: [Suit.Order, Suit.Nomad] })
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         await session.question.gainHospitalityFavor(Suit.Nomad)
         expect(sent.mock.calls[0]?.[0]).toMatchObject({ type: ActionType.AnswerQuestion, playerId: 'Dana', answer: { kind: PowerQuestionKind.HospitalityBank, suit: Suit.Nomad } })
     })
 
-    it('one bank at the Mountain (Captains, Order): gained with no question', () => {
-        const session = openSessionOn(playedTo(mountain))
+    it('one bank at the Mountain (Captains, Order): gained with no question', async () => {
+        const session = await openSessionOn(playedTo(mountain))
         expect(session.question.open).toBeUndefined()
         expect(session.gameState.getPlayerState('Dana').favor).toBe(3)
     })

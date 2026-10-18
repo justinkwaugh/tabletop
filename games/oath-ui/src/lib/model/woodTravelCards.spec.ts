@@ -27,7 +27,7 @@ const pathsUse = { cardId: PATHS, powerIndex: powerIndexOf(PATHS, PowerTiming.Mo
  * I rule the Shrouded Wood at p1, where Dana (1 Supply, their Forest Paths' favor already placed)
  * declared Forest Paths; c1 holds a Beast card.
  */
-function asked(cards: boolean) {
+async function asked(cards: boolean) {
     const question: PowerQuestion = {
         kind: PowerQuestionKind.ShroudedWoodDestination,
         cardId: 'site.shrouded-wood',
@@ -52,14 +52,14 @@ function asked(cards: boolean) {
             pendingQuestions: { queue: [question], askingPlayerId: DANA, resumeMachineState: MachineState.ActPhase }
         }
     )
-    const session = openSessionOn(tableOf(state))
+    const session = await openSessionOn(tableOf(state))
     const sent = vi.spyOn(session, 'answerQuestion').mockResolvedValue()
     return { session, draft: session.question, sent, question }
 }
 
 describe('R-11.7-H2 — the Shrouded Wood’s ruler is offered what the engine accepts, with the declared cards counted', () => {
     it('Forest Paths declared: only the Beast site, as the engine prices it, and nothing else is sent', async () => {
-        const { session, draft, sent, question } = asked(true)
+        const { session, draft, sent, question } = await asked(true)
         const travel = question.kind === PowerQuestionKind.ShroudedWoodDestination ? question.travel : undefined
         expect(travel).toBeDefined()
         const engineSites = payableWoodPicks(session.gameState, DANA, travel ?? { free: false }).map((pick) => pick.siteId)
@@ -71,15 +71,15 @@ describe('R-11.7-H2 — the Shrouded Wood’s ruler is offered what the engine a
         expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c1' })
     })
 
-    it('control: with no card counted, every site costs 2 and none is offered', () => {
-        const { draft } = asked(false)
+    it('control: with no card counted, every site costs 2 and none is offered', async () => {
+        const { draft } = await asked(false)
         expect(draft.woodDestinations).toEqual([])
     })
 })
 
 describe('R-11.7-H3 — Way Station at the pick: Give 1 [favor] / Pay 2 Supply', () => {
     /** I (3 Supply) was sent to c2, where Way Station stands and Dana rules it. */
-    function wayStation(favor: number) {
+    async function wayStation(favor: number) {
         const question: PowerQuestion = {
             kind: PowerQuestionKind.WayStationFavor,
             cardId: 'denizen.nomad.way-station',
@@ -107,13 +107,13 @@ describe('R-11.7-H3 — Way Station at the pick: Give 1 [favor] / Pay 2 Supply',
                 pendingQuestions: { queue: [question], askingPlayerId: ME, resumeMachineState: MachineState.ActPhase }
             }
         )
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'answerQuestion').mockResolvedValue()
         return { draft: session.question, sent }
     }
 
     it('Give sends the favor, Pay the Supply', async () => {
-        const { draft, sent } = wayStation(1)
+        const { draft, sent } = await wayStation(1)
         expect(draft.acceptComplete).toBe(true)
         expect(draft.acceptRefusedBecause).toBeUndefined()
         await draft.accept()
@@ -122,8 +122,8 @@ describe('R-11.7-H3 — Way Station at the pick: Give 1 [favor] / Pay 2 Supply',
         expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.WayStationFavor, give: false })
     })
 
-    it('with no favor left, the engine refuses Give and says why', () => {
-        const { draft } = wayStation(0)
+    it('with no favor left, the engine refuses Give and says why', async () => {
+        const { draft } = await wayStation(0)
         expect(draft.acceptRefusedBecause).toBe('giving takes 1 favor and you have 0')
     })
 })
