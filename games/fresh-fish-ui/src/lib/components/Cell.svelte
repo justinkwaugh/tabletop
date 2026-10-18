@@ -117,6 +117,9 @@
             gameSession.highlightedCoords[1] === coords[1]
     )
     let showBorder = $state(false)
+    // Set from a click on this cell's preview disc until the placement is applied: the
+    // placed disc takes over from the preview at full size instead of growing in from a dot.
+    let placingDisc = $state(false)
 
     let mayExpropriate = $derived(
         (isDiskCell(cell) &&
@@ -164,8 +167,16 @@
             return
         }
 
-        showBorder = false
-        await gameSession.applyAction(action)
+        placingDisc = gameSession.chosenAction === ActionType.PlaceDisk
+        if (!placingDisc) {
+            showBorder = false
+        }
+        try {
+            await gameSession.applyAction(action)
+        } finally {
+            showBorder = false
+            placingDisc = false
+        }
     }
 
     let myColor = $derived(gameSession.colors.getPlayerUiColor(gameSession.myPlayer?.id))
@@ -200,7 +211,7 @@
         <!-- Absolute, so a disc fading out never shares the row with the piece replacing it. -->
         <div
             class="absolute inset-0 flex justify-center items-center"
-            in:fadeScale={{ baseScale: 0.1, duration: 100 }}
+            in:fadeScale={{ baseScale: 0.1, duration: placingDisc ? 0 : 100 }}
             out:fadeScale={{ baseScale: 0.1, duration: 50 }}
         >
             {@render disk(gameSession.colors.getPlayerUiColor(cell.playerId))}
@@ -216,7 +227,7 @@
         <WoodMarket />
     {/if}
 
-    {#if showBorder}
+    {#if showBorder && !(placingDisc && cell.type === CellType.Disk)}
         <div class="absolute inset-0 z-10 flex justify-center items-center pointer-events-none">
             {#if gameSession.chosenAction === ActionType.PlaceDisk}
                 {@render disk(myColor, true)}
