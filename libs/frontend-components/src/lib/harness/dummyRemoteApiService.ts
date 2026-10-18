@@ -378,6 +378,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getSseToken')
     }
 
+    async getRealtimeToken(_gameIds: string[]): Promise<string> {
+        return this.fail('getRealtimeToken')
+    }
+
     async getAblyToken(): Promise<Ably.TokenRequest> {
         return this.fail('getAblyToken')
     }
