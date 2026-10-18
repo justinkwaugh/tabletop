@@ -6126,8 +6126,8 @@ test.describe('the Wake', () => {
     })
 })
 
-/** Every other bank picker is judged on the table's banks, so its badges count those. */
-test('a bank picker outside the Wake counts each bank as the table holds it: the Rest, a question, Recover, a When Played bank, Salad Days', async ({ page }) => {
+/** Every other bank picker, and Salad Days played as an adviser, is judged on the table's banks, so its badges count those. */
+test('a bank picker outside the Wake counts each bank as the table holds it: the Rest, a question, Recover, a When Played bank, Salad Days as an adviser', async ({ page }) => {
     async function badgesReadTheTable(scene: string) {
         const banks = grid(page).getByRole('button', { name: / bank, \d+ favor$/ })
         await expect(banks.first()).toBeVisible()
@@ -8685,6 +8685,58 @@ test.describe('scenario 69: a power’s piles, banks, “may” and “or”', (
         await bank('Hearth').click()
         await expect(play(page)).toBeVisible()
     })
+
+    // R-7.3.3 — played to the River, Salad Days is judged on the banks once the site has given its Hearth favor;
+    // the map's discs keep the table's counts until the play is made.
+    async function keepToSite(page: Page, table: TableFixture.TableName) {
+        await openTable(page, table)
+        await grid(page).getByRole('button', { name: 'Salad Days' }).first().click()
+        await grid(page).getByRole('button', { name: 'To your site', exact: true }).click()
+    }
+    const saladBanks = (page: Page) => grid(page).getByRole('button', { name: / bank, \d favor$/ })
+    const saladBank = (page: Page, name: string) => grid(page).getByRole('button', { name: new RegExp(`^${name} bank, \\d favor$`) })
+    const mapBanks = (page: Page) => page.locator('.bank:not(.bank--shared)')
+    const bankLabels = (counts: number[]) =>
+        ['Discord', 'Arcane', 'Order', 'Hearth', 'Beast', 'Nomad'].map((name, i) => `${name} bank, ${counts[i]} favor`)
+    const shownLabels = (page: Page) => saladBanks(page).evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
+
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 }]) {
+        test(`Salad Days played to the site at ${viewport.width}: the Hearth bank shows 0 and stays shut while four banks hold favor; the map keeps 1`, async ({ page }) => {
+            await page.setViewportSize(viewport)
+            await keepToSite(page, 'pickerSaladSite')
+            await expect(saladBanks(page)).toHaveCount(6)
+            expect(await shownLabels(page)).toEqual(bankLabels([0, 3, 3, 0, 3, 2]))
+            await expect(mapBanks(page)).toHaveText(['0', '3', '3', '1', '3', '2'])
+            await expect(saladBank(page, 'Hearth')).toBeDisabled()
+            await expect(saladBank(page, 'Discord')).toBeDisabled()
+            await saladBank(page, 'Arcane').click()
+            await saladBank(page, 'Order').click()
+            await expect(saladBank(page, 'Hearth')).toBeDisabled()
+            await expect(saladBank(page, 'Beast')).toBeEnabled()
+            await expect(saladBank(page, 'Nomad')).toBeEnabled()
+            await saladBank(page, 'Beast').click()
+            await expect(grid(page)).not.toContainText('can be had')
+            await play(page).click()
+            await expect(grid(page).getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
+            await expect(mapBanks(page)).toHaveText(['0', '3', '3', '1', '3', '2'])
+        })
+
+        test(`Salad Days played to the site at ${viewport.width}: two banks hold favor after the play, so any bank may be the third`, async ({ page }) => {
+            await page.setViewportSize(viewport)
+            await keepToSite(page, 'pickerSaladSiteTwo')
+            await expect(saladBanks(page)).toHaveCount(6)
+            expect(await shownLabels(page)).toEqual(bankLabels([0, 3, 3, 0, 0, 0]))
+            await expect(mapBanks(page)).toHaveText(['0', '3', '3', '1', '0', '0'])
+            for (const name of ['Discord', 'Hearth', 'Beast', 'Nomad']) await expect(saladBank(page, name)).toBeEnabled()
+            await saladBank(page, 'Arcane').click()
+            await saladBank(page, 'Order').click()
+            for (const name of ['Discord', 'Hearth', 'Beast', 'Nomad']) await expect(saladBank(page, name)).toBeEnabled()
+            await saladBank(page, 'Beast').click()
+            await expect(grid(page)).not.toContainText('can be had')
+            await play(page).click()
+            await expect(grid(page).getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
+        })
+    }
 
     test('Royal Ambitions: "Become a Citizen" a row, off, Play at once; on, the relics as backs, none picked, Play waits', async ({ page }) => {
         await keepAsAdviser(page, 'pickerMay', 'Royal Ambitions')

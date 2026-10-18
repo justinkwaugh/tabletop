@@ -9,8 +9,10 @@ import {
     reasonCannotPlaySecondCard,
     searchPlayModifiers,
     type LegalChoice,
+    type PlayMapChanges,
     type PowerChoice,
-    type SearchSecondPlay
+    type SearchSecondPlay,
+    type Suit
 } from '@tabletop/oath'
 import { FACEDOWN_ADVISER_LABEL, PLAY_LABELS } from './adviserPlacements.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
@@ -21,7 +23,7 @@ import {
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { whenPlayedChoices } from './whenPlayed.js'
+import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
 import { adviserRoom, toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
@@ -176,27 +178,39 @@ export class SearchDraft implements PanelDraft {
         return this.displaced.length < this.room.needed
     }
 
+    // R-5.1.4.I, R-11.10 — the card picked beside the site play goes first; R-7.3.3 — the play's gains
+    // come before the power, as the engine plans them.
+    private get playChanges(): PlayMapChanges | undefined {
+        const cardId = this.kept
+        const playerId = this.playerId
+        const placement = this.placement
+        if (!cardId || !playerId || !placement) return undefined
+        return playMapChanges(this.session.gameState, playerId, cardId, placement.play, {
+            faceUp: placement.faceUp,
+            discardedAdviserCardIds: this.displaced,
+            ...this.playExtras(placement.play)
+        })
+    }
+
     /** R-7.3.3 */
     get whenPlayed(): LegalChoice[] {
         const cardId = this.kept
         const playerId = this.playerId
         const placement = this.placement
         if (!cardId || !playerId || !placement) return []
-        const state = this.session.gameState
         return whenPlayedChoices(
-            state,
+            this.session.gameState,
             playerId,
             cardId,
             placement.play,
             placement.faceUp,
-            // R-5.1.4.I, R-11.10 — the card picked beside the site play goes first; R-7.3.3 — the play's gains
-            // come before the power, as the engine plans them.
-            playMapChanges(state, playerId, cardId, placement.play, {
-                faceUp: placement.faceUp,
-                discardedAdviserCardIds: this.displaced,
-                ...this.playExtras(placement.play)
-            })
+            this.playChanges
         )
+    }
+
+    /** R-7.3.3 — the favor banks the When Played picks are judged on (Salad Days'). */
+    get whenPlayedBanks(): Readonly<Record<Suit, number>> {
+        return whenPlayedBanks(this.session.gameState, this.playChanges)
     }
 
     get picks(): PowerChoicePicks {

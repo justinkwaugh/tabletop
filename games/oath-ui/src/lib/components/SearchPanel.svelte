@@ -225,6 +225,7 @@
             choices={search.whenPlayed}
             bind:picks={() => search.picks, (picks) => search.setPicks(picks)}
             words={pickerWords(search.kept)}
+            banks={search.whenPlayedBanks}
         />
         {#if search.whenPlayedComplete}
             {#if reason}

@@ -229,6 +229,7 @@
                             (picks) => gameSession.setAdviserPlayPicks(picks)
                         }
                         words={pickerWords(cardId)}
+                        banks={gameSession.adviserPlayBanks}
                     />
                 {/if}
                 {#if piles.length > 0}

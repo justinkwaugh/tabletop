@@ -69,6 +69,7 @@ import {
     type CardPower,
     type LegalChoice,
     type ModifierUse,
+    type PlayMapChanges,
     type PowerChoice,
     type PowerUseKey,
     type QuestionAnswer,
@@ -166,7 +167,7 @@ import {
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { whenPlayedChoices } from './whenPlayed.js'
+import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
 import { toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
@@ -951,14 +952,14 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.selection.set('discardFirst', cardId)
     }
 
-    get adviserPlayChoices(): LegalChoice[] {
+    // R-5.1.4.I, R-11.10 — the card picked to discard before the site play goes first; R-7.3.3 — the
+    // play's gains come before the power, as the engine plans them for this play (R-6.1).
+    private get adviserPlayChanges(): PlayMapChanges | undefined {
         const playerId = this.liveTurnSeatId
         const cardId = this.adviserCardId
         const play = this.adviserPlay
-        if (!playerId || !cardId || play === undefined) return []
-        // R-5.1.4.I, R-11.10 — the card picked to discard before the site play goes first; R-7.3.3 — the
-        // play's gains come before the power, as the engine plans them for this play (R-6.1).
-        const mapChanges = HydratedPlayFacedownAdviser.playMapChanges(this.gameState, playerId, {
+        if (!playerId || !cardId || play === undefined) return undefined
+        return HydratedPlayFacedownAdviser.playMapChanges(this.gameState, playerId, {
             cardId,
             play,
             discardedAdviserCardIds: this.adviserPlayDiscards,
@@ -966,7 +967,19 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             discardFirstCardId: this.adviserDiscardFirst,
             modifiers: this.adviserModifiers
         })
-        return whenPlayedChoices(this.gameState, playerId, cardId, play, true, mapChanges)
+    }
+
+    get adviserPlayChoices(): LegalChoice[] {
+        const playerId = this.liveTurnSeatId
+        const cardId = this.adviserCardId
+        const play = this.adviserPlay
+        if (!playerId || !cardId || play === undefined) return []
+        return whenPlayedChoices(this.gameState, playerId, cardId, play, true, this.adviserPlayChanges)
+    }
+
+    /** R-7.3.3 — the favor banks the When Played picks are judged on (Salad Days'). */
+    get adviserPlayBanks(): Readonly<Record<Suit, number>> {
+        return whenPlayedBanks(this.gameState, this.adviserPlayChanges)
     }
 
     get adviserPlayPicks(): PowerChoicePicks {
