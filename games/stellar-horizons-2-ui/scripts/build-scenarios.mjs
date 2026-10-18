@@ -68,6 +68,28 @@ function threeFactionsAtOneAnomaly() {
 
 const CAMPAIGN_CONFIG = { scenario: ScenarioId.Campaign }
 
+// Takes a world out of the pool or the campaign's set-aside worlds, so it is never in two places.
+function takeWorld(state, predicate) {
+    for (const pool of [state.worldPool, state.setAsideWorlds]) {
+        const tileId = pool.find(predicate)
+        if (tileId !== undefined) {
+            pool.splice(pool.indexOf(tileId), 1)
+            return tileId
+        }
+    }
+    throw new Error('No such world left')
+}
+
+function placeWorlds(state, systemId, worlds) {
+    state.systemState(systemId).worlds = worlds.map(([predicate, side]) => ({
+        tileId: takeWorld(state, predicate),
+        side
+    }))
+}
+
+const is = (tileId) => (candidate) => candidate === tileId
+const ofClass = (prefix) => (candidate) => candidate.startsWith(prefix)
+
 function playerOf(state, faction) {
     return state.players.find((player) => player.faction === faction).playerId
 }
@@ -99,13 +121,11 @@ function campaignBaseProduction() {
     return campaignInto(EconomicTile.BaseProduction, 3, (state) => {
         const starfarers = playerOf(state, Faction.Starfarers)
         const givers = playerOf(state, Faction.Givers)
-        state.systemState('alpha-centauri').worlds = [
-            { tileId: 'm-1', side: WorldSide.I },
-            { tileId: state.worldPool.find((id) => id.startsWith('d-')), side: WorldSide.I }
-        ]
-        state.systemState('luhman-16').worlds = [
-            { tileId: state.worldPool.find((id) => id.startsWith('j-')), side: WorldSide.I }
-        ]
+        placeWorlds(state, 'alpha-centauri', [
+            [is('m-1'), WorldSide.I],
+            [ofClass('d-'), WorldSide.I]
+        ])
+        placeWorlds(state, 'luhman-16', [[ofClass('j-'), WorldSide.I]])
         placeBase(state, starfarers, 'alpha-centauri', 12)
         placeBase(state, starfarers, 'luhman-16', 4)
         placeBase(state, givers, 'alpha-centauri', 6)
@@ -115,7 +135,7 @@ function campaignBaseProduction() {
 /** Growth in 2110, after which the True Path may convert a Givers settlement at Alpha Centauri. */
 function campaignConversion() {
     return campaignInto(EconomicTile.SettlementGrowth, 4, (state) => {
-        state.systemState('alpha-centauri').worlds = [{ tileId: 'm-1', side: WorldSide.I }]
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
         placeBase(state, playerOf(state, Faction.TruePath), 'alpha-centauri', 5)
         placeBase(state, playerOf(state, Faction.Givers), 'alpha-centauri', 4)
     })
@@ -126,10 +146,10 @@ function campaignTerraforming() {
     return campaignInto(EconomicTile.Terraforming, 3, (state) => {
         const givers = playerOf(state, Faction.Givers)
         state.getPlayerState(givers).techs.push({ techId: TechId.Terraforming, year: 2090 })
-        state.systemState('alpha-centauri').worlds = [
-            { tileId: 'm-1', side: WorldSide.I },
-            { tileId: 'm-2', side: WorldSide.II }
-        ]
+        placeWorlds(state, 'alpha-centauri', [
+            [is('m-1'), WorldSide.I],
+            [is('m-2'), WorldSide.II]
+        ])
         placeBase(state, givers, 'alpha-centauri', 8)
     })
 }

@@ -24,7 +24,7 @@ export const StellarHorizonsGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.List,
         name: 'Scenario',
         description:
-            'Footfall among the Stars races to settle a nearby system. These are the Voyages explores six sectors for anomalies and needs at least two players.',
+            'Footfall among the Stars races to settle a nearby system, for up to four players. These are the Voyages explores six sectors for anomalies, for two to four players. The Campaign plays from 2100 for one to seven players.',
         default: FOOTFALL.id,
         options: SCENARIOS.map((scenario) => ({ name: scenario.name, value: scenario.id })),
         alwaysShow: true

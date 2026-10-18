@@ -22,7 +22,8 @@
         current === TurnPhase.Initiative || current === TurnPhase.BaseProduction
     )
     const tile = $derived(
-        isCampaign(gameSession.gameState) && gameSession.gameState.year > 2100
+        isCampaign(gameSession.gameState) &&
+            gameSession.gameState.year > gameSession.gameState.scenarioDefinition().startYear
             ? gameSession.gameState.economicTile
             : undefined
     )

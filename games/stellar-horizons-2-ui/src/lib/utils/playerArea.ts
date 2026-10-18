@@ -66,7 +66,6 @@ export interface CampaignSheet {
     bases: number
     maxBases: number
     settlementCost: number
-    explorationMarkers: number
 }
 
 export interface ConsoleBase {
@@ -202,8 +201,7 @@ function campaignSheet(
         maxShips: row.maxShips,
         bases: state.basesOf(playerId).length,
         maxBases: row.maxBases,
-        settlementCost: capabilitiesOf(state, playerId).settlementCost,
-        explorationMarkers: state.getPlayerState(playerId).explorationMarkers
+        settlementCost: capabilitiesOf(state, playerId).settlementCost
     }
 }
 

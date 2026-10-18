@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { assertExists } from '@tabletop/common'
 import { SOL_SYSTEM_ID, systemDistance } from '../components/systems.js'
 import { TECH_FIELDS, type TechField } from '../components/techFields.js'
 import { TECHS } from '../components/techs.js'
@@ -6,7 +7,7 @@ import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { roundHalfUp } from './turn.js'
 import { DECADE } from './turnCycle.js'
 
-// Rulebook 3.0, Campaign end. Directives, titles, cards and escalation arrive in later slices.
+// Rulebook 3.0, Campaign end: the categories of the victory point table.
 export const UNDEVELOPED_TECH_PENALTY = 5
 export const LARGE_BASE_STEP = 5
 export const LARGEST_BASE_BONUS = 10
@@ -105,7 +106,9 @@ export const GALACTIC_RANKS: readonly GalacticRank[] = [
 ]
 
 export function galacticRank(score: number): string {
-    return GALACTIC_RANKS.findLast((rank) => score >= rank.min)?.name ?? GALACTIC_RANKS[0].name
+    const rank = GALACTIC_RANKS.findLast((candidate) => score >= candidate.min)
+    assertExists(rank, 'The lowest rank has no minimum')
+    return rank.name
 }
 
 export function completedFields(

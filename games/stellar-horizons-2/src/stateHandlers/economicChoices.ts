@@ -7,11 +7,11 @@ import { HydratedSkipPhase, SkipPhase, isSkipPhase } from '../actions/skipPhase.
 import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInfluence.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { canSpendInfluence } from '../model/campaign.js'
 import { basesAwaitingProduction, converters, maxInitiativeBid } from '../model/economy.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { TurnPhase } from '../model/turn.js'
 import { branchPlayerId, branchingState, playState } from '../model/turnPlan.js'
+import { influenceActions } from './influence.js'
 import { stateAfterEconomicPhase } from './transitions.js'
 
 // The campaign's simultaneous economic choices (rulebook 4.1 and 4.4), each a Barrier span's
@@ -42,10 +42,7 @@ abstract class EconomicChoiceHandler<Action extends HydratedAction> implements M
         if (!state.isActivePlayer(playerId)) {
             return []
         }
-        return [
-            this.choice,
-            ...(canSpendInfluence(state, playerId) ? [ActionType.SpendInfluence] : [])
-        ]
+        return [this.choice, ...influenceActions(state, playerId)]
     }
 
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
@@ -122,7 +119,7 @@ export class ConvertingSettlementsStateHandler implements MachineStateHandler<
         return [
             ActionType.ConvertSettlement,
             ActionType.PassConversion,
-            ...(canSpendInfluence(state, playerId) ? [ActionType.SpendInfluence] : [])
+            ...influenceActions(state, playerId)
         ]
     }
 

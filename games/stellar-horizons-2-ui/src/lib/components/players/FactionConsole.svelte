@@ -2,6 +2,7 @@
     // Everything about the player chosen in the standings, in plain labelled sections.
     import {
         ActionType,
+        CASH_PER_INFLUENCE,
         TECH_FIELDS,
         anomalyDefinition,
         galacticRank,
@@ -96,8 +97,9 @@
                         <button
                             type="button"
                             class="spend"
-                            title="Spend 1 IP for $1B"
-                            onclick={() => gameSession.spendInfluence(1)}>1 IP → $1B</button
+                            title="Spend 1 IP for ${CASH_PER_INFLUENCE}B"
+                            onclick={() => gameSession.spendInfluence(1)}
+                            >1 IP → ${CASH_PER_INFLUENCE}B</button
                         >
                     {/if}
                 {/if}

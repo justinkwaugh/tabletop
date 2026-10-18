@@ -1,3 +1,4 @@
+import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import type { Faction } from '../components/factions.js'
 import {
@@ -7,8 +8,9 @@ import {
     type FactionAbilities
 } from '../components/factionSheets.js'
 import { starSystemDefinition } from '../components/systems.js'
-import { TECH_FIELDS, TechField } from '../components/techFields.js'
+import { TECH_FIELDS } from '../components/techFields.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import { TechMarkers, emptyTechMarkers } from './playerState.js'
 import { awardTechMarkers } from './pools.js'
 
 export function isCampaign(state: HydratedStellarHorizonsGameState): boolean {
@@ -86,13 +88,12 @@ export function canSpendInfluence(state: HydratedStellarHorizonsGameState, playe
     return isCampaign(state) && state.getPlayerState(playerId).influence > 0
 }
 
-export type FieldCounts = Record<TechField, number>
-
-export interface EarthProduction {
-    cash: number
-    markers: Record<TechField, number[]>
-    emptyPoolCash: number
-}
+export type EarthProduction = Type.Static<typeof EarthProduction>
+export const EarthProduction = Type.Object({
+    cash: Type.Number(),
+    markers: TechMarkers,
+    emptyPoolCash: Type.Number()
+})
 
 // Rulebook 4.3: cash and tech markers by century from the faction sheet. A marker its pool
 // cannot supply is paid as $1B, as for every other draw.
@@ -104,11 +105,7 @@ export function produceAtEarth(
     assertExists(row, `${playerId} has no faction sheet`)
     const player = state.getPlayerState(playerId)
     player.cash += row.cash
-    const markers: Record<TechField, number[]> = {
-        [TechField.Biology]: [],
-        [TechField.Physics]: [],
-        [TechField.Engineering]: []
-    }
+    const markers = emptyTechMarkers()
     let emptyPoolCash = 0
     for (const field of TECH_FIELDS) {
         const award = awardTechMarkers(state, playerId, field, row.markers[field])

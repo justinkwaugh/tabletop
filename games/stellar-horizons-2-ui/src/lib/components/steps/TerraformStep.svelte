@@ -1,5 +1,11 @@
 <script lang="ts">
-    import { WorldSide, isCampaign, terraformTargets } from '@tabletop/stellar-horizons-2'
+    import {
+        IP_FOR_FLIP,
+        IP_FOR_REPLACEMENT,
+        WorldSide,
+        isCampaign,
+        terraformTargets
+    } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { systemName } from '$lib/utils/presentation.js'
     import WorldImage from '../WorldImage.svelte'
@@ -18,7 +24,7 @@
         You may terraform {remaining > 1 ? `${remaining} worlds, one at a time,` : 'one world'} in a system
         where you have a base. A side I world flips to side II; a side II world draws a replacement that
         may be up to 10 population larger.{isCampaign(gameState)
-            ? ' Flipping earns 1 IP, a replacement 2.'
+            ? ` Flipping earns ${IP_FOR_FLIP} IP, a replacement ${IP_FOR_REPLACEMENT}.`
             : ''}
     </p>
     <div class="row">

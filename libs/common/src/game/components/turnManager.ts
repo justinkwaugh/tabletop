@@ -79,6 +79,16 @@ export class HydratedTurnManager extends Hydratable<typeof TurnManager> implemen
         this.turnOrder.reverse()
     }
 
+    // Replace the order outright, as when initiative is rerolled; the same Players stay in it.
+    reorder(playerIds: readonly string[]) {
+        assert(
+            playerIds.length === this.turnOrder.length &&
+                this.turnOrder.every((playerId) => playerIds.includes(playerId)),
+            'A new turn order must hold the same Players'
+        )
+        this.turnOrder.splice(0, this.turnOrder.length, ...playerIds)
+    }
+
     newFirstPlayer(playerId: string) {
         // Rotate the turn order so that the new first player is at the front
         while (this.turnOrder[0] !== playerId) {

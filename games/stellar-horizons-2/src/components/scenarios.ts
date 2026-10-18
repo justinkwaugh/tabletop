@@ -52,6 +52,7 @@ export interface ScenarioDefinition {
     id: ScenarioId
     name: string
     minPlayers: number
+    maxPlayers: number
     sectors: readonly Sector[]
     phases: readonly TurnPhase[]
     firstTurnPhases?: readonly TurnPhase[]
@@ -75,6 +76,7 @@ export const FOOTFALL: ScenarioDefinition = {
     id: ScenarioId.Footfall,
     name: 'Footfall among the Stars',
     minPlayers: 1,
+    maxPlayers: 4,
     sectors: [Sector.Sol, Sector.AlphaCentauri],
     phases: TURN_PHASES,
     startYear: 2150,
@@ -94,6 +96,7 @@ export const VOYAGES: ScenarioDefinition = {
     id: ScenarioId.Voyages,
     name: 'These are the Voyages',
     minPlayers: 2,
+    maxPlayers: 4,
     sectors: [
         Sector.Sol,
         Sector.AlphaCentauri,
@@ -120,12 +123,12 @@ export const VOYAGES: ScenarioDefinition = {
     victory: { kind: VictoryKind.Anomalies, resolved: 4, ofEachChallenge: 1 }
 }
 
-// Rulebook 3.0. Anomaly rewards arrive with slice 2 of the campaign plan; until then they are
-// ignored as in These are the Voyages.
+// Rulebook 3.0.
 export const CAMPAIGN: ScenarioDefinition = {
     id: ScenarioId.Campaign,
     name: 'Campaign',
     minPlayers: 1,
+    maxPlayers: 7,
     sectors: Object.values(Sector),
     phases: TURN_PHASES,
     firstTurnPhases: [TurnPhase.Exploration, TurnPhase.Development],

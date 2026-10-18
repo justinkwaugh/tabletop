@@ -6,12 +6,12 @@ import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInflue
 import { HydratedTransferCargo, isTransferCargo } from '../actions/transferCargo.js'
 import { ActionType } from '../definition/actions.js'
 import type { MachineState } from '../definition/states.js'
-import { canSpendInfluence } from '../model/campaign.js'
 import { canTransferAnyCargo } from '../model/cargoTransfer.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { isIdleInPhase } from '../model/idlePhases.js'
 import type { TurnPhase } from '../model/turn.js'
 import { branchPlayerId, branchingState, playState } from '../model/turnPlan.js'
+import { influenceActions } from './influence.js'
 
 type AnytimeAction =
     | HydratedScrapShip
@@ -63,9 +63,7 @@ export abstract class PlayStateHandler<
         if (canTransferAnyCargo(state, playerId)) {
             anytime.push(ActionType.TransferCargo)
         }
-        if (canSpendInfluence(state, playerId)) {
-            anytime.push(ActionType.SpendInfluence)
-        }
+        anytime.push(...influenceActions(state, playerId))
         return [
             ...new Set([...this.phaseActions(playerId, state), ...anytime, ActionType.EndPhase])
         ]

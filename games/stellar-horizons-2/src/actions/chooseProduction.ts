@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { basesAwaitingProduction, isValidProduction } from '../model/economy.js'
+import { availableProductions, basesAwaitingProduction } from '../model/economy.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { Production } from '../model/pieces.js'
 
@@ -43,7 +43,7 @@ export class HydratedChooseProduction
         const base = basesAwaitingProduction(state, this.playerId).find(
             (candidate) => candidate.systemId === this.systemId
         )
-        if (!base || !isValidProduction(this.production)) {
+        if (!base || !availableProductions(state, base).includes(this.production)) {
             throw Error('Invalid ChooseProduction action')
         }
         base.production = this.production

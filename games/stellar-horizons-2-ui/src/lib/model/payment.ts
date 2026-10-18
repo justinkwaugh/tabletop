@@ -31,7 +31,3 @@ function bestMarkerSubset(held: readonly number[], cost: number): number[] {
     const chosen = covering.length > 0 ? Math.min(...covering) : Math.max(...sums)
     return (fewestBySum.get(chosen) ?? []).toSorted((a, b) => b - a)
 }
-
-export function cashNeeded(markers: readonly number[], cost: number): number {
-    return Math.max(0, cost - markers.reduce((total, value) => total + value, 0))
-}

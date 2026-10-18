@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import { baseProductionRow } from '../components/factionSheets.js'
 import { ECONOMIC_TILES, EconomicTile } from '../components/economicTiles.js'
-import { TechField } from '../components/techFields.js'
+import { TECH_FIELDS } from '../components/techFields.js'
 import { worldFace } from '../components/worlds.js'
 import { blocksBases } from './anomalies.js'
 import { effectiveHabitability, factionAbilities } from './campaign.js'
@@ -57,7 +57,7 @@ export function rollInitiative(state: HydratedStellarHorizonsGameState): Initiat
         .map((roll, index) => ({ roll, index }))
         .toSorted((a, b) => b.roll.total - a.roll.total || a.index - b.index)
         .map(({ roll }) => roll.playerId)
-    state.turnManager.turnOrder.splice(0, state.turnManager.turnOrder.length, ...order)
+    state.turnManager.reorder(order)
     return rolls
 }
 
@@ -105,8 +105,15 @@ export function basesAwaitingProduction(
     return producingBases(state, playerId).filter((base) => base.production === undefined)
 }
 
-export function isValidProduction(value: unknown): value is Production {
-    return value === CASH_PRODUCTION || Object.values(TechField).includes(value as TechField)
+// What a base may produce: cash, or a tech type one of its system's worlds shows.
+export function availableProductions(
+    state: HydratedStellarHorizonsGameState,
+    base: Base
+): Production[] {
+    return [
+        CASH_PRODUCTION,
+        ...TECH_FIELDS.filter((field) => productionValue(state, base.systemId, field) > 0)
+    ]
 }
 
 export type BaseProductionResult = Type.Static<typeof BaseProductionResult>
@@ -119,12 +126,16 @@ export const BaseProductionResult = Type.Object({
     cash: Type.Number()
 })
 
+function payCash(state: HydratedStellarHorizonsGameState, playerId: string, amount: number) {
+    state.getPlayerState(playerId).cash += amount
+    return { markers: [], cash: amount }
+}
+
 // Production is collected on the Main Line once every base has chosen, in initiative order,
 // since tech markers come from the shared pools.
 export function produceAtBases(state: HydratedStellarHorizonsGameState): BaseProductionResult[] {
     const results: BaseProductionResult[] = []
     for (const playerId of state.initiativeOrder()) {
-        const player = state.getPlayerState(playerId)
         for (const base of state.basesOf(playerId)) {
             const production = base.production
             base.production = undefined
@@ -132,27 +143,11 @@ export function produceAtBases(state: HydratedStellarHorizonsGameState): BasePro
                 continue
             }
             const amount = productionYield(state, base, production)
-            if (production === CASH_PRODUCTION) {
-                player.cash += amount
-                results.push({
-                    playerId,
-                    systemId: base.systemId,
-                    production,
-                    amount,
-                    markers: [],
-                    cash: amount
-                })
-            } else {
-                const award = awardTechMarkers(state, playerId, production, amount)
-                results.push({
-                    playerId,
-                    systemId: base.systemId,
-                    production,
-                    amount,
-                    markers: award.markers,
-                    cash: award.cash
-                })
-            }
+            const { markers, cash } =
+                production === CASH_PRODUCTION
+                    ? payCash(state, playerId, amount)
+                    : awardTechMarkers(state, playerId, production, amount)
+            results.push({ playerId, systemId: base.systemId, production, amount, markers, cash })
         }
     }
     return results
@@ -188,10 +183,9 @@ export function migrationChance(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
     systemId: string,
-    leaderSettlements: number
+    behindLeader: number
 ): number {
-    const behind = Math.max(0, leaderSettlements - totalSettlements(state, playerId))
-    const bonus = Math.floor(behind / CATCH_UP_STEP) * CATCH_UP_BONUS
+    const bonus = Math.floor(Math.max(0, behindLeader) / CATCH_UP_STEP) * CATCH_UP_BONUS
     return Math.min(MAX_CHANCE, effectiveHabitability(state, playerId, systemId) + bonus)
 }
 
@@ -209,24 +203,15 @@ export const GrowthResult = Type.Object({
     after: Type.Number()
 })
 
-// A base of 10 or fewer grows by one; a larger one by one per full 10 and one more on a die
-// roll at or under the remainder. Migration adds one on a percentile roll at or under the
-// habitability, raised by 10% for each full 10 settlements behind the leader. Neither takes a
-// base past the system's population limit for its owner.
+// Rulebook 4.6: growth, then migration, each capped by the system's population limit for the
+// base's owner.
 export function growSettlements(state: HydratedStellarHorizonsGameState): GrowthResult[] {
     const random = state.getProtectedPrng()
-    const leader = Math.max(
-        0,
-        ...state.players.map((player) => totalSettlements(state, player.playerId))
+    // The catch-up bonus compares the settlements Players had as the phase began.
+    const startTotals: Record<string, number> = Object.fromEntries(
+        state.players.map((player) => [player.playerId, totalSettlements(state, player.playerId)])
     )
-    const chances = new Map(
-        state
-            .allBases()
-            .map(
-                (base) =>
-                    [base, migrationChance(state, base.playerId, base.systemId, leader)] as const
-            )
-    )
+    const leader = Math.max(0, ...Object.values(startTotals))
     const results: GrowthResult[] = []
     for (const playerId of state.initiativeOrder()) {
         for (const base of state.basesOf(playerId)) {
@@ -242,7 +227,12 @@ export function growSettlements(state: HydratedStellarHorizonsGameState): Growth
                 before <= GROWTH_STEP
                     ? 1
                     : fullSteps + (growthRoll !== undefined && growthRoll <= remainder ? 1 : 0)
-            const chance = chances.get(base) ?? 0
+            const chance = migrationChance(
+                state,
+                playerId,
+                base.systemId,
+                leader - startTotals[playerId]
+            )
             const migration = migrationRoll <= chance ? 1 : 0
             const limit = systemPopulationLimit(state, playerId, base.systemId)
             const after = Math.max(before, Math.min(limit, before + growth + migration))
@@ -280,7 +270,10 @@ export function conversionTargets(
         .allBases()
         .filter(
             (base) =>
-                base.playerId !== playerId && systems.has(base.systemId) && base.settlements > 1
+                base.playerId !== playerId &&
+                systems.has(base.systemId) &&
+                base.settlements > 1 &&
+                !blocksBases(state, base.systemId)
         )
 }
 

@@ -6,6 +6,7 @@
         RepairMethod,
         TechField,
         anomalyDefinition,
+        CASH_PER_INFLUENCE,
         CASH_PRODUCTION,
         isAttemptAnomaly,
         isBuildShip,
@@ -43,7 +44,6 @@
         shipDefinition,
         techDefinition,
         type CompensationCounts,
-        type Production,
         type SettledMarkers
     } from '@tabletop/stellar-horizons-2'
     import { PlayerName } from '@tabletop/frontend-components'
@@ -56,6 +56,7 @@
         PHASE_STARTED,
         factionName,
         plural,
+        productionLabel,
         systemName
     } from '$lib/utils/presentation.js'
 
@@ -78,12 +79,6 @@
                 : [])
         ]
         return parts.length > 0 ? ` (${parts.join(' and ')} in compensation)` : ''
-    }
-
-    function productionText(production: Production, amount: number): string {
-        return production === CASH_PRODUCTION
-            ? `$${amount}B`
-            : markers(production as TechField, amount)
     }
 
     function settledText(entry: SettledMarkers): string {
@@ -238,7 +233,7 @@
         {#each action.metadata?.results ?? [] as result, index (`${result.playerId}:${result.systemId}`)}
             <span class="inline-flex items-center gap-x-1"
                 ><PlayerName playerId={result.playerId} />
-                {productionText(result.production, result.amount)} at {systemName(
+                {productionLabel(result.production, result.amount)} at {systemName(
                     result.systemId
                 )}{index < (action.metadata?.results.length ?? 0) - 1 ? ';' : ''}</span
             >
@@ -272,7 +267,7 @@
     {:else if isPassConversion(action)}
         <span>chose not to convert anyone</span>
     {:else if isSpendInfluence(action)}
-        <span>turned {action.influence} IP into ${action.influence}B</span>
+        <span>turned {action.influence} IP into ${action.influence * CASH_PER_INFLUENCE}B</span>
     {:else if isStartPhase(action)}
         <span>{action.metadata ? PHASE_STARTED[action.metadata.phase] : 'starts a phase'}</span>
     {:else if isEndPhase(action)}

@@ -22,7 +22,7 @@ export interface InitialShip {
 export interface FactionAbilities {
     baseRangeMultiplier?: number
     anomalyChance?: number
-    anomalyDifficulty?: number
+    scienceAnomalyDifficulty?: number
     combatAnomalyDifficulty?: number
     extraTerraforms?: number
     habitabilityBonus?: number
@@ -144,7 +144,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
             ship('starfarers-copernicus', 'luhman-16', 2),
             ship('starfarers-orion', 'alpha-centauri', 2)
         ],
-        abilities: { baseRangeMultiplier: 2, anomalyChance: 30, anomalyDifficulty: -1 }
+        abilities: { baseRangeMultiplier: 2, anomalyChance: 30, scienceAnomalyDifficulty: -1 }
     },
     {
         faction: Faction.Syndicate,

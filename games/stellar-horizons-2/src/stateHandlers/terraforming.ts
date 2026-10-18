@@ -4,8 +4,8 @@ import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInflue
 import { HydratedTerraform, isTerraform } from '../actions/terraform.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { canSpendInfluence } from '../model/campaign.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { influenceActions } from './influence.js'
 import { stateAfterTerraformer } from './transitions.js'
 
 type TerraformingAction = HydratedTerraform | HydratedPassTerraform | HydratedSpendInfluence
@@ -32,7 +32,7 @@ export class TerraformingStateHandler implements MachineStateHandler<
         return [
             ActionType.Terraform,
             ActionType.PassTerraform,
-            ...(canSpendInfluence(state, playerId) ? [ActionType.SpendInfluence] : [])
+            ...influenceActions(state, playerId)
         ]
     }
 

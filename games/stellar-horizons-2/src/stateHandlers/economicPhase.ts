@@ -1,5 +1,10 @@
 import type { TSchema } from 'typebox'
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext,
+    assertExists
+} from '@tabletop/common'
 import {
     DrawEconomicTile,
     HydratedDrawEconomicTile,
@@ -62,11 +67,8 @@ export class EconomicPhaseStateHandler extends SystemStepHandler<HydratedDrawEco
         action: HydratedDrawEconomicTile,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        const state = context.gameState
-        const tile = state.economicTile
-        return tile === undefined || action.metadata === undefined
-            ? stateAfterEconomicPhase(state)
-            : stateForEconomicTile(state, tile)
+        assertExists(action.metadata, 'The economic tile was drawn')
+        return stateForEconomicTile(context.gameState, action.metadata.tile)
     }
 }
 

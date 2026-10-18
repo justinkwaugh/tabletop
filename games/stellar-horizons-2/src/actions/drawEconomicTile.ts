@@ -2,22 +2,15 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { EconomicTile } from '../components/economicTiles.js'
-import { TechField } from '../components/techFields.js'
 import { ActionType } from '../definition/actions.js'
-import { produceAtEarth } from '../model/campaign.js'
+import { EarthProduction, produceAtEarth } from '../model/campaign.js'
 import { drawEconomicTile } from '../model/economy.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
 export type EarthProductionRecord = Type.Static<typeof EarthProductionRecord>
 export const EarthProductionRecord = Type.Object({
     playerId: Type.String(),
-    cash: Type.Number(),
-    markers: Type.Object({
-        [TechField.Biology]: Type.Array(Type.Number()),
-        [TechField.Physics]: Type.Array(Type.Number()),
-        [TechField.Engineering]: Type.Array(Type.Number())
-    }),
-    emptyPoolCash: Type.Number()
+    ...EarthProduction.properties
 })
 
 export type DrawEconomicTileMetadata = Type.Static<typeof DrawEconomicTileMetadata>
@@ -43,8 +36,8 @@ export function isDrawEconomicTile(action?: GameAction): action is DrawEconomicT
     return action?.type === ActionType.DrawEconomicTile
 }
 
-// Earth production happens as the tile is drawn; the other tiles lead into their own steps.
-// Events and trade goods arrive with later slices of the campaign and do nothing yet.
+// Rulebook 4.3: Earth production happens as its tile is drawn; the other tiles lead into steps
+// of their own.
 export class HydratedDrawEconomicTile
     extends HydratableAction<typeof DrawEconomicTile>
     implements DrawEconomicTile

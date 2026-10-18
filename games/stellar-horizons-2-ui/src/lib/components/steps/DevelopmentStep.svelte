@@ -1,14 +1,15 @@
 <script lang="ts">
     import {
         TECH_FIELDS,
-        TECH_POINTS_PER_INFLUENCE,
+        cashAndInfluence,
+        influencePoints,
         isCampaign,
         techCost,
         techDefinition,
         type TechId
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cashNeeded, suggestPayment } from '$lib/model/payment.js'
+    import { suggestPayment } from '$lib/model/payment.js'
     import { TECH_EFFECT_TEXT } from '$lib/utils/presentation.js'
     import TechMarker from '../TechMarker.svelte'
     import TechMarkerTotal from '../TechMarkerTotal.svelte'
@@ -31,10 +32,11 @@
         if (!techId) return []
         if (chosen && chosen.techId === techId) return chosen.indexes
         // IP count towards what can be paid, so markers are still suggested first.
-        const influenceBudget = isCampaign(gameState)
-            ? player.influence * TECH_POINTS_PER_INFLUENCE
-            : 0
-        const suggestion = suggestPayment(held, cost, player.cash + influenceBudget)
+        const suggestion = suggestPayment(
+            held,
+            cost,
+            player.cash + influencePoints(gameState, playerId)
+        )
         if (!suggestion) return []
         const remaining = held.map((value, index) => ({ value, index }))
         return suggestion.markers.map((value) => {
@@ -50,20 +52,22 @@
     const paying = $derived(ordered.filter((entry) => selectedIndexes.includes(entry.index)))
     const keeping = $derived(ordered.filter((entry) => !selectedIndexes.includes(entry.index)))
     const markers = $derived(paying.map((entry) => entry.value))
-    const afterMarkers = $derived(cashNeeded(markers, cost))
-    const maxInfluence = $derived(
-        isCampaign(gameState)
-            ? Math.min(player.influence, Math.ceil(afterMarkers / TECH_POINTS_PER_INFLUENCE))
-            : 0
+    const payment = $derived(
+        techId
+            ? cashAndInfluence(
+                  gameState,
+                  playerId,
+                  techId,
+                  markers.reduce((total, value) => total + value, 0),
+                  chosenInfluence && chosenInfluence.techId === techId
+                      ? chosenInfluence.influence
+                      : undefined
+              )
+            : { influence: 0, maxInfluence: 0, cash: 0 }
     )
-    const influence = $derived.by(() => {
-        if (chosenInfluence && chosenInfluence.techId === techId) {
-            return Math.min(chosenInfluence.influence, maxInfluence)
-        }
-        const short = Math.max(0, afterMarkers - player.cash)
-        return Math.min(maxInfluence, Math.ceil(short / TECH_POINTS_PER_INFLUENCE))
-    })
-    const cash = $derived(Math.max(0, afterMarkers - influence * TECH_POINTS_PER_INFLUENCE))
+    const influence = $derived(payment.influence)
+    const maxInfluence = $derived(payment.maxInfluence)
+    const cash = $derived(payment.cash)
     const affordable = $derived(cash <= player.cash)
 
     function adjustInfluence(change: number) {

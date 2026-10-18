@@ -8,10 +8,10 @@ export const StellarHorizonsInfo: GameInfo = {
         name: 'Stellar Horizons II: Galactic Frontier',
         designer: 'Andrew Rader',
         description:
-            'Humanity reaches for its nearest stars. Build crew vehicles and robotic explorers, survey neighbouring systems for habitable worlds and research new technology. Scenarios: Footfall among the Stars, a race to plant ten settlements in a system that can support 25, and These are the Voyages, a race across six sectors to resolve four anomalies.',
+            'Humanity reaches for its nearest stars. Build crew vehicles and robotic explorers, survey neighbouring systems for habitable worlds and research new technology. Scenarios: Footfall among the Stars, a race to plant ten settlements in a system that can support 25, These are the Voyages, a race across six sectors to resolve four anomalies, and the Campaign, from 2100 to beyond 2500 for up to seven factions.',
         year: '2025',
         minPlayers: 1,
-        maxPlayers: 4,
+        maxPlayers: 7,
         defaultPlayerCount: 3,
         version: GAME_VERSION,
         beta: true,

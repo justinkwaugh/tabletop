@@ -43,7 +43,7 @@ export function usesAnomalyRewards(state: HydratedStellarHorizonsGameState): boo
 export const ANOMALY_INFLUENCE = 1
 
 // Rulebook 1.16: printed difficulty plus the number of players; in the campaign the Starfarers
-// take 1 off and the Syndicate 2 off combat challenges.
+// take 1 off science challenges and the Syndicate 2 off combat challenges.
 export function anomalyDifficulty(
     state: HydratedStellarHorizonsGameState,
     anomalyId: string,
@@ -51,9 +51,11 @@ export function anomalyDifficulty(
 ): number {
     const anomaly = anomalyDefinition(anomalyId)
     const abilities = playerId === undefined ? {} : factionAbilities(state, playerId)
-    const combat =
-        anomaly.challenge === AnomalyChallenge.Combat ? (abilities.combatAnomalyDifficulty ?? 0) : 0
-    return anomaly.difficulty + state.numPlayers + (abilities.anomalyDifficulty ?? 0) + combat
+    const modifier =
+        anomaly.challenge === AnomalyChallenge.Combat
+            ? abilities.combatAnomalyDifficulty
+            : abilities.scienceAnomalyDifficulty
+    return anomaly.difficulty + state.numPlayers + (modifier ?? 0)
 }
 
 // Every completed survey rolls; a system holds one anomaly at a time (rulebook 1.16).

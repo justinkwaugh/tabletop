@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { INITIATIVE_PER_INFLUENCE, maxInitiativeBid } from '@tabletop/stellar-horizons-2'
+    import {
+        INITIATIVE_PER_INFLUENCE,
+        MAX_INITIATIVE_BID,
+        maxInitiativeBid
+    } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -9,9 +13,9 @@
 
 <div class="sh-step">
     <p class="hint">
-        Spend up to 3 IP on your initiative roll, each adding {INITIATIVE_PER_INFLUENCE}% to it.
-        Everyone declares at once; the rolls follow, and ties go to the better initiative before
-        them.
+        Spend up to {MAX_INITIATIVE_BID} IP on your initiative roll, each adding {INITIATIVE_PER_INFLUENCE}%
+        to it. Everyone declares at once; the rolls follow, and ties go to the better initiative
+        before them.
     </p>
     <div class="row">
         {#each choices as influence (influence)}

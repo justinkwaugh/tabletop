@@ -52,6 +52,53 @@ export function canAffordTech(
     )
 }
 
+// The IP a tech's payment may use after its markers: what the Player holds, and never more than
+// the points still owed.
+export function maxPaymentInfluence(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    techId: TechId,
+    markerValue: number
+): number {
+    if (!isCampaign(state)) {
+        return 0
+    }
+    const owed = Math.max(0, techCost(state, playerId, techId) - markerValue)
+    return Math.min(
+        state.getPlayerState(playerId).influence,
+        Math.ceil(owed / TECH_POINTS_PER_INFLUENCE)
+    )
+}
+
+export interface CashAndInfluence {
+    influence: number
+    maxInfluence: number
+    cash: number
+}
+
+// How the rest of a tech's cost after its markers is paid: the IP chosen, or by default as few
+// as leave a cost the Player's cash can cover, and cash for whatever remains.
+export function cashAndInfluence(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    techId: TechId,
+    markerValue: number,
+    chosenInfluence?: number
+): CashAndInfluence {
+    const maxInfluence = maxPaymentInfluence(state, playerId, techId, markerValue)
+    const owed = Math.max(0, techCost(state, playerId, techId) - markerValue)
+    const short = Math.max(0, owed - state.getPlayerState(playerId).cash)
+    const influence = Math.min(
+        maxInfluence,
+        chosenInfluence ?? Math.ceil(short / TECH_POINTS_PER_INFLUENCE)
+    )
+    return {
+        influence,
+        maxInfluence,
+        cash: Math.max(0, owed - influence * TECH_POINTS_PER_INFLUENCE)
+    }
+}
+
 // Rulebook 1.19 (campaign box): every Player who buys a tech nobody owned at the start of the
 // turn earns 1 IP.
 export function isFirstToDevelop(state: HydratedStellarHorizonsGameState, techId: TechId) {
@@ -90,9 +137,7 @@ export function isValidTechPayment(
         cash <= player.cash &&
         Number.isInteger(influence) &&
         influence >= 0 &&
-        (influence === 0 || isCampaign(state)) &&
-        influence <= player.influence &&
-        influence <= Math.ceil(afterMarkers / TECH_POINTS_PER_INFLUENCE) &&
+        influence <= maxPaymentInfluence(state, playerId, techId, markerValue) &&
         isMarkerSubset(player.techMarkers[field], markers) &&
         markerValue + influenceValue + cash >= cost &&
         cash <= Math.max(0, afterMarkers - influenceValue)

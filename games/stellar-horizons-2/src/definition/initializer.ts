@@ -16,7 +16,7 @@ import { STAR_MAP } from '../components/starMap.js'
 import { SOL_SYSTEM_ID, systemsInSectors } from '../components/systems.js'
 import { TECH_FIELDS } from '../components/techFields.js'
 import { techsThroughColumn } from '../components/techs.js'
-import { ALL_WORLD_TILE_IDS, worldTile, type WorldClass } from '../components/worlds.js'
+import { ALL_WORLD_TILE_IDS, WorldClass, worldTile } from '../components/worlds.js'
 import {
     HydratedStellarHorizonsGameState,
     type StellarHorizonsGameState,
@@ -43,6 +43,9 @@ export class StellarHorizonsGameInitializer
         const scenario = configuredScenario(game.config)
         if (game.players.length < scenario.minPlayers) {
             throw new Error(`${scenario.name} needs at least ${scenario.minPlayers} players`)
+        }
+        if (game.players.length > scenario.maxPlayers) {
+            throw new Error(`${scenario.name} takes at most ${scenario.maxPlayers} players`)
         }
         const surveyedSystemIds = scenario.surveyedAroundSol
             ? STAR_MAP.adjacentSystemIds(SOL_SYSTEM_ID)
@@ -107,9 +110,14 @@ export class StellarHorizonsGameInitializer
             economicTilePool: scenario.campaign ? [...ECONOMIC_TILES] : []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
-        for (const [worldClass, count] of Object.entries(scenario.campaign?.setAsideWorlds ?? {})) {
-            setAsideWorlds(hydrated, worldClass as WorldClass, count)
+        for (const worldClass of Object.values(WorldClass)) {
+            this.setAsideWorlds(
+                hydrated,
+                worldClass,
+                scenario.campaign?.setAsideWorlds[worldClass] ?? 0
+            )
         }
+
         for (const systemId of surveyedSystemIds) {
             if (hydrated.isSystemInPlay(systemId)) {
                 fillWorldSlots(hydrated, systemId)
@@ -127,25 +135,25 @@ export class StellarHorizonsGameInitializer
         }
         return hydrated
     }
-}
 
-// Rulebook 3.0 setup step 5: these worlds join the pool later, one of each class per
-// terraforming phase.
-function setAsideWorlds(
-    state: HydratedStellarHorizonsGameState,
-    worldClass: WorldClass,
-    count: number
-) {
-    const random = state.getProtectedPrng()
-    for (let index = 0; index < count; index++) {
-        const candidates = state.worldPool.filter(
-            (tileId) => worldTile(tileId).worldClass === worldClass
-        )
-        if (candidates.length === 0) {
-            return
+    // Rulebook 3.0 setup step 5: these worlds join the pool later, one of each class per
+    // terraforming phase.
+    private setAsideWorlds(
+        state: HydratedStellarHorizonsGameState,
+        worldClass: WorldClass,
+        count: number
+    ) {
+        const random = state.getProtectedPrng()
+        for (let index = 0; index < count; index++) {
+            const candidates = state.worldPool.filter(
+                (tileId) => worldTile(tileId).worldClass === worldClass
+            )
+            if (candidates.length === 0) {
+                return
+            }
+            const tileId = candidates[random.randInt(candidates.length)]
+            state.worldPool.splice(state.worldPool.indexOf(tileId), 1)
+            state.setAsideWorlds.push(tileId)
         }
-        const tileId = candidates[random.randInt(candidates.length)]
-        state.worldPool.splice(state.worldPool.indexOf(tileId), 1)
-        state.setAsideWorlds.push(tileId)
     }
 }

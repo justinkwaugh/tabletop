@@ -9,10 +9,12 @@ import { starSystemDefinition } from '../components/systems.js'
 import { TECH_FIELDS, TechField } from '../components/techFields.js'
 import { TECHS, TechId } from '../components/techs.js'
 import { shipsAvailableToBuild } from '../model/building.js'
+import { anomalyDifficulty } from '../model/anomalies.js'
 import { effectiveHabitability } from '../model/campaign.js'
 import { isFirstToDevelop, isValidTechPayment } from '../model/development.js'
 import {
     type ConversionResult,
+    availableProductions,
     conversionTargets,
     systemPopulationLimit
 } from '../model/economy.js'
@@ -34,7 +36,10 @@ import { CASH_PRODUCTION } from '../model/pieces.js'
 import { TurnPhase } from '../model/turn.js'
 import { playPhase } from '../model/turnPlan.js'
 import {
+    MASTER_SEED,
+    createGame,
     edit,
+    engine,
     executeAll,
     hydrate,
     placeBase,
@@ -666,4 +671,52 @@ describe('A whole campaign', () => {
             expect(campaignScore(final, playerId).total).toBe(best)
         }
     }, 60_000)
+})
+
+describe('Review fixes', () => {
+    it('offers cash and only the tech types the system’s worlds produce', () => {
+        const { state } = campaign(2)
+        const hydrated = hydrate(state)
+        const [playerId] = hydrated.initiativeOrder()
+        hydrated.systemState('alpha-centauri').worlds = [{ tileId: 'm-1', side: WorldSide.I }]
+        const base = placeBase(hydrated, playerId, 'alpha-centauri', 12)
+        expect(availableProductions(hydrated, base)).toEqual([CASH_PRODUCTION, TechField.Biology])
+    })
+
+    it('takes the Starfarers’ 1 off science anomalies only, and the Syndicate’s 2 off combat', () => {
+        const { state } = startedGame(2, CAMPAIGN_CONFIG)
+        const hydrated = hydrate(state)
+        const starfarers = hydrated.players.find((player) => player.faction === Faction.Starfarers)
+        assertExists(starfarers)
+        // Ice Caverns: science 3; Colossal Comet: combat 3; two players.
+        expect(anomalyDifficulty(hydrated, 'ice-caverns', starfarers.playerId)).toBe(4)
+        expect(anomalyDifficulty(hydrated, 'colossal-comet', starfarers.playerId)).toBe(5)
+        starfarers.faction = Faction.Syndicate
+        expect(anomalyDifficulty(hydrated, 'ice-caverns', starfarers.playerId)).toBe(5)
+        expect(anomalyDifficulty(hydrated, 'colossal-comet', starfarers.playerId)).toBe(3)
+    })
+
+    it('offers no conversion in a system with a "no bases" anomaly', () => {
+        const { state } = campaign(4)
+        const hydrated = hydrate(state)
+        const truePath = hydrated.players.find((player) => player.faction === Faction.TruePath)
+        const givers = hydrated.players.find((player) => player.faction === Faction.Givers)
+        assertExists(truePath)
+        assertExists(givers)
+        placeBase(hydrated, truePath.playerId, 'alpha-centauri', 3)
+        placeBase(hydrated, givers.playerId, 'alpha-centauri', 3)
+        expect(conversionTargets(hydrated, truePath.playerId)).toHaveLength(1)
+        hydrated.systemState('alpha-centauri').anomaly = 'terran-dna'
+        expect(conversionTargets(hydrated, truePath.playerId)).toEqual([])
+    })
+
+    it('takes up to seven players in the campaign and four in the scenarios', () => {
+        expect(() => createGame(7, CAMPAIGN_CONFIG)).not.toThrow()
+        expect(() =>
+            engine.startGame(createGame(7, CAMPAIGN_CONFIG), { masterSeed: MASTER_SEED })
+        ).not.toThrow()
+        expect(() => engine.startGame(createGame(5), { masterSeed: MASTER_SEED })).toThrow(
+            /at most 4/
+        )
+    })
 })

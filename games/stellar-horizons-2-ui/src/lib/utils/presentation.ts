@@ -1,11 +1,13 @@
 import {
+    CASH_PRODUCTION,
     EconomicTile,
     Faction,
     TechField,
     TechId,
     TurnPhase,
     factionDefinition,
-    systemDefinition
+    systemDefinition,
+    type Production
 } from '@tabletop/stellar-horizons-2'
 
 export const PHASE_LABELS: Record<TurnPhase, string> = {
@@ -82,6 +84,13 @@ export const ECONOMIC_TILE_LABELS: Record<EconomicTile, string> = {
 export const ECONOMIC_TILE_NOT_YET: Partial<Record<EconomicTile, string>> = {
     [EconomicTile.DrawEvent]: 'Events are not in the game yet, so this tile does nothing.',
     [EconomicTile.DrawTradeGoods]: 'Trade goods are not in the game yet, so this tile does nothing.'
+}
+
+// What a base's production yields, as the production panel and history name it.
+export function productionLabel(production: Production, amount: number): string {
+    return production === CASH_PRODUCTION
+        ? `$${amount}B`
+        : plural(amount, `${production.toLowerCase()} marker`)
 }
 
 export const FIELD_COLORS: Record<TechField, string> = {
