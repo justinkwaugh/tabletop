@@ -12,9 +12,11 @@ import {
     ChooseLarvaCubes,
     CoralColors,
     FeedParrotfish,
+    feedsInTurnOrder,
     IntroduceShrimp,
     MachineState,
     MoveShrimp,
+    ParrotfishFeedingGroupId,
     PassFinalTurn,
     PlacePolyp,
     polypAt,
@@ -347,7 +349,14 @@ export class ReefEncounterGameSession extends GameSession<
     }
 
     async feedParrotfish(color: CoralColor) {
-        await this.applyAction(this.createPlayerAction(FeedParrotfish, { color }))
+        await this.applyAction(
+            this.createPlayerAction(
+                FeedParrotfish,
+                feedsInTurnOrder(this.gameState)
+                    ? { color }
+                    : { color, simultaneousGroupId: ParrotfishFeedingGroupId }
+            )
+        )
     }
 
     async chooseLarvaCube(color: CoralColor) {

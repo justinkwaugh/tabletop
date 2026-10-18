@@ -21,12 +21,24 @@
     )
 </script>
 
-{#each game.activePlayerIds as playerId (playerId)}
-    {@const activity = waitingActivity(game.machineState, playerId === gameSession.myPlayer?.id)}
-    {#if activity}
-        <p class="prompt"><PlayerName {playerId} /> {activity}</p>
-    {/if}
-{/each}
+{#if game.activePlayerIds.length > 1}
+    <!-- Everyone feeds their parrotfish at once. -->
+    <p class="prompt">
+        {#each game.activePlayerIds as playerId, index (playerId)}
+            {#if index > 0}{index === game.activePlayerIds.length - 1 ? ' and ' : ', '}{/if}<PlayerName
+                {playerId}
+            />
+        {/each}
+        are feeding their parrotfish.
+    </p>
+{:else}
+    {#each game.activePlayerIds as playerId (playerId)}
+        {@const activity = waitingActivity(game.machineState, playerId === gameSession.myPlayer?.id)}
+        {#if activity}
+            <p class="prompt"><PlayerName {playerId} /> {activity}</p>
+        {/if}
+    {/each}
+{/if}
 {#if summary}
     <p class="detail summary">
         {#if lastTurn?.playerId}

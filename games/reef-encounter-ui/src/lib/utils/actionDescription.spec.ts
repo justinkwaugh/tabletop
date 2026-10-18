@@ -215,6 +215,19 @@ describe('describing a turn', () => {
         ])
     })
 
+    it('counts repeated colours among the polyps taken with a larva cube', () => {
+        const take: TakeOpenSeaSpace = {
+            ...base(),
+            type: ActionType.TakeOpenSeaSpace,
+            playerId: 'a',
+            larvaColor: CoralColor.Grey,
+            metadata: { polyps: [CoralColor.White, CoralColor.Yellow, CoralColor.Yellow] }
+        }
+        expect(texts([take], 'their')).toEqual([
+            'ended their turn by taking the grey larva cube with a white polyp and two yellow polyps.'
+        ])
+    })
+
     it('tells the bonus spaces refilled at turn end, and colours the bag lacked', () => {
         const take: TakeOpenSeaSpace = {
             ...base(),

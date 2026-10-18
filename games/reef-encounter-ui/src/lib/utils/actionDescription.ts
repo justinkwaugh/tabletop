@@ -56,14 +56,16 @@ const polyp = (color: CoralColor, count = 1, consumed = false): PhraseIcon => ({
     label: counted(count, `${consumed ? 'consumed ' : ''}${color} polyp`).replace(/^two /, '2 ')
 })
 
-const polypsOf = (colors: readonly CoralColor[]): PhraseIcon[] => {
+// Spoken with each colour counted once: "grey and orange polyps", "a white polyp and two yellow
+// polyps".
+export function polypsLabel(colors: readonly CoralColor[]): string {
     const counts = new Map<CoralColor, number>()
     for (const color of colors) counts.set(color, (counts.get(color) ?? 0) + 1)
-    return [...counts].map(([color, count]) => polyp(color, count))
+    if (counts.size === colors.length) {
+        return colors.length === 1 ? `${withArticle(colors[0])} polyp` : `${listed(colors)} polyps`
+    }
+    return listed([...counts].map(([color, count]) => counted(count, `${color} polyp`)))
 }
-
-const polypsLabel = (colors: readonly CoralColor[]): string =>
-    colors.length === 1 ? `${withArticle(colors[0])} polyp` : `${listed(colors)} polyps`
 
 const cube = (color: CoralColor, count = 1): PhraseIcon => ({
     icon: 'cube',
@@ -205,7 +207,8 @@ export function describeAction(
             [
                 `ended ${own} turn by taking `,
                 cube(action.larvaColor),
-                ...(taken.length > 0 ? [' with ', ...polypsOf(taken)] : []),
+                // At most three, so each shows on its own rather than as a count.
+                ...(taken.length > 0 ? [' with ', ...taken.map((color) => polyp(color))] : []),
                 '.'
             ],
             taken.length === 0
