@@ -22,17 +22,18 @@ export function spreadsheetCompanies(
         .slice(0, actionCount)
         .filter(isStartCompany)
         .map((action) => action.companyId)
-    // A given order comes first. Companies it leaves out follow in the order they started, then
-    // the included companies that never started.
+    // A given order comes first. Companies it leaves out follow in the order they started. The
+    // included companies come last, even where the given order lists them.
     const startOrder = [
         ...eligibleCompanies
             .filter((company) => !starts.includes(company.id))
             .map((company) => company.id),
         ...starts
     ]
+    const notIncluded = (id: string) => !includedCompanyIds.includes(id)
     const order = [
-        ...(companyOrder ?? []),
-        ...startOrder.filter((id) => !includedCompanyIds.includes(id)),
+        ...(companyOrder ?? []).filter(notIncluded),
+        ...startOrder.filter(notIncluded),
         ...includedCompanyIds
     ]
     return eligibleCompanies.toSorted((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
