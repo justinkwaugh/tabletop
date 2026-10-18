@@ -20,7 +20,10 @@
         type Owner,
         type CertificatePool
     } from '@tabletop/18xx'
-    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type {
+        CompanyShareStatus,
+        EighteenXXSessionView
+    } from '../session/eighteenXXSession.svelte.js'
     import { type CompanyOwnership, companyOwnership } from '../finance/companyOwnership.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -53,6 +56,10 @@
         company: Company
         poolName?: (pool: CertificatePool) => string
     } = $props()
+    const shareStatusLabels: Record<CompanyShareStatus, string> = {
+        unfloated: 'Unfloated',
+        soldOut: 'Sold out'
+    }
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
     const lastRun = $derived(
@@ -88,15 +95,7 @@
     const marketPrice = $derived(
         companySharePrice(session.stockMarketChart, gameState.stockMarket, company.id)
     )
-    const shareStatus = $derived(
-        !company.started || company.closed
-            ? undefined
-            : !company.floated
-              ? 'Unfloated'
-              : session.companySoldOut(company.id)
-                ? 'Sold out'
-                : undefined
-    )
+    const shareStatus = $derived(session.companyShareStatus(company.id))
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const stations = $derived(
         gameState.stations.filter((station) => station.companyId === company.id)
@@ -229,7 +228,8 @@
                 <h3>Ownership</h3>
                 {#if shareStatus}<span
                         class="share-status"
-                        class:unfloated={shareStatus === 'Unfloated'}>{shareStatus}</span
+                        class:unfloated={shareStatus === 'unfloated'}
+                        >{shareStatusLabels[shareStatus]}</span
                     >{/if}
             </div>
             {#if ownership.length}

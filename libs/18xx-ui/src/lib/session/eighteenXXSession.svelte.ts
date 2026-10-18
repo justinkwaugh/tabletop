@@ -544,11 +544,14 @@ export class EighteenXXSession<
             ? priorityOrder(this.gameState, this.rules.stockRules.round)
             : this.gameState.turnManager.turnOrder
     )
-    companySoldOut(companyId: string): boolean {
-        return (
+    companyShareStatus(companyId: string): CompanyShareStatus | undefined {
+        const company = getCompany(this.gameState, companyId)
+        if (!company.started || company.closed) return undefined
+        if (!company.floated) return 'unfloated'
+        const soldOut =
             companySharePrice(this.stockMarketChart, this.gameState.stockMarket, companyId) !==
                 undefined && this.rules.stockRules.round.soldOut(this.gameState, companyId)
-        )
+        return soldOut ? 'soldOut' : undefined
     }
     playerLiquidity(playerId: string): number {
         const owner = { kind: 'player', playerId } as const
@@ -715,6 +718,8 @@ export function requireEighteenXXSession(
     assert(session instanceof EighteenXXSession, 'Expected an 18xx session')
     return session
 }
+
+export type CompanyShareStatus = 'unfloated' | 'soldOut'
 
 export type MapLocationChoice = {
     locationIds: readonly string[]
