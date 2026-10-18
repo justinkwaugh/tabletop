@@ -933,8 +933,12 @@ export class TabletopApi {
         return response.payload.token
     }
 
-    async getRealtimeToken(gameIds: string[]): Promise<string> {
+    async getRealtimeToken(
+        gameIds: string[],
+        { relayStats = false }: { relayStats?: boolean } = {}
+    ): Promise<string> {
         const params = new URLSearchParams(gameIds.map((gameId) => ['game', gameId]))
+        if (relayStats) params.set('relayStats', 'true')
         const response = await this.wretch
             .get(`/realtime/token?${params}`)
             .unauthorized(this.on401)

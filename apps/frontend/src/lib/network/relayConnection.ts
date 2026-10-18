@@ -151,7 +151,7 @@ export class RelayConnection implements RealtimeConnection {
         const requested = new Set(this.channels.keys())
         let token: string
         try {
-            token = await this.api.getRealtimeToken(this.gameIds())
+            token = await this.requestToken()
         } catch (error) {
             console.error('Failed to get a realtime token', error)
             if (attempt === this.attempt) {
@@ -218,7 +218,7 @@ export class RelayConnection implements RealtimeConnection {
         const attempt = this.attempt
         stream.requested = new Set(this.channels.keys())
         try {
-            const token = await this.api.getRealtimeToken(this.gameIds())
+            const token = await this.requestToken()
             if (attempt !== this.attempt) {
                 return
             }
@@ -277,6 +277,13 @@ export class RelayConnection implements RealtimeConnection {
         }
         this.close()
         this.scheduleReconnect()
+    }
+
+    private requestToken(): Promise<string> {
+        const relayStats = new ChannelIdentifier(NotificationChannel.RelayStats).channelName
+        return this.api.getRealtimeToken(this.gameIds(), {
+            relayStats: this.channels.has(relayStats)
+        })
     }
 
     private gameIds(): string[] {

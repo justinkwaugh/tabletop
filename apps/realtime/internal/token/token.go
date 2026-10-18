@@ -12,6 +12,7 @@ import (
 const (
 	Audience       = "realtime"
 	ControlChannel = "realtime-control"
+	StatsTopic     = "relay-stats"
 	MaxLifetime    = time.Minute
 	ClockLeeway    = 5 * time.Second
 )

@@ -10,6 +10,7 @@ import {
     bucketLabels,
     chartSlots,
     formatDuration,
+    onlineFigure,
     presetRange,
     rangeFigures,
     rangeTotals,
@@ -150,5 +151,21 @@ describe('turn time display', () => {
             '1 d – 3 d',
             '3 d or more'
         ])
+    })
+})
+
+describe('online now', () => {
+    it('shows people and tabs from the relay', () => {
+        expect(onlineFigure({ accounts: 13, connections: 15 }, true)).toEqual({
+            value: '13',
+            label: 'online now',
+            note: '15 tabs open · live'
+        })
+        expect(onlineFigure({ accounts: 1, connections: 1 }, true).note).toBe('1 tab open · live')
+    })
+
+    it('says what it is waiting for before the first count', () => {
+        expect(onlineFigure(undefined, true).note).toBe('waiting for the relay')
+        expect(onlineFigure(undefined, false).note).toBe('needs the realtime relay')
     })
 })

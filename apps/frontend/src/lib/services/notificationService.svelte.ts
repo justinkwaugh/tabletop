@@ -151,6 +151,18 @@ export class NotificationService {
         )
     }
 
+    async listenToRelayStats() {
+        await this.realtimeConnection.addChannel(
+            new ChannelIdentifier(NotificationChannel.RelayStats)
+        )
+    }
+
+    async stopListeningToRelayStats() {
+        await this.realtimeConnection.removeChannel(
+            new ChannelIdentifier(NotificationChannel.RelayStats)
+        )
+    }
+
     addListener(listener: NotificationListener) {
         if (this.listeners.has(listener)) {
             return

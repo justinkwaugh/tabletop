@@ -29,6 +29,8 @@ export class ChannelIdentifier {
                 return 'user'
             case NotificationChannel.Global:
                 return 'global'
+            case NotificationChannel.RelayStats:
+                return 'relay-stats'
         }
     }
 }

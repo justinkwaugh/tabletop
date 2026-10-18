@@ -121,7 +121,7 @@ describe('RelayConnection', () => {
         await connection.connect()
         await settle()
         expect(getRealtimeToken).toHaveBeenCalledOnce()
-        expect(getRealtimeToken).toHaveBeenCalledWith([])
+        expect(getRealtimeToken).toHaveBeenCalledWith([], { relayStats: false })
         expect(FakeEventSource.latest().url).toBe('https://events.test/stream?t=token-for-')
     })
 
@@ -148,7 +148,7 @@ describe('RelayConnection', () => {
 
         await connection.addChannel(game)
         await settle()
-        expect(getRealtimeToken).toHaveBeenLastCalledWith(['g1'])
+        expect(getRealtimeToken).toHaveBeenLastCalledWith(['g1'], { relayStats: false })
         expect(post).toHaveBeenCalledWith('https://events.test/stream/c1/topics?t=token-for-g1')
         expect(FakeEventSource.opened).toHaveLength(1)
 
@@ -169,7 +169,7 @@ describe('RelayConnection', () => {
 
         await connection.removeChannel(game)
         await settle()
-        expect(getRealtimeToken).toHaveBeenLastCalledWith([])
+        expect(getRealtimeToken).toHaveBeenLastCalledWith([], { relayStats: false })
         expect(post).toHaveBeenCalledOnce()
         stream.message({ topic: 'game-g1', message: { late: true } })
         stream.ready(['global', 'user-u1'])
@@ -200,11 +200,21 @@ describe('RelayConnection', () => {
         stream.ready(['game-g1', 'global', 'user-u1'])
         await settle()
         expect(post).toHaveBeenCalledTimes(2)
-        expect(getRealtimeToken).toHaveBeenLastCalledWith(['g1', 'g2'])
+        expect(getRealtimeToken).toHaveBeenLastCalledWith(['g1', 'g2'], { relayStats: false })
 
         stream.ready(['game-g1', 'game-g2', 'global', 'user-u1'])
         await settle()
         expect(post).toHaveBeenCalledTimes(2)
+    })
+
+    it('asks for the relay stats topic while that channel is wanted', async () => {
+        const { connection, getRealtimeToken, post } = await connected(user, global)
+        const stats = new ChannelIdentifier(NotificationChannel.RelayStats)
+
+        await connection.addChannel(stats)
+        await settle()
+        expect(getRealtimeToken).toHaveBeenLastCalledWith([], { relayStats: true })
+        expect(post).toHaveBeenCalledOnce()
     })
 
     it('waits for the first ready before changing topics', async () => {
