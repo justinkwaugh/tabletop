@@ -7,6 +7,7 @@ import { commitHiddenOutputs, showTakenSiteRelics } from '../util/hiddenInputs.j
 import { tableWitnesses } from '../util/knowledge.js'
 import {
     banditPlanContext,
+    hospitalHolderOf,
     killOrRedirect,
     partiesOf,
     usedPlanContext,
@@ -212,7 +213,7 @@ export class HydratedCampaignSacrifice
         if (required === 0 || required >= forceTotal(force) || force.length < 2) return undefined
         if (
             isAtLeastOathRevision(state, OathRevision.TurnFlow) &&
-            !HydratedCampaignSacrifice.defendingLossesMatter(state, force)
+            !HydratedCampaignSacrifice.defendingLossesMatter(state, campaign, force)
         ) {
             return undefined
         }
@@ -223,14 +224,23 @@ export class HydratedCampaignSacrifice
             : defenderId
     }
 
-    /** R-5.5.6-H1 — from revision 7, only losses that can end in another bank or on another board. */
+    /**
+     * R-5.5.6-H1 — from revision 7, only losses that can end in another bank or on another board; from
+     * revision 13 (R-10.28-H2) also losses that another player's Hospital, or none, would hold.
+     */
     private static defendingLossesMatter(
         state: HydratedOathGameState,
+        campaign: CampaignState,
         force: readonly WarbandGroup[]
     ): boolean {
-        return isAtLeastOathRevision(state, OathRevision.EngineFixes3)
-            ? defeatPickMatters(state, force)
-            : defeatChoiceMatters(force)
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes3)) {
+            return defeatChoiceMatters(force)
+        }
+        const heldBy = isAtLeastOathRevision(state, OathRevision.EngineFixes9)
+            ? (group: WarbandGroup) =>
+                  hospitalHolderOf(state, campaign, BattlePlanSide.Defender, group)
+            : undefined
+        return defeatPickMatters(state, force, undefined, heldBy)
     }
 
     /** R-5.5.5, R-10.22 — sacrificing is choosing to kill your own warbands. */
@@ -415,11 +425,18 @@ export class HydratedCampaignSacrifice
     ): string | undefined {
         if (sacrifice < 0) return 'must sacrifice at least 0 warbands'
         if (sacrifice === 0) return undefined
-        // R-7.1.4 — Vow of Peace: attackers cannot sacrifice against its holder.
+        // R-7.1.4 — Vow of Peace: attackers cannot sacrifice against its holder. R-5.5.2-H1: the
+        // Campaign modifiers ruled by the defender and every Ally are active, so an Ally's Vow counts
+        // as the defender's does; R-X.4: before revision 13, only the defender's.
+        const defending = isAtLeastOathRevision(state, OathRevision.EngineFixes9)
+            ? playerIdsOnSide(campaign, BattlePlanSide.Defender)
+            : campaign.defenderPlayerId === undefined
+              ? []
+              : [campaign.defenderPlayerId]
         const forbidden = reasonPersistentForbidsSacrifice(
             state,
             campaign.attackerPlayerId,
-            campaign.defenderPlayerId
+            defending
         )
         if (forbidden) return forbidden
 

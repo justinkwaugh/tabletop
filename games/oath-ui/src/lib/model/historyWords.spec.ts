@@ -51,6 +51,8 @@ function drawn(fields: { type: ActionType; playerId?: string } & Record<string, 
                     return `${part.count}[warband]`
                 case 'suit':
                     return `[${part.suit}]`
+                case 'skull':
+                    return '[skull]'
                 default:
                     return `${part.count ?? ''}[${part.kind}]`
             }

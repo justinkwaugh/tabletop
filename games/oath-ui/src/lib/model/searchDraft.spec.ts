@@ -15,15 +15,15 @@ afterEach(() => {
     vi.restoreAllMocks()
 })
 
-function searching() {
-    const session = openSessionOn(searchingTable())
+async function searching() {
+    const session = await openSessionOn(searchingTable())
     return { session, draft: session.search }
 }
 
 /** The five cases `docs/user-interactions.md` requires of each staged flow, for the Search draft. */
 describe('the Search draft (docs/user-interactions.md)', () => {
     it('keeping a card clears the placement chosen for the last one', async () => {
-        const { draft } = searching()
+        const { draft } = await searching()
         const [first, second] = draft.drawn
         draft.keep(first)
         await draft.choosePlacement({ play: SearchPlay.Discard })
@@ -36,7 +36,7 @@ describe('the Search draft (docs/user-interactions.md)', () => {
     })
 
     it('Undo pops the highest manual pick, and says so only while one is left', async () => {
-        const { draft } = searching()
+        const { draft } = await searching()
         const [first] = draft.drawn
         draft.keep(first)
         await draft.choosePlacement({ play: SearchPlay.Discard })
@@ -48,22 +48,22 @@ describe('the Search draft (docs/user-interactions.md)', () => {
         expect(draft.back()).toBe(false)
     })
 
-    it('a Search has no auto pick: before any tap there is nothing for Undo to take', () => {
-        const { session, draft } = searching()
+    it('a Search has no auto pick: before any tap there is nothing for Undo to take', async () => {
+        const { session, draft } = await searching()
         expect(draft.hasManualSelection()).toBe(false)
         expect(draft.back()).toBe(false)
         expect(session.hasManualDraft).toBe(false)
     })
 
-    it('a card not drawn is never kept', () => {
-        const { draft } = searching()
+    it('a card not drawn is never kept', async () => {
+        const { draft } = await searching()
         draft.keep('denizen.order.not-drawn')
         expect(draft.kept).toBeUndefined()
         expect(draft.hasManualSelection()).toBe(false)
     })
 
     it('reselecting the same card keeps nothing chosen under it', async () => {
-        const { draft } = searching()
+        const { draft } = await searching()
         const [first] = draft.drawn
         draft.keep(first)
         await draft.choosePlacement({ play: SearchPlay.Discard })
@@ -79,7 +79,7 @@ const TENTS = 'denizen.nomad.tents'
 const TUTOR = 'denizen.arcane.tutor'
 const HELD = ['denizen.order.longbows', 'denizen.hearth.wayside-inn', 'denizen.beast.wolves']
 
-function searchingWith(handIds: string[], advisers: string[] = [], table: Record<string, unknown> = {}) {
+async function searchingWith(handIds: string[], advisers: string[] = [], table: Record<string, unknown> = {}) {
     const state = testState(
         [
             testPlayer({
@@ -94,14 +94,14 @@ function searchingWith(handIds: string[], advisers: string[] = [], table: Record
         { machineState: MachineState.Searching, ...table }
     )
     openTurn(state, ME)
-    const session = openSessionOn(tableOf(state))
+    const session = await openSessionOn(tableOf(state))
     const sent = vi.spyOn(session, 'resolveSearch').mockResolvedValue()
     return { session, draft: session.search, sent }
 }
 
 describe('a Search play at the adviser limit (R-5.1.4.II)', () => {
     it('offers the adviser placement and asks which adviser makes room before sending', async () => {
-        const { draft, sent } = searchingWith([TENTS, TUTOR], HELD)
+        const { draft, sent } = await searchingWith([TENTS, TUTOR], HELD)
         draft.keep(TENTS)
         const faceup = draft.placements.find((o) => o.play === SearchPlay.Adviser && o.faceUp)
         expect(faceup).toBeDefined()
@@ -123,7 +123,7 @@ describe('a Search play at the adviser limit (R-5.1.4.II)', () => {
     })
 
     it('Undo from the adviser pick returns to the placements', async () => {
-        const { draft } = searchingWith([TENTS, TUTOR], HELD)
+        const { draft } = await searchingWith([TENTS, TUTOR], HELD)
         draft.keep(TENTS)
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
         expect(draft.back()).toBe(true)
@@ -134,7 +134,7 @@ describe('a Search play at the adviser limit (R-5.1.4.II)', () => {
 
 describe('a faceup Search play asks its When Played choices (R-7.3.3)', () => {
     it('Salad Days starts with no bank picked, and is sent only with three different banks', async () => {
-        const { draft, sent } = searchingWith([SALAD_DAYS, TUTOR])
+        const { draft, sent } = await searchingWith([SALAD_DAYS, TUTOR])
         draft.keep(SALAD_DAYS)
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
         expect(draft.needsWhenPlayed).toBe(true)
@@ -163,7 +163,7 @@ describe('a faceup Search play asks its When Played choices (R-7.3.3)', () => {
     })
 
     it('a facedown play asks nothing', async () => {
-        const { draft, sent } = searchingWith([SALAD_DAYS, TUTOR])
+        const { draft, sent } = await searchingWith([SALAD_DAYS, TUTOR])
         draft.keep(SALAD_DAYS)
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: false })
         expect(draft.needsWhenPlayed).toBe(false)
@@ -176,7 +176,7 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
     const HEARTH = ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return']
     const CUP = 'relic.cup-of-plenty'
 
-    function withRival(ann: Partial<Parameters<typeof testPlayer>[0]> = {}) {
+    async function withRival(ann: Partial<Parameters<typeof testPlayer>[0]> = {}) {
         const state = testState(
             [
                 testPlayer({
@@ -199,13 +199,13 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
             { machineState: MachineState.Searching }
         )
         openTurn(state, ME)
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'resolveSearch').mockResolvedValue()
         return { draft: session.search, sent }
     }
 
     it('with no one to take from, the take step says why, and "Play" plays it with no take', async () => {
-        const { draft, sent } = withRival({ relicIds: [] })
+        const { draft, sent } = await withRival({ relicIds: [] })
         draft.keep(CONSPIRACY)
         await draft.choosePlacement({ play: SearchPlay.Conspiracy })
         expect(draft.needsConspiracy).toBe(true)
@@ -232,14 +232,14 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
     })
 
     it('does not list a player who matches but holds nothing to take', async () => {
-        const { draft } = withRival({ relicIds: [] })
+        const { draft } = await withRival({ relicIds: [] })
         draft.keep(CONSPIRACY)
         await draft.choosePlacement({ play: SearchPlay.Conspiracy })
         expect(draft.conspiracyTargets).toEqual([])
     })
 
     it('a player the take can reach is listed, and no line is said', async () => {
-        const { draft } = withRival()
+        const { draft } = await withRival()
         draft.keep(CONSPIRACY)
         await draft.choosePlacement({ play: SearchPlay.Conspiracy })
         expect(draft.conspiracyTargets).toEqual(['ann'])
@@ -247,7 +247,7 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
     })
 
     it('Play is ready with nobody picked, not with a player alone, and again with a prize', async () => {
-        const { draft, sent } = withRival()
+        const { draft, sent } = await withRival()
         draft.keep(CONSPIRACY)
         await draft.choosePlacement({ play: SearchPlay.Conspiracy })
         expect(draft.conspiracyComplete).toBe(true)
@@ -262,7 +262,7 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
     })
 
     it('waits for the take, then sends it with the play', async () => {
-        const { draft, sent } = withRival()
+        const { draft, sent } = await withRival()
         draft.keep(CONSPIRACY)
         await draft.choosePlacement({ play: SearchPlay.Conspiracy })
         expect(draft.needsConspiracy).toBe(true)
@@ -281,7 +281,7 @@ describe('R-5.1.4.IV — the Conspiracy kept from a Search offers its take', () 
 })
 
 describe('Circlet of Command — the Conspiracy is not offered a relic it guards', () => {
-    it("offers the Circlet itself and not the holder's other relics", () => {
+    it("offers the Circlet itself and not the holder's other relics", async () => {
         const CIRCLET = 'relic.circlet-of-command'
         const state = testState(
             [
@@ -291,13 +291,13 @@ describe('Circlet of Command — the Conspiracy is not offered a relic it guards
             { machineState: MachineState.Searching }
         )
         openTurn(state, ME)
-        const draft = openSessionOn(tableOf(state)).search
+        const draft = (await openSessionOn(tableOf(state))).search
         expect(draft.conspiracyPrizesOf('ann').map((option) => option.prize)).toEqual([{ kind: 'relic', cardId: CIRCLET }])
     })
 })
 
 describe("R-5.1.4.I — the People's Favor's holder is offered every site in their region", () => {
-    it('lists a full site in the region, and the card there to discard first', () => {
+    it('lists a full site in the region, and the card there to discard first', async () => {
         const full = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
         const state = testState([testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', handIds: [TENTS, TUTOR] })], {
             machineState: MachineState.Searching,
@@ -308,7 +308,7 @@ describe("R-5.1.4.I — the People's Favor's holder is offered every site in the
             }
         })
         openTurn(state, ME)
-        const draft = openSessionOn(tableOf(state)).search
+        const draft = (await openSessionOn(tableOf(state))).search
         draft.keep(TENTS)
         expect(draft.otherSites).toContain('c2')
         expect(draft.otherSites).not.toContain('p1')
@@ -320,7 +320,7 @@ describe("R-5.1.4.I — the People's Favor's holder is offered every site in the
 describe('R-7.6.4 — a limiter kept from a Search discards down to its limit', () => {
     it('asks for two advisers when Silver Tongue joins three, and sends both', async () => {
         const SILVER = 'denizen.discord.silver-tongue'
-        const { draft, sent } = searchingWith([SILVER, TUTOR], HELD)
+        const { draft, sent } = await searchingWith([SILVER, TUTOR], HELD)
         draft.keep(SILVER)
         await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
         expect(draft.room.needed).toBe(2)
@@ -336,9 +336,9 @@ const VISION = 'vision.conquest'
 const WARDEN_CARRIED = { pendingSearchModifiers: [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }] }
 
 describe('Land Warden — the second play is picked on the cards', () => {
-    it('a tap on a card picks its first way to play, a mode changes it, and a second tap drops it', () => {
+    it('a tap on a card picks its first way to play, a mode changes it, and a second tap drops it', async () => {
         const WRESTLERS = 'denizen.order.wrestlers'
-        const { draft } = searchingWith([TENTS, WRESTLERS, HELD[0]], [], WARDEN_CARRIED)
+        const { draft } = await searchingWith([TENTS, WRESTLERS, HELD[0]], [], WARDEN_CARRIED)
         draft.keep(TENTS)
         expect(draft.secondCandidates).toEqual([WRESTLERS, HELD[0]])
 
@@ -352,18 +352,18 @@ describe('Land Warden — the second play is picked on the cards', () => {
         expect(draft.second).toBeUndefined()
     })
 
-    it('offers only the second plays the engine accepts: a Vision only as a facedown adviser, and none without the Warden', () => {
-        const { draft } = searchingWith([TENTS, VISION], [], WARDEN_CARRIED)
+    it('offers only the second plays the engine accepts: a Vision only as a facedown adviser, and none without the Warden', async () => {
+        const { draft } = await searchingWith([TENTS, VISION], [], WARDEN_CARRIED)
         draft.keep(TENTS)
         expect(draft.secondPlays.map((option) => option.mode)).toEqual(['adviser, facedown'])
 
-        const without = searchingWith([TENTS, VISION]).draft
+        const without = (await searchingWith([TENTS, VISION])).draft
         without.keep(TENTS)
         expect(without.secondPlays).toEqual([])
     })
 
-    it('with a second adviser play, the kept card is offered only to the site', () => {
-        const { draft } = searchingWith([TENTS, TUTOR], [], WARDEN_CARRIED)
+    it('with a second adviser play, the kept card is offered only to the site', async () => {
+        const { draft } = await searchingWith([TENTS, TUTOR], [], WARDEN_CARRIED)
         draft.keep(TENTS)
         draft.setSecondPlay(draft.secondPlays.find((option) => option.cardId === TUTOR && option.faceUp === false)?.key)
         expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
@@ -375,7 +375,7 @@ describe('Land Warden — the second play is picked on the cards', () => {
         const MERCENARIES = 'denizen.discord.mercenaries'
         const SCRYER = 'denizen.discord.scryer'
         const STORYTELLER = 'denizen.hearth.storyteller'
-        const riotsSecond = (draft: ReturnType<typeof searchingWith>['draft']) =>
+        const riotsSecond = (draft: Awaited<ReturnType<typeof searchingWith>>['draft']) =>
             draft.secondPlays.find((option) => option.cardId === RIOTS && option.play === SearchPlay.Site)
         const onTheMob = (denizensBySite: Record<string, string[]>) => ({
             ...WARDEN_CARRIED,
@@ -385,7 +385,7 @@ describe('Land Warden — the second play is picked on the cards', () => {
         })
 
         it('a kept Hearth card at the site would tie Hearth with Discord, which Riots played second cannot name, so the site is not offered', async () => {
-            const { session, draft, sent } = searchingWith([STORYTELLER, RIOTS, HELD[0]], [], onTheMob({ p1: [MERCENARIES], h1: [HELD[1]] }))
+            const { session, draft, sent } = await searchingWith([STORYTELLER, RIOTS, HELD[0]], [], onTheMob({ p1: [MERCENARIES], h1: [HELD[1]] }))
             draft.keep(STORYTELLER)
             draft.setSecondPlay(riotsSecond(draft)?.key)
             expect(draft.second?.cardId).toBe(RIOTS)
@@ -396,7 +396,7 @@ describe('Land Warden — the second play is picked on the cards', () => {
         })
 
         it('a kept Discord card at the site breaks the tie, so Riots is offered second and only that placement pairs with it', async () => {
-            const { session, draft, sent } = searchingWith([SCRYER, RIOTS, HELD[0]], [], onTheMob({ p1: [MERCENARIES], h1: [HELD[1], STORYTELLER] }))
+            const { session, draft, sent } = await searchingWith([SCRYER, RIOTS, HELD[0]], [], onTheMob({ p1: [MERCENARIES], h1: [HELD[1], STORYTELLER] }))
             draft.keep(SCRYER)
             draft.setSecondPlay(riotsSecond(draft)?.key)
             expect(draft.second?.cardId).toBe(RIOTS)
@@ -417,8 +417,8 @@ const FAVOR_HELD = {
 }
 
 describe('contract rule 2 — a play the engine refuses is not offered', () => {
-    it('a full site with nothing to open it offers no site play', () => {
-        const { draft } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] } })
+    it('a full site with nothing to open it offers no site play', async () => {
+        const { draft } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] } })
         draft.keep(TENTS)
         expect(draft.placements.map((option) => option.play)).toEqual([
             SearchPlay.Adviser,
@@ -429,14 +429,14 @@ describe('contract rule 2 — a play the engine refuses is not offered', () => {
 })
 
 /** The engine's own judgement of the Search as the draft sent it. */
-function engineRefusal(session: ReturnType<typeof searchingWith>['session'], sent: ReturnType<typeof searchingWith>['sent']) {
+function engineRefusal(session: Awaited<ReturnType<typeof searchingWith>>['session'], sent: Awaited<ReturnType<typeof searchingWith>>['sent']) {
     const [choice] = sent.mock.calls[0]
     return HydratedSearchResolve.reasonCannotResolve(session.gameState, ME, choice)
 }
 
 describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a discard first opens it', () => {
     it("the People's Favor's holder at a full site plays to the open site picked in the region", async () => {
-        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] }, banners: FAVOR_HELD })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] }, banners: FAVOR_HELD })
         draft.keep(TENTS)
         expect(draft.otherSites).toEqual(['c2'])
         expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
@@ -447,7 +447,7 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
     })
 
     it('a full Great Slum takes the site play with a card discarded first', async () => {
-        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
         draft.keep(TENTS)
         expect(draft.otherSites).toEqual([])
         expect(draft.discardFirstOptions).toEqual(FULL)
@@ -458,7 +458,7 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
     })
 
     it('the site play picked with nothing that opens it is judged at send: not sent, one reason, gone with the next pick', async () => {
-        const { draft, sent } = searchingWith([TENTS, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
+        const { draft, sent } = await searchingWith([TENTS, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
         draft.keep(TENTS)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).not.toHaveBeenCalled()
@@ -472,7 +472,7 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
     })
 
     it('a When Played card played to a full Great Slum is judged with its discard first', async () => {
-        const { session, draft, sent } = searchingWith([FABLED_FEAST, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
+        const { session, draft, sent } = await searchingWith([FABLED_FEAST, TUTOR], [], { siteCards: SLUM_SITES, denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] } })
         draft.keep(FABLED_FEAST)
         draft.setDiscardFirst(FULL[2])
         await draft.choosePlacement({ play: SearchPlay.Site })
@@ -497,7 +497,7 @@ const FULL_ELSEWHERE = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `
 /** Each site play is judged on exactly what it sends: the site played to, the card discarded first, the Search's carried modifiers. */
 describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is judged on the play it sends', () => {
     it("the People's Favor's holder at their own full site plays there once a card there is discarded first", async () => {
-        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] }, banners: FAVOR_HELD })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] }, banners: FAVOR_HELD })
         draft.keep(TENTS)
         expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
         await draft.choosePlacement({ play: SearchPlay.Site })
@@ -515,7 +515,7 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
     })
 
     it('the holder with room at their own site is refused another site that is full, until a card there is discarded first', async () => {
-        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: [], c2: FULL, p1: [] }, banners: FAVOR_HELD })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: [], c2: FULL, p1: [] }, banners: FAVOR_HELD })
         draft.keep(TENTS)
         draft.setToSite('c2')
         await draft.choosePlacement({ play: SearchPlay.Site })
@@ -530,7 +530,7 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
     })
 
     it('Crop Rotation carried: a card discarded first opens a full site', async () => {
-        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] }, ...carrying(CROP_ROTATION) })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] }, ...carrying(CROP_ROTATION) })
         draft.keep(TENTS)
         expect(draft.otherSites).toEqual([])
         expect(draft.discardFirstOptions).toEqual(FULL)
@@ -542,7 +542,7 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
 
     it('New Growth carried: a Hearth card plays to a site in another region; a Nomad card is offered no site play', async () => {
         const table = { denizensBySite: { c1: FULL, c2: [], p1: [] }, ...carrying(NEW_GROWTH) }
-        const { session, draft, sent } = searchingWith([INN, TUTOR], [], table)
+        const { session, draft, sent } = await searchingWith([INN, TUTOR], [], table)
         draft.keep(INN)
         expect(draft.otherSites).toContain('p1')
         draft.setToSite('p1')
@@ -550,14 +550,14 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
         expect(sent).toHaveBeenCalledWith(expect.objectContaining({ keptCardId: INN, play: SearchPlay.Site, toSiteId: 'p1' }))
         expect(engineRefusal(session, sent)).toBeUndefined()
 
-        const nomad = searchingWith([TENTS, TUTOR], [], table).draft
+        const nomad = (await searchingWith([TENTS, TUTOR], [], table)).draft
         nomad.keep(TENTS)
         expect(nomad.otherSites).toEqual([])
         expect(nomad.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
     })
 
     it('New Growth carried: a full Great Slum played to opens with a card there discarded first', async () => {
-        const { session, draft, sent } = searchingWith([INN, TUTOR], [], {
+        const { session, draft, sent } = await searchingWith([INN, TUTOR], [], {
             siteCards: { c1: 'c1', c2: 'c2', p1: 'site.great-slums', p2: 'p2', p3: 'p3', h1: 'h1', h2: 'h2', h3: 'h3' },
             denizensBySite: { c1: FULL, c2: [], p1: FULL_ELSEWHERE },
             ...carrying(NEW_GROWTH)
@@ -577,7 +577,7 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
     })
 
     it('a player with nothing that opens a full site is offered no card to discard first and no site play', async () => {
-        const { draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] } })
+        const { draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: [], p1: [] } })
         draft.keep(TENTS)
         expect(draft.discardFirstOptions).toEqual([])
         expect(draft.otherSites).toEqual([])
@@ -589,7 +589,7 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
     })
 
     it("Land Warden: the holder at their own full site pairs a facedown adviser with the site play a discard first opens", async () => {
-        const { session, draft, sent } = searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] }, banners: FAVOR_HELD, ...WARDEN_CARRIED })
+        const { session, draft, sent } = await searchingWith([TENTS, TUTOR], [], { denizensBySite: { c1: FULL, c2: FULL_ELSEWHERE, p1: [] }, banners: FAVOR_HELD, ...WARDEN_CARRIED })
         draft.keep(TENTS)
         const facedown = draft.secondPlays.find((option) => option.cardId === TUTOR && option.faceUp === false)
         expect(facedown).toBeDefined()
@@ -622,7 +622,7 @@ describe("R-5.1.4.I — Great Herd is not offered the card the People's Favor di
     const herdTable = { denizensBySite: { c1: [], c2: [TENTS], p1: [], h1: [ORACLE] }, banners: FAVOR_HELD }
 
     it('with Tents discarded first, only the Oracle is offered, and the play is sent with it', async () => {
-        const { session, draft, sent } = searchingWith([GREAT_HERD, TUTOR], [], herdTable)
+        const { session, draft, sent } = await searchingWith([GREAT_HERD, TUTOR], [], herdTable)
         draft.keep(GREAT_HERD)
         expect(draft.discardFirstOptions).toContain(TENTS)
         draft.setDiscardFirst(TENTS)
@@ -640,14 +640,14 @@ describe("R-5.1.4.I — Great Herd is not offered the card the People's Favor di
     })
 
     it('with nothing discarded first, Tents is offered as before', async () => {
-        const { draft } = searchingWith([GREAT_HERD, TUTOR], [], herdTable)
+        const { draft } = await searchingWith([GREAT_HERD, TUTOR], [], herdTable)
         draft.keep(GREAT_HERD)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(cardTargets(draft.whenPlayed)).toEqual([TENTS, ORACLE])
     })
 
     it('a pick of Tents made before Tents is picked to go first is dropped with it', async () => {
-        const { draft } = searchingWith([GREAT_HERD, TUTOR], [], herdTable)
+        const { draft } = await searchingWith([GREAT_HERD, TUTOR], [], herdTable)
         draft.keep(GREAT_HERD)
         await draft.choosePlacement({ play: SearchPlay.Site })
         draft.setPicks({ ...emptyPicks(), option: { 0: cardTargets(draft.whenPlayed).indexOf(TENTS) } })

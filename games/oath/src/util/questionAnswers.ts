@@ -15,7 +15,8 @@ import type { PileDeposit } from '../model/hidden.js'
 import type { PowerMoveToll } from '../model/powerMoveToll.js'
 import type { MachineState } from '../definition/states.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
-import { settleSkullKills } from './campaignRoll.js'
+import type { AnswerQuestionMetadata } from '../actions/answerQuestion.js'
+import { rollHeldAttack, settleSkullKills } from './campaignRoll.js'
 import { askQuestion, currentQuestion, gatheringTurnOrder } from './questions.js'
 import { QUESTION_RULES } from './questionRules.js'
 
@@ -106,9 +107,25 @@ function applyAnswerOf<K extends PowerQuestionKind>(
     )
 }
 
-export function settleQueue(state: HydratedOathGameState): boolean {
+/**
+ * `settled`: the action being settled. When its answer empties the queue and so rolls the attack held
+ * for the defender's reroll, it reveals information and cannot be undone (R-X.3), and the answer's
+ * record (`answered`) keeps what the attack rolled for History.
+ */
+export function settleQueue(
+    state: HydratedOathGameState,
+    settled: { revealsInfo?: boolean },
+    answered?: AnswerQuestionMetadata
+): boolean {
     const pending = state.pendingQuestions
     if (!pending) return true
+    // R-5.5.4-H1 — the attack waits until the defender's rerolls are answered.
+    const heldAttack =
+        pending.queue.length === 0 && !pending.followUp ? rollHeldAttack(state) : undefined
+    if (heldAttack) {
+        settled.revealsInfo = true
+        if (answered) answered.heldAttack = heldAttack
+    }
     // Jinx — the skulls' kills are held back until every reroll is answered.
     if (pending.queue.length === 0 && !pending.followUp) settleSkullKills(state)
     if (pending.queue.length === 0 && pending.followUp) {

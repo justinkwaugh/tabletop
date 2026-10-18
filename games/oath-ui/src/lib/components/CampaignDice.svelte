@@ -6,9 +6,11 @@
     import { plural } from '$lib/model/names.js'
 
     // R-5.5.3 pools while the defender answers, then R-5.5.4 and R-5.5.5 faces and totals.
+    // R-5.5.4-H1 — while the defender may reroll, the defense is rolled and the attack waits.
     let { campaign }: { campaign: CampaignState } = $props()
 
     let unrolled = $derived(!!campaign.pendingDefenderPlans)
+    let attackHeld = $derived(!!campaign.pendingAttackRoll)
 </script>
 
 {#snippet unrolledDice(count: number, side: 'attack' | 'defense')}
@@ -37,19 +39,25 @@
             {@render unrolledDice(campaign.defensePool, 'defense')}
             <span class="dice__total dice__total--unrolled"></span>
         {:else}
-            {#each campaign.attackRoll as face, index (index)}
-                <span class="die">
-                    <img
-                        src={attackFaceImage(face)}
-                        alt={face.skulls > 0
-                            ? 'Skull and two swords — a warband of yours dies'
-                            : face.hollowSwords > 0
-                              ? 'Hollow sword — two make one sword'
-                              : 'Sword'}
-                    />
-                </span>
-            {/each}
-            <span class="dice__total">{plural(campaign.swords, 'sword')}</span>
+            {#if attackHeld}
+                <!-- The dice that will be rolled, with no total yet. -->
+                {@render unrolledDice(campaign.attackPool, 'attack')}
+                <span class="dice__total dice__total--unrolled"></span>
+            {:else}
+                {#each campaign.attackRoll as face, index (index)}
+                    <span class="die">
+                        <img
+                            src={attackFaceImage(face)}
+                            alt={face.skulls > 0
+                                ? 'Skull and two swords — a warband of yours dies'
+                                : face.hollowSwords > 0
+                                  ? 'Hollow sword — two make one sword'
+                                  : 'Sword'}
+                        />
+                    </span>
+                {/each}
+                <span class="dice__total">{plural(campaign.swords, 'sword')}</span>
+            {/if}
             <span class="dice__sep"></span>
             {#each campaign.defenseRoll as face, index (index)}
                 <span class="die">

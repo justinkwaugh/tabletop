@@ -22,9 +22,29 @@ import {
     hasFaceupAdviserOfSuit,
     pawnSiteId
 } from './vocabulary.js'
-import { defendingPlayerIds, partySideOf } from '../util/battlePlans.js'
+import { BANDITS_PLAN_USER, defendingPlayerIds, partySideOf, sideOf } from '../util/battlePlans.js'
 import { cannotRecoverForbids } from '../util/seize.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import type { HydratedOathGameState } from '../model/gameState.js'
+import { killBoardWarbandsInCampaign } from '../util/campaignRoll.js'
+import { countedWarbands } from '../util/warbands.js'
+
+/**
+ * Hospital — from revision 13 (R-X.4) a kill made while a Campaign is open goes through its kill path.
+ * The one pawn a Campaign moves is the banished defender's (R-5.5.7.III).
+ */
+function killOnTravellersBoard(
+    state: HydratedOathGameState,
+    travellerId: string,
+    count: number
+): { killed: number; held: boolean } {
+    const campaign = state.campaign
+    if (campaign && isAtLeastOathRevision(state, OathRevision.EngineFixes9)) {
+        const side = sideOf(campaign, travellerId)
+        return killBoardWarbandsInCampaign(state, campaign, side, travellerId, count)
+    }
+    return { killed: killWarbandsOnBoard(state, travellerId, count).killed, held: false }
+}
 
 /** "Against you" */
 function againstOwner(
@@ -113,7 +133,7 @@ function lostTongue(
     holderId: string | undefined
 ): string | undefined {
     if (!holderId || !ctx.ownerIds.includes(holderId) || actorId === holderId) return undefined
-    const rulesNomad = ruledFaceupCardIds(ctx.state, actorId).some(
+    const rulesNomad = ruledFaceupCardIds(ctx.state, actorId, ctx.scope).some(
         (id) => suitOf(id) === Suit.Nomad
     )
     return rulesNomad
@@ -145,8 +165,8 @@ registerPersistent(
     {
         forbidsCampaign: (ctx, actorId) =>
             ctx.ownerIds.includes(actorId) ? 'Vow of Peace: you cannot campaign' : undefined,
-        forbidsSacrifice: (ctx, _attackerId, defenderId) =>
-            defenderId && ctx.ownerIds.includes(defenderId)
+        forbidsSacrifice: (ctx, _attackerId, defendingIds) =>
+            defendingIds.some((playerId) => ctx.ownerIds.includes(playerId))
                 ? 'Vow of Peace: attackers cannot sacrifice against its holder'
                 : undefined
     }
@@ -205,6 +225,14 @@ registerPersistent(MARSH_SPIRIT, powerIndexOf(MARSH_SPIRIT, PowerTiming.Persiste
             : undefined
 })
 
+/**
+ * R-10.7 — the bandits are every player's enemy (Tome Guardians' Q&A: "the bandits consider all
+ * players enemies"), with no player to look up.
+ */
+function planUserIsEnemyOf(ctx: PersistentContext, owner: string, userId: string): boolean {
+    return userId === BANDITS_PLAN_USER || areEnemies(ctx.state, owner, userId, ctx.scope)
+}
+
 // "Enemies cannot use beast or nomad battle plans against you."
 registerPersistent(
     'denizen.discord.beast-tamer',
@@ -212,7 +240,7 @@ registerPersistent(
     {
         forbidsBattlePlan: (ctx, userId, power, parties, side) => {
             const owner = againstOwner(ctx, userId, parties, side)
-            if (!owner || !areEnemies(ctx.state, owner, userId)) return undefined
+            if (!owner || !planUserIsEnemyOf(ctx, owner, userId)) return undefined
             const suit = suitOf(power.cardId)
             return suit === Suit.Beast || suit === Suit.Nomad
                 ? `Beast Tamer: ${owner}'s enemies cannot use beast or nomad battle plans against them`
@@ -298,8 +326,11 @@ registerPersistent(
         afterTravel: (ctx, actorId, from) => {
             if (!from || !enemyOfOwners(ctx, actorId)) return undefined
             if (!ownersRuleSite(ctx, from)) return undefined
-            const { killed } = killWarbandsOnBoard(ctx.state, actorId, 1)
-            return killed ? `Grasping Vines: killed a warband on ${actorId}'s board` : undefined
+            const { killed, held } = killOnTravellersBoard(ctx.state, actorId, 1)
+            if (!killed) return undefined
+            return held
+                ? `Grasping Vines: a warband on ${actorId}'s board goes to Hospital's site`
+                : `Grasping Vines: killed a warband on ${actorId}'s board`
         }
     }
 )
@@ -308,9 +339,13 @@ registerPersistent(
 const BOILING_LAKE = 'denizen.discord.boiling-lake'
 registerPersistent(BOILING_LAKE, powerIndexOf(BOILING_LAKE, PowerTiming.Persistent), {
     afterTravel: (ctx, actorId, _from, to) => {
-        if (to !== ctx.siteId || rulesCard(ctx.state, actorId, BOILING_LAKE)) return undefined
-        const { killed } = killWarbandsOnBoard(ctx.state, actorId, 2)
-        return killed ? `Boiling Lake: killed ${killed} warbands on ${actorId}'s board` : undefined
+        if (to !== ctx.siteId || rulesCard(ctx.state, actorId, BOILING_LAKE, ctx.scope))
+            return undefined
+        const { killed, held } = killOnTravellersBoard(ctx.state, actorId, 2)
+        if (!killed) return undefined
+        return held
+            ? `Boiling Lake: ${countedWarbands(killed)} on ${actorId}'s board ${killed === 1 ? 'goes' : 'go'} to Hospital's site`
+            : `Boiling Lake: killed ${killed} warbands on ${actorId}'s board`
     }
 })
 

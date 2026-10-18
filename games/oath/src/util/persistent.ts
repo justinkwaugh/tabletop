@@ -3,20 +3,38 @@ import { Banner, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, type CardPower, type PowerCost } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import type { CampaignParties } from './campaign.js'
-import { areEnemies, rulersOfSite, rulesSite } from './rule.js'
+import { areEnemies, rulersOfSite, rulesSite, type ImperialScope } from './rule.js'
 import { persistentsOfCard, relicPersistentsHeldBy } from './heldPersistents.js'
 import type { PersistentHooks } from '../powers/registry.js'
 import type { BannerTake } from './seize.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
-// R-5.5.1.a — the suspension belongs to the Campaign's parties, not to this lookup.
+/** R-5.5.1.a — the Campaign's suspensions, as a caller holds them before the Campaign is open. */
+export type ScopedParties = Pick<CampaignParties, 'nonImperialPlayerIds'>
+
+/**
+ * R-5.5.1.a-H2 — from a Campaign's declaration to its end, who rules a site or the cards there, and
+ * who is whose enemy, are judged in its scope: the parties a caller holds, else the open Campaign's.
+ * R-X.4: before revision 14 persistent and site powers ignored it.
+ */
+export function powerScopeOf(
+    state: HydratedOathGameState,
+    parties?: ScopedParties
+): ImperialScope | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes10)) return undefined
+    const sides = parties ?? state.campaign
+    return sides ? { nonImperialPlayerIds: sides.nonImperialPlayerIds } : undefined
+}
 
 export interface PersistentContext {
     state: HydratedOathGameState
     cardId: string
     power: CardPower
-    /** R-6.6.3 — empty when the bandits rule the site. */
+    /** R-6.6.3 — empty when the bandits rule the site; judged in `scope`. */
     ownerIds: readonly string[]
     siteId?: string
+    /** R-5.5.1.a-H2 — the Campaign's scope, for every rule and enemy test the power makes. */
+    scope?: ImperialScope
 }
 
 export interface PersistentInPlay {
@@ -26,34 +44,45 @@ export interface PersistentInPlay {
 
 export { areEnemies }
 
-/** R-10.7 — a site card no player rules is the bandits', and the bandits are enemies to all players. */
+/**
+ * R-10.7 — a site card no player rules is the bandits', and the bandits are enemies to all players.
+ * The scope empties no site's rulers: a site's warbands are ruled by their owner, the Chancellor for
+ * the Empire's, in any scope, and the Bandit Crown's bandits serve its holder at a site without them.
+ */
 function banditsRule(ctx: PersistentContext): boolean {
     return ctx.siteId !== undefined && ctx.ownerIds.length === 0
 }
 
 export function enemyOfOwners(ctx: PersistentContext, playerId: string): boolean {
     if (banditsRule(ctx)) return true
-    return ctx.ownerIds.some((owner) => areEnemies(ctx.state, owner, playerId))
+    return ctx.ownerIds.some((owner) => areEnemies(ctx.state, owner, playerId, ctx.scope))
 }
 
 /** Secret Police, Grasping Vines — "a site ruled by its ruler"; the bandits rule every site no player does. */
 export function ownersRuleSite(ctx: PersistentContext, siteId: string): boolean {
-    if (banditsRule(ctx)) return rulersOfSite(ctx.state, siteId).length === 0
-    return ctx.ownerIds.some((owner) => rulesSite(ctx.state, owner, siteId))
+    if (banditsRule(ctx)) return rulersOfSite(ctx.state, siteId, ctx.scope).length === 0
+    return ctx.ownerIds.some((owner) => rulesSite(ctx.state, owner, siteId, ctx.scope))
 }
 
-export function persistentsInPlay(state: HydratedOathGameState): PersistentInPlay[] {
+/** `parties`: the Campaign's, from a caller that holds them before the Campaign is open. */
+export function persistentsInPlay(
+    state: HydratedOathGameState,
+    parties?: ScopedParties
+): PersistentInPlay[] {
+    const scope = powerScopeOf(state, parties)
     const found: PersistentInPlay[] = []
     for (const player of state.players) {
         for (const cardId of player.faceupAdviserIds()) {
-            found.push(...persistentsOfCard(state, cardId, [player.playerId]))
+            found.push(...persistentsOfCard(state, cardId, [player.playerId], { scope }))
         }
-        found.push(...relicPersistentsHeldBy(state, player))
+        found.push(...relicPersistentsHeldBy(state, player, scope))
     }
     for (const [siteId, cards] of Object.entries(state.denizensBySite)) {
         if (!state.isSiteFaceup(siteId)) continue
-        const rulers = rulersOfSite(state, siteId)
-        for (const cardId of cards) found.push(...persistentsOfCard(state, cardId, rulers, siteId))
+        const rulers = rulersOfSite(state, siteId, scope)
+        for (const cardId of cards) {
+            found.push(...persistentsOfCard(state, cardId, rulers, { siteId, scope }))
+        }
     }
     return found
 }
@@ -66,9 +95,10 @@ export interface PersistentRefusal {
 
 export function firstPersistentRefusal(
     state: HydratedOathGameState,
-    ask: (hooks: PersistentHooks, ctx: PersistentContext) => string | undefined
+    ask: (hooks: PersistentHooks, ctx: PersistentContext) => string | undefined,
+    parties?: ScopedParties
 ): PersistentRefusal | undefined {
-    for (const { ctx, hooks } of persistentsInPlay(state)) {
+    for (const { ctx, hooks } of persistentsInPlay(state, parties)) {
         const reason = ask(hooks, ctx)
         if (reason) return { cardId: ctx.cardId, reason }
     }
@@ -77,9 +107,10 @@ export function firstPersistentRefusal(
 
 export function firstPersistentReason(
     state: HydratedOathGameState,
-    ask: (hooks: PersistentHooks, ctx: PersistentContext) => string | undefined
+    ask: (hooks: PersistentHooks, ctx: PersistentContext) => string | undefined,
+    parties?: ScopedParties
 ): string | undefined {
-    return firstPersistentRefusal(state, ask)?.reason
+    return firstPersistentRefusal(state, ask, parties)?.reason
 }
 
 export function runPersistent(
@@ -96,10 +127,11 @@ export function runPersistent(
 
 export function sumPersistent(
     state: HydratedOathGameState,
-    read: (hooks: PersistentHooks, ctx: PersistentContext) => number | undefined
+    read: (hooks: PersistentHooks, ctx: PersistentContext) => number | undefined,
+    parties?: ScopedParties
 ): number {
     let total = 0
-    for (const { ctx, hooks } of persistentsInPlay(state)) total += read(hooks, ctx) ?? 0
+    for (const { ctx, hooks } of persistentsInPlay(state, parties)) total += read(hooks, ctx) ?? 0
     return total
 }
 
@@ -135,10 +167,13 @@ export function persistentRefusesBannerTake(
     actorId: string,
     banner: Banner,
     how: BannerTake,
-    holderId?: string
+    holderId?: string,
+    parties?: ScopedParties
 ) {
-    return firstPersistentRefusal(state, (h, ctx) =>
-        h.forbidsBannerTake?.(ctx, actorId, banner, how, holderId)
+    return firstPersistentRefusal(
+        state,
+        (h, ctx) => h.forbidsBannerTake?.(ctx, actorId, banner, how, holderId),
+        parties
     )
 }
 export function reasonPersistentForbidsBannerTake(
@@ -146,33 +181,46 @@ export function reasonPersistentForbidsBannerTake(
     actorId: string,
     banner: Banner,
     how: BannerTake,
-    holderId?: string
+    holderId?: string,
+    parties?: ScopedParties
 ) {
-    return persistentRefusesBannerTake(state, actorId, banner, how, holderId)?.reason
+    return persistentRefusesBannerTake(state, actorId, banner, how, holderId, parties)?.reason
 }
 export function persistentRefusesRelicTake(
     state: HydratedOathGameState,
     actorId: string,
     holderId: string,
-    relicCardId: string
+    relicCardId: string,
+    parties?: ScopedParties
 ) {
-    return firstPersistentRefusal(state, (h, ctx) =>
-        h.forbidsRelicTake?.(ctx, actorId, holderId, relicCardId)
+    return firstPersistentRefusal(
+        state,
+        (h, ctx) => h.forbidsRelicTake?.(ctx, actorId, holderId, relicCardId),
+        parties
     )
 }
 export function reasonPersistentForbidsRelicTake(
     state: HydratedOathGameState,
     actorId: string,
     holderId: string,
-    relicCardId: string
+    relicCardId: string,
+    parties?: ScopedParties
 ) {
-    return persistentRefusesRelicTake(state, actorId, holderId, relicCardId)?.reason
+    return persistentRefusesRelicTake(state, actorId, holderId, relicCardId, parties)?.reason
 }
-export function persistentRefusesSecretCost(state: HydratedOathGameState, actorId: string) {
-    return firstPersistentRefusal(state, (h, ctx) => h.forbidsSecretCosts?.(ctx, actorId))
+export function persistentRefusesSecretCost(
+    state: HydratedOathGameState,
+    actorId: string,
+    parties?: ScopedParties
+) {
+    return firstPersistentRefusal(state, (h, ctx) => h.forbidsSecretCosts?.(ctx, actorId), parties)
 }
-export function reasonPersistentForbidsSecretCost(state: HydratedOathGameState, actorId: string) {
-    return persistentRefusesSecretCost(state, actorId)?.reason
+export function reasonPersistentForbidsSecretCost(
+    state: HydratedOathGameState,
+    actorId: string,
+    parties?: ScopedParties
+) {
+    return persistentRefusesSecretCost(state, actorId, parties)?.reason
 }
 export function reasonPersistentForbidsGivingSecrets(
     state: HydratedOathGameState,
@@ -186,10 +234,10 @@ export function reasonPersistentForbidsCampaign(state: HydratedOathGameState, ac
 export function reasonPersistentForbidsSacrifice(
     state: HydratedOathGameState,
     attackerId: string,
-    defenderId: string | undefined
+    defendingIds: readonly string[]
 ) {
     return firstPersistentReason(state, (h, ctx) =>
-        h.forbidsSacrifice?.(ctx, attackerId, defenderId)
+        h.forbidsSacrifice?.(ctx, attackerId, defendingIds)
     )
 }
 export function reasonPersistentForbidsExile(state: HydratedOathGameState, citizenId: string) {
@@ -202,8 +250,10 @@ export function reasonPersistentForbidsBattlePlan(
     parties: CampaignParties,
     side: BattlePlanSide
 ) {
-    return firstPersistentReason(state, (h, ctx) =>
-        h.forbidsBattlePlan?.(ctx, userId, power, parties, side)
+    return firstPersistentReason(
+        state,
+        (h, ctx) => h.forbidsBattlePlan?.(ctx, userId, power, parties, side),
+        parties
     )
 }
 export function reasonPersistentForbidsTargets(
@@ -211,7 +261,11 @@ export function reasonPersistentForbidsTargets(
     parties: CampaignParties,
     targetDice: number
 ) {
-    return firstPersistentReason(state, (h, ctx) => h.forbidsTargets?.(ctx, parties, targetDice))
+    return firstPersistentReason(
+        state,
+        (h, ctx) => h.forbidsTargets?.(ctx, parties, targetDice),
+        parties
+    )
 }
 
 /** Gleaming Armor, Insect Swarm */
@@ -222,7 +276,7 @@ export function extraBattlePlanCost(
     side: BattlePlanSide
 ): PowerCost {
     const total: PowerCost = { placeFavor: 0, burnFavor: 0, placeSecret: 0, burnSecret: 0 }
-    for (const { ctx, hooks } of persistentsInPlay(state)) {
+    for (const { ctx, hooks } of persistentsInPlay(state, parties)) {
         const extra = hooks.battlePlanExtraCost?.(ctx, userId, parties, side)
         if (!extra) continue
         total.placeFavor += extra.placeFavor ?? 0
@@ -233,14 +287,20 @@ export function extraBattlePlanCost(
     return total
 }
 
+/** Sealing Ward and Circlet of Command are an adviser and a relic: the scope is passed for one rule. */
 export function persistentRelicDefenseBonus(
     state: HydratedOathGameState,
-    holderId: string
+    holderId: string,
+    parties?: ScopedParties
 ): number {
-    return sumPersistent(state, (h, ctx) => h.relicDefenseBonus?.(ctx, holderId))
+    return sumPersistent(state, (h, ctx) => h.relicDefenseBonus?.(ctx, holderId), parties)
 }
-export function persistentPawnDefenseBonus(state: HydratedOathGameState, holderId: string): number {
-    return sumPersistent(state, (hooks, ctx) => hooks.pawnDefenseBonus?.(ctx, holderId))
+export function persistentPawnDefenseBonus(
+    state: HydratedOathGameState,
+    holderId: string,
+    parties?: ScopedParties
+): number {
+    return sumPersistent(state, (hooks, ctx) => hooks.pawnDefenseBonus?.(ctx, holderId), parties)
 }
 export function persistentMatchingAdvisers(
     state: HydratedOathGameState,

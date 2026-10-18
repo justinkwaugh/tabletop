@@ -93,7 +93,8 @@ function withPowerQuestions(handler: OathStateHandler): OathStateHandler {
         const next = handler.onAction(action, context)
         const gameState = context.gameState
         if (!gameState.pendingQuestions || next === MachineState.PowerQuestion) return next
-        if (settleQueue(gameState)) {
+        const answered = isAnswerQuestion(action) ? action.metadata : undefined
+        if (settleQueue(gameState, action, answered)) {
             gameState.pendingQuestions = undefined
             return next
         }

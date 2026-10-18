@@ -96,14 +96,14 @@ function scene(dana: Partial<Seat> = {}, denizens: Record<string, string[]> = {}
     return state
 }
 
-function travelling(state = scene()) {
-    const session = openSessionOn(tableOf(state))
+async function travelling(state = scene()) {
+    const session = await openSessionOn(tableOf(state))
     const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
     session.chooseAction(ActionType.Travel)
     return { session, sent }
 }
 
-const rowAt = (session: ReturnType<typeof travelling>['session'], slotId: string) => {
+const rowAt = (session: Awaited<ReturnType<typeof travelling>>['session'], slotId: string) => {
     const row = session.travelRows.find((r) => r.slotId === slotId)
     assert(row !== undefined, `${slotId} is offered`)
     return row
@@ -118,8 +118,8 @@ function sentTravel(sent: { mock: { calls: [GameAction][] } }) {
 const banksOf = (ways: readonly { hospitality?: Suit }[]) => ways.map((way) => way.hospitality)
 
 describe('Hospitality on a Travel: the gain shows on each destination it fits (R-7.4)', () => {
-    it('starts in use, and every destination stays listed with Hospitality in use', () => {
-        const { session } = travelling()
+    it('starts in use, and every destination stays listed with Hospitality in use', async () => {
+        const { session } = await travelling()
         expect(session.modifiers.isDeclared(hospitality)).toBe(true)
         expect(session.modifiers.listed.map((power) => power.cardId)).toContain(HOSPITALITY)
         expect(session.modifiers.picksPending).toBe(false)
@@ -129,22 +129,22 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
         expect(session.selectableSites).toEqual(plain)
     })
 
-    it('draws no bank picker: the bank is the destination’s, not asked first', () => {
-        const { session } = travelling()
+    it('draws no bank picker: the bank is the destination’s, not asked first', async () => {
+        const { session } = await travelling()
         const [power] = session.modifiers.listed.filter((p) => p.cardId === HOSPITALITY)
         assert(power !== undefined, 'Hospitality is listed')
         expect(session.modifiers.picksInMenu(power)).toBe(true)
     })
 
     it('one matching bank: the one way carries it, and a tap on the map sends it at once', async () => {
-        const { session, sent } = travelling()
+        const { session, sent } = await travelling()
         expect(banksOf(rowAt(session, 'c2').ways)).toEqual([Suit.Beast])
         await session.pickTravelSite('c2')
         expect(sentTravel(sent).modifiers).toEqual([withBank(Suit.Beast)])
     })
 
     it('two matching banks: one way per bank, a map tap opens them, and the way picked sends its bank', async () => {
-        const { session, sent } = travelling()
+        const { session, sent } = await travelling()
         const ways = rowAt(session, 'p1').ways
         expect(banksOf(ways)).toEqual([Suit.Beast, Suit.Nomad])
         expect(ways.map((way) => way.cost)).toEqual([ways[0]?.cost, ways[0]?.cost])
@@ -160,35 +160,35 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
     })
 
     it('no matching bank: no gain, and the Travel is sent without Hospitality', async () => {
-        const { session, sent } = travelling()
+        const { session, sent } = await travelling()
         expect(session.modifiers.isDeclared(hospitality)).toBe(true)
         expect(banksOf(rowAt(session, 'p2').ways)).toEqual([undefined])
         await session.pickTravelSite('p2')
         expect(sentTravel(sent).modifiers).toEqual([])
     })
 
-    it('an empty matching bank gives no gain; beside another match, only the bank with favor (R-9.3)', () => {
-        const { session } = travelling()
+    it('an empty matching bank gives no gain; beside another match, only the bank with favor (R-9.3)', async () => {
+        const { session } = await travelling()
         expect(banksOf(rowAt(session, 'p3').ways)).toEqual([undefined])
         expect(banksOf(rowAt(session, 'h1').ways)).toEqual([Suit.Beast])
     })
 
-    it('a facedown site has no cards, so no gain (R-9.4)', () => {
-        const { session } = travelling()
+    it('a facedown site has no cards, so no gain (R-9.4)', async () => {
+        const { session } = await travelling()
         expect(session.modifiers.isDeclared(hospitality)).toBe(true)
         const row = rowAt(session, 'h2')
         expect(row.cardId).toBeUndefined()
         expect(banksOf(row.ways)).toEqual([undefined])
     })
 
-    it('Hospitality is a nomad adviser itself, so a nomad card at the destination matches it alone', () => {
-        const { session } = travelling(scene({ advisers: [{ cardId: HOSPITALITY, faceUp: true }] }))
+    it('Hospitality is a nomad adviser itself, so a nomad card at the destination matches it alone', async () => {
+        const { session } = await travelling(scene({ advisers: [{ cardId: HOSPITALITY, faceUp: true }] }))
         expect(banksOf(rowAt(session, 'p1').ways)).toEqual([Suit.Nomad])
         expect(banksOf(rowAt(session, 'c2').ways)).toEqual([undefined])
     })
 
     it('put down, the gains leave the sites and nothing is sent with it; a tap brings it back', async () => {
-        const { session, sent } = travelling()
+        const { session, sent } = await travelling()
         session.modifiers.declare(hospitality, false)
         expect(session.modifiers.isDeclared(hospitality)).toBe(false)
         expect(session.modifiers.listed.map((power) => power.cardId)).toContain(HOSPITALITY)
@@ -202,7 +202,7 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
     })
 
     it('Toll Roads at the destination: the toll and the gain stand on one way, and the send carries both', async () => {
-        const { session, sent } = travelling(scene({}, { c2: [WOLVES, TOLL_ROADS] }))
+        const { session, sent } = await travelling(scene({}, { c2: [WOLVES, TOLL_ROADS] }))
         const ways = rowAt(session, 'c2').ways
         expect(ways.map((way) => [way.tolls, way.favorTo, way.hospitality])).toEqual([[[TOLL_ROADS], ['rhys'], Suit.Beast]])
         // A toll opens the way in the panel before anything is paid.
@@ -217,7 +217,7 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
     })
 
     it('two ways to pay and two banks: one way per pair', async () => {
-        const { session, sent } = travelling(scene({}, { c2: [WAY_STATION, WOLVES] }))
+        const { session, sent } = await travelling(scene({}, { c2: [WAY_STATION, WOLVES] }))
         const ways = rowAt(session, 'c2').ways
         expect(ways.map((way) => [way.discountTolls, way.hospitality])).toEqual([
             [[], Suit.Beast],
@@ -234,7 +234,7 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
     })
 
     it('another Travel card in use (the Dragonskin Drum): the banks are judged with it, and the send carries both', async () => {
-        const { session, sent } = travelling(scene({ relicIds: [DRUM] }))
+        const { session, sent } = await travelling(scene({ relicIds: [DRUM] }))
         expect(session.modifiers.isDeclared(drum)).toBe(true)
         expect(banksOf(rowAt(session, 'p1').ways)).toEqual([Suit.Beast, Suit.Nomad])
         await session.pickTravelSite('c2')
@@ -244,7 +244,7 @@ describe('Hospitality on a Travel: the gain shows on each destination it fits (R
     it('Vow of Poverty stops only a Trade’s favor: the gain shows, and the engine gives it', async () => {
         const vowed = () =>
             scene({ advisers: [HOSPITALITY, VOW_OF_POVERTY].map((cardId) => ({ cardId, faceUp: true })) })
-        const { session, sent } = travelling(vowed())
+        const { session, sent } = await travelling(vowed())
         expect(banksOf(rowAt(session, 'c2').ways)).toEqual([Suit.Beast])
         await session.pickTravelSite('c2')
         const action = sentTravel(sent)
@@ -290,7 +290,7 @@ describe('Hospitality’s bank as the way’s tolls leave it (R-7.1.4, R-7.4, R-
     })
 
     it('Vow of Kinship pays the toll from the nomad bank: emptied, it offers no gain, and the Travel is sent without Hospitality', async () => {
-        const { session, sent } = travelling(kinship(1, { c2: [ORACLE, TOLL_ROADS] }))
+        const { session, sent } = await travelling(kinship(1, { c2: [ORACLE, TOLL_ROADS] }))
         const ways = rowAt(session, 'c2').ways
         expect(tollsAndBanks(ways)).toEqual([[[TOLL_ROADS], undefined]])
         const [way] = ways
@@ -302,7 +302,7 @@ describe('Hospitality’s bank as the way’s tolls leave it (R-7.1.4, R-7.4, R-
     })
 
     it('beside another match, the emptied nomad bank drops and the bank that still holds favor stays', async () => {
-        const { session, sent } = travelling(kinship(1, { c2: [ORACLE, WOLVES, TOLL_ROADS] }))
+        const { session, sent } = await travelling(kinship(1, { c2: [ORACLE, WOLVES, TOLL_ROADS] }))
         const ways = rowAt(session, 'c2').ways
         expect(tollsAndBanks(ways)).toEqual([[[TOLL_ROADS], Suit.Beast]])
         const [way] = ways
@@ -311,20 +311,20 @@ describe('Hospitality’s bank as the way’s tolls leave it (R-7.1.4, R-7.4, R-
         expect(sentTravel(sent).modifiers).toEqual([withBank(Suit.Beast)])
     })
 
-    it('two favor in the nomad bank: one is left after the toll, so the gain stands', () => {
-        const { session } = travelling(kinship(2, { c2: [ORACLE, TOLL_ROADS] }))
+    it('two favor in the nomad bank: one is left after the toll, so the gain stands', async () => {
+        const { session } = await travelling(kinship(2, { c2: [ORACLE, TOLL_ROADS] }))
         expect(tollsAndBanks(rowAt(session, 'c2').ways)).toEqual([[[TOLL_ROADS], Suit.Nomad]])
     })
 
-    it('a toll paid from the board leaves the bank’s offer unchanged', () => {
+    it('a toll paid from the board leaves the bank’s offer unchanged', async () => {
         const state = scene({}, { c2: [ORACLE, TOLL_ROADS] })
         state.favorBank[Suit.Nomad] = 1
-        const { session } = travelling(state)
+        const { session } = await travelling(state)
         expect(tollsAndBanks(rowAt(session, 'c2').ways)).toEqual([[[TOLL_ROADS], Suit.Nomad]])
     })
 
     it('Way Station: the way that pays its toll from the nomad bank has no gain; the way that does not keeps it', async () => {
-        const { session, sent } = travelling(kinship(1, { c2: [WAY_STATION] }))
+        const { session, sent } = await travelling(kinship(1, { c2: [WAY_STATION] }))
         const ways = rowAt(session, 'c2').ways
         expect(tollsAndBanks(ways)).toEqual([
             [[], Suit.Nomad],
@@ -347,7 +347,7 @@ describe('Hospitality’s bank as the way’s tolls leave it (R-7.1.4, R-7.4, R-
             state.favorBank[Suit.Nomad] = 0
             return state
         }
-        const { session, sent } = travelling(fills())
+        const { session, sent } = await travelling(fills())
         const ways = rowAt(session, 'c2').ways
         expect(tollsAndBanks(ways)).toEqual([[[TOLL_ROADS], Suit.Nomad]])
         const [way] = ways
@@ -388,8 +388,8 @@ function costly(card: string, nomad: number, dana: Partial<Seat> = {}) {
     return state
 }
 
-const travelWith = (card: string, state: HydratedOathGameState) => {
-    const travel = travelling(state)
+const travelWith = async (card: string, state: HydratedOathGameState) => {
+    const travel = await travelling(state)
     travel.session.modifiers.declare(useOf(card), true)
     return travel
 }
@@ -408,7 +408,7 @@ describe('Hospitality’s bank as the way’s card costs leave it (R-7.1.2, R-7.
 
     for (const card of [FAST_STEED, TENTS]) {
         it(`${card}: its cost empties the nomad bank, so no gain shows, and the Travel is sent without Hospitality`, async () => {
-            const { session, sent } = travelWith(card, costly(card, 1))
+            const { session, sent } = await travelWith(card, costly(card, 1))
             expect(session.modifiers.isDeclared(useOf(card))).toBe(true)
             expect(banksOf(rowAt(session, 'c2').ways)).toEqual([undefined])
             await session.pickTravelSite('c2')
@@ -416,7 +416,7 @@ describe('Hospitality’s bank as the way’s card costs leave it (R-7.1.2, R-7.
         })
 
         it(`${card}: two favor in the nomad bank leave one after its cost, so the gain stands, and the engine gives it`, async () => {
-            const { session, sent } = travelWith(card, costly(card, 2))
+            const { session, sent } = await travelWith(card, costly(card, 2))
             expect(banksOf(rowAt(session, 'c2').ways)).toEqual([Suit.Nomad])
             await session.pickTravelSite('c2')
             const action = sentTravel(sent)
@@ -429,15 +429,15 @@ describe('Hospitality’s bank as the way’s card costs leave it (R-7.1.2, R-7.
         })
     }
 
-    it('a cost paid from the board leaves the bank’s offer unchanged', () => {
-        const { session } = travelWith(FAST_STEED, costly(FAST_STEED, 1, { favor: 1 }))
+    it('a cost paid from the board leaves the bank’s offer unchanged', async () => {
+        const { session } = await travelWith(FAST_STEED, costly(FAST_STEED, 1, { favor: 1 }))
         expect(banksOf(rowAt(session, 'c2').ways)).toEqual([Suit.Nomad])
     })
 
-    it('the cost and a toll add up: two favor in the nomad bank are both spent, so no gain shows', () => {
+    it('the cost and a toll add up: two favor in the nomad bank are both spent, so no gain shows', async () => {
         const state = costly(FAST_STEED, 2)
         state.denizensBySite['c2'] = [ORACLE, TOLL_ROADS]
-        const { session } = travelWith(FAST_STEED, state)
+        const { session } = await travelWith(FAST_STEED, state)
         expect(tollsAndBanks(rowAt(session, 'c2').ways)).toEqual([[[TOLL_ROADS], undefined]])
     })
 
@@ -491,15 +491,15 @@ function banditToll(dana: Partial<Seat> = {}) {
 }
 
 describe('Hospitality’s bank after a toll burned for the bandits (R-10.4, R-9.3)', () => {
-    it('the burned favor leaves the banks: the emptied nomad bank gives nothing', () => {
-        const { session } = travelling(banditToll())
+    it('the burned favor leaves the banks: the emptied nomad bank gives nothing', async () => {
+        const { session } = await travelling(banditToll())
         expect(tollsAndBanks(rowAt(session, 'c2').ways)).toEqual([[[TOLL_ROADS], undefined]])
     })
 
     it('Vow of Renewal takes the burned favor back into its holder’s nomad bank: the gain shows, and the engine gives it', async () => {
         const renewed = () =>
             banditToll({ advisers: [HOSPITALITY, VOW_OF_KINSHIP, VOW_OF_RENEWAL].map((cardId) => ({ cardId, faceUp: true })) })
-        const { session, sent } = travelling(renewed())
+        const { session, sent } = await travelling(renewed())
         const ways = rowAt(session, 'c2').ways
         expect(tollsAndBanks(ways)).toEqual([[[TOLL_ROADS], Suit.Nomad]])
         const [way] = ways
@@ -519,7 +519,7 @@ describe('Hospitality only on the player’s own Travel', () => {
     it('the Shrouded Wood ruler’s pick lists no card and sends the Travel without Hospitality', async () => {
         const state = shroudedWoodState(2)
         state.getPlayerState('Dana').advisers.push({ cardId: HOSPITALITY, faceUp: true })
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.chooseAction(ActionType.Travel)
         expect(session.shroudedWoodChooser).toBe('Rhys')
