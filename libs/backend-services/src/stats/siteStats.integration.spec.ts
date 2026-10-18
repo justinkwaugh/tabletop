@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { Firestore } from '@google-cloud/firestore'
 import { createClient, type RedisClientType } from 'redis'
@@ -261,6 +261,9 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 })
             const first = await service.getNow()
             expect(first.notificationClients).toEqual({ webPush: 1, discord: 0 })
+            await vi.waitFor(async () =>
+                expect(await client.keys('*site-stats-now*')).not.toHaveLength(0)
+            )
             await db
                 .collection('notificationSubscriptions')
                 .doc(`${prefix}-later`)
