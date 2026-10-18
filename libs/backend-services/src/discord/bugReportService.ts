@@ -2,6 +2,7 @@ import {
     ExternalAuthService,
     scenarioFromGame,
     type BugReportRequest,
+    type BugReportScreenshot,
     type Game,
     type GameAction,
     type User
@@ -20,7 +21,7 @@ export type BugReportDestination = {
 }
 
 const OPEN_TAG_NAME = 'open'
-// Discord's upload limit for servers without boosts.
+// Discord's upload limit for servers without boosts, for all of a message's files together.
 const MAX_ATTACHMENT_BYTES = 10_000_000
 
 const ForumTags = Compile(
@@ -50,10 +51,13 @@ export class BugReportService {
         const openTagId = await this.findOpenTagId()
         const scenarioFile = this.scenarioFile(game, actions)
         const scenario = this.scenarioAttachment(scenarioFile)
-        const files = [
-            ...(scenarioFile && scenario?.attached ? [scenarioFile] : []),
-            ...this.screenshotFiles(report.screenshots ?? [])
-        ]
+        const scenarioFiles = scenarioFile && scenario?.attached ? [scenarioFile] : []
+        const screenshots = report.screenshots ?? []
+        const screenshotFiles = this.filesWithin(
+            MAX_ATTACHMENT_BYTES - this.totalBytes(scenarioFiles),
+            this.screenshotFiles(screenshots)
+        )
+        const files = [...scenarioFiles, ...screenshotFiles]
         const post = bugReportPost(game, report, {
             frontendHost: this.destination.frontendHost,
             titleName: this.gameService.getTitle(game.typeId)?.info.metadata.name ?? game.typeId,
@@ -65,7 +69,8 @@ export class BugReportService {
             appliedTagIds: openTagId ? [openTagId] : [],
             reportedAt: new Date(),
             scenario,
-            attachedFilenames: files.map((file) => file.filename)
+            attachedFilenames: files.map((file) => file.filename),
+            screenshotsLeftOut: screenshots.length - screenshotFiles.length
         })
 
         const path = `/channels/${this.destination.forumChannelId}/threads`
@@ -93,7 +98,25 @@ export class BugReportService {
         }
     }
 
-    private screenshotFiles(screenshots: readonly string[]): DiscordFile[] {
+    private filesWithin(budget: number, files: readonly DiscordFile[]): DiscordFile[] {
+        const fitting: DiscordFile[] = []
+        let remaining = budget
+        for (const file of files) {
+            const bytes = this.totalBytes([file])
+            if (bytes > remaining) {
+                break
+            }
+            fitting.push(file)
+            remaining -= bytes
+        }
+        return fitting
+    }
+
+    private totalBytes(files: readonly DiscordFile[]): number {
+        return files.reduce((total, file) => total + Buffer.byteLength(file.content), 0)
+    }
+
+    private screenshotFiles(screenshots: readonly BugReportScreenshot[]): DiscordFile[] {
         return screenshots.map((screenshot, index) => ({
             filename: `screenshot-${index + 1}.jpg`,
             contentType: 'image/jpeg',
@@ -105,7 +128,7 @@ export class BugReportService {
         if (!file) {
             return undefined
         }
-        const bytes = Buffer.byteLength(file.content)
+        const bytes = this.totalBytes([file])
         return bytes <= MAX_ATTACHMENT_BYTES
             ? { attached: true, filename: file.filename }
             : { attached: false, bytes }

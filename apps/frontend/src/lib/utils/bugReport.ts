@@ -2,6 +2,7 @@ import { get } from 'svelte/store'
 import type {
     BugReportClient,
     BugReportRequest,
+    BugReportScreenshot,
     GameState,
     HydratedGameState
 } from '@tabletop/common'
@@ -18,7 +19,7 @@ export function bugReportRequest({
 }: {
     session: GameSession<GameState, HydratedGameState>
     description: string
-    screenshots: readonly string[]
+    screenshots: readonly BugReportScreenshot[]
     manifestService: ManifestService
 }): BugReportRequest {
     const game = session.primaryGame

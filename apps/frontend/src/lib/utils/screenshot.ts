@@ -1,16 +1,20 @@
-import { BUG_REPORT_SCREENSHOT_MAX_BYTES } from '@tabletop/common'
+import { BUG_REPORT_SCREENSHOT_MAX_BYTES, type BugReportScreenshot } from '@tabletop/common'
 
-const MAX_EDGE_PX = 2560
-const JPEG_QUALITY = 0.9
+const MAX_EDGE_PX = 1920
+const JPEG_QUALITY = 0.85
 const SHRINK_STEP = 0.8
 const JPEG_DATA_URL_PREFIX = 'data:image/jpeg;base64,'
 
 export type Screenshot = {
-    base64: string
+    base64: BugReportScreenshot
     previewUrl: string
 }
 
-export function imageFiles(files: Iterable<File>): File[] {
+// Office apps put a picture of copied text on the clipboard beside the text itself.
+export function pastedImages(types: readonly string[], files: Iterable<File>): File[] {
+    if (types.includes('text/plain')) {
+        return []
+    }
     return [...files].filter((file) => file.type.startsWith('image/'))
 }
 
@@ -25,6 +29,10 @@ export async function screenshotFromImage(file: File): Promise<Screenshot> {
     } finally {
         bitmap.close()
     }
+}
+
+export function releaseScreenshot(screenshot: Screenshot) {
+    URL.revokeObjectURL(screenshot.previewUrl)
 }
 
 export async function shrinkUntilFits(

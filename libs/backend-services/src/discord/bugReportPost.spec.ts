@@ -59,7 +59,8 @@ const context: BugReportPostContext = {
     liveActionCount: 142,
     appliedTagIds: ['tag-open'],
     reportedAt: new Date('2026-10-02T18:30:00.000Z'),
-    attachedFilenames: []
+    attachedFilenames: [],
+    screenshotsLeftOut: 0
 }
 
 function fieldValue(post: ReturnType<typeof bugReportPost>, name: string): string | undefined {

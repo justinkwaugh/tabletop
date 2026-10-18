@@ -202,6 +202,43 @@ describe('BugReportService', () => {
         )
     })
 
+    it('leaves out the screenshots that do not fit beside the scenario', async () => {
+        vi.mocked(gameService.getGameData).mockResolvedValue({
+            game: { ...game, state },
+            actions: [
+                {
+                    ...action,
+                    undoPatch: [{ op: 'add', path: '/notes', value: 'x'.repeat(9_400_000) }]
+                }
+            ]
+        })
+        const screenshot = Buffer.alloc(400_000, 0xff).toString('base64')
+
+        await service.reportBug({
+            user: reporter,
+            report: { ...report, screenshots: [screenshot, screenshot] }
+        })
+
+        const [, post, files] = vi.mocked(discordBotApi.postWithFiles).mock.calls[0]
+        expect(files.map((file) => file.filename)).toEqual([
+            'bug-report-game-1.json',
+            'screenshot-1.jpg'
+        ])
+        expect(post).toEqual(
+            expect.objectContaining({
+                message: expect.objectContaining({
+                    embeds: [
+                        expect.objectContaining({
+                            fields: expect.arrayContaining([
+                                { name: 'Screenshots', value: '1 left out, over the upload limit' }
+                            ])
+                        })
+                    ]
+                })
+            })
+        )
+    })
+
     it('posts without the scenario when it is over the Discord upload limit', async () => {
         vi.mocked(gameService.getGameData).mockResolvedValue({
             game: { ...game, state },

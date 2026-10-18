@@ -11,7 +11,12 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { bugReportRequest } from '$lib/utils/bugReport'
-    import { imageFiles, screenshotFromImage, type Screenshot } from '$lib/utils/screenshot'
+    import {
+        pastedImages,
+        releaseScreenshot,
+        screenshotFromImage,
+        type Screenshot
+    } from '$lib/utils/screenshot'
 
     let {
         open = $bindable(),
@@ -22,43 +27,53 @@
 
     let description = $state('')
     let screenshots = $state<Screenshot[]>([])
-    let readingScreenshots = $state(0)
+    let pendingScreenshots = $state(0)
     let submitting = $state(false)
     let canSubmit = $derived(
-        description.trim().length > 0 && readingScreenshots === 0 && !submitting
+        description.trim().length > 0 && pendingScreenshots === 0 && !submitting
     )
 
-    onDestroy(() => clearScreenshots())
+    let destroyed = false
+
+    onDestroy(() => {
+        destroyed = true
+        clearScreenshots()
+    })
 
     async function pasteScreenshots(event: ClipboardEvent) {
-        const images = imageFiles(event.clipboardData?.files ?? [])
-        const room = BUG_REPORT_SCREENSHOT_MAX_COUNT - screenshots.length - readingScreenshots
-        if (images.length > room) {
+        const clipboard = event.clipboardData
+        const images = clipboard ? pastedImages(clipboard.types, clipboard.files) : []
+        const openSlots = BUG_REPORT_SCREENSHOT_MAX_COUNT - screenshots.length - pendingScreenshots
+        if (images.length > openSlots) {
             toast.info(`A report can include up to ${BUG_REPORT_SCREENSHOT_MAX_COUNT} screenshots.`)
         }
-        const taken = images.slice(0, Math.max(0, room))
-        readingScreenshots += taken.length
-        for (const image of taken) {
+        const accepted = images.slice(0, openSlots)
+        pendingScreenshots += accepted.length
+        for (const image of accepted) {
             try {
                 const screenshot = await screenshotFromImage(image)
+                if (destroyed) {
+                    releaseScreenshot(screenshot)
+                    continue
+                }
                 screenshots = [...screenshots, screenshot]
             } catch (error) {
                 console.error('Could not read the pasted image', error)
                 toast.error('Could not read that image.')
             } finally {
-                readingScreenshots -= 1
+                pendingScreenshots -= 1
             }
         }
     }
 
     function removeScreenshot(removed: Screenshot) {
-        URL.revokeObjectURL(removed.previewUrl)
+        releaseScreenshot(removed)
         screenshots = screenshots.filter((screenshot) => screenshot !== removed)
     }
 
     function clearScreenshots() {
         for (const screenshot of screenshots) {
-            URL.revokeObjectURL(screenshot.previewUrl)
+            releaseScreenshot(screenshot)
         }
         screenshots = []
     }
@@ -104,7 +119,7 @@
             placeholder="What did you do, what happened, and what did you expect to happen?"
             onpaste={pasteScreenshots}
         />
-        {#if screenshots.length > 0 || readingScreenshots > 0}
+        {#if screenshots.length > 0 || pendingScreenshots > 0}
             <div class="flex flex-wrap gap-3 pt-1">
                 {#each screenshots as screenshot, index (screenshot.previewUrl)}
                     <div class="relative">
@@ -115,13 +130,13 @@
                         />
                         <button
                             type="button"
-                            class="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-xs leading-none text-white hover:bg-gray-900"
+                            class="absolute -top-2.5 -right-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-gray-700 text-sm leading-none text-white hover:bg-gray-900"
                             aria-label="Remove screenshot {index + 1}"
                             onclick={() => removeScreenshot(screenshot)}>×</button
                         >
                     </div>
                 {/each}
-                {#if readingScreenshots > 0}
+                {#if pendingScreenshots > 0}
                     <div
                         class="flex h-16 w-24 items-center justify-center rounded border border-dashed border-gray-300 text-xs text-gray-500 dark:border-gray-600"
                     >

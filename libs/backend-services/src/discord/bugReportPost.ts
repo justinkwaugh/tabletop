@@ -24,6 +24,7 @@ export type BugReportPostContext = {
     reportedAt: Date
     scenario?: ScenarioAttachment
     attachedFilenames: string[]
+    screenshotsLeftOut: number
 }
 
 const SITE_NAME = 'BoardTogether'
@@ -106,6 +107,7 @@ function reportFields(
             )
         },
         ...scenarioFields(context.scenario),
+        ...screenshotFields(context.screenshotsLeftOut),
         {
             name: 'Investigate',
             value: `\`node tools/investigate/src/cli.mjs game ${game.id}\``
@@ -121,6 +123,12 @@ function scenarioFields(scenario: ScenarioAttachment | undefined): APIEmbedField
         ? `Open \`${scenario.filename}\` with **Load from file…** in the title's dev harness; it is a real game, so keep it out of the repository`
         : `Too large to attach (${(scenario.bytes / 1_000_000).toFixed(1)} MB)`
     return [{ name: 'Scenario', value }]
+}
+
+function screenshotFields(leftOut: number): APIEmbedField[] {
+    return leftOut > 0
+        ? [{ name: 'Screenshots', value: `${leftOut} left out, over the upload limit` }]
+        : []
 }
 
 function reporterLabel(reporter: BugReporter): string {

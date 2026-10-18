@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { BUG_REPORT_SCREENSHOT_MAX_BYTES } from '@tabletop/common'
-import { imageFiles, shrinkUntilFits } from './screenshot'
+import { pastedImages, shrinkUntilFits } from './screenshot'
 
-describe('imageFiles', () => {
+describe('pastedImages', () => {
+    const png = new File(['png'], 'shot.png', { type: 'image/png' })
+    const heic = new File(['heic'], 'photo.heic', { type: 'image/heic' })
+    const text = new File(['notes'], 'notes.txt', { type: 'text/plain' })
+
     it('keeps only the images among pasted files', () => {
-        const png = new File(['png'], 'shot.png', { type: 'image/png' })
-        const heic = new File(['heic'], 'photo.heic', { type: 'image/heic' })
-        const text = new File(['notes'], 'notes.txt', { type: 'text/plain' })
+        expect(pastedImages(['Files'], [png, text, heic])).toEqual([png, heic])
+    })
 
-        expect(imageFiles([png, text, heic])).toEqual([png, heic])
+    it('takes no image from a paste that carries text', () => {
+        expect(pastedImages(['text/plain', 'text/html', 'Files'], [png])).toEqual([])
     })
 })
 
