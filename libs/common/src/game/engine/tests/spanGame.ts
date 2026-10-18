@@ -41,6 +41,8 @@ const SpanOffer = Type.Object({
     agreed: Type.Boolean()
 })
 export type SpanOffer = Type.Static<typeof SpanOffer>
+// A record in the Common Scope that wrongly holds objects carrying Players' identities.
+const SpanCrew = Type.Object({ members: Type.Array(Type.Object({ playerId: Type.String() })) })
 
 const SpanGameSchema = Type.Object({
     ...GameState.properties,
@@ -58,7 +60,8 @@ const SpanGameSchema = Type.Object({
     line: Type.Array(SpanItem),
     flag: SpanFlag,
     log: Type.Array(Type.String()),
-    offers: Type.Record(Type.String(), SpanOffer)
+    offers: Type.Record(Type.String(), SpanOffer),
+    crews: Type.Record(Type.String(), SpanCrew)
 })
 export type SpanGameState = Type.Static<typeof SpanGameSchema>
 const Validator = Compile(SpanGameSchema)
@@ -79,6 +82,7 @@ export class HydratedSpanGameState
     declare flag: Type.Static<typeof SpanFlag>
     declare log: string[]
     declare offers: Record<string, SpanOffer>
+    declare crews: Record<string, Type.Static<typeof SpanCrew>>
     constructor(data: SpanGameState) {
         super(data, Validator)
     }
@@ -157,6 +161,7 @@ const Withdraw = commonAction('withdraw', { offerId: Type.String() })
 const Nudge = commonAction('nudge', { otherPlayerId: Type.String() })
 const Plant = commonAction('plant', {})
 const Chant = commonAction('chant', {})
+const Enlist = commonAction('enlist', { partnerId: Type.String() })
 const OpenBranch = systemAction('openBranch', { playerId: Type.String() })
 const IdleSkip = systemAction('idleSkip', { playerId: Type.String() })
 const Noise = systemAction('noise', {})
@@ -187,6 +192,7 @@ const WithdrawValidator = Compile(Withdraw)
 const NudgeValidator = Compile(Nudge)
 const PlantValidator = Compile(Plant)
 const ChantValidator = Compile(Chant)
+const EnlistValidator = Compile(Enlist)
 const AnnounceValidator = Compile(Announce)
 const OpenBranchValidator = Compile(OpenBranch)
 const IdleSkipValidator = Compile(IdleSkip)
@@ -442,6 +448,19 @@ class HydratedChant extends HydratableAction<typeof Chant> {
     }
 }
 
+class HydratedEnlist extends HydratableAction<typeof Enlist> {
+    declare playerId: string
+    declare partnerId: string
+    constructor(data: Type.Static<typeof Enlist>) {
+        super(data, EnlistValidator)
+    }
+    apply(state: HydratedSpanGameState): void {
+        state.crews[this.id] = {
+            members: [{ playerId: this.playerId }, { playerId: this.partnerId }]
+        }
+    }
+}
+
 class HydratedAnnounce extends HydratableAction<typeof Announce> {
     constructor(data: Type.Static<typeof Announce>) {
         super(data, AnnounceValidator)
@@ -527,6 +546,7 @@ class Initializer extends BaseGameInitializer<SpanGameState, HydratedSpanGameSta
             flag: { label: 'unclaimed' },
             log: [],
             offers: {},
+            crews: {},
             players: playerIds.map((playerId, index) => ({
                 playerId,
                 color: [Color.Red, Color.Blue, Color.Green][index],
@@ -565,7 +585,8 @@ const UserActions = {
     withdraw: Withdraw,
     nudge: Nudge,
     plant: Plant,
-    chant: Chant
+    chant: Chant,
+    enlist: Enlist
 }
 
 const spanGameVisibility = {
@@ -599,7 +620,7 @@ const WorkingValidators = [
     IdleSkipValidator
 ]
 
-const CommonValidators = [NudgeValidator, PlantValidator, ChantValidator]
+const CommonValidators = [NudgeValidator, PlantValidator, ChantValidator, EnlistValidator]
 
 export function spanGameRuntime(
     options: SpanGameOptions = {}
@@ -631,6 +652,7 @@ export function spanGameRuntime(
                 if (NudgeValidator.Check(action)) return new HydratedNudge(action)
                 if (PlantValidator.Check(action)) return new HydratedPlant(action)
                 if (ChantValidator.Check(action)) return new HydratedChant(action)
+                if (EnlistValidator.Check(action)) return new HydratedEnlist(action)
                 if (AnnounceValidator.Check(action)) return new HydratedAnnounce(action)
                 if (OpenBranchValidator.Check(action)) return new HydratedOpenBranch(action)
                 if (IdleSkipValidator.Check(action)) return new HydratedIdleSkip(action)
@@ -809,7 +831,8 @@ export const SPAN_COMMON_TYPES: readonly SpanActionType[] = [
     'withdraw',
     'nudge',
     'plant',
-    'chant'
+    'chant',
+    'enlist'
 ]
 type SpanActionFields<Name extends SpanActionType> = Omit<
     Type.Static<(typeof UserActions)[Name]>,

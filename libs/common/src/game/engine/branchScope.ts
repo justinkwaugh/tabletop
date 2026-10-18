@@ -12,6 +12,7 @@ interface Location {
     readonly ancestorOwnerId?: string
     readonly ownerId?: string
     readonly inArray: boolean
+    readonly value: unknown
 }
 
 function pathSegments(path: string): string[] {
@@ -39,7 +40,14 @@ function locate(document: unknown, segments: readonly string[]): Location {
                 ? Reflect.get(current, segment)
                 : undefined
     }
-    return { ancestorOwnerId, ownerId: carriedPlayerId(current), inArray }
+    return { ancestorOwnerId, ownerId: carriedPlayerId(current), inArray, value: current }
+}
+
+// A record added, removed or replaced whole is one patch operation, so what it holds is inspected too.
+function holdsOwnedObject(value: unknown): boolean {
+    if (typeof value !== 'object' || value === null) return false
+    if (carriedPlayerId(value) !== undefined) return true
+    return Object.values(value).some(holdsOwnedObject)
 }
 
 function isOwnedBy(location: Location, playerId: string): boolean {
@@ -50,8 +58,8 @@ function isOwnEntryOf(location: Location, playerId: string): boolean {
     return location.ancestorOwnerId === undefined && location.ownerId === playerId
 }
 
-function isOwnedByAnyone(location: Location): boolean {
-    return location.ancestorOwnerId !== undefined || location.ownerId !== undefined
+function touchesOwnedObject(location: Location): boolean {
+    return location.ancestorOwnerId !== undefined || holdsOwnedObject(location.value)
 }
 
 function isWithinBranchScope(
@@ -76,7 +84,10 @@ function isWithinCommonScope(operation: PatchOperation, before: unknown, after: 
     if (operation.op !== 'remove' && operation.op !== 'add' && operation.op !== 'replace') {
         return false
     }
-    return !isOwnedByAnyone(locate(before, segments)) && !isOwnedByAnyone(locate(after, segments))
+    return (
+        !touchesOwnedObject(locate(before, segments)) &&
+        !touchesOwnedObject(locate(after, segments))
+    )
 }
 
 export function findBranchScopeViolation({

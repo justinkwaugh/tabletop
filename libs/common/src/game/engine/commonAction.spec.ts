@@ -156,6 +156,17 @@ describe('Common Actions', () => {
             ).toThrow('A Common Action may not change /flag/playerId')
         })
 
+        it('rejects adding a record that holds objects carrying Players’ identities inside it', () => {
+            const spanGame = createSpanGame()
+            expect(() =>
+                execute(
+                    spanGame,
+                    beginSpan(spanGame),
+                    spanAction('e2', 'enlist', 'p2', { partnerId: 'p3' })
+                )
+            ).toThrow('A Common Action may not change /crews/e2')
+        })
+
         it('allows changes to shared collections, addressed by position or not', () => {
             const spanGame = createSpanGame()
             const chanted = execute(spanGame, beginSpan(spanGame), spanAction('c2', 'chant', 'p2'))
