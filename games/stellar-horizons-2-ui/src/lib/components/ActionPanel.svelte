@@ -10,6 +10,9 @@
     import MovementStep from './steps/MovementStep.svelte'
     import ExplorationStep from './steps/ExplorationStep.svelte'
     import DevelopmentStep from './steps/DevelopmentStep.svelte'
+    import InitiativeStep from './steps/InitiativeStep.svelte'
+    import ProductionStep from './steps/ProductionStep.svelte'
+    import ConversionStep from './steps/ConversionStep.svelte'
     import SurveyChoice from './steps/SurveyChoice.svelte'
     import TerraformStep from './steps/TerraformStep.svelte'
     import TerraformChoice from './steps/TerraformChoice.svelte'
@@ -41,6 +44,10 @@
             <ExplorationStep />
         {:else if gameSession.actingPhase === TurnPhase.Development}
             <DevelopmentStep />
+        {:else if gameSession.actingPhase === TurnPhase.Initiative}
+            <InitiativeStep />
+        {:else if gameSession.actingPhase === TurnPhase.BaseProduction}
+            <ProductionStep />
         {/if}
     {:else if machineState === MachineState.ChoosingSurveyWorld}
         <SurveyChoice />
@@ -48,6 +55,8 @@
         <TerraformStep />
     {:else if machineState === MachineState.ChoosingTerraformWorld}
         <TerraformChoice />
+    {:else if machineState === MachineState.ConvertingSettlements}
+        <ConversionStep />
     {:else}
         <LastActionDescription />
     {/if}

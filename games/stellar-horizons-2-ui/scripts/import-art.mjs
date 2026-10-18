@@ -40,7 +40,16 @@ const BOARD_SYSTEMS = [
     'alpha-mensae',
     'innes-star',
     'beta-aquilae',
-    '18-scorpii'
+    '18-scorpii',
+    'tau-ceti',
+    'epsilon-eridani',
+    'gliese-251',
+    'luytens-star',
+    'kapteyns-star',
+    'gx-andromedae',
+    'lalande-21185',
+    'wolf-359',
+    'ross-128'
 ]
 const FACTION_ART = {
     Consortium: 'Consortium',

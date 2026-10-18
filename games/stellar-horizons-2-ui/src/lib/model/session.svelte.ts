@@ -5,6 +5,11 @@ import {
     AttemptAnomaly,
     BuildShip,
     ChooseFaction,
+    ChooseProduction,
+    ConvertSettlement,
+    DeclareInitiative,
+    PassConversion,
+    SpendInfluence,
     ChooseSurveyWorld,
     ChooseTerraformWorld,
     CloneSettlement,
@@ -36,6 +41,7 @@ import {
     type Faction,
     type HydratedStellarHorizonsGameState,
     type MoveOption,
+    type Production,
     type ShipState,
     type StellarHorizonsProjectedState,
     type TechId
@@ -92,9 +98,7 @@ export class StellarHorizonsGameSession extends GameSession<
     canAct: boolean = $derived(this.isMyTurn && !this.isViewingHistory)
 
     // The phase of the decade in progress, whether the viewer is playing it or waiting on others.
-    currentPhase: TurnPhase | undefined = $derived(
-        phaseOfMachineState(this.gameState.machineState)
-    )
+    currentPhase: TurnPhase | undefined = $derived(phaseOfMachineState(this.gameState.machineState))
 
     // The phase the viewer is playing in their own branch.
     myPhase: TurnPhase | undefined = $derived.by(() => {
@@ -473,12 +477,49 @@ export class StellarHorizonsGameSession extends GameSession<
         await this.commit(ActionType.Explore, this.createPlayerAction(Explore, { shipId }))
     }
 
-    async developTech(techId: TechId, markers: number[], cash: number) {
+    async developTech(techId: TechId, markers: number[], cash: number, influence = 0) {
         this.clearSelection()
         await this.commit(
             ActionType.DevelopTech,
-            this.createPlayerAction(DevelopTech, { techId, markers, cash })
+            this.createPlayerAction(DevelopTech, {
+                techId,
+                markers,
+                cash,
+                ...(influence > 0 ? { influence } : {})
+            })
         )
+    }
+
+    async spendInfluence(influence: number) {
+        await this.commit(
+            ActionType.SpendInfluence,
+            this.createPlayerAction(SpendInfluence, { influence })
+        )
+    }
+
+    async declareInitiative(influence: number) {
+        await this.commit(
+            ActionType.DeclareInitiative,
+            this.createPlayerAction(DeclareInitiative, { influence })
+        )
+    }
+
+    async chooseProduction(systemId: string, production: Production) {
+        await this.commit(
+            ActionType.ChooseProduction,
+            this.createPlayerAction(ChooseProduction, { systemId, production })
+        )
+    }
+
+    async convertSettlement(systemId: string, targetPlayerId: string) {
+        await this.commit(
+            ActionType.ConvertSettlement,
+            this.createPlayerAction(ConvertSettlement, { systemId, targetPlayerId })
+        )
+    }
+
+    async passConversion() {
+        await this.commit(ActionType.PassConversion, this.createPlayerAction(PassConversion, {}))
     }
 
     async endPhase() {

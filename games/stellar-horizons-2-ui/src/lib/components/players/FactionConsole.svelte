@@ -1,6 +1,12 @@
 <script lang="ts">
     // Everything about the player chosen in the standings, in plain labelled sections.
-    import { TECH_FIELDS, anomalyDefinition, shipDefinition } from '@tabletop/stellar-horizons-2'
+    import {
+        ActionType,
+        TECH_FIELDS,
+        anomalyDefinition,
+        galacticRank,
+        shipDefinition
+    } from '@tabletop/stellar-horizons-2'
     import { FACTION_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { factionConsole } from '$lib/utils/playerArea.js'
@@ -24,6 +30,26 @@
     const shipCount = $derived(
         view ? view.fleet.reduce((total, group) => total + group.ships.length, 0) : 0
     )
+    const canSpendInfluence = $derived(
+        mine && gameSession.validActionTypes.includes(ActionType.SpendInfluence)
+    )
+
+    const SCORE_LINES = [
+        ['techs', 'Techs not developed'],
+        ['settlements', 'Settlements by distance'],
+        ['largeBases', 'Large bases'],
+        ['largestBase', 'Largest base'],
+        ['explorationMarkers', 'Last-survey markers'],
+        ['influence', 'IP'],
+        ['techPoints', 'Tech points'],
+        ['cash', 'Cash'],
+        ['playerCount', 'Players in the game']
+    ] as const
+
+    function signed(value: number): string {
+        const rounded = Math.round(value * 10) / 10
+        return rounded > 0 ? `+${rounded}` : `${rounded}`
+    }
 </script>
 
 {#if view}
@@ -62,7 +88,45 @@
                         <TechMarkerTotal {field} values={view.markers[field]} size={30} />
                     {/each}
                 </span>
+                {#if standing.campaign}
+                    <span class="influence" title="Influence points">
+                        {standing.campaign.influence} IP
+                    </span>
+                    {#if canSpendInfluence}
+                        <button
+                            type="button"
+                            class="spend"
+                            title="Spend 1 IP for $1B"
+                            onclick={() => gameSession.spendInfluence(1)}>1 IP → $1B</button
+                        >
+                    {/if}
+                {/if}
             </div>
+
+            {#if view.sheet}
+                {@const sheet = view.sheet}
+                <div class="sheet">
+                    <span>Ships <b>{sheet.ships} of {sheet.maxShips}</b></span>
+                    <span>Bases <b>{sheet.bases} of {sheet.maxBases}</b></span>
+                    <span>Settlements <b>${sheet.settlementCost}B</b></span>
+                </div>
+            {/if}
+
+            {#if standing.campaign}
+                {@const score = standing.campaign.score}
+                <section>
+                    <h4>
+                        Score <span>{score.total} VP · {galacticRank(score.total)}</span>
+                    </h4>
+                    <div class="score">
+                        {#each SCORE_LINES as [key, label] (key)}
+                            {#if score[key] !== 0}
+                                <span>{label}</span><span class="value">{signed(score[key])}</span>
+                            {/if}
+                        {/each}
+                    </div>
+                </section>
+            {/if}
 
             {#if standing.anomalies}
                 {@const tally = standing.anomalies}
@@ -249,6 +313,54 @@
     .markers {
         display: inline-flex;
         gap: 3px;
+    }
+
+    .influence {
+        font-size: 15px;
+        font-weight: 800;
+        color: #d98cf2;
+        white-space: nowrap;
+    }
+
+    .spend {
+        margin-left: auto;
+        padding: 2px 8px;
+        border-radius: 6px;
+        border: 1px solid #6b4a80;
+        font-size: 12px;
+        font-weight: 700;
+        color: #e9c6f7;
+        white-space: nowrap;
+    }
+
+    .spend:hover {
+        background: #2a1d38;
+    }
+
+    .sheet {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 12px;
+        font-size: 12px;
+        color: #8fa4c2;
+    }
+
+    .sheet b {
+        color: #dbe7f5;
+    }
+
+    .score {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1px 10px;
+        font-size: 12px;
+        color: #b7c7de;
+    }
+
+    .score .value {
+        text-align: right;
+        font-weight: 700;
+        color: #dbe7f5;
     }
 
     section {

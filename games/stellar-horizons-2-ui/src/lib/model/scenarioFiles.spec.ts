@@ -20,10 +20,16 @@ describe('the scenarios the harness offers', () => {
             expect(state.gameId).toBe(game.id)
             expect(actions).toEqual([])
             expect(state.actionCount).toBe(0)
-            // A position opens in a player's own phase: the branch they play on the main line.
-            expect(playPhase(state)).toBeDefined()
-            expect(state.parallelSpan.branchPoint).toEqual({ actionCount: 0, actionChecksum: 0 })
-            expect(state.activePlayerIds).toEqual([state.parallelSpan.branchPlayerId])
+            // A position opens either in a player's own phase, the branch they play on the main
+            // line, or at a decision one player makes on the main line.
+            if (state.parallelSpan) {
+                expect(playPhase(state)).toBeDefined()
+                expect(state.parallelSpan.branchPoint).toEqual({
+                    actionCount: 0,
+                    actionChecksum: 0
+                })
+                expect(state.activePlayerIds).toEqual([state.parallelSpan.branchPlayerId])
+            }
             const hydrated = StellarHorizonsRuntime.hydrator.hydrateState(structuredClone(state))
             expect(hydrated.activePlayerIds).toHaveLength(1)
         }

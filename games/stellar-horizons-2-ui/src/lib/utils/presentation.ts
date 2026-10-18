@@ -1,4 +1,5 @@
 import {
+    EconomicTile,
     Faction,
     TechField,
     TechId,
@@ -12,7 +13,9 @@ export const PHASE_LABELS: Record<TurnPhase, string> = {
     [TurnPhase.Cargo]: 'Cargo',
     [TurnPhase.Movement]: 'Movement',
     [TurnPhase.Exploration]: 'Exploration',
-    [TurnPhase.Development]: 'Develop techs'
+    [TurnPhase.Development]: 'Develop techs',
+    [TurnPhase.Initiative]: 'Initiative',
+    [TurnPhase.BaseProduction]: 'Base production'
 }
 
 export const PHASE_DONE_LABELS: Record<TurnPhase, string> = {
@@ -20,7 +23,9 @@ export const PHASE_DONE_LABELS: Record<TurnPhase, string> = {
     [TurnPhase.Cargo]: 'Done with cargo',
     [TurnPhase.Movement]: 'Done moving',
     [TurnPhase.Exploration]: 'Done exploring',
-    [TurnPhase.Development]: 'Done developing'
+    [TurnPhase.Development]: 'Done developing',
+    [TurnPhase.Initiative]: 'Declare',
+    [TurnPhase.BaseProduction]: 'Done producing'
 }
 
 export const PHASE_STARTED: Record<TurnPhase, string> = {
@@ -28,7 +33,9 @@ export const PHASE_STARTED: Record<TurnPhase, string> = {
     [TurnPhase.Cargo]: 'starts transferring cargo',
     [TurnPhase.Movement]: 'starts moving',
     [TurnPhase.Exploration]: 'starts exploring',
-    [TurnPhase.Development]: 'starts developing techs'
+    [TurnPhase.Development]: 'starts developing techs',
+    [TurnPhase.Initiative]: 'starts declaring IP for initiative',
+    [TurnPhase.BaseProduction]: 'starts choosing base production'
 }
 
 export const PHASE_FINISHED: Record<TurnPhase, string> = {
@@ -36,7 +43,9 @@ export const PHASE_FINISHED: Record<TurnPhase, string> = {
     [TurnPhase.Cargo]: 'finished with cargo',
     [TurnPhase.Movement]: 'finished moving',
     [TurnPhase.Exploration]: 'finished exploring',
-    [TurnPhase.Development]: 'finished developing techs'
+    [TurnPhase.Development]: 'finished developing techs',
+    [TurnPhase.Initiative]: 'declared IP for initiative',
+    [TurnPhase.BaseProduction]: 'chose base production'
 }
 
 export const PHASE_SKIPPED: Record<TurnPhase, string> = {
@@ -44,7 +53,9 @@ export const PHASE_SKIPPED: Record<TurnPhase, string> = {
     [TurnPhase.Cargo]: 'has no cargo to move',
     [TurnPhase.Movement]: 'has no ships to move',
     [TurnPhase.Exploration]: 'has nothing to explore',
-    [TurnPhase.Development]: 'has no tech to develop'
+    [TurnPhase.Development]: 'has no tech to develop',
+    [TurnPhase.Initiative]: 'has no IP to declare',
+    [TurnPhase.BaseProduction]: 'has no base to produce at'
 }
 
 export const PHASE_OVER: Record<TurnPhase, string> = {
@@ -52,7 +63,25 @@ export const PHASE_OVER: Record<TurnPhase, string> = {
     [TurnPhase.Cargo]: 'Cargo transfers are over.',
     [TurnPhase.Movement]: 'Everyone has finished moving.',
     [TurnPhase.Exploration]: 'Everyone has finished exploring.',
-    [TurnPhase.Development]: 'Everyone has finished developing techs.'
+    [TurnPhase.Development]: 'Everyone has finished developing techs.',
+    [TurnPhase.Initiative]: 'Everyone has declared their IP.',
+    [TurnPhase.BaseProduction]: 'Every base has chosen what to produce.'
+}
+
+export const ECONOMIC_TILE_LABELS: Record<EconomicTile, string> = {
+    [EconomicTile.RollInitiative]: 'Roll initiative',
+    [EconomicTile.DrawEvent]: 'Draw event',
+    [EconomicTile.EarthProduction]: 'Earth production',
+    [EconomicTile.BaseProduction]: 'Base production',
+    [EconomicTile.DrawTradeGoods]: 'Draw trade goods',
+    [EconomicTile.SettlementGrowth]: 'Growth & migration',
+    [EconomicTile.Terraforming]: 'Terraforming'
+}
+
+// Tiles whose rules arrive with later slices of the campaign.
+export const ECONOMIC_TILE_NOT_YET: Partial<Record<EconomicTile, string>> = {
+    [EconomicTile.DrawEvent]: 'Events are not in the game yet, so this tile does nothing.',
+    [EconomicTile.DrawTradeGoods]: 'Trade goods are not in the game yet, so this tile does nothing.'
 }
 
 export const FIELD_COLORS: Record<TechField, string> = {

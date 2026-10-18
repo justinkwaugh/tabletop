@@ -6,8 +6,18 @@
         RepairMethod,
         TechField,
         anomalyDefinition,
+        CASH_PRODUCTION,
         isAttemptAnomaly,
         isBuildShip,
+        isChooseProduction,
+        isConvertSettlement,
+        isDeclareInitiative,
+        isDrawEconomicTile,
+        isGrowSettlements,
+        isPassConversion,
+        isProduceAtBases,
+        isRollInitiative,
+        isSpendInfluence,
         isChooseFaction,
         isChooseSurveyWorld,
         isChooseTerraformWorld,
@@ -33,10 +43,13 @@
         shipDefinition,
         techDefinition,
         type CompensationCounts,
+        type Production,
         type SettledMarkers
     } from '@tabletop/stellar-horizons-2'
     import { PlayerName } from '@tabletop/frontend-components'
     import {
+        ECONOMIC_TILE_LABELS,
+        ECONOMIC_TILE_NOT_YET,
         PHASE_FINISHED,
         PHASE_OVER,
         PHASE_SKIPPED,
@@ -65,6 +78,12 @@
                 : [])
         ]
         return parts.length > 0 ? ` (${parts.join(' and ')} in compensation)` : ''
+    }
+
+    function productionText(production: Production, amount: number): string {
+        return production === CASH_PRODUCTION
+            ? `$${amount}B`
+            : markers(production as TechField, amount)
     }
 
     function settledText(entry: SettledMarkers): string {
@@ -175,7 +194,85 @@
                 : 'received no markers'}</span
         >
     {:else if isDevelopTech(action)}
-        <span>developed {techDefinition(action.techId).name}</span>
+        <span
+            >developed {techDefinition(action.techId).name}{action.influence
+                ? ` with ${action.influence} IP`
+                : ''}{action.metadata?.first ? ', the first to do so (+1 IP)' : ''}</span
+        >
+    {:else if isDrawEconomicTile(action)}
+        {#if action.metadata}
+            {@const tile = action.metadata.tile}
+            <span
+                >Economic phase: {ECONOMIC_TILE_LABELS[tile].toLowerCase()}.{action.metadata
+                    .earthProduction.length > 0
+                    ? ' Every faction collects its Earth production.'
+                    : ''}
+                {ECONOMIC_TILE_NOT_YET[tile] ?? ''}</span
+            >
+        {/if}
+    {:else if isDeclareInitiative(action)}
+        <span
+            >{action.influence > 0
+                ? `spent ${action.influence} IP on initiative`
+                : 'spent no IP on initiative'}</span
+        >
+    {:else if isRollInitiative(action)}
+        <span>Initiative rolled:</span>
+        {#each action.metadata?.order ?? [] as playerId, index (playerId)}
+            {@const roll = action.metadata?.rolls.find((entry) => entry.playerId === playerId)}
+            <span class="inline-flex items-center gap-x-1"
+                >{index + 1}. <PlayerName {playerId} />
+                {roll
+                    ? `${roll.total}%${roll.bid ? ` (${roll.roll} + ${roll.bid} IP)` : ''}`
+                    : ''}{index < (action.metadata?.order.length ?? 0) - 1 ? ',' : ''}</span
+            >
+        {/each}
+    {:else if isChooseProduction(action)}
+        <span
+            >chose to produce {action.production === CASH_PRODUCTION
+                ? 'cash'
+                : action.production.toLowerCase()} at {systemName(action.systemId)}</span
+        >
+    {:else if isProduceAtBases(action)}
+        <span>Bases produce:</span>
+        {#each action.metadata?.results ?? [] as result, index (`${result.playerId}:${result.systemId}`)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName playerId={result.playerId} />
+                {productionText(result.production, result.amount)} at {systemName(
+                    result.systemId
+                )}{index < (action.metadata?.results.length ?? 0) - 1 ? ';' : ''}</span
+            >
+        {:else}
+            <span>nothing.</span>
+        {/each}
+    {:else if isGrowSettlements(action)}
+        {@const grown = (action.metadata?.results ?? []).filter(
+            (result) => result.after > result.before
+        )}
+        <span>Settlements grow:</span>
+        {#each grown as result, index (`${result.playerId}:${result.systemId}`)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName playerId={result.playerId} />
+                +{result.after - result.before} at {systemName(result.systemId)}{index <
+                grown.length - 1
+                    ? ';'
+                    : ''}</span
+            >
+        {:else}
+            <span>no base gained any.</span>
+        {/each}
+    {:else if isConvertSettlement(action)}
+        <span>tried to convert a settlement of</span>
+        <PlayerName playerId={action.targetPlayerId} />
+        <span
+            >at {systemName(action.systemId)}{action.metadata
+                ? `: rolled ${action.metadata.roll}, ${action.metadata.converted ? 'converted' : 'failed'}`
+                : ''}</span
+        >
+    {:else if isPassConversion(action)}
+        <span>chose not to convert anyone</span>
+    {:else if isSpendInfluence(action)}
+        <span>turned {action.influence} IP into ${action.influence}B</span>
     {:else if isStartPhase(action)}
         <span>{action.metadata ? PHASE_STARTED[action.metadata.phase] : 'starts a phase'}</span>
     {:else if isEndPhase(action)}
@@ -234,7 +331,13 @@
         >
     {:else if isEndTurn(action)}
         <span>
-            {#if action.metadata?.victorIds.length}
+            {#if action.metadata?.endRoll?.ended}
+                The campaign ends in {action.metadata.year}: the end roll was {action.metadata
+                    .endRoll.roll} against {action.metadata.endRoll.chance}%.
+            {:else if action.metadata?.endRoll}
+                {action.metadata.year} ends; the end roll was {action.metadata.endRoll.roll}
+                against {action.metadata.endRoll.chance}%.
+            {:else if action.metadata?.victorIds.length}
                 The goal is reached in {action.metadata.year}!
             {:else if action.metadata?.gameOver}
                 {action.metadata.year} ends and nobody reached the goal.

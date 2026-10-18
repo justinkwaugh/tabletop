@@ -5,12 +5,22 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { scenarioJson } from '@tabletop/common'
 import { startingPosition } from '@tabletop/common/testing'
-import { ActionType, TurnPhase } from '@tabletop/stellar-horizons-2'
+import {
+    ActionType,
+    EconomicTile,
+    Faction,
+    ScenarioId,
+    TechId,
+    TurnPhase,
+    WorldSide
+} from '@tabletop/stellar-horizons-2'
 import {
     VOYAGES_CONFIG,
     advanceTo,
     edit,
     execute,
+    finishDecade,
+    placeBase,
     placeShip,
     startedGame,
     userAction
@@ -56,6 +66,86 @@ function threeFactionsAtOneAnomaly() {
     return { game, state: advanceTo(game, arranged, TurnPhase.Exploration) }
 }
 
+const CAMPAIGN_CONFIG = { scenario: ScenarioId.Campaign }
+
+function playerOf(state, faction) {
+    return state.players.find((player) => player.faction === faction).playerId
+}
+
+/**
+ * A campaign (Starfarers, Givers, Praetorians, True Path) prepared at the end of 2100 so that
+ * 2110 draws the given economic tile.
+ */
+function campaignInto(tile, playerCount, arrange) {
+    const { game, state: started } = startedGame(playerCount, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        state.economicTilePool = [tile]
+        arrange(state)
+    })
+    return { game, state: finishDecade(game, arranged) }
+}
+
+/** Initiative in 2110 with 3, 1 and no IP to declare. */
+function campaignInitiative() {
+    return campaignInto(EconomicTile.RollInitiative, 3, (state) => {
+        const [first, second] = state.initiativeOrder()
+        state.getPlayerState(first).influence = 3
+        state.getPlayerState(second).influence = 1
+    })
+}
+
+/** Base production in 2110: the Starfarers have two bases, the Givers one. */
+function campaignBaseProduction() {
+    return campaignInto(EconomicTile.BaseProduction, 3, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        const givers = playerOf(state, Faction.Givers)
+        state.systemState('alpha-centauri').worlds = [
+            { tileId: 'm-1', side: WorldSide.I },
+            { tileId: state.worldPool.find((id) => id.startsWith('d-')), side: WorldSide.I }
+        ]
+        state.systemState('luhman-16').worlds = [
+            { tileId: state.worldPool.find((id) => id.startsWith('j-')), side: WorldSide.I }
+        ]
+        placeBase(state, starfarers, 'alpha-centauri', 12)
+        placeBase(state, starfarers, 'luhman-16', 4)
+        placeBase(state, givers, 'alpha-centauri', 6)
+    })
+}
+
+/** Growth in 2110, after which the True Path may convert a Givers settlement at Alpha Centauri. */
+function campaignConversion() {
+    return campaignInto(EconomicTile.SettlementGrowth, 4, (state) => {
+        state.systemState('alpha-centauri').worlds = [{ tileId: 'm-1', side: WorldSide.I }]
+        placeBase(state, playerOf(state, Faction.TruePath), 'alpha-centauri', 5)
+        placeBase(state, playerOf(state, Faction.Givers), 'alpha-centauri', 4)
+    })
+}
+
+/** Terraforming in 2110: the Givers own Terraforming, so they terraform twice. */
+function campaignTerraforming() {
+    return campaignInto(EconomicTile.Terraforming, 3, (state) => {
+        const givers = playerOf(state, Faction.Givers)
+        state.getPlayerState(givers).techs.push({ techId: TechId.Terraforming, year: 2090 })
+        state.systemState('alpha-centauri').worlds = [
+            { tileId: 'm-1', side: WorldSide.I },
+            { tileId: 'm-2', side: WorldSide.II }
+        ]
+        placeBase(state, givers, 'alpha-centauri', 8)
+    })
+}
+
+/** Developing techs in 2100 with IP to spend and too little cash. */
+function campaignPayingWithInfluence() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        for (const player of state.players) {
+            player.influence = 4
+            player.cash = 2
+        }
+    })
+    return { game, state: advanceTo(game, arranged, TurnPhase.Development) }
+}
+
 function write(slug, name, { game, state }) {
     // Players are named by their place in initiative order.
     const order = state.turnManager.turnOrder
@@ -81,3 +171,8 @@ function write(slug, name, { game, state }) {
 mkdirSync(OUT, { recursive: true })
 
 write('three-factions-at-one-anomaly', 'Three factions at one anomaly', threeFactionsAtOneAnomaly())
+write('campaign-initiative', 'Campaign: initiative', campaignInitiative())
+write('campaign-base-production', 'Campaign: base production', campaignBaseProduction())
+write('campaign-conversion', 'Campaign: True Path conversion', campaignConversion())
+write('campaign-terraforming', 'Campaign: terraforming', campaignTerraforming())
+write('campaign-paying-with-influence', 'Campaign: paying with IP', campaignPayingWithInfluence())

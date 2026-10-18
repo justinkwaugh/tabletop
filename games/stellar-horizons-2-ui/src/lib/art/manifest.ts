@@ -26,502 +26,511 @@ import art23 from '$lib/images/art/systems/alpha-mensae.webp'
 import art24 from '$lib/images/art/systems/innes-star.webp'
 import art25 from '$lib/images/art/systems/beta-aquilae.webp'
 import art26 from '$lib/images/art/systems/18-scorpii.webp'
-import art27 from '$lib/images/art/ships/consortium-prospector.webp'
-import art28 from '$lib/images/art/ships-flagless/consortium-prospector.webp'
-import art29 from '$lib/images/art/ships/consortium-prosperity.webp'
-import art30 from '$lib/images/art/ships-flagless/consortium-prosperity.webp'
-import art31 from '$lib/images/art/ships/consortium-surveyor.webp'
-import art32 from '$lib/images/art/ships-flagless/consortium-surveyor.webp'
-import art33 from '$lib/images/art/ships/consortium-guildmaster.webp'
-import art34 from '$lib/images/art/ships-flagless/consortium-guildmaster.webp'
-import art35 from '$lib/images/art/ships/consortium-nostromo.webp'
-import art36 from '$lib/images/art/ships-flagless/consortium-nostromo.webp'
-import art37 from '$lib/images/art/ships/consortium-sapphire.webp'
-import art38 from '$lib/images/art/ships-flagless/consortium-sapphire.webp'
-import art39 from '$lib/images/art/ships/consortium-opal-star.webp'
-import art40 from '$lib/images/art/ships-flagless/consortium-opal-star.webp'
-import art41 from '$lib/images/art/ships/consortium-desire.webp'
-import art42 from '$lib/images/art/ships-flagless/consortium-desire.webp'
-import art43 from '$lib/images/art/ships/consortium-destiny.webp'
-import art44 from '$lib/images/art/ships-flagless/consortium-destiny.webp'
-import art45 from '$lib/images/art/ships/consortium-enterprise.webp'
-import art46 from '$lib/images/art/ships-flagless/consortium-enterprise.webp'
-import art47 from '$lib/images/art/ships/consortium-majestic.webp'
-import art48 from '$lib/images/art/ships-flagless/consortium-majestic.webp'
-import art49 from '$lib/images/art/ships/consortium-zephyr.webp'
-import art50 from '$lib/images/art/ships-flagless/consortium-zephyr.webp'
-import art51 from '$lib/images/art/ships/consortium-aquarius.webp'
-import art52 from '$lib/images/art/ships-flagless/consortium-aquarius.webp'
-import art53 from '$lib/images/art/ships/consortium-empress.webp'
-import art54 from '$lib/images/art/ships-flagless/consortium-empress.webp'
-import art55 from '$lib/images/art/ships/consortium-trident.webp'
-import art56 from '$lib/images/art/ships-flagless/consortium-trident.webp'
-import art57 from '$lib/images/art/ships/consortium-neptune.webp'
-import art58 from '$lib/images/art/ships-flagless/consortium-neptune.webp'
-import art59 from '$lib/images/art/ships/consortium-colossus.webp'
-import art60 from '$lib/images/art/ships-flagless/consortium-colossus.webp'
-import art61 from '$lib/images/art/ships/givers-linnaeus.webp'
-import art62 from '$lib/images/art/ships-flagless/givers-linnaeus.webp'
-import art63 from '$lib/images/art/ships/givers-humboldt.webp'
-import art64 from '$lib/images/art/ships-flagless/givers-humboldt.webp'
-import art65 from '$lib/images/art/ships/givers-mendel.webp'
-import art66 from '$lib/images/art/ships-flagless/givers-mendel.webp'
-import art67 from '$lib/images/art/ships/givers-bougainville.webp'
-import art68 from '$lib/images/art/ships-flagless/givers-bougainville.webp'
-import art69 from '$lib/images/art/ships/givers-darwin.webp'
-import art70 from '$lib/images/art/ships-flagless/givers-darwin.webp'
-import art71 from '$lib/images/art/ships/givers-mirabilis.webp'
-import art72 from '$lib/images/art/ships-flagless/givers-mirabilis.webp'
-import art73 from '$lib/images/art/ships/givers-serenity.webp'
-import art74 from '$lib/images/art/ships-flagless/givers-serenity.webp'
-import art75 from '$lib/images/art/ships/givers-tempest.webp'
-import art76 from '$lib/images/art/ships-flagless/givers-tempest.webp'
-import art77 from '$lib/images/art/ships/givers-osanyin.webp'
-import art78 from '$lib/images/art/ships-flagless/givers-osanyin.webp'
-import art79 from '$lib/images/art/ships/givers-viridis.webp'
-import art80 from '$lib/images/art/ships-flagless/givers-viridis.webp'
-import art81 from '$lib/images/art/ships/givers-eden.webp'
-import art82 from '$lib/images/art/ships-flagless/givers-eden.webp'
-import art83 from '$lib/images/art/ships/givers-typhoon.webp'
-import art84 from '$lib/images/art/ships-flagless/givers-typhoon.webp'
-import art85 from '$lib/images/art/ships/givers-artemis.webp'
-import art86 from '$lib/images/art/ships-flagless/givers-artemis.webp'
-import art87 from '$lib/images/art/ships/givers-eclipse.webp'
-import art88 from '$lib/images/art/ships-flagless/givers-eclipse.webp'
-import art89 from '$lib/images/art/ships/givers-boreas.webp'
-import art90 from '$lib/images/art/ships-flagless/givers-boreas.webp'
-import art91 from '$lib/images/art/ships/givers-helios.webp'
-import art92 from '$lib/images/art/ships-flagless/givers-helios.webp'
-import art93 from '$lib/images/art/ships/givers-gaia.webp'
-import art94 from '$lib/images/art/ships-flagless/givers-gaia.webp'
-import art95 from '$lib/images/art/ships/praetorians-audax.webp'
-import art96 from '$lib/images/art/ships-flagless/praetorians-audax.webp'
-import art97 from '$lib/images/art/ships/praetorians-fidelis.webp'
-import art98 from '$lib/images/art/ships-flagless/praetorians-fidelis.webp'
-import art99 from '$lib/images/art/ships/praetorians-peregrinus.webp'
-import art100 from '$lib/images/art/ships-flagless/praetorians-peregrinus.webp'
-import art101 from '$lib/images/art/ships/praetorians-noctua.webp'
-import art102 from '$lib/images/art/ships-flagless/praetorians-noctua.webp'
-import art103 from '$lib/images/art/ships/praetorians-odyssey.webp'
-import art104 from '$lib/images/art/ships-flagless/praetorians-odyssey.webp'
-import art105 from '$lib/images/art/ships/praetorians-argonaut.webp'
-import art106 from '$lib/images/art/ships-flagless/praetorians-argonaut.webp'
-import art107 from '$lib/images/art/ships/praetorians-gladiator.webp'
-import art108 from '$lib/images/art/ships-flagless/praetorians-gladiator.webp'
-import art109 from '$lib/images/art/ships/praetorians-centurion.webp'
-import art110 from '$lib/images/art/ships-flagless/praetorians-centurion.webp'
-import art111 from '$lib/images/art/ships/praetorians-proconsul.webp'
-import art112 from '$lib/images/art/ships-flagless/praetorians-proconsul.webp'
-import art113 from '$lib/images/art/ships/praetorians-myrmidon.webp'
-import art114 from '$lib/images/art/ships-flagless/praetorians-myrmidon.webp'
-import art115 from '$lib/images/art/ships/praetorians-aquila.webp'
-import art116 from '$lib/images/art/ships-flagless/praetorians-aquila.webp'
-import art117 from '$lib/images/art/ships/praetorians-athena.webp'
-import art118 from '$lib/images/art/ships-flagless/praetorians-athena.webp'
-import art119 from '$lib/images/art/ships/praetorians-hercules.webp'
-import art120 from '$lib/images/art/ships-flagless/praetorians-hercules.webp'
-import art121 from '$lib/images/art/ships/praetorians-elysium.webp'
-import art122 from '$lib/images/art/ships-flagless/praetorians-elysium.webp'
-import art123 from '$lib/images/art/ships/praetorians-praetor.webp'
-import art124 from '$lib/images/art/ships-flagless/praetorians-praetor.webp'
-import art125 from '$lib/images/art/ships/praetorians-imperator.webp'
-import art126 from '$lib/images/art/ships-flagless/praetorians-imperator.webp'
-import art127 from '$lib/images/art/ships/starfarers-copernicus.webp'
-import art128 from '$lib/images/art/ships-flagless/starfarers-copernicus.webp'
-import art129 from '$lib/images/art/ships/starfarers-kepler.webp'
-import art130 from '$lib/images/art/ships-flagless/starfarers-kepler.webp'
-import art131 from '$lib/images/art/ships/starfarers-kuiper.webp'
-import art132 from '$lib/images/art/ships-flagless/starfarers-kuiper.webp'
-import art133 from '$lib/images/art/ships/starfarers-messier.webp'
-import art134 from '$lib/images/art/ships-flagless/starfarers-messier.webp'
-import art135 from '$lib/images/art/ships/starfarers-andromeda.webp'
-import art136 from '$lib/images/art/ships-flagless/starfarers-andromeda.webp'
-import art137 from '$lib/images/art/ships/starfarers-orion.webp'
-import art138 from '$lib/images/art/ships-flagless/starfarers-orion.webp'
-import art139 from '$lib/images/art/ships/starfarers-discovery.webp'
-import art140 from '$lib/images/art/ships-flagless/starfarers-discovery.webp'
-import art141 from '$lib/images/art/ships/starfarers-pytheas.webp'
-import art142 from '$lib/images/art/ships-flagless/starfarers-pytheas.webp'
-import art143 from '$lib/images/art/ships/starfarers-proxima.webp'
-import art144 from '$lib/images/art/ships-flagless/starfarers-proxima.webp'
-import art145 from '$lib/images/art/ships/starfarers-stargazer.webp'
-import art146 from '$lib/images/art/ships-flagless/starfarers-stargazer.webp'
-import art147 from '$lib/images/art/ships/starfarers-polaris.webp'
-import art148 from '$lib/images/art/ships-flagless/starfarers-polaris.webp'
-import art149 from '$lib/images/art/ships/starfarers-voyager.webp'
-import art150 from '$lib/images/art/ships-flagless/starfarers-voyager.webp'
-import art151 from '$lib/images/art/ships/starfarers-nova.webp'
-import art152 from '$lib/images/art/ships-flagless/starfarers-nova.webp'
-import art153 from '$lib/images/art/ships/starfarers-comet.webp'
-import art154 from '$lib/images/art/ships-flagless/starfarers-comet.webp'
-import art155 from '$lib/images/art/ships/starfarers-constellation.webp'
-import art156 from '$lib/images/art/ships-flagless/starfarers-constellation.webp'
-import art157 from '$lib/images/art/ships/starfarers-starfury.webp'
-import art158 from '$lib/images/art/ships-flagless/starfarers-starfury.webp'
-import art159 from '$lib/images/art/ships/starfarers-galactica.webp'
-import art160 from '$lib/images/art/ships-flagless/starfarers-galactica.webp'
-import art161 from '$lib/images/art/ships/syndicate-harbinger.webp'
-import art162 from '$lib/images/art/ships-flagless/syndicate-harbinger.webp'
-import art163 from '$lib/images/art/ships/syndicate-nomad.webp'
-import art164 from '$lib/images/art/ships-flagless/syndicate-nomad.webp'
-import art165 from '$lib/images/art/ships/syndicate-vagabond.webp'
-import art166 from '$lib/images/art/ships-flagless/syndicate-vagabond.webp'
-import art167 from '$lib/images/art/ships/syndicate-cobra.webp'
-import art168 from '$lib/images/art/ships-flagless/syndicate-cobra.webp'
-import art169 from '$lib/images/art/ships/syndicate-python.webp'
-import art170 from '$lib/images/art/ships-flagless/syndicate-python.webp'
-import art171 from '$lib/images/art/ships/syndicate-viper.webp'
-import art172 from '$lib/images/art/ships-flagless/syndicate-viper.webp'
-import art173 from '$lib/images/art/ships/syndicate-serpent.webp'
-import art174 from '$lib/images/art/ships-flagless/syndicate-serpent.webp'
-import art175 from '$lib/images/art/ships/syndicate-sisyphus.webp'
-import art176 from '$lib/images/art/ships-flagless/syndicate-sisyphus.webp'
-import art177 from '$lib/images/art/ships/syndicate-corsair.webp'
-import art178 from '$lib/images/art/ships-flagless/syndicate-corsair.webp'
-import art179 from '$lib/images/art/ships/syndicate-marauder.webp'
-import art180 from '$lib/images/art/ships-flagless/syndicate-marauder.webp'
-import art181 from '$lib/images/art/ships/syndicate-relentless.webp'
-import art182 from '$lib/images/art/ships-flagless/syndicate-relentless.webp'
-import art183 from '$lib/images/art/ships/syndicate-reaver.webp'
-import art184 from '$lib/images/art/ships-flagless/syndicate-reaver.webp'
-import art185 from '$lib/images/art/ships/syndicate-scavenger.webp'
-import art186 from '$lib/images/art/ships-flagless/syndicate-scavenger.webp'
-import art187 from '$lib/images/art/ships/syndicate-antagonist.webp'
-import art188 from '$lib/images/art/ships-flagless/syndicate-antagonist.webp'
-import art189 from '$lib/images/art/ships/syndicate-insurgent.webp'
-import art190 from '$lib/images/art/ships-flagless/syndicate-insurgent.webp'
-import art191 from '$lib/images/art/ships/syndicate-nemesis.webp'
-import art192 from '$lib/images/art/ships-flagless/syndicate-nemesis.webp'
-import art193 from '$lib/images/art/ships/syndicate-dreadnought.webp'
-import art194 from '$lib/images/art/ships-flagless/syndicate-dreadnought.webp'
-import art195 from '$lib/images/art/ships/transhumanists-franklin.webp'
-import art196 from '$lib/images/art/ships-flagless/transhumanists-franklin.webp'
-import art197 from '$lib/images/art/ships/transhumanists-curie.webp'
-import art198 from '$lib/images/art/ships-flagless/transhumanists-curie.webp'
-import art199 from '$lib/images/art/ships/transhumanists-hawking.webp'
-import art200 from '$lib/images/art/ships-flagless/transhumanists-hawking.webp'
-import art201 from '$lib/images/art/ships/transhumanists-foucault.webp'
-import art202 from '$lib/images/art/ships-flagless/transhumanists-foucault.webp'
-import art203 from '$lib/images/art/ships/transhumanists-daedalus.webp'
-import art204 from '$lib/images/art/ships-flagless/transhumanists-daedalus.webp'
-import art205 from '$lib/images/art/ships/transhumanists-icarus.webp'
-import art206 from '$lib/images/art/ships-flagless/transhumanists-icarus.webp'
-import art207 from '$lib/images/art/ships/transhumanists-perdix.webp'
-import art208 from '$lib/images/art/ships-flagless/transhumanists-perdix.webp'
-import art209 from '$lib/images/art/ships/transhumanists-centaur.webp'
-import art210 from '$lib/images/art/ships-flagless/transhumanists-centaur.webp'
-import art211 from '$lib/images/art/ships/transhumanists-vulcan.webp'
-import art212 from '$lib/images/art/ships-flagless/transhumanists-vulcan.webp'
-import art213 from '$lib/images/art/ships/transhumanists-archimedes.webp'
-import art214 from '$lib/images/art/ships-flagless/transhumanists-archimedes.webp'
-import art215 from '$lib/images/art/ships/transhumanists-griffin.webp'
-import art216 from '$lib/images/art/ships-flagless/transhumanists-griffin.webp'
-import art217 from '$lib/images/art/ships/transhumanists-eratosthenes.webp'
-import art218 from '$lib/images/art/ships-flagless/transhumanists-eratosthenes.webp'
-import art219 from '$lib/images/art/ships/transhumanists-pegasus.webp'
-import art220 from '$lib/images/art/ships-flagless/transhumanists-pegasus.webp'
-import art221 from '$lib/images/art/ships/transhumanists-da-vinci.webp'
-import art222 from '$lib/images/art/ships-flagless/transhumanists-da-vinci.webp'
-import art223 from '$lib/images/art/ships/transhumanists-chimera.webp'
-import art224 from '$lib/images/art/ships-flagless/transhumanists-chimera.webp'
-import art225 from '$lib/images/art/ships/transhumanists-minotaur.webp'
-import art226 from '$lib/images/art/ships-flagless/transhumanists-minotaur.webp'
-import art227 from '$lib/images/art/ships/transhumanists-prometheus.webp'
-import art228 from '$lib/images/art/ships-flagless/transhumanists-prometheus.webp'
-import art229 from '$lib/images/art/ships/truepath-faithful.webp'
-import art230 from '$lib/images/art/ships-flagless/truepath-faithful.webp'
-import art231 from '$lib/images/art/ships/truepath-lightbringer.webp'
-import art232 from '$lib/images/art/ships-flagless/truepath-lightbringer.webp'
-import art233 from '$lib/images/art/ships/truepath-pathfinder.webp'
-import art234 from '$lib/images/art/ships-flagless/truepath-pathfinder.webp'
-import art235 from '$lib/images/art/ships/truepath-ardent-spirit.webp'
-import art236 from '$lib/images/art/ships-flagless/truepath-ardent-spirit.webp'
-import art237 from '$lib/images/art/ships/truepath-firebrand.webp'
-import art238 from '$lib/images/art/ships-flagless/truepath-firebrand.webp'
-import art239 from '$lib/images/art/ships/truepath-pilgrim.webp'
-import art240 from '$lib/images/art/ships-flagless/truepath-pilgrim.webp'
-import art241 from '$lib/images/art/ships/truepath-oathkeeper.webp'
-import art242 from '$lib/images/art/ships-flagless/truepath-oathkeeper.webp'
-import art243 from '$lib/images/art/ships/truepath-rising-star.webp'
-import art244 from '$lib/images/art/ships-flagless/truepath-rising-star.webp'
-import art245 from '$lib/images/art/ships/truepath-celestial-ark.webp'
-import art246 from '$lib/images/art/ships-flagless/truepath-celestial-ark.webp'
-import art247 from '$lib/images/art/ships/truepath-paladin.webp'
-import art248 from '$lib/images/art/ships-flagless/truepath-paladin.webp'
-import art249 from '$lib/images/art/ships/truepath-proselyte.webp'
-import art250 from '$lib/images/art/ships-flagless/truepath-proselyte.webp'
-import art251 from '$lib/images/art/ships/truepath-unity.webp'
-import art252 from '$lib/images/art/ships-flagless/truepath-unity.webp'
-import art253 from '$lib/images/art/ships/truepath-ascendance.webp'
-import art254 from '$lib/images/art/ships-flagless/truepath-ascendance.webp'
-import art255 from '$lib/images/art/ships/truepath-guardian.webp'
-import art256 from '$lib/images/art/ships-flagless/truepath-guardian.webp'
-import art257 from '$lib/images/art/ships/truepath-eternal-flame.webp'
-import art258 from '$lib/images/art/ships-flagless/truepath-eternal-flame.webp'
-import art259 from '$lib/images/art/ships/truepath-intercessor.webp'
-import art260 from '$lib/images/art/ships-flagless/truepath-intercessor.webp'
-import art261 from '$lib/images/art/ships/truepath-revenant.webp'
-import art262 from '$lib/images/art/ships-flagless/truepath-revenant.webp'
-import art263 from '$lib/images/art/worlds/Planet-M-25-2-4.webp'
-import art264 from '$lib/images/art/worlds/Planet-M-27-2-5-b.webp'
-import art265 from '$lib/images/art/worlds/Planet-M-25-2-4-b.webp'
-import art266 from '$lib/images/art/worlds/Planet-M-25-3-5.webp'
-import art267 from '$lib/images/art/worlds/Planet-M-25-3-5-b.webp'
-import art268 from '$lib/images/art/worlds/Planet-M-26-3-5-b.webp'
-import art269 from '$lib/images/art/worlds/Planet-M-26-2-4.webp'
-import art270 from '$lib/images/art/worlds/Planet-M-29-2-5-b.webp'
-import art271 from '$lib/images/art/worlds/Planet-M-26-2-6.webp'
-import art272 from '$lib/images/art/worlds/Planet-M-26-2-6-b.webp'
-import art273 from '$lib/images/art/worlds/Planet-M-26-3-4.webp'
-import art274 from '$lib/images/art/worlds/Planet-M-27-3-5-b.webp'
-import art275 from '$lib/images/art/worlds/Planet-M-26-3-5.webp'
-import art276 from '$lib/images/art/worlds/Planet-M-26-3-6.webp'
-import art277 from '$lib/images/art/worlds/Planet-M-26-3-6-b.webp'
-import art278 from '$lib/images/art/worlds/Planet-M-27-3-7-b.webp'
-import art279 from '$lib/images/art/worlds/Planet-M-27-2-4.webp'
-import art280 from '$lib/images/art/worlds/Planet-M-27-2-6.webp'
-import art281 from '$lib/images/art/worlds/Planet-M-27-3-5.webp'
-import art282 from '$lib/images/art/worlds/Planet-M-29-3-7-b.webp'
-import art283 from '$lib/images/art/worlds/Planet-O-17-3-4.webp'
-import art284 from '$lib/images/art/worlds/Planet-O-20-2-2-b.webp'
-import art285 from '$lib/images/art/worlds/Planet-O-18-2-2.webp'
-import art286 from '$lib/images/art/worlds/Planet-O-20-2-2a-b.webp'
-import art287 from '$lib/images/art/worlds/Planet-O-19-3-3.webp'
-import art288 from '$lib/images/art/worlds/Planet-O-22-4-3-b.webp'
-import art289 from '$lib/images/art/worlds/Planet-O-19-4-4.webp'
-import art290 from '$lib/images/art/worlds/Planet-O-23-4-5-b.webp'
-import art291 from '$lib/images/art/worlds/Planet-O-20-1-2.webp'
-import art292 from '$lib/images/art/worlds/Planet-O-20-1-2-b.webp'
-import art293 from '$lib/images/art/worlds/Planet-O-20-1-3.webp'
-import art294 from '$lib/images/art/worlds/Planet-O-20-1-3-b.webp'
-import art295 from '$lib/images/art/worlds/Planet-O-20-2-2.webp'
-import art296 from '$lib/images/art/worlds/Planet-O-20-3-3.webp'
-import art297 from '$lib/images/art/worlds/Planet-O-21-3-4-b.webp'
-import art298 from '$lib/images/art/worlds/Planet-O-21-2-3.webp'
-import art299 from '$lib/images/art/worlds/Planet-O-20-3-5-b.webp'
-import art300 from '$lib/images/art/worlds/Planet-O-21-3-3.webp'
-import art301 from '$lib/images/art/worlds/Planet-O-21-3-3-b.webp'
-import art302 from '$lib/images/art/worlds/Planet-O-22-2-3.webp'
-import art303 from '$lib/images/art/worlds/Planet-L-16-1-3.webp'
-import art304 from '$lib/images/art/worlds/Planet-L-18-2-4a-b.webp'
-import art305 from '$lib/images/art/worlds/Planet-L-16-1-4.webp'
-import art306 from '$lib/images/art/worlds/Planet-L-18-2-4-b.webp'
-import art307 from '$lib/images/art/worlds/Planet-L-18-2-5-b.webp'
-import art308 from '$lib/images/art/worlds/Planet-L-16-2-4.webp'
-import art309 from '$lib/images/art/worlds/Planet-L-16-2-5.webp'
-import art310 from '$lib/images/art/worlds/Planet-L-16-2-5-b.webp'
-import art311 from '$lib/images/art/worlds/Planet-L-17-1-4.webp'
-import art312 from '$lib/images/art/worlds/Planet-L-17-1-4-b.webp'
-import art313 from '$lib/images/art/worlds/Planet-L-17-2-5.webp'
-import art314 from '$lib/images/art/worlds/Planet-L-17-2-5-b.webp'
-import art315 from '$lib/images/art/worlds/Planet-L-17-3-6.webp'
-import art316 from '$lib/images/art/worlds/Planet-L-17-3-6-b.webp'
-import art317 from '$lib/images/art/worlds/Planet-L-18-1-3.webp'
-import art318 from '$lib/images/art/worlds/Planet-L-20-2-4-b.webp'
-import art319 from '$lib/images/art/worlds/Planet-L-18-2-4.webp'
-import art320 from '$lib/images/art/worlds/Planet-L-18-2-5.webp'
-import art321 from '$lib/images/art/worlds/Planet-L-20-3-6-b.webp'
-import art322 from '$lib/images/art/worlds/Planet-L-18-3-6.webp'
-import art323 from '$lib/images/art/worlds/Planet-L-20-4-7-b.webp'
-import art324 from '$lib/images/art/worlds/Planet-H-13-2-4.webp'
-import art325 from '$lib/images/art/worlds/Planet-H-13-2-4-b.webp'
-import art326 from '$lib/images/art/worlds/Planet-H-13-2-5.webp'
-import art327 from '$lib/images/art/worlds/Planet-H-13-2-5-b.webp'
-import art328 from '$lib/images/art/worlds/Planet-H-13-3-5.webp'
-import art329 from '$lib/images/art/worlds/Planet-H-13-3-5-b.webp'
-import art330 from '$lib/images/art/worlds/Planet-H-14-1-3.webp'
-import art331 from '$lib/images/art/worlds/Planet-H-14-1-3-b.webp'
-import art332 from '$lib/images/art/worlds/Planet-H-14-2-4.webp'
-import art333 from '$lib/images/art/worlds/Planet-H-14-2-4-b.webp'
-import art334 from '$lib/images/art/worlds/Planet-H-14-2-5.webp'
-import art335 from '$lib/images/art/worlds/Planet-H-14-2-5-b.webp'
-import art336 from '$lib/images/art/worlds/Planet-H-14-3-6.webp'
-import art337 from '$lib/images/art/worlds/Planet-H-15-3-7-b.webp'
-import art338 from '$lib/images/art/worlds/Planet-P-10-2-1.webp'
-import art339 from '$lib/images/art/worlds/Planet-P-11-2-3-b.webp'
-import art340 from '$lib/images/art/worlds/Planet-P-11-2-2.webp'
-import art341 from '$lib/images/art/worlds/Planet-P-11-2-2-b.webp'
-import art342 from '$lib/images/art/worlds/Planet-P-11-3-2.webp'
-import art343 from '$lib/images/art/worlds/Planet-P-12-4-4-b.webp'
-import art344 from '$lib/images/art/worlds/Planet-P-11-3-3.webp'
-import art345 from '$lib/images/art/worlds/Planet-P-11-3-3-b.webp'
-import art346 from '$lib/images/art/worlds/Planet-P-11-3-4.webp'
-import art347 from '$lib/images/art/worlds/Planet-P-11-3-4-b.webp'
-import art348 from '$lib/images/art/worlds/Planet-P-12-1-1.webp'
-import art349 from '$lib/images/art/worlds/Planet-P-12-1-1-b.webp'
-import art350 from '$lib/images/art/worlds/Planet-P-12-2-2.webp'
-import art351 from '$lib/images/art/worlds/Planet-P-12-2-2-b.webp'
-import art352 from '$lib/images/art/worlds/Planet-P-12-3-2.webp'
-import art353 from '$lib/images/art/worlds/Planet-P-12-3-3-b.webp'
-import art354 from '$lib/images/art/worlds/Planet-P-12-3-3.webp'
-import art355 from '$lib/images/art/worlds/Planet-P-9-1-1.webp'
-import art356 from '$lib/images/art/worlds/Planet-P-10-2-2-b.webp'
-import art357 from '$lib/images/art/worlds/Planet-K-5-1-1.webp'
-import art358 from '$lib/images/art/worlds/Planet-K-5-1-1-b.webp'
-import art359 from '$lib/images/art/worlds/Planet-K-6-1-1.webp'
-import art360 from '$lib/images/art/worlds/Planet-K-8-1-3-b.webp'
-import art361 from '$lib/images/art/worlds/Planet-K-6-1-2.webp'
-import art362 from '$lib/images/art/worlds/Planet-K-6-2-2.webp'
-import art363 from '$lib/images/art/worlds/Planet-K-6-2-3.webp'
-import art364 from '$lib/images/art/worlds/Planet-K-8-2-4-b.webp'
-import art365 from '$lib/images/art/worlds/Planet-K-7-1-2.webp'
-import art366 from '$lib/images/art/worlds/Planet-K-9-1-3-b.webp'
-import art367 from '$lib/images/art/worlds/Planet-K-7-1-3.webp'
-import art368 from '$lib/images/art/worlds/Planet-K-7-1-3-b.webp'
-import art369 from '$lib/images/art/worlds/Planet-K-7-2-3.webp'
-import art370 from '$lib/images/art/worlds/Planet-K-7-2-3-b.webp'
-import art371 from '$lib/images/art/worlds/Planet-K-7-3-3.webp'
-import art372 from '$lib/images/art/worlds/Planet-K-7-3-3-b.webp'
-import art373 from '$lib/images/art/worlds/Planet-K-7-3-4.webp'
-import art374 from '$lib/images/art/worlds/Planet-K-7-3-4-b.webp'
-import art375 from '$lib/images/art/worlds/Planet-K-7-4-4.webp'
-import art376 from '$lib/images/art/worlds/Planet-K-7-4-4-b.webp'
-import art377 from '$lib/images/art/worlds/Planet-K-8-1-2.webp'
-import art378 from '$lib/images/art/worlds/Planet-K-10-1-4-b.webp'
-import art379 from '$lib/images/art/worlds/Planet-K-8-2-3.webp'
-import art380 from '$lib/images/art/worlds/Planet-K-10-2-5-b.webp'
-import art381 from '$lib/images/art/worlds/Planet-K-8-2-4.webp'
-import art382 from '$lib/images/art/worlds/Planet-K-8-32-4.webp'
-import art383 from '$lib/images/art/worlds/Planet-K-10-3-5-b.webp'
-import art384 from '$lib/images/art/worlds/Planet-K-9-3-2.webp'
-import art385 from '$lib/images/art/worlds/Planet-K-10-3-4-b.webp'
-import art386 from '$lib/images/art/worlds/Planet-A-4-2-5.webp'
-import art387 from '$lib/images/art/worlds/Planet-A-4-2-5-b.webp'
-import art388 from '$lib/images/art/worlds/Planet-A-5-3-5.webp'
-import art389 from '$lib/images/art/worlds/Planet-A-6-3-6-b.webp'
-import art390 from '$lib/images/art/worlds/Planet-A-5-3-7.webp'
-import art391 from '$lib/images/art/worlds/Planet-A-6-3-9-b.webp'
-import art392 from '$lib/images/art/worlds/Planet-A-5-4-6.webp'
-import art393 from '$lib/images/art/worlds/Planet-A-6-4-9-b.webp'
-import art394 from '$lib/images/art/worlds/Planet-A-6-2-6.webp'
-import art395 from '$lib/images/art/worlds/Planet-A-7-2-9-b.webp'
-import art396 from '$lib/images/art/worlds/Planet-A-6-3-7.webp'
-import art397 from '$lib/images/art/worlds/Planet-A-7-3-9-b.webp'
-import art398 from '$lib/images/art/worlds/Planet-A-6-4-7.webp'
-import art399 from '$lib/images/art/worlds/Planet-A-7-4-9-b.webp'
-import art400 from '$lib/images/art/worlds/Planet-A-6-4-8.webp'
-import art401 from '$lib/images/art/worlds/J-4-3-4-2.webp'
-import art402 from '$lib/images/art/worlds/Planet-J-8-3-8-b.webp'
-import art403 from '$lib/images/art/worlds/Planet-J-8-4-8-2-b.webp'
-import art404 from '$lib/images/art/worlds/Planet-J-1-1-1.webp'
-import art405 from '$lib/images/art/worlds/Planet-J-3-2-3.webp'
-import art406 from '$lib/images/art/worlds/Planet-J-1-1-1b.webp'
-import art407 from '$lib/images/art/worlds/Planet-J-3-2-3b.webp'
-import art408 from '$lib/images/art/worlds/Planet-J-1-1-2.webp'
-import art409 from '$lib/images/art/worlds/Planet-J-1-1-2-b.webp'
-import art410 from '$lib/images/art/worlds/Planet-J-10-3-8.webp'
-import art411 from '$lib/images/art/worlds/Planet-J-10-3-8-b.webp'
-import art412 from '$lib/images/art/worlds/Planet-J-2-2-2-2-.webp'
-import art413 from '$lib/images/art/worlds/Planet-J-2-2-2-2-b.webp'
-import art414 from '$lib/images/art/worlds/Planet-J-4-3-4.webp'
-import art415 from '$lib/images/art/worlds/Planet-J-2-2-2.webp'
-import art416 from '$lib/images/art/worlds/Planet-J-4-2-2-b.webp'
-import art417 from '$lib/images/art/worlds/Planet-J-3-2-2.webp'
-import art418 from '$lib/images/art/worlds/Planet-J-6-3-4-b.webp'
-import art419 from '$lib/images/art/worlds/Planet-J-3-2-3-2-.webp'
-import art420 from '$lib/images/art/worlds/Planet-J-6-3-6-b.webp'
-import art421 from '$lib/images/art/worlds/Planet-J-6-3-6-2-b.webp'
-import art422 from '$lib/images/art/worlds/Planet-J-4-3-3.webp'
-import art423 from '$lib/images/art/worlds/Planet-J-8-2-7.webp'
-import art424 from '$lib/images/art/worlds/Planet-J-8-2-7-b.webp'
-import art425 from '$lib/images/art/worlds/Planet-D-1-1-4.webp'
-import art426 from '$lib/images/art/worlds/Planet-D-1-1-4-b.webp'
-import art427 from '$lib/images/art/worlds/Planet-D-1-2-4.webp'
-import art428 from '$lib/images/art/worlds/Planet-D-1-2-4-b.webp'
-import art429 from '$lib/images/art/worlds/Planet-D-2-2-5.webp'
-import art430 from '$lib/images/art/worlds/Planet-D-4-2-6-b.webp'
-import art431 from '$lib/images/art/worlds/Planet-D-2-3-5.webp'
-import art432 from '$lib/images/art/worlds/Planet-D-2-3-5-b.webp'
-import art433 from '$lib/images/art/worlds/Planet-D-2-3-6.webp'
-import art434 from '$lib/images/art/worlds/Planet-D-3-3-7-b.webp'
-import art435 from '$lib/images/art/worlds/Planet-D-2-4-6.webp'
-import art436 from '$lib/images/art/worlds/Planet-D-3-4-7-b.webp'
-import art437 from '$lib/images/art/worlds/Planet-D-3-2-7.webp'
-import art438 from '$lib/images/art/worlds/Planet-D-5-2-8-b.webp'
-import art439 from '$lib/images/art/worlds/Planet-D-3-3-8.webp'
-import art440 from '$lib/images/art/worlds/Planet-D-5-3-9-b.webp'
-import art441 from '$lib/images/art/worlds/Planet-D-3-4-8.webp'
-import art442 from '$lib/images/art/worlds/Planet-D-5-4-9-b.webp'
-import art443 from '$lib/images/art/worlds/Planet-E-10-2-4.webp'
-import art444 from '$lib/images/art/worlds/Planet-E-15-2-5-b.webp'
-import art445 from '$lib/images/art/worlds/Planet-E-12-3-5.webp'
-import art446 from '$lib/images/art/worlds/Planet-E-12-3-5-b.webp'
-import art447 from '$lib/images/art/worlds/Planet-E-14-2-5.webp'
-import art448 from '$lib/images/art/worlds/Planet-E-14-2-5-b.webp'
-import art449 from '$lib/images/art/worlds/Planet-E-16-3-6.webp'
-import art450 from '$lib/images/art/worlds/Planet-E-16-3-6-b.webp'
-import art451 from '$lib/images/art/worlds/Planet-E-8-2-4.webp'
-import art452 from '$lib/images/art/worlds/Planet-E-12-3-4-b.webp'
-import art453 from '$lib/images/art/worlds/Planet-No-World.webp'
-import art454 from '$lib/images/art/factions/Consortium.webp'
-import art455 from '$lib/images/art/markers/settlement-Consortium.webp'
-import art456 from '$lib/images/art/factions/Givers.webp'
-import art457 from '$lib/images/art/markers/settlement-Givers.webp'
-import art458 from '$lib/images/art/factions/Praetorians.webp'
-import art459 from '$lib/images/art/markers/settlement-Praetorians.webp'
-import art460 from '$lib/images/art/factions/Starfarers.webp'
-import art461 from '$lib/images/art/markers/settlement-Starfarers.webp'
-import art462 from '$lib/images/art/factions/Syndicate.webp'
-import art463 from '$lib/images/art/markers/settlement-Syndicate.webp'
-import art464 from '$lib/images/art/factions/Transhumanists.webp'
-import art465 from '$lib/images/art/markers/settlement-Transhumanists.webp'
-import art466 from '$lib/images/art/factions/TruePath.webp'
-import art467 from '$lib/images/art/markers/settlement-TruePath.webp'
-import art468 from '$lib/images/art/markers/tech-Biology-1.webp'
-import art469 from '$lib/images/art/markers/tech-Biology-2.webp'
-import art470 from '$lib/images/art/markers/tech-Biology-3.webp'
-import art471 from '$lib/images/art/markers/tech-Biology-4.webp'
-import art472 from '$lib/images/art/markers/tech-Biology-5.webp'
-import art473 from '$lib/images/art/markers/tech-Biology-blank.webp'
-import art474 from '$lib/images/art/markers/exploration-Biology.webp'
-import art475 from '$lib/images/art/markers/tech-Physics-1.webp'
-import art476 from '$lib/images/art/markers/tech-Physics-2.webp'
-import art477 from '$lib/images/art/markers/tech-Physics-3.webp'
-import art478 from '$lib/images/art/markers/tech-Physics-4.webp'
-import art479 from '$lib/images/art/markers/tech-Physics-5.webp'
-import art480 from '$lib/images/art/markers/tech-Physics-blank.webp'
-import art481 from '$lib/images/art/markers/exploration-Physics.webp'
-import art482 from '$lib/images/art/markers/tech-Engineering-1.webp'
-import art483 from '$lib/images/art/markers/tech-Engineering-2.webp'
-import art484 from '$lib/images/art/markers/tech-Engineering-3.webp'
-import art485 from '$lib/images/art/markers/tech-Engineering-4.webp'
-import art486 from '$lib/images/art/markers/tech-Engineering-5.webp'
-import art487 from '$lib/images/art/markers/tech-Engineering-blank.webp'
-import art488 from '$lib/images/art/markers/exploration-Engineering.webp'
-import art489 from '$lib/images/art/anomalies/adorable-critters.webp'
-import art490 from '$lib/images/art/anomalies/alien-artifacts.webp'
-import art491 from '$lib/images/art/anomalies/alien-derelict.webp'
-import art492 from '$lib/images/art/anomalies/alien-remains.webp'
-import art493 from '$lib/images/art/anomalies/alien-sentinel.webp'
-import art494 from '$lib/images/art/anomalies/anarchist-outpost.webp'
-import art495 from '$lib/images/art/anomalies/asteroid-clouds.webp'
-import art496 from '$lib/images/art/anomalies/colossal-comet.webp'
-import art497 from '$lib/images/art/anomalies/decapod-infestation.webp'
-import art498 from '$lib/images/art/anomalies/dissidents.webp'
-import art499 from '$lib/images/art/anomalies/hostile-xenomorphs.webp'
-import art500 from '$lib/images/art/anomalies/ice-caverns.webp'
-import art501 from '$lib/images/art/anomalies/medicinal-herbs.webp'
-import art502 from '$lib/images/art/anomalies/megafauna.webp'
-import art503 from '$lib/images/art/anomalies/mineral-veins.webp'
-import art504 from '$lib/images/art/anomalies/nanobot-swarm.webp'
-import art505 from '$lib/images/art/anomalies/natural-stimulants.webp'
-import art506 from '$lib/images/art/anomalies/pirate-lair.webp'
-import art507 from '$lib/images/art/anomalies/predatory-plants.webp'
-import art508 from '$lib/images/art/anomalies/primal-carnivores.webp'
-import art509 from '$lib/images/art/anomalies/rare-crystals.webp'
-import art510 from '$lib/images/art/anomalies/rescue-scout-ship.webp'
-import art511 from '$lib/images/art/anomalies/savage-storms.webp'
-import art512 from '$lib/images/art/anomalies/severe-radiation.webp'
-import art513 from '$lib/images/art/anomalies/shadow-fleet.webp'
-import art514 from '$lib/images/art/anomalies/splinter-colony.webp'
-import art515 from '$lib/images/art/anomalies/stellar-chart.webp'
-import art516 from '$lib/images/art/anomalies/stellar-flares.webp'
-import art517 from '$lib/images/art/anomalies/stunning-vistas.webp'
-import art518 from '$lib/images/art/anomalies/symbiotic-spores.webp'
-import art519 from '$lib/images/art/anomalies/system-quarantine.webp'
-import art520 from '$lib/images/art/anomalies/terran-dna.webp'
-import art521 from '$lib/images/art/anomalies/tunnel-complex.webp'
-import art522 from '$lib/images/art/anomalies/violent-separatists.webp'
+import art27 from '$lib/images/art/systems/tau-ceti.webp'
+import art28 from '$lib/images/art/systems/epsilon-eridani.webp'
+import art29 from '$lib/images/art/systems/gliese-251.webp'
+import art30 from '$lib/images/art/systems/luytens-star.webp'
+import art31 from '$lib/images/art/systems/kapteyns-star.webp'
+import art32 from '$lib/images/art/systems/gx-andromedae.webp'
+import art33 from '$lib/images/art/systems/lalande-21185.webp'
+import art34 from '$lib/images/art/systems/wolf-359.webp'
+import art35 from '$lib/images/art/systems/ross-128.webp'
+import art36 from '$lib/images/art/ships/consortium-prospector.webp'
+import art37 from '$lib/images/art/ships-flagless/consortium-prospector.webp'
+import art38 from '$lib/images/art/ships/consortium-prosperity.webp'
+import art39 from '$lib/images/art/ships-flagless/consortium-prosperity.webp'
+import art40 from '$lib/images/art/ships/consortium-surveyor.webp'
+import art41 from '$lib/images/art/ships-flagless/consortium-surveyor.webp'
+import art42 from '$lib/images/art/ships/consortium-guildmaster.webp'
+import art43 from '$lib/images/art/ships-flagless/consortium-guildmaster.webp'
+import art44 from '$lib/images/art/ships/consortium-nostromo.webp'
+import art45 from '$lib/images/art/ships-flagless/consortium-nostromo.webp'
+import art46 from '$lib/images/art/ships/consortium-sapphire.webp'
+import art47 from '$lib/images/art/ships-flagless/consortium-sapphire.webp'
+import art48 from '$lib/images/art/ships/consortium-opal-star.webp'
+import art49 from '$lib/images/art/ships-flagless/consortium-opal-star.webp'
+import art50 from '$lib/images/art/ships/consortium-desire.webp'
+import art51 from '$lib/images/art/ships-flagless/consortium-desire.webp'
+import art52 from '$lib/images/art/ships/consortium-destiny.webp'
+import art53 from '$lib/images/art/ships-flagless/consortium-destiny.webp'
+import art54 from '$lib/images/art/ships/consortium-enterprise.webp'
+import art55 from '$lib/images/art/ships-flagless/consortium-enterprise.webp'
+import art56 from '$lib/images/art/ships/consortium-majestic.webp'
+import art57 from '$lib/images/art/ships-flagless/consortium-majestic.webp'
+import art58 from '$lib/images/art/ships/consortium-zephyr.webp'
+import art59 from '$lib/images/art/ships-flagless/consortium-zephyr.webp'
+import art60 from '$lib/images/art/ships/consortium-aquarius.webp'
+import art61 from '$lib/images/art/ships-flagless/consortium-aquarius.webp'
+import art62 from '$lib/images/art/ships/consortium-empress.webp'
+import art63 from '$lib/images/art/ships-flagless/consortium-empress.webp'
+import art64 from '$lib/images/art/ships/consortium-trident.webp'
+import art65 from '$lib/images/art/ships-flagless/consortium-trident.webp'
+import art66 from '$lib/images/art/ships/consortium-neptune.webp'
+import art67 from '$lib/images/art/ships-flagless/consortium-neptune.webp'
+import art68 from '$lib/images/art/ships/consortium-colossus.webp'
+import art69 from '$lib/images/art/ships-flagless/consortium-colossus.webp'
+import art70 from '$lib/images/art/ships/givers-linnaeus.webp'
+import art71 from '$lib/images/art/ships-flagless/givers-linnaeus.webp'
+import art72 from '$lib/images/art/ships/givers-humboldt.webp'
+import art73 from '$lib/images/art/ships-flagless/givers-humboldt.webp'
+import art74 from '$lib/images/art/ships/givers-mendel.webp'
+import art75 from '$lib/images/art/ships-flagless/givers-mendel.webp'
+import art76 from '$lib/images/art/ships/givers-bougainville.webp'
+import art77 from '$lib/images/art/ships-flagless/givers-bougainville.webp'
+import art78 from '$lib/images/art/ships/givers-darwin.webp'
+import art79 from '$lib/images/art/ships-flagless/givers-darwin.webp'
+import art80 from '$lib/images/art/ships/givers-mirabilis.webp'
+import art81 from '$lib/images/art/ships-flagless/givers-mirabilis.webp'
+import art82 from '$lib/images/art/ships/givers-serenity.webp'
+import art83 from '$lib/images/art/ships-flagless/givers-serenity.webp'
+import art84 from '$lib/images/art/ships/givers-tempest.webp'
+import art85 from '$lib/images/art/ships-flagless/givers-tempest.webp'
+import art86 from '$lib/images/art/ships/givers-osanyin.webp'
+import art87 from '$lib/images/art/ships-flagless/givers-osanyin.webp'
+import art88 from '$lib/images/art/ships/givers-viridis.webp'
+import art89 from '$lib/images/art/ships-flagless/givers-viridis.webp'
+import art90 from '$lib/images/art/ships/givers-eden.webp'
+import art91 from '$lib/images/art/ships-flagless/givers-eden.webp'
+import art92 from '$lib/images/art/ships/givers-typhoon.webp'
+import art93 from '$lib/images/art/ships-flagless/givers-typhoon.webp'
+import art94 from '$lib/images/art/ships/givers-artemis.webp'
+import art95 from '$lib/images/art/ships-flagless/givers-artemis.webp'
+import art96 from '$lib/images/art/ships/givers-eclipse.webp'
+import art97 from '$lib/images/art/ships-flagless/givers-eclipse.webp'
+import art98 from '$lib/images/art/ships/givers-boreas.webp'
+import art99 from '$lib/images/art/ships-flagless/givers-boreas.webp'
+import art100 from '$lib/images/art/ships/givers-helios.webp'
+import art101 from '$lib/images/art/ships-flagless/givers-helios.webp'
+import art102 from '$lib/images/art/ships/givers-gaia.webp'
+import art103 from '$lib/images/art/ships-flagless/givers-gaia.webp'
+import art104 from '$lib/images/art/ships/praetorians-audax.webp'
+import art105 from '$lib/images/art/ships-flagless/praetorians-audax.webp'
+import art106 from '$lib/images/art/ships/praetorians-fidelis.webp'
+import art107 from '$lib/images/art/ships-flagless/praetorians-fidelis.webp'
+import art108 from '$lib/images/art/ships/praetorians-peregrinus.webp'
+import art109 from '$lib/images/art/ships-flagless/praetorians-peregrinus.webp'
+import art110 from '$lib/images/art/ships/praetorians-noctua.webp'
+import art111 from '$lib/images/art/ships-flagless/praetorians-noctua.webp'
+import art112 from '$lib/images/art/ships/praetorians-odyssey.webp'
+import art113 from '$lib/images/art/ships-flagless/praetorians-odyssey.webp'
+import art114 from '$lib/images/art/ships/praetorians-argonaut.webp'
+import art115 from '$lib/images/art/ships-flagless/praetorians-argonaut.webp'
+import art116 from '$lib/images/art/ships/praetorians-gladiator.webp'
+import art117 from '$lib/images/art/ships-flagless/praetorians-gladiator.webp'
+import art118 from '$lib/images/art/ships/praetorians-centurion.webp'
+import art119 from '$lib/images/art/ships-flagless/praetorians-centurion.webp'
+import art120 from '$lib/images/art/ships/praetorians-proconsul.webp'
+import art121 from '$lib/images/art/ships-flagless/praetorians-proconsul.webp'
+import art122 from '$lib/images/art/ships/praetorians-myrmidon.webp'
+import art123 from '$lib/images/art/ships-flagless/praetorians-myrmidon.webp'
+import art124 from '$lib/images/art/ships/praetorians-aquila.webp'
+import art125 from '$lib/images/art/ships-flagless/praetorians-aquila.webp'
+import art126 from '$lib/images/art/ships/praetorians-athena.webp'
+import art127 from '$lib/images/art/ships-flagless/praetorians-athena.webp'
+import art128 from '$lib/images/art/ships/praetorians-hercules.webp'
+import art129 from '$lib/images/art/ships-flagless/praetorians-hercules.webp'
+import art130 from '$lib/images/art/ships/praetorians-elysium.webp'
+import art131 from '$lib/images/art/ships-flagless/praetorians-elysium.webp'
+import art132 from '$lib/images/art/ships/praetorians-praetor.webp'
+import art133 from '$lib/images/art/ships-flagless/praetorians-praetor.webp'
+import art134 from '$lib/images/art/ships/praetorians-imperator.webp'
+import art135 from '$lib/images/art/ships-flagless/praetorians-imperator.webp'
+import art136 from '$lib/images/art/ships/starfarers-copernicus.webp'
+import art137 from '$lib/images/art/ships-flagless/starfarers-copernicus.webp'
+import art138 from '$lib/images/art/ships/starfarers-kepler.webp'
+import art139 from '$lib/images/art/ships-flagless/starfarers-kepler.webp'
+import art140 from '$lib/images/art/ships/starfarers-kuiper.webp'
+import art141 from '$lib/images/art/ships-flagless/starfarers-kuiper.webp'
+import art142 from '$lib/images/art/ships/starfarers-messier.webp'
+import art143 from '$lib/images/art/ships-flagless/starfarers-messier.webp'
+import art144 from '$lib/images/art/ships/starfarers-andromeda.webp'
+import art145 from '$lib/images/art/ships-flagless/starfarers-andromeda.webp'
+import art146 from '$lib/images/art/ships/starfarers-orion.webp'
+import art147 from '$lib/images/art/ships-flagless/starfarers-orion.webp'
+import art148 from '$lib/images/art/ships/starfarers-discovery.webp'
+import art149 from '$lib/images/art/ships-flagless/starfarers-discovery.webp'
+import art150 from '$lib/images/art/ships/starfarers-pytheas.webp'
+import art151 from '$lib/images/art/ships-flagless/starfarers-pytheas.webp'
+import art152 from '$lib/images/art/ships/starfarers-proxima.webp'
+import art153 from '$lib/images/art/ships-flagless/starfarers-proxima.webp'
+import art154 from '$lib/images/art/ships/starfarers-stargazer.webp'
+import art155 from '$lib/images/art/ships-flagless/starfarers-stargazer.webp'
+import art156 from '$lib/images/art/ships/starfarers-polaris.webp'
+import art157 from '$lib/images/art/ships-flagless/starfarers-polaris.webp'
+import art158 from '$lib/images/art/ships/starfarers-voyager.webp'
+import art159 from '$lib/images/art/ships-flagless/starfarers-voyager.webp'
+import art160 from '$lib/images/art/ships/starfarers-nova.webp'
+import art161 from '$lib/images/art/ships-flagless/starfarers-nova.webp'
+import art162 from '$lib/images/art/ships/starfarers-comet.webp'
+import art163 from '$lib/images/art/ships-flagless/starfarers-comet.webp'
+import art164 from '$lib/images/art/ships/starfarers-constellation.webp'
+import art165 from '$lib/images/art/ships-flagless/starfarers-constellation.webp'
+import art166 from '$lib/images/art/ships/starfarers-starfury.webp'
+import art167 from '$lib/images/art/ships-flagless/starfarers-starfury.webp'
+import art168 from '$lib/images/art/ships/starfarers-galactica.webp'
+import art169 from '$lib/images/art/ships-flagless/starfarers-galactica.webp'
+import art170 from '$lib/images/art/ships/syndicate-harbinger.webp'
+import art171 from '$lib/images/art/ships-flagless/syndicate-harbinger.webp'
+import art172 from '$lib/images/art/ships/syndicate-nomad.webp'
+import art173 from '$lib/images/art/ships-flagless/syndicate-nomad.webp'
+import art174 from '$lib/images/art/ships/syndicate-vagabond.webp'
+import art175 from '$lib/images/art/ships-flagless/syndicate-vagabond.webp'
+import art176 from '$lib/images/art/ships/syndicate-cobra.webp'
+import art177 from '$lib/images/art/ships-flagless/syndicate-cobra.webp'
+import art178 from '$lib/images/art/ships/syndicate-python.webp'
+import art179 from '$lib/images/art/ships-flagless/syndicate-python.webp'
+import art180 from '$lib/images/art/ships/syndicate-viper.webp'
+import art181 from '$lib/images/art/ships-flagless/syndicate-viper.webp'
+import art182 from '$lib/images/art/ships/syndicate-serpent.webp'
+import art183 from '$lib/images/art/ships-flagless/syndicate-serpent.webp'
+import art184 from '$lib/images/art/ships/syndicate-sisyphus.webp'
+import art185 from '$lib/images/art/ships-flagless/syndicate-sisyphus.webp'
+import art186 from '$lib/images/art/ships/syndicate-corsair.webp'
+import art187 from '$lib/images/art/ships-flagless/syndicate-corsair.webp'
+import art188 from '$lib/images/art/ships/syndicate-marauder.webp'
+import art189 from '$lib/images/art/ships-flagless/syndicate-marauder.webp'
+import art190 from '$lib/images/art/ships/syndicate-relentless.webp'
+import art191 from '$lib/images/art/ships-flagless/syndicate-relentless.webp'
+import art192 from '$lib/images/art/ships/syndicate-reaver.webp'
+import art193 from '$lib/images/art/ships-flagless/syndicate-reaver.webp'
+import art194 from '$lib/images/art/ships/syndicate-scavenger.webp'
+import art195 from '$lib/images/art/ships-flagless/syndicate-scavenger.webp'
+import art196 from '$lib/images/art/ships/syndicate-antagonist.webp'
+import art197 from '$lib/images/art/ships-flagless/syndicate-antagonist.webp'
+import art198 from '$lib/images/art/ships/syndicate-insurgent.webp'
+import art199 from '$lib/images/art/ships-flagless/syndicate-insurgent.webp'
+import art200 from '$lib/images/art/ships/syndicate-nemesis.webp'
+import art201 from '$lib/images/art/ships-flagless/syndicate-nemesis.webp'
+import art202 from '$lib/images/art/ships/syndicate-dreadnought.webp'
+import art203 from '$lib/images/art/ships-flagless/syndicate-dreadnought.webp'
+import art204 from '$lib/images/art/ships/transhumanists-franklin.webp'
+import art205 from '$lib/images/art/ships-flagless/transhumanists-franklin.webp'
+import art206 from '$lib/images/art/ships/transhumanists-curie.webp'
+import art207 from '$lib/images/art/ships-flagless/transhumanists-curie.webp'
+import art208 from '$lib/images/art/ships/transhumanists-hawking.webp'
+import art209 from '$lib/images/art/ships-flagless/transhumanists-hawking.webp'
+import art210 from '$lib/images/art/ships/transhumanists-foucault.webp'
+import art211 from '$lib/images/art/ships-flagless/transhumanists-foucault.webp'
+import art212 from '$lib/images/art/ships/transhumanists-daedalus.webp'
+import art213 from '$lib/images/art/ships-flagless/transhumanists-daedalus.webp'
+import art214 from '$lib/images/art/ships/transhumanists-icarus.webp'
+import art215 from '$lib/images/art/ships-flagless/transhumanists-icarus.webp'
+import art216 from '$lib/images/art/ships/transhumanists-perdix.webp'
+import art217 from '$lib/images/art/ships-flagless/transhumanists-perdix.webp'
+import art218 from '$lib/images/art/ships/transhumanists-centaur.webp'
+import art219 from '$lib/images/art/ships-flagless/transhumanists-centaur.webp'
+import art220 from '$lib/images/art/ships/transhumanists-vulcan.webp'
+import art221 from '$lib/images/art/ships-flagless/transhumanists-vulcan.webp'
+import art222 from '$lib/images/art/ships/transhumanists-archimedes.webp'
+import art223 from '$lib/images/art/ships-flagless/transhumanists-archimedes.webp'
+import art224 from '$lib/images/art/ships/transhumanists-griffin.webp'
+import art225 from '$lib/images/art/ships-flagless/transhumanists-griffin.webp'
+import art226 from '$lib/images/art/ships/transhumanists-eratosthenes.webp'
+import art227 from '$lib/images/art/ships-flagless/transhumanists-eratosthenes.webp'
+import art228 from '$lib/images/art/ships/transhumanists-pegasus.webp'
+import art229 from '$lib/images/art/ships-flagless/transhumanists-pegasus.webp'
+import art230 from '$lib/images/art/ships/transhumanists-da-vinci.webp'
+import art231 from '$lib/images/art/ships-flagless/transhumanists-da-vinci.webp'
+import art232 from '$lib/images/art/ships/transhumanists-chimera.webp'
+import art233 from '$lib/images/art/ships-flagless/transhumanists-chimera.webp'
+import art234 from '$lib/images/art/ships/transhumanists-minotaur.webp'
+import art235 from '$lib/images/art/ships-flagless/transhumanists-minotaur.webp'
+import art236 from '$lib/images/art/ships/transhumanists-prometheus.webp'
+import art237 from '$lib/images/art/ships-flagless/transhumanists-prometheus.webp'
+import art238 from '$lib/images/art/ships/truepath-faithful.webp'
+import art239 from '$lib/images/art/ships-flagless/truepath-faithful.webp'
+import art240 from '$lib/images/art/ships/truepath-lightbringer.webp'
+import art241 from '$lib/images/art/ships-flagless/truepath-lightbringer.webp'
+import art242 from '$lib/images/art/ships/truepath-pathfinder.webp'
+import art243 from '$lib/images/art/ships-flagless/truepath-pathfinder.webp'
+import art244 from '$lib/images/art/ships/truepath-ardent-spirit.webp'
+import art245 from '$lib/images/art/ships-flagless/truepath-ardent-spirit.webp'
+import art246 from '$lib/images/art/ships/truepath-firebrand.webp'
+import art247 from '$lib/images/art/ships-flagless/truepath-firebrand.webp'
+import art248 from '$lib/images/art/ships/truepath-pilgrim.webp'
+import art249 from '$lib/images/art/ships-flagless/truepath-pilgrim.webp'
+import art250 from '$lib/images/art/ships/truepath-oathkeeper.webp'
+import art251 from '$lib/images/art/ships-flagless/truepath-oathkeeper.webp'
+import art252 from '$lib/images/art/ships/truepath-rising-star.webp'
+import art253 from '$lib/images/art/ships-flagless/truepath-rising-star.webp'
+import art254 from '$lib/images/art/ships/truepath-celestial-ark.webp'
+import art255 from '$lib/images/art/ships-flagless/truepath-celestial-ark.webp'
+import art256 from '$lib/images/art/ships/truepath-paladin.webp'
+import art257 from '$lib/images/art/ships-flagless/truepath-paladin.webp'
+import art258 from '$lib/images/art/ships/truepath-proselyte.webp'
+import art259 from '$lib/images/art/ships-flagless/truepath-proselyte.webp'
+import art260 from '$lib/images/art/ships/truepath-unity.webp'
+import art261 from '$lib/images/art/ships-flagless/truepath-unity.webp'
+import art262 from '$lib/images/art/ships/truepath-ascendance.webp'
+import art263 from '$lib/images/art/ships-flagless/truepath-ascendance.webp'
+import art264 from '$lib/images/art/ships/truepath-guardian.webp'
+import art265 from '$lib/images/art/ships-flagless/truepath-guardian.webp'
+import art266 from '$lib/images/art/ships/truepath-eternal-flame.webp'
+import art267 from '$lib/images/art/ships-flagless/truepath-eternal-flame.webp'
+import art268 from '$lib/images/art/ships/truepath-intercessor.webp'
+import art269 from '$lib/images/art/ships-flagless/truepath-intercessor.webp'
+import art270 from '$lib/images/art/ships/truepath-revenant.webp'
+import art271 from '$lib/images/art/ships-flagless/truepath-revenant.webp'
+import art272 from '$lib/images/art/worlds/Planet-M-25-2-4.webp'
+import art273 from '$lib/images/art/worlds/Planet-M-27-2-5-b.webp'
+import art274 from '$lib/images/art/worlds/Planet-M-25-2-4-b.webp'
+import art275 from '$lib/images/art/worlds/Planet-M-25-3-5.webp'
+import art276 from '$lib/images/art/worlds/Planet-M-25-3-5-b.webp'
+import art277 from '$lib/images/art/worlds/Planet-M-26-3-5-b.webp'
+import art278 from '$lib/images/art/worlds/Planet-M-26-2-4.webp'
+import art279 from '$lib/images/art/worlds/Planet-M-29-2-5-b.webp'
+import art280 from '$lib/images/art/worlds/Planet-M-26-2-6.webp'
+import art281 from '$lib/images/art/worlds/Planet-M-26-2-6-b.webp'
+import art282 from '$lib/images/art/worlds/Planet-M-26-3-4.webp'
+import art283 from '$lib/images/art/worlds/Planet-M-27-3-5-b.webp'
+import art284 from '$lib/images/art/worlds/Planet-M-26-3-5.webp'
+import art285 from '$lib/images/art/worlds/Planet-M-26-3-6.webp'
+import art286 from '$lib/images/art/worlds/Planet-M-26-3-6-b.webp'
+import art287 from '$lib/images/art/worlds/Planet-M-27-3-7-b.webp'
+import art288 from '$lib/images/art/worlds/Planet-M-27-2-4.webp'
+import art289 from '$lib/images/art/worlds/Planet-M-27-2-6.webp'
+import art290 from '$lib/images/art/worlds/Planet-M-27-3-5.webp'
+import art291 from '$lib/images/art/worlds/Planet-M-29-3-7-b.webp'
+import art292 from '$lib/images/art/worlds/Planet-O-17-3-4.webp'
+import art293 from '$lib/images/art/worlds/Planet-O-20-2-2-b.webp'
+import art294 from '$lib/images/art/worlds/Planet-O-18-2-2.webp'
+import art295 from '$lib/images/art/worlds/Planet-O-20-2-2a-b.webp'
+import art296 from '$lib/images/art/worlds/Planet-O-19-3-3.webp'
+import art297 from '$lib/images/art/worlds/Planet-O-22-4-3-b.webp'
+import art298 from '$lib/images/art/worlds/Planet-O-19-4-4.webp'
+import art299 from '$lib/images/art/worlds/Planet-O-23-4-5-b.webp'
+import art300 from '$lib/images/art/worlds/Planet-O-20-1-2.webp'
+import art301 from '$lib/images/art/worlds/Planet-O-20-1-2-b.webp'
+import art302 from '$lib/images/art/worlds/Planet-O-20-1-3.webp'
+import art303 from '$lib/images/art/worlds/Planet-O-20-1-3-b.webp'
+import art304 from '$lib/images/art/worlds/Planet-O-20-2-2.webp'
+import art305 from '$lib/images/art/worlds/Planet-O-20-3-3.webp'
+import art306 from '$lib/images/art/worlds/Planet-O-21-3-4-b.webp'
+import art307 from '$lib/images/art/worlds/Planet-O-21-2-3.webp'
+import art308 from '$lib/images/art/worlds/Planet-O-20-3-5-b.webp'
+import art309 from '$lib/images/art/worlds/Planet-O-21-3-3.webp'
+import art310 from '$lib/images/art/worlds/Planet-O-21-3-3-b.webp'
+import art311 from '$lib/images/art/worlds/Planet-O-22-2-3.webp'
+import art312 from '$lib/images/art/worlds/Planet-L-16-1-3.webp'
+import art313 from '$lib/images/art/worlds/Planet-L-18-2-4a-b.webp'
+import art314 from '$lib/images/art/worlds/Planet-L-16-1-4.webp'
+import art315 from '$lib/images/art/worlds/Planet-L-18-2-4-b.webp'
+import art316 from '$lib/images/art/worlds/Planet-L-18-2-5-b.webp'
+import art317 from '$lib/images/art/worlds/Planet-L-16-2-4.webp'
+import art318 from '$lib/images/art/worlds/Planet-L-16-2-5.webp'
+import art319 from '$lib/images/art/worlds/Planet-L-16-2-5-b.webp'
+import art320 from '$lib/images/art/worlds/Planet-L-17-1-4.webp'
+import art321 from '$lib/images/art/worlds/Planet-L-17-1-4-b.webp'
+import art322 from '$lib/images/art/worlds/Planet-L-17-2-5.webp'
+import art323 from '$lib/images/art/worlds/Planet-L-17-2-5-b.webp'
+import art324 from '$lib/images/art/worlds/Planet-L-17-3-6.webp'
+import art325 from '$lib/images/art/worlds/Planet-L-17-3-6-b.webp'
+import art326 from '$lib/images/art/worlds/Planet-L-18-1-3.webp'
+import art327 from '$lib/images/art/worlds/Planet-L-20-2-4-b.webp'
+import art328 from '$lib/images/art/worlds/Planet-L-18-2-4.webp'
+import art329 from '$lib/images/art/worlds/Planet-L-18-2-5.webp'
+import art330 from '$lib/images/art/worlds/Planet-L-20-3-6-b.webp'
+import art331 from '$lib/images/art/worlds/Planet-L-18-3-6.webp'
+import art332 from '$lib/images/art/worlds/Planet-L-20-4-7-b.webp'
+import art333 from '$lib/images/art/worlds/Planet-H-13-2-4.webp'
+import art334 from '$lib/images/art/worlds/Planet-H-13-2-4-b.webp'
+import art335 from '$lib/images/art/worlds/Planet-H-13-2-5.webp'
+import art336 from '$lib/images/art/worlds/Planet-H-13-2-5-b.webp'
+import art337 from '$lib/images/art/worlds/Planet-H-13-3-5.webp'
+import art338 from '$lib/images/art/worlds/Planet-H-13-3-5-b.webp'
+import art339 from '$lib/images/art/worlds/Planet-H-14-1-3.webp'
+import art340 from '$lib/images/art/worlds/Planet-H-14-1-3-b.webp'
+import art341 from '$lib/images/art/worlds/Planet-H-14-2-4.webp'
+import art342 from '$lib/images/art/worlds/Planet-H-14-2-4-b.webp'
+import art343 from '$lib/images/art/worlds/Planet-H-14-2-5.webp'
+import art344 from '$lib/images/art/worlds/Planet-H-14-2-5-b.webp'
+import art345 from '$lib/images/art/worlds/Planet-H-14-3-6.webp'
+import art346 from '$lib/images/art/worlds/Planet-H-15-3-7-b.webp'
+import art347 from '$lib/images/art/worlds/Planet-P-10-2-1.webp'
+import art348 from '$lib/images/art/worlds/Planet-P-11-2-3-b.webp'
+import art349 from '$lib/images/art/worlds/Planet-P-11-2-2.webp'
+import art350 from '$lib/images/art/worlds/Planet-P-11-2-2-b.webp'
+import art351 from '$lib/images/art/worlds/Planet-P-11-3-2.webp'
+import art352 from '$lib/images/art/worlds/Planet-P-12-4-4-b.webp'
+import art353 from '$lib/images/art/worlds/Planet-P-11-3-3.webp'
+import art354 from '$lib/images/art/worlds/Planet-P-11-3-3-b.webp'
+import art355 from '$lib/images/art/worlds/Planet-P-11-3-4.webp'
+import art356 from '$lib/images/art/worlds/Planet-P-11-3-4-b.webp'
+import art357 from '$lib/images/art/worlds/Planet-P-12-1-1.webp'
+import art358 from '$lib/images/art/worlds/Planet-P-12-1-1-b.webp'
+import art359 from '$lib/images/art/worlds/Planet-P-12-2-2.webp'
+import art360 from '$lib/images/art/worlds/Planet-P-12-2-2-b.webp'
+import art361 from '$lib/images/art/worlds/Planet-P-12-3-2.webp'
+import art362 from '$lib/images/art/worlds/Planet-P-12-3-3-b.webp'
+import art363 from '$lib/images/art/worlds/Planet-P-12-3-3.webp'
+import art364 from '$lib/images/art/worlds/Planet-P-9-1-1.webp'
+import art365 from '$lib/images/art/worlds/Planet-P-10-2-2-b.webp'
+import art366 from '$lib/images/art/worlds/Planet-K-5-1-1.webp'
+import art367 from '$lib/images/art/worlds/Planet-K-5-1-1-b.webp'
+import art368 from '$lib/images/art/worlds/Planet-K-6-1-1.webp'
+import art369 from '$lib/images/art/worlds/Planet-K-8-1-3-b.webp'
+import art370 from '$lib/images/art/worlds/Planet-K-6-1-2.webp'
+import art371 from '$lib/images/art/worlds/Planet-K-6-2-2.webp'
+import art372 from '$lib/images/art/worlds/Planet-K-6-2-3.webp'
+import art373 from '$lib/images/art/worlds/Planet-K-8-2-4-b.webp'
+import art374 from '$lib/images/art/worlds/Planet-K-7-1-2.webp'
+import art375 from '$lib/images/art/worlds/Planet-K-9-1-3-b.webp'
+import art376 from '$lib/images/art/worlds/Planet-K-7-1-3.webp'
+import art377 from '$lib/images/art/worlds/Planet-K-7-1-3-b.webp'
+import art378 from '$lib/images/art/worlds/Planet-K-7-2-3.webp'
+import art379 from '$lib/images/art/worlds/Planet-K-7-2-3-b.webp'
+import art380 from '$lib/images/art/worlds/Planet-K-7-3-3.webp'
+import art381 from '$lib/images/art/worlds/Planet-K-7-3-3-b.webp'
+import art382 from '$lib/images/art/worlds/Planet-K-7-3-4.webp'
+import art383 from '$lib/images/art/worlds/Planet-K-7-3-4-b.webp'
+import art384 from '$lib/images/art/worlds/Planet-K-7-4-4.webp'
+import art385 from '$lib/images/art/worlds/Planet-K-7-4-4-b.webp'
+import art386 from '$lib/images/art/worlds/Planet-K-8-1-2.webp'
+import art387 from '$lib/images/art/worlds/Planet-K-10-1-4-b.webp'
+import art388 from '$lib/images/art/worlds/Planet-K-8-2-3.webp'
+import art389 from '$lib/images/art/worlds/Planet-K-10-2-5-b.webp'
+import art390 from '$lib/images/art/worlds/Planet-K-8-2-4.webp'
+import art391 from '$lib/images/art/worlds/Planet-K-8-32-4.webp'
+import art392 from '$lib/images/art/worlds/Planet-K-10-3-5-b.webp'
+import art393 from '$lib/images/art/worlds/Planet-K-9-3-2.webp'
+import art394 from '$lib/images/art/worlds/Planet-K-10-3-4-b.webp'
+import art395 from '$lib/images/art/worlds/Planet-A-4-2-5.webp'
+import art396 from '$lib/images/art/worlds/Planet-A-4-2-5-b.webp'
+import art397 from '$lib/images/art/worlds/Planet-A-5-3-5.webp'
+import art398 from '$lib/images/art/worlds/Planet-A-6-3-6-b.webp'
+import art399 from '$lib/images/art/worlds/Planet-A-5-3-7.webp'
+import art400 from '$lib/images/art/worlds/Planet-A-6-3-9-b.webp'
+import art401 from '$lib/images/art/worlds/Planet-A-5-4-6.webp'
+import art402 from '$lib/images/art/worlds/Planet-A-6-4-9-b.webp'
+import art403 from '$lib/images/art/worlds/Planet-A-6-2-6.webp'
+import art404 from '$lib/images/art/worlds/Planet-A-7-2-9-b.webp'
+import art405 from '$lib/images/art/worlds/Planet-A-6-3-7.webp'
+import art406 from '$lib/images/art/worlds/Planet-A-7-3-9-b.webp'
+import art407 from '$lib/images/art/worlds/Planet-A-6-4-7.webp'
+import art408 from '$lib/images/art/worlds/Planet-A-7-4-9-b.webp'
+import art409 from '$lib/images/art/worlds/Planet-A-6-4-8.webp'
+import art410 from '$lib/images/art/worlds/J-4-3-4-2.webp'
+import art411 from '$lib/images/art/worlds/Planet-J-8-3-8-b.webp'
+import art412 from '$lib/images/art/worlds/Planet-J-8-4-8-2-b.webp'
+import art413 from '$lib/images/art/worlds/Planet-J-1-1-1.webp'
+import art414 from '$lib/images/art/worlds/Planet-J-3-2-3.webp'
+import art415 from '$lib/images/art/worlds/Planet-J-1-1-1b.webp'
+import art416 from '$lib/images/art/worlds/Planet-J-3-2-3b.webp'
+import art417 from '$lib/images/art/worlds/Planet-J-1-1-2.webp'
+import art418 from '$lib/images/art/worlds/Planet-J-1-1-2-b.webp'
+import art419 from '$lib/images/art/worlds/Planet-J-10-3-8.webp'
+import art420 from '$lib/images/art/worlds/Planet-J-10-3-8-b.webp'
+import art421 from '$lib/images/art/worlds/Planet-J-2-2-2-2-.webp'
+import art422 from '$lib/images/art/worlds/Planet-J-2-2-2-2-b.webp'
+import art423 from '$lib/images/art/worlds/Planet-J-4-3-4.webp'
+import art424 from '$lib/images/art/worlds/Planet-J-2-2-2.webp'
+import art425 from '$lib/images/art/worlds/Planet-J-4-2-2-b.webp'
+import art426 from '$lib/images/art/worlds/Planet-J-3-2-2.webp'
+import art427 from '$lib/images/art/worlds/Planet-J-6-3-4-b.webp'
+import art428 from '$lib/images/art/worlds/Planet-J-3-2-3-2-.webp'
+import art429 from '$lib/images/art/worlds/Planet-J-6-3-6-b.webp'
+import art430 from '$lib/images/art/worlds/Planet-J-6-3-6-2-b.webp'
+import art431 from '$lib/images/art/worlds/Planet-J-4-3-3.webp'
+import art432 from '$lib/images/art/worlds/Planet-J-8-2-7.webp'
+import art433 from '$lib/images/art/worlds/Planet-J-8-2-7-b.webp'
+import art434 from '$lib/images/art/worlds/Planet-D-1-1-4.webp'
+import art435 from '$lib/images/art/worlds/Planet-D-1-1-4-b.webp'
+import art436 from '$lib/images/art/worlds/Planet-D-1-2-4.webp'
+import art437 from '$lib/images/art/worlds/Planet-D-1-2-4-b.webp'
+import art438 from '$lib/images/art/worlds/Planet-D-2-2-5.webp'
+import art439 from '$lib/images/art/worlds/Planet-D-4-2-6-b.webp'
+import art440 from '$lib/images/art/worlds/Planet-D-2-3-5.webp'
+import art441 from '$lib/images/art/worlds/Planet-D-2-3-5-b.webp'
+import art442 from '$lib/images/art/worlds/Planet-D-2-3-6.webp'
+import art443 from '$lib/images/art/worlds/Planet-D-3-3-7-b.webp'
+import art444 from '$lib/images/art/worlds/Planet-D-2-4-6.webp'
+import art445 from '$lib/images/art/worlds/Planet-D-3-4-7-b.webp'
+import art446 from '$lib/images/art/worlds/Planet-D-3-2-7.webp'
+import art447 from '$lib/images/art/worlds/Planet-D-5-2-8-b.webp'
+import art448 from '$lib/images/art/worlds/Planet-D-3-3-8.webp'
+import art449 from '$lib/images/art/worlds/Planet-D-5-3-9-b.webp'
+import art450 from '$lib/images/art/worlds/Planet-D-3-4-8.webp'
+import art451 from '$lib/images/art/worlds/Planet-D-5-4-9-b.webp'
+import art452 from '$lib/images/art/worlds/Planet-E-10-2-4.webp'
+import art453 from '$lib/images/art/worlds/Planet-E-15-2-5-b.webp'
+import art454 from '$lib/images/art/worlds/Planet-E-12-3-5.webp'
+import art455 from '$lib/images/art/worlds/Planet-E-12-3-5-b.webp'
+import art456 from '$lib/images/art/worlds/Planet-E-14-2-5.webp'
+import art457 from '$lib/images/art/worlds/Planet-E-14-2-5-b.webp'
+import art458 from '$lib/images/art/worlds/Planet-E-16-3-6.webp'
+import art459 from '$lib/images/art/worlds/Planet-E-16-3-6-b.webp'
+import art460 from '$lib/images/art/worlds/Planet-E-8-2-4.webp'
+import art461 from '$lib/images/art/worlds/Planet-E-12-3-4-b.webp'
+import art462 from '$lib/images/art/worlds/Planet-No-World.webp'
+import art463 from '$lib/images/art/factions/Consortium.webp'
+import art464 from '$lib/images/art/markers/settlement-Consortium.webp'
+import art465 from '$lib/images/art/factions/Givers.webp'
+import art466 from '$lib/images/art/markers/settlement-Givers.webp'
+import art467 from '$lib/images/art/factions/Praetorians.webp'
+import art468 from '$lib/images/art/markers/settlement-Praetorians.webp'
+import art469 from '$lib/images/art/factions/Starfarers.webp'
+import art470 from '$lib/images/art/markers/settlement-Starfarers.webp'
+import art471 from '$lib/images/art/factions/Syndicate.webp'
+import art472 from '$lib/images/art/markers/settlement-Syndicate.webp'
+import art473 from '$lib/images/art/factions/Transhumanists.webp'
+import art474 from '$lib/images/art/markers/settlement-Transhumanists.webp'
+import art475 from '$lib/images/art/factions/TruePath.webp'
+import art476 from '$lib/images/art/markers/settlement-TruePath.webp'
+import art477 from '$lib/images/art/markers/tech-Biology-1.webp'
+import art478 from '$lib/images/art/markers/tech-Biology-2.webp'
+import art479 from '$lib/images/art/markers/tech-Biology-3.webp'
+import art480 from '$lib/images/art/markers/tech-Biology-4.webp'
+import art481 from '$lib/images/art/markers/tech-Biology-5.webp'
+import art482 from '$lib/images/art/markers/tech-Biology-blank.webp'
+import art483 from '$lib/images/art/markers/exploration-Biology.webp'
+import art484 from '$lib/images/art/markers/tech-Physics-1.webp'
+import art485 from '$lib/images/art/markers/tech-Physics-2.webp'
+import art486 from '$lib/images/art/markers/tech-Physics-3.webp'
+import art487 from '$lib/images/art/markers/tech-Physics-4.webp'
+import art488 from '$lib/images/art/markers/tech-Physics-5.webp'
+import art489 from '$lib/images/art/markers/tech-Physics-blank.webp'
+import art490 from '$lib/images/art/markers/exploration-Physics.webp'
+import art491 from '$lib/images/art/markers/tech-Engineering-1.webp'
+import art492 from '$lib/images/art/markers/tech-Engineering-2.webp'
+import art493 from '$lib/images/art/markers/tech-Engineering-3.webp'
+import art494 from '$lib/images/art/markers/tech-Engineering-4.webp'
+import art495 from '$lib/images/art/markers/tech-Engineering-5.webp'
+import art496 from '$lib/images/art/markers/tech-Engineering-blank.webp'
+import art497 from '$lib/images/art/markers/exploration-Engineering.webp'
+import art498 from '$lib/images/art/anomalies/adorable-critters.webp'
+import art499 from '$lib/images/art/anomalies/alien-artifacts.webp'
+import art500 from '$lib/images/art/anomalies/alien-derelict.webp'
+import art501 from '$lib/images/art/anomalies/alien-remains.webp'
+import art502 from '$lib/images/art/anomalies/alien-sentinel.webp'
+import art503 from '$lib/images/art/anomalies/anarchist-outpost.webp'
+import art504 from '$lib/images/art/anomalies/asteroid-clouds.webp'
+import art505 from '$lib/images/art/anomalies/colossal-comet.webp'
+import art506 from '$lib/images/art/anomalies/decapod-infestation.webp'
+import art507 from '$lib/images/art/anomalies/dissidents.webp'
+import art508 from '$lib/images/art/anomalies/hostile-xenomorphs.webp'
+import art509 from '$lib/images/art/anomalies/ice-caverns.webp'
+import art510 from '$lib/images/art/anomalies/medicinal-herbs.webp'
+import art511 from '$lib/images/art/anomalies/megafauna.webp'
+import art512 from '$lib/images/art/anomalies/mineral-veins.webp'
+import art513 from '$lib/images/art/anomalies/nanobot-swarm.webp'
+import art514 from '$lib/images/art/anomalies/natural-stimulants.webp'
+import art515 from '$lib/images/art/anomalies/pirate-lair.webp'
+import art516 from '$lib/images/art/anomalies/predatory-plants.webp'
+import art517 from '$lib/images/art/anomalies/primal-carnivores.webp'
+import art518 from '$lib/images/art/anomalies/rare-crystals.webp'
+import art519 from '$lib/images/art/anomalies/rescue-scout-ship.webp'
+import art520 from '$lib/images/art/anomalies/savage-storms.webp'
+import art521 from '$lib/images/art/anomalies/severe-radiation.webp'
+import art522 from '$lib/images/art/anomalies/shadow-fleet.webp'
+import art523 from '$lib/images/art/anomalies/splinter-colony.webp'
+import art524 from '$lib/images/art/anomalies/stellar-chart.webp'
+import art525 from '$lib/images/art/anomalies/stellar-flares.webp'
+import art526 from '$lib/images/art/anomalies/stunning-vistas.webp'
+import art527 from '$lib/images/art/anomalies/symbiotic-spores.webp'
+import art528 from '$lib/images/art/anomalies/system-quarantine.webp'
+import art529 from '$lib/images/art/anomalies/terran-dna.webp'
+import art530 from '$lib/images/art/anomalies/tunnel-complex.webp'
+import art531 from '$lib/images/art/anomalies/violent-separatists.webp'
 
 export const SYSTEM_ART: Record<string, string> = {
     sol: art0,
@@ -550,7 +559,16 @@ export const SYSTEM_ART: Record<string, string> = {
     'alpha-mensae': art23,
     'innes-star': art24,
     'beta-aquilae': art25,
-    '18-scorpii': art26
+    '18-scorpii': art26,
+    'tau-ceti': art27,
+    'epsilon-eridani': art28,
+    'gliese-251': art29,
+    'luytens-star': art30,
+    'kapteyns-star': art31,
+    'gx-andromedae': art32,
+    'lalande-21185': art33,
+    'wolf-359': art34,
+    'ross-128': art35
 }
 
 export const SYSTEM_GEOMETRY: Record<
@@ -806,499 +824,578 @@ export const SYSTEM_GEOMETRY: Record<
             [334, 232]
         ],
         marker: [735, 816]
+    },
+    'tau-ceti': {
+        width: 1065,
+        height: 929,
+        slots: [
+            [292, 228],
+            [752, 308],
+            [292, 226]
+        ],
+        marker: [729, 819]
+    },
+    'epsilon-eridani': {
+        width: 1072,
+        height: 930,
+        slots: [
+            [742, 506],
+            [384, 246],
+            [200, 484]
+        ],
+        marker: [735, 823]
+    },
+    'gliese-251': { width: 1066, height: 926, slots: [], marker: null },
+    'luytens-star': {
+        width: 1072,
+        height: 930,
+        slots: [
+            [710, 582],
+            [392, 242],
+            [208, 518]
+        ],
+        marker: [736, 822]
+    },
+    'kapteyns-star': {
+        width: 1062,
+        height: 926,
+        slots: [
+            [354, 358],
+            [706, 260],
+            [858, 516]
+        ],
+        marker: [728, 814]
+    },
+    'gx-andromedae': {
+        width: 1066,
+        height: 929,
+        slots: [
+            [350, 380],
+            [794, 362]
+        ],
+        marker: [736, 818]
+    },
+    'lalande-21185': {
+        width: 1067,
+        height: 926,
+        slots: [
+            [296, 234],
+            [798, 548],
+            [298, 232]
+        ],
+        marker: [737, 815]
+    },
+    'wolf-359': {
+        width: 1068,
+        height: 924,
+        slots: [
+            [734, 402],
+            [282, 354]
+        ],
+        marker: [732, 813]
+    },
+    'ross-128': {
+        width: 1072,
+        height: 930,
+        slots: [
+            [464, 282],
+            [808, 440],
+            [204, 500]
+        ],
+        marker: [736, 820]
     }
 }
 
 export const SHIP_ART: Record<string, string> = {
-    'consortium-prospector': art27,
-    'consortium-prosperity': art29,
-    'consortium-surveyor': art31,
-    'consortium-guildmaster': art33,
-    'consortium-nostromo': art35,
-    'consortium-sapphire': art37,
-    'consortium-opal-star': art39,
-    'consortium-desire': art41,
-    'consortium-destiny': art43,
-    'consortium-enterprise': art45,
-    'consortium-majestic': art47,
-    'consortium-zephyr': art49,
-    'consortium-aquarius': art51,
-    'consortium-empress': art53,
-    'consortium-trident': art55,
-    'consortium-neptune': art57,
-    'consortium-colossus': art59,
-    'givers-linnaeus': art61,
-    'givers-humboldt': art63,
-    'givers-mendel': art65,
-    'givers-bougainville': art67,
-    'givers-darwin': art69,
-    'givers-mirabilis': art71,
-    'givers-serenity': art73,
-    'givers-tempest': art75,
-    'givers-osanyin': art77,
-    'givers-viridis': art79,
-    'givers-eden': art81,
-    'givers-typhoon': art83,
-    'givers-artemis': art85,
-    'givers-eclipse': art87,
-    'givers-boreas': art89,
-    'givers-helios': art91,
-    'givers-gaia': art93,
-    'praetorians-audax': art95,
-    'praetorians-fidelis': art97,
-    'praetorians-peregrinus': art99,
-    'praetorians-noctua': art101,
-    'praetorians-odyssey': art103,
-    'praetorians-argonaut': art105,
-    'praetorians-gladiator': art107,
-    'praetorians-centurion': art109,
-    'praetorians-proconsul': art111,
-    'praetorians-myrmidon': art113,
-    'praetorians-aquila': art115,
-    'praetorians-athena': art117,
-    'praetorians-hercules': art119,
-    'praetorians-elysium': art121,
-    'praetorians-praetor': art123,
-    'praetorians-imperator': art125,
-    'starfarers-copernicus': art127,
-    'starfarers-kepler': art129,
-    'starfarers-kuiper': art131,
-    'starfarers-messier': art133,
-    'starfarers-andromeda': art135,
-    'starfarers-orion': art137,
-    'starfarers-discovery': art139,
-    'starfarers-pytheas': art141,
-    'starfarers-proxima': art143,
-    'starfarers-stargazer': art145,
-    'starfarers-polaris': art147,
-    'starfarers-voyager': art149,
-    'starfarers-nova': art151,
-    'starfarers-comet': art153,
-    'starfarers-constellation': art155,
-    'starfarers-starfury': art157,
-    'starfarers-galactica': art159,
-    'syndicate-harbinger': art161,
-    'syndicate-nomad': art163,
-    'syndicate-vagabond': art165,
-    'syndicate-cobra': art167,
-    'syndicate-python': art169,
-    'syndicate-viper': art171,
-    'syndicate-serpent': art173,
-    'syndicate-sisyphus': art175,
-    'syndicate-corsair': art177,
-    'syndicate-marauder': art179,
-    'syndicate-relentless': art181,
-    'syndicate-reaver': art183,
-    'syndicate-scavenger': art185,
-    'syndicate-antagonist': art187,
-    'syndicate-insurgent': art189,
-    'syndicate-nemesis': art191,
-    'syndicate-dreadnought': art193,
-    'transhumanists-franklin': art195,
-    'transhumanists-curie': art197,
-    'transhumanists-hawking': art199,
-    'transhumanists-foucault': art201,
-    'transhumanists-daedalus': art203,
-    'transhumanists-icarus': art205,
-    'transhumanists-perdix': art207,
-    'transhumanists-centaur': art209,
-    'transhumanists-vulcan': art211,
-    'transhumanists-archimedes': art213,
-    'transhumanists-griffin': art215,
-    'transhumanists-eratosthenes': art217,
-    'transhumanists-pegasus': art219,
-    'transhumanists-da-vinci': art221,
-    'transhumanists-chimera': art223,
-    'transhumanists-minotaur': art225,
-    'transhumanists-prometheus': art227,
-    'truepath-faithful': art229,
-    'truepath-lightbringer': art231,
-    'truepath-pathfinder': art233,
-    'truepath-ardent-spirit': art235,
-    'truepath-firebrand': art237,
-    'truepath-pilgrim': art239,
-    'truepath-oathkeeper': art241,
-    'truepath-rising-star': art243,
-    'truepath-celestial-ark': art245,
-    'truepath-paladin': art247,
-    'truepath-proselyte': art249,
-    'truepath-unity': art251,
-    'truepath-ascendance': art253,
-    'truepath-guardian': art255,
-    'truepath-eternal-flame': art257,
-    'truepath-intercessor': art259,
-    'truepath-revenant': art261
+    'consortium-prospector': art36,
+    'consortium-prosperity': art38,
+    'consortium-surveyor': art40,
+    'consortium-guildmaster': art42,
+    'consortium-nostromo': art44,
+    'consortium-sapphire': art46,
+    'consortium-opal-star': art48,
+    'consortium-desire': art50,
+    'consortium-destiny': art52,
+    'consortium-enterprise': art54,
+    'consortium-majestic': art56,
+    'consortium-zephyr': art58,
+    'consortium-aquarius': art60,
+    'consortium-empress': art62,
+    'consortium-trident': art64,
+    'consortium-neptune': art66,
+    'consortium-colossus': art68,
+    'givers-linnaeus': art70,
+    'givers-humboldt': art72,
+    'givers-mendel': art74,
+    'givers-bougainville': art76,
+    'givers-darwin': art78,
+    'givers-mirabilis': art80,
+    'givers-serenity': art82,
+    'givers-tempest': art84,
+    'givers-osanyin': art86,
+    'givers-viridis': art88,
+    'givers-eden': art90,
+    'givers-typhoon': art92,
+    'givers-artemis': art94,
+    'givers-eclipse': art96,
+    'givers-boreas': art98,
+    'givers-helios': art100,
+    'givers-gaia': art102,
+    'praetorians-audax': art104,
+    'praetorians-fidelis': art106,
+    'praetorians-peregrinus': art108,
+    'praetorians-noctua': art110,
+    'praetorians-odyssey': art112,
+    'praetorians-argonaut': art114,
+    'praetorians-gladiator': art116,
+    'praetorians-centurion': art118,
+    'praetorians-proconsul': art120,
+    'praetorians-myrmidon': art122,
+    'praetorians-aquila': art124,
+    'praetorians-athena': art126,
+    'praetorians-hercules': art128,
+    'praetorians-elysium': art130,
+    'praetorians-praetor': art132,
+    'praetorians-imperator': art134,
+    'starfarers-copernicus': art136,
+    'starfarers-kepler': art138,
+    'starfarers-kuiper': art140,
+    'starfarers-messier': art142,
+    'starfarers-andromeda': art144,
+    'starfarers-orion': art146,
+    'starfarers-discovery': art148,
+    'starfarers-pytheas': art150,
+    'starfarers-proxima': art152,
+    'starfarers-stargazer': art154,
+    'starfarers-polaris': art156,
+    'starfarers-voyager': art158,
+    'starfarers-nova': art160,
+    'starfarers-comet': art162,
+    'starfarers-constellation': art164,
+    'starfarers-starfury': art166,
+    'starfarers-galactica': art168,
+    'syndicate-harbinger': art170,
+    'syndicate-nomad': art172,
+    'syndicate-vagabond': art174,
+    'syndicate-cobra': art176,
+    'syndicate-python': art178,
+    'syndicate-viper': art180,
+    'syndicate-serpent': art182,
+    'syndicate-sisyphus': art184,
+    'syndicate-corsair': art186,
+    'syndicate-marauder': art188,
+    'syndicate-relentless': art190,
+    'syndicate-reaver': art192,
+    'syndicate-scavenger': art194,
+    'syndicate-antagonist': art196,
+    'syndicate-insurgent': art198,
+    'syndicate-nemesis': art200,
+    'syndicate-dreadnought': art202,
+    'transhumanists-franklin': art204,
+    'transhumanists-curie': art206,
+    'transhumanists-hawking': art208,
+    'transhumanists-foucault': art210,
+    'transhumanists-daedalus': art212,
+    'transhumanists-icarus': art214,
+    'transhumanists-perdix': art216,
+    'transhumanists-centaur': art218,
+    'transhumanists-vulcan': art220,
+    'transhumanists-archimedes': art222,
+    'transhumanists-griffin': art224,
+    'transhumanists-eratosthenes': art226,
+    'transhumanists-pegasus': art228,
+    'transhumanists-da-vinci': art230,
+    'transhumanists-chimera': art232,
+    'transhumanists-minotaur': art234,
+    'transhumanists-prometheus': art236,
+    'truepath-faithful': art238,
+    'truepath-lightbringer': art240,
+    'truepath-pathfinder': art242,
+    'truepath-ardent-spirit': art244,
+    'truepath-firebrand': art246,
+    'truepath-pilgrim': art248,
+    'truepath-oathkeeper': art250,
+    'truepath-rising-star': art252,
+    'truepath-celestial-ark': art254,
+    'truepath-paladin': art256,
+    'truepath-proselyte': art258,
+    'truepath-unity': art260,
+    'truepath-ascendance': art262,
+    'truepath-guardian': art264,
+    'truepath-eternal-flame': art266,
+    'truepath-intercessor': art268,
+    'truepath-revenant': art270
 }
 
 export const FLAGLESS_SHIP_ART: Record<string, string> = {
-    'consortium-prospector': art28,
-    'consortium-prosperity': art30,
-    'consortium-surveyor': art32,
-    'consortium-guildmaster': art34,
-    'consortium-nostromo': art36,
-    'consortium-sapphire': art38,
-    'consortium-opal-star': art40,
-    'consortium-desire': art42,
-    'consortium-destiny': art44,
-    'consortium-enterprise': art46,
-    'consortium-majestic': art48,
-    'consortium-zephyr': art50,
-    'consortium-aquarius': art52,
-    'consortium-empress': art54,
-    'consortium-trident': art56,
-    'consortium-neptune': art58,
-    'consortium-colossus': art60,
-    'givers-linnaeus': art62,
-    'givers-humboldt': art64,
-    'givers-mendel': art66,
-    'givers-bougainville': art68,
-    'givers-darwin': art70,
-    'givers-mirabilis': art72,
-    'givers-serenity': art74,
-    'givers-tempest': art76,
-    'givers-osanyin': art78,
-    'givers-viridis': art80,
-    'givers-eden': art82,
-    'givers-typhoon': art84,
-    'givers-artemis': art86,
-    'givers-eclipse': art88,
-    'givers-boreas': art90,
-    'givers-helios': art92,
-    'givers-gaia': art94,
-    'praetorians-audax': art96,
-    'praetorians-fidelis': art98,
-    'praetorians-peregrinus': art100,
-    'praetorians-noctua': art102,
-    'praetorians-odyssey': art104,
-    'praetorians-argonaut': art106,
-    'praetorians-gladiator': art108,
-    'praetorians-centurion': art110,
-    'praetorians-proconsul': art112,
-    'praetorians-myrmidon': art114,
-    'praetorians-aquila': art116,
-    'praetorians-athena': art118,
-    'praetorians-hercules': art120,
-    'praetorians-elysium': art122,
-    'praetorians-praetor': art124,
-    'praetorians-imperator': art126,
-    'starfarers-copernicus': art128,
-    'starfarers-kepler': art130,
-    'starfarers-kuiper': art132,
-    'starfarers-messier': art134,
-    'starfarers-andromeda': art136,
-    'starfarers-orion': art138,
-    'starfarers-discovery': art140,
-    'starfarers-pytheas': art142,
-    'starfarers-proxima': art144,
-    'starfarers-stargazer': art146,
-    'starfarers-polaris': art148,
-    'starfarers-voyager': art150,
-    'starfarers-nova': art152,
-    'starfarers-comet': art154,
-    'starfarers-constellation': art156,
-    'starfarers-starfury': art158,
-    'starfarers-galactica': art160,
-    'syndicate-harbinger': art162,
-    'syndicate-nomad': art164,
-    'syndicate-vagabond': art166,
-    'syndicate-cobra': art168,
-    'syndicate-python': art170,
-    'syndicate-viper': art172,
-    'syndicate-serpent': art174,
-    'syndicate-sisyphus': art176,
-    'syndicate-corsair': art178,
-    'syndicate-marauder': art180,
-    'syndicate-relentless': art182,
-    'syndicate-reaver': art184,
-    'syndicate-scavenger': art186,
-    'syndicate-antagonist': art188,
-    'syndicate-insurgent': art190,
-    'syndicate-nemesis': art192,
-    'syndicate-dreadnought': art194,
-    'transhumanists-franklin': art196,
-    'transhumanists-curie': art198,
-    'transhumanists-hawking': art200,
-    'transhumanists-foucault': art202,
-    'transhumanists-daedalus': art204,
-    'transhumanists-icarus': art206,
-    'transhumanists-perdix': art208,
-    'transhumanists-centaur': art210,
-    'transhumanists-vulcan': art212,
-    'transhumanists-archimedes': art214,
-    'transhumanists-griffin': art216,
-    'transhumanists-eratosthenes': art218,
-    'transhumanists-pegasus': art220,
-    'transhumanists-da-vinci': art222,
-    'transhumanists-chimera': art224,
-    'transhumanists-minotaur': art226,
-    'transhumanists-prometheus': art228,
-    'truepath-faithful': art230,
-    'truepath-lightbringer': art232,
-    'truepath-pathfinder': art234,
-    'truepath-ardent-spirit': art236,
-    'truepath-firebrand': art238,
-    'truepath-pilgrim': art240,
-    'truepath-oathkeeper': art242,
-    'truepath-rising-star': art244,
-    'truepath-celestial-ark': art246,
-    'truepath-paladin': art248,
-    'truepath-proselyte': art250,
-    'truepath-unity': art252,
-    'truepath-ascendance': art254,
-    'truepath-guardian': art256,
-    'truepath-eternal-flame': art258,
-    'truepath-intercessor': art260,
-    'truepath-revenant': art262
+    'consortium-prospector': art37,
+    'consortium-prosperity': art39,
+    'consortium-surveyor': art41,
+    'consortium-guildmaster': art43,
+    'consortium-nostromo': art45,
+    'consortium-sapphire': art47,
+    'consortium-opal-star': art49,
+    'consortium-desire': art51,
+    'consortium-destiny': art53,
+    'consortium-enterprise': art55,
+    'consortium-majestic': art57,
+    'consortium-zephyr': art59,
+    'consortium-aquarius': art61,
+    'consortium-empress': art63,
+    'consortium-trident': art65,
+    'consortium-neptune': art67,
+    'consortium-colossus': art69,
+    'givers-linnaeus': art71,
+    'givers-humboldt': art73,
+    'givers-mendel': art75,
+    'givers-bougainville': art77,
+    'givers-darwin': art79,
+    'givers-mirabilis': art81,
+    'givers-serenity': art83,
+    'givers-tempest': art85,
+    'givers-osanyin': art87,
+    'givers-viridis': art89,
+    'givers-eden': art91,
+    'givers-typhoon': art93,
+    'givers-artemis': art95,
+    'givers-eclipse': art97,
+    'givers-boreas': art99,
+    'givers-helios': art101,
+    'givers-gaia': art103,
+    'praetorians-audax': art105,
+    'praetorians-fidelis': art107,
+    'praetorians-peregrinus': art109,
+    'praetorians-noctua': art111,
+    'praetorians-odyssey': art113,
+    'praetorians-argonaut': art115,
+    'praetorians-gladiator': art117,
+    'praetorians-centurion': art119,
+    'praetorians-proconsul': art121,
+    'praetorians-myrmidon': art123,
+    'praetorians-aquila': art125,
+    'praetorians-athena': art127,
+    'praetorians-hercules': art129,
+    'praetorians-elysium': art131,
+    'praetorians-praetor': art133,
+    'praetorians-imperator': art135,
+    'starfarers-copernicus': art137,
+    'starfarers-kepler': art139,
+    'starfarers-kuiper': art141,
+    'starfarers-messier': art143,
+    'starfarers-andromeda': art145,
+    'starfarers-orion': art147,
+    'starfarers-discovery': art149,
+    'starfarers-pytheas': art151,
+    'starfarers-proxima': art153,
+    'starfarers-stargazer': art155,
+    'starfarers-polaris': art157,
+    'starfarers-voyager': art159,
+    'starfarers-nova': art161,
+    'starfarers-comet': art163,
+    'starfarers-constellation': art165,
+    'starfarers-starfury': art167,
+    'starfarers-galactica': art169,
+    'syndicate-harbinger': art171,
+    'syndicate-nomad': art173,
+    'syndicate-vagabond': art175,
+    'syndicate-cobra': art177,
+    'syndicate-python': art179,
+    'syndicate-viper': art181,
+    'syndicate-serpent': art183,
+    'syndicate-sisyphus': art185,
+    'syndicate-corsair': art187,
+    'syndicate-marauder': art189,
+    'syndicate-relentless': art191,
+    'syndicate-reaver': art193,
+    'syndicate-scavenger': art195,
+    'syndicate-antagonist': art197,
+    'syndicate-insurgent': art199,
+    'syndicate-nemesis': art201,
+    'syndicate-dreadnought': art203,
+    'transhumanists-franklin': art205,
+    'transhumanists-curie': art207,
+    'transhumanists-hawking': art209,
+    'transhumanists-foucault': art211,
+    'transhumanists-daedalus': art213,
+    'transhumanists-icarus': art215,
+    'transhumanists-perdix': art217,
+    'transhumanists-centaur': art219,
+    'transhumanists-vulcan': art221,
+    'transhumanists-archimedes': art223,
+    'transhumanists-griffin': art225,
+    'transhumanists-eratosthenes': art227,
+    'transhumanists-pegasus': art229,
+    'transhumanists-da-vinci': art231,
+    'transhumanists-chimera': art233,
+    'transhumanists-minotaur': art235,
+    'transhumanists-prometheus': art237,
+    'truepath-faithful': art239,
+    'truepath-lightbringer': art241,
+    'truepath-pathfinder': art243,
+    'truepath-ardent-spirit': art245,
+    'truepath-firebrand': art247,
+    'truepath-pilgrim': art249,
+    'truepath-oathkeeper': art251,
+    'truepath-rising-star': art253,
+    'truepath-celestial-ark': art255,
+    'truepath-paladin': art257,
+    'truepath-proselyte': art259,
+    'truepath-unity': art261,
+    'truepath-ascendance': art263,
+    'truepath-guardian': art265,
+    'truepath-eternal-flame': art267,
+    'truepath-intercessor': art269,
+    'truepath-revenant': art271
 }
 
 export const WORLD_ART: Record<string, { I: string; II?: string }> = {
-    'm-1': { I: art263, II: art264 },
-    'm-2': { I: art263, II: art264 },
-    'm-3': { I: art263, II: art264 },
-    'm-4': { I: art263, II: art265 },
-    'm-5': { I: art263, II: art265 },
-    'm-6': { I: art263, II: art265 },
-    'm-7': { I: art266, II: art267 },
-    'm-8': { I: art266, II: art268 },
-    'm-9': { I: art269, II: art270 },
-    'm-10': { I: art271, II: art272 },
-    'm-11': { I: art273, II: art274 },
-    'm-12': { I: art275, II: art267 },
-    'm-13': { I: art276, II: art277 },
-    'm-14': { I: art276, II: art278 },
-    'm-15': { I: art279, II: art270 },
-    'm-16': { I: art280, II: art272 },
-    'm-17': { I: art281, II: art282 },
-    'm-18': { I: art281, II: art282 },
-    'o-1': { I: art283, II: art284 },
-    'o-2': { I: art285, II: art286 },
-    'o-3': { I: art287, II: art288 },
-    'o-4': { I: art289, II: art290 },
-    'o-5': { I: art291, II: art292 },
-    'o-6': { I: art293, II: art294 },
-    'o-7': { I: art295, II: art284 },
-    'o-8': { I: art296, II: art297 },
-    'o-9': { I: art298, II: art299 },
-    'o-10': { I: art298, II: art299 },
-    'o-11': { I: art300, II: art301 },
-    'o-12': { I: art302, II: art299 },
-    'l-1': { I: art303, II: art304 },
-    'l-2': { I: art303, II: art304 },
-    'l-3': { I: art305, II: art306 },
-    'l-4': { I: art305, II: art307 },
-    'l-5': { I: art308, II: art307 },
-    'l-6': { I: art308, II: art307 },
-    'l-7': { I: art309, II: art310 },
-    'l-8': { I: art311, II: art312 },
-    'l-9': { I: art313, II: art314 },
-    'l-10': { I: art313, II: art314 },
-    'l-11': { I: art315, II: art316 },
-    'l-12': { I: art315, II: art316 },
-    'l-13': { I: art317, II: art318 },
-    'l-14': { I: art319, II: art306 },
-    'l-15': { I: art320, II: art321 },
-    'l-16': { I: art322, II: art323 },
-    'h-1': { I: art324, II: art325 },
-    'h-2': { I: art324, II: art325 },
-    'h-3': { I: art324, II: art325 },
-    'h-4': { I: art324, II: art325 },
-    'h-5': { I: art324, II: art325 },
-    'h-6': { I: art326, II: art327 },
-    'h-7': { I: art328, II: art329 },
-    'h-8': { I: art330, II: art331 },
-    'h-9': { I: art330, II: art331 },
-    'h-10': { I: art330, II: art331 },
-    'h-11': { I: art332, II: art333 },
-    'h-12': { I: art332, II: art333 },
-    'h-13': { I: art332, II: art333 },
-    'h-14': { I: art334, II: art335 },
-    'h-15': { I: art334, II: art335 },
-    'h-16': { I: art336, II: art337 },
-    'p-1': { I: art338, II: art339 },
-    'p-2': { I: art340, II: art341 },
-    'p-3': { I: art340, II: art341 },
-    'p-4': { I: art342, II: art343 },
-    'p-5': { I: art344, II: art345 },
-    'p-6': { I: art344, II: art345 },
-    'p-7': { I: art346, II: art347 },
-    'p-8': { I: art348, II: art349 },
-    'p-9': { I: art350, II: art351 },
-    'p-10': { I: art350, II: art351 },
-    'p-11': { I: art352, II: art353 },
-    'p-12': { I: art354, II: art353 },
-    'p-13': { I: art354, II: art353 },
-    'p-14': { I: art355, II: art356 },
-    'k-1': { I: art357, II: art358 },
-    'k-2': { I: art357, II: art358 },
-    'k-3': { I: art359, II: art360 },
-    'k-4': { I: art359, II: art360 },
-    'k-5': { I: art361, II: art360 },
-    'k-6': { I: art362, II: art360 },
-    'k-7': { I: art363, II: art364 },
-    'k-8': { I: art365, II: art366 },
-    'k-9': { I: art365, II: art366 },
-    'k-10': { I: art367, II: art368 },
-    'k-11': { I: art369, II: art370 },
-    'k-12': { I: art371, II: art372 },
-    'k-13': { I: art373, II: art374 },
-    'k-14': { I: art373, II: art374 },
-    'k-15': { I: art375, II: art376 },
-    'k-16': { I: art377, II: art378 },
-    'k-17': { I: art377, II: art378 },
-    'k-18': { I: art377, II: art378 },
-    'k-19': { I: art379, II: art380 },
-    'k-20': { I: art379, II: art380 },
-    'k-21': { I: art381, II: art380 },
-    'k-22': { I: art382, II: art383 },
-    'k-23': { I: art384, II: art385 },
-    'a-1': { I: art386, II: art387 },
-    'a-2': { I: art388, II: art389 },
-    'a-3': { I: art390, II: art391 },
-    'a-4': { I: art390, II: art391 },
-    'a-5': { I: art392, II: art393 },
-    'a-6': { I: art392, II: art393 },
-    'a-7': { I: art394, II: art395 },
-    'a-8': { I: art396, II: art397 },
-    'a-9': { I: art396, II: art397 },
-    'a-10': { I: art398, II: art399 },
-    'a-11': { I: art400, II: art399 },
-    'j-1': { I: art401, II: art402 },
-    'j-2': { I: art401, II: art403 },
-    'j-3': { I: art401, II: art403 },
-    'j-4': { I: art401, II: art403 },
-    'j-5': { I: art404, II: art405 },
-    'j-6': { I: art406, II: art407 },
-    'j-7': { I: art408, II: art409 },
-    'j-8': { I: art408, II: art409 },
-    'j-9': { I: art410, II: art411 },
-    'j-10': { I: art412, II: art413 },
-    'j-11': { I: art412, II: art413 },
-    'j-12': { I: art412, II: art414 },
-    'j-13': { I: art415, II: art416 },
-    'j-14': { I: art417, II: art418 },
-    'j-15': { I: art417, II: art418 },
-    'j-16': { I: art419, II: art420 },
-    'j-17': { I: art405, II: art421 },
-    'j-18': { I: art422, II: art421 },
-    'j-19': { I: art422, II: art421 },
-    'j-20': { I: art423, II: art424 },
-    'd-1': { I: art425, II: art426 },
-    'd-2': { I: art427, II: art428 },
-    'd-3': { I: art429, II: art430 },
-    'd-4': { I: art431, II: art432 },
-    'd-5': { I: art431, II: art432 },
-    'd-6': { I: art433, II: art434 },
-    'd-7': { I: art433, II: art434 },
-    'd-8': { I: art435, II: art436 },
-    'd-9': { I: art437, II: art438 },
-    'd-10': { I: art437, II: art438 },
-    'd-11': { I: art439, II: art440 },
-    'd-12': { I: art441, II: art442 },
-    'e-1': { I: art443, II: art444 },
-    'e-2': { I: art443, II: art444 },
-    'e-3': { I: art445, II: art446 },
-    'e-4': { I: art445, II: art446 },
-    'e-5': { I: art447, II: art448 },
-    'e-6': { I: art449, II: art450 },
-    'e-7': { I: art451, II: art452 },
-    'none-1': { I: art453 },
-    'none-2': { I: art453 },
-    'none-3': { I: art453 },
-    'none-4': { I: art453 },
-    'none-5': { I: art453 },
-    'none-6': { I: art453 },
-    'none-7': { I: art453 },
-    'none-8': { I: art453 },
-    'none-9': { I: art453 },
-    'none-10': { I: art453 },
-    'none-11': { I: art453 }
+    'm-1': { I: art272, II: art273 },
+    'm-2': { I: art272, II: art273 },
+    'm-3': { I: art272, II: art273 },
+    'm-4': { I: art272, II: art274 },
+    'm-5': { I: art272, II: art274 },
+    'm-6': { I: art272, II: art274 },
+    'm-7': { I: art275, II: art276 },
+    'm-8': { I: art275, II: art277 },
+    'm-9': { I: art278, II: art279 },
+    'm-10': { I: art280, II: art281 },
+    'm-11': { I: art282, II: art283 },
+    'm-12': { I: art284, II: art276 },
+    'm-13': { I: art285, II: art286 },
+    'm-14': { I: art285, II: art287 },
+    'm-15': { I: art288, II: art279 },
+    'm-16': { I: art289, II: art281 },
+    'm-17': { I: art290, II: art291 },
+    'm-18': { I: art290, II: art291 },
+    'o-1': { I: art292, II: art293 },
+    'o-2': { I: art294, II: art295 },
+    'o-3': { I: art296, II: art297 },
+    'o-4': { I: art298, II: art299 },
+    'o-5': { I: art300, II: art301 },
+    'o-6': { I: art302, II: art303 },
+    'o-7': { I: art304, II: art293 },
+    'o-8': { I: art305, II: art306 },
+    'o-9': { I: art307, II: art308 },
+    'o-10': { I: art307, II: art308 },
+    'o-11': { I: art309, II: art310 },
+    'o-12': { I: art311, II: art308 },
+    'l-1': { I: art312, II: art313 },
+    'l-2': { I: art312, II: art313 },
+    'l-3': { I: art314, II: art315 },
+    'l-4': { I: art314, II: art316 },
+    'l-5': { I: art317, II: art316 },
+    'l-6': { I: art317, II: art316 },
+    'l-7': { I: art318, II: art319 },
+    'l-8': { I: art320, II: art321 },
+    'l-9': { I: art322, II: art323 },
+    'l-10': { I: art322, II: art323 },
+    'l-11': { I: art324, II: art325 },
+    'l-12': { I: art324, II: art325 },
+    'l-13': { I: art326, II: art327 },
+    'l-14': { I: art328, II: art315 },
+    'l-15': { I: art329, II: art330 },
+    'l-16': { I: art331, II: art332 },
+    'h-1': { I: art333, II: art334 },
+    'h-2': { I: art333, II: art334 },
+    'h-3': { I: art333, II: art334 },
+    'h-4': { I: art333, II: art334 },
+    'h-5': { I: art333, II: art334 },
+    'h-6': { I: art335, II: art336 },
+    'h-7': { I: art337, II: art338 },
+    'h-8': { I: art339, II: art340 },
+    'h-9': { I: art339, II: art340 },
+    'h-10': { I: art339, II: art340 },
+    'h-11': { I: art341, II: art342 },
+    'h-12': { I: art341, II: art342 },
+    'h-13': { I: art341, II: art342 },
+    'h-14': { I: art343, II: art344 },
+    'h-15': { I: art343, II: art344 },
+    'h-16': { I: art345, II: art346 },
+    'p-1': { I: art347, II: art348 },
+    'p-2': { I: art349, II: art350 },
+    'p-3': { I: art349, II: art350 },
+    'p-4': { I: art351, II: art352 },
+    'p-5': { I: art353, II: art354 },
+    'p-6': { I: art353, II: art354 },
+    'p-7': { I: art355, II: art356 },
+    'p-8': { I: art357, II: art358 },
+    'p-9': { I: art359, II: art360 },
+    'p-10': { I: art359, II: art360 },
+    'p-11': { I: art361, II: art362 },
+    'p-12': { I: art363, II: art362 },
+    'p-13': { I: art363, II: art362 },
+    'p-14': { I: art364, II: art365 },
+    'k-1': { I: art366, II: art367 },
+    'k-2': { I: art366, II: art367 },
+    'k-3': { I: art368, II: art369 },
+    'k-4': { I: art368, II: art369 },
+    'k-5': { I: art370, II: art369 },
+    'k-6': { I: art371, II: art369 },
+    'k-7': { I: art372, II: art373 },
+    'k-8': { I: art374, II: art375 },
+    'k-9': { I: art374, II: art375 },
+    'k-10': { I: art376, II: art377 },
+    'k-11': { I: art378, II: art379 },
+    'k-12': { I: art380, II: art381 },
+    'k-13': { I: art382, II: art383 },
+    'k-14': { I: art382, II: art383 },
+    'k-15': { I: art384, II: art385 },
+    'k-16': { I: art386, II: art387 },
+    'k-17': { I: art386, II: art387 },
+    'k-18': { I: art386, II: art387 },
+    'k-19': { I: art388, II: art389 },
+    'k-20': { I: art388, II: art389 },
+    'k-21': { I: art390, II: art389 },
+    'k-22': { I: art391, II: art392 },
+    'k-23': { I: art393, II: art394 },
+    'a-1': { I: art395, II: art396 },
+    'a-2': { I: art397, II: art398 },
+    'a-3': { I: art399, II: art400 },
+    'a-4': { I: art399, II: art400 },
+    'a-5': { I: art401, II: art402 },
+    'a-6': { I: art401, II: art402 },
+    'a-7': { I: art403, II: art404 },
+    'a-8': { I: art405, II: art406 },
+    'a-9': { I: art405, II: art406 },
+    'a-10': { I: art407, II: art408 },
+    'a-11': { I: art409, II: art408 },
+    'j-1': { I: art410, II: art411 },
+    'j-2': { I: art410, II: art412 },
+    'j-3': { I: art410, II: art412 },
+    'j-4': { I: art410, II: art412 },
+    'j-5': { I: art413, II: art414 },
+    'j-6': { I: art415, II: art416 },
+    'j-7': { I: art417, II: art418 },
+    'j-8': { I: art417, II: art418 },
+    'j-9': { I: art419, II: art420 },
+    'j-10': { I: art421, II: art422 },
+    'j-11': { I: art421, II: art422 },
+    'j-12': { I: art421, II: art423 },
+    'j-13': { I: art424, II: art425 },
+    'j-14': { I: art426, II: art427 },
+    'j-15': { I: art426, II: art427 },
+    'j-16': { I: art428, II: art429 },
+    'j-17': { I: art414, II: art430 },
+    'j-18': { I: art431, II: art430 },
+    'j-19': { I: art431, II: art430 },
+    'j-20': { I: art432, II: art433 },
+    'd-1': { I: art434, II: art435 },
+    'd-2': { I: art436, II: art437 },
+    'd-3': { I: art438, II: art439 },
+    'd-4': { I: art440, II: art441 },
+    'd-5': { I: art440, II: art441 },
+    'd-6': { I: art442, II: art443 },
+    'd-7': { I: art442, II: art443 },
+    'd-8': { I: art444, II: art445 },
+    'd-9': { I: art446, II: art447 },
+    'd-10': { I: art446, II: art447 },
+    'd-11': { I: art448, II: art449 },
+    'd-12': { I: art450, II: art451 },
+    'e-1': { I: art452, II: art453 },
+    'e-2': { I: art452, II: art453 },
+    'e-3': { I: art454, II: art455 },
+    'e-4': { I: art454, II: art455 },
+    'e-5': { I: art456, II: art457 },
+    'e-6': { I: art458, II: art459 },
+    'e-7': { I: art460, II: art461 },
+    'none-1': { I: art462 },
+    'none-2': { I: art462 },
+    'none-3': { I: art462 },
+    'none-4': { I: art462 },
+    'none-5': { I: art462 },
+    'none-6': { I: art462 },
+    'none-7': { I: art462 },
+    'none-8': { I: art462 },
+    'none-9': { I: art462 },
+    'none-10': { I: art462 },
+    'none-11': { I: art462 }
 }
 
 export const FACTION_ART: Record<string, string> = {
-    Consortium: art454,
-    Givers: art456,
-    Praetorians: art458,
-    Starfarers: art460,
-    Syndicate: art462,
-    Transhumanists: art464,
-    TruePath: art466
+    Consortium: art463,
+    Givers: art465,
+    Praetorians: art467,
+    Starfarers: art469,
+    Syndicate: art471,
+    Transhumanists: art473,
+    TruePath: art475
 }
 
 export const SETTLEMENT_ART: Record<string, string> = {
-    Consortium: art455,
-    Givers: art457,
-    Praetorians: art459,
-    Starfarers: art461,
-    Syndicate: art463,
-    Transhumanists: art465,
-    TruePath: art467
+    Consortium: art464,
+    Givers: art466,
+    Praetorians: art468,
+    Starfarers: art470,
+    Syndicate: art472,
+    Transhumanists: art474,
+    TruePath: art476
 }
 
 export const TECH_MARKER_ART: Record<string, string> = {
-    'Biology-1': art468,
-    'Biology-2': art469,
-    'Biology-3': art470,
-    'Biology-4': art471,
-    'Biology-5': art472,
-    'Physics-1': art475,
-    'Physics-2': art476,
-    'Physics-3': art477,
-    'Physics-4': art478,
-    'Physics-5': art479,
-    'Engineering-1': art482,
-    'Engineering-2': art483,
-    'Engineering-3': art484,
-    'Engineering-4': art485,
-    'Engineering-5': art486
+    'Biology-1': art477,
+    'Biology-2': art478,
+    'Biology-3': art479,
+    'Biology-4': art480,
+    'Biology-5': art481,
+    'Physics-1': art484,
+    'Physics-2': art485,
+    'Physics-3': art486,
+    'Physics-4': art487,
+    'Physics-5': art488,
+    'Engineering-1': art491,
+    'Engineering-2': art492,
+    'Engineering-3': art493,
+    'Engineering-4': art494,
+    'Engineering-5': art495
 }
 
 export const TECH_MARKER_BLANK_ART: Record<string, string> = {
-    Biology: art473,
-    Physics: art480,
-    Engineering: art487
+    Biology: art482,
+    Physics: art489,
+    Engineering: art496
 }
 
 export const EXPLORATION_MARKER_ART: Record<string, string> = {
-    Biology: art474,
-    Physics: art481,
-    Engineering: art488
+    Biology: art483,
+    Physics: art490,
+    Engineering: art497
 }
 
 export const ANOMALY_ART: Record<string, string> = {
-    'adorable-critters': art489,
-    'alien-artifacts': art490,
-    'alien-derelict': art491,
-    'alien-remains': art492,
-    'alien-sentinel': art493,
-    'anarchist-outpost': art494,
-    'asteroid-clouds': art495,
-    'colossal-comet': art496,
-    'decapod-infestation': art497,
-    dissidents: art498,
-    'hostile-xenomorphs': art499,
-    'ice-caverns': art500,
-    'medicinal-herbs': art501,
-    megafauna: art502,
-    'mineral-veins': art503,
-    'nanobot-swarm': art504,
-    'natural-stimulants': art505,
-    'pirate-lair': art506,
-    'predatory-plants': art507,
-    'primal-carnivores': art508,
-    'rare-crystals': art509,
-    'rescue-scout-ship': art510,
-    'savage-storms': art511,
-    'severe-radiation': art512,
-    'shadow-fleet': art513,
-    'splinter-colony': art514,
-    'stellar-chart': art515,
-    'stellar-flares': art516,
-    'stunning-vistas': art517,
-    'symbiotic-spores': art518,
-    'system-quarantine': art519,
-    'terran-dna': art520,
-    'tunnel-complex': art521,
-    'violent-separatists': art522
+    'adorable-critters': art498,
+    'alien-artifacts': art499,
+    'alien-derelict': art500,
+    'alien-remains': art501,
+    'alien-sentinel': art502,
+    'anarchist-outpost': art503,
+    'asteroid-clouds': art504,
+    'colossal-comet': art505,
+    'decapod-infestation': art506,
+    dissidents: art507,
+    'hostile-xenomorphs': art508,
+    'ice-caverns': art509,
+    'medicinal-herbs': art510,
+    megafauna: art511,
+    'mineral-veins': art512,
+    'nanobot-swarm': art513,
+    'natural-stimulants': art514,
+    'pirate-lair': art515,
+    'predatory-plants': art516,
+    'primal-carnivores': art517,
+    'rare-crystals': art518,
+    'rescue-scout-ship': art519,
+    'savage-storms': art520,
+    'severe-radiation': art521,
+    'shadow-fleet': art522,
+    'splinter-colony': art523,
+    'stellar-chart': art524,
+    'stellar-flares': art525,
+    'stunning-vistas': art526,
+    'symbiotic-spores': art527,
+    'system-quarantine': art528,
+    'terran-dna': art529,
+    'tunnel-complex': art530,
+    'violent-separatists': art531
 }
 
 export const ANOMALY_ART_SIZE = { width: 253, height: 220 }

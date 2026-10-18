@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { WorldSide, terraformTargets } from '@tabletop/stellar-horizons-2'
+    import { WorldSide, isCampaign, terraformTargets } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { systemName } from '$lib/utils/presentation.js'
     import WorldImage from '../WorldImage.svelte'
@@ -7,12 +7,19 @@
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
     const targets = $derived(terraformTargets(gameState, gameSession.myPlayerId ?? ''))
+    // The Givers terraform once more than their tech allows, one turn of the queue each.
+    const remaining = $derived(
+        gameState.terraformQueue.filter((playerId) => playerId === gameSession.myPlayerId).length
+    )
 </script>
 
 <div class="sh-step">
     <p class="hint">
-        You may terraform one world in a system where you have a base. A side I world flips to side
-        II; a side II world draws a replacement that may be up to 10 population larger.
+        You may terraform {remaining > 1 ? `${remaining} worlds, one at a time,` : 'one world'} in a system
+        where you have a base. A side I world flips to side II; a side II world draws a replacement that
+        may be up to 10 population larger.{isCampaign(gameState)
+            ? ' Flipping earns 1 IP, a replacement 2.'
+            : ''}
     </p>
     <div class="row">
         {#each targets as target (`${target.systemId}:${target.slot}`)}

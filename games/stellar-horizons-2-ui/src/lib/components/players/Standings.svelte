@@ -9,13 +9,14 @@
     const gameSession = getGameSession()
     const rows = $derived(standings(gameSession.gameState))
     const anomalyRace = $derived(rows.some((row) => row.anomalies !== undefined))
+    const campaign = $derived(rows.some((row) => row.campaign !== undefined))
 
     function name(playerId: string): string {
         return playerId === gameSession.myPlayerId ? 'You' : gameSession.getPlayerName(playerId)
     }
 </script>
 
-<div class="standings" class:anomaly-race={anomalyRace}>
+<div class="standings" class:anomaly-race={anomalyRace} class:campaign>
     <div class="row head" aria-hidden="true">
         <span></span>
         <span></span>
@@ -27,6 +28,10 @@
             <span class="num" title="Anomalies resolved">ANOM</span>
         {/if}
         <span class="num">$B</span>
+        {#if campaign}
+            <span class="num" title="Influence points">IP</span>
+            <span class="num" title="Victory points if the campaign ended now">VP</span>
+        {/if}
     </div>
     {#each rows as row (row.playerId)}
         <button
@@ -72,6 +77,12 @@
                 >
             {/if}
             <span class="num cash">{row.cash}</span>
+            {#if row.campaign}
+                <span class="num influence">{row.campaign.influence}</span>
+                <span class="num" title="Victory points if the campaign ended now"
+                    >{row.campaign.score.total}</span
+                >
+            {/if}
         </button>
     {/each}
 </div>
@@ -101,6 +112,15 @@
     .anomaly-race .row {
         grid-template-columns: 12px 26px minmax(0, 1fr) 22px 22px 30px 48px 32px;
         gap: 7px;
+    }
+
+    .campaign .row {
+        grid-template-columns: 12px 26px minmax(0, 1fr) 20px 20px 28px 30px 24px 34px;
+        gap: 6px;
+    }
+
+    .influence {
+        color: #d98cf2;
     }
 
     .goal {

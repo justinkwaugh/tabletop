@@ -1,7 +1,7 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { MachineState, isEvenDecade } from '@tabletop/stellar-horizons-2'
+    import { MachineState, isCampaign, isEvenDecade } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PHASE_LABELS } from '$lib/utils/presentation.js'
 
@@ -14,6 +14,8 @@
         if (gameState.machineState === MachineState.PlacingStartingBases && gameSession.canAct)
             return 'PLACE YOUR STARTING BASE'
         if (gameState.machineState === MachineState.Terraforming) return 'TERRAFORMING'
+        if (gameState.machineState === MachineState.ConvertingSettlements && gameSession.canAct)
+            return 'CONVERSION'
         if (gameState.machineState === MachineState.ResolvingAnomalies) return 'ANOMALIES'
         if (
             gameState.machineState === MachineState.ChoosingSurveyWorld ||
@@ -30,7 +32,7 @@
 <div class="header">
     <div class="year">
         <span class="year-number">DECADE {gameState.year}</span>
-        {#if isEvenDecade(gameState.year)}
+        {#if isEvenDecade(gameState.year) && !isCampaign(gameState)}
             <span
                 class="even"
                 title={gameState.scenarioDefinition().terraforming

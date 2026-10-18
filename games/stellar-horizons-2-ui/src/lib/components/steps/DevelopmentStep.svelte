@@ -1,6 +1,8 @@
 <script lang="ts">
     import {
         TECH_FIELDS,
+        TECH_POINTS_PER_INFLUENCE,
+        isCampaign,
         techCost,
         techDefinition,
         type TechId
@@ -18,6 +20,9 @@
     const techId = $derived(gameSession.selectedTech)
 
     let chosen: { techId: TechId; indexes: number[] } | undefined = $state()
+    // Campaign: IP pay 2 points each. Unless the player picks a number, as many are used as
+    // the cash on hand cannot cover.
+    let chosenInfluence: { techId: TechId; influence: number } | undefined = $state()
 
     const tech = $derived(techId ? techDefinition(techId) : undefined)
     const cost = $derived(techId ? techCost(gameState, playerId, techId) : 0)
@@ -25,7 +30,11 @@
     const selectedIndexes: number[] = $derived.by(() => {
         if (!techId) return []
         if (chosen && chosen.techId === techId) return chosen.indexes
-        const suggestion = suggestPayment(held, cost, player.cash)
+        // IP count towards what can be paid, so markers are still suggested first.
+        const influenceBudget = isCampaign(gameState)
+            ? player.influence * TECH_POINTS_PER_INFLUENCE
+            : 0
+        const suggestion = suggestPayment(held, cost, player.cash + influenceBudget)
         if (!suggestion) return []
         const remaining = held.map((value, index) => ({ value, index }))
         return suggestion.markers.map((value) => {
@@ -41,11 +50,34 @@
     const paying = $derived(ordered.filter((entry) => selectedIndexes.includes(entry.index)))
     const keeping = $derived(ordered.filter((entry) => !selectedIndexes.includes(entry.index)))
     const markers = $derived(paying.map((entry) => entry.value))
-    const cash = $derived(cashNeeded(markers, cost))
+    const afterMarkers = $derived(cashNeeded(markers, cost))
+    const maxInfluence = $derived(
+        isCampaign(gameState)
+            ? Math.min(player.influence, Math.ceil(afterMarkers / TECH_POINTS_PER_INFLUENCE))
+            : 0
+    )
+    const influence = $derived.by(() => {
+        if (chosenInfluence && chosenInfluence.techId === techId) {
+            return Math.min(chosenInfluence.influence, maxInfluence)
+        }
+        const short = Math.max(0, afterMarkers - player.cash)
+        return Math.min(maxInfluence, Math.ceil(short / TECH_POINTS_PER_INFLUENCE))
+    })
+    const cash = $derived(Math.max(0, afterMarkers - influence * TECH_POINTS_PER_INFLUENCE))
     const affordable = $derived(cash <= player.cash)
 
+    function adjustInfluence(change: number) {
+        if (!techId) return
+        const next = Math.max(0, Math.min(maxInfluence, influence + change))
+        chosenInfluence = { techId, influence: next }
+    }
+
     const developLabel = $derived.by(() => {
-        const parts = [markers.join('+'), cash > 0 ? `$${cash}B` : ''].filter(Boolean)
+        const parts = [
+            markers.join('+'),
+            influence > 0 ? `${influence} IP` : '',
+            cash > 0 ? `$${cash}B` : ''
+        ].filter(Boolean)
         return parts.length > 0 ? `Develop with ${parts.join(' and ')}` : 'Develop for free'
     })
 
@@ -60,7 +92,8 @@
     async function develop() {
         if (!techId || !affordable) return
         chosen = undefined
-        await gameSession.developTech(techId, markers, cash)
+        chosenInfluence = undefined
+        await gameSession.developTech(techId, markers, cash, influence)
     }
 </script>
 
@@ -84,6 +117,23 @@
                             onclick={() => toggle(marker.index)}
                         />
                     {/each}
+                    {#if maxInfluence > 0 || influence > 0}
+                        <span class="influence-picker" aria-label="IP to spend">
+                            <button
+                                type="button"
+                                aria-label="One IP fewer"
+                                disabled={influence === 0}
+                                onclick={() => adjustInfluence(-1)}>−</button
+                            >
+                            <span>{influence} IP</span>
+                            <button
+                                type="button"
+                                aria-label="One IP more"
+                                disabled={influence >= maxInfluence}
+                                onclick={() => adjustInfluence(1)}>+</button
+                            >
+                        </span>
+                    {/if}
                     {#if cash > 0}
                         <span class="cash" class:short={!affordable}>${cash}B</span>
                     {:else if paying.length === 0}
@@ -128,12 +178,33 @@
                 <dt>Cash</dt>
                 <dd>${player.cash}B</dd>
             </div>
+            {#if isCampaign(gameState)}
+                <div class="fund influence">
+                    <dt>IP</dt>
+                    <dd title="Each IP pays 2 tech points of any type">{player.influence}</dd>
+                </div>
+            {/if}
         </dl>
         <div class="prompt">Choose a tech on the chart below</div>
     {/if}
 </div>
 
 <style>
+    .influence-picker {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 800;
+        color: #d98cf2;
+    }
+
+    .influence-picker button {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border-radius: 5px;
+    }
+
     /* The chits being spent and the chits being kept sit in two labelled groups; clicking a
        chit moves it to the other group. */
     .payment {
@@ -241,6 +312,12 @@
         color: #f2c94c;
     }
 
+    .fund.influence dd {
+        font-size: 22px;
+        font-weight: 700;
+        color: #d98cf2;
+    }
+
     @media (max-width: 639px) {
         .funds {
             align-self: stretch;
@@ -258,7 +335,8 @@
             letter-spacing: 0.04em;
         }
 
-        .fund.cash dd {
+        .fund.cash dd,
+        .fund.influence dd {
             font-size: 18px;
         }
     }

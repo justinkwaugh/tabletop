@@ -4,11 +4,16 @@ import {
     TECHS,
     TECH_FIELDS,
     VictoryKind,
+    campaignScore,
+    capabilitiesOf,
+    currentCenturyRow,
+    isCampaign,
     settlementVictory,
     shipDefinition,
     systemPopulation,
     techDefinition,
     type AnomalyVictory,
+    type CampaignScore,
     type Faction,
     type HydratedStellarHorizonsGameState,
     type HydratedStellarHorizonsPlayerState,
@@ -45,6 +50,23 @@ export interface Standing {
     settlements: number
     cash: number
     anomalies?: AnomalyTally
+    campaign?: CampaignStanding
+}
+
+// The campaign's influence and victory points, counted as the game would end now.
+export interface CampaignStanding {
+    influence: number
+    score: CampaignScore
+}
+
+// The faction sheet's limits for the current century, and what the player holds against them.
+export interface CampaignSheet {
+    ships: number
+    maxShips: number
+    bases: number
+    maxBases: number
+    settlementCost: number
+    explorationMarkers: number
 }
 
 export interface ConsoleBase {
@@ -75,6 +97,7 @@ export interface FactionConsoleView {
     settlementGoal?: SettlementVictory
     fleet: ConsoleShipGroup[]
     techs: FieldProgress[]
+    sheet?: CampaignSheet
 }
 
 export function standings(state: HydratedStellarHorizonsGameState): Standing[] {
@@ -95,7 +118,10 @@ export function standings(state: HydratedStellarHorizonsGameState): Standing[] {
                 .basesOf(playerId)
                 .reduce((total, base) => total + base.settlements, 0),
             cash: player.cash,
-            anomalies: anomalyTally(state, player)
+            anomalies: anomalyTally(state, player),
+            campaign: isCampaign(state)
+                ? { influence: player.influence, score: campaignScore(state, playerId) }
+                : undefined
         }
     })
 }
@@ -109,8 +135,7 @@ function phaseStanding(
     if (phase === undefined || span === undefined || !span.playerIds.includes(playerId)) {
         return undefined
     }
-    const done =
-        span.mergedPlayerIds.includes(playerId) || span.closedPlayerIds.includes(playerId)
+    const done = span.mergedPlayerIds.includes(playerId) || span.closedPlayerIds.includes(playerId)
     const playing = span.branchPlayerId === undefined || span.branchPlayerId === playerId
     return { phase, progress: done ? 'done' : playing ? 'playing' : 'pending' }
 }
@@ -159,7 +184,26 @@ export function factionConsole(
             developed: owned.filter((candidate) => candidate === field).length,
             total: TECHS.filter((tech) => tech.field === field).length,
             developedThisTurn: player.fieldsDeveloped.includes(field)
-        }))
+        })),
+        sheet: campaignSheet(state, playerId)
+    }
+}
+
+function campaignSheet(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string
+): CampaignSheet | undefined {
+    const row = currentCenturyRow(state, playerId)
+    if (!row) {
+        return undefined
+    }
+    return {
+        ships: state.shipsOf(playerId).length,
+        maxShips: row.maxShips,
+        bases: state.basesOf(playerId).length,
+        maxBases: row.maxBases,
+        settlementCost: capabilitiesOf(state, playerId).settlementCost,
+        explorationMarkers: state.getPlayerState(playerId).explorationMarkers
     }
 }
 

@@ -1,6 +1,6 @@
 # Stellar Horizons II scenarios
 
-The dev harness lists these under **Scenarios**. Each opens as a hotseat game of _These are the Voyages_ at a prepared position, in one player's phase; loading one again starts it over. Regenerate them with `node scripts/build-scenarios.mjs` after building `@tabletop/stellar-horizons-2`.
+The dev harness lists these under **Scenarios**. Each opens as a hotseat game at a prepared position, in one player's phase or at a decision one player makes; loading one again starts it over. _Three factions at one anomaly_ is a game of _These are the Voyages_; the others are campaigns with the Starfarers, the Givers, the Praetorians and (with four players) the True Path, prepared at the end of 2100 so that 2110 draws a chosen economic tile. Regenerate them with `node scripts/build-scenarios.mjs` after building `@tabletop/stellar-horizons-2`.
 
 In the harness's hotseat game the phases' branches are played one at a time, so a later faction sees what the earlier ones committed; in a hosted game commitments show only once everyone has finished exploring.
 
@@ -12,3 +12,37 @@ Three players in the exploration phase of the first decade. The Stellar Chart, a
 - **Rivals.** Done exploring hands the phase to the Givers, whose card says the Starfarers have committed ships here and resolve before them; Darwin and Mendel make exactly 7 / 7, so both are needed. The Praetorians, last in initiative, see both rivals resolving before them.
 - **Resolution.** When the Praetorians finish exploring, the attempts resolve in initiative order before the surveys: the Starfarers take the Stellar Chart, so their console shows the tile and the standings read 1/4; the Givers' and Praetorians' attempts fail, their ships' actions spent for nothing; the anomaly leaves Vega; and history records one Resolve anomaly step per attempt.
 - **Passing.** A faction that explores Vega with its ships, or ends the phase without committing, leaves the anomaly to the next faction in initiative order that committed enough; if nobody commits, the Stellar Chart stays at Vega for the next decade.
+
+## Campaign initiative
+
+2110 draws _Roll initiative_. Player 1 (the Starfarers) has 3 IP, Player 2 (the Givers) 1 and Player 3 (the Praetorians) none.
+
+- **Declaring.** Player 1 is offered No IP and 1 to 3 IP, each +20%. Choosing one ends their declaration and spends the IP at once (the console shows it). Player 2 is offered No IP and 1 IP. Player 3 has nothing to declare and is skipped.
+- **Rolling.** After the last declaration the rolls follow: history lists the new order with each total, and IP declared shows as roll + IP. The standings reorder from the highest total, ties keeping the earlier order. Then the build phase opens.
+
+## Campaign base production
+
+2110 draws _Base production_. The Starfarers have bases at Alpha Centauri (12 settlements, an M world and a D world) and Luhman 16 (4, a J world); the Givers one at Alpha Centauri (6).
+
+- **Choosing.** Each base offers cash and every tech type its worlds produce, with the yield: the best world value plus the settlement bonus (Alpha Centauri for the Starfarers: $6B, 3 biology markers, …; Luhman 16 has no bonus below 5 settlements). Types the system cannot produce are not offered. Choosing for one base leaves the other; choosing for the last ends the Player's choices.
+- **Producing.** Once every base has chosen, history lists what each produced; the cash and the markers appear in the consoles.
+
+## Campaign conversion
+
+Four players. 2110 draws _Settlement growth_; the True Path (Player 4) and the Givers both have bases at Alpha Centauri. Growth has happened, and the True Path is offered the conversion.
+
+- **Converting.** The card names Alpha Centauri and the Givers' base. Choosing it rolls a die: history shows the roll, and on 4 or less one Givers settlement becomes the True Path's. Don't convert skips it. Either way the build phase follows.
+
+## Campaign terraforming
+
+2110 draws _Terraforming_. The Givers own _Terraforming_ and have a base at Alpha Centauri with an M world on side I and another on side II.
+
+- **Twice.** The hint says the Givers may terraform 2 worlds. Flipping the side I world earns 1 IP and leaves only the other world for the second turn: the same world is never offered twice. Drawing for the side II world offers a replacement; taking it earns 2 IP.
+- **Refill.** When terraforming is over, one world of each set-aside class (M, O, L, H) joins the pool.
+
+## Campaign paying with IP
+
+The development phase of 2100. Every Player has 4 IP and $2B.
+
+- **Paying.** Choosing _Interstellar Settlement_ (10 points) suggests the biology 2 marker, 3 IP and $2B. The − and + beside the IP move points between IP and cash, never past what is needed. Developing it spends them; being the first to develop it earns 1 IP back.
+- **Turning IP into cash.** The console's 1 IP → $1B button does so at any point in the Player's own phase.

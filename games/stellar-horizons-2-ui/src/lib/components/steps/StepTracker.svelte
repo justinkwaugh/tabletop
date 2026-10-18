@@ -1,12 +1,32 @@
 <script lang="ts">
-    import { phaseDefinition } from '@tabletop/stellar-horizons-2'
+    import {
+        TurnPhase,
+        isCampaign,
+        phaseDefinition,
+        scenarioPhases
+    } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { FACTION_FILL, PHASE_DONE_LABELS, PHASE_LABELS } from '$lib/utils/presentation.js'
+    import {
+        ECONOMIC_TILE_LABELS,
+        ECONOMIC_TILE_NOT_YET,
+        FACTION_FILL,
+        PHASE_DONE_LABELS,
+        PHASE_LABELS
+    } from '$lib/utils/presentation.js'
 
     const gameSession = getGameSession()
-    const phases = $derived(gameSession.gameState.scenarioDefinition().phases)
+    const phases = $derived(scenarioPhases(gameSession.gameState))
     const current = $derived(gameSession.currentPhase)
-    const currentIndex = $derived(current ? phases.indexOf(current) : -1)
+    // The campaign's economic choices are spans of their own, played before the decade's phases.
+    const economic = $derived(
+        current === TurnPhase.Initiative || current === TurnPhase.BaseProduction
+    )
+    const tile = $derived(
+        isCampaign(gameSession.gameState) && gameSession.gameState.year > 2100
+            ? gameSession.gameState.economicTile
+            : undefined
+    )
+    const currentIndex = $derived(economic ? -1 : current ? phases.indexOf(current) : -1)
     const acting = $derived(gameSession.actingPhase)
     const order = $derived(gameSession.phaseOrder)
     // Under a barrier nobody's play lands before anyone else's, so the track has no direction.
@@ -31,6 +51,17 @@
 <div class="tracker">
     <div class="tracks">
         <ol class="track phases" aria-label="Phases of the decade">
+            {#if tile}
+                <li
+                    class:current={economic}
+                    class:past={!economic}
+                    aria-current={economic ? 'step' : undefined}
+                    title="Economic phase: {ECONOMIC_TILE_LABELS[tile]}"
+                >
+                    <span class="number">E</span>
+                    <span class="label">{ECONOMIC_TILE_LABELS[tile]}</span>
+                </li>
+            {/if}
             {#each phases as phase, index (phase)}
                 <li
                     class:current={phase === current}
@@ -72,15 +103,18 @@
                                     stroke-width="3"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                />
+                                ></path>
                             </svg>
                         {/if}
                     </li>
                 {/each}
             </ol>
         {/if}
+        {#if tile && ECONOMIC_TILE_NOT_YET[tile]}
+            <p class="not-yet">{ECONOMIC_TILE_NOT_YET[tile]}</p>
+        {/if}
     </div>
-    {#if acting}
+    {#if acting && !economic}
         <button type="button" class="done" onclick={() => gameSession.endPhase()}>
             {PHASE_DONE_LABELS[acting]}
         </button>
@@ -273,6 +307,11 @@
             padding-right: 8px;
             padding-left: 8px;
         }
+    }
+
+    .not-yet {
+        font-size: 12px;
+        color: #8fa4c2;
     }
 
     .done {
