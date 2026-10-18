@@ -91,12 +91,9 @@ function createUser(): User {
     return { id: 'user-id', status: UserStatus.Active, roles: [Role.User], externalIds: [] }
 }
 
-function createService(
-    user: User | undefined,
-    { staysConnectedWhileHidden = false }: { staysConnectedWhileHidden?: boolean } = {}
-) {
+function createService(user: User | undefined) {
     const realtimeConnection: RealtimeConnection = {
-        staysConnectedWhileHidden,
+        tabVisibilityChanged: vi.fn(),
         setHandler: vi.fn(),
         addChannel: vi.fn(async () => {}),
         removeChannel: vi.fn(async () => {}),
@@ -115,9 +112,11 @@ function createService(
     )
     return {
         service,
+        authorizationService,
         visibility,
         connect: vi.mocked(realtimeConnection.connect),
         disconnect: vi.mocked(realtimeConnection.disconnect),
+        tabVisibilityChanged: vi.mocked(realtimeConnection.tabVisibilityChanged),
         subscribe: vi.mocked(api.subscribeToPushNotifications),
         unsubscribe: vi.mocked(api.unsubscribeFromPushNotifications)
     }
@@ -176,30 +175,31 @@ describe('NotificationService push subscription lifecycle', () => {
 })
 
 describe('NotificationService realtime connection', () => {
-    it('closes a connection that cannot stay open while the tab is hidden', async () => {
+    it('connects for a logged-in user whether or not the tab is visible', async () => {
         const { service, visibility, connect, disconnect } = createService(createUser())
+        visibility.visible = false
         service.onMounted()
         await settled(() => expect(connect).toHaveBeenCalledTimes(1))
-
-        visibility.visible = false
-        await settled(() => expect(disconnect).toHaveBeenCalledTimes(1))
-
-        visibility.visible = true
-        await settled(() => expect(connect).toHaveBeenCalledTimes(2))
+        expect(disconnect).not.toHaveBeenCalled()
     })
 
-    it('keeps a connection open while the tab is hidden and resumes it on return', async () => {
-        const { service, visibility, connect, disconnect } = createService(createUser(), {
-            staysConnectedWhileHidden: true
-        })
+    it('tells the connection each time the tab is hidden or shown', async () => {
+        const { service, visibility, tabVisibilityChanged } = createService(createUser())
+        service.onMounted()
+        await settled(() => expect(tabVisibilityChanged).toHaveBeenLastCalledWith(true))
+
         visibility.visible = false
+        await settled(() => expect(tabVisibilityChanged).toHaveBeenLastCalledWith(false))
+        visibility.visible = true
+        await settled(() => expect(tabVisibilityChanged).toHaveBeenLastCalledWith(true))
+    })
+
+    it('disconnects when the user logs out', async () => {
+        const { service, connect, disconnect, authorizationService } = createService(createUser())
         service.onMounted()
         await settled(() => expect(connect).toHaveBeenCalledTimes(1))
 
-        visibility.visible = true
-        await settled(() => expect(connect).toHaveBeenCalledTimes(2))
-        visibility.visible = false
-        flushSync()
-        expect(disconnect).not.toHaveBeenCalled()
+        authorizationService.clearSessionUser()
+        await settled(() => expect(disconnect).toHaveBeenCalledTimes(1))
     })
 })

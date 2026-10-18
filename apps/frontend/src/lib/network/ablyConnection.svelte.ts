@@ -1,6 +1,6 @@
 import Ably from 'ably'
 import {
-    type RealtimeConnection,
+    type RealtimeTransport,
     type RealtimeEvent,
     RealtimeEventType,
     type RealtimeEventHandler,
@@ -13,8 +13,7 @@ type ChannelData = {
     ablyChannel: Ably.RealtimeChannel
 }
 
-export class AblyConnection implements RealtimeConnection {
-    readonly staysConnectedWhileHidden = false
+export class AblyConnection implements RealtimeTransport {
     private handler?: RealtimeEventHandler
 
     private channels: Map<string, ChannelData> = new Map()

@@ -17,6 +17,7 @@ import { AblyConnection } from '$lib/network/ablyConnection.svelte'
 import { ChatService } from '$lib/services/chatService.svelte'
 import { SseConnection } from '$lib/network/sseConnection.svelte.js'
 import { RelayConnection } from '$lib/network/relayConnection'
+import { closedWhileHidden, type RealtimeConnection } from '$lib/network/realtimeConnection'
 import { UserPreferencesEditor } from '$lib/services/userPreferencesEditor.svelte'
 import { toast } from 'svelte-sonner'
 const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, FRONTEND_VERSION, () =>
@@ -35,14 +36,14 @@ const authorizationService = new AuthorizationService(
 )
 
 const visibilityService = new VisibilityService()
-let realtimeConnection
+let realtimeConnection: RealtimeConnection
 
 if (PUBLIC_REALTIME_RELAY_HOST) {
     realtimeConnection = new RelayConnection(api, PUBLIC_REALTIME_RELAY_HOST)
 } else if (PUBLIC_ENABLE_ABLY_REALTIME) {
-    realtimeConnection = new AblyConnection(api)
+    realtimeConnection = closedWhileHidden(new AblyConnection(api))
 } else {
-    realtimeConnection = new SseConnection({ api })
+    realtimeConnection = closedWhileHidden(new SseConnection({ api }))
 }
 const notificationService = new NotificationService(
     realtimeConnection,

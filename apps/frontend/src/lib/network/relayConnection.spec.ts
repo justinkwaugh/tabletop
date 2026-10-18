@@ -27,6 +27,10 @@ class FakeEventSource {
         this.listeners.get('ready')?.(new MessageEvent('ready', { data }))
     }
 
+    emit(type: string) {
+        this.listeners.get(type)?.(new MessageEvent(type, { data: '{}' }))
+    }
+
     message(payload: unknown) {
         this.onmessage?.(new MessageEvent('message', { data: JSON.stringify(payload) }))
     }
@@ -42,7 +46,13 @@ class FakeEventSource {
     }
 }
 
-const timing = { maxJitterMs: 5_000, baseBackoffMs: 1_000, maxBackoffMs: 30_000 }
+const timing = {
+    maxJitterMs: 5_000,
+    baseBackoffMs: 1_000,
+    maxBackoffMs: 30_000,
+    silenceLimitMs: 60_000,
+    staleOnReturnMs: 35_000
+}
 
 function setup({ random = () => 0 }: { random?: () => number } = {}) {
     const getRealtimeToken = vi.fn(async (gameIds: string[]) => `token-for-${gameIds.join('+')}`)
@@ -306,22 +316,96 @@ describe('RelayConnection', () => {
         expect(FakeEventSource.opened).toHaveLength(1)
     })
 
-    it('reconnects at once when connected again while a retry is waiting', async () => {
+    it('reconnects at once when the tab is shown while a retry is waiting', async () => {
         const { connection, getRealtimeToken } = setup({ random: () => 1 })
         await connection.addChannel(user)
         await connection.connect()
         await settle()
+        connection.tabVisibilityChanged(false)
         FakeEventSource.latest().fail()
         await settle()
         expect(getRealtimeToken).toHaveBeenCalledOnce()
 
-        await connection.connect()
+        connection.tabVisibilityChanged(true)
         await settle()
         expect(getRealtimeToken).toHaveBeenCalledTimes(2)
         expect(FakeEventSource.opened).toHaveLength(2)
 
-        await vi.advanceTimersByTimeAsync(60_000)
+        await vi.advanceTimersByTimeAsync(5_000)
         expect(getRealtimeToken).toHaveBeenCalledTimes(2)
+    })
+
+    it('treats a stream that has gone quiet as dead', async () => {
+        const { getRealtimeToken } = await connected(user, global)
+        const stream = FakeEventSource.latest()
+
+        await vi.advanceTimersByTimeAsync(50_000)
+        stream.emit('keepalive')
+        await vi.advanceTimersByTimeAsync(50_000)
+        expect(stream.closed).toBe(false)
+
+        await vi.advanceTimersByTimeAsync(10_000)
+        expect(stream.closed).toBe(true)
+        await vi.advanceTimersByTimeAsync(timing.maxJitterMs)
+        expect(getRealtimeToken).toHaveBeenCalledTimes(2)
+    })
+
+    it('reopens and resyncs a stream that went quiet while the tab was hidden', async () => {
+        const { connection, events } = await connected(user, global)
+        const stream = FakeEventSource.latest()
+        connection.tabVisibilityChanged(false)
+
+        await vi.advanceTimersByTimeAsync(40_000)
+        connection.tabVisibilityChanged(true)
+        await settle()
+        expect(stream.closed).toBe(true)
+        expect(FakeEventSource.opened).toHaveLength(2)
+
+        FakeEventSource.latest().ready(['global', 'user-u1'], 'c2')
+        expect(events).toEqual([
+            discontinuity(NotificationChannel.User),
+            discontinuity(NotificationChannel.Global)
+        ])
+    })
+
+    it('keeps a stream that is still heard from when the tab is shown', async () => {
+        const { connection } = await connected(user, global)
+        const stream = FakeEventSource.latest()
+        connection.tabVisibilityChanged(false)
+
+        await vi.advanceTimersByTimeAsync(25_000)
+        stream.emit('keepalive')
+        await vi.advanceTimersByTimeAsync(20_000)
+        connection.tabVisibilityChanged(true)
+        await settle()
+        expect(stream.closed).toBe(false)
+        expect(FakeEventSource.opened).toHaveLength(1)
+    })
+
+    it('waits to be shown before reconnecting after being evicted while hidden', async () => {
+        const { connection, getRealtimeToken } = await connected(user, global)
+        connection.tabVisibilityChanged(false)
+        FakeEventSource.latest().emit('evicted')
+        expect(FakeEventSource.latest().closed).toBe(true)
+
+        await connection.addChannel(game)
+        await vi.advanceTimersByTimeAsync(120_000)
+        expect(getRealtimeToken).toHaveBeenCalledOnce()
+
+        connection.tabVisibilityChanged(true)
+        await settle()
+        expect(getRealtimeToken).toHaveBeenCalledTimes(2)
+        expect(FakeEventSource.opened).toHaveLength(2)
+    })
+
+    it('reconnects as usual after being evicted while visible', async () => {
+        const { connection, getRealtimeToken } = await connected(user, global)
+        connection.tabVisibilityChanged(true)
+        FakeEventSource.latest().emit('evicted')
+
+        await vi.advanceTimersByTimeAsync(5_000)
+        expect(getRealtimeToken).toHaveBeenCalledTimes(2)
+        expect(FakeEventSource.opened).toHaveLength(2)
     })
 
     it('stops everything on disconnect', async () => {

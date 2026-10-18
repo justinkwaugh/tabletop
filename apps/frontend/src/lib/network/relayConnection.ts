@@ -10,12 +10,16 @@ export type RelayReconnectTiming = {
     maxJitterMs: number
     baseBackoffMs: number
     maxBackoffMs: number
+    silenceLimitMs: number
+    staleOnReturnMs: number
 }
 
 const DEFAULT_RECONNECT_TIMING: RelayReconnectTiming = {
     maxJitterMs: 5_000,
     baseBackoffMs: 1_000,
-    maxBackoffMs: 30_000
+    maxBackoffMs: 30_000,
+    silenceLimitMs: 60_000,
+    staleOnReturnMs: 35_000
 }
 
 type RelayStream = {
@@ -23,6 +27,7 @@ type RelayStream = {
     connectionId?: string
     requested: Set<string>
     synced: Set<string>
+    lastHeardAt: number
 }
 
 type ReadyEvent = {
@@ -31,16 +36,18 @@ type ReadyEvent = {
 }
 
 export class RelayConnection implements RealtimeConnection {
-    readonly staysConnectedWhileHidden = true
     private handler?: RealtimeEventHandler
     private readonly channels = new Map<string, ChannelIdentifier>()
     private wanted = false
+    private tabVisible = false
+    private waitingToBeShown = false
     private attempt = 0
     private failures = 0
     private opening = false
     private changingTopics = false
     private stream?: RelayStream
     private reconnectTimer?: ReturnType<typeof setTimeout>
+    private silenceTimer?: ReturnType<typeof setTimeout>
 
     constructor(
         private readonly api: Pick<TabletopApi, 'getRealtimeToken'>,
@@ -72,10 +79,11 @@ export class RelayConnection implements RealtimeConnection {
     }
 
     async connect(): Promise<void> {
-        if (!this.wanted || this.reconnectTimer !== undefined) {
-            this.wanted = true
-            this.reopen()
+        if (this.wanted) {
+            return
         }
+        this.wanted = true
+        this.reopen()
     }
 
     disconnect() {
@@ -84,13 +92,31 @@ export class RelayConnection implements RealtimeConnection {
         this.close()
     }
 
+    tabVisibilityChanged(visible: boolean) {
+        this.tabVisible = visible
+        if (!visible || !this.wanted) {
+            return
+        }
+        const stale =
+            this.stream !== undefined &&
+            Date.now() - this.stream.lastHeardAt > this.timing.staleOnReturnMs
+        if (this.waitingToBeShown || this.reconnectTimer !== undefined || stale) {
+            this.reopen()
+        }
+    }
+
     private channelsChanged() {
         if (!this.wanted) {
             return
         }
         if (this.stream?.connectionId !== undefined) {
             void this.changeTopics()
-        } else if (!this.stream && !this.opening && this.reconnectTimer === undefined) {
+        } else if (
+            !this.stream &&
+            !this.opening &&
+            !this.waitingToBeShown &&
+            this.reconnectTimer === undefined
+        ) {
             this.reopen()
         }
     }
@@ -110,6 +136,9 @@ export class RelayConnection implements RealtimeConnection {
         this.attempt++
         this.opening = false
         this.changingTopics = false
+        this.waitingToBeShown = false
+        clearTimeout(this.silenceTimer)
+        this.silenceTimer = undefined
         this.stream?.eventSource.close()
         this.stream = undefined
     }
@@ -141,14 +170,43 @@ export class RelayConnection implements RealtimeConnection {
                 `${this.relayHost}/stream?${new URLSearchParams({ t: token })}`
             ),
             requested,
-            synced: new Set()
+            synced: new Set(),
+            lastHeardAt: Date.now()
         }
         this.stream = stream
-        stream.eventSource.addEventListener('ready', (event: MessageEvent<string>) =>
+        this.heardFrom(stream)
+        stream.eventSource.addEventListener('ready', (event: MessageEvent<string>) => {
+            this.heardFrom(stream)
             this.ready(stream, event.data)
-        )
-        stream.eventSource.onmessage = (event: MessageEvent<string>) => this.receive(event.data)
+        })
+        stream.eventSource.addEventListener('keepalive', () => this.heardFrom(stream))
+        stream.eventSource.addEventListener('evicted', () => this.evicted(stream))
+        stream.eventSource.onmessage = (event: MessageEvent<string>) => {
+            this.heardFrom(stream)
+            this.receive(event.data)
+        }
         stream.eventSource.onerror = () => this.failed(stream)
+    }
+
+    private heardFrom(stream: RelayStream) {
+        if (stream !== this.stream) {
+            return
+        }
+        stream.lastHeardAt = Date.now()
+        clearTimeout(this.silenceTimer)
+        this.silenceTimer = setTimeout(() => this.failed(stream), this.timing.silenceLimitMs)
+    }
+
+    private evicted(stream: RelayStream) {
+        if (stream !== this.stream) {
+            return
+        }
+        this.close()
+        if (this.tabVisible) {
+            this.scheduleReconnect()
+        } else {
+            this.waitingToBeShown = true
+        }
     }
 
     private async changeTopics() {
