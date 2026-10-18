@@ -35,12 +35,13 @@ import {
     isListedPublicGame,
     isYourTurnNotification,
     omitGameState,
-    type UndoVotePreview
+    type UndoVotePreview,
+    type User
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
-import { NotificationService } from './notificationService.svelte'
+import type { NotificationService } from './notificationService.svelte'
 import { isUsersGameTurn, isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
@@ -61,6 +62,7 @@ export class GameService implements GameServiceInterface {
     loading = $state(false)
     private loadingPromise: Promise<void> | null = null
     private currentGamesFetched = false
+    private currentGamesChanged = false
     private static readonly storedCurrentGamesKey = 'currentGames'
 
     currentGameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
@@ -123,9 +125,9 @@ export class GameService implements GameServiceInterface {
     openGamesByTitleId: Map<string, Game[]> = new SvelteMap()
 
     constructor(
-        private readonly libraryService: LibraryService,
-        private readonly authorizationService: AuthorizationService,
-        private readonly notificationService: NotificationService,
+        private readonly libraryService: Pick<LibraryService, 'getTitle' | 'whenReady'>,
+        private readonly authorizationService: Pick<AuthorizationService, 'getSessionUser'>,
+        notificationService: Pick<NotificationService, 'addListener'>,
         private readonly api: TabletopApi
     ) {
         notificationService.addListener(this.NotificationListener)
@@ -148,7 +150,9 @@ export class GameService implements GameServiceInterface {
     }
 
     async loadGames() {
-        if (!this.loadingPromise) {
+        if (this.loadingPromise) {
+            this.currentGamesChanged = true
+        } else {
             this.loading = true
             this.loadingPromise = this.loadCurrentGames().finally(() => {
                 this.loading = false
@@ -163,13 +167,15 @@ export class GameService implements GameServiceInterface {
             this.applyStoredCurrentGames()
         }
         const sessionUser = this.authorizationService.getSessionUser()
-        const [games, localGames] = await Promise.all([
-            this.api.getMyGames('current'),
-            sessionUser ? this.localGameStore.findGamesForUser(sessionUser) : []
-        ])
-        if (this.authorizationService.getSessionUser()?.id !== sessionUser?.id) {
-            return
-        }
+        let fetched: { games: Game[]; localGames: Game[] } | undefined
+        do {
+            this.currentGamesChanged = false
+            fetched = await this.fetchCurrentGames(sessionUser)
+            if (!fetched) {
+                return
+            }
+        } while (this.currentGamesChanged)
+        const { games, localGames } = fetched
 
         const ids = new Set(games.map((game) => game.id))
         games.forEach((game) => {
@@ -188,6 +194,19 @@ export class GameService implements GameServiceInterface {
         if (sessionUser) {
             writeStoredValue(GameService.storedCurrentGamesKey, { userId: sessionUser.id, games })
         }
+    }
+
+    private async fetchCurrentGames(
+        sessionUser: User | undefined
+    ): Promise<{ games: Game[]; localGames: Game[] } | undefined> {
+        const [games, localGames] = await Promise.all([
+            this.api.getMyGames('current'),
+            sessionUser ? this.localGameStore.findGamesForUser(sessionUser) : []
+        ])
+        if (this.authorizationService.getSessionUser()?.id !== sessionUser?.id) {
+            return undefined
+        }
+        return { games, localGames }
     }
 
     private applyStoredCurrentGames() {
@@ -514,6 +533,7 @@ export class GameService implements GameServiceInterface {
                 return
             }
             const game = Value.Convert(Game, notification.data.game) as Game
+            this.currentGamesChanged = true
             if (
                 notification.action === GameNotificationAction.Create ||
                 notification.action === GameNotificationAction.Update

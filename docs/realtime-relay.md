@@ -68,7 +68,7 @@ A dropped connection is handled the same way as a fresh one: new token, new conn
 
 A Realtime Update published while a consumer's reconcile request is in flight can appear in both the response and the stream, and one published while a replacement stream takes over can arrive on both streams. Consumers must ignore Realtime Updates their state already includes. An audit on 2026-10-18 found every reconciling consumer safe against duplicates: the Game Session (`libs/frontend-components/src/lib/model/gameNotifications.ts:71`), the game list (`apps/frontend/src/lib/services/gameService.svelte.ts:526` and `gameListUpdates.ts:52`), chat (`chatService.svelte.ts:225`), and competitions (`competitionUpdates.ts:38`). Chat now also reloads on a game-kind Discontinuity, since its messages arrive on `game-<gameId>`.
 
-The same audit found one consumer unsafe against the reverse case, a reconcile response read before an update the stream already delivered. The game list replaces itself with the response (`gameService.svelte.ts:175`) without refetching, so the older response can undo a newer game update. This exists with Ably today and is to be fixed before the cutover.
+The same audit found one consumer unsafe against the reverse case, a reconcile response read before an update the stream already delivered: the game list replaced itself with the response, so the older response could undo a newer game update. This existed with Ably too. The game list now fetches again whenever a game notification or another load request arrives while a load is running, and applies only a response with nothing newer behind it (`gameService.svelte.ts`, `loadCurrentGames`).
 
 After a connection drops, the client waits a random 0–5 seconds before reconnecting, then backs off exponentially. When the relay closes every connection at once (a restart, a reboot, or a Redis reconnect), this spreads the token requests that would otherwise reach the backend in the same moment. The current SSE client instead retries after a fixed 5 seconds, and an error on one feed closes every feed but retries only that one (`sseConnection.svelte.ts:144`); the relay client replaces it.
 
@@ -129,7 +129,7 @@ The token format, Topic names, event framing and control messages are a contract
 ## Rollout
 
 1. Build the relay, token endpoint and client locally, and verify them through the local hosted site against the devcontainer's Redis. Done on 2026-10-18: a dashboard received another account's invite 14 ms after it was created, and opening and leaving a game swapped streams without reloading the game list.
-2. Fix the game list's older-response case. Create the VM, static IP, firewall rules, service account, secrets and uptime checks, add the `realtime` deploy target, and run the load test on the VM through Caddy. The `events` DNS record is added. Release the backend with dual publishing.
+2. Create the VM, static IP, firewall rules, service account, secrets and uptime checks, add the `realtime` deploy target, and run the load test on the VM through Caddy. The `events` DNS record is added. Release the backend with dual publishing.
 3. Release a frontend that uses the relay, keeping the Ably path behind the flag as the fallback.
 4. Once the relay has proven itself, remove Ably and the SSE routes.
 
