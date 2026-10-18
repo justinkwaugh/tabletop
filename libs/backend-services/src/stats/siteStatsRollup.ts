@@ -8,18 +8,20 @@ import {
     isCountedGame,
     isListedPublicGame,
     MILLISECONDS_PER_DAY,
+    SITE_FILL_TIME_LIMITS_SECONDS,
     SITE_GAME_LENGTH_LIMITS_DAYS,
     SITE_TURN_TIME_LIMITS_SECONDS,
-    utcDayStart,
+    utcDayWindow,
     type Game,
     type GameAction,
     type SiteGameCounts,
     type SiteStatsDay,
     type SiteTitleDay,
+    type TimeWindow,
     type UtcDay
 } from '@tabletop/common'
 import type { ActiveUserSketches } from '../persistence/model/storedSiteStatsMonth.js'
-import type { PlayActions, TimeWindow } from '../persistence/stores/siteStatsStore.js'
+import type { PlayActions } from '../persistence/stores/siteStatsStore.js'
 import { countDistinct, sketchOf } from './hyperLogLog.js'
 
 export type SiteDayGame = Pick<
@@ -79,9 +81,9 @@ class SiteDayTally {
     readonly site = new TitleTally()
     readonly titles = new Map<string, TitleTally>()
     readonly uncountedGamesCreated = { hotseat: 0, forks: 0, explorations: 0 }
-    readonly publicFillTimes = emptyHistogram(SITE_TURN_TIME_LIMITS_SECONDS)
+    readonly publicFillTimes = emptyHistogram(SITE_FILL_TIME_LIMITS_SECONDS)
     readonly gameLengths = emptyHistogram(SITE_GAME_LENGTH_LIMITS_DAYS)
-    systemActions = 0
+    automaticActions = 0
 
     constructor(private readonly window: TimeWindow) {}
 
@@ -95,7 +97,8 @@ class SiteDayTally {
     }
 
     created(game: SiteDayGame) {
-        if (isCountedGame(game)) for (const tally of this.siteAndTitle(game)) tally.games.created += 1
+        if (isCountedGame(game))
+            for (const tally of this.siteAndTitle(game)) tally.games.created += 1
         else if (game.hotseat) this.uncountedGamesCreated.hotseat += 1
         else if (game.parentId !== undefined) this.uncountedGamesCreated.forks += 1
         else if (game.category === GameCategory.Exploration)
@@ -107,7 +110,7 @@ class SiteDayTally {
         if (isListedPublicGame(game) && game.createdAt && game.startedAt)
             addToHistogram(
                 this.publicFillTimes,
-                SITE_TURN_TIME_LIMITS_SECONDS,
+                SITE_FILL_TIME_LIMITS_SECONDS,
                 (game.startedAt.getTime() - game.createdAt.getTime()) / 1000
             )
     }
@@ -130,11 +133,9 @@ class SiteDayTally {
         let previousTurn: GameAction | undefined
         for (const action of play.actions) {
             const at = this.timeDuring(action)
-            if (action.source === ActionSource.System) {
-                if (at !== undefined) this.systemActions += 1
-                continue
-            }
             const userId = this.humanUserId(play.game, action)
+            if (at !== undefined && userId === undefined) this.automaticActions += 1
+            if (action.source === ActionSource.System) continue
             if (at !== undefined && userId !== undefined) {
                 const turnStartedAt = this.turnStart(play, previousTurn, action)
                 for (const tally of tallies) {
@@ -157,12 +158,14 @@ class SiteDayTally {
         previousTurn: GameAction | undefined,
         action: GameAction
     ): number | undefined {
-        if (!previousTurn) return play.includesFirstAction ? play.game.startedAt?.getTime() : undefined
+        if (!previousTurn)
+            return play.includesFirstAction ? play.game.startedAt?.getTime() : undefined
         if (previousTurn.playerId === action.playerId) return undefined
         return previousTurn.createdAt?.getTime()
     }
 
     private humanUserId(game: SiteDayGame, action: GameAction): string | undefined {
+        if (action.source === ActionSource.System) return undefined
         const player = game.players.find((candidate) => candidate.id === action.playerId)
         return player?.isHuman ? player.userId : undefined
     }
@@ -174,11 +177,7 @@ class SiteDayTally {
 }
 
 export function summarizeSiteDay(source: SiteDaySource, computedAt: number): SiteDayRollup {
-    const start = utcDayStart(source.day)
-    const tally = new SiteDayTally({
-        start,
-        end: new Date(start.getTime() + MILLISECONDS_PER_DAY)
-    })
+    const tally = new SiteDayTally(utcDayWindow(source.day))
     for (const game of source.createdGames) tally.created(game)
     for (const game of source.startedGames.filter(isCountedGame)) tally.started(game)
     for (const game of source.finishedGames.filter(isCountedGame)) tally.finished(game)
@@ -210,7 +209,7 @@ export function summarizeSiteDay(source: SiteDaySource, computedAt: number): Sit
             games: tally.site.games,
             uncountedGamesCreated: tally.uncountedGamesCreated,
             userActions: tally.site.userActions,
-            systemActions: tally.systemActions,
+            automaticActions: tally.automaticActions,
             activeUsers: tally.site.users.size,
             activeUsers7d: trailing(7),
             activeUsers28d: trailing(28),

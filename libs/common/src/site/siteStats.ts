@@ -7,7 +7,12 @@ export const SITE_TURN_TIME_LIMITS_SECONDS = [
     30, 60, 120, 300, 600, 1200, 1800, 3600, 7200, 10800, 14400, 21600, 28800, 43200, 57600, 86400,
     129600, 172800, 259200, 432000, 604800
 ]
+export const SITE_FILL_TIME_LIMITS_SECONDS = [
+    600, 3600, 14400, 43200, 86400, 259200, 604800, 1209600
+]
 export const SITE_GAME_LENGTH_LIMITS_DAYS = [1, 3, 7, 14, 28, 61]
+
+export type TimeWindow = { start: Date; end: Date }
 
 export const UtcDay = Type.String({ pattern: '^\\d{4}-\\d{2}-\\d{2}$' })
 export type UtcDay = Type.Static<typeof UtcDay>
@@ -55,7 +60,7 @@ export const SiteStatsDay = Type.Object(
             { additionalProperties: false }
         ),
         userActions: Count,
-        systemActions: Count,
+        automaticActions: Count,
         activeUsers: Count,
         activeUsers7d: Count,
         activeUsers28d: Count,
@@ -83,7 +88,7 @@ export type SiteStatsRange = Type.Static<typeof SiteStatsRange>
 export const SiteStatsReport = Type.Object(
     {
         rolledFrom: Type.Optional(UtcDay),
-        rolledThrough: Type.Optional(UtcDay),
+        latest: Type.Optional(SiteStatsDay),
         current: SiteStatsRange,
         previous: SiteStatsRange
     },
@@ -126,6 +131,11 @@ export function utcDayStart(day: UtcDay): Date {
     return new Date(`${day}T00:00:00.000Z`)
 }
 
+export function utcDayWindow(day: UtcDay): TimeWindow {
+    const start = utcDayStart(day)
+    return { start, end: new Date(start.getTime() + MILLISECONDS_PER_DAY) }
+}
+
 export function addUtcDays(day: UtcDay, days: number): UtcDay {
     return utcDayOf(new Date(utcDayStart(day).getTime() + days * MILLISECONDS_PER_DAY))
 }
@@ -136,7 +146,11 @@ export function isRealUtcDay(day: UtcDay): boolean {
 }
 
 export function utcDayCount(from: UtcDay, to: UtcDay): number {
-    return Math.round((utcDayStart(to).getTime() - utcDayStart(from).getTime()) / MILLISECONDS_PER_DAY) + 1
+    return (
+        Math.round(
+            (utcDayStart(to).getTime() - utcDayStart(from).getTime()) / MILLISECONDS_PER_DAY
+        ) + 1
+    )
 }
 
 export function utcMonthOf(day: UtcDay): string {

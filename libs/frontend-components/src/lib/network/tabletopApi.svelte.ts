@@ -139,11 +139,13 @@ export class TabletopApi {
             .options({ credentials: 'include' })
     }
 
-    getTitlePreferences?: (titleId: string, userId: string) => Promise<PreferenceResponse> =
-        async (titleId, userId) => {
-            const response = await this.wretch.get(this.preferenceUrl(titleId, userId)).res()
-            return this.preferenceResponse(response)
-        }
+    getTitlePreferences?: (titleId: string, userId: string) => Promise<PreferenceResponse> = async (
+        titleId,
+        userId
+    ) => {
+        const response = await this.wretch.get(this.preferenceUrl(titleId, userId)).res()
+        return this.preferenceResponse(response)
+    }
 
     updateTitlePreferences?: (
         titleId: string,
@@ -989,7 +991,9 @@ export class TabletopApi {
 
     async getSiteStatsReport(range: UtcDayRange): Promise<SiteStatsReport> {
         const response = await this.wretch
-            .get(`/admin/stats/report?from=${range.from}&to=${range.to}`)
+            .get(
+                `/admin/stats/report?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
+            )
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<unknown>()

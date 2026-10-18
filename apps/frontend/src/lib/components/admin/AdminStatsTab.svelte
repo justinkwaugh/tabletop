@@ -35,11 +35,14 @@
     let rebuildNote = $state('')
     const requests = new LatestRequest()
 
-    const rolledThrough = $derived(report?.rolledThrough)
+    const rolledThrough = $derived(report?.latest?.day)
     const daysBehind = $derived(
         rolledThrough && rolledThrough < yesterday ? utcDayCount(rolledThrough, yesterday) - 1 : 0
     )
-    const computedAt = $derived(report?.current.days.at(-1)?.computedAt)
+    const computedAt = $derived(report?.latest?.computedAt)
+    const startsBeforeHistory = $derived(
+        report?.rolledFrom !== undefined && range.from < report.rolledFrom
+    )
 
     async function load() {
         const request = requests.begin()
@@ -148,7 +151,10 @@
     {/if}
 
     {#if report && now}
-        <h2>{formatUtcRange(range)}</h2>
+        <h2>
+            {formatUtcRange(range)}{#if startsBeforeHistory && report.rolledFrom}
+                · history starts {formatUtcDate(report.rolledFrom)}{/if}
+        </h2>
         <StatFigures figures={rangeFigures(report)} />
         <SiteStatsPanels {report} {now} />
         <p class="footnote">

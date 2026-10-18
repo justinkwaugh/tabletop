@@ -137,7 +137,9 @@ export function summarizeUserGames(
 }
 
 export function isCountedGame(game: Pick<Game, 'hotseat' | 'parentId' | 'category'>): boolean {
-    return !game.hotseat && game.parentId === undefined && game.category !== GameCategory.Exploration
+    return (
+        !game.hotseat && game.parentId === undefined && game.category !== GameCategory.Exploration
+    )
 }
 
 function countedGameFacts(game: GameStatsSource, userId: string): CountedGameFacts | undefined {

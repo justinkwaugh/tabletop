@@ -10,25 +10,25 @@ import {
     UserStatus,
     UtcDay,
     utcDayOf,
-    utcDayStart,
+    utcDayWindow,
     utcRangeProblem,
     type Game,
     type SiteStatsDay,
     type SiteStatsRange,
     type SiteStatsReport,
+    type TimeWindow,
     type UtcDayRange
 } from '@tabletop/common'
 import { nanoid } from 'nanoid'
 import { Type, type Static } from 'typebox'
 import * as Value from 'typebox/value'
-import type { MissedValueProducer } from '../cache/cacheService.js'
-import type { StoredSiteStatsMonth } from '../persistence/model/storedSiteStatsMonth.js'
+import type { RedisCacheService } from '../cache/cacheService.js'
+import type { SiteStatsMonth } from '../persistence/model/storedSiteStatsMonth.js'
 import type {
     SiteStatsGameSource,
     SiteStatsStore,
     SiteStatsSubscriptionSource,
-    SiteStatsUserSource,
-    TimeWindow
+    SiteStatsUserSource
 } from '../persistence/stores/siteStatsStore.js'
 import type { TaskService } from '../tasks/taskService.js'
 import { TransportType } from '../notifications/transports/notificationTransport.js'
@@ -57,10 +57,6 @@ const NOW_CACHE_SECONDS = 10 * 60
 
 type RolledDay = EarlierActiveUsers & { stats: SiteStatsDay }
 
-export type SiteStatsCache = {
-    cachingGet(key: string, produce: MissedValueProducer, forSeconds: number): Promise<unknown>
-}
-
 export type SiteStatsSources = {
     games: SiteStatsGameSource
     users: SiteStatsUserSource
@@ -78,7 +74,7 @@ export class SiteStatsService {
         private readonly sources: SiteStatsSources,
         private readonly store: SiteStatsStore,
         private readonly tasks: Pick<TaskService, 'createPushTask'>,
-        private readonly cache: SiteStatsCache,
+        private readonly cache: Pick<RedisCacheService, 'cachingGet'>,
         private readonly now: () => Date = () => new Date()
     ) {}
 
@@ -102,8 +98,8 @@ export class SiteStatsService {
     async startDailyRollup(): Promise<string> {
         const yesterday = this.yesterday()
         const settled = addUtcDays(yesterday, -SETTLING_DAYS)
-        const { to: latest } = await this.store.findRolledDays()
-        const firstMissing = latest === undefined ? settled : addUtcDays(latest, 1)
+        const { latest } = await this.store.findRolledDays()
+        const firstMissing = latest === undefined ? settled : addUtcDays(latest.day, 1)
         return this.startRollup({
             from: firstMissing < settled ? firstMissing : settled,
             to: yesterday
@@ -123,10 +119,12 @@ export class SiteStatsService {
     }
 
     async rollupDay(day: UtcDay): Promise<SiteStatsDay> {
-        const startedAt = Date.now()
-        const start = utcDayStart(day)
-        const window: TimeWindow = { start, end: new Date(start.getTime() + MILLISECONDS_PER_DAY) }
-        const earlierRange = { from: addUtcDays(day, -EARLIER_ACTIVE_USER_DAYS), to: addUtcDays(day, -1) }
+        const startedAt = this.now().getTime()
+        const window = utcDayWindow(day)
+        const earlierRange = {
+            from: addUtcDays(day, -EARLIER_ACTIVE_USER_DAYS),
+            to: addUtcDays(day, -1)
+        }
         const { games, users } = this.sources
         const [newUsers, createdGames, startedGames, finishedGames, gamesInPlay, earlierMonths] =
             await Promise.all([
@@ -138,6 +136,7 @@ export class SiteStatsService {
                 this.store.findMonths(earlierRange)
             ])
         const plays = await this.readPlays(gamesInPlay.filter(isCountedGame), window)
+        const computedAt = this.now().getTime()
         const { stats, activeUsers } = summarizeSiteDay(
             {
                 day,
@@ -148,11 +147,11 @@ export class SiteStatsService {
                 plays,
                 earlierActiveUsers: this.rolledDaysIn(earlierMonths, earlierRange)
             },
-            this.now().getTime()
+            computedAt
         )
         const saved = {
             ...stats,
-            rollup: { gamesInPlay: plays.length, durationMs: Date.now() - startedAt }
+            rollup: { gamesInPlay: plays.length, durationMs: computedAt - startedAt }
         }
         await this.store.saveDay(saved, activeUsers)
         return saved
@@ -167,15 +166,15 @@ export class SiteStatsService {
             this.store.findRolledDays()
         ])
         return {
-            rolledFrom: rolled.from,
-            rolledThrough: rolled.to,
+            rolledFrom: rolled.first,
+            latest: rolled.latest,
             current: this.summarizeRange(range, this.rolledDaysIn(months, range)),
             previous: this.summarizeRange(previous, this.rolledDaysIn(months, previous))
         }
     }
 
     async getNow(): Promise<SiteStatsNow> {
-        const now = await this.cache.cachingGet(
+        const now = await this.cache.cachingGet<unknown>(
             NOW_CACHE_KEY,
             () => this.countNow(),
             NOW_CACHE_SECONDS
@@ -243,7 +242,7 @@ export class SiteStatsService {
         return plays
     }
 
-    private rolledDaysIn(months: readonly StoredSiteStatsMonth[], range: UtcDayRange): RolledDay[] {
+    private rolledDaysIn(months: readonly SiteStatsMonth[], range: UtcDayRange): RolledDay[] {
         return months
             .flatMap((month) =>
                 Object.entries(month.days).map(([day, stats]) => {
@@ -258,7 +257,7 @@ export class SiteStatsService {
 
     private summarizeRange(range: UtcDayRange, days: readonly RolledDay[]): SiteStatsRange {
         const sketches = days.map((day) => day.activeUsers)
-        const titleIds = new Set(sketches.flatMap((sketch) => Object.keys(sketch.titles)))
+        const titleIds = new Set(days.flatMap((day) => Object.keys(day.stats.titles)))
         return {
             ...range,
             days: days.map((day) => day.stats),
@@ -279,7 +278,12 @@ export class SiteStatsService {
     }
 
     private async enqueue(payload: SiteStatsRollupTask): Promise<void> {
-        await this.tasks.createPushTask({ queue: 'maintenance', path: '/stats/rollup', payload })
+        await this.tasks.createPushTask({
+            queue: 'maintenance',
+            path: '/stats/rollup',
+            payload,
+            uniqueName: `site-stats-${payload.runId}-${payload.day}`
+        })
     }
 
     private report(runId: string, event: string, detail: object): void {

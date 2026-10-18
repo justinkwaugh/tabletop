@@ -1,6 +1,7 @@
 <script lang="ts">
     import {
         histogramQuantile,
+        SITE_FILL_TIME_LIMITS_SECONDS,
         SITE_GAME_LENGTH_LIMITS_DAYS,
         SITE_TURN_TIME_LIMITS_SECONDS,
         type SiteStatsNow,
@@ -14,6 +15,7 @@
         chartSlots,
         formatDays,
         formatDuration,
+        formatUtcDate,
         gameSeries,
         newUserSeries,
         rangeTotals,
@@ -40,14 +42,14 @@
     const totals = $derived(rangeTotals(current.days))
     const turns = $derived(turnSummary(totals.turnTimes))
     const fillMedian = $derived(
-        histogramQuantile(SITE_TURN_TIME_LIMITS_SECONDS, totals.publicFillTimes, 0.5)
+        histogramQuantile(SITE_FILL_TIME_LIMITS_SECONDS, totals.publicFillTimes, 0.5)
     )
     const gameMedian = $derived(
         histogramQuantile(SITE_GAME_LENGTH_LIMITS_DAYS, totals.gameLengths, 0.5)
     )
     const rows = $derived(titleRows(current))
     const peakTitleActions = $derived(Math.max(1, ...rows.map((row) => row.userActions)))
-    const lastRollup = $derived(current.days.at(-1))
+    const latest = $derived(report.latest)
     const uncounted = $derived(totals.uncountedGamesCreated)
 
     function titleName(titleId: string) {
@@ -67,7 +69,9 @@
     <section class="panel wide">
         <h3>
             User actions per {period}
-            <span>{totals.systemActions.toLocaleString()} automatic actions not counted</span>
+            <span
+                >{totals.automaticActions.toLocaleString()} automatic and bot actions not counted</span
+            >
         </h3>
         <SiteStatsChart
             caption={`User actions per ${period}`}
@@ -150,11 +154,11 @@
             <dd>
                 {now.notificationClients.webPush} web push · {now.notificationClients.discord} Discord
             </dd>
-            {#if lastRollup}
-                <dt>Last day rolled up</dt>
+            {#if latest}
+                <dt>Latest day rolled up</dt>
                 <dd>
-                    {lastRollup.rollup.gamesInPlay} games read in {(
-                        lastRollup.rollup.durationMs / 1000
+                    {formatUtcDate(latest.day)}: {latest.rollup.gamesInPlay} games read in {(
+                        latest.rollup.durationMs / 1000
                     ).toFixed(1)} s
                 </dd>
             {/if}

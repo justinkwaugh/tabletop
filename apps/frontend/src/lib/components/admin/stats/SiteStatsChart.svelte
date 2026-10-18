@@ -1,13 +1,16 @@
 <script lang="ts">
     import { siteChart, type SiteChartSeries } from '$lib/utils/siteStatsChart'
+    import ChartDataTable from '$lib/components/stats/ChartDataTable.svelte'
+    import ChartHoverSlots from '$lib/components/stats/ChartHoverSlots.svelte'
+    import ChartKey from '$lib/components/stats/ChartKey.svelte'
+    import ChartTooltip from '$lib/components/stats/ChartTooltip.svelte'
 
     let {
         caption,
         labels,
         series,
         height = 200
-    }: { caption: string; labels: string[]; series: SiteChartSeries[]; height?: number } =
-        $props()
+    }: { caption: string; labels: string[]; series: SiteChartSeries[]; height?: number } = $props()
 
     let width = $state(0)
     let hoveredIndex = $state<number>()
@@ -28,103 +31,98 @@
     function formatValue(value: number | undefined) {
         return value === undefined ? 'not rolled up' : value.toLocaleString()
     }
+
+    function toneColor(entry: SiteChartSeries) {
+        return `var(--tone-${entry.tone})`
+    }
 </script>
 
 <div class="site-chart">
-<div class="chart" bind:clientWidth={width}>
-    {#if chart}
-        <svg
-            viewBox={`0 0 ${width} ${height}`}
-            {height}
-            aria-hidden="true"
-            onpointerleave={() => (hoveredIndex = undefined)}
-        >
-            {#each chart.gridlines as line (line.value)}
-                <line
-                    class="grid"
-                    class:baseline={line.value === 0}
-                    x1={chart.plotLeft}
-                    x2={width}
-                    y1={line.y}
-                    y2={line.y}
-                ></line>
-                <text x={chart.plotLeft - 8} y={line.y + 4} text-anchor="end">{line.label}</text>
-            {/each}
-            {#each chart.slots as slot, index (index)}
-                {#each slot.columns as column (column.key)}
-                    <path class="column {tones.get(column.key)}" d={column.path}></path>
+    <div class="chart" bind:clientWidth={width}>
+        {#if chart}
+            <svg
+                viewBox={`0 0 ${width} ${height}`}
+                {height}
+                aria-hidden="true"
+                onpointerleave={() => (hoveredIndex = undefined)}
+            >
+                {#each chart.gridlines as line (line.value)}
+                    <line
+                        class="grid"
+                        class:baseline={line.value === 0}
+                        x1={chart.plotLeft}
+                        x2={width}
+                        y1={line.y}
+                        y2={line.y}
+                    ></line>
+                    <text x={chart.plotLeft - 8} y={line.y + 4} text-anchor="end">{line.label}</text
+                    >
                 {/each}
-                {#if slot.label}
-                    <text x={slot.centerX} y={height - 4} text-anchor="middle">{slot.label}</text>
+                {#each chart.slots as slot, index (index)}
+                    {#each slot.columns as column (column.key)}
+                        <path class="column {tones.get(column.key)}" d={column.path}></path>
+                    {/each}
+                    {#if slot.label}
+                        <text x={slot.centerX} y={height - 4} text-anchor="middle"
+                            >{slot.label}</text
+                        >
+                    {/if}
+                {/each}
+                {#each chart.lines as line (line.key)}
+                    <path class="line {tones.get(line.key)}" d={line.path}></path>
+                {/each}
+                {#if hovered}
+                    <line
+                        class="cursor"
+                        x1={hovered.centerX}
+                        x2={hovered.centerX}
+                        y1="0"
+                        y2={chart.plotBottom}
+                    ></line>
                 {/if}
-            {/each}
-            {#each chart.lines as line (line.key)}
-                <path class="line {tones.get(line.key)}" d={line.path}></path>
-            {/each}
-            {#if hovered}
-                <line
-                    class="cursor"
-                    x1={hovered.centerX}
-                    x2={hovered.centerX}
-                    y1="0"
-                    y2={chart.plotBottom}
-                ></line>
-            {/if}
-            {#each chart.slots as slot, index (index)}
-                <rect
-                    class="slot"
-                    role="presentation"
-                    x={slot.slotX}
-                    y="0"
+                <ChartHoverSlots
+                    slotXs={chart.slots.map((slot) => slot.slotX)}
                     width={chart.slotWidth}
                     height={chart.plotBottom}
-                    onpointerenter={() => (hoveredIndex = index)}
-                ></rect>
-            {/each}
-        </svg>
-        {#if hovered && hoveredIndex !== undefined}
-            <div
-                class="tooltip"
-                class:trailing={hovered.centerX > width / 2}
-                style:left={`${hovered.centerX}px`}
-                style:top={`${hovered.topY - 6}px`}
-            >
-                <div class="tooltip-title">{labels[hoveredIndex]}</div>
-                {#each series as entry (entry.key)}
-                    <div>
-                        <span class="swatch {entry.tone}"></span>{entry.name}: {formatValue(
-                            entry.values[hoveredIndex]
-                        )}
-                    </div>
-                {/each}
-            </div>
+                    onhover={(index) => (hoveredIndex = index)}
+                />
+            </svg>
+            {#if hovered && hoveredIndex !== undefined}
+                {@const index = hoveredIndex}
+                <ChartTooltip
+                    x={hovered.centerX}
+                    y={hovered.topY}
+                    trailing={hovered.centerX > width / 2}
+                >
+                    <div class="tooltip-title">{labels[index]}</div>
+                    {#each series as entry (entry.key)}
+                        <div>
+                            <span class="swatch" style:background={toneColor(entry)}
+                            ></span>{entry.name}:
+                            {formatValue(entry.values[index])}
+                        </div>
+                    {/each}
+                </ChartTooltip>
+            {/if}
         {/if}
+    </div>
+    {#if series.length > 1}
+        <ChartKey
+            entries={series.map((entry) => ({
+                label: entry.name,
+                color: toneColor(entry),
+                thin: entry.kind === 'line'
+            }))}
+        />
     {/if}
-</div>
-{#if series.length > 1}
-    <ul class="key" aria-hidden="true">
-        {#each series as entry (entry.key)}
-            <li><span class="swatch {entry.tone}" class:thin={entry.kind === 'line'}></span>{entry.name}</li>
-        {/each}
-    </ul>
-{/if}
-<table class="sr-only">
-    <caption>{caption}</caption>
-    <thead>
-        <tr>
-            <th>Period</th>
-            {#each series as entry (entry.key)}<th>{entry.name}</th>{/each}
-        </tr>
-    </thead>
-    <tbody>
-        {#each labels as label, index (index)}
-            <tr>
-                <td>{label}</td>
-                {#each series as entry (entry.key)}<td>{formatValue(entry.values[index])}</td>{/each}
-            </tr>
-        {/each}
-    </tbody>
-</table>
+    <ChartDataTable
+        {caption}
+        headers={['Period', ...series.map((entry) => entry.name)]}
+        rows={labels.map((label, index) => [
+            label,
+            ...series.map((entry) => formatValue(entry.values[index]))
+        ])}
+    />
 </div>
 
 <style>
@@ -177,34 +175,8 @@
     path.line.green {
         stroke: var(--tone-green);
     }
-    .slot {
-        fill: transparent;
-    }
-    .tooltip {
-        position: absolute;
-        z-index: 1;
-        pointer-events: none;
-        transform: translate(-12px, -100%);
-        background: var(--color-gray-100);
-        color: var(--color-gray-900);
-        border-radius: 6px;
-        padding: 6px 9px;
-        font-size: 12px;
-        white-space: nowrap;
-    }
-    .tooltip.trailing {
-        transform: translate(calc(-100% + 12px), -100%);
-    }
     .tooltip-title {
         font-weight: 600;
-    }
-    .key {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px 18px;
-        margin-top: 10px;
-        color: var(--color-gray-400);
-        font-size: 12px;
     }
     .swatch {
         display: inline-block;
@@ -212,18 +184,5 @@
         height: 10px;
         border-radius: 2px;
         margin-right: 6px;
-    }
-    .swatch.thin {
-        height: 3px;
-        vertical-align: middle;
-    }
-    .swatch.blue {
-        background: var(--tone-blue);
-    }
-    .swatch.orange {
-        background: var(--tone-orange);
-    }
-    .swatch.green {
-        background: var(--tone-green);
     }
 </style>

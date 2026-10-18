@@ -3,14 +3,15 @@ import type {
     GameAction,
     GameStatus,
     SiteStatsDay,
+    TimeWindow,
     UserStatus,
+    UtcDay,
     UtcDayRange
 } from '@tabletop/common'
-import type { ActiveUserSketches, StoredSiteStatsMonth } from '../model/storedSiteStatsMonth.js'
+import type { ActiveUserSketches, SiteStatsMonth } from '../model/storedSiteStatsMonth.js'
+import type { TransportType } from '../../notifications/transports/notificationTransport.js'
 
 export type GameTimestampField = 'createdAt' | 'startedAt' | 'finishedAt'
-
-export type TimeWindow = { start: Date; end: Date }
 
 export type PlayActions = {
     actions: GameAction[]
@@ -32,11 +33,13 @@ export interface SiteStatsUserSource {
 }
 
 export interface SiteStatsSubscriptionSource {
-    countSubscriptionsWithTransport(transport: string): Promise<number>
+    countSubscriptionsWithTransport(transport: TransportType): Promise<number>
 }
+
+export type RolledDays = { first?: UtcDay; latest?: SiteStatsDay }
 
 export interface SiteStatsStore {
     saveDay(stats: SiteStatsDay, activeUsers: ActiveUserSketches): Promise<void>
-    findMonths(range: UtcDayRange): Promise<StoredSiteStatsMonth[]>
-    findRolledDays(): Promise<Partial<UtcDayRange>>
+    findMonths(range: UtcDayRange): Promise<SiteStatsMonth[]>
+    findRolledDays(): Promise<RolledDays>
 }

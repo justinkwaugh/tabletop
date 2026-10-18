@@ -11,6 +11,7 @@ import { BaseError } from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
 import { NotificationStore } from '../stores/notificationStore.js'
 import type { SiteStatsSubscriptionSource } from '../stores/siteStatsStore.js'
+import type { TransportType } from '../../notifications/transports/notificationTransport.js'
 import { StoredPushTopic } from '../model/storedPushTopic.js'
 import { PushClient } from '../../notifications/pushClient.js'
 import { PushTopic } from '../../notifications/pushTopic.js'
@@ -196,7 +197,7 @@ export class FirestoreNotificationStore implements NotificationStore, SiteStatsS
         }
     }
 
-    async countSubscriptionsWithTransport(transport: string): Promise<number> {
+    async countSubscriptionsWithTransport(transport: TransportType): Promise<number> {
         try {
             const snapshot = await this.notificationSubscriptions
                 .where('transport', '==', transport)

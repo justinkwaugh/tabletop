@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { assert } from '@tabletop/common'
 import { Type, type Static } from 'typebox'
 
 const PRECISION = 12
@@ -29,7 +30,9 @@ export function countDistinct(sketches: readonly DistinctSketch[]): number {
         if ('hashes' in sketch) for (const hash of sketch.hashes) hashes.add(hash)
         else {
             dense = true
-            mergeInto(registers, new Uint8Array(Buffer.from(sketch.registers, 'base64')))
+            const stored = new Uint8Array(Buffer.from(sketch.registers, 'base64'))
+            assert(stored.length === REGISTERS, `A sketch holds ${REGISTERS} registers`)
+            mergeInto(registers, stored)
         }
     }
     if (!dense) return hashes.size

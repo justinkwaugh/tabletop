@@ -1,5 +1,12 @@
 import { Timed, measure } from '../../diagnostics/requestTimings.js'
-import { BaseError, ExternalAuthService, Role, User, UserStatus } from '@tabletop/common'
+import {
+    BaseError,
+    ExternalAuthService,
+    Role,
+    User,
+    UserStatus,
+    type TimeWindow
+} from '@tabletop/common'
 import { requestForKey } from './cacheRequests.js'
 import {
     CollectionReference,
@@ -21,7 +28,7 @@ import {
 } from '../stores/errors.js'
 
 import { UserStore } from '../stores/userStore.js'
-import type { SiteStatsUserSource, TimeWindow } from '../stores/siteStatsStore.js'
+import type { SiteStatsUserSource } from '../stores/siteStatsStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import { RedisCacheService } from '../../cache/cacheService.js'

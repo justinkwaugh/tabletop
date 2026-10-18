@@ -29,7 +29,7 @@ function day(date: string, overrides: Partial<SiteStatsDay> = {}): SiteStatsDay 
         games: { created: 2, started: 1, finished: 1, abandoned: 0 },
         uncountedGamesCreated: { hotseat: 1, forks: 0, explorations: 0 },
         userActions: 10,
-        systemActions: 4,
+        automaticActions: 4,
         activeUsers: 3,
         activeUsers7d: 5,
         activeUsers28d: 8,
@@ -51,16 +51,21 @@ describe('site stats ranges', () => {
     })
 
     it('compares range figures with the period before', () => {
-        const figures = rangeFigures({
+        const report = {
+            rolledFrom: '2026-10-01',
             current: range('2026-10-16', '2026-10-17', [day('2026-10-16'), day('2026-10-17')]),
             previous: { ...range('2026-10-14', '2026-10-15', [day('2026-10-14')]), activeUsers: 2 }
-        })
+        }
+        const figures = rangeFigures(report)
         expect(figures[0]).toEqual({
             value: '20',
             label: 'user actions',
             note: '+100% vs previous 2 days'
         })
         expect(figures[1].note).toBe('+100% vs previous 2 days · 5 actions each')
+        const partial = rangeFigures({ ...report, rolledFrom: '2026-10-15' })
+        expect(partial[0].note).toBeUndefined()
+        expect(partial[1].note).toBe('5 actions each')
     })
 
     it('gives one slot per day and leaves days not rolled up empty', () => {
@@ -89,7 +94,7 @@ describe('site stats totals', () => {
         expect(totals).toMatchObject({
             newUsers: 2,
             userActions: 20,
-            systemActions: 8,
+            automaticActions: 8,
             uncountedGamesCreated: { hotseat: 2, forks: 0, explorations: 0 },
             games: { created: 4, started: 2, finished: 2, abandoned: 0 }
         })
@@ -108,7 +113,9 @@ describe('site stats totals', () => {
                 day('2026-10-17', { titles: { sol: title(4) } })
             ])
         )
-        expect(rows.map((row) => [row.titleId, row.userActions, row.games.created, row.activeUsers])).toEqual([
+        expect(
+            rows.map((row) => [row.titleId, row.userActions, row.games.created, row.activeUsers])
+        ).toEqual([
             ['sol', 9, 2, 3],
             ['kaivai', 7, 1, 2]
         ])
@@ -122,7 +129,11 @@ describe('turn time display', () => {
         fine[1] = 2
         fine[2] = 3
         fine[fine.length - 1] = 4
-        const grouped = regroupHistogram(fine, SITE_TURN_TIME_LIMITS_SECONDS, TURN_TIME_DISPLAY_LIMITS)
+        const grouped = regroupHistogram(
+            fine,
+            SITE_TURN_TIME_LIMITS_SECONDS,
+            TURN_TIME_DISPLAY_LIMITS
+        )
         expect(grouped[0]).toBe(3)
         expect(grouped[1]).toBe(3)
         expect(grouped.at(-1)).toBe(4)

@@ -6,6 +6,7 @@ import {
     histogramBucket,
     histogramTotal,
     PlayerStatus,
+    SITE_FILL_TIME_LIMITS_SECONDS,
     SITE_GAME_LENGTH_LIMITS_DAYS,
     SITE_TURN_TIME_LIMITS_SECONDS,
     type GameAction
@@ -106,7 +107,9 @@ describe('site day rollup', () => {
             abandoned: 1
         })
         expect(stats.titles['kaivai'].games.created).toBe(1)
-        expect(stats.publicFillTimes[bucket(3 * 3600)]).toBe(1)
+        expect(
+            stats.publicFillTimes[histogramBucket(SITE_FILL_TIME_LIMITS_SECONDS, 3 * 3600)]
+        ).toBe(1)
         expect(stats.gameLengths[histogramBucket(SITE_GAME_LENGTH_LIMITS_DAYS, 1.125)]).toBe(1)
     })
 
@@ -123,7 +126,7 @@ describe('site day rollup', () => {
             source({ plays: [{ game: game('g1'), actions, includesFirstAction: false }] }),
             1
         )
-        expect(stats).toMatchObject({ userActions: 3, systemActions: 1, activeUsers: 2 })
+        expect(stats).toMatchObject({ userActions: 3, automaticActions: 1, activeUsers: 2 })
         expect(activeUsers.users).toEqual(sketchOf(['user-a', 'user-b']))
         expect(histogramTotal(stats.turnTimes)).toBe(2)
         expect(stats.turnTimes[bucket(90 * 60)]).toBe(1)
@@ -131,14 +134,26 @@ describe('site day rollup', () => {
         expect(stats.titles['sol']).toMatchObject({ userActions: 3, activeUsers: 2 })
     })
 
-    it("times a human's turn from a bot's move, without counting the bot", () => {
-        const turns = turnsTaken([
-            action('a', before('23:00:00')),
-            action('bot', at('01:00:00')),
-            action('a', at('01:10:00'))
-        ])
-        expect(histogramTotal(turns)).toBe(1)
-        expect(turns[bucket(600)]).toBe(1)
+    it("times a human's turn from a bot's move and counts the bot as automatic", () => {
+        const { stats } = summarizeSiteDay(
+            source({
+                plays: [
+                    {
+                        game: game('g1'),
+                        actions: [
+                            action('a', before('23:00:00')),
+                            action('bot', at('01:00:00')),
+                            action('a', at('01:10:00'))
+                        ],
+                        includesFirstAction: false
+                    }
+                ]
+            }),
+            1
+        )
+        expect(stats).toMatchObject({ userActions: 1, automaticActions: 1 })
+        expect(histogramTotal(stats.turnTimes)).toBe(1)
+        expect(stats.turnTimes[bucket(600)]).toBe(1)
     })
 
     it('times each simultaneous player from the move before theirs', () => {

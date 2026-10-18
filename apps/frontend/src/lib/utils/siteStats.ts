@@ -4,6 +4,7 @@ import {
     histogramQuantile,
     histogramShareBelow,
     histogramTotal,
+    SITE_FILL_TIME_LIMITS_SECONDS,
     SITE_GAME_LENGTH_LIMITS_DAYS,
     SITE_TURN_TIME_LIMITS_SECONDS,
     sumHistograms,
@@ -39,7 +40,7 @@ export type RangeTotals = Pick<
     | 'games'
     | 'uncountedGamesCreated'
     | 'userActions'
-    | 'systemActions'
+    | 'automaticActions'
     | 'turnTimes'
     | 'publicFillTimes'
     | 'gameLengths'
@@ -165,9 +166,12 @@ export function rangeTotals(days: readonly SiteStatsDay[]): RangeTotals {
             explorations: sum(days, (day) => day.uncountedGamesCreated.explorations)
         },
         userActions: sum(days, (day) => day.userActions),
-        systemActions: sum(days, (day) => day.systemActions),
+        automaticActions: sum(days, (day) => day.automaticActions),
         turnTimes: turnHistogram(days.map((day) => day.turnTimes)),
-        publicFillTimes: turnHistogram(days.map((day) => day.publicFillTimes)),
+        publicFillTimes: sumHistograms(
+            SITE_FILL_TIME_LIMITS_SECONDS,
+            days.map((day) => day.publicFillTimes)
+        ),
         gameLengths: sumHistograms(
             SITE_GAME_LENGTH_LIMITS_DAYS,
             days.map((day) => day.gameLengths)
@@ -266,8 +270,9 @@ export function rangeFigures(report: SiteStatsReport): StatFigure[] {
     const earlier = rangeTotals(previous.days)
     const turns = turnSummary(totals.turnTimes)
     const days = utcDayCount(current.from, current.to)
+    const comparable = report.rolledFrom !== undefined && previous.from >= report.rolledFrom
     const change = (now: number, before: number) => {
-        const ratio = changeFrom(now, before)
+        const ratio = comparable ? changeFrom(now, before) : undefined
         if (ratio === undefined) return undefined
         const sign = ratio > 0 ? '+' : ratio < 0 ? '−' : '±'
         return `${sign}${formatRate(Math.abs(ratio))} vs previous ${days} days`
