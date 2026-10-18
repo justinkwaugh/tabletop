@@ -168,7 +168,7 @@ describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Sea
         expect(() => play(INN, SearchPlay.Site, { modifiers: [modifierUse(AUGURY)] }).apply(s)).toThrow(/this play draws nothing/)
     })
 
-    it('R-11-H-Marshes — at the Marshes, Mushrooms is refused for the same reason, not for its count', () => {
+    it('R-11.11-H1 — at the Marshes, Mushrooms is refused for the same reason, not for its count', () => {
         const s = table(INN, [MUSHROOMS], [], OathRevision.EngineFixes12)
         s.siteCards = { ...s.siteCards, c1: 'site.marshes' }
         expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', { cardId: INN, play: SearchPlay.Site, modifiers: [modifierUse(MUSHROOMS)] })).toBe(`${MUSHROOMS} changes a Search's draw, and this play draws nothing`)

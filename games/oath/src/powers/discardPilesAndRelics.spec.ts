@@ -211,7 +211,7 @@ describe('discard piles', () => {
         })
     })
 
-    describe('the Marshes take their one card off what Mushrooms sets (R-11-H-Marshes)', () => {
+    describe('the Marshes take their one card off what Mushrooms sets (R-11.11-H1)', () => {
         const atRevision = OathRevision.EngineFixes12
         const before = OathRevision.EngineFixes11
         const declared = (cardIds: string[]) => cardIds.map((cardId) => modifierUse(cardId))

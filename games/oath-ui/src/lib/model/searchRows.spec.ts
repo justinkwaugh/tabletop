@@ -124,7 +124,7 @@ describe('the sources a Search can draw from (R-5.1.1)', () => {
     })
 })
 
-describe('the Marshes with Mushrooms (R-11-H-Marshes)', () => {
+describe('the Marshes with Mushrooms (R-11.11-H1)', () => {
     const MUSHROOMS = 'denizen.beast.mushrooms'
     const mushrooms: ModifierUse = { cardId: MUSHROOMS, powerIndex: powerIndexOf(MUSHROOMS, PowerTiming.Modifier) }
     const table = (oathRevision: number) => {

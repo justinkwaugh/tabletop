@@ -325,7 +325,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             const base = marshes ? SEARCH_DRAW_COUNT - 1 : SEARCH_DRAW_COUNT
             return foldDrawCount(base, state, playerId, active, particulars)
         }
-        // R-11-H-Marshes — the one fewer comes off whatever the cards make the count, Mushrooms' one
+        // R-11.11-H1 — the one fewer comes off whatever the cards make the count, Mushrooms' one
         // included.
         const count = foldDrawCount(SEARCH_DRAW_COUNT, state, playerId, active, particulars)
         return marshes ? Math.max(0, count - 1) : count
@@ -377,7 +377,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
                 return { cost, active, reason: `the ${pile} discard pile is empty` }
             }
         }
-        // R-11-H-Marshes — Mushrooms alone at the Marshes draws no card, which leaves the Search
+        // R-11.11-H1 — Mushrooms alone at the Marshes draws no card, which leaves the Search
         // nothing to keep, so it is not offered. No count reaches 0 before revision 16.
         if (HydratedSearch.countWith(state, playerId, active, particulars) === 0) {
             return { cost, active, reason: 'this Search would draw no card' }

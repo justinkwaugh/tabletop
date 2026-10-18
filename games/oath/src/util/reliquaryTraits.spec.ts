@@ -513,7 +513,7 @@ describe('Greedy — Search (R-6.6.2.a)', () => {
         expect(HydratedSearch.drawCount(board([GREEDY]), 'ruler')).toBe(5)
     })
 
-    it('R-11-H-Marshes — with Mushrooms at the Marshes, the two more and the one fewer both act on its one card', () => {
+    it('R-11.11-H1 — with Mushrooms at the Marshes, the two more and the one fewer both act on its one card', () => {
         const mushrooms = [modifierUse(MUSHROOMS)]
         const at = (oathRevision: number) =>
             board([GREEDY], { oathRevision, siteCards: { c1: 'site.marshes' } }, { secrets: 2 }, [INN], [MUSHROOMS])
