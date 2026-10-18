@@ -6,9 +6,12 @@ import {
     belongsToSpan,
     createBranch,
     executeBranchAction,
+    executeCommonAction,
     restingSpan,
+    settleCommonActionRace,
     settleSpan,
     unmergedPlayerIds,
+    type ActionCascadeResult,
     type Branch,
     type Game,
     type GameAction,
@@ -21,7 +24,7 @@ import {
 import { measureSync } from '../diagnostics/requestTimings.js'
 import type { GameStore, UnmergedBranchWrite } from '../persistence/stores/gameStore.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
-import { DisallowedActionError } from './errors.js'
+import { DisallowedActionError, RacedActionError } from './errors.js'
 import {
     assertBranchUnmoved,
     assertBranchesUnmoved,
@@ -43,6 +46,14 @@ export type BranchSubmission =
           readonly priorState: GameState
           readonly unmergedBranch?: UnmergedBranch
       }
+
+export interface CommonSubmission {
+    readonly updatedGame: Game
+    readonly result: ActionCascadeResult
+    readonly storedActions: GameAction[]
+    readonly relatedActions: GameAction[]
+    readonly priorState: GameState
+}
 
 export function fillGameUpdatesAfterActions({
     definition,
@@ -243,4 +254,113 @@ async function closeOnMainLine({
             ? created.find((record) => record.branch.playerId === playerId)
             : { branch: write.branch, actions: [...write.addedActions] }
     }
+}
+
+async function reconcileCommonActionRace({
+    gameStore,
+    engine,
+    game,
+    state,
+    action
+}: {
+    gameStore: GameStore
+    engine: GameEngine
+    game: Game
+    state: GameState
+    action: GameAction
+}): Promise<GameAction[]> {
+    if (action.index === undefined || action.index >= state.actionCount) return []
+    const raced = await gameStore.findActionRangeForGame({
+        game,
+        startIndex: action.index,
+        endIndex: state.actionCount
+    })
+    const outcome = settleCommonActionRace({ engine, game, state, raced, late: action })
+    if (outcome.kind === 'invalid') {
+        throw new RacedActionError({ gameId: game.id, actionId: action.id, reason: outcome.reason })
+    }
+    action.index = state.actionCount
+    return raced
+}
+
+async function ownBranchToCheck({
+    gameStore,
+    engine,
+    game,
+    state,
+    span,
+    playerId
+}: {
+    gameStore: GameStore
+    engine: GameEngine
+    game: Game
+    state: GameState
+    span: ParallelSpanState
+    playerId: string
+}): Promise<Branch | undefined> {
+    if (!unmergedPlayerIds(span).includes(playerId)) return undefined
+    const stored = await gameStore.findBranch(game.id, playerId)
+    return stored !== undefined && belongsToSpan(stored, span)
+        ? stored
+        : createBranch({ engine, state, game, playerId }).branch
+}
+
+export async function submitCommonAction({
+    gameStore,
+    definition,
+    game,
+    action
+}: {
+    gameStore: GameStore
+    definition: GameDefinition
+    game: Game
+    action: GameAction
+}): Promise<CommonSubmission> {
+    const gameId = game.id
+    const state = game.state
+    const playerId = action.playerId
+    assertExists(state, 'A Common Action requires current Game State')
+    assertExists(playerId, 'A Common Action requires its Player')
+    const span = restingSpan(state)
+    const disallowed = (reason: string) =>
+        new DisallowedActionError({ gameId, actionId: action.id, reason })
+    if (!span.playerIds.includes(playerId)) throw disallowed('you take no part in this span')
+
+    const engine = new GameEngine(definition.runtime)
+    const raced = await reconcileCommonActionRace({ gameStore, engine, game, state, action })
+    const branch = await ownBranchToCheck({ gameStore, engine, game, state, span, playerId })
+    const outcome = measureSync('engine.execute', () =>
+        executeCommonAction({ engine, game, state, action, branch })
+    )
+    if (outcome.kind === 'refused') throw disallowed(outcome.reason)
+    const { result } = outcome
+
+    const { storedActions, updatedGame, relatedActions, priorState } =
+        await gameStore.addActionsToGame({
+            game,
+            actions: result.processedActions,
+            state: result.updatedState,
+            unmergedBranchWrites: { set: [], removeBranchesOf: [] },
+            validator: async (
+                existingGame,
+                existingState,
+                newState,
+                _actions,
+                gameUpdates,
+                relatedActions
+            ) => {
+                assertGameUnmoved(existingGame, existingState, state)
+                relatedActions.push(...raced)
+                fillGameUpdatesAfterActions({
+                    definition,
+                    existingState,
+                    newState,
+                    gameUpdates,
+                    lastActionPlayerId: playerId,
+                    settlement: undefined
+                })
+                return UpdateValidationResult.Proceed
+            }
+        })
+    return { updatedGame, result, storedActions, relatedActions, priorState }
 }

@@ -4,12 +4,17 @@ import {
     assertExists,
     belongsToSpan,
     closedUnmergedPlayerIds,
+    findBranchThatWouldNotReplay,
+    isCommonAction,
     isRestingInSpan,
+    latestCommonActionUndoTarget,
     removeBranchCloses,
+    removeCommonAction,
     restingSpan,
     reverseToBranchStart,
     sameHistoryPosition,
     settleSpan,
+    spanRuns,
     undoBranchAction as undoInBranch,
     unmergedPlayerIds,
     type Branch,
@@ -17,6 +22,7 @@ import {
     type GameAction,
     type GameDefinition,
     type GameState,
+    type ParallelSpanState,
     type UnmergedBranch
 } from '@tabletop/common'
 import type { GameStore, UnmergedBranchWrites } from '../persistence/stores/gameStore.js'
@@ -103,6 +109,61 @@ export async function undoBranchAction({
     return { kind: 'branch', unmergedBranch: { branch, actions: [] }, undoneActions }
 }
 
+export interface CommonActionUndo {
+    readonly target: GameAction
+    readonly state: GameState
+    readonly removed: GameAction[]
+    readonly replayed: GameAction[]
+}
+
+export async function planCommonActionUndo({
+    gameStore,
+    definition,
+    game,
+    actionId,
+    playerId
+}: {
+    gameStore: GameStore
+    definition: GameDefinition
+    game: Game
+    actionId: string
+    playerId: string
+}): Promise<CommonActionUndo | undefined> {
+    const state = game.state
+    assertExists(state, 'A Common Action Undo requires current Game State')
+    if (!isRestingInSpan(state)) return undefined
+    const span = restingSpan(state)
+    const history = await gameStore.findActionRangeForGame({
+        game,
+        startIndex: span.branchPoint.actionCount,
+        endIndex: state.actionCount
+    })
+    const target = history.find((action) => action.id === actionId)
+    if (target === undefined || !isCommonAction(target)) return undefined
+    if (latestCommonActionUndoTarget(history, span, playerId)?.id !== actionId) {
+        throw new DisallowedUndoError({
+            gameId: game.id,
+            actionId,
+            reason: 'only your own latest Common Action can be undone, and not once another Player’s Common Action follows it or it revealed information'
+        })
+    }
+    const engine = new GameEngine(definition.runtime)
+    const undone = removeCommonAction({ engine, game, state, history, actionId })
+    return { target, ...undone }
+}
+
+function passesOverAnAgreement(
+    undone: readonly GameAction[],
+    span: ParallelSpanState | undefined
+): boolean {
+    return (
+        span !== undefined &&
+        spanRuns(undone, span).some(
+            (run) => isCommonAction(run[0]) && run.some((action) => action.revealsInfo)
+        )
+    )
+}
+
 export interface ReversalSettlement {
     readonly state: GameState
     readonly removedActions: GameAction[]
@@ -117,12 +178,14 @@ export async function settleAfterReversal({
     engine,
     game,
     state,
+    undone,
     reopened
 }: {
     gameStore: GameStore
     engine: GameEngine
     game: Game
     state: GameState
+    undone: readonly GameAction[]
     reopened?: ReopenedBranch
 }): Promise<ReversalSettlement> {
     const priorSpan = game.state?.parallelSpan
@@ -176,6 +239,21 @@ export async function settleAfterReversal({
         unmergedBranches: held,
         mergesHeld: true
     })
+    if (passesOverAnAgreement(undone, priorSpan)) {
+        const relied = findBranchThatWouldNotReplay({
+            engine,
+            game,
+            state: settlement.updatedState,
+            unmergedBranches: stored
+        })
+        if (relied !== undefined) {
+            throw new DisallowedUndoError({
+                gameId: game.id,
+                actionId: undone[0].id,
+                reason: `the Branch of ${relied.playerId} relied on what the agreement settled: ${relied.reason}`
+            })
+        }
+    }
     const expected: ExpectedBranch[] = [
         ...stored
             .filter(({ branch }) => branch.closed)

@@ -91,6 +91,31 @@ export function executeInBranchView<T extends GameState, U extends HydratedGameS
     })
 }
 
+export type CommonActionOutcome<T extends GameState> =
+    { kind: 'executed'; result: ActionCascadeResult<T> } | { kind: 'refused'; reason: string }
+
+export function executeCommonAction<T extends GameState, U extends HydratedGameState<T>>({
+    engine,
+    game,
+    state,
+    action,
+    branch
+}: MainLine<T, U> & { action: GameAction; branch?: Branch }): CommonActionOutcome<T> {
+    if (branch === undefined) {
+        return { kind: 'executed', result: engine.executeCanonicalAction({ action, state, game }) }
+    }
+    let inBranchView: ActionCascadeResult<T>
+    try {
+        inBranchView = executeInBranchView({ engine, game, state, branch, action })
+    } catch (error) {
+        return { kind: 'refused', reason: `it is not valid in your Branch: ${errorMessage(error)}` }
+    }
+    const result = engine.executeCanonicalAction({ action, state, game })
+    return sameRun(inBranchView.processedActions, result.processedActions)
+        ? { kind: 'executed', result }
+        : { kind: 'refused', reason: 'it runs differently in your Branch than on the Main Line' }
+}
+
 function changesOutsideEngineFields<T extends GameState>(execution: ActionCascadeResult<T>) {
     return createPatch(
         withoutEngineMaintainedFields(execution.actionCascade.before),

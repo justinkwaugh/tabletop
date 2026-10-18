@@ -63,6 +63,10 @@ const SpanGameSchema = Type.Object({
 export type SpanGameState = Type.Static<typeof SpanGameSchema>
 const Validator = Compile(SpanGameSchema)
 
+export function isSpanGameState(value: unknown): value is SpanGameState {
+    return Validator.Check(value)
+}
+
 export class HydratedSpanGameState
     extends HydratableGameState<typeof SpanGameSchema, SpanPlayerState>
     implements SpanGameState

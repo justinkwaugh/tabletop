@@ -3,7 +3,7 @@ import { isCommonAction, isCommonActionType } from '../actionHistory.js'
 import type { UnmergedBranch } from '../branch.js'
 import { executeBranchAction, undoBranchAction } from '../branchExecution.js'
 import {
-    executeInBranchView,
+    executeCommonAction,
     latestCommonActionUndoTarget,
     removeCommonAction,
     settleCommonActionRace
@@ -12,7 +12,6 @@ import type { GameAction } from '../gameAction.js'
 import { combineCascades, type ActionCascadeResult } from '../gameEngine.js'
 import { removeBranchCloses, settleSpan } from '../hostedSpan.js'
 import { actsInBranch, isRestingInSpan, restingSpan } from '../parallelSpan.js'
-import { sameRun } from '../actionReplay.js'
 import { createSpanGame, type SpanGameOptions, type SpanGameState } from './spanGame.js'
 
 export interface SpanHostSubmission {
@@ -136,24 +135,20 @@ export class SpanHost {
         const playerId = action.playerId
         assertExists(playerId, 'A Common Action requires its Player')
         const raced = this.reconcileRace(action)
-        const record = this.branches.get(playerId)
-        const executed = this.executeOnMainLine(action)
-        if (record !== undefined) {
-            const inBranchView = executeInBranchView({
-                engine: this.engine,
-                game: this.game,
-                state: this.state,
-                branch: record.branch,
-                action
-            })
-            assert(
-                sameRun(inBranchView.processedActions, executed.processedActions),
-                `Common Action ${action.id} runs differently in the Branch of ${playerId}`
-            )
-        }
-        this.state = executed.updatedState
-        this.actions.push(...executed.processedActions)
-        return { mainLine: executed, ...(raced.length > 0 ? { raced } : {}) }
+        const outcome = executeCommonAction({
+            engine: this.engine,
+            game: this.game,
+            state: this.state,
+            action,
+            branch: this.branches.get(playerId)?.branch
+        })
+        assert(
+            outcome.kind === 'executed',
+            `Common Action ${action.id} was refused: ${outcome.kind === 'refused' ? outcome.reason : ''}`
+        )
+        this.state = outcome.result.updatedState
+        this.actions.push(...outcome.result.processedActions)
+        return { mainLine: outcome.result, ...(raced.length > 0 ? { raced } : {}) }
     }
 
     private reconcileRace(action: GameAction): GameAction[] {
