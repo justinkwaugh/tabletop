@@ -63,6 +63,7 @@ const userPreferencesEditor = new UserPreferencesEditor(
 const appContext: AppContext & {
     catalogService: CatalogService
     authorizationService: AuthorizationService
+    notificationService: NotificationService
     gameService: GameService
     userPreferencesEditor: UserPreferencesEditor
 } = {
