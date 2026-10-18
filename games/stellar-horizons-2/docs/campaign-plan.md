@@ -102,9 +102,31 @@ Each slice is playable end to end in the harness, has harness scenarios for its 
 
 Length matters online. A decade has up to seven waits: the economic step, build, combat, cargo and trade, movement, exploration and development. About 41 decades is close to 300 waits. The advanced start in 2250 cuts that by about a third. Slice 7 could make it the default for hosted games.
 
+## Slice 1 in detail
+
+Started 2026-10-18. What slice 1 builds, and how:
+
+- **The Campaign scenario.** A third scenario choice, 1 to 7 players, every sector. Competitive only; the cooperative and solo modes are slice 7.
+- **Setup.** Factions are chosen in initiative order as now; initiative is the drawn turn order (equivalent to rolling percentiles and rerolling ties). Each faction's initial ships are placed with their transfer markers, and each player takes Earth production for 2100. No techs. Every system gets a '5' exploration marker; 8 M, 6 O, 6 L and 6 H worlds are set aside. The game starts in the exploration phase of 2100, and that turn has only exploration and development.
+- **Faction sheets.** Settlement cost, Earth production, maximum ships and bases by century, abilities: the Starfarers' doubled bases for range, 30% anomaly chance and −1 anomaly difficulty; the Syndicate's −2 for combat anomalies; the Givers' extra terraform; the True Path's +20% habitability and conversion.
+- **IP.** Earned for the first to develop a tech, terraforming (1 or 2), the last survey of a system (which also keeps the marker) and finding an anomaly. Spent on initiative, as 2 tech points of the tech's type when paying for a tech, and as $1B whenever the Player is acting.
+- **The economic phase** at the start of every turn from 2110, after the transfer markers drop (slice 5 moves it ahead of them, for blockades). One tile is drawn, without replacement and never the same twice running:
+    - _Roll initiative:_ a Barrier span in which each Player declares 0 to 3 IP, then everyone rolls on the Main Line. Ties go to the earlier initiative.
+    - _Earth production:_ System Action.
+    - _Base production:_ a Barrier span in which each base chooses cash or a tech type; production follows on the Main Line, markers drawn in initiative order.
+    - _Settlement growth and migration:_ System Action rolls, then the True Path's conversion on the Main Line.
+    - _Terraforming:_ the existing ordered terraforming with the campaign's IP, the Givers' extra action and the pool refill.
+    - _Draw event_ and _draw trade goods_ say they arrive in slices 2 and 3 and do nothing.
+- **Anomalies** are found at the campaign's chance with 1 IP, and resolved alone as in These are the Voyages, without rewards until slice 2.
+- **The end.** From the end of 2500, a roll at 1% rising 1% a turn, plus 1% per complete tech type per Player. Scoring counts techs, settlements by distance, large bases, the largest base, kept exploration markers, IP, tech points, cash and the player-count bonus. The galactic rank is shown.
+- **Not yet:** cargo stays an Ordered span until slice 3 turns it into the Main Line phase of decision 1; destroying one's own base for points; the terraforming rule for an empty world pool.
+
 ## Rulings to make
 
 The rulebook leaves these open. Each is decided in its slice, recorded in `docs/rules-interpretations.md` with the reasoning, and raised with you:
+
+- Base production of tech: read as that many tech markers of the chosen type (the highest research value of that type in the system, plus the tech bonus), as rule 4.4 says "cash or tech markers produced". Slice 1.
+- The largest base bonus when Players tie: each tied Player gets it. Slice 1.
 
 - The truce: whether blockades are allowed during it (disputed on BoardGameGeek).
 - "No exploration" anomalies: whether they also block mining and research.
