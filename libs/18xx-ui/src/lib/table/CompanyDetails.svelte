@@ -88,6 +88,15 @@
     const marketPrice = $derived(
         companySharePrice(session.stockMarketChart, gameState.stockMarket, company.id)
     )
+    const shareStatus = $derived(
+        !company.started || company.closed
+            ? undefined
+            : !company.floated
+              ? 'Unfloated'
+              : session.companySoldOut(company.id)
+                ? 'Sold out'
+                : undefined
+    )
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const stations = $derived(
         gameState.stations.filter((station) => station.companyId === company.id)
@@ -218,7 +227,10 @@
         <section aria-label="Company ownership">
             <div class="ownership-heading">
                 <h3>Ownership</h3>
-                {#if session.companySoldOut(company.id)}<span class="sold-out">Sold out</span>{/if}
+                {#if shareStatus}<span
+                        class="share-status"
+                        class:unfloated={shareStatus === 'Unfloated'}>{shareStatus}</span
+                    >{/if}
             </div>
             {#if ownership.length}
                 <table aria-label={`${session.companyName(company.id)} share ownership`}>
@@ -624,12 +636,15 @@
         justify-content: space-between;
         margin-bottom: 6px;
     }
-    .sold-out {
+    .share-status {
         font-size: 10px;
         font-weight: 650;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: #f1e6c8;
+    }
+    .share-status.unfloated {
+        color: #e2a84f;
     }
     .ownership-heading h3 {
         margin-bottom: 0;

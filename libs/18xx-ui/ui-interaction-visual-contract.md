@@ -2080,8 +2080,9 @@ it only while the sheet is scrolled.
 Company cards echo the spreadsheet: the cash cell uses the recessed fill, the
 value cell the faint turquoise, and investor rows carry their player's tint to
 the card's left and right edges. Corporate investors follow the player who
-controls them. A sold-out company shows a cream SOLD OUT label at the right of
-its ownership heading, judged by the title's own sold-out rule.
+controls them. The right of a started company's ownership heading carries its
+status: an amber UNFLOATED until it floats, then a cream SOLD OUT while it is
+sold out by the title's own rule. Closed companies show none.
 
 Player cards in workspace panes start 10px below the pane header, matching the
 10px gap between cards in both vertical and horizontal arrangements.
