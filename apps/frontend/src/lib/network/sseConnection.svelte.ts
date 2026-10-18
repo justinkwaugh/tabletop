@@ -43,9 +43,6 @@ export class SseConnection implements RealtimeTransport {
 
     async addChannel(identifier: ChannelIdentifier): Promise<void> {
         console.log('Adding channel', identifier)
-        if (identifier.channel === NotificationChannel.RelayStats) {
-            return
-        }
 
         if (this.channels.has(identifier.channelName)) {
             return

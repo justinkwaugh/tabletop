@@ -1,5 +1,11 @@
 // import { SseConnection } from '$lib/network/sseConnection.svelte'
-import { Notification, NotificationValidator, UserStatus } from '@tabletop/common'
+import {
+    isRelayStatsNotification,
+    Notification,
+    NotificationValidator,
+    UserStatus,
+    type RelayCounts
+} from '@tabletop/common'
 import type { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import {
     VisibilityService,
@@ -34,11 +40,15 @@ export class NotificationService {
 
     private shouldConnectRealtime = $derived(this.currentSessionUserId !== undefined)
 
+    relayStats: RelayCounts | undefined = $state(undefined)
+    relayStatsLive = $state(false)
+
     constructor(
         private readonly realtimeConnection: RealtimeConnection,
         private readonly visibilityService: VisibilityService,
         private readonly authorizationService: AuthorizationService,
-        private readonly api: TabletopApi
+        private readonly api: TabletopApi,
+        readonly relayStatsAvailable = false
     ) {
         this.applicationServerKey = applicationServerKeyFromVapid(PUBLIC_VAPID_KEY)
         this.realtimeConnection.setHandler(this.handleEvent)
@@ -152,12 +162,17 @@ export class NotificationService {
     }
 
     async listenToRelayStats() {
+        if (!this.relayStatsAvailable) {
+            return
+        }
         await this.realtimeConnection.addChannel(
             new ChannelIdentifier(NotificationChannel.RelayStats)
         )
     }
 
     async stopListeningToRelayStats() {
+        this.relayStats = undefined
+        this.relayStatsLive = false
         await this.realtimeConnection.removeChannel(
             new ChannelIdentifier(NotificationChannel.RelayStats)
         )
@@ -279,6 +294,10 @@ export class NotificationService {
     }
 
     private handleEvent = async (event: RealtimeEvent) => {
+        if (event.channel === NotificationChannel.RelayStats) {
+            this.handleRelayStats(event)
+            return
+        }
         try {
             let notificationEvent
             if (event.type === RealtimeEventType.Data) {
@@ -321,6 +340,20 @@ export class NotificationService {
             }
         } catch (e) {
             console.log('Error handling notification event', e)
+        }
+    }
+
+    private handleRelayStats(event: RealtimeEvent) {
+        if (event.type === RealtimeEventType.Discontinuity) {
+            this.relayStatsLive = true
+        } else if (event.type === RealtimeEventType.Interrupted) {
+            this.relayStatsLive = false
+            this.relayStats = undefined
+        } else if (
+            NotificationValidator.Check(event.data) &&
+            isRelayStatsNotification(event.data)
+        ) {
+            this.relayStats = event.data.data
         }
     }
 }

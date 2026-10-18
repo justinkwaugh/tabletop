@@ -4,7 +4,7 @@ The admin **Stats** tab reads one document per UTC month, `siteStatsMonths/{YYYY
 
 The sketch stores no user ids: up to 512 users a day it is a sorted list of 32-bit hashes, which counts exactly; above that it switches to 4,096 HyperLogLog registers, within about 2%. Range-wide active users merge the sketches of the days in the range. A month document is about 20 KB at today's volume; a title passing a few hundred players a day would make its sketches dense, so move the sketches to their own documents well before a month nears Firestore's 1 MiB limit.
 
-**Online now**, the first "Right now" figure, comes live from the realtime relay rather than from Firestore: people with at least one logged-in tab open, visible or hidden, and the number of tabs. The tab subscribes to the relay's `relay-stats` Topic while it is open, and the count updates within about 5 seconds of a change. Without the relay it shows a dash ([realtime relay](../realtime-relay.md)).
+**Online now**, the first "Right now" figure, comes live from the realtime relay rather than from Firestore: people with at least one logged-in tab open, visible or hidden, and the number of tabs. The tab subscribes to the relay's `relay-stats` Topic while it is open, and the count updates within about 5 seconds of a change. While the tab's own stream is reconnecting it shows "connecting to the relay", and in a build without the relay it shows "needs the realtime relay" ([realtime relay](../realtime-relay.md)).
 
 ## What runs
 

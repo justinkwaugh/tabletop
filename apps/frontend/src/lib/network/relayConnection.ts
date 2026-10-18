@@ -133,6 +133,9 @@ export class RelayConnection implements RealtimeConnection {
     }
 
     private close() {
+        if (this.stream) {
+            this.signalInterrupted(this.stream)
+        }
         this.attempt++
         this.opening = false
         this.changingTopics = false
@@ -186,6 +189,15 @@ export class RelayConnection implements RealtimeConnection {
             this.receive(event.data)
         }
         stream.eventSource.onerror = () => this.failed(stream)
+    }
+
+    private signalInterrupted(stream: RelayStream) {
+        const channels = new Set(
+            [...stream.synced].flatMap((name) => this.channels.get(name)?.channel ?? [])
+        )
+        for (const channel of channels) {
+            this.handler?.({ type: RealtimeEventType.Interrupted, channel })
+        }
     }
 
     private heardFrom(stream: RelayStream) {
