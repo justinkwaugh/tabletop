@@ -401,18 +401,21 @@ export class EighteenXXSession<
             placements: { ...definition.placements, ...definition.publishedPlacements }
         }
     })
-    /** The title presentation for the current mode: published badge colours replace the generic ones when selected. */
+    /** The title presentation for the current mode: published badge colours and market zones replace the generic ones when selected. */
     readonly presentation: TitlePresentation<EighteenXXState<Schema>> = $derived.by(() => {
         const definition = this.presentationDefinition
+        if (!this.publishedArtwork) return definition
         const trains = definition.publishedTrainColors
-        if (!this.publishedArtwork || !trains) return definition
         return {
             ...definition,
-            trainColors: { ...definition.trainColors, ...trains },
-            phaseColors: {
-                ...definition.phaseColors,
-                ...(definition.publishedPhaseColors ?? trains)
-            }
+            marketZones: definition.publishedMarketZones ?? definition.marketZones,
+            ...(trains && {
+                trainColors: { ...definition.trainColors, ...trains },
+                phaseColors: {
+                    ...definition.phaseColors,
+                    ...(definition.publishedPhaseColors ?? trains)
+                }
+            })
         }
     })
     constructor(

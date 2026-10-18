@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { marketColors, marketDarkLightness } from './marketColors.js'
+    import { marketDarkLightness, marketSpaceColor, marketZone } from './marketColors.js'
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
     import {
@@ -52,7 +52,8 @@
         return !target || spaceRows.get(target) !== space.row
     }
     const banners = $derived(
-        zones.flatMap(({ color, banner }) => {
+        zones.flatMap((zone) => {
+            const { color, banner } = zone
             const zoneColumns = chart.spaces
                 .filter((space) => space.color === color)
                 .map((space) => space.column)
@@ -60,6 +61,7 @@
                 ? [
                       {
                           color,
+                          zoneColor: marketSpaceColor(color, zone),
                           ...banner,
                           firstColumn: Math.min(...zoneColumns),
                           lastColumn: Math.max(...zoneColumns)
@@ -208,7 +210,7 @@
                     class="banner"
                     class:arrow={banner.shape === 'arrow'}
                     style:grid-column={`${banner.firstColumn + 1} / ${banner.lastColumn + 2}`}
-                    style:--market-color={marketColors[banner.color] ?? banner.color}
+                    style:--market-color={banner.zoneColor}
                     style:--market-lightness={marketDarkLightness[banner.color]}
                 >
                     {#if banner.shape === 'span'}<span class="banner-tick"></span><span
@@ -236,10 +238,13 @@
                 (token) => token.spaceId === space.id && token.overlapped
             )}
             {@const tinted = space.color !== 'white'}
-            {@const zone = zones.find((item) => item.color === space.color)}
+            {@const zone = marketZone(zones, space.color)}
+            {@const fillKind = zone?.fill?.kind}
             <div
                 class="space"
-                class:tinted
+                class:tinted={tinted && !fillKind}
+                class:solid={fillKind === 'solid'}
+                class:recessed={fillKind === 'recessed'}
                 role="button"
                 tabindex={crowded ? 0 : -1}
                 aria-label={`Market value ${space.price}${zone ? `, ${zone.name}` : ''}${crowded ? ', expand company stack' : ''}`}
@@ -247,8 +252,8 @@
                 data-market-space={space.id}
                 style:grid-column={space.column + 1}
                 style:grid-row={space.row + 1}
-                style:--market-color={tinted
-                    ? (marketColors[space.color] ?? space.color)
+                style:--market-color={tinted || fillKind
+                    ? marketSpaceColor(space.color, zone)
                     : undefined}
                 style:--market-lightness={marketDarkLightness[space.color]}
                 onpointerenter={() => expandStack(space.id)}
@@ -264,6 +269,9 @@
                 }}
             >
                 <strong>{space.price}</strong>
+                {#if zone?.marks}<span class="marks" aria-hidden="true"
+                        >{#each zone.marks as mark (mark)}<span>{mark}</span>{/each}</span
+                    >{/if}
                 {#each ledge?.edges.filter((edge) => edge.spaceId === space.id) ?? [] as edge (edge.side)}<span
                         class="ledge {edge.side}"
                         aria-hidden="true"
@@ -423,6 +431,13 @@
         );
         --price-ink: light-dark(#253b35, #ebe6dcd9);
     }
+    .space.solid,
+    .space.recessed {
+        background: var(--market-color);
+    }
+    .space.solid {
+        --price-ink: #253b35;
+    }
     .space:focus-visible {
         outline: calc(2px * var(--render-scale)) solid
             light-dark(#796047, var(--rail-focus, #b8cddd));
@@ -451,6 +466,17 @@
         top: calc(2px * var(--render-scale));
         left: calc(4px * var(--render-scale));
         font-size: calc(13px * var(--render-scale));
+    }
+    .marks {
+        position: absolute;
+        left: calc(4px * var(--render-scale));
+        bottom: calc(3px * var(--render-scale));
+        display: flex;
+        flex-direction: column;
+        color: light-dark(#6f6355, var(--rail-muted, #7f8e9e));
+        font-size: calc(9px * var(--render-scale));
+        font-style: italic;
+        line-height: 1.1;
     }
     .market-token {
         pointer-events: none;

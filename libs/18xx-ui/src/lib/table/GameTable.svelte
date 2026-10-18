@@ -1268,7 +1268,7 @@
                                         />
                                     </ScalingWrapper>
                                 </div>
-                                {#if session.presentation.marketZones?.length || session.presentation.marketLedge}<MarketLegend
+                                {#if !session.presentation.hideMarketLegend && (session.presentation.marketZones?.length || session.presentation.marketLedge)}<MarketLegend
                                         zones={session.presentation.marketZones ?? []}
                                         ledge={session.presentation.marketLedge}
                                     />{/if}
