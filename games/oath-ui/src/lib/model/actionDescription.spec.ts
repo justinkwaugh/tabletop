@@ -1092,6 +1092,39 @@ describe('the history tab describes every action', () => {
             expect(row(OathRevision.CostsAndFacedownModifiers)).toBe('kept Wolves and played it to their site, gaining 1 secret; 1 card went to the provinces discard pile')
         })
 
+        it("Land Warden — two cards played to the site: the row counts both cards' favor, and the second card's Homeland and triggers", () => {
+            const LAND_WARDEN = 'denizen.hearth.land-warden'
+            const ORDER_CARD = 'denizen.order.longbows'
+            const INN = 'denizen.hearth.wayside-inn'
+            const TENTS = 'denizen.nomad.tents'
+            const WOLVES = 'denizen.beast.wolves'
+            const SADDLE_MAKERS = 'denizen.hearth.saddle-makers'
+            const row = (second: string) => {
+                const state = testState(
+                    [
+                        testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', favor: 3, supply: 6, advisers: [{ cardId: LAND_WARDEN, faceUp: true }] }),
+                        testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c2', advisers: [{ cardId: SADDLE_MAKERS, faceUp: true }] })
+                    ],
+                    { oathRevision: OathRevision.EngineFixes8, denizensBySite: { c1: [], c2: [] }, siteCards: { c1: 'site.fertile-valley', c2: 'site.river' } }
+                )
+                state.requireVault().worldDeck = [ORDER_CARD, second, WOLVES]
+                const modifiers = [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }]
+                new HydratedSearch(buildAction(Search, { playerId: 'p1', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers })).apply(state)
+                const played = new HydratedSearchResolve(
+                    buildAction(SearchResolve, { playerId: 'p1', keptCardId: ORDER_CARD, discardOrder: [WOLVES], play: SearchPlay.Site, secondPlay: { cardId: second, play: SearchPlay.Site } })
+                )
+                played.apply(state)
+                return describeAction(played.dehydrate(), nameOf)
+            }
+
+            expect(row(INN)).toBe(
+                'kept Longbows and played it to their site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the provinces discard pile'
+            )
+            expect(row(TENTS)).toBe(
+                'kept Longbows and played it to their site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); Bob gained 2 favor from the Nomad bank (Saddle Makers); 1 card went to the provinces discard pile'
+            )
+        })
+
         it('R-6.2 — an Action power is named, since only a faceup card has one (R-5.1.4.II)', () => {
             const line = describeAction(
                 action({ type: ActionType.UseActionPower, playerId: 'p1', cardId: HIDDEN }),

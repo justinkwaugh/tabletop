@@ -12,10 +12,11 @@ export enum OathRevision {
     EngineFixes4 = 8,
     EngineFixes5 = 9,
     EngineFixes6 = 10,
-    EngineFixes7 = 11
+    EngineFixes7 = 11,
+    EngineFixes8 = 12
 }
 
-export const CURRENT_OATH_REVISION = OathRevision.EngineFixes7
+export const CURRENT_OATH_REVISION = OathRevision.EngineFixes8
 
 export function isAtLeastOathRevision(
     state: Pick<OathGameState, 'oathRevision'>,

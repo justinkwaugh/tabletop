@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GameSession } from '@tabletop/frontend-components'
-import { Color, assert } from '@tabletop/common'
-import { ActionType, Banner, LetPeekSubjectKind, MachineState, PowerChoiceKind, SearchPlay, isLetPeek, isPlayFacedownAdviser, type LetPeekSubject } from '@tabletop/oath'
-import { FIXTURE_SITE_CAPACITY, openTurn, required, testPlayer, testState } from '@tabletop/oath/testing'
+import { Color, assert, type Visibility } from '@tabletop/common'
+import { ActionType, Banner, HydratedOathGameState, LetPeekSubjectKind, MachineState, OathVisibility, PowerChoiceKind, SearchPlay, isLetPeek, isPlayFacedownAdviser, playMapChanges, type LegalChoice, type LetPeekSubject } from '@tabletop/oath'
+import { FIXTURE_SITE_CAPACITY, openTurn, required, served, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, searchingTable, setupTable, tableOf } from '$lib/testing/sessionHarness.js'
 import { emptyPicks } from './powerChoices.js'
+import { whenPlayedChoices } from './whenPlayed.js'
 
 // docs/user-interactions.md — Undo unwinds manual picks before any sent action, and nothing is offered from history.
 function openSession() {
@@ -244,6 +245,74 @@ describe("R-6.1, R-5.1.4.I — the People's Favor's holder plays a facedown advi
         assert(isPlayFacedownAdviser(action), 'the play is sent')
         expect(action.discardFirstCardId).toBe(here[0])
         expect(action.toSiteId).toBeUndefined()
+    })
+})
+
+describe("R-6.1, R-5.1.4.I — Great Herd turned faceup to a site is not offered the card the People's Favor discards first", () => {
+    const GREAT_HERD = 'denizen.nomad.great-herd'
+    const TENTS = 'denizen.nomad.tents'
+    const ORACLE = 'denizen.nomad.oracle'
+
+    function flippingHerd() {
+        const state = testState(
+            [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: GREAT_HERD, faceUp: false }] })],
+            {
+                machineState: MachineState.ActPhase,
+                denizensBySite: { c1: [], c2: [TENTS], p1: [], h1: [ORACLE] },
+                banners: {
+                    [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: 'me' },
+                    [Banner.DarkestSecret]: { value: 1 }
+                }
+            }
+        )
+        openTurn(state, 'me')
+        const session = openSessionOn(tableOf(state))
+        const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
+        session.selection.set('action', ActionType.PlayFacedownAdviser)
+        return { state, session, sent }
+    }
+
+    const cardsOf = (choices: readonly LegalChoice[]) =>
+        choices.flatMap((legal) => legal.options.flatMap((option) => (option.kind === PowerChoiceKind.Card ? [option.cardId] : [])))
+    const targets = (session: ReturnType<typeof flippingHerd>['session']) => cardsOf(session.adviserPlayChoices)
+
+    it("on the player's own view, the play's map changes and the targets are the server's", () => {
+        const { state } = flippingHerd()
+        const me: Visibility.Perspective = { kind: 'player', playerId: 'me' }
+        const own = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, me)), me)
+        for (const view of [state, own]) {
+            const mapChanges = playMapChanges(view, GREAT_HERD, SearchPlay.Site, { discardFirstCardId: TENTS })
+            expect(mapChanges.leaving).toEqual([TENTS])
+            expect(cardsOf(whenPlayedChoices(view, 'me', GREAT_HERD, SearchPlay.Site, true, mapChanges))).toEqual([ORACLE])
+        }
+    })
+
+    it('with Tents discarded first, only the Oracle is offered, and the play is sent with it', async () => {
+        const { session, sent } = flippingHerd()
+        await session.chooseAdviserPlay(GREAT_HERD, SearchPlay.Site)
+        expect(targets(session)).toEqual([TENTS, ORACLE])
+        expect(session.adviserDiscardFirstOptions).toContain(TENTS)
+
+        session.setAdviserDiscardFirst(TENTS)
+        expect(targets(session)).toEqual([ORACLE])
+        session.setAdviserPlayPicks({ ...emptyPicks(), option: { 0: 0 } })
+        expect(session.adviserPlayReason).toBeUndefined()
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the play is sent')
+        expect(action.discardFirstCardId).toBe(TENTS)
+        expect(action.choices).toEqual([{ kind: PowerChoiceKind.Card, cardId: ORACLE }])
+    })
+
+    it('a pick of Tents made before Tents is picked to go first is dropped with it', async () => {
+        const { session } = flippingHerd()
+        await session.chooseAdviserPlay(GREAT_HERD, SearchPlay.Site)
+        session.setAdviserPlayPicks({ ...emptyPicks(), option: { 0: targets(session).indexOf(TENTS) } })
+        expect(session.adviserPlayPicks.option).toEqual({ 0: 0 })
+
+        session.setAdviserDiscardFirst(TENTS)
+        expect(session.adviserPlayPicks).toEqual(emptyPicks())
+        expect(targets(session)).toEqual([ORACLE])
     })
 })
 

@@ -8377,6 +8377,27 @@ test.describe('the facedown play: the card beside its plays, each card in the st
         await expect(history(page)).toContainText(`played War Tortoise to ${far} (New Growth)`)
     })
 
+    test('Great Herd: Tents picked to go first is no longer offered to swap with, and the Oracle is', async ({ page }) => {
+        await openTable(page, 'greatHerdFlip')
+        await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
+        await grid(page).getByRole('button', { name: 'To your site: Great Herd', exact: true }).click()
+        const tents = grid(page).getByRole('button', { name: 'Tents', exact: true })
+        const oracle = grid(page).getByRole('button', { name: 'Oracle', exact: true })
+        // Under "Discard first" and as a card to swap with.
+        await expect(tents).toHaveCount(2)
+        await expect(oracle).toHaveCount(1)
+
+        await tents.first().click()
+        await expect(tents).toHaveCount(1)
+        await expect(tents).toHaveAttribute('aria-pressed', 'true')
+        await expect(oracle).toHaveCount(1)
+        await oracle.click()
+        await grid(page).getByRole('button', { name: 'Play Great Herd', exact: true }).click()
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(history(page)).toContainText('discarding Tents first (Crop Rotation)')
+        await expect(history(page)).toContainText('swapped Great Herd with Oracle')
+    })
+
     for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }]) {
         test.describe(`on a ${viewport.width} px phone`, () => {
             test.use({ viewport })

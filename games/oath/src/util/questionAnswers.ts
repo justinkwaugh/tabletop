@@ -58,6 +58,12 @@ export interface AnswerOutcome {
     resumeMachineState?: MachineState
     /** Dragonskin Drum on a power's move. */
     warbandGain?: WarbandGain
+    /**
+     * R-2.11-H1 — this answer is its own moment for the title, judged even while a Campaign is
+     * open: it made a binding exchange, or it landed a Relic Thief take (the thief's roll, or
+     * Jinx's answer when the roll waited on it).
+     */
+    titleMoment?: boolean
 }
 
 function rulesOf<K extends PowerQuestionKind>(kind: K): QuestionRules<K> {
