@@ -15,8 +15,10 @@ function raiseArmies(state: HydratedNapoleonsTriumphGameState) {
     const random = state.getProtectedPrng().random
     state.units = []
     for (const side of [Side.French, Side.Allied]) {
-        const playerId = state.playerOf(side).playerId
-        const faces = STARTING_ARMIES[side].map((face) => ({ ...face }))
+        const player = state.playerOf(side)
+        const playerId = player.playerId
+        player.armyDisplay = STARTING_ARMIES[side].map((face) => ({ ...face }))
+        const faces = player.armyDisplay.map((face) => ({ ...face }))
         shuffle(faces, random)
         faces.forEach((face, index) => {
             state.units.push({ id: unitId(side, index), playerId, face })

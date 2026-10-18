@@ -8,7 +8,9 @@ for (const scenario of [
     'runPrivateHandDrawAndReload',
     'runPrivateHandExploration',
     'runPrivateHandHostView',
-    'runPrivateHandProtectedFallback'
+    'runPrivateHandProtectedFallback',
+    'runCorrectionDuringAnimation',
+    'runRejectionDuringAnimation'
 ] as const) {
     test(scenario, async ({ page }) => {
         await page.goto('/session-test.html')

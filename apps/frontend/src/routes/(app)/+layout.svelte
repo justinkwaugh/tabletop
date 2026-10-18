@@ -4,7 +4,6 @@
     import {
         Navbar,
         NavBrand,
-        Avatar,
         Button,
         Dropdown,
         DropdownHeader,
@@ -25,6 +24,7 @@
     import AuthModal from '$lib/components/AuthModal.svelte'
     import BugReportModal from '$lib/components/BugReportModal.svelte'
     import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
+    import AccountAvatar from '$lib/components/AccountAvatar.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
@@ -486,13 +486,28 @@
                             {/if}
                             <a
                                 href="/tournaments"
-                                class="hidden sm:inline-flex me-4 text-sm text-blue-700 dark:text-blue-300"
-                                >Tournaments</a
+                                class="competitions-link me-4 inline-flex items-center cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                                title="Tournaments and leagues"
                             >
+                                <span class="sr-only">Tournaments and leagues</span>
+                                <svg
+                                    aria-hidden="true"
+                                    viewBox="0 0 24 24"
+                                    class="h-6 w-6"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M8 21h8M12 17v4M7 4h10M17 4v8a5 5 0 0 1-10 0V4" />
+                                    <path d="M7 6.5H5a2.5 2.5 0 0 0 0 5h2.4M17 6.5h2a2.5 2.5 0 0 1 0 5h-2.4" />
+                                </svg>
+                            </a>
                         {/if}
 
                         <button id="user-drop" class="account-menu cursor-pointer text-gray-700 dark:text-gray-300" aria-label="Open account menu">
-                            <span class="account-avatar"><Avatar /></span>
+                            <span class="account-avatar"><AccountAvatar user={sessionUser} /></span>
                             <svg class="game-menu-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                                 <path d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
@@ -522,12 +537,6 @@
                                         </span>
                                     </DropdownItem>
                                     <DropdownDivider class="mt-0" />
-                                {/if}
-                                {#if sessionUser.status === UserStatus.Active}
-                                    <DropdownItem
-                                        href="/tournaments"
-                                        class="sm:hidden w-full text-left">Tournaments</DropdownItem
-                                    >
                                 {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
                                     >Profile</DropdownItem
@@ -733,7 +742,8 @@
         .mobile-game-header .full-logo,
         .mobile-game-header .account-avatar { display: none; }
         .game-session-header .header-links { margin-right: 4px; }
-        .game-session-header .community-link { display: none; }
+        .game-session-header .community-link,
+        .game-session-header .competitions-link { display: none; }
         .mobile-game-header .bug-report-button { justify-content: center; width: 40px; height: 40px; }
         .mobile-game-header .game-logo { display: block; width: 28px; height: 28px; }
         .mobile-game-header .game-menu-icon { display: block; }

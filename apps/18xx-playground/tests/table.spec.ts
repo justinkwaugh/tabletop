@@ -240,6 +240,68 @@ for (const title of ['TOP', '1889']) {
     })
 }
 
+test.describe('player cards below the pane layout', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+
+    test('open the company card from anywhere in a holding and close it on any tap', async ({
+        page
+    }) => {
+        await page.goto('/table')
+        await page.getByLabel('Game', { exact: true }).selectOption('TOP')
+        const alex = page.getByRole('article', { name: 'Alex portfolio' })
+        const holdings = alex.locator('.ownership tbody')
+        await expect(holdings.first()).toBeVisible({ timeout: 15000 })
+        const card = page.locator('dialog.lightbox')
+
+        await holdings.first().locator('.amount').tap()
+        await expect(card.locator('.company-detail.vertical')).toBeVisible()
+        await card.locator('.company-detail').tap({ force: true })
+        await expect(card).toHaveCount(0)
+
+        const shareRow = page.locator('.players .ownership .numbered-share').first()
+        await shareRow.scrollIntoViewIfNeeded()
+        await shareRow.tap()
+        await expect(card).toHaveAttribute('aria-label', /PEIR|Prince Edward Island/)
+        await page.touchscreen.tap(8, 8)
+        await expect(card).toHaveCount(0)
+
+        await alex
+            .getByRole('button', { name: /^Show .+ card$/ })
+            .first()
+            .focus()
+        await page.keyboard.press('Enter')
+        await expect(card).toBeVisible()
+        await page.keyboard.press('Escape')
+        await expect(card).toHaveCount(0)
+
+        await alex.getByRole('button', { name: 'Compact Alex card' }).tap()
+        await alex.locator('.compact-holding .holding-amount').first().tap()
+        await expect(card).toBeVisible()
+        await page.touchscreen.tap(8, 8)
+        await expect(card).toHaveCount(0)
+    })
+
+    test('use the card on tablets and map focus in the pane layout', async ({ page }) => {
+        await page.setViewportSize({ width: 768, height: 1024 })
+        await page.goto('/table')
+        await page.getByLabel('Game', { exact: true }).selectOption('TOP')
+        const alex = page.getByRole('article', { name: 'Alex portfolio' })
+        const card = page.locator('dialog.lightbox')
+        await alex.locator('.ownership tbody .amount').first().tap({ timeout: 15000 })
+        await expect(card).toBeVisible()
+
+        await page.setViewportSize({ width: 1100, height: 900 })
+        await expect(card).toHaveCount(0)
+        await expect(alex.getByRole('button', { name: /^Show .+ card$/ })).toHaveCount(0)
+        await alex.locator('.ownership tbody .amount').first().click()
+        await alex
+            .getByRole('button', { name: /^Show .+ network$/ })
+            .first()
+            .click()
+        await expect(card).toHaveCount(0)
+    })
+})
+
 for (const title of ['TOP', '1889']) {
     test(`${title} map tile picker previews, rotates and cancels without committing`, async ({
         page

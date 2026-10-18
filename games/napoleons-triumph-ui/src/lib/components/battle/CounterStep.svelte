@@ -4,7 +4,7 @@
     import Force from './Force.svelte'
     import ResultRule from './ResultRule.svelte'
 
-    let { stage }: { stage: CounterStage } = $props()
+    let { stage, folded = false }: { stage: CounterStage; folded?: boolean } = $props()
 
     const gameSession = getGameSession()
 </script>
@@ -16,20 +16,27 @@
             ? ''
             : ': infantry may only when the attack is winning'}.
     {:else}
-        Up to two units may counter-attack; each loses a step first.{stage.attackWinning
+        {#if folded}
+            Tap up to two units on the map to counter-attack;
+        {:else}
+            Up to two units may counter-attack;
+        {/if}
+        each loses a step first.{stage.attackWinning
             ? ''
             : ' Infantry may only when the attack is winning.'}
     {/if}
 </div>
-<Force
-    units={stage.candidates}
-    selected={stage.counterAttackers}
-    roles={stage.roles}
-    onlyPickableIds={stage.pickableIds}
-    onpick={(id) => gameSession.pickBattleUnit(id)}
-/>
-{#if !stage.problem}
-    <ResultRule finalResult={stage.finalResult} />
+{#if !folded}
+    <Force
+        units={stage.candidates}
+        selected={stage.counterAttackers}
+        roles={stage.roles}
+        onlyPickableIds={stage.pickableIds}
+        onpick={(id) => gameSession.pickBattleUnit(id)}
+    />
+    {#if !stage.problem}
+        <ResultRule finalResult={stage.finalResult} />
+    {/if}
 {/if}
 <div class="flex flex-wrap items-center gap-3 pt-1">
     <button

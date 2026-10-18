@@ -51,7 +51,8 @@ describe('GameReconciliation', () => {
             },
             isPaused: () => false,
             recover: async () => {},
-            acceptsPerspective: () => true
+            acceptsPerspective: () => true,
+            present: (_request, write) => write()
         })
         const staleContext = context.clone()
         const synchronization = reconciliation.synchronize(() => current)
@@ -207,7 +208,8 @@ describe('Checkpoint reconciliation', () => {
             recover: async () => {
                 throw Error('Unexpected recovery')
             },
-            acceptsPerspective: () => true
+            acceptsPerspective: () => true,
+            present: (_request, write) => write()
         })
         const update = {
             kind: 'actions' as const,
@@ -249,7 +251,8 @@ describe('Checkpoint reconciliation', () => {
             },
             isPaused: () => false,
             recover: async () => {},
-            acceptsPerspective: () => true
+            acceptsPerspective: () => true,
+            present: (_request, write) => write()
         })
         expect(() =>
             reconciliation.replace(
@@ -304,7 +307,8 @@ describe('Checkpoint reconciliation', () => {
                 },
                 isPaused: () => false,
                 recover,
-                acceptsPerspective: () => true
+                acceptsPerspective: () => true,
+                present: (_request, write) => write()
             })
             await reconciliation.enqueue({
                 kind: 'actions',
@@ -337,7 +341,8 @@ describe('Checkpoint reconciliation', () => {
             },
             isPaused: () => false,
             recover,
-            acceptsPerspective: () => true
+            acceptsPerspective: () => true,
+            present: (_request, write) => write()
         })
         await reconciliation.enqueue({
             kind: 'actions',
@@ -367,7 +372,8 @@ describe('Checkpoint reconciliation', () => {
                 },
                 isPaused: () => false,
                 recover,
-                acceptsPerspective: () => true
+                acceptsPerspective: () => true,
+                present: (_request, write) => write()
             })
             await reconciliation.enqueue({
                 kind: 'actions',
@@ -414,7 +420,8 @@ describe('Checkpoint reconciliation', () => {
                 recover: async () => {
                     await reconciliation.synchronize(() => true)
                 },
-                acceptsPerspective: () => true
+                acceptsPerspective: () => true,
+                present: (_request, write) => write()
             })
             if (kind === 'projected') {
                 await reconciliation.enqueue({
@@ -483,7 +490,8 @@ describe('Checkpoint reconciliation', () => {
             },
             isPaused: () => false,
             recover,
-            acceptsPerspective: () => false
+            acceptsPerspective: () => false,
+            present: (_request, write) => write()
         })
         await reconciliation.enqueue({
             kind: 'actions',

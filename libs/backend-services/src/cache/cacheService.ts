@@ -124,6 +124,14 @@ export class RedisCacheService {
         }
     }
 
+    // Claims a key for the given time; false when another caller already holds it
+    public async claimOnce(key: string, forSeconds: number): Promise<boolean> {
+        const result = await measure('redis.setNx', () =>
+            this.client.set(key, VALUE_PREFIX + '1', { NX: true, EX: forSeconds })
+        )
+        return result === 'OK'
+    }
+
     // Simple remove from the cache without any locking
     public async delete(key: string): Promise<void> {
         await measure('redis.del', () => this.client.del(key))

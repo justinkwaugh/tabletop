@@ -115,6 +115,13 @@ An approved Undo that reverses the affected Processed Actions, reapplies eligibl
 
 A Game Owner has no elevated Undo authority. An administrator may bypass Player ownership and information-revelation restrictions, but still targets a User Action.
 
+**Player Vote**:
+A request by a Joined Player of a Hosted Game that every Player decide a lifecycle question together. It is recorded on the Game Instance, not in Game State. At most one is open at a time, and it stays open until it passes, fails, or the Player who asked withdraws it. Hotseat and Tournament Games have none.
+
+**Undo Vote**:
+A Player Vote for an Authorized Undo that the asking Player's own Undo cannot reach, because it would cross an Action that revealed information or another Player's Action. It passes when every Player with an account agrees and fails when any Player declines. Play continues while it is open; Actions taken meanwhile are undone with the rest. It lifts the same restrictions an administrator may bypass.
+_Avoid_: Undo request vote, rollback vote
+
 **Fork**:
 A new Game Instance derived from a selected position in another Game Instance’s Canonical Action History. It has its own identity, Owner, history, and lifecycle while retaining the source Game Title and Game Configuration. A Fork of a Tournament Game does not inherit its Tournament participation.
 _Avoid_: Exploration

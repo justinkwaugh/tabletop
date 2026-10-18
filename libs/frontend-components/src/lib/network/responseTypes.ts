@@ -4,6 +4,7 @@ import {
     CanonicalActionReplay,
     ProcessedActionReplay,
     Game,
+    UndoVotePreview,
     GameAction,
     GameChat,
     GameChatMessage,
@@ -45,6 +46,16 @@ export const UsersResponse = Type.Evaluate(
         Type.Omit(ApiResponse, ['payload']),
         Type.Object({
             payload: Type.Object({ users: Type.Array(User) })
+        })
+    ])
+)
+
+export type UndoVotePreviewResponse = Static<typeof UndoVotePreviewResponse>
+export const UndoVotePreviewResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: Type.Object({ preview: UndoVotePreview })
         })
     ])
 )

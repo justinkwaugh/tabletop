@@ -4,6 +4,7 @@ import {
     createPatch,
     ExplorationHistory,
     isOutOfTurnDeclaration,
+    isSameSimultaneousGroup,
     type GameAction,
     type GameState,
     type HydratedGameState,
@@ -27,10 +28,9 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
             action = last
             if (
                 (isOutOfTurnDeclaration(action) && action.id !== target.id) ||
-                (action.playerId &&
+                (action.playerId !== undefined &&
                     action.playerId !== target.playerId &&
-                    target.simultaneousGroupId !== undefined &&
-                    action.simultaneousGroupId === target.simultaneousGroupId)
+                    isSameSimultaneousGroup(action, target))
             ) {
                 redoActions.unshift(action)
             }

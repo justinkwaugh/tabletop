@@ -1125,3 +1125,72 @@ export async function verifyHistoryArrivingDuringResumedSynchronization() {
         c.dispose()
     }
 }
+
+
+function holdAnimation(session: PrivateHandSession) {
+    let release!: () => void
+    session.animationHold = new Promise<void>((resolve) => (release = resolve))
+    return release
+}
+
+async function afterServerReply() {
+    await tick()
+    await new Promise<void>((resolve) => setTimeout(resolve, 20))
+    await tick()
+}
+
+export async function runCorrectionDuringAnimation() {
+    const host = new PrivateHandHost()
+    const c = client(host)
+    try {
+        await settle(c.session)
+        const originalRank = c.session.gameState.table[0].rank
+        const correctedRank = originalRank === 4 ? 3 : 4
+        const apply = c.api.applyAction.bind(c.api)
+        c.api.applyAction = async (game, action) => {
+            await new Promise<void>((resolve) => setTimeout(resolve, 20))
+            const response = await apply(game, action)
+            const accepted = response.actions.at(-1)
+            assertExists(accepted?.forwardPatch, 'Expected authoritative forward patch')
+            accepted.forwardPatch.push({ op: 'replace', path: '/table/0/rank', value: correctedRank })
+            c.session.animationHold = undefined
+            return response
+        }
+        const releaseAnimation = holdAnimation(c.session)
+        await c.session.play('r1')
+        await afterServerReply()
+        const correctionWaited = c.session.gameState.table[0].rank === originalRank
+        const busyWhileAnimating = c.session.busy
+        releaseAnimation()
+        await settle(c.session)
+        const correctionPresented = c.session.gameState.table[0].rank === correctedRank
+        return { correctionWaited, busyWhileAnimating, correctionPresented, idle: !c.session.busy }
+    } finally {
+        c.dispose()
+    }
+}
+
+export async function runRejectionDuringAnimation() {
+    const host = new PrivateHandHost()
+    const c = client(host)
+    try {
+        await settle(c.session)
+        const tableBefore = c.session.gameState.table.length
+        c.api.applyAction = async () => {
+            await new Promise<void>((resolve) => setTimeout(resolve, 20))
+            c.session.animationHold = undefined
+            throw new Error('Rejected by the server')
+        }
+        const releaseAnimation = holdAnimation(c.session)
+        await c.session.play('r1')
+        await afterServerReply()
+        const busyWhileAnimating = c.session.busy
+        releaseAnimation()
+        await settle(c.session)
+        const shownTable = c.session.gameState.table.length
+        const restored = shownTable === tableBefore && host.state.table.length === tableBefore
+        return { busyWhileAnimating, restored, idle: !c.session.busy }
+    } finally {
+        c.dispose()
+    }
+}

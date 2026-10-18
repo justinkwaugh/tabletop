@@ -2,6 +2,9 @@ import { FastifyInstance } from 'fastify'
 import { TSchema, Type, type Static } from 'typebox'
 import { GameAction, ActionSource, GameDefinition, ToAPIAction } from '@tabletop/common'
 import * as Value from 'typebox/value'
+import { InvalidActionError } from '../../lib/errors.js'
+import { actionAjvOptions } from '../../../runtime/ajvOptions.js'
+import { lazyValidatorCompiler } from '../../../runtime/lazyValidation.js'
 
 export default async function (
     definition: GameDefinition,
@@ -12,6 +15,7 @@ export default async function (
     type ActionRequest = Static<typeof ActionRequest>
     const ActionRequest = Type.Object(
         {
+            gameId: Type.String(),
             action: ToAPIAction(actionSchema)
         },
         { additionalProperties: false }
@@ -24,6 +28,7 @@ export default async function (
             schema: {
                 body: ActionRequest
             },
+            validatorCompiler: lazyValidatorCompiler(() => fastify.getSchemas(), actionAjvOptions),
             onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
                 relation: 'and'
             })
@@ -39,7 +44,17 @@ export default async function (
             action.source = ActionSource.User // Don't trust client
 
             if (!Value.Check(actionSchema, action)) {
-                throw Error('Invalid action format')
+                const [error] = Value.Errors(actionSchema, action)
+                throw new InvalidActionError({
+                    actionType,
+                    problem: `${error.instancePath} ${error.message}`
+                })
+            }
+            if (action.gameId !== request.body.gameId) {
+                throw new InvalidActionError({
+                    actionType,
+                    problem: 'the Action is for a different game'
+                })
             }
 
             const representation = await fastify.gameService.applyActionToGame({

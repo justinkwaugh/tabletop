@@ -8,6 +8,7 @@ import {
     takeLoginContinuation
 } from '$lib/utils/loginContinuation'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
+import { browserTimeZone } from '$lib/utils/timeZones'
 
 /**
  *
@@ -136,7 +137,7 @@ export class AuthorizationService {
     }
 
     public async onLogin(user: User) {
-        this.setSessionUser(user)
+        this.adoptSessionUser(user)
 
         if (user.status === UserStatus.Incomplete) {
             await goto('/onboarding')
@@ -154,18 +155,39 @@ export class AuthorizationService {
     private async loadSessionUser() {
         const sessionUser = await this.fetchSessionUser()
         if (sessionUser) {
-            this.setSessionUser(sessionUser)
+            this.adoptSessionUser(sessionUser)
         }
     }
 
     private async verifyStoredSessionUser(storedUser: User): Promise<boolean> {
         const sessionUser = await this.fetchSessionUser()
         if (sessionUser) {
-            this.setSessionUser(sessionUser)
+            this.adoptSessionUser(sessionUser)
         } else {
             this.clearSessionUser()
         }
         return sessionUser?.id !== storedUser.id || sessionUser.status !== storedUser.status
+    }
+
+    private adoptSessionUser(user: User) {
+        this.setSessionUser(user)
+        void this.fillMissingTimeZone(user)
+    }
+
+    private async fillMissingTimeZone(user: User) {
+        if (user.timeZone) {
+            return
+        }
+        try {
+            const updatedUser = await this.api.updateUserTimeZone(browserTimeZone(), {
+                onlyIfUnset: true
+            })
+            if (this.sessionUser?.id === updatedUser.id) {
+                this.setSessionUser(updatedUser)
+            }
+        } catch (error) {
+            console.error('Could not save the browser time zone', error)
+        }
     }
 
     private async fetchSessionUser(): Promise<User | undefined> {

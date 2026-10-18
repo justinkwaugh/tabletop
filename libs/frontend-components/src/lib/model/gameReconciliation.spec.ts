@@ -11,6 +11,7 @@ import type { RemoteApiService } from '../services/remoteApiService.js'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import type { GameContext } from './gameContext.svelte.js'
 import { GameReconciliation, ServerActionHandling } from './gameReconciliation.js'
+import type { TransitionRequest } from './transitionPresenter.js'
 
 type State = GameState & { card?: string; effect?: string; cubes?: (string | null | undefined)[] }
 type Context = GameContext<State, HydratedGameState<State> & State>
@@ -29,14 +30,15 @@ function stateWith(fields: Partial<State>): State {
 }
 
 // The server's projected action carries a JSON forward patch built from the State as it is stored.
-function submission(before: State, optimisticState: State) {
+function submission(before: State, optimisticState: State, revealing = false) {
     const action: GameAction = {
         id: 'activate',
         gameId: 'game',
         type: 'ActivateEffect',
         playerId: 'p1',
         source: ActionSource.User,
-        index: 0
+        index: 0,
+        ...(revealing ? { revealsInfo: true } : {})
     }
     const served: GameAction = {
         ...action,
@@ -56,8 +58,18 @@ function submission(before: State, optimisticState: State) {
         }
         return next
     }
+    const kinds: string[] = []
+    const remote = {
+        isPaused: () => false,
+        recover: vi.fn(),
+        acceptsPerspective: () => true,
+        present: (request: TransitionRequest, write: () => void) => {
+            kinds.push(request.kind)
+            write()
+        }
+    }
     const context = {
-        state: optimisticState,
+        state: revealing ? before : optimisticState,
         game: {},
         applyActionResults: vi.fn(),
         engine: {
@@ -73,12 +85,23 @@ function submission(before: State, optimisticState: State) {
     >
     return {
         context,
+        remote,
+        kinds,
         response,
         optimistic: {
             before: { state: before, game: {} } as unknown as Context,
             result: new GameActionResults<State>([action], optimisticState)
         }
     }
+}
+
+function reconciliationOf(f: ReturnType<typeof submission>) {
+    return new GameReconciliation(
+        f.context as unknown as Context,
+        f.remote as unknown as ConstructorParameters<
+            typeof GameReconciliation<State, HydratedGameState<State> & State>
+        >[1]
+    )
 }
 
 describe('GameReconciliation.acceptSubmission', () => {
@@ -116,17 +139,26 @@ describe('GameReconciliation.acceptSubmission', () => {
 
     it('replaces an optimistic State that differs from the server', () => {
         const before = stateWith({ card: 'Refraction' })
-        const { context, response, optimistic } = submission(before, {
-            ...before,
-            card: undefined,
-            actionCount: 1
-        })
-        optimistic.result.updatedState = { ...optimistic.result.updatedState, card: 'Flare' }
-        const reconciliation = new GameReconciliation(context as unknown as Context)
+        const f = submission(before, { ...before, card: undefined, actionCount: 1 })
+        f.optimistic.result.updatedState = { ...f.optimistic.result.updatedState, card: 'Flare' }
+        const reconciliation = reconciliationOf(f)
 
-        reconciliation.acceptSubmission('activate', response, optimistic)
+        reconciliation.acceptSubmission('activate', f.response, f.optimistic)
 
-        expect(context.restoreFrom).toHaveBeenCalledOnce()
+        expect(f.context.restoreFrom).toHaveBeenCalledOnce()
+        expect(f.kinds).toEqual(['reconciliation'])
+    })
+
+    it("presents the host's acceptance of a revealing action as the player's own", () => {
+        const before = stateWith({ card: 'Refraction' })
+        const f = submission(before, { ...before, card: undefined, actionCount: 1 }, true)
+        const reconciliation = reconciliationOf(f)
+
+        reconciliation.acceptSubmission('activate', f.response, f.optimistic)
+
+        expect(f.context.restoreFrom).not.toHaveBeenCalled()
+        expect(f.context.applyActionResults).toHaveBeenCalledOnce()
+        expect(f.kinds).toEqual(['own-action'])
     })
 })
 
@@ -168,7 +200,8 @@ function afterUndo() {
     const remote = {
         isPaused: () => false,
         recover: vi.fn(),
-        acceptsPerspective: () => true
+        acceptsPerspective: () => true,
+        present: vi.fn((_request: TransitionRequest, write: () => void) => write())
     }
     const placement: GameAction = {
         id: 'place',
@@ -198,7 +231,7 @@ function afterUndo() {
         game: { ...game, updatedAt },
         perspective: { kind: 'player' as const, playerId: 'p1' }
     })
-    return { context, reconciliation, broadcast, replacement, placedAt, undoneAt }
+    return { context, reconciliation, remote, broadcast, replacement, placedAt, undoneAt }
 }
 
 describe('GameReconciliation server updates', () => {
@@ -226,6 +259,19 @@ describe('GameReconciliation server updates', () => {
 
         expect(context.applyActionResults).toHaveBeenCalledOnce()
     })
+
+    it("declares a delivered action as another participant's and a replacement as an Undo", async () => {
+        const { reconciliation, remote, broadcast, replacement, undoneAt } = afterUndo()
+        const later = new Date(undoneAt.getTime() + 1000)
+
+        await reconciliation.enqueue(broadcast(later))
+        await reconciliation.enqueue(replacement(later))
+
+        expect(remote.present.mock.calls.map(([request]) => request.kind)).toEqual([
+            'other-action',
+            'undo'
+        ])
+    })
 })
 
 // The player undid an action; the client already shows the result, and the server's push of the
@@ -240,7 +286,9 @@ class FakeContext {
         public state: State,
         public actions: GameAction[],
         readonly game: Game,
-        readonly engine: { applyProcessedAction(input: { action: GameAction; state: State }): State }
+        readonly engine: {
+            applyProcessedAction(input: { action: GameAction; state: State }): State
+        }
     ) {}
 
     get nextActionIndex() {
@@ -258,7 +306,12 @@ class FakeContext {
     }
 
     clone(): FakeContext {
-        return new FakeContext(structuredClone(this.state), [...this.actions], this.game, this.engine)
+        return new FakeContext(
+            structuredClone(this.state),
+            [...this.actions],
+            this.game,
+            this.engine
+        )
     }
 }
 

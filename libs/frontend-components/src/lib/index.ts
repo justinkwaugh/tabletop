@@ -40,8 +40,16 @@ export * from './network/responseTypes.js'
 export * from './network/errors.js'
 export * from './network/versionChecker.js'
 export * from './model/gameSession.svelte.js'
+export * from './model/viewedHistoryPosition.js'
 export * from './model/gameContext.svelte.js'
 export * from './model/gameReconciliation.js'
+export type {
+    PresentedTransition,
+    TransitionIntent,
+    TransitionKind,
+    TransitionRequest,
+    TransitionStep
+} from './model/transitionPresenter.js'
 export * from './model/gameSessionContext.js'
 export * from './model/appContext.js'
 export * from './model/stagedSelection.js'
@@ -67,11 +75,19 @@ export { TitlePreferences } from './preferences/titlePreferences.svelte.js'
 export { default as TabWorkspace } from './components/TabWorkspace.svelte'
 export type { WorkspaceTab, WorkspaceFixedPane } from './components/workspaceTypes.js'
 export type { WorkspaceInitialSplit, SplitAxis } from './components/tabWorkspace.js'
-export type { SavedWorkspace, SavedPane, InitialWorkspace } from './components/workspacePersistence.js'
+export type {
+    SavedWorkspace,
+    SavedPane,
+    InitialWorkspace
+} from './components/workspacePersistence.js'
 
 export { DebouncedLayout } from './preferences/debouncedLayout.svelte.js'
 
-export { restoreWorkspace, restoreWorkspaceTabs, saveWorkspace } from './components/workspacePersistence.js'
+export {
+    restoreWorkspace,
+    restoreWorkspaceTabs,
+    saveWorkspace
+} from './components/workspacePersistence.js'
 export { workspaceLayout } from './components/tabWorkspace.js'
 
 export type { GameSessionView, GameHistoryView } from './model/gameSessionView.js'

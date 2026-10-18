@@ -1,6 +1,5 @@
-import type { FastifyInstance, FastifySchemaCompiler } from 'fastify'
-import { Type, type Static, type TSchema } from 'typebox'
-import { Compile } from 'typebox/compile'
+import type { FastifyInstance } from 'fastify'
+import { Type, type Static } from 'typebox'
 import {
     assertExists,
     CreateTournamentRequest,
@@ -10,30 +9,19 @@ import {
     TournamentScheduleRequest,
     CommitTournamentScheduleRequest,
     CorrectTournamentResultRequest,
-    TournamentParams
+    SubstituteTournamentEntrantRequest,
+    TournamentParams,
+    WithdrawTournamentEntrantRequest
 } from '@tabletop/common'
-import { TournamentError } from '@tabletop/backend-services'
+import {
+    competitionRequestValidator,
+    prepareCompetitionRoutes
+} from '../../../lib/competitionRoutes.js'
 
-const validateTournamentSettings: FastifySchemaCompiler<TSchema> = ({ schema }) => {
-    const validator = Compile(schema)
-    return (data) =>
-        validator.Check(data) ? { value: data } : { error: new Error('Invalid tournament request') }
-}
+const validateTournamentSettings = competitionRequestValidator('Invalid tournament request')
 
 export default async function (fastify: FastifyInstance) {
-    fastify.addHook('onRequest', fastify.verifyActiveUser)
-    fastify.addHook('onSend', async (_request, reply, payload) => {
-        reply.header('Cache-Control', 'no-store')
-        return payload
-    })
-    fastify.setErrorHandler((error, _request, reply) => {
-        if (error instanceof TournamentError)
-            return reply.code(error.statusCode).send({
-                status: 'error',
-                error: { name: 'TournamentError', message: error.message }
-            })
-        return reply.send(error)
-    })
+    prepareCompetitionRoutes(fastify, 'TournamentError')
 
     fastify.get<{ Querystring: Static<typeof TournamentListQuery> }>(
         '/',
@@ -105,6 +93,48 @@ export default async function (fastify: FastifyInstance) {
             return {
                 status: 'ok',
                 payload: await fastify.tournamentService.correctResult(
+                    request.params.id,
+                    request.body,
+                    request.user
+                )
+            }
+        }
+    )
+    fastify.post<{
+        Params: Static<typeof TournamentParams>
+        Body: Static<typeof WithdrawTournamentEntrantRequest>
+    }>(
+        '/:id/entrants/withdraw',
+        {
+            schema: { params: TournamentParams, body: WithdrawTournamentEntrantRequest },
+            preHandler: fastify.verifyRoleAdmin
+        },
+        async (request) => {
+            assertExists(request.user, 'Authenticated administrator required')
+            return {
+                status: 'ok',
+                payload: await fastify.tournamentService.withdrawEntrant(
+                    request.params.id,
+                    request.body,
+                    request.user
+                )
+            }
+        }
+    )
+    fastify.post<{
+        Params: Static<typeof TournamentParams>
+        Body: Static<typeof SubstituteTournamentEntrantRequest>
+    }>(
+        '/:id/entrants/substitute',
+        {
+            schema: { params: TournamentParams, body: SubstituteTournamentEntrantRequest },
+            preHandler: fastify.verifyRoleAdmin
+        },
+        async (request) => {
+            assertExists(request.user, 'Authenticated administrator required')
+            return {
+                status: 'ok',
+                payload: await fastify.tournamentService.substituteEntrant(
                     request.params.id,
                     request.body,
                     request.user

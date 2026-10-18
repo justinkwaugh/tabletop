@@ -15,6 +15,7 @@
         isEnabled as isDiscordSigninEnabled
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext, trim } from '@tabletop/frontend-components'
+    import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
 
     let { authorizationService, api } = getAppContext()
 
@@ -162,7 +163,7 @@
     }
 </script>
 
-<div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
+<div class="min-h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6 py-6">
     <Card class="bg-gray-300 p-4 sm:p-6">
         <form class="flex flex-col space-y-6" action="/" onsubmit={submit}>
             <h3 class="text-xl font-medium text-gray-900 dark:text-white">Edit your profile...</h3>
@@ -340,5 +341,8 @@
             {/if}
             <div class="flex justify-end"><Button type="submit" class="">Submit</Button></div>
         </form>
+        <div class="mt-6">
+            <TimeZonePicker />
+        </div>
     </Card>
 </div>
