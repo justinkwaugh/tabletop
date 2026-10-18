@@ -27,7 +27,7 @@
     )
 </script>
 
-{#if SHOW_TESTING_CONTROLS}
+{#if SHOW_TESTING_CONTROLS && gameSession.isDeveloperHarness}
 <div class="flex flex-col gap-1">
     {#if !gameSession.setupComplete}
         <button
@@ -69,7 +69,7 @@
 </div>
 {/if}
 
-{#if SHOW_DEAL_POLITICS_CARDS && gameSession.setupComplete}
+{#if SHOW_DEAL_POLITICS_CARDS && gameSession.isDeveloperHarness && gameSession.setupComplete}
     <div class="flex flex-col gap-1">
         <button
             type="button"

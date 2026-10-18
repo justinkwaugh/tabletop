@@ -1,3 +1,4 @@
+import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/definitions/boardSize.js'
 import type { Point } from '@tabletop/common'
 import { ALL_BOARD_AREAS, boardAreaPathById } from '$lib/definitions/boardGeometry.js'
 import { SEA_SHIP_MARKER_POSITIONS } from '$lib/definitions/seaShipMarkerPositions.js'
@@ -60,8 +61,6 @@ type RoutingContext = {
 }
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
-const BOARD_WIDTH = 2646
-const BOARD_HEIGHT = 1280
 const DEFAULT_LAND_INFLATION_PIXELS = 15
 const DEFAULT_SEA_INSET_PIXELS = 0
 const LAND_INFLATION_RETRY_STEPS = [15, 12, 9, 6, 3, 0] as const
@@ -1476,17 +1475,6 @@ function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): strin
 }
 
 export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathInput): string | null {
-    const timingStart =
-        typeof performance !== 'undefined' && typeof performance.now === 'function'
-            ? performance.now()
-            : Date.now()
-    const timingLabel = [
-        input.cultivatedAreaId,
-        ...input.seaAreaIds,
-        input.cityAreaId
-    ].join(' -> ')
-
-    try {
     if (input.seaAreaIds.length === 0) {
         return null
     }
@@ -1579,13 +1567,4 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
         shipWaypointPoints: seaWaypoints,
         routingContext: smoothingRoutingContext
     })
-    } finally {
-        const timingEnd =
-            typeof performance !== 'undefined' && typeof performance.now === 'function'
-                ? performance.now()
-                : Date.now()
-        console.debug(
-            `[shipping-route] ${timingLabel}: ${(timingEnd - timingStart).toFixed(1)}ms`
-        )
-    }
 }

@@ -4,21 +4,27 @@
 import { createRequire } from 'node:module'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { workspaceRequire } from './workspace_compilers.mjs'
 
 const uiRoot = resolve(process.argv[2])
 const repoRequire = createRequire(join(uiRoot, '../../config/config-rollup/package.json'))
 const pluginRequire = createRequire(repoRequire.resolve('rollup-plugin-postcss'))
 const postcss = pluginRequire('postcss')
 const { SourceMapConsumer } = pluginRequire('source-map')
-const ts = createRequire(join(uiRoot, 'package.json'))('typescript')
+const ts = workspaceRequire(uiRoot)('typescript')
 
 const packageName = JSON.parse(readFileSync(join(uiRoot, 'package.json'), 'utf8')).name ?? ''
-const packageSlug = packageName.replace(/^@/, '').replace(/\//g, '-').replace(/[^a-zA-Z0-9_-]/g, '-')
+const packageSlug = packageName
+    .replace(/^@/, '')
+    .replace(/\//g, '-')
+    .replace(/[^a-zA-Z0-9_-]/g, '-')
 const gameId = packageName.replace(/^@[^/]+\//, '').replace(/-ui$/, '')
 const bundleDir = join(uiRoot, 'bundle')
 
 if (!existsSync(bundleDir)) {
-    process.stdout.write(JSON.stringify({ error: 'no bundle directory; run the UI bundle script first' }))
+    process.stdout.write(
+        JSON.stringify({ error: 'no bundle directory; run the UI bundle script first' })
+    )
     process.exit(0)
 }
 
@@ -71,10 +77,16 @@ const recordAtRule = (entry) => {
 for (const file of readdirSync(bundleDir).filter((name) => name.endsWith('.js'))) {
     const source = readFileSync(join(bundleDir, file), 'utf8')
     const mapPath = join(bundleDir, `${file}.map`)
-    const map = existsSync(mapPath) ? new SourceMapConsumer(JSON.parse(readFileSync(mapPath, 'utf8'))) : undefined
+    const map = existsSync(mapPath)
+        ? new SourceMapConsumer(JSON.parse(readFileSync(mapPath, 'utf8')))
+        : undefined
     const origin = (line, column) => {
         const original = map?.originalPositionFor({ line, column })?.source
-        return original ? original.replace(/^(\.\.\/)+/, '').replace(/^.*node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?/, 'node_modules/') : 'unknown'
+        return original
+            ? original
+                  .replace(/^(\.\.\/)+/, '')
+                  .replace(/^.*node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?/, 'node_modules/')
+            : 'unknown'
     }
     for (const { text: css, line, column } of stringLiterals(file, source)) {
         if (css.length < 10 || !css.includes('{') || !css.includes(':')) continue
@@ -91,11 +103,23 @@ for (const file of readdirSync(bundleDir).filter((name) => name.endsWith('.js'))
         root.walkAtRules((rule) => {
             if (/keyframes$/.test(rule.name)) {
                 if (!rule.params.startsWith('svelte-') && !tailwindKeyframes.has(rule.params))
-                    recordAtRule({ file, source: origin(line, column), rule: `@${rule.name} ${rule.params}` })
+                    recordAtRule({
+                        file,
+                        source: origin(line, column),
+                        rule: `@${rule.name} ${rule.params}`
+                    })
             } else if (rule.name === 'font-face' || rule.name === 'counter-style') {
-                recordAtRule({ file, source: origin(line, column), rule: `@${rule.name} ${rule.params}`.trim() })
+                recordAtRule({
+                    file,
+                    source: origin(line, column),
+                    rule: `@${rule.name} ${rule.params}`.trim()
+                })
             } else if (rule.name === 'property' && !rule.params.startsWith('--tw-')) {
-                recordAtRule({ file, source: origin(line, column), rule: `@property ${rule.params}` })
+                recordAtRule({
+                    file,
+                    source: origin(line, column),
+                    rule: `@property ${rule.params}`
+                })
             }
         })
         root.walkRules((rule) => {
@@ -104,12 +128,15 @@ for (const file of readdirSync(bundleDir).filter((name) => name.endsWith('.js'))
                 const trimmed = selector.trim()
                 const prefix = trimmed.match(prefixPattern)
                 if (prefix && prefix[2] !== gameId)
-                    result.wrongPrefix.push({ file, source: origin(line, column), selector: trimmed })
+                    result.wrongPrefix.push({
+                        file,
+                        source: origin(line, column),
+                        selector: trimmed
+                    })
                 else if (prefix || trimmed.includes(svelteHash)) {
                     result.scopedRules++
                     if (prefix) result.prefixedRules++
-                }
-                else if (isPlatform(origin(line, column))) result.platformLeaks++
+                } else if (isPlatform(origin(line, column))) result.platformLeaks++
                 else result.leaks.push({ file, source: origin(line, column), selector: trimmed })
             }
         })

@@ -90,7 +90,7 @@ export class SseConnection implements RealtimeConnection {
         for (const [, channelData] of this.channels) {
             this.disconnectChannel(channelData)
         }
-        this.connectionStatus = ConnectionStatus.Connected
+        this.connectionStatus = ConnectionStatus.Disconnected
     }
 
     disconnectChannel(channelData: ChannelData) {
