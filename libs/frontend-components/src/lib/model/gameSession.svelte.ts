@@ -22,6 +22,11 @@ import {
     assertExists,
     createAction,
     executeInLocalGame,
+    isCommonAction,
+    isCommonActionType,
+    isRestingInSpan,
+    latestCommonActionUndoTarget,
+    restingSpan,
     type UnmergedBranch,
     isLocalGame,
     type User,
@@ -259,10 +264,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (
             this.history.inHistory ||
             (!superUserAccess && !localHotseatAccess && !this.myPlayer) ||
-            this.actions.length === 0 ||
-            (!superUserAccess && this.isBeyondOwnUndo(this.currentModifiableContext))
+            this.actions.length === 0
         ) {
             return undefined
+        }
+        if (!superUserAccess && this.isBeyondOwnUndo(this.currentModifiableContext)) {
+            return this.ownCommonActionUndoTarget()
         }
 
         if (superUserAccess || localHotseatAccess) {
@@ -272,10 +279,30 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const player = this.myPlayer
-        return player
-            ? latestPlayerUndoTarget(this.undoableActions({ stopAtReveal: false }), player.id)
-            : undefined
+        if (!player) return undefined
+        return (
+            latestPlayerUndoTarget(this.undoableActions({ stopAtReveal: false }), player.id) ??
+            this.ownCommonActionUndoTarget()
+        )
     })
+
+    private ownCommonActionUndoTarget(): GameAction | undefined {
+        const player = this.myPlayer
+        const mainLine = this.gameContext
+        if (
+            player === undefined ||
+            this.isExploring ||
+            !this.usesHostExecution(mainLine) ||
+            !isRestingInSpan(mainLine.state)
+        ) {
+            return undefined
+        }
+        return latestCommonActionUndoTarget(
+            mainLine.actions,
+            restingSpan(mainLine.state),
+            player.id
+        )
+    }
 
     private undoableActions({ stopAtReveal }: { stopAtReveal: boolean }): GameAction[] {
         const undoLimit =
@@ -465,7 +492,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 }
             )
             return this.isViewingAsNonActivePlayer
-                ? types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
+                ? types.filter(
+                      (type) =>
+                          isOutOfTurnActionType(this.runtime.apiActions, type) ||
+                          isCommonActionType(this.runtime.apiActions, type)
+                  )
                 : types
         } catch (error) {
             if (!Visibility.isUnavailableProjectedValueError(error)) {
@@ -1120,7 +1151,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
 
-        const relevantContext = this.currentModifiableContext
+        const relevantContext = this.contextToActIn(action)
         const isRepresentationCurrent = this.representations.captureValidity()
         const requiresAuthoritativeApplication = this.requiresServerAuthoritativeProcessing(
             relevantContext,
@@ -1191,6 +1222,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 this.presenter.present({ kind: 'own-action' }, () =>
                     relevantContext.applyActionResults(actionResults)
                 )
+                if (relevantContext !== this.currentModifiableContext) {
+                    this.ownBranch.follow('own-action')
+                }
             }
 
             // Our processed action has the updated index so grab it
@@ -1259,11 +1293,24 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    // A Common Action runs on the Main Line even while the Player plays their own Branch.
+    private contextToActIn(action: GameAction): GameContext<T, U> {
+        const context = this.currentModifiableContext
+        return context === this.ownBranch.context &&
+            isCommonActionType(this.runtime.apiActions, action.type)
+            ? this.gameContext
+            : context
+    }
+
     private announceReconciledRace(action: GameAction, raced: readonly GameAction[] = []) {
         const racers = raced.filter(
             (other) => other.source === ActionSource.User && other.playerId !== action.playerId
         )
-        if (!racers.length || ![action, ...racers].some((other) => other.sequenced)) return
+        if (
+            !racers.length ||
+            ![action, ...racers].some((other) => other.sequenced || isCommonAction(other))
+        )
+            return
         const names = [...new Set(racers.map((other) => this.getPlayerName(other.playerId)))]
         toast.info(`Your action was applied after ${names.join(' and ')}’s`)
     }
@@ -1345,6 +1392,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    private contextToUndoIn(target: GameAction): GameContext<T, U> {
+        const context = this.currentModifiableContext
+        return context === this.ownBranch.context &&
+            isCommonAction(target) &&
+            this.gameContext.hasAction(target.id)
+            ? this.gameContext
+            : context
+    }
+
     private isBeyondOwnUndo(context: GameContext<T, U>): boolean {
         return (
             context === this.gameContext &&
@@ -1379,9 +1435,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
 
-        const context = this.currentModifiableContext
-        const isRepresentationCurrent = this.representations.captureValidity()
         const targetAction = structuredClone($state.snapshot(this.undoableAction))
+        const context = this.contextToUndoIn(targetAction)
+        const isRepresentationCurrent = this.representations.captureValidity()
         const before = context.clone()
         const hosted =
             this.usesHostExecution(context) || context.game.storage === GameStorage.Remote
