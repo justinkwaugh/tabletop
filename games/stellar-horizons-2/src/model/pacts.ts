@@ -101,6 +101,15 @@ function couldTakePart(ship: ShipState | undefined, systemId: string, challenge:
     )
 }
 
+// Pacts are made while the Exploration Phase's span is open. A Local Game's Main Line may be
+// part-way through a Player's Branch then, which the engine sets aside before a Common Action
+// runs, so ask the span rather than the current Machine State.
+function inExplorationSpan(state: HydratedStellarHorizonsGameState): boolean {
+    return (
+        (state.parallelSpan?.machineState ?? state.machineState) === MachineState.ExplorationPhase
+    )
+}
+
 // A Player guarantees only their own side: their pledged ships are free in their own Branch
 // (Common Actions rule 5). A ship already held by another of their standing offers is not free.
 export function ownSideFree(
@@ -160,60 +169,95 @@ function inAgreedPact(state: HydratedStellarHorizonsGameState, playerId: string,
     )
 }
 
-// Terms everyone can check: an exploration span in progress, partners of the span who have not
-// closed, ships at the target able to take part whose combined strength reaches its
-// difficulty, and shares that split the reward exactly. In These are the Voyages the reward is
-// ignored and the pact names the partner who keeps the tile.
+// What is wrong with terms, as everyone can see, or undefined when nothing is: partners of the
+// span who have not closed, ships at the target able to take part whose combined strength
+// reaches its difficulty, and shares that split the reward exactly. In These are the Voyages
+// the reward is ignored and the pact names the partner who keeps the tile. The proposer's own
+// ships must be free in their own Branch.
+export function termsProblem(
+    state: HydratedStellarHorizonsGameState,
+    proposerId: string,
+    terms: PactTerms,
+    exceptPactId?: string
+): string | undefined {
+    const span = state.parallelSpan
+    const target = pactTarget(state, terms)
+    if (span === undefined) {
+        return 'Pacts are made while ships explore'
+    }
+    if (target === undefined) {
+        return 'The target is no longer there'
+    }
+    const partners = terms.partnerIds
+    if (partners.length < 2 || new Set(partners).size !== partners.length) {
+        return 'Choose at least one partner'
+    }
+    if (!partners.includes(proposerId)) {
+        return 'You must be a partner'
+    }
+    if (
+        partners.some((playerId) => !span.playerIds.includes(playerId) || isClosed(state, playerId))
+    ) {
+        return 'A partner has finished exploring'
+    }
+    if (partners.some((playerId) => (terms.pledges[playerId]?.length ?? 0) === 0)) {
+        return 'Every partner pledges at least one ship'
+    }
+    if (Object.keys(terms.pledges).some((playerId) => !partners.includes(playerId))) {
+        return 'Only partners pledge ships'
+    }
+    if (
+        partners.some((playerId) =>
+            state.pacts.some(
+                (candidate) =>
+                    candidate.id !== exceptPactId &&
+                    candidate.agreed &&
+                    candidate.terms.targetId === terms.targetId &&
+                    candidate.terms.partnerIds.includes(playerId)
+            )
+        )
+    ) {
+        return 'A partner already has an agreed pact for this target'
+    }
+    const ships = partners.flatMap((playerId) =>
+        (terms.pledges[playerId] ?? []).map((shipId) => state.playerShip(playerId, shipId))
+    )
+    if (!ships.every((ship) => couldTakePart(ship, target.systemId, terms.challenge))) {
+        return 'A pledged ship cannot take part'
+    }
+    const strength = ships.reduce(
+        (total, ship) => total + (ship ? anomalyStrength(ship, terms.challenge) : 0),
+        0
+    )
+    if (strength < target.difficulty) {
+        return `The pledged ships total ${strength} of the ${target.difficulty} needed`
+    }
+    if (!sumsMatch(terms, target.reward)) {
+        return 'The shares must add up to the whole reward'
+    }
+    const keeperValid = usesAnomalyRewards(state)
+        ? terms.keeperId === undefined
+        : terms.targetKind === PactTargetKind.Event ||
+          (terms.keeperId !== undefined && partners.includes(terms.keeperId))
+    if (!keeperValid) {
+        return 'Choose who keeps the tile'
+    }
+    if (!ownSideFree(state, proposerId, terms, target.systemId, exceptPactId)) {
+        return 'One of your pledged ships is already in use'
+    }
+    return undefined
+}
+
+// Terms valid in an exploration span in progress.
 export function areValidTerms(
     state: HydratedStellarHorizonsGameState,
     proposerId: string,
     terms: PactTerms,
     exceptPactId?: string
 ): boolean {
-    const span = state.parallelSpan
-    const target = pactTarget(state, terms)
-    if (
-        span === undefined ||
-        state.machineState !== MachineState.ExplorationPhase ||
-        target === undefined
-    ) {
-        return false
-    }
-    const partners = terms.partnerIds
-    const ships = partners.flatMap((playerId) =>
-        (terms.pledges[playerId] ?? []).map((shipId) => state.playerShip(playerId, shipId))
-    )
-    const strength = ships.reduce(
-        (total, ship) => total + (ship ? anomalyStrength(ship, terms.challenge) : 0),
-        0
-    )
-    const keeperValid = usesAnomalyRewards(state)
-        ? terms.keeperId === undefined
-        : terms.targetKind === PactTargetKind.Event ||
-          (terms.keeperId !== undefined && partners.includes(terms.keeperId))
     return (
-        partners.length >= 2 &&
-        new Set(partners).size === partners.length &&
-        partners.includes(proposerId) &&
-        partners.every(
-            (playerId) =>
-                span.playerIds.includes(playerId) &&
-                !isClosed(state, playerId) &&
-                (terms.pledges[playerId]?.length ?? 0) > 0 &&
-                !state.pacts.some(
-                    (candidate) =>
-                        candidate.id !== exceptPactId &&
-                        candidate.agreed &&
-                        candidate.terms.targetId === terms.targetId &&
-                        candidate.terms.partnerIds.includes(playerId)
-                )
-        ) &&
-        Object.keys(terms.pledges).every((playerId) => partners.includes(playerId)) &&
-        ships.every((ship) => couldTakePart(ship, target.systemId, terms.challenge)) &&
-        strength >= target.difficulty &&
-        sumsMatch(terms, target.reward) &&
-        keeperValid &&
-        ownSideFree(state, proposerId, terms, target.systemId, exceptPactId)
+        inExplorationSpan(state) &&
+        termsProblem(state, proposerId, terms, exceptPactId) === undefined
     )
 }
 
@@ -290,7 +334,7 @@ export function canAccept(
     const candidate = pact(state, pactId)
     return (
         candidate !== undefined &&
-        state.machineState === MachineState.ExplorationPhase &&
+        inExplorationSpan(state) &&
         !candidate.agreed &&
         !hasLapsed(state, candidate) &&
         candidate.revision === revision &&
@@ -322,7 +366,7 @@ export function canWithdraw(
     const candidate = pact(state, pactId)
     return (
         candidate !== undefined &&
-        state.machineState === MachineState.ExplorationPhase &&
+        inExplorationSpan(state) &&
         !candidate.agreed &&
         candidate.terms.partnerIds.includes(playerId)
     )

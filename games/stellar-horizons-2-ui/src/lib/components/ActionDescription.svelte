@@ -8,8 +8,24 @@
         anomalyDefinition,
         CASH_PER_INFLUENCE,
         CASH_PRODUCTION,
+        eventDefinition,
+        isAcceptPact,
         isAttemptAnomaly,
+        isAttemptEvent,
         isBuildShip,
+        isDrawEvent,
+        isMine,
+        isPlaceEvent,
+        isPlaceHomesteaders,
+        isPlaceRewardSettlements,
+        isProposePact,
+        isResearch,
+        isResolveEvent,
+        isResolveShipTerraform,
+        isSettleSyndicateTakes,
+        isTerraformWithShip,
+        isWithdrawPact,
+        type GrantedReward,
         isChooseProduction,
         isConvertSettlement,
         isDeclareInitiative,
@@ -79,6 +95,23 @@
                 : [])
         ]
         return parts.length > 0 ? ` (${parts.join(' and ')} in compensation)` : ''
+    }
+
+    function rewardText(reward: GrantedReward): string {
+        const parts = [
+            reward.influence ? `${reward.influence} IP` : '',
+            reward.cash ? `$${reward.cash}B` : '',
+            reward.markers.length ? `markers (${reward.markers.join(', ')})` : '',
+            reward.settlements ? plural(reward.settlements, 'settlement') : ''
+        ].filter(Boolean)
+        const notYet = reward.notYet.length
+            ? ` (${reward.notYet.join(' and ')} not in the game yet)`
+            : ''
+        return `${parts.length ? parts.join(', ') : 'nothing'}${notYet}`
+    }
+
+    function targetName(kind: string, targetId: string): string {
+        return kind === 'Event' ? eventDefinition(targetId).name : anomalyDefinition(targetId).name
     }
 
     function settledText(entry: SettledMarkers): string {
@@ -286,14 +319,149 @@
         </span>
     {:else if isResolveAnomaly(action)}
         {#if action.metadata}
-            <PlayerName playerId={action.metadata.playerId} />
-            <span>
-                {action.metadata.resolved ? 'resolved' : 'arrived too late to resolve'}
-                {anomalyDefinition(action.metadata.anomalyId).name} at {systemName(
-                    action.metadata.systemId
-                )}
-            </span>
+            {@const metadata = action.metadata}
+            {#if metadata.pactId}
+                <span
+                    >A pact {metadata.resolved ? 'resolved' : 'arrived too late to resolve'}
+                    {anomalyDefinition(metadata.anomalyId).name} at {systemName(
+                        metadata.systemId
+                    )}</span
+                >
+                {#each metadata.shares ?? [] as share (share.playerId)}
+                    <span class="inline-flex items-center gap-x-1"
+                        >; <PlayerName playerId={share.playerId} /> {rewardText(share)}</span
+                    >
+                {/each}
+                {#if metadata.keeperId}
+                    <span class="inline-flex items-center gap-x-1"
+                        >; <PlayerName playerId={metadata.keeperId} /> keeps the tile</span
+                    >
+                {/if}
+            {:else}
+                <PlayerName playerId={metadata.playerId} />
+                <span>
+                    {metadata.resolved ? 'resolved' : 'arrived too late to resolve'}
+                    {anomalyDefinition(metadata.anomalyId).name} at {systemName(
+                        metadata.systemId
+                    )}{metadata.reward ? `: ${rewardText(metadata.reward)}` : ''}
+                </span>
+            {/if}
+            {#if metadata.turnedOver}
+                <span
+                    >{metadata.turnedOver.back === 'Bases'
+                        ? 'The tile is turned over and stays in the system.'
+                        : metadata.turnedOver.back === 'StellarChart'
+                          ? `The Stellar Chart draws ${plural(metadata.turnedOver.worlds.length, 'world')}.`
+                          : 'The tile leaves the game.'}</span
+                >
+            {/if}
         {/if}
+    {:else if isPlaceRewardSettlements(action)}
+        <span
+            >placed reward settlements: {action.placements
+                .map((placement) => `${placement.settlements} at ${systemName(placement.systemId)}`)
+                .join(', ')}</span
+        >
+    {:else if isMine(action)}
+        <span
+            >mined {action.metadata ? systemName(action.metadata.systemId) : ''} with {shipName(
+                action.shipId
+            )}{action.metadata
+                ? `: rolled ${action.metadata.roll} against ${action.metadata.target}, $${action.metadata.cash}B`
+                : ''}</span
+        >
+    {:else if isResearch(action)}
+        <span
+            >researched {action.metadata ? systemName(action.metadata.systemId) : ''} with {shipName(
+                action.shipId
+            )}{action.metadata
+                ? `: rolled ${action.metadata.roll} against ${action.metadata.target}, ${action.metadata.success ? `a ${action.metadata.field?.toLowerCase()} marker` : 'nothing'}`
+                : ''}</span
+        >
+    {:else if isSettleSyndicateTakes(action)}
+        <span>The Syndicate takes its cut:</span>
+        {#each action.metadata?.takes ?? [] as take, index (index)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName playerId={take.fromPlayerId} /> pays ${take.cash}B at {systemName(
+                    take.systemId
+                )}</span
+            >
+        {/each}
+    {:else if isTerraformWithShip(action)}
+        <span
+            >sent {shipName(action.shipId)} to terraform a world; it happens once everyone has explored</span
+        >
+    {:else if isResolveShipTerraform(action)}
+        {#if action.metadata}
+            <PlayerName playerId={action.metadata.playerId} />
+            <span
+                >{action.metadata.outcome
+                    ? `terraformed a world at ${systemName(action.metadata.systemId)} with ${shipName(action.metadata.shipId)}${action.metadata.outcome.flipped ? '' : ' and drew new worlds'}`
+                    : `could no longer terraform at ${systemName(action.metadata.systemId)}`}</span
+            >
+        {/if}
+    {:else if isDrawEvent(action)}
+        {#if action.metadata}
+            {@const metadata = action.metadata}
+            {#each metadata.triggered as triggered (triggered.eventId)}
+                <span
+                    >{eventDefinition(triggered.eventId).name} was not resolved in time and strikes
+                    {triggered.systemId ? systemName(triggered.systemId) : ''}.</span
+                >
+            {/each}
+            {#if metadata.eventId}
+                <span
+                    >Event: {eventDefinition(metadata.eventId).name}{metadata.placerId
+                        ? '; it must be placed at a base of'
+                        : metadata.drawn
+                          ? '.'
+                          : '; nobody has a base, so it is ignored.'}</span
+                >
+                {#if metadata.placerId}
+                    <PlayerName playerId={metadata.placerId} />
+                {/if}
+                {#if metadata.drawn && metadata.drawn.players.length > 0}
+                    <span>It favours</span>
+                    {#each metadata.drawn.players as playerId (playerId)}
+                        <PlayerName {playerId} />
+                    {/each}
+                {/if}
+            {:else}
+                <span>No event is left to draw.</span>
+            {/if}
+        {/if}
+    {:else if isPlaceEvent(action)}
+        <span>placed the event at {systemName(action.systemId)}</span>
+    {:else if isPlaceHomesteaders(action)}
+        <span>added 2 Homesteaders settlements at {systemName(action.systemId)}</span>
+    {:else if isAttemptEvent(action)}
+        <span
+            >sent {action.shipIds.map(shipName).join(', ')} against {eventDefinition(action.eventId)
+                .name}</span
+        >
+    {:else if isResolveEvent(action)}
+        {#if action.metadata}
+            <PlayerName playerId={action.metadata.playerId} />
+            <span
+                >{action.metadata.resolved
+                    ? `${action.metadata.pactId ? "'s pact resolved" : 'resolved'} ${eventDefinition(action.metadata.eventId).name} for ${action.metadata.influence} IP`
+                    : `arrived too late to resolve ${eventDefinition(action.metadata.eventId).name}`}</span
+            >
+        {/if}
+    {:else if isProposePact(action)}
+        <span
+            >{action.pactId ? 'countered with a pact' : 'proposed a pact'} on {targetName(
+                action.terms.targetKind,
+                action.terms.targetId
+            )} with</span
+        >
+        {#each action.terms.partnerIds.filter((playerId) => playerId !== action.playerId) as playerId (playerId)}
+            <PlayerName {playerId} />
+        {/each}
+    {:else if isAcceptPact(action)}
+        <span>{action.metadata?.agreed ? 'agreed the pact' : 'accepted the pact'}</span>
+    {:else if isWithdrawPact(action)}
+        <span>withdrew from a pact</span>
     {:else if isResolveSurvey(action)}
         {#if action.metadata}
             <PlayerName playerId={action.metadata.playerId} />

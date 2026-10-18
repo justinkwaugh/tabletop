@@ -38,17 +38,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2097332424,
+  "seed": 4237067290,
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-18T03:46:52.021Z",
+  "createdAt": "2026-10-18T04:32:00.553Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "FJC_0Y5S1rZ8QU6UBMKAn",
+  "id": "la7-VjnjeIx6ym-PQNbCA",
   "gameId": "scenario-campaign-conversion",
   "seed": 3367980177,
   "prng": {
@@ -96,6 +96,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "Givers"
    },
@@ -127,6 +131,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "TruePath"
    },
@@ -162,6 +170,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "Praetorians"
    },
@@ -195,6 +207,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "Starfarers"
    }
@@ -838,6 +854,33 @@
    "h-14"
   ],
   "economicTilePool": [],
+  "eventPool": [
+   "apprehend-renegade",
+   "breakthrough-biology",
+   "breakthrough-engineering",
+   "breakthrough-physics",
+   "collapsing-biosphere",
+   "colonial-rush",
+   "contagion",
+   "first-contact",
+   "homesteaders",
+   "hostile-probe",
+   "incoming-comet",
+   "infectious-parasites",
+   "irradiated-atmosphere",
+   "pirate-raids-3",
+   "pirate-raids-5",
+   "prisoner-revolt",
+   "smugglers",
+   "stellar-chart",
+   "supervolcano",
+   "unrest",
+   "ai-sentient-emergence"
+  ],
+  "events": [],
+  "homesteaders": [],
+  "pacts": [],
+  "settlementRewards": [],
   "startingPositionRandom": [
    {
     "playerId": "p3",

@@ -7,6 +7,7 @@ import {
     TurnPhase,
     factionDefinition,
     systemDefinition,
+    type BaseEffects,
     type Production
 } from '@tabletop/stellar-horizons-2'
 
@@ -82,7 +83,6 @@ export const ECONOMIC_TILE_LABELS: Record<EconomicTile, string> = {
 
 // Tiles whose rules arrive with later slices of the campaign.
 export const ECONOMIC_TILE_NOT_YET: Partial<Record<EconomicTile, string>> = {
-    [EconomicTile.DrawEvent]: 'Events are not in the game yet, so this tile does nothing.',
     [EconomicTile.DrawTradeGoods]: 'Trade goods are not in the game yet, so this tile does nothing.'
 }
 
@@ -91,6 +91,27 @@ export function productionLabel(production: Production, amount: number): string 
     return production === CASH_PRODUCTION
         ? `$${amount}B`
         : plural(amount, `${production.toLowerCase()} marker`)
+}
+
+// What a turned-over anomaly does to the production of the bases in its system, if anything.
+export function backProductionText(effects: BaseEffects): string | undefined {
+    const parts = [
+        effects.cashProduction ? `+$${effects.cashProduction}B when producing cash` : '',
+        effects.markerProduction
+            ? `+${plural(
+                  effects.markerProduction.count,
+                  `${effects.markerProduction.fields.map((field) => field.toLowerCase()).join(' or ')} marker`
+              )} when producing ${effects.markerProduction.fields.length > 1 ? 'those' : 'that'}`
+            : '',
+        effects.settlementsDoubledForProduction ? 'settlements count double' : '',
+        effects.settlementLossInProduction
+            ? `loses ${plural(effects.settlementLossInProduction, 'settlement')}`
+            : '',
+        effects.settlementAfterProduction
+            ? `gains ${plural(effects.settlementAfterProduction, 'settlement')} afterwards`
+            : ''
+    ].filter(Boolean)
+    return parts.length > 0 ? parts.join('; ') : undefined
 }
 
 export const FIELD_COLORS: Record<TechField, string> = {

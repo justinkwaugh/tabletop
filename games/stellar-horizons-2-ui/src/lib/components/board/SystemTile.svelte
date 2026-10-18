@@ -3,9 +3,11 @@
         SOL_SYSTEM_ID,
         WorldSide,
         anomalyDifficulty,
+        eventDefinition,
+        eventsIn,
         starSystemDefinition
     } from '@tabletop/stellar-horizons-2'
-    import { EXPLORATION_MARKER_ART, SYSTEM_ART, WORLD_ART } from '$lib/art/manifest.js'
+    import { EVENT_ART, EXPLORATION_MARKER_ART, SYSTEM_ART, WORLD_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { tileOutline, type SystemFrame } from '$lib/utils/boardLayout.js'
     import type { ShipPipLayout } from '$lib/utils/shipPipLayout.js'
@@ -23,6 +25,9 @@
 
     const WORLD_SIZE = 112
     const MARKER_SIZE = 74
+    // Events sit to the left of the anomaly's place, one after another.
+    const EVENT_SIZE = 96
+    const EVENT_SPACING = 104
 
     let {
         frame,
@@ -38,6 +43,7 @@
 
     const gameSession = getGameSession()
     const system = $derived(gameSession.gameState.systemState(frame.systemId))
+    const events = $derived(eventsIn(gameSession.gameState, frame.systemId))
     const explorationField = $derived(
         frame.systemId === SOL_SYSTEM_ID
             ? undefined
@@ -106,13 +112,36 @@
             <polygon class="anomaly-edge" points={anomalyOutline()}></polygon>
             <AnomalyTile
                 anomalyId={system.anomaly}
-                difficulty={anomalyDifficulty(gameSession.gameState, system.anomaly)}
+                turned={system.anomalyResolved ?? false}
+                difficulty={anomalyDifficulty(
+                    gameSession.gameState,
+                    system.anomaly,
+                    gameSession.myPlayerId
+                )}
                 width={ANOMALY_SIZE.width}
                 x={-ANOMALY_SIZE.width / 2}
                 y={-ANOMALY_SIZE.height / 2}
             />
         </g>
     {/if}
+
+    {#each events as event, index (event.eventId)}
+        {@const frameX = frame.anomaly ? frame.anomaly.x : frame.marker.x}
+        {@const frameY = frame.anomaly ? frame.anomaly.y : frame.marker.y}
+        <g
+            transform="translate({frameX - (index + 1) * EVENT_SPACING} {frameY})"
+            pointer-events="none"
+            filter="url(#sh-piece-shadow)"
+        >
+            <image
+                href={EVENT_ART[event.eventId]}
+                x={-EVENT_SIZE / 2}
+                y={-EVENT_SIZE / 2}
+                width={EVENT_SIZE}
+                height={EVENT_SIZE}><title>{eventDefinition(event.eventId).name}</title></image
+            >
+        </g>
+    {/each}
 
     {#if explorationField && system.explorationMarker > 0}
         <g

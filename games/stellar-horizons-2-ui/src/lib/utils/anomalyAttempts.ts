@@ -36,7 +36,7 @@ export function anomalyOpportunities(
 ): AnomalyOpportunity[] {
     const order = state.initiativeOrder()
     return state.systems.flatMap((system) => {
-        const summary = anomalySummary(state, system.systemId)
+        const summary = anomalySummary(state, system.systemId, playerId)
         if (!summary) {
             return []
         }

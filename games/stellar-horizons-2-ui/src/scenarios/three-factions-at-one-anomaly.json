@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 137161764,
+  "seed": 3488841062,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T03:46:51.940Z",
+  "createdAt": "2026-10-18T04:32:00.469Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "-y2_XHbnelExCJnQKhF7m",
+  "id": "1UbI0S_TmJitHucIGjom2",
   "gameId": "scenario-three-factions-at-one-anomaly",
   "seed": 3367980177,
   "prng": {
@@ -183,6 +183,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "Starfarers"
    },
@@ -307,6 +311,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "Praetorians"
    },
@@ -431,6 +439,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 0,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "Givers"
    }
@@ -930,6 +942,11 @@
   "terraformedWorlds": [],
   "setAsideWorlds": [],
   "economicTilePool": [],
+  "eventPool": [],
+  "events": [],
+  "homesteaders": [],
+  "pacts": [],
+  "settlementRewards": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

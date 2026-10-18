@@ -6,6 +6,9 @@
     import { systemName } from '$lib/utils/presentation.js'
     import AnomalyTile from '../AnomalyTile.svelte'
     import ShipTile from '../ShipTile.svelte'
+    import PactEditor from './PactEditor.svelte'
+    import { PactTargetKind } from '@tabletop/stellar-horizons-2'
+    import { candidatePartners, type PactSubject } from '$lib/utils/pacts.js'
 
     const TILE_WIDTH = 92
 
@@ -16,6 +19,16 @@
     const difficulty = $derived(opportunity.summary.difficulty)
     const science = $derived(anomaly.challenge === AnomalyChallenge.Science)
     const value = $derived(science ? 'exploration' : 'combat')
+    let proposing = $state(false)
+    const subject: PactSubject = $derived({
+        targetKind: PactTargetKind.Anomaly,
+        targetId: opportunity.summary.anomaly.id,
+        challenge: opportunity.summary.anomaly.challenge,
+        systemId: opportunity.systemId
+    })
+    const partners = $derived(
+        candidatePartners(gameSession.gameState, gameSession.myPlayerId ?? '', subject)
+    )
     const committed = $derived(
         opportunity.committedShipIds?.map((shipId) => shipDefinition(shipId).name).join(', ')
     )
@@ -81,6 +94,17 @@
                 Ships cannot explore {systemName(opportunity.systemId)} until this is resolved.
             </p>
         {/if}
+        {#if !opportunity.committedShipIds && partners.length > 0 && !proposing}
+            <div class="pact-offer">
+                <button type="button" onclick={() => (proposing = true)}>Propose a pact</button>
+                <span class="hint"
+                    >Resolve it together with another faction, splitting the reward.</span
+                >
+            </div>
+        {/if}
+        {#if proposing}
+            <PactEditor {subject} onclose={() => (proposing = false)} />
+        {/if}
         {#each opportunity.rivals as rival (rival.playerId)}
             <p class="rival inline-flex flex-wrap items-center gap-x-1">
                 <PlayerName playerId={rival.playerId} />
@@ -104,6 +128,13 @@
 
     .attempt.science {
         border-left-color: #2f9fd8;
+    }
+
+    .pact-offer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
     }
 
     .body {

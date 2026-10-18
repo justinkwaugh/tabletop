@@ -2,12 +2,20 @@
     import {
         CASH_PRODUCTION,
         availableProductions,
+        baseEffects,
         basesAwaitingProduction,
         producingBases,
-        productionYield
+        productionYield,
+        resolvedAnomaly
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { FIELD_COLORS, plural, productionLabel, systemName } from '$lib/utils/presentation.js'
+    import {
+        FIELD_COLORS,
+        backProductionText,
+        plural,
+        productionLabel,
+        systemName
+    } from '$lib/utils/presentation.js'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
@@ -18,6 +26,13 @@
             base.production === undefined ? [] : [{ base, production: base.production }]
         )
     )
+
+    // A turned-over anomaly in the base's system that changes its production, named with how.
+    function backNote(systemId: string): string | undefined {
+        const anomaly = resolvedAnomaly(gameState, systemId)
+        const text = backProductionText(baseEffects(gameState, systemId))
+        return anomaly && text ? `${anomaly.name}: ${text}` : undefined
+    }
 </script>
 
 <div class="sh-step">
@@ -31,6 +46,9 @@
                 >{systemName(base.systemId)}
                 <span class="note">{plural(base.settlements, 'settlement')}</span></span
             >
+            {#if backNote(base.systemId)}
+                <span class="note">{backNote(base.systemId)}</span>
+            {/if}
             <span class="choices">
                 {#each availableProductions(gameState, base) as production (production)}
                     <button

@@ -3,12 +3,22 @@ import type { GameAction } from '@tabletop/common'
 import {
     ActionType,
     AttemptAnomaly,
+    AcceptPact,
+    AttemptEvent,
     BuildShip,
     ChooseFaction,
     ChooseProduction,
     ConvertSettlement,
     DeclareInitiative,
+    Mine,
     PassConversion,
+    PlaceEvent,
+    PlaceHomesteaders,
+    PlaceRewardSettlements,
+    ProposePact,
+    Research,
+    TerraformWithShip,
+    WithdrawPact,
     SpendInfluence,
     ChooseSurveyWorld,
     ChooseTerraformWorld,
@@ -40,7 +50,10 @@ import {
     type CargoPartner,
     type Faction,
     type HydratedStellarHorizonsGameState,
+    type AnomalyChallenge,
     type MoveOption,
+    type PactTerms,
+    type RewardPlacement,
     type Production,
     type ShipState,
     type StellarHorizonsProjectedState,
@@ -515,6 +528,72 @@ export class StellarHorizonsGameSession extends GameSession<
         await this.commit(
             ActionType.ConvertSettlement,
             this.createPlayerAction(ConvertSettlement, { systemId, targetPlayerId })
+        )
+    }
+
+    async mine(shipId: string, slot: number) {
+        await this.commit(ActionType.Mine, this.createPlayerAction(Mine, { shipId, slot }))
+    }
+
+    async research(shipId: string, slot: number) {
+        await this.commit(ActionType.Research, this.createPlayerAction(Research, { shipId, slot }))
+    }
+
+    async terraformWithShip(shipId: string, slot: number) {
+        await this.commit(
+            ActionType.TerraformWithShip,
+            this.createPlayerAction(TerraformWithShip, { shipId, slot })
+        )
+    }
+
+    async attemptEvent(eventId: string, challenge: AnomalyChallenge, shipIds: string[]) {
+        await this.commit(
+            ActionType.AttemptEvent,
+            this.createPlayerAction(AttemptEvent, { eventId, challenge, shipIds })
+        )
+    }
+
+    async placeEvent(systemId: string) {
+        await this.commit(ActionType.PlaceEvent, this.createPlayerAction(PlaceEvent, { systemId }))
+    }
+
+    async placeHomesteaders(systemId: string) {
+        await this.commit(
+            ActionType.PlaceHomesteaders,
+            this.createPlayerAction(PlaceHomesteaders, { systemId })
+        )
+    }
+
+    async placeRewardSettlements(placements: RewardPlacement[]) {
+        await this.commit(
+            ActionType.PlaceRewardSettlements,
+            this.createPlayerAction(PlaceRewardSettlements, { placements })
+        )
+    }
+
+    // The pact's Common Actions run on the Main Line, even while the Player's Branch is open.
+    async proposePact(terms: PactTerms, pactId?: string) {
+        await this.commit(
+            ActionType.ProposePact,
+            this.createPlayerAction(ProposePact, {
+                common: true,
+                terms,
+                ...(pactId ? { pactId } : {})
+            })
+        )
+    }
+
+    async acceptPact(pactId: string, revision: number) {
+        await this.commit(
+            ActionType.AcceptPact,
+            this.createPlayerAction(AcceptPact, { common: true, pactId, revision })
+        )
+    }
+
+    async withdrawPact(pactId: string) {
+        await this.commit(
+            ActionType.WithdrawPact,
+            this.createPlayerAction(WithdrawPact, { common: true, pactId })
         )
     }
 

@@ -1,13 +1,19 @@
 <script lang="ts">
     // The printed anomaly tile. When the difficulty that applies is given, it is drawn over the
     // printed one, inside the same red triangle or blue disc. In a scenario that ignores
-    // anomaly rewards, the printed reward is covered.
+    // anomaly rewards, the printed reward is covered. A resolved tile that stays in its system is
+    // shown turned over, its back giving the bases there their effect.
     import {
         AnomalyChallenge,
         anomalyDefinition,
         usesAnomalyRewards
     } from '@tabletop/stellar-horizons-2'
-    import { ANOMALY_ART, ANOMALY_ART_SIZE, ANOMALY_BADGE } from '$lib/art/manifest.js'
+    import {
+        ANOMALY_ART,
+        ANOMALY_ART_SIZE,
+        ANOMALY_BACK_ART,
+        ANOMALY_BADGE
+    } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const DISC_INSET = 1.5
@@ -23,14 +29,22 @@
         difficulty,
         width,
         x = 0,
-        y = 0
-    }: { anomalyId: string; difficulty?: number; width: number; x?: number; y?: number } = $props()
+        y = 0,
+        turned = false
+    }: {
+        anomalyId: string
+        difficulty?: number
+        width: number
+        x?: number
+        y?: number
+        turned?: boolean
+    } = $props()
 
     const gameSession = getGameSession()
     const anomaly = $derived(anomalyDefinition(anomalyId))
     const badge = $derived(ANOMALY_BADGE[anomalyId])
     const rewardCover = $derived(
-        usesAnomalyRewards(gameSession.gameState)
+        turned || usesAnomalyRewards(gameSession.gameState)
             ? undefined
             : lowerHexagon(badge.y + badge.height / 2 + ICON_ROW_BELOW_BADGE)
     )
@@ -71,19 +85,21 @@
     {height}
     viewBox="0 0 {ANOMALY_ART_SIZE.width} {ANOMALY_ART_SIZE.height}"
     role="img"
-    aria-label={difficulty === undefined
-        ? anomaly.name
-        : `${anomaly.name}, difficulty ${difficulty}`}
+    aria-label={turned
+        ? `${anomaly.name}, resolved`
+        : difficulty === undefined
+          ? anomaly.name
+          : `${anomaly.name}, difficulty ${difficulty}`}
 >
     <image
-        href={ANOMALY_ART[anomalyId]}
+        href={turned ? ANOMALY_BACK_ART[anomalyId] : ANOMALY_ART[anomalyId]}
         width={ANOMALY_ART_SIZE.width}
         height={ANOMALY_ART_SIZE.height}
     ></image>
     {#if rewardCover}
         <polygon class="cover" points={rewardCover}></polygon>
     {/if}
-    {#if difficulty !== undefined}
+    {#if difficulty !== undefined && !turned}
         {#if science}
             <circle class="science" cx={badge.x} cy={badge.y} r={badge.width / 2 - DISC_INSET}
             ></circle>

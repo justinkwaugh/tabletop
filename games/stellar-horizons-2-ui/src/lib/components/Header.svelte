@@ -16,6 +16,12 @@
         if (gameState.machineState === MachineState.Terraforming) return 'TERRAFORMING'
         if (gameState.machineState === MachineState.ConvertingSettlements && gameSession.canAct)
             return 'CONVERSION'
+        if (gameState.machineState === MachineState.PlacingEvent && gameSession.canAct)
+            return 'PLACE THE EVENT'
+        if (gameState.machineState === MachineState.PlacingHomesteaders && gameSession.canAct)
+            return 'HOMESTEADERS'
+        if (gameState.machineState === MachineState.PlacingRewardSettlements && gameSession.canAct)
+            return 'PLACE SETTLEMENTS'
         if (gameState.machineState === MachineState.ResolvingAnomalies) return 'ANOMALIES'
         if (
             gameState.machineState === MachineState.ChoosingSurveyWorld ||

@@ -37,21 +37,23 @@ export function systemSummary(
 ): SystemSummary {
     return {
         name: systemDefinition(systemId).name,
-        anomaly: anomalySummary(state, systemId),
+        anomaly: anomalySummary(state, systemId, viewerId),
         settlementGoal: settlementVictory(state.scenarioDefinition())?.settlements,
         fleets: fleets(state, systemId, viewerId)
     }
 }
 
+// The difficulty is the viewer's, with their faction's modifier.
 export function anomalySummary(
     state: HydratedStellarHorizonsGameState,
-    systemId: string
+    systemId: string,
+    viewerId?: string
 ): AnomalySummary | undefined {
     const anomaly = systemAnomaly(state, systemId)
     return anomaly
         ? {
               anomaly,
-              difficulty: anomalyDifficulty(state, anomaly.id),
+              difficulty: anomalyDifficulty(state, anomaly.id, viewerId),
               players: state.numPlayers
           }
         : undefined

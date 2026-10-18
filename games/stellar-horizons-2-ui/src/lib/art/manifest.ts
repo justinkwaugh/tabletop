@@ -498,39 +498,94 @@ import art495 from '$lib/images/art/markers/tech-Engineering-5.webp'
 import art496 from '$lib/images/art/markers/tech-Engineering-blank.webp'
 import art497 from '$lib/images/art/markers/exploration-Engineering.webp'
 import art498 from '$lib/images/art/anomalies/adorable-critters.webp'
-import art499 from '$lib/images/art/anomalies/alien-artifacts.webp'
-import art500 from '$lib/images/art/anomalies/alien-derelict.webp'
-import art501 from '$lib/images/art/anomalies/alien-remains.webp'
-import art502 from '$lib/images/art/anomalies/alien-sentinel.webp'
-import art503 from '$lib/images/art/anomalies/anarchist-outpost.webp'
-import art504 from '$lib/images/art/anomalies/asteroid-clouds.webp'
-import art505 from '$lib/images/art/anomalies/colossal-comet.webp'
-import art506 from '$lib/images/art/anomalies/decapod-infestation.webp'
-import art507 from '$lib/images/art/anomalies/dissidents.webp'
-import art508 from '$lib/images/art/anomalies/hostile-xenomorphs.webp'
-import art509 from '$lib/images/art/anomalies/ice-caverns.webp'
-import art510 from '$lib/images/art/anomalies/medicinal-herbs.webp'
-import art511 from '$lib/images/art/anomalies/megafauna.webp'
-import art512 from '$lib/images/art/anomalies/mineral-veins.webp'
-import art513 from '$lib/images/art/anomalies/nanobot-swarm.webp'
-import art514 from '$lib/images/art/anomalies/natural-stimulants.webp'
-import art515 from '$lib/images/art/anomalies/pirate-lair.webp'
-import art516 from '$lib/images/art/anomalies/predatory-plants.webp'
-import art517 from '$lib/images/art/anomalies/primal-carnivores.webp'
-import art518 from '$lib/images/art/anomalies/rare-crystals.webp'
-import art519 from '$lib/images/art/anomalies/rescue-scout-ship.webp'
-import art520 from '$lib/images/art/anomalies/savage-storms.webp'
-import art521 from '$lib/images/art/anomalies/severe-radiation.webp'
-import art522 from '$lib/images/art/anomalies/shadow-fleet.webp'
-import art523 from '$lib/images/art/anomalies/splinter-colony.webp'
-import art524 from '$lib/images/art/anomalies/stellar-chart.webp'
-import art525 from '$lib/images/art/anomalies/stellar-flares.webp'
-import art526 from '$lib/images/art/anomalies/stunning-vistas.webp'
-import art527 from '$lib/images/art/anomalies/symbiotic-spores.webp'
-import art528 from '$lib/images/art/anomalies/system-quarantine.webp'
-import art529 from '$lib/images/art/anomalies/terran-dna.webp'
-import art530 from '$lib/images/art/anomalies/tunnel-complex.webp'
-import art531 from '$lib/images/art/anomalies/violent-separatists.webp'
+import art499 from '$lib/images/art/anomaly-backs/adorable-critters.webp'
+import art500 from '$lib/images/art/anomalies/alien-artifacts.webp'
+import art501 from '$lib/images/art/anomaly-backs/alien-artifacts.webp'
+import art502 from '$lib/images/art/anomalies/alien-derelict.webp'
+import art503 from '$lib/images/art/anomaly-backs/alien-derelict.webp'
+import art504 from '$lib/images/art/anomalies/alien-remains.webp'
+import art505 from '$lib/images/art/anomaly-backs/alien-remains.webp'
+import art506 from '$lib/images/art/anomalies/alien-sentinel.webp'
+import art507 from '$lib/images/art/anomaly-backs/alien-sentinel.webp'
+import art508 from '$lib/images/art/anomalies/anarchist-outpost.webp'
+import art509 from '$lib/images/art/anomaly-backs/anarchist-outpost.webp'
+import art510 from '$lib/images/art/anomalies/asteroid-clouds.webp'
+import art511 from '$lib/images/art/anomaly-backs/asteroid-clouds.webp'
+import art512 from '$lib/images/art/anomalies/colossal-comet.webp'
+import art513 from '$lib/images/art/anomaly-backs/colossal-comet.webp'
+import art514 from '$lib/images/art/anomalies/decapod-infestation.webp'
+import art515 from '$lib/images/art/anomaly-backs/decapod-infestation.webp'
+import art516 from '$lib/images/art/anomalies/dissidents.webp'
+import art517 from '$lib/images/art/anomaly-backs/dissidents.webp'
+import art518 from '$lib/images/art/anomalies/hostile-xenomorphs.webp'
+import art519 from '$lib/images/art/anomaly-backs/hostile-xenomorphs.webp'
+import art520 from '$lib/images/art/anomalies/ice-caverns.webp'
+import art521 from '$lib/images/art/anomaly-backs/ice-caverns.webp'
+import art522 from '$lib/images/art/anomalies/medicinal-herbs.webp'
+import art523 from '$lib/images/art/anomaly-backs/medicinal-herbs.webp'
+import art524 from '$lib/images/art/anomalies/megafauna.webp'
+import art525 from '$lib/images/art/anomaly-backs/megafauna.webp'
+import art526 from '$lib/images/art/anomalies/mineral-veins.webp'
+import art527 from '$lib/images/art/anomaly-backs/mineral-veins.webp'
+import art528 from '$lib/images/art/anomalies/nanobot-swarm.webp'
+import art529 from '$lib/images/art/anomaly-backs/nanobot-swarm.webp'
+import art530 from '$lib/images/art/anomalies/natural-stimulants.webp'
+import art531 from '$lib/images/art/anomaly-backs/natural-stimulants.webp'
+import art532 from '$lib/images/art/anomalies/pirate-lair.webp'
+import art533 from '$lib/images/art/anomaly-backs/pirate-lair.webp'
+import art534 from '$lib/images/art/anomalies/predatory-plants.webp'
+import art535 from '$lib/images/art/anomaly-backs/predatory-plants.webp'
+import art536 from '$lib/images/art/anomalies/primal-carnivores.webp'
+import art537 from '$lib/images/art/anomaly-backs/primal-carnivores.webp'
+import art538 from '$lib/images/art/anomalies/rare-crystals.webp'
+import art539 from '$lib/images/art/anomaly-backs/rare-crystals.webp'
+import art540 from '$lib/images/art/anomalies/rescue-scout-ship.webp'
+import art541 from '$lib/images/art/anomaly-backs/rescue-scout-ship.webp'
+import art542 from '$lib/images/art/anomalies/savage-storms.webp'
+import art543 from '$lib/images/art/anomaly-backs/savage-storms.webp'
+import art544 from '$lib/images/art/anomalies/severe-radiation.webp'
+import art545 from '$lib/images/art/anomaly-backs/severe-radiation.webp'
+import art546 from '$lib/images/art/anomalies/shadow-fleet.webp'
+import art547 from '$lib/images/art/anomaly-backs/shadow-fleet.webp'
+import art548 from '$lib/images/art/anomalies/splinter-colony.webp'
+import art549 from '$lib/images/art/anomaly-backs/splinter-colony.webp'
+import art550 from '$lib/images/art/anomalies/stellar-chart.webp'
+import art551 from '$lib/images/art/anomaly-backs/stellar-chart.webp'
+import art552 from '$lib/images/art/anomalies/stellar-flares.webp'
+import art553 from '$lib/images/art/anomaly-backs/stellar-flares.webp'
+import art554 from '$lib/images/art/anomalies/stunning-vistas.webp'
+import art555 from '$lib/images/art/anomaly-backs/stunning-vistas.webp'
+import art556 from '$lib/images/art/anomalies/symbiotic-spores.webp'
+import art557 from '$lib/images/art/anomaly-backs/symbiotic-spores.webp'
+import art558 from '$lib/images/art/anomalies/system-quarantine.webp'
+import art559 from '$lib/images/art/anomaly-backs/system-quarantine.webp'
+import art560 from '$lib/images/art/anomalies/terran-dna.webp'
+import art561 from '$lib/images/art/anomaly-backs/terran-dna.webp'
+import art562 from '$lib/images/art/anomalies/tunnel-complex.webp'
+import art563 from '$lib/images/art/anomaly-backs/tunnel-complex.webp'
+import art564 from '$lib/images/art/anomalies/violent-separatists.webp'
+import art565 from '$lib/images/art/anomaly-backs/violent-separatists.webp'
+import art566 from '$lib/images/art/events/apprehend-renegade.webp'
+import art567 from '$lib/images/art/events/breakthrough-biology.webp'
+import art568 from '$lib/images/art/events/breakthrough-engineering.webp'
+import art569 from '$lib/images/art/events/breakthrough-physics.webp'
+import art570 from '$lib/images/art/events/collapsing-biosphere.webp'
+import art571 from '$lib/images/art/events/colonial-rush.webp'
+import art572 from '$lib/images/art/events/contagion.webp'
+import art573 from '$lib/images/art/events/first-contact.webp'
+import art574 from '$lib/images/art/events/homesteaders.webp'
+import art575 from '$lib/images/art/events/hostile-probe.webp'
+import art576 from '$lib/images/art/events/incoming-comet.webp'
+import art577 from '$lib/images/art/events/infectious-parasites.webp'
+import art578 from '$lib/images/art/events/irradiated-atmosphere.webp'
+import art579 from '$lib/images/art/events/pirate-raids-3.webp'
+import art580 from '$lib/images/art/events/pirate-raids-5.webp'
+import art581 from '$lib/images/art/events/prisoner-revolt.webp'
+import art582 from '$lib/images/art/events/smugglers.webp'
+import art583 from '$lib/images/art/events/stellar-chart.webp'
+import art584 from '$lib/images/art/events/supervolcano.webp'
+import art585 from '$lib/images/art/events/unrest.webp'
+import art586 from '$lib/images/art/events/ai-sentient-emergence.webp'
 
 export const SYSTEM_ART: Record<string, string> = {
     sol: art0,
@@ -1363,42 +1418,105 @@ export const EXPLORATION_MARKER_ART: Record<string, string> = {
 
 export const ANOMALY_ART: Record<string, string> = {
     'adorable-critters': art498,
-    'alien-artifacts': art499,
-    'alien-derelict': art500,
-    'alien-remains': art501,
-    'alien-sentinel': art502,
-    'anarchist-outpost': art503,
-    'asteroid-clouds': art504,
-    'colossal-comet': art505,
-    'decapod-infestation': art506,
-    dissidents: art507,
-    'hostile-xenomorphs': art508,
-    'ice-caverns': art509,
-    'medicinal-herbs': art510,
-    megafauna: art511,
-    'mineral-veins': art512,
-    'nanobot-swarm': art513,
-    'natural-stimulants': art514,
-    'pirate-lair': art515,
-    'predatory-plants': art516,
-    'primal-carnivores': art517,
-    'rare-crystals': art518,
-    'rescue-scout-ship': art519,
-    'savage-storms': art520,
-    'severe-radiation': art521,
-    'shadow-fleet': art522,
-    'splinter-colony': art523,
-    'stellar-chart': art524,
-    'stellar-flares': art525,
-    'stunning-vistas': art526,
-    'symbiotic-spores': art527,
-    'system-quarantine': art528,
-    'terran-dna': art529,
-    'tunnel-complex': art530,
-    'violent-separatists': art531
+    'alien-artifacts': art500,
+    'alien-derelict': art502,
+    'alien-remains': art504,
+    'alien-sentinel': art506,
+    'anarchist-outpost': art508,
+    'asteroid-clouds': art510,
+    'colossal-comet': art512,
+    'decapod-infestation': art514,
+    dissidents: art516,
+    'hostile-xenomorphs': art518,
+    'ice-caverns': art520,
+    'medicinal-herbs': art522,
+    megafauna: art524,
+    'mineral-veins': art526,
+    'nanobot-swarm': art528,
+    'natural-stimulants': art530,
+    'pirate-lair': art532,
+    'predatory-plants': art534,
+    'primal-carnivores': art536,
+    'rare-crystals': art538,
+    'rescue-scout-ship': art540,
+    'savage-storms': art542,
+    'severe-radiation': art544,
+    'shadow-fleet': art546,
+    'splinter-colony': art548,
+    'stellar-chart': art550,
+    'stellar-flares': art552,
+    'stunning-vistas': art554,
+    'symbiotic-spores': art556,
+    'system-quarantine': art558,
+    'terran-dna': art560,
+    'tunnel-complex': art562,
+    'violent-separatists': art564
 }
 
 export const ANOMALY_ART_SIZE = { width: 253, height: 220 }
+
+export const ANOMALY_BACK_ART: Record<string, string> = {
+    'adorable-critters': art499,
+    'alien-artifacts': art501,
+    'alien-derelict': art503,
+    'alien-remains': art505,
+    'alien-sentinel': art507,
+    'anarchist-outpost': art509,
+    'asteroid-clouds': art511,
+    'colossal-comet': art513,
+    'decapod-infestation': art515,
+    dissidents: art517,
+    'hostile-xenomorphs': art519,
+    'ice-caverns': art521,
+    'medicinal-herbs': art523,
+    megafauna: art525,
+    'mineral-veins': art527,
+    'nanobot-swarm': art529,
+    'natural-stimulants': art531,
+    'pirate-lair': art533,
+    'predatory-plants': art535,
+    'primal-carnivores': art537,
+    'rare-crystals': art539,
+    'rescue-scout-ship': art541,
+    'savage-storms': art543,
+    'severe-radiation': art545,
+    'shadow-fleet': art547,
+    'splinter-colony': art549,
+    'stellar-chart': art551,
+    'stellar-flares': art553,
+    'stunning-vistas': art555,
+    'symbiotic-spores': art557,
+    'system-quarantine': art559,
+    'terran-dna': art561,
+    'tunnel-complex': art563,
+    'violent-separatists': art565
+}
+
+export const EVENT_ART: Record<string, string> = {
+    'apprehend-renegade': art566,
+    'breakthrough-biology': art567,
+    'breakthrough-engineering': art568,
+    'breakthrough-physics': art569,
+    'collapsing-biosphere': art570,
+    'colonial-rush': art571,
+    contagion: art572,
+    'first-contact': art573,
+    homesteaders: art574,
+    'hostile-probe': art575,
+    'incoming-comet': art576,
+    'infectious-parasites': art577,
+    'irradiated-atmosphere': art578,
+    'pirate-raids-3': art579,
+    'pirate-raids-5': art580,
+    'prisoner-revolt': art581,
+    smugglers: art582,
+    'stellar-chart': art583,
+    supervolcano: art584,
+    unrest: art585,
+    'ai-sentient-emergence': art586
+}
+
+export const EVENT_ART_SIZE = { width: 238, height: 238 }
 
 export const ANOMALY_BADGE: Record<
     string,

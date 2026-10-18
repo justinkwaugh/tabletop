@@ -105,6 +105,33 @@ const ANOMALY_ART = {
     'violent-separatists': 'Violent Separtists.png'
 }
 
+// Each resolved anomaly is turned over; its back is the front's file with " b".
+const anomalyBackFile = (file) => file.replace(/\.png$/, ' b.png')
+
+const EVENT_ART = {
+    'apprehend-renegade': 'Event Apprehend Renegade 4-IP.png',
+    'breakthrough-biology': 'Event Breakthrough Bio.png',
+    'breakthrough-engineering': 'Event Breakthrough Eng.png',
+    'breakthrough-physics': 'Event Breakthrough Phy.png',
+    'collapsing-biosphere': 'Event Collapsing Biosphere 6-IP.png',
+    'colonial-rush': 'Event Colonial Rush.png',
+    contagion: 'Event Contagion 4-IP.png',
+    'first-contact': 'Event First Contact 20-IP.png',
+    homesteaders: 'Event Homesteaders.png',
+    'hostile-probe': 'Event Hostile probe 10-IP.png',
+    'incoming-comet': 'Event Incomming Coment 5-IP.png',
+    'infectious-parasites': 'Event Infectious Parasites 5-IP.png',
+    'irradiated-atmosphere': 'Event Irradiated Atmosphere 5-IP.png',
+    'pirate-raids-3': 'Event Pirate Raids 3-IP.png',
+    'pirate-raids-5': 'Event Pirate raids 5-IP.png',
+    'prisoner-revolt': 'Event Prisoner Revoltt 2-IP.png',
+    smugglers: 'Event Smugglers 5-IP.png',
+    'stellar-chart': 'Event Stellar Chart 3-IP.png',
+    supervolcano: 'Event Supervolcano 6-IP.png',
+    unrest: 'Event Unrest 3-IP.png',
+    'ai-sentient-emergence': 'EventAI Sentient Emergence 6-IP.png'
+}
+
 rmSync(outDir, { recursive: true, force: true })
 for (const dir of [
     'systems',
@@ -113,7 +140,9 @@ for (const dir of [
     'worlds',
     'markers',
     'factions',
-    'anomalies'
+    'anomalies',
+    'anomaly-backs',
+    'events'
 ]) {
     mkdirSync(join(outDir, dir), { recursive: true })
 }
@@ -206,7 +235,9 @@ const entries = {
     techMarkers: {},
     techMarkerBlanks: {},
     exploration: {},
-    anomalies: {}
+    anomalies: {},
+    anomalyBacks: {},
+    events: {}
 }
 let importIndex = 0
 function register(group, key, path) {
@@ -546,6 +577,33 @@ for (const [anomalyId, file] of Object.entries(ANOMALY_ART)) {
     ])
     register('anomalies', anomalyId, `anomalies/${anomalyId}.webp`)
     anomalyBadges[anomalyId] = anomalyBadge(anomalyPixels(file))
+    webp(anomalyBackFile(file), `anomaly-backs/${anomalyId}.webp`, [
+        '-resize',
+        `${size}!`,
+        '-alpha',
+        'set',
+        '(',
+        '-size',
+        size,
+        'xc:black',
+        '-fill',
+        'white',
+        '-draw',
+        `polygon ${ANOMALY_HEX}`,
+        ')',
+        '-alpha',
+        'off',
+        '-compose',
+        'CopyOpacity',
+        '-composite'
+    ])
+    register('anomalyBacks', anomalyId, `anomaly-backs/${anomalyId}.webp`)
+}
+
+const EVENT_SIZE = { width: 238, height: 238 }
+for (const [eventId, file] of Object.entries(EVENT_ART)) {
+    webp(file, `events/${eventId}.webp`)
+    register('events', eventId, `events/${eventId}.webp`)
 }
 
 const worldLines = Object.entries(entries.worlds).map(
@@ -611,6 +669,16 @@ ${record('anomalies').join('\n')}
 }
 
 export const ANOMALY_ART_SIZE = ${JSON.stringify(ANOMALY_SIZE)}
+
+export const ANOMALY_BACK_ART: Record<string, string> = {
+${record('anomalyBacks').join('\n')}
+}
+
+export const EVENT_ART: Record<string, string> = {
+${record('events').join('\n')}
+}
+
+export const EVENT_ART_SIZE = ${JSON.stringify(EVENT_SIZE)}
 
 export const ANOMALY_BADGE: Record<
     string,

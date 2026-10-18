@@ -16,12 +16,24 @@
     import ShipTile from '../ShipTile.svelte'
     import AnomalyAttempt from './AnomalyAttempt.svelte'
     import ExplorationResult from './ExplorationResult.svelte'
+    import EventAttempt from './EventAttempt.svelte'
+    import OperationsPanel from './OperationsPanel.svelte'
+    import PactList from './PactList.svelte'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
     const playerId = $derived(gameSession.myPlayerId ?? '')
     const explorers = $derived(
         gameState.shipsOf(playerId).filter((ship) => canExplore(gameState, ship))
+    )
+    const events = $derived(
+        gameState.events.filter(
+            (event) =>
+                gameState.shipsOf(playerId).some((ship) => ship.systemId === event.systemId) ||
+                gameState
+                    .getPlayerState(playerId)
+                    .eventAttempts.some((attempt) => attempt.eventId === event.eventId)
+        )
     )
     const opportunities = $derived(
         anomalyOpportunities(gameState, playerId, gameSession.anomalyDraft)
@@ -69,6 +81,7 @@
 </script>
 
 <div class="sh-step">
+    <PactList />
     {#if opportunities.length > 0}
         <div class="prompt">Send ships to resolve an anomaly</div>
         <div class="anomalies">
@@ -77,6 +90,15 @@
             {/each}
         </div>
     {/if}
+    {#if events.length > 0}
+        <div class="prompt">Meet an event's challenge</div>
+        <div class="anomalies">
+            {#each events as event (event.eventId)}
+                <EventAttempt {event} />
+            {/each}
+        </div>
+    {/if}
+    <OperationsPanel />
     {#if explorers.length > 0}
         <div class="prompt">
             Choose a ship to explore with

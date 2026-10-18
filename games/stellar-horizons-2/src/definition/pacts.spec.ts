@@ -15,6 +15,7 @@ import { WorldSide } from '../components/worlds.js'
 import { canExplore } from '../model/exploration.js'
 import type { StellarHorizonsProjectedState } from '../model/gameState.js'
 import { heldShipIds } from '../model/holds.js'
+import { canAccept, isValidProposal } from '../model/pacts.js'
 import { PactTargetKind, type PactTerms } from '../model/pieces.js'
 import {
     edit,
@@ -94,7 +95,9 @@ describe('A pact in a Local Game', () => {
         const branchPlayer = state.activePlayerIds[0]
         const other = branchPlayer === starfarers ? givers : starfarers
 
-        // The Player who is not playing proposes while the other's Branch is open.
+        // The Player who is not playing proposes while the other's Branch is open. The Game
+        // Client asks the same Main Line, part-way through that Branch, before offering it.
+        expect(isValidProposal(hydrate(state), other, terms(starfarers, givers))).toBe(true)
         const proposed = act(game, state, other, ActionType.ProposePact, {
             terms: terms(starfarers, givers)
         })
@@ -105,6 +108,7 @@ describe('A pact in a Local Game', () => {
         expect(heldShipIds(hydrate(proposed.state), other)).toHaveLength(1)
 
         // The Branch's Player accepts: the pact is agreed and binds.
+        expect(canAccept(hydrate(proposed.state), branchPlayer, pact.id, pact.revision)).toBe(true)
         const accepted = act(game, proposed.state, branchPlayer, ActionType.AcceptPact, {
             pactId: pact.id,
             revision: pact.revision

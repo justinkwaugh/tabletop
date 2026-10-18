@@ -166,6 +166,82 @@ function campaignPayingWithInfluence() {
     return { game, state: advanceTo(game, arranged, TurnPhase.Development) }
 }
 
+/** Exploration in 2100: Terran DNA at Alpha Centauri, with a Starfarers and a Givers ship there. */
+function campaignPact() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        state.anomalyPool.splice(state.anomalyPool.indexOf('terran-dna'), 1)
+        state.systemState('alpha-centauri').anomaly = 'terran-dna'
+        placeShip(state, playerOf(state, Faction.Starfarers), 'starfarers-orion', 'alpha-centauri')
+        placeShip(state, playerOf(state, Faction.Givers), 'givers-darwin', 'alpha-centauri')
+    })
+    return { game, state: arranged }
+}
+
+/** Exploration in 2100: the Starfarers' mining and research ships at Alpha Centauri. */
+function campaignMining() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        placeWorlds(state, 'alpha-centauri', [
+            [is('m-1'), WorldSide.I],
+            [ofClass('d-'), WorldSide.I]
+        ])
+        state.getPlayerState(starfarers).techs.push({
+            techId: TechId.AtmosphereProcessing,
+            year: 2090
+        })
+        placeShip(state, starfarers, 'starfarers-pytheas', 'alpha-centauri')
+        placeShip(state, starfarers, 'starfarers-orion', 'alpha-centauri')
+    })
+    return { game, state: arranged }
+}
+
+/** 2110 draws an event with a challenge; the Givers, worst in initiative with a base, place it. */
+function campaignEvent() {
+    return campaignInto(EconomicTile.DrawEvent, 3, (state) => {
+        state.eventPool = ['incoming-comet']
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        placeWorlds(state, 'luhman-16', [[ofClass('j-'), WorldSide.I]])
+        placeBase(state, playerOf(state, Faction.Starfarers), 'alpha-centauri', 6)
+        placeBase(state, playerOf(state, Faction.Givers), 'alpha-centauri', 4)
+        placeBase(state, playerOf(state, Faction.Givers), 'luhman-16', 3)
+    })
+}
+
+/** Base production in 2110 at Alpha Centauri, where Mineral Veins lies turned over, and an event. */
+function campaignAnomalyBacks() {
+    return campaignInto(EconomicTile.BaseProduction, 3, (state) => {
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        state.anomalyPool.splice(state.anomalyPool.indexOf('mineral-veins'), 1)
+        state.systemState('alpha-centauri').anomaly = 'mineral-veins'
+        state.systemState('alpha-centauri').anomalyResolved = true
+        state.eventPool.splice(state.eventPool.indexOf('pirate-raids-3'), 1)
+        state.events.push({ eventId: 'pirate-raids-3', systemId: 'alpha-centauri' })
+        placeBase(state, playerOf(state, Faction.Starfarers), 'alpha-centauri', 8)
+    })
+}
+
+/** The Starfarers resolve Splinter Colony at the end of 2100's exploration and place its settlements. */
+function campaignRewardSettlements() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        placeWorlds(state, 'barnards-star', [[ofClass('l-'), WorldSide.I]])
+        state.anomalyPool.splice(state.anomalyPool.indexOf('splinter-colony'), 1)
+        state.systemState('alpha-centauri').anomaly = 'splinter-colony'
+        placeBase(state, starfarers, 'barnards-star', 4)
+        state.getPlayerState(starfarers).anomalyAttempts.push({
+            systemId: 'alpha-centauri',
+            anomalyId: 'splinter-colony',
+            shipIds: []
+        })
+    })
+    return { game, state: finishDecade(game, arranged) }
+}
+
 function write(slug, name, { game, state }) {
     // Players are named by their place in initiative order.
     const order = state.turnManager.turnOrder
@@ -196,3 +272,8 @@ write('campaign-base-production', 'Campaign: base production', campaignBaseProdu
 write('campaign-conversion', 'Campaign: True Path conversion', campaignConversion())
 write('campaign-terraforming', 'Campaign: terraforming', campaignTerraforming())
 write('campaign-paying-with-influence', 'Campaign: paying with IP', campaignPayingWithInfluence())
+write('campaign-pact', 'Campaign: a pact', campaignPact())
+write('campaign-mining', 'Campaign: mining and research', campaignMining())
+write('campaign-event', 'Campaign: placing an event', campaignEvent())
+write('campaign-anomaly-backs', 'Campaign: anomaly backs', campaignAnomalyBacks())
+write('campaign-reward-settlements', 'Campaign: reward settlements', campaignRewardSettlements())

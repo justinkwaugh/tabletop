@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 11653190,
+  "seed": 3487679309,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T03:46:52.060Z",
+  "createdAt": "2026-10-18T04:32:00.590Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "LnND5d2Ce5_ipMbWma1kf",
+  "id": "FcIi1caeiLuqt1b9pR9S0",
   "gameId": "scenario-campaign-paying-with-influence",
   "seed": 3367980177,
   "prng": {
@@ -92,6 +92,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 4,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "Starfarers"
    },
@@ -127,6 +131,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 4,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "Praetorians"
    },
@@ -158,6 +166,10 @@
     "anomalyAttempts": [],
     "anomalies": [],
     "influence": 4,
+    "operations": [],
+    "shipTerraforms": [],
+    "eventAttempts": [],
+    "breakthroughs": [],
     "explorationMarkers": 0,
     "faction": "Givers"
    }
@@ -738,6 +750,33 @@
    "SettlementGrowth",
    "Terraforming"
   ],
+  "eventPool": [
+   "apprehend-renegade",
+   "breakthrough-biology",
+   "breakthrough-engineering",
+   "breakthrough-physics",
+   "collapsing-biosphere",
+   "colonial-rush",
+   "contagion",
+   "first-contact",
+   "homesteaders",
+   "hostile-probe",
+   "incoming-comet",
+   "infectious-parasites",
+   "irradiated-atmosphere",
+   "pirate-raids-3",
+   "pirate-raids-5",
+   "prisoner-revolt",
+   "smugglers",
+   "stellar-chart",
+   "supervolcano",
+   "unrest",
+   "ai-sentient-emergence"
+  ],
+  "events": [],
+  "homesteaders": [],
+  "pacts": [],
+  "settlementRewards": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

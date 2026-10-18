@@ -13,9 +13,13 @@
     import InitiativeStep from './steps/InitiativeStep.svelte'
     import ProductionStep from './steps/ProductionStep.svelte'
     import ConversionStep from './steps/ConversionStep.svelte'
+    import EventPlacementStep from './steps/EventPlacementStep.svelte'
+    import HomesteadersStep from './steps/HomesteadersStep.svelte'
+    import RewardSettlementsStep from './steps/RewardSettlementsStep.svelte'
     import SurveyChoice from './steps/SurveyChoice.svelte'
     import TerraformStep from './steps/TerraformStep.svelte'
     import TerraformChoice from './steps/TerraformChoice.svelte'
+    import PactList from './steps/PactList.svelte'
     import WaitingPanel from './steps/WaitingPanel.svelte'
 
     const gameSession = getGameSession()
@@ -27,6 +31,8 @@
         {#if gameSession.currentPhase}
             <StepTracker />
         {/if}
+        <!-- A hotseat Player waiting on another's Branch may still answer a pact naming them. -->
+        <PactList />
         <WaitingPanel />
     {:else if machineState === MachineState.ChoosingFactions}
         <FactionPicker />
@@ -57,6 +63,12 @@
         <TerraformChoice />
     {:else if machineState === MachineState.ConvertingSettlements}
         <ConversionStep />
+    {:else if machineState === MachineState.PlacingRewardSettlements}
+        <RewardSettlementsStep />
+    {:else if machineState === MachineState.PlacingEvent}
+        <EventPlacementStep />
+    {:else if machineState === MachineState.PlacingHomesteaders}
+        <HomesteadersStep />
     {:else}
         <LastActionDescription />
     {/if}
