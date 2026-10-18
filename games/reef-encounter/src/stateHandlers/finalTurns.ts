@@ -3,7 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedReefEncounterGameState } from '../model/gameState.js'
 import { HydratedEatCoral, isEatCoral } from '../actions/eatCoral.js'
-import { HydratedPassFinalTurn, isPassFinalTurn } from '../actions/passFinalTurn.js'
+import { HydratedPassFinalTurn, isPassFinalTurn, PassFinalTurn } from '../actions/passFinalTurn.js'
 import { EndGame } from '../actions/endGame.js'
 
 type FinalTurnAction = HydratedEatCoral | HydratedPassFinalTurn
@@ -44,8 +44,14 @@ export class FinalTurnsStateHandler implements MachineStateHandler<
             : [ActionType.PassFinalTurn]
     }
 
+    // A player whose shrimps guard no coral that would score passes without being asked.
     enter(context: MachineContext<HydratedReefEncounterGameState>) {
-        context.gameState.activateTurnPlayer()
+        const gameState = context.gameState
+        gameState.activateTurnPlayer()
+        const playerId = gameState.turnPlayerId()
+        if (!gameState.hasScoringCoral(playerId)) {
+            context.addSystemAction(PassFinalTurn, { playerId })
+        }
     }
 
     onAction(

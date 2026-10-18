@@ -1,7 +1,6 @@
 <script lang="ts">
     import { capitalised, type Phrase, type PhrasePart } from '$lib/utils/actionDescription.js'
     import { PolypFaces } from '$lib/images/art.generated.js'
-    import { BiteMask } from '$lib/utils/bite.js'
     import LarvaCube from './table/LarvaCube.svelte'
     import AlgaCylinder from './table/AlgaCylinder.svelte'
     import ParrotfishIcon from './ParrotfishIcon.svelte'
@@ -28,14 +27,8 @@
         {#if typeof part === 'string' || !('icon' in part)}
             {words(part, index)}
         {:else if part.icon === 'polyp'}
-            <span class="icon polyp" class:consumed={part.consumed} title={part.label}>
-                <img
-                    src={PolypFaces[part.color][0].url}
-                    style:mask-image={part.consumed ? BiteMask : undefined}
-                    alt=""
-                    width="20"
-                    height="20"
-                />
+            <span class="icon polyp" class:reef-bitten={part.consumed} title={part.label}>
+                <img src={PolypFaces[part.color][0].url} alt="" width="20" height="20" />
                 {#if part.count > 1}<span class="times">×{part.count}</span>{/if}
             </span>
         {:else if part.icon === 'unseen-polyp'}
@@ -82,15 +75,6 @@
     .polyp img {
         border-radius: 3px;
         box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
-    }
-
-    /* The image's ring is cut away with the bite; this one follows the bite's edge. */
-    .polyp.consumed {
-        filter: drop-shadow(0 0 0.6px rgb(0 0 0 / 0.8));
-    }
-
-    .polyp.consumed img {
-        mask-composite: intersect;
     }
 
     .times {
