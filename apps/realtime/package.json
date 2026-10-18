@@ -1,0 +1,13 @@
+{
+    "name": "@tabletop/realtime",
+    "version": "0.0.1",
+    "private": true,
+    "scripts": {
+        "build": "go build -trimpath -o dist/realtime ./cmd/realtime",
+        "build:linux-amd64": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags=-s -o dist/linux-amd64/realtime ./cmd/realtime",
+        "check": "go vet ./...",
+        "lint": "test -z \"$(gofmt -l .)\" && go vet ./...",
+        "test": "go test -race ./...",
+        "clean": "rm -rf dist"
+    }
+}
