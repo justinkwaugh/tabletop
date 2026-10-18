@@ -59,12 +59,12 @@ describe('GET /token', () => {
         expect(response.json().payload.token).toBe('user-u1,global,relay-stats')
     })
 
-    it('refuses the relay stats topic to anyone who is not an admin', async () => {
-        const { server, issue } = await createServer()
+    it('leaves the relay stats topic out for anyone who is not an admin', async () => {
+        const { server } = await createServer()
         servers.push(server)
         const response = await server.inject({ method: 'GET', url: '/token?relayStats=true' })
-        expect(response.statusCode).toBe(403)
-        expect(issue).not.toHaveBeenCalled()
+        expect(response.statusCode).toBe(200)
+        expect(response.json().payload.token).toBe('user-u1,global')
     })
 
     it('adds the game topic for a game that exists', async () => {
