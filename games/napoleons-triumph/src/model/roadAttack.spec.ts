@@ -164,6 +164,40 @@ describe('cavalry attacking by road from the attack locale', () => {
         ).toThrow()
     })
 
+    it('ends its move, and is shown, when another command threatens an attack it cannot ride into', () => {
+        const map = new TestGame().hydrated.map
+        const flank = map
+            .adjacentLocales(WEST)
+            .find(
+                (locale) =>
+                    ![NEAR, TAKEN, BEYOND].includes(locale) &&
+                    !map.adjacentLocales(locale).includes(TAKEN) &&
+                    !map.approachBetween(WEST, locale).impassable
+            )
+        assertExists(flank, 'Expected a locale beside the infantry and away from the rider')
+        const game = frenchTurn([
+            ...placements,
+            { id: 'A-flank', side: Side.Allied, face: infantry(2), locale: flank }
+        ])
+        const french = game.playerOf(Side.French)
+        game.act(ActionType.ThreatenAttack, french, { approach: approach(game, NEAR, TAKEN) })
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: {},
+            destinations: { 'A-screen': 72 },
+            kept: {}
+        })
+        game.act(ActionType.Occupy, french, { orders: [{ ...rider, road: [] }] })
+        expect(game.hydrated.unit('F-cav').shown).toBeUndefined()
+
+        game.act(ActionType.ThreatenAttack, french, {
+            approach: approach(game, WEST, flank),
+            plan: { kind: CommandKind.Unit, unitIds: ['F-inf'] }
+        })
+        const state = game.hydrated
+        expect(state.roadMarch).toBeUndefined()
+        expect(state.unit('F-cav').shown).toEqual(cavalry(2))
+    })
+
     it('may end blocking an approach its road crosses', () => {
         const game = taken(true)
         const facing = approach(game, TAKEN, BEYOND)
