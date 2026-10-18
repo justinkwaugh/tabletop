@@ -53,6 +53,15 @@ function playerOf(state: HydratedStellarHorizonsGameState, faction: Faction) {
     return player.playerId
 }
 
+describe('The event pool', () => {
+    it('holds the 20 printed tiles: Unrest, and no Stellar Chart event', () => {
+        const state = campaign()
+        expect(state.eventPool).toHaveLength(20)
+        expect(state.eventPool).toContain('unrest')
+        expect(state.eventPool).not.toContain('stellar-chart')
+    })
+})
+
 describe('Events without a challenge', () => {
     it('Breakthrough halves one tech of its type for the Players with the fewest of them', () => {
         const state = campaign()

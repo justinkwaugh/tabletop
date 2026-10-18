@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 566099199,
+  "seed": 1098351060,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T12:47:10.428Z",
+  "createdAt": "2026-10-18T17:40:32.224Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "Z1ffclHeGeJDXgHc3B5VN",
+  "id": "unozzRI8pIXULX16CHqaX",
   "gameId": "scenario-campaign-paying-with-influence",
   "seed": 3367980177,
   "prng": {
@@ -768,7 +768,6 @@
    "pirate-raids-5",
    "prisoner-revolt",
    "smugglers",
-   "stellar-chart",
    "supervolcano",
    "unrest",
    "ai-sentient-emergence"

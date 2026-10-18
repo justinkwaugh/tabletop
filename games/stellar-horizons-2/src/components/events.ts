@@ -4,8 +4,8 @@ import { WorldClass } from './worldTypes.js'
 
 // Rulebook 4.2 and 1.16. Events without a challenge act when drawn; the others are placed at a
 // base and resolved like anomalies for their IP, acting every turn or when the next event is
-// drawn while they are still unresolved. Transcribed from the event tiles in the Vassal module:
-// its deck of 20, and Unrest, whose tile is in the module's art but not its deck.
+// drawn while they are still unresolved. Transcribed from the Vassal module's event tiles, as the
+// printed set of 20: its deck has a Stellar Chart event the game lacks, and leaves out Unrest.
 
 export enum EventTiming {
     // Acts once, when drawn.
@@ -31,8 +31,7 @@ export enum EventEffectKind {
     EarthProduction = 'EarthProduction',
     NoProductionOrGrowth = 'NoProductionOrGrowth',
     NoTradeGoods = 'NoTradeGoods',
-    ExplorersMalfunction = 'ExplorersMalfunction',
-    None = 'None'
+    ExplorersMalfunction = 'ExplorersMalfunction'
 }
 
 export type EventEffect =
@@ -49,7 +48,6 @@ export type EventEffect =
     | { kind: EventEffectKind.NoProductionOrGrowth }
     | { kind: EventEffectKind.NoTradeGoods }
     | { kind: EventEffectKind.ExplorersMalfunction; range: number }
-    | { kind: EventEffectKind.None }
 
 export interface EventChallenge {
     science?: number
@@ -169,7 +167,6 @@ export const EVENTS: readonly EventDefinition[] = [
         2
     ),
     event('smugglers', 'Smugglers', WhileUnresolved, { kind: K.NoTradeGoods }, { combat: 8 }, 5),
-    event('stellar-chart', 'Stellar Chart', WhileUnresolved, { kind: K.None }, { science: 4 }, 3),
     event(
         'supervolcano',
         'Supervolcano',

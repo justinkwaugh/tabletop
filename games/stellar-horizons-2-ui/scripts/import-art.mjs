@@ -126,7 +126,6 @@ const EVENT_ART = {
     'pirate-raids-5': 'Event Pirate raids 5-IP.png',
     'prisoner-revolt': 'Event Prisoner Revoltt 2-IP.png',
     smugglers: 'Event Smugglers 5-IP.png',
-    'stellar-chart': 'Event Stellar Chart 3-IP.png',
     supervolcano: 'Event Supervolcano 6-IP.png',
     unrest: 'Event Unrest 3-IP.png',
     'ai-sentient-emergence': 'EventAI Sentient Emergence 6-IP.png'

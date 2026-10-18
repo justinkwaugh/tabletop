@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3590983532,
+  "seed": 2775898016,
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-10-18T12:47:10.447Z",
+  "createdAt": "2026-10-18T17:40:32.243Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "RuTXYiW5KfreYX41mGxlP",
+  "id": "FnAKcwKj_YOFU9UYJEtoX",
   "gameId": "scenario-campaign-event",
   "seed": 3367980177,
   "prng": {

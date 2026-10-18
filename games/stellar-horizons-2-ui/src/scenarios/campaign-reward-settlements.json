@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3843547361,
+  "seed": 2338629335,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T12:47:10.478Z",
+  "createdAt": "2026-10-18T17:40:32.274Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "Il_6nNxBEsIl_ieLOsBlu",
+  "id": "8pYOHvGOYS2cEoG5IWuia",
   "gameId": "scenario-campaign-reward-settlements",
   "seed": 3367980177,
   "prng": {
@@ -785,7 +785,6 @@
    "pirate-raids-5",
    "prisoner-revolt",
    "smugglers",
-   "stellar-chart",
    "supervolcano",
    "unrest",
    "ai-sentient-emergence"

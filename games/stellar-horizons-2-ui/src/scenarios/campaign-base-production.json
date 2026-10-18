@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 4279462530,
+  "seed": 929463135,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T12:47:10.371Z",
+  "createdAt": "2026-10-18T17:40:32.166Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "Dlq80kF-7oeFPR4NcdUXX",
+  "id": "m57cGGm-DQCv1BpALgQTS",
   "gameId": "scenario-campaign-base-production",
   "seed": 3367980177,
   "prng": {
@@ -793,7 +793,6 @@
    "pirate-raids-5",
    "prisoner-revolt",
    "smugglers",
-   "stellar-chart",
    "supervolcano",
    "unrest",
    "ai-sentient-emergence"

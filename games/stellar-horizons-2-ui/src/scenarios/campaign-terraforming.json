@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2791805762,
+  "seed": 1312860472,
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-10-18T12:47:10.413Z",
+  "createdAt": "2026-10-18T17:40:32.209Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "2tAf3-SlPw0w5-0zOGB8y",
+  "id": "G4GR-hCsQOzWjCVIcEKFW",
   "gameId": "scenario-campaign-terraforming",
   "seed": 3367980177,
   "prng": {
@@ -783,7 +783,6 @@
    "pirate-raids-5",
    "prisoner-revolt",
    "smugglers",
-   "stellar-chart",
    "supervolcano",
    "unrest",
    "ai-sentient-emergence"

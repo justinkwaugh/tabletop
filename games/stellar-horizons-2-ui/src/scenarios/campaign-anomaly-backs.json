@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 1134628858,
+  "seed": 1169386400,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T12:47:10.462Z",
+  "createdAt": "2026-10-18T17:40:32.258Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "Z0Lv069J_hj2Odll7J0ba",
+  "id": "08ChfQIOduCIf9rYMh9fP",
   "gameId": "scenario-campaign-anomaly-backs",
   "seed": 3367980177,
   "prng": {
@@ -772,7 +772,6 @@
    "pirate-raids-5",
    "prisoner-revolt",
    "smugglers",
-   "stellar-chart",
    "supervolcano",
    "unrest",
    "ai-sentient-emergence"

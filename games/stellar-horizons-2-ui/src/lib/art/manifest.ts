@@ -582,10 +582,9 @@ import art579 from '$lib/images/art/events/pirate-raids-3.webp'
 import art580 from '$lib/images/art/events/pirate-raids-5.webp'
 import art581 from '$lib/images/art/events/prisoner-revolt.webp'
 import art582 from '$lib/images/art/events/smugglers.webp'
-import art583 from '$lib/images/art/events/stellar-chart.webp'
-import art584 from '$lib/images/art/events/supervolcano.webp'
-import art585 from '$lib/images/art/events/unrest.webp'
-import art586 from '$lib/images/art/events/ai-sentient-emergence.webp'
+import art583 from '$lib/images/art/events/supervolcano.webp'
+import art584 from '$lib/images/art/events/unrest.webp'
+import art585 from '$lib/images/art/events/ai-sentient-emergence.webp'
 
 export const SYSTEM_ART: Record<string, string> = {
     sol: art0,
@@ -1510,10 +1509,9 @@ export const EVENT_ART: Record<string, string> = {
     'pirate-raids-5': art580,
     'prisoner-revolt': art581,
     smugglers: art582,
-    'stellar-chart': art583,
-    supervolcano: art584,
-    unrest: art585,
-    'ai-sentient-emergence': art586
+    supervolcano: art583,
+    unrest: art584,
+    'ai-sentient-emergence': art585
 }
 
 export const EVENT_ART_SIZE = { width: 238, height: 238 }
