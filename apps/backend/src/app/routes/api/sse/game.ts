@@ -1,4 +1,5 @@
 import {
+    gameTopic,
     NotificationListener,
     SSEAuthorizationTokenData,
     TokenType
@@ -50,7 +51,7 @@ export default async function (fastify: FastifyInstance) {
 
         await fastify.notificationService.addTopicListener({
             listener,
-            topic: `game-${gameId}`
+            topic: gameTopic(gameId)
         })
 
         request.raw.on('close', async () => {

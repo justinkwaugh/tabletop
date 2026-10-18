@@ -33,6 +33,7 @@ vi.mock('@tabletop/backend-services', async () => {
                 'NullPubSubService',
                 'PreferenceService',
                 'PubSubTransport',
+                'RedisPublisher',
                 'TokenService',
                 'TournamentService',
                 'TournamentStallAlerts',
