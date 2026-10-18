@@ -12,6 +12,7 @@ import {
     utcDayStart,
     utcDaysThrough,
     type Histogram,
+    type RelayStatsNotification,
     type SiteGameCounts,
     type SiteStatsDay,
     type SiteStatsNow,
@@ -240,6 +241,23 @@ export function formatDays(days: number): string {
 
 export function changeFrom(current: number, previous: number): number | undefined {
     return previous > 0 ? (current - previous) / previous : undefined
+}
+
+export type OnlineCounts = RelayStatsNotification['data']
+
+export function onlineFigure(online: OnlineCounts | undefined, relayEnabled: boolean): StatFigure {
+    if (!online) {
+        return {
+            value: '—',
+            label: 'online now',
+            note: relayEnabled ? 'waiting for the relay' : 'needs the realtime relay'
+        }
+    }
+    return {
+        value: count(online.accounts),
+        label: 'online now',
+        note: `${count(online.connections)} ${online.connections === 1 ? 'tab' : 'tabs'} open · live`
+    }
 }
 
 export function nowFigures(now: SiteStatsNow): StatFigure[] {

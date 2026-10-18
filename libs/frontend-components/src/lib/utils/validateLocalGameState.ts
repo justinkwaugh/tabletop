@@ -2,7 +2,7 @@ import { assertExists, GameEngine, type Game, type GameState } from '@tabletop/c
 import type { LibraryService } from '../services/libraryService.js'
 
 export async function validateLocalGameState(
-    library: LibraryService,
+    library: Pick<LibraryService, 'whenReady' | 'getTitle'>,
     game: Game,
     state: GameState
 ): Promise<void> {

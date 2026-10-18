@@ -32,7 +32,10 @@ import {
     PreferenceService,
     PubSubService,
     PubSubTransport,
+    parseRealtimeSigningKey,
+    RealtimeTokenIssuer,
     RedisCacheService,
+    RedisPublisher,
     RedisPubSubService,
     RedisService,
     ResendEmailService,
@@ -74,6 +77,7 @@ declare module 'fastify' {
         leagueService: LeagueService
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
+        realtimeTokenIssuer: RealtimeTokenIssuer | undefined
     }
 }
 
@@ -83,6 +87,7 @@ const SITE_MANIFEST_PATH =
     process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
 
 const useAbly = !!process.env['ABLY_API_KEY']
+const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
 
 export default fp(async (fastify: FastifyInstance) => {
@@ -175,10 +180,18 @@ export default fp(async (fastify: FastifyInstance) => {
         notificationService.addTopicTransport(ablyTransport)
         const ablyService = await AblyService.createAblyService(secretsService)
         fastify.decorate('ablyService', ablyService)
-    } else {
-        const pubSubTransport = new PubSubTransport(pubSubService)
-        notificationService.addTopicTransport(pubSubTransport)
     }
+    if (!useAbly || useRealtimeRelay) {
+        notificationService.addTopicTransport(new PubSubTransport(new RedisPublisher(redisService)))
+    }
+    fastify.decorate(
+        'realtimeTokenIssuer',
+        useRealtimeRelay
+            ? new RealtimeTokenIssuer(
+                  parseRealtimeSigningKey(await secretsService.getSecret('REALTIME_SIGNING_KEY'))
+              )
+            : undefined
+    )
 
     const chatService = new ChatService(
         gameService,

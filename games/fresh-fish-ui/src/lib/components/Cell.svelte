@@ -116,7 +116,8 @@
             gameSession.highlightedCoords[0] === coords[0] &&
             gameSession.highlightedCoords[1] === coords[1]
     )
-    let showBorder = $state(false)
+    let hovered = $state(false)
+    let previewing = $derived(hovered && interactable)
 
     let mayExpropriate = $derived(
         (isDiskCell(cell) &&
@@ -128,14 +129,14 @@
     )
 
     function handleMouseOver() {
-        showBorder = interactable
+        hovered = true
         if (mayExpropriate) {
             gameSession.previewExpropriation(coords)
         }
     }
 
     function handleMouseLeave() {
-        showBorder = false
+        hovered = false
         if (mayExpropriate) {
             gameSession.clearExpropriationPreview()
         }
@@ -164,12 +165,11 @@
             return
         }
 
-        showBorder = false
         await gameSession.applyAction(action)
     }
 
     let myColor = $derived(gameSession.colors.getPlayerUiColor(gameSession.myPlayer?.id))
-    let available = $derived(interacting && interactable && !showBorder)
+    let available = $derived(interacting && interactable && !previewing)
 
     // Note that tabindex has to be used or interactable is not evaluated... why?
 </script>
@@ -200,7 +200,7 @@
         <!-- Absolute, so a disc fading out never shares the row with the piece replacing it. -->
         <div
             class="absolute inset-0 flex justify-center items-center"
-            in:fadeScale={{ baseScale: 0.1, duration: 100 }}
+            in:fadeScale={{ baseScale: 0.1, duration: gameSession.newDiscsGrowIn ? 100 : 0 }}
             out:fadeScale={{ baseScale: 0.1, duration: 50 }}
         >
             {@render disk(gameSession.colors.getPlayerUiColor(cell.playerId))}
@@ -216,7 +216,7 @@
         <WoodMarket />
     {/if}
 
-    {#if showBorder}
+    {#if previewing}
         <div class="absolute inset-0 z-10 flex justify-center items-center pointer-events-none">
             {#if gameSession.chosenAction === ActionType.PlaceDisk}
                 {@render disk(myColor, true)}

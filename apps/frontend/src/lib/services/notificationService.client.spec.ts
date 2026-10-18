@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushSync } from 'svelte'
 import { Role, UserStatus, type User } from '@tabletop/common'
-import { TabletopApi, VisibilityService } from '@tabletop/frontend-components'
+import { TabletopApi } from '@tabletop/frontend-components'
 import type { RealtimeConnection } from '$lib/network/realtimeConnection'
 import { AuthorizationService } from './authorizationService.svelte.js'
 import { NotificationService } from './notificationService.svelte.js'
 import { stubLocalStorage } from '$lib/test/localStorageStub'
+import { VisibilityStub } from '$lib/test/visibilityStub.svelte'
 
 vi.mock('$env/static/public', () => ({
     PUBLIC_VAPID_KEY:
@@ -15,9 +16,6 @@ vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
 vi.mock('@tabletop/frontend-components', () => ({
     NotificationChannel: { User: 'user', Global: 'global', GameInstance: 'gameInstance' },
     NotificationEventType: { Data: 'data', Discontinuity: 'discontinuity' },
-    VisibilityService: class {
-        visible = true
-    },
     TabletopApi: class {
         subscribeToPushNotifications = vi.fn(async () => {})
         unsubscribeFromPushNotifications = vi.fn(async () => {})
@@ -95,6 +93,7 @@ function createUser(): User {
 
 function createService(user: User | undefined) {
     const realtimeConnection: RealtimeConnection = {
+        tabVisibilityChanged: vi.fn(),
         setHandler: vi.fn(),
         addChannel: vi.fn(async () => {}),
         removeChannel: vi.fn(async () => {}),
@@ -104,14 +103,20 @@ function createService(user: User | undefined) {
     const api = new TabletopApi()
     const authorizationService = new AuthorizationService(api, vi.fn(), vi.fn())
     if (user) authorizationService.setSessionUser(user)
+    const visibility = new VisibilityStub()
     const service = new NotificationService(
         realtimeConnection,
-        new VisibilityService(),
+        visibility,
         authorizationService,
         api
     )
     return {
         service,
+        authorizationService,
+        visibility,
+        connect: vi.mocked(realtimeConnection.connect),
+        disconnect: vi.mocked(realtimeConnection.disconnect),
+        tabVisibilityChanged: vi.mocked(realtimeConnection.tabVisibilityChanged),
         subscribe: vi.mocked(api.subscribeToPushNotifications),
         unsubscribe: vi.mocked(api.unsubscribeFromPushNotifications)
     }
@@ -166,5 +171,35 @@ describe('NotificationService push subscription lifecycle', () => {
         currentSubscription = makeSubscription()
         service.onMounted()
         await settled(() => expect(subscribe).not.toHaveBeenCalled())
+    })
+})
+
+describe('NotificationService realtime connection', () => {
+    it('connects for a logged-in user whether or not the tab is visible', async () => {
+        const { service, visibility, connect, disconnect } = createService(createUser())
+        visibility.visible = false
+        service.onMounted()
+        await settled(() => expect(connect).toHaveBeenCalledTimes(1))
+        expect(disconnect).not.toHaveBeenCalled()
+    })
+
+    it('tells the connection each time the tab is hidden or shown', async () => {
+        const { service, visibility, tabVisibilityChanged } = createService(createUser())
+        service.onMounted()
+        await settled(() => expect(tabVisibilityChanged).toHaveBeenLastCalledWith(true))
+
+        visibility.visible = false
+        await settled(() => expect(tabVisibilityChanged).toHaveBeenLastCalledWith(false))
+        visibility.visible = true
+        await settled(() => expect(tabVisibilityChanged).toHaveBeenLastCalledWith(true))
+    })
+
+    it('disconnects when the user logs out', async () => {
+        const { service, connect, disconnect, authorizationService } = createService(createUser())
+        service.onMounted()
+        await settled(() => expect(connect).toHaveBeenCalledTimes(1))
+
+        authorizationService.clearSessionUser()
+        await settled(() => expect(disconnect).toHaveBeenCalledTimes(1))
     })
 })

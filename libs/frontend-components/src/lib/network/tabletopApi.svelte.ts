@@ -933,6 +933,21 @@ export class TabletopApi {
         return response.payload.token
     }
 
+    async getRealtimeToken(
+        gameIds: string[],
+        { relayStats = false }: { relayStats?: boolean } = {}
+    ): Promise<string> {
+        const params = new URLSearchParams(gameIds.map((gameId) => ['game', gameId]))
+        if (relayStats) params.set('relayStats', 'true')
+        const response = await this.wretch
+            .get(`/realtime/token?${params}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<TokenResponse>()
+
+        return response.payload.token
+    }
+
     async getAblyToken(): Promise<Ably.TokenRequest> {
         const response = await this.wretch
             .get('/auth/ably/token')

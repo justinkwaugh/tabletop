@@ -35,12 +35,13 @@ import {
     isListedPublicGame,
     isYourTurnNotification,
     omitGameState,
-    type UndoVotePreview
+    type UndoVotePreview,
+    type User
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
-import { NotificationService } from './notificationService.svelte'
+import type { NotificationService } from './notificationService.svelte'
 import { isUsersGameTurn, isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
@@ -48,6 +49,8 @@ import type { LibraryService } from './libraryService.svelte'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
 
 const StoredCurrentGames = Type.Object({ userId: Type.String(), games: Type.Array(Game) })
+
+type GameListChange = { game: Game; removed: boolean }
 
 export class GameService implements GameServiceInterface {
     get supportsReproductionSeed(): boolean {
@@ -61,6 +64,8 @@ export class GameService implements GameServiceInterface {
     loading = $state(false)
     private loadingPromise: Promise<void> | null = null
     private currentGamesFetched = false
+    private reloadRequested = false
+    private changesDuringLoad: GameListChange[] | undefined
     private static readonly storedCurrentGamesKey = 'currentGames'
 
     currentGameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
@@ -123,9 +128,9 @@ export class GameService implements GameServiceInterface {
     openGamesByTitleId: Map<string, Game[]> = new SvelteMap()
 
     constructor(
-        private readonly libraryService: LibraryService,
-        private readonly authorizationService: AuthorizationService,
-        private readonly notificationService: NotificationService,
+        private readonly libraryService: Pick<LibraryService, 'getTitle' | 'whenReady'>,
+        private readonly authorizationService: Pick<AuthorizationService, 'getSessionUser'>,
+        notificationService: Pick<NotificationService, 'addListener'>,
         private readonly api: TabletopApi
     ) {
         notificationService.addListener(this.NotificationListener)
@@ -148,11 +153,14 @@ export class GameService implements GameServiceInterface {
     }
 
     async loadGames() {
-        if (!this.loadingPromise) {
+        if (this.loadingPromise) {
+            this.reloadRequested = true
+        } else {
             this.loading = true
             this.loadingPromise = this.loadCurrentGames().finally(() => {
                 this.loading = false
                 this.loadingPromise = null
+                this.changesDuringLoad = undefined
             })
         }
         return this.loadingPromise
@@ -163,13 +171,19 @@ export class GameService implements GameServiceInterface {
             this.applyStoredCurrentGames()
         }
         const sessionUser = this.authorizationService.getSessionUser()
-        const [games, localGames] = await Promise.all([
-            this.api.getMyGames('current'),
-            sessionUser ? this.localGameStore.findGamesForUser(sessionUser) : []
-        ])
-        if (this.authorizationService.getSessionUser()?.id !== sessionUser?.id) {
-            return
-        }
+        let fetched: { games: Game[]; localGames: Game[] } | undefined
+        let changes: GameListChange[] = []
+        do {
+            this.reloadRequested = false
+            changes = []
+            this.changesDuringLoad = changes
+            fetched = await this.fetchCurrentGames(sessionUser)
+            if (!fetched) {
+                return
+            }
+        } while (this.reloadRequested)
+        this.changesDuringLoad = undefined
+        const { games, localGames } = fetched
 
         const ids = new Set(games.map((game) => game.id))
         games.forEach((game) => {
@@ -184,10 +198,55 @@ export class GameService implements GameServiceInterface {
         localGames.forEach((game) => {
             this.localGamesById.set(game.id, game)
         })
+        this.replayChanges(changes)
         this.currentGamesFetched = true
         if (sessionUser) {
-            writeStoredValue(GameService.storedCurrentGamesKey, { userId: sessionUser.id, games })
+            writeStoredValue(GameService.storedCurrentGamesKey, {
+                userId: sessionUser.id,
+                games: [...this.gamesById.values()]
+            })
         }
+    }
+
+    private replayChanges(changes: GameListChange[]) {
+        const newestByGame = new Map<string, GameListChange>()
+        for (const change of changes) {
+            const newest = newestByGame.get(change.game.id)
+            if (
+                !newest ||
+                change.removed ||
+                (!newest.removed && this.isNewer(change.game, newest.game))
+            ) {
+                newestByGame.set(change.game.id, change)
+            }
+        }
+        for (const { game, removed } of newestByGame.values()) {
+            if (removed) {
+                this.removeFromPrivateCache(game.id)
+                continue
+            }
+            const loaded = this.gamesById.get(game.id) ?? this.localGamesById.get(game.id)
+            if (!loaded || this.isNewer(game, loaded)) {
+                this.upsertCachedGame(game)
+            }
+        }
+    }
+
+    private isNewer(game: Game, than: Game): boolean {
+        return (game.updatedAt?.getTime() ?? 0) > (than.updatedAt?.getTime() ?? 0)
+    }
+
+    private async fetchCurrentGames(
+        sessionUser: User | undefined
+    ): Promise<{ games: Game[]; localGames: Game[] } | undefined> {
+        const [games, localGames] = await Promise.all([
+            this.api.getMyGames('current'),
+            sessionUser ? this.localGameStore.findGamesForUser(sessionUser) : []
+        ])
+        if (this.authorizationService.getSessionUser()?.id !== sessionUser?.id) {
+            return undefined
+        }
+        return { games, localGames }
     }
 
     private applyStoredCurrentGames() {
@@ -518,8 +577,10 @@ export class GameService implements GameServiceInterface {
                 notification.action === GameNotificationAction.Create ||
                 notification.action === GameNotificationAction.Update
             ) {
+                this.changesDuringLoad?.push({ game, removed: false })
                 this.upsertCachedGame(game)
             } else if (notification.action === GameNotificationAction.Delete) {
+                this.changesDuringLoad?.push({ game, removed: true })
                 this.removeFromPrivateCache(game.id)
                 this.removeFromPublicCache(game.id)
             }

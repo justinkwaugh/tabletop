@@ -55,6 +55,6 @@ game, hidden information included.
 - **Forum permissions** (on the forum, Edit Channel, Permissions; forums call threads _posts_):
   View Channel, Read Message History, Send Messages in Posts and Manage Posts. Without Manage
   Posts the bot may retag and close only the reports it opened, and lock none.
-- **Tags**: `open`, `investigating`, `reproduced`, `fixed`, `wont fix` and `not a bug` are
-  status tags, one per post. Discord closes a post after a week without activity, so the status
+- **Tags**: `open`, `investigating`, `reproduced`, `fixed`, `wont fix`, `not a bug` and
+  `suggestion` are status tags, one per post. Discord closes a post after a week without activity, so the status
   tag, not the closed state, says whether a report is resolved.

@@ -1,19 +1,19 @@
 import Ably from 'ably'
 import {
-    type RealtimeConnection,
+    type RealtimeTransport,
     type RealtimeEvent,
     RealtimeEventType,
     type RealtimeEventHandler,
     ChannelIdentifier
 } from './realtimeConnection'
-import type { NotificationChannel, TabletopApi } from '@tabletop/frontend-components'
+import { NotificationChannel, type TabletopApi } from '@tabletop/frontend-components'
 
 type ChannelData = {
     channel: NotificationChannel
     ablyChannel: Ably.RealtimeChannel
 }
 
-export class AblyConnection implements RealtimeConnection {
+export class AblyConnection implements RealtimeTransport {
     private handler?: RealtimeEventHandler
 
     private channels: Map<string, ChannelData> = new Map()
@@ -76,6 +76,9 @@ export class AblyConnection implements RealtimeConnection {
     }
 
     async addChannel(identifier: ChannelIdentifier) {
+        if (identifier.channel === NotificationChannel.RelayStats) {
+            return
+        }
         if (this.channels.get(identifier.channelName)) {
             return
         }

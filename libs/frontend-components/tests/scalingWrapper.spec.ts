@@ -318,6 +318,87 @@ for (const [overpan, expected] of [['none', { x: 0, y: 0 }], ['focus', { x: 632,
     })
 }
 
+const PaneSize = { width: 400, height: 300 }
+const FullScreenViewSize = { width: 1264, height: 704 }
+
+function boardPointAtViewCentre(board: Locator, insetTop: number) {
+    return board.evaluate((element, insetTop) => {
+        const view = element.closest('.scaling-surface')?.firstElementChild
+        if (!view) throw new Error('Missing view')
+        if (!(element instanceof HTMLElement)) throw new Error('Board is not an HTML element')
+        const boardBounds = element.getBoundingClientRect()
+        const viewBounds = view.getBoundingClientRect()
+        const scale = boardBounds.width / element.offsetWidth
+        return {
+            scale,
+            x: (viewBounds.x + viewBounds.width / 2 - boardBounds.x) / scale,
+            y: (viewBounds.y + insetTop + (viewBounds.height - insetTop) / 2 - boardBounds.y) / scale
+        }
+    }, insetTop)
+}
+
+async function zoomAndPan(page: Page, board: Locator, centre: { x: number, y: number }, pan: { x: number, y: number },
+    zoomedWidth: (restedWidth: number) => number) {
+    const rested = (await board.boundingBox())?.width ?? 0
+    await page.mouse.move(centre.x, centre.y)
+    const wheelDelta = Math.round(Math.log(zoomedWidth(rested) / rested) / -0.003)
+    await page.mouse.wheel(0, wheelDelta)
+    await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(rested * Math.exp(-wheelDelta * 0.003), 1)
+    await page.mouse.down()
+    await page.mouse.move(centre.x + pan.x, centre.y + pan.y, { steps: 5 })
+    await page.mouse.up()
+}
+
+for (const insetTop of [0, 44]) {
+    test(`leaving full screen with inset ${insetTop} keeps the zoomed view centred, zoomed out until the area it showed fits`, async ({ page }) => {
+        await mountWrapper(page, { maxScale: 2, expandable: true, insetTop })
+        const board = page.getByTestId('board')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBeGreaterThan(0)
+        const paneRest = await boardPointAtViewCentre(board, insetTop)
+        await page.getByLabel('Enter full screen').click()
+        await expect.poll(async () => (await boardPointAtViewCentre(board, insetTop)).scale).toBeGreaterThan(paneRest.scale * 2)
+        await zoomAndPan(page, board, { x: 640, y: 360 }, { x: 100, y: 60 }, rested => rested * Math.exp(0.6))
+        const expanded = await boardPointAtViewCentre(board, insetTop)
+        await page.getByLabel('Exit full screen').click()
+        const fitted = expanded.scale * Math.min(PaneSize.width / FullScreenViewSize.width,
+            (PaneSize.height - insetTop) / (FullScreenViewSize.height - insetTop))
+        await expect.poll(async () => (await boardPointAtViewCentre(board, insetTop)).scale).toBeCloseTo(fitted, 2)
+        const collapsed = await boardPointAtViewCentre(board, insetTop)
+        expect(collapsed.x).toBeCloseTo(expanded.x, 0)
+        expect(collapsed.y).toBeCloseTo(expanded.y, 0)
+    })
+}
+
+test('entering full screen keeps the zoomed view centred at its scale', async ({ page }) => {
+    await mountWrapper(page, { maxScale: 2, expandable: true })
+    const board = page.getByTestId('board')
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+    const widthAboveFullScreenFit = 1600
+    await zoomAndPan(page, board, { x: 200, y: 150 }, { x: 40, y: 30 }, () => widthAboveFullScreenFit)
+    const collapsed = await boardPointAtViewCentre(board, 0)
+    await page.getByLabel('Enter full screen').click()
+    await expect.poll(async () => (await page.getByTestId('board').evaluate(element =>
+        element.closest('.scaling-surface')?.getBoundingClientRect().width))).toBe(1280)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const expanded = await boardPointAtViewCentre(board, 0)
+    expect(expanded.scale).toBeCloseTo(collapsed.scale, 3)
+    expect(expanded.x).toBeCloseTo(collapsed.x, 0)
+    expect(expanded.y).toBeCloseTo(collapsed.y, 0)
+})
+
+test('a resizing pane keeps the zoomed view centred at its scale', async ({ page }) => {
+    await mountWrapper(page, { maxScale: 2 })
+    const board = page.getByTestId('board')
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+    await zoomAndPan(page, board, { x: 200, y: 150 }, { x: 40, y: 30 }, rested => rested * Math.exp(0.6))
+    const before = await boardPointAtViewCentre(board, 0)
+    await page.getByTestId('pane').evaluate(element => { element.style.width = '300px'; element.style.height = '200px' })
+    await expect.poll(async () => (await boardPointAtViewCentre(board, 0)).x).toBeCloseTo(before.x, 0)
+    const after = await boardPointAtViewCentre(board, 0)
+    expect(after.scale).toBeCloseTo(before.scale, 3)
+    expect(after.y).toBeCloseTo(before.y, 0)
+})
+
 test('content drawn at its view scale is laid out at that scale once the view settles', async ({ page }) => {
     await mountWrapper(page, { renderAtViewScale: true })
     const board = page.getByTestId('board')

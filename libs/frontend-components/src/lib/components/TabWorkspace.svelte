@@ -49,7 +49,22 @@
         if (fixed.tabs.includes(tab)) fixed = { ...fixed, active: tab }
     }
     let element: HTMLDivElement
-    let menuPosition = $state({ top: 0, right: 0 })
+    const menuWidth = 180
+    const menuGap = 4
+    const windowMargin = 8
+    let menuButton: HTMLElement | undefined
+    let menuPosition = $state({ top: 'auto', bottom: 'auto', right: '0', maxHeight: '70dvh' })
+    function placeMenuOnRoomierSide(button: HTMLElement) {
+        menuButton = button
+        const rect = button.getBoundingClientRect()
+        const right = `${Math.max(windowMargin, window.innerWidth - Math.max(menuWidth + windowMargin, rect.right))}px`
+        const below = window.innerHeight - rect.bottom
+        const maxHeight = `min(70dvh, ${Math.max(below, rect.top) - menuGap - windowMargin}px)`
+        menuPosition = below >= rect.top
+            ? { top: `${rect.bottom + menuGap}px`, bottom: 'auto', right, maxHeight }
+            : { top: 'auto', bottom: `${window.innerHeight - rect.top + menuGap}px`, right, maxHeight }
+    }
+    function placeOpenMenu() { if (menuButton) placeMenuOnRoomierSide(menuButton) }
     let dragged: string | undefined = $state()
     let pendingDrop: { tab: string; pane: string; beforeTab?: string } | undefined
     let insertBefore: string | undefined = $state()
@@ -154,7 +169,7 @@
     }
 </script>
 
-<svelte:window onmousemove={moveResize} onmouseup={endResize} onblur={cancelResize} />
+<svelte:window onmousemove={moveResize} onmouseup={endResize} onblur={cancelResize} onresize={placeOpenMenu} />
 
 <div class="workspace" aria-label={label} bind:this={element}>
     {#snippet paneHeader(item: PaneLayout)}
@@ -181,10 +196,11 @@
                 </div>
                 {#if splittable && (item.pane.id !== 'fixed' || item.pane.tabs.length || availableTabs(item.pane.id).length)}<div class="split-controls">
                     <button class="split-button" aria-label={`Pane options for ${paneLabel(item)}`} title="Pane options" popovertarget={menuId}
-                        onclick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); menuPosition = { top: rect.bottom + 4, right: Math.max(8, window.innerWidth - Math.max(188, rect.right)) } }}>
+                        onclick={(event) => placeMenuOnRoomierSide(event.currentTarget)}>
                         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 9v2m6-2v2m6-2v2" stroke-width="3" stroke-linecap="round"/></svg>
                     </button>
-                    <div class="widget-menu" id={menuId} popover style:top={`${menuPosition.top}px`} style:right={`${menuPosition.right}px`}>
+                    <div class="widget-menu" id={menuId} popover style:top={menuPosition.top} style:bottom={menuPosition.bottom} style:right={menuPosition.right}
+                        style:max-height={menuPosition.maxHeight} ontoggle={(event) => { if (event.newState === 'closed') menuButton = undefined }}>
                         {#if item.pane.id !== 'fixed'}
                         <div class="pane-actions">
                             {#each ['horizontal', 'vertical'] as const as axis (axis)}
@@ -281,7 +297,7 @@
     .panel.inactive { visibility: hidden; pointer-events: none; }
     .empty { flex: 1; display: grid; place-items: center; color: var(--workspace-muted, #6b7280); font-size: 13px; }
     .drop-target { outline: 2px dashed var(--workspace-focus, #2563eb); outline-offset: -4px; }
-    .widget-menu { margin: 0; left: auto; width: 180px; box-sizing: border-box; max-height: 70dvh; overflow: auto; padding: 4px; border: 1px solid var(--workspace-border, #d1d5db); border-radius: 6px; background: var(--workspace-surface, #ffffff); color: var(--workspace-text, #374151); }
+    .widget-menu { margin: 0; left: auto; width: 180px; box-sizing: border-box; overflow: auto; padding: 4px; border: 1px solid var(--workspace-border, #d1d5db); border-radius: 6px; background: var(--workspace-surface, #ffffff); color: var(--workspace-text, #374151); }
     .existing-tab { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 26px; font-size: 12px; padding-left: 4px; }
     .widget-menu .close-tab { width: 24px; height: 24px; padding: 0; display: grid; place-items: center; justify-content: center; gap: 0; flex: none; }
     .widget-menu .pane-actions { display: flex; gap: 2px; }

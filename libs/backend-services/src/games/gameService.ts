@@ -149,6 +149,7 @@ import {
     startFinalScoresBackfill,
     type FinalScoresBackfillTask
 } from './finalScoresBackfill.js'
+import { GLOBAL_TOPIC, gameTopic, userTopic } from '../notifications/topics.js'
 
 type UndoPlan = {
     state: GameState
@@ -2124,10 +2125,10 @@ export class GameService {
         data: GameNotificationData
     ): Promise<void> {
         const notification = createGameNotification(action, data)
-        const gameTopic = `game-${data.game.id}`
+        const topic = gameTopic(data.game.id)
         await this.notificationService.sendNotification({
             notification,
-            topics: [gameTopic],
+            topics: [topic],
             channels: [NotificationDistributionMethod.Topical]
         })
     }
@@ -2140,7 +2141,7 @@ export class GameService {
         const notification = createGameNotification(action, data)
         await this.notificationService.sendNotification({
             notification,
-            topics: gameUserIds(data.game).map((userId) => `user-${userId}`),
+            topics: gameUserIds(data.game).map(userTopic),
             channels: [NotificationDistributionMethod.Topical]
         })
     }
@@ -2177,7 +2178,7 @@ export class GameService {
         const notification = createGameNotification(action, data)
         await this.notificationService.sendNotification({
             notification,
-            topics: ['global'],
+            topics: [GLOBAL_TOPIC],
             channels: [NotificationDistributionMethod.Topical]
         })
     }
@@ -2402,10 +2403,10 @@ export class GameService {
     }
 
     private async notifyUser(notification: UserNotification): Promise<void> {
-        const userTopic = `user-${notification.data.user.id}`
+        const topic = userTopic(notification.data.user.id)
         await this.notificationService.sendNotification({
             notification,
-            topics: [userTopic],
+            topics: [topic],
             channels: [NotificationDistributionMethod.UserDirect]
         })
     }
