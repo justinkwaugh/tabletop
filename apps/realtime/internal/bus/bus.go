@@ -168,7 +168,7 @@ func (b *Bus) enqueue(send func(context.Context, *redis.PubSub) error) error {
 	case b.commands <- command{generation: generation, send: send}:
 		return nil
 	default:
-		_ = pubsub.Close()
+		go pubsub.Close()
 		return errQueueFull
 	}
 }
