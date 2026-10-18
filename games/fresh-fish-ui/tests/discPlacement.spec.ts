@@ -1,8 +1,8 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
-test('a placed disc takes over from its preview without vanishing or growing in', async ({
-    page
-}) => {
+const SAMPLED_FRAMES = 30
+
+async function openProtectedGame(page: Page) {
     await page.goto('/')
     await page.evaluate(async () => {
         const fixture = await import(
@@ -14,36 +14,69 @@ test('a placed disc takes over from its preview without vanishing or growing in'
     await page.getByRole('button', { name: 'Games', exact: true }).click()
     await page.getByText('Protected Fresh Fish', { exact: true }).click()
     await expect(page.getByText('Please place a disc', { exact: true })).toBeVisible()
-
-    const cell = page.locator('.land .cell.cursor-pointer').first()
-    await cell.hover()
-    const preview = cell.locator('svg')
-    await expect(preview).toHaveCount(1)
-
-    // Watch every frame from the click on: the cell must always show a full-size disc.
-    await cell.evaluate((element) => {
-        const frames: number[] = []
-        ;(window as unknown as { discFrames: number[] }).discFrames = frames
-        const sample = () => {
-            const widths = [...element.querySelectorAll('svg')].map(
-                (svg) => svg.getBoundingClientRect().width
-            )
-            frames.push(widths.length ? Math.max(...widths) : 0)
-            if (frames.length < 30) requestAnimationFrame(sample)
-        }
-        element.addEventListener('click', () => requestAnimationFrame(sample), { once: true })
-    })
-    await cell.click()
-    await expect
-        .poll(() =>
-            page.evaluate(() => (window as unknown as { discFrames: number[] }).discFrames.length)
-        )
-        .toBe(30)
-    const frames = await page.evaluate(
-        () => (window as unknown as { discFrames: number[] }).discFrames
+    const cells = page.locator('.land .cell')
+    const target = await cells.evaluateAll((elements) =>
+        elements.findIndex((element) => element.classList.contains('cursor-pointer'))
     )
-    const placedWidth = frames.at(-1)!
+    return cells.nth(target)
+}
+
+async function discWidthsAfter(cell: Locator, act: () => Promise<void>): Promise<number[]> {
+    const frames = cell.evaluate(
+        (element, count) =>
+            new Promise<number[]>((resolve) => {
+                const widths: number[] = []
+                const sample = () => {
+                    const discs = [...element.querySelectorAll('svg')]
+                    widths.push(
+                        Math.max(0, ...discs.map((svg) => svg.getBoundingClientRect().width))
+                    )
+                    if (widths.length < count) requestAnimationFrame(sample)
+                    else resolve(widths)
+                }
+                element.ownerDocument.addEventListener(
+                    'click',
+                    () => requestAnimationFrame(sample),
+                    {
+                        once: true,
+                        capture: true
+                    }
+                )
+            }),
+        SAMPLED_FRAMES
+    )
+    await act()
+    return frames
+}
+
+test('a placed disc takes over from its preview without vanishing or growing in', async ({
+    page
+}) => {
+    const cell = await openProtectedGame(page)
+    await cell.hover()
+    await expect(cell.locator('svg')).toHaveCount(1)
+
+    const frames = await discWidthsAfter(cell, () => cell.click())
+
+    const placedWidth = frames.at(-1) ?? 0
     for (const width of frames)
         expect(width, JSON.stringify(frames)).toBeGreaterThan(placedWidth * 0.95)
     await expect(page.getByText('placed a disc')).toBeVisible()
+})
+
+test('a disc shown by stepping through History still grows in', async ({ page }) => {
+    const cell = await openProtectedGame(page)
+    await cell.click()
+    await expect(page.getByText('placed a disc')).toBeVisible()
+    await page.mouse.move(0, 0)
+    await page.getByRole('button', { name: 'step backwards' }).click()
+    await expect(cell.locator('svg')).toHaveCount(0)
+
+    const frames = await discWidthsAfter(cell, () =>
+        page.getByRole('button', { name: 'step forwards' }).click()
+    )
+
+    const placedWidth = Math.max(...frames)
+    const firstShown = frames.find((width) => width > 0)
+    expect(firstShown, JSON.stringify(frames)).toBeLessThan(placedWidth * 0.5)
 })
