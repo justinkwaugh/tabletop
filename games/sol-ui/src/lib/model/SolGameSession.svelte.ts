@@ -1,4 +1,8 @@
-import { AnimationContext, GameSession } from '@tabletop/frontend-components'
+import {
+    AnimationContext,
+    GameSession,
+    type PresentedTransition
+} from '@tabletop/frontend-components'
 import {
     ActionType,
     Card,
@@ -228,8 +232,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         new SvelteMap<string, PlayerStateOverride>()
     )
 
-    skipReset = false
-
     override async onGameStateChange({
         action
     }: {
@@ -238,9 +240,6 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
         action?: GameAction
         animationContext: AnimationContext
     }) {
-        // Activating an effect is a state change noop really, so we should
-        // not reset the action before the state change.  This allows for the user to do it
-        // in the middle of other actions like moving.  Undo may be an issue here though.
         if (isActivateEffect(action)) {
             if (action.effect === EffectType.Catapult) {
                 this.chosenNumDivers = undefined
@@ -248,22 +247,25 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             if (action.effect === EffectType.Hyperdrive && (this.chosenNumDivers ?? 0) > 1) {
                 this.chosenNumDivers = 1
             }
-            if (action.effect !== EffectType.Motivate) {
-                this.skipReset = true
-            }
-            if (action.effect === EffectType.Hatch) {
-                this.skipReset = true
-            }
         }
     }
 
-    override beforeNewState(): void {
-        // Always clear forced call to action
+    // Motivate changes what can move, so it ends a move draft; other activations continue it.
+    override beforeNewState(transition: PresentedTransition): void {
         this.forcedCallToAction = undefined
-        if (!this.skipReset) {
+        if (!this.continuesOwnMove(transition)) {
             this.resetAction()
         }
-        this.skipReset = false
+    }
+
+    private continuesOwnMove(transition: PresentedTransition): boolean {
+        return (
+            transition.kind === 'own-action' &&
+            transition.actions.length > 0 &&
+            transition.actions.every(
+                (action) => isActivateEffect(action) && action.effect !== EffectType.Motivate
+            )
+        )
     }
 
     numPlayerCanMoveFromSource(): number {

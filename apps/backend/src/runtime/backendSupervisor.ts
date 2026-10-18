@@ -81,6 +81,7 @@ export class BackendSupervisor {
         this.replacement = this.replaceChild()
             .catch((error: unknown) => {
                 console.error('Backend replacement failed; retaining the serving child', error)
+                this.active?.notify('replacement-failed')
                 this.reloadPending = true
                 if (!this.stopping) {
                     this.retry = setTimeout(() => {
@@ -124,7 +125,10 @@ export class BackendSupervisor {
             this.activePort = port
             for (const check of this.readinessWaiters) check()
             console.log('Backend ready; routing requests to port', port)
-            if (previous) await previous.stop(this.options.drainTimeoutMs ?? 30_000)
+            if (previous) {
+                previous.notify('superseded')
+                await previous.stop(this.options.drainTimeoutMs ?? 30_000)
+            }
         } catch (error) {
             this.starting = undefined
             await candidate.stop(0)

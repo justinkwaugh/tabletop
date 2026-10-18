@@ -1,6 +1,7 @@
 import {
     assertExists,
     generateSeed,
+    tournamentInPlay,
     type Tournament,
     type TournamentSchedule
 } from '@tabletop/common'
@@ -90,11 +91,7 @@ export class TournamentDispatcher {
                         undefined,
                         false,
                         (current) => {
-                            if (
-                                current.paused ||
-                                !['locked', 'inProgress'].includes(current.status)
-                            )
-                                return
+                            if (current.paused || !tournamentInPlay(current.status)) return
                             const currentStage = current.stages.find(
                                 (value) => value.id === schedule.stageId
                             )
@@ -118,12 +115,7 @@ export class TournamentDispatcher {
                 }
             }
             const claimed = tournament.stages.find((value) => value.id === stage.id)?.dispatch
-            if (
-                !claimed ||
-                tournament.paused ||
-                !['locked', 'inProgress'].includes(tournament.status)
-            )
-                return
+            if (!claimed || tournament.paused || !tournamentInPlay(tournament.status)) return
             for (const tableId of claimed.reserved)
                 await this.provision(tournament.id, stage.id, tableId)
             const latest = await this.store.read(tournament.id)

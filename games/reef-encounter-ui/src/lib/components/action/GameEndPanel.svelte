@@ -121,6 +121,14 @@
         color: var(--reef-ink);
     }
 
+    /* A narrow column would otherwise shrink the chip to a dot. */
+    .value :global(img) {
+        flex: none;
+        max-width: none;
+        width: 26px;
+        height: 26px;
+    }
+
     .place {
         display: inline-block;
         width: 1.2em;
@@ -158,6 +166,15 @@
 
         .count {
             display: none;
+        }
+
+        .value {
+            flex-direction: column;
+        }
+
+        .value :global(img) {
+            width: 22px;
+            height: 22px;
         }
     }
 </style>

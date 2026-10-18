@@ -5,7 +5,7 @@ import {
     NotificationEventType,
     type NotificationListener
 } from '@tabletop/frontend-components'
-import { listenForTournamentChanges } from './tournamentUpdates'
+import { everyCompetition, listenForCompetitionChanges } from './competitionUpdates'
 
 const tournament: Tournament = {
     id: 'event',
@@ -29,7 +29,7 @@ const tournament: Tournament = {
         scoring: 'splitWinsV1'
     }
 }
-const update = {
+const tournamentUpdate = {
     eventType: NotificationEventType.Data,
     channel: NotificationChannel.Global,
     notification: {
@@ -39,6 +39,16 @@ const update = {
         data: { tournamentId: tournament.id, revision: tournament.revision }
     }
 }
+const leagueUpdate = (leagueId: string) => ({
+    eventType: NotificationEventType.Data,
+    channel: NotificationChannel.Global,
+    notification: {
+        id: 'notification',
+        type: NotificationCategory.League,
+        action: 'update',
+        data: { leagueId }
+    }
+})
 function connection() {
     const listeners = new Set<NotificationListener>()
     return {
@@ -55,12 +65,14 @@ function connection() {
     }
 }
 
-describe('tournament realtime reconciliation', () => {
+describe('competition realtime reconciliation', () => {
     it('reconciles updates and reconnects, and unregisters when the page closes', async () => {
         const notifications = connection()
         const refresh = vi.fn(async () => undefined)
-        const stop = listenForTournamentChanges(notifications, refresh)
-        await notifications.emit(update)
+        const stop = listenForCompetitionChanges(notifications, refresh, {
+            tournament: everyCompetition
+        })
+        await notifications.emit(tournamentUpdate)
         await notifications.emit({
             eventType: NotificationEventType.Discontinuity,
             channel: NotificationChannel.Global
@@ -68,14 +80,16 @@ describe('tournament realtime reconciliation', () => {
         expect(refresh).toHaveBeenCalledTimes(2)
         stop()
         expect(notifications.listeners.size).toBe(0)
-        await notifications.emit(update)
+        await notifications.emit(tournamentUpdate)
         expect(refresh).toHaveBeenCalledTimes(2)
     })
     it('only refreshes a detail page for that tournament or a user/global reconnection', async () => {
         const notifications = connection()
         const refresh = vi.fn(async () => undefined)
-        listenForTournamentChanges(notifications, refresh, 'different-event')
-        await notifications.emit(update)
+        listenForCompetitionChanges(notifications, refresh, {
+            tournament: (tournamentId) => tournamentId === 'different-event'
+        })
+        await notifications.emit(tournamentUpdate)
         await notifications.emit({
             eventType: NotificationEventType.Discontinuity,
             channel: NotificationChannel.GameInstance
@@ -96,13 +110,47 @@ describe('tournament realtime reconciliation', () => {
         const refresh = vi.fn(async () => {
             await pending
         })
-        listenForTournamentChanges(notifications, refresh)
-        const first = notifications.emit(update)
-        await notifications.emit(update)
-        await notifications.emit(update)
+        listenForCompetitionChanges(notifications, refresh, { tournament: everyCompetition })
+        const first = notifications.emit(tournamentUpdate)
+        await notifications.emit(tournamentUpdate)
+        await notifications.emit(tournamentUpdate)
         expect(refresh).toHaveBeenCalledOnce()
         release()
         await first
         expect(refresh).toHaveBeenCalledTimes(2)
+    })
+    it('refreshes a league page for its League and its Groups only, once per reconnect', async () => {
+        const notifications = connection()
+        const refresh = vi.fn(async () => undefined)
+        listenForCompetitionChanges(notifications, refresh, {
+            league: (leagueId) => leagueId === 'league',
+            tournament: (tournamentId) => tournamentId === tournament.id
+        })
+        await notifications.emit(leagueUpdate('other'))
+        await notifications.emit({
+            ...tournamentUpdate,
+            notification: {
+                ...tournamentUpdate.notification,
+                data: { tournamentId: 'elsewhere', revision: 1 }
+            }
+        })
+        expect(refresh).not.toHaveBeenCalled()
+        await notifications.emit(leagueUpdate('league'))
+        await notifications.emit(tournamentUpdate)
+        expect(refresh).toHaveBeenCalledTimes(2)
+        await notifications.emit({
+            eventType: NotificationEventType.Discontinuity,
+            channel: NotificationChannel.Global
+        })
+        expect(refresh).toHaveBeenCalledTimes(3)
+    })
+    it('ignores a kind the page does not watch', async () => {
+        const notifications = connection()
+        const refresh = vi.fn(async () => undefined)
+        listenForCompetitionChanges(notifications, refresh, { league: everyCompetition })
+        await notifications.emit(tournamentUpdate)
+        expect(refresh).not.toHaveBeenCalled()
+        await notifications.emit(leagueUpdate('any'))
+        expect(refresh).toHaveBeenCalledOnce()
     })
 })

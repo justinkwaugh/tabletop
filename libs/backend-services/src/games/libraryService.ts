@@ -6,6 +6,7 @@ import type { SiteManifest } from '@tabletop/games-config'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
 import { STATIC_ROOT } from '../env/staticRoot.js'
+import { servedManifest } from './servedManifest.js'
 
 const DEFAULT_CACHE_KEY = 'site-manifest'
 
@@ -19,15 +20,9 @@ const GAMES_ROOT =
 const MANIFEST_PATH =
     process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
 
-type ManifestMismatchChanges = {
-    frontend: boolean
-    logic: boolean
-}
-
 export type ManifestMismatchInfo = {
     previous: SiteManifest
     next: SiteManifest
-    changes: ManifestMismatchChanges
 }
 
 export type ManifestMismatchListener = (info: ManifestMismatchInfo) => void
@@ -52,7 +47,7 @@ export class LibraryService {
     private manifestSignature?: string
     private manifestRefreshQueue: Promise<void> = Promise.resolve()
     private titlesById?: Record<string, GameDefinition>
-    private titlesSignature?: string
+    private loadedManifest?: SiteManifest
     private readonly mismatchListeners = new Set<ManifestMismatchListener>()
 
     constructor(
@@ -92,19 +87,16 @@ export class LibraryService {
     private async refreshManifestSnapshot(): Promise<SiteManifest> {
         const manifest = await this.loadManifest()
         const previous = this.manifestSnapshot
-        const signature = this.getManifestSignature(manifest)
-        const previousSignature = this.manifestSignature
-        const changes =
-            previous && previousSignature && previousSignature !== signature
-                ? this.getManifestChanges(previous, manifest)
-                : null
+        const signature = this.getLogicSignature(manifest)
+        const logicChanged =
+            this.manifestSignature !== undefined && this.manifestSignature !== signature
 
         this.manifestSnapshot = manifest
         this.manifestSignature = signature
 
-        if (previous && changes && (changes.frontend || changes.logic)) {
+        if (previous && logicChanged) {
             for (const listener of this.mismatchListeners) {
-                listener({ previous, next: manifest, changes })
+                listener({ previous, next: manifest })
             }
         }
 
@@ -118,28 +110,30 @@ export class LibraryService {
         return this.refreshManifest()
     }
 
+    async getServedManifest(): Promise<SiteManifest> {
+        if (!this.loadedManifest) {
+            throw new Error('Game titles have not been loaded; there is no served manifest')
+        }
+        return servedManifest(await this.getManifest(), this.loadedManifest)
+    }
+
     async getTitles(): Promise<GameDefinition[]> {
         const titles = await this.getTitlesMap()
         return Object.values(titles)
     }
 
+    // Logic cannot be unloaded from a process, so titles load once; a logic change is served by a
+    // replacement process instead.
     async getTitlesMap(): Promise<Record<string, GameDefinition>> {
+        if (this.titlesById) return this.titlesById
+
         const manifest = await this.getManifest()
-        const signature = this.getTitlesSignature(manifest)
-
-        if (this.titlesById && this.titlesSignature === signature) {
-            return this.titlesById
-        }
-
         const definitions = await this.loadDefinitions(manifest)
-        const byId = Object.fromEntries(
+        this.titlesById = Object.fromEntries(
             definitions.map((definition) => [definition.info.id, definition])
         )
-
-        this.titlesById = byId
-        this.titlesSignature = signature
-
-        return byId
+        this.loadedManifest = manifest
+        return this.titlesById
     }
 
     async getTitle(gameId: string): Promise<GameDefinition | undefined> {
@@ -270,44 +264,8 @@ export class LibraryService {
         throw unavailable
     }
 
-    private getManifestSignature(manifest: SiteManifest): string {
-        return JSON.stringify({
-            frontendVersion: manifest.frontend?.version ?? null,
-            logic: this.getLogicVersionEntries(manifest)
-        })
-    }
-
-    private getTitlesSignature(manifest: SiteManifest): string {
+    private getLogicSignature(manifest: SiteManifest): string {
         return JSON.stringify(this.getLogicVersionEntries(manifest))
-    }
-
-    private getManifestChanges(
-        previous: SiteManifest,
-        next: SiteManifest
-    ): ManifestMismatchChanges {
-        const frontend = (previous.frontend?.version ?? null) !== (next.frontend?.version ?? null)
-        const logic = !this.areLogicVersionsEqual(previous, next)
-
-        return { frontend, logic }
-    }
-
-    private areLogicVersionsEqual(previous: SiteManifest, next: SiteManifest): boolean {
-        const previousEntries = this.getLogicVersionEntries(previous)
-        const nextEntries = this.getLogicVersionEntries(next)
-
-        if (previousEntries.length !== nextEntries.length) {
-            return false
-        }
-
-        for (let index = 0; index < previousEntries.length; index += 1) {
-            const [prevId, prevVersion] = previousEntries[index]
-            const [nextId, nextVersion] = nextEntries[index]
-            if (prevId !== nextId || prevVersion !== nextVersion) {
-                return false
-            }
-        }
-
-        return true
     }
 
     private getLogicVersionEntries(

@@ -5,13 +5,13 @@ import {
     PlayerStatus,
     Role,
     type Game,
-    type GameDefinition,
     type User,
     UserStatus
 } from '@tabletop/common'
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import startGameRoute from './start.js'
+import { routeTestDefinition } from './tests/routeTestDefinition.js'
 
 const user: User = {
     id: 'user-1',
@@ -20,43 +20,7 @@ const user: User = {
     externalIds: []
 }
 
-const definition: GameDefinition = {
-    info: {
-        id: 'start-test',
-        metadata: {
-            name: 'Start Test',
-            designer: 'Test',
-            description: 'Tests starting a hosted game.',
-            year: '2026',
-            minPlayers: 1,
-            maxPlayers: 1,
-            defaultPlayerCount: 1,
-            version: '1.0.0',
-            beta: true
-        }
-    },
-    runtime: {
-        initializer: {
-            initializeGame() {
-                throw new Error('Unused by route test')
-            },
-            initializeGameState() {
-                throw new Error('Unused by route test')
-            }
-        },
-        hydrator: {
-            hydrateAction() {
-                throw new Error('Unused by route test')
-            },
-            hydrateState() {
-                throw new Error('Unused by route test')
-            }
-        },
-        playerColors: [],
-        apiActions: {},
-        stateHandlers: {}
-    }
-}
+const definition = routeTestDefinition('start-test', 'Tests starting a hosted game.')
 
 function createStartedGame(): Game {
     return {

@@ -1,30 +1,17 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { GameEndReason } from '@tabletop/reef-encounter'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    const state = $derived(gameSession.gameState)
-    const lastPlayerId = $derived(state.lastFinalTurnPlayerId())
-    const isLastTurn = $derived(state.turnPlayerId() === lastPlayerId)
+    const endingPlayerId = $derived(gameSession.gameState.endingPlayerId)
+    // The banner shows only in the final turns, when eating returns the larger number.
+    const returned = $derived(gameSession.gameState.polypsReturnedWhenEating())
 </script>
 
-{#if state.endingPlayerId && lastPlayerId}
+{#if endingPlayerId}
     <p role="status" class="banner">
-        {#if state.endReason === GameEndReason.AllTilesLocked}
-            <PlayerName playerId={state.endingPlayerId} /> locked the last coral tile.
-        {:else}
-            <PlayerName playerId={state.endingPlayerId} possessive /> parrotfish ate its fourth shrimp.
-        {/if}
-        {#if isLastTurn}
-            This is the last turn of the game.
-        {:else}
-            Every other player has one final turn; the game ends after
-            {#if lastPlayerId === gameSession.myPlayer?.id}your{:else}<PlayerName
-                    playerId={lastPlayerId}
-                    possessive
-                />{/if} turn.
-        {/if}
+        <PlayerName playerId={endingPlayerId} /> ended the game. Everyone else may eat a final coral,
+        {returned} polyps back to the bag.
     </p>
 {/if}
 
@@ -36,5 +23,11 @@
         background: var(--reef-accent);
         color: #1f2f2b;
         font-weight: 700;
+    }
+
+    @media (max-width: 639px) {
+        .banner {
+            font-size: 14px;
+        }
     }
 </style>

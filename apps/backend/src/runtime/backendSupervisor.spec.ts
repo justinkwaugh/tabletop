@@ -294,6 +294,24 @@ describe('supervised backend handoff', () => {
         await expectExited(old.pid)
     })
 
+    it('tells the old child it is superseded once its replacement is serving', async () => {
+        await start()
+        const old = await get()
+        const answer = await get('/reload-and-wait')
+        expect(answer).toEqual({ pid: old.pid, outcome: 'superseded' })
+        expect((await get()).pid).not.toBe(old.pid)
+        await expectExited(old.pid)
+    })
+
+    it('tells the serving child when its replacement fails', async () => {
+        await start()
+        const old = await get()
+        await writeFile(config, JSON.stringify({ fail: true }))
+        const answer = await get('/reload-and-wait')
+        expect(answer).toEqual({ pid: old.pid, outcome: 'replacement-failed' })
+        expect((await get()).pid).toBe(old.pid)
+    })
+
     it('bounds a stalled startup and leaves the existing backend serving', async () => {
         await start()
         const old = await get()

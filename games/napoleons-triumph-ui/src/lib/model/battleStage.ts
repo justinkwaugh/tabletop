@@ -26,6 +26,7 @@ import {
     type Attack,
     type CommandKind,
     type HydratedNapoleonsTriumphGameState,
+    type EndedAttack,
     type MoveOrder,
     type ThreatOrder,
     type ProjectedUnit,
@@ -970,7 +971,7 @@ export function knownToTheEnemy(units: readonly ProjectedUnit[]): SingledOut[] {
     }))
 }
 
-export function committedRoles(attack: VisibleAttack): Record<string, BattleRole> {
+export function committedRoles(attack: EndedAttack): Record<string, BattleRole> {
     return {
         ...Object.fromEntries(attack.attackingUnitIds.map((id) => [id, BattleRole.Attacks])),
         ...Object.fromEntries(attack.defendingUnitIds.map((id) => [id, BattleRole.Defends])),
@@ -984,7 +985,7 @@ export function committedRoles(attack: VisibleAttack): Record<string, BattleRole
 
 /** The roles as they stood in the defence, for listing the defenders apart from the counter-attack some of them then made. */
 export function rolesBeforeTheCounterAttack(
-    attack: VisibleAttack,
+    attack: EndedAttack,
     roles: Record<string, BattleRole>
 ): Record<string, BattleRole> {
     const defended = (id: string) =>
@@ -1014,4 +1015,39 @@ export function battleLocalesOf(state: HydratedNapoleonsTriumphGameState): numbe
     return attack
         ? [map.approach(attack.attackApproach).locale, map.approach(attack.defenseApproach).locale]
         : []
+}
+
+export interface AttackResults {
+    initial?: number
+    final?: number
+}
+
+/** The results of the attack as they stand, with those still being decided in the step now open. */
+export function resultsSoFar(attack: EndedAttack, stage: BattleStage | undefined): AttackResults {
+    if (attack.feint) {
+        return {}
+    }
+    if (stage?.kind === StageKind.Declaration) {
+        return stage.problem ? {} : { initial: stage.initialResult }
+    }
+    if (stage?.kind === StageKind.Counter) {
+        return {
+            initial: attack.initialResult,
+            final: stage.problem ? undefined : stage.finalResult
+        }
+    }
+    return { initial: attack.initialResult, final: attack.finalResult }
+}
+
+/** The panel folds a step down to its prompt and buttons only where its choices can be made on the map. */
+export function foldsAway(stage: BattleStage | undefined): boolean {
+    switch (stage?.kind) {
+        case StageKind.Retreat:
+        case StageKind.ExcessLosses:
+        case StageKind.Regroup:
+        case StageKind.Advance:
+            return false
+        default:
+            return true
+    }
 }

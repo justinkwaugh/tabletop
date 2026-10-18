@@ -1,8 +1,28 @@
-import type { Tournament } from '@tabletop/common'
+import { tournamentCapacity, type Tournament } from '@tabletop/common'
 import { startCountdownText } from './startCountdown'
 
 export function tournamentFormatText(format: Tournament['format']): string {
     return format.kind === 'mini' ? 'Mini tournament' : 'Multi-stage tournament'
+}
+
+export function tournamentRosterText(tournament: Pick<Tournament, 'entrants' | 'rules'>): string {
+    const capacity = tournamentCapacity(tournament.rules.registration)
+    return capacity
+        ? `${tournament.entrants.length} / ${capacity}`
+        : String(tournament.entrants.length)
+}
+
+export function tournamentTag(tournament: Pick<Tournament, 'format' | 'league'>): string {
+    if (tournament.league) return 'League'
+    return tournament.format.kind === 'mini' ? 'Mini' : 'Multi-stage'
+}
+
+export function tournamentTagTitle(tournament: Pick<Tournament, 'format' | 'league'>): string {
+    return tournament.league ? 'League group' : tournamentFormatText(tournament.format)
+}
+
+export function tournamentLeagueHref(league: NonNullable<Tournament['league']>): string {
+    return `/leagues/${encodeURIComponent(league.leagueId)}?season=${league.seasonId}`
 }
 
 export function tournamentRegistrationOpen(tournament: Tournament, now = Date.now()): boolean {
@@ -17,6 +37,7 @@ export function tournamentRegistrationOpen(tournament: Tournament, now = Date.no
 export function tournamentRegistrationText(tournament: Tournament, now = Date.now()): string {
     if (tournament.startsAt !== undefined) return 'Registration closes when the tournament starts.'
     const policy = tournament.rules.registration
+    if (policy.kind === 'assigned') return 'Players are assigned by the league.'
     return policy.kind === 'whenFull'
         ? `Starts when ${policy.capacity} players have joined`
         : `Registration ${now < policy.closesAt ? 'closes' : 'closed'} ${new Date(

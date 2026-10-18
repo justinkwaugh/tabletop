@@ -269,9 +269,9 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Preferences combine concepts owned by other contexts
 
 - **Classification**: Model contradiction; planned boundary change
-- **Observed**: One Account preferences object contains browser-notification prompting, Game Client color preference, and Game Client accessibility palette. It is replaced as a whole. The client redundantly submits `userId`, which Fastify strips before the authenticated route uses the session identity.
-- **Evidence**: `libs/common/src/site/user.ts:25`; `apps/backend/src/app/routes/api/user/updatePreferences.ts:5`; `apps/frontend/src/lib/services/notificationService.svelte.ts:163`; `libs/frontend-components/src/lib/model/gameColors.svelte.ts:185`; `libs/frontend-components/src/lib/network/tabletopApi.svelte.ts:201`
-- **Invariant**: Notification Delivery owns the web-notification prompt preference. Game Client owns preferred Player colors and accessibility palette. Identity and Access may physically store or serve these values without owning their meaning. Each owning context validates and updates its own preferences rather than replacing one cross-context `UserPreferences` object.
+- **Observed**: One Account preferences object contains browser-notification prompting, Game Client color preference, Game Client accessibility palette, and turn Reminder Hours. It is replaced as a whole; the site frontend saves every preference change through one shared editor, which sends the session's current preferences with its pending changes, so the Preferences window and the reminder grid do not overwrite each other. The client redundantly submits `userId`, which Fastify strips before the authenticated route uses the session identity.
+- **Evidence**: `libs/common/src/site/user.ts:57`; `apps/backend/src/app/routes/api/user/updatePreferences.ts:5`; `apps/frontend/src/lib/services/notificationService.svelte.ts:163`; `libs/frontend-components/src/lib/model/gameColors.svelte.ts:185`; `libs/frontend-components/src/lib/network/tabletopApi.svelte.ts:201`
+- **Invariant**: Notification Delivery owns the web-notification prompt preference. Game Client owns preferred Player colors and accessibility palette. The turn-reminder workflow owns Reminder Hours. Identity and Access may physically store or serve these values without owning their meaning. Each owning context validates and updates its own preferences rather than replacing one cross-context `UserPreferences` object.
 
 ### Sessions have fixed expiry but no revocation mechanism
 
@@ -459,8 +459,8 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Attention delivery preferences are transport-registration-level
 
 - **Classification**: Current behavior aligned with intended initial scope
-- **Observed**: Browser permission and Topic Registration opt into Web Push. The sole stored preference suppresses the application's permission prompt but does not unsubscribe or filter notice types. Every compatible transport registration receives every applicable Attention Notice, with no per-purpose filters or quiet hours.
-- **Evidence**: `apps/frontend/src/lib/services/notificationService.svelte.ts:163`; `libs/common/src/site/user.ts:25`
+- **Observed**: Browser permission and Topic Registration opt into Web Push. The web-prompt preference suppresses the application's permission prompt but does not unsubscribe or filter notice types. Every compatible transport registration receives every applicable Attention Notice, with no per-purpose filters or quiet hours. Reminder Hours are applied by the turn-reminder workflow when it schedules a reminder, not by delivery: from the four-hour reminder on, a reminder due outside the User's selected local hours, in the Account's stored time zone, is scheduled for the start of the next selected hour.
+- **Evidence**: `apps/frontend/src/lib/services/notificationService.svelte.ts:163`; `libs/common/src/site/user.ts:57`; `libs/backend-services/src/games/turnReminders.ts:53`; `libs/backend-services/src/games/reminderHours.ts:18`
 - **Invariant**: Realtime Updates are synchronization traffic rather than optional Attention Notices. Attention delivery is opt-in through a compatible Topic Registration; initially, a registered Attention Transport receives every applicable Attention Notice without per-purpose filters or quiet hours. The web-prompt preference only suppresses permission prompting. System Notices use Attention Transports and remain best effort.
 
 ### Attention rendering spans source and transport code

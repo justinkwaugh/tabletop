@@ -16,7 +16,7 @@ export const NapoleonsTriumphInfo: GameInfo = {
         defaultPlayerCount: 2,
         version: GAME_VERSION,
         beta: true,
-        visibility: GameVisibility.Alpha
+        visibility: GameVisibility.Beta
     },
     configurator: new NapoleonsTriumphConfigurator(),
     preferences: NapoleonsTriumphPreferenceDefinition

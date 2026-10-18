@@ -19,6 +19,7 @@ import {
 } from './lib/backendPublish.js'
 import { listBackendHistory, switchBackend } from './lib/backendHistory.js'
 import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
+import { syncHostingToManifest } from './lib/hostingPublish.js'
 import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.js'
 import { listHistory, rollback, switchFrontend, switchGame } from './lib/publicationHistory.js'
 import { DEFAULT_GRACE_DAYS, prune, pruneAfterDeploy, type PruneScope } from './lib/prune.js'
@@ -78,6 +79,9 @@ Commands:
                                Bump the frontend package version, sync the manifest, commit,
                                tag frontend-v<version>, push, then deploy (unless --no-deploy).
   build-frontend               Build the frontend
+  sync-hosting                 Put the manifest's frontend version on the Firebase Hosting channel
+                               (hosting.channel): stage it from the bucket, copy it to the channel,
+                               and check the channel serves it. For going live and for recovery.
   deploy-frontend [--no-prune]  Build and deploy the frontend at HEAD, publish the manifest, and
                                invalidate the backend cache. Same guards as deploy-game.
   release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--service=backend|tasks]
@@ -106,6 +110,8 @@ Environment:
   TABLETOP_BACKEND_REGION       Cloud Run region
   GCLOUD_PROJECT                GCP project
   TABLETOP_BACKEND_MANIFEST_URL Backend /manifest URL
+  TABLETOP_HOSTING_CHANNEL      Firebase Hosting channel the frontend is published to (live);
+                                unset leaves the site files to the backend
   TABLETOP_BACKEND_ADMIN_URL    Backend admin invalidate URL
   TABLETOP_BACKEND_ADMIN_USER   Backend admin username
   TABLETOP_BACKEND_ADMIN_PASSWORD Backend admin password
@@ -387,6 +393,11 @@ const main = async () => {
         const gameId = requirePositionalGame(command, positionals[1])
         await deployGameArtifacts(context, gameId, ['logic'])
         await pruneAfter({ game: gameId })
+        return
+    }
+
+    if (command === 'sync-hosting') {
+        await syncHostingToManifest(context)
         return
     }
 

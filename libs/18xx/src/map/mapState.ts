@@ -4,7 +4,7 @@ import type { RailwayMap } from './map.js'
 import type { StationState } from './station.js'
 import { TileInventory, type TilePlacement, type TileSet } from '../tiles/inventory.js'
 import type { TileEdge, TileFace, TileRotation } from '../tiles/tile.js'
-import { rotateTileEdge, rotateTileFace, tilePathsAtEndpoint } from '../tiles/topology.js'
+import { rotateTileFace, tilePathsAtEndpoint } from '../tiles/topology.js'
 
 export const MapFields = { tileInventory: TileInventory }
 export type MapStateData = StationState & LocationMarkerState & { tileInventory: TileInventory }
@@ -61,20 +61,9 @@ export class RailwayMapState {
         )
         const connections: MapTrackConnection[] = []
         for (const edge of edges) {
-            const neighbor = this.map.neighbor(locationId, edge)
-            if (!neighbor) continue
-            const neighborEdge = rotateTileEdge(edge, 3)
-            if (
-                this.map
-                    .location(locationId)
-                    .borders?.some(
-                        (border) => border.edge === edge && border.kind === 'impassable'
-                    ) ||
-                neighbor.borders?.some(
-                    (border) => border.edge === neighborEdge && border.kind === 'impassable'
-                )
-            )
-                continue
+            const crossing = this.map.across(locationId, edge)
+            if (!crossing) continue
+            const { location: neighbor, edge: neighborEdge } = crossing
             const adjacent = this.tile(neighbor.id)
             if (
                 tilePathsAtEndpoint(rotateTileFace(adjacent.face, adjacent.rotation), {

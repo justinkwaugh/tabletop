@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { Color, Role, UserStatus, type User, type UserPreferences } from '@tabletop/common'
 import { UserPreferencesEditor } from './userPreferencesEditor.svelte.js'
 
@@ -24,15 +24,30 @@ function fixture() {
             return result.promise
         })
     }
-    const onSaved = vi.fn()
+    const session = { user }
+    const onSaved = vi.fn((saved: User) => {
+        session.user = saved
+    })
     const onFailed = vi.fn()
-    const editor = new UserPreferencesEditor(user, api, onSaved, onFailed)
-    return { editor, requests, onSaved, onFailed }
+    const editor = new UserPreferencesEditor(() => session.user, api, onSaved, onFailed)
+    return { editor, requests, session, onSaved, onFailed }
 }
 
-it('saves each change immediately', async () => {
+beforeEach(() => {
+    vi.useFakeTimers()
+})
+
+afterEach(() => {
+    vi.useRealTimers()
+})
+
+it('saves a change after a short pause', async () => {
     const { editor, requests, onSaved } = fixture()
     editor.update({ colorBlindPalette: true })
+    vi.advanceTimersByTime(499)
+    expect(requests).toEqual([])
+
+    vi.advanceTimersByTime(1)
     expect(requests.map((request) => request.preferences)).toEqual([
         { ...preferences, colorBlindPalette: true }
     ])
@@ -41,11 +56,24 @@ it('saves each change immediately', async () => {
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(saved))
 })
 
+it('combines changes made during the pause into one save', () => {
+    const { editor, requests } = fixture()
+    editor.update({ colorBlindPalette: true })
+    vi.advanceTimersByTime(300)
+    editor.update({ preferredColorsEnabled: true })
+    vi.advanceTimersByTime(500)
+    expect(requests.map((request) => request.preferences)).toEqual([
+        { ...preferences, colorBlindPalette: true, preferredColorsEnabled: true }
+    ])
+})
+
 it('sends only the latest preferences after the in-flight save completes', async () => {
     const { editor, requests } = fixture()
     editor.update({ colorBlindPalette: true })
+    vi.advanceTimersByTime(500)
     editor.update({ preferredColorsEnabled: true })
     editor.update({ preventWebNotificationPrompt: true })
+    vi.advanceTimersByTime(500)
     expect(requests).toHaveLength(1)
 
     requests[0].result.resolve(user)
@@ -61,7 +89,8 @@ it('sends only the latest preferences after the in-flight save completes', async
 it('reverts to the last saved preferences and reports a failed save', async () => {
     const { editor, requests, onFailed } = fixture()
     editor.update({ colorBlindPalette: true })
-    requests[0].result.resolve(user)
+    vi.advanceTimersByTime(500)
+    requests[0].result.resolve({ ...user, preferences: requests[0].preferences })
     await vi.waitFor(() => expect(editor.values.colorBlindPalette).toBe(true))
 
     editor.update({ preferredColorsEnabled: true })
@@ -70,4 +99,28 @@ it('reverts to the last saved preferences and reports a failed save', async () =
 
     await vi.waitFor(() => expect(onFailed).toHaveBeenCalledOnce())
     expect(editor.values).toEqual({ ...preferences, colorBlindPalette: true })
+})
+
+it('keeps preferences another editor saved in the meantime', () => {
+    const { editor, requests, session } = fixture()
+    session.user = { ...user, preferences: { ...preferences, preferredColorsEnabled: true } }
+    editor.update({ colorBlindPalette: true })
+    vi.advanceTimersByTime(500)
+    expect(requests[0].preferences).toEqual({
+        ...preferences,
+        preferredColorsEnabled: true,
+        colorBlindPalette: true
+    })
+})
+
+it('leaves the saved colour order alone when reordering fails', async () => {
+    const { editor, requests, session, onFailed } = fixture()
+    editor.update({ preferredColors: [Color.Blue, Color.Red] })
+    expect(editor.values.preferredColors).toEqual([Color.Blue, Color.Red])
+    vi.advanceTimersByTime(500)
+    requests[0].result.reject(new Error('offline'))
+
+    await vi.waitFor(() => expect(onFailed).toHaveBeenCalledOnce())
+    expect(session.user.preferences?.preferredColors).toEqual([Color.Red, Color.Blue])
+    expect(editor.values.preferredColors).toEqual([Color.Red, Color.Blue])
 })

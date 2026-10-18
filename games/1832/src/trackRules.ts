@@ -28,14 +28,12 @@ const stopCount = (face: TileFace, kind: 'city' | 'town') =>
     face.nodes.filter((node) => node.kind === kind).length
 
 /**
- * From phase 3 a medium city's yellow town tile may become a yellow city tile, the upgrade of
+ * A medium city's yellow town tile may become a yellow city tile from phase 3, the upgrade of
  * that turn (§4.2.1, §6.4.2).
  */
-function promotesMediumCity(state: ConstructionState, locationId: string, after: TileFace) {
-    if (!MediumCityLocationIds.includes(locationId)) return false
-    const before = currentTileFace(state, locationId)
+function promotesMediumCity(locationId: string, before: TileFace, after: TileFace) {
     return (
-        EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '3') &&
+        MediumCityLocationIds.includes(locationId) &&
         before.color === 'yellow' &&
         stopCount(before, 'town') === 1 &&
         stopCount(before, 'city') === 0 &&
@@ -154,6 +152,11 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
         assertExists(definition, 'A track request names a tile of the set')
         if (request.locationId === Tampa && definition.face.color === 'brown')
             return 'Tampa has no brown upgrade'
+        if (
+            definition.face.color === currentTileFace(state, request.locationId).color &&
+            !EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '3')
+        )
+            return 'A medium city becomes a city from phase 3'
         return undefined
     }
 }

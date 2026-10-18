@@ -402,7 +402,11 @@ function repulse(state: HydratedNapoleonsTriumphGameState, attack: AttackState) 
 function completeAttack(state: HydratedNapoleonsTriumphGameState): boolean {
     const attack = currentAttack(state)
     if (attack.artilleryLed) {
-        state.artilleryFire[String(attack.attackApproach)] = state.round
+        const attacker = state.getPlayerState(attack.attackerId)
+        attacker.artilleryFire = {
+            ...attacker.artilleryFire,
+            [String(attack.attackApproach)]: state.round
+        }
         if (!state.limits.bombardedApproaches.includes(attack.attackApproach)) {
             state.limits.bombardedApproaches.push(attack.attackApproach)
         }

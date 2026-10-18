@@ -51,6 +51,22 @@ The frontend follows the same model with `release-frontend (--major | --minor | 
 `apps/frontend/package.json`, tags `frontend-v<version>`, and the deploy uploads the build to
 `frontend/<version>` in the bucket before publishing the manifest.
 
+Firebase Hosting serves the site files, so a frontend deploy, `rollback --frontend` and
+`switch --frontend` need `hosting.channel` in the deploy config (or `TABLETOP_HOSTING_CHANNEL`;
+production uses `"hosting": { "channel": "live" }`) and backend 1.23.0 or later, and refuse to
+start without them. They back up the manifest, copy `frontend/<version>` from the bucket to a
+Hosting staging channel, `frontend-<version>` (expiring after a day), copy that release to the
+configured channel, check the channel serves the build, and only then publish the manifest and
+invalidate the backend cache. The backend reports the manifest's frontend version on its next
+request, so the site files and the reported version switch seconds apart; Hosting goes first
+because a client whose code is newer than the reported version reloads. A failure after the
+copy prints which versions Hosting and the manifest name and how to recover. Routing and
+headers come from `apps/frontend/firebase.json`, whose `hosting.site` names the site; the
+project is `backend.project`. `sync-hosting` puts the manifest's current frontend version on
+the channel and invalidates the backend cache without changing the manifest, for going live and
+for recovering from a failed switch, and `preflight --frontend` reports whether the channel
+serves the manifest's version. The deploy service account needs `roles/firebasehosting.admin`.
+
 The backend follows the same model with `release-backend (--major | --minor | --patch)
 [--no-deploy] [--no-traffic] [--service=backend|tasks]` and `deploy-backend`. The release bumps
 `apps/backend/package.json` and tags `backend-v<version>`. The deploy builds the backend,
@@ -174,6 +190,7 @@ release-frontend (--major | --minor | --patch) [--no-deploy]
                              Bump the frontend version, commit, tag, push, then deploy
 build-frontend               Build the frontend
 deploy-frontend              Build and deploy a tagged frontend HEAD, with the same guards
+sync-hosting                 Put the manifest's frontend version on the Hosting channel
 release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--service=backend|tasks]
                              Bump the backend version, commit, tag, push, then deploy
 build-backend                Build the backend
@@ -294,6 +311,7 @@ Environment overrides:
 - `TABLETOP_GCS_BUCKET`
 - `TABLETOP_GCLOUD_CREDENTIAL_FILE`
 - `TABLETOP_BACKEND_MANIFEST_URL` (or `TABLETOP_MANIFEST_URL`)
+- `TABLETOP_HOSTING_CHANNEL`
 - `TABLETOP_BACKEND_ADMIN_URL`
 - `TABLETOP_BACKEND_ADMIN_USER`
 - `TABLETOP_BACKEND_ADMIN_PASSWORD`
