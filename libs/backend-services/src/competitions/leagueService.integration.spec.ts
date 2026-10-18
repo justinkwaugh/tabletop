@@ -29,6 +29,7 @@ import { SyntheticDefinition, SyntheticRuntime } from '../games/tests/syntheticG
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
 import { TournamentService } from './tournamentService.js'
 import { LeagueService } from './leagueService.js'
+import { DERIVED_ID_LENGTH } from './derivedId.js'
 
 const sevens: LeagueGroupSizes = { groupSize: 7, bottomMinimum: 5, bottomMaximum: 11 }
 
@@ -275,6 +276,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     .map((user) => user.id)
                     .sort()
             )
+            for (const group of seeding.groups)
+                expect(group.tournamentId).toHaveLength(DERIVED_ID_LENGTH)
             expect((await tournamentStore.read(seeding.groups[0].tournamentId))?.league).toEqual({
                 leagueId: id,
                 leagueName: 'Synthetic League',

@@ -146,8 +146,12 @@ export class FirestoreGameStore implements GameStore {
             return await this.writeGame(game.id, cacheKeys, async (locks) =>
                 this.runTransaction(async (transaction) => {
                     if (game.tournament) {
+                        const tournament = await this.readTournament(
+                            transaction,
+                            game.tournament.tournamentId
+                        )
                         assert(
-                            game.id === tournamentGameId(game.tournament),
+                            game.id === tournamentGameId(tournament, game.tournament),
                             'Tournament game identity does not match its table'
                         )
                         const existing = (
@@ -158,10 +162,6 @@ export class FirestoreGameStore implements GameStore {
                                 Value.Equal(existing.tournament, game.tournament),
                                 'Game identity belongs to a different tournament table'
                             )
-                            const tournament = await this.readTournament(
-                                transaction,
-                                game.tournament.tournamentId
-                            )
                             await this.recordTournamentGame(
                                 transaction,
                                 locks,
@@ -171,7 +171,7 @@ export class FirestoreGameStore implements GameStore {
                             )
                             return existing
                         }
-                        const tournament = await this.validateTournamentGame(transaction, game)
+                        await this.validateTournamentGame(transaction, game, tournament)
                         assertExists(state, 'Tournament game must be initialized before creation')
                         assert(
                             game.status === GameStatus.Started && state.gameId === game.id,
@@ -249,10 +249,13 @@ export class FirestoreGameStore implements GameStore {
         })
     }
 
-    private async validateTournamentGame(transaction: Transaction, game: Game) {
+    private async validateTournamentGame(
+        transaction: Transaction,
+        game: Game,
+        tournament: Tournament
+    ) {
         const reference = game.tournament
         assertExists(reference, 'Tournament reference is required')
-        const tournament = await this.readTournament(transaction, reference.tournamentId)
         const stage = tournament.stages.find((stage) => stage.id === reference.stageId)
         if (
             (tournament.status !== 'locked' && tournament.status !== 'inProgress') ||
@@ -323,7 +326,6 @@ export class FirestoreGameStore implements GameStore {
             throw new TournamentGameError(
                 'All assigned tournament players must have active accounts.'
             )
-        return tournament
     }
 
     async getMasterSeed(gameId: string): Promise<string | undefined> {
