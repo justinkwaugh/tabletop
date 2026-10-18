@@ -30,6 +30,7 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
         player.remoteRepairUsed = false
         player.fieldsDeveloped = []
         player.operations = []
+        player.breakthroughs = []
     }
     return { income, arrivedShipIds }
 }

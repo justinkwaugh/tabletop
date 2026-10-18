@@ -9,6 +9,7 @@ import {
     EarnedMarkers,
     Operation,
     PendingAnomalyAttempt,
+    PendingEventAttempt,
     PendingSurvey,
     ShipTerraform
 } from './pieces.js'
@@ -49,6 +50,8 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             influence: Type.Number(),
             operations: Type.Array(Operation),
             shipTerraforms: Type.Array(ShipTerraform),
+            eventAttempts: Type.Array(PendingEventAttempt),
+            breakthroughs: Type.Array(Type.Enum(TechField)),
             explorationMarkers: Type.Number(),
             initiativeBid: Type.Optional(Type.Number())
         })
@@ -77,6 +80,8 @@ export class HydratedStellarHorizonsPlayerState
     declare influence: number
     declare operations: Operation[]
     declare shipTerraforms: ShipTerraform[]
+    declare eventAttempts: PendingEventAttempt[]
+    declare breakthroughs: TechField[]
     declare explorationMarkers: number
     declare initiativeBid?: number
 

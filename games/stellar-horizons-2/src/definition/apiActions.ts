@@ -24,6 +24,11 @@ import { StartPhase } from '../actions/startPhase.js'
 import { StartTurn } from '../actions/startTurn.js'
 import { Terraform } from '../actions/terraform.js'
 import { TransferCargo } from '../actions/transferCargo.js'
+import { DrawEvent } from '../actions/drawEvent.js'
+import { PlaceEvent } from '../actions/placeEvent.js'
+import { PlaceHomesteaders } from '../actions/placeHomesteaders.js'
+import { AttemptEvent } from '../actions/attemptEvent.js'
+import { ResolveEvent } from '../actions/resolveEvent.js'
 import { TerraformWithShip } from '../actions/terraformWithShip.js'
 import { ResolveShipTerraform } from '../actions/resolveShipTerraform.js'
 import { Mine } from '../actions/mine.js'
@@ -78,5 +83,10 @@ export const StellarHorizonsApiActions = {
     [ActionType.SettleSyndicateTakes]: SettleSyndicateTakes,
     [ActionType.TerraformWithShip]: TerraformWithShip,
     [ActionType.ResolveShipTerraform]: ResolveShipTerraform,
+    [ActionType.DrawEvent]: DrawEvent,
+    [ActionType.PlaceEvent]: PlaceEvent,
+    [ActionType.PlaceHomesteaders]: PlaceHomesteaders,
+    [ActionType.AttemptEvent]: AttemptEvent,
+    [ActionType.ResolveEvent]: ResolveEvent,
     [ActionType.EndTurn]: EndTurn
 }

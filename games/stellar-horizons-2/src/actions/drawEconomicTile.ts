@@ -5,6 +5,7 @@ import { EconomicTile } from '../components/economicTiles.js'
 import { ActionType } from '../definition/actions.js'
 import { EarthProduction, produceAtEarth } from '../model/campaign.js'
 import { drawEconomicTile } from '../model/economy.js'
+import { extraEarthMarkers } from '../model/events.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
 export type EarthProductionRecord = Type.Static<typeof EarthProductionRecord>
@@ -53,9 +54,10 @@ export class HydratedDrawEconomicTile
         const tile = drawEconomicTile(state)
         const earthProduction =
             tile === EconomicTile.EarthProduction
-                ? state
-                      .initiativeOrder()
-                      .map((playerId) => ({ playerId, ...produceAtEarth(state, playerId) }))
+                ? state.initiativeOrder().map((playerId) => ({
+                      playerId,
+                      ...produceAtEarth(state, playerId, extraEarthMarkers(state))
+                  }))
                 : []
         this.metadata = { tile, earthProduction }
     }

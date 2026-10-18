@@ -4,6 +4,7 @@ import { canTransferAnyCargo } from './cargoTransfer.js'
 import { canDevelopAnyTech } from './development.js'
 import { canExploreAnyShip } from './exploration.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import { attemptableEventIds } from './events.js'
 import { canMoveAnyShip } from './movement.js'
 import { canOperateAnyShip } from './operations.js'
 import { OperationKind } from './pieces.js'
@@ -32,6 +33,7 @@ export function isIdleInPhase(
             return (
                 !canExploreAnyShip(state, playerId) &&
                 attemptableSystemIds(state, playerId).length === 0 &&
+                attemptableEventIds(state, playerId).length === 0 &&
                 !canOperateAnyShip(state, playerId, OperationKind.Mining) &&
                 !canOperateAnyShip(state, playerId, OperationKind.Research) &&
                 !state
@@ -53,6 +55,7 @@ function hasExploredThisDecade(state: HydratedStellarHorizonsGameState, playerId
         player.earnedMarkers.length > 0 ||
         player.anomalyAttempts.length > 0 ||
         player.operations.length > 0 ||
-        player.shipTerraforms.length > 0
+        player.shipTerraforms.length > 0 ||
+        player.eventAttempts.length > 0
     )
 }

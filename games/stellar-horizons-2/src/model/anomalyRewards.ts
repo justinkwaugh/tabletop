@@ -1,9 +1,5 @@
 import * as Type from 'typebox'
-import {
-    AnomalyBackKind,
-    anomalyDefinition,
-    type AnomalyReward
-} from '../components/anomalies.js'
+import { AnomalyBackKind, anomalyDefinition, type AnomalyReward } from '../components/anomalies.js'
 import { STAR_MAP } from '../components/starMap.js'
 import { SOL_SYSTEM_ID, starSystemDefinition } from '../components/systems.js'
 import { WorldSide } from '../components/worlds.js'

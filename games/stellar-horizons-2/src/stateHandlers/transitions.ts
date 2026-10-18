@@ -4,6 +4,7 @@ import { MachineState } from '../definition/states.js'
 import { anyAnomalyAttempts } from '../model/anomalies.js'
 import { isCampaign } from '../model/campaign.js'
 import { converters } from '../model/economy.js'
+import { anyEventAttempts } from '../model/events.js'
 import { pendingSyndicateTakes } from '../model/operations.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { playersWithEarnedMarkers } from '../model/settlement.js'
@@ -38,6 +39,8 @@ export function stateForEconomicTile(
             return branchingState(TurnPhase.Initiative)
         case EconomicTile.BaseProduction:
             return branchingState(TurnPhase.BaseProduction)
+        case EconomicTile.DrawEvent:
+            return MachineState.DrawingEvent
         case EconomicTile.SettlementGrowth:
             return MachineState.GrowingSettlements
         case EconomicTile.Terraforming:
@@ -49,6 +52,16 @@ export function stateForEconomicTile(
         default:
             return stateAfterEconomicPhase(state)
     }
+}
+
+// After an event is drawn: its challenge is placed, then Homesteaders' bases are chosen.
+export function stateAfterEventDraw(state: HydratedStellarHorizonsGameState): MachineState {
+    if (state.eventPlacement) {
+        return MachineState.PlacingEvent
+    }
+    return state.homesteaders.length > 0
+        ? MachineState.PlacingHomesteaders
+        : stateAfterEconomicPhase(state)
 }
 
 export function stateAfterEconomicPhase(state: HydratedStellarHorizonsGameState): MachineState {
@@ -101,6 +114,10 @@ export function stateAfterAnomaly(state: HydratedStellarHorizonsGameState): Mach
 }
 
 export function stateAfterAnomalies(state: HydratedStellarHorizonsGameState): MachineState {
+    return anyEventAttempts(state) ? MachineState.ResolvingEvents : stateAfterEvents(state)
+}
+
+export function stateAfterEvents(state: HydratedStellarHorizonsGameState): MachineState {
     return anyPendingSurveys(state) ? MachineState.ResolvingSurveys : stateAfterSurveys(state)
 }
 

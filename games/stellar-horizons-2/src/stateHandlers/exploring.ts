@@ -1,6 +1,8 @@
 import type { HydratedAction } from '@tabletop/common'
 import { HydratedAttemptAnomaly, isAttemptAnomaly } from '../actions/attemptAnomaly.js'
+import { HydratedAttemptEvent, isAttemptEvent } from '../actions/attemptEvent.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
+import { attemptableEventIds } from '../model/events.js'
 import { HydratedMine, isMine } from '../actions/mine.js'
 import { HydratedResearch, isResearch } from '../actions/research.js'
 import { HydratedTerraformWithShip, isTerraformWithShip } from '../actions/terraformWithShip.js'
@@ -20,6 +22,7 @@ type ExploringAction =
     | HydratedMine
     | HydratedResearch
     | HydratedTerraformWithShip
+    | HydratedAttemptEvent
 
 export class ExploringStateHandler extends PlayStateHandler<ExploringAction> {
     protected readonly phase = TurnPhase.Exploration
@@ -30,7 +33,8 @@ export class ExploringStateHandler extends PlayStateHandler<ExploringAction> {
             isAttemptAnomaly(action) ||
             isMine(action) ||
             isResearch(action) ||
-            isTerraformWithShip(action)
+            isTerraformWithShip(action) ||
+            isAttemptEvent(action)
         )
     }
 
@@ -38,6 +42,7 @@ export class ExploringStateHandler extends PlayStateHandler<ExploringAction> {
         const available: [ActionType, boolean][] = [
             [ActionType.Explore, canExploreAnyShip(state, playerId)],
             [ActionType.AttemptAnomaly, attemptableSystemIds(state, playerId).length > 0],
+            [ActionType.AttemptEvent, attemptableEventIds(state, playerId).length > 0],
             [ActionType.Mine, canOperateAnyShip(state, playerId, OperationKind.Mining)],
             [ActionType.Research, canOperateAnyShip(state, playerId, OperationKind.Research)],
             [

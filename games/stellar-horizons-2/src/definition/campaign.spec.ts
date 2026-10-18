@@ -20,7 +20,9 @@ import {
 } from '../model/economy.js'
 import { capabilitiesOf } from '../model/fleet.js'
 import { isWithinRange } from '../model/movement.js'
+import { eventPlacementSystems } from '../model/events.js'
 import { campaignScore, endRollChance, galacticRank } from '../model/scoring.js'
+import { rewardPlacementSystems } from '../model/settlementRewards.js'
 import { resolveNextSurvey } from '../model/surveys.js'
 import { terraformTargets, terraformingQueue } from '../model/terraforming.js'
 import { WorldClass, WorldSide, worldTile } from '../components/worlds.js'
@@ -86,6 +88,24 @@ function step(game: Game, state: StellarHorizonsProjectedState): Played {
             return run(ActionType.PassConversion)
         case MachineState.Terraforming:
             return run(ActionType.PassTerraform)
+        case MachineState.PlacingEvent: {
+            const [systemId] = eventPlacementSystems(hydrate(state), playerId)
+            return run(ActionType.PlaceEvent, { systemId })
+        }
+        case MachineState.PlacingHomesteaders: {
+            const [base] = hydrate(state).basesOf(playerId)
+            return run(ActionType.PlaceHomesteaders, { systemId: base.systemId })
+        }
+        case MachineState.PlacingRewardSettlements: {
+            const hydrated = hydrate(state)
+            const [systemId] = rewardPlacementSystems(hydrated)
+            const settlements = hydrated.settlementReward?.settlements ?? 0
+            return run(ActionType.PlaceRewardSettlements, {
+                placements: [{ systemId, settlements }]
+            })
+        }
+        case MachineState.ChoosingTerraformWorld:
+            return run(ActionType.ChooseTerraformWorld, { removedTileIds: [] })
         default: {
             const phase = playPhase(state)
             assertExists(phase, `Nobody is playing a phase in ${state.machineState}`)

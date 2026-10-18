@@ -11,6 +11,7 @@ import {
 } from '@tabletop/common'
 import { ANOMALIES } from '../components/anomalies.js'
 import { ECONOMIC_TILES } from '../components/economicTiles.js'
+import { EVENTS } from '../components/events.js'
 import { FACTION_COLORS } from '../components/factions.js'
 import { STAR_MAP } from '../components/starMap.js'
 import { SOL_SYSTEM_ID, systemsInSectors } from '../components/systems.js'
@@ -75,6 +76,8 @@ export class StellarHorizonsGameInitializer
                     influence: 0,
                     operations: [],
                     shipTerraforms: [],
+                    eventAttempts: [],
+                    breakthroughs: [],
                     explorationMarkers: 0
                 })
         )
@@ -109,7 +112,10 @@ export class StellarHorizonsGameInitializer
             terraformQueue: [],
             terraformedWorlds: [],
             setAsideWorlds: [],
-            economicTilePool: scenario.campaign ? [...ECONOMIC_TILES] : []
+            economicTilePool: scenario.campaign ? [...ECONOMIC_TILES] : [],
+            eventPool: scenario.campaign ? EVENTS.map((definition) => definition.id) : [],
+            events: [],
+            homesteaders: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
         for (const worldClass of Object.values(WorldClass)) {

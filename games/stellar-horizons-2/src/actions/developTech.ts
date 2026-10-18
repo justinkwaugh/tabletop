@@ -85,6 +85,7 @@ export class HydratedDevelopTech
         const first = isCampaign(state) && isFirstToDevelop(state, this.techId)
         player.techs.push({ techId: this.techId, year: state.year })
         player.fieldsDeveloped.push(field)
+        player.breakthroughs = player.breakthroughs.filter((candidate) => candidate !== field)
         gainInfluence(state, this.playerId, first ? FIRST_TO_DEVELOP_INFLUENCE : 0)
         this.metadata = first ? { cost, first } : { cost }
     }

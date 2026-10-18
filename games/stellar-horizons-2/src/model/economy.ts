@@ -6,6 +6,7 @@ import { TECH_FIELDS } from '../components/techFields.js'
 import { worldFace } from '../components/worlds.js'
 import { baseEffects, blocksBases } from './anomalies.js'
 import { effectiveHabitability, factionAbilities } from './campaign.js'
+import { halts } from './events.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { CASH_PRODUCTION, Production, type Base } from './pieces.js'
 import { awardTechMarkers } from './pools.js'
@@ -104,7 +105,9 @@ export function productionYield(
 
 // A base in a system with a "no bases" anomaly produces nothing until it is resolved (1.16).
 export function producingBases(state: HydratedStellarHorizonsGameState, playerId: string): Base[] {
-    return state.basesOf(playerId).filter((base) => !blocksBases(state, base.systemId))
+    return state
+        .basesOf(playerId)
+        .filter((base) => !blocksBases(state, base.systemId) && !halts(state, base.systemId))
 }
 
 export function basesAwaitingProduction(
@@ -165,7 +168,11 @@ export function produceAtBases(state: HydratedStellarHorizonsGameState): BasePro
         for (const base of state.basesOf(playerId)) {
             const production = base.production
             base.production = undefined
-            if (production === undefined || blocksBases(state, base.systemId)) {
+            if (
+                production === undefined ||
+                blocksBases(state, base.systemId) ||
+                halts(state, base.systemId)
+            ) {
                 continue
             }
             const amount = productionYield(state, base, production)
@@ -252,7 +259,7 @@ export function growSettlements(state: HydratedStellarHorizonsGameState): Growth
     const results: GrowthResult[] = []
     for (const playerId of state.initiativeOrder()) {
         for (const base of state.basesOf(playerId)) {
-            if (blocksBases(state, base.systemId)) {
+            if (blocksBases(state, base.systemId) || halts(state, base.systemId)) {
                 continue
             }
             const before = base.settlements

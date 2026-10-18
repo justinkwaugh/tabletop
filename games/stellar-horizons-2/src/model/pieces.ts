@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { AnomalyChallenge } from '../components/anomalyCatalog.js'
 import { TechField } from '../components/techFields.js'
 import { WorldSide } from '../components/worlds.js'
 
@@ -103,6 +104,27 @@ export const SettlementReward = Type.Object({
     playerId: Type.String(),
     systemId: Type.String(),
     settlements: Type.Number()
+})
+
+// An event challenge on the map (rulebook 4.2).
+export type ActiveEvent = Type.Static<typeof ActiveEvent>
+export const ActiveEvent = Type.Object({
+    eventId: Type.String(),
+    systemId: Type.String()
+})
+
+export type EventPlacement = Type.Static<typeof EventPlacement>
+export const EventPlacement = Type.Object({
+    eventId: Type.String(),
+    playerId: Type.String()
+})
+
+export type PendingEventAttempt = Type.Static<typeof PendingEventAttempt>
+export const PendingEventAttempt = Type.Object({
+    eventId: Type.String(),
+    systemId: Type.String(),
+    challenge: Type.Enum(AnomalyChallenge),
+    shipIds: Type.Array(Type.String())
 })
 
 export type SurveyWorldChoice = Type.Static<typeof SurveyWorldChoice>

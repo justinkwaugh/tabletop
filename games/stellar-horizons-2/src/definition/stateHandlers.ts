@@ -20,6 +20,12 @@ import {
 } from '../stateHandlers/economicPhase.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 import { EndOfTurnStateHandler } from '../stateHandlers/endOfTurn.js'
+import {
+    DrawingEventStateHandler,
+    PlacingEventStateHandler,
+    PlacingHomesteadersStateHandler,
+    ResolvingEventsStateHandler
+} from '../stateHandlers/eventSteps.js'
 import { ExploringStateHandler } from '../stateHandlers/exploring.js'
 import { MovingStateHandler } from '../stateHandlers/moving.js'
 import { PhaseStateHandler } from '../stateHandlers/phase.js'
@@ -42,6 +48,9 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.PlacingStartingBases]: new PlacingStartingBasesStateHandler(),
     [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
     [MachineState.EconomicPhase]: new EconomicPhaseStateHandler(),
+    [MachineState.DrawingEvent]: new DrawingEventStateHandler(),
+    [MachineState.PlacingEvent]: new PlacingEventStateHandler(),
+    [MachineState.PlacingHomesteaders]: new PlacingHomesteadersStateHandler(),
     [MachineState.InitiativePhase]: new PhaseStateHandler(TurnPhase.Initiative),
     [MachineState.DecidingInitiative]: new DecidingInitiativeStateHandler(),
     [MachineState.RollingInitiative]: new RollingInitiativeStateHandler(),
@@ -62,6 +71,7 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.SettlingSyndicateTakes]: new SettlingSyndicateTakesStateHandler(),
     [MachineState.ResolvingAnomalies]: new ResolvingAnomaliesStateHandler(),
     [MachineState.PlacingRewardSettlements]: new PlacingRewardSettlementsStateHandler(),
+    [MachineState.ResolvingEvents]: new ResolvingEventsStateHandler(),
     [MachineState.ResolvingSurveys]: new ResolvingSurveysStateHandler(),
     [MachineState.ChoosingSurveyWorld]: new ChoosingSurveyWorldStateHandler(),
     [MachineState.ResolvingShipTerraforms]: new ResolvingShipTerraformsStateHandler(),

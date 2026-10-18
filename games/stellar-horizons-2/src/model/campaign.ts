@@ -95,11 +95,13 @@ export const EarthProduction = Type.Object({
     emptyPoolCash: Type.Number()
 })
 
-// Rulebook 4.3: cash and tech markers by century from the faction sheet. A marker its pool
+// Rulebook 4.3: cash and tech markers by century from the faction sheet, and any extra markers
+// an event gives (First Contact). A marker its pool
 // cannot supply is paid as $1B, as for every other draw.
 export function produceAtEarth(
     state: HydratedStellarHorizonsGameState,
-    playerId: string
+    playerId: string,
+    extraMarkers = 0
 ): EarthProduction {
     const row = currentCenturyRow(state, playerId)
     assertExists(row, `${playerId} has no faction sheet`)
@@ -108,7 +110,7 @@ export function produceAtEarth(
     const markers = emptyTechMarkers()
     let emptyPoolCash = 0
     for (const field of TECH_FIELDS) {
-        const award = awardTechMarkers(state, playerId, field, row.markers[field])
+        const award = awardTechMarkers(state, playerId, field, row.markers[field] + extraMarkers)
         markers[field] = award.markers
         emptyPoolCash += award.cash
     }

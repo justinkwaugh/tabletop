@@ -2,6 +2,7 @@ import { TechField } from '../components/techFields.js'
 import { TECHS, TechId, techDefinition } from '../components/techs.js'
 import { TECH_POINTS_PER_INFLUENCE, isCampaign } from './campaign.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import { roundHalfUp } from './turn.js'
 
 export const MIN_TECH_COST = 5
 export const OWNER_DISCOUNT = 3
@@ -14,7 +15,12 @@ export function techCost(
     const owners = state
         .otherPlayers(playerId)
         .filter((player) => player.ownedBefore(techId, state.year)).length
-    return Math.max(MIN_TECH_COST, techDefinition(techId).cost - OWNER_DISCOUNT * owners)
+    const definition = techDefinition(techId)
+    // A Breakthrough event halves the printed cost of one tech of its type this turn.
+    const printed = state.getPlayerState(playerId).breakthroughs.includes(definition.field)
+        ? roundHalfUp(definition.cost / 2)
+        : definition.cost
+    return Math.max(MIN_TECH_COST, printed - OWNER_DISCOUNT * owners)
 }
 
 export function isTechAvailable(
