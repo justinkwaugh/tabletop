@@ -1457,6 +1457,24 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 return run()
             }
 
+            // Runs `interleaved` once, right after `run` has read the Player's stored Branch.
+            async function whileReadingOwnBranch<T>(
+                interleaved: () => Promise<unknown>,
+                run: () => Promise<T>
+            ): Promise<T> {
+                const read = store.findBranch.bind(store)
+                let done = false
+                vi.spyOn(store, 'findBranch').mockImplementation(async (gameId, playerId) => {
+                    const found = await read(gameId, playerId)
+                    if (!done) {
+                        done = true
+                        await interleaved()
+                    }
+                    return found
+                })
+                return run()
+            }
+
             it('refuses one from a Player outside the span, and outside any span', async () => {
                 await host({ sitsOut: ['p2'] })
                 await expect(act('p2', 'chant', 'c2')).rejects.toBeInstanceOf(DisallowedActionError)
@@ -1533,6 +1551,30 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                         act('p2', 'propose', 'o2b', { partnerId: 'p3', itemId: 'new' })
                     ).rejects.toThrow()
                     expect((await mainLine()).actionCount).toBe(1)
+                })
+
+                it('refuses one when the Player’s Branch used what it offers while it was being worked out', async () => {
+                    await expect(
+                        whileReadingOwnBranch(
+                            () => act('p2', 'drop', 'd2', { itemId: 'start-p2' }),
+                            () => propose('p2', 'p3', 'o2')
+                        )
+                    ).rejects.toBeInstanceOf(DisallowedActionError)
+                    expect((await spanState()).offers).toEqual({})
+                    expect((await mainLine()).actionCount).toBe(1)
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                })
+
+                it('refuses a Branch Action worked out before the Player’s own Common Action landed', async () => {
+                    await expect(
+                        whileReadingOwnBranch(
+                            () => propose('p2', 'p3', 'o2'),
+                            () => act('p2', 'drop', 'd2', { itemId: 'start-p2' })
+                        )
+                    ).rejects.toThrow('Action of type drop is not valid')
+                    expect((await spanState()).offers.o2).toMatchObject({ itemId: 'start-p2' })
+                    expect((await mainLine()).actionCount).toBe(2)
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 1 })
                 })
 
                 it('records one raced only by Branch Closes and Merges after them, and reports what it raced', async () => {

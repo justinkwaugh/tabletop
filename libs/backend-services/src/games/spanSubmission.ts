@@ -8,6 +8,8 @@ import {
     executeBranchAction,
     executeCommonAction,
     restingSpan,
+    sameBranchExecution,
+    sameHistoryPosition,
     settleCommonActionRace,
     settleSpan,
     unmergedPlayerIds,
@@ -24,7 +26,7 @@ import {
 import { measureSync } from '../diagnostics/requestTimings.js'
 import type { GameStore, UnmergedBranchWrite } from '../persistence/stores/gameStore.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
-import { DisallowedActionError, RacedActionError } from './errors.js'
+import { DisallowedActionError, GameUpdateCollisionError, RacedActionError } from './errors.js'
 import {
     assertBranchUnmoved,
     assertBranchesUnmoved,
@@ -149,9 +151,53 @@ export async function submitBranchAction({
                 assertGameUnmoved(found.game, found.state, state)
             }
             assertBranchUnmoved(gameId, found.branch, stored)
+            if (!sameHistoryPosition(found.state, state)) {
+                assertSameOnCurrentMainLine({
+                    engine,
+                    game,
+                    state: found.state,
+                    branch,
+                    action,
+                    execution
+                })
+            }
         }
     })
     return { kind: 'branch', unmergedBranch: { branch: execution.branch, actions: addedActions } }
+}
+
+// A Branch Action is worked out over the Main Line its Branch View rested on. A Common Action
+// may have landed since, such as the Player's own offer holding what the Action uses, so the
+// write runs it again over the current Main Line and collides unless it reaches the same Branch
+// by the same run; the retry then works it out afresh.
+function assertSameOnCurrentMainLine({
+    engine,
+    game,
+    state,
+    branch,
+    action,
+    execution
+}: {
+    engine: GameEngine
+    game: Game
+    state: GameState
+    branch: Branch
+    action: GameAction
+    execution: ReturnType<typeof executeBranchAction>
+}): void {
+    let again: ReturnType<typeof executeBranchAction>
+    try {
+        again = executeBranchAction({
+            engine,
+            state,
+            branch,
+            action: structuredClone(action),
+            game
+        })
+    } catch {
+        throw new GameUpdateCollisionError({ id: game.id })
+    }
+    if (!sameBranchExecution(execution, again)) throw new GameUpdateCollisionError({ id: game.id })
 }
 
 async function closeOnMainLine({
@@ -283,6 +329,8 @@ async function reconcileCommonActionRace({
     return raced
 }
 
+// The acting Player's own side, as their stored Branch has it: the Branch to check the Common
+// Action against, and what the write must find unmoved for the check to still hold.
 async function ownBranchToCheck({
     gameStore,
     engine,
@@ -297,12 +345,14 @@ async function ownBranchToCheck({
     state: GameState
     span: ParallelSpanState
     playerId: string
-}): Promise<Branch | undefined> {
+}): Promise<{ branch: Branch; expected: ExpectedBranch } | undefined> {
     if (!unmergedPlayerIds(span).includes(playerId)) return undefined
     const stored = await gameStore.findBranch(game.id, playerId)
-    return stored !== undefined && belongsToSpan(stored, span)
-        ? stored
-        : createBranch({ engine, state, game, playerId }).branch
+    const inSpan = stored !== undefined && belongsToSpan(stored, span) ? stored : undefined
+    return {
+        branch: inSpan ?? createBranch({ engine, state, game, playerId }).branch,
+        expected: { playerId, branch: inSpan }
+    }
 }
 
 export async function submitCommonAction({
@@ -328,28 +378,35 @@ export async function submitCommonAction({
 
     const engine = new GameEngine(definition.runtime)
     const raced = await reconcileCommonActionRace({ gameStore, engine, game, state, action })
-    const branch = await ownBranchToCheck({ gameStore, engine, game, state, span, playerId })
+    const own = await ownBranchToCheck({ gameStore, engine, game, state, span, playerId })
     const outcome = measureSync('engine.execute', () =>
-        executeCommonAction({ engine, game, state, action, branch })
+        executeCommonAction({ engine, game, state, action, branch: own?.branch })
     )
     if (outcome.kind === 'refused') throw disallowed(outcome.reason)
     const { result } = outcome
+    const expected = own === undefined ? [] : [own.expected]
 
     const { storedActions, updatedGame, relatedActions, priorState } =
         await gameStore.addActionsToGame({
             game,
             actions: result.processedActions,
             state: result.updatedState,
-            unmergedBranchWrites: { set: [], removeBranchesOf: [] },
+            unmergedBranchWrites: {
+                set: [],
+                removeBranchesOf: [],
+                watchBranchesOf: expected.map((branch) => branch.playerId)
+            },
             validator: async (
                 existingGame,
                 existingState,
                 newState,
                 _actions,
                 gameUpdates,
-                relatedActions
+                relatedActions,
+                existingBranches
             ) => {
                 assertGameUnmoved(existingGame, existingState, state)
+                assertBranchesUnmoved(gameId, span, existingBranches, expected)
                 relatedActions.push(...raced)
                 fillGameUpdatesAfterActions({
                     definition,

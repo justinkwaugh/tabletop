@@ -1,4 +1,6 @@
+import * as Value from 'typebox/value'
 import { assert } from '../../util/assertions.js'
+import { sameRun } from './actionReplay.js'
 import {
     branchFromView,
     branchUndoWindow,
@@ -26,6 +28,20 @@ function branchExecution<T extends GameState>(
         processedActions: executed.processedActions,
         view: executed.updatedState
     }
+}
+
+// Whether two executions of a Branch Action reached the same Branch by the same run, as when
+// the same Action is worked out over two Main Line positions that differ only in what the
+// Branch does not read.
+export function sameBranchExecution(left: BranchExecution, right: BranchExecution): boolean {
+    return (
+        sameRun(left.processedActions, right.processedActions) &&
+        left.branch.actionCount === right.branch.actionCount &&
+        left.branch.actionChecksum === right.branch.actionChecksum &&
+        left.branch.machineState === right.branch.machineState &&
+        left.branch.closed === right.branch.closed &&
+        Value.Equal(left.branch.change, right.branch.change)
+    )
 }
 
 export function createBranch<T extends GameState, U extends HydratedGameState<T>>({
