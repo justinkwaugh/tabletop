@@ -1,6 +1,5 @@
 import * as Type from 'typebox'
-import { assert, assertExists } from '@tabletop/common'
-import { turnOrderFrom } from '@tabletop/18xx'
+import { assert, assertExists, turnOrderFrom } from '@tabletop/common'
 import type { Industry } from '../editions/types.js'
 import type { HydratedRailheadsGameState } from './gameState.js'
 

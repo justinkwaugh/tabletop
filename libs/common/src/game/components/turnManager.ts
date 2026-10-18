@@ -162,3 +162,9 @@ export class HydratedTurnManager extends Hydratable<typeof TurnManager> implemen
         return turnOrderIndex
     }
 }
+
+export function turnOrderFrom(turnOrder: readonly string[], playerId: string): string[] {
+    const start = turnOrder.indexOf(playerId)
+    assert(start >= 0, 'The player is in the turn order')
+    return [...turnOrder.slice(start), ...turnOrder.slice(0, start)]
+}
