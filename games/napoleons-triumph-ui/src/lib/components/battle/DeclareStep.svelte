@@ -7,7 +7,7 @@
     import Force from './Force.svelte'
     import ResultRule from './ResultRule.svelte'
 
-    let { stage }: { stage: DeclarationStage } = $props()
+    let { stage, folded = false }: { stage: DeclarationStage; folded?: boolean } = $props()
 
     const gameSession = getGameSession()
 
@@ -18,13 +18,18 @@
 </script>
 
 <div class="nt-battle-prompt">
-    Declare the attack{stage.startsFromThreat
-        ? ': the pieces that made the threat are named to start with'
-        : ''}. Tap a piece, here or on the map, to attack with it, again to lead, and once more to
-    leave it out.
+    {#if folded}
+        Declare the attack: tap pieces on the map, once to attack, twice to lead, three times to
+        leave out.
+    {:else}
+        Declare the attack{stage.startsFromThreat
+            ? ': the pieces that made the threat are named to start with'
+            : ''}. Tap a piece, here or on the map, to attack with it, again to lead, and once more
+        to leave it out.
+    {/if}
 </div>
-<AttackerPicker {stage} />
-{#if stage.approachWide}
+<AttackerPicker {stage} {folded} />
+{#if stage.approachWide && !folded}
     <div class="nt-battle-faint pt-1">Attack width</div>
 {/if}
 <div class="flex flex-wrap items-center gap-2">
@@ -37,7 +42,11 @@
         />
     {/if}
 </div>
-{#if stage.targetOptions.length > 0}
+{#if stage.targetOptions.length > 0 && folded}
+    <div class="nt-battle-faint pt-1">
+        A narrow attack strikes one leading unit: tap it on the map.
+    </div>
+{:else if stage.targetOptions.length > 0}
     <div class="nt-battle-faint pt-1">
         A narrow attack strikes one leading unit: tap it, here or on the map
     </div>
@@ -50,7 +59,7 @@
         onpick={(id) => gameSession.pickBattleUnit(id)}
     />
 {/if}
-{#if !stage.problem && stage.initialResult !== undefined}
+{#if !folded && !stage.problem && stage.initialResult !== undefined}
     <ResultRule initialResult={stage.initialResult} />
 {/if}
 <div class="flex flex-wrap items-center gap-3 pt-1">

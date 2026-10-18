@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/definitions/boardSize.js'
     import Area from '$lib/components/Area.svelte'
     import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
     import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
@@ -50,6 +51,8 @@
     } from '$lib/components/boardActionAreas/startCompany.js'
     import StartCompanyDeedSelectionOverlay from '$lib/components/boardActionAreas/StartCompanyDeedSelectionOverlay.svelte'
     import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
+    import type { ProductionZoneMarkerEntry } from '$lib/model/productionZoneMarkers.svelte.js'
+    import { getProductionZoneMarkersContext } from '$lib/model/productionZoneMarkersContext.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { deedPositionLookupKeys } from '$lib/utils/deeds.js'
     import {
@@ -65,8 +68,7 @@
     } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
-    const BOARD_WIDTH = 2646
-    const BOARD_HEIGHT = 1280
+    const productionZoneMarkers = getProductionZoneMarkersContext()
     const PRODUCTION_HOVER_SPOTLIGHT_MASK_ID = 'production-company-hover-spotlight-mask'
     const EXPANSION_SELECTION_SPOTLIGHT_MASK_ID = 'expansion-selection-spotlight-mask'
     const CITY_PLACEMENT_SPOTLIGHT_MASK_ID = 'city-placement-spotlight-mask'
@@ -75,23 +77,6 @@
     const DELIVERY_ZONE_HOVER_OUTLINE_MASK_ID = 'delivery-zone-hover-outline-mask'
     const SEA_HIGHLIGHT_FILL = '#93c5fd'
     const SEA_HIGHLIGHT_FILL_OPACITY = 0.38
-
-    type MarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
-    type MarkerDirection = 'north' | 'east' | 'south' | 'west'
-    type HoveredProductionZoneMarker = {
-        key: string
-        companyId: string
-        zoneAreaIds: readonly string[]
-        x: number
-        y: number
-        targetX: number
-        targetY: number
-        ownerColor: string
-        goodType: MarkerGood
-        goodsCount: number
-        hatchPatternId: string | null
-        direction: MarkerDirection
-    }
 
     function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
         ships: string[]
@@ -578,9 +563,9 @@
         }
     })
 
-    const activeBoardSpotlightVisualState: ActiveBoardSpotlightVisualState<HoveredProductionZoneMarker> =
+    const activeBoardSpotlightVisualState: ActiveBoardSpotlightVisualState<ProductionZoneMarkerEntry> =
         $derived.by(() => {
-            return deriveBoardSpotlightState<HoveredProductionZoneMarker>({
+            return deriveBoardSpotlightState<ProductionZoneMarkerEntry>({
                 previewIntent: gameSession.activeBoardPreviewIntent,
                 cityReferenceCardOverlayAreaIds: hoveredCityReferenceCardOverlayAreaIds,
                 cityReferenceCardMaskRect: hoveredCityReferenceCardMaskRect,
@@ -708,32 +693,21 @@
         return gameSession.activeBoardSpotlightProductionCompanyIds
     })
 
-    const hoveredProductionZoneMarkers: HoveredProductionZoneMarker[] = $derived.by(() => {
-        if (hoveredProductionCompanyIds.length === 0 || typeof window === 'undefined') {
-            return []
-        }
-        const markerEntries = (
-            window as Window & {
-                __indonesiaProductionZoneMarkerEntries?: HoveredProductionZoneMarker[]
-            }
-        ).__indonesiaProductionZoneMarkerEntries
-        if (!Array.isArray(markerEntries) || markerEntries.length === 0) {
+    const hoveredProductionZoneMarkers: ProductionZoneMarkerEntry[] = $derived.by(() => {
+        if (hoveredProductionCompanyIds.length === 0) {
             return []
         }
         const hoveredProductionCompanyIdSet = new Set(hoveredProductionCompanyIds)
-        return markerEntries.filter((marker) => hoveredProductionCompanyIdSet.has(marker.companyId))
+        return productionZoneMarkers.entries.filter((marker) =>
+            hoveredProductionCompanyIdSet.has(marker.companyId)
+        )
     })
 
     const deliverySelectableZoneMarkers: readonly DeliverySelectableZoneMarker[] = $derived.by(() => {
-        const markerEntries = (
-            window as Window & {
-                __indonesiaProductionZoneMarkerEntries?: HoveredProductionZoneMarker[]
-            }
-        ).__indonesiaProductionZoneMarkerEntries
         return deriveDeliverySelectableZoneMarkers({
             activeAreaInteractionAction: activeAreaInteraction?.action ?? null,
             deliverySelectableZones,
-            markerEntries: Array.isArray(markerEntries) ? markerEntries : [],
+            markerEntries: productionZoneMarkers.entries,
             operatingCompanyId: gameSession.gameState.operatingCompanyId ?? null
         })
     })

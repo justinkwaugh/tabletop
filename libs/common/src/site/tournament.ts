@@ -2,6 +2,9 @@ import * as Type from 'typebox'
 import { GameResult } from '../game/model/gameResult.js'
 import { GameConfig } from '../game/model/gameConfig.js'
 import { TournamentGameReference } from './tournamentGameReference.js'
+import { LeagueGroupReference } from './leagueGroupReference.js'
+import { assertExists } from '../util/assertions.js'
+import type { TournamentTable } from './tournamentSchedule.js'
 
 export const miniTournamentDefaults = {
     2: { capacity: 5, gamesPerEntrant: 4 },
@@ -60,9 +63,20 @@ export const TournamentRegistrationPolicy = Type.Union([
             capacity: Type.Optional(Type.Integer({ minimum: 2, maximum: 256 }))
         },
         { additionalProperties: false }
-    )
+    ),
+    Type.Object({ kind: Type.Literal('assigned') }, { additionalProperties: false })
 ])
 export type TournamentRegistrationPolicy = Type.Static<typeof TournamentRegistrationPolicy>
+
+// Registration Policies players join themselves; the public lists show only these Tournaments.
+export const selfRegistrationKinds = ['whenFull', 'deadline'] as const satisfies readonly Exclude<
+    TournamentRegistrationPolicy['kind'],
+    'assigned'
+>[]
+
+export function tournamentCapacity(policy: TournamentRegistrationPolicy): number | undefined {
+    return policy.kind === 'assigned' ? undefined : policy.capacity
+}
 export const TournamentRules = Type.Object(
     {
         titleId: TournamentId,
@@ -87,19 +101,120 @@ export const TournamentDraft = Type.Object(
 )
 export type TournamentDraft = Type.Static<typeof TournamentDraft>
 
+export const TournamentAdministration = Type.Object(
+    { administratorId: Type.String(), createdAt: Type.Integer() },
+    { additionalProperties: false }
+)
+export type TournamentAdministration = Type.Static<typeof TournamentAdministration>
+
+export const TournamentSubstitute = Type.Object(
+    { ...TournamentAdministration.properties, userId: Type.String() },
+    { additionalProperties: false }
+)
+export type TournamentSubstitute = Type.Static<typeof TournamentSubstitute>
+
 export const TournamentEntrant = Type.Object(
     {
+        // The place's key in schedules and standings; a Substitute plays it under another account.
         userId: Type.String(),
-        joinedAt: Type.Integer()
+        joinedAt: Type.Integer(),
+        substitutes: Type.Optional(Type.Array(TournamentSubstitute, { maxItems: 16 })),
+        withdrawn: Type.Optional(TournamentAdministration)
     },
     { additionalProperties: false }
 )
 export type TournamentEntrant = Type.Static<typeof TournamentEntrant>
 
+/** The account playing an Entrant's place now. */
+export function tournamentEntrantAccount(entrant: TournamentEntrant): string {
+    return entrant.substitutes?.at(-1)?.userId ?? entrant.userId
+}
+
+/** Every account that has played an Entrant's place, first to last. */
+export function tournamentEntrantAccounts(entrant: TournamentEntrant): string[] {
+    return [entrant.userId, ...(entrant.substitutes ?? []).map((substitute) => substitute.userId)]
+}
+
+/** The place an account has played in, or -1. */
+export function tournamentEntrantIndex(
+    tournament: Pick<Tournament, 'entrants'>,
+    userId: string
+): number {
+    return tournament.entrants.findIndex((entrant) =>
+        tournamentEntrantAccounts(entrant).includes(userId)
+    )
+}
+
+/** The accounts to seat at a Table, from the Entrant keys the Schedule assigned to it. */
+export function tournamentSeatAccounts(
+    tournament: Pick<Tournament, 'entrants'>,
+    entrantIds: string[]
+): string[] {
+    return entrantIds.map((userId) => {
+        const entrant = tournament.entrants.find((value) => value.userId === userId)
+        assertExists(entrant, `Scheduled player ${userId} is not an entrant`)
+        return tournamentEntrantAccount(entrant)
+    })
+}
+
+export function tournamentInPlay(status: Tournament['status']): boolean {
+    return status === 'locked' || status === 'inProgress'
+}
+
+/** Whether a Table's Game has started or will never start. */
+export function tournamentTableSettled(
+    dispatch: TournamentDispatch | undefined,
+    tableId: string
+): boolean {
+    return (
+        !!dispatch &&
+        (dispatch.active.includes(tableId) ||
+            dispatch.finished.includes(tableId) ||
+            !!dispatch.voided?.includes(tableId))
+    )
+}
+
+/** The reference for a Table's current Game, including a restarted Table's attempt. */
+export function tournamentTableReference(
+    tournamentId: string,
+    stage: Pick<TournamentStage, 'id' | 'scheduleId' | 'dispatch'>,
+    tableId: string
+): TournamentGameReference {
+    assertExists(stage.scheduleId, 'The stage has no schedule')
+    const attempt = stage.dispatch?.attempts?.[tableId]
+    return {
+        tournamentId,
+        stageId: stage.id,
+        tableId,
+        scheduleId: stage.scheduleId,
+        ...(attempt ? { attempt } : {})
+    }
+}
+
+/** The Tables with a Game in progress at which an Entrant's place sits. */
+export function tournamentActiveTables(
+    tournament: Pick<Tournament, 'stages'>,
+    tables: Pick<TournamentTable, 'id' | 'entrantIds'>[],
+    entrantId: string
+): string[] {
+    const active = new Set(tournament.stages[0]?.dispatch?.active ?? [])
+    return tables
+        .filter((table) => active.has(table.id) && table.entrantIds.includes(entrantId))
+        .map((table) => table.id)
+}
+
+export function tournamentAccountIds(tournament: Pick<Tournament, 'entrants'>): string[] {
+    return tournament.entrants.flatMap((entrant) => tournamentEntrantAccounts(entrant))
+}
+
 export const TournamentDispatch = Type.Object({
     reserved: Type.Array(Type.String(), { maxItems: 32768 }),
     active: Type.Array(Type.String(), { maxItems: 32768 }),
-    finished: Type.Array(Type.String(), { maxItems: 32768 })
+    finished: Type.Array(Type.String(), { maxItems: 32768 }),
+    // Tables that will never count: their Game was abandoned or a player was withdrawn.
+    voided: Type.Optional(Type.Array(Type.String(), { maxItems: 32768 })),
+    // Restarted Tables and the attempt their next Game belongs to.
+    attempts: Type.Optional(Type.Record(Type.String(), Type.Integer({ minimum: 1 })))
 })
 export type TournamentDispatch = Type.Static<typeof TournamentDispatch>
 
@@ -114,6 +229,11 @@ export type TournamentScore = Type.Static<typeof TournamentScore>
 export const TournamentStanding = Type.Object({
     ...TournamentScore.properties,
     userId: Type.String(),
+    // The Substitute now playing the place, when it is not the Entrant.
+    playedBy: Type.Optional(Type.String()),
+    withdrawn: Type.Optional(Type.Literal(true)),
+    // Wins the finished Tournament: the best place no Substitute played.
+    champion: Type.Optional(Type.Literal(true)),
     rank: Type.Integer({ minimum: 1 }),
     active: Type.Integer({ minimum: 0 }),
     remaining: Type.Integer({ minimum: 0 })
@@ -141,6 +261,33 @@ export const CorrectTournamentResultRequest = Type.Object(
 )
 export type CorrectTournamentResultRequest = Type.Static<typeof CorrectTournamentResultRequest>
 
+export const WithdrawTournamentEntrantRequest = Type.Object(
+    { revision: Type.Integer({ minimum: 1 }), userId: Type.String() },
+    { additionalProperties: false }
+)
+export type WithdrawTournamentEntrantRequest = Type.Static<typeof WithdrawTournamentEntrantRequest>
+
+export const TournamentTableHandover = Type.Union([
+    Type.Literal('takeOver'),
+    Type.Literal('restart')
+])
+export type TournamentTableHandover = Type.Static<typeof TournamentTableHandover>
+
+export const SubstituteTournamentEntrantRequest = Type.Object(
+    {
+        revision: Type.Integer({ minimum: 1 }),
+        // The account playing the place now.
+        userId: Type.String(),
+        substituteUsername: Type.String({ minLength: 1, maxLength: 64 }),
+        // How each Table the place is playing passes to the Substitute; take over by default.
+        tables: Type.Record(Type.String(), TournamentTableHandover)
+    },
+    { additionalProperties: false }
+)
+export type SubstituteTournamentEntrantRequest = Type.Static<
+    typeof SubstituteTournamentEntrantRequest
+>
+
 export const TournamentStage = Type.Object(
     {
         id: TournamentId,
@@ -162,6 +309,7 @@ export const Tournament = Type.Object(
         ...TournamentDraft.properties,
         id: TournamentId,
         organizerId: Type.String(),
+        league: Type.Optional(LeagueGroupReference),
         status: Type.Union([
             Type.Literal('draft'),
             Type.Literal('open'),
@@ -194,8 +342,10 @@ export const Tournament = Type.Object(
 export type Tournament = Type.Static<typeof Tournament>
 
 export const TournamentGameLink = Type.Object({
-    ...Type.Pick(TournamentGameReference, ['stageId', 'tableId']).properties,
+    ...Type.Pick(TournamentGameReference, ['stageId', 'tableId', 'attempt']).properties,
     gameId: Type.String(),
+    // The accounts seated at the Game, by position.
+    userIds: Type.Optional(Type.Array(Type.String())),
     result: Type.Optional(Type.Enum(GameResult)),
     winningUserIds: Type.Optional(Type.Array(Type.String()))
 })

@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { Point } from '@tabletop/common'
 import { coveredBy, type BlockFootprint } from './blockShape.js'
-import { ARROW_HEAD_LENGTH, arrowAlong, drawnArrow, lineSamples } from './wayArrow.js'
+import { boundsOfPoints, boxHolds } from './boundingBox.js'
+import {
+    ARROW_HEAD_LENGTH,
+    arrowAlong,
+    drawnArrow,
+    drawnArrowOutlines,
+    lineSamples
+} from './wayArrow.js'
 
 function stackAt(x: number, y: number, angle = 0): BlockFootprint[] {
     return [-22, 0, 22].map((offset) => ({ centre: { x, y: y + offset }, angle }))
@@ -127,5 +134,19 @@ describe('drawing the arrow', () => {
                 (point, index) => index === 0 || lengthOf([samples[index - 1], point]) <= 10
             )
         ).toBe(true)
+    })
+})
+
+describe('the outline of a drawn arrow', () => {
+    it('has a piece for each stretch of the shaft and one for the head, holding the tip', () => {
+        const arrow = drawnArrow([
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+            { x: 100, y: 100 }
+        ])!
+        const outlines = drawnArrowOutlines(arrow)
+        expect(outlines).toHaveLength(arrow.shaft.length)
+        expect(boxHolds(boundsOfPoints(outlines.at(-1)!), arrow.tip)).toBe(true)
+        expect(boxHolds(boundsOfPoints(outlines[0]), { x: 50, y: 0 })).toBe(true)
     })
 })

@@ -13,6 +13,11 @@
     let busy = $state(false)
     let error = $state('')
     let table = $derived(schedule?.tables.find((table) => table.id === tableId))
+    // Links cached before Games recorded their seats have no accounts; the backend also accepts
+    // the place keys the Schedule lists and credits whichever account of each place played.
+    let seated = $derived(
+        detail.games?.find((game) => game.tableId === tableId)?.userIds ?? table?.entrantIds ?? []
+    )
     let finished = $derived(detail.tournament.stages[0]?.dispatch?.finished ?? [])
 
     function selectTable() {
@@ -88,7 +93,7 @@
                 <legend class="mb-2 text-xs text-gray-500"
                     >Credited winners — choose one or more</legend
                 >
-                {#each table.entrantIds as id, entrantIndex (entrantIndex)}
+                {#each seated as id, entrantIndex (entrantIndex)}
                     <label class="flex items-center gap-2 text-sm"
                         ><input type="checkbox" value={id} bind:group={winners} />{detail.usernames[
                             id

@@ -63,7 +63,6 @@ export class VroomingStateHandler implements MachineStateHandler<
         }
 
         if (!context.gameState.actionsTaken) {
-            console.log('Starting vroom turn for player', activePlayerId)
             context.gameState.turnManager.startTurn(activePlayerId, context.gameState.actionCount)
             context.gameState.activePlayerIds = [activePlayerId]
         }

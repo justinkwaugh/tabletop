@@ -4,6 +4,7 @@
         Side,
         commanderDefinition,
         commandersOf,
+        type HydratedNapoleonsTriumphPlayerState,
         type ProjectedUnit
     } from '@tabletop/napoleons-triumph'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -11,11 +12,17 @@
     import { commandsUsed } from '$lib/utils/commandsLeft.js'
     import { BLOCK_LENGTH, BLOCK_THICKNESS } from '$lib/utils/blockShape.js'
     import Block from './board/Block.svelte'
+    import UnitFace from './UnitFace.svelte'
+    import { BLOCK_SYMBOL_HEIGHT, BLOCK_SYMBOL_WIDTH } from '$lib/utils/faceLayout.js'
+    import { eliteCommitments } from '$lib/utils/eliteCommitments.js'
 
     let { onlocate }: { onlocate: (locale: number) => void } = $props()
 
     const gameSession = getGameSession()
     const game = $derived(gameSession.gameState)
+
+    const ELITE_SWATCH_WIDTH = BLOCK_SYMBOL_WIDTH + 8
+    const ELITE_SWATCH_HEIGHT = BLOCK_SYMBOL_HEIGHT + 6
 
     const ARMY_NAMES: Record<Side, string> = {
         [Side.French]: 'Grande Armée',
@@ -43,6 +50,42 @@
         return { place: approach === undefined ? name : `${name}, on an approach`, locale }
     }
 </script>
+
+{#snippet elites(player: HydratedNapoleonsTriumphPlayerState, colors: ArmyColors)}
+    <div
+        class="nt-army-elites"
+        style:--nt-elite-ink={colors.ink}
+        style:--nt-elite-block={colors.block}
+    >
+        {#each eliteCommitments(player) as elite (elite.id)}
+            <div class="nt-elite" class:nt-elite-committed={elite.committed}>
+                <svg
+                    viewBox="{-ELITE_SWATCH_WIDTH / 2} {-ELITE_SWATCH_HEIGHT /
+                        2} {ELITE_SWATCH_WIDTH} {ELITE_SWATCH_HEIGHT}"
+                    aria-hidden="true"
+                >
+                    <rect
+                        x={-ELITE_SWATCH_WIDTH / 2}
+                        y={-ELITE_SWATCH_HEIGHT / 2}
+                        width={ELITE_SWATCH_WIDTH}
+                        height={ELITE_SWATCH_HEIGHT}
+                        rx={2}
+                        fill={colors.block}
+                    ></rect>
+                    <UnitFace
+                        face={elite.face}
+                        ink={colors.ink}
+                        ground={colors.block}
+                        symbolWidth={BLOCK_SYMBOL_WIDTH}
+                        symbolHeight={BLOCK_SYMBOL_HEIGHT}
+                    />
+                </svg>
+                <span class="nt-elite-name">{elite.name}</span>
+                <span class="nt-elite-state" title={elite.explanation}>{elite.status}</span>
+            </div>
+        {/each}
+    </div>
+{/snippet}
 
 {#snippet unitBlocks(units: ProjectedUnit[], colors: ArmyColors)}
     <div class="nt-corps-units">
@@ -77,6 +120,7 @@
                 </div>
             </header>
             <div class="nt-army-body">
+                {@render elites(player, colors)}
                 {#if game.turnManager.currentTurn()?.playerId === player.playerId}
                     <div class="nt-army-note">
                         {commandsUsed(game, player.playerId)}
@@ -203,6 +247,53 @@
     .nt-army-note {
         font-size: 12px;
         opacity: 0.75;
+    }
+
+    .nt-army-elites {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .nt-elite {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 6px 2px 2px;
+        border: 1px solid color-mix(in srgb, var(--nt-ink) 30%, transparent);
+        border-radius: 3px;
+    }
+
+    .nt-elite svg {
+        flex: none;
+        width: 24px;
+        height: 17px;
+    }
+
+    .nt-elite-name {
+        font-style: italic;
+        white-space: nowrap;
+    }
+
+    .nt-elite-state {
+        margin-left: auto;
+        white-space: nowrap;
+        font-size: 11px;
+        opacity: 0.75;
+    }
+
+    .nt-elite-committed {
+        border-color: var(--nt-elite-block);
+        background: var(--nt-elite-block);
+        color: var(--nt-elite-ink);
+    }
+
+    .nt-elite-committed .nt-elite-state {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 1;
     }
 
     .nt-corps-head {

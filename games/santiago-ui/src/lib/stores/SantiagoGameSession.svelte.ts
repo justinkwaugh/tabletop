@@ -1,4 +1,8 @@
-import { AnimationContext, GameSession } from '@tabletop/frontend-components'
+import {
+    AnimationContext,
+    GameSession,
+    type PresentedTransition
+} from '@tabletop/frontend-components'
 import {
     ActionType,
     MachineState,
@@ -48,6 +52,7 @@ import {
     type Viewer
 } from '$lib/model/turnRules.js'
 import { BirdDirector } from '$lib/birds/birdDirector.js'
+import { roundScoresFromHistory, type PlayerRoundScores } from '$lib/model/scoreHistory.js'
 
 export class SantiagoGameSession extends GameSession<
     SantiagoProjectedState,
@@ -80,12 +85,10 @@ export class SantiagoGameSession extends GameSession<
     // a different location, rather than the click itself submitting the bribe.
     selectedBribeSegment: CanalSegment | undefined = $state(undefined)
 
-    private incoming: HydratedSantiagoGameState | undefined
-
     // The state the running transition will publish, so animators can preview where it leads;
     // otherwise the visible state.
-    get incomingGameState(): HydratedSantiagoGameState {
-        return this.incoming ?? this.gameState
+    override get incomingGameState(): HydratedSantiagoGameState {
+        return super.incomingGameState ?? this.gameState
     }
 
     get landMood(): LandMood {
@@ -111,29 +114,11 @@ export class SantiagoGameSession extends GameSession<
 
     // The chosen bribe spot lasts until the next state publishes, so the bar and the spot's twine
     // hold still while the proposal animates.
-    override beforeNewState() {
-        super.beforeNewState()
+    override beforeNewState(transition: PresentedTransition) {
+        super.beforeNewState(transition)
         this.selectedBribeSegment = undefined
         this.clearAnimationPreviews()
         this.landMoodAnimator.settle(landMood(this.incomingGameState))
-    }
-
-    // A failed transition never reaches beforeNewState, which would leave the previews, and the
-    // inert bar, in place.
-    override async notifyStateChangeListeners(
-        newState: HydratedSantiagoGameState,
-        oldState?: HydratedSantiagoGameState
-    ) {
-        this.incoming = newState
-        try {
-            await super.notifyStateChangeListeners(newState, oldState)
-        } catch (error) {
-            this.clearAnimationPreviews()
-            this.landMoodAnimator.settle(this.landMood)
-            throw error
-        } finally {
-            this.incoming = undefined
-        }
     }
 
     private clearAnimationPreviews() {
@@ -191,6 +176,17 @@ export class SantiagoGameSession extends GameSession<
         return this.bidValue > 0 && this.takenBids.includes(this.bidValue)
     }
 
+    scoreHistory: PlayerRoundScores[] | undefined = $derived.by(() => {
+        const actions = this.actions
+        if (
+            this.gameState.machineState !== MachineState.EndOfGame ||
+            !this.hasCompleteHistory ||
+            actions.length !== this.gameState.actionCount
+        )
+            return undefined
+        return roundScoresFromHistory(this.gameState.dehydrate(), actions)
+    })
+
     // Who holds, or is already certain to hold, the canal overseer role; shown as an "Overseer" tag.
     // See projectedOverseerId in turnRules for why mid-bidding only a bid of 0 settles it.
     get projectedOverseerId(): string | undefined {
@@ -241,7 +237,8 @@ export class SantiagoGameSession extends GameSession<
     // Map key is "col,row"; value is true if the square is irrigated.
     get validFieldPlacements(): Map<string, boolean> {
         const state = this.gameState
-        const tile = this.selectedTileIndex >= 0 ? state.revealedTiles[this.selectedTileIndex] : undefined
+        const tile =
+            this.selectedTileIndex >= 0 ? state.revealedTiles[this.selectedTileIndex] : undefined
         const myId = this.myPlayer?.id
         if (!tile || !myId) return new Map()
         if (state.machineState !== MachineState.PlantingPhase) return new Map()
@@ -322,7 +319,11 @@ export class SantiagoGameSession extends GameSession<
 
     // The bar `state` will show once published, from the perspective the session will present then.
     actionBarViewIn(state: HydratedSantiagoGameState): ActionBarView {
-        return actionBarView(state, { ...this.viewerIn(state), isViewingHistory: this.isViewingHistory, bribeSpotChosen: false })
+        return actionBarView(state, {
+            ...this.viewerIn(state),
+            isViewingHistory: this.isViewingHistory,
+            bribeSpotChosen: false
+        })
     }
 
     get viewer(): Viewer {

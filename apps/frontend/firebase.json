@@ -1,0 +1,99 @@
+{
+    "hosting": {
+        "site": "boardtogether",
+        "public": "build",
+        "ignore": ["**/.*", "**/*.br", "**/*.gz"],
+        "rewrites": [
+            {
+                "source": "/api/**",
+                "run": {
+                    "serviceId": "backend",
+                    "region": "us-central1"
+                }
+            },
+            {
+                "source": "/games/**",
+                "run": {
+                    "serviceId": "backend",
+                    "region": "us-central1"
+                }
+            },
+            {
+                "source": "/tasks/**",
+                "run": {
+                    "serviceId": "backend",
+                    "region": "us-central1"
+                }
+            },
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ],
+        "headers": [
+            {
+                "regex": "^/(?:$|[^agt].*|a(?:$|[^p].*)|ap(?:$|[^i].*)|api(?:$|[^/].*)|g(?:$|[^a].*)|ga(?:$|[^m].*)|gam(?:$|[^e].*)|game(?:$|[^s].*)|games(?:$|[^/].*)|t(?:$|[^a].*)|ta(?:$|[^s].*)|tas(?:$|[^k].*)|task(?:$|[^s].*)|tasks(?:$|[^/].*))",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-store, max-age=0"
+                    }
+                ]
+            },
+            {
+                "regex": "^/(?:_app/immutable|fonts|splash)/.*$",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "public, max-age=31536000, immutable"
+                    }
+                ]
+            },
+            {
+                "regex": "^/[^/]+\\.(?:png|ico|svg|txt|xml)$",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "public, max-age=31536000, immutable"
+                    }
+                ]
+            },
+            {
+                "source": "/service-worker.js",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-store, max-age=0"
+                    }
+                ]
+            },
+            {
+                "source": "/site.webmanifest",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-store, max-age=0"
+                    }
+                ]
+            },
+            {
+                "source": "/_app/env.js",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-store, max-age=0"
+                    }
+                ]
+            },
+            {
+                "source": "/_app/version.json",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-store, max-age=0"
+                    }
+                ]
+            }
+        ]
+    }
+}

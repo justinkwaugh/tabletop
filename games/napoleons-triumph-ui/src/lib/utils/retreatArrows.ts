@@ -1,6 +1,10 @@
 import type { Point } from '@tabletop/common'
 import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
+import { strokeOutline } from './convexOutline.js'
+import { cornersOf, squareAround } from './orientedBox.js'
 
+export const COUNT_RADIUS = 17
+export const COUNT_EDGE = 2
 const TAIL_SHARE = 0.3
 const TIP_SHARE = 0.8
 const HEAD_LENGTH = 18
@@ -43,4 +47,25 @@ export function retreatArrows(
             path: pathAlong(Math.hypot(end.x - start.x, end.y - start.y))
         }
     })
+}
+
+/** The arrow's shaft and head, and the disc with its count at the destination. */
+export function retreatArrowOutlines(arrow: RetreatArrow): Point[][] {
+    const length = Math.hypot(arrow.end.x - arrow.start.x, arrow.end.y - arrow.start.y)
+    const along = (reach: number, aside = 0): Point => {
+        const radians = (arrow.angle * Math.PI) / 180
+        const x = Math.cos(radians)
+        const y = Math.sin(radians)
+        return {
+            x: arrow.start.x + x * reach - y * aside,
+            y: arrow.start.y + y * reach + x * aside
+        }
+    }
+    const tip = length * TIP_SHARE
+    const neck = tip - HEAD_LENGTH
+    return [
+        strokeOutline(along(length * TAIL_SHARE), along(neck), SHAFT_HALF_WIDTH),
+        [along(neck, -HEAD_HALF_WIDTH), along(tip), along(neck, HEAD_HALF_WIDTH)],
+        cornersOf(squareAround(arrow.end, COUNT_RADIUS + COUNT_EDGE / 2))
+    ]
 }

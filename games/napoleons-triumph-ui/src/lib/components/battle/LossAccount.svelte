@@ -15,7 +15,7 @@
     let { losses, onclose }: { losses: AttackLosses; onclose: () => void } = $props()
 
     const gameSession = getGameSession()
-    const attack = $derived(gameSession.attack)
+    const attack = $derived(gameSession.shownAttack)
     const accounts = $derived(gameSession.resultAccounts)
 
     const ARMIES: Record<Side, string> = {

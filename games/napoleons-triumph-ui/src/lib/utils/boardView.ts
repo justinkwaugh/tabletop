@@ -1,6 +1,7 @@
 import type { BoundingBox, Point, RectangleDimensions } from '@tabletop/common'
 import { Side } from '@tabletop/napoleons-triumph'
 import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
+import { boundsOfPoints } from './boundingBox.js'
 
 export enum BoardView {
     North = 'North',
@@ -64,12 +65,7 @@ export function uprightAngle(angle: number, rotation: number): number {
 }
 
 export function boundsOf(points: Point[], rotation: number): BoundingBox {
-    const turned = points.map((point) => toView(point, rotation))
-    const xs = turned.map((point) => point.x)
-    const ys = turned.map((point) => point.y)
-    const x = Math.min(...xs)
-    const y = Math.min(...ys)
-    return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y }
+    return boundsOfPoints(points.map((point) => toView(point, rotation)))
 }
 
 export interface ViewFrame {

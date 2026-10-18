@@ -3,6 +3,7 @@
     import { AttackMarkKind, type AttackMark } from '$lib/model/attackMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
+        ARROW_EDGE_WIDTH,
         ATTACK_ARROW_ASIDE,
         ATTACK_ARROW_PATH,
         COUNTER_ARROW_ASIDE,
@@ -37,7 +38,7 @@
     <g
         transform="rotate({attackMarkerAngle(bar)})"
         stroke="#f1ecdc"
-        stroke-width="2.5"
+        stroke-width={ARROW_EDGE_WIDTH}
         stroke-linejoin="round"
     >
         <g transform={countering ? `translate(0 ${ATTACK_ARROW_ASIDE})` : undefined}>

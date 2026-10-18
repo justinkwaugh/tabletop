@@ -114,7 +114,9 @@ write(
 
 const firedLastRound = (game, from, into) =>
     game.arrange((state) => {
-        state.artilleryFire = { [String(approach(from, into))]: state.round - 1 }
+        state.playerOf(Side.French).artilleryFire = {
+            [String(approach(from, into))]: state.round - 1
+        }
     })
 
 const flatGuns = frenchTurn(
@@ -142,6 +144,41 @@ write(
     'Guns that fired last round, down from a hill',
     hillGuns
 )
+
+const CENTRE = 83
+const crowded = frenchTurn(
+    [
+        french('F01', artillery(), CENTRE, { facing: FLAT_INTO }),
+        french('F02', artillery(), CENTRE, { facing: FLAT_INTO }),
+        french('F03', artillery(), CENTRE, { facing: FLAT_FROM }),
+        french('F04', infantry(3), CENTRE, { commanderId: 'st-hilaire', facing: WIDE_INTO }),
+        french('F05', artillery(), CENTRE, { commanderId: 'st-hilaire', facing: WIDE_INTO }),
+        french('F06', infantry(3), CENTRE, { commanderId: 'vandamme' }),
+        french('F07', infantry(2), CENTRE, { commanderId: 'vandamme' }),
+        french('F08', infantry(3), CENTRE, { commanderId: 'legrand', facing: 95 }),
+        allied('A01', artillery(), FLAT_INTO, { facing: CENTRE }),
+        ...alliedCorps('miloradovich', FLAT_INTO, ['A02', 'A03']),
+        allied('A04', artillery(), FLAT_FROM, { facing: CENTRE }),
+        ...alliedCorps('kollowrath', FLAT_FROM, ['A05', 'A06']),
+        ...alliedCorps('prebyshevsky', WIDE_INTO, ['A07', 'A08', 'A09']),
+        ...alliedCorps('langeron', 95, ['A10', 'A11'])
+    ],
+    { round: 3 }
+)
+crowded.arrange((state) => {
+    const fired = (from, into, roundsAgo) => [String(approach(from, into)), state.round - roundsAgo]
+    state.playerOf(Side.French).artilleryFire = Object.fromEntries([
+        fired(CENTRE, FLAT_INTO, 1),
+        fired(CENTRE, FLAT_FROM, 0),
+        fired(CENTRE, WIDE_INTO, 1)
+    ])
+    state.limits.bombardedApproaches = [approach(CENTRE, FLAT_FROM)]
+    state.playerOf(Side.Allied).artilleryFire = Object.fromEntries([
+        fired(FLAT_INTO, CENTRE, 1),
+        fired(FLAT_FROM, CENTRE, 1)
+    ])
+})
+write('guns-resting-on-a-crowded-front', 'Guns resting on a crowded front', crowded)
 
 write(
     'second-attack-after-a-repulse-or-feint',

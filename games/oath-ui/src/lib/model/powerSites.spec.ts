@@ -77,8 +77,8 @@ function table(
     return state
 }
 
-function usingPowers(state = table()): OathGameSession {
-    const session = openSessionOn(tableOf(state))
+async function usingPowers(state = table()): Promise<OathGameSession> {
+    const session = await openSessionOn(tableOf(state))
     session.chooseAction(ActionType.UseActionPower)
     return session
 }
@@ -107,8 +107,8 @@ function siteOf(session: OathGameSession, cardId: string): string | undefined {
 }
 
 describe('a power’s site on the lit map: one pick for the whole panel', () => {
-    it('every site either power takes is lit, each chip naming the rows a tap there fills, in the panel’s order', () => {
-        const session = usingPowers()
+    it('every site either power takes is lit, each chip naming the rows a tap there fills, in the panel’s order', async () => {
+        const session = await usingPowers()
         const listed = session.actionPowers.powers.map((p) => p.cardId)
         expect([...listed].sort()).toEqual([CAPTAINS, SIEGE_ENGINES].sort())
         const both = listed.indexOf(CAPTAINS) < listed.indexOf(SIEGE_ENGINES) ? 'Campaign · Kill 2' : 'Kill 2 · Campaign'
@@ -127,8 +127,8 @@ describe('a power’s site on the lit map: one pick for the whole panel', () => 
         }
     })
 
-    it('a tap on a site one row lacks fills only the other; that row keeps “tap a lit site.”', () => {
-        const session = usingPowers()
+    it('a tap on a site one row lacks fills only the other; that row keeps “tap a lit site.”', async () => {
+        const session = await usingPowers()
         session.actionPowers.pickSite('c1')
         expect(siteOf(session, SIEGE_ENGINES)).toBe('c1')
         expect(siteOf(session, CAPTAINS)).toBeUndefined()
@@ -139,8 +139,8 @@ describe('a power’s site on the lit map: one pick for the whole panel', () => 
         expect(lit(session).map(([slot]) => slot)).toEqual(['c1', 'c2', 'p1'])
     })
 
-    it('a tap on a site both rows offer fills both, and nothing is sent until a Use is pressed', () => {
-        const session = usingPowers()
+    it('a tap on a site both rows offer fills both, and nothing is sent until a Use is pressed', async () => {
+        const session = await usingPowers()
         const before = session.gameState.actionCount
         session.actionPowers.pickSite('c2')
         expect(siteOf(session, CAPTAINS)).toBe('c2')
@@ -154,8 +154,8 @@ describe('a power’s site on the lit map: one pick for the whole panel', () => 
         expect(session.gameState.actionCount).toBe(before)
     })
 
-    it('a tap elsewhere moves the one ring: a row that lacks the new site lets its old one go', () => {
-        const session = usingPowers()
+    it('a tap elsewhere moves the one ring: a row that lacks the new site lets its old one go', async () => {
+        const session = await usingPowers()
         session.actionPowers.pickSite('c2')
         session.actionPowers.pickSite('p1')
         expect(siteOf(session, CAPTAINS)).toBe('p1')
@@ -163,15 +163,15 @@ describe('a power’s site on the lit map: one pick for the whole panel', () => 
         expect(ringed(session)).toEqual(['p1'])
     })
 
-    it('a site no listed power can take is no pick', () => {
-        const session = usingPowers()
+    it('a site no listed power can take is no pick', async () => {
+        const session = await usingPowers()
         session.actionPowers.pickSite('p2')
         expect(session.actionPowers.hasManualSelection()).toBe(false)
         expect(ringed(session)).toEqual([])
     })
 
-    it('Undo takes back the last tap, then the one before, then nothing is left', () => {
-        const session = usingPowers()
+    it('Undo takes back the last tap, then the one before, then nothing is left', async () => {
+        const session = await usingPowers()
         session.actionPowers.pickSite('c2')
         session.actionPowers.pickSite('c1')
         expect(session.actionPowers.back()).toBe(true)
@@ -182,16 +182,16 @@ describe('a power’s site on the lit map: one pick for the whole panel', () => 
         expect(session.actionPowers.back()).toBe(false)
     })
 
-    it('a tap on the ringed site again changes nothing, and is no tap for Undo', () => {
-        const session = usingPowers()
+    it('a tap on the ringed site again changes nothing, and is no tap for Undo', async () => {
+        const session = await usingPowers()
         session.actionPowers.pickSite('c2')
         session.actionPowers.pickSite('c2')
         expect(session.actionPowers.back()).toBe(true)
         expect(session.actionPowers.hasManualSelection()).toBe(false)
     })
 
-    it('R-7.1.2 — a card holding its cost is not listed, so only the other power wants a site', () => {
-        const session = usingPowers(table({}, { cardTokens: { [SIEGE_ENGINES]: { favor: 1, secrets: 0 } } }))
+    it('R-7.1.2 — a card holding its cost is not listed, so only the other power wants a site', async () => {
+        const session = await usingPowers(table({}, { cardTokens: { [SIEGE_ENGINES]: { favor: 1, secrets: 0 } } }))
         expect(session.actionPowers.powers.map((p) => p.cardId)).toEqual([CAPTAINS])
         expect(lit(session)).toEqual([
             ['c2', 'Campaign'],
@@ -199,9 +199,9 @@ describe('a power’s site on the lit map: one pick for the whole panel', () => 
         ])
     })
 
-    it('a row with one legal site starts with it picked and stays out of the shared pick', () => {
+    it('a row with one legal site starts with it picked and stays out of the shared pick', async () => {
         // Rhys's 2 leave the Drowned City; Dana rules only the Plains.
-        const session = usingPowers(table({}, { warbandsBySite: { c2: { [IMPERIAL_WARBANDS]: 2 } } }))
+        const session = await usingPowers(table({}, { warbandsBySite: { c2: { [IMPERIAL_WARBANDS]: 2 } } }))
         const captains = powerOf(session, CAPTAINS)
         expect(session.actionPowers.siteRow(captains, 0)).toMatchObject({ made: true, picked: 'c2', sites: ['c2'] })
         expect(session.actionPowers.picksComplete(captains)).toBe(true)
@@ -215,14 +215,14 @@ describe('a power’s site on the lit map: one pick for the whole panel', () => 
         expect(siteOf(session, SIEGE_ENGINES)).toBe('c1')
     })
 
-    it('a phone’s region chips count the lit sites', () => {
-        const session = usingPowers()
+    it('a phone’s region chips count the lit sites', async () => {
+        const session = await usingPowers()
         expect(session.mapPick?.kind).toBe('power')
         expect([...(session.mapPick?.sites ?? [])].sort()).toEqual(['c1', 'c2', 'p1'])
     })
 
-    it('choosing another action ends the pick: nothing is lit', () => {
-        const session = usingPowers()
+    it('choosing another action ends the pick: nothing is lit', async () => {
+        const session = await usingPowers()
         session.actionPowers.pickSite('c2')
         session.chooseAction(ActionType.Travel)
         expect(lit(session)).toEqual([])
@@ -237,8 +237,8 @@ describe('Palanquin: its sites light once its player is picked, and only where t
         return table({ advisers: [{ cardId: PALANQUIN, faceUp: true }] }, {}, { rhys: 'c1', ann: 'c1' })
     }
 
-    it('nothing is lit before its player chip; then every other site the player could travel to', () => {
-        const session = usingPowers(palanquinTable())
+    it('nothing is lit before its player chip; then every other site the player could travel to', async () => {
+        const session = await usingPowers(palanquinTable())
         const palanquin = powerOf(session, PALANQUIN)
         const siteSpec = palanquin.choices.findIndex((legal) => legal.spec.kind === PowerChoiceKind.Site)
         expect(session.actionPowers.siteRow(palanquin, siteSpec)).toMatchObject({ ready: false, sites: [] })
@@ -262,8 +262,8 @@ describe('Palanquin: its sites light once its player is picked, and only where t
         expect(Object.fromEntries(carried)).toMatchObject({ c2: 'Carry · Campaign', p2: 'Carry' })
     })
 
-    it('a site the engine refuses for the picked player is never kept, even when tapped before', () => {
-        const session = usingPowers(palanquinTable())
+    it('a site the engine refuses for the picked player is never kept, even when tapped before', async () => {
+        const session = await usingPowers(palanquinTable())
         const palanquin = powerOf(session, PALANQUIN)
         const rhys = palanquin.choices[0].options.findIndex(
             (option) => option.kind === PowerChoiceKind.Player && option.playerId === 'rhys'
@@ -276,8 +276,8 @@ describe('Palanquin: its sites light once its player is picked, and only where t
 })
 
 describe('the Ivory Eye: a facedown site is offered only while nothing else is picked to peek at', () => {
-    it('lights the facedown site with “Peek”, not a faceup one; an optional pick is not made for the player', () => {
-        const session = usingPowers(table({ advisers: [], relicIds: [IVORY_EYE] }))
+    it('lights the facedown site with “Peek”, not a faceup one; an optional pick is not made for the player', async () => {
+        const session = await usingPowers(table({ advisers: [], relicIds: [IVORY_EYE] }))
         const eye = powerOf(session, IVORY_EYE)
         const siteSpec = eye.choices.findIndex((legal) => legal.spec.kind === PowerChoiceKind.Site)
         expect(session.actionPowers.siteRow(eye, siteSpec)).toMatchObject({ sites: ['h3'], made: false, picked: undefined })
@@ -311,8 +311,8 @@ describe('Resettle: its site lights once its card is picked', () => {
             { advisers: [{ cardId: ELDERS, faceUp: true }, { cardId: STEED, faceUp: true }] }
         )
 
-    it('nothing is lit for it before the card; then every site with room, and the full Great Slum, which a discard first opens', () => {
-        const session = usingPowers(resettleTable())
+    it('nothing is lit for it before the card; then every site with room, and the full Great Slum, which a discard first opens', async () => {
+        const session = await usingPowers(resettleTable())
         const resettle = powerOf(session, RESETTLE)
         expect(session.actionPowers.siteRow(resettle, 1)).toMatchObject({ ready: false, sites: [] })
         expect(lit(session).filter(([, words]) => words.includes('Place it'))).toEqual([])
@@ -340,16 +340,16 @@ describe('revision 8: Captains and Wild Allies light only the sites the engine o
         pawns: { ann?: string } = {}
     ) => table(dana, { oathRevision: OathRevision.EngineFixes4, ...over }, pawns)
 
-    it('Captains: a site Dana rules with no one there to defend it is not lit; before revision 8 it was', () => {
+    it('Captains: a site Dana rules with no one there to defend it is not lit; before revision 8 it was', async () => {
         // Ann's pawn leaves the Great Slum, which Dana rules with the Empire's 3: no one defends it.
-        const fixed = usingPowers(at8({ advisers: [] }, {}, { ann: 'h1' }))
+        const fixed = await usingPowers(at8({ advisers: [] }, {}, { ann: 'h1' }))
         expect(fixed.actionPowers.siteRow(powerOf(fixed, CAPTAINS), 0)).toMatchObject({
             sites: ['c2'],
             picked: 'c2',
             made: true
         })
         expect(lit(fixed)).toEqual([])
-        const older = usingPowers(table({ advisers: [] }, {}, { ann: 'h1' }))
+        const older = await usingPowers(table({ advisers: [] }, {}, { ann: 'h1' }))
         expect(older.actionPowers.siteRow(powerOf(older, CAPTAINS), 0)?.sites).toEqual(['c2', 'p1'])
         expect(lit(older)).toEqual([
             ['c2', 'Campaign'],
@@ -357,7 +357,7 @@ describe('revision 8: Captains and Wild Allies light only the sites the engine o
         ])
     })
 
-    it('Wild Allies: The Hidden Place is lit only while a secret is left to flip once its cost has placed one', () => {
+    it('Wild Allies: The Hidden Place is lit only while a secret is left to flip once its cost has placed one', async () => {
         // Beast cards at the Drowned City, which Rhys rules, and at the Great Slum, here The Hidden Place,
         // where Ann stands; no Captains.
         const scene = (secrets: number) =>
@@ -376,11 +376,11 @@ describe('revision 8: Captains and Wild Allies light only the sites the engine o
                     }
                 }
             )
-        const one = usingPowers(scene(1))
+        const one = await usingPowers(scene(1))
         expect(one.actionPowers.siteRow(powerOf(one, WILD_ALLIES), 0)?.sites).toEqual(['c1'])
         // One site left: it starts picked, and nothing is lit.
         expect(lit(one)).toEqual([])
-        const two = usingPowers(scene(2))
+        const two = await usingPowers(scene(2))
         expect(two.actionPowers.siteRow(powerOf(two, WILD_ALLIES), 0)?.sites).toEqual(['c1', 'p1'])
         expect(lit(two)).toEqual([
             ['c1', 'Campaign'],

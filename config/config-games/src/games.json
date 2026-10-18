@@ -66,5 +66,9 @@
   {
     "gameId": "reef-encounter",
     "packageId": "reef-encounter"
+  },
+  {
+    "gameId": "railheads",
+    "packageId": "railheads"
   }
 ]

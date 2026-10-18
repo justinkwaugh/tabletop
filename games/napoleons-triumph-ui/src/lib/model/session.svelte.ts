@@ -30,6 +30,7 @@ import {
     validateAttach,
     type CommandKind,
     type Commander,
+    type EndedAttack,
     type Face,
     type FeintEnd,
     type HydratedNapoleonsTriumphGameState,
@@ -40,7 +41,8 @@ import {
     type ProjectedUnit,
     Side
 } from '@tabletop/napoleons-triumph'
-import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
+import { inwardsFromTheEdge } from '$lib/map/battlefield.js'
+import { CAPACITY_BOXES, ENTRY_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { shadeOf, type ArmyColors } from '$lib/utils/armyColors.js'
 import { BoardView, viewRotation } from '$lib/utils/boardView.js'
 import { commandDiscs } from '$lib/utils/commandTrack.js'
@@ -49,20 +51,44 @@ import { sameIds } from '$lib/utils/ids.js'
 import { moraleMarkers, type MoraleMarker } from '$lib/utils/moraleTrack.js'
 import { timeMarker } from '$lib/utils/timeTrack.js'
 import { inReadingOrder } from '$lib/utils/unitTypeOrder.js'
-import { numberOfTrail } from '$lib/utils/trailNumber.js'
-import { lineSamples } from '$lib/utils/wayArrow.js'
+import { numberOfTrail, trailNumberOutline } from '$lib/utils/trailNumber.js'
+import { drawnArrowOutlines, lineSamples } from '$lib/utils/wayArrow.js'
+import {
+    WAY_SIGN_REACH,
+    waySignArrow,
+    waySignOutline,
+    type WaySignArrow
+} from '$lib/utils/waySign.js'
+import { retreatArrowOutlines, retreatArrows, type RetreatArrow } from '$lib/utils/retreatArrows.js'
 import {
     arrowsToKeepClear,
     flagMarks,
+    flagOutlines,
     flagScale,
     type FlagBearer,
     type FlagMark,
     type FlagView,
     type PlantedFlag
 } from '$lib/utils/flagLayout.js'
-import { topmostAt } from '$lib/utils/blockShape.js'
-import { approachPlates, plateSamples, type ApproachPlate } from '$lib/utils/approachPlates.js'
-import { SYMBOL_TAGS, type SymbolTag } from '$lib/utils/approachSymbols.js'
+import { blockOutline, topmostAt } from '$lib/utils/blockShape.js'
+import {
+    approachPlates,
+    plateOutlines,
+    plateSamples,
+    type ApproachPlate
+} from '$lib/utils/approachPlates.js'
+import { capacityTags, type CapacityTag } from '$lib/utils/capacityTags.js'
+import { gunTags, type GunTag } from '$lib/utils/gunTags.js'
+import {
+    SYMBOL_TAGS,
+    approachSymbolScale,
+    placeSymbolTags,
+    printedMarksCovered,
+    type PlacedSymbolTag
+} from '$lib/utils/approachSymbols.js'
+import { THREAT_ARROW, arrowOutlines, attackMarkerScale } from '$lib/utils/attackMarker.js'
+import type { ConvexOutline } from '$lib/utils/convexOutline.js'
+import { boxSamples, cornersOf } from '$lib/utils/orientedBox.js'
 import {
     heldApproaches,
     layoutPieces,
@@ -90,6 +116,7 @@ import {
     battleStageOf,
     commandersGoing,
     committedUnits,
+    foldsAway,
     knownToTheEnemy,
     liftRetreatingCommander,
     keptByCommander,
@@ -150,7 +177,7 @@ import {
 import { guardUnitsToAnnounce } from './guardAttack.js'
 import { historyChapters, type HistoryChapter, type HistoryLine } from './historyChapters.js'
 import { lossesOfAttack, type AttackLosses } from './attackLosses.js'
-import { attackMarkOf, type AttackMark } from './attackMark.js'
+import { arrowDrawingOf, attackMarkOf, type AttackMark } from './attackMark.js'
 import { fightOf, recordedAccounts, verdictOf, type ResultAccounts } from './resultAccount.js'
 import { turnTrails, type Trail } from './turnTrails.js'
 import {
@@ -205,9 +232,11 @@ import {
     type AttackTarget,
     type MarchTarget,
     type MoveTarget,
+    type WaySign,
     type WayTarget
 } from './targets.js'
-import { traceWays, type Way, type WayChoice, type WayStep } from './ways.js'
+import { WayStepKind, traceWays, type Way, type WayChoice, type WayStep } from './ways.js'
+import { concludedBattleOf, type ConcludedBattle } from './concludedBattle.js'
 
 type ZoomSource = () => number | undefined
 
@@ -240,7 +269,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     approachSymbolsShown = $state(false)
 
-    movementTrailsShown = $state(false)
+    movementTrailsShown = $derived(this.preferences.values.movementTrails)
+
+    capacitiesShown = $derived(this.preferences.values.localeCapacities)
 
     pictureShowsUnitTypes = $state(true)
 
@@ -249,6 +280,18 @@ export class NapoleonsTriumphGameSession extends GameSession<
     boardRotation = $derived(viewRotation(this.boardView))
 
     attack = $derived(this.gameState.attack)
+
+    concludedBattle: ConcludedBattle | undefined = $derived(
+        this.isViewingHistory ? undefined : concludedBattleOf(this.history.visibleContext)
+    )
+
+    private concludedBattleSetAside = $state(false)
+
+    setConcludedBattleAside() {
+        this.concludedBattleSetAside = true
+    }
+
+    shownAttack: EndedAttack | undefined = $derived(this.attack ?? this.concludedBattle?.attack)
 
     myPlayerId = $derived(this.myPlayer?.id)
 
@@ -378,15 +421,39 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     approachPlates: ApproachPlate[] = $derived(approachPlates(this.heldApproaches))
 
-    approachSymbolTags: SymbolTag[] = $derived.by(() => {
-        if (!this.approachSymbolsShown) {
-            return []
-        }
+    approachSymbolTags: PlacedSymbolTag[] = $derived.by(() => {
         const onPlates = this.approachPlates.map((plate) => plate.side)
-        return SYMBOL_TAGS.filter((tag) => !onPlates.includes(tag.key))
+        const arrows = this.arrowOutlines
+        const shown = SYMBOL_TAGS.filter(
+            (tag) =>
+                !onPlates.includes(tag.key) &&
+                (this.approachSymbolsShown || printedMarksCovered(tag, arrows))
+        )
+        return placeSymbolTags(shown, approachSymbolScale(this.zoom), arrows)
     })
 
-    flagView: FlagView = $derived({ rotation: this.boardRotation, scale: flagScale(this.zoom) })
+    private threatArrowApproaches: number[] = $derived.by(() => [
+        ...threatenedApproaches(this.targets),
+        ...(this.threatBeingDeclared ? [this.threatBeingDeclared.position.approach] : [])
+    ])
+
+    private arrowOutlines: ConvexOutline[] = $derived.by(() => {
+        const scale = attackMarkerScale(this.zoom)
+        const mark = this.attackMark
+        return [
+            ...(mark ? arrowOutlines(mark.approach, scale, arrowDrawingOf(mark)) : []),
+            ...this.threatArrowApproaches.flatMap((approach) =>
+                arrowOutlines(approach, scale, THREAT_ARROW)
+            )
+        ]
+    })
+
+    gunTags: GunTag[] = $derived(gunTags(this.gameState, this.boardRotation, this.arrowOutlines))
+
+    // A number, not the view object, so what is sized by it is worked out again only when the scale changes.
+    private flagSize: number = $derived(flagScale(this.zoom))
+
+    flagView: FlagView = $derived({ rotation: this.boardRotation, scale: this.flagSize })
 
     private plantedFlags: PlantedFlag[] = $derived.by(() => {
         const playerId = this.myPlayerId
@@ -404,8 +471,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     flags: FlagMark[] = $derived.by(() => {
         const arrowApproaches = [
             ...(this.attack ? [this.attack.attackApproach] : []),
-            ...threatenedApproaches(this.targets),
-            ...(this.threatBeingDeclared ? [this.threatBeingDeclared.position.approach] : [])
+            ...this.threatArrowApproaches
         ]
         return flagMarks(
             this.sprites,
@@ -413,6 +479,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
             [
                 ...arrowsToKeepClear(arrowApproaches, this.zoom),
                 ...plateSamples(this.approachPlates),
+                ...this.gunTags.flatMap((tag) => boxSamples(tag.box)),
+                ...this.approachSymbolTags.flatMap((tag) =>
+                    tag.slid ? boxSamples(tag.cover) : []
+                ),
+                ...Object.values(CAPACITY_BOXES),
                 ...this.movementTrails.flatMap((trail) => [
                     ...lineSamples(trail.line),
                     numberOfTrail(trail, this.flagView.scale).at
@@ -421,6 +492,59 @@ export class NapoleonsTriumphGameSession extends GameSession<
             (group) => this.flagBearer(group, this.hasCommanded(group)),
             this.plantedFlags
         )
+    })
+
+    waySigns: WaySign[] = $derived.by(() => {
+        const scale = this.flagSize
+        return this.targets.flatMap((target) =>
+            target.kind === TargetKind.Way ? [{ target, ...this.waySignOf(target, scale) }] : []
+        )
+    })
+
+    private waySignOf({ step }: WayTarget, scale: number): { at: Point; arrow: WaySignArrow } {
+        const anchorOf = (locale: number | undefined): Point | undefined =>
+            locale === undefined ? undefined : LOCALE_GEOMETRY[locale].anchor
+        if (step.kind === WayStepKind.Entry) {
+            const entry = ENTRY_GEOMETRY[step.entryId].at
+            const inwards = inwardsFromTheEdge(entry)
+            const clear = WAY_SIGN_REACH * scale
+            const at = { x: entry.x + inwards.x * clear, y: entry.y + inwards.y * clear }
+            return { at, arrow: waySignArrow(at, entry, undefined) }
+        }
+        const at = LOCALE_GEOMETRY[step.locale].anchor
+        const comesFrom = anchorOf(step.before) ?? this.selectedSprite?.centre
+        return { at, arrow: waySignArrow(at, comesFrom, anchorOf(step.after)) }
+    }
+
+    retreatArrows: RetreatArrow[] = $derived.by(() => {
+        const stage = this.battleStage
+        const [, from] = this.battleLocales
+        return stage?.kind === StageKind.Retreat && from !== undefined
+            ? retreatArrows(from, stage.plan.destinations)
+            : []
+    })
+
+    // Placed after the flags and kept off them, so no flag hides a capacity; the flags keep off the printed boxes instead.
+    capacityTags: CapacityTag[] = $derived.by(() => {
+        const map = this.gameState.map
+        return capacityTags((locale) => map.locale(locale).capacity, {
+            allShown: this.capacitiesShown,
+            scale: this.flagSize,
+            obstacles: [
+                ...this.sprites.flatMap((sprite) => sprite.blocks.map(blockOutline)),
+                ...this.arrowOutlines,
+                ...plateOutlines(this.approachPlates),
+                ...this.gunTags.map((tag) => cornersOf(tag.box)),
+                ...this.approachSymbolTags.map((tag) => cornersOf(tag.cover)),
+                ...this.movementTrails.flatMap((trail) => [
+                    ...drawnArrowOutlines(trail.arrow),
+                    trailNumberOutline(numberOfTrail(trail, this.flagSize))
+                ]),
+                ...this.retreatArrows.flatMap(retreatArrowOutlines),
+                ...this.waySigns.map(({ at }) => waySignOutline(at, this.flagSize)),
+                ...this.flags.flatMap((flag) => flagOutlines(flag, this.flagView))
+            ]
+        })
     })
 
     chapters: HistoryChapter[] = $derived(
@@ -466,15 +590,21 @@ export class NapoleonsTriumphGameSession extends GameSession<
             : undefined
     })
 
+    actionPanelFolded = $derived(this.preferences.values.actionPanelFolded)
+
+    battlePanelFoldable: boolean = $derived(foldsAway(this.battleStage))
+
+    battlePanelShownFolded: boolean = $derived(this.actionPanelFolded && this.battlePanelFoldable)
+
     battleRoles: Record<string, BattleRole> = $derived(rolesShown(this.attack, this.battleStage))
     /** The roles the units of the fight were named to, whatever is being picked in the step now open. */
     foughtRoles: Record<string, BattleRole> = $derived(
-        this.attack ? committedRoles(this.attack) : {}
+        this.shownAttack ? committedRoles(this.shownAttack) : {}
     )
 
     /** Which way the settled result of the attack in progress decides it, and why. */
     attackVerdict: string | undefined = $derived.by(() => {
-        const attack = this.attack
+        const attack = this.shownAttack
         if (!attack || attack.finalResult === undefined || attack.attackerWon === undefined) {
             return undefined
         }
@@ -483,7 +613,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     attackLosses: AttackLosses | undefined = $derived(
-        this.attack ? lossesOfAttack(this.history.visibleContext.actions, this.attack) : undefined
+        this.shownAttack
+            ? lossesOfAttack(this.history.visibleContext.actions, this.shownAttack)
+            : undefined
     )
 
     attackMark: AttackMark | undefined = $derived(
@@ -503,6 +635,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     // Rule 11: cavalry that has taken a locale by road may ride on.
     private openRoadMarch = $derived(this.isCommanding ? this.gameState.roadMarch : undefined)
+
+    private turnedToOrders = $derived(
+        this.concludedBattleSetAside ||
+            hasManualCommandSelection(this.selection) ||
+            this.openRoadMarch !== undefined
+    )
+
+    showsConcludedBattle = $derived(
+        this.concludedBattle !== undefined && !(this.isCommanding && this.turnedToOrders)
+    )
 
     private riderIds: string[] = $derived(this.openRoadMarch?.unitIds ?? [])
 
@@ -1295,6 +1437,18 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.preferences.set({ darkBorders })
     }
 
+    setMovementTrailsShown(movementTrails: boolean) {
+        this.preferences.set({ movementTrails })
+    }
+
+    setCapacitiesShown(localeCapacities: boolean) {
+        this.preferences.set({ localeCapacities })
+    }
+
+    setActionPanelFolded(actionPanelFolded: boolean) {
+        this.preferences.set({ actionPanelFolded })
+    }
+
     async visitMoveReplay() {
         const replay = this.moveReplay
         this.openedReplay = undefined
@@ -1327,6 +1481,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     resetAction() {
+        this.concludedBattleSetAside = false
         this.spreadLocale = undefined
         this.wayUnderPointer = undefined
         this.selection = noCommandSelection()

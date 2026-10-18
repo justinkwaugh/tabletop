@@ -32,6 +32,11 @@
         onclick={(event) => event.stopPropagation()}
         onkeydown={closeOnEscape}
     >
+        <button
+            class="close reef-display"
+            aria-label="Close the player aid"
+            onclick={() => gameSession.closePlayerAid()}>×</button
+        >
         <img
             src={ReferenceCard}
             width="800"
@@ -53,8 +58,13 @@
     }
 
     .aid {
+        position: relative;
         margin: auto;
         outline: none;
+    }
+
+    .close {
+        display: none;
     }
 
     img {
@@ -65,5 +75,38 @@
         max-height: 100cqh;
         border-radius: 12px;
         box-shadow: 0 8px 28px rgb(0 0 0 / 0.45);
+    }
+
+    @media (max-width: 639px) {
+        .backdrop {
+            position: fixed;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+                env(safe-area-inset-left);
+            /* The card's own water, so the screen reads as one card. */
+            background: rgb(145 189 171);
+        }
+
+        img {
+            max-width: 100cqw;
+            border-radius: 0;
+            box-shadow: none;
+            mask-image: linear-gradient(transparent, black 3%, black 97%, transparent);
+        }
+
+        .close {
+            position: fixed;
+            top: calc(env(safe-area-inset-top) + 10px);
+            right: calc(env(safe-area-inset-right) + 10px);
+            display: grid;
+            place-items: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            font-size: 24px;
+            line-height: 1;
+            color: var(--reef-paper-ink);
+            background: rgb(255 255 255 / 0.85);
+            box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+        }
     }
 </style>

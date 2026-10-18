@@ -95,13 +95,13 @@ describe('choosing targets', () => {
 
 afterEach(disposeSessions)
 
-function campaigning(warbands = 4, oathRevision?: OathRevision) {
+async function campaigning(warbands = 4, oathRevision?: OathRevision) {
     const state = board()
     if (oathRevision !== undefined) state.oathRevision = oathRevision
     state.players[0].warbandsOnBoard = { [ME]: warbands }
     state.players[0].advisers = [{ cardId: HUNTER, faceUp: true }]
     state.players[0].adviserIds = [HUNTER]
-    const session = openSessionOn(tableOf(state))
+    const session = await openSessionOn(tableOf(state))
     session.chooseAction(ActionType.Campaign)
     return session
 }
@@ -112,8 +112,8 @@ const FOES_RELIC: CampaignTarget = { kind: CampaignTargetKind.Relic, cardId: 're
 
 /** The five cases `docs/user-interactions.md` requires of each staged flow, for the Campaign draft. */
 describe('the Campaign draft (docs/user-interactions.md)', () => {
-    it('choosing the defender clears the plans, targets and dice chosen under the last one', () => {
-        const draft = campaigning().campaign
+    it('choosing the defender clears the plans, targets and dice chosen under the last one', async () => {
+        const draft = (await campaigning()).campaign
         draft.chooseDefender(FOE_DEFENDS)
         draft.declarePlan(HUNTER_PLAN, true)
         draft.toggleTarget(FOES_RELIC)
@@ -128,7 +128,7 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
     })
 
     it('Undo takes the last target, then the plan, then the defender', async () => {
-        const session = campaigning()
+        const session = await campaigning()
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
         draft.declarePlan(HUNTER_PLAN, true)
@@ -152,7 +152,7 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
     })
 
     it('a pool of one die is taken for the player and is not a pick Undo returns to', async () => {
-        const session = campaigning(1)
+        const session = await campaigning(1)
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
         expect(draft.attackDice).toBe(1)
@@ -161,8 +161,8 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         expect(draft.hasManualSelection()).toBe(false)
     })
 
-    it('a larger pool waits for the player to choose it', () => {
-        const draft = campaigning(3).campaign
+    it('a larger pool waits for the player to choose it', async () => {
+        const draft = (await campaigning(3)).campaign
         draft.chooseDefender(FOE_DEFENDS)
         expect(draft.attackDice).toBeUndefined()
         expect(draft.complete).toBe(false)
@@ -172,7 +172,7 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         const state = board()
         // R-5.5.1 — the foe rules the attacker's site, so the bandits cannot be chosen.
         state.warbandsBySite = { ...state.warbandsBySite, c1: { [FOE]: 1 } }
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         session.chooseAction(ActionType.Campaign)
         const draft = session.campaign
         expect(draft.defenderOptions).toEqual([FOE_DEFENDS])
@@ -187,14 +187,14 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         expect(draft.hasManualSelection()).toBe(false)
     })
 
-    it('two legal defenders wait for the player to pick one', () => {
-        const draft = campaigning().campaign
+    it('two legal defenders wait for the player to pick one', async () => {
+        const draft = (await campaigning()).campaign
         expect(draft.defenderOptions).toEqual([FOE_DEFENDS, BANDITS])
         expect(draft.defender).toBeUndefined()
     })
 
-    it('Declare waits for a target and the dice, and no reason is read before then', () => {
-        const draft = campaigning(3).campaign
+    it('Declare waits for a target and the dice, and no reason is read before then', async () => {
+        const draft = (await campaigning(3)).campaign
         draft.chooseDefender(FOE_DEFENDS)
         expect(draft.complete).toBe(false)
         draft.toggleTarget(FOES_RELIC)
@@ -205,11 +205,11 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         expect(draft.refusedBecause).toBeUndefined()
     })
 
-    it('R-5.5.2 — the pool runs to the warbands in the force, those at a site it reaches included', () => {
+    it('R-5.5.2 — the pool runs to the warbands in the force, those at a site it reaches included', async () => {
         const state = board()
         state.warbandsBySite = { ...state.warbandsBySite, c2: { [ME]: 2, [FOE]: 2 } }
         state.players[0].campaignAsIf = { siteId: 'c2', atAction: state.actionCount }
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         session.chooseAction(ActionType.Campaign)
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
@@ -218,20 +218,20 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         expect(draft.attackDice).toBe(6)
     })
 
-    it('R-5.5.2 — an empty pool may be chosen, even when one die was taken for the player', () => {
-        const draft = campaigning(3).campaign
+    it('R-5.5.2 — an empty pool may be chosen, even when one die was taken for the player', async () => {
+        const draft = (await campaigning(3)).campaign
         draft.chooseDefender(FOE_DEFENDS)
         draft.setAttackDice(0)
         expect(draft.attackDice).toBe(0)
 
-        const single = campaigning(1).campaign
+        const single = (await campaigning(1)).campaign
         single.chooseDefender(FOE_DEFENDS)
         single.setAttackDice(0)
         expect(single.attackDice).toBe(0)
     })
 
-    it('dropping the plan drops the relics it offered and keeps the chosen dice', () => {
-        const draft = campaigning().campaign
+    it('dropping the plan drops the relics it offered and keeps the chosen dice', async () => {
+        const draft = (await campaigning()).campaign
         draft.chooseDefender(FOE_DEFENDS)
         draft.declarePlan(HUNTER_PLAN, true)
         draft.toggleTarget(FOES_RELIC)
@@ -244,8 +244,8 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         expect(draft.attackDice).toBe(2)
     })
 
-    it('leaving the Campaign ends its draft', () => {
-        const session = campaigning()
+    it('leaving the Campaign ends its draft', async () => {
+        const session = await campaigning()
         session.campaign.chooseDefender(FOE_DEFENDS)
         session.chooseAction(ActionType.Travel)
         expect(session.campaign.open).toBe(false)
@@ -290,7 +290,7 @@ function sneakAttackOffered(): PlayedTable {
 
 describe('the Campaign draft in a Sneak Attack', () => {
     it('the card names the defender, which Undo never returns to; Undo leaves for the question', async () => {
-        const session = openSessionOn(sneakAttackOffered())
+        const session = await openSessionOn(sneakAttackOffered())
         expect(session.myPlayer?.id).toBe(FOE)
         await session.question.accept()
         const draft = session.campaign
@@ -313,11 +313,11 @@ describe('the Campaign draft in a Sneak Attack', () => {
 /** R-5.5.5, R-10.22 — before revision 7 the attacker orders where the skulls' kills come from. */
 describe('the skull-loss order', () => {
     it('is asked only for a force of more than one kind, survives the dice, and is declared', async () => {
-        const single = campaigning(3, OathRevision.UiBatch1).campaign
+        const single = (await campaigning(3, OathRevision.UiBatch1)).campaign
         single.chooseDefender(FOE_DEFENDS)
         expect(single.lossSources).toHaveLength(1)
 
-        const session = campaigning(3, OathRevision.UiBatch1)
+        const session = await campaigning(3, OathRevision.UiBatch1)
         session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 3, [IMPERIAL_WARBANDS]: 1 }
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
@@ -344,7 +344,7 @@ describe('the skull-loss order', () => {
     })
 
     it('from revision 7 is not asked: the skulls’ losses are picked after the roll, and none is declared', async () => {
-        const session = campaigning(3, OathRevision.EngineFixes3)
+        const session = await campaigning(3, OathRevision.EngineFixes3)
         session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 3, [IMPERIAL_WARBANDS]: 1 }
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
@@ -358,13 +358,13 @@ describe('the skull-loss order', () => {
 })
 
 describe('a battle plan whose text asks a choice (R-5.5.3)', () => {
-    it("Mountain Giant is declared at ±1 unless its user picks ±3", () => {
+    it("Mountain Giant is declared at ±1 unless its user picks ±3", async () => {
         const GIANT = 'denizen.nomad.mountain-giant'
         const state = board()
         state.players[0].advisers = [{ cardId: GIANT, faceUp: true }]
         state.players[0].adviserIds = [GIANT]
         state.players[0].secrets = 2
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         session.chooseAction(ActionType.Campaign)
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
@@ -390,13 +390,13 @@ describe('R-7.1.2 — the declared battle plans are judged together, as the engi
     })
 
     /** `me` rules Zealots and Slander, a favor each, and holds one favor. */
-    function twoPlans(oathRevision: OathRevision) {
+    async function twoPlans(oathRevision: OathRevision) {
         const state = board()
         state.oathRevision = oathRevision
         state.players[0].favor = 1
         state.players[0].advisers = [ZEALOTS, SLANDER].map((cardId) => ({ cardId, faceUp: true }))
         state.players[0].adviserIds = [ZEALOTS, SLANDER]
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         session.chooseAction(ActionType.Campaign)
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
@@ -405,8 +405,8 @@ describe('R-7.1.2 — the declared battle plans are judged together, as the engi
         return draft
     }
 
-    it('two plans the one favor cannot both pay are refused with the total, and one alone may be declared', () => {
-        const draft = twoPlans(OathRevision.PlanCostsAndSearchPlays)
+    it('two plans the one favor cannot both pay are refused with the total, and one alone may be declared', async () => {
+        const draft = await twoPlans(OathRevision.PlanCostsAndSearchPlays)
         draft.declarePlan(planOf(ZEALOTS), true)
         expect(draft.refusedBecause).toBeUndefined()
         expect(draft.complete).toBe(true)
@@ -416,14 +416,14 @@ describe('R-7.1.2 — the declared battle plans are judged together, as the engi
         expect(draft.refusedBecause).toBe('your battle plans cost 2 favor in all, you hold 1')
     })
 
-    it('a refusal is read only once the declaration is complete: not before the dice', () => {
+    it('a refusal is read only once the declaration is complete: not before the dice', async () => {
         const state = board()
         state.oathRevision = OathRevision.PlanCostsAndSearchPlays
         state.players[0].favor = 1
         state.players[0].warbandsOnBoard = { [ME]: 3 }
         state.players[0].advisers = [ZEALOTS, SLANDER].map((cardId) => ({ cardId, faceUp: true }))
         state.players[0].adviserIds = [ZEALOTS, SLANDER]
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         session.chooseAction(ActionType.Campaign)
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
@@ -437,8 +437,8 @@ describe('R-7.1.2 — the declared battle plans are judged together, as the engi
         expect(draft.refusedBecause).toBe('your battle plans cost 2 favor in all, you hold 1')
     })
 
-    it('R-X.4 — before revision 3 each plan is judged alone, so both may be declared', () => {
-        const draft = twoPlans(OathRevision.CostsAndFacedownModifiers)
+    it('R-X.4 — before revision 3 each plan is judged alone, so both may be declared', async () => {
+        const draft = await twoPlans(OathRevision.CostsAndFacedownModifiers)
         draft.declarePlan(planOf(ZEALOTS), true)
         draft.declarePlan(planOf(SLANDER), true)
         expect(draft.refusedBecause).toBeUndefined()
@@ -451,7 +451,7 @@ describe('R-5.5.1.a — a Citizen attacking the Chancellor is offered nothing th
     const VOW_OF_UNION = 'denizen.beast.vow-of-union'
 
     /** `me`, a Citizen with Vow of Union, attacks the Chancellor; the Empire alone holds c1 and c2. */
-    function citizenAttacks(oathRevision: OathRevision) {
+    async function citizenAttacks(oathRevision: OathRevision) {
         const state = testState(
             [
                 testPlayer({
@@ -476,22 +476,22 @@ describe('R-5.5.1.a — a Citizen attacking the Chancellor is offered nothing th
                 warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { [IMPERIAL_WARBANDS]: 2 } }
             }
         )
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         session.chooseAction(ActionType.Campaign)
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
         return draft
     }
 
-    it('lists no plan at a site only the Empire rules, and counts none of its warbands', () => {
-        const draft = citizenAttacks(OathRevision.EngineFixes2)
+    it('lists no plan at a site only the Empire rules, and counts none of its warbands', async () => {
+        const draft = await citizenAttacks(OathRevision.EngineFixes2)
         expect(draft.planOptions.map((p) => p.cardId)).not.toContain(HORSE_ARCHERS)
         expect(draft.maxDice).toBe(4)
         expect(draft.lossSources).toEqual([{ at: { kind: 'board', playerId: ME }, owner: ME }])
     })
 
-    it('R-X.4 — before revision 5 the Empire’s sites were shared', () => {
-        const draft = citizenAttacks(OathRevision.CardFixes1)
+    it('R-X.4 — before revision 5 the Empire’s sites were shared', async () => {
+        const draft = await citizenAttacks(OathRevision.CardFixes1)
         expect(draft.planOptions.map((p) => p.cardId)).toContain(HORSE_ARCHERS)
         expect(draft.maxDice).toBe(7)
     })

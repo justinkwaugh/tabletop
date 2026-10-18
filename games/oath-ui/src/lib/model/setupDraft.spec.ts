@@ -16,20 +16,20 @@ afterEach(() => {
 
 /** R-1.16 — when the bank cannot pay every site's favor, the Chancellor chooses how to place it. */
 describe('the Chancellor splits a short bank at setup', () => {
-    function short() {
+    async function short() {
         const table = setupTable()
         table.state.favorSupply = 3
         table.state.pendingSiteFavor = [
             { siteCardId: 'site.fertile-valley', wanted: 2 },
             { siteCardId: 'site.plains', wanted: 2 }
         ]
-        const session = openSessionOn(table)
+        const session = await openSessionOn(table)
         const sent = vi.spyOn(session, 'resolveSetup').mockResolvedValue()
         return { session, setup: session.setup, sent }
     }
 
     it('shows map order filled first, lets favor move between sites, and sends the split', async () => {
-        const { setup, sent } = short()
+        const { setup, sent } = await short()
         expect(setup.siteFavor).toEqual([
             { siteCardId: 'site.fertile-valley', favor: 2 },
             { siteCardId: 'site.plains', favor: 1 }
@@ -50,7 +50,7 @@ describe('the Chancellor splits a short bank at setup', () => {
 
     // R-1.23.1 — the Chancellor's site never depends on the split; R-1.16 holds only the send.
     it('a short split keeps the top Cradle site and holds the discards', async () => {
-        const { setup, sent } = short()
+        const { setup, sent } = await short()
         setup.setSiteFavor('site.plains', 0)
         expect(setup.siteFavorPlaced).toBe(2)
         expect(setup.splitWhole).toBe(false)
@@ -67,7 +67,7 @@ describe('the Chancellor splits a short bank at setup', () => {
     })
 
     it('a card kept while short stays kept when the split is made whole, and the discards start', async () => {
-        const { setup, sent } = short()
+        const { setup, sent } = await short()
         setup.setSiteFavor('site.plains', 0)
         const [keep, first, last] = setup.hand
         await setup.chooseAdviser(keep)
@@ -84,7 +84,7 @@ describe('the Chancellor splits a short bank at setup', () => {
     })
 
     it('Undo pops a card kept while short before the split under it', async () => {
-        const { session, setup } = short()
+        const { session, setup } = await short()
         setup.setSiteFavor('site.plains', 0)
         const [keep] = setup.hand
         await setup.chooseAdviser(keep)
@@ -96,14 +96,14 @@ describe('the Chancellor splits a short bank at setup', () => {
 
 /** R-1.16 on a real deal: six seats, a bank of 4 for the Salt Flats (2) and the Mine (3). */
 describe('the Chancellor on a six-seat deal whose bank runs short', () => {
-    function shortBank() {
-        const session = openSessionOn(shortBankTable())
+    async function shortBank() {
+        const session = await openSessionOn(shortBankTable())
         const sent = vi.spyOn(session, 'resolveSetup').mockResolvedValue()
         return { session, setup: session.setup, sent }
     }
 
-    it('deals a bank of 4 against 5 wanted, filled in map order', () => {
-        const { session, setup } = shortBank()
+    it('deals a bank of 4 against 5 wanted, filled in map order', async () => {
+        const { session, setup } = await shortBank()
         expect(session.gameState.favorSupply).toBe(4)
         expect(setup.pendingSiteFavor).toEqual([
             { siteCardId: 'site.salt-flats', wanted: 2 },
@@ -117,7 +117,7 @@ describe('the Chancellor on a six-seat deal whose bank runs short', () => {
     })
 
     it('one favor off the Salt Flats and a card kept: the split rows stay, nothing is sent, and 1/3 sends', async () => {
-        const { setup, sent } = shortBank()
+        const { setup, sent } = await shortBank()
         setup.setSiteFavor('site.salt-flats', 1)
         expect(setup.siteId).toBe(TOP_CRADLE_SLOT)
         expect(setup.boardPick).toEqual({
@@ -142,8 +142,8 @@ describe('the Chancellor on a six-seat deal whose bank runs short', () => {
     })
 
     // R-1.16, R-2.8.2 — a site's row offers no more than it prints and no more than the bank leaves.
-    it('each site’s favor is held to what it prints and what the bank leaves', () => {
-        const { setup } = shortBank()
+    it('each site’s favor is held to what it prints and what the bank leaves', async () => {
+        const { setup } = await shortBank()
         expect(setup.siteFavorCeiling('site.salt-flats')).toBe(2)
         expect(setup.siteFavorCeiling('site.mine')).toBe(2)
         setup.setSiteFavor('site.salt-flats', 1)
@@ -153,8 +153,8 @@ describe('the Chancellor on a six-seat deal whose bank runs short', () => {
         expect(setup.siteFavorCeiling('site.salt-flats')).toBe(1)
     })
 
-    it('an over-full split cannot be made: a count past the bank’s last favor stops at it', () => {
-        const { setup } = shortBank()
+    it('an over-full split cannot be made: a count past the bank’s last favor stops at it', async () => {
+        const { setup } = await shortBank()
         setup.setSiteFavor('site.mine', 3)
         expect(setup.siteFavor).toEqual([
             { siteCardId: 'site.salt-flats', favor: 2 },
@@ -165,10 +165,10 @@ describe('the Chancellor on a six-seat deal whose bank runs short', () => {
 })
 
 /** An Exile on the clock at setup, after the Chancellor's choice. */
-function exileOnTheClock() {
+async function exileOnTheClock() {
     const table = setupTable()
     const chancellor = table.state.chancellorPlayerId
-    const start = openSessionOn(table).setup
+    const start = (await openSessionOn(table)).setup
     const hand = new HydratedOathGameState(table.state).getPlayerState(chancellor).knownHand()
     const after = played(table, [
         createAction(SetupChoice, {
@@ -181,15 +181,15 @@ function exileOnTheClock() {
         })
     ])
     disposeSessions()
-    const session = openSessionOn(after)
+    const session = await openSessionOn(after)
     const sent = vi.spyOn(session, 'resolveSetup').mockResolvedValue()
     return { session, setup: session.setup, sent }
 }
 
 /** R-1.20 deals the hand before R-1.23 places the pawn, so an Exile may keep a card first. */
 describe('an Exile sees the hand while choosing where to start', () => {
-    it('offers the hand before any site is tapped', () => {
-        const { setup } = exileOnTheClock()
+    it('offers the hand before any site is tapped', async () => {
+        const { setup } = await exileOnTheClock()
         expect(setup.sites.length).toBeGreaterThan(1)
         expect(setup.siteId).toBeUndefined()
         expect(setup.hand).toHaveLength(3)
@@ -197,7 +197,7 @@ describe('an Exile sees the hand while choosing where to start', () => {
     })
 
     it('keeps a card chosen first when the site is tapped, then orders the discards and sends', async () => {
-        const { setup, sent } = exileOnTheClock()
+        const { setup, sent } = await exileOnTheClock()
         const [keep, first, last] = setup.hand
         await setup.chooseAdviser(keep)
         expect(setup.adviserCardId).toBe(keep)
@@ -215,7 +215,7 @@ describe('an Exile sees the hand while choosing where to start', () => {
     })
 
     it('Undo takes back the last tap: the site tapped after the card comes off first, then the card', async () => {
-        const { session, setup } = exileOnTheClock()
+        const { session, setup } = await exileOnTheClock()
         const [keep] = setup.hand
         await setup.chooseAdviser(keep)
         setup.chooseSite(setup.sites[0])
@@ -228,7 +228,7 @@ describe('an Exile sees the hand while choosing where to start', () => {
     })
 
     it('Undo takes back the last tap: the card tapped after the site comes off first, then the site', async () => {
-        const { session, setup } = exileOnTheClock()
+        const { session, setup } = await exileOnTheClock()
         const [keep] = setup.hand
         const [site] = setup.sites
         setup.chooseSite(site)
@@ -244,15 +244,15 @@ describe('an Exile sees the hand while choosing where to start', () => {
 
 /** R-1.23.1 — the start sites are picked on the map: lit, the pick ringed and marked "start here". */
 describe('the start sites on the map', () => {
-    const startOffers = (session: ReturnType<typeof openSessionOn>) =>
+    const startOffers = (session: Awaited<ReturnType<typeof openSessionOn>>) =>
         session.siteOffers.map((offer) =>
             offer.intent === 'start'
                 ? { slotId: offer.slotId, picked: offer.picked, pickable: offer.pickable }
                 : offer
         )
 
-    it('before a tap every start site is lit and pickable, none marked, and the rest of the map dims', () => {
-        const { session, setup } = exileOnTheClock()
+    it('before a tap every start site is lit and pickable, none marked, and the rest of the map dims', async () => {
+        const { session, setup } = await exileOnTheClock()
         const sites = setup.sites
         expect(sites).toHaveLength(3)
         expect(setup.boardPick).toEqual({ sites, label: 'start here', picked: undefined, pickable: true })
@@ -263,8 +263,8 @@ describe('the start sites on the map', () => {
         expect(session.mapPick).toEqual({ kind: 'start', sites, choosing: true, moverId: session.myPlayer?.id })
     })
 
-    it('a picked site stays lit with the others, marked and no longer pickable; a tap on another moves the pick', () => {
-        const { session, setup } = exileOnTheClock()
+    it('a picked site stays lit with the others, marked and no longer pickable; a tap on another moves the pick', async () => {
+        const { session, setup } = await exileOnTheClock()
         const [first, second, third] = setup.sites
         setup.chooseSite(first)
         expect(setup.boardPick).toEqual({
@@ -289,7 +289,7 @@ describe('the start sites on the map', () => {
     })
 
     it('once the discards are asked, the pick alone is offered, ringed and not pickable, and nothing dims', async () => {
-        const { session, setup } = exileOnTheClock()
+        const { session, setup } = await exileOnTheClock()
         const sites = setup.sites
         const [, site] = sites
         setup.chooseSite(site)
@@ -307,8 +307,8 @@ describe('the start sites on the map', () => {
         expect(session.mapPick).toEqual({ kind: 'start', sites, choosing: true, moverId: session.myPlayer?.id })
     })
 
-    it('the Chancellor’s one legal site is shown picked and not pickable, with nothing dimmed', () => {
-        const session = openSessionOn(setupTable())
+    it('the Chancellor’s one legal site is shown picked and not pickable, with nothing dimmed', async () => {
+        const session = await openSessionOn(setupTable())
         expect(session.setup.boardPick).toEqual({
             sites: [TOP_CRADLE_SLOT],
             label: 'start here',

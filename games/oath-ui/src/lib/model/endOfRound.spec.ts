@@ -48,7 +48,7 @@ describe('the session’s roll', () => {
         const state = waiting(6)
         state.machineState = MachineState.ActPhase
         openTurn(state, 'ann')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         await expect(session.rollEndDie()).rejects.toThrow(/Only the Chancellor rolls the end die, between rounds/)
     })
 })

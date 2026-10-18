@@ -78,8 +78,8 @@ function table(
     return state
 }
 
-function playing(state: HydratedOathGameState) {
-    const session = openSessionOn(tableOf(state))
+async function playing(state: HydratedOathGameState) {
+    const session = await openSessionOn(tableOf(state))
     const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
     session.chooseAction(ActionType.PlayFacedownAdviser)
     const lastSent = () => {
@@ -103,7 +103,7 @@ function historyOf(state: HydratedOathGameState, action: PlayFacedownAdviser): s
 describe('R-6.1, R-7.4.1 — a card the engine applies by itself is never a row', () => {
     it('Book of Records: the site play shows no row and is sent at once; the History names it', async () => {
         const state = table(INN, [], { relics: [BOOK] })
-        const { session, lastSent } = playing(state)
+        const { session, lastSent } = await playing(state)
         await session.chooseAdviserPlay(INN, SearchPlay.Site)
         expect(rows(session)).toEqual([])
         const action = lastSent()
@@ -115,7 +115,7 @@ describe('R-6.1, R-7.4.1 — a card the engine applies by itself is never a row'
 describe('R-6.1, R-7.4 — Wild Cry: a row above the confirm, in use from the start', () => {
     it('a beast card played to the site waits on the row, in use; the send carries it, and the History says what it gave', async () => {
         const state = table(WOLVES, [WILD_CRY])
-        const { session, sent, lastSent } = playing(state)
+        const { session, sent, lastSent } = await playing(state)
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Site)
         expect(sent).not.toHaveBeenCalled()
         expect(rows(session)).toEqual([WILD_CRY])
@@ -128,7 +128,7 @@ describe('R-6.1, R-7.4 — Wild Cry: a row above the confirm, in use from the st
     })
 
     it('a tap puts it down and the send leaves it out; Undo brings it back', async () => {
-        const { session, lastSent } = playing(table(WOLVES, [WILD_CRY]))
+        const { session, lastSent } = await playing(table(WOLVES, [WILD_CRY]))
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Adviser)
         expect(rows(session)).toEqual([WILD_CRY])
         session.toggleAdviserCardRow(use(WILD_CRY))
@@ -142,17 +142,17 @@ describe('R-6.1, R-7.4 — Wild Cry: a row above the confirm, in use from the st
     })
 
     it('is not a row where it gives nothing: a discard, or a card that is not a beast card', async () => {
-        const discard = playing(table(WOLVES, [WILD_CRY]))
+        const discard = await playing(table(WOLVES, [WILD_CRY]))
         await discard.session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
         expect(declared(discard.lastSent())).toEqual([])
 
-        const inn = playing(table(INN, [WILD_CRY]))
+        const inn = await playing(table(INN, [WILD_CRY]))
         await inn.session.chooseAdviserPlay(INN, SearchPlay.Site)
         expect(declared(inn.lastSent())).toEqual([])
     })
 
     it('Welcoming Party is not listed: its own text excludes a facedown adviser', async () => {
-        const { session, lastSent } = playing(table(INN, [WELCOMING_PARTY]))
+        const { session, lastSent } = await playing(table(INN, [WELCOMING_PARTY]))
         await session.chooseAdviserPlay(INN, SearchPlay.Site)
         expect(declared(lastSent())).toEqual([])
     })
@@ -161,7 +161,7 @@ describe('R-6.1, R-7.4 — Wild Cry: a row above the confirm, in use from the st
 describe('R-6.1, R-7.4 — Crop Rotation: its cards join "Discard first", and picking one uses it', () => {
     it('a card at the site is offered; none picked, the play goes without it; one picked, the send declares Crop Rotation', async () => {
         const state = table(TENTS, [CROP_ROTATION], { here: [INN] })
-        const { session, sent, lastSent } = playing(state)
+        const { session, sent, lastSent } = await playing(state)
         await session.chooseAdviserPlay(TENTS, SearchPlay.Site)
         expect(sent).not.toHaveBeenCalled()
         expect(session.adviserDiscardFirstOptions).toEqual([INN])
@@ -181,7 +181,7 @@ describe('R-6.1, R-7.4 — Crop Rotation: its cards join "Discard first", and pi
 
     it('at a full site the site play is offered, "Play" waits for a card to go first, and that card carries Crop Rotation', async () => {
         const full = [INN, ...Array.from({ length: FIXTURE_SITE_CAPACITY - 1 }, (_, i) => `denizen.order.filler-${i}`)]
-        const { session, lastSent } = playing(table(TENTS, [CROP_ROTATION], { here: full }))
+        const { session, lastSent } = await playing(table(TENTS, [CROP_ROTATION], { here: full }))
         expect(session.facedownAdviserOptions[0]?.placements.map((p) => p.play)).toContain(SearchPlay.Site)
         await session.chooseAdviserPlay(TENTS, SearchPlay.Site)
         expect(session.adviserDiscardFirstOptions).toEqual(full)
@@ -198,7 +198,7 @@ describe('R-6.1, R-7.4 — Crop Rotation: its cards join "Discard first", and pi
 describe('R-6.1, R-7.4 — New Growth: its sites join "Play to:", and picking one uses it', () => {
     it('another site is offered; the site picked declares New Growth, and the History names the site and the card', async () => {
         const state = table(WOLVES, [NEW_GROWTH])
-        const { session, lastSent } = playing(state)
+        const { session, lastSent } = await playing(state)
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Site)
         expect(session.adviserOtherSites).toContain('p1')
         expect(session.adviserOtherSites).not.toContain('c1')
@@ -215,7 +215,7 @@ describe('R-6.1, R-7.4 — New Growth: its sites join "Play to:", and picking on
     })
 
     it('is not offered for a card it cannot move (not a beast or hearth card): the site play is sent at once', async () => {
-        const { session, lastSent } = playing(table(TENTS, [NEW_GROWTH]))
+        const { session, lastSent } = await playing(table(TENTS, [NEW_GROWTH]))
         await session.chooseAdviserPlay(TENTS, SearchPlay.Site)
         expect(declared(lastSent())).toEqual([])
     })
@@ -224,7 +224,7 @@ describe('R-6.1, R-7.4 — New Growth: its sites join "Play to:", and picking on
 describe('R-6.1, R-7.4 — the Cracked Horn: a second place under "Discard"', () => {
     it('the discard pile is picked at the start; "Under the world deck" sends the Horn, and the History says where', async () => {
         const state = table(WOLVES, [], { relics: [HORN] })
-        const { session, sent, lastSent } = playing(state)
+        const { session, sent, lastSent } = await playing(state)
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
         expect(sent).not.toHaveBeenCalled()
         expect(session.adviserDiscardPlaces.map((power) => power.cardId)).toEqual([HORN])
@@ -243,7 +243,7 @@ describe('R-6.1, R-7.4 — the Cracked Horn: a second place under "Discard"', ()
     })
 
     it('is offered under Discard only', async () => {
-        const { session, lastSent } = playing(table(WOLVES, [], { relics: [HORN] }))
+        const { session, lastSent } = await playing(table(WOLVES, [], { relics: [HORN] }))
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Adviser)
         expect(declared(lastSent())).toEqual([])
     })
@@ -251,7 +251,7 @@ describe('R-6.1, R-7.4 — the Cracked Horn: a second place under "Discard"', ()
 
 describe('R-6.1, Bracken — its piles and their side under "To", nothing picked; Discard waits for both', () => {
     it('lists all three piles, even the pawn’s own; nothing is picked and the play waits', async () => {
-        const { session, sent } = playing(table(WOLVES, [BRACKEN]))
+        const { session, sent } = await playing(table(WOLVES, [BRACKEN]))
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
         expect(sent).not.toHaveBeenCalled()
         expect(session.adviserDiscardPileCard?.cardId).toBe(BRACKEN)
@@ -265,7 +265,7 @@ describe('R-6.1, Bracken — its piles and their side under "To", nothing picked
     })
 
     it('a side picked first keeps it when the pile is picked', async () => {
-        const { session } = playing(table(WOLVES, [BRACKEN]))
+        const { session } = await playing(table(WOLVES, [BRACKEN]))
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
         session.setAdviserDiscardSide(true)
         expect(session.adviserPlayComplete).toBe(false)
@@ -276,7 +276,7 @@ describe('R-6.1, Bracken — its piles and their side under "To", nothing picked
 
     it('another pile, or the bottom, uses Bracken: the play is sent with its pile and side', async () => {
         const state = table(WOLVES, [BRACKEN])
-        const { session, lastSent } = playing(state)
+        const { session, lastSent } = await playing(state)
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
         session.setAdviserDiscardPile(Region.Hinterland)
         session.setAdviserDiscardSide(true)
@@ -293,7 +293,7 @@ describe('R-6.1, Bracken — its piles and their side under "To", nothing picked
     })
 
     it('the usual pile on top is where the discard goes anyway: sent without Bracken', async () => {
-        const { session, lastSent } = playing(table(WOLVES, [BRACKEN]))
+        const { session, lastSent } = await playing(table(WOLVES, [BRACKEN]))
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
         // R-10.5 — from the Cradle, the Provinces pile.
         session.setAdviserDiscardPile(Region.Provinces)
@@ -303,7 +303,7 @@ describe('R-6.1, Bracken — its piles and their side under "To", nothing picked
     })
 
     it('with the Cracked Horn, "Under the world deck" is in the same list; picking it sends the Horn alone', async () => {
-        const { session, lastSent } = playing(table(WOLVES, [BRACKEN], { relics: [HORN] }))
+        const { session, lastSent } = await playing(table(WOLVES, [BRACKEN], { relics: [HORN] }))
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
         expect(session.adviserDiscardPlaces.map((power) => power.cardId)).toEqual([HORN])
         expect(session.adviserDiscardPlace).toEqual({})
@@ -316,7 +316,7 @@ describe('R-6.1, Bracken — its piles and their side under "To", nothing picked
     })
 
     it('is offered under Discard only: the site play is sent at once without it', async () => {
-        const { session, lastSent } = playing(table(WOLVES, [BRACKEN]))
+        const { session, lastSent } = await playing(table(WOLVES, [BRACKEN]))
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Site)
         expect(declared(lastSent())).toEqual([])
     })
@@ -327,13 +327,13 @@ describe('R-X.4 — a game created before the facedown play took modifiers offer
         const cards = { relics: [HORN], here: [INN, NEW_GROWTH] }
         const old = () => table(WAR_TORTOISE, [WILD_CRY, CROP_ROTATION], { ...cards, revision: OathRevision.TurnFlow })
         // The same table in a game of today offers every one of them.
-        const today = playing(table(WAR_TORTOISE, [WILD_CRY, CROP_ROTATION], cards)).session.facedownAdviserOptions[0]?.placements
+        const today = (await playing(table(WAR_TORTOISE, [WILD_CRY, CROP_ROTATION], cards))).session.facedownAdviserOptions[0]?.placements
         const offered = (play: SearchPlay) => today?.find((p) => p.play === play)?.cards
         expect(offered(SearchPlay.Site)?.rows.map((r) => r.cardId)).toEqual([WILD_CRY])
         expect(offered(SearchPlay.Site)?.placing.map((r) => r.cardId).sort()).toEqual([NEW_GROWTH, CROP_ROTATION])
         expect(offered(SearchPlay.Discard)?.places.map((r) => r.cardId)).toEqual([HORN])
         for (const play of [SearchPlay.Site, SearchPlay.Adviser, SearchPlay.Discard]) {
-            const { session, lastSent } = playing(old())
+            const { session, lastSent } = await playing(old())
             expect(session.facedownAdviserOptions[0]?.placements.every((p) => p.cards.rows.length + p.cards.places.length + p.cards.placing.length === 0)).toBe(true)
             await session.chooseAdviserPlay(WAR_TORTOISE, play)
             expect(declared(lastSent())).toEqual([])

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { BOARD_CENTER, BOARD_HEIGHT, BOARD_WIDTH } from '$lib/definitions/boardSize.js'
     import {
         attachCityPlacementAnimator,
         animatePlacedCity,
@@ -45,9 +46,6 @@
     const HOVER_COMPANY_DEMAND_TAG_BRIGHTNESS = 0.74
     const CITY_REFERENCE_CARD_PREVIEW_DEMAND_TAG_BRIGHTNESS = 0.66
     const CITY_REFERENCE_CARD_PREVIEW_CITY_OPACITY = 0.66
-    const BOARD_WIDTH = 2646
-    const BOARD_HEIGHT = 1280
-    const BOARD_CENTER = { x: BOARD_WIDTH / 2, y: BOARD_HEIGHT / 2 }
     const DEMAND_TAG_DISTANCE = 62
     const DEMAND_TAG_MAX_OFFSET = 14
 

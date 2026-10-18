@@ -428,7 +428,7 @@ describe('the fixed battery', () => {
         const facing = approach(game, TAKEN, BEYOND)
         game.arrange((state) => {
             state.unit('F-fixed').fixed = true
-            state.artilleryFire[String(facing)] = state.round - 1
+            state.playerOf(Side.French).artilleryFire = { [String(facing)]: state.round - 1 }
         })
         const french = game.playerOf(Side.French)
         game.act(ActionType.ThreatenAttack, french, { approach: facing })
@@ -447,7 +447,7 @@ describe('the fixed battery', () => {
         const game = emplaced(TAKEN, BEYOND)
         const facing = approach(game, TAKEN, BEYOND)
         game.arrange((state) => {
-            state.artilleryFire[String(facing)] = state.round - 1
+            state.playerOf(Side.French).artilleryFire = { [String(facing)]: state.round - 1 }
         })
         const [refuge] = game.hydrated.map
             .reachableNeighbours(BEYOND)

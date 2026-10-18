@@ -52,6 +52,10 @@ It is derived by the session, remains valid only while its referenced card, deed
 
 Hover and staged selection remain distinct. `activeDeedPreviewId` chooses the hovered available deed first and otherwise the selected start-company deed. The selected deed persists until `Back`, action completion, or state reset; hover exit only removes the temporary override. Selection is valid only during the acquisitions flow while the deed remains available.
 
+### Production-zone marker entries
+
+`ProductionZoneMarkers`, created by `Board` and shared through its context, derives every production-zone marker's position, target, and goods once from the visible state. `BoardProductionZoneMarkersLayer` renders them; `BoardActionAreasLayer` reads the same entries for company-card spotlights and delivery marker targets. Developer offsets from the geometry overlay apply only in the dev harness.
+
 ### Ship visual state
 
 `activeShipVisualState` is the only source of ship emphasis precedence. It represents route-local emphasis, company emphasis, or none. Shipping expansion may emphasize the operating company without turning that company into a board-wide spotlight source.

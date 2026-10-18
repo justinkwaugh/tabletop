@@ -4,7 +4,8 @@ enum UserServiceError {
     InvalidPassword = 'InvalidPasswordError',
     InvalidToken = 'InvalidTokenError',
     EmailVerification = 'EmailVerificationError',
-    UnauthenticatedUpdate = 'UnauthenticatedUpdateError'
+    UnauthenticatedUpdate = 'UnauthenticatedUpdateError',
+    InvalidTimeZone = 'InvalidTimeZoneError'
 }
 
 export class InvalidPasswordError extends BaseError {
@@ -40,6 +41,16 @@ export class UnauthenticatedUpdateError extends BaseError {
             name: UserServiceError.UnauthenticatedUpdate,
             message: `Current password required to update ${field}`,
             metadata: { field }
+        })
+    }
+}
+
+export class InvalidTimeZoneError extends BaseError {
+    constructor(timeZone: string) {
+        super({
+            name: UserServiceError.InvalidTimeZone,
+            message: `Unknown time zone ${timeZone}`,
+            metadata: { timeZone }
         })
     }
 }

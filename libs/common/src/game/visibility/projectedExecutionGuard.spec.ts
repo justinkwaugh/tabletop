@@ -176,6 +176,40 @@ describe('projected execution collection guards', () => {
         expect(() => guarded.entries['0'].secret).toThrow(Visibility.UnavailableProjectedValueError)
     })
 
+    it('stores raw members when guarded members are assigned inside a new value', () => {
+        const Entry = Type.Object({
+            id: Type.String(),
+            secret: Type.Optional(
+                Visibility.protect(Type.Number(), { policy: Visibility.Policy.HostOnly })
+            )
+        })
+        const projector = Visibility.createProjector(
+            Type.Object({
+                items: Type.Array(Entry),
+                pairs: Type.Array(Type.Object({ first: Entry, rest: Type.Array(Entry) }))
+            })
+        )
+        const projected = projector.project(
+            {
+                items: [
+                    { id: 'one', secret: 9 },
+                    { id: 'two', secret: 5 },
+                    { id: 'three', secret: 1 }
+                ],
+                pairs: []
+            },
+            perspective
+        )
+        const guarded = projector.guardForExecution(projected, perspective)
+        guarded.items = guarded.items.filter((entry) => entry.id !== 'two')
+        const [first, ...rest] = guarded.items
+        guarded.pairs = [{ first, rest }]
+        expect(structuredClone(projected)).toEqual({
+            items: [{ id: 'one' }, { id: 'three' }],
+            pairs: [{ first: { id: 'one' }, rest: [{ id: 'three' }] }]
+        })
+    })
+
     it('allows all actor-owned members and rejects another player’s incomplete collection', () => {
         const projector = Visibility.createProjector(
             Type.Object({

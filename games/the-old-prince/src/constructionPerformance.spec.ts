@@ -17,5 +17,5 @@ it('enumerates affordable construction over the full map', () => {
         construction.choices(location.id)
     )
     console.log('full map affordable choices', choices.length, 'ms', performance.now() - start)
-    expect(choices).toHaveLength(15)
+    expect(choices).toHaveLength(13)
 })

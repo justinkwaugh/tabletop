@@ -11,7 +11,7 @@ import {
 } from '../components/pieces.js'
 import { Scenario } from '../components/timeTrack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
-import { legal } from './legality.js'
+import { distinct, legal } from './legality.js'
 import { Position, faceOf, samePosition, type ProjectedUnit } from './pieces.js'
 import { ALLIED_OBJECTIVES } from './victory.js'
 
@@ -101,7 +101,7 @@ function validateCorps(
     const army = state.unitsOf(playerId)
     legal(
         assigned.length === army.length &&
-            new Set(assigned).size === assigned.length &&
+            distinct(assigned) &&
             army.every((unit) => assigned.includes(unit.id)),
         'Every unit of the army is assigned to exactly one corps'
     )
@@ -190,7 +190,7 @@ function validateDetachments(
     )
     legal(deployment.detachments.length <= MAX_FRENCH_DETACHMENTS, 'At most six units are detached')
     const ids = deployment.detachments.map((detachment) => detachment.unitId)
-    legal(new Set(ids).size === ids.length, 'A unit is detached once')
+    legal(distinct(ids), 'A unit is detached once')
     for (const detachment of deployment.detachments) {
         const corps = deployment.corps.find((candidate) =>
             candidate.unitIds.includes(detachment.unitId)
