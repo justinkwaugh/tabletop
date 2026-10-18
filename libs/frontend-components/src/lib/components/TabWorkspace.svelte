@@ -49,16 +49,22 @@
         if (fixed.tabs.includes(tab)) fixed = { ...fixed, active: tab }
     }
     let element: HTMLDivElement
-    let menuPosition = $state({ top: 'auto', bottom: 'auto', right: 0, room: 0 })
-    // Opens on the side of the button with more room, so a low pane's menu grows upward instead of off the screen.
-    function placeMenu(button: HTMLElement) {
+    const menuWidth = 180
+    const menuGap = 4
+    const windowMargin = 8
+    let menuButton: HTMLElement | undefined
+    let menuPosition = $state({ top: 'auto', bottom: 'auto', right: '0', maxHeight: '70dvh' })
+    function placeMenuOnRoomierSide(button: HTMLElement) {
+        menuButton = button
         const rect = button.getBoundingClientRect()
-        const right = Math.max(8, window.innerWidth - Math.max(188, rect.right))
+        const right = `${Math.max(windowMargin, window.innerWidth - Math.max(menuWidth + windowMargin, rect.right))}px`
         const below = window.innerHeight - rect.bottom
+        const maxHeight = `min(70dvh, ${Math.max(below, rect.top) - menuGap - windowMargin}px)`
         menuPosition = below >= rect.top
-            ? { top: `${rect.bottom + 4}px`, bottom: 'auto', right, room: below - 12 }
-            : { top: 'auto', bottom: `${window.innerHeight - rect.top + 4}px`, right, room: rect.top - 12 }
+            ? { top: `${rect.bottom + menuGap}px`, bottom: 'auto', right, maxHeight }
+            : { top: 'auto', bottom: `${window.innerHeight - rect.top + menuGap}px`, right, maxHeight }
     }
+    function placeOpenMenu() { if (menuButton) placeMenuOnRoomierSide(menuButton) }
     let dragged: string | undefined = $state()
     let pendingDrop: { tab: string; pane: string; beforeTab?: string } | undefined
     let insertBefore: string | undefined = $state()
@@ -163,7 +169,7 @@
     }
 </script>
 
-<svelte:window onmousemove={moveResize} onmouseup={endResize} onblur={cancelResize} />
+<svelte:window onmousemove={moveResize} onmouseup={endResize} onblur={cancelResize} onresize={placeOpenMenu} />
 
 <div class="workspace" aria-label={label} bind:this={element}>
     {#snippet paneHeader(item: PaneLayout)}
@@ -190,11 +196,11 @@
                 </div>
                 {#if splittable && (item.pane.id !== 'fixed' || item.pane.tabs.length || availableTabs(item.pane.id).length)}<div class="split-controls">
                     <button class="split-button" aria-label={`Pane options for ${paneLabel(item)}`} title="Pane options" popovertarget={menuId}
-                        onclick={(event) => placeMenu(event.currentTarget)}>
+                        onclick={(event) => placeMenuOnRoomierSide(event.currentTarget)}>
                         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 9v2m6-2v2m6-2v2" stroke-width="3" stroke-linecap="round"/></svg>
                     </button>
-                    <div class="widget-menu" id={menuId} popover style:top={menuPosition.top} style:bottom={menuPosition.bottom} style:right={`${menuPosition.right}px`}
-                        style:max-height={`min(70dvh, ${menuPosition.room}px)`}>
+                    <div class="widget-menu" id={menuId} popover style:top={menuPosition.top} style:bottom={menuPosition.bottom} style:right={menuPosition.right}
+                        style:max-height={menuPosition.maxHeight} ontoggle={(event) => { if (event.newState === 'closed') menuButton = undefined }}>
                         {#if item.pane.id !== 'fixed'}
                         <div class="pane-actions">
                             {#each ['horizontal', 'vertical'] as const as axis (axis)}
