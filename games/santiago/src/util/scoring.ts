@@ -64,6 +64,18 @@ function findConnectedGroupsAny(board: SantiagoBoard, crop: CropType): FieldGrou
     return groups
 }
 
+export type PlayerMoney = {
+    playerId: string
+    money: number
+}
+
+export function calculateTotalScores(board: SantiagoBoard, players: PlayerMoney[]): PlayerScores {
+    const plantationScores = calculateScores(board)
+    return Object.fromEntries(
+        players.map(({ playerId, money }) => [playerId, (plantationScores[playerId] ?? 0) + money])
+    )
+}
+
 export function calculateScores(board: SantiagoBoard): PlayerScores {
     const scores: PlayerScores = {}
     const connected = connectedSpringIntersections(board)
