@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 621522397,
+  "seed": 3902466212,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T04:32:00.514Z",
+  "createdAt": "2026-10-18T12:47:10.352Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "S9MRNErFbREZdRJYh3CVF",
+  "id": "w3XjTHqApci8jzaP7NOl_",
   "gameId": "scenario-campaign-initiative",
   "seed": 3367980177,
   "prng": {
@@ -768,6 +768,36 @@
   "events": [],
   "homesteaders": [],
   "pacts": [],
+  "pledgeableShips": [
+   {
+    "playerId": "p2",
+    "shipId": "givers-linnaeus",
+    "systemId": "wise-0855-0714",
+    "science": 1,
+    "combat": 0
+   },
+   {
+    "playerId": "p2",
+    "shipId": "givers-mendel",
+    "systemId": "wolf-359",
+    "science": 2,
+    "combat": 0
+   },
+   {
+    "playerId": "p1",
+    "shipId": "praetorians-peregrinus",
+    "systemId": "luhman-16",
+    "science": 3,
+    "combat": 0
+   },
+   {
+    "playerId": "p0",
+    "shipId": "starfarers-kuiper",
+    "systemId": "lalande-21185",
+    "science": 2,
+    "combat": 0
+   }
+  ],
   "settlementRewards": [],
   "startingPositionRandom": [
    {

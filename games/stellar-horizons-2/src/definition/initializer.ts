@@ -117,6 +117,7 @@ export class StellarHorizonsGameInitializer
             events: [],
             homesteaders: [],
             pacts: [],
+            pledgeableShips: [],
             settlementRewards: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)

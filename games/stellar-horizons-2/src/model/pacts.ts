@@ -1,20 +1,20 @@
 import { assertExists } from '@tabletop/common'
 import { AnomalyChallenge, anomalyDefinition } from '../components/anomalies.js'
-import { eventDefinition } from '../components/events.js'
-import { factionSheet } from '../components/factionSheets.js'
+import { eventChallenges, eventDefinition, printedEventDifficulty } from '../components/events.js'
 import { MachineState } from '../definition/states.js'
-import { anomalyStrength, systemAnomaly, usesAnomalyRewards } from './anomalies.js'
-import { activeEvent } from './events.js'
-import { hasArrived, isCrippled } from './fleet.js'
-import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import { hasLapsed, isClosed, standingPacts } from './holds.js'
 import {
-    PactTargetKind,
-    type Pact,
-    type PactShare,
-    type PactTerms,
-    type ShipState
-} from './pieces.js'
+    anomalyDifficulty,
+    anomalyStrength,
+    canTakePart,
+    challengeDifficulty,
+    hasStrengthFor,
+    systemAnomaly,
+    usesAnomalyRewards
+} from './anomalies.js'
+import { activeEvent } from './events.js'
+import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import { hasLapsed, heldShipIds, isClosed, standingPacts } from './holds.js'
+import { PactTargetKind, type Pact, type PactShare, type PactTerms } from './pieces.js'
 
 // Rulebook 1.16: ships of several Players may resolve an anomaly or event together if they
 // agree how to split the reward. Players negotiate a pact on the Main Line during the
@@ -27,77 +27,236 @@ export function pact(state: HydratedStellarHorizonsGameState, pactId: string): P
     return state.pacts.find((candidate) => candidate.id === pactId)
 }
 
+export type PactSubject = Pick<PactTerms, 'targetKind' | 'targetId' | 'challenge'>
+
 export interface PactTarget {
     systemId: string
     difficulty: number
-    reward: { influence: number; cash: number; markers: number; settlements: number }
+    reward: PactShare
 }
 
-const NO_REWARD = { influence: 0, cash: 0, markers: 0, settlements: 0 }
+export function emptyShare(): PactShare {
+    return { influence: 0, cash: 0, markers: 0, settlements: 0 }
+}
 
 // The target as everyone sees it: an unresolved anomaly or an event on the map, its difficulty
-// with the partners' faction modifiers, and the reward to split.
+// with the best faction modifier among the partners, and the reward to split.
 export function pactTarget(
     state: HydratedStellarHorizonsGameState,
-    terms: PactTerms
+    subject: PactSubject,
+    partnerIds: readonly string[]
 ): PactTarget | undefined {
-    const modifier = terms.partnerIds.reduce((total, playerId) => {
-        const faction = state.getPlayerState(playerId).faction
-        const abilities =
-            faction && state.scenarioDefinition().campaign ? factionSheet(faction).abilities : {}
-        const value =
-            terms.challenge === AnomalyChallenge.Combat
-                ? abilities.combatAnomalyDifficulty
-                : abilities.scienceAnomalyDifficulty
-        return Math.min(total, value ?? 0)
-    }, 0)
-    if (terms.targetKind === PactTargetKind.Anomaly) {
-        const anomaly = anomalyDefinition(terms.targetId)
+    if (subject.targetKind === PactTargetKind.Anomaly) {
+        const anomaly = anomalyDefinition(subject.targetId)
         const systemId = state.systems.find(
             (system) => systemAnomaly(state, system.systemId)?.id === anomaly.id
         )?.systemId
-        if (systemId === undefined || anomaly.challenge !== terms.challenge) {
+        if (systemId === undefined || anomaly.challenge !== subject.challenge) {
             return undefined
         }
-        const reward = usesAnomalyRewards(state)
-            ? {
-                  influence: anomaly.reward.influence ?? 0,
-                  cash: anomaly.reward.cash ?? 0,
-                  markers: anomaly.reward.markers?.count ?? 0,
-                  settlements: anomaly.reward.settlements ?? 0
-              }
-            : NO_REWARD
         return {
             systemId,
-            difficulty: anomaly.difficulty + state.numPlayers + modifier,
-            reward
+            difficulty: easiestFor(partnerIds, (playerId) =>
+                anomalyDifficulty(state, anomaly.id, playerId)
+            ),
+            reward: usesAnomalyRewards(state)
+                ? {
+                      influence: anomaly.reward.influence ?? 0,
+                      cash: anomaly.reward.cash ?? 0,
+                      markers: anomaly.reward.markers?.count ?? 0,
+                      settlements: anomaly.reward.settlements ?? 0
+                  }
+                : emptyShare()
         }
     }
-    const active = activeEvent(state, terms.targetId)
-    const definition = eventDefinition(terms.targetId)
-    const printed =
-        terms.challenge === AnomalyChallenge.Science
-            ? definition.challenge?.science
-            : definition.challenge?.combat
+    const active = activeEvent(state, subject.targetId)
+    const printed = printedEventDifficulty(subject.targetId, subject.challenge)
     if (active === undefined || printed === undefined) {
         return undefined
     }
     return {
         systemId: active.systemId,
-        difficulty: printed + state.numPlayers + modifier,
-        reward: { ...NO_REWARD, influence: definition.influence }
+        difficulty: easiestFor(partnerIds, (playerId) =>
+            challengeDifficulty(state, printed, subject.challenge, playerId)
+        ),
+        reward: { ...emptyShare(), influence: eventDefinition(subject.targetId).influence }
     }
 }
 
-// Whether a pledged ship could take part, as everyone can see it: at the target, arrived, not
-// crippled, with strength for the challenge.
-function couldTakePart(ship: ShipState | undefined, systemId: string, challenge: AnomalyChallenge) {
-    return (
-        ship !== undefined &&
-        ship.systemId === systemId &&
-        hasArrived(ship) &&
-        !isCrippled(ship) &&
-        anomalyStrength(ship, challenge) > 0
+function easiestFor(
+    partnerIds: readonly string[],
+    difficulty: (playerId?: string) => number
+): number {
+    return Math.min(difficulty(), ...partnerIds.map((playerId) => difficulty(playerId)))
+}
+
+export function recordPledgeableShips(state: HydratedStellarHorizonsGameState) {
+    state.pledgeableShips = state.allShips().flatMap((ship) => {
+        const strength = (challenge: AnomalyChallenge) =>
+            hasStrengthFor(ship, challenge) ? anomalyStrength(ship, challenge) : 0
+        const science = strength(AnomalyChallenge.Science)
+        const combat = strength(AnomalyChallenge.Combat)
+        return !ship.explored && science + combat > 0
+            ? [
+                  {
+                      playerId: ship.playerId,
+                      shipId: ship.shipId,
+                      systemId: ship.systemId,
+                      science,
+                      combat
+                  }
+              ]
+            : []
+    })
+}
+
+// What a pledged ship adds as everyone saw it when the phase began; 0 if it could not take part.
+export function pledgedStrength(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    shipId: string,
+    systemId: string,
+    challenge: AnomalyChallenge
+): number {
+    const ship = state.pledgeableShips.find(
+        (candidate) =>
+            candidate.playerId === playerId &&
+            candidate.shipId === shipId &&
+            candidate.systemId === systemId
+    )
+    if (!ship) {
+        return 0
+    }
+    return challenge === AnomalyChallenge.Science ? ship.science : ship.combat
+}
+
+export function pledgeableShipIds(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string,
+    challenge: AnomalyChallenge
+): string[] {
+    return state.pledgeableShips
+        .filter(
+            (ship) =>
+                ship.playerId === playerId &&
+                pledgedStrength(state, playerId, ship.shipId, systemId, challenge) > 0
+        )
+        .map((ship) => ship.shipId)
+}
+
+// A target as a pact names it, with the system it is in.
+export type PactOpening = PactSubject & { systemId: string }
+
+export function pactOpenings(state: HydratedStellarHorizonsGameState): PactOpening[] {
+    const anomalies = state.systems.flatMap((system) => {
+        const anomaly = systemAnomaly(state, system.systemId)
+        return anomaly
+            ? [
+                  {
+                      targetKind: PactTargetKind.Anomaly,
+                      targetId: anomaly.id,
+                      challenge: anomaly.challenge,
+                      systemId: system.systemId
+                  }
+              ]
+            : []
+    })
+    const events = state.events.flatMap((active) =>
+        eventChallenges(active.eventId).map((challenge) => ({
+            targetKind: PactTargetKind.Event,
+            targetId: active.eventId,
+            challenge,
+            systemId: active.systemId
+        }))
+    )
+    return [...anomalies, ...events]
+}
+
+export interface PledgeOption {
+    shipId: string
+    strength: number
+}
+
+// The ships a Player could pledge at a target: as everyone saw them when the phase began, and
+// for the viewer's own, only those still free in their Branch.
+export function pledgeOptions(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    viewerId: string,
+    opening: PactOpening,
+    exceptPactId?: string
+): PledgeOption[] {
+    return pledgeableShipIds(state, playerId, opening.systemId, opening.challenge)
+        .filter(
+            (shipId) =>
+                playerId !== viewerId ||
+                isFreeToPledge(state, playerId, shipId, opening, exceptPactId)
+        )
+        .map((shipId) => ({
+            shipId,
+            strength: pledgedStrength(state, playerId, shipId, opening.systemId, opening.challenge)
+        }))
+}
+
+// The Players a pact could name besides the Player: still exploring, with ships to pledge.
+export function possiblePartners(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    opening: PactOpening
+): string[] {
+    const span = state.parallelSpan
+    if (span === undefined) {
+        return []
+    }
+    return state
+        .initiativeOrder()
+        .filter(
+            (other) =>
+                other !== playerId &&
+                span.playerIds.includes(other) &&
+                !isClosed(state, other) &&
+                pledgeableShipIds(state, other, opening.systemId, opening.challenge).length > 0
+        )
+}
+
+// Whether the Player's free ships and those other Players still exploring could pledge together
+// could reach a target that none of them reaches alone.
+export function canJoinAnyPact(state: HydratedStellarHorizonsGameState, playerId: string): boolean {
+    return pactOpenings(state).some((opening) => {
+        const own = state
+            .shipsOf(playerId)
+            .filter(
+                (ship) =>
+                    ship.systemId === opening.systemId &&
+                    canTakePart(state, ship, opening.challenge)
+            )
+            .reduce((total, ship) => total + anomalyStrength(ship, opening.challenge), 0)
+        const partners = possiblePartners(state, playerId, opening)
+        const pledgeable = partners.reduce(
+            (total, other) =>
+                total + pledgeableStrength(state, other, opening.systemId, opening.challenge),
+            0
+        )
+        const target = pactTarget(state, opening, [playerId, ...partners])
+        return (
+            target !== undefined &&
+            own > 0 &&
+            partners.length > 0 &&
+            own + pledgeable >= target.difficulty
+        )
+    })
+}
+
+function pledgeableStrength(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string,
+    challenge: AnomalyChallenge
+): number {
+    return pledgeableShipIds(state, playerId, systemId, challenge).reduce(
+        (total, shipId) => total + pledgedStrength(state, playerId, shipId, systemId, challenge),
+        0
     )
 }
 
@@ -111,7 +270,7 @@ function inExplorationSpan(state: HydratedStellarHorizonsGameState): boolean {
 }
 
 // A Player guarantees only their own side: their pledged ships are free in their own Branch
-// (Common Actions rule 5). A ship already held by another of their standing offers is not free.
+// (Common Actions rule 5).
 export function ownSideFree(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
@@ -120,25 +279,32 @@ export function ownSideFree(
     exceptPactId?: string
 ): boolean {
     const pledged = terms.pledges[playerId] ?? []
-    const held = standingPacts(state)
-        .filter((candidate) => candidate.id !== exceptPactId)
-        .filter((candidate) => candidate.agreed || candidate.acceptedIds.includes(playerId))
-        .flatMap((candidate) => candidate.terms.pledges[playerId] ?? [])
     return (
         pledged.length > 0 &&
-        pledged.every((shipId) => {
-            const ship = state.playerShip(playerId, shipId)
-            return (
-                ship !== undefined &&
-                couldTakePart(ship, systemId, terms.challenge) &&
-                !ship.explored &&
-                !held.includes(shipId)
-            )
-        })
+        pledged.every((shipId) =>
+            isFreeToPledge(state, playerId, shipId, { ...terms, systemId }, exceptPactId)
+        )
     )
 }
 
-function sumsMatch(terms: PactTerms, reward: PactTarget['reward']): boolean {
+function isFreeToPledge(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    shipId: string,
+    opening: PactOpening,
+    exceptPactId?: string
+): boolean {
+    const ship = state.playerShip(playerId, shipId)
+    return (
+        ship !== undefined &&
+        ship.systemId === opening.systemId &&
+        hasStrengthFor(ship, opening.challenge) &&
+        !ship.explored &&
+        !heldShipIds(state, playerId, exceptPactId).includes(shipId)
+    )
+}
+
+function sumsMatch(terms: PactTerms, reward: PactShare): boolean {
     const keys = Object.keys(terms.shares)
     if (
         keys.length !== terms.partnerIds.length ||
@@ -181,7 +347,7 @@ export function termsProblem(
     exceptPactId?: string
 ): string | undefined {
     const span = state.parallelSpan
-    const target = pactTarget(state, terms)
+    const target = pactTarget(state, terms, terms.partnerIds)
     if (span === undefined) {
         return 'Pacts are made while ships explore'
     }
@@ -219,16 +385,15 @@ export function termsProblem(
     ) {
         return 'A partner already has an agreed pact for this target'
     }
-    const ships = partners.flatMap((playerId) =>
-        (terms.pledges[playerId] ?? []).map((shipId) => state.playerShip(playerId, shipId))
+    const strengths = partners.flatMap((playerId) =>
+        (terms.pledges[playerId] ?? []).map((shipId) =>
+            pledgedStrength(state, playerId, shipId, target.systemId, terms.challenge)
+        )
     )
-    if (!ships.every((ship) => couldTakePart(ship, target.systemId, terms.challenge))) {
+    if (strengths.some((strength) => strength === 0)) {
         return 'A pledged ship cannot take part'
     }
-    const strength = ships.reduce(
-        (total, ship) => total + (ship ? anomalyStrength(ship, terms.challenge) : 0),
-        0
-    )
+    const strength = strengths.reduce((total, value) => total + value, 0)
     if (strength < target.difficulty) {
         return `The pledged ships total ${strength} of the ${target.difficulty} needed`
     }
@@ -248,7 +413,6 @@ export function termsProblem(
     return undefined
 }
 
-// Terms valid in an exploration span in progress.
 export function areValidTerms(
     state: HydratedStellarHorizonsGameState,
     proposerId: string,
@@ -303,7 +467,7 @@ export function propose(
     pactId: string,
     existing: boolean
 ) {
-    const target = pactTarget(state, terms)
+    const target = pactTarget(state, terms, terms.partnerIds)
     assertExists(target, 'A pact needs a target on the map')
     if (existing) {
         const current = pact(state, pactId)
@@ -345,7 +509,6 @@ export function canAccept(
     )
 }
 
-// Returns whether the acceptance completed the agreement.
 export function accept(
     state: HydratedStellarHorizonsGameState,
     playerId: string,

@@ -1,11 +1,20 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { shipDefinition, type ShipState } from '@tabletop/stellar-horizons-2'
+    import {
+        AnomalyChallenge,
+        eventDefinition,
+        shipDefinition,
+        type ShipState
+    } from '@tabletop/stellar-horizons-2'
     import { FACTION_ART, SETTLEMENT_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { FACTION_FILL, factionName, plural } from '$lib/utils/presentation.js'
     import { systemSummary } from '$lib/utils/systemSummary.js'
+    import { ANOMALY_SIZE } from '$lib/utils/tileFeatures.js'
     import AnomalyCard from './AnomalyCard.svelte'
+    import AnomalyTile from './AnomalyTile.svelte'
+    import EventTile from './EventTile.svelte'
+    import PactSummary from './PactSummary.svelte'
     import ShipCounter from './board/ShipCounter.svelte'
     import CargoHold from './CargoHold.svelte'
 
@@ -48,6 +57,37 @@
         {#if summary.anomaly}
             <AnomalyCard summary={summary.anomaly} />
         {/if}
+        {#if summary.turnedOver}
+            <section class="feature" aria-label="Turned over: {summary.turnedOver.name}">
+                <AnomalyTile anomalyId={summary.turnedOver.id} turned width={ANOMALY_SIZE.width} />
+                <span class="feature-text"
+                    ><strong>{summary.turnedOver.name}</strong>, resolved and turned over. Its back
+                    acts on the bases here.</span
+                >
+            </section>
+        {/if}
+        {#each summary.events as event (event.eventId)}
+            {@const definition = eventDefinition(event.eventId)}
+            <section class="feature" aria-label="Event: {definition.name}">
+                <EventTile eventId={event.eventId} width={88} />
+                <span class="feature-text"
+                    ><strong>{definition.name}</strong>, unresolved. Resolving it needs
+                    {event.challenges
+                        .map(
+                            ({ challenge, difficulty }) =>
+                                `${difficulty} ${challenge === AnomalyChallenge.Science ? 'exploration' : 'combat'}`
+                        )
+                        .join(' or ')}, for {definition.influence} IP.</span
+                >
+            </section>
+        {/each}
+        {#each summary.pacts as pact (pact.id)}
+            <PactSummary
+                {pact}
+                viewerId={gameSession.myPlayerId}
+                status={pact.agreed ? 'Agreed' : 'Offered'}
+            />
+        {/each}
         {#each summary.fleets as fleet (fleet.playerId)}
             <section
                 class="fleet"
@@ -182,6 +222,26 @@
 
     .back:hover {
         background: #1f4469;
+    }
+
+    .feature {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 8px;
+        margin-bottom: 8px;
+        border: 1px solid #1e2b44;
+        border-radius: 10px;
+        background: #0d1322;
+    }
+
+    .feature-text {
+        font-size: 13px;
+        color: #c9d6ea;
+    }
+
+    .feature-text strong {
+        color: #e8f1ff;
     }
 
     .fleet {

@@ -43,6 +43,8 @@ describe('system summary', () => {
     it('has no fleets where nobody is present', () => {
         expect(systemSummary(startedState(), 'alpha-centauri', 'p0')).toEqual({
             name: 'Alpha Centauri',
+            events: [],
+            pacts: [],
             settlementGoal: 10,
             fleets: []
         })

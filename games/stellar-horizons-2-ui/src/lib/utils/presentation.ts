@@ -201,6 +201,11 @@ export const TECH_EFFECT_TEXT: Record<TechId, string> = {
     [TechId.RoboticConsciousness]: 'RE malfunction 12%, RE exploration +3'
 }
 
+// The chance of a ten-sided die rolling the target or less.
+export function rollChance(target: number): string {
+    return `${Math.min(Math.max(target, 0), 10) * 10}%`
+}
+
 export function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {
     return `${count} ${count === 1 ? noun : pluralNoun}`
 }

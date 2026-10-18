@@ -1,77 +1,17 @@
 import {
-    AnomalyChallenge,
-    anomalyStrength,
-    hasArrived,
-    isClosed,
-    isCrippled,
-    pactTarget,
-    type HydratedStellarHorizonsGameState,
+    PactTargetKind,
+    anomalyDefinition,
+    emptyShare,
+    eventDefinition,
+    type Pact,
+    type PactOpening,
     type PactShare,
-    type PactTerms,
-    type PactTargetKind,
-    type ShipState
+    type PactSubject
 } from '@tabletop/stellar-horizons-2'
-
-// What a pact is about, before its terms are chosen.
-export interface PactSubject {
-    targetKind: PactTargetKind
-    targetId: string
-    challenge: AnomalyChallenge
-    systemId: string
-}
-
-export interface CandidateShip {
-    ship: ShipState
-    strength: number
-}
-
-// Ships everyone can see at the target that could take part: arrived, not crippled, with
-// strength for the challenge. The proposer's own must also be unused in their Branch, which
-// the pact rules check.
-export function candidateShips(
-    state: HydratedStellarHorizonsGameState,
-    playerId: string,
-    subject: PactSubject
-): CandidateShip[] {
-    return state
-        .shipsOf(playerId)
-        .filter(
-            (ship) =>
-                ship.systemId === subject.systemId &&
-                hasArrived(ship) &&
-                !isCrippled(ship) &&
-                anomalyStrength(ship, subject.challenge) > 0
-        )
-        .map((ship) => ({ ship, strength: anomalyStrength(ship, subject.challenge) }))
-}
-
-// The Players a pact could name: others in the exploration span, still exploring, with ships
-// at the target.
-export function candidatePartners(
-    state: HydratedStellarHorizonsGameState,
-    playerId: string,
-    subject: PactSubject
-): string[] {
-    const span = state.parallelSpan
-    if (!span) {
-        return []
-    }
-    return state
-        .initiativeOrder()
-        .filter(
-            (candidate) =>
-                candidate !== playerId &&
-                span.playerIds.includes(candidate) &&
-                !isClosed(state, candidate) &&
-                candidateShips(state, candidate, subject).length > 0
-        )
-}
+import { plural } from './presentation.js'
 
 export const SHARE_ITEMS = ['influence', 'cash', 'markers', 'settlements'] as const
-
-export function emptyShare(): PactShare {
-    return { influence: 0, cash: 0, markers: 0, settlements: 0 }
-}
+export type ShareItem = (typeof SHARE_ITEMS)[number]
 
 // An even split, with what does not divide going to the proposer.
 export function evenShares(
@@ -90,19 +30,41 @@ export function evenShares(
     return shares
 }
 
-export function targetReward(
-    state: HydratedStellarHorizonsGameState,
-    subject: PactSubject,
-    partnerIds: readonly string[]
-): { reward: PactShare; difficulty: number } | undefined {
-    const terms: PactTerms = {
-        targetKind: subject.targetKind,
-        targetId: subject.targetId,
-        challenge: subject.challenge,
-        partnerIds: [...partnerIds],
-        pledges: {},
-        shares: {}
+export function pactOpening(candidate: Pact): PactOpening {
+    return {
+        targetKind: candidate.terms.targetKind,
+        targetId: candidate.terms.targetId,
+        challenge: candidate.terms.challenge,
+        systemId: candidate.systemId
     }
-    const target = pactTarget(state, terms)
-    return target ? { reward: target.reward, difficulty: target.difficulty } : undefined
+}
+
+export function pactTargetName(subject: Pick<PactSubject, 'targetKind' | 'targetId'>): string {
+    return subject.targetKind === PactTargetKind.Event
+        ? eventDefinition(subject.targetId).name
+        : anomalyDefinition(subject.targetId).name
+}
+
+export interface RewardParts {
+    influence: number
+    cash: number
+    markers: string
+    settlements: number
+}
+
+export function rewardSummary(parts: RewardParts): string {
+    const listed = [
+        parts.influence ? `${parts.influence} IP` : '',
+        parts.cash ? `$${parts.cash}B` : '',
+        parts.markers,
+        parts.settlements ? plural(parts.settlements, 'settlement') : ''
+    ].filter(Boolean)
+    return listed.length > 0 ? listed.join(', ') : 'nothing'
+}
+
+export function shareText(share: PactShare): string {
+    return rewardSummary({
+        ...share,
+        markers: share.markers ? plural(share.markers, 'marker') : ''
+    })
 }

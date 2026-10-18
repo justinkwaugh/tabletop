@@ -6,7 +6,7 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { isClosed } from '../model/holds.js'
-import { pactsNaming } from '../model/pacts.js'
+import { pactsNaming, recordPledgeableShips } from '../model/pacts.js'
 import { TurnPhase } from '../model/turn.js'
 import { playState } from '../model/turnPlan.js'
 import { stateAfterPhase } from './transitions.js'
@@ -86,8 +86,12 @@ export class ExplorationPhaseStateHandler implements MachineStateHandler<
         ]
     }
 
+    // Entered with no span, the phase is beginning: what is recorded now is at the Branch Point.
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
         this.phaseHandler.enter(context)
+        if (context.gameState.parallelSpan === undefined) {
+            recordPledgeableShips(context.gameState)
+        }
     }
 
     onAction(

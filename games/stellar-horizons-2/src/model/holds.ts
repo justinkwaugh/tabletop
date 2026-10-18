@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { Pact, ShipState } from './pieces.js'
 
@@ -27,12 +28,35 @@ export function standingPacts(state: HydratedStellarHorizonsGameState): Pact[] {
 
 // Ships a Player's Branch may not use: those they pledged in a standing offer they made or
 // accepted, and those in an agreed pact (Common Actions rule 7).
-export function heldShipIds(state: HydratedStellarHorizonsGameState, playerId: string): string[] {
+export function heldShipIds(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    exceptPactId?: string
+): string[] {
     return standingPacts(state)
+        .filter((candidate) => candidate.id !== exceptPactId)
         .filter((candidate) => candidate.agreed || candidate.acceptedIds.includes(playerId))
         .flatMap((candidate) => candidate.terms.pledges[playerId] ?? [])
 }
 
 export function isHeld(state: HydratedStellarHorizonsGameState, ship: ShipState): boolean {
     return state.pacts.length > 0 && heldShipIds(state, ship.playerId).includes(ship.shipId)
+}
+
+export function takePact(state: HydratedStellarHorizonsGameState, pactId: string): Pact {
+    const candidate = state.pacts.find((other) => other.id === pactId)
+    assertExists(candidate, `No pact ${pactId}`)
+    state.pacts = state.pacts.filter((other) => other.id !== pactId)
+    return candidate
+}
+
+export function spendPledgedShips(state: HydratedStellarHorizonsGameState, candidate: Pact) {
+    for (const shipIds of Object.values(candidate.terms.pledges)) {
+        for (const shipId of shipIds) {
+            const ship = state.findShip(shipId)
+            if (ship) {
+                ship.explored = true
+            }
+        }
+    }
 }

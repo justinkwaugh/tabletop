@@ -12,7 +12,8 @@ import {
     ScenarioId,
     TechId,
     TurnPhase,
-    WorldSide
+    WorldSide,
+    recordPledgeableShips
 } from '@tabletop/stellar-horizons-2'
 import {
     VOYAGES_CONFIG,
@@ -175,6 +176,8 @@ function campaignPact() {
         state.systemState('alpha-centauri').anomaly = 'terran-dna'
         placeShip(state, playerOf(state, Faction.Starfarers), 'starfarers-orion', 'alpha-centauri')
         placeShip(state, playerOf(state, Faction.Givers), 'givers-darwin', 'alpha-centauri')
+        // Placed after the phase began, so what the other Players saw is taken again.
+        recordPledgeableShips(state)
     })
     return { game, state: arranged }
 }
@@ -194,6 +197,7 @@ function campaignMining() {
         })
         placeShip(state, starfarers, 'starfarers-pytheas', 'alpha-centauri')
         placeShip(state, starfarers, 'starfarers-orion', 'alpha-centauri')
+        recordPledgeableShips(state)
     })
     return { game, state: arranged }
 }

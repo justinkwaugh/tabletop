@@ -15,7 +15,9 @@ import { WorldSide } from '../components/worlds.js'
 import { canExplore } from '../model/exploration.js'
 import type { StellarHorizonsProjectedState } from '../model/gameState.js'
 import { heldShipIds } from '../model/holds.js'
-import { canAccept, isValidProposal } from '../model/pacts.js'
+import { isIdleInPhase } from '../model/idlePhases.js'
+import { TurnPhase } from '../model/turn.js'
+import { canAccept, isValidProposal, recordPledgeableShips } from '../model/pacts.js'
 import { PactTargetKind, type PactTerms } from '../model/pieces.js'
 import {
     edit,
@@ -55,6 +57,7 @@ function setUp() {
         // with the Starfarers in the pact the difficulty is 9.
         placeShip(hydrated, starfarers, 'starfarers-orion', SYSTEM)
         placeShip(hydrated, givers, 'givers-darwin', SYSTEM)
+        recordPledgeableShips(hydrated)
     })
     return { game, state: ready, starfarers, givers }
 }
@@ -174,6 +177,43 @@ describe('A pact in a Local Game', () => {
         ).toThrow()
         expect(heldShipIds(hydrate(closed), other)).toEqual([])
     })
+
+    it("judges the open Branch's ships as everyone saw them when the phase began", () => {
+        const { game, state, starfarers, givers } = setUp()
+        const branchPlayer = state.activePlayerIds[0]
+        const other = branchPlayer === starfarers ? givers : starfarers
+        const branchShip = branchPlayer === starfarers ? 'starfarers-orion' : 'givers-darwin'
+        const explored = executeAll(
+            game,
+            state,
+            userAction(game, branchPlayer, ActionType.Explore, { shipId: branchShip })
+        ).state
+
+        // The proposal reads nothing of the Branch in progress, so it stands as it would in a
+        // Hosted Game; the ship's owner, who used it, cannot accept.
+        const proposed = act(game, explored, other, ActionType.ProposePact, {
+            terms: terms(starfarers, givers)
+        })
+        const [pact] = proposed.state.pacts
+        expect(canAccept(hydrate(proposed.state), branchPlayer, pact.id, pact.revision)).toBe(false)
+    })
+})
+
+describe('Joining a pact', () => {
+    it('keeps a Player in the phase whose ships could resolve a target only with another Player', () => {
+        const { state, starfarers, givers } = setUp()
+        const hydrated = hydrate(state)
+        hydrated.systemState(SYSTEM).explorationMarker = 0
+        hydrated.systemState(SYSTEM).worlds = []
+        for (const ship of hydrated.shipsOf(givers)) {
+            ship.explored = ship.shipId !== 'givers-darwin'
+        }
+        expect(isIdleInPhase(hydrated, givers, TurnPhase.Exploration)).toBe(false)
+        hydrated.pledgeableShips = hydrated.pledgeableShips.filter(
+            (ship) => ship.playerId !== starfarers
+        )
+        expect(isIdleInPhase(hydrated, givers, TurnPhase.Exploration)).toBe(true)
+    })
 })
 
 describe('A pact in a Hosted Game', () => {
@@ -202,6 +242,7 @@ describe('A pact in a Hosted Game', () => {
             hydrated.systemState(SYSTEM).anomaly = ANOMALY
             placeShip(hydrated, starfarers, 'starfarers-orion', SYSTEM)
             placeShip(hydrated, givers, 'givers-darwin', SYSTEM)
+            recordPledgeableShips(hydrated)
         })
         return { state: ready, starfarers, givers }
     }

@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3488841062,
+  "seed": 1457359421,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T04:32:00.469Z",
+  "createdAt": "2026-10-18T12:47:10.307Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "1UbI0S_TmJitHucIGjom2",
+  "id": "wIoNfKJLXf8xLhwEelZUR",
   "gameId": "scenario-three-factions-at-one-anomaly",
   "seed": 3367980177,
   "prng": {
@@ -946,6 +946,50 @@
   "events": [],
   "homesteaders": [],
   "pacts": [],
+  "pledgeableShips": [
+   {
+    "playerId": "p2",
+    "shipId": "givers-darwin",
+    "systemId": "vega",
+    "science": 5,
+    "combat": 0
+   },
+   {
+    "playerId": "p2",
+    "shipId": "givers-mendel",
+    "systemId": "vega",
+    "science": 2,
+    "combat": 0
+   },
+   {
+    "playerId": "p1",
+    "shipId": "praetorians-audax",
+    "systemId": "vega",
+    "science": 3,
+    "combat": 0
+   },
+   {
+    "playerId": "p1",
+    "shipId": "praetorians-odyssey",
+    "systemId": "vega",
+    "science": 6,
+    "combat": 6
+   },
+   {
+    "playerId": "p0",
+    "shipId": "starfarers-kepler",
+    "systemId": "vega",
+    "science": 3,
+    "combat": 0
+   },
+   {
+    "playerId": "p0",
+    "shipId": "starfarers-orion",
+    "systemId": "vega",
+    "science": 6,
+    "combat": 3
+   }
+  ],
   "settlementRewards": [],
   "startingPositionRandom": [
    {

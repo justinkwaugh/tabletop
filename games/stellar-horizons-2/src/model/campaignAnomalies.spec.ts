@@ -17,6 +17,7 @@ import {
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { CASH_PRODUCTION } from './pieces.js'
 import {
+    discardUnplaceableRewards,
     isValidRewardPlacement,
     placeRewardSettlements,
     rewardPlacementSystems
@@ -109,7 +110,9 @@ describe('Resolving an anomaly in the campaign', () => {
         placeBase(state, playerId, 'barnards-star', 2)
         placeAnomaly(state, 'splinter-colony')
         resolve(state, playerId, 'splinter-colony')
-        expect(state.settlementRewards).toEqual([{ playerId, systemId: SYSTEM, settlements: 2 }])
+        expect(state.settlementRewards).toEqual([
+            { playerId, anomalyId: 'splinter-colony', systemId: SYSTEM, settlements: 2 }
+        ])
         // The Starfarers may hold two bases in 2100, so a new base at Alpha Centauri is allowed.
         expect(rewardPlacementSystems(state)).toEqual(['barnards-star', SYSTEM])
         const placements = [
@@ -121,6 +124,24 @@ describe('Resolving an anomaly in the campaign', () => {
         placeRewardSettlements(state, placements)
         expect(state.base(playerId, 'barnards-star')?.settlements).toBe(3)
         expect(state.base(playerId, SYSTEM)?.settlements).toBe(1)
+        expect(state.settlementRewards).toEqual([])
+    })
+
+    it('never places reward settlements where a "no bases" anomaly lies, and loses those with nowhere to go', () => {
+        const state = campaign()
+        const [playerId] = state.initiativeOrder()
+        state.anomalyPool.splice(state.anomalyPool.indexOf('megafauna'), 1)
+        state.systemState('barnards-star').anomaly = 'megafauna'
+        placeBase(state, playerId, 'barnards-star', 2)
+        placeBase(state, playerId, 'luhman-16', 2)
+        state.settlementRewards = [
+            { playerId, anomalyId: 'megafauna', systemId: 'barnards-star', settlements: 2 }
+        ]
+        expect(rewardPlacementSystems(state)).toEqual(['luhman-16'])
+
+        state.systemState('luhman-16').anomaly = 'terran-dna'
+        state.anomalyPool.splice(state.anomalyPool.indexOf('terran-dna'), 1)
+        discardUnplaceableRewards(state)
         expect(state.settlementRewards).toEqual([])
     })
 })

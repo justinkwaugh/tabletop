@@ -38,17 +38,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 4237067290,
+  "seed": 4166691807,
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-18T04:32:00.553Z",
+  "createdAt": "2026-10-18T12:47:10.390Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "la7-VjnjeIx6ym-PQNbCA",
+  "id": "IaJSrsWxJ8CnGGwEOz6l8",
   "gameId": "scenario-campaign-conversion",
   "seed": 3367980177,
   "prng": {
@@ -880,6 +880,50 @@
   "events": [],
   "homesteaders": [],
   "pacts": [],
+  "pledgeableShips": [
+   {
+    "playerId": "p0",
+    "shipId": "givers-linnaeus",
+    "systemId": "wise-0855-0714",
+    "science": 1,
+    "combat": 0
+   },
+   {
+    "playerId": "p0",
+    "shipId": "givers-mendel",
+    "systemId": "wolf-359",
+    "science": 2,
+    "combat": 0
+   },
+   {
+    "playerId": "p2",
+    "shipId": "praetorians-peregrinus",
+    "systemId": "luhman-16",
+    "science": 3,
+    "combat": 0
+   },
+   {
+    "playerId": "p3",
+    "shipId": "starfarers-kuiper",
+    "systemId": "lalande-21185",
+    "science": 2,
+    "combat": 0
+   },
+   {
+    "playerId": "p1",
+    "shipId": "truepath-faithful",
+    "systemId": "lalande-21185",
+    "science": 1,
+    "combat": 0
+   },
+   {
+    "playerId": "p1",
+    "shipId": "truepath-lightbringer",
+    "systemId": "wise-0855-0714",
+    "science": 1,
+    "combat": 0
+   }
+  ],
   "settlementRewards": [],
   "startingPositionRandom": [
    {

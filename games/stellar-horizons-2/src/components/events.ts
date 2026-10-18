@@ -1,9 +1,11 @@
+import { AnomalyChallenge } from './anomalyCatalog.js'
 import { TechField } from './techFields.js'
 import { WorldClass } from './worldTypes.js'
 
 // Rulebook 4.2 and 1.16. Events without a challenge act when drawn; the others are placed at a
 // base and resolved like anomalies for their IP, acting every turn or when the next event is
-// drawn while they are still unresolved. Transcribed from the event tiles in the Vassal module.
+// drawn while they are still unresolved. Transcribed from the event tiles in the Vassal module:
+// its deck of 20, and Unrest, whose tile is in the module's art but not its deck.
 
 export enum EventTiming {
     // Acts once, when drawn.
@@ -193,4 +195,18 @@ export function eventDefinition(eventId: string): EventDefinition {
         throw new Error(`Unknown event ${eventId}`)
     }
     return definition
+}
+
+export function printedEventDifficulty(
+    eventId: string,
+    challenge: AnomalyChallenge
+): number | undefined {
+    const printed = eventDefinition(eventId).challenge
+    return challenge === AnomalyChallenge.Science ? printed?.science : printed?.combat
+}
+
+export function eventChallenges(eventId: string): AnomalyChallenge[] {
+    return Object.values(AnomalyChallenge).filter(
+        (challenge) => printedEventDifficulty(eventId, challenge) !== undefined
+    )
 }

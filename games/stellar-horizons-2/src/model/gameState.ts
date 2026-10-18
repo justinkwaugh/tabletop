@@ -23,6 +23,7 @@ import {
     ActiveEvent,
     EventPlacement,
     Pact,
+    PledgeableShip,
     SettlementReward,
     TerraformRecord,
     baseKey
@@ -53,6 +54,7 @@ export const StellarHorizonsGameState = Type.Object({
     eventPlacement: Type.Optional(EventPlacement),
     homesteaders: Type.Array(Type.String()),
     pacts: Type.Array(Pact),
+    pledgeableShips: Type.Array(PledgeableShip),
     setAsideWorlds: Type.Array(Type.String()),
     economicTilePool: Type.Array(Type.Enum(EconomicTile)),
     economicTile: Type.Optional(Type.Enum(EconomicTile))
@@ -108,6 +110,7 @@ export class HydratedStellarHorizonsGameState
     declare eventPlacement?: EventPlacement
     declare homesteaders: string[]
     declare pacts: Pact[]
+    declare pledgeableShips: PledgeableShip[]
     declare setAsideWorlds: string[]
     declare economicTilePool: EconomicTile[]
     declare economicTile?: EconomicTile

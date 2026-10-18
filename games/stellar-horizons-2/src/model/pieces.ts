@@ -103,6 +103,7 @@ export const PendingAnomalyAttempt = Type.Object({
 export type SettlementReward = Type.Static<typeof SettlementReward>
 export const SettlementReward = Type.Object({
     playerId: Type.String(),
+    anomalyId: Type.String(),
     systemId: Type.String(),
     settlements: Type.Number()
 })
@@ -163,6 +164,17 @@ export const Pact = Type.Object({
     revision: Type.Number(),
     acceptedIds: Type.Array(Type.String()),
     agreed: Type.Boolean()
+})
+
+// A ship's place and strength for each challenge as the exploration phase began: what the other
+// Players see of it when it is pledged (docs/parallel-spans.md, Common Actions rule 5).
+export type PledgeableShip = Type.Static<typeof PledgeableShip>
+export const PledgeableShip = Type.Object({
+    playerId: Type.String(),
+    shipId: Type.String(),
+    systemId: Type.String(),
+    science: Type.Number(),
+    combat: Type.Number()
 })
 
 export type SurveyWorldChoice = Type.Static<typeof SurveyWorldChoice>

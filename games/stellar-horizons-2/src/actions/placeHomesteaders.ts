@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { EventEffectKind, eventDefinition } from '../components/events.js'
 import { ActionType } from '../definition/actions.js'
+import { homesteadSystems } from '../model/events.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { addSettlements } from '../model/settling.js'
 
@@ -42,7 +43,7 @@ export class HydratedPlaceHomesteaders
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         if (
             state.homesteaders[0] !== this.playerId ||
-            !state.base(this.playerId, this.systemId) ||
+            !homesteadSystems(state, this.playerId).includes(this.systemId) ||
             HOMESTEADERS.kind !== EventEffectKind.Homesteaders
         ) {
             throw Error('Invalid PlaceHomesteaders action')

@@ -89,6 +89,27 @@ describe('Events without a challenge', () => {
         drawFixed(state, 'homesteaders')
         expect(state.homesteaders).toEqual([second])
     })
+
+    it('Colonial Rush and Homesteaders pass over bases where a "no bases" anomaly lies', () => {
+        const state = campaign()
+        const [first, second] = state.initiativeOrder()
+        state.anomalyPool.splice(state.anomalyPool.indexOf('megafauna'), 1)
+        state.systemState(SYSTEM).anomaly = 'megafauna'
+        placeBase(state, first, 'barnards-star', 9)
+        placeBase(state, second, 'barnards-star', 2)
+        placeBase(state, second, SYSTEM, 1)
+        drawFixed(state, 'colonial-rush')
+        expect(state.base(second, 'barnards-star')?.settlements).toBe(3)
+        expect(state.base(second, SYSTEM)?.settlements).toBe(1)
+
+        const blocked = campaign()
+        const [, onlyBlocked] = blocked.initiativeOrder()
+        blocked.anomalyPool.splice(blocked.anomalyPool.indexOf('megafauna'), 1)
+        blocked.systemState(SYSTEM).anomaly = 'megafauna'
+        placeBase(blocked, onlyBlocked, SYSTEM, 1)
+        drawFixed(blocked, 'homesteaders')
+        expect(blocked.homesteaders).toEqual([])
+    })
 })
 
 describe('Event challenges', () => {

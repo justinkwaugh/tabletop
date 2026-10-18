@@ -4,12 +4,12 @@
     import {
         OperationKind,
         canOperate,
-        currentExploration,
         isMine,
         isResearch,
         isStartTurn,
+        miningTarget,
+        researchTarget,
         operableWorldSlots,
-        roundHalfUp,
         shipDefinition,
         shipTerraformSlots,
         worldFace,
@@ -17,7 +17,7 @@
         type ShipState
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { plural, systemName } from '$lib/utils/presentation.js'
+    import { plural, rollChance, systemName } from '$lib/utils/presentation.js'
     import ShipTile from '../ShipTile.svelte'
 
     const gameSession = getGameSession()
@@ -62,7 +62,7 @@
     const queuedTerraforms = $derived(
         gameState.getPlayerState(me).shipTerraforms.map((terraform) => {
             const world = gameState.systemState(terraform.systemId).worlds[terraform.slot]
-            const worldClass = world ? worldTile(world.tileId).worldClass : 'a world'
+            const worldClass = worldTile(world.tileId).worldClass
             return {
                 id: terraform.shipId,
                 text: `${shipDefinition(terraform.shipId).name} terraforms ${worldClass} at ${systemName(terraform.systemId)} once everyone has finished exploring`
@@ -106,23 +106,21 @@
                     {#each worlds(ship) as { slot, world, face } (slot)}
                         {@const worldClass = worldTile(world.tileId).worldClass}
                         {#if face && canOperate(gameState, ship, OperationKind.Mining)}
+                            {@const target = miningTarget(gameState, ship, slot)}
                             <button
                                 type="button"
-                                title="$2B on a roll of {face.cash} or less, otherwise $1B"
+                                title="$2B on a roll of {target} or less, otherwise $1B"
                                 onclick={() => gameSession.mine(ship.shipId, slot)}
-                                >Mine {worldClass} ({face.cash * 10}% for $2B)</button
+                                >Mine {worldClass} ({rollChance(target)} for $2B)</button
                             >
                         {/if}
                         {#if face && canOperate(gameState, ship, OperationKind.Research)}
-                            {@const target = Math.min(
-                                10,
-                                face.techValue + roundHalfUp(currentExploration(ship) / 2)
-                            )}
+                            {@const target = researchTarget(gameState, ship, slot)}
                             <button
                                 type="button"
                                 title="A {face.techField.toLowerCase()} marker on a roll of {target} or less"
                                 onclick={() => gameSession.research(ship.shipId, slot)}
-                                >Research {worldClass} ({target * 10}% for {face.techField.toLowerCase()})</button
+                                >Research {worldClass} ({rollChance(target)} for {face.techField.toLowerCase()})</button
                             >
                         {/if}
                         {#if terraformSlots.includes(slot)}

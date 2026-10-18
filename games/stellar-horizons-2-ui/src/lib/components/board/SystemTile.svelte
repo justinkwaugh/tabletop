@@ -11,7 +11,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { tileOutline, type SystemFrame } from '$lib/utils/boardLayout.js'
     import type { ShipPipLayout } from '$lib/utils/shipPipLayout.js'
-    import { plural, systemName } from '$lib/utils/presentation.js'
+    import { systemName } from '$lib/utils/presentation.js'
     import {
         ANOMALY_SIZE,
         MARKER_SCALE_ON_ANOMALY,
@@ -55,8 +55,8 @@
             pips: ships.pips.filter((pip) => pip.ship.playerId === playerId)
         }))
     )
-    const moveTarget = $derived(
-        gameSession.moveTargets.find((target) => target.systemId === frame.systemId)
+    const mapTarget = $derived(
+        gameSession.mapTargets.find((target) => target.systemId === frame.systemId)
     )
 
     function onTitleClick(event: MouseEvent) {
@@ -67,8 +67,8 @@
     }
 
     async function onTileClick() {
-        if (moveTarget) {
-            await gameSession.moveSelectedShip(frame.systemId)
+        if (mapTarget) {
+            await gameSession.chooseMapTarget(frame.systemId)
         }
     }
 </script>
@@ -194,18 +194,18 @@
         onclick={onTitleClick}
     ></rect>
 
-    {#if moveTarget}
+    {#if mapTarget}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <g
             class="move-target"
             role="button"
             tabindex="-1"
-            aria-label="Move to {systemName(frame.systemId)}"
+            aria-label={mapTarget.action}
             onclick={onTileClick}
         >
             <polygon points={tileOutline(frame, 6)}></polygon>
             <text class="move-label" y={-frame.height * 0.3} text-anchor="middle"
-                >{plural(moveTarget.turns, 'turn')}</text
+                >{mapTarget.label}</text
             >
         </g>
     {/if}

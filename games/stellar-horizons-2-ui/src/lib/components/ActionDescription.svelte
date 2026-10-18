@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { GameAction } from '@tabletop/common'
     import {
+        AnomalyBackKind,
         CargoPartnerKind,
         MarkerReason,
         RepairMethod,
@@ -75,6 +76,7 @@
         productionLabel,
         systemName
     } from '$lib/utils/presentation.js'
+    import { pactTargetName, rewardSummary } from '$lib/utils/pacts.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
         $props()
@@ -98,20 +100,13 @@
     }
 
     function rewardText(reward: GrantedReward): string {
-        const parts = [
-            reward.influence ? `${reward.influence} IP` : '',
-            reward.cash ? `$${reward.cash}B` : '',
-            reward.markers.length ? `markers (${reward.markers.join(', ')})` : '',
-            reward.settlements ? plural(reward.settlements, 'settlement') : ''
-        ].filter(Boolean)
         const notYet = reward.notYet.length
             ? ` (${reward.notYet.join(' and ')} not in the game yet)`
             : ''
-        return `${parts.length ? parts.join(', ') : 'nothing'}${notYet}`
-    }
-
-    function targetName(kind: string, targetId: string): string {
-        return kind === 'Event' ? eventDefinition(targetId).name : anomalyDefinition(targetId).name
+        return `${rewardSummary({
+            ...reward,
+            markers: reward.markers.length ? `markers (${reward.markers.join(', ')})` : ''
+        })}${notYet}`
     }
 
     function settledText(entry: SettledMarkers): string {
@@ -348,9 +343,9 @@
             {/if}
             {#if metadata.turnedOver}
                 <span
-                    >{metadata.turnedOver.back === 'Bases'
+                    >{metadata.turnedOver.back === AnomalyBackKind.Bases
                         ? 'The tile is turned over and stays in the system.'
-                        : metadata.turnedOver.back === 'StellarChart'
+                        : metadata.turnedOver.back === AnomalyBackKind.StellarChart
                           ? `The Stellar Chart draws ${plural(metadata.turnedOver.worlds.length, 'world')}.`
                           : 'The tile leaves the game.'}</span
                 >
@@ -450,9 +445,8 @@
         {/if}
     {:else if isProposePact(action)}
         <span
-            >{action.pactId ? 'countered with a pact' : 'proposed a pact'} on {targetName(
-                action.terms.targetKind,
-                action.terms.targetId
+            >{action.pactId ? 'countered with a pact' : 'proposed a pact'} on {pactTargetName(
+                action.terms
             )} with</span
         >
         {#each action.terms.partnerIds.filter((playerId) => playerId !== action.playerId) as playerId (playerId)}

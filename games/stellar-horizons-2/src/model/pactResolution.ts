@@ -3,7 +3,6 @@ import { anomalyDefinition } from '../components/anomalies.js'
 import { grantReward, type GrantedReward } from './anomalyRewards.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { PactTargetKind, type Pact } from './pieces.js'
-import { pact } from './pacts.js'
 
 // When the exploration span completes, each agreed pact joins the attempts at its earliest
 // partner in initiative order, with every partner's pledged ships; offers never agreed are
@@ -39,25 +38,6 @@ export function queuePactAttempts(state: HydratedStellarHorizonsGameState) {
     }
 }
 
-export function takePact(state: HydratedStellarHorizonsGameState, pactId: string): Pact {
-    const candidate = pact(state, pactId)
-    assertExists(candidate, `No pact ${pactId}`)
-    state.pacts = state.pacts.filter((other) => other.id !== pactId)
-    return candidate
-}
-
-// The pledged ships spend their actions as the pact resolves.
-export function spendPledgedShips(state: HydratedStellarHorizonsGameState, candidate: Pact) {
-    for (const playerId of candidate.terms.partnerIds) {
-        for (const shipId of candidate.terms.pledges[playerId] ?? []) {
-            const ship = state.findShip(shipId)
-            if (ship) {
-                ship.explored = true
-            }
-        }
-    }
-}
-
 // The reward is split item by item as the pact's shares say; each partner counts the
 // resolution as their own (rulebook 1.16, directives and titles).
 export function grantPactShares(
@@ -79,6 +59,7 @@ export function grantPactShares(
         if (granted.settlements > 0) {
             state.settlementRewards.push({
                 playerId,
+                anomalyId: anomaly.id,
                 systemId: candidate.systemId,
                 settlements: granted.settlements
             })

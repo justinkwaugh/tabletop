@@ -1,7 +1,9 @@
 import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
+import { blocksBases } from './anomalies.js'
 import { atBaseLimit } from './campaign.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import type { SettlementReward } from './pieces.js'
 import { addSettlements } from './settling.js'
 
 export type RewardPlacement = Type.Static<typeof RewardPlacement>
@@ -12,13 +14,29 @@ export const RewardPlacement = Type.Object({
 
 // Rulebook 1.16 (Splinter Colony, Dissidents): settlements go to any of the Player's bases, or
 // found a base in the anomaly's system if that keeps within the base limit, habitability
-// ignored.
+// ignored; never where a "no bases" anomaly stops bases gaining settlements.
 export function rewardPlacementSystems(state: HydratedStellarHorizonsGameState): string[] {
     const reward = state.settlementRewards.at(0)
     assertExists(reward, 'No settlement reward is waiting')
+    return placementSystems(state, reward)
+}
+
+function placementSystems(
+    state: HydratedStellarHorizonsGameState,
+    reward: SettlementReward
+): string[] {
     const bases = state.basesOf(reward.playerId).map((base) => base.systemId)
     const canFound = !bases.includes(reward.systemId) && !atBaseLimit(state, reward.playerId)
-    return canFound ? [...bases, reward.systemId] : bases
+    return (canFound ? [...bases, reward.systemId] : bases).filter(
+        (systemId) => !blocksBases(state, systemId)
+    )
+}
+
+// Settlements with nowhere to go are lost.
+export function discardUnplaceableRewards(state: HydratedStellarHorizonsGameState) {
+    state.settlementRewards = state.settlementRewards.filter(
+        (reward) => placementSystems(state, reward).length > 0
+    )
 }
 
 export function isValidRewardPlacement(

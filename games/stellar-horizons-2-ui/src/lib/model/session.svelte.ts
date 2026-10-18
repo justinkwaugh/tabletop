@@ -35,7 +35,17 @@ import {
     Terraform,
     TransferCargo,
     TurnPhase,
+    MachineState,
+    PactTargetKind,
     anomalyAttemptShips,
+    eventAttemptShips,
+    eventPlacementSystems,
+    homesteadSystems,
+    isValidEventAttempt,
+    pactTarget,
+    rewardPlacementSystems,
+    termsProblem,
+    usesAnomalyRewards,
     canExplore,
     cargoPartners,
     cargoTransferLimits,
@@ -52,6 +62,9 @@ import {
     type HydratedStellarHorizonsGameState,
     type AnomalyChallenge,
     type MoveOption,
+    type Pact,
+    type PactOpening,
+    type PactShare,
     type PactTerms,
     type RewardPlacement,
     type Production,
@@ -59,9 +72,22 @@ import {
     type StellarHorizonsProjectedState,
     type TechId
 } from '@tabletop/stellar-horizons-2'
+import { evenShares, type ShareItem } from '$lib/utils/pacts.js'
+import { plural, systemName } from '$lib/utils/presentation.js'
 import {
     anomalySelection,
+    eventSelection,
+    pactSelection,
+    popSelection,
+    rewardSelection,
     selectedAnomalyDraft,
+    selectedEventDraft,
+    selectedPactDraft,
+    selectedRewardDraft,
+    toggleEventShip,
+    type EventDraft,
+    type PactDraft,
+    type RewardDraft,
     selectedShipId,
     selectedTechId,
     shipSelection,
@@ -88,6 +114,13 @@ export interface PhaseOrderEntry {
 interface CargoDraft {
     partner: CargoPartner
     settlements: number
+}
+
+// A system the map offers for the current choice, with what choosing it does.
+export interface MapTarget {
+    systemId: string
+    label: string
+    action: string
 }
 
 export interface ShipClump {
@@ -211,6 +244,123 @@ export class StellarHorizonsGameSession extends GameSession<
             return []
         }
         return moveOptions(this.gameState, ship)
+    })
+
+    // The ships chosen so far for an event, less any that can no longer take part.
+    eventDraft: EventDraft | undefined = $derived.by(() => {
+        const draft = selectedEventDraft(this.selection)
+        const playerId = this.myPlayerId
+        if (!draft || !playerId || this.actingPhase !== TurnPhase.Exploration) {
+            return undefined
+        }
+        const available = eventAttemptShips(
+            this.gameState,
+            playerId,
+            draft.eventId,
+            draft.challenge
+        ).map((ship) => ship.shipId)
+        return { ...draft, shipIds: draft.shipIds.filter((shipId) => available.includes(shipId)) }
+    })
+
+    pactDraft: PactDraft | undefined = $derived.by(() => {
+        const draft = selectedPactDraft(this.selection)
+        if (
+            !draft ||
+            this.isViewingHistory ||
+            !this.validActionTypes.includes(ActionType.ProposePact) ||
+            !pactTarget(this.gameState, draft.opening, draft.partnerIds)
+        ) {
+            return undefined
+        }
+        return draft
+    })
+
+    pactTerms: PactTerms | undefined = $derived.by(() => {
+        const draft = this.pactDraft
+        const playerId = this.myPlayerId
+        const target = draft && pactTarget(this.gameState, draft.opening, draft.partnerIds)
+        if (!draft || !playerId || !target) {
+            return undefined
+        }
+        const shares = draft.shares ?? evenShares(target.reward, draft.partnerIds, playerId)
+        const keeps =
+            !usesAnomalyRewards(this.gameState) &&
+            draft.opening.targetKind === PactTargetKind.Anomaly
+        return {
+            targetKind: draft.opening.targetKind,
+            targetId: draft.opening.targetId,
+            challenge: draft.opening.challenge,
+            partnerIds: draft.partnerIds,
+            pledges: Object.fromEntries(
+                draft.partnerIds.map((partnerId) => [partnerId, draft.pledges[partnerId] ?? []])
+            ),
+            shares: Object.fromEntries(
+                draft.partnerIds.map((partnerId) => [partnerId, shares[partnerId]])
+            ),
+            ...(keeps ? { keeperId: draft.keeperId ?? playerId } : {})
+        }
+    })
+
+    pactProblem: string | undefined = $derived.by(() => {
+        const terms = this.pactTerms
+        const playerId = this.myPlayerId
+        return terms && playerId
+            ? termsProblem(this.gameState, playerId, terms, this.pactDraft?.counteredPactId)
+            : undefined
+    })
+
+    rewardDraft: RewardDraft = $derived.by(() => {
+        const draft = selectedRewardDraft(this.selection)
+        const reward = this.gameState.settlementRewards.at(0)
+        if (
+            !draft ||
+            !reward ||
+            !this.canAct ||
+            this.gameState.machineState !== MachineState.PlacingRewardSettlements
+        ) {
+            return { systemIds: [] }
+        }
+        const allowed = rewardPlacementSystems(this.gameState)
+        return {
+            systemIds: draft.systemIds
+                .filter((systemId) => allowed.includes(systemId))
+                .slice(0, reward.settlements)
+        }
+    })
+
+    mapTargets: MapTarget[] = $derived.by(() => {
+        const playerId = this.myPlayerId
+        if (!playerId) {
+            return []
+        }
+        if (this.moveTargets.length > 0) {
+            return this.moveTargets.map((target) => ({
+                systemId: target.systemId,
+                label: plural(target.turns, 'turn'),
+                action: `Move to ${systemName(target.systemId)}`
+            }))
+        }
+        if (!this.canAct) {
+            return []
+        }
+        switch (this.gameState.machineState) {
+            case MachineState.PlacingEvent:
+                return eventPlacementSystems(this.gameState, playerId).map((systemId) => ({
+                    systemId,
+                    label: 'Place the event',
+                    action: `Place the event at ${systemName(systemId)}`
+                }))
+            case MachineState.PlacingHomesteaders:
+                return homesteadSystems(this.gameState, playerId).map((systemId) => ({
+                    systemId,
+                    label: '+2 settlements',
+                    action: `Homesteaders to ${systemName(systemId)}`
+                }))
+            case MachineState.PlacingRewardSettlements:
+                return this.rewardTargets()
+            default:
+                return []
+        }
     })
 
     selectableShipIds: string[] = $derived.by(() => {
@@ -347,6 +497,161 @@ export class StellarHorizonsGameSession extends GameSession<
         await this.commit(ActionType.AttemptAnomaly, this.createPlayerAction(AttemptAnomaly, draft))
     }
 
+    chooseEventChallenge(eventId: string, challenge: AnomalyChallenge) {
+        this.select(eventSelection({ eventId, challenge, shipIds: [] }))
+    }
+
+    toggleEventShip(eventId: string, challenge: AnomalyChallenge, shipId: string) {
+        const draft = toggleEventShip(this.eventDraft, eventId, challenge, shipId)
+        this.select(draft ? eventSelection(draft) : undefined)
+    }
+
+    async commitEventDraft() {
+        const draft = this.eventDraft
+        const playerId = this.myPlayerId
+        if (
+            !draft ||
+            !playerId ||
+            !isValidEventAttempt(
+                this.gameState,
+                playerId,
+                draft.eventId,
+                draft.challenge,
+                draft.shipIds
+            )
+        ) {
+            return
+        }
+        this.clearSelection()
+        await this.commit(ActionType.AttemptEvent, this.createPlayerAction(AttemptEvent, draft))
+    }
+
+    // Opening the editor again for the same target and offer closes it.
+    openPactDraft(opening: PactOpening, countered?: Pact) {
+        const playerId = this.myPlayerId
+        const current = this.pactDraft
+        if (!playerId) {
+            return
+        }
+        if (
+            current &&
+            current.counteredPactId === countered?.id &&
+            this.isSamePactOpening(current.opening, opening)
+        ) {
+            this.clearSelection()
+            return
+        }
+        this.select(
+            pactSelection(
+                countered
+                    ? {
+                          opening,
+                          counteredPactId: countered.id,
+                          partnerIds: [...countered.terms.partnerIds],
+                          pledges: Object.fromEntries(
+                              Object.entries(countered.terms.pledges).map(
+                                  ([partnerId, shipIds]) => [partnerId, [...shipIds]]
+                              )
+                          ),
+                          shares: Object.fromEntries(
+                              Object.entries(countered.terms.shares).map(([partnerId, share]) => [
+                                  partnerId,
+                                  { ...share }
+                              ])
+                          ),
+                          keeperId: countered.terms.keeperId
+                      }
+                    : { opening, partnerIds: [playerId], pledges: { [playerId]: [] } }
+            )
+        )
+    }
+
+    togglePactPartner(partnerId: string) {
+        this.updatePactDraft((draft) => ({
+            ...draft,
+            partnerIds: draft.partnerIds.includes(partnerId)
+                ? draft.partnerIds.filter((candidate) => candidate !== partnerId)
+                : [...draft.partnerIds, partnerId],
+            shares: undefined
+        }))
+    }
+
+    togglePactShip(partnerId: string, shipId: string) {
+        this.updatePactDraft((draft) => {
+            const pledged = draft.pledges[partnerId] ?? []
+            return {
+                ...draft,
+                pledges: {
+                    ...draft.pledges,
+                    [partnerId]: pledged.includes(shipId)
+                        ? pledged.filter((candidate) => candidate !== shipId)
+                        : [...pledged, shipId]
+                }
+            }
+        })
+    }
+
+    adjustPactShare(partnerId: string, item: ShareItem, change: number) {
+        const terms = this.pactTerms
+        if (!terms) {
+            return
+        }
+        const shares: Record<string, PactShare> = Object.fromEntries(
+            Object.entries(terms.shares).map(([id, share]) => [id, { ...share }])
+        )
+        shares[partnerId][item] = Math.max(0, shares[partnerId][item] + change)
+        this.updatePactDraft((draft) => ({ ...draft, shares }))
+    }
+
+    choosePactKeeper(partnerId: string) {
+        this.updatePactDraft((draft) => ({ ...draft, keeperId: partnerId }))
+    }
+
+    async proposePactDraft() {
+        const terms = this.pactTerms
+        const draft = this.pactDraft
+        if (!terms || !draft || this.pactProblem) {
+            return
+        }
+        this.clearSelection()
+        await this.proposePact(terms, draft.counteredPactId)
+    }
+
+    async chooseMapTarget(systemId: string) {
+        if (!this.mapTargets.some((target) => target.systemId === systemId)) {
+            return
+        }
+        switch (this.gameState.machineState) {
+            case MachineState.PlacingEvent:
+                await this.placeEvent(systemId)
+                return
+            case MachineState.PlacingHomesteaders:
+                await this.placeHomesteaders(systemId)
+                return
+            case MachineState.PlacingRewardSettlements:
+                this.select(
+                    rewardSelection({ systemIds: [...this.rewardDraft.systemIds, systemId] })
+                )
+                return
+            default:
+                await this.moveSelectedShip(systemId)
+        }
+    }
+
+    async commitRewardDraft() {
+        const reward = this.gameState.settlementRewards.at(0)
+        const systemIds = this.rewardDraft.systemIds
+        if (!reward || systemIds.length !== reward.settlements) {
+            return
+        }
+        const placements = [...new Set(systemIds)].map((systemId) => ({
+            systemId,
+            settlements: systemIds.filter((candidate) => candidate === systemId).length
+        }))
+        this.clearSelection()
+        await this.placeRewardSettlements(placements)
+    }
+
     selectTech(techId: TechId) {
         this.select(selectedTechId(this.selection) === techId ? undefined : techSelection(techId))
     }
@@ -395,7 +700,7 @@ export class StellarHorizonsGameSession extends GameSession<
 
     override async undo() {
         if (this.hasManualSelection()) {
-            this.clearSelection()
+            this.select(popSelection(this.selection))
             return
         }
         await super.undo()
@@ -409,6 +714,38 @@ export class StellarHorizonsGameSession extends GameSession<
     private enterPhase() {
         if (this.myPhase === TurnPhase.Movement) {
             this.leaveFocus()
+        }
+    }
+
+    private rewardTargets(): MapTarget[] {
+        const reward = this.gameState.settlementRewards.at(0)
+        const placed = this.rewardDraft.systemIds
+        if (!reward || placed.length >= reward.settlements) {
+            return []
+        }
+        return rewardPlacementSystems(this.gameState).map((systemId) => {
+            const count = placed.filter((candidate) => candidate === systemId).length
+            return {
+                systemId,
+                label: count > 0 ? `+${count}, add another` : 'Add a settlement',
+                action: `Add a settlement at ${systemName(systemId)}`
+            }
+        })
+    }
+
+    private isSamePactOpening(a: PactOpening, b: PactOpening): boolean {
+        return (
+            a.targetKind === b.targetKind &&
+            a.targetId === b.targetId &&
+            a.challenge === b.challenge &&
+            a.systemId === b.systemId
+        )
+    }
+
+    private updatePactDraft(change: (draft: PactDraft) => PactDraft) {
+        const draft = this.pactDraft
+        if (draft) {
+            this.select(pactSelection(change(draft)))
         }
     }
 

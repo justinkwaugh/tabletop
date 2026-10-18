@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3674395394,
+  "seed": 144359198,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T04:32:00.599Z",
+  "createdAt": "2026-10-18T12:47:10.438Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "T7tJeQ1GqmXQia5aGmEVP",
+  "id": "eQS9IkPs2H3RJ9JJYKEuM",
   "gameId": "scenario-campaign-pact",
   "seed": 3367980177,
   "prng": {
@@ -780,6 +780,50 @@
   "events": [],
   "homesteaders": [],
   "pacts": [],
+  "pledgeableShips": [
+   {
+    "playerId": "p2",
+    "shipId": "givers-darwin",
+    "systemId": "alpha-centauri",
+    "science": 5,
+    "combat": 0
+   },
+   {
+    "playerId": "p2",
+    "shipId": "givers-linnaeus",
+    "systemId": "wise-0855-0714",
+    "science": 1,
+    "combat": 0
+   },
+   {
+    "playerId": "p2",
+    "shipId": "givers-mendel",
+    "systemId": "wolf-359",
+    "science": 2,
+    "combat": 0
+   },
+   {
+    "playerId": "p1",
+    "shipId": "praetorians-peregrinus",
+    "systemId": "luhman-16",
+    "science": 3,
+    "combat": 0
+   },
+   {
+    "playerId": "p0",
+    "shipId": "starfarers-kuiper",
+    "systemId": "lalande-21185",
+    "science": 2,
+    "combat": 0
+   },
+   {
+    "playerId": "p0",
+    "shipId": "starfarers-orion",
+    "systemId": "alpha-centauri",
+    "science": 6,
+    "combat": 3
+   }
+  ],
   "settlementRewards": [],
   "startingPositionRandom": [
    {

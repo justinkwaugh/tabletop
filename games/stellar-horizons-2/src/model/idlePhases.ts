@@ -7,6 +7,7 @@ import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { attemptableEventIds } from './events.js'
 import { canMoveAnyShip } from './movement.js'
 import { canOperateAnyShip } from './operations.js'
+import { canJoinAnyPact } from './pacts.js'
 import { OperationKind } from './pieces.js'
 import { shipTerraformSlots } from './terraforming.js'
 import { TurnPhase } from './turn.js'
@@ -34,6 +35,7 @@ export function isIdleInPhase(
                 !canExploreAnyShip(state, playerId) &&
                 attemptableSystemIds(state, playerId).length === 0 &&
                 attemptableEventIds(state, playerId).length === 0 &&
+                !canJoinAnyPact(state, playerId) &&
                 !canOperateAnyShip(state, playerId, OperationKind.Mining) &&
                 !canOperateAnyShip(state, playerId, OperationKind.Research) &&
                 !state

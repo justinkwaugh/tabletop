@@ -1,135 +1,52 @@
 <script lang="ts">
-    // Terms for a new pact, or a counter to one: partners, the ships each pledges and how the
-    // reward is split. A Player guarantees only their own ships; the others' are offered as
-    // everyone sees them, and their owners check them when they accept.
+    // Terms for a new pact, or a counter to one. A Player guarantees only their own ships; the
+    // others' are offered as everyone saw them when the phase began, and their owners check
+    // them when they accept.
     import { PlayerName } from '@tabletop/frontend-components'
     import {
-        shipDefinition,
-        termsProblem,
-        usesAnomalyRewards,
-        type Pact,
-        type PactShare,
-        type PactTerms
+        pactTarget,
+        pledgeOptions,
+        possiblePartners,
+        shipDefinition
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import {
-        SHARE_ITEMS,
-        candidatePartners,
-        candidateShips,
-        evenShares,
-        targetReward,
-        type PactSubject
-    } from '$lib/utils/pacts.js'
+    import type { PactDraft } from '$lib/model/selection.js'
+    import { SHARE_ITEMS, type ShareItem } from '$lib/utils/pacts.js'
 
-    let {
-        subject,
-        existing,
-        onclose
-    }: { subject: PactSubject; existing?: Pact; onclose: () => void } = $props()
+    let { draft }: { draft: PactDraft } = $props()
 
-    const gameSession = getGameSession()
-    const gameState = $derived(gameSession.gameState)
-    const me = $derived(gameSession.myPlayerId ?? '')
-    const others = $derived(candidatePartners(gameState, me, subject))
-
-    const ITEM_LABELS: Record<(typeof SHARE_ITEMS)[number], string> = {
+    const ITEM_LABELS: Record<ShareItem, string> = {
         influence: 'IP',
         cash: '$B',
         markers: 'Markers',
         settlements: 'Settlements'
     }
 
-    // The editor's draft starts from the terms it counters, once; later changes to them do not
-    // reset what the Player is drafting.
-    function startingDraft() {
-        const terms = existing?.terms
-        return {
-            partnerIds: terms ? [...terms.partnerIds] : [me],
-            pledges: terms
-                ? Object.fromEntries(
-                      Object.entries(terms.pledges).map(([playerId, shipIds]) => [
-                          playerId,
-                          [...shipIds]
-                      ])
-                  )
-                : { [me]: [] },
-            shares: terms
-                ? Object.fromEntries(
-                      Object.entries(terms.shares).map(([playerId, share]) => [
-                          playerId,
-                          { ...share }
-                      ])
-                  )
-                : undefined,
-            keeperId: terms?.keeperId
-        }
-    }
-    const draft = startingDraft()
-    let partnerIds: string[] = $state(draft.partnerIds)
-    let pledges: Record<string, string[]> = $state(draft.pledges)
-    let shares: Record<string, PactShare> | undefined = $state(draft.shares)
-    let keeperId: string | undefined = $state(draft.keeperId)
-
-    const target = $derived(targetReward(gameState, subject, partnerIds))
-    const reward = $derived(target?.reward)
-    const items = $derived(reward ? SHARE_ITEMS.filter((item) => reward[item] > 0) : [])
-    const currentShares = $derived(shares ?? (reward ? evenShares(reward, partnerIds, me) : {}))
-    const keeps = $derived(!usesAnomalyRewards(gameState) && subject.targetKind === 'Anomaly')
-    const terms: PactTerms = $derived({
-        targetKind: subject.targetKind,
-        targetId: subject.targetId,
-        challenge: subject.challenge,
-        partnerIds,
-        pledges: Object.fromEntries(
-            partnerIds.map((playerId) => [playerId, pledges[playerId] ?? []])
-        ),
-        shares: Object.fromEntries(
-            partnerIds.map((playerId) => [playerId, currentShares[playerId]])
-        ),
-        ...(keeps ? { keeperId: keeperId ?? me } : {})
-    })
+    const gameSession = getGameSession()
+    const gameState = $derived(gameSession.gameState)
+    const me = $derived(gameSession.myPlayerId ?? '')
+    const others = $derived(possiblePartners(gameState, me, draft.opening))
+    const target = $derived(pactTarget(gameState, draft.opening, draft.partnerIds))
+    const terms = $derived(gameSession.pactTerms)
+    const items = $derived(target ? SHARE_ITEMS.filter((item) => target.reward[item] > 0) : [])
+    const options = $derived(
+        Object.fromEntries(
+            draft.partnerIds.map((playerId) => [
+                playerId,
+                pledgeOptions(gameState, playerId, me, draft.opening, draft.counteredPactId)
+            ])
+        )
+    )
     const strength = $derived(
-        partnerIds.reduce(
+        draft.partnerIds.reduce(
             (total, playerId) =>
                 total +
-                candidateShips(gameState, playerId, subject)
-                    .filter((entry) => (pledges[playerId] ?? []).includes(entry.ship.shipId))
-                    .reduce((sum, entry) => sum + entry.strength, 0),
+                options[playerId]
+                    .filter((option) => (draft.pledges[playerId] ?? []).includes(option.shipId))
+                    .reduce((sum, option) => sum + option.strength, 0),
             0
         )
     )
-    const problem = $derived(termsProblem(gameState, me, terms, existing?.id))
-
-    function togglePartner(playerId: string) {
-        partnerIds = partnerIds.includes(playerId)
-            ? partnerIds.filter((candidate) => candidate !== playerId)
-            : [...partnerIds, playerId]
-        shares = undefined
-    }
-
-    function toggleShip(playerId: string, shipId: string) {
-        const current = pledges[playerId] ?? []
-        pledges = {
-            ...pledges,
-            [playerId]: current.includes(shipId)
-                ? current.filter((candidate) => candidate !== shipId)
-                : [...current, shipId]
-        }
-    }
-
-    function adjustShare(playerId: string, item: (typeof SHARE_ITEMS)[number], change: number) {
-        const next = Object.fromEntries(
-            Object.entries(currentShares).map(([partnerId, share]) => [partnerId, { ...share }])
-        )
-        next[playerId][item] = Math.max(0, next[playerId][item] + change)
-        shares = next
-    }
-
-    async function propose() {
-        if (problem) return
-        await gameSession.proposePact(terms, existing?.id)
-        onclose()
-    }
 </script>
 
 <div class="editor">
@@ -140,48 +57,47 @@
             <button
                 type="button"
                 class="chip"
-                class:on={partnerIds.includes(playerId)}
-                aria-pressed={partnerIds.includes(playerId)}
-                onclick={() => togglePartner(playerId)}><PlayerName {playerId} /></button
+                class:on={draft.partnerIds.includes(playerId)}
+                aria-pressed={draft.partnerIds.includes(playerId)}
+                onclick={() => gameSession.togglePactPartner(playerId)}
+                ><PlayerName {playerId} /></button
             >
         {/each}
     </div>
 
-    {#each partnerIds as playerId (playerId)}
+    {#each draft.partnerIds as playerId (playerId)}
         <div class="pledge">
             <span class="who"
-                >{playerId === me ? 'Your ships' : ''}{#if playerId !== me}<PlayerName
-                        {playerId}
-                    />'s ships{/if}</span
+                >{#if playerId === me}Your ships{:else}<PlayerName {playerId} />'s ships{/if}</span
             >
             <span class="ships">
-                {#each candidateShips(gameState, playerId, subject) as entry (entry.ship.shipId)}
-                    {@const chosen = (pledges[playerId] ?? []).includes(entry.ship.shipId)}
+                {#each options[playerId] as option (option.shipId)}
+                    {@const chosen = (draft.pledges[playerId] ?? []).includes(option.shipId)}
                     <button
                         type="button"
                         class="ship"
                         class:on={chosen}
                         aria-pressed={chosen}
-                        onclick={() => toggleShip(playerId, entry.ship.shipId)}
-                        >{shipDefinition(entry.ship.shipId).name} +{entry.strength}</button
+                        onclick={() => gameSession.togglePactShip(playerId, option.shipId)}
+                        >{shipDefinition(option.shipId).name} +{option.strength}</button
                     >
                 {/each}
             </span>
         </div>
     {/each}
 
-    {#if items.length > 0 && reward}
+    {#if target && terms && items.length > 0}
         <table class="shares">
             <thead>
                 <tr>
                     <th></th>
                     {#each items as item (item)}
-                        <th>{ITEM_LABELS[item]} ({reward[item]})</th>
+                        <th>{ITEM_LABELS[item]} ({target.reward[item]})</th>
                     {/each}
                 </tr>
             </thead>
             <tbody>
-                {#each partnerIds as playerId (playerId)}
+                {#each draft.partnerIds as playerId (playerId)}
                     <tr>
                         <td><PlayerName {playerId} /></td>
                         {#each items as item (item)}
@@ -190,13 +106,17 @@
                                     <button
                                         type="button"
                                         aria-label="Less {ITEM_LABELS[item]}"
-                                        onclick={() => adjustShare(playerId, item, -1)}>−</button
+                                        onclick={() =>
+                                            gameSession.adjustPactShare(playerId, item, -1)}
+                                        >−</button
                                     >
-                                    <span>{currentShares[playerId]?.[item] ?? 0}</span>
+                                    <span>{terms.shares[playerId][item]}</span>
                                     <button
                                         type="button"
                                         aria-label="More {ITEM_LABELS[item]}"
-                                        onclick={() => adjustShare(playerId, item, 1)}>+</button
+                                        onclick={() =>
+                                            gameSession.adjustPactShare(playerId, item, 1)}
+                                        >+</button
                                     >
                                 </span>
                             </td>
@@ -207,15 +127,16 @@
         </table>
     {/if}
 
-    {#if keeps}
+    {#if terms?.keeperId !== undefined}
         <div class="partners">
             <span class="label">Keeps the tile</span>
-            {#each partnerIds as playerId (playerId)}
+            {#each draft.partnerIds as playerId (playerId)}
                 <button
                     type="button"
                     class="chip"
-                    class:on={(keeperId ?? me) === playerId}
-                    onclick={() => (keeperId = playerId)}><PlayerName {playerId} /></button
+                    class:on={terms.keeperId === playerId}
+                    onclick={() => gameSession.choosePactKeeper(playerId)}
+                    ><PlayerName {playerId} /></button
                 >
             {/each}
         </div>
@@ -223,14 +144,17 @@
 
     <div class="actions">
         <span class="total" class:enough={target !== undefined && strength >= target.difficulty}
-            >{strength} / {target?.difficulty ?? '?'}</span
+            >{strength} / {target?.difficulty}</span
         >
-        <button type="button" class="primary" disabled={problem !== undefined} onclick={propose}
-            >{existing ? 'Counter' : 'Propose pact'}</button
+        <button
+            type="button"
+            class="primary"
+            disabled={gameSession.pactProblem !== undefined}
+            onclick={() => gameSession.proposePactDraft()}
+            >{draft.counteredPactId ? 'Counter' : 'Propose pact'}</button
         >
-        <button type="button" onclick={onclose}>Cancel</button>
-        {#if problem}
-            <span class="problem">{problem}</span>
+        {#if gameSession.pactProblem}
+            <span class="problem">{gameSession.pactProblem}</span>
         {/if}
     </div>
 </div>

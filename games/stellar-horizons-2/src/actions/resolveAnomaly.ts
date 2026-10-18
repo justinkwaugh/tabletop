@@ -9,7 +9,8 @@ import {
     usesAnomalyRewards
 } from '../model/anomalies.js'
 import { GrantedReward, TurnedOver, grantReward, turnOver } from '../model/anomalyRewards.js'
-import { grantPactShares, spendPledgedShips, takePact } from '../model/pactResolution.js'
+import { spendPledgedShips, takePact } from '../model/holds.js'
+import { grantPactShares } from '../model/pactResolution.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
 export type ResolveAnomalyMetadata = Type.Static<typeof ResolveAnomalyMetadata>
@@ -62,7 +63,12 @@ export class HydratedResolveAnomaly
         const { playerId, systemId, anomalyId } = resolution
         const reward = grantReward(state, playerId, anomalyDefinition(anomalyId).reward)
         if (reward.settlements > 0) {
-            state.settlementRewards.push({ playerId, systemId, settlements: reward.settlements })
+            state.settlementRewards.push({
+                playerId,
+                anomalyId,
+                systemId,
+                settlements: reward.settlements
+            })
         }
         this.metadata = { ...resolution, reward, turnedOver: turnOver(state, systemId) }
     }

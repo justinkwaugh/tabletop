@@ -90,13 +90,29 @@ function recordOperation(
     })
 }
 
+export function miningTarget(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState,
+    slot: number
+): number {
+    return face(state, ship.systemId, slot).cash
+}
+
+export function researchTarget(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState,
+    slot: number
+): number {
+    return face(state, ship.systemId, slot).techValue + roundHalfUp(currentExploration(ship) / 2)
+}
+
 // Mining earns $1B, or $2B on a die at or under the world's cash value.
 export function mine(
     state: HydratedStellarHorizonsGameState,
     ship: ShipState,
     slot: number
 ): OperationResult {
-    const target = face(state, ship.systemId, slot).cash
+    const target = miningTarget(state, ship, slot)
     const roll = state.getPlayerPrng(ship.playerId).dieRoll(10)
     const success = roll <= target
     const cash = success ? RICH_MINING_CASH : MINING_CASH
@@ -113,7 +129,7 @@ export function research(
     slot: number
 ): OperationResult {
     const printed = face(state, ship.systemId, slot)
-    const target = printed.techValue + roundHalfUp(currentExploration(ship) / 2)
+    const target = researchTarget(state, ship, slot)
     const roll = state.getPlayerPrng(ship.playerId).dieRoll(10)
     const success = roll <= target
     if (success) {

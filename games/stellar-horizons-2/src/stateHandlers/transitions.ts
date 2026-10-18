@@ -8,6 +8,7 @@ import { anyEventAttempts } from '../model/events.js'
 import { pendingSyndicateTakes } from '../model/operations.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { playersWithEarnedMarkers } from '../model/settlement.js'
+import { discardUnplaceableRewards } from '../model/settlementRewards.js'
 import { anyPendingSurveys } from '../model/surveys.js'
 import { nextShipTerraformer, refillWorldPool, terraformingQueue } from '../model/terraforming.js'
 import { TurnPhase } from '../model/turn.js'
@@ -107,6 +108,7 @@ export function stateAfterSyndicateTakes(state: HydratedStellarHorizonsGameState
 
 // After each anomaly attempt: its settlement reward is placed, then the next attempt resolves.
 export function stateAfterAnomaly(state: HydratedStellarHorizonsGameState): MachineState {
+    discardUnplaceableRewards(state)
     if (state.settlementRewards.length > 0) {
         return MachineState.PlacingRewardSettlements
     }

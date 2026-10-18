@@ -6,6 +6,7 @@
         PactTargetKind,
         anomalyStrength,
         eventAttemptShips,
+        eventChallenges,
         eventDefinition,
         eventDifficulty,
         isValidEventAttempt,
@@ -13,31 +14,30 @@
         type ActiveEvent
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { candidatePartners, type PactSubject } from '$lib/utils/pacts.js'
     import { systemName } from '$lib/utils/presentation.js'
     import EventTile from '../EventTile.svelte'
     import ShipTile from '../ShipTile.svelte'
-    import PactEditor from './PactEditor.svelte'
+    import PactOffer from './PactOffer.svelte'
 
     let { event }: { event: ActiveEvent } = $props()
+
+    const CHALLENGE_LABELS: Record<AnomalyChallenge, { value: string; option: string }> = {
+        [AnomalyChallenge.Science]: { value: 'exploration', option: 'With science' },
+        [AnomalyChallenge.Combat]: { value: 'combat', option: 'With combat' }
+    }
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
     const me = $derived(gameSession.myPlayerId ?? '')
     const definition = $derived(eventDefinition(event.eventId))
-    const challenges = $derived(
-        [AnomalyChallenge.Science, AnomalyChallenge.Combat].filter(
-            (challenge) =>
-                (challenge === AnomalyChallenge.Science
-                    ? definition.challenge?.science
-                    : definition.challenge?.combat) !== undefined
-        )
+    const challenges = $derived(eventChallenges(event.eventId))
+    const draft = $derived(
+        gameSession.eventDraft?.eventId === event.eventId ? gameSession.eventDraft : undefined
     )
-    let chosenChallenge: AnomalyChallenge | undefined = $state()
-    const challenge = $derived(chosenChallenge ?? challenges[0])
-    const difficulty = $derived(eventDifficulty(gameState, event.eventId, challenge, me) ?? 0)
+    const challenge = $derived(draft?.challenge ?? challenges[0])
+    const chosen = $derived(draft?.shipIds ?? [])
+    const difficulty = $derived(eventDifficulty(gameState, event.eventId, challenge, me))
     const ships = $derived(eventAttemptShips(gameState, me, event.eventId, challenge))
-    let chosen: string[] = $state([])
     const strength = $derived(
         ships
             .filter((ship) => chosen.includes(ship.shipId))
@@ -48,26 +48,12 @@
             .getPlayerState(me)
             .eventAttempts.find((attempt) => attempt.eventId === event.eventId)
     )
-    let proposing = $state(false)
-    const subject: PactSubject = $derived({
+    const opening = $derived({
         targetKind: PactTargetKind.Event,
         targetId: event.eventId,
         challenge,
         systemId: event.systemId
     })
-    const partners = $derived(candidatePartners(gameState, me, subject))
-
-    function toggle(shipId: string) {
-        chosen = chosen.includes(shipId)
-            ? chosen.filter((candidate) => candidate !== shipId)
-            : [...chosen, shipId]
-    }
-
-    async function commit() {
-        const shipIds = chosen
-        chosen = []
-        await gameSession.attemptEvent(event.eventId, challenge, shipIds)
-    }
 </script>
 
 <section class="attempt" aria-label="{definition.name} at {systemName(event.systemId)}">
@@ -76,9 +62,7 @@
         <div class="title">
             {definition.name}
             <span class="where">at {systemName(event.systemId)}</span>
-            <span class="need"
-                >needs {difficulty} {challenge === 'Science' ? 'exploration' : 'combat'}</span
-            >
+            <span class="need">needs {difficulty} {CHALLENGE_LABELS[challenge].value}</span>
         </div>
         {#if challenges.length > 1 && !committed}
             <div class="choices">
@@ -86,10 +70,8 @@
                     <button
                         type="button"
                         class:on={option === challenge}
-                        onclick={() => {
-                            chosenChallenge = option
-                            chosen = []
-                        }}>{option === 'Science' ? 'With science' : 'With combat'}</button
+                        onclick={() => gameSession.chooseEventChallenge(event.eventId, option)}
+                        >{CHALLENGE_LABELS[option].option}</button
                     >
                 {/each}
             </div>
@@ -110,13 +92,16 @@
                         named={false}
                         selected={chosen.includes(ship.shipId)}
                         label="Send {shipDefinition(ship.shipId).name} against {definition.name}"
-                        onclick={() => toggle(ship.shipId)}
+                        onclick={() =>
+                            gameSession.toggleEventShip(event.eventId, challenge, ship.shipId)}
                     >
                         <div class="strength">+{anomalyStrength(ship, challenge)}</div>
                     </ShipTile>
                 {/each}
                 <div class="commit">
-                    <span class="total" class:enough={strength >= difficulty}
+                    <span
+                        class="total"
+                        class:enough={difficulty !== undefined && strength >= difficulty}
                         >{strength} / {difficulty}</span
                     >
                     <button
@@ -129,18 +114,11 @@
                             challenge,
                             chosen
                         )}
-                        onclick={commit}>Commit ships</button
+                        onclick={() => gameSession.commitEventDraft()}>Commit ships</button
                     >
                 </div>
             </div>
-            {#if partners.length > 0 && !proposing}
-                <div class="pact-offer">
-                    <button type="button" onclick={() => (proposing = true)}>Propose a pact</button>
-                </div>
-            {/if}
-            {#if proposing}
-                <PactEditor {subject} onclose={() => (proposing = false)} />
-            {/if}
+            <PactOffer {opening} />
         {/if}
     </div>
 </section>
@@ -180,13 +158,6 @@
 
     .choices,
     .ships,
-    .pact-offer {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 6px;
-    }
-
     .choices button.on {
         border-color: #7fd3ff;
         background: #18324f;

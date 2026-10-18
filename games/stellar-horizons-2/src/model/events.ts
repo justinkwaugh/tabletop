@@ -5,6 +5,7 @@ import {
     EventEffectKind,
     EventTiming,
     eventDefinition,
+    printedEventDifficulty,
     type EventDefinition
 } from '../components/events.js'
 import { ShipKind, shipDefinition } from '../components/ships.js'
@@ -12,11 +13,11 @@ import { systemDistance } from '../components/systems.js'
 import { TechField } from '../components/techFields.js'
 import { TECHS } from '../components/techs.js'
 import { worldTile, WorldSide } from '../components/worlds.js'
-import { anomalyStrength, attemptStrength } from './anomalies.js'
-import { factionAbilities, gainInfluence } from './campaign.js'
-import { hasArrived, isCrippled, removeShip } from './fleet.js'
+import { attemptStrength, blocksBases, canTakePart, challengeDifficulty } from './anomalies.js'
+import { gainInfluence } from './campaign.js'
+import { removeShip } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import { isHeld } from './holds.js'
+import { spendPledgedShips, takePact } from './holds.js'
 import type { ActiveEvent, Base, ShipState } from './pieces.js'
 import { awardTechMarkers, drawWorldTile, returnWorldTile } from './pools.js'
 import { addSettlements, removeBaseSettlement } from './settling.js'
@@ -126,6 +127,17 @@ function settlementTotal(state: HydratedStellarHorizonsGameState, playerId: stri
     return state.basesOf(playerId).reduce((total, base) => total + base.settlements, 0)
 }
 
+// Bases in a system with a "no bases" anomaly gain no settlements by any means (rulebook 1.16).
+export function homesteadSystems(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string
+): string[] {
+    return state
+        .basesOf(playerId)
+        .map((base) => base.systemId)
+        .filter((systemId) => !blocksBases(state, systemId))
+}
+
 // An event without a challenge acts as it is drawn. Colonial Rush and Homesteaders favour the
 // Players with the fewest settlements among those with a base; Homesteaders' Players then
 // choose the base.
@@ -153,8 +165,8 @@ export function applyDrawnEvent(
                 settlementTotal(state, playerId)
             )
             for (const playerId of result.players) {
-                for (const base of state.basesOf(playerId)) {
-                    addSettlements(state, playerId, base.systemId, effect.settlements)
+                for (const systemId of homesteadSystems(state, playerId)) {
+                    addSettlements(state, playerId, systemId, effect.settlements)
                 }
             }
             break
@@ -163,7 +175,9 @@ export function applyDrawnEvent(
             result.players = lowestBy(state, withBases, (playerId) =>
                 settlementTotal(state, playerId)
             )
-            state.homesteaders = [...result.players]
+            state.homesteaders = result.players.filter(
+                (playerId) => homesteadSystems(state, playerId).length > 0
+            )
             break
         }
         default:
@@ -338,22 +352,12 @@ export function eventDifficulty(
     state: HydratedStellarHorizonsGameState,
     eventId: string,
     challenge: AnomalyChallenge,
-    playerId: string
+    playerId?: string
 ): number | undefined {
-    const definition = eventDefinition(eventId)
-    const printed =
-        challenge === AnomalyChallenge.Science
-            ? definition.challenge?.science
-            : definition.challenge?.combat
-    if (printed === undefined) {
-        return undefined
-    }
-    const abilities = factionAbilities(state, playerId)
-    const modifier =
-        challenge === AnomalyChallenge.Combat
-            ? abilities.combatAnomalyDifficulty
-            : abilities.scienceAnomalyDifficulty
-    return printed + state.numPlayers + (modifier ?? 0)
+    const printed = printedEventDifficulty(eventId, challenge)
+    return printed === undefined
+        ? undefined
+        : challengeDifficulty(state, printed, challenge, playerId)
 }
 
 export function eventAttemptShips(
@@ -368,15 +372,7 @@ export function eventAttemptShips(
     }
     return state
         .shipsOf(playerId)
-        .filter(
-            (ship) =>
-                ship.systemId === active.systemId &&
-                hasArrived(ship) &&
-                !ship.explored &&
-                !isHeld(state, ship) &&
-                !isCrippled(ship) &&
-                anomalyStrength(ship, challenge) > 0
-        )
+        .filter((ship) => ship.systemId === active.systemId && canTakePart(state, ship, challenge))
 }
 
 export function isValidEventAttempt(
@@ -462,22 +458,12 @@ export const EventResolution = Type.Object({
     shares: Type.Optional(Type.Record(Type.String(), Type.Number()))
 })
 
-// A pact on an event takes its pledged ships' actions and splits the IP as agreed.
 function eventPactShares(
     state: HydratedStellarHorizonsGameState,
     pactId: string
 ): Record<string, number> {
-    const candidate = state.pacts.find((other) => other.id === pactId)
-    assertExists(candidate, `No pact ${pactId}`)
-    state.pacts = state.pacts.filter((other) => other.id !== pactId)
-    for (const shipIds of Object.values(candidate.terms.pledges)) {
-        for (const shipId of shipIds) {
-            const ship = state.findShip(shipId)
-            if (ship) {
-                ship.explored = true
-            }
-        }
-    }
+    const candidate = takePact(state, pactId)
+    spendPledgedShips(state, candidate)
     return Object.fromEntries(
         Object.entries(candidate.terms.shares).map(([partnerId, share]) => [
             partnerId,

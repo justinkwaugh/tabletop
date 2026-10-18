@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2510567291,
+  "seed": 2791805762,
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-10-18T04:32:00.575Z",
+  "createdAt": "2026-10-18T12:47:10.413Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "D-6hz3BDIgn5lbOIh1Da3",
+  "id": "2tAf3-SlPw0w5-0zOGB8y",
   "gameId": "scenario-campaign-terraforming",
   "seed": 3367980177,
   "prng": {
@@ -791,6 +791,36 @@
   "events": [],
   "homesteaders": [],
   "pacts": [],
+  "pledgeableShips": [
+   {
+    "playerId": "p2",
+    "shipId": "givers-linnaeus",
+    "systemId": "wise-0855-0714",
+    "science": 1,
+    "combat": 0
+   },
+   {
+    "playerId": "p2",
+    "shipId": "givers-mendel",
+    "systemId": "wolf-359",
+    "science": 2,
+    "combat": 0
+   },
+   {
+    "playerId": "p1",
+    "shipId": "praetorians-peregrinus",
+    "systemId": "luhman-16",
+    "science": 3,
+    "combat": 0
+   },
+   {
+    "playerId": "p0",
+    "shipId": "starfarers-kuiper",
+    "systemId": "lalande-21185",
+    "science": 2,
+    "combat": 0
+   }
+  ],
   "settlementRewards": [],
   "startingPositionRandom": [
    {

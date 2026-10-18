@@ -75,12 +75,21 @@ export function anomalyDifficulty(
     playerId?: string
 ): number {
     const anomaly = anomalyDefinition(anomalyId)
+    return challengeDifficulty(state, anomaly.difficulty, anomaly.challenge, playerId)
+}
+
+export function challengeDifficulty(
+    state: HydratedStellarHorizonsGameState,
+    printed: number,
+    challenge: AnomalyChallenge,
+    playerId?: string
+): number {
     const abilities = playerId === undefined ? {} : factionAbilities(state, playerId)
     const modifier =
-        anomaly.challenge === AnomalyChallenge.Combat
+        challenge === AnomalyChallenge.Combat
             ? abilities.combatAnomalyDifficulty
             : abilities.scienceAnomalyDifficulty
-    return anomaly.difficulty + state.numPlayers + (modifier ?? 0)
+    return printed + state.numPlayers + (modifier ?? 0)
 }
 
 // Every completed survey rolls; a system holds one anomaly at a time (rulebook 1.16).
@@ -131,19 +140,24 @@ export function anomalyStrength(ship: ShipState, challenge: AnomalyChallenge): n
     return currentExploration(ship) + research
 }
 
+export function hasStrengthFor(ship: ShipState, challenge: AnomalyChallenge): boolean {
+    return hasArrived(ship) && !isCrippled(ship) && anomalyStrength(ship, challenge) > 0
+}
+
+export function canTakePart(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState,
+    challenge: AnomalyChallenge
+): boolean {
+    return hasStrengthFor(ship, challenge) && !ship.explored && !isHeld(state, ship)
+}
+
 export function canJoinAnomalyAttempt(
     state: HydratedStellarHorizonsGameState,
     ship: ShipState
 ): boolean {
     const anomaly = systemAnomaly(state, ship.systemId)
-    return (
-        anomaly !== undefined &&
-        hasArrived(ship) &&
-        !ship.explored &&
-        !isHeld(state, ship) &&
-        !isCrippled(ship) &&
-        anomalyStrength(ship, anomaly.challenge) > 0
-    )
+    return anomaly !== undefined && canTakePart(state, ship, anomaly.challenge)
 }
 
 export function anomalyAttemptShips(
