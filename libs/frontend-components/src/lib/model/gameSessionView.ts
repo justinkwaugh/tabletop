@@ -1,4 +1,4 @@
-import type { GameState, HydratedGameState } from '@tabletop/common'
+import type { GameState, HydratedGameState, Player } from '@tabletop/common'
 import type { GameContext } from './gameContext.svelte.js'
 import type { GameHistory } from './gameHistory.svelte.js'
 import type { GameSession } from './gameSession.svelte.js'
@@ -69,6 +69,9 @@ export type GameSessionView<
     | 'validActionTypes'
 > & {
     readonly history: GameHistoryView<Raw, State>
+    // Optional because the Site Frontend can host an older independently published UI Artifact.
+    readonly nonActivePlayers?: Player[]
+    readonly viewAsNonActivePlayer?: (playerId: string) => void
     readonly explorations: Pick<
         GameSession<Raw, State>['explorations'],
         | 'endExploring'

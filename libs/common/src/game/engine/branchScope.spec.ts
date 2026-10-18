@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findBranchScopeViolation } from './branchScope.js'
+import { findBranchScopeViolation, findCommonScopeViolation } from './branchScope.js'
 import { createPatch } from './statePatch.js'
 
 function violation(playerId: string, before: unknown, after: unknown): string | undefined {
@@ -9,6 +9,10 @@ function violation(playerId: string, before: unknown, after: unknown): string | 
         playerId,
         undoPatch: createPatch(after, before)
     })
+}
+
+function commonViolation(before: unknown, after: unknown): string | undefined {
+    return findCommonScopeViolation({ before, after, undoPatch: createPatch(after, before) })
 }
 
 describe('Branch Scope ownership', () => {
@@ -50,5 +54,35 @@ describe('Branch Scope ownership', () => {
             expect(violation('p3', holding('old'), holding('new'))).toBeUndefined()
             expect(violation('p3', holding('old'), empty)).toBeUndefined()
         })
+    })
+})
+
+describe('Common Scope (the inverted check)', () => {
+    const pact = { partners: [{ playerId: 'p1', ships: 2 }] }
+
+    it('rejects adding a record that holds an object carrying a Player’s identity at any depth', () => {
+        expect(commonViolation({ pacts: {} }, { pacts: { k: pact } })).toBe('/pacts/k')
+    })
+
+    it('rejects removing such a record, or an optional container holding such objects', () => {
+        expect(commonViolation({ pacts: { k: pact } }, { pacts: {} })).toBe('/pacts/k')
+        expect(commonViolation({ crew: { members: [{ playerId: 'p1' }] } }, {})).toBe('/crew')
+    })
+
+    it('rejects replacing a value with an object that holds a Player’s object', () => {
+        expect(commonViolation({ slot: null }, { slot: { holder: { playerId: 'p1' } } })).toBe(
+            '/slot'
+        )
+    })
+
+    it('allows naming Players in other fields, and records keyed by a Player’s identity', () => {
+        expect(
+            commonViolation(
+                { offers: {} },
+                { offers: { o: { proposerId: 'p1', partnerIds: ['p2', 'p3'], agreed: false } } }
+            )
+        ).toBeUndefined()
+        expect(commonViolation({ tallies: {} }, { tallies: { p1: 3 } })).toBeUndefined()
+        expect(commonViolation({ tallies: { p1: 3 } }, { tallies: {} })).toBeUndefined()
     })
 })

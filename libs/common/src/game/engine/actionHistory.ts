@@ -40,6 +40,17 @@ export function isSequencedActionType(
     )
 }
 
+export function isCommonActionType(
+    apiActions: Readonly<Record<string, Type.TSchema>>,
+    type: string
+): boolean {
+    return hasRequiredTrueLiteral(apiActions[type], 'common')
+}
+
+export function isCommonAction(action: Pick<GameAction, 'source' | 'common'>): boolean {
+    return action.source === ActionSource.User && action.common === true
+}
+
 export function isOutOfTurnDeclaration(action: Pick<GameAction, 'outOfTurn' | 'sequenced'>) {
     return action.outOfTurn === true && action.sequenced !== true
 }

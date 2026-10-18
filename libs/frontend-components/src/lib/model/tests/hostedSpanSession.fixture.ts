@@ -52,7 +52,9 @@ class Remote extends DummyRemoteApiService {
     onBranch?: (unmergedBranch: UnmergedBranch, undoneActionIds?: string[]) => Promise<void>
     onReplaced?: (startIndex: number) => Promise<void>
     pendingAcceptance?: Promise<void>
+    pendingUndo?: Promise<void>
     syncChecks = 0
+    submissions = 0
 
     constructor(
         private readonly host: SpanHost,
@@ -155,6 +157,7 @@ class Remote extends DummyRemoteApiService {
     }
 
     async applyAction(_game: Game, action: GameAction) {
+        this.submissions += 1
         await this.pendingAcceptance
         const submission = this.host.submit(action)
         const unmergedBranch = this.project(submission.unmergedBranch)
@@ -165,11 +168,16 @@ class Remote extends DummyRemoteApiService {
         ) {
             await this.onBranch?.(unmergedBranch)
         }
+        const racedIds = new Set((submission.raced ?? []).map((raced) => raced.id))
+        const missingActions = this.mainLineHistory().actions.filter((recorded) =>
+            racedIds.has(recorded.id)
+        )
         return {
             game: structuredClone(this.host.game),
             actions: this.projectMainLine(submission),
             perspective: this.perspective,
-            unmergedBranch
+            unmergedBranch,
+            ...(missingActions.length > 0 ? { missingActions } : {})
         }
     }
 
@@ -187,8 +195,9 @@ class Remote extends DummyRemoteApiService {
     }
 
     async undoAction(_game: Game, actionId: string) {
+        await this.pendingUndo
         const checksumBefore = this.host.state.actionChecksum
-        const undone = this.host.undoInBranch(this.playerId, actionId)
+        const undone = this.host.undo(this.playerId, actionId)
         const unmergedBranch = this.project(undone.unmergedBranch)
         const actionReplay = this.replayFrom(undone.replay.startIndex)
         if (this.host.state.actionChecksum !== checksumBefore) {
@@ -1168,6 +1177,317 @@ export async function runHostedSpanReopenBehindTheMainLine() {
                 await p2.session.retrySynchronization()
                 return others(p1.session.gameState.dehydrate()) === others(t.host.state)
             })()
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanCommonAction() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        const p3 = await t.join('p3')
+        const watcher = await t.join('someone-watching')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        await p2.session.act('work', 'w2')
+        const offeredBesideTheBranch =
+            p2.session.validActionTypes.join() === 'work,roll,finish,propose,chant'
+
+        p2.session.shownKinds.length = 0
+        await p2.session.act('propose', 'o2', { partnerId: 'p3', itemId: 'start-p3' })
+        const refusedWhatIsNotTheirs = t.host.state.offers.o2 === undefined
+        await p2.session.act('propose', 'o2', { partnerId: 'p3', itemId: 'start-p2' })
+        const appliedToTheMainLine =
+            t.host.state.offers.o2?.proposerId === 'p2' &&
+            summary(t.host.actions).join() === 'begin:p1,propose:p2'
+        const branchViewFollows =
+            p2.session.spanState.offers.o2?.proposerId === 'p2' &&
+            played(p2.session) === 'openBranch:p2,work:p2' &&
+            p2.session.isMyTurn &&
+            p2.session.gameState.parallelSpan?.branchPlayerId === 'p2' &&
+            t.host.unmergedBranch('p2')?.branch.actionCount === 2
+        const shownAsOwnAction = p2.session.shownKinds.join() === 'own-action:propose:p2'
+        await t.settleAll()
+        const othersSeeItAtOnce =
+            p3.session.spanState.offers.o2?.proposerId === 'p2' &&
+            played(p3.session) === 'openBranch:p3' &&
+            p3.session.validActionTypes.join() === 'work,roll,finish,propose,chant,accept' &&
+            played(watcher.session) === 'begin:p1,propose:p2'
+
+        await p3.session.act('accept', 'a3', { offerId: 'o2', itemId: 'start-p3' })
+        await t.settleAll()
+        const agreed =
+            t.host.state.offers.o2?.agreed === true &&
+            p2.session.spanState.offers.o2?.agreed === true &&
+            p3.session.spanState.offers.o2?.agreed === true &&
+            p3.session.undoableAction === undefined
+
+        await p1.session.act('finish', 'f1')
+        await t.settleAll()
+        const closedPlayerIsOffered =
+            !p1.session.isMyTurn && p1.session.validActionTypes.join() === 'propose,chant'
+        await p1.session.act('chant', 'c1')
+        await t.settleAll()
+        const closedPlayerActs =
+            summary(t.host.actions).at(-1) === 'chant:p1' &&
+            played(p1.session) === 'openBranch:p1,finish:p1' &&
+            p1.session.spanState.log.join() === 'span,chant:p1' &&
+            watcher.session.spanState.log.join() === 'span,chant:p1'
+
+        await p3.session.act('finish', 'f3')
+        await p2.session.act('finish', 'f2')
+        await t.settleAll()
+        const settledAtSpanCompletion =
+            t.host.state.machineState === 'scoring' &&
+            t.host.state.items['start-p2'].playerId === 'p3' &&
+            t.host.state.items['start-p3'].playerId === 'p2' &&
+            [p1, p2, p3, watcher].every(
+                ({ session }) => played(session) === summary(t.host.actions).join()
+            )
+        return {
+            offeredBesideTheBranch,
+            refusedWhatIsNotTheirs,
+            appliedToTheMainLine,
+            branchViewFollows,
+            shownAsOwnAction,
+            othersSeeItAtOnce,
+            agreed,
+            closedPlayerIsOffered,
+            closedPlayerActs,
+            settledAtSpanCompletion
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanCommonActionOwnSide() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        await p2.session.act('drop', 'd2', { itemId: 'start-p2' })
+        const submissionsBefore = p2.api.submissions
+        p2.session.shownKinds.length = 0
+
+        await p2.session.act('propose', 'o2', { partnerId: 'p1', itemId: 'start-p2' })
+        const refusedBeforeSubmitting =
+            p2.api.submissions === submissionsBefore &&
+            summary(t.host.actions).join() === 'begin:p1' &&
+            p2.session.shownKinds.length === 0
+        const keepsTheBranchView =
+            p2.session.spanState.offers.o2 === undefined &&
+            played(p2.session) === 'openBranch:p2,drop:p2' &&
+            p2.session.isMyTurn
+
+        await p2.session.act('chant', 'c2')
+        const playsOnAfterwards =
+            p2.api.submissions === submissionsBefore + 1 &&
+            summary(t.host.actions).join() === 'begin:p1,chant:p2' &&
+            p2.session.spanState.log.join() === 'span,chant:p2'
+        return { refusedBeforeSubmitting, keepsTheBranchView, playsOnAfterwards }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanCommonActionUndo() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        const p3 = await t.join('p3')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        await p3.session.act('propose', 'o3', { partnerId: 'p2', itemId: 'start-p3' })
+        await t.settleAll()
+        const offersUndoOfTheOffer = p3.session.undoableAction?.id === 'o3'
+        await p2.session.act('work', 'w2')
+        const branchUndoComesFirst = p2.session.undoableAction?.id === 'w2'
+
+        await p1.session.act('finish', 'f1')
+        await t.settleAll()
+        await p3.session.undo()
+        await settle(p3.session)
+        await t.settleAll()
+        const undone =
+            summary(t.host.actions).join() === 'begin:p1,closeBranch:p1' &&
+            Object.keys(t.host.state.offers).length === 0 &&
+            p3.session.spanState.offers.o3 === undefined &&
+            played(p3.session) === 'openBranch:p3' &&
+            p3.session.isMyTurn &&
+            p3.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p1'
+        const othersFollow =
+            p2.session.spanState.offers.o3 === undefined &&
+            p2.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p1' &&
+            played(p2.session) === 'openBranch:p2,work:p2'
+
+        await p3.session.act('propose', 'o3b', { partnerId: 'p2', itemId: 'start-p3' })
+        await t.settleAll()
+        await p2.session.act('chant', 'c2')
+        await t.settleAll()
+        return {
+            offersUndoOfTheOffer,
+            branchUndoComesFirst,
+            undone,
+            othersFollow,
+            answeredOfferStays: p3.session.undoableAction === undefined
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanCommonActionUndoKeepsCloses() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        const p3 = await t.join('p3')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        await p3.session.act('propose', 'o3', { partnerId: 'p2', itemId: 'start-p3' })
+        await p1.session.act('finish', 'f1')
+        await t.settleAll()
+        p3.session.shownKinds.length = 0
+        p2.session.shownKinds.length = 0
+
+        const answer = Promise.withResolvers<void>()
+        p3.api.pendingUndo = answer.promise
+        const undoing = p3.session.undo()
+        await settle(p3.session)
+        const previewKeepsTheClose =
+            p3.session.spanState.offers.o3 === undefined &&
+            p3.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p1' &&
+            p3.session.shownKinds.join() === 'undo:state'
+        answer.resolve()
+        await undoing
+        p3.api.pendingUndo = undefined
+        await t.settleAll()
+        const answerChangesNothingShown =
+            p3.session.shownKinds.join() === 'undo:state' &&
+            p3.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p1' &&
+            played(p3.session) === 'openBranch:p3' &&
+            summary(t.host.actions).join() === 'begin:p1,closeBranch:p1'
+        const othersKeepTheClose =
+            p2.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p1' &&
+            p2.session.spanState.offers.o3 === undefined &&
+            !p2.session.shownKinds.some((shown) => shown.endsWith('closeBranch:p1'))
+        return { previewKeepsTheClose, answerChangesNothingShown, othersKeepTheClose }
+    } finally {
+        t.dispose()
+    }
+}
+
+// Undo offers whichever of the Player's latest Branch Action and own latest Common Action the
+// host recorded later; the fixture host stamps them like the real one, a moment apart.
+const aMomentLater = () => new Promise((resolve) => setTimeout(resolve, 3))
+
+export async function runHostedSpanUndoOrder() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+
+        await p2.session.act('work', 'w2')
+        await aMomentLater()
+        await p2.session.act('chant', 'c2')
+        const commonActionAfterBranchActionComesFirst = p2.session.undoableAction?.id === 'c2'
+        await p2.session.undo()
+        await settle(p2.session)
+        const thenTheBranchAction =
+            p2.session.undoableAction?.id === 'w2' && summary(t.host.actions).join() === 'begin:p1'
+
+        await p2.session.act('chant', 'c2b')
+        await aMomentLater()
+        await p2.session.act('work', 'w2b')
+        const branchActionAfterCommonActionComesFirst = p2.session.undoableAction?.id === 'w2b'
+        await p2.session.undo()
+        await settle(p2.session)
+        const thenTheCommonAction =
+            p2.session.undoableAction?.id === 'c2b' &&
+            t.host.unmergedBranch('p2')?.branch.actionCount === 2
+
+        await p1.session.act('finish', 'f1')
+        await aMomentLater()
+        await p1.session.act('chant', 'c1')
+        await t.settleAll()
+        const closedPlayersCommonActionComesBeforeTheClose =
+            p1.session.undoableAction?.id === 'c1'
+        await p1.session.undo()
+        await settle(p1.session)
+        const thenTheClose =
+            p1.session.undoableAction?.id === 'f1' &&
+            summary(t.host.actions).join() === 'begin:p1,chant:p2,closeBranch:p1'
+        return {
+            commonActionAfterBranchActionComesFirst,
+            thenTheBranchAction,
+            branchActionAfterCommonActionComesFirst,
+            thenTheCommonAction,
+            closedPlayersCommonActionComesBeforeTheClose,
+            thenTheClose
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
+export async function runHostedSpanCommonActionRace() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        const p3 = await t.join('p3')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+        const syncsBefore = p2.api.syncChecks
+
+        const acceptance = Promise.withResolvers<void>()
+        p2.api.pendingAcceptance = acceptance.promise
+        const chanting = p2.session.act('chant', 'c2')
+        await settle(p2.session)
+        await p3.session.act('finish', 'f3')
+        acceptance.resolve()
+        await chanting
+        p2.api.pendingAcceptance = undefined
+        await t.settleAll()
+        const recordedAfterTheMerge =
+            summary(t.host.actions).join() ===
+            'begin:p1,closeBranch:p3,openBranch:p3,finish:p3,chant:p2'
+        const sessionTakesTheOrder =
+            p2.session.spanState.log.join() === 'span,chant:p2' &&
+            p2.session.gameState.parallelSpan?.mergedPlayerIds.join() === 'p3' &&
+            played(p2.session) === 'openBranch:p2' &&
+            p2.session.isMyTurn &&
+            p2.api.syncChecks === syncsBefore
+
+        const refusal = Promise.withResolvers<void>()
+        p2.api.pendingAcceptance = refusal.promise
+        const proposing = p2.session.act('propose', 'o2', { partnerId: 'p1', itemId: 'start-p2' })
+        await settle(p2.session)
+        const shownBeforeTheAnswer = p2.session.spanState.offers.o2 !== undefined
+        await p1.session.act('finish', 'f1')
+        refusal.resolve()
+        await proposing
+        p2.api.pendingAcceptance = undefined
+        await t.settleAll()
+        return {
+            recordedAfterTheMerge,
+            sessionTakesTheOrder,
+            shownBeforeTheAnswer,
+            refusedOnceTheCloseMadeItLapse:
+                Object.keys(t.host.state.offers).length === 0 &&
+                p2.session.spanState.offers.o2 === undefined &&
+                p2.session.gameState.parallelSpan?.closedPlayerIds.join() === 'p3,p1' &&
+                played(p2.session) === 'openBranch:p2' &&
+                p2.session.isMyTurn
         }
     } finally {
         t.dispose()

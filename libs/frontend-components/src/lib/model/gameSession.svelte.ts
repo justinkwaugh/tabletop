@@ -19,9 +19,17 @@ import {
     type HydratedGameState,
     PlayerAction,
     GameStorage,
+    assert,
     assertExists,
+    branchFromView,
     createAction,
+    executeCommonAction,
     executeInLocalGame,
+    isCommonAction,
+    isCommonActionType,
+    isRestingInSpan,
+    latestCommonActionUndoTarget,
+    restingSpan,
     type UnmergedBranch,
     isLocalGame,
     type User,
@@ -74,6 +82,37 @@ import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 import type { Static, TSchema } from 'typebox'
 import { VersionChange } from '$lib/network/versionChecker.js'
 import { shouldInvalidateAdminActingPlayerChoice } from './adminActingPlayer.js'
+
+// A Common Action the Player's own Branch View shows to be unavailable, found before it is
+// applied or sent (Common Actions rule 5): refused here with a message rather than by the host.
+export class CommonActionRefusedError extends Error {
+    constructor(reason: string) {
+        super(reason)
+        this.name = 'CommonActionRefusedError'
+    }
+}
+
+function recordedAt(action: GameAction): number | undefined {
+    return action.createdAt === undefined ? undefined : new Date(action.createdAt).getTime()
+}
+
+// Of the Player's latest Branch Action and their own latest Common Action, the one the host
+// recorded later. A Branch is private and the Main Line is public, so neither history can place
+// the other; the host stamps both as it accepts them, and that is the one record of their
+// order. Without a time for either, or on a tie, the Branch Action comes first, as before.
+function recordedLater(
+    branchAction: GameAction | undefined,
+    commonAction: GameAction | undefined
+): GameAction | undefined {
+    if (branchAction === undefined || commonAction === undefined) {
+        return branchAction ?? commonAction
+    }
+    const branchTime = recordedAt(branchAction)
+    const commonTime = recordedAt(commonAction)
+    return branchTime !== undefined && commonTime !== undefined && commonTime > branchTime
+        ? commonAction
+        : branchAction
+}
 
 export enum GameSessionMode {
     Play = 'play',
@@ -146,6 +185,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     private historySource: GameContext<T, U>
 
     private nonActivePlayerViewEnabled = $state(false)
+    private chosenNonActivePlayerId: string | undefined = $state()
 
     history: GameHistory<T, U>
     private explorationReturnPosition?: HistoryPosition<T, U>
@@ -259,10 +299,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (
             this.history.inHistory ||
             (!superUserAccess && !localHotseatAccess && !this.myPlayer) ||
-            this.actions.length === 0 ||
-            (!superUserAccess && this.isBeyondOwnUndo(this.currentModifiableContext))
+            this.actions.length === 0
         ) {
             return undefined
+        }
+        if (!superUserAccess && this.isBeyondOwnUndo(this.currentModifiableContext)) {
+            return this.ownCommonActionUndoTarget()
         }
 
         if (superUserAccess || localHotseatAccess) {
@@ -272,10 +314,30 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
 
         const player = this.myPlayer
-        return player
-            ? latestPlayerUndoTarget(this.undoableActions({ stopAtReveal: false }), player.id)
-            : undefined
+        if (!player) return undefined
+        return recordedLater(
+            latestPlayerUndoTarget(this.undoableActions({ stopAtReveal: false }), player.id),
+            this.ownCommonActionUndoTarget()
+        )
     })
+
+    private ownCommonActionUndoTarget(): GameAction | undefined {
+        const player = this.myPlayer
+        const mainLine = this.gameContext
+        if (
+            player === undefined ||
+            this.isExploring ||
+            !this.usesHostExecution(mainLine) ||
+            !isRestingInSpan(mainLine.state)
+        ) {
+            return undefined
+        }
+        return latestCommonActionUndoTarget(
+            mainLine.actions,
+            restingSpan(mainLine.state),
+            player.id
+        )
+    }
 
     private undoableActions({ stopAtReveal }: { stopAtReveal: boolean }): GameAction[] {
         const undoLimit =
@@ -339,8 +401,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         )
     }
 
-    private nonActivePlayer: Player | undefined = $derived.by(() =>
-        this.findNonActivePlayer(this.gameState)
+    // In a hotseat Game, the Players who are not acting: any of them may be viewed as, to take
+    // an Out-of-Turn Action or a Common Action (Common Actions rule 12). The first is the default.
+    nonActivePlayers: Player[] = $derived.by(() => this.findNonActivePlayers(this.gameState))
+
+    private nonActivePlayer: Player | undefined = $derived.by(
+        () =>
+            this.nonActivePlayers.find((player) => player.id === this.chosenNonActivePlayerId) ??
+            this.nonActivePlayers.at(0)
     )
 
     canViewAsNonActivePlayer: boolean = $derived(
@@ -465,7 +533,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 }
             )
             return this.isViewingAsNonActivePlayer
-                ? types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
+                ? types.filter(
+                      (type) =>
+                          isOutOfTurnActionType(this.runtime.apiActions, type) ||
+                          isCommonActionType(this.runtime.apiActions, type)
+                  )
                 : types
         } catch (error) {
             if (!Visibility.isUnavailableProjectedValueError(error)) {
@@ -475,8 +547,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     })
 
-    setViewingAsNonActivePlayer(enabled: boolean) {
+    setViewingAsNonActivePlayer(enabled: boolean, playerId?: string) {
+        if (playerId !== undefined) this.chosenNonActivePlayerId = playerId
         this.nonActivePlayerViewEnabled = enabled && this.canViewAsNonActivePlayer
+    }
+
+    viewAsNonActivePlayer(playerId: string) {
+        assert(
+            this.nonActivePlayers.some((player) => player.id === playerId),
+            `Player ${playerId} is acting, or is not in this Game`
+        )
+        this.setViewingAsNonActivePlayer(true, playerId)
     }
 
     setActingPlayer(playerId: string) {
@@ -497,13 +578,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.setViewAsActingPlayer(false)
     }
 
-    private findNonActivePlayer(state: U): Player | undefined {
-        return this.game.players.find((player) => !state.activePlayerIds.includes(player.id))
+    private findNonActivePlayers(state: U): Player[] {
+        return this.game.players.filter((player) => !state.activePlayerIds.includes(player.id))
     }
 
     private reconcilePlayerPerspective(state: U) {
-        if (!this.findNonActivePlayer(state)) {
+        const nonActivePlayers = this.findNonActivePlayers(state)
+        if (nonActivePlayers.length === 0) {
             this.nonActivePlayerViewEnabled = false
+        }
+        if (!nonActivePlayers.some((player) => player.id === this.chosenNonActivePlayerId)) {
+            this.chosenNonActivePlayerId = undefined
         }
 
         if (
@@ -1120,7 +1205,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
 
-        const relevantContext = this.currentModifiableContext
+        const relevantContext = this.contextToActIn(action)
         const isRepresentationCurrent = this.representations.captureValidity()
         const requiresAuthoritativeApplication = this.requiresServerAuthoritativeProcessing(
             relevantContext,
@@ -1191,6 +1276,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 this.presenter.present({ kind: 'own-action' }, () =>
                     relevantContext.applyActionResults(actionResults)
                 )
+                if (relevantContext !== this.currentModifiableContext) {
+                    this.ownBranch.follow('own-action')
+                }
             }
 
             // Our processed action has the updated index so grab it
@@ -1239,6 +1327,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     relevantContext.restoreFrom(priorContext)
                 )
             }
+            if (e instanceof CommonActionRefusedError) {
+                toast.error(
+                    'That action is not available: it does not fit what you have already played'
+                )
+                return
+            }
             if (!this.isMajorChange()) {
                 toast.error(
                     e instanceof Error && e.name === 'RacedActionError'
@@ -1259,11 +1353,24 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    // A Common Action runs on the Main Line even while the Player plays their own Branch.
+    private contextToActIn(action: GameAction): GameContext<T, U> {
+        const context = this.currentModifiableContext
+        return context === this.ownBranch.context &&
+            isCommonActionType(this.runtime.apiActions, action.type)
+            ? this.gameContext
+            : context
+    }
+
     private announceReconciledRace(action: GameAction, raced: readonly GameAction[] = []) {
         const racers = raced.filter(
             (other) => other.source === ActionSource.User && other.playerId !== action.playerId
         )
-        if (!racers.length || ![action, ...racers].some((other) => other.sequenced)) return
+        if (
+            !racers.length ||
+            ![action, ...racers].some((other) => other.sequenced || isCommonAction(other))
+        )
+            return
         const names = [...new Set(racers.map((other) => this.getPlayerName(other.playerId)))]
         toast.info(`Your action was applied after ${names.join(' and ')}’s`)
     }
@@ -1345,6 +1452,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    private contextToUndoIn(target: GameAction): GameContext<T, U> {
+        const context = this.currentModifiableContext
+        return context === this.ownBranch.context &&
+            isCommonAction(target) &&
+            this.gameContext.hasAction(target.id)
+            ? this.gameContext
+            : context
+    }
+
     private isBeyondOwnUndo(context: GameContext<T, U>): boolean {
         return (
             context === this.gameContext &&
@@ -1379,9 +1495,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return
         }
 
-        const context = this.currentModifiableContext
-        const isRepresentationCurrent = this.representations.captureValidity()
         const targetAction = structuredClone($state.snapshot(this.undoableAction))
+        const context = this.contextToUndoIn(targetAction)
+        const isRepresentationCurrent = this.representations.captureValidity()
         const before = context.clone()
         const hosted =
             this.usesHostExecution(context) || context.game.storage === GameStorage.Remote
@@ -1393,11 +1509,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (this.mode === GameSessionMode.Play) this.processingActions = true
         try {
             try {
-                const preview = new GameUndo(context).preview(
-                    targetAction,
-                    this.projectedExecutionPerspective(context)
-                )
+                const perspective = this.projectedExecutionPerspective(context)
+                const gameUndo = new GameUndo(context)
+                const preview =
+                    context === this.gameContext &&
+                    isCommonAction(targetAction) &&
+                    isRestingInSpan(context.state)
+                        ? gameUndo.previewOutsideBranches(targetAction, perspective)
+                        : gameUndo.preview(targetAction, perspective)
                 this.presenter.present({ kind: 'undo' }, () => context.restoreFrom(preview))
+                if (context !== this.currentModifiableContext) this.ownBranch.follow('undo')
                 optimisticState = context.state
             } catch (error) {
                 if (!hosted) throw error
@@ -1520,12 +1641,38 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     ): GameActionResults<T> {
         const perspective = this.projectedExecutionPerspective(context)
         const execution = { engine: this.engine, action, state, game }
+        const ownSide = this.ownSideToCheck(action, state, context)
+        if (ownSide !== undefined) {
+            const outcome = executeCommonAction({ ...execution, branch: ownSide, perspective })
+            if (outcome.kind === 'refused') throw new CommonActionRefusedError(outcome.reason)
+            return new GameActionResults(
+                outcome.result.processedActions,
+                outcome.result.updatedState
+            )
+        }
         const { processedActions, updatedState } = this.ownsHistory(context)
             ? executeInLocalGame(execution)
             : perspective === undefined
               ? this.engine.executeCanonicalAction(execution)
               : this.engine.executeAction({ ...execution, perspective })
         return new GameActionResults(processedActions, updatedState)
+    }
+
+    // A Common Action taken on the Main Line while the Player has an open Branch is checked
+    // against that Branch first, as the host checks it against the stored Branch (rule 5).
+    private ownSideToCheck(action: GameAction, state: T, context: GameContext<T, U>) {
+        const branch = this.ownBranch.context
+        const playerId = action.playerId
+        if (
+            context !== this.gameContext ||
+            branch === undefined ||
+            playerId === undefined ||
+            !isCommonActionType(this.runtime.apiActions, action.type) ||
+            !isRestingInSpan(state)
+        ) {
+            return undefined
+        }
+        return branchFromView(state, branch.state, playerId)
     }
 
     private ownsHistory(context: GameContext<T, U>): boolean {

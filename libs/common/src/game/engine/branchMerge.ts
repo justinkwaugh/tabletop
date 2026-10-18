@@ -13,7 +13,7 @@ import type { GameAction } from './gameAction.js'
 import { isBranchClose, restingSpan, spanRuns, unmergedPlayerIds } from './parallelSpan.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 
-function replayOnMainLine<T extends GameState, U extends HydratedGameState<T>>({
+export function replayOnMainLine<T extends GameState, U extends HydratedGameState<T>>({
     engine,
     state,
     game,

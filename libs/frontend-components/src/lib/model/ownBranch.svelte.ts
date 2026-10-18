@@ -30,7 +30,7 @@ import {
     mergedActionSteps,
     type VisibleStep
 } from './gameBranch.js'
-import type { TransitionRequest } from './transitionPresenter.js'
+import type { TransitionKind, TransitionRequest } from './transitionPresenter.js'
 
 interface OwnBranchSession<T extends GameState> {
     playerId(): string | undefined
@@ -86,8 +86,8 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
         return this.joinedHistory.context
     }
 
-    follow(): void {
-        this.track(undefined)
+    follow(kind: TransitionKind = 'other-action'): void {
+        this.track(undefined, kind)
         this.fetchIfAwaited(!this.session.awaitsAnswer())
     }
 
@@ -238,7 +238,7 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
             : undefined
     }
 
-    private track(sent: UnmergedBranch | undefined): void {
+    private track(sent: UnmergedBranch | undefined, kind: TransitionKind = 'other-action'): void {
         const before = this.followed
         const mainLine = this.mainLine
         if (mainLine.state === before && sent === undefined) return
@@ -274,7 +274,7 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
             span !== undefined &&
             belongsToSpan(held, span)
         ) {
-            this.session.present(stepsRequest(merged), () =>
+            this.session.present(stepsRequest(merged, kind), () =>
                 current.updateGameState(branchView(mainLine.state, held))
             )
         } else {
@@ -283,12 +283,14 @@ export class OwnBranch<T extends GameState, U extends HydratedGameState<T> & T> 
     }
 }
 
+// A Main Line that went back, as after an Undo, has no steps to show on the way; the view is
+// swapped, as an undo when that is what moved it and as a reconciliation otherwise.
 function stepsRequest<T extends GameState>(
-    steps: VisibleStep<T>[] | undefined
+    steps: VisibleStep<T>[] | undefined,
+    kind: TransitionKind = 'other-action'
 ): TransitionRequest<T> {
-    return steps === undefined
-        ? { kind: 'reconciliation', intent: 'state' }
-        : { kind: 'other-action', steps }
+    if (steps !== undefined) return { kind, steps }
+    return { kind: kind === 'undo' ? kind : 'reconciliation', intent: 'state' }
 }
 
 function positionOf(state: GameState): ActionHistoryPosition {

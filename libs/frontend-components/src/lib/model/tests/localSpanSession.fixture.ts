@@ -117,3 +117,144 @@ export async function runProtectedLocalSpan() {
         sessions.dispose()
     }
 }
+
+export async function runLocalSpanCommonAction() {
+    const { sessions, open } = await setup()
+    try {
+        const session = await open()
+        await session.act('begin', 'begin')
+        await session.act('work', 'w3')
+        const canOfferToAnotherPlayer = session.canViewAsNonActivePlayer
+        session.setViewingAsNonActivePlayer(true)
+        const offeredToTheNonActingPlayer =
+            session.myPlayer?.id === 'p1' && session.validActionTypes.join() === 'propose,chant'
+        await session.act('propose', 'o1', { partnerId: 'p2', itemId: 'start-p1' })
+        const interruptsTheOpenBranch =
+            summary(session.actions).join() === 'begin:p1,openBranch:p3,work:p3,propose:p1' &&
+            session.spanState.offers.o1?.proposerId === 'p1' &&
+            session.gameState.parallelSpan?.branchPlayerId === 'p3' &&
+            session.gameState.machineState === 'working'
+        session.setViewingAsNonActivePlayer(false)
+        const branchContinues =
+            session.myPlayer?.id === 'p3' &&
+            session.validActionTypes.join() === 'work,roll,finish,propose,chant'
+        const offersUndoOfTheCommonAction = session.undoableAction?.id === 'o1'
+        await session.undo()
+        await settle(session)
+        const undone =
+            summary(session.actions).at(-1) === 'work:p3' &&
+            Object.keys(session.spanState.offers).length === 0 &&
+            session.gameState.parallelSpan?.branchPlayerId === 'p3'
+        await session.act('propose', 'o3', { partnerId: 'p1', itemId: 'start-p3' })
+        const ownBranchPlayerActsToo =
+            summary(session.actions).at(-1) === 'propose:p3' &&
+            session.gameState.parallelSpan?.branchPlayerId === 'p3'
+        session.setViewingAsNonActivePlayer(true)
+        const partnerIsOfferedTheAcceptance =
+            session.myPlayer?.id === 'p1' && session.validActionTypes.includes('accept')
+        await session.act('accept', 'a1', { offerId: 'o3', itemId: 'start-p1' })
+        session.setViewingAsNonActivePlayer(false)
+        await session.act('finish', 'f3')
+        await session.act('finish', 'f2')
+        await session.act('finish', 'f1')
+        return {
+            canOfferToAnotherPlayer,
+            offeredToTheNonActingPlayer,
+            interruptsTheOpenBranch,
+            branchContinues,
+            offersUndoOfTheCommonAction,
+            undone,
+            ownBranchPlayerActsToo,
+            partnerIsOfferedTheAcceptance,
+            settledAtSpanCompletion:
+                session.gameState.machineState === 'scoring' &&
+                session.spanState.items['start-p3'].playerId === 'p1' &&
+                session.spanState.items['start-p1'].playerId === 'p3'
+        }
+    } finally {
+        sessions.dispose()
+    }
+}
+
+export async function runLocalSpanCommonActionByAnyWaitingPlayer() {
+    const { sessions, open } = await setup()
+    try {
+        const session = await open()
+        await session.act('begin', 'begin')
+        await session.act('work', 'w3')
+        session.setViewingAsNonActivePlayer(true)
+        const firstWaitingPlayerByDefault = session.myPlayer?.id === 'p1'
+        session.viewAsNonActivePlayer('p2')
+        const anotherWaitingPlayerCanBeChosen =
+            session.myPlayer?.id === 'p2' &&
+            session.nonActivePlayers.map((player) => player.id).join() === 'p1,p2' &&
+            session.validActionTypes.join() === 'propose,chant'
+        await session.act('propose', 'o2', { partnerId: 'p3', itemId: 'start-p2' })
+        const actsAsThatPlayer =
+            summary(session.actions).join() === 'begin:p1,openBranch:p3,work:p3,propose:p2' &&
+            session.spanState.offers.o2?.proposerId === 'p2' &&
+            session.gameState.parallelSpan?.branchPlayerId === 'p3'
+
+        session.setViewingAsNonActivePlayer(false)
+        await session.act('work', 'w3b')
+        const laterBranchPlayComesOffFirst = session.undoableAction?.id === 'w3b'
+        await session.act('finish', 'f3')
+        const nextBranchOpened = session.gameState.parallelSpan?.branchPlayerId === 'p2'
+        session.viewAsNonActivePlayer('p3')
+        const closedPlayerCanBeChosen =
+            session.isViewingAsNonActivePlayer &&
+            session.myPlayer?.id === 'p3' &&
+            session.nonActivePlayers.map((player) => player.id).join() === 'p1,p3' &&
+            session.validActionTypes.join() === 'propose,chant'
+        await session.act('chant', 'c3')
+        const closedPlayerActs =
+            summary(session.actions).at(-1) === 'chant:p3' &&
+            session.gameState.parallelSpan?.branchPlayerId === 'p2'
+        session.setViewingAsNonActivePlayer(false)
+        const branchPlayerResumes = session.myPlayer?.id === 'p2' && session.isMyTurn
+        return {
+            firstWaitingPlayerByDefault,
+            anotherWaitingPlayerCanBeChosen,
+            actsAsThatPlayer,
+            laterBranchPlayComesOffFirst,
+            nextBranchOpened,
+            closedPlayerCanBeChosen,
+            closedPlayerActs,
+            branchPlayerResumes
+        }
+    } finally {
+        sessions.dispose()
+    }
+}
+
+export async function runProtectedLocalSpanCommonAction() {
+    const { sessions, open } = await setup()
+    try {
+        const beginner = await open('p1')
+        await beginner.act('begin', 'begin')
+        const first = await open('p3')
+        await first.act('work', 'w3')
+        const second = await open('p2')
+        const offeredWhileAnotherPlays =
+            !second.isMyTurn && second.validActionTypes.join() === 'propose,chant'
+        await second.act('propose', 'o2', { partnerId: 'p3', itemId: 'start-p2' })
+        const recorded =
+            summary(second.actions).join() === 'begin:p1,openBranch:p3,work:p3,propose:p2' &&
+            second.spanState.offers.o2?.proposerId === 'p2' &&
+            second.gameState.parallelSpan?.branchPlayerId === 'p3'
+        const again = await open('p3')
+        const otherSessionSeesIt = again.spanState.offers.o2?.proposerId === 'p2' && again.isMyTurn
+        await again.act('accept', 'a3', { offerId: 'o2', itemId: 'start-p3' })
+        return {
+            offeredWhileAnotherPlays,
+            recorded,
+            otherSessionSeesIt,
+            acceptedFromTheOpenBranch:
+                summary(again.actions).at(-1) === 'accept:p3' &&
+                again.spanState.offers.o2?.agreed === true &&
+                again.gameState.parallelSpan?.branchPlayerId === 'p3'
+        }
+    } finally {
+        sessions.dispose()
+    }
+}

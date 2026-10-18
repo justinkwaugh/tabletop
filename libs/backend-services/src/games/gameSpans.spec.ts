@@ -15,15 +15,22 @@ import {
 } from '@tabletop/common'
 import {
     createSpanGame,
+    isSpanGameState,
     spanAction,
     spanGameInfo,
     summary,
     type SpanActionType,
-    type SpanGameOptions
+    type SpanGameOptions,
+    type SpanGameState
 } from '@tabletop/common/test-fixtures/span-game'
 import { GameService } from './gameService.js'
 import { FIRST_TURN_REMINDER_INDEX } from './turnReminders.js'
-import { DisallowedActionError, DisallowedUndoError, GameUpdateCollisionError } from './errors.js'
+import {
+    DisallowedActionError,
+    DisallowedUndoError,
+    GameUpdateCollisionError,
+    RacedActionError
+} from './errors.js'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { UserService } from '../users/userService.js'
 import { TokenService } from '../tokens/tokenService.js'
@@ -114,6 +121,12 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
         async function mainLine(): Promise<GameState> {
             const state = (await store.findGameById(game.id, true))?.state
             if (state === undefined) throw Error('The Game has no State')
+            return state
+        }
+
+        async function spanState(): Promise<SpanGameState> {
+            const state = await mainLine()
+            if (!isSpanGameState(state)) throw Error('The Game State is not the span fixture’s')
             return state
         }
 
@@ -1391,6 +1404,332 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect((await mainLine()).parallelSpan?.mergedPlayerIds).toEqual([])
             await act('p1', 'finish', 'f1')
             expect((await mainLine()).machineState).toBe('scoring')
+        })
+
+        describe('Common Actions', () => {
+            const administrator: User = { ...user('admin'), roles: [Role.Admin] }
+
+            function propose(proposerId: string, partnerId: string, id: string, index?: number) {
+                return act(proposerId, 'propose', id, {
+                    partnerId,
+                    itemId: `start-${proposerId}`,
+                    ...(index === undefined ? {} : { index })
+                })
+            }
+
+            function accept(playerId: string, offerId: string, id: string, index?: number) {
+                return act(playerId, 'accept', id, {
+                    offerId,
+                    itemId: `start-${playerId}`,
+                    ...(index === undefined ? {} : { index })
+                })
+            }
+
+            function undo(actionId: string, by: User) {
+                return service.undoAction({ definition, gameId: game.id, actionId, user: by })
+            }
+
+            function published() {
+                return sendNotification.mock.calls.map(([sent]) => ({
+                    topics: sent.topics,
+                    action: sent.notification.action
+                }))
+            }
+
+            // Runs `interleaved` once, right after `run` has read the stored Branches for the
+            // given time. An Undo reads them twice: once to see whether the Action is in a
+            // Branch, and again when it settles the span after the reversal.
+            async function whileReadingBranches<T>(
+                interleaved: () => Promise<unknown>,
+                run: () => Promise<T>,
+                onRead = 1
+            ): Promise<T> {
+                const read = store.findUnmergedBranches.bind(store)
+                let reads = 0
+                vi.spyOn(store, 'findUnmergedBranches').mockImplementation(
+                    async (gameId, playerIds) => {
+                        const found = await read(gameId, playerIds)
+                        reads += 1
+                        if (reads === onRead) await interleaved()
+                        return found
+                    }
+                )
+                return run()
+            }
+
+            // Runs `interleaved` once, right after `run` has read the Player's stored Branch.
+            async function whileReadingOwnBranch<T>(
+                interleaved: () => Promise<unknown>,
+                run: () => Promise<T>
+            ): Promise<T> {
+                const read = store.findBranch.bind(store)
+                let done = false
+                vi.spyOn(store, 'findBranch').mockImplementation(async (gameId, playerId) => {
+                    const found = await read(gameId, playerId)
+                    if (!done) {
+                        done = true
+                        await interleaved()
+                    }
+                    return found
+                })
+                return run()
+            }
+
+            it('refuses one from a Player outside the span, and outside any span', async () => {
+                await host({ sitsOut: ['p2'] })
+                await expect(act('p2', 'chant', 'c2')).rejects.toBeInstanceOf(DisallowedActionError)
+                await act('p1', 'begin', 'begin')
+                await expect(act('p2', 'chant', 'c2')).rejects.toBeInstanceOf(DisallowedActionError)
+                expect((await spanState()).log).toEqual(['span'])
+            })
+
+            it('refuses one that arrives after the span has completed', async () => {
+                await host({ spans: 2 })
+                await act('p1', 'begin', 'begin')
+                await act('p3', 'finish', 'f3')
+                await act('p2', 'finish', 'f2')
+                await act('p1', 'finish', 'f1')
+                expect((await spanState()).spansCompleted).toBe(1)
+                expect((await mainLine()).parallelSpan?.branchPoint.actionCount).not.toBe(1)
+                await expect(act('p2', 'chant', 'c2', { index: 1 })).rejects.toBeInstanceOf(
+                    RacedActionError
+                )
+            })
+
+            describe('during a span', () => {
+                beforeEach(async () => {
+                    await host()
+                    await act('p1', 'begin', 'begin')
+                })
+
+                it('runs on the Main Line even when its Player has an open Branch, and is published to everyone', async () => {
+                    await act('p2', 'work', 'w2')
+                    sendNotification.mockClear()
+                    const response = await propose('p2', 'p3', 'o2')
+                    expect(summary(response.actions)).toEqual(['propose:p2'])
+                    expect(response.unmergedBranch).toBeUndefined()
+                    const state = await spanState()
+                    expect(state.actionCount).toBe(2)
+                    expect(state.machineState).toBe('branching')
+                    expect(state.offers.o2).toMatchObject({ proposerId: 'p2', partnerId: 'p3' })
+                    expect(state.activePlayerIds).toEqual(['p3', 'p2', 'p1'])
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                    expect((await storedGame()).lastActionPlayerId).toBe('p2')
+                    expect(published()).toEqual([
+                        {
+                            topics: [`game-${game.id}`],
+                            action: GameNotificationAction.AddProjectedActions
+                        },
+                        { topics: ['user-p1'], action: GameNotificationAction.AddProjectedActions },
+                        { topics: ['user-p2'], action: GameNotificationAction.AddProjectedActions },
+                        { topics: ['user-p3'], action: GameNotificationAction.AddProjectedActions },
+                        {
+                            topics: ['user-p1', 'user-p2', 'user-p3'],
+                            action: GameNotificationAction.Update
+                        }
+                    ])
+                })
+
+                it('may be taken by a Player whose Branch is closed or merged', async () => {
+                    await act('p1', 'finish', 'f1')
+                    await act('p3', 'finish', 'f3')
+                    expect((await mainLine()).parallelSpan?.mergedPlayerIds).toEqual(['p3'])
+                    await act('p1', 'chant', 'c1')
+                    await act('p3', 'chant', 'c3')
+                    expect((await spanState()).log).toEqual(['span', 'chant:p1', 'chant:p3'])
+                    expect((await storedGame()).activePlayerIds).toEqual(['p2'])
+                })
+
+                it('checks the acting Player’s side against their stored Branch', async () => {
+                    await act('p2', 'drop', 'd2', { itemId: 'start-p2' })
+                    await expect(propose('p2', 'p3', 'o2')).rejects.toBeInstanceOf(
+                        DisallowedActionError
+                    )
+                    expect((await mainLine()).actionCount).toBe(1)
+                    await act('p2', 'stash', 'new', { label: 'new' })
+                    await expect(
+                        act('p2', 'propose', 'o2b', { partnerId: 'p3', itemId: 'new' })
+                    ).rejects.toThrow()
+                    expect((await mainLine()).actionCount).toBe(1)
+                })
+
+                it('refuses one when the Player’s Branch used what it offers while it was being worked out', async () => {
+                    await expect(
+                        whileReadingOwnBranch(
+                            () => act('p2', 'drop', 'd2', { itemId: 'start-p2' }),
+                            () => propose('p2', 'p3', 'o2')
+                        )
+                    ).rejects.toBeInstanceOf(DisallowedActionError)
+                    expect((await spanState()).offers).toEqual({})
+                    expect((await mainLine()).actionCount).toBe(1)
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                })
+
+                it('refuses a Branch Action worked out before the Player’s own Common Action landed', async () => {
+                    await expect(
+                        whileReadingOwnBranch(
+                            () => propose('p2', 'p3', 'o2'),
+                            () => act('p2', 'drop', 'd2', { itemId: 'start-p2' })
+                        )
+                    ).rejects.toThrow('Action of type drop is not valid')
+                    expect((await spanState()).offers.o2).toMatchObject({ itemId: 'start-p2' })
+                    expect((await mainLine()).actionCount).toBe(2)
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 1 })
+                })
+
+                it('records one raced only by Branch Closes and Merges after them, and reports what it raced', async () => {
+                    const position = (await mainLine()).actionCount
+                    await act('p1', 'finish', 'f1')
+                    await act('p3', 'finish', 'f3')
+                    const response = await act('p2', 'chant', 'c2', { index: position })
+                    expect(summary(response.missingActions ?? [])).toEqual([
+                        'closeBranch:p1',
+                        'closeBranch:p3',
+                        'openBranch:p3',
+                        'finish:p3'
+                    ])
+                    expect(summary(await store.findActionsForGame(await storedGame())).at(-1)).toBe(
+                        'chant:p2'
+                    )
+                    expect(response.actions[0].index).toBe(5)
+                    expect((await spanState()).log).toEqual(['span', 'chant:p2'])
+                })
+
+                it('refuses one that a Branch Close it raced made lapse', async () => {
+                    const position = (await mainLine()).actionCount
+                    await act('p3', 'finish', 'f3')
+                    await expect(propose('p2', 'p3', 'o2', position)).rejects.toBeInstanceOf(
+                        RacedActionError
+                    )
+                    expect((await spanState()).offers).toEqual({})
+                })
+
+                it('records one raced by another Player’s Common Action when the Commutation Proof succeeds', async () => {
+                    const position = (await mainLine()).actionCount
+                    await act('p3', 'chant', 'c3')
+                    const response = await propose('p2', 'p1', 'o2', position)
+                    expect(summary(response.missingActions ?? [])).toEqual(['chant:p3'])
+                    expect(summary(await store.findActionsForGame(await storedGame()))).toEqual([
+                        'begin:p1',
+                        'chant:p3',
+                        'propose:p2'
+                    ])
+                })
+
+                it('always refuses an agreement raced by another Player’s Common Action', async () => {
+                    await propose('p3', 'p2', 'o3')
+                    const position = (await mainLine()).actionCount
+                    await act('p1', 'chant', 'c1')
+                    await expect(accept('p2', 'o3', 'a2', position)).rejects.toBeInstanceOf(
+                        RacedActionError
+                    )
+                    expect((await spanState()).offers.o3).toMatchObject({ agreed: false })
+                })
+
+                it('lets a Player undo their own latest Common Action and replays the closes that followed', async () => {
+                    await propose('p2', 'p3', 'o2')
+                    await act('p1', 'finish', 'f1')
+                    sendNotification.mockClear()
+                    const response = await undo('o2', user('p2'))
+                    const state = await spanState()
+                    expect(summary(await store.findActionsForGame(await storedGame()))).toEqual([
+                        'begin:p1',
+                        'closeBranch:p1'
+                    ])
+                    expect(state.offers).toEqual({})
+                    expect(state.parallelSpan?.closedPlayerIds).toEqual(['p1'])
+                    expect(response.actionReplay.startIndex).toBe(1)
+                    expect(summary(response.actionReplay.actions)).toEqual(['closeBranch:p1'])
+                    expect(response.checksum).toBe(state.actionChecksum)
+                    expect(await branchCounts()).toEqual({ p1: 2, p2: 1, p3: 1 })
+                    expect(published().map(({ action }) => action)).toEqual([
+                        GameNotificationAction.ReplaceProjectedActions,
+                        GameNotificationAction.ReplaceProjectedActions,
+                        GameNotificationAction.ReplaceProjectedActions,
+                        GameNotificationAction.ReplaceProjectedActions,
+                        GameNotificationAction.Update
+                    ])
+                })
+
+                it('refuses the Undo once another Player’s Common Action follows, or when it revealed information', async () => {
+                    await propose('p2', 'p3', 'o2')
+                    await act('p3', 'chant', 'c3')
+                    await expect(undo('o2', user('p2'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                    await accept('p3', 'o2', 'a3')
+                    await expect(undo('a3', user('p3'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                    await expect(undo('o2', user('p1'))).rejects.toBeInstanceOf(DisallowedUndoError)
+                    expect((await mainLine()).actionCount).toBe(4)
+                })
+
+                it('lets an administrator undo an agreement when every Unmerged Branch replays the same', async () => {
+                    await propose('p3', 'p2', 'o3')
+                    await accept('p2', 'o3', 'a2')
+                    await act('p3', 'work', 'w3')
+                    await undo('a2', administrator)
+                    const state = await spanState()
+                    expect(state.actionCount).toBe(2)
+                    expect(state.offers.o3).toMatchObject({ agreed: false })
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 2 })
+                })
+
+                it('refuses an administrator’s Undo over an agreement when a Branch relied on it while the Undo was being worked out', async () => {
+                    await propose('p3', 'p2', 'o3')
+                    await accept('p2', 'o3', 'a2')
+                    await expect(
+                        whileReadingBranches(
+                            () => act('p2', 'hope', 'h2'),
+                            () => undo('o3', administrator),
+                            2
+                        )
+                    ).rejects.toBeInstanceOf(GameUpdateCollisionError)
+                    const state = await spanState()
+                    expect(state.actionCount).toBe(3)
+                    expect(state.offers.o3).toMatchObject({ agreed: true })
+                    expect((await storedGame()).spanHold).toBeUndefined()
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                    await expect(undo('o3', administrator)).rejects.toBeInstanceOf(
+                        DisallowedUndoError
+                    )
+                })
+
+                it('refuses a Player’s Undo of their own Common Action when their Branch has since used what it held', async () => {
+                    await propose('p2', 'p3', 'o2')
+                    await act('p2', 'withdraw', 'w2', { offerId: 'o2' })
+                    await act('p2', 'drop', 'd2', { itemId: 'start-p2' })
+                    await expect(undo('w2', user('p2'))).rejects.toBeInstanceOf(
+                        DisallowedUndoError
+                    )
+                    expect((await spanState()).offers).toEqual({})
+                    expect((await mainLine()).actionCount).toBe(3)
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                })
+
+                it('refuses a Player’s Undo of their own Common Action when their Branch used what it held while the Undo was being worked out', async () => {
+                    await propose('p2', 'p3', 'o2')
+                    await act('p2', 'withdraw', 'w2', { offerId: 'o2' })
+                    await expect(
+                        whileReadingBranches(
+                            () => act('p2', 'drop', 'd2', { itemId: 'start-p2' }),
+                            () => undo('w2', user('p2')),
+                            2
+                        )
+                    ).rejects.toBeInstanceOf(GameUpdateCollisionError)
+                    expect((await spanState()).offers).toEqual({})
+                    expect((await mainLine()).actionCount).toBe(3)
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                })
+
+                it('refuses an administrator’s Undo over an agreement that an Unmerged Branch relied on', async () => {
+                    await propose('p3', 'p2', 'o3')
+                    await accept('p2', 'o3', 'a2')
+                    await act('p2', 'hope', 'h2')
+                    await expect(undo('o3', administrator)).rejects.toBeInstanceOf(
+                        DisallowedUndoError
+                    )
+                    expect((await mainLine()).actionCount).toBe(3)
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                })
+            })
         })
     }
 )

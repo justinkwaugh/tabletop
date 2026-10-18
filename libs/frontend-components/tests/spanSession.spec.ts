@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test'
 
 const scenarios = {
-    localSpanSession: ['runLocalSpan', 'runProtectedLocalSpan'],
+    localSpanSession: [
+        'runLocalSpan',
+        'runProtectedLocalSpan',
+        'runLocalSpanCommonAction',
+        'runLocalSpanCommonActionByAnyWaitingPlayer',
+        'runProtectedLocalSpanCommonAction'
+    ],
     hostedSpanSession: [
         'runHostedSpanPlay',
         'runHostedSpanMerges',
@@ -18,7 +24,13 @@ const scenarios = {
         'runHostedSpanBeginsWhileAnimating',
         'runHostedSpanLateBranchUpdates',
         'runHostedSpanUndoBehindTheMainLine',
-        'runHostedSpanReopenBehindTheMainLine'
+        'runHostedSpanReopenBehindTheMainLine',
+        'runHostedSpanCommonAction',
+        'runHostedSpanCommonActionOwnSide',
+        'runHostedSpanCommonActionUndo',
+        'runHostedSpanCommonActionUndoKeepsCloses',
+        'runHostedSpanUndoOrder',
+        'runHostedSpanCommonActionRace'
     ]
 }
 

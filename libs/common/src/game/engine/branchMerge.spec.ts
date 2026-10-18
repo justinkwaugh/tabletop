@@ -61,7 +61,7 @@ describe('Branch Undo', () => {
         const undone = undo(spanGame, state, play, 'item-1')
         expect(summary(undone.undoneActions)).toEqual(['stash:p2', 'work:p2'])
         expect(playerOf(undone.view, 'p2').work).toBe(1)
-        expect(undone.view.items).toEqual({})
+        expect(undone.view.items).toEqual(state.items)
         expect(undone.branch).toEqual(
             playPrivately(spanGame, state, 'p2', [spanAction('w1', 'work', 'p2')]).branch
         )

@@ -22,6 +22,7 @@ import {
     playerVoteIneligibility,
     playerUndoRestriction,
     PlayerUndoRestriction,
+    isCommonActionType,
     isSequencedActionType,
     isSupersedableActionType,
     proveCommutation,
@@ -172,8 +173,17 @@ import {
     readAtOneMainLinePosition,
     spanVisibility
 } from './spanReads.js'
-import { settleAfterReversal, undoBranchAction, type ReopenedBranch } from './spanReversal.js'
-import { fillGameUpdatesAfterActions, submitBranchAction } from './spanSubmission.js'
+import {
+    planCommonActionUndo,
+    settleAfterReversal,
+    undoBranchAction,
+    type ReopenedBranch
+} from './spanReversal.js'
+import {
+    fillGameUpdatesAfterActions,
+    submitBranchAction,
+    submitCommonAction
+} from './spanSubmission.js'
 import { assertGameUnmoved, freshBranchWrite } from './spanWrites.js'
 
 export class GameService {
@@ -1194,7 +1204,9 @@ export class GameService {
             this.verifyUserIsActionPlayer(action, game, user)
         }
 
+        const isCommon = isCommonActionType(definition.runtime.apiActions, action.type)
         if (game.state.parallelSpan !== undefined) {
+            if (isCommon) return this.applyCommonAction({ definition, game, action, user })
             if (!actsInBranch(game.state, action.playerId)) {
                 throw new DisallowedActionError({
                     gameId,
@@ -1203,6 +1215,13 @@ export class GameService {
                 })
             }
             return this.applyActionToBranch({ definition, game, action, user })
+        }
+        if (isCommon) {
+            throw new DisallowedActionError({
+                gameId,
+                actionId: action.id,
+                reason: 'no Parallel Span is in progress'
+            })
         }
 
         game = await this.supersedeDeclaration({ definition, game, action, user })
@@ -1401,6 +1420,38 @@ export class GameService {
                   user,
                   unmergedBranch: closedBranch
               })
+    }
+
+    private async applyCommonAction({
+        definition,
+        game,
+        action,
+        user
+    }: {
+        definition: GameDefinition
+        game: Game
+        action: GameAction
+        user: User
+    }): Promise<ActionResultsRepresentation> {
+        spanVisibility(definition, game)
+        const submission = await submitCommonAction({
+            gameStore: this.gameStore,
+            definition,
+            game,
+            action
+        })
+        countTiming('game.processedActions', submission.result.processedActions.length)
+        return this.finishActionApplication({
+            definition,
+            game,
+            updatedGame: submission.updatedGame,
+            result: submission.result,
+            storedActions: submission.storedActions,
+            relatedActions: submission.relatedActions,
+            priorState: submission.priorState,
+            user,
+            actingPlayerId: action.playerId
+        })
     }
 
     private async publishBranch({
@@ -1671,10 +1722,21 @@ export class GameService {
             })
             if (undoneInBranch !== undefined) return undoneInBranch
             if (!asAdministrator) {
+                const undoneCommon =
+                    userPlayer === undefined
+                        ? undefined
+                        : await this.undoCommonAction({
+                              definition,
+                              game,
+                              actionId,
+                              user,
+                              playerId: userPlayer.id
+                          })
+                if (undoneCommon !== undefined) return undoneCommon
                 throw new DisallowedUndoError({
                     gameId,
                     actionId,
-                    reason: 'a Parallel Span is in progress, so only an Action in your own Branch can be undone'
+                    reason: 'a Parallel Span is in progress, so only an Action in your own Branch or your own latest Common Action can be undone'
                 })
             }
         }
@@ -2167,6 +2229,42 @@ export class GameService {
         return createBranchUndoRepresentation({ game, state, user, unmergedBranch })
     }
 
+    private async undoCommonAction({
+        definition,
+        game,
+        actionId,
+        user,
+        playerId
+    }: {
+        definition: GameDefinition
+        game: Game
+        actionId: string
+        user: User
+        playerId: string
+    }): Promise<UndoResultsRepresentation | undefined> {
+        const plan = await planCommonActionUndo({
+            gameStore: this.gameStore,
+            definition,
+            game,
+            actionId,
+            playerId
+        })
+        if (plan === undefined) return undefined
+        const startIndex = plan.target.index
+        assertExists(startIndex, 'A recorded Common Action has its index')
+        return this.persistReversal({
+            definition,
+            game,
+            user,
+            actionToUndo: plan.target,
+            startIndex,
+            retainedActions: [],
+            actions: plan.removed,
+            redoneActions: plan.replayed,
+            updatedState: plan.state
+        })
+    }
+
     private async persistReversal({
         definition,
         game,
@@ -2204,6 +2302,7 @@ export class GameService {
             engine: gameEngine,
             game,
             state: updatedState,
+            undone: actions,
             reopened
         })
         const reappliedActions = [...redoneActions, ...settled.reappliedActions]

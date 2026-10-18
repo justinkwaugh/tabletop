@@ -53,7 +53,7 @@ export class BranchUndoError extends BaseError {
     }
 }
 
-function withoutEngineMaintainedFields(state: object): Record<string, unknown> {
+export function withoutEngineMaintainedFields(state: object): Record<string, unknown> {
     return Object.fromEntries(
         Object.entries(state).filter(([field]) => !ENGINE_MAINTAINED_FIELDS.has(field))
     )
