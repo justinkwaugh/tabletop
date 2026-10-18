@@ -46,6 +46,7 @@ func newServer(t *testing.T, keepalive time.Duration, adjust ...func(*hub.Config
 		ConnectionBuffer:         8,
 		RevocationMemory:         time.Minute,
 		SweepInterval:            time.Hour,
+		StatsInterval:            time.Hour,
 		Now:                      time.Now,
 	}
 	for _, change := range adjust {

@@ -60,6 +60,7 @@ func run() error {
 		ConnectionBuffer:         64,
 		RevocationMemory:         token.MaxLifetime + token.ClockLeeway + time.Second,
 		SweepInterval:            10 * time.Second,
+		StatsInterval:            5 * time.Second,
 		Now:                      time.Now,
 	}, redisBus)
 	redisBus.SetListener(relayHub)

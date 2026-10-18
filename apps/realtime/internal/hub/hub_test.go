@@ -60,6 +60,7 @@ func newHarness(t *testing.T, configure ...func(*Config)) *harness {
 		ConnectionBuffer:         8,
 		RevocationMemory:         time.Minute,
 		SweepInterval:            time.Hour,
+		StatsInterval:            time.Hour,
 		Now:                      func() time.Time { return connectedAt },
 	}
 	for _, change := range configure {
@@ -489,4 +490,54 @@ func TestARevocationWithoutATimeRevokesAsOfItsArrival(t *testing.T) {
 	if _, err := h.hub.Open(beforeArrival); !errors.Is(err, ErrRejected) {
 		t.Fatalf("token issued before the revocation arrived: got %v, want ErrRejected", err)
 	}
+}
+
+func statsFrame(sequence, connections, accounts int) string {
+	return fmt.Sprintf(`data: {"topic":"relay-stats","message":{"id":"relay-stats-%d","type":"system","action":"relayStats","data":{"connections":%d,"accounts":%d}}}`+"\n\n", sequence, connections, accounts)
+}
+
+func (h *harness) broadcastStats() {
+	h.hub.await(h.hub.broadcastStats)
+}
+
+func TestTheStatsTopicIsReadyAtOnceWithTheCurrentCounts(t *testing.T) {
+	h := newHarness(t)
+	h.open("b", "global")
+	h.subscriptions.taken()
+	admin := h.open("a", "relay-stats")
+	h.expectRequests()
+	expectFrames(t, admin,
+		"event: ready\ndata: {\"connection\":\""+admin.id+"\",\"topics\":[\"relay-stats\"]}\n\n",
+		statsFrame(1, 2, 2))
+}
+
+func TestStatsAreBroadcastToWatchersOnlyWhenTheyChange(t *testing.T) {
+	h := newHarness(t)
+	admin := h.open("a", "relay-stats")
+	frames(admin)
+	other := h.open("b", "global")
+	h.hub.Subscribed("global")
+	h.broadcastStats()
+	expectFrames(t, admin, statsFrame(2, 2, 2))
+	expectFrames(t, other, "event: ready\ndata: {\"connection\":\""+other.id+"\",\"topics\":[\"global\"]}\n\n")
+
+	h.broadcastStats()
+	expectFrames(t, admin)
+
+	h.open("b", "global")
+	h.broadcastStats()
+	expectFrames(t, admin, statsFrame(3, 3, 2))
+}
+
+func TestLeavingTheStatsTopicStopsTheCountsWithoutRedis(t *testing.T) {
+	h := newHarness(t)
+	admin := h.open("a", "global", "relay-stats")
+	h.hub.Subscribed("global")
+	h.change(admin, "global")
+	h.expectRequests("subscribe global")
+	frames(admin)
+
+	h.open("b", "global")
+	h.broadcastStats()
+	expectFrames(t, admin)
 }

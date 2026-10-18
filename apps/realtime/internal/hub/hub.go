@@ -30,6 +30,7 @@ type Config struct {
 	ConnectionBuffer         int
 	RevocationMemory         time.Duration
 	SweepInterval            time.Duration
+	StatsInterval            time.Duration
 	Now                      func() time.Time
 }
 
@@ -53,6 +54,9 @@ type Hub struct {
 	connsByID        map[string]*Conn
 	usedTokens       map[string]time.Time
 	revocations      map[string]time.Time
+	statsWatchers    map[*Conn]struct{}
+	statsSent        statsCounts
+	statsSequence    int
 }
 
 func New(config Config, subscriptions Subscriptions) *Hub {
@@ -66,12 +70,15 @@ func New(config Config, subscriptions Subscriptions) *Hub {
 		connsByID:     map[string]*Conn{},
 		usedTokens:    map[string]time.Time{},
 		revocations:   map[string]time.Time{},
+		statsWatchers: map[*Conn]struct{}{},
 	}
 }
 
 func (h *Hub) Run(ctx context.Context) {
 	sweep := time.NewTicker(h.config.SweepInterval)
 	defer sweep.Stop()
+	stats := time.NewTicker(h.config.StatsInterval)
+	defer stats.Stop()
 	defer close(h.stopped)
 	for {
 		select {
@@ -79,6 +86,8 @@ func (h *Hub) Run(ctx context.Context) {
 			request()
 		case <-sweep.C:
 			h.sweep()
+		case <-stats.C:
+			h.broadcastStats()
 		case <-ctx.Done():
 			h.dropAll()
 			return
@@ -236,6 +245,11 @@ func (h *Hub) applyTopics(conn *Conn, topics []string) {
 }
 
 func (h *Hub) join(conn *Conn, topic string) {
+	if topic == token.StatsTopic {
+		conn.topics[topic] = false
+		h.statsWatchers[conn] = struct{}{}
+		return
+	}
 	state, exists := h.topics[topic]
 	if !exists {
 		state = newTopicState()
@@ -254,6 +268,10 @@ func (h *Hub) join(conn *Conn, topic string) {
 func (h *Hub) leave(conn *Conn, topic string) {
 	delete(conn.topics, topic)
 	delete(conn.awaiting, topic)
+	if topic == token.StatsTopic {
+		delete(h.statsWatchers, conn)
+		return
+	}
 	state := h.topics[topic]
 	delete(state.conns, conn)
 	if len(state.conns) == 0 && state.lastRequested == subscribed {
@@ -303,6 +321,10 @@ func (h *Hub) acknowledged(topic string, kind subscriptionKind) {
 }
 
 func (h *Hub) markReady(conn *Conn) {
+	startsWatching := false
+	if active, carried := conn.topics[token.StatsTopic]; carried && !active {
+		startsWatching = true
+	}
 	for topic := range conn.topics {
 		conn.topics[topic] = true
 	}
@@ -314,6 +336,52 @@ func (h *Hub) markReady(conn *Conn) {
 	}
 	conn.announced = true
 	h.send(conn, frame)
+	if startsWatching && !conn.dropped {
+		if frame, err := h.statsFrame(h.currentStats()); err == nil {
+			h.send(conn, frame)
+		}
+	}
+}
+
+type statsCounts struct {
+	Connections int `json:"connections"`
+	Accounts    int `json:"accounts"`
+}
+
+func (h *Hub) currentStats() statsCounts {
+	return statsCounts{Connections: len(h.connsByID), Accounts: len(h.accounts)}
+}
+
+func (h *Hub) statsFrame(counts statsCounts) ([]byte, error) {
+	h.statsSequence++
+	body, err := json.Marshal(struct {
+		ID     string      `json:"id"`
+		Type   string      `json:"type"`
+		Action string      `json:"action"`
+		Data   statsCounts `json:"data"`
+	}{fmt.Sprintf("relay-stats-%d", h.statsSequence), "system", "relayStats", counts})
+	if err != nil {
+		return nil, err
+	}
+	return messageFrame(token.StatsTopic, string(body))
+}
+
+func (h *Hub) broadcastStats() {
+	current := h.currentStats()
+	if len(h.statsWatchers) == 0 || current == h.statsSent {
+		return
+	}
+	frame, err := h.statsFrame(current)
+	if err != nil {
+		slog.Error("unencodable relay stats", "error", err)
+		return
+	}
+	h.statsSent = current
+	for conn := range h.statsWatchers {
+		if conn.topics[token.StatsTopic] {
+			h.send(conn, frame)
+		}
+	}
 }
 
 func (h *Hub) published(topic, payload string) {
@@ -388,6 +456,7 @@ func (h *Hub) dropAll() {
 	h.accounts = map[string][]*Conn{}
 	h.connsByID = map[string]*Conn{}
 	h.topics = map[string]*topicState{}
+	h.statsWatchers = map[*Conn]struct{}{}
 }
 
 func (h *Hub) sweep() {
