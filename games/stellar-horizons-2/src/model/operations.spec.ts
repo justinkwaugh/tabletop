@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { Faction } from '../components/factions.js'
 import { ScenarioId } from '../components/scenarios.js'
+import { TechId } from '../components/techs.js'
 import { WorldSide } from '../components/worlds.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import {
@@ -12,6 +13,12 @@ import {
     settleSyndicateTakes
 } from './operations.js'
 import { MarkerReason, OperationKind } from './pieces.js'
+import {
+    nextShipTerraformer,
+    queueShipTerraform,
+    resolveNextShipTerraform,
+    shipTerraformSlots
+} from './terraforming.js'
 import { hydrate, placeBase, placeShip, startedGame } from '../testing/fixtures.js'
 
 const SYSTEM = 'alpha-centauri'
@@ -95,5 +102,28 @@ describe('Mining and research', () => {
         const before = state.getPlayerState(syndicate).cash
         settleSyndicateTakes(state)
         expect(state.getPlayerState(syndicate).cash).toBe(before + 1)
+    })
+})
+
+describe('Terraforming with mining ships', () => {
+    it('needs Atmosphere Processing, and resolves after the span with the usual IP', () => {
+        const state = campaign()
+        const starfarers = playerOf(state, Faction.Starfarers)
+        const pytheas = placeShip(state, starfarers, 'starfarers-pytheas', SYSTEM)
+        expect(shipTerraformSlots(state, pytheas)).toEqual([])
+        state.getPlayerState(starfarers).techs.push({
+            techId: TechId.AtmosphereProcessing,
+            year: 2090
+        })
+        expect(shipTerraformSlots(state, pytheas)).toEqual([0])
+        queueShipTerraform(state, pytheas, 0)
+        expect(pytheas.explored).toBe(true)
+        expect(nextShipTerraformer(state)).toBe(starfarers)
+        const influence = state.getPlayerState(starfarers).influence
+        const resolved = resolveNextShipTerraform(state)
+        expect(resolved?.outcome?.flipped).toBe(true)
+        expect(state.systemState(SYSTEM).worlds[0].side).toBe(WorldSide.II)
+        expect(state.getPlayerState(starfarers).influence).toBe(influence + 1)
+        expect(nextShipTerraformer(state)).toBeUndefined()
     })
 })

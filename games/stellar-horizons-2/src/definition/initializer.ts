@@ -74,6 +74,7 @@ export class StellarHorizonsGameInitializer
                     anomalies: [],
                     influence: 0,
                     operations: [],
+                    shipTerraforms: [],
                     explorationMarkers: 0
                 })
         )

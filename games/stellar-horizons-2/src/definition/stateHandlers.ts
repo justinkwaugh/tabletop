@@ -26,6 +26,7 @@ import { PhaseStateHandler } from '../stateHandlers/phase.js'
 import { PlacingRewardSettlementsStateHandler } from '../stateHandlers/placingRewardSettlements.js'
 import { PlacingStartingBasesStateHandler } from '../stateHandlers/placingStartingBases.js'
 import { ResolvingAnomaliesStateHandler } from '../stateHandlers/resolvingAnomalies.js'
+import { ResolvingShipTerraformsStateHandler } from '../stateHandlers/resolvingShipTerraforms.js'
 import { ResolvingSurveysStateHandler } from '../stateHandlers/resolvingSurveys.js'
 import { SettlingExplorationsStateHandler } from '../stateHandlers/settlingExplorations.js'
 import { SettlingSyndicateTakesStateHandler } from '../stateHandlers/settlingSyndicateTakes.js'
@@ -63,6 +64,7 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.PlacingRewardSettlements]: new PlacingRewardSettlementsStateHandler(),
     [MachineState.ResolvingSurveys]: new ResolvingSurveysStateHandler(),
     [MachineState.ChoosingSurveyWorld]: new ChoosingSurveyWorldStateHandler(),
+    [MachineState.ResolvingShipTerraforms]: new ResolvingShipTerraformsStateHandler(),
     [MachineState.DevelopmentPhase]: new PhaseStateHandler(TurnPhase.Development),
     [MachineState.Developing]: new DevelopingStateHandler(),
     [MachineState.Terraforming]: new TerraformingStateHandler(),

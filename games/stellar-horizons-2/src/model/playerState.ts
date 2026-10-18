@@ -5,7 +5,13 @@ import { AnomalyChallenge, anomalyDefinition } from '../components/anomalies.js'
 import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
 import { TechId } from '../components/techs.js'
-import { EarnedMarkers, Operation, PendingAnomalyAttempt, PendingSurvey } from './pieces.js'
+import {
+    EarnedMarkers,
+    Operation,
+    PendingAnomalyAttempt,
+    PendingSurvey,
+    ShipTerraform
+} from './pieces.js'
 
 export type TechMarkers = Type.Static<typeof TechMarkers>
 export const TechMarkers = Type.Object({
@@ -42,6 +48,7 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             anomalies: Type.Array(Type.String()),
             influence: Type.Number(),
             operations: Type.Array(Operation),
+            shipTerraforms: Type.Array(ShipTerraform),
             explorationMarkers: Type.Number(),
             initiativeBid: Type.Optional(Type.Number())
         })
@@ -69,6 +76,7 @@ export class HydratedStellarHorizonsPlayerState
     declare anomalies: string[]
     declare influence: number
     declare operations: Operation[]
+    declare shipTerraforms: ShipTerraform[]
     declare explorationMarkers: number
     declare initiativeBid?: number
 

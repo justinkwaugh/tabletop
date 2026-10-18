@@ -26,6 +26,8 @@ export enum ActionType {
     AttemptAnomaly = 'AttemptAnomaly',
     Mine = 'Mine',
     Research = 'Research',
+    TerraformWithShip = 'TerraformWithShip',
+    ResolveShipTerraform = 'ResolveShipTerraform',
     SettleSyndicateTakes = 'SettleSyndicateTakes',
     DevelopTech = 'DevelopTech',
     ResolveAnomaly = 'ResolveAnomaly',

@@ -25,6 +25,7 @@ export enum MachineState {
     PlacingRewardSettlements = 'PlacingRewardSettlements',
     ResolvingSurveys = 'ResolvingSurveys',
     ChoosingSurveyWorld = 'ChoosingSurveyWorld',
+    ResolvingShipTerraforms = 'ResolvingShipTerraforms',
     DevelopmentPhase = 'DevelopmentPhase',
     Developing = 'Developing',
     Terraforming = 'Terraforming',

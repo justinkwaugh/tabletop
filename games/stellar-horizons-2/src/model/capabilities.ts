@@ -19,6 +19,7 @@ export interface Capabilities {
     cvMaxSize: number
     settlementCost: number
     cloning: boolean
+    shipTerraforming: boolean
     cargoBonus: number
 }
 
@@ -67,6 +68,7 @@ export function playerCapabilities(
         cvMaxSize: highest('cvMaxSize', BASELINE.cvMaxSize),
         settlementCost: settlementCost(player, scenario) - highest('settlementDiscount', 0),
         cloning: has('cloning'),
+        shipTerraforming: has('mineTerraforming'),
         cargoBonus: highest('cargoBonus', 0)
     }
 }

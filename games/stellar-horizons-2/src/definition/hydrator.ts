@@ -34,6 +34,11 @@ import { HydratedStartPhase, isStartPhase } from '../actions/startPhase.js'
 import { HydratedStartTurn, isStartTurn } from '../actions/startTurn.js'
 import { HydratedTerraform, isTerraform } from '../actions/terraform.js'
 import { HydratedTransferCargo, isTransferCargo } from '../actions/transferCargo.js'
+import { HydratedTerraformWithShip, isTerraformWithShip } from '../actions/terraformWithShip.js'
+import {
+    HydratedResolveShipTerraform,
+    isResolveShipTerraform
+} from '../actions/resolveShipTerraform.js'
 import { HydratedMine, isMine } from '../actions/mine.js'
 import { HydratedResearch, isResearch } from '../actions/research.js'
 import {
@@ -128,6 +133,10 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedResearch(data)
             case isSettleSyndicateTakes(data):
                 return new HydratedSettleSyndicateTakes(data)
+            case isTerraformWithShip(data):
+                return new HydratedTerraformWithShip(data)
+            case isResolveShipTerraform(data):
+                return new HydratedResolveShipTerraform(data)
             case isEndTurn(data):
                 return new HydratedEndTurn(data)
             default:

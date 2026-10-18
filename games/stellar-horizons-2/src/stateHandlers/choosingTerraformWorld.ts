@@ -11,7 +11,7 @@ import {
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { stateAfterTerraformer } from './transitions.js'
+import { stateAfterTerraformChoice } from './transitions.js'
 
 export class ChoosingTerraformWorldStateHandler implements MachineStateHandler<
     HydratedChooseTerraformWorld,
@@ -41,6 +41,6 @@ export class ChoosingTerraformWorldStateHandler implements MachineStateHandler<
         _action: HydratedChooseTerraformWorld,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        return stateAfterTerraformer(context.gameState)
+        return stateAfterTerraformChoice(context.gameState)
     }
 }

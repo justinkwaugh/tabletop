@@ -7,6 +7,7 @@ import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { canMoveAnyShip } from './movement.js'
 import { canOperateAnyShip } from './operations.js'
 import { OperationKind } from './pieces.js'
+import { shipTerraformSlots } from './terraforming.js'
 import { TurnPhase } from './turn.js'
 
 // A phase ends by itself once the player can do nothing more in it. Exploring is the exception:
@@ -33,6 +34,9 @@ export function isIdleInPhase(
                 attemptableSystemIds(state, playerId).length === 0 &&
                 !canOperateAnyShip(state, playerId, OperationKind.Mining) &&
                 !canOperateAnyShip(state, playerId, OperationKind.Research) &&
+                !state
+                    .shipsOf(playerId)
+                    .some((ship) => shipTerraformSlots(state, ship).length > 0) &&
                 !hasExploredThisDecade(state, playerId)
             )
         case TurnPhase.Development:
@@ -48,6 +52,7 @@ function hasExploredThisDecade(state: HydratedStellarHorizonsGameState, playerId
     return (
         player.earnedMarkers.length > 0 ||
         player.anomalyAttempts.length > 0 ||
-        player.operations.length > 0
+        player.operations.length > 0 ||
+        player.shipTerraforms.length > 0
     )
 }

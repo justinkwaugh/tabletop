@@ -7,11 +7,18 @@ import {
     maxPopulation,
     worldTile
 } from '../components/worlds.js'
-import { blocksBases } from './anomalies.js'
+import { shipDefinition } from '../components/ships.js'
+import { blocksBases, blocksExploration } from './anomalies.js'
 import { factionAbilities, gainInfluence } from './campaign.js'
-import { capabilitiesOf } from './fleet.js'
+import { capabilitiesOf, hasArrived, isCrippled } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
-import type { TerraformChoice, TerraformTarget, WorldPlacement } from './pieces.js'
+import type {
+    ShipState,
+    ShipTerraform,
+    TerraformChoice,
+    TerraformTarget,
+    WorldPlacement
+} from './pieces.js'
 export { TerraformTarget } from './pieces.js'
 import { drawWorldTile, returnWorldTile } from './pools.js'
 import { placementPopulation } from './surveys.js'
@@ -185,4 +192,66 @@ export function applyTerraformChoice(
         }
     }
     return replaced
+}
+
+// Rulebook 1.18: with Atmosphere Processing a mining ship may use its exploration action to
+// terraform a world in its system, any number per system. It is an exploration action, so a
+// "no exploration" anomaly stops it, and like any terraforming a "no bases" anomaly does
+// (1.16). No base is needed. It is resolved once everyone has explored, in initiative order.
+export function shipTerraformSlots(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState
+): number[] {
+    if (
+        !capabilitiesOf(state, ship.playerId).shipTerraforming ||
+        !shipDefinition(ship.shipId).mining ||
+        !hasArrived(ship) ||
+        ship.explored ||
+        isCrippled(ship) ||
+        blocksExploration(state, ship.systemId) ||
+        blocksBases(state, ship.systemId)
+    ) {
+        return []
+    }
+    return state
+        .systemState(ship.systemId)
+        .worlds.flatMap((world, slot) =>
+            canTerraformFrom(worldTile(world.tileId).worldClass, world.side) ? [slot] : []
+        )
+}
+
+export function queueShipTerraform(
+    state: HydratedStellarHorizonsGameState,
+    ship: ShipState,
+    slot: number
+) {
+    ship.explored = true
+    state
+        .getPlayerState(ship.playerId)
+        .shipTerraforms.push({ shipId: ship.shipId, systemId: ship.systemId, slot })
+}
+
+export function nextShipTerraformer(state: HydratedStellarHorizonsGameState): string | undefined {
+    return state
+        .initiativeOrder()
+        .find((playerId) => state.getPlayerState(playerId).shipTerraforms.length > 0)
+}
+
+// An earlier terraform may have changed the world: a flipped world draws instead, and one that
+// can no longer be terraformed is left alone.
+export function resolveNextShipTerraform(
+    state: HydratedStellarHorizonsGameState
+): (ShipTerraform & { playerId: string; outcome?: TerraformOutcome }) | undefined {
+    const playerId = nextShipTerraformer(state)
+    if (playerId === undefined) {
+        return undefined
+    }
+    const player = state.getPlayerState(playerId)
+    const [pending, ...rest] = player.shipTerraforms
+    player.shipTerraforms = rest
+    const world = state.systemState(pending.systemId).worlds[pending.slot]
+    if (!world || !canTerraformFrom(worldTile(world.tileId).worldClass, world.side)) {
+        return { playerId, ...pending }
+    }
+    return { playerId, ...pending, outcome: terraform(state, playerId, pending) }
 }

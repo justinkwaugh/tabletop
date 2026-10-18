@@ -8,7 +8,7 @@ import { pendingSyndicateTakes } from '../model/operations.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { playersWithEarnedMarkers } from '../model/settlement.js'
 import { anyPendingSurveys } from '../model/surveys.js'
-import { refillWorldPool, terraformingQueue } from '../model/terraforming.js'
+import { nextShipTerraformer, refillWorldPool, terraformingQueue } from '../model/terraforming.js'
 import { TurnPhase } from '../model/turn.js'
 import { branchingState, firstPhase, phaseAfter } from '../model/turnPlan.js'
 
@@ -105,7 +105,24 @@ export function stateAfterAnomalies(state: HydratedStellarHorizonsGameState): Ma
 }
 
 export function stateAfterSurveys(state: HydratedStellarHorizonsGameState): MachineState {
+    return stateAfterShipTerraform(state)
+}
+
+// Mining ships' terraforms resolve last, after the surveys, one at a time in initiative order.
+export function stateAfterShipTerraform(state: HydratedStellarHorizonsGameState): MachineState {
+    if (nextShipTerraformer(state) !== undefined) {
+        return MachineState.ResolvingShipTerraforms
+    }
+    state.terraformedWorlds = []
     return stateOfNextPhase(state, TurnPhase.Exploration)
+}
+
+// A replacement chosen during the economic phase's terraforming continues its queue; one chosen
+// for a mining ship continues the ships' terraforms.
+export function stateAfterTerraformChoice(state: HydratedStellarHorizonsGameState): MachineState {
+    return state.terraformQueue.length > 0
+        ? stateAfterTerraformer(state)
+        : stateAfterShipTerraform(state)
 }
 
 // Footfall terraforms at the end of even decades; the campaign on its economic tile.

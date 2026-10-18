@@ -118,6 +118,13 @@ export const TerraformTarget = Type.Object({
     slot: Type.Number()
 })
 
+// A mining ship's terraforming action (rule 1.18), resolved once everyone has explored.
+export type ShipTerraform = Type.Static<typeof ShipTerraform>
+export const ShipTerraform = Type.Object({
+    shipId: Type.String(),
+    ...TerraformTarget.properties
+})
+
 export type TerraformRecord = Type.Static<typeof TerraformRecord>
 export const TerraformRecord = Type.Object({
     playerId: Type.String(),
