@@ -1,10 +1,15 @@
 <script lang="ts">
+    import { everyCompetition, listenForCompetitionChanges } from '$lib/services/competitionUpdates'
+    import { LatestRequest } from '$lib/utils/latestRequest'
     import { onMount } from 'svelte'
     import type { Tournament } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import { loadTitleTournaments } from '$lib/services/titleTournaments'
-    import { tournamentSummaryText, tournamentStatusText } from '$lib/utils/tournamentPresentation'
+    import {
+        tournamentRosterText,
+        tournamentSummaryText,
+        tournamentStatusText
+    } from '$lib/utils/tournamentPresentation'
     import TitleSection from '$lib/components/TitleSection.svelte'
     import { ArrowRightOutline } from 'flowbite-svelte-icons'
 
@@ -15,30 +20,32 @@
     let busy = $state(true)
     let failed = $state(false)
     let now = $state(Date.now())
-    let request = 0
+    const requests = new LatestRequest()
 
     async function load(after?: string) {
-        const current = ++request
+        const current = requests.begin()
         busy = true
         failed = false
         try {
             const result = await loadTitleTournaments(api, titleId, after)
-            if (current !== request) return
+            if (!current()) return
             tournaments = after ? [...tournaments, ...result.tournaments] : result.tournaments
             cursor = result.nextCursor
         } catch {
-            if (current === request) failed = true
+            if (current()) failed = true
         } finally {
-            if (current === request) busy = false
+            if (current()) busy = false
         }
     }
 
     onMount(() => {
         void load()
         const timer = setInterval(() => (now = Date.now()), 1000)
-        const unsubscribe = listenForTournamentChanges(notificationService, () => load())
+        const unsubscribe = listenForCompetitionChanges(notificationService, () => load(), {
+            tournament: everyCompetition
+        })
         return () => {
-            request++
+            requests.cancel()
             clearInterval(timer)
             unsubscribe()
         }
@@ -68,9 +75,7 @@
             <a class="tournament" href={`/tournaments/${tournament.id}`}>
                 <div class="status-row">
                     <span>{tournamentStatusText(tournament, now)}</span><span class="entrants"
-                        >{tournament.entrants.length}{tournament.rules.registration.capacity
-                            ? ` / ${tournament.rules.registration.capacity}`
-                            : ''} joined</span
+                        >{tournamentRosterText(tournament)} joined</span
                     >
                 </div>
                 <h3>{tournament.name}</h3>

@@ -40,6 +40,10 @@ import {
     getGameStatusesForCategory,
     GameStorage,
     Tournament,
+    tournamentEntrantIndex,
+    tournamentSeatAccounts,
+    tournamentTableSettled,
+    type TournamentGameReference,
     UserStatus,
     assert,
     assertExists,
@@ -86,7 +90,9 @@ import {
     assertOrdinaryGame,
     assertTournamentUndoAllowed,
     tournamentGameId,
-    TournamentGameError
+    TournamentGameError,
+    type TournamentSeatHandover,
+    type TournamentTableRelease
 } from '../../games/tournamentGames.js'
 import { TournamentCacheKeys } from './tournamentCacheKeys.js'
 import { gameAutoStartChange } from '../../games/gameAutoStart.js'
@@ -220,17 +226,11 @@ export class FirestoreGameStore implements GameStore {
         const stage = tournament.stages.find((stage) => stage.id === reference.stageId)
         assert(stage?.scheduleId === reference.scheduleId, 'Tournament schedule changed')
         const dispatch = (stage.dispatch ??= { reserved: [], active: [], finished: [] })
-        if (
-            dispatch.active.includes(reference.tableId) ||
-            dispatch.finished.includes(reference.tableId)
-        )
-            return
+        if (tournamentTableSettled(dispatch, reference.tableId)) return
         dispatch.reserved = dispatch.reserved.filter((id) => id !== reference.tableId)
-        if (
-            game.status === GameStatus.Finished &&
-            game.result &&
-            game.result !== GameResult.Abandoned
-        )
+        if (game.status === GameStatus.Finished && game.result === GameResult.Abandoned)
+            (dispatch.voided ??= []).push(reference.tableId)
+        else if (game.status === GameStatus.Finished && game.result)
             dispatch.finished.push(reference.tableId)
         else dispatch.active.push(reference.tableId)
         if (!dispatch.reserved.length) delete tournament.schedulingError
@@ -286,6 +286,11 @@ export class FirestoreGameStore implements GameStore {
             'Schedule changed before game creation'
         )
         assert(
+            reference.attempt === stage.dispatch?.attempts?.[reference.tableId],
+            'Game belongs to another attempt at this table'
+        )
+        const seated = tournamentSeatAccounts(tournament, table.entrantIds)
+        assert(
             game.typeId === tournament.rules.titleId &&
                 game.ownerId === tournament.organizerId &&
                 Value.Equal(game.config, tournament.rules.gameConfig),
@@ -295,7 +300,7 @@ export class FirestoreGameStore implements GameStore {
             game.players.length === tournament.rules.tableSize &&
                 Value.Equal(
                     game.players.map((player) => player.userId),
-                    table.entrantIds
+                    seated
                 ),
             'Game players do not match assigned positions'
         )
@@ -312,7 +317,7 @@ export class FirestoreGameStore implements GameStore {
             'Tournament players must already be joined'
         )
         const accounts = await transaction.getAll(
-            ...table.entrantIds.map((id) => this.firestore.collection('users').doc(id))
+            ...seated.map((id) => this.firestore.collection('users').doc(id))
         )
         if (accounts.some((account) => account.data()?.status !== UserStatus.Active))
             throw new TournamentGameError(
@@ -1007,7 +1012,15 @@ export class FirestoreGameStore implements GameStore {
             updatedGame.state = state
             if (!existingState.result && state.result && existingGame.tournament) {
                 validateGameResult(state)
-                if (state.result !== GameResult.Abandoned)
+                if (state.result === GameResult.Abandoned)
+                    await this.releaseTournamentTable(
+                        transaction,
+                        locks,
+                        existingGame.tournament,
+                        'void',
+                        updateDate.getTime()
+                    )
+                else
                     await this.finishTournamentTable(
                         transaction,
                         locks,
@@ -1066,17 +1079,179 @@ export class FirestoreGameStore implements GameStore {
     ): Promise<void> {
         const reference = game.tournament
         assertExists(reference, 'Tournament reference is required')
-        const ref = this.firestore.collection('tournaments').doc(reference.tournamentId)
+        await this.updateTournamentTable(transaction, locks, reference, now, (data, stage) => {
+            const dispatch = stage.dispatch
+            assertExists(dispatch, 'Finished table has no dispatch')
+            const removed = game.players.some(
+                (player) =>
+                    player.userId &&
+                    data.entrants[tournamentEntrantIndex(data, player.userId)]?.withdrawn
+            )
+            if (removed) {
+                // A withdrawn player's Game never counts, even if it was finished afterwards.
+                ;(dispatch.voided ??= []).push(reference.tableId)
+                return
+            }
+            stage.standings ??= createTournamentStandings(data)
+            applyTournamentGameScore(data, stage.standings, game, 1, game.finalScores)
+            dispatch.finished.push(reference.tableId)
+        })
+    }
+
+    /**
+     * Ends a Tournament Game that will never count, with an Abandoned result and no winners, and
+     * either voids its Table or returns the Table to dispatch for a fresh attempt.
+     */
+    async voidTournamentGame(gameId: string, outcome: TournamentTableRelease): Promise<Game> {
+        const found = await this.findGameById(gameId, false)
+        assertExists(found?.tournament, 'Tournament game not found')
+        const reference = found.tournament
+        try {
+            return await this.writeGame(
+                gameId,
+                [
+                    ...GameCacheKeys.gameWrite(gameId),
+                    this.tournamentCacheKeys.key('event', reference.tournamentId),
+                    this.tournamentCacheKeys.key('games', reference.tournamentId)
+                ],
+                async (locks) =>
+                    this.runTransaction(async (transaction) => {
+                        const [game, state] = await this.readGameAndState(gameId, transaction)
+                        assertExists(game, 'Tournament game not found')
+                        assertExists(state, 'Tournament game state not found')
+                        if (game.status !== GameStatus.Started) return game
+                        const now = new Date()
+                        const updates: Partial<Game> = {
+                            status: GameStatus.Finished,
+                            result: GameResult.Abandoned,
+                            winningPlayerIds: [],
+                            activePlayerIds: [],
+                            finishedAt: now,
+                            updatedAt: now
+                        }
+                        const updated = { ...structuredClone(game), ...updates }
+                        await this.releaseTournamentTable(
+                            transaction,
+                            locks,
+                            reference,
+                            outcome,
+                            now.getTime()
+                        )
+                        await this.protectChangedLists(locks, game, updated)
+                        transaction.update(
+                            this.games.doc(gameId),
+                            this.createGameUpdateDocument(updates, updated)
+                        )
+                        transaction.set(this.getStateCollection(gameId).doc(gameId), {
+                            ...state,
+                            result: GameResult.Abandoned,
+                            winningPlayerIds: [],
+                            activePlayerIds: []
+                        })
+                        return updated
+                    })
+            )
+        } catch (error) {
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
+    /** Seats a Substitute's account in place of any earlier account of their place. */
+    async replaceTournamentSeat({
+        gameId,
+        fromUserIds,
+        toUserId,
+        toName
+    }: TournamentSeatHandover): Promise<Game> {
+        const found = await this.findGameById(gameId, false)
+        assertExists(found?.tournament, 'Tournament game not found')
+        const cacheKeys = [
+            ...GameCacheKeys.gameWrite(gameId),
+            // Game links list the accounts seated at each Game.
+            this.tournamentCacheKeys.key('games', found.tournament.tournamentId)
+        ]
+        try {
+            return await this.writeGame(gameId, cacheKeys, async (locks) =>
+                this.runTransaction(async (transaction) => {
+                    const game = (
+                        await this.readDocument(this.games.doc(gameId), transaction)
+                    ).data()
+                    assertExists(game?.tournament, 'Tournament game not found')
+                    if (game.players.some((player) => player.userId === toUserId)) return game
+                    const updates: Partial<Game> = {
+                        players: game.players.map((player) =>
+                            player.userId && fromUserIds.includes(player.userId)
+                                ? { ...player, userId: toUserId, name: toName }
+                                : player
+                        ),
+                        updatedAt: new Date()
+                    }
+                    assert(
+                        updates.players?.some((player) => player.userId === toUserId),
+                        'The replaced place has no seat in this game'
+                    )
+                    const updated = { ...structuredClone(game), ...updates }
+                    await this.protectChangedLists(locks, game, updated)
+                    transaction.update(
+                        this.games.doc(gameId),
+                        this.createGameUpdateDocument(updates, updated)
+                    )
+                    return updated
+                })
+            )
+        } catch (error) {
+            this.handleError(error, gameId)
+            throw Error('unreachable')
+        }
+    }
+
+    private async releaseTournamentTable(
+        transaction: Transaction,
+        locks: CacheWriteLocks,
+        reference: TournamentGameReference,
+        outcome: TournamentTableRelease,
+        now: number
+    ): Promise<void> {
+        await this.updateTournamentTable(transaction, locks, reference, now, (_data, stage) => {
+            const dispatch = stage.dispatch
+            assertExists(dispatch, 'Released table has no dispatch')
+            if (outcome === 'void') (dispatch.voided ??= []).push(reference.tableId)
+            else
+                dispatch.attempts = {
+                    ...dispatch.attempts,
+                    [reference.tableId]: (reference.attempt ?? 1) + 1
+                }
+        })
+    }
+
+    /**
+     * Settles the Table of a Game that has ended, in the same transaction: takes it out of
+     * dispatch, applies the outcome, finishes the Tournament when nothing is left and wakes
+     * dispatch otherwise. A Table already settled, or a Game from an earlier attempt, is ignored.
+     */
+    private async updateTournamentTable(
+        transaction: Transaction,
+        locks: CacheWriteLocks,
+        reference: TournamentGameReference,
+        now: number,
+        settle: (tournament: Tournament, stage: Tournament['stages'][number]) => void
+    ): Promise<void> {
         const data = await this.readTournament(transaction, reference.tournamentId)
         const stage = data.stages.find((stage) => stage.id === reference.stageId)
         assert(stage?.scheduleId === reference.scheduleId, 'Tournament schedule changed')
-        if (!stage.dispatch || stage.dispatch.finished.includes(reference.tableId)) return
+        const dispatch = stage.dispatch
+        if (
+            !dispatch ||
+            reference.attempt !== dispatch.attempts?.[reference.tableId] ||
+            dispatch.finished.includes(reference.tableId) ||
+            dispatch.voided?.includes(reference.tableId)
+        )
+            return
         const listKeys = this.tournamentCacheKeys.lists(data)
-        stage.standings ??= createTournamentStandings(data)
-        applyTournamentGameScore(data, stage.standings, game, 1, game.finalScores)
-        stage.dispatch.active = stage.dispatch.active.filter((id) => id !== reference.tableId)
-        stage.dispatch.reserved = stage.dispatch.reserved.filter((id) => id !== reference.tableId)
-        stage.dispatch.finished.push(reference.tableId)
+        dispatch.active = dispatch.active.filter((id) => id !== reference.tableId)
+        dispatch.reserved = dispatch.reserved.filter((id) => id !== reference.tableId)
+        settle(data, stage)
         finalizeTournament(data, now)
         data.revision++
         data.updatedAt = now
@@ -1086,7 +1261,7 @@ export class FirestoreGameStore implements GameStore {
             ...listKeys,
             ...this.tournamentCacheKeys.lists(data)
         ])
-        transaction.update(ref, {
+        transaction.update(this.firestore.collection('tournaments').doc(data.id), {
             stages: data.stages,
             revision: data.revision,
             updatedAt: now,

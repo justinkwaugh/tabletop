@@ -71,11 +71,27 @@ remain HTTP/1. Both stream requests to the child over HTTP/1, preserving request
 bodies, authorization, cookies, status codes and streaming responses. The parent
 sets the forwarded client address; the child trusts only its loopback proxy.
 
-Each child resolves the frontend version once at startup. It serves that build and
-reports it in `X-Tabletop-Version`, so the header changes only when a replacement
-serving the new build takes over, and clients are never told to refresh into a build
-the backend does not yet serve. The deploy tool reads that header as the served
-frontend version and waits for it after a frontend publication.
+Firebase Hosting serves the site files, so a frontend publication needs no
+replacement: only a logic change in the manifest triggers one. `X-Tabletop-Version`
+reports the manifest's frontend version on every response, and the deploy tool
+publishes the manifest only after Hosting serves the new build, so the files and the
+header switch seconds apart. The backend service serves only `/api` and `/games` (the tasks
+service serves `/tasks`); it has no copy of the site, so Hosting releases that send every path to the backend no longer
+work, and a frontend rollback goes through `rollback --frontend`. The deploy tool reads
+`X-Tabletop-Version` as the served frontend version.
+
+Game versions follow the same rule through the served manifest
+(`libs/backend-services/src/games/servedManifest.ts`). It is the live manifest
+with each game limited to what the child runs: a game whose logic version still
+matches the loaded logic reports its live publication, so a UI-only release reaches
+clients without a replacement; a game whose logic changed keeps the publication the
+child loaded until its replacement takes over; and a game the child never loaded is
+left out. A child loads its titles once; it never re-imports logic in place.
+`/api/v1/manifest`, `/api/v1/catalog`, `X-TABLETOP-GAME-UI-VERSION`,
+`X-Tabletop-Version` and the game names and thumbnails in Discord notifications
+all come from the served manifest, so clients never load a UI whose logic the backend
+does not run yet, and the deploy tool's wait on `/api/v1/manifest` ends only when
+the new logic is serving.
 
 Startup work that does not depend on the manifest stays out of the child. The
 supervisor derives the session key from `SESSION_SECRET` and `SESSION_SALT` once per
@@ -131,10 +147,16 @@ is disconnected.
 
 Cloud Run request-based CPU allocation can throttle replacement work while the
 instance has no active requests. This is not a new Cloud Run instance startup and
-does not get startup CPU boost. Background replacement/retry timing requires
-instance-based CPU allocation if it must progress predictably while idle. With
-request-based allocation, traffic supplies CPU and the old backend keeps serving
-during replacement. No Cloud Run resource or billing setting is changed here.
+does not get startup CPU boost. On 2026-10-15 a backend replacement took 90 s and a
+tasks replacement 4 min 17 s, against 33 s for a fresh instance. The admin manifest
+invalidate call a release makes therefore stays open until the replacement it
+triggered ends: the supervisor tells the old child it is superseded before
+draining it, or tells the serving child its replacement failed
+(`ReplacementRequest`). That supplies CPU to the one backend instance the call
+reaches. Other backend instances, the tasks service and retries after a failure
+still progress only with traffic; predictable timing for them would need
+instance-based CPU allocation. No Cloud Run resource or billing setting is
+changed here.
 
 A game-only worker would require moving all version-owned imports, including
 schemas and route registration, into its isolate. The complete-backend child

@@ -4,6 +4,7 @@ import {
     type CountedGame,
     type GameStatsSummary
 } from '@tabletop/common'
+import { browserTimeZone } from './timeZones.js'
 
 export type MonthIndex = number
 
@@ -27,7 +28,7 @@ export type GameStatsScope =
 
 const MONTHS_PER_YEAR = 12
 
-export const localMonth = monthIn(Intl.DateTimeFormat().resolvedOptions().timeZone)
+export const localMonth = monthIn(browserTimeZone())
 
 export function formatRate(rate: number): string {
     return `${Math.round(rate * 100)}%`

@@ -10,6 +10,7 @@ import {
     UserGameStats
 } from '@tabletop/common'
 import { UpdateValidationResult, UpdateValidator } from './validator.js'
+import type { TournamentSeatHandover, TournamentTableRelease } from '../../games/tournamentGames.js'
 
 export type ActionUpdateValidator = (
     existingGame: Game,
@@ -116,6 +117,10 @@ export interface GameStore {
         relatedActions: GameAction[]
         priorState: GameState
     }>
+
+    voidTournamentGame(gameId: string, outcome: TournamentTableRelease): Promise<Game>
+
+    replaceTournamentSeat(handover: TournamentSeatHandover): Promise<Game>
 
     undoActionsFromGame({
         gameId,

@@ -850,8 +850,39 @@ class ProjectedExecutionGuard {
         )
     }
 
-    private unwrap(value: unknown): unknown {
-        return isObject(value) ? (this.rawValues.get(value) ?? value) : value
+    // A new array or object built from guarded members, such as a filtered collection, is copied
+    // with raw members so the stored state holds no proxies and can still be cloned.
+    private unwrap(value: unknown, copies = new Map<object, unknown>()): unknown {
+        if (!isObject(value)) {
+            return value
+        }
+        const raw = this.rawValues.get(value)
+        if (raw !== undefined) {
+            return raw
+        }
+        const prototype: unknown = Object.getPrototypeOf(value)
+        const isPlain =
+            Array.isArray(value) || prototype === Object.prototype || prototype === null
+        if (!isPlain) {
+            return value
+        }
+        if (copies.has(value)) {
+            return copies.get(value)
+        }
+        copies.set(value, value)
+        const entries = Object.entries(value)
+        const unwrapped = entries.map(([key, member]) => [key, this.unwrap(member, copies)])
+        if (unwrapped.every(([, member], index) => member === entries[index][1])) {
+            return value
+        }
+        const copy: Record<string, unknown> = Array.isArray(value)
+            ? []
+            : Object.create(prototype as object | null)
+        for (const [key, member] of unwrapped) {
+            copy[key as string] = member
+        }
+        copies.set(value, copy)
+        return copy
     }
 
     private assertPropertyAccess(frame: GuardFrame, target: object, property: PropertyKey) {

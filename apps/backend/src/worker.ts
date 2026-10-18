@@ -1,17 +1,15 @@
 import Fastify from 'fastify'
 import rawBody from 'fastify-raw-body'
-import { Visibility } from '@tabletop/common'
 import { app } from './app/app.js'
 import { installHandlerDrain } from './runtime/handlerDrain.js'
-import { lazyValidatorCompiler, type AjvCompilerOptions } from './runtime/lazyValidation.js'
+import { ajvOptions } from './runtime/ajvOptions.js'
+import { lazyValidatorCompiler } from './runtime/lazyValidation.js'
+import { supervisedReplacement } from './runtime/replacementRequest.js'
 
 if (!process.send) throw new Error('Backend worker requires a supervisor IPC channel')
 const send = process.send.bind(process)
+const replacement = supervisedReplacement(send)
 
-const ajvOptions: AjvCompilerOptions = {
-    customOptions: { keywords: [Visibility.MetadataKey, Visibility.ScopeKey] },
-    plugins: []
-}
 const server = Fastify({
     logger: true,
     trustProxy: '127.0.0.1',
@@ -41,7 +39,7 @@ process.on('disconnect', () => process.exit(1))
 
 try {
     await server.register(rawBody, { global: false, runFirst: true })
-    await server.register(app, { requestRestart: () => send('reload') })
+    await server.register(app, { replacement })
     await server.listen({ port: 0, host: '127.0.0.1' })
     const address = server.server.address()
     if (!address || typeof address === 'string') throw new Error('Backend has no TCP address')

@@ -15,9 +15,11 @@ export type FinalScoreResolver = (
 ) => Promise<Record<string, number> | undefined>
 
 export interface TournamentStore {
-    create(tournament: Tournament, user: User): Promise<Tournament>
+    create(tournament: Tournament, user: User | undefined): Promise<Tournament>
     read(id: string): Promise<Tournament | undefined>
+    readMany(ids: string[]): Promise<(Tournament | undefined)[]>
     readGameLinks(id: string): Promise<TournamentGameLink[]>
+    readGameLinksMany(ids: string[]): Promise<TournamentGameLink[][]>
     list(user: User, query: TournamentListQuery): Promise<TournamentList>
     update(
         id: string,
@@ -26,6 +28,9 @@ export interface TournamentStore {
         change: (registration: Tournament) => void
     ): Promise<Tournament>
     readSchedule(tournamentId: string, stageId: string): Promise<TournamentSchedule>
+    readSchedules(
+        references: { tournamentId: string; stageId: string }[]
+    ): Promise<TournamentSchedule[]>
     commitSchedule(
         schedule: TournamentSchedule,
         revision: number,

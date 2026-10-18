@@ -5,19 +5,24 @@
     import RideSwitch from '$lib/components/RideSwitch.svelte'
     import Force from './Force.svelte'
 
-    let { stage }: { stage: FeintStage | DeclarationStage | OccupationStage } = $props()
+    let {
+        stage,
+        folded = false
+    }: { stage: FeintStage | DeclarationStage | OccupationStage; folded?: boolean } = $props()
 
     const gameSession = getGameSession()
 </script>
 
 {#each stage.groups as group (group.label)}
-    <div class="nt-battle-faint">{group.label}</div>
-    <Force
-        units={group.units}
-        selected={stage.attackers}
-        roles={stage.roles}
-        onpick={(id) => gameSession.pickBattleUnit(id)}
-    />
+    {#if !folded}
+        <div class="nt-battle-faint">{group.label}</div>
+        <Force
+            units={group.units}
+            selected={stage.attackers}
+            roles={stage.roles}
+            onpick={(id) => gameSession.pickBattleUnit(id)}
+        />
+    {/if}
 {:else}
     <div class="nt-battle-faint">No unit here can still be commanded.</div>
 {/each}
@@ -27,7 +32,9 @@
     </div>
 {/if}
 {#if stage.attackers.length > 0}
-    <div class="nt-battle-faint pt-1">Command</div>
+    {#if !folded}
+        <div class="nt-battle-faint pt-1">Command</div>
+    {/if}
     <div>
         <CommandSwitch
             options={stage.commandOptions}

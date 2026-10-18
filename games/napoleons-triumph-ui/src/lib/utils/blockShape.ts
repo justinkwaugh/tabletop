@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import { cornersOf } from './orientedBox.js'
 
 export const BLOCK_LENGTH = 104
 export const BLOCK_THICKNESS = 20
@@ -29,6 +30,15 @@ export function blockCorners(block: BlockFootprint): Point[] {
     return [-1, 1].flatMap((end) =>
         [-1, 1].map((side) => at(block, (end * BLOCK_LENGTH) / 2, (side * BLOCK_THICKNESS) / 2))
     )
+}
+
+export function blockOutline(block: BlockFootprint): Point[] {
+    return cornersOf({
+        centre: block.centre,
+        along: axesOf(block).along,
+        halfLength: BLOCK_LENGTH / 2,
+        halfWidth: BLOCK_THICKNESS / 2
+    })
 }
 
 export function blockSamples(block: BlockFootprint): Point[] {

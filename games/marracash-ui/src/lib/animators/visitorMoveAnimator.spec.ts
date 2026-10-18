@@ -80,7 +80,7 @@ describe('VisitorMoveAnimator', () => {
         const listener = host.listener()
         if (!listener) throw Error('The animator registers a listener')
         const animationContext = new AnimationContext()
-        await listener({ from, to, animationContext })
+        await listener({ kind: 'other-action', from, to, animationContext })
 
         expect(host.movingVisitors.length).toBeGreaterThan(0)
         expect(animationContext.actionTimeline.duration()).toBeGreaterThan(0)

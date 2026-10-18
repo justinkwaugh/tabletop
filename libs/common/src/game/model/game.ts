@@ -5,6 +5,7 @@ import { Player } from './player.js'
 import { GameState } from './gameState.js'
 import { GameResult } from './gameResult.js'
 import { GameConfig } from './gameConfig.js'
+import { PlayerVote } from './playerVote.js'
 import { Compile } from 'typebox/compile'
 import * as Value from 'typebox/value'
 
@@ -85,7 +86,8 @@ export const Game = Type.Object({
     seed: Type.Optional(Type.Number()),
     storage: Type.Optional(Type.Enum(GameStorage, { default: GameStorage.Remote })),
     parentId: Type.Optional(Type.String()),
-    category: Type.Optional(Type.String({ default: GameCategory.Standard }))
+    category: Type.Optional(Type.String({ default: GameCategory.Standard })),
+    vote: Type.Optional(PlayerVote)
 })
 
 export type GameWithoutState = Type.Static<typeof GameWithoutState>

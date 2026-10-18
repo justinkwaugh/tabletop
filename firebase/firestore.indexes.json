@@ -29,6 +29,38 @@
             ]
         },
         {
+            "collectionGroup": "tournaments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "rules.registration.kind",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tournaments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "rules.registration.kind",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "rules.titleId",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "games",
             "queryScope": "COLLECTION",
             "fields": [

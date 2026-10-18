@@ -1,0 +1,45 @@
+import {
+    HexOrientation,
+    calculateHexGeometry,
+    type AxialCoordinates,
+    type Point
+} from '@tabletop/common'
+
+export const TRACK_CELL = 42
+export const BOARD_WIDTH = TRACK_CELL * 21
+export const BOARD_HEIGHT = TRACK_CELL * 31
+
+export const HEX_RADIUS = 36
+const HALF_HEIGHT = (Math.sqrt(3) / 2) * HEX_RADIUS
+const MAP_X = 54
+const MAP_Y = 59
+
+export function hexCenter(coords: AxialCoordinates): Point {
+    const col = coords.q
+    const row = 2 * coords.r + coords.q
+    return {
+        x: MAP_X + HEX_RADIUS + col * 1.5 * HEX_RADIUS,
+        y: MAP_Y + HALF_HEIGHT + row * HALF_HEIGHT
+    }
+}
+
+export function hexPoints(center: Point, radius: number = HEX_RADIUS): string {
+    return calculateHexGeometry(
+        { orientation: HexOrientation.Flat, dimensions: { radius } },
+        { q: 0, r: 0 }
+    )
+        .vertices.map((vertex) => `${center.x + vertex.x},${center.y + vertex.y}`)
+        .join(' ')
+}
+
+export function revenueCell(revenue: number): Point {
+    const step = ((revenue % 100) + 100) % 100
+    if (step <= 20) return { x: step * TRACK_CELL, y: 0 }
+    if (step <= 50) return { x: 20 * TRACK_CELL, y: (step - 20) * TRACK_CELL }
+    if (step <= 70) return { x: (70 - step) * TRACK_CELL, y: 30 * TRACK_CELL }
+    return { x: 0, y: (100 - step) * TRACK_CELL }
+}
+
+export const ENDGAME_RECT = { x: 52, y: 254, width: 156, height: 168 }
+export const LEGEND_RECT = { x: 52, y: 54, width: 240, height: 188 }
+export const LOGO_ORIGIN = { x: 680, y: 54 }

@@ -2,7 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
 import { attackMarkerSamples } from './attackMarker.js'
 import { BoardView, viewRotation } from './boardView.js'
-import { FlagSide, arrowsToKeepClear, placeFlags } from './flagLayout.js'
+import { boundsOfPoints } from './boundingBox.js'
+import {
+    BANNER_HEIGHT,
+    FlagSide,
+    STAFF_HEIGHT,
+    arrowsToKeepClear,
+    bannerWidth,
+    flagOutlines,
+    placeFlags,
+    type FlagMark
+} from './flagLayout.js'
 
 const NORTH = { rotation: viewRotation(BoardView.North), scale: 1 }
 
@@ -95,5 +105,38 @@ describe('the arrows flags keep clear of', () => {
 
     it('reach farther as the board is zoomed out, because the arrows keep a readable size', () => {
         expect(farthestFrom(first, 0.25)).toBeGreaterThan(farthestFrom(first, 0.5))
+    })
+})
+
+describe('the outline of a standing flag', () => {
+    const flag: FlagMark = {
+        key: 'davout',
+        at: { x: 100, y: 200 },
+        side: FlagSide.Right,
+        name: 'Davout',
+        colors: { block: '#2a4f8a', shade: '#1d3760', ink: '#ffffff' },
+        count: 3,
+        hasCommanded: false
+    }
+
+    it('has its banner above the foot, flying to its side, at the flag scale', () => {
+        const [banner, staff] = flagOutlines(flag, { ...NORTH, scale: 2 })
+        expect(boundsOfPoints(banner)).toEqual({
+            x: 100,
+            y: 200 - STAFF_HEIGHT * 2,
+            width: bannerWidth('Davout') * 2,
+            height: BANNER_HEIGHT * 2
+        })
+        expect(boundsOfPoints(staff).y + boundsOfPoints(staff).height).toBe(200)
+        const left = boundsOfPoints(flagOutlines({ ...flag, side: FlagSide.Left }, NORTH)[0])
+        expect(left.x + left.width).toBe(100)
+    })
+
+    it('turns with the board, the banner still above the foot on screen', () => {
+        const turned = { rotation: viewRotation(BoardView.Allied), scale: 1 }
+        const [banner] = flagOutlines(flag, turned)
+        const bounds = boundsOfPoints(banner)
+        expect(bounds.width).toBeCloseTo(BANNER_HEIGHT)
+        expect(bounds.height).toBeCloseTo(bannerWidth('Davout'))
     })
 })

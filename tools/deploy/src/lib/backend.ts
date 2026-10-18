@@ -134,6 +134,12 @@ const loginWithCredentials = async (
     return cookie
 }
 
+const BackendReplacements = ['none', 'superseded', 'replacement-failed'] as const
+export type BackendReplacement = (typeof BackendReplacements)[number]
+
+const isBackendReplacement = (value: unknown): value is BackendReplacement =>
+    BackendReplacements.some((replacement) => replacement === value)
+
 export const invalidateBackendManifestCache = async (
     config: DeployConfig,
     options?: { signal?: AbortSignal }
@@ -178,4 +184,12 @@ export const invalidateBackendManifestCache = async (
     if (!response.ok) {
         throw new Error(`manifest invalidate ${response.status} ${response.statusText}`)
     }
+    const body: unknown = await response.json()
+    // Undefined from a backend that does not hold the call open for its replacement.
+    return typeof body === 'object' &&
+        body !== null &&
+        'replacement' in body &&
+        isBackendReplacement(body.replacement)
+        ? body.replacement
+        : undefined
 }

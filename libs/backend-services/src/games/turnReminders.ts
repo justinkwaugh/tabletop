@@ -1,6 +1,7 @@
-import { assert } from '@tabletop/common'
+import { assert, type User } from '@tabletop/common'
 import { Type, type Static } from 'typebox'
 import type { TaskService } from '../tasks/taskService.js'
+import { nextReminderHour } from './reminderHours.js'
 
 const HOUR_SECONDS = 60 * 60
 const DAY_SECONDS = 24 * HOUR_SECONDS
@@ -49,16 +50,31 @@ export function nextTurnReminderIndex(reminderIndex: number): number | undefined
     return next < TURN_REMINDER_DELAYS.length ? next : undefined
 }
 
+export function turnReminderDelaySeconds(
+    reminderIndex: number,
+    now: Date,
+    recipient: Pick<User, 'timeZone' | 'preferences'>
+): number {
+    const delay = TURN_REMINDER_DELAYS[reminderIndex]
+    const reminderHours = recipient.preferences?.reminderHours
+    if (reminderIndex < DEFERRED_TURN_REMINDER_INDEX || !reminderHours || !recipient.timeZone) {
+        return delay
+    }
+    const due = new Date(now.getTime() + delay * 1000)
+    const sendAt = nextReminderHour(due, recipient.timeZone, reminderHours)
+    return Math.ceil((sendAt.getTime() - now.getTime()) / 1000)
+}
+
 export async function enqueueTurnReminder(
     tasks: Pick<TaskService, 'createPushTask'>,
-    reminder: ScheduledTurnReminder
+    reminder: ScheduledTurnReminder,
+    inSeconds: number
 ): Promise<void> {
-    const inSeconds = TURN_REMINDER_DELAYS[reminder.reminderIndex]
     await tasks.createPushTask({
         queue: 'turn-notification',
         path: '/notification/sendTurnNotification',
         inSeconds,
         // Revisions from before reminderIndex strip it as an unknown field and schedule from delay.
-        payload: { ...reminder, delay: inSeconds }
+        payload: { ...reminder, delay: TURN_REMINDER_DELAYS[reminder.reminderIndex] }
     })
 }

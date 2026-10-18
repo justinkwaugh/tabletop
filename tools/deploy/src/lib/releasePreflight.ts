@@ -1,5 +1,6 @@
 import { BACKEND_PACKAGE, fetchBackendServingVersion } from './backendPublish.js'
 import { fetchFrontendServingVersion, FRONTEND_PACKAGE } from './frontendPublish.js'
+import { checkHostingMatchesManifest, type HostingCheck } from './hostingPublish.js'
 import { fetchServingVersions, findGameEntry, gameReleaseTag } from './gamePublish.js'
 import {
     changedFilesSince,
@@ -64,6 +65,7 @@ export type GamePreflightReport = PreflightBase & {
 
 export type FrontendPreflightReport = PreflightBase & {
     frontend: ArtifactPreflight
+    hosting: HostingCheck
     releaseNeeded: 'frontend' | 'none'
 }
 
@@ -219,6 +221,7 @@ export const runFrontendPreflight = async (
         target: 'frontend',
         artifacts: [frontend],
         frontend,
+        hosting: await checkHostingMatchesManifest(context),
         releaseNeeded: frontend.changed ? 'frontend' : 'none'
     }
 }
@@ -282,6 +285,15 @@ const formatArtifact = (artifact: ArtifactPreflight): string[] => {
     return lines
 }
 
+const describeHosting = (hosting: HostingCheck) => {
+    if (!hosting.enabled) return 'not enabled (frontend releases need hosting.channel)'
+    if ('error' in hosting) return `${hosting.channel} could not be checked: ${hosting.error}`
+    const state = hosting.matches
+        ? `serves the manifest's frontend ${hosting.version}`
+        : `DOES NOT serve the manifest's frontend ${hosting.version}; run sync-hosting`
+    return `${hosting.channel} (${hosting.url}) ${state}`
+}
+
 export const formatPreflightReport = (report: PreflightReport): string => {
     const servingLine = report.serving
         ? report.serving.error
@@ -293,6 +305,7 @@ export const formatPreflightReport = (report: PreflightReport): string => {
         `working tree clean: ${report.workingTreeClean ? 'yes' : 'no'}`,
         `serving manifest:   ${servingLine}`,
         ...report.artifacts.flatMap(formatArtifact),
+        ...('hosting' in report ? [`hosting:            ${describeHosting(report.hosting)}`] : []),
         `release needed:     ${report.releaseNeeded}`
     ].join('\n')
 }
