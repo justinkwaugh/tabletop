@@ -162,7 +162,8 @@ export function revealForPlay(
                   state,
                   action.playerId,
                   cardId,
-                  action.toSiteId ?? pawnSiteId(state, action.playerId)
+                  action.toSiteId ?? pawnSiteId(state, action.playerId),
+                  action.discardFirstCardId
               )
             : undefined
     return slotId ? { kind: 'relic', relicCardId: takeRelicFromVault(state, slotId) } : undefined

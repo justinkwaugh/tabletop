@@ -8,9 +8,10 @@ import { rulesSite } from './rule.js'
 import { gainedWarbandsWords, gainWarbandsToBoard } from './force.js'
 import { afterRelicsTakenPersistent } from './persistent.js'
 import { takeRelic, clearSiteRelicSlot } from './relics.js'
-import { homelandLedgerKey } from './discard.js'
+import { homelandLedgerKey, siteDiscardLedgerKey } from './discard.js'
 import type { HiddenReveal } from '../model/hidden.js'
 import { siteLockedFor } from './locked.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-11 — a site's power is its card's, so a facedown slot has none. */
 
@@ -42,29 +43,25 @@ export function riverMusterBonus(state: HydratedOathGameState, playerId: string)
     return rulesSite(state, playerId, siteId) ? 1 : 0
 }
 
-/** R-11.2 — read by the resolver, so the relic's identity rides the action as `reveal`; `siteId` is the site played to. */
+/**
+ * R-11.2 — read by the resolver, so the relic's identity rides the action as `reveal`; `siteId` is the site played to.
+ * It judges the Homeland as the play's payout does (`homelandPowerFor`), so a relic leaves the vault only for a player
+ * who takes it: from revision 16 (R-X.4) with the card the play discards first, whose ledger entry `playCard` writes
+ * before the payout. Before revision 16, without it.
+ */
 export function homelandRelicSlot(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string,
-    siteId: string
+    siteId: string,
+    discardFirstCardId?: string
 ): string | undefined {
-    const card = state.siteCardAt(siteId)
-    const record = card ? siteRecord(card) : undefined
-    const suit = suitOf(cardId)
-    if (
-        !record?.homeland ||
-        record.homeland.reward !== 'relic' ||
-        !suit ||
-        record.homeland.suit !== suit
-    )
-        return undefined
-    if (
-        state
-            .getPlayerState(playerId)
-            .homelandUsedThisTurn.includes(homelandLedgerKey(siteId, suit))
-    )
-        return undefined
+    const firstKey =
+        discardFirstCardId !== undefined && isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+            ? siteDiscardLedgerKey(state, discardFirstCardId)
+            : undefined
+    const homeland = homelandPowerFor(state, playerId, siteId, cardId, firstKey ? [firstKey] : [])
+    if (homeland?.reward !== 'relic' || homeland.barred) return undefined
     // Ancient Bloodline — a relic at a site its holder rules is locked for their enemies.
     if (siteLockedFor(state, playerId, siteId)) return undefined
     return state.relicSlotsAt(siteId)[0]?.slotId
