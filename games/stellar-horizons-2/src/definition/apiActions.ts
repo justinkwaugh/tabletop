@@ -24,6 +24,7 @@ import { StartPhase } from '../actions/startPhase.js'
 import { StartTurn } from '../actions/startTurn.js'
 import { Terraform } from '../actions/terraform.js'
 import { TransferCargo } from '../actions/transferCargo.js'
+import { AcceptPact, ProposePact, WithdrawPact } from '../actions/pactActions.js'
 import { DrawEvent } from '../actions/drawEvent.js'
 import { PlaceEvent } from '../actions/placeEvent.js'
 import { PlaceHomesteaders } from '../actions/placeHomesteaders.js'
@@ -88,5 +89,8 @@ export const StellarHorizonsApiActions = {
     [ActionType.PlaceHomesteaders]: PlaceHomesteaders,
     [ActionType.AttemptEvent]: AttemptEvent,
     [ActionType.ResolveEvent]: ResolveEvent,
+    [ActionType.ProposePact]: ProposePact,
+    [ActionType.AcceptPact]: AcceptPact,
+    [ActionType.WithdrawPact]: WithdrawPact,
     [ActionType.EndTurn]: EndTurn
 }

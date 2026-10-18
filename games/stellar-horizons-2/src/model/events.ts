@@ -16,6 +16,7 @@ import { anomalyStrength, attemptStrength } from './anomalies.js'
 import { factionAbilities, gainInfluence } from './campaign.js'
 import { hasArrived, isCrippled, removeShip } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import { isHeld } from './holds.js'
 import type { ActiveEvent, Base, ShipState } from './pieces.js'
 import { awardTechMarkers, drawWorldTile, returnWorldTile } from './pools.js'
 import { addSettlements, removeBaseSettlement } from './settling.js'
@@ -372,6 +373,7 @@ export function eventAttemptShips(
                 ship.systemId === active.systemId &&
                 hasArrived(ship) &&
                 !ship.explored &&
+                !isHeld(state, ship) &&
                 !isCrippled(ship) &&
                 anomalyStrength(ship, challenge) > 0
         )
@@ -435,14 +437,12 @@ export function commitEventAttempt(
     for (const shipId of shipIds) {
         state.ship(shipId).explored = true
     }
-    state
-        .getPlayerState(playerId)
-        .eventAttempts.push({
-            eventId,
-            systemId: active.systemId,
-            challenge,
-            shipIds: [...shipIds]
-        })
+    state.getPlayerState(playerId).eventAttempts.push({
+        eventId,
+        systemId: active.systemId,
+        challenge,
+        shipIds: [...shipIds]
+    })
 }
 
 export function anyEventAttempts(state: HydratedStellarHorizonsGameState): boolean {
@@ -456,9 +456,35 @@ export const EventResolution = Type.Object({
     systemId: Type.String(),
     challenge: Type.Enum(AnomalyChallenge),
     shipIds: Type.Array(Type.String()),
+    pactId: Type.Optional(Type.String()),
     resolved: Type.Boolean(),
-    influence: Type.Number()
+    influence: Type.Number(),
+    shares: Type.Optional(Type.Record(Type.String(), Type.Number()))
 })
+
+// A pact on an event takes its pledged ships' actions and splits the IP as agreed.
+function eventPactShares(
+    state: HydratedStellarHorizonsGameState,
+    pactId: string
+): Record<string, number> {
+    const candidate = state.pacts.find((other) => other.id === pactId)
+    assertExists(candidate, `No pact ${pactId}`)
+    state.pacts = state.pacts.filter((other) => other.id !== pactId)
+    for (const shipIds of Object.values(candidate.terms.pledges)) {
+        for (const shipId of shipIds) {
+            const ship = state.findShip(shipId)
+            if (ship) {
+                ship.explored = true
+            }
+        }
+    }
+    return Object.fromEntries(
+        Object.entries(candidate.terms.shares).map(([partnerId, share]) => [
+            partnerId,
+            share.influence
+        ])
+    )
+}
 
 // Attempts resolve in initiative order after the anomalies; the event returns to the pool and
 // its IP goes to whoever resolved it.
@@ -472,10 +498,20 @@ export function resolveNextEventAttempt(state: HydratedStellarHorizonsGameState)
     player.eventAttempts = remaining
     const resolved = activeEvent(state, attempt.eventId) !== undefined
     const influence = resolved ? eventDefinition(attempt.eventId).influence : 0
+    const pactShares =
+        attempt.pactId === undefined ? undefined : eventPactShares(state, attempt.pactId)
     if (resolved) {
         state.events = state.events.filter((candidate) => candidate.eventId !== attempt.eventId)
         state.eventPool.push(attempt.eventId)
-        gainInfluence(state, playerId, influence)
+        for (const [partnerId, share] of Object.entries(pactShares ?? { [playerId]: influence })) {
+            gainInfluence(state, partnerId, share)
+        }
     }
-    return { playerId, ...attempt, resolved, influence }
+    return {
+        playerId,
+        ...attempt,
+        resolved,
+        influence,
+        ...(pactShares ? { shares: pactShares } : {})
+    }
 }

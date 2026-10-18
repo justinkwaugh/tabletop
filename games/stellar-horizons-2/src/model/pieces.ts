@@ -95,7 +95,8 @@ export type PendingAnomalyAttempt = Type.Static<typeof PendingAnomalyAttempt>
 export const PendingAnomalyAttempt = Type.Object({
     systemId: Type.String(),
     anomalyId: Type.String(),
-    shipIds: Type.Array(Type.String())
+    shipIds: Type.Array(Type.String()),
+    pactId: Type.Optional(Type.String())
 })
 
 // Settlements an anomaly's reward gives, waiting to be placed (rulebook 1.16).
@@ -124,7 +125,44 @@ export const PendingEventAttempt = Type.Object({
     eventId: Type.String(),
     systemId: Type.String(),
     challenge: Type.Enum(AnomalyChallenge),
-    shipIds: Type.Array(Type.String())
+    shipIds: Type.Array(Type.String()),
+    pactId: Type.Optional(Type.String())
+})
+
+// Rulebook 1.16's joint resolution, negotiated with Common Actions (see model/pacts.ts).
+export enum PactTargetKind {
+    Anomaly = 'Anomaly',
+    Event = 'Event'
+}
+
+export type PactShare = Type.Static<typeof PactShare>
+export const PactShare = Type.Object({
+    influence: Type.Number(),
+    cash: Type.Number(),
+    markers: Type.Number(),
+    settlements: Type.Number()
+})
+
+export type PactTerms = Type.Static<typeof PactTerms>
+export const PactTerms = Type.Object({
+    targetKind: Type.Enum(PactTargetKind),
+    targetId: Type.String(),
+    challenge: Type.Enum(AnomalyChallenge),
+    partnerIds: Type.Array(Type.String()),
+    pledges: Type.Record(Type.String(), Type.Array(Type.String())),
+    shares: Type.Record(Type.String(), PactShare),
+    keeperId: Type.Optional(Type.String())
+})
+
+export type Pact = Type.Static<typeof Pact>
+export const Pact = Type.Object({
+    id: Type.String(),
+    systemId: Type.String(),
+    terms: PactTerms,
+    proposerId: Type.String(),
+    revision: Type.Number(),
+    acceptedIds: Type.Array(Type.String()),
+    agreed: Type.Boolean()
 })
 
 export type SurveyWorldChoice = Type.Static<typeof SurveyWorldChoice>

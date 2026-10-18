@@ -41,7 +41,7 @@ export class HydratedPlaceRewardSettlements
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         if (
-            state.settlementReward?.playerId !== this.playerId ||
+            state.settlementRewards.at(0)?.playerId !== this.playerId ||
             !isValidRewardPlacement(state, this.placements)
         ) {
             throw Error('Invalid PlaceRewardSettlements action')

@@ -11,6 +11,7 @@ import { shipDefinition } from '../components/ships.js'
 import { blocksBases, blocksExploration } from './anomalies.js'
 import { factionAbilities, gainInfluence } from './campaign.js'
 import { capabilitiesOf, hasArrived, isCrippled } from './fleet.js'
+import { isHeld } from './holds.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type {
     ShipState,
@@ -207,6 +208,7 @@ export function shipTerraformSlots(
         !shipDefinition(ship.shipId).mining ||
         !hasArrived(ship) ||
         ship.explored ||
+        isHeld(state, ship) ||
         isCrippled(ship) ||
         blocksExploration(state, ship.systemId) ||
         blocksBases(state, ship.systemId)

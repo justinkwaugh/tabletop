@@ -115,7 +115,9 @@ export class StellarHorizonsGameInitializer
             economicTilePool: scenario.campaign ? [...ECONOMIC_TILES] : [],
             eventPool: scenario.campaign ? EVENTS.map((definition) => definition.id) : [],
             events: [],
-            homesteaders: []
+            homesteaders: [],
+            pacts: [],
+            settlementRewards: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
         for (const worldClass of Object.values(WorldClass)) {

@@ -10,6 +10,7 @@ import {
 import { shipDefinition } from '../components/ships.js'
 import { factionAbilities, gainInfluence } from './campaign.js'
 import { currentCombat, currentExploration, hasArrived, isCrippled } from './fleet.js'
+import { isHeld } from './holds.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { PendingAnomalyAttempt, ShipState } from './pieces.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
@@ -116,6 +117,7 @@ export const AnomalyResolution = Type.Object({
     systemId: Type.String(),
     anomalyId: Type.String(),
     shipIds: Type.Array(Type.String()),
+    pactId: Type.Optional(Type.String()),
     resolved: Type.Boolean()
 })
 
@@ -138,6 +140,7 @@ export function canJoinAnomalyAttempt(
         anomaly !== undefined &&
         hasArrived(ship) &&
         !ship.explored &&
+        !isHeld(state, ship) &&
         !isCrippled(ship) &&
         anomalyStrength(ship, anomaly.challenge) > 0
     )
@@ -243,7 +246,8 @@ export function resolveNextAnomalyAttempt(
     const [attempt, ...remaining] = player.anomalyAttempts
     player.anomalyAttempts = remaining
     const resolved = systemAnomaly(state, attempt.systemId)?.id === attempt.anomalyId
-    if (resolved) {
+    // A pact's partners are credited as its reward is split.
+    if (resolved && attempt.pactId === undefined) {
         player.anomalies.push(attempt.anomalyId)
         // Without rewards the resolver keeps the tile (These are the Voyages); with them it is
         // turned over where it lies.

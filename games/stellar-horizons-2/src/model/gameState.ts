@@ -22,6 +22,7 @@ import {
     TerraformChoice,
     ActiveEvent,
     EventPlacement,
+    Pact,
     SettlementReward,
     TerraformRecord,
     baseKey
@@ -46,11 +47,12 @@ export const StellarHorizonsGameState = Type.Object({
     terraformQueue: Type.Array(Type.String()),
     terraformChoice: Type.Optional(TerraformChoice),
     terraformedWorlds: Type.Array(TerraformRecord),
-    settlementReward: Type.Optional(SettlementReward),
+    settlementRewards: Type.Array(SettlementReward),
     eventPool: Type.Array(Type.String()),
     events: Type.Array(ActiveEvent),
     eventPlacement: Type.Optional(EventPlacement),
     homesteaders: Type.Array(Type.String()),
+    pacts: Type.Array(Pact),
     setAsideWorlds: Type.Array(Type.String()),
     economicTilePool: Type.Array(Type.Enum(EconomicTile)),
     economicTile: Type.Optional(Type.Enum(EconomicTile))
@@ -100,11 +102,12 @@ export class HydratedStellarHorizonsGameState
     declare terraformQueue: string[]
     declare terraformChoice?: TerraformChoice
     declare terraformedWorlds: TerraformRecord[]
-    declare settlementReward?: SettlementReward
+    declare settlementRewards: SettlementReward[]
     declare eventPool: string[]
     declare events: ActiveEvent[]
     declare eventPlacement?: EventPlacement
     declare homesteaders: string[]
+    declare pacts: Pact[]
     declare setAsideWorlds: string[]
     declare economicTilePool: EconomicTile[]
     declare economicTile?: EconomicTile

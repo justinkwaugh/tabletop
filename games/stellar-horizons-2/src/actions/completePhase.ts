@@ -3,6 +3,8 @@ import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { queuePactAttempts } from '../model/pactResolution.js'
+import { TurnPhase } from '../model/turn.js'
 import { currentPhase } from '../model/turnPlan.js'
 import { PhaseMetadata } from './startPhase.js'
 
@@ -35,6 +37,10 @@ export class HydratedCompletePhase
     }
 
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
-        this.metadata = { phase: currentPhase(state) }
+        const phase = currentPhase(state)
+        if (phase === TurnPhase.Exploration) {
+            queuePactAttempts(state)
+        }
+        this.metadata = { phase }
     }
 }

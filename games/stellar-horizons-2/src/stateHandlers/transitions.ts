@@ -107,7 +107,7 @@ export function stateAfterSyndicateTakes(state: HydratedStellarHorizonsGameState
 
 // After each anomaly attempt: its settlement reward is placed, then the next attempt resolves.
 export function stateAfterAnomaly(state: HydratedStellarHorizonsGameState): MachineState {
-    if (state.settlementReward) {
+    if (state.settlementRewards.length > 0) {
         return MachineState.PlacingRewardSettlements
     }
     return anyAnomalyAttempts(state) ? MachineState.ResolvingAnomalies : stateAfterAnomalies(state)

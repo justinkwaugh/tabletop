@@ -34,6 +34,14 @@ import { HydratedStartPhase, isStartPhase } from '../actions/startPhase.js'
 import { HydratedStartTurn, isStartTurn } from '../actions/startTurn.js'
 import { HydratedTerraform, isTerraform } from '../actions/terraform.js'
 import { HydratedTransferCargo, isTransferCargo } from '../actions/transferCargo.js'
+import {
+    HydratedAcceptPact,
+    HydratedProposePact,
+    HydratedWithdrawPact,
+    isAcceptPact,
+    isProposePact,
+    isWithdrawPact
+} from '../actions/pactActions.js'
 import { HydratedDrawEvent, isDrawEvent } from '../actions/drawEvent.js'
 import { HydratedPlaceEvent, isPlaceEvent } from '../actions/placeEvent.js'
 import { HydratedPlaceHomesteaders, isPlaceHomesteaders } from '../actions/placeHomesteaders.js'
@@ -152,6 +160,12 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedAttemptEvent(data)
             case isResolveEvent(data):
                 return new HydratedResolveEvent(data)
+            case isProposePact(data):
+                return new HydratedProposePact(data)
+            case isAcceptPact(data):
+                return new HydratedAcceptPact(data)
+            case isWithdrawPact(data):
+                return new HydratedWithdrawPact(data)
             case isEndTurn(data):
                 return new HydratedEndTurn(data)
             default:

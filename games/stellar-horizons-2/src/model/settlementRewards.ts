@@ -14,7 +14,7 @@ export const RewardPlacement = Type.Object({
 // found a base in the anomaly's system if that keeps within the base limit, habitability
 // ignored.
 export function rewardPlacementSystems(state: HydratedStellarHorizonsGameState): string[] {
-    const reward = state.settlementReward
+    const reward = state.settlementRewards.at(0)
     assertExists(reward, 'No settlement reward is waiting')
     const bases = state.basesOf(reward.playerId).map((base) => base.systemId)
     const canFound = !bases.includes(reward.systemId) && !atBaseLimit(state, reward.playerId)
@@ -25,7 +25,7 @@ export function isValidRewardPlacement(
     state: HydratedStellarHorizonsGameState,
     placements: readonly RewardPlacement[]
 ): boolean {
-    const reward = state.settlementReward
+    const reward = state.settlementRewards.at(0)
     if (!reward) {
         return false
     }
@@ -48,10 +48,10 @@ export function placeRewardSettlements(
     state: HydratedStellarHorizonsGameState,
     placements: readonly RewardPlacement[]
 ) {
-    const reward = state.settlementReward
+    const reward = state.settlementRewards.at(0)
     assertExists(reward, 'No settlement reward is waiting')
     for (const placement of placements) {
         addSettlements(state, reward.playerId, placement.systemId, placement.settlements)
     }
-    state.settlementReward = undefined
+    state.settlementRewards = state.settlementRewards.slice(1)
 }

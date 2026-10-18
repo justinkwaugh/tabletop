@@ -8,6 +8,7 @@ import { blocksExploration } from './anomalies.js'
 import { factionAbilities, isCampaign } from './campaign.js'
 import { currentCombat, currentExploration, hasArrived, isCrippled } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
+import { isHeld } from './holds.js'
 import { MarkerReason, OperationKind, type ShipState } from './pieces.js'
 import { earnMarkers } from './pools.js'
 import { hasRevealedWorld } from './settling.js'
@@ -32,6 +33,7 @@ export function canOperate(
         capable &&
         hasArrived(ship) &&
         !ship.explored &&
+        !isHeld(state, ship) &&
         !isCrippled(ship) &&
         ship.systemId !== SOL_SYSTEM_ID &&
         hasRevealedWorld(state, ship.systemId) &&

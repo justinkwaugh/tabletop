@@ -28,7 +28,7 @@ import {
 } from '../stateHandlers/eventSteps.js'
 import { ExploringStateHandler } from '../stateHandlers/exploring.js'
 import { MovingStateHandler } from '../stateHandlers/moving.js'
-import { PhaseStateHandler } from '../stateHandlers/phase.js'
+import { ExplorationPhaseStateHandler, PhaseStateHandler } from '../stateHandlers/phase.js'
 import { PlacingRewardSettlementsStateHandler } from '../stateHandlers/placingRewardSettlements.js'
 import { PlacingStartingBasesStateHandler } from '../stateHandlers/placingStartingBases.js'
 import { ResolvingAnomaliesStateHandler } from '../stateHandlers/resolvingAnomalies.js'
@@ -65,7 +65,7 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.TransferringCargo]: new TransferringCargoStateHandler(),
     [MachineState.MovementPhase]: new PhaseStateHandler(TurnPhase.Movement),
     [MachineState.Moving]: new MovingStateHandler(),
-    [MachineState.ExplorationPhase]: new PhaseStateHandler(TurnPhase.Exploration),
+    [MachineState.ExplorationPhase]: new ExplorationPhaseStateHandler(),
     [MachineState.Exploring]: new ExploringStateHandler(),
     [MachineState.SettlingExplorations]: new SettlingExplorationsStateHandler(),
     [MachineState.SettlingSyndicateTakes]: new SettlingSyndicateTakesStateHandler(),

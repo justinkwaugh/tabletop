@@ -32,7 +32,7 @@ export class PlacingRewardSettlementsStateHandler implements MachineStateHandler
     }
 
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
-        const reward = context.gameState.settlementReward
+        const reward = context.gameState.settlementRewards.at(0)
         assertExists(reward, 'Placing reward settlements requires a reward')
         context.gameState.activePlayerIds = [reward.playerId]
     }

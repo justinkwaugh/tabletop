@@ -99,7 +99,7 @@ function step(game: Game, state: StellarHorizonsProjectedState): Played {
         case MachineState.PlacingRewardSettlements: {
             const hydrated = hydrate(state)
             const [systemId] = rewardPlacementSystems(hydrated)
-            const settlements = hydrated.settlementReward?.settlements ?? 0
+            const settlements = hydrated.settlementRewards.at(0)?.settlements ?? 0
             return run(ActionType.PlaceRewardSettlements, {
                 placements: [{ systemId, settlements }]
             })

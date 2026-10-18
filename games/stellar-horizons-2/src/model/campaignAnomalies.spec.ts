@@ -109,7 +109,7 @@ describe('Resolving an anomaly in the campaign', () => {
         placeBase(state, playerId, 'barnards-star', 2)
         placeAnomaly(state, 'splinter-colony')
         resolve(state, playerId, 'splinter-colony')
-        expect(state.settlementReward).toEqual({ playerId, systemId: SYSTEM, settlements: 2 })
+        expect(state.settlementRewards).toEqual([{ playerId, systemId: SYSTEM, settlements: 2 }])
         // The Starfarers may hold two bases in 2100, so a new base at Alpha Centauri is allowed.
         expect(rewardPlacementSystems(state)).toEqual(['barnards-star', SYSTEM])
         const placements = [
@@ -121,7 +121,7 @@ describe('Resolving an anomaly in the campaign', () => {
         placeRewardSettlements(state, placements)
         expect(state.base(playerId, 'barnards-star')?.settlements).toBe(3)
         expect(state.base(playerId, SYSTEM)?.settlements).toBe(1)
-        expect(state.settlementReward).toBeUndefined()
+        expect(state.settlementRewards).toEqual([])
     })
 })
 

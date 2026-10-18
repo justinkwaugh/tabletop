@@ -11,6 +11,7 @@ import {
     isCrippled,
     loseShip
 } from './fleet.js'
+import { isHeld } from './holds.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { MarkerReason, type ShipState } from './pieces.js'
 import { earnMarkers } from './pools.js'
@@ -57,6 +58,7 @@ export function canExplore(state: HydratedStellarHorizonsGameState, ship: ShipSt
     return (
         hasArrived(ship) &&
         !ship.explored &&
+        !isHeld(state, ship) &&
         !isCrippled(ship) &&
         state.systemState(ship.systemId).explorationMarker > 0 &&
         !blocksExploration(state, ship.systemId)
