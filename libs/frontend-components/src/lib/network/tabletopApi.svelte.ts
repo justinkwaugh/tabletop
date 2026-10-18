@@ -93,6 +93,8 @@ export type GetGameOptions = {
     hostView?: boolean
 }
 
+export type RealtimeTokenOptions = { relayStats?: boolean }
+
 export class TabletopApi {
     readonly supportsReproductionSeed?: boolean = true
     readonly supportsHostView?: boolean = true
@@ -935,7 +937,7 @@ export class TabletopApi {
 
     async getRealtimeToken(
         gameIds: string[],
-        { relayStats = false }: { relayStats?: boolean } = {}
+        { relayStats = false }: RealtimeTokenOptions = {}
     ): Promise<string> {
         const params = new URLSearchParams(gameIds.map((gameId) => ['game', gameId]))
         if (relayStats) params.set('relayStats', 'true')

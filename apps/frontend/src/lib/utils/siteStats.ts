@@ -12,7 +12,7 @@ import {
     utcDayStart,
     utcDaysThrough,
     type Histogram,
-    type RelayStatsNotification,
+    type RelayCounts,
     type SiteGameCounts,
     type SiteStatsDay,
     type SiteStatsNow,
@@ -243,20 +243,21 @@ export function changeFrom(current: number, previous: number): number | undefine
     return previous > 0 ? (current - previous) / previous : undefined
 }
 
-export type OnlineCounts = RelayStatsNotification['data']
+export type RelayStatsState = {
+    available: boolean
+    live: boolean
+    counts: RelayCounts | undefined
+}
 
-export function onlineFigure(online: OnlineCounts | undefined, relayEnabled: boolean): StatFigure {
-    if (!online) {
-        return {
-            value: '—',
-            label: 'online now',
-            note: relayEnabled ? 'waiting for the relay' : 'needs the realtime relay'
-        }
-    }
+export function onlineFigure({ available, live, counts }: RelayStatsState): StatFigure {
+    const label = 'people online now'
+    if (!available) return { value: '—', label, note: 'needs the realtime relay' }
+    if (!live) return { value: '—', label, note: 'connecting to the relay' }
+    if (!counts) return { value: '—', label, note: 'no count from the relay yet' }
     return {
-        value: count(online.accounts),
-        label: 'online now',
-        note: `${count(online.connections)} ${online.connections === 1 ? 'tab' : 'tabs'} open · live`
+        value: count(counts.accounts),
+        label,
+        note: `${count(counts.connections)} ${counts.connections === 1 ? 'tab' : 'tabs'} open`
     }
 }
 

@@ -26,17 +26,14 @@ export default async function (fastify: FastifyInstance) {
                 throw new Error('No user found for token request')
             }
 
-            const wantsRelayStats = request.query.relayStats === true
-            if (wantsRelayStats && !request.user.roles.includes(Role.Admin)) {
-                return reply.code(403).send()
-            }
-
+            const grantsRelayStats =
+                request.query.relayStats === true && request.user.roles.includes(Role.Admin)
             const gameIds = [...new Set(request.query.game)]
             const topics = [
                 userTopic(request.user.id),
                 GLOBAL_TOPIC,
                 ...gameIds.map(gameTopic),
-                ...(wantsRelayStats ? [RELAY_STATS_TOPIC] : [])
+                ...(grantsRelayStats ? [RELAY_STATS_TOPIC] : [])
             ]
 
             reply.header('Cache-Control', 'no-store')

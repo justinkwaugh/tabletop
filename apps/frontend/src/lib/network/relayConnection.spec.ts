@@ -77,6 +77,10 @@ function discontinuity(channel: NotificationChannel): RealtimeEvent {
     return { type: RealtimeEventType.Discontinuity, channel }
 }
 
+function interrupted(channel: NotificationChannel): RealtimeEvent {
+    return { type: RealtimeEventType.Interrupted, channel }
+}
+
 function data(channel: NotificationChannel, payload: unknown): RealtimeEvent {
     return { type: RealtimeEventType.Data, channel, data: payload }
 }
@@ -244,9 +248,21 @@ describe('RelayConnection', () => {
         FakeEventSource.latest().ready(['game-g1', 'global', 'user-u1'], 'c2')
         expect(FakeEventSource.opened).toHaveLength(2)
         expect(events).toEqual([
+            interrupted(NotificationChannel.User),
+            interrupted(NotificationChannel.Global),
             discontinuity(NotificationChannel.User),
             discontinuity(NotificationChannel.Global),
             discontinuity(NotificationChannel.GameInstance)
+        ])
+    })
+
+    it('reports each synced channel kind as interrupted when the stream fails', async () => {
+        const { events } = await connected(user, global, game)
+        FakeEventSource.latest().fail()
+        expect(events).toEqual([
+            interrupted(NotificationChannel.User),
+            interrupted(NotificationChannel.Global),
+            interrupted(NotificationChannel.GameInstance)
         ])
     })
 
@@ -257,6 +273,8 @@ describe('RelayConnection', () => {
         FakeEventSource.latest().ready(['global', 'user-u1'], 'c2')
         expect(FakeEventSource.opened).toHaveLength(2)
         expect(events).toEqual([
+            interrupted(NotificationChannel.User),
+            interrupted(NotificationChannel.Global),
             discontinuity(NotificationChannel.User),
             discontinuity(NotificationChannel.Global)
         ])
@@ -373,6 +391,8 @@ describe('RelayConnection', () => {
 
         FakeEventSource.latest().ready(['global', 'user-u1'], 'c2')
         expect(events).toEqual([
+            interrupted(NotificationChannel.User),
+            interrupted(NotificationChannel.Global),
             discontinuity(NotificationChannel.User),
             discontinuity(NotificationChannel.Global)
         ])

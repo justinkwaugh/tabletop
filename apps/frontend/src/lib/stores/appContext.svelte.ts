@@ -49,7 +49,8 @@ const notificationService = new NotificationService(
     realtimeConnection,
     visibilityService,
     authorizationService,
-    api
+    api,
+    !!PUBLIC_REALTIME_RELAY_HOST
 )
 const chatService = new ChatService(authorizationService, notificationService, api)
 const gameService = new GameService(libraryService, authorizationService, notificationService, api)

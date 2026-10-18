@@ -55,7 +55,8 @@ type Hub struct {
 	usedTokens       map[string]time.Time
 	revocations      map[string]time.Time
 	statsWatchers    map[*Conn]struct{}
-	statsSent        statsCounts
+	statsSent        relayCounts
+	statsDirty       bool
 	statsSequence    int
 }
 
@@ -321,10 +322,8 @@ func (h *Hub) acknowledged(topic string, kind subscriptionKind) {
 }
 
 func (h *Hub) markReady(conn *Conn) {
-	startsWatching := false
-	if active, carried := conn.topics[token.StatsTopic]; carried && !active {
-		startsWatching = true
-	}
+	active, carried := conn.topics[token.StatsTopic]
+	startsWatching := carried && !active
 	for topic := range conn.topics {
 		conn.topics[topic] = true
 	}
@@ -339,28 +338,30 @@ func (h *Hub) markReady(conn *Conn) {
 	if startsWatching && !conn.dropped {
 		if frame, err := h.statsFrame(h.currentStats()); err == nil {
 			h.send(conn, frame)
+			h.statsDirty = true
 		}
 	}
 }
 
-type statsCounts struct {
+type relayCounts struct {
 	Connections int `json:"connections"`
 	Accounts    int `json:"accounts"`
 }
 
-func (h *Hub) currentStats() statsCounts {
-	return statsCounts{Connections: len(h.connsByID), Accounts: len(h.accounts)}
+func (h *Hub) currentStats() relayCounts {
+	return relayCounts{Connections: len(h.connsByID), Accounts: len(h.accounts)}
 }
 
-func (h *Hub) statsFrame(counts statsCounts) ([]byte, error) {
+func (h *Hub) statsFrame(counts relayCounts) ([]byte, error) {
 	h.statsSequence++
 	body, err := json.Marshal(struct {
 		ID     string      `json:"id"`
 		Type   string      `json:"type"`
 		Action string      `json:"action"`
-		Data   statsCounts `json:"data"`
+		Data   relayCounts `json:"data"`
 	}{fmt.Sprintf("relay-stats-%d", h.statsSequence), "system", "relayStats", counts})
 	if err != nil {
+		slog.Error("unencodable relay stats", "error", err)
 		return nil, err
 	}
 	return messageFrame(token.StatsTopic, string(body))
@@ -368,15 +369,15 @@ func (h *Hub) statsFrame(counts statsCounts) ([]byte, error) {
 
 func (h *Hub) broadcastStats() {
 	current := h.currentStats()
-	if len(h.statsWatchers) == 0 || current == h.statsSent {
+	if len(h.statsWatchers) == 0 || (!h.statsDirty && current == h.statsSent) {
 		return
 	}
 	frame, err := h.statsFrame(current)
 	if err != nil {
-		slog.Error("unencodable relay stats", "error", err)
 		return
 	}
 	h.statsSent = current
+	h.statsDirty = false
 	for conn := range h.statsWatchers {
 		if conn.topics[token.StatsTopic] {
 			h.send(conn, frame)
