@@ -661,6 +661,39 @@ describe("R-5.1.4.I — Great Herd is not offered the card the People's Favor di
     })
 })
 
+/** R-7.2.2 — Great Herd's lock is read at the site it is played to: a "may" with nothing to offer is not asked. */
+describe('R-7.2.2 — Great Herd played to a site an enemy rules with Ancient Bloodline asks no swap', () => {
+    const BLOODLINE = 'denizen.nomad.ancient-bloodline'
+    const herdTable = (bloodline: boolean) => ({
+        oathRevision: OathRevision.EngineFixes12,
+        players: [
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 2, handIds: [GREAT_HERD, TUTOR] }),
+            testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'c2', favor: 2, advisers: bloodline ? [{ cardId: BLOODLINE, faceUp: true }] : [] })
+        ],
+        denizensBySite: { c1: [], c2: [], p1: [], h1: [ORACLE] },
+        warbandsBySite: { c1: { rhys: 2 } }
+    })
+
+    it('the play goes straight on with no choices, and the engine accepts it', async () => {
+        const { session, draft, sent } = searchingWith([GREAT_HERD, TUTOR], [], herdTable(true))
+        draft.keep(GREAT_HERD)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.needsWhenPlayed).toBe(false)
+        expect(sent).toHaveBeenCalledTimes(1)
+        expect(sent.mock.calls[0][0].choices ?? []).toEqual([])
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('without Ancient Bloodline the swap with the Oracle is offered (control)', async () => {
+        const { draft, sent } = searchingWith([GREAT_HERD, TUTOR], [], herdTable(false))
+        draft.keep(GREAT_HERD)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.needsWhenPlayed).toBe(true)
+        expect(cardTargets(draft.whenPlayed)).toEqual([ORACLE])
+        expect(sent).not.toHaveBeenCalled()
+    })
+})
+
 describe("R-7.3.3 — Bewitch's yes is offered once the play's own secret counts", () => {
     const BEWITCH = 'denizen.arcane.bewitch'
 

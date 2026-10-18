@@ -13,6 +13,10 @@ import { CURRENT_OATH_REVISION } from '../util/revision.js'
 import { hasEffect } from '../powers/registry.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { legalPowers } from '../util/powerDoorway.js'
+import { legalChoices, PowerChoiceKind } from '../util/powerChoice.js'
+import { HydratedUseActionPower } from '../actions/useActionPower.js'
+import { OathVisibility } from './runtime.js'
+import { required } from '../testing/required.js'
 import '../powers/index.js'
 
 const SEATS = ['me', 'foe', 'chan']
@@ -95,4 +99,48 @@ describe("every Action and Rest power leaves each seat's offer the same on its o
             })
         }
     }
+})
+
+// R-7.2.2 — a power that moves its own card reads that card's lock, here Ancient Bloodline held by another seat
+// who rules the site: the refusal must read the same on each seat's own view.
+describe("Roving Terror at a site another seat rules with Ancient Bloodline is refused the same on each seat's own view", () => {
+    const ROVING = 'denizen.beast.roving-terror'
+    const BLOODLINE = 'denizen.nomad.ancient-bloodline'
+    const WOLVES = 'denizen.beast.wolves'
+    const power = required(cardPowers(ROVING).find((p) => p.timing === PowerTiming.Action), 'Roving Terror Action')
+    const toWolves = [{ kind: PowerChoiceKind.Card as const, cardId: WOLVES }]
+
+    /** As the sweep's table with Roving Terror at c1, but the foe rules c1 and holds Ancient Bloodline faceup. */
+    function lockedTable() {
+        const d = table(MachineState.ActPhase, ROVING, 'site')
+        d.warbandsBySite = { ...d.warbandsBySite, c1: { me: 1, foe: 2 } }
+        d.players = d.players.map((p) =>
+            p.playerId === 'foe' ? { ...p, advisers: [...p.advisers, { cardId: BLOODLINE, faceUp: true }] } : p
+        )
+        return d
+    }
+
+    it("the server refuses me the move to Wolves at c2, and so does my own view; every seat's offer is the same", () => {
+        const state = lockedTable()
+        const server = new HydratedOathGameState(state)
+        const view: Visibility.Perspective = { kind: 'player', playerId: 'me' }
+        const own = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, view)), view)
+        const use = (s: HydratedOathGameState) =>
+            HydratedUseActionPower.reasonCannotUse(s, 'me', ROVING, power.powerIndex, toWolves)
+        expect(use(server)).toBeDefined()
+        expect(use(own)).toBe(use(server))
+        expect(legalChoices(own, 'me', power)).toEqual(legalChoices(server, 'me', power))
+        expect(legalChoices(server, 'me', power)[0].options).toEqual([])
+        for (const playerId of SEATS) {
+            const seat: Visibility.Perspective = { kind: 'player', playerId }
+            const serverTypes = engine.getValidActionTypesForPlayer(game, state, playerId)
+            const ownTypes = engine.getValidActionTypesForPlayer(game, served(state, seat), playerId, { perspective: seat })
+            expect(ownTypes, playerId).toEqual(serverTypes)
+        }
+    })
+
+    it('without the lock (I rule c1) the server allows the same move, so the refusal above is the lock', () => {
+        const state = new HydratedOathGameState(table(MachineState.ActPhase, ROVING, 'site'))
+        expect(HydratedUseActionPower.reasonCannotUse(state, 'me', ROVING, power.powerIndex, toWolves)).toBeUndefined()
+    })
 })

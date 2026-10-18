@@ -1,4 +1,4 @@
-import { isLockedFor } from '../util/locked.js'
+import { isLockedFor, ownCardLockedFor } from '../util/locked.js'
 import { categoryAt } from '../util/sitePowers.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
@@ -134,6 +134,8 @@ registerEffect(
 const ROVING = 'denizen.beast.roving-terror'
 const denizensAtOtherSites: ChoiceDomain = (state, playerId) => {
     const here = siteHolding(state, ROVING)
+    // R-7.2.2 — from revision 16, it does not move itself out of a site where it is locked for its user.
+    if (ownCardLockedFor(state, playerId, ROVING)) return []
     return Object.entries(state.denizensBySite)
         .filter(([siteId]) => siteId !== here && state.isSiteFaceup(siteId))
         .flatMap(([, cards]) => cards)

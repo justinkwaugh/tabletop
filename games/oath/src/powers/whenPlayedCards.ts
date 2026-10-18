@@ -1,11 +1,13 @@
-import { isLockedFor } from '../util/locked.js'
+import { isLockedFor, ownCardLockedFor } from '../util/locked.js'
+import { assert } from '@tabletop/common'
 import { Suit } from '../model/oathEnums.js'
+import type { HydratedOathGameState } from '../model/gameState.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply } from '../util/rest.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
-import { registerEffect, chosen } from './registry.js'
+import { registerEffect, chosen, type PlayMapChanges } from './registry.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import {
@@ -196,42 +198,60 @@ registerEffect(
 )
 
 // "When Played, you may swap Great Herd with a [suit:nomad] card at any site."
+const GREAT_HERD = 'denizen.nomad.great-herd'
 const nomadCardsAtSites: ChoiceDomain = (state, playerId) =>
     denizensOnMap(state, Suit.Nomad)
-        .filter((id) => id !== 'denizen.nomad.great-herd' && !isLockedFor(state, playerId, id))
+        .filter((id) => id !== GREAT_HERD && !isLockedFor(state, playerId, id))
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 
-registerEffect(
-    'denizen.nomad.great-herd',
-    powerIndexOf('denizen.nomad.great-herd', PowerTiming.WhenPlayed),
-    {
-        choices: [
-            optional(PowerChoiceKind.Card, {
-                what: 'a Nomad card at a site to swap with',
-                domain: nomadCardsAtSites
-            })
-        ],
+/**
+ * R-7.2.2 — Great Herd's Q&A: "A locked card cannot be discarded, moved or swapped". It is still in hand when the play
+ * is judged, so its lock is read at the site it is played to (from revision 16).
+ */
+function herdLockedWherePlayed(
+    state: HydratedOathGameState,
+    playerId: string,
+    mapChanges: PlayMapChanges | undefined
+): string | undefined {
+    const siteId = mapChanges?.siteId
+    return siteId !== undefined && ownCardLockedFor(state, playerId, GREAT_HERD, siteId)
+        ? siteId
+        : undefined
+}
+
+registerEffect(GREAT_HERD, powerIndexOf(GREAT_HERD, PowerTiming.WhenPlayed), {
+    choices: [
+        optional(PowerChoiceKind.Card, {
+            what: 'a Nomad card at a site to swap with',
+            domain: nomadCardsAtSites,
+            offered: (state, playerId, mapChanges) =>
+                herdLockedWherePlayed(state, playerId, mapChanges) === undefined
+        })
+    ],
+    reasonCannotResolve: (ctx) => {
+        const [target] = chosen(ctx, PowerChoiceKind.Card)
+        if (!target) return undefined
         // R-5.1.4.I, R-11.10 — the domain reads the map before the play; a card the play discards first is no
         // longer at a site when Great Herd resolves.
-        reasonCannotResolve: (ctx) => {
-            const [target] = chosen(ctx, PowerChoiceKind.Card)
-            return target && ctx.mapChanges?.leaving.includes(target.cardId)
-                ? `${target.cardId} is discarded before Great Herd is played, so it is no longer at a site`
-                : undefined
-        },
-        resolve: (ctx) => {
-            const [target] = chosen(ctx, PowerChoiceKind.Card)
-            if (!target) return { summary: 'kept Great Herd where it was played' }
-            swapPlayedCardWithSiteCard(
-                ctx.state,
-                ctx.playerId,
-                'denizen.nomad.great-herd',
-                target.cardId
-            )
-            return { summary: `swapped Great Herd with ${target.cardId}` }
-        }
+        if (ctx.mapChanges?.leaving.includes(target.cardId))
+            return `${target.cardId} is discarded before Great Herd is played, so it is no longer at a site`
+        const lockedAt = herdLockedWherePlayed(ctx.state, ctx.playerId, ctx.mapChanges)
+        return lockedAt !== undefined
+            ? `Great Herd is locked at ${lockedAt} once played there, so it cannot be swapped`
+            : undefined
+    },
+    resolve: (ctx) => {
+        const [target] = chosen(ctx, PowerChoiceKind.Card)
+        if (!target) return { summary: 'kept Great Herd where it was played' }
+        // Where it now stands, its lock is exact; the check above refused the swap on the site it was played to.
+        assert(
+            !ownCardLockedFor(ctx.state, ctx.playerId, GREAT_HERD),
+            'Great Herd is locked where it was played, so it cannot be swapped'
+        )
+        swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, GREAT_HERD, target.cardId)
+        return { summary: `swapped Great Herd with ${target.cardId}` }
     }
-)
+})
 
 // "When played, gain one warband per site you rule, and put one warband from
 // your board on each site you rule."
