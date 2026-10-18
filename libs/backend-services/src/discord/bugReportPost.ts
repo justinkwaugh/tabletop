@@ -23,6 +23,7 @@ export type BugReportPostContext = {
     appliedTagIds: string[]
     reportedAt: Date
     scenario?: ScenarioAttachment
+    attachedFilenames: string[]
 }
 
 const SITE_NAME = 'BoardTogether'
@@ -71,9 +72,10 @@ export function bugReportPost(
                     ]
                 }
             ],
-            attachments: context.scenario?.attached
-                ? [{ id: 0, filename: context.scenario.filename }]
-                : undefined,
+            attachments:
+                context.attachedFilenames.length > 0
+                    ? context.attachedFilenames.map((filename, id) => ({ id, filename }))
+                    : undefined,
             allowed_mentions: { parse: [] }
         }
     }

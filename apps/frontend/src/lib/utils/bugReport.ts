@@ -13,10 +13,12 @@ const USER_AGENT_MAX_LENGTH = 512
 export function bugReportRequest({
     session,
     description,
+    screenshots,
     manifestService
 }: {
     session: GameSession<GameState, HydratedGameState>
     description: string
+    screenshots: readonly string[]
     manifestService: ManifestService
 }): BugReportRequest {
     const game = session.primaryGame
@@ -33,7 +35,8 @@ export function bugReportRequest({
             logic: manifestService.getLogicVersion(game.typeId),
             ui: manifestService.getUiVersion(game.typeId)
         },
-        client: bugReportClient()
+        client: bugReportClient(),
+        screenshots: screenshots.length > 0 ? [...screenshots] : undefined
     }
 }
 

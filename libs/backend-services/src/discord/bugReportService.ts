@@ -50,6 +50,10 @@ export class BugReportService {
         const openTagId = await this.findOpenTagId()
         const scenarioFile = this.scenarioFile(game, actions)
         const scenario = this.scenarioAttachment(scenarioFile)
+        const files = [
+            ...(scenarioFile && scenario?.attached ? [scenarioFile] : []),
+            ...this.screenshotFiles(report.screenshots ?? [])
+        ]
         const post = bugReportPost(game, report, {
             frontendHost: this.destination.frontendHost,
             titleName: this.gameService.getTitle(game.typeId)?.info.metadata.name ?? game.typeId,
@@ -60,13 +64,14 @@ export class BugReportService {
             liveActionCount: game.state?.actionCount,
             appliedTagIds: openTagId ? [openTagId] : [],
             reportedAt: new Date(),
-            scenario
+            scenario,
+            attachedFilenames: files.map((file) => file.filename)
         })
 
         const path = `/channels/${this.destination.forumChannelId}/threads`
         const response =
-            scenarioFile && scenario?.attached
-                ? await this.discordBotApi.postWithFiles(path, post, [scenarioFile])
+            files.length > 0
+                ? await this.discordBotApi.postWithFiles(path, post, files)
                 : await this.discordBotApi.post(path, post)
         if (!response.ok) {
             throw new Error(
@@ -86,6 +91,14 @@ export class BugReportService {
             contentType: 'application/json',
             content: JSON.stringify(scenarioFromGame({ ...game, state }, actions))
         }
+    }
+
+    private screenshotFiles(screenshots: readonly string[]): DiscordFile[] {
+        return screenshots.map((screenshot, index) => ({
+            filename: `screenshot-${index + 1}.jpg`,
+            contentType: 'image/jpeg',
+            content: new Uint8Array(Buffer.from(screenshot, 'base64'))
+        }))
     }
 
     private scenarioAttachment(file: DiscordFile | undefined): ScenarioAttachment | undefined {

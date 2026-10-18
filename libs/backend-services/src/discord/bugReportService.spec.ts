@@ -11,7 +11,7 @@ import {
     type User
 } from '@tabletop/common'
 import { BugReportService } from './bugReportService.js'
-import { DiscordBotApi } from './discordBotApi.js'
+import { DiscordBotApi, type DiscordFile } from './discordBotApi.js'
 import { GameService } from '../games/gameService.js'
 import { UserService } from '../users/userService.js'
 import { GameNotFoundError, UserIsNotAllowedPlayerError } from '../games/errors.js'
@@ -69,6 +69,13 @@ const report: BugReportRequest = {
     view: { actionCount: 12, inHistory: false, exploring: false },
     versions: {},
     client: { userAgent: 'test', viewport: '800x600 @1x', installedApp: false }
+}
+
+function text(content: DiscordFile['content']): string {
+    if (typeof content !== 'string') {
+        throw new Error('Expected a text file')
+    }
+    return content
 }
 
 function forumWithTags(names: string[]): Response {
@@ -140,8 +147,58 @@ describe('BugReportService', () => {
         expect(files).toHaveLength(1)
         expect(files[0].filename).toBe('bug-report-game-1.json')
         expect(files[0].contentType).toBe('application/json')
-        expect(JSON.parse(files[0].content)).toEqual(
+        expect(JSON.parse(text(files[0].content))).toEqual(
             JSON.parse(JSON.stringify({ game, state, actions: [action] }))
+        )
+    })
+
+    it('attaches pasted screenshots after the scenario', async () => {
+        vi.mocked(gameService.getGameData).mockResolvedValue({
+            game: { ...game, state },
+            actions: [action]
+        })
+        const screenshots = [Buffer.from([0xff, 0xd8, 0xff, 1]), Buffer.from([0xff, 0xd8, 0xff, 2])]
+
+        await service.reportBug({
+            user: reporter,
+            report: { ...report, screenshots: screenshots.map((bytes) => bytes.toString('base64')) }
+        })
+
+        const [, post, files] = vi.mocked(discordBotApi.postWithFiles).mock.calls[0]
+        expect(files.map((file) => [file.filename, file.contentType])).toEqual([
+            ['bug-report-game-1.json', 'application/json'],
+            ['screenshot-1.jpg', 'image/jpeg'],
+            ['screenshot-2.jpg', 'image/jpeg']
+        ])
+        expect(files.slice(1).map((file) => Buffer.from(file.content))).toEqual(screenshots)
+        expect(post).toEqual(
+            expect.objectContaining({
+                message: expect.objectContaining({
+                    attachments: [
+                        { id: 0, filename: 'bug-report-game-1.json' },
+                        { id: 1, filename: 'screenshot-1.jpg' },
+                        { id: 2, filename: 'screenshot-2.jpg' }
+                    ]
+                })
+            })
+        )
+    })
+
+    it('attaches pasted screenshots to a report with no scenario', async () => {
+        await service.reportBug({
+            user: reporter,
+            report: { ...report, screenshots: [Buffer.from([0xff, 0xd8, 0xff]).toString('base64')] }
+        })
+
+        expect(discordBotApi.post).not.toHaveBeenCalled()
+        const [, post, files] = vi.mocked(discordBotApi.postWithFiles).mock.calls[0]
+        expect(files.map((file) => file.filename)).toEqual(['screenshot-1.jpg'])
+        expect(post).toEqual(
+            expect.objectContaining({
+                message: expect.objectContaining({
+                    attachments: [{ id: 0, filename: 'screenshot-1.jpg' }]
+                })
+            })
         )
     })
 
