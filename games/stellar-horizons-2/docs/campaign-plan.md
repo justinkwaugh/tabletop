@@ -1,6 +1,6 @@
 # Stellar Horizons II campaign: plan
 
-Status: proposed 2026-10-17. Decisions 1 and 3 agreed 2026-10-17; decision 2 agreed 2026-10-18, with Common Actions in the engine. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
+Status: proposed 2026-10-17. Slice 1 built and reviewed 2026-10-18; slice 2 started 2026-10-18. Decisions 1 and 3 agreed 2026-10-17; decision 2 agreed 2026-10-18, with Common Actions in the engine. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
 
 ## What the campaign adds
 
@@ -120,6 +120,40 @@ Started 2026-10-18. What slice 1 builds, and how:
 - **Anomalies** are found at the campaign's chance with 1 IP, and resolved alone as in These are the Voyages, without rewards until slice 2.
 - **The end.** From the end of 2500, a roll at 1% rising 1% a turn, plus 1% per complete tech type per Player. Scoring counts techs, settlements by distance, large bases, the largest base, kept exploration markers, IP, tech points, cash and the player-count bonus. The galactic rank is shown.
 - **Not yet:** cargo stays an Ordered span until slice 3 turns it into the Main Line phase of decision 1; destroying one's own base for points; the terraforming rule for an empty world pool.
+
+## Slice 2 in detail
+
+Started 2026-10-18. What slice 2 builds, and how:
+
+- **Anomalies in full.** Each of the 34 tiles' front rewards (IP, cash, tech markers, settlements, goods, cards) and reverse side, transcribed as data. A resolved tile is turned over: its back stays in the system, giving bases there its permanent effect, or leaves the game; a system keeps one anomaly, resolved or not (1.16). The backs that slice 2 can apply:
+    - production bonuses at unblockaded bases producing the matching product;
+    - Dissidents' +30% migration habitability and Stunning Vistas' +1 settlement in migration;
+    - Natural Stimulants' doubled settlements for the production bonus;
+    - Symbiotic Spores' +1 settlement after production, even above the limit;
+    - Hostile Xenomorphs' −1 settlement in production;
+    - Nanobot Swarm's ships $1B cheaper there;
+    - Tunnel Complex's +5 population limit;
+    - Stellar Chart's world draws.
+
+    Goods on the backs wait for slice 3 and Tunnel Complex's combat modifier for slice 5.
+
+- **Settlement rewards** (Splinter Colony, Dissidents): added to any of the Player's bases, or founding a base in the system within the base limit, habitability ignored. This is a choice on the Main Line.
+- **Events.** The 20 tiles, drawn on their economic tile. Those without a challenge act at once: the three Breakthroughs (half the cost of one tech for the Players with the fewest of that type), Colonial Rush and Homesteaders. A challenge is placed by the Player with the worst initiative who has a base, at one of their bases (a Main Line choice); with no bases anywhere it is ignored. Events are resolved like anomalies, by anyone, for their IP; they leave when resolved or when the system loses its last base. Their effects apply every turn or when the next event is drawn while they are unresolved:
+    - IP or cash lost;
+    - settlements destroyed on a die roll;
+    - bases halved;
+    - a world replaced with class K or A;
+    - Earth production +1 marker of each type;
+    - no base production or growth;
+    - REs within range malfunctioning.
+
+    Smugglers waits for trade goods.
+
+- **Joint resolution: the pact.** As agreed in `docs/parallel-spans.md` (Common Actions, example), for anomalies and events: propose, counter, accept, withdraw on the Main Line during the exploration span; pledged ships held; the agreement binds and resolves after the span in initiative order at its earliest partner, the reward split item by item as agreed. In These are the Voyages the pact names the partner who keeps the tile instead.
+- **Mining and research** (1.17): exploration actions for mining or research ships in a system with a revealed world and none of the Player's bases; no malfunction roll (designer ruling). Mining earns $1B, or $2B on a die at or under the world's cash value; research earns a marker of the world's type on a die at or under its research value plus half the ship's exploration value, rounded up.
+- **The Syndicate's take**: $1B from a Player mining or researching where the Syndicate has more ship combat value, settled after the span.
+- **Terraforming with mining ships** (1.18): with Atmosphere Processing, as an exploration action, any number per system; the draws settle after the span in initiative order, like surveys.
+- **Starfarers and Syndicate** anomaly and event difficulty, as slice 1 has it (science −1, combat −2).
 
 ## Rulings to make
 
