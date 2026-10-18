@@ -9,7 +9,7 @@ ExecStartPre=+/usr/local/lib/realtime/fetch-secrets
 ExecStart=/usr/local/lib/realtime/realtime
 ExecStopPost=+/bin/rm -f /run/realtime-relay/secrets.env
 EnvironmentFile=/etc/realtime/relay.env
-EnvironmentFile=/run/realtime-relay/secrets.env
+EnvironmentFile=-/run/realtime-relay/secrets.env
 Environment=GOMEMLIMIT=320MiB
 Restart=always
 RestartSec=5
