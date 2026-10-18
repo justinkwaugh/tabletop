@@ -32,6 +32,7 @@ import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { shroudedWoodChooser } from '../util/siteTravel.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
+import { settleAdviserLimitsAfterMove } from '../util/adviserLimit.js'
 
 // "Action: Move all favor from any one favor bank to the hearth bank." Cost: burn 1 secret.
 registerEffect(
@@ -355,6 +356,10 @@ registerEffect(TWIN, powerIndexOf(TWIN, PowerTiming.WhenPlayed), {
         assert(me.hasAdviser(TWIN), "Twin Brother resolves as one of its player's advisers")
         me.replaceAdviser(TWIN, { cardId: target.cardId, faceUp: true })
         them.replaceAdviser(target.cardId, { cardId: TWIN, faceUp: true })
+        settleAdviserLimitsAfterMove(ctx.state, ctx.playerId, TWIN, [
+            { playerId: ctx.playerId, receivedCardIds: [target.cardId] },
+            { playerId: them.playerId, receivedCardIds: [TWIN] }
+        ])
         return {
             summary: `Twin Brother went to ${them.playerId}'s advisers; ${target.cardId} to ${ctx.playerId}'s advisers`,
             targetPlayerId: them.playerId

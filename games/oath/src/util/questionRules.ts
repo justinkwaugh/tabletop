@@ -31,6 +31,11 @@ import {
 import { askQuestion } from './questions.js'
 import type { QuestionRules } from './questionAnswers.js'
 import {
+    discardAdvisersToMeetLimit,
+    reasonAdviserLimitDiscardsInvalid,
+    settleAdviserLimitsAfterExchange
+} from './adviserLimit.js'
+import {
     GATHERING_ALLOWS,
     applyExchange,
     reasonExchangeInvalid,
@@ -147,10 +152,14 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             return reasonExchangeInvalid(state, proposerPlayerId, askedPlayerId, terms)
         },
         apply: (state, playerId, matched) => {
-            const { proposerPlayerId, terms } = matched.question
+            const { cardId, proposerPlayerId, terms } = matched.question
             if (!matched.answer.accept) return `refused ${proposerPlayerId}'s exchange`
-            const disclosed = applyExchange(state, proposerPlayerId, playerId, terms)
-            return { summary: `accepted ${proposerPlayerId}'s exchange`, disclosed }
+            const applied = applyExchange(state, proposerPlayerId, playerId, terms)
+            settleAdviserLimitsAfterExchange(state, proposerPlayerId, cardId, applied.advisersMoved)
+            return {
+                summary: `accepted ${proposerPlayerId}'s exchange`,
+                disclosed: applied.disclosed
+            }
         }
     },
     [PowerQuestionKind.JoinSite]: {
@@ -621,6 +630,22 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             matched.answer.gain ? reasonDrumBankEmpty(state, playerId) : undefined,
         apply: (state, playerId, matched) =>
             matched.answer.gain ? gainFromDrum(state, playerId) : 'skipped'
+    },
+    [PowerQuestionKind.DiscardAdvisers]: {
+        reasonCannotAnswer: (state, playerId, matched) =>
+            reasonAdviserLimitDiscardsInvalid(
+                state,
+                playerId,
+                matched.question,
+                matched.answer.discardedAdviserCardIds
+            ),
+        apply: (state, playerId, matched) =>
+            discardAdvisersToMeetLimit(
+                state,
+                playerId,
+                matched.question,
+                matched.answer.discardedAdviserCardIds
+            )
     },
     [PowerQuestionKind.OrderDrawnCards]: {
         reasonCannotAnswer: (_state, _playerId, matched) => {

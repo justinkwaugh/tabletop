@@ -3779,6 +3779,59 @@ test.describe('the exchange editor', () => {
         await expect(pieces(page, 'dana')).toHaveCount(6)
     })
 
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 }]) {
+        test(`Deed Writer: an empty board takes a site once its own site is handed over, counted to the warbands that come home (${viewport.width} px)`, async ({ page }) => {
+            await page.setViewportSize(viewport)
+            await openPower(page, 'exchangeDeedSwap')
+            await chip(page, DEED_WRITER, 'rhys').click()
+            const rhysOne = grid(page).getByRole('button', { name: 'rhys moves 1 in from their board', exact: true })
+
+            // Plains waits for a site from Rhys: listed, and picked first with no count until then.
+            await expect(site(page, 'Great Slum')).toBeVisible()
+            await site(page, 'Plains').click()
+            await expect(site(page, 'Plains')).toHaveAttribute('aria-pressed', 'true')
+            await expect(pieces(page, 'rhys')).toHaveCount(0)
+            await expect(answer(page, 'Use')).toHaveCount(0)
+            await expect(red(page)).toHaveCount(0)
+
+            // The Mountain's one warband comes home to Rhys first, so he can move it into Plains.
+            await site(page, 'Mountain').click()
+            await grid(page).getByRole('button', { name: 'dana moves 1 in from their board', exact: true }).click()
+            await expect(pieces(page, 'rhys')).toHaveCount(1)
+            await expect(rhysOne).toHaveAttribute('aria-pressed', 'false')
+            await expect(answer(page, 'Use')).toHaveCount(0)
+            await rhysOne.click()
+            await expect(rhysOne).toHaveAttribute('aria-pressed', 'true')
+            await expect(red(page)).toHaveCount(0)
+            await expect(answer(page, 'Use')).toBeVisible()
+
+            // A second tap on the Mountain takes it out: Plains stays picked, its count cleared, and waits again.
+            await site(page, 'Mountain').click()
+            await expect(site(page, 'Plains')).toHaveAttribute('aria-pressed', 'true')
+            await expect(pieces(page, 'rhys')).toHaveCount(0)
+            await expect(answer(page, 'Use')).toHaveCount(0)
+            await expect(red(page)).toHaveCount(0)
+            await site(page, 'Mountain').click()
+            await grid(page).getByRole('button', { name: 'dana moves 1 in from their board', exact: true }).click()
+            await expect(rhysOne).toHaveAttribute('aria-pressed', 'false')
+            await expect(answer(page, 'Use')).toHaveCount(0)
+            await rhysOne.click()
+            await expect(rhysOne).toHaveAttribute('aria-pressed', 'true')
+
+            const home = (await call(page, 'tableFacts')).siteOf.dana
+            if (!home) throw Error('Dana stands at a site')
+            await answer(page, 'Use').click()
+            await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('rhys')
+            await answer(page, 'Accept').click()
+            await expect.poll(async () => (await call(page, 'openQuestionKind')) ?? 'none').toBe('none')
+            const facts = await call(page, 'tableFacts')
+            expect(facts.warbandsAt[home]?.rhys).toBe(1)
+            expect(facts.warbandsAt[home]?.imperial ?? 0).toBe(0)
+            expect(facts.boardOf.dana).toEqual({ imperial: 7 })
+            expect(facts.boardOf.rhys?.rhys ?? 0).toBe(0)
+        })
+    }
+
     test('two sites share one board: the second site’s count stops at the warbands the first leaves; the Crown’s 0 alone is picked at once', async ({ page }) => {
         await openPower(page, 'exchangeDeed')
         await chip(page, DEED_WRITER, 'rhys').click()
@@ -6640,6 +6693,25 @@ test.describe('power questions', () => {
         await expect.poll(() => asked(page)).toBe(false)
     })
 
+    test('Enchantress: "Over the adviser limit: discard 1."; the card received is not offered; "Discard" once one is picked', async ({ page }) => {
+        await openTable(page, 'askEnchantressDiscard')
+        await expect(line(page)).toHaveText('Over the adviser limit: discard 1.')
+        for (const name of ['Wolves', 'Wayside Inn', 'Scouts']) {
+            await expect(grid(page).getByRole('button', { name, exact: true })).toBeVisible()
+        }
+        await expect(grid(page).getByRole('button', { name: 'Enchantress', exact: true })).toHaveCount(0)
+        await expect(answer(page, 'Discard')).toHaveCount(0)
+        await expect(red(page)).toHaveCount(0)
+
+        const wolves = grid(page).getByRole('button', { name: 'Wolves', exact: true })
+        await wolves.click()
+        await expect(wolves).toHaveAttribute('aria-pressed', 'true')
+        await expect(wolves).toHaveClass(/ring-oath-danger/)
+        await expect(answer(page, 'Discard')).toBeVisible()
+        await answer(page, 'Discard').click()
+        await expect.poll(() => asked(page)).toBe(false)
+    })
+
     test('a When Played bank starts with none ringed; "Play" shows once one is tapped (Fabled Feast)', async ({ page }) => {
         await openTable(page, 'fabledFeast')
         await grid(page).getByRole('button', { name: 'Fabled Feast', exact: true }).click()
@@ -6671,6 +6743,18 @@ test.describe('power questions', () => {
             expect(shape.width).toBeGreaterThan(shape.height)
             expect(shape.width).toBeGreaterThanOrEqual(60)
             expect(Math.abs(shape.width / shape.height - shape.natural)).toBeLessThan(0.05)
+        })
+
+        test('askEnchantressDiscard: the page does not scroll sideways, and "Discard" is at least 44 px tall', async ({ page }) => {
+            await openTable(page, 'askEnchantressDiscard')
+            await expect(line(page)).toBeVisible()
+            await grid(page).getByRole('button', { name: 'Scouts', exact: true }).click()
+            const discard = answer(page, 'Discard')
+            await expect(discard).toBeVisible()
+            const box = await discard.boundingBox()
+            expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+            expect(overflow).toBeLessThanOrEqual(0)
         })
 
         for (const [table, names] of [
