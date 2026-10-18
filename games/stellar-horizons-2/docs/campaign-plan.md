@@ -1,6 +1,6 @@
 # Stellar Horizons II campaign: plan
 
-Status: proposed 2026-10-17. Slice 1 built and reviewed 2026-10-18; slice 2 started 2026-10-18. Decisions 1 and 3 agreed 2026-10-17; decision 2 agreed 2026-10-18, with Common Actions in the engine. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
+Status: proposed 2026-10-17. Slices 1 and 2 built and reviewed 2026-10-18, their rulings agreed. Decisions 1 and 3 agreed 2026-10-17; decision 2 agreed 2026-10-18, with Common Actions in the engine. The campaign is rule 3.0 and every blue box of the Compass Games rulebook (December 2023 print). Sources are in `/workspace/artassets/stellar-horizons-2` (outside git): `notes/rulebook-p01-10.md`, `notes/rulebook-p11-19.md`, `notes/player-guide-pp3-5-7-8.md`, `notes/forum-rulings.md`, and the component transcriptions in `notes/vassal-inventory.md` (appendices A to C) and `notes/vassal-charts.md`.
 
 ## What the campaign adds
 
@@ -152,10 +152,26 @@ Started 2026-10-18. What slice 2 builds, and how:
 - **Joint resolution: the pact.** As agreed in `docs/parallel-spans.md` (Common Actions, example), for anomalies and events: propose, counter, accept, withdraw on the Main Line during the exploration span; pledged ships held; the agreement binds and resolves after the span in initiative order at its earliest partner, the reward split item by item as agreed. In These are the Voyages the pact names the partner who keeps the tile instead.
 - **Rewards not built yet** (agreed 2026-10-18): trade goods (slice 3) and level I cards (slice 4) on anomaly fronts give nothing until their slices, and history says so.
 - **The pact's interface** (agreed 2026-10-18): in the exploration step, beside each anomaly or event the Player's ships can reach; proposals naming the Player at the top of that step with Accept, Counter and Decline; pacts shown to everyone in the system panel and history.
-- **Mining and research** (1.17): exploration actions for mining or research ships in a system with a revealed world and none of the Player's bases; no malfunction roll (designer ruling). "A system may be mined or researched only once per turn" is read as once per Player, since Players explore unseen by each other (proposed; raised with the user). Mining earns $1B, or $2B on a die at or under the world's cash value; research earns a marker of the world's type on a die at or under its research value plus half the ship's exploration value, rounded up.
+- **Mining and research** (1.17): exploration actions for mining or research ships in a system with a revealed world and none of the Player's bases; no malfunction roll (designer ruling). "A system may be mined or researched only once per turn" is read as once per Player, since Players explore unseen by each other (agreed 2026-10-18). Mining earns $1B, or $2B on a die at or under the world's cash value; research earns a marker of the world's type on a die at or under its research value plus half the ship's exploration value, rounded up.
 - **The Syndicate's take**: $1B from a Player mining or researching where the Syndicate has more ship combat value, settled after the span.
 - **Terraforming with mining ships** (1.18): with Atmosphere Processing, as an exploration action, any number per system; the draws settle after the span in initiative order, like surveys.
 - **Starfarers and Syndicate** anomaly and event difficulty, as slice 1 has it (science −1, combat −2).
+
+## Slice 3 in detail
+
+Proposed 2026-10-18. What slice 3 builds, and how:
+
+- **Components.** The 92 goods of 10 kinds, each with its producing world types, base price and the world types that add or take $1B, and the 47 demand markers and Sol's (`notes/vassal-inventory.md` 3.4 and 3.5, `notes/vassal-charts.md` Chart Trade Goods). Earth counts as M-class for trade.
+- **Where goods are.** On a base, on Earth or in a ship's cargo, each good taking 1 cargo point beside settlements. A base stores twice its assignment limit (the Faction Sheet's base production row for its settlements), Earth 10 goods per faction. A ship lost loses its goods.
+- **The trade goods tile** (4.5). Each Player's goods for the century are drawn on the Main Line, in initiative order, as a System Action; if the pool runs short, the later Players get what is left. Each Player then assigns their own in a Barrier span: to a base with one of the good's world types, within the base's assignment limit for the turn and its storage, or to Earth if the good lists M. A Player may hold 12 goods in all after assigning; the rest, and any good not assigned, earn $1B each.
+- **Goods from base production.** An anomaly back that produces a good adds one from the pool to each unblockaded base there that chose the matching product, after the production choices, in initiative order; with the pool empty it pays $1B instead.
+- **Goods from anomaly fronts** (1.16). Placed after the attempts resolve, like reward settlements: into the cargo of the Player's ships in the system, onto their base there (despite its world types, counting against its assignment limit, forum ruling), or destroyed for $1B. A pact splits them item by item, as it does the other rewards.
+- **Demand markers.** A system gets one when it is fully surveyed or gets its first base: the Player who completed the survey or founded the base draws 2 and keeps 1, the Consortium 3. It goes back to the pool when the system's last base is lost, unless the system is fully surveyed. Sol's never leaves. One marker per system.
+- **The cargo and trade phase** on the Main Line in initiative order in the campaign (decision 1); Footfall and These are the Voyages keep their Ordered span. In their turn a Player loads and unloads settlements and goods, buys settlements and sells, in any order, then ends their turn.
+- **Selling** (1.9). In a system whose demand marker matches and with no "no bases" anomaly, a Player sells any number of that good from their ships and bases there, or from Earth at Sol. Each earns its base price, +$1B or −$1B for each listed world type in the system, and off Earth the system's distance from Sol and 1 IP. Selling where another Player has a base and the seller has none pays $1B a good to one of them, the seller's choice; the Consortium pays nothing. The seller then draws the replacement marker (Sol's stays), and may sell again if it matches.
+- **Destroying goods** for $1B is offered wherever the Player is acting, as the other conversions are.
+- **Smugglers** comes into play.
+- **The interface.** Goods on bases, ships and Earth; demand markers on the map; the assignment step; the selling and loading controls in the cargo step; the demand-marker choice; the anomaly-goods placement.
 
 ## Rulings to make
 
@@ -165,9 +181,8 @@ The rulebook leaves these open. Each is decided in its slice, recorded in `docs/
 - The largest base bonus when Players tie: each tied Player gets it. Agreed 2026-10-18.
 
 - The truce: whether blockades are allowed during it (disputed on BoardGameGeek).
-- "No exploration" anomalies: whether they also block mining and research.
-- Escalation discard rounding (the community rounds half up, as the Player Guide's rounding rule does).
-- Fractional combat modifiers and half escalation markers: the Player Guide's rounding, applied once to the final value.
+- "No exploration" anomalies also block mining and research. Agreed 2026-10-18.
+- Rounding follows the Player Guide (1.1): halve or double before adding or subtracting, and round only the final value, 0.5 up. This settles escalation discards, fractional combat modifiers and half escalation markers. Agreed 2026-10-18.
 - Terraforming tile disposal with two draws.
 - Prolific Breeders past the population limit; Cyborg Species against the Cloning tech; Mastermind's difficulty with or without the Player count.
 - Player-to-player deals: cash, goods and IP transfers. Proposal: none beyond joint pacts and the rulebook's payments.
