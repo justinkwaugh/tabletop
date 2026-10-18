@@ -43,6 +43,7 @@ function ship(shipId: string, playerId: string, systemId: string): ShipState {
         transit: 0,
         damage: 0,
         settlements: 0,
+        goods: [],
         loadedFromBase: false,
         explored: false
     }

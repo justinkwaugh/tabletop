@@ -3,15 +3,23 @@
         SOL_SYSTEM_ID,
         WorldSide,
         anomalyDifficulty,
+        demandedGoods,
         eventDefinition,
         eventsIn,
         starSystemDefinition
     } from '@tabletop/stellar-horizons-2'
-    import { EVENT_ART, EXPLORATION_MARKER_ART, SYSTEM_ART, WORLD_ART } from '$lib/art/manifest.js'
+    import {
+        DEMAND_ART,
+        EVENT_ART,
+        EXPLORATION_MARKER_ART,
+        SYSTEM_ART,
+        WORLD_ART
+    } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { tileOutline, type SystemFrame } from '$lib/utils/boardLayout.js'
     import type { ShipPipLayout } from '$lib/utils/shipPipLayout.js'
     import { systemName } from '$lib/utils/presentation.js'
+    import { goodName } from '$lib/utils/trade.js'
     import {
         ANOMALY_SIZE,
         MARKER_SCALE_ON_ANOMALY,
@@ -28,6 +36,8 @@
     // Events sit to the left of the anomaly's place, one after another.
     const EVENT_SIZE = 96
     const EVENT_SPACING = 104
+    // The demand marker sits in the tile's upper left, under the end of its name.
+    const DEMAND_SIZE = 56
 
     let {
         frame,
@@ -44,6 +54,7 @@
     const gameSession = getGameSession()
     const system = $derived(gameSession.gameState.systemState(frame.systemId))
     const events = $derived(eventsIn(gameSession.gameState, frame.systemId))
+    const demand = $derived(demandedGoods(gameSession.gameState, frame.systemId))
     const explorationField = $derived(
         frame.systemId === SOL_SYSTEM_ID
             ? undefined
@@ -160,6 +171,19 @@
             ></image>
             <text class="marker-value" y="16" text-anchor="middle">{system.explorationMarker}</text>
         </g>
+    {/if}
+
+    {#if demand.length > 0}
+        <image
+            href={DEMAND_ART[frame.systemId === SOL_SYSTEM_ID ? 'Sol' : demand[0]]}
+            x={-frame.width * 0.33 - DEMAND_SIZE / 2}
+            y={-frame.height * 0.25 - DEMAND_SIZE / 2}
+            width={DEMAND_SIZE}
+            height={DEMAND_SIZE}
+            pointer-events="none"
+            filter="url(#sh-piece-shadow)"
+            ><title>Demand: {demand.map(goodName).join(', ')}</title></image
+        >
     {/if}
 
     {#each bases as tab (tab.base.playerId)}

@@ -9,9 +9,10 @@ import {
     baseKey,
     type CargoPartner,
     type HydratedStellarHorizonsGameState,
-    type ShipState
+    type ShipState,
+    TradeGood
 } from '@tabletop/stellar-horizons-2'
-import { cargoTransferView } from './cargoTransferView.js'
+import { cargoDraftFits, cargoTransferView, goodsAfterMoves } from './cargoTransferView.js'
 
 const engine = new GameEngine(StellarHorizonsRuntime)
 const EARTH: CargoPartner = { kind: CargoPartnerKind.Earth }
@@ -54,6 +55,7 @@ function place(
         transit: 0,
         damage: 0,
         settlements,
+        goods: [],
         loadedFromBase: false,
         explored: false
     }
@@ -65,7 +67,9 @@ describe('cargo transfer view', () => {
     it('prices a purchase at Earth and stops at the hold', () => {
         const state = cargoState()
         const ship = place(state, 'starfarers-andromeda', 'sol')
-        expect(cargoTransferView(state, ship, EARTH, 0)).toMatchObject({
+        expect(
+            cargoTransferView(state, ship, { partner: EARTH, settlements: 0, goods: [] })
+        ).toMatchObject({
             shipSettlements: 0,
             partnerSettlements: undefined,
             settlementCost: 5,
@@ -74,7 +78,9 @@ describe('cargo transfer view', () => {
             canUnload: false,
             unloadBlock: 'Settlements cannot be left at Earth'
         })
-        expect(cargoTransferView(state, ship, EARTH, 2)).toMatchObject({
+        expect(
+            cargoTransferView(state, ship, { partner: EARTH, settlements: 2, goods: [] })
+        ).toMatchObject({
             shipSettlements: 2,
             cost: 10,
             canLoad: false,
@@ -87,7 +93,9 @@ describe('cargo transfer view', () => {
         const state = cargoState()
         state.getPlayerState('p0').cash = 7
         const ship = place(state, 'starfarers-andromeda', 'sol')
-        expect(cargoTransferView(state, ship, EARTH, 1)).toMatchObject({
+        expect(
+            cargoTransferView(state, ship, { partner: EARTH, settlements: 1, goods: [] })
+        ).toMatchObject({
             canLoad: false,
             loadBlock: 'Not enough cash'
         })
@@ -101,7 +109,9 @@ describe('cargo transfer view', () => {
             kind: CargoPartnerKind.Ship,
             shipId: 'starfarers-discovery'
         }
-        expect(cargoTransferView(state, ship, partner, -1)).toMatchObject({
+        expect(
+            cargoTransferView(state, ship, { partner: partner, settlements: -1, goods: [] })
+        ).toMatchObject({
             shipSettlements: 1,
             partnerSettlements: 1,
             cost: 0,
@@ -109,7 +119,9 @@ describe('cargo transfer view', () => {
             canUnload: false,
             unloadBlock: "Discovery's hold is full"
         })
-        expect(cargoTransferView(state, ship, partner, 0)).toMatchObject({
+        expect(
+            cargoTransferView(state, ship, { partner: partner, settlements: 0, goods: [] })
+        ).toMatchObject({
             canLoad: false,
             loadBlock: 'The hold is full'
         })
@@ -123,9 +135,13 @@ describe('cargo transfer view', () => {
             systemId: 'alpha-centauri',
             settlements: 3,
             spent: 0,
-            cloned: false
+            cloned: false,
+            goods: [],
+            goodsReceived: 0
         }
-        expect(cargoTransferView(state, ship, BASE, 0)).toMatchObject({
+        expect(
+            cargoTransferView(state, ship, { partner: BASE, settlements: 0, goods: [] })
+        ).toMatchObject({
             shipSettlements: 0,
             partnerSettlements: 3,
             settlementCost: undefined,
@@ -133,11 +149,41 @@ describe('cargo transfer view', () => {
             canUnload: false,
             unloadBlock: 'None aboard'
         })
-        expect(cargoTransferView(state, ship, BASE, 1)).toMatchObject({
+        expect(
+            cargoTransferView(state, ship, { partner: BASE, settlements: 1, goods: [] })
+        ).toMatchObject({
             shipSettlements: 1,
             partnerSettlements: 2,
             canLoad: false,
             loadBlock: 'A ship loads at most 1 settlement from a base each turn'
         })
+    })
+
+    it('moves goods beside settlements, within the hold and Earth’s storage', () => {
+        const state = cargoState()
+        const ship = place(state, 'starfarers-andromeda', 'sol', 1)
+        ship.goods = [TradeGood.Food]
+        state.getPlayerState('p0').earthGoods = [TradeGood.Ore]
+        const draft = (goods: { good: TradeGood; count: number }[]) => ({
+            partner: EARTH,
+            settlements: 0,
+            goods
+        })
+        // Andromeda carries 2: a settlement and Food fill it.
+        expect(cargoDraftFits(state, ship, draft([{ good: TradeGood.Ore, count: 1 }]))).toBe(false)
+        const swap = draft([
+            { good: TradeGood.Food, count: -1 },
+            { good: TradeGood.Ore, count: 1 }
+        ])
+        expect(cargoDraftFits(state, ship, swap)).toBe(true)
+        expect(cargoTransferView(state, ship, swap).goods).toMatchObject([
+            { good: TradeGood.Food, onShip: 0, atPartner: 1 },
+            { good: TradeGood.Ore, onShip: 1, atPartner: 0 }
+        ])
+        expect(goodsAfterMoves(ship.goods, swap.goods, 1)).toEqual([TradeGood.Ore])
+        state.getPlayerState('p0').earthGoods = Array(10).fill(TradeGood.Ore)
+        expect(cargoDraftFits(state, ship, draft([{ good: TradeGood.Food, count: -1 }]))).toBe(
+            false
+        )
     })
 })

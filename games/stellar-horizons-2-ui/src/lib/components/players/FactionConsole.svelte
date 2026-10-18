@@ -3,7 +3,11 @@
     import {
         ActionType,
         CASH_PER_INFLUENCE,
+        GOOD_CASH,
+        MAX_GOODS,
         TECH_FIELDS,
+        goodsCount,
+        isCampaign,
         anomalyDefinition,
         galacticRank,
         shipDefinition
@@ -19,7 +23,9 @@
         plural,
         systemName
     } from '$lib/utils/presentation.js'
+    import { goodName, holdings } from '$lib/utils/trade.js'
     import AnomalyTile from '../AnomalyTile.svelte'
+    import GoodChit from '../GoodChit.svelte'
     import TechMarkerTotal from '../TechMarkerTotal.svelte'
     import BaseTab from './BaseTab.svelte'
     import ShipIcon from './ShipIcon.svelte'
@@ -34,6 +40,10 @@
     const canSpendInfluence = $derived(
         mine && gameSession.validActionTypes.includes(ActionType.SpendInfluence)
     )
+    const canDestroyGoods = $derived(
+        mine && gameSession.validActionTypes.includes(ActionType.DestroyGoods)
+    )
+    const goods = $derived(playerId ? holdings(gameSession.gameState, playerId) : [])
 
     const SCORE_LINES = [
         ['techs', 'Techs not developed'],
@@ -184,6 +194,44 @@
                 {/each}
             </section>
 
+            {#if playerId && isCampaign(gameSession.gameState)}
+                <section>
+                    <h4>
+                        Goods <span
+                            >{goodsCount(gameSession.gameState, playerId)} of {MAX_GOODS}</span
+                        >
+                    </h4>
+                    {#each goods as holding (holding.label)}
+                        <div class="holding">
+                            <span class="where">{holding.label}</span>
+                            <span class="chits">
+                                {#each holding.groups as group (group.good)}
+                                    <span class="chit">
+                                        <GoodChit good={group.good} count={group.count} size={26} />
+                                        {#if canDestroyGoods}
+                                            <button
+                                                type="button"
+                                                class="spend"
+                                                title="Destroy one {goodName(
+                                                    group.good
+                                                )} for ${GOOD_CASH}B"
+                                                onclick={() =>
+                                                    gameSession.destroyGood(
+                                                        holding.holder,
+                                                        group.good
+                                                    )}>1 → ${GOOD_CASH}B</button
+                                            >
+                                        {/if}
+                                    </span>
+                                {/each}
+                            </span>
+                        </div>
+                    {:else}
+                        <div class="note">No goods</div>
+                    {/each}
+                </section>
+            {/if}
+
             <section>
                 <h4>Ships <span>{shipCount}</span></h4>
                 {#each view.fleet as group (group.systemId)}
@@ -237,6 +285,30 @@
 {/if}
 
 <style>
+    .holding {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 0;
+    }
+
+    .holding .where {
+        min-width: 96px;
+        font-size: 13px;
+    }
+
+    .chits {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+    }
+
+    .chit {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
     .anomalies {
         display: flex;
         flex-wrap: wrap;

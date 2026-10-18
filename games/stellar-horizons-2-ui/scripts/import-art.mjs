@@ -131,6 +131,21 @@ const EVENT_ART = {
     'ai-sentient-emergence': 'EventAI Sentient Emergence 6-IP.png'
 }
 
+// The goods' chits and the demand markers, by the TradeGood they show. Each good's front gives
+// the worlds that produce it; its back, the price. Sol's marker names three goods.
+const TRADE_GOOD_ART = {
+    Beverages: 'Beverages',
+    Entertainment: 'Entertainment',
+    Fauna: 'Fauna',
+    FineArt: 'Fine Art',
+    Flora: 'Flora',
+    Food: 'Food',
+    Machinery: 'Machinery',
+    Medicine: 'Medicine',
+    Ore: 'Ore',
+    RareMaterials: 'Rare Materials'
+}
+
 rmSync(outDir, { recursive: true, force: true })
 for (const dir of [
     'systems',
@@ -141,7 +156,9 @@ for (const dir of [
     'factions',
     'anomalies',
     'anomaly-backs',
-    'events'
+    'events',
+    'goods',
+    'demand'
 ]) {
     mkdirSync(join(outDir, dir), { recursive: true })
 }
@@ -236,7 +253,10 @@ const entries = {
     exploration: {},
     anomalies: {},
     anomalyBacks: {},
-    events: {}
+    events: {},
+    goods: {},
+    goodBacks: {},
+    demand: {}
 }
 let importIndex = 0
 function register(group, key, path) {
@@ -605,6 +625,17 @@ for (const [eventId, file] of Object.entries(EVENT_ART)) {
     register('events', eventId, `events/${eventId}.webp`)
 }
 
+for (const [good, art] of Object.entries(TRADE_GOOD_ART)) {
+    webp(`${art}.png`, `goods/${good}.webp`)
+    register('goods', good, `goods/${good}.webp`)
+    webp(`${art} b.png`, `goods/${good}-back.webp`)
+    register('goodBacks', good, `goods/${good}-back.webp`)
+    webp(`Demand ${art}.png`, `demand/${good}.webp`)
+    register('demand', good, `demand/${good}.webp`)
+}
+webp('Demand SOL.png', 'demand/Sol.webp')
+register('demand', 'Sol', 'demand/Sol.webp')
+
 const worldLines = Object.entries(entries.worlds).map(
     ([tileId, urls]) => `    '${tileId}': { I: ${urls.I}${urls.II ? `, II: ${urls.II}` : ''} },`
 )
@@ -678,6 +709,19 @@ ${record('events').join('\n')}
 }
 
 export const EVENT_ART_SIZE = ${JSON.stringify(EVENT_SIZE)}
+
+export const TRADE_GOOD_ART: Record<string, string> = {
+${record('goods').join('\n')}
+}
+
+export const TRADE_GOOD_BACK_ART: Record<string, string> = {
+${record('goodBacks').join('\n')}
+}
+
+// Keyed by TradeGood, and 'Sol' for Sol's permanent marker.
+export const DEMAND_ART: Record<string, string> = {
+${record('demand').join('\n')}
+}
 
 export const ANOMALY_BADGE: Record<
     string,

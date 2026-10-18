@@ -18,7 +18,8 @@ export const PHASE_LABELS: Record<TurnPhase, string> = {
     [TurnPhase.Exploration]: 'Exploration',
     [TurnPhase.Development]: 'Develop techs',
     [TurnPhase.Initiative]: 'Initiative',
-    [TurnPhase.BaseProduction]: 'Base production'
+    [TurnPhase.BaseProduction]: 'Base production',
+    [TurnPhase.TradeGoods]: 'Trade goods'
 }
 
 export const PHASE_DONE_LABELS: Record<TurnPhase, string> = {
@@ -28,7 +29,8 @@ export const PHASE_DONE_LABELS: Record<TurnPhase, string> = {
     [TurnPhase.Exploration]: 'Done exploring',
     [TurnPhase.Development]: 'Done developing',
     [TurnPhase.Initiative]: 'Declare',
-    [TurnPhase.BaseProduction]: 'Done producing'
+    [TurnPhase.BaseProduction]: 'Done producing',
+    [TurnPhase.TradeGoods]: 'Assign goods'
 }
 
 export const PHASE_STARTED: Record<TurnPhase, string> = {
@@ -38,7 +40,8 @@ export const PHASE_STARTED: Record<TurnPhase, string> = {
     [TurnPhase.Exploration]: 'starts exploring',
     [TurnPhase.Development]: 'starts developing techs',
     [TurnPhase.Initiative]: 'starts declaring IP for initiative',
-    [TurnPhase.BaseProduction]: 'starts choosing base production'
+    [TurnPhase.BaseProduction]: 'starts choosing base production',
+    [TurnPhase.TradeGoods]: 'starts assigning trade goods'
 }
 
 export const PHASE_FINISHED: Record<TurnPhase, string> = {
@@ -48,7 +51,8 @@ export const PHASE_FINISHED: Record<TurnPhase, string> = {
     [TurnPhase.Exploration]: 'finished exploring',
     [TurnPhase.Development]: 'finished developing techs',
     [TurnPhase.Initiative]: 'declared IP for initiative',
-    [TurnPhase.BaseProduction]: 'chose base production'
+    [TurnPhase.BaseProduction]: 'chose base production',
+    [TurnPhase.TradeGoods]: 'assigned trade goods'
 }
 
 export const PHASE_SKIPPED: Record<TurnPhase, string> = {
@@ -58,7 +62,8 @@ export const PHASE_SKIPPED: Record<TurnPhase, string> = {
     [TurnPhase.Exploration]: 'has nothing to explore',
     [TurnPhase.Development]: 'has no tech to develop',
     [TurnPhase.Initiative]: 'has no IP to declare',
-    [TurnPhase.BaseProduction]: 'has no base to produce at'
+    [TurnPhase.BaseProduction]: 'has no base to produce at',
+    [TurnPhase.TradeGoods]: 'drew no trade goods'
 }
 
 export const PHASE_OVER: Record<TurnPhase, string> = {
@@ -68,7 +73,8 @@ export const PHASE_OVER: Record<TurnPhase, string> = {
     [TurnPhase.Exploration]: 'Everyone has finished exploring.',
     [TurnPhase.Development]: 'Everyone has finished developing techs.',
     [TurnPhase.Initiative]: 'Everyone has declared their IP.',
-    [TurnPhase.BaseProduction]: 'Every base has chosen what to produce.'
+    [TurnPhase.BaseProduction]: 'Every base has chosen what to produce.',
+    [TurnPhase.TradeGoods]: 'Everyone has assigned their trade goods.'
 }
 
 export const ECONOMIC_TILE_LABELS: Record<EconomicTile, string> = {
@@ -79,11 +85,6 @@ export const ECONOMIC_TILE_LABELS: Record<EconomicTile, string> = {
     [EconomicTile.DrawTradeGoods]: 'Draw trade goods',
     [EconomicTile.SettlementGrowth]: 'Growth & migration',
     [EconomicTile.Terraforming]: 'Terraforming'
-}
-
-// Tiles whose rules arrive with later slices of the campaign.
-export const ECONOMIC_TILE_NOT_YET: Partial<Record<EconomicTile, string>> = {
-    [EconomicTile.DrawTradeGoods]: 'Trade goods are not in the game yet, so this tile does nothing.'
 }
 
 // What a base's production yields, as the production panel and history name it.

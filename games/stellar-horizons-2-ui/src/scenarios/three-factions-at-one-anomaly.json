@@ -32,17 +32,17 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 1457359421,
+  "seed": 3841982839,
   "activePlayerIds": [
    "p0"
   ],
-  "createdAt": "2026-10-18T12:47:10.307Z",
+  "createdAt": "2026-10-18T18:13:57.303Z",
   "storage": "remote",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "wIoNfKJLXf8xLhwEelZUR",
+  "id": "JhNk85iZeBCpRHqW15oJ7",
   "gameId": "scenario-three-factions-at-one-anomaly",
   "seed": 3367980177,
   "prng": {
@@ -188,6 +188,9 @@
     "eventAttempts": [],
     "breakthroughs": [],
     "explorationMarkers": 0,
+    "earthGoods": [],
+    "drawnGoods": [],
+    "discardedGoods": [],
     "faction": "Starfarers"
    },
    {
@@ -316,6 +319,9 @@
     "eventAttempts": [],
     "breakthroughs": [],
     "explorationMarkers": 0,
+    "earthGoods": [],
+    "drawnGoods": [],
+    "discardedGoods": [],
     "faction": "Praetorians"
    },
    {
@@ -444,6 +450,9 @@
     "eventAttempts": [],
     "breakthroughs": [],
     "explorationMarkers": 0,
+    "earthGoods": [],
+    "drawnGoods": [],
+    "discardedGoods": [],
     "faction": "Givers"
    }
   ],
@@ -649,6 +658,7 @@
     "transit": 0,
     "damage": 0,
     "settlements": 0,
+    "goods": [],
     "loadedFromBase": false,
     "explored": false
    },
@@ -659,6 +669,7 @@
     "transit": 0,
     "damage": 0,
     "settlements": 0,
+    "goods": [],
     "loadedFromBase": false,
     "explored": false
    },
@@ -669,6 +680,7 @@
     "transit": 0,
     "damage": 0,
     "settlements": 0,
+    "goods": [],
     "loadedFromBase": false,
     "explored": false
    },
@@ -679,6 +691,7 @@
     "transit": 0,
     "damage": 0,
     "settlements": 0,
+    "goods": [],
     "loadedFromBase": false,
     "explored": false
    },
@@ -689,6 +702,7 @@
     "transit": 0,
     "damage": 0,
     "settlements": 0,
+    "goods": [],
     "loadedFromBase": false,
     "explored": false
    },
@@ -699,6 +713,7 @@
     "transit": 0,
     "damage": 0,
     "settlements": 0,
+    "goods": [],
     "loadedFromBase": false,
     "explored": false
    }
@@ -709,21 +724,27 @@
     "systemId": "alpha-centauri",
     "settlements": 25,
     "spent": 0,
-    "cloned": false
+    "cloned": false,
+    "goods": [],
+    "goodsReceived": 0
    },
    "p2:luhman-16": {
     "playerId": "p2",
     "systemId": "luhman-16",
     "settlements": 25,
     "spent": 0,
-    "cloned": false
+    "cloned": false,
+    "goods": [],
+    "goodsReceived": 0
    },
    "p0:barnards-star": {
     "playerId": "p0",
     "systemId": "barnards-star",
     "settlements": 25,
     "spent": 0,
-    "cloned": false
+    "cloned": false,
+    "goods": [],
+    "goodsReceived": 0
    }
   },
   "worldPool": [
@@ -991,6 +1012,11 @@
    }
   ],
   "settlementRewards": [],
+  "goodsRewards": [],
+  "goodsPool": [],
+  "demandPool": [],
+  "demandDraws": [],
+  "traders": [],
   "startingPositionRandom": [
    {
     "playerId": "p0",

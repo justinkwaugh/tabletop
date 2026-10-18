@@ -9,8 +9,10 @@ import {
     ActionType,
     EconomicTile,
     Faction,
+    GoodsHolderKind,
     ScenarioId,
     TechId,
+    TradeGood,
     TurnPhase,
     WorldSide,
     recordPledgeableShips
@@ -246,6 +248,116 @@ function campaignRewardSettlements() {
     return { game, state: finishDecade(game, arranged) }
 }
 
+// Moves goods from the pool to where a scenario wants them.
+function takeGoods(state, goods) {
+    for (const good of goods) {
+        state.goodsPool.splice(state.goodsPool.indexOf(good), 1)
+    }
+    return [...goods]
+}
+
+/**
+ * 2110 draws the trade goods tile. The Starfarers draw Food, Ore and Fine Art, with bases at
+ * Alpha Centauri (M and D worlds) and Luhman 16 (a J world).
+ */
+function campaignTradeGoods() {
+    const drawn = campaignInto(EconomicTile.DrawTradeGoods, 3, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        placeWorlds(state, 'alpha-centauri', [
+            [is('m-1'), WorldSide.I],
+            [ofClass('d-'), WorldSide.I]
+        ])
+        placeWorlds(state, 'luhman-16', [[ofClass('j-'), WorldSide.I]])
+        placeBase(state, starfarers, 'alpha-centauri', 6)
+        placeBase(state, starfarers, 'luhman-16', 3)
+        placeBase(state, playerOf(state, Faction.Givers), 'alpha-centauri', 4)
+    })
+    const state = edit(drawn.state, (current) => {
+        const player = current.getPlayerState(playerOf(current, Faction.Starfarers))
+        current.goodsPool.push(...player.drawnGoods)
+        player.drawnGoods = takeGoods(current, [TradeGood.Food, TradeGood.Ore, TradeGood.FineArt])
+    })
+    return { game: drawn.game, state }
+}
+
+/**
+ * The cargo and trade phase of 2110, the Starfarers' turn. They have Medicine at their base at
+ * Alpha Centauri, where Medicine is in demand, Fauna aboard Andromeda at Barnard's Star, where
+ * the Givers have a base and Fauna is in demand, and Ore on Earth.
+ */
+function campaignTradeTurn() {
+    let starfarers
+    const ready = campaignInto(EconomicTile.EarthProduction, 3, (state) => {
+        starfarers = playerOf(state, Faction.Starfarers)
+        const givers = playerOf(state, Faction.Givers)
+        placeWorlds(state, 'alpha-centauri', [
+            [is('m-1'), WorldSide.I],
+            [ofClass('k-'), WorldSide.I]
+        ])
+        placeWorlds(state, 'barnards-star', [[ofClass('l-'), WorldSide.I]])
+        placeBase(state, starfarers, 'alpha-centauri', 6).goods = takeGoods(state, [
+            TradeGood.Medicine,
+            TradeGood.Food
+        ])
+        placeBase(state, givers, 'barnards-star', 5)
+        placeShip(state, starfarers, 'starfarers-andromeda', 'barnards-star', {
+            goods: takeGoods(state, [TradeGood.Fauna])
+        })
+        placeShip(state, starfarers, 'starfarers-polaris', 'alpha-centauri')
+        state.getPlayerState(starfarers).earthGoods = takeGoods(state, [TradeGood.Ore])
+        for (const [systemId, good] of [
+            ['alpha-centauri', TradeGood.Medicine],
+            ['barnards-star', TradeGood.Fauna]
+        ]) {
+            state.demandPool.splice(state.demandPool.indexOf(good), 1)
+            state.systemState(systemId).demand = good
+        }
+    })
+    return {
+        game: ready.game,
+        state: advanceTo(ready.game, ready.state, TurnPhase.Cargo, starfarers),
+        starfarers
+    }
+}
+
+/** After selling Medicine at Alpha Centauri the Starfarers choose its new demand marker. */
+function campaignDemandChoice() {
+    const { game, state, starfarers } = campaignTradeTurn()
+    const sold = execute(
+        game,
+        state,
+        userAction(game, starfarers, ActionType.SellGoods, {
+            systemId: 'alpha-centauri',
+            good: TradeGood.Medicine,
+            sources: [
+                { holder: { kind: GoodsHolderKind.Base, systemId: 'alpha-centauri' }, count: 1 }
+            ]
+        })
+    )
+    return { game, state: sold }
+}
+
+/** The Starfarers resolve Megafauna at Alpha Centauri and place its 2 Fauna. */
+function campaignRewardGoods() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        placeWorlds(state, 'alpha-centauri', [[is('m-1'), WorldSide.I]])
+        state.anomalyPool.splice(state.anomalyPool.indexOf('megafauna'), 1)
+        state.systemState('alpha-centauri').anomaly = 'megafauna'
+        placeBase(state, starfarers, 'alpha-centauri', 6)
+        placeShip(state, starfarers, 'starfarers-andromeda', 'alpha-centauri', {
+            settlements: 1
+        })
+        state.getPlayerState(starfarers).anomalyAttempts.push({
+            systemId: 'alpha-centauri',
+            anomalyId: 'megafauna',
+            shipIds: []
+        })
+    })
+    return { game, state: finishDecade(game, arranged) }
+}
+
 function write(slug, name, { game, state }) {
     // Players are named by their place in initiative order.
     const order = state.turnManager.turnOrder
@@ -281,3 +393,7 @@ write('campaign-mining', 'Campaign: mining and research', campaignMining())
 write('campaign-event', 'Campaign: placing an event', campaignEvent())
 write('campaign-anomaly-backs', 'Campaign: anomaly backs', campaignAnomalyBacks())
 write('campaign-reward-settlements', 'Campaign: reward settlements', campaignRewardSettlements())
+write('campaign-trade-goods', 'Campaign: assigning trade goods', campaignTradeGoods())
+write('campaign-trading', 'Campaign: cargo and trade', campaignTradeTurn())
+write('campaign-demand', 'Campaign: choosing demand', campaignDemandChoice())
+write('campaign-reward-goods', 'Campaign: reward goods', campaignRewardGoods())

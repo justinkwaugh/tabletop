@@ -81,4 +81,36 @@ Base production in 2110. Mineral Veins was resolved at Alpha Centauri and lies t
 
 The end of 2100's exploration. The Starfarers have committed to Splinter Colony at Alpha Centauri (an M world, no base) and resolve it; they have a base of 4 at Barnard's Star and room for a second base.
 
-- **Placing.** Splinter Colony gives 2 settlements. The map highlights Barnard's Star and Alpha Centauri; each click adds one settlement there, listed in the panel, and Undo takes the last one back. The button counts down the settlements left to place and enables Place settlements at none. One each makes Barnard's Star 5 and founds a base of 1 at Alpha Centauri. The development phase follows.
+- **Placing.** Splinter Colony gives 2 settlements. The map highlights Barnard's Star and Alpha Centauri; each click adds one settlement there, listed in the panel, and Undo takes the last one back. The button counts down the settlements left to place and enables Place settlements at none. One each makes Barnard's Star 5 and founds a base of 1 at Alpha Centauri. The new base draws Alpha Centauri's demand marker: the Starfarers keep one of the two drawn. The development phase follows.
+
+## Campaign trade goods
+
+2110 draws the trade goods tile. The Starfarers drew Food, Ore and Fine Art; they have bases at Alpha Centauri (6 settlements, an M and a D world) and Luhman 16 (3 settlements, a J world), each taking 1 good this turn. The Givers and Praetorians drew goods of their own.
+
+- **Assigning on the map.** The panel lists the three goods with Food first. The map highlights Alpha Centauri ("Food here") and Sol ("Food to Earth"). Clicking Alpha Centauri sends Food there; the room line shows Alpha Centauri takes 0 more.
+- **Nowhere to go.** Ore (A, D or K) now has no highlighted system: Alpha Centauri has taken its good for the turn, Luhman 16 has no such world and Ore cannot go to Earth. The panel says so; Discard Ore for $1B sets it aside.
+- **Finishing.** Fine Art goes to Luhman 16. The button reads "Assign goods, $1B for the rest"; Undo takes back one choice at a time. Assigning ends the Starfarers' Branch, the tracker marks them done, and the next Player assigns theirs.
+
+## Campaign trading
+
+The cargo and trade phase of 2110, played on the Main Line in initiative order; the Starfarers go first. They have Medicine and Food at their base at Alpha Centauri (an M and a K world), where Medicine is in demand; Fauna aboard Andromeda at Barnard's Star, where the Givers have a base and Fauna is in demand; Ore on Earth; and Polaris, empty, at Alpha Centauri.
+
+- **Selling.** "Sell goods where there is demand" offers Ore at Sol ($4B), Medicine at Alpha Centauri ($5B, +1 IP) and Fauna at Barnard's Star ($6B, +1 IP). Choosing Fauna shows "Pays Player 2 $1B": the Starfarers have no base there.
+- **Demand.** Selling Fauna returns Barnard's Star's marker and the Starfarers keep one of two new ones; the cargo step comes back with what is left to sell.
+- **Loading.** Choosing Polaris shows Earth-less partners: the base, with a row for Medicine and one for Food, each moving one good per arrow beside the settlement row.
+- **The map and the system panel.** Alpha Centauri's demand marker shows in its upper left; zooming in lists "Demand: Medicine sells for $5B each, and 1 IP" and the base's goods beside its settlements. Sol shows its own marker for Ore, Rare Materials and Fine Art.
+- **Goods in the console.** The faction console lists Goods 4 of 12 by place, Earth, Alpha Centauri and Andromeda, each with a 1 → $1B button to destroy one.
+- **Turn order.** Once the Starfarers have nothing more to load, unload or sell, their turn ends by itself and the next Player's begins.
+
+## Campaign demand
+
+The trading position after the Starfarers sold Medicine at Alpha Centauri: they choose the system's new demand marker.
+
+- **Keeping one.** The panel shows the two markers drawn; keeping one puts it on Alpha Centauri and returns the other to the pool, and the Starfarers' trading turn goes on.
+
+## Campaign reward goods
+
+The end of 2100's exploration. The Starfarers resolve Megafauna at Alpha Centauri, which gives 2 IP and 2 Fauna. They have a base of 6 there and Andromeda, carrying a settlement with room for one more.
+
+- **Placing.** The panel offers "Your base at Alpha Centauri" and Andromeda. Each click places one Fauna; Undo takes one back. The base takes only one good this turn, and Andromeda one.
+- **The rest.** "Place 1, destroy 1 for $1B" places what was chosen and destroys the rest for $1B each.

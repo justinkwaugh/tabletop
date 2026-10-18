@@ -58,6 +58,16 @@
         isStartTurn,
         isTerraform,
         isTransferCargo,
+        isAssignGoods,
+        isChooseDemand,
+        isDestroyGoods,
+        isDrawTradeGoods,
+        isPlaceRewardGoods,
+        isSellGoods,
+        isTransferGoods,
+        GoodsHolderKind,
+        type CargoPartner,
+        type GoodsHolder,
         shipDefinition,
         techDefinition,
         type CompensationCounts,
@@ -66,7 +76,6 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         ECONOMIC_TILE_LABELS,
-        ECONOMIC_TILE_NOT_YET,
         PHASE_FINISHED,
         PHASE_OVER,
         PHASE_SKIPPED,
@@ -77,6 +86,7 @@
         systemName
     } from '$lib/utils/presentation.js'
     import { pactTargetName, rewardSummary } from '$lib/utils/pacts.js'
+    import { goodName, goodsText } from '$lib/utils/trade.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
         $props()
@@ -103,10 +113,36 @@
         const notYet = reward.notYet.length
             ? ` (${reward.notYet.join(' and ')} not in the game yet)`
             : ''
+        const goodsCash = reward.goodsCash
+            ? ` ($${reward.goodsCash}B for goods the pool lacked)`
+            : ''
         return `${rewardSummary({
             ...reward,
-            markers: reward.markers.length ? `markers (${reward.markers.join(', ')})` : ''
-        })}${notYet}`
+            markers: reward.markers.length ? `markers (${reward.markers.join(', ')})` : '',
+            goods: reward.goods ? plural(reward.goods, 'good') : ''
+        })}${goodsCash}${notYet}`
+    }
+
+    function holderName(holder: GoodsHolder): string {
+        switch (holder.kind) {
+            case GoodsHolderKind.Earth:
+                return 'Earth'
+            case GoodsHolderKind.Base:
+                return `their base at ${systemName(holder.systemId)}`
+            case GoodsHolderKind.Ship:
+                return shipName(holder.shipId)
+        }
+    }
+
+    function transferPartnerName(partner: CargoPartner): string {
+        switch (partner.kind) {
+            case CargoPartnerKind.Earth:
+                return 'Earth'
+            case CargoPartnerKind.Base:
+                return 'their base'
+            case CargoPartnerKind.Ship:
+                return shipName(partner.shipId)
+        }
     }
 
     function settledText(entry: SettledMarkers): string {
@@ -192,6 +228,70 @@
                 )})</span
             >
         {/if}
+    {:else if isTransferGoods(action)}
+        {@const count = `${Math.abs(action.count)} ${goodName(action.good)}`}
+        <span
+            >{action.count > 0
+                ? `loaded ${count} onto ${shipName(action.shipId)} from ${transferPartnerName(action.partner)}`
+                : `unloaded ${count} from ${shipName(action.shipId)} to ${transferPartnerName(action.partner)}`}</span
+        >
+    {:else if isSellGoods(action)}
+        <span
+            >sold {action.metadata?.count ?? ''}
+            {goodName(action.good)} at {systemName(action.systemId)}{action.metadata
+                ? ` for $${action.metadata.cash}B${action.metadata.influence ? ` and ${action.metadata.influence} IP` : ''}`
+                : ''}</span
+        >
+        {#if action.payeeId && action.metadata}
+            <span class="inline-flex items-center gap-x-1"
+                >, paying <PlayerName playerId={action.payeeId} /> ${action.metadata.payment}B</span
+            >
+        {/if}
+    {:else if isChooseDemand(action)}
+        <span
+            >{action.metadata
+                ? `chose ${goodName(action.good)} demand for ${systemName(action.metadata.systemId)}, from ${action.metadata.drawn.map(goodName).join(' and ')}`
+                : `chose ${goodName(action.good)} demand`}</span
+        >
+    {:else if isDestroyGoods(action)}
+        <span
+            >destroyed {action.count}
+            {goodName(action.good)} at {holderName(action.holder)} for ${action.count}B</span
+        >
+    {:else if isDrawTradeGoods(action)}
+        <span>Trade goods drawn:</span>
+        {#each action.metadata?.draws ?? [] as draw, index (draw.playerId)}
+            <span class="inline-flex items-center gap-x-1"
+                ><PlayerName playerId={draw.playerId} />
+                {draw.goods.length > 0 ? goodsText(draw.goods) : 'none'}{index <
+                (action.metadata?.draws.length ?? 0) - 1
+                    ? ';'
+                    : ''}</span
+            >
+        {/each}
+    {:else if isAssignGoods(action)}
+        <span
+            >{action.assignments.length > 0
+                ? `assigned ${action.assignments
+                      .map(
+                          (assignment) =>
+                              `${goodName(assignment.good)} to ${assignment.systemId ? systemName(assignment.systemId) : 'Earth'}`
+                      )
+                      .join(', ')}`
+                : 'assigned no goods'}{action.metadata?.discarded.length
+                ? `; discarded ${goodsText(action.metadata.discarded)} for $${action.metadata.cash}B`
+                : ''}</span
+        >
+    {:else if isPlaceRewardGoods(action)}
+        <span
+            >{action.placements.length > 0
+                ? `put reward goods in ${action.placements
+                      .map((placement) => `${holderName(placement.holder)} (${placement.count})`)
+                      .join(', ')}`
+                : 'placed no reward goods'}{action.metadata?.destroyed
+                ? `; destroyed ${action.metadata.destroyed} for $${action.metadata.cash}B`
+                : ''}</span
+        >
     {:else if isMoveShip(action)}
         <span
             >sent {shipName(action.shipId)} to {systemName(action.systemId)}{action.metadata
@@ -229,8 +329,7 @@
                 >Economic phase: {ECONOMIC_TILE_LABELS[tile].toLowerCase()}.{action.metadata
                     .earthProduction.length > 0
                     ? ' Every faction collects its Earth production.'
-                    : ''}
-                {ECONOMIC_TILE_NOT_YET[tile] ?? ''}</span
+                    : ''}</span
             >
         {/if}
     {:else if isDeclareInitiative(action)}
@@ -261,7 +360,9 @@
         {#each action.metadata?.results ?? [] as result, index (`${result.playerId}:${result.systemId}`)}
             <span class="inline-flex items-center gap-x-1"
                 ><PlayerName playerId={result.playerId} />
-                {productionLabel(result.production, result.amount)} at {systemName(
+                {productionLabel(result.production, result.amount)}{result.goods.goods.length
+                    ? ` and ${goodsText(result.goods.goods)}`
+                    : ''}{result.goods.cash ? ` and $${result.goods.cash}B for goods` : ''} at {systemName(
                     result.systemId
                 )}{index < (action.metadata?.results.length ?? 0) - 1 ? ';' : ''}</span
             >

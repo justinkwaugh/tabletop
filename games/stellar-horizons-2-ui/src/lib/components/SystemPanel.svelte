@@ -6,10 +6,12 @@
         shipDefinition,
         type ShipState
     } from '@tabletop/stellar-horizons-2'
-    import { FACTION_ART, SETTLEMENT_ART } from '$lib/art/manifest.js'
+    import { DEMAND_ART, FACTION_ART, SETTLEMENT_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { FACTION_FILL, factionName, plural } from '$lib/utils/presentation.js'
     import { systemSummary } from '$lib/utils/systemSummary.js'
+    import { goodName, groupGoods } from '$lib/utils/trade.js'
+    import GoodChit from './GoodChit.svelte'
     import { ANOMALY_SIZE } from '$lib/utils/tileFeatures.js'
     import AnomalyCard from './AnomalyCard.svelte'
     import AnomalyTile from './AnomalyTile.svelte'
@@ -81,6 +83,23 @@
                 >
             </section>
         {/each}
+        {#if summary.demand}
+            {@const demand = summary.demand}
+            <section class="feature" aria-label="Demand">
+                <img
+                    class="demand"
+                    src={DEMAND_ART[demand.sol ? 'Sol' : demand.prices[0].good]}
+                    alt=""
+                    width="64"
+                    height="64"
+                />
+                <span class="feature-text"
+                    ><strong>Demand</strong>: {demand.prices
+                        .map(({ good, price }) => `${goodName(good)} sells for $${price}B`)
+                        .join(', ')}{demand.sol ? ', on Earth.' : ' each, and 1 IP.'}</span
+                >
+            </section>
+        {/if}
         {#each summary.pacts as pact (pact.id)}
             <PactSummary
                 {pact}
@@ -105,6 +124,13 @@
                             >{fleet.faction ? factionName(fleet.faction) : ''}</span
                         >
                     </div>
+                    {#if fleet.goods.length > 0}
+                        <div class="goods" aria-label="Goods at the base">
+                            {#each groupGoods(fleet.goods) as group (group.good)}
+                                <GoodChit good={group.good} count={group.count} size={28} />
+                            {/each}
+                        </div>
+                    {/if}
                     {#if fleet.settlements > 0 && fleet.faction}
                         <div
                             class="settlements"
@@ -172,6 +198,18 @@
 </aside>
 
 <style>
+    .demand {
+        flex-shrink: 0;
+        border-radius: 4px;
+    }
+
+    .goods {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-left: auto;
+    }
+
     /* The name and the way back stay put; only the fleets scroll beneath them. */
     .panel {
         height: 100%;

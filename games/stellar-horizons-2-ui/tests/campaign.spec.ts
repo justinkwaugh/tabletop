@@ -56,3 +56,41 @@ test('the economic phase of 2110 leads the phases with its tile', async ({ page 
         .first()
     await expect(first).toHaveAttribute('title', /^Economic phase: /)
 })
+
+async function openScenario(page: Page, name: string) {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Scenarios' }).click()
+    await page.getByText(name, { exact: true }).click()
+}
+
+test('drawn goods are assigned on the map, one at a time', async ({ page }) => {
+    await openScenario(page, 'Campaign trade goods')
+    await page
+        .getByRole('button', { name: 'Assign Food to your base at Alpha Centauri' })
+        .click({ force: true })
+    // Alpha Centauri has taken its one good this turn and no other base has an A, D or K world.
+    await expect(page.locator('[aria-label^="Assign Ore"]')).toHaveCount(0)
+    await expect(page.getByText('Ore has nowhere to go')).toBeVisible()
+    await page.getByRole('button', { name: 'Discard Ore for $1B' }).click()
+    await page
+        .getByRole('button', { name: 'Assign Fine Art to your base at Luhman 16' })
+        .click({ force: true })
+    await page.getByRole('button', { name: 'Assign goods, $1B for the rest' }).click()
+    // The Branch is played; the next Player assigns theirs, and the first is shown as done.
+    await expect(page.locator('[title="Player 1 has finished"]')).toBeVisible()
+})
+
+test('a sale beside another base pays its owner, then a new demand marker is chosen', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign trading')
+    await page.getByRole('button', { name: /Fauna at Barnard's Star/ }).click()
+    await expect(page.getByText('Pays Player 2 $1B')).toBeVisible()
+    await page.getByRole('button', { name: 'Sell 1 for $6B' }).click()
+    await expect(page.getByText("Barnard's Star gets a demand marker")).toBeVisible()
+    await page
+        .getByRole('button', { name: /^Keep .* demand$/ })
+        .first()
+        .click()
+    await expect(page.getByText('Sell goods where there is demand')).toBeVisible()
+})

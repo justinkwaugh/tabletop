@@ -27,6 +27,7 @@ function fleets(factionCount: number, shipsEach: number): ShipState[][] {
                 transit: 0,
                 damage: 0,
                 settlements: 0,
+                goods: [],
                 loadedFromBase: false,
                 explored: false
             }))

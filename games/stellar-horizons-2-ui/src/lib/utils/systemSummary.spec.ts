@@ -34,6 +34,7 @@ function ship(shipId: string, playerId: string, systemId: string, transit = 0): 
         transit,
         damage: 0,
         settlements: 0,
+        goods: [],
         loadedFromBase: false,
         explored: false
     }
@@ -64,7 +65,9 @@ describe('system summary', () => {
             systemId: 'alpha-centauri',
             settlements: 3,
             spent: 0,
-            cloned: false
+            cloned: false,
+            goods: [],
+            goodsReceived: 0
         }
         const { fleets } = systemSummary(state, 'alpha-centauri', 'p0')
         const mine = fleets.find((fleet) => fleet.playerId === 'p0')

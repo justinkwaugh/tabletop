@@ -10,7 +10,7 @@ import {
 } from '@tabletop/stellar-horizons-2'
 import { plural } from './presentation.js'
 
-export const SHARE_ITEMS = ['influence', 'cash', 'markers', 'settlements'] as const
+export const SHARE_ITEMS = ['influence', 'cash', 'markers', 'settlements', 'goods'] as const
 export type ShareItem = (typeof SHARE_ITEMS)[number]
 
 // An even split, with what does not divide going to the proposer.
@@ -50,6 +50,7 @@ export interface RewardParts {
     cash: number
     markers: string
     settlements: number
+    goods: string
 }
 
 export function rewardSummary(parts: RewardParts): string {
@@ -57,7 +58,8 @@ export function rewardSummary(parts: RewardParts): string {
         parts.influence ? `${parts.influence} IP` : '',
         parts.cash ? `$${parts.cash}B` : '',
         parts.markers,
-        parts.settlements ? plural(parts.settlements, 'settlement') : ''
+        parts.settlements ? plural(parts.settlements, 'settlement') : '',
+        parts.goods
     ].filter(Boolean)
     return listed.length > 0 ? listed.join(', ') : 'nothing'
 }
@@ -65,6 +67,7 @@ export function rewardSummary(parts: RewardParts): string {
 export function shareText(share: PactShare): string {
     return rewardSummary({
         ...share,
-        markers: share.markers ? plural(share.markers, 'marker') : ''
+        markers: share.markers ? plural(share.markers, 'marker') : '',
+        goods: share.goods ? plural(share.goods, 'good') : ''
     })
 }

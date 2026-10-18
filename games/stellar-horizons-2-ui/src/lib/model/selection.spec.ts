@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { AnomalyChallenge } from '@tabletop/stellar-horizons-2'
+import { GoodsHolderKind } from '@tabletop/stellar-horizons-2'
 import {
+    DISCARD,
+    EARTH,
     SelectionKind,
+    assignmentSelection,
+    rewardGoodsSelection,
+    selectedAssignmentDraft,
+    selectedRewardGoodsDraft,
     eventSelection,
     popSelection,
     rewardSelection,
@@ -31,6 +38,17 @@ describe('Undo over a selection', () => {
         const one = popSelection(two)
         expect(selectedRewardDraft(one)).toEqual({ systemIds: ['barnards-star'] })
         expect(popSelection(one)).toBeUndefined()
+    })
+
+    it('takes back one drawn good, or one reward good, at a time', () => {
+        const assigned = assignmentSelection({ destinations: ['alpha-centauri', DISCARD, EARTH] })
+        expect(selectedAssignmentDraft(popSelection(assigned))).toEqual({
+            destinations: ['alpha-centauri', DISCARD]
+        })
+        expect(popSelection(assignmentSelection({ destinations: [EARTH] }))).toBeUndefined()
+        const ship = { kind: GoodsHolderKind.Ship, shipId: 'starfarers-andromeda' } as const
+        const placed = rewardGoodsSelection({ holders: [ship, ship] })
+        expect(selectedRewardGoodsDraft(popSelection(placed))).toEqual({ holders: [ship] })
     })
 
     it('clears any other choice whole', () => {

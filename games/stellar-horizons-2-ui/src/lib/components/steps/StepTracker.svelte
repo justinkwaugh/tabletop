@@ -8,7 +8,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         ECONOMIC_TILE_LABELS,
-        ECONOMIC_TILE_NOT_YET,
         FACTION_FILL,
         PHASE_DONE_LABELS,
         PHASE_LABELS
@@ -19,7 +18,9 @@
     const current = $derived(gameSession.currentPhase)
     // The campaign's economic choices are spans of their own, played before the decade's phases.
     const economic = $derived(
-        current === TurnPhase.Initiative || current === TurnPhase.BaseProduction
+        current === TurnPhase.Initiative ||
+            current === TurnPhase.BaseProduction ||
+            current === TurnPhase.TradeGoods
     )
     const tile = $derived(
         isCampaign(gameSession.gameState) &&
@@ -110,9 +111,6 @@
                     </li>
                 {/each}
             </ol>
-        {/if}
-        {#if tile && ECONOMIC_TILE_NOT_YET[tile]}
-            <p class="not-yet">{ECONOMIC_TILE_NOT_YET[tile]}</p>
         {/if}
     </div>
     {#if acting && !economic}
@@ -308,11 +306,6 @@
             padding-right: 8px;
             padding-left: 8px;
         }
-    }
-
-    .not-yet {
-        font-size: 12px;
-        color: #8fa4c2;
     }
 
     .done {

@@ -19,7 +19,8 @@
         influence: 'IP',
         cash: '$B',
         markers: 'Markers',
-        settlements: 'Settlements'
+        settlements: 'Settlements',
+        goods: 'Goods'
     }
 
     const gameSession = getGameSession()

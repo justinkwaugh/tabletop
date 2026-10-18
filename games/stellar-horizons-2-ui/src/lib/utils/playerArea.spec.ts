@@ -43,6 +43,7 @@ function ship(shipId: string, playerId: string, systemId: string, transit = 0): 
         transit,
         damage: 0,
         settlements: 0,
+        goods: [],
         loadedFromBase: false,
         explored: false
     }
@@ -65,7 +66,9 @@ function settle(
         systemId,
         settlements,
         spent: 0,
-        cloned: false
+        cloned: false,
+        goods: [],
+        goodsReceived: 0
     }
 }
 

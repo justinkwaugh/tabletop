@@ -1,6 +1,9 @@
 import {
     FACTIONS,
+    SOL_SYSTEM_ID,
     anomalyDifficulty,
+    demandedGoods,
+    salePrice,
     eventChallenges,
     eventDifficulty,
     eventsIn,
@@ -14,14 +17,22 @@ import {
     type Faction,
     type Pact,
     type HydratedStellarHorizonsGameState,
-    type ShipState
+    type ShipState,
+    type TradeGood
 } from '@tabletop/stellar-horizons-2'
 
 export interface FleetSummary {
     playerId: string
     faction?: Faction
     settlements: number
+    goods: TradeGood[]
     ships: ShipState[]
+}
+
+// What sells here and for how much; Sol's marker names three goods and never changes.
+export interface DemandSummary {
+    sol: boolean
+    prices: { good: TradeGood; price: number }[]
 }
 
 export interface AnomalySummary {
@@ -41,6 +52,7 @@ export interface SystemSummary {
     turnedOver?: AnomalyDefinition
     events: EventSummary[]
     pacts: Pact[]
+    demand?: DemandSummary
     settlementGoal?: number
     fleets: FleetSummary[]
 }
@@ -62,9 +74,23 @@ export function systemSummary(
             }))
         })),
         pacts: standingPacts(state).filter((pact) => pact.systemId === systemId),
+        demand: demandSummary(state, systemId),
         settlementGoal: settlementVictory(state.scenarioDefinition())?.settlements,
         fleets: fleets(state, systemId, viewerId)
     }
+}
+
+function demandSummary(
+    state: HydratedStellarHorizonsGameState,
+    systemId: string
+): DemandSummary | undefined {
+    const goods = demandedGoods(state, systemId)
+    return goods.length > 0
+        ? {
+              sol: systemId === SOL_SYSTEM_ID,
+              prices: goods.map((good) => ({ good, price: salePrice(state, systemId, good) }))
+          }
+        : undefined
 }
 
 // The difficulty is the viewer's, with their faction's modifier.
@@ -108,6 +134,7 @@ function fleets(
             playerId: player.playerId,
             faction: player.faction,
             settlements: state.base(player.playerId, systemId)?.settlements ?? 0,
+            goods: state.base(player.playerId, systemId)?.goods ?? [],
             ships: state
                 .allShips()
                 .filter((ship) => ship.systemId === systemId && ship.playerId === player.playerId)

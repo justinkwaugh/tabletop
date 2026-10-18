@@ -10,8 +10,10 @@
     // NASA's Apollo 17 "Blue Marble" photograph (AS17-148-22727), public domain.
     import earthImage from '$lib/images/earth.webp'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import type { CargoTransferView } from '$lib/utils/cargoTransferView.js'
+    import { goodsAfterMoves, type CargoTransferView } from '$lib/utils/cargoTransferView.js'
+    import { goodName } from '$lib/utils/trade.js'
     import CargoHold from '../CargoHold.svelte'
+    import GoodChit from '../GoodChit.svelte'
     import SlidingToggle from '../SlidingToggle.svelte'
 
     let {
@@ -24,6 +26,8 @@
     const gameState = $derived(gameSession.gameState)
     const faction = $derived(gameState.getPlayerState(ship.playerId).faction)
     const drafted = $derived(gameSession.draftedSettlements)
+    const goodsMoves = $derived(gameSession.cargoMoves?.goods ?? [])
+    const changed = $derived(drafted !== 0 || goodsMoves.length > 0)
     const partnerShip = $derived(
         partner.kind === CargoPartnerKind.Ship
             ? gameState.playerShip(ship.playerId, partner.shipId)
@@ -71,6 +75,7 @@
                     {gameState}
                     {ship}
                     carried={view.shipSettlements}
+                    goods={goodsAfterMoves(ship.goods, goodsMoves, 1)}
                     width="auto"
                     showEmpty
                 />
@@ -95,6 +100,7 @@
                         {gameState}
                         ship={partnerShip}
                         carried={view.partnerSettlements}
+                        goods={goodsAfterMoves(partnerShip.goods, goodsMoves, -1)}
                         width="auto"
                         showEmpty
                     />
@@ -151,16 +157,42 @@
                 {/if}
             </span>
         </div>
+        {#each view.goods as row (row.good)}
+            {@const name = goodName(row.good)}
+            <div class="row" role="row">
+                <span class="item"><GoodChit good={row.good} size={20} /> {name}</span>
+                <span class="count" class:up={row.drafted > 0} class:down={row.drafted < 0}>
+                    <b>{row.onShip}</b>
+                </span>
+                <span class="arrows">
+                    <button
+                        type="button"
+                        aria-label="One {name} onto the ship"
+                        disabled={!row.canLoad}
+                        onclick={() => gameSession.draftGoods(row.good, 1)}>←</button
+                    >
+                    <button
+                        type="button"
+                        aria-label="One {name} off the ship"
+                        disabled={!row.canUnload}
+                        onclick={() => gameSession.draftGoods(row.good, -1)}>→</button
+                    >
+                </span>
+                <span class="count" class:up={row.drafted < 0} class:down={row.drafted > 0}>
+                    <b>{row.atPartner}</b>
+                </span>
+            </div>
+        {/each}
     </div>
 
     <div class="foot">
         <span class="net" class:cost={view.cost > 0}>
-            {#if drafted === 0}No changes{:else if view.cost > 0}Pay ${view.cost}B{:else}No cost{/if}
+            {#if !changed}No changes{:else if view.cost > 0}Pay ${view.cost}B{:else}No cost{/if}
         </span>
         <button
             type="button"
             class="primary"
-            disabled={drafted === 0}
+            disabled={!changed}
             onclick={() => gameSession.commitCargoDraft()}>Commit</button
         >
     </div>

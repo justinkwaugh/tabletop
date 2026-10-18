@@ -585,6 +585,37 @@ import art582 from '$lib/images/art/events/smugglers.webp'
 import art583 from '$lib/images/art/events/supervolcano.webp'
 import art584 from '$lib/images/art/events/unrest.webp'
 import art585 from '$lib/images/art/events/ai-sentient-emergence.webp'
+import art586 from '$lib/images/art/goods/Beverages.webp'
+import art587 from '$lib/images/art/goods/Beverages-back.webp'
+import art588 from '$lib/images/art/demand/Beverages.webp'
+import art589 from '$lib/images/art/goods/Entertainment.webp'
+import art590 from '$lib/images/art/goods/Entertainment-back.webp'
+import art591 from '$lib/images/art/demand/Entertainment.webp'
+import art592 from '$lib/images/art/goods/Fauna.webp'
+import art593 from '$lib/images/art/goods/Fauna-back.webp'
+import art594 from '$lib/images/art/demand/Fauna.webp'
+import art595 from '$lib/images/art/goods/FineArt.webp'
+import art596 from '$lib/images/art/goods/FineArt-back.webp'
+import art597 from '$lib/images/art/demand/FineArt.webp'
+import art598 from '$lib/images/art/goods/Flora.webp'
+import art599 from '$lib/images/art/goods/Flora-back.webp'
+import art600 from '$lib/images/art/demand/Flora.webp'
+import art601 from '$lib/images/art/goods/Food.webp'
+import art602 from '$lib/images/art/goods/Food-back.webp'
+import art603 from '$lib/images/art/demand/Food.webp'
+import art604 from '$lib/images/art/goods/Machinery.webp'
+import art605 from '$lib/images/art/goods/Machinery-back.webp'
+import art606 from '$lib/images/art/demand/Machinery.webp'
+import art607 from '$lib/images/art/goods/Medicine.webp'
+import art608 from '$lib/images/art/goods/Medicine-back.webp'
+import art609 from '$lib/images/art/demand/Medicine.webp'
+import art610 from '$lib/images/art/goods/Ore.webp'
+import art611 from '$lib/images/art/goods/Ore-back.webp'
+import art612 from '$lib/images/art/demand/Ore.webp'
+import art613 from '$lib/images/art/goods/RareMaterials.webp'
+import art614 from '$lib/images/art/goods/RareMaterials-back.webp'
+import art615 from '$lib/images/art/demand/RareMaterials.webp'
+import art616 from '$lib/images/art/demand/Sol.webp'
 
 export const SYSTEM_ART: Record<string, string> = {
     sol: art0,
@@ -1515,6 +1546,47 @@ export const EVENT_ART: Record<string, string> = {
 }
 
 export const EVENT_ART_SIZE = { width: 238, height: 238 }
+
+export const TRADE_GOOD_ART: Record<string, string> = {
+    Beverages: art586,
+    Entertainment: art589,
+    Fauna: art592,
+    FineArt: art595,
+    Flora: art598,
+    Food: art601,
+    Machinery: art604,
+    Medicine: art607,
+    Ore: art610,
+    RareMaterials: art613
+}
+
+export const TRADE_GOOD_BACK_ART: Record<string, string> = {
+    Beverages: art587,
+    Entertainment: art590,
+    Fauna: art593,
+    FineArt: art596,
+    Flora: art599,
+    Food: art602,
+    Machinery: art605,
+    Medicine: art608,
+    Ore: art611,
+    RareMaterials: art614
+}
+
+// Keyed by TradeGood, and 'Sol' for Sol's permanent marker.
+export const DEMAND_ART: Record<string, string> = {
+    Beverages: art588,
+    Entertainment: art591,
+    Fauna: art594,
+    FineArt: art597,
+    Flora: art600,
+    Food: art603,
+    Machinery: art606,
+    Medicine: art609,
+    Ore: art612,
+    RareMaterials: art615,
+    Sol: art616
+}
 
 export const ANOMALY_BADGE: Record<
     string,

@@ -16,6 +16,9 @@
     import EventPlacementStep from './steps/EventPlacementStep.svelte'
     import HomesteadersStep from './steps/HomesteadersStep.svelte'
     import RewardSettlementsStep from './steps/RewardSettlementsStep.svelte'
+    import AssignGoodsStep from './steps/AssignGoodsStep.svelte'
+    import DemandChoiceStep from './steps/DemandChoiceStep.svelte'
+    import RewardGoodsStep from './steps/RewardGoodsStep.svelte'
     import SurveyChoice from './steps/SurveyChoice.svelte'
     import TerraformStep from './steps/TerraformStep.svelte'
     import TerraformChoice from './steps/TerraformChoice.svelte'
@@ -54,6 +57,8 @@
             <InitiativeStep />
         {:else if gameSession.actingPhase === TurnPhase.BaseProduction}
             <ProductionStep />
+        {:else if gameSession.actingPhase === TurnPhase.TradeGoods}
+            <AssignGoodsStep />
         {/if}
     {:else if machineState === MachineState.ChoosingSurveyWorld}
         <SurveyChoice />
@@ -65,6 +70,10 @@
         <ConversionStep />
     {:else if machineState === MachineState.PlacingRewardSettlements}
         <RewardSettlementsStep />
+    {:else if machineState === MachineState.PlacingRewardGoods}
+        <RewardGoodsStep />
+    {:else if machineState === MachineState.ChoosingDemand}
+        <DemandChoiceStep />
     {:else if machineState === MachineState.PlacingEvent}
         <EventPlacementStep />
     {:else if machineState === MachineState.PlacingHomesteaders}
