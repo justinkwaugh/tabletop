@@ -404,13 +404,13 @@ describe('Branch Scope', () => {
             inFirstBranch(spanGame),
             spanAction('item-1', 'stash', 'p3', { label: 'mine' })
         ).updatedState
-        expect(stashed.items).toEqual({ 'item-1': { playerId: 'p3', label: 'mine' } })
+        expect(stashed.items['item-1']).toEqual({ playerId: 'p3', label: 'mine' })
         const dropped = execute(
             spanGame,
             stashed,
             spanAction('d1', 'drop', 'p3', { itemId: 'item-1' })
         ).updatedState
-        expect(dropped.items).toEqual({})
+        expect(dropped.items).toEqual(inFirstBranch(spanGame).items)
     })
 
     it('rejects removing another Player’s entry', () => {

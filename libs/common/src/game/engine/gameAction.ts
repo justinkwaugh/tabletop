@@ -67,6 +67,7 @@ export const GameAction = Type.Object({
     skipOptimisticExecution: Type.Optional(Type.Literal(true)),
     outOfTurn: Type.Optional(Type.Literal(true)),
     sequenced: Type.Optional(Type.Literal(true)),
+    common: Type.Optional(Type.Literal(true)),
     supersedesActionId: Type.Optional(Type.String()),
     createdAt: Type.Optional(DateType()),
     updatedAt: Type.Optional(DateType())
@@ -119,6 +120,7 @@ export abstract class HydratableAction<T extends Type.TSchema>
     declare skipOptimisticExecution?: true
     declare outOfTurn?: true
     declare sequenced?: true
+    declare common?: true
     declare supersedesActionId?: string
     declare createdAt?: Date
     declare updatedAt?: Date

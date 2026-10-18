@@ -428,6 +428,27 @@ describe('Reopening a Closed Branch on the Main Line', () => {
         expect(playerOf(reopened.state, 'p3')).toEqual(playerOf(others.updatedState, 'p3'))
     })
 
+    it('replays a Common Action that followed the removed close', () => {
+        const { spanGame, waiting } = closedFirst()
+        const offered = spanGame.engine.executeCanonicalAction({
+            game: spanGame.game,
+            state: waiting.updatedState,
+            action: spanAction('o2', 'propose', 'p2', { partnerId: 'p3', itemId: 'start-p2' })
+        })
+        const history = [...waiting.processedActions, ...offered.processedActions]
+        const reopened = removeBranchCloses({
+            engine: spanGame.engine,
+            game: spanGame.game,
+            state: offered.updatedState,
+            history,
+            playerIds: ['p1']
+        })
+        expect(summary(reopened.replayed)).toEqual(['propose:p2'])
+        expect(reopened.replayed[0].index).toBe(1)
+        expect(reopened.state.offers).toEqual(offered.updatedState.offers)
+        expect(reopened.state.parallelSpan?.closedPlayerIds).toEqual([])
+    })
+
     it('takes several off at once and starts from the earliest of them', () => {
         const spanGame = createSpanGame({ merge: 'barrier' })
         const state = beginSpan(spanGame)

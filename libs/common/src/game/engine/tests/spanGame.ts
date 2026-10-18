@@ -33,6 +33,14 @@ type SpanPlayerState = Type.Static<typeof SpanPlayerState>
 
 const SpanItem = Type.Object({ playerId: Type.String(), label: Type.String() })
 const SpanFlag = Type.Object({ label: Type.String(), playerId: Type.Optional(Type.String()) })
+const SpanOffer = Type.Object({
+    proposerId: Type.String(),
+    partnerId: Type.String(),
+    itemId: Type.String(),
+    partnerItemId: Type.Optional(Type.String()),
+    agreed: Type.Boolean()
+})
+export type SpanOffer = Type.Static<typeof SpanOffer>
 
 const SpanGameSchema = Type.Object({
     ...GameState.properties,
@@ -40,6 +48,7 @@ const SpanGameSchema = Type.Object({
         Type.Literal('setup'),
         Type.Literal('branching'),
         Type.Literal('working'),
+        Type.Literal('announcing'),
         Type.Literal('scoring')
     ]),
     players: Type.Array(SpanPlayerState),
@@ -48,7 +57,8 @@ const SpanGameSchema = Type.Object({
     items: Type.Record(Type.String(), SpanItem),
     line: Type.Array(SpanItem),
     flag: SpanFlag,
-    log: Type.Array(Type.String())
+    log: Type.Array(Type.String()),
+    offers: Type.Record(Type.String(), SpanOffer)
 })
 export type SpanGameState = Type.Static<typeof SpanGameSchema>
 const Validator = Compile(SpanGameSchema)
@@ -64,9 +74,41 @@ export class HydratedSpanGameState
     declare line: Type.Static<typeof SpanItem>[]
     declare flag: Type.Static<typeof SpanFlag>
     declare log: string[]
+    declare offers: Record<string, SpanOffer>
     constructor(data: SpanGameState) {
         super(data, Validator)
     }
+}
+
+function isClosed(state: SpanGameState, playerId: string): boolean {
+    return state.parallelSpan?.closedPlayerIds.includes(playerId) ?? false
+}
+
+// A pending offer naming a Player who has closed has lapsed, read from the span record.
+function hasLapsed(state: SpanGameState, offer: SpanOffer): boolean {
+    return !offer.agreed && (isClosed(state, offer.proposerId) || isClosed(state, offer.partnerId))
+}
+
+export function standingOffers(state: SpanGameState): SpanOffer[] {
+    return Object.values(state.offers).filter((offer) => !hasLapsed(state, offer))
+}
+
+function isHeld(state: SpanGameState, itemId: string): boolean {
+    return standingOffers(state).some(
+        (offer) => offer.itemId === itemId || offer.partnerItemId === itemId
+    )
+}
+
+function ownsFreeItem(state: SpanGameState, playerId: string, itemId: string): boolean {
+    return state.items[itemId]?.playerId === playerId && !isHeld(state, itemId)
+}
+
+function pendingOffersNaming(state: SpanGameState, playerId: string): SpanOffer[] {
+    return standingOffers(state).filter((offer) => !offer.agreed && offer.partnerId === playerId)
+}
+
+function pendingOffersBy(state: SpanGameState, playerId: string): SpanOffer[] {
+    return standingOffers(state).filter((offer) => !offer.agreed && offer.proposerId === playerId)
 }
 
 function userAction<const Name extends string, Properties extends Type.TProperties>(
@@ -83,6 +125,13 @@ function systemAction<const Name extends string, Properties extends Type.TProper
     return Type.Object({ ...GameAction.properties, type: Type.Literal(name), ...properties })
 }
 
+function commonAction<const Name extends string, Properties extends Type.TProperties>(
+    name: Name,
+    properties: Properties
+) {
+    return userAction(name, { common: Type.Literal(true), ...properties })
+}
+
 const Begin = userAction('begin', {})
 const Work = userAction('work', {})
 const Roll = userAction('roll', {})
@@ -96,12 +145,20 @@ const Poke = userAction('poke', { otherPlayerId: Type.String() })
 const CutIn = userAction('cutIn', {})
 const Claim = userAction('claim', {})
 const Finish = userAction('finish', {})
+const Hope = userAction('hope', {})
 const Shout = userAction('shout', { outOfTurn: Type.Literal(true) })
+const Propose = commonAction('propose', { partnerId: Type.String(), itemId: Type.String() })
+const Accept = commonAction('accept', { offerId: Type.String(), itemId: Type.String() })
+const Withdraw = commonAction('withdraw', { offerId: Type.String() })
+const Nudge = commonAction('nudge', { otherPlayerId: Type.String() })
+const Plant = commonAction('plant', {})
+const Chant = commonAction('chant', {})
 const OpenBranch = systemAction('openBranch', { playerId: Type.String() })
 const IdleSkip = systemAction('idleSkip', { playerId: Type.String() })
 const Noise = systemAction('noise', {})
 const NextSpan = systemAction('nextSpan', {})
 const Complete = systemAction('complete', {})
+const Announce = systemAction('announce', {})
 
 const BeginValidator = Compile(Begin)
 const WorkValidator = Compile(Work)
@@ -118,7 +175,15 @@ const ClaimValidator = Compile(Claim)
 const NoiseValidator = Compile(Noise)
 const NextSpanValidator = Compile(NextSpan)
 const FinishValidator = Compile(Finish)
+const HopeValidator = Compile(Hope)
 const ShoutValidator = Compile(Shout)
+const ProposeValidator = Compile(Propose)
+const AcceptValidator = Compile(Accept)
+const WithdrawValidator = Compile(Withdraw)
+const NudgeValidator = Compile(Nudge)
+const PlantValidator = Compile(Plant)
+const ChantValidator = Compile(Chant)
+const AnnounceValidator = Compile(Announce)
 const OpenBranchValidator = Compile(OpenBranch)
 const IdleSkipValidator = Compile(IdleSkip)
 const CompleteValidator = Compile(Complete)
@@ -268,6 +333,120 @@ class HydratedShout extends HydratableAction<typeof Shout> {
     apply(): void {}
 }
 
+class HydratedHope extends HydratableAction<typeof Hope> {
+    declare playerId: string
+    constructor(data: Type.Static<typeof Hope>) {
+        super(data, HopeValidator)
+    }
+    apply(state: HydratedSpanGameState): void {
+        state.getPlayerState(this.playerId).work += standingOffers(state).filter(
+            (offer) => offer.partnerId === this.playerId
+        ).length
+    }
+}
+
+class HydratedPropose extends HydratableAction<typeof Propose> {
+    declare playerId: string
+    declare partnerId: string
+    declare itemId: string
+    constructor(data: Type.Static<typeof Propose>) {
+        super(data, ProposeValidator)
+    }
+    isValid(state: SpanGameState): boolean {
+        return (
+            (state.parallelSpan?.playerIds.includes(this.partnerId) ?? false) &&
+            this.partnerId !== this.playerId &&
+            !isClosed(state, this.playerId) &&
+            !isClosed(state, this.partnerId) &&
+            ownsFreeItem(state, this.playerId, this.itemId)
+        )
+    }
+    apply(state: HydratedSpanGameState): void {
+        state.offers[this.id] = {
+            proposerId: this.playerId,
+            partnerId: this.partnerId,
+            itemId: this.itemId,
+            agreed: false
+        }
+    }
+}
+
+class HydratedAccept extends HydratableAction<typeof Accept> {
+    declare playerId: string
+    declare offerId: string
+    declare itemId: string
+    constructor(data: Type.Static<typeof Accept>) {
+        super(data, AcceptValidator)
+    }
+    isValid(state: SpanGameState): boolean {
+        return (
+            pendingOffersNaming(state, this.playerId).some(
+                (offer) => state.offers[this.offerId] === offer
+            ) && ownsFreeItem(state, this.playerId, this.itemId)
+        )
+    }
+    apply(state: HydratedSpanGameState): void {
+        const offer = state.offers[this.offerId]
+        offer.agreed = true
+        offer.partnerItemId = this.itemId
+        this.revealsInfo = true
+    }
+}
+
+class HydratedWithdraw extends HydratableAction<typeof Withdraw> {
+    declare playerId: string
+    declare offerId: string
+    constructor(data: Type.Static<typeof Withdraw>) {
+        super(data, WithdrawValidator)
+    }
+    isValid(state: SpanGameState): boolean {
+        const offer = state.offers[this.offerId]
+        return offer !== undefined && offer.proposerId === this.playerId && !offer.agreed
+    }
+    apply(state: HydratedSpanGameState): void {
+        Reflect.deleteProperty(state.offers, this.offerId)
+    }
+}
+
+class HydratedNudge extends HydratableAction<typeof Nudge> {
+    declare otherPlayerId: string
+    constructor(data: Type.Static<typeof Nudge>) {
+        super(data, NudgeValidator)
+    }
+    apply(state: HydratedSpanGameState): void {
+        state.getPlayerState(this.otherPlayerId).work += 1
+    }
+}
+
+class HydratedPlant extends HydratableAction<typeof Plant> {
+    declare playerId: string
+    constructor(data: Type.Static<typeof Plant>) {
+        super(data, PlantValidator)
+    }
+    apply(state: HydratedSpanGameState): void {
+        state.flag.playerId = this.playerId
+    }
+}
+
+class HydratedChant extends HydratableAction<typeof Chant> {
+    declare playerId: string
+    constructor(data: Type.Static<typeof Chant>) {
+        super(data, ChantValidator)
+    }
+    apply(state: HydratedSpanGameState): void {
+        state.log.push(`chant:${this.playerId}`)
+    }
+}
+
+class HydratedAnnounce extends HydratableAction<typeof Announce> {
+    constructor(data: Type.Static<typeof Announce>) {
+        super(data, AnnounceValidator)
+    }
+    apply(state: HydratedSpanGameState): void {
+        state.log.push('announced')
+    }
+}
+
 class HydratedOpenBranch extends HydratableAction<typeof OpenBranch> {
     constructor(data: Type.Static<typeof OpenBranch>) {
         super(data, OpenBranchValidator)
@@ -300,6 +479,12 @@ class HydratedComplete extends HydratableAction<typeof Complete> {
             state.pot += player.queued
             player.queued = 0
         }
+        for (const offer of Object.values(state.offers)) {
+            if (!offer.agreed || offer.partnerItemId === undefined) continue
+            state.items[offer.itemId].playerId = offer.partnerId
+            state.items[offer.partnerItemId].playerId = offer.proposerId
+        }
+        state.offers = {}
     }
 }
 
@@ -315,6 +500,7 @@ export interface SpanGameOptions {
     readonly sitsOut?: readonly string[]
     readonly mergeOrderOmits?: readonly string[]
     readonly spans?: number
+    readonly commonCascade?: 'announces' | 'strays' | 'returnsWithPending'
 }
 
 class Initializer extends BaseGameInitializer<SpanGameState, HydratedSpanGameState> {
@@ -330,10 +516,13 @@ class Initializer extends BaseGameInitializer<SpanGameState, HydratedSpanGameSta
             machineState: this.options.startsInSpan ? 'branching' : 'setup',
             pot: 0,
             spansCompleted: 0,
-            items: {},
+            items: Object.fromEntries(
+                playerIds.map((playerId) => [`start-${playerId}`, { playerId, label: 'start' }])
+            ),
             line: playerIds.map((playerId) => ({ playerId, label: 'waiting' })),
             flag: { label: 'unclaimed' },
             log: [],
+            offers: {},
             players: playerIds.map((playerId, index) => ({
                 playerId,
                 color: [Color.Red, Color.Blue, Color.Green][index],
@@ -365,7 +554,14 @@ const UserActions = {
     cutIn: CutIn,
     claim: Claim,
     finish: Finish,
-    shout: Shout
+    hope: Hope,
+    shout: Shout,
+    propose: Propose,
+    accept: Accept,
+    withdraw: Withdraw,
+    nudge: Nudge,
+    plant: Plant,
+    chant: Chant
 }
 
 const spanGameVisibility = {
@@ -376,7 +572,8 @@ const spanGameVisibility = {
         idleSkip: IdleSkip,
         noise: Noise,
         nextSpan: NextSpan,
-        complete: Complete
+        complete: Complete,
+        announce: Announce
     })
 }
 
@@ -393,9 +590,12 @@ const WorkingValidators = [
     CutInValidator,
     ClaimValidator,
     FinishValidator,
+    HopeValidator,
     ShoutValidator,
     IdleSkipValidator
 ]
+
+const CommonValidators = [NudgeValidator, PlantValidator, ChantValidator]
 
 export function spanGameRuntime(
     options: SpanGameOptions = {}
@@ -419,7 +619,15 @@ export function spanGameRuntime(
                 if (CutInValidator.Check(action)) return new HydratedCutIn(action)
                 if (ClaimValidator.Check(action)) return new HydratedClaim(action)
                 if (FinishValidator.Check(action)) return new HydratedFinish(action)
+                if (HopeValidator.Check(action)) return new HydratedHope(action)
                 if (ShoutValidator.Check(action)) return new HydratedShout(action)
+                if (ProposeValidator.Check(action)) return new HydratedPropose(action)
+                if (AcceptValidator.Check(action)) return new HydratedAccept(action)
+                if (WithdrawValidator.Check(action)) return new HydratedWithdraw(action)
+                if (NudgeValidator.Check(action)) return new HydratedNudge(action)
+                if (PlantValidator.Check(action)) return new HydratedPlant(action)
+                if (ChantValidator.Check(action)) return new HydratedChant(action)
+                if (AnnounceValidator.Check(action)) return new HydratedAnnounce(action)
                 if (OpenBranchValidator.Check(action)) return new HydratedOpenBranch(action)
                 if (IdleSkipValidator.Check(action)) return new HydratedIdleSkip(action)
                 if (NoiseValidator.Check(action)) return new HydratedNoise(action)
@@ -464,16 +672,54 @@ export function spanGameRuntime(
                     ) {
                         context.addSystemAction(Noise)
                     }
+                    if (
+                        options.commonCascade === 'returnsWithPending' &&
+                        state.log.at(-1)?.startsWith('chant:')
+                    ) {
+                        context.addSystemAction(Noise)
+                    }
                 },
-                validActionsForPlayer: () => [],
-                isValidAction: (action) =>
-                    OpenBranchValidator.Check(action) ||
-                    CompleteValidator.Check(action) ||
-                    NoiseValidator.Check(action),
+                validActionsForPlayer: (
+                    playerId: string,
+                    context: MachineContext<HydratedSpanGameState>
+                ) => {
+                    const state = context.gameState
+                    return [
+                        'propose',
+                        'chant',
+                        ...(pendingOffersNaming(state, playerId).length > 0 ? ['accept'] : []),
+                        ...(pendingOffersBy(state, playerId).length > 0 ? ['withdraw'] : [])
+                    ]
+                },
+                isValidAction: (action, context: MachineContext<HydratedSpanGameState>) => {
+                    if (action instanceof HydratedPropose) return action.isValid(context.gameState)
+                    if (action instanceof HydratedAccept) return action.isValid(context.gameState)
+                    if (action instanceof HydratedWithdraw) return action.isValid(context.gameState)
+                    return (
+                        OpenBranchValidator.Check(action) ||
+                        CompleteValidator.Check(action) ||
+                        NoiseValidator.Check(action) ||
+                        CommonValidators.some((validator) => validator.Check(action))
+                    )
+                },
                 onAction: (action) => {
                     if (CompleteValidator.Check(action)) return 'scoring'
-                    return NoiseValidator.Check(action) ? 'branching' : 'working'
+                    if (OpenBranchValidator.Check(action)) return 'working'
+                    if (ChantValidator.Check(action) && options.commonCascade !== undefined) {
+                        return options.commonCascade === 'returnsWithPending'
+                            ? 'branching'
+                            : 'announcing'
+                    }
+                    return 'branching'
                 }
+            },
+            announcing: {
+                enter(context: MachineContext<HydratedSpanGameState>) {
+                    if (options.commonCascade === 'announces') context.addSystemAction(Announce)
+                },
+                validActionsForPlayer: () => [],
+                isValidAction: (action) => AnnounceValidator.Check(action),
+                onAction: () => 'branching'
             },
             working: {
                 enter(context: MachineContext<HydratedSpanGameState>) {
@@ -486,8 +732,9 @@ export function spanGameRuntime(
                     playerId: string,
                     context: MachineContext<HydratedSpanGameState>
                 ) => (context.gameState.isActivePlayer(playerId) ? ['work', 'roll', 'finish'] : []),
-                isValidAction: (action) =>
-                    WorkingValidators.some((validator) => validator.Check(action)),
+                isValidAction: (action, context: MachineContext<HydratedSpanGameState>) =>
+                    WorkingValidators.some((validator) => validator.Check(action)) &&
+                    !(action instanceof HydratedDrop && isHeld(context.gameState, action.itemId)),
                 onAction: (action) =>
                     FinishValidator.Check(action) || IdleSkipValidator.Check(action)
                         ? 'branching'
@@ -552,6 +799,14 @@ export function createSpanGame(options: SpanGameOptions = {}) {
 }
 
 export type SpanActionType = keyof typeof UserActions
+export const SPAN_COMMON_TYPES: readonly SpanActionType[] = [
+    'propose',
+    'accept',
+    'withdraw',
+    'nudge',
+    'plant',
+    'chant'
+]
 type SpanActionFields<Name extends SpanActionType> = Omit<
     Type.Static<(typeof UserActions)[Name]>,
     keyof PlayerAction
@@ -570,6 +825,7 @@ export function spanAction<Name extends SpanActionType>(
         source: ActionSource.User,
         playerId,
         ...(type === 'shout' ? { outOfTurn: true } : {}),
+        ...(SPAN_COMMON_TYPES.includes(type) ? { common: true } : {}),
         ...fields
     }
 }

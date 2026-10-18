@@ -1,19 +1,28 @@
 import { assert, assertExists } from '../../../util/assertions.js'
+import { isCommonAction, isCommonActionType } from '../actionHistory.js'
 import type { UnmergedBranch } from '../branch.js'
 import { executeBranchAction, undoBranchAction } from '../branchExecution.js'
+import {
+    executeInBranchView,
+    latestCommonActionUndoTarget,
+    removeCommonAction,
+    settleCommonActionRace
+} from '../commonAction.js'
 import type { GameAction } from '../gameAction.js'
 import { combineCascades, type ActionCascadeResult } from '../gameEngine.js'
 import { removeBranchCloses, settleSpan } from '../hostedSpan.js'
-import { actsInBranch, isRestingInSpan } from '../parallelSpan.js'
+import { actsInBranch, isRestingInSpan, restingSpan } from '../parallelSpan.js'
+import { sameRun } from '../actionReplay.js'
 import { createSpanGame, type SpanGameOptions, type SpanGameState } from './spanGame.js'
 
 export interface SpanHostSubmission {
     readonly mainLine?: ActionCascadeResult<SpanGameState>
+    readonly raced?: GameAction[]
     readonly unmergedBranch?: UnmergedBranch
 }
 
 export interface SpanHostUndo {
-    readonly unmergedBranch: UnmergedBranch
+    readonly unmergedBranch?: UnmergedBranch
     readonly undoneActionIds: string[]
     readonly replay: { readonly startIndex: number; readonly actions: GameAction[] }
 }
@@ -39,11 +48,22 @@ export class SpanHost {
     }
 
     submit(action: GameAction): SpanHostSubmission {
-        if (isRestingInSpan(this.state)) return this.submitToBranch(action)
+        if (isRestingInSpan(this.state)) {
+            return isCommonActionType(this.runtime.apiActions, action.type)
+                ? this.submitCommonAction(action)
+                : this.submitToBranch(action)
+        }
         const mainLine = this.advanceMainLine(this.executeOnMainLine(action))
         const created =
             action.playerId === undefined ? undefined : this.unmergedBranch(action.playerId)
         return { mainLine, ...(created === undefined ? {} : { unmergedBranch: created }) }
+    }
+
+    undo(playerId: string, actionId: string): SpanHostUndo {
+        const target = this.actions.find((action) => action.id === actionId)
+        return target !== undefined && isCommonAction(target)
+            ? this.undoCommonAction(playerId, actionId)
+            : this.undoInBranch(playerId, actionId)
     }
 
     undoInBranch(playerId: string, actionId: string): SpanHostUndo {
@@ -67,6 +87,32 @@ export class SpanHost {
         }
     }
 
+    private undoCommonAction(playerId: string, actionId: string): SpanHostUndo {
+        const span = restingSpan(this.state)
+        assert(
+            latestCommonActionUndoTarget(this.actions, span, playerId)?.id === actionId,
+            `Player ${playerId} may not undo Common Action ${actionId}`
+        )
+        const undone = removeCommonAction({
+            engine: this.engine,
+            game: this.game,
+            state: this.state,
+            history: this.actions,
+            actionId
+        })
+        const startIndex = this.actions.length - undone.removed.length
+        this.state = undone.state
+        this.actions = [...this.actions.slice(0, startIndex), ...undone.replayed]
+        this.game.activePlayerIds = [...this.state.activePlayerIds]
+        const replayedIds = new Set(undone.replayed.map((action) => action.id))
+        return {
+            undoneActionIds: undone.removed
+                .filter((action) => !replayedIds.has(action.id))
+                .map((action) => action.id),
+            replay: { startIndex, actions: undone.replayed }
+        }
+    }
+
     private reopenOnMainLine(playerId: string): SpanHostUndo['replay'] {
         const reopened = removeBranchCloses({
             engine: this.engine,
@@ -84,6 +130,48 @@ export class SpanHost {
 
     private executeOnMainLine(action: GameAction): ActionCascadeResult<SpanGameState> {
         return this.engine.executeCanonicalAction({ game: this.game, state: this.state, action })
+    }
+
+    private submitCommonAction(action: GameAction): SpanHostSubmission {
+        const playerId = action.playerId
+        assertExists(playerId, 'A Common Action requires its Player')
+        const raced = this.reconcileRace(action)
+        const record = this.branches.get(playerId)
+        const executed = this.executeOnMainLine(action)
+        if (record !== undefined) {
+            const inBranchView = executeInBranchView({
+                engine: this.engine,
+                game: this.game,
+                state: this.state,
+                branch: record.branch,
+                action
+            })
+            assert(
+                sameRun(inBranchView.processedActions, executed.processedActions),
+                `Common Action ${action.id} runs differently in the Branch of ${playerId}`
+            )
+        }
+        this.state = executed.updatedState
+        this.actions.push(...executed.processedActions)
+        return { mainLine: executed, ...(raced.length > 0 ? { raced } : {}) }
+    }
+
+    private reconcileRace(action: GameAction): GameAction[] {
+        if (action.index === undefined || action.index >= this.state.actionCount) return []
+        const raced = this.actions.slice(action.index)
+        const outcome = settleCommonActionRace({
+            engine: this.engine,
+            game: this.game,
+            state: this.state,
+            raced,
+            late: action
+        })
+        assert(
+            outcome.kind === 'commutes',
+            `Common Action ${action.id} was raced: ${outcome.kind === 'invalid' ? outcome.reason : ''}`
+        )
+        action.index = this.state.actionCount
+        return raced
     }
 
     private submitToBranch(action: GameAction): SpanHostSubmission {

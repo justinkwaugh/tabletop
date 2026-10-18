@@ -16,7 +16,7 @@ import * as Value from 'typebox/value'
 import type * as Type from 'typebox'
 import { ActionSource, createAction, GameAction, type HydratedAction, Patch } from './gameAction.js'
 import { createPatch } from './statePatch.js'
-import { findBranchScopeViolation } from './branchScope.js'
+import { findBranchScopeViolation, findCommonScopeViolation } from './branchScope.js'
 import {
     BranchCloseActionType,
     isBranchClose,
@@ -27,6 +27,8 @@ import {
 } from './parallelSpan.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import {
+    isCommonAction,
+    isCommonActionType,
     isOutOfTurnActionType,
     isOutOfTurnDeclaration,
     isSequencedActionType
@@ -90,9 +92,11 @@ export interface ActionAvailabilityOptions {
 interface SpanStep {
     readonly branchPlayerId?: string
     readonly completing: boolean
+    readonly common: boolean
 }
 
-const OUTSIDE_SPAN_STEP: SpanStep = { completing: false }
+const OUTSIDE_SPAN_STEP: SpanStep = { completing: false, common: false }
+const COMMON_STEP: SpanStep = { completing: false, common: true }
 
 interface RuntimeExecution<T extends GameState> extends ActionResult<T> {
     readonly before: T
@@ -235,6 +239,9 @@ export class GameEngine<
         ) {
             return []
         }
+        if (state.parallelSpan !== undefined) {
+            return this.validActionTypesDuringSpan({ game, state, playerId, perspective })
+        }
 
         const hydratedState = this.runtime.hydrator.hydrateState(state)
         const runtimeState = this.guardStateForPerspective(hydratedState, perspective, game)
@@ -248,6 +255,39 @@ export class GameEngine<
         return runtimeState.isActivePlayer(playerId)
             ? types
             : types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
+    }
+
+    private validActionTypesDuringSpan({
+        game,
+        state,
+        playerId,
+        perspective
+    }: {
+        game: Game
+        state: T
+        playerId: string
+        perspective: Perspective | undefined
+    }): string[] {
+        const runtimeState = this.guardStateForPerspective(
+            this.runtime.hydrator.hydrateState(structuredClone(state)),
+            perspective,
+            game
+        )
+        const span = runtimeState.parallelSpan
+        assertExists(span, 'No Parallel Span is in progress')
+        const context = new MachineContext({ gameConfig: game.config, gameState: runtimeState })
+        const branchTypes =
+            span.branchPlayerId === playerId
+                ? this.getStateHandler(runtimeState)
+                      .validActionsForPlayer(playerId, context)
+                      .filter((type) => !isOutOfTurnActionType(this.runtime.apiActions, type))
+                : []
+        if (!span.playerIds.includes(playerId)) return branchTypes
+        if (span.branchPlayerId !== undefined) this.setBranchAside(runtimeState)
+        const commonTypes = this.getStateHandler(runtimeState)
+            .validActionsForPlayer(playerId, context)
+            .filter((type) => isCommonActionType(this.runtime.apiActions, type))
+        return [...new Set([...branchTypes, ...commonTypes])]
     }
 
     closeBranch({ state, playerId }: { state: T; playerId: string }): ActionCascadeResult<T> {
@@ -475,6 +515,10 @@ export class GameEngine<
             !action.sequenced || isSequencedActionType(this.runtime.apiActions, action.type),
             `Action of type ${action.type} is not a sequenced out-of-turn Action`
         )
+        assert(
+            !action.common || isCommonActionType(this.runtime.apiActions, action.type),
+            `Action of type ${action.type} is not a Common Action`
+        )
 
         const indexOffset =
             action.index !== undefined && action.index !== hydratedState.actionCount
@@ -544,7 +588,7 @@ export class GameEngine<
             if (canonical) this.validateCanonicalState(updatedState)
 
             const undoPatch: Patch = createPatch(updatedState, stateBeforeAction)
-            this.assertWithinBranchScope(spanStep, undoPatch, stateBeforeAction, updatedState)
+            this.assertWithinScope(spanStep, undoPatch, stateBeforeAction, updatedState)
 
             const dehydratedAction = hydratedAction.dehydrate()
             dehydratedAction.undoPatch = undoPatch
@@ -564,10 +608,21 @@ export class GameEngine<
 
     private spanStepFor(action: GameAction, state: U): SpanStep {
         const span = state.parallelSpan
-        if (span === undefined) return OUTSIDE_SPAN_STEP
+        if (span === undefined) {
+            assert(!isCommonAction(action), 'A Common Action is valid only during a Parallel Span')
+            return OUTSIDE_SPAN_STEP
+        }
         assert(action.outOfTurn !== true, 'Out-of-Turn Actions are rejected during a Parallel Span')
+        if (isCommonAction(action)) return this.commonStepFor(action, state, span)
         if (span.branchPlayerId !== undefined) {
-            return { branchPlayerId: span.branchPlayerId, completing: false }
+            return { branchPlayerId: span.branchPlayerId, completing: false, common: false }
+        }
+        if (state.machineState !== span.machineState) {
+            assert(
+                action.source === ActionSource.System,
+                'No User Action is valid while a Common Action’s cascade is in progress'
+            )
+            return COMMON_STEP
         }
         assert(
             action.source === ActionSource.System,
@@ -575,7 +630,7 @@ export class GameEngine<
         )
         const playerId = action.playerId
         if (playerId === undefined || span.branchStartIds[playerId] !== action.id) {
-            return { completing: action.id === span.completionId }
+            return { completing: action.id === span.completionId, common: false }
         }
         assert(
             !span.mergedPlayerIds.includes(playerId),
@@ -583,7 +638,44 @@ export class GameEngine<
         )
         span.branchPlayerId = playerId
         state.activePlayerIds = [playerId]
-        return { branchPlayerId: playerId, completing: false }
+        return { branchPlayerId: playerId, completing: false, common: false }
+    }
+
+    private commonStepFor(action: GameAction, state: U, span: ParallelSpanState): SpanStep {
+        const playerId = action.playerId
+        assert(
+            playerId !== undefined && span.playerIds.includes(playerId),
+            `Player ${playerId} takes no part in this span`
+        )
+        if (span.branchPlayerId !== undefined) this.setBranchAside(state)
+        assert(
+            state.machineState === span.machineState,
+            'A Common Action is taken in the Branching Machine State'
+        )
+        return COMMON_STEP
+    }
+
+    private setBranchAside(state: U): void {
+        const span = state.parallelSpan
+        const playerId = span?.branchPlayerId
+        assertExists(span, 'No Parallel Span is in progress')
+        assertExists(playerId, 'No Branch is open to set aside')
+        span.branchSetAside = { playerId, machineState: state.machineState }
+        delete span.branchPlayerId
+        state.machineState = span.machineState
+        state.activePlayerIds = spanActivePlayerIds(span)
+    }
+
+    private putBranchBack(state: U): void {
+        const span = state.parallelSpan
+        assertExists(span, 'No Parallel Span is in progress')
+        const setAside = span.branchSetAside
+        if (setAside !== undefined) {
+            delete span.branchSetAside
+            span.branchPlayerId = setAside.playerId
+            state.machineState = setAside.machineState
+        }
+        state.activePlayerIds = spanActivePlayerIds(span)
     }
 
     private enterMachineState(state: U, context: MachineContext<U>, spanStep: SpanStep): void {
@@ -599,9 +691,9 @@ export class GameEngine<
             return
         }
 
-        const { branchPlayerId, completing } = spanStep
+        const { branchPlayerId, completing, common } = spanStep
         const inBranchingMachineState = state.machineState === span.machineState
-        if (branchPlayerId === undefined && !inBranchingMachineState) {
+        if (branchPlayerId === undefined && !common && !inBranchingMachineState) {
             assert(
                 completing && unmergedPlayerIds(span).length === 0,
                 'Only Span Completion may leave a Branching Machine State'
@@ -612,14 +704,28 @@ export class GameEngine<
         }
         assert(!completing, 'Span Completion must leave the Branching Machine State')
         assert(
-            branchPlayerId === undefined ||
+            (branchPlayerId === undefined && !common) ||
                 inBranchingMachineState ||
                 this.runtime.parallelSpans?.[state.machineState] === undefined,
-            'A Branch cannot enter another Branching Machine State'
+            `A ${common ? 'Common Action' : 'Branch'} cannot enter another Branching Machine State`
         )
 
         handler.enter(context)
 
+        if (common) {
+            const pending = context.getPendingActions().length
+            assert(
+                !inBranchingMachineState || pending === 0,
+                'A Common Action must end its cascade when it returns to the Branching Machine State'
+            )
+            assert(
+                inBranchingMachineState || pending > 0,
+                'A Common Action must return to the Branching Machine State'
+            )
+            if (inBranchingMachineState) this.putBranchBack(state)
+            else state.activePlayerIds = spanActivePlayerIds(span)
+            return
+        }
         if (branchPlayerId !== undefined && inBranchingMachineState) {
             span.mergedPlayerIds.push(branchPlayerId)
             delete span.branchPlayerId
@@ -652,12 +758,12 @@ export class GameEngine<
         }
     }
 
-    private assertWithinBranchScope(
-        spanStep: SpanStep,
-        undoPatch: Patch,
-        before: T,
-        after: T
-    ): void {
+    private assertWithinScope(spanStep: SpanStep, undoPatch: Patch, before: T, after: T): void {
+        if (spanStep.common) {
+            const violation = findCommonScopeViolation({ undoPatch, before, after })
+            assert(violation === undefined, `A Common Action may not change ${violation}`)
+            return
+        }
         const playerId = spanStep.branchPlayerId
         if (playerId === undefined) return
         const violation = findBranchScopeViolation({ undoPatch, before, after, playerId })
@@ -754,7 +860,10 @@ export class GameEngine<
 
     private isPlayerAllowed(action: GameAction, state: HydratedGameState): boolean {
         return (
-            !action.playerId || action.outOfTurn === true || state.isActivePlayer(action.playerId)
+            !action.playerId ||
+            action.outOfTurn === true ||
+            isCommonAction(action) ||
+            state.isActivePlayer(action.playerId)
         )
     }
 
