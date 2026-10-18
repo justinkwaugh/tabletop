@@ -1,5 +1,6 @@
 import { TechField } from '../components/techFields.js'
 import { TECHS, TechId, techDefinition } from '../components/techs.js'
+import { TECH_POINTS_PER_INFLUENCE, isCampaign } from './campaign.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 
 export const MIN_TECH_COST = 5
@@ -32,6 +33,12 @@ export function isTechAvailable(
     )
 }
 
+export function influencePoints(state: HydratedStellarHorizonsGameState, playerId: string) {
+    return isCampaign(state)
+        ? state.getPlayerState(playerId).influence * TECH_POINTS_PER_INFLUENCE
+        : 0
+}
+
 export function canAffordTech(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
@@ -39,7 +46,16 @@ export function canAffordTech(
 ): boolean {
     const player = state.getPlayerState(playerId)
     const field = techDefinition(techId).field
-    return player.markerTotal(field) + player.cash >= techCost(state, playerId, techId)
+    return (
+        player.markerTotal(field) + influencePoints(state, playerId) + player.cash >=
+        techCost(state, playerId, techId)
+    )
+}
+
+// Rulebook 1.19 (campaign box): every Player who buys a tech nobody owned at the start of the
+// turn earns 1 IP.
+export function isFirstToDevelop(state: HydratedStellarHorizonsGameState, techId: TechId) {
+    return !state.players.some((player) => player.ownedBefore(techId, state.year))
 }
 
 export function isMarkerSubset(held: readonly number[], spent: readonly number[]): boolean {
@@ -59,19 +75,27 @@ export function isValidTechPayment(
     playerId: string,
     techId: TechId,
     markers: readonly number[],
-    cash: number
+    cash: number,
+    influence = 0
 ): boolean {
     const player = state.getPlayerState(playerId)
     const field: TechField = techDefinition(techId).field
     const markerValue = markers.reduce((total, value) => total + value, 0)
     const cost = techCost(state, playerId, techId)
+    const afterMarkers = Math.max(0, cost - markerValue)
+    const influenceValue = influence * TECH_POINTS_PER_INFLUENCE
     return (
         Number.isInteger(cash) &&
         cash >= 0 &&
         cash <= player.cash &&
+        Number.isInteger(influence) &&
+        influence >= 0 &&
+        (influence === 0 || isCampaign(state)) &&
+        influence <= player.influence &&
+        influence <= Math.ceil(afterMarkers / TECH_POINTS_PER_INFLUENCE) &&
         isMarkerSubset(player.techMarkers[field], markers) &&
-        markerValue + cash >= cost &&
-        cash <= Math.max(0, cost - markerValue)
+        markerValue + influenceValue + cash >= cost &&
+        cash <= Math.max(0, afterMarkers - influenceValue)
     )
 }
 

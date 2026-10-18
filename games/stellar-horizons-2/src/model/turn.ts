@@ -3,7 +3,9 @@ export enum TurnPhase {
     Cargo = 'Cargo',
     Movement = 'Movement',
     Exploration = 'Exploration',
-    Development = 'Development'
+    Development = 'Development',
+    Initiative = 'Initiative',
+    BaseProduction = 'BaseProduction'
 }
 
 export const TURN_PHASES: readonly TurnPhase[] = [

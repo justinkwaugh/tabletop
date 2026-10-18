@@ -1,5 +1,6 @@
 import { SOL_SYSTEM_ID, systemDistance } from '../components/systems.js'
 import { ShipKind, shipDefinition } from '../components/ships.js'
+import { factionAbilities } from './campaign.js'
 import { fastMovementModifier } from './capabilities.js'
 import { capabilitiesOf, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
@@ -36,11 +37,13 @@ export function isWithinRange(
 ): boolean {
     const range = shipRange(state, ship)
     const cost = shipDefinition(ship.shipId).cost
+    // The Starfarers' bases count as twice their size for extending range.
+    const baseRange = factionAbilities(state, ship.playerId).baseRangeMultiplier ?? 1
     const anchors = [
         SOL_SYSTEM_ID,
         ...state
             .basesOf(ship.playerId)
-            .filter((base) => base.settlements >= cost)
+            .filter((base) => base.settlements * baseRange >= cost)
             .map((base) => base.systemId)
     ]
     return anchors.some((anchor) => systemDistance(anchor, systemId) <= range)

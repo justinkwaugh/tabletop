@@ -39,7 +39,10 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             fieldsDeveloped: Type.Array(Type.Enum(TechField)),
             pendingSurveys: Type.Array(PendingSurvey),
             anomalyAttempts: Type.Array(PendingAnomalyAttempt),
-            anomalies: Type.Array(Type.String())
+            anomalies: Type.Array(Type.String()),
+            influence: Type.Number(),
+            explorationMarkers: Type.Number(),
+            initiativeBid: Type.Optional(Type.Number())
         })
     ])
 )
@@ -63,6 +66,9 @@ export class HydratedStellarHorizonsPlayerState
     declare pendingSurveys: PendingSurvey[]
     declare anomalyAttempts: PendingAnomalyAttempt[]
     declare anomalies: string[]
+    declare influence: number
+    declare explorationMarkers: number
+    declare initiativeBid?: number
 
     constructor(data: StellarHorizonsPlayerState) {
         super(data, StellarHorizonsPlayerStateValidator)

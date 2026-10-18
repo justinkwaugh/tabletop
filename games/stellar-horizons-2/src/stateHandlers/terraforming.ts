@@ -1,12 +1,14 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedPassTerraform, isPassTerraform } from '../actions/passTerraform.js'
+import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInfluence.js'
 import { HydratedTerraform, isTerraform } from '../actions/terraform.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
+import { canSpendInfluence } from '../model/campaign.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { stateAfterTerraformer } from './transitions.js'
 
-type TerraformingAction = HydratedTerraform | HydratedPassTerraform
+type TerraformingAction = HydratedTerraform | HydratedPassTerraform | HydratedSpendInfluence
 
 export class TerraformingStateHandler implements MachineStateHandler<
     TerraformingAction,
@@ -16,16 +18,22 @@ export class TerraformingStateHandler implements MachineStateHandler<
         action: HydratedAction,
         _context: MachineContext<HydratedStellarHorizonsGameState>
     ): action is TerraformingAction {
-        return isTerraform(action) || isPassTerraform(action)
+        return isTerraform(action) || isPassTerraform(action) || isSpendInfluence(action)
     }
 
     validActionsForPlayer(
         playerId: string,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): ActionType[] {
-        return context.gameState.isActivePlayer(playerId)
-            ? [ActionType.Terraform, ActionType.PassTerraform]
-            : []
+        const state = context.gameState
+        if (!state.isActivePlayer(playerId)) {
+            return []
+        }
+        return [
+            ActionType.Terraform,
+            ActionType.PassTerraform,
+            ...(canSpendInfluence(state, playerId) ? [ActionType.SpendInfluence] : [])
+        ]
     }
 
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
@@ -36,6 +44,9 @@ export class TerraformingStateHandler implements MachineStateHandler<
         action: TerraformingAction,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
+        if (isSpendInfluence(action)) {
+            return MachineState.Terraforming
+        }
         if (isTerraform(action) && action.metadata?.awaitingChoice) {
             return MachineState.ChoosingTerraformWorld
         }

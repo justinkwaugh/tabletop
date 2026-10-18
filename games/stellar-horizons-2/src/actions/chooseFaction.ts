@@ -2,6 +2,8 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { isCampaign } from '../model/campaign.js'
+import { setUpCampaignFaction } from '../model/campaignSetup.js'
 import { Faction, factionDefinition } from '../components/factions.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 
@@ -49,6 +51,9 @@ export class HydratedChooseFaction
         }
         player.color = color
         player.faction = this.faction
+        if (isCampaign(state)) {
+            setUpCampaignFaction(state, this.playerId)
+        }
     }
 
     static availableFactions(state: HydratedStellarHorizonsGameState): Faction[] {

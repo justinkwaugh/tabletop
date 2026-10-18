@@ -2,9 +2,11 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { HydratedEndPhase, isEndPhase } from '../actions/endPhase.js'
 import { HydratedScrapShip, isScrapShip } from '../actions/scrapShip.js'
 import { HydratedSkipPhase, SkipPhase, isSkipPhase } from '../actions/skipPhase.js'
+import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInfluence.js'
 import { HydratedTransferCargo, isTransferCargo } from '../actions/transferCargo.js'
 import { ActionType } from '../definition/actions.js'
 import type { MachineState } from '../definition/states.js'
+import { canSpendInfluence } from '../model/campaign.js'
 import { canTransferAnyCargo } from '../model/cargoTransfer.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { isIdleInPhase } from '../model/idlePhases.js'
@@ -16,13 +18,13 @@ type AnytimeAction =
     | HydratedTransferCargo
     | HydratedEndPhase
     | HydratedSkipPhase
+    | HydratedSpendInfluence
 
 // Rulebook 1.2 and 1.8: a ship may be scrapped, and settlements moved between a player's own
-// ships, at any point in the player's turn.
-export abstract class PlayStateHandler<Action extends HydratedAction> implements MachineStateHandler<
-    Action | AnytimeAction,
-    HydratedStellarHorizonsGameState
-> {
+// ships, at any point in the player's turn; in the campaign an IP may be turned into $1B.
+export abstract class PlayStateHandler<
+    Action extends HydratedAction
+> implements MachineStateHandler<Action | AnytimeAction, HydratedStellarHorizonsGameState> {
     protected abstract readonly phase: TurnPhase
 
     protected abstract isPhaseAction(action: HydratedAction): action is Action
@@ -41,6 +43,7 @@ export abstract class PlayStateHandler<Action extends HydratedAction> implements
             isScrapShip(action) ||
             isTransferCargo(action) ||
             isSkipPhase(action) ||
+            isSpendInfluence(action) ||
             (isEndPhase(action) && action.phase === this.phase)
         )
     }
@@ -59,6 +62,9 @@ export abstract class PlayStateHandler<Action extends HydratedAction> implements
         }
         if (canTransferAnyCargo(state, playerId)) {
             anytime.push(ActionType.TransferCargo)
+        }
+        if (canSpendInfluence(state, playerId)) {
+            anytime.push(ActionType.SpendInfluence)
         }
         return [
             ...new Set([...this.phaseActions(playerId, state), ...anytime, ActionType.EndPhase])

@@ -33,6 +33,9 @@ export function isIdleInPhase(
             )
         case TurnPhase.Development:
             return !canDevelopAnyTech(state, playerId)
+        case TurnPhase.Initiative:
+        case TurnPhase.BaseProduction:
+            return true
     }
 }
 

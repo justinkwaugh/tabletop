@@ -9,12 +9,14 @@ import {
     worldTile
 } from '../components/worlds.js'
 import { AnomalySearch, searchForAnomaly } from './anomalies.js'
+import { gainInfluence, isCampaign } from './campaign.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { WorldPlacement } from './pieces.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
 import { drawWorldTile, returnWorldTile } from './pools.js'
 
 export const SURVEY_REPLACEMENT_POPULATION = 12
+export const LAST_SURVEY_INFLUENCE = 1
 
 export type SurveyResolution = Type.Static<typeof SurveyResolution>
 export const SurveyResolution = Type.Object({
@@ -79,15 +81,17 @@ export function resolveNextSurvey(state: HydratedStellarHorizonsGameState): Surv
     system.explorationMarker -= 1
     resolution.completed = true
     resolution.explorationMarker = system.explorationMarker
+    // Campaign: whoever completes the last survey keeps the marker and earns 1 IP.
+    if (system.explorationMarker === 0 && isCampaign(state)) {
+        player.explorationMarkers += 1
+        gainInfluence(state, player.playerId, LAST_SURVEY_INFLUENCE)
+    }
     drawSurveyWorld(state, resolution)
-    resolution.anomaly = searchForAnomaly(state, survey.systemId)
+    resolution.anomaly = searchForAnomaly(state, survey.systemId, player.playerId)
     return resolution
 }
 
-function drawSurveyWorld(
-    state: HydratedStellarHorizonsGameState,
-    resolution: SurveyResolution
-) {
+function drawSurveyWorld(state: HydratedStellarHorizonsGameState, resolution: SurveyResolution) {
     const system = state.systemState(resolution.systemId)
     const isLegal = (tileId: string) => canStartInSystem(resolution.systemId, tileId)
 

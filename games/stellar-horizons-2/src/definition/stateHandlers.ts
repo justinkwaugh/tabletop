@@ -7,6 +7,17 @@ import { ChoosingFactionsStateHandler } from '../stateHandlers/choosingFactions.
 import { ChoosingSurveyWorldStateHandler } from '../stateHandlers/choosingSurveyWorld.js'
 import { ChoosingTerraformWorldStateHandler } from '../stateHandlers/choosingTerraformWorld.js'
 import { DevelopingStateHandler } from '../stateHandlers/developing.js'
+import {
+    ChoosingProductionStateHandler,
+    ConvertingSettlementsStateHandler,
+    DecidingInitiativeStateHandler
+} from '../stateHandlers/economicChoices.js'
+import {
+    EconomicPhaseStateHandler,
+    GrowingSettlementsStateHandler,
+    ProducingAtBasesStateHandler,
+    RollingInitiativeStateHandler
+} from '../stateHandlers/economicPhase.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 import { EndOfTurnStateHandler } from '../stateHandlers/endOfTurn.js'
 import { ExploringStateHandler } from '../stateHandlers/exploring.js'
@@ -27,6 +38,15 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.ChoosingFactions]: new ChoosingFactionsStateHandler(),
     [MachineState.PlacingStartingBases]: new PlacingStartingBasesStateHandler(),
     [MachineState.StartOfTurn]: new StartOfTurnStateHandler(),
+    [MachineState.EconomicPhase]: new EconomicPhaseStateHandler(),
+    [MachineState.InitiativePhase]: new PhaseStateHandler(TurnPhase.Initiative),
+    [MachineState.DecidingInitiative]: new DecidingInitiativeStateHandler(),
+    [MachineState.RollingInitiative]: new RollingInitiativeStateHandler(),
+    [MachineState.BaseProductionPhase]: new PhaseStateHandler(TurnPhase.BaseProduction),
+    [MachineState.ChoosingProduction]: new ChoosingProductionStateHandler(),
+    [MachineState.ProducingAtBases]: new ProducingAtBasesStateHandler(),
+    [MachineState.GrowingSettlements]: new GrowingSettlementsStateHandler(),
+    [MachineState.ConvertingSettlements]: new ConvertingSettlementsStateHandler(),
     [MachineState.BuildPhase]: new PhaseStateHandler(TurnPhase.Build),
     [MachineState.Building]: new BuildingStateHandler(),
     [MachineState.CargoPhase]: new PhaseStateHandler(TurnPhase.Cargo),

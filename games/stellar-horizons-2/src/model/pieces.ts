@@ -28,13 +28,19 @@ export const ShipState = Type.Object({
     explored: Type.Boolean()
 })
 
+// What a base produces in the campaign's base production (rulebook 4.4): cash or one tech type.
+export const CASH_PRODUCTION = 'Cash'
+export type Production = Type.Static<typeof Production>
+export const Production = Type.Union([Type.Literal(CASH_PRODUCTION), Type.Enum(TechField)])
+
 export type Base = Type.Static<typeof Base>
 export const Base = Type.Object({
     playerId: Type.String(),
     systemId: Type.String(),
     settlements: Type.Number(),
     spent: Type.Number(),
-    cloned: Type.Boolean()
+    cloned: Type.Boolean(),
+    production: Type.Optional(Production)
 })
 
 export function baseKey(playerId: string, systemId: string): string {
@@ -80,6 +86,18 @@ export const SurveyWorldChoice = Type.Object({
     playerId: Type.String(),
     systemId: Type.String(),
     drawnTileId: Type.String()
+})
+
+export type TerraformTarget = Type.Static<typeof TerraformTarget>
+export const TerraformTarget = Type.Object({
+    systemId: Type.String(),
+    slot: Type.Number()
+})
+
+export type TerraformRecord = Type.Static<typeof TerraformRecord>
+export const TerraformRecord = Type.Object({
+    playerId: Type.String(),
+    ...TerraformTarget.properties
 })
 
 export type TerraformChoice = Type.Static<typeof TerraformChoice>

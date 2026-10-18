@@ -1,3 +1,4 @@
+import { factionSheet } from '../components/factionSheets.js'
 import { TECHS, type TechEffects } from '../components/techs.js'
 import type { ScenarioDefinition } from '../components/scenarios.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
@@ -64,10 +65,20 @@ export function playerCapabilities(
         cvRange: highest('cvRange', BASELINE.cvRange),
         reRange: highest('reRange', BASELINE.reRange),
         cvMaxSize: highest('cvMaxSize', BASELINE.cvMaxSize),
-        settlementCost: scenario.settlementCost - highest('settlementDiscount', 0),
+        settlementCost: settlementCost(player, scenario) - highest('settlementDiscount', 0),
         cloning: has('cloning'),
         cargoBonus: highest('cargoBonus', 0)
     }
+}
+
+// Scenarios price settlements at $5B for everyone; the campaign uses the faction sheet.
+function settlementCost(
+    player: HydratedStellarHorizonsPlayerState,
+    scenario: ScenarioDefinition
+): number {
+    return scenario.campaign && player.faction
+        ? factionSheet(player.faction).settlementCost
+        : scenario.settlementCost
 }
 
 export function fastMovementModifier(cvMovement: number): number {

@@ -6,6 +6,7 @@ import {
     type AnomalyDefinition
 } from '../components/anomalies.js'
 import { shipDefinition } from '../components/ships.js'
+import { factionAbilities, gainInfluence } from './campaign.js'
 import { currentCombat, currentExploration, hasArrived, isCrippled } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { PendingAnomalyAttempt, ShipState } from './pieces.js'
@@ -39,17 +40,29 @@ export function usesAnomalyRewards(state: HydratedStellarHorizonsGameState): boo
     return state.scenarioDefinition().anomalies?.rewards ?? false
 }
 
+export const ANOMALY_INFLUENCE = 1
+
+// Rulebook 1.16: printed difficulty plus the number of players; in the campaign the Starfarers
+// take 1 off and the Syndicate 2 off combat challenges.
 export function anomalyDifficulty(
     state: HydratedStellarHorizonsGameState,
-    anomalyId: string
+    anomalyId: string,
+    playerId?: string
 ): number {
-    return anomalyDefinition(anomalyId).difficulty + state.numPlayers
+    const anomaly = anomalyDefinition(anomalyId)
+    const abilities = playerId === undefined ? {} : factionAbilities(state, playerId)
+    const combat =
+        anomaly.challenge === AnomalyChallenge.Combat ? (abilities.combatAnomalyDifficulty ?? 0) : 0
+    return anomaly.difficulty + state.numPlayers + (abilities.anomalyDifficulty ?? 0) + combat
 }
 
 // Every completed survey rolls; a system holds one anomaly at a time (rulebook 1.16).
+// Campaign: finding an anomaly earns 1 IP even when the system already has one or the pool is
+// empty; the Starfarers find one on 30% instead of 20%.
 export function searchForAnomaly(
     state: HydratedStellarHorizonsGameState,
-    systemId: string
+    systemId: string,
+    playerId: string
 ): AnomalySearch | undefined {
     const anomalies = state.scenarioDefinition().anomalies
     if (!anomalies) {
@@ -58,7 +71,12 @@ export function searchForAnomaly(
     const random = state.getProtectedPrng()
     const roll = random.dieRoll(100)
     const system = state.systemState(systemId)
-    if (roll > anomalies.chance || system.anomaly !== undefined || state.anomalyPool.length === 0) {
+    const chance = factionAbilities(state, playerId).anomalyChance ?? anomalies.chance
+    if (roll > chance) {
+        return { roll }
+    }
+    gainInfluence(state, playerId, ANOMALY_INFLUENCE)
+    if (system.anomaly !== undefined || state.anomalyPool.length === 0) {
         return { roll }
     }
     const [anomalyId] = state.anomalyPool.splice(random.randInt(state.anomalyPool.length), 1)
@@ -139,7 +157,7 @@ export function isValidAnomalyAttempt(
         shipIds.length > 0 &&
         new Set(shipIds).size === shipIds.length &&
         chosen.length === shipIds.length &&
-        attemptStrength(chosen, anomaly.challenge) >= anomalyDifficulty(state, anomaly.id)
+        attemptStrength(chosen, anomaly.challenge) >= anomalyDifficulty(state, anomaly.id, playerId)
     )
 }
 
@@ -180,7 +198,9 @@ export function anyAnomalyAttempts(state: HydratedStellarHorizonsGameState): boo
     return state.players.some((player) => player.anomalyAttempts.length > 0)
 }
 
-function nextAttempter(state: HydratedStellarHorizonsGameState): HydratedStellarHorizonsPlayerState {
+function nextAttempter(
+    state: HydratedStellarHorizonsGameState
+): HydratedStellarHorizonsPlayerState {
     const playerId = state
         .initiativeOrder()
         .find((candidate) => state.getPlayerState(candidate).anomalyAttempts.length > 0)

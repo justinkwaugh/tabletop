@@ -5,17 +5,22 @@ import { ActionType } from '../definition/actions.js'
 import { TechId, techDefinition } from '../components/techs.js'
 import {
     canDevelopAnyTech,
+    isFirstToDevelop,
     isTechAvailable,
     isValidTechPayment,
     removeMarkers,
     techCost
 } from '../model/development.js'
+import { gainInfluence, isCampaign } from '../model/campaign.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { holdSpentMarkers } from '../model/settlement.js'
 
+export const FIRST_TO_DEVELOP_INFLUENCE = 1
+
 export type DevelopTechMetadata = Type.Static<typeof DevelopTechMetadata>
 export const DevelopTechMetadata = Type.Object({
-    cost: Type.Number()
+    cost: Type.Number(),
+    first: Type.Optional(Type.Boolean())
 })
 
 export type DevelopTech = Type.Static<typeof DevelopTech>
@@ -28,6 +33,7 @@ export const DevelopTech = Type.Evaluate(
             techId: Type.Enum(TechId),
             markers: Type.Array(Type.Number()),
             cash: Type.Number(),
+            influence: Type.Optional(Type.Number()),
             metadata: Type.Optional(DevelopTechMetadata)
         })
     ])
@@ -48,6 +54,7 @@ export class HydratedDevelopTech
     declare techId: TechId
     declare markers: number[]
     declare cash: number
+    declare influence?: number
     declare metadata?: DevelopTechMetadata
 
     constructor(data: DevelopTech) {
@@ -58,7 +65,14 @@ export class HydratedDevelopTech
         const player = state.getPlayerState(this.playerId)
         if (
             !isTechAvailable(state, this.playerId, this.techId) ||
-            !isValidTechPayment(state, this.playerId, this.techId, this.markers, this.cash)
+            !isValidTechPayment(
+                state,
+                this.playerId,
+                this.techId,
+                this.markers,
+                this.cash,
+                this.influence
+            )
         ) {
             throw Error('Invalid DevelopTech action')
         }
@@ -67,9 +81,12 @@ export class HydratedDevelopTech
         removeMarkers(player.techMarkers[field], this.markers)
         holdSpentMarkers(state, this.playerId, field, this.markers)
         player.cash -= this.cash
+        player.influence -= this.influence ?? 0
+        const first = isCampaign(state) && isFirstToDevelop(state, this.techId)
         player.techs.push({ techId: this.techId, year: state.year })
         player.fieldsDeveloped.push(field)
-        this.metadata = { cost }
+        gainInfluence(state, this.playerId, first ? FIRST_TO_DEVELOP_INFLUENCE : 0)
+        this.metadata = first ? { cost, first } : { cost }
     }
 
     static canDevelopTech(state: HydratedStellarHorizonsGameState, playerId: string): boolean {

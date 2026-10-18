@@ -30,6 +30,15 @@ import { HydratedStartPhase, isStartPhase } from '../actions/startPhase.js'
 import { HydratedStartTurn, isStartTurn } from '../actions/startTurn.js'
 import { HydratedTerraform, isTerraform } from '../actions/terraform.js'
 import { HydratedTransferCargo, isTransferCargo } from '../actions/transferCargo.js'
+import { HydratedDrawEconomicTile, isDrawEconomicTile } from '../actions/drawEconomicTile.js'
+import { HydratedDeclareInitiative, isDeclareInitiative } from '../actions/declareInitiative.js'
+import { HydratedRollInitiative, isRollInitiative } from '../actions/rollInitiative.js'
+import { HydratedChooseProduction, isChooseProduction } from '../actions/chooseProduction.js'
+import { HydratedProduceAtBases, isProduceAtBases } from '../actions/produceAtBases.js'
+import { HydratedGrowSettlements, isGrowSettlements } from '../actions/growSettlements.js'
+import { HydratedConvertSettlement, isConvertSettlement } from '../actions/convertSettlement.js'
+import { HydratedPassConversion, isPassConversion } from '../actions/passConversion.js'
+import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInfluence.js'
 
 export class StellarHorizonsHydrator implements GameHydrator<
     StellarHorizonsProjectedState,
@@ -83,6 +92,24 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedPassTerraform(data)
             case isChooseTerraformWorld(data):
                 return new HydratedChooseTerraformWorld(data)
+            case isDrawEconomicTile(data):
+                return new HydratedDrawEconomicTile(data)
+            case isDeclareInitiative(data):
+                return new HydratedDeclareInitiative(data)
+            case isRollInitiative(data):
+                return new HydratedRollInitiative(data)
+            case isChooseProduction(data):
+                return new HydratedChooseProduction(data)
+            case isProduceAtBases(data):
+                return new HydratedProduceAtBases(data)
+            case isGrowSettlements(data):
+                return new HydratedGrowSettlements(data)
+            case isConvertSettlement(data):
+                return new HydratedConvertSettlement(data)
+            case isPassConversion(data):
+                return new HydratedPassConversion(data)
+            case isSpendInfluence(data):
+                return new HydratedSpendInfluence(data)
             case isEndTurn(data):
                 return new HydratedEndTurn(data)
             default:

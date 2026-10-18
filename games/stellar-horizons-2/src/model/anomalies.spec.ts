@@ -50,7 +50,7 @@ describe('finding anomalies', () => {
         let found = 0
         for (const systemId of systemIds) {
             const before = state.anomalyPool.length
-            const search = searchForAnomaly(state, systemId)
+            const search = searchForAnomaly(state, systemId, state.initiativeOrder()[0])
             expect(search?.roll).toBeGreaterThanOrEqual(1)
             expect(search?.roll).toBeLessThanOrEqual(100)
             if ((search?.roll ?? 100) <= 20) {
@@ -73,7 +73,7 @@ describe('finding anomalies', () => {
         for (let search = 0; search < 1000; search++) {
             state.anomalyPool = ANOMALIES.map((anomaly) => anomaly.id)
             state.systemState('vega').anomaly = undefined
-            if (searchForAnomaly(state, 'vega')?.anomalyId) {
+            if (searchForAnomaly(state, 'vega', state.initiativeOrder()[0])?.anomalyId) {
                 found += 1
             }
         }
@@ -85,13 +85,17 @@ describe('finding anomalies', () => {
         const state = voyages()
         state.systemState('vega').anomaly = UNRESTRICTED
         for (let search = 0; search < 100; search++) {
-            expect(searchForAnomaly(state, 'vega')?.anomalyId).toBeUndefined()
+            expect(
+                searchForAnomaly(state, 'vega', state.initiativeOrder()[0])?.anomalyId
+            ).toBeUndefined()
         }
         expect(state.systemState('vega').anomaly).toBe(UNRESTRICTED)
 
         state.anomalyPool = []
         for (let search = 0; search < 100; search++) {
-            expect(searchForAnomaly(state, 'altair')?.anomalyId).toBeUndefined()
+            expect(
+                searchForAnomaly(state, 'altair', state.initiativeOrder()[0])?.anomalyId
+            ).toBeUndefined()
         }
     })
 
@@ -99,7 +103,7 @@ describe('finding anomalies', () => {
         const state = voyages()
         state.systemState('vega').anomaly = undefined
         const found = Array.from({ length: 200 }, () => {
-            const search = searchForAnomaly(state, 'vega')
+            const search = searchForAnomaly(state, 'vega', state.initiativeOrder()[0])
             state.systemState('vega').anomaly = undefined
             return search?.anomalyId
         }).filter((anomalyId) => anomalyId !== undefined)
@@ -124,7 +128,7 @@ describe('finding anomalies', () => {
     it('is not part of Footfall', () => {
         const state = hydrate(startedGame(2).state)
         expect(state.anomalyPool).toEqual([])
-        expect(searchForAnomaly(state, 'sirius')).toBeUndefined()
+        expect(searchForAnomaly(state, 'sirius', state.initiativeOrder()[0])).toBeUndefined()
     })
 })
 

@@ -10,12 +10,13 @@ import {
     type UninitializedGameState
 } from '@tabletop/common'
 import { ANOMALIES } from '../components/anomalies.js'
+import { ECONOMIC_TILES } from '../components/economicTiles.js'
 import { FACTION_COLORS } from '../components/factions.js'
 import { STAR_MAP } from '../components/starMap.js'
 import { SOL_SYSTEM_ID, systemsInSectors } from '../components/systems.js'
 import { TECH_FIELDS } from '../components/techFields.js'
 import { techsThroughColumn } from '../components/techs.js'
-import { ALL_WORLD_TILE_IDS } from '../components/worlds.js'
+import { ALL_WORLD_TILE_IDS, worldTile, type WorldClass } from '../components/worlds.js'
 import {
     HydratedStellarHorizonsGameState,
     type StellarHorizonsGameState,
@@ -67,7 +68,9 @@ export class StellarHorizonsGameInitializer
                     fieldsDeveloped: [],
                     pendingSurveys: [],
                     anomalyAttempts: [],
-                    anomalies: []
+                    anomalies: [],
+                    influence: 0,
+                    explorationMarkers: 0
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
@@ -98,9 +101,15 @@ export class StellarHorizonsGameInitializer
             },
             anomalyPool:
                 scenario.anomalies === undefined ? [] : ANOMALIES.map((anomaly) => anomaly.id),
-            terraformQueue: []
+            terraformQueue: [],
+            terraformedWorlds: [],
+            setAsideWorlds: [],
+            economicTilePool: scenario.campaign ? [...ECONOMIC_TILES] : []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
+        for (const [worldClass, count] of Object.entries(scenario.campaign?.setAsideWorlds ?? {})) {
+            setAsideWorlds(hydrated, worldClass as WorldClass, count)
+        }
         for (const systemId of surveyedSystemIds) {
             if (hydrated.isSystemInPlay(systemId)) {
                 fillWorldSlots(hydrated, systemId)
@@ -117,5 +126,26 @@ export class StellarHorizonsGameInitializer
             }
         }
         return hydrated
+    }
+}
+
+// Rulebook 3.0 setup step 5: these worlds join the pool later, one of each class per
+// terraforming phase.
+function setAsideWorlds(
+    state: HydratedStellarHorizonsGameState,
+    worldClass: WorldClass,
+    count: number
+) {
+    const random = state.getProtectedPrng()
+    for (let index = 0; index < count; index++) {
+        const candidates = state.worldPool.filter(
+            (tileId) => worldTile(tileId).worldClass === worldClass
+        )
+        if (candidates.length === 0) {
+            return
+        }
+        const tileId = candidates[random.randInt(candidates.length)]
+        state.worldPool.splice(state.worldPool.indexOf(tileId), 1)
+        state.setAsideWorlds.push(tileId)
     }
 }

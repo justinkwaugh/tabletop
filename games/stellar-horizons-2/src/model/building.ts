@@ -1,6 +1,7 @@
 import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { ShipKind, factionShips, shipDefinition, type ShipDefinition } from '../components/ships.js'
 import { blocksBases } from './anomalies.js'
+import { atShipLimit } from './campaign.js'
 import { capabilitiesOf, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { ShipState } from './pieces.js'
@@ -21,7 +22,7 @@ export function shipsAvailableToBuild(
     playerId: string
 ): ShipDefinition[] {
     const faction = state.getPlayerState(playerId).faction
-    if (!faction) {
+    if (!faction || atShipLimit(state, playerId)) {
         return []
     }
     const maxSize = capabilitiesOf(state, playerId).cvMaxSize

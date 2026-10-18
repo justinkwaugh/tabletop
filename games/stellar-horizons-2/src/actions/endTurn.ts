@@ -2,7 +2,9 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { isCampaign } from '../model/campaign.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
+import { EndRoll, campaignWinners, rollForEnd } from '../model/scoring.js'
 import { returnSpentMarkers } from '../model/settlement.js'
 import { DECADE, isFinalTurn } from '../model/turnCycle.js'
 import { canStillBeWon, victoriousPlayerIds } from '../model/victory.js'
@@ -11,7 +13,8 @@ export type EndTurnMetadata = Type.Static<typeof EndTurnMetadata>
 export const EndTurnMetadata = Type.Object({
     year: Type.Number(),
     victorIds: Type.Array(Type.String()),
-    gameOver: Type.Boolean()
+    gameOver: Type.Boolean(),
+    endRoll: Type.Optional(EndRoll)
 })
 
 export type EndTurn = Type.Static<typeof EndTurn>
@@ -42,6 +45,17 @@ export class HydratedEndTurn extends HydratableAction<typeof EndTurn> implements
     apply(state: HydratedStellarHorizonsGameState, _context?: MachineContext) {
         returnSpentMarkers(state)
         const year = state.year
+        if (isCampaign(state)) {
+            const endRoll = rollForEnd(state)
+            const gameOver = endRoll?.ended ?? false
+            const victorIds = gameOver ? campaignWinners(state) : []
+            state.winningPlayerIds = victorIds
+            if (!gameOver) {
+                state.year += DECADE
+            }
+            this.metadata = { year, victorIds, gameOver, endRoll }
+            return
+        }
         const victorIds = victoriousPlayerIds(state)
         const gameOver = victorIds.length > 0 || isFinalTurn(state) || !canStillBeWon(state)
         state.winningPlayerIds = victorIds

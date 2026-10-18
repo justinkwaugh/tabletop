@@ -1,14 +1,17 @@
-import { TURN_PHASES, type TurnPhase } from '../model/turn.js'
+import { TURN_PHASES, TurnPhase } from '../model/turn.js'
 import { Sector } from './systems.js'
+import { WorldClass } from './worldTypes.js'
 
 export enum ScenarioId {
     Footfall = 'Footfall',
-    Voyages = 'Voyages'
+    Voyages = 'Voyages',
+    Campaign = 'Campaign'
 }
 
 export enum VictoryKind {
     Settlements = 'Settlements',
-    Anomalies = 'Anomalies'
+    Anomalies = 'Anomalies',
+    Score = 'Score'
 }
 
 export interface SettlementVictory {
@@ -23,7 +26,11 @@ export interface AnomalyVictory {
     ofEachChallenge: number
 }
 
-export type ScenarioVictory = SettlementVictory | AnomalyVictory
+export interface ScoreVictory {
+    kind: VictoryKind.Score
+}
+
+export type ScenarioVictory = SettlementVictory | AnomalyVictory | ScoreVictory
 
 export interface StartingBase {
     settlements: number
@@ -35,12 +42,19 @@ export interface ScenarioAnomalies {
     rewards: boolean
 }
 
+// Rules only the campaign uses (rulebook 3.0 and 4.0).
+export interface CampaignRules {
+    setAsideWorlds: Partial<Record<WorldClass, number>>
+    endRollYear: number
+}
+
 export interface ScenarioDefinition {
     id: ScenarioId
     name: string
     minPlayers: number
     sectors: readonly Sector[]
     phases: readonly TurnPhase[]
+    firstTurnPhases?: readonly TurnPhase[]
     startYear: number
     endYear?: number
     techColumns: number
@@ -53,6 +67,7 @@ export interface ScenarioDefinition {
     settlementCost: number
     terraforming: boolean
     anomalies?: ScenarioAnomalies
+    campaign?: CampaignRules
     victory: ScenarioVictory
 }
 
@@ -105,7 +120,38 @@ export const VOYAGES: ScenarioDefinition = {
     victory: { kind: VictoryKind.Anomalies, resolved: 4, ofEachChallenge: 1 }
 }
 
-export const SCENARIOS: readonly ScenarioDefinition[] = [FOOTFALL, VOYAGES]
+// Rulebook 3.0. Anomaly rewards arrive with slice 2 of the campaign plan; until then they are
+// ignored as in These are the Voyages.
+export const CAMPAIGN: ScenarioDefinition = {
+    id: ScenarioId.Campaign,
+    name: 'Campaign',
+    minPlayers: 1,
+    sectors: Object.values(Sector),
+    phases: TURN_PHASES,
+    firstTurnPhases: [TurnPhase.Exploration, TurnPhase.Development],
+    startYear: 2100,
+    techColumns: 0,
+    explorationMarkerValue: 5,
+    surveyedAroundSol: false,
+    startingCash: 0,
+    startingTechMarkersPerField: 0,
+    evenDecadeIncome: 0,
+    settlementCost: 5,
+    terraforming: true,
+    anomalies: { chance: 20, rewards: false },
+    campaign: {
+        setAsideWorlds: {
+            [WorldClass.M]: 8,
+            [WorldClass.O]: 6,
+            [WorldClass.L]: 6,
+            [WorldClass.H]: 6
+        },
+        endRollYear: 2500
+    },
+    victory: { kind: VictoryKind.Score }
+}
+
+export const SCENARIOS: readonly ScenarioDefinition[] = [FOOTFALL, VOYAGES, CAMPAIGN]
 
 export function scenarioDefinition(scenarioId: ScenarioId): ScenarioDefinition {
     switch (scenarioId) {
@@ -113,6 +159,8 @@ export function scenarioDefinition(scenarioId: ScenarioId): ScenarioDefinition {
             return FOOTFALL
         case ScenarioId.Voyages:
             return VOYAGES
+        case ScenarioId.Campaign:
+            return CAMPAIGN
     }
 }
 

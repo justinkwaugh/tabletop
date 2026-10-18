@@ -1,5 +1,5 @@
 import { WORLD_TILES } from './worldCatalog.js'
-import { WorldClass, WorldSide, type WorldTileDefinition } from './worldTypes.js'
+import { WorldClass, WorldSide, type WorldFace, type WorldTileDefinition } from './worldTypes.js'
 
 export * from './worldTypes.js'
 
@@ -12,6 +12,11 @@ export function worldTile(tileId: string): WorldTileDefinition {
         throw new Error(`Unknown world tile ${tileId}`)
     }
     return tile
+}
+
+export function worldFace(tileId: string, side: WorldSide): WorldFace | undefined {
+    const tile = worldTile(tileId)
+    return tile.worldClass === WorldClass.None ? undefined : tile.sides[side]
 }
 
 export function maxPopulation(tileId: string, side: WorldSide): number {

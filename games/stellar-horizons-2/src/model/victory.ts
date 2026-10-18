@@ -40,6 +40,8 @@ export function victoriousPlayerIds(state: HydratedStellarHorizonsGameState): st
                 return state.basesOf(playerId).some((base) => isWinningBase(state, base))
             case VictoryKind.Anomalies:
                 return hasResolvedEnough(state.getPlayerState(playerId), victory)
+            case VictoryKind.Score:
+                return false
         }
     })
 }

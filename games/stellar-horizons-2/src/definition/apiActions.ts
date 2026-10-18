@@ -23,6 +23,15 @@ import { StartPhase } from '../actions/startPhase.js'
 import { StartTurn } from '../actions/startTurn.js'
 import { Terraform } from '../actions/terraform.js'
 import { TransferCargo } from '../actions/transferCargo.js'
+import { DrawEconomicTile } from '../actions/drawEconomicTile.js'
+import { DeclareInitiative } from '../actions/declareInitiative.js'
+import { RollInitiative } from '../actions/rollInitiative.js'
+import { ChooseProduction } from '../actions/chooseProduction.js'
+import { ProduceAtBases } from '../actions/produceAtBases.js'
+import { GrowSettlements } from '../actions/growSettlements.js'
+import { ConvertSettlement } from '../actions/convertSettlement.js'
+import { PassConversion } from '../actions/passConversion.js'
+import { SpendInfluence } from '../actions/spendInfluence.js'
 
 export const StellarHorizonsApiActions = {
     [ActionType.ChooseFaction]: ChooseFaction,
@@ -48,5 +57,14 @@ export const StellarHorizonsApiActions = {
     [ActionType.Terraform]: Terraform,
     [ActionType.PassTerraform]: PassTerraform,
     [ActionType.ChooseTerraformWorld]: ChooseTerraformWorld,
+    [ActionType.DrawEconomicTile]: DrawEconomicTile,
+    [ActionType.DeclareInitiative]: DeclareInitiative,
+    [ActionType.RollInitiative]: RollInitiative,
+    [ActionType.ChooseProduction]: ChooseProduction,
+    [ActionType.ProduceAtBases]: ProduceAtBases,
+    [ActionType.GrowSettlements]: GrowSettlements,
+    [ActionType.ConvertSettlement]: ConvertSettlement,
+    [ActionType.PassConversion]: PassConversion,
+    [ActionType.SpendInfluence]: SpendInfluence,
     [ActionType.EndTurn]: EndTurn
 }

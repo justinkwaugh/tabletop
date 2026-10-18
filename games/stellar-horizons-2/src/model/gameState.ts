@@ -10,6 +10,7 @@ import {
     assertExists,
     type RandomState
 } from '@tabletop/common'
+import { EconomicTile } from '../components/economicTiles.js'
 import { ScenarioId, scenarioDefinition, type ScenarioDefinition } from '../components/scenarios.js'
 import { MachineState } from '../definition/states.js'
 import {
@@ -19,6 +20,7 @@ import {
     SystemState,
     TechPools,
     TerraformChoice,
+    TerraformRecord,
     baseKey
 } from './pieces.js'
 import { HydratedStellarHorizonsPlayerState, StellarHorizonsPlayerState } from './playerState.js'
@@ -39,7 +41,11 @@ export const StellarHorizonsGameState = Type.Object({
     anomalyPool: Type.Array(Type.String()),
     surveyChoice: Type.Optional(SurveyWorldChoice),
     terraformQueue: Type.Array(Type.String()),
-    terraformChoice: Type.Optional(TerraformChoice)
+    terraformChoice: Type.Optional(TerraformChoice),
+    terraformedWorlds: Type.Array(TerraformRecord),
+    setAsideWorlds: Type.Array(Type.String()),
+    economicTilePool: Type.Array(Type.Enum(EconomicTile)),
+    economicTile: Type.Optional(Type.Enum(EconomicTile))
 })
 
 export const StellarHorizonsGameStateValidator = Compile(StellarHorizonsGameState)
@@ -85,6 +91,10 @@ export class HydratedStellarHorizonsGameState
     declare surveyChoice?: SurveyWorldChoice
     declare terraformQueue: string[]
     declare terraformChoice?: TerraformChoice
+    declare terraformedWorlds: TerraformRecord[]
+    declare setAsideWorlds: string[]
+    declare economicTilePool: EconomicTile[]
+    declare economicTile?: EconomicTile
 
     constructor(data: StellarHorizonsProjectedState) {
         super(data, StellarHorizonsProjectedStateValidator)

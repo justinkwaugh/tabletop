@@ -19,7 +19,8 @@ export interface PhaseDefinition {
 }
 
 // Rulebook 1.0: building and movement go in reverse initiative order and cargo transfer in
-// initiative order, while exploration and tech development are simultaneous.
+// initiative order, while exploration and tech development are simultaneous. The campaign's
+// initiative declaration and base production choices (4.1, 4.4) are simultaneous too.
 export const PHASE_DEFINITIONS: Record<TurnPhase, PhaseDefinition> = {
     [TurnPhase.Build]: {
         phase: TurnPhase.Build,
@@ -53,6 +54,20 @@ export const PHASE_DEFINITIONS: Record<TurnPhase, PhaseDefinition> = {
         phase: TurnPhase.Development,
         branchingState: MachineState.DevelopmentPhase,
         playState: MachineState.Developing,
+        direction: MergeDirection.Initiative,
+        merge: 'barrier'
+    },
+    [TurnPhase.Initiative]: {
+        phase: TurnPhase.Initiative,
+        branchingState: MachineState.InitiativePhase,
+        playState: MachineState.DecidingInitiative,
+        direction: MergeDirection.Initiative,
+        merge: 'barrier'
+    },
+    [TurnPhase.BaseProduction]: {
+        phase: TurnPhase.BaseProduction,
+        branchingState: MachineState.BaseProductionPhase,
+        playState: MachineState.ChoosingProduction,
         direction: MergeDirection.Initiative,
         merge: 'barrier'
     }
@@ -89,8 +104,12 @@ export function currentPhase(state: { machineState: MachineState }): TurnPhase {
     return phase
 }
 
+// The campaign's first turn has only exploration and development (rulebook 3.0).
 export function scenarioPhases(state: HydratedStellarHorizonsGameState): readonly TurnPhase[] {
-    return state.scenarioDefinition().phases
+    const scenario = state.scenarioDefinition()
+    return state.year === scenario.startYear && scenario.firstTurnPhases
+        ? scenario.firstTurnPhases
+        : scenario.phases
 }
 
 export function firstPhase(state: HydratedStellarHorizonsGameState): TurnPhase {

@@ -62,7 +62,7 @@ export class HydratedAttemptAnomaly
         this.metadata = {
             anomalyId: attempt.anomalyId,
             strength: attemptStrength(ships, anomalyDefinition(attempt.anomalyId).challenge),
-            difficulty: anomalyDifficulty(state, attempt.anomalyId)
+            difficulty: anomalyDifficulty(state, attempt.anomalyId, this.playerId)
         }
     }
 

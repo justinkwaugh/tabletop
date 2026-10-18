@@ -1,7 +1,8 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedStartTurn, StartTurn, isStartTurn } from '../actions/startTurn.js'
 import type { ActionType } from '../definition/actions.js'
-import type { MachineState } from '../definition/states.js'
+import { MachineState } from '../definition/states.js'
+import { isCampaign } from '../model/campaign.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { branchingState, firstPhase } from '../model/turnPlan.js'
 
@@ -29,6 +30,7 @@ export class StartOfTurnStateHandler implements MachineStateHandler<
         _action: HydratedStartTurn,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        return branchingState(firstPhase(context.gameState))
+        const state = context.gameState
+        return isCampaign(state) ? MachineState.EconomicPhase : branchingState(firstPhase(state))
     }
 }

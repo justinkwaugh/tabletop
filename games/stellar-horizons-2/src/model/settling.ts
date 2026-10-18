@@ -1,6 +1,7 @@
-import { SOL_SYSTEM_ID, starSystemDefinition } from '../components/systems.js'
+import { SOL_SYSTEM_ID } from '../components/systems.js'
 import { isRevealedWorld } from '../components/worlds.js'
 import { blocksBases } from './anomalies.js'
+import { atBaseLimit, effectiveHabitability } from './campaign.js'
 import { capabilitiesOf, freeCargo, hasArrived } from './fleet.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { baseKey, type ShipState } from './pieces.js'
@@ -22,7 +23,7 @@ export function canSettleSystem(
         return false
     }
     const threshold = capabilitiesOf(state, playerId).settleHabitability
-    return threshold !== undefined && starSystemDefinition(systemId).habitability >= threshold
+    return threshold !== undefined && effectiveHabitability(state, playerId, systemId) >= threshold
 }
 
 export function settlementPurchaseLimit(
@@ -46,11 +47,14 @@ export function canLoadFromBase(state: HydratedStellarHorizonsGameState, ship: S
     )
 }
 
+// In the campaign a new base may not exceed the faction's maximum for the century (1.8).
 export function canUnload(state: HydratedStellarHorizonsGameState, ship: ShipState): boolean {
     return (
         hasArrived(ship) &&
         ship.settlements > 0 &&
-        canSettleSystem(state, ship.playerId, ship.systemId)
+        canSettleSystem(state, ship.playerId, ship.systemId) &&
+        (state.base(ship.playerId, ship.systemId) !== undefined ||
+            !atBaseLimit(state, ship.playerId))
     )
 }
 
