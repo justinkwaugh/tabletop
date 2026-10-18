@@ -308,3 +308,16 @@ export function brokenInCombat(): BattleGame {
     game.by(Side.Allied, ActionType.CounterAttack, { unitIds: [] })
     return game
 }
+
+/** A won attack led by two infantry of different strength against one blocker, left at the defender's choice of which leader takes the odd step. */
+export function oddLossOnTheAttackers(): BattleGame {
+    const game = new BattleGame([
+        attacker('F01', infantry(3)),
+        attacker('F02', infantry(2)),
+        defender('A01', infantry(2), blocking)
+    ])
+    game.threaten()
+    game.pressAgainst(['A01'])
+    game.declare(stHilaire(['F01', 'F02']), ['F01', 'F02'])
+    return game
+}

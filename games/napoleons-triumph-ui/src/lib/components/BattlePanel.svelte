@@ -1,15 +1,10 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import {
-        MachineState,
-        UnitType,
-        attackStep,
-        type AttackStep,
-        type ProjectedUnit
-    } from '@tabletop/napoleons-triumph'
+    import { UnitType, type ProjectedUnit } from '@tabletop/napoleons-triumph'
     import { anyLoss } from '$lib/model/attackLosses.js'
     import { endingOf } from '$lib/model/concludedBattle.js'
     import { StageKind } from '$lib/model/battleSelection.js'
+    import { awaitedStep } from '$lib/model/battleWaiting.js'
     import { resultsSoFar, rolesBeforeTheCounterAttack } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { printedSideOf } from '$lib/utils/approachSymbols.js'
@@ -38,17 +33,6 @@
         [UnitType.Infantry]: 'infantry',
         [UnitType.Cavalry]: 'cavalry',
         [UnitType.Artillery]: 'artillery'
-    }
-
-    const WAITING: Record<AttackStep, string> = {
-        [MachineState.DefenseResponse]: 'to defend or retreat',
-        [MachineState.FeintDecision]: 'to press the attack or call it a feint',
-        [MachineState.DefenseDeclaration]: 'to name the leading units of the defence',
-        [MachineState.AttackDeclaration]: 'to declare the attack',
-        [MachineState.CounterAttackDecision]: 'to counter-attack or hold',
-        [MachineState.ResolvingAttack]: 'to settle the outcome',
-        [MachineState.Retreating]: 'to retreat',
-        [MachineState.Occupying]: 'to move in'
     }
 
     function terrain(defenseApproachId: number): string {
@@ -172,7 +156,7 @@
             {#if gameSession.attack}
                 <div class="nt-battle-prompt">
                     Waiting for <PlayerName playerId={game.activePlayerIds[0]} />
-                    {WAITING[attackStep(gameSession.attack)]}.
+                    {awaitedStep(gameSession.attack, (playerId) => game.sideOf(playerId))}.
                 </div>
             {/if}
         {:else}

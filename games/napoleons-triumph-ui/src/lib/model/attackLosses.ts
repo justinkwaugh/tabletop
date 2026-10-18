@@ -1,5 +1,6 @@
 import type { GameAction } from '@tabletop/common'
 import {
+    DecisionKind,
     MoralePenaltyKind,
     ResultTermKind,
     UnitType,
@@ -9,9 +10,12 @@ import {
     isRetreat,
     isThreatenAttack,
     type Attack,
+    type ExcessLossesDecision,
     type Face,
     type LossEntry,
     type MoralePenalty,
+    type OddLossDecision,
+    type PendingDecision,
     type ResultTerm
 } from '@tabletop/napoleons-triumph'
 
@@ -26,6 +30,8 @@ export interface StepLoss {
 export interface SideLosses {
     playerId: string
     steps: number
+    /** Steps the side owes that wait on a player choosing the units to lose them. */
+    owed: number
     /** Every point of morale the attack has cost this side so far. */
     morale: number
     taken: StepLoss[]
@@ -41,16 +47,40 @@ export interface AttackLosses {
 
 type FoughtAttack = Pick<Attack, 'attackerId' | 'defenderId' | 'attackingUnitIds'>
 
+type LossDecision = OddLossDecision | ExcessLossesDecision
+
 function noLosses(playerId: string): SideLosses {
-    return { playerId, steps: 0, morale: 0, taken: [], paidForSteps: 0, penalties: [] }
+    return { playerId, steps: 0, owed: 0, morale: 0, taken: [], paidForSteps: 0, penalties: [] }
+}
+
+function isLossDecision(decision: PendingDecision): decision is LossDecision {
+    return decision.kind === DecisionKind.OddLoss || decision.kind === DecisionKind.ExcessLosses
+}
+
+/** Rule 11, step 9: the enemy places an odd step, so it is owed by the side whose units it falls between. */
+export function ownerOfLoss(attack: FoughtAttack, decision: LossDecision): string {
+    if (decision.kind === DecisionKind.ExcessLosses) {
+        return decision.playerId
+    }
+    return attack.attackingUnitIds.includes(decision.unitIds[0])
+        ? attack.attackerId
+        : attack.defenderId
+}
+
+export function stepsOwedBy(decision: LossDecision): number {
+    return decision.kind === DecisionKind.OddLoss ? 1 : decision.amount
 }
 
 function stepsIn(losses: readonly LossEntry[]): number {
     return losses.reduce((sum, loss) => sum + loss.steps, 0)
 }
 
-/** What the attack in progress has cost each side, from what its actions recorded since it was threatened. */
-export function lossesOfAttack(actions: readonly GameAction[], attack: FoughtAttack): AttackLosses {
+/** What the attack in progress has cost each side, from what its actions recorded since it was threatened and the losses still waiting on a choice. */
+export function lossesOfAttack(
+    actions: readonly GameAction[],
+    attack: FoughtAttack,
+    pending: readonly PendingDecision[]
+): AttackLosses {
     const attacker = noLosses(attack.attackerId)
     const defender = noLosses(attack.defenderId)
     const sideOf = (playerId: string) => (playerId === attack.attackerId ? attacker : defender)
@@ -94,6 +124,9 @@ export function lossesOfAttack(actions: readonly GameAction[], attack: FoughtAtt
             }
         }
     }
+    for (const decision of pending.filter(isLossDecision)) {
+        sideOf(ownerOfLoss(attack, decision)).owed += stepsOwedBy(decision)
+    }
     for (const side of [attacker, defender]) {
         side.morale =
             side.paidForSteps + side.penalties.reduce((sum, penalty) => sum + penalty.moraleLost, 0)
@@ -102,19 +135,25 @@ export function lossesOfAttack(actions: readonly GameAction[], attack: FoughtAtt
 }
 
 export function anyLoss(losses: AttackLosses): boolean {
-    return [losses.attacker, losses.defender].some((side) => side.steps > 0 || side.morale > 0)
+    return [losses.attacker, losses.defender].some(
+        (side) => side.steps > 0 || side.owed > 0 || side.morale > 0
+    )
 }
 
-function counted(amount: number, one: string): string {
+export function counted(amount: number, one: string): string {
     return `${amount} ${one}${amount === 1 || one === 'morale' ? '' : 's'}`
 }
 
 export function lossSummary(side: SideLosses): string {
     const parts = [
         ...(side.steps > 0 ? [counted(side.steps, 'step')] : []),
+        ...(side.owed > 0 ? [`${counted(side.owed, 'step')} owed`] : []),
         ...(side.morale > 0 ? [counted(side.morale, 'morale')] : [])
     ]
-    return parts.length > 0 ? parts.join(' and ') : 'no loss'
+    if (parts.length < 2) {
+        return parts[0] ?? 'no loss'
+    }
+    return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
 }
 
 export interface OwedLine {
