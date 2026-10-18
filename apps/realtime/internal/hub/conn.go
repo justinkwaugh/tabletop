@@ -15,6 +15,7 @@ type Conn struct {
 	awaiting  map[string]struct{}
 	announced bool
 	dropped   bool
+	farewell  []byte
 }
 
 func newConn(account string, buffer int) *Conn {
@@ -44,4 +45,8 @@ func (c *Conn) Frames() <-chan []byte {
 
 func (c *Conn) Closed() <-chan struct{} {
 	return c.closed
+}
+
+func (c *Conn) Farewell() []byte {
+	return c.farewell
 }

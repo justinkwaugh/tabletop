@@ -27,6 +27,8 @@ install -m 0644 "$here/unattended-upgrades.conf" /etc/apt/apt.conf.d/52realtime-
 install -m 0644 "$here/Caddyfile" /etc/caddy/Caddyfile
 install -d -m 0755 /usr/local/lib/realtime /etc/realtime
 install -m 0755 "$here/fetch-secrets" /usr/local/lib/realtime/fetch-secrets
+install -m 0755 "$here/relay-ready.sh" /usr/local/lib/realtime/relay-ready.sh
+install -m 0755 "$here/rollback-release.sh" /usr/local/lib/realtime/rollback-release.sh
 [[ -f /etc/realtime/relay.env ]] || install -m 0644 "$here/relay.env.example" /etc/realtime/relay.env
 install -m 0644 "$here/realtime.service" /etc/systemd/system/realtime.service
 [[ -f $here/realtime ]] && install -m 0755 "$here/realtime" /usr/local/lib/realtime/realtime

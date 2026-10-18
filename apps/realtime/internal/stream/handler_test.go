@@ -39,15 +39,19 @@ func (f fakeVerifier) Verify(raw string) (token.Registration, error) {
 	return registration, nil
 }
 
-func newServer(t *testing.T, keepalive time.Duration) (*httptest.Server, *hub.Hub) {
-	relayHub := hub.New(hub.Config{
+func newServer(t *testing.T, keepalive time.Duration, adjust ...func(*hub.Config)) (*httptest.Server, *hub.Hub) {
+	config := hub.Config{
 		MaxConnections:           10,
 		MaxConnectionsPerAccount: 10,
 		ConnectionBuffer:         8,
 		RevocationMemory:         time.Minute,
 		SweepInterval:            time.Hour,
 		Now:                      time.Now,
-	}, acceptAll{})
+	}
+	for _, change := range adjust {
+		change(&config)
+	}
+	relayHub := hub.New(config, acceptAll{})
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	go relayHub.Run(ctx)
@@ -249,7 +253,7 @@ func TestAnIdleStreamGetsKeepalives(t *testing.T) {
 	defer cancel()
 	response := get(t, ctx, server.URL+"/stream?t=good")
 	defer response.Body.Close()
-	if frame := readFrame(t, bufio.NewReader(response.Body)); frame != ": keepalive\n\n" {
+	if frame := readFrame(t, bufio.NewReader(response.Body)); frame != "event: keepalive\ndata: {}\n\n" {
 		t.Fatalf("frame %q", frame)
 	}
 }
@@ -262,6 +266,25 @@ func TestTheRelayClosingAConnectionEndsTheStream(t *testing.T) {
 	relayHub.RedisDisconnected()
 	_, err := bufio.NewReader(response.Body).ReadString('\n')
 	if !errors.Is(err, io.EOF) {
+		t.Fatalf("got %v, want EOF", err)
+	}
+}
+
+func TestAnEvictedStreamIsToldWhyBeforeItEnds(t *testing.T) {
+	server, relayHub := newServer(t, time.Minute, func(c *hub.Config) { c.MaxConnectionsPerAccount = 1 })
+	relayHub.RedisConnected(connectedAt)
+	first := get(t, context.Background(), server.URL+"/stream?t=good")
+	defer first.Body.Close()
+	relayHub.Subscribed("game-1")
+	reader := bufio.NewReader(first.Body)
+	readReady(t, reader)
+
+	second := get(t, context.Background(), server.URL+"/stream?t=more")
+	defer second.Body.Close()
+	if frame := readFrame(t, reader); frame != "event: evicted\ndata: {}\n\n" {
+		t.Fatalf("frame %q", frame)
+	}
+	if _, err := reader.ReadString('\n'); !errors.Is(err, io.EOF) {
 		t.Fatalf("got %v, want EOF", err)
 	}
 }

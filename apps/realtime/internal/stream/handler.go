@@ -43,7 +43,7 @@ func NewHandler(config Config, verifier Verifier, hub Hub) http.Handler {
 	return mux
 }
 
-var keepaliveFrame = []byte(": keepalive\n\n")
+var keepaliveFrame = []byte("event: keepalive\ndata: {}\n\n")
 
 func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 	h.allowOrigin(w, r)
@@ -83,6 +83,9 @@ func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-conn.Closed():
+			if farewell := conn.Farewell(); farewell != nil {
+				_ = h.write(w, writer, farewell)
+			}
 			return
 		case frame = <-conn.Frames():
 		case <-keepalive.C:

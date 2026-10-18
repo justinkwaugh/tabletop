@@ -21,6 +21,8 @@ import (
 	"tabletop/realtime/internal/token"
 )
 
+var version = "dev"
+
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	if err := run(); err != nil {
@@ -83,7 +85,7 @@ func run() error {
 	serverErrors := make(chan error, 2)
 	go serve(streamServer, serverErrors)
 	go serve(statsServer, serverErrors)
-	slog.Info("realtime relay listening", "stream", cfg.Listen, "stats", cfg.StatsListen)
+	slog.Info("realtime relay listening", "version", version, "stream", cfg.Listen, "stats", cfg.StatsListen)
 
 	select {
 	case <-ctx.Done():
@@ -109,10 +111,11 @@ func statsHandler(relayHub *hub.Hub) http.Handler {
 		runtime.ReadMemStats(&memory)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(struct {
+			Version string `json:"version"`
 			hub.Stats
 			Goroutines  int    `json:"goroutines"`
 			HeapBytes   uint64 `json:"heapBytes"`
 			SystemBytes uint64 `json:"systemBytes"`
-		}{relayHub.Stats(), runtime.NumGoroutine(), memory.HeapAlloc, memory.Sys})
+		}{version, relayHub.Stats(), runtime.NumGoroutine(), memory.HeapAlloc, memory.Sys})
 	})
 }

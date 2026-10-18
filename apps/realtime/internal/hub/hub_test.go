@@ -340,6 +340,9 @@ func TestTheAccountLimitClosesTheOldestConnection(t *testing.T) {
 	if !isClosed(oldest) || isClosed(middle) || isClosed(newest) || isClosed(other) {
 		t.Fatal("expected only the oldest connection of account a to close")
 	}
+	if string(oldest.Farewell()) != "event: evicted\ndata: {}\n\n" || middle.Farewell() != nil {
+		t.Fatalf("expected only the evicted connection to say why, got %q", oldest.Farewell())
+	}
 	if stats := h.hub.Stats(); stats.Connections != 3 || stats.Accounts != 2 {
 		t.Fatalf("unexpected stats %+v", stats)
 	}

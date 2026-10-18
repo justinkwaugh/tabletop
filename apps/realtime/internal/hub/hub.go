@@ -171,7 +171,9 @@ func (h *Hub) open(registration token.Registration) (*Conn, error) {
 	h.spend(registration)
 
 	if accountConns := h.accounts[registration.Account]; len(accountConns) >= h.config.MaxConnectionsPerAccount {
-		h.drop(accountConns[0])
+		oldest := accountConns[0]
+		oldest.farewell = evictedFrame
+		h.drop(oldest)
 	}
 
 	conn := newConn(registration.Account, h.config.ConnectionBuffer)
@@ -432,6 +434,8 @@ type readyEvent struct {
 	Connection string   `json:"connection,omitempty"`
 	Topics     []string `json:"topics"`
 }
+
+var evictedFrame = []byte("event: evicted\ndata: {}\n\n")
 
 func readyFrame(conn *Conn) ([]byte, error) {
 	event := readyEvent{
