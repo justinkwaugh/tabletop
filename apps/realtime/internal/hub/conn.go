@@ -1,23 +1,37 @@
 package hub
 
+import (
+	"crypto/rand"
+	"encoding/base64"
+)
+
 type Conn struct {
+	id      string
 	account string
-	topics  []string
 	frames  chan []byte
 	closed  chan struct{}
 
-	ready             bool
-	dropped           bool
-	unconfirmedTopics int
+	topics    map[string]bool
+	awaiting  map[string]struct{}
+	announced bool
+	dropped   bool
 }
 
-func newConn(account string, topics []string, buffer int) *Conn {
+func newConn(account string, buffer int) *Conn {
 	return &Conn{
-		account: account,
-		topics:  topics,
-		frames:  make(chan []byte, buffer),
-		closed:  make(chan struct{}),
+		id:       newConnID(),
+		account:  account,
+		frames:   make(chan []byte, buffer),
+		closed:   make(chan struct{}),
+		topics:   map[string]bool{},
+		awaiting: map[string]struct{}{},
 	}
+}
+
+func newConnID() string {
+	id := make([]byte, 16)
+	_, _ = rand.Read(id)
+	return base64.RawURLEncoding.EncodeToString(id)
 }
 
 func (c *Conn) Account() string {

@@ -50,6 +50,8 @@ import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils
 
 const StoredCurrentGames = Type.Object({ userId: Type.String(), games: Type.Array(Game) })
 
+type GameListChange = { game: Game; removed: boolean }
+
 export class GameService implements GameServiceInterface {
     get supportsReproductionSeed(): boolean {
         return this.api.supportsReproductionSeed === true
@@ -62,7 +64,8 @@ export class GameService implements GameServiceInterface {
     loading = $state(false)
     private loadingPromise: Promise<void> | null = null
     private currentGamesFetched = false
-    private currentGamesChanged = false
+    private reloadRequested = false
+    private changesDuringLoad: GameListChange[] | undefined
     private static readonly storedCurrentGamesKey = 'currentGames'
 
     currentGameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
@@ -151,7 +154,7 @@ export class GameService implements GameServiceInterface {
 
     async loadGames() {
         if (this.loadingPromise) {
-            this.currentGamesChanged = true
+            this.reloadRequested = true
         } else {
             this.loading = true
             this.loadingPromise = this.loadCurrentGames().finally(() => {
@@ -168,13 +171,18 @@ export class GameService implements GameServiceInterface {
         }
         const sessionUser = this.authorizationService.getSessionUser()
         let fetched: { games: Game[]; localGames: Game[] } | undefined
+        let changes: GameListChange[] = []
         do {
-            this.currentGamesChanged = false
+            this.reloadRequested = false
+            changes = []
+            this.changesDuringLoad = changes
             fetched = await this.fetchCurrentGames(sessionUser)
             if (!fetched) {
+                this.changesDuringLoad = undefined
                 return
             }
-        } while (this.currentGamesChanged)
+        } while (this.reloadRequested)
+        this.changesDuringLoad = undefined
         const { games, localGames } = fetched
 
         const ids = new Set(games.map((game) => game.id))
@@ -190,10 +198,28 @@ export class GameService implements GameServiceInterface {
         localGames.forEach((game) => {
             this.localGamesById.set(game.id, game)
         })
+        this.replayChanges(changes)
         this.currentGamesFetched = true
         if (sessionUser) {
             writeStoredValue(GameService.storedCurrentGamesKey, { userId: sessionUser.id, games })
         }
+    }
+
+    private replayChanges(changes: GameListChange[]) {
+        for (const { game, removed } of changes) {
+            if (removed) {
+                this.removeFromPrivateCache(game.id)
+                continue
+            }
+            const loaded = this.gamesById.get(game.id) ?? this.localGamesById.get(game.id)
+            if (!loaded || this.isNewer(game, loaded)) {
+                this.upsertCachedGame(game)
+            }
+        }
+    }
+
+    private isNewer(game: Game, than: Game): boolean {
+        return (game.updatedAt?.getTime() ?? 0) > (than.updatedAt?.getTime() ?? 0)
     }
 
     private async fetchCurrentGames(
@@ -533,13 +559,14 @@ export class GameService implements GameServiceInterface {
                 return
             }
             const game = Value.Convert(Game, notification.data.game) as Game
-            this.currentGamesChanged = true
             if (
                 notification.action === GameNotificationAction.Create ||
                 notification.action === GameNotificationAction.Update
             ) {
+                this.changesDuringLoad?.push({ game, removed: false })
                 this.upsertCachedGame(game)
             } else if (notification.action === GameNotificationAction.Delete) {
+                this.changesDuringLoad?.push({ game, removed: true })
                 this.removeFromPrivateCache(game.id)
                 this.removeFromPublicCache(game.id)
             }

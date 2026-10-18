@@ -3,7 +3,6 @@ import {
     NotificationChannel,
     NotificationEventType,
     TabletopApi,
-    type NotificationEvent,
     type NotificationListener
 } from '@tabletop/frontend-components'
 import {
@@ -24,7 +23,7 @@ vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
 
 const user: User = { id: 'user', status: UserStatus.Active, roles: [Role.User], externalIds: [] }
 
-function game(id: string): Game {
+function game(id: string, overrides: Partial<Game> = {}): Game {
     return {
         id,
         name: id,
@@ -46,7 +45,8 @@ function game(id: string): Game {
                 isHuman: true
             },
             { id: 'p2', userId: 'user', name: 'User', status: PlayerStatus.Reserved, isHuman: true }
-        ]
+        ],
+        ...overrides
     }
 }
 
@@ -61,45 +61,92 @@ function fixture() {
         api
     )
     service.localGameStore.findGamesForUser = async () => []
+    const olderResponse = Promise.withResolvers<Game[]>()
+    getMyGames.mockReturnValueOnce(olderResponse.promise)
     return {
         service,
         getMyGames,
-        emit: async (event: NotificationEvent) => listener?.(event),
-        created: (createdGame: Game): NotificationEvent => ({
-            eventType: NotificationEventType.Data,
-            channel: NotificationChannel.User,
-            notification: {
-                id: 'notice',
-                type: NotificationCategory.Game,
-                action: GameNotificationAction.Create,
-                data: { game: createdGame }
-            }
-        })
+        olderResponse,
+        notify: async (action: GameNotificationAction, notifiedGame: Game) =>
+            listener?.({
+                eventType: NotificationEventType.Data,
+                channel: NotificationChannel.User,
+                notification: {
+                    id: 'notice',
+                    type: NotificationCategory.Game,
+                    action,
+                    data: { game: notifiedGame }
+                }
+            })
     }
 }
+
+function names(service: GameService): string[] {
+    return service.waitingGames.map((waiting) => waiting.name)
+}
+
+const earlier = new Date('2026-10-02T10:00:00Z')
+const later = new Date('2026-10-02T11:00:00Z')
 
 beforeEach(() => {
     stubLocalStorage()
 })
 
 it('keeps a game created while an older list response is in flight', async () => {
-    const { service, getMyGames, emit, created } = fixture()
-    const olderResponse = Promise.withResolvers<Game[]>()
-    getMyGames.mockReturnValueOnce(olderResponse.promise).mockResolvedValueOnce([game('new')])
-
+    const { service, getMyGames, olderResponse, notify } = fixture()
     const loading = service.loadGames()
-    await emit(created(game('new')))
+    await notify(GameNotificationAction.Create, game('new'))
     olderResponse.resolve([])
     await loading
 
-    expect(getMyGames).toHaveBeenCalledTimes(2)
-    expect(service.waitingGames.map((waiting) => waiting.id)).toEqual(['new'])
+    expect(getMyGames).toHaveBeenCalledOnce()
+    expect(names(service)).toEqual(['new'])
+})
+
+it('keeps an update newer than the list response', async () => {
+    const { service, olderResponse, notify } = fixture()
+    const loading = service.loadGames()
+    await notify(GameNotificationAction.Update, game('g', { name: 'renamed', updatedAt: later }))
+    olderResponse.resolve([game('g', { name: 'original', updatedAt: earlier })])
+    await loading
+
+    expect(names(service)).toEqual(['renamed'])
+})
+
+it('keeps the list response when it is newer than an update', async () => {
+    const { service, olderResponse, notify } = fixture()
+    const loading = service.loadGames()
+    await notify(GameNotificationAction.Update, game('g', { name: 'stale', updatedAt: earlier }))
+    olderResponse.resolve([game('g', { name: 'current', updatedAt: later })])
+    await loading
+
+    expect(names(service)).toEqual(['current'])
+})
+
+it('keeps a deletion that arrives while the list response is in flight', async () => {
+    const { service, olderResponse, notify } = fixture()
+    const loading = service.loadGames()
+    await notify(GameNotificationAction.Delete, game('gone'))
+    olderResponse.resolve([game('gone'), game('kept')])
+    await loading
+
+    expect(names(service)).toEqual(['kept'])
+})
+
+it('does not refetch for game activity during the load', async () => {
+    const { service, getMyGames, olderResponse, notify } = fixture()
+    const loading = service.loadGames()
+    await notify(GameNotificationAction.AddActions, game('busy'))
+    await notify(GameNotificationAction.Chat, game('busy'))
+    olderResponse.resolve([game('busy')])
+    await loading
+
+    expect(getMyGames).toHaveBeenCalledOnce()
 })
 
 it('fetches again when a load is requested while one is running', async () => {
-    const { service, getMyGames } = fixture()
-    const olderResponse = Promise.withResolvers<Game[]>()
-    getMyGames.mockReturnValueOnce(olderResponse.promise).mockResolvedValueOnce([game('later')])
+    const { service, getMyGames, olderResponse } = fixture()
+    getMyGames.mockResolvedValueOnce([game('later')])
 
     const first = service.loadGames()
     const second = service.loadGames()
@@ -107,13 +154,5 @@ it('fetches again when a load is requested while one is running', async () => {
     await Promise.all([first, second])
 
     expect(getMyGames).toHaveBeenCalledTimes(2)
-    expect(service.waitingGames.map((waiting) => waiting.id)).toEqual(['later'])
-})
-
-it('fetches once when nothing changes during the load', async () => {
-    const { service, getMyGames } = fixture()
-    getMyGames.mockResolvedValueOnce([game('only')])
-    await service.loadGames()
-    expect(getMyGames).toHaveBeenCalledTimes(1)
-    expect(service.waitingGames.map((waiting) => waiting.id)).toEqual(['only'])
+    expect(names(service)).toEqual(['later'])
 })

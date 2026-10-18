@@ -8,13 +8,13 @@ class FakeEventSource {
     onmessage: ((event: MessageEvent<string>) => void) | null = null
     onerror: (() => void) | null = null
     closed = false
-    private readonly listeners = new Map<string, () => void>()
+    private readonly listeners = new Map<string, (event: MessageEvent<string>) => void>()
 
     constructor(readonly url: string) {
         FakeEventSource.opened.push(this)
     }
 
-    addEventListener(type: string, listener: () => void) {
+    addEventListener(type: string, listener: (event: MessageEvent<string>) => void) {
         this.listeners.set(type, listener)
     }
 
@@ -22,8 +22,9 @@ class FakeEventSource {
         this.closed = true
     }
 
-    ready() {
-        this.listeners.get('ready')?.()
+    ready(topics: string[], connection?: string) {
+        const data = JSON.stringify(connection ? { connection, topics } : { topics })
+        this.listeners.get('ready')?.(new MessageEvent('ready', { data }))
     }
 
     message(payload: unknown) {
@@ -45,15 +46,17 @@ const timing = { maxJitterMs: 5_000, baseBackoffMs: 1_000, maxBackoffMs: 30_000 
 
 function setup({ random = () => 0 }: { random?: () => number } = {}) {
     const getRealtimeToken = vi.fn(async (gameIds: string[]) => `token-for-${gameIds.join('+')}`)
+    const post = vi.fn(async (_url: string) => new Response(null, { status: 202 }))
     const connection = new RelayConnection(
         { getRealtimeToken },
         'https://events.test',
         timing,
-        random
+        random,
+        post
     )
     const events: RealtimeEvent[] = []
     connection.setHandler((event) => events.push(event))
-    return { connection, getRealtimeToken, events }
+    return { connection, getRealtimeToken, post, events }
 }
 
 const user = new ChannelIdentifier(NotificationChannel.User, 'u1')
@@ -62,6 +65,10 @@ const game = new ChannelIdentifier(NotificationChannel.GameInstance, 'g1')
 
 function discontinuity(channel: NotificationChannel): RealtimeEvent {
     return { type: RealtimeEventType.Discontinuity, channel }
+}
+
+function data(channel: NotificationChannel, payload: unknown): RealtimeEvent {
+    return { type: RealtimeEventType.Data, channel, data: payload }
 }
 
 async function settle() {
@@ -73,7 +80,10 @@ async function connected(...channels: ChannelIdentifier[]) {
     for (const channel of channels) await harness.connection.addChannel(channel)
     await harness.connection.connect()
     await settle()
-    FakeEventSource.latest().ready()
+    FakeEventSource.latest().ready(
+        channels.map((channel) => channel.channelName),
+        'c1'
+    )
     harness.events.length = 0
     return harness
 }
@@ -87,6 +97,7 @@ beforeEach(() => {
 afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
 })
 
 describe('RelayConnection', () => {
@@ -104,7 +115,7 @@ describe('RelayConnection', () => {
         expect(FakeEventSource.latest().url).toBe('https://events.test/stream?t=token-for-')
     })
 
-    it('signals one discontinuity per channel kind when the first stream is ready', async () => {
+    it('signals one discontinuity per channel kind on the first ready', async () => {
         const { connection, events } = setup()
         await connection.addChannel(user)
         await connection.addChannel(global)
@@ -113,7 +124,7 @@ describe('RelayConnection', () => {
         await connection.connect()
         await settle()
 
-        FakeEventSource.latest().ready()
+        FakeEventSource.latest().ready(['game-g1', 'game-g2', 'global', 'user-u1'], 'c1')
         expect(events).toEqual([
             discontinuity(NotificationChannel.User),
             discontinuity(NotificationChannel.Global),
@@ -121,63 +132,113 @@ describe('RelayConnection', () => {
         ])
     })
 
-    it('keeps the live stream until its replacement is ready', async () => {
-        const { connection, getRealtimeToken, events } = await connected(user, global)
-        const live = FakeEventSource.latest()
+    it('adds a channel on the open stream and resyncs only that channel', async () => {
+        const { connection, getRealtimeToken, post, events } = await connected(user, global)
+        const stream = FakeEventSource.latest()
 
         await connection.addChannel(game)
         await settle()
-        const replacement = FakeEventSource.latest()
         expect(getRealtimeToken).toHaveBeenLastCalledWith(['g1'])
-        expect(replacement.url).toBe('https://events.test/stream?t=token-for-g1')
-        expect(live.closed).toBe(false)
+        expect(post).toHaveBeenCalledWith('https://events.test/stream/c1/topics?t=token-for-g1')
+        expect(FakeEventSource.opened).toHaveLength(1)
 
-        live.message({ topic: 'user-u1', message: { during: 'switch' } })
-        replacement.ready()
-        expect(live.closed).toBe(true)
+        stream.message({ topic: 'user-u1', message: { during: 'change' } })
+        stream.ready(['game-g1', 'global', 'user-u1'])
+        stream.message({ topic: 'game-g1', message: { n: 1 } })
+        expect(stream.closed).toBe(false)
         expect(events).toEqual([
-            {
-                type: RealtimeEventType.Data,
-                channel: NotificationChannel.User,
-                data: { during: 'switch' }
-            },
-            discontinuity(NotificationChannel.GameInstance)
+            data(NotificationChannel.User, { during: 'change' }),
+            discontinuity(NotificationChannel.GameInstance),
+            data(NotificationChannel.GameInstance, { n: 1 })
         ])
     })
 
-    it('signals nothing when a channel is removed', async () => {
-        const { connection, getRealtimeToken, events } = await connected(user, global, game)
+    it('removes a channel on the open stream without resyncing anything', async () => {
+        const { connection, getRealtimeToken, post, events } = await connected(user, global, game)
+        const stream = FakeEventSource.latest()
 
         await connection.removeChannel(game)
         await settle()
         expect(getRealtimeToken).toHaveBeenLastCalledWith([])
-        FakeEventSource.latest().ready()
+        expect(post).toHaveBeenCalledOnce()
+        stream.message({ topic: 'game-g1', message: { late: true } })
+        stream.ready(['global', 'user-u1'])
         expect(events).toEqual([])
     })
 
-    it('signals every channel after the live stream fails', async () => {
-        const { events } = await connected(user, global)
-        FakeEventSource.latest().fail()
+    it('resyncs a channel the relay already carried once the client adds it', async () => {
+        const { connection, events } = await connected(game)
+        const stream = FakeEventSource.latest()
+        stream.message({ topic: 'user-u1', message: { ignored: true } })
+
+        await connection.addChannel(user)
         await settle()
-        FakeEventSource.latest().ready()
-        expect(FakeEventSource.opened).toHaveLength(2)
-        expect(events).toEqual([
-            discontinuity(NotificationChannel.User),
-            discontinuity(NotificationChannel.Global)
-        ])
+        stream.ready(['game-g1', 'global', 'user-u1'])
+        expect(events).toEqual([discontinuity(NotificationChannel.User)])
     })
 
-    it('signals every channel when the live stream fails while a replacement opens', async () => {
-        const { connection, events } = await connected(user, global)
-        const live = FakeEventSource.latest()
+    it('sends one topic change at a time, ending with the latest channels', async () => {
+        const { connection, getRealtimeToken, post } = await connected(user, global)
+        const stream = FakeEventSource.latest()
+
         await connection.addChannel(game)
         await settle()
-        live.fail()
-        FakeEventSource.latest().ready()
+        await connection.addChannel(new ChannelIdentifier(NotificationChannel.GameInstance, 'g2'))
+        await settle()
+        expect(post).toHaveBeenCalledOnce()
+
+        stream.ready(['game-g1', 'global', 'user-u1'])
+        await settle()
+        expect(post).toHaveBeenCalledTimes(2)
+        expect(getRealtimeToken).toHaveBeenLastCalledWith(['g1', 'g2'])
+
+        stream.ready(['game-g1', 'game-g2', 'global', 'user-u1'])
+        await settle()
+        expect(post).toHaveBeenCalledTimes(2)
+    })
+
+    it('waits for the first ready before changing topics', async () => {
+        const { connection, post } = setup()
+        await connection.addChannel(user)
+        await connection.connect()
+        await settle()
+        await connection.addChannel(game)
+        await settle()
+        expect(post).not.toHaveBeenCalled()
+
+        FakeEventSource.latest().ready(['global', 'user-u1'], 'c1')
+        await settle()
+        expect(post).toHaveBeenCalledWith('https://events.test/stream/c1/topics?t=token-for-g1')
+    })
+
+    it('reconnects and resyncs everything when a topic change is refused', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+        const { connection, post, events } = await connected(user, global)
+        const stream = FakeEventSource.latest()
+        post.mockResolvedValueOnce(new Response(null, { status: 404 }))
+
+        await connection.addChannel(game)
+        await settle()
+        expect(stream.closed).toBe(true)
+        await settle()
+        FakeEventSource.latest().ready(['game-g1', 'global', 'user-u1'], 'c2')
+        expect(FakeEventSource.opened).toHaveLength(2)
         expect(events).toEqual([
             discontinuity(NotificationChannel.User),
             discontinuity(NotificationChannel.Global),
             discontinuity(NotificationChannel.GameInstance)
+        ])
+    })
+
+    it('reconnects and resyncs everything after the stream fails', async () => {
+        const { events } = await connected(user, global)
+        FakeEventSource.latest().fail()
+        await settle()
+        FakeEventSource.latest().ready(['global', 'user-u1'], 'c2')
+        expect(FakeEventSource.opened).toHaveLength(2)
+        expect(events).toEqual([
+            discontinuity(NotificationChannel.User),
+            discontinuity(NotificationChannel.Global)
         ])
     })
 
@@ -191,8 +252,8 @@ describe('RelayConnection', () => {
         stream.message({ topic: 'game-other', message: { n: 3 } })
         stream.message({ unexpected: true })
         expect(events).toEqual([
-            { type: RealtimeEventType.Data, channel: NotificationChannel.Global, data: { n: 1 } },
-            { type: RealtimeEventType.Data, channel: NotificationChannel.User, data: { n: 2 } }
+            data(NotificationChannel.Global, { n: 1 }),
+            data(NotificationChannel.User, { n: 2 })
         ])
         expect(consoleError).toHaveBeenCalledOnce()
     })
@@ -216,7 +277,7 @@ describe('RelayConnection', () => {
         await vi.advanceTimersByTimeAsync(1)
         expect(getRealtimeToken).toHaveBeenCalledTimes(3)
 
-        FakeEventSource.latest().ready()
+        FakeEventSource.latest().ready(['user-u1'], 'c3')
         FakeEventSource.latest().fail()
         await vi.advanceTimersByTimeAsync(2_500)
         expect(getRealtimeToken).toHaveBeenCalledTimes(4)
@@ -248,23 +309,5 @@ describe('RelayConnection', () => {
         await vi.advanceTimersByTimeAsync(60_000)
         expect(stream.closed).toBe(true)
         expect(getRealtimeToken).toHaveBeenCalledOnce()
-    })
-
-    it('ignores a token that arrives after the channels changed again', async () => {
-        const { connection, getRealtimeToken } = setup()
-        let releaseFirst: (token: string) => void = () => {}
-        getRealtimeToken.mockImplementationOnce(
-            () => new Promise<string>((resolve) => (releaseFirst = resolve))
-        )
-        await connection.addChannel(user)
-        await connection.connect()
-        await settle()
-        await connection.addChannel(game)
-        await settle()
-        releaseFirst('stale')
-        await settle()
-        expect(FakeEventSource.opened.map((stream) => stream.url)).toEqual([
-            'https://events.test/stream?t=token-for-g1'
-        ])
     })
 })

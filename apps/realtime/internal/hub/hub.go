@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	ErrUnavailable = errors.New("relay is not connected to redis")
-	ErrAtCapacity  = errors.New("relay is at capacity")
-	ErrRejected    = errors.New("token rejected")
+	ErrUnavailable       = errors.New("relay is not connected to redis")
+	ErrAtCapacity        = errors.New("relay is at capacity")
+	ErrRejected          = errors.New("token rejected")
+	ErrUnknownConnection = errors.New("unknown connection")
 )
 
 type Subscriptions interface {
@@ -49,7 +50,7 @@ type Hub struct {
 	redisConnectedAt time.Time
 	topics           map[string]*topicState
 	accounts         map[string][]*Conn
-	connections      int
+	connsByID        map[string]*Conn
 	usedTokens       map[string]time.Time
 	revocations      map[string]time.Time
 }
@@ -62,6 +63,7 @@ func New(config Config, subscriptions Subscriptions) *Hub {
 		stopped:       make(chan struct{}),
 		topics:        map[string]*topicState{},
 		accounts:      map[string][]*Conn{},
+		connsByID:     map[string]*Conn{},
 		usedTokens:    map[string]time.Time{},
 		revocations:   map[string]time.Time{},
 	}
@@ -91,6 +93,12 @@ func (h *Hub) Open(registration token.Registration) (*Conn, error) {
 	return conn, err
 }
 
+func (h *Hub) ChangeTopics(connID string, registration token.Registration) error {
+	err := ErrUnavailable
+	h.await(func() { err = h.changeTopics(connID, registration) })
+	return err
+}
+
 func (h *Hub) Close(conn *Conn) {
 	h.await(func() { h.drop(conn) })
 }
@@ -100,7 +108,7 @@ func (h *Hub) Stats() Stats {
 	h.await(func() {
 		stats = Stats{
 			RedisConnected: h.redisConnected,
-			Connections:    h.connections,
+			Connections:    len(h.connsByID),
 			Accounts:       len(h.accounts),
 			Topics:         len(h.topics),
 		}
@@ -154,37 +162,75 @@ func (h *Hub) post(request func()) {
 }
 
 func (h *Hub) open(registration token.Registration) (*Conn, error) {
-	if !h.redisConnected {
-		return nil, ErrUnavailable
+	if err := h.admit(registration); err != nil {
+		return nil, err
 	}
-	if registration.IssuedAt.Before(h.redisConnectedAt.Truncate(time.Second)) {
-		return nil, fmt.Errorf("%w: issued before the redis subscriber connected", ErrRejected)
-	}
-	if revokedAt, revoked := h.revocations[registration.Account]; revoked && !registration.IssuedAt.After(revokedAt) {
-		return nil, fmt.Errorf("%w: issued before the account was revoked", ErrRejected)
-	}
-	if _, used := h.usedTokens[registration.ID]; used {
-		return nil, fmt.Errorf("%w: already used", ErrRejected)
-	}
-	if h.connections >= h.config.MaxConnections {
+	if len(h.connsByID) >= h.config.MaxConnections {
 		return nil, ErrAtCapacity
 	}
-	h.usedTokens[registration.ID] = registration.ExpiresAt
+	h.spend(registration)
 
 	if accountConns := h.accounts[registration.Account]; len(accountConns) >= h.config.MaxConnectionsPerAccount {
 		h.drop(accountConns[0])
 	}
 
-	conn := newConn(registration.Account, registration.Topics, h.config.ConnectionBuffer)
+	conn := newConn(registration.Account, h.config.ConnectionBuffer)
 	h.accounts[conn.account] = append(h.accounts[conn.account], conn)
-	h.connections++
-	for _, topic := range conn.topics {
-		h.join(conn, topic)
+	h.connsByID[conn.id] = conn
+	h.applyTopics(conn, registration.Topics)
+	return conn, nil
+}
+
+func (h *Hub) changeTopics(connID string, registration token.Registration) error {
+	conn, exists := h.connsByID[connID]
+	if !exists {
+		return ErrUnknownConnection
 	}
-	if conn.unconfirmedTopics == 0 {
+	if conn.account != registration.Account {
+		return fmt.Errorf("%w: issued to another account", ErrRejected)
+	}
+	if err := h.admit(registration); err != nil {
+		return err
+	}
+	h.spend(registration)
+	h.applyTopics(conn, registration.Topics)
+	return nil
+}
+
+func (h *Hub) admit(registration token.Registration) error {
+	if !h.redisConnected {
+		return ErrUnavailable
+	}
+	if !registration.IssuedAt.After(h.redisConnectedAt.Truncate(time.Second)) {
+		return fmt.Errorf("%w: issued before the redis subscriber connected", ErrRejected)
+	}
+	if revokedAt, revoked := h.revocations[registration.Account]; revoked && !registration.IssuedAt.After(revokedAt) {
+		return fmt.Errorf("%w: issued before the account was revoked", ErrRejected)
+	}
+	if _, used := h.usedTokens[registration.ID]; used {
+		return fmt.Errorf("%w: already used", ErrRejected)
+	}
+	return nil
+}
+
+func (h *Hub) spend(registration token.Registration) {
+	h.usedTokens[registration.ID] = registration.ExpiresAt.Add(token.ClockLeeway)
+}
+
+func (h *Hub) applyTopics(conn *Conn, topics []string) {
+	for topic := range conn.topics {
+		if !slices.Contains(topics, topic) {
+			h.leave(conn, topic)
+		}
+	}
+	for _, topic := range topics {
+		if _, carried := conn.topics[topic]; !carried {
+			h.join(conn, topic)
+		}
+	}
+	if len(conn.awaiting) == 0 {
 		h.markReady(conn)
 	}
-	return conn, nil
 }
 
 func (h *Hub) join(conn *Conn, topic string) {
@@ -194,15 +240,18 @@ func (h *Hub) join(conn *Conn, topic string) {
 		h.topics[topic] = state
 	}
 	state.conns[conn] = struct{}{}
+	conn.topics[topic] = false
 	if state.lastRequested != subscribed {
 		h.request(topic, state, subscribed)
 	}
 	if !state.confirmed() {
-		conn.unconfirmedTopics++
+		conn.awaiting[topic] = struct{}{}
 	}
 }
 
 func (h *Hub) leave(conn *Conn, topic string) {
+	delete(conn.topics, topic)
+	delete(conn.awaiting, topic)
 	state := h.topics[topic]
 	delete(state.conns, conn)
 	if len(state.conns) == 0 && state.lastRequested == subscribed {
@@ -241,19 +290,28 @@ func (h *Hub) acknowledged(topic string, kind subscriptionKind) {
 		return
 	}
 	for conn := range state.conns {
-		if conn.ready {
+		if _, waiting := conn.awaiting[topic]; !waiting {
 			continue
 		}
-		conn.unconfirmedTopics--
-		if conn.unconfirmedTopics == 0 {
+		delete(conn.awaiting, topic)
+		if len(conn.awaiting) == 0 {
 			h.markReady(conn)
 		}
 	}
 }
 
 func (h *Hub) markReady(conn *Conn) {
-	conn.ready = true
-	h.send(conn, readyFrame)
+	for topic := range conn.topics {
+		conn.topics[topic] = true
+	}
+	frame, err := readyFrame(conn)
+	if err != nil {
+		slog.Error("unencodable ready event", "error", err)
+		h.drop(conn)
+		return
+	}
+	conn.announced = true
+	h.send(conn, frame)
 }
 
 func (h *Hub) published(topic, payload string) {
@@ -271,7 +329,7 @@ func (h *Hub) published(topic, payload string) {
 		return
 	}
 	for conn := range state.conns {
-		if conn.ready {
+		if conn.topics[topic] {
 			h.send(conn, frame)
 		}
 	}
@@ -305,34 +363,32 @@ func (h *Hub) drop(conn *Conn) {
 	}
 	conn.dropped = true
 	close(conn.closed)
-	h.connections--
+	delete(h.connsByID, conn.id)
 	remaining := slices.DeleteFunc(h.accounts[conn.account], func(c *Conn) bool { return c == conn })
 	if len(remaining) == 0 {
 		delete(h.accounts, conn.account)
 	} else {
 		h.accounts[conn.account] = remaining
 	}
-	for _, topic := range conn.topics {
+	for topic := range conn.topics {
 		h.leave(conn, topic)
 	}
 }
 
 func (h *Hub) dropAll() {
-	for _, conns := range h.accounts {
-		for _, conn := range conns {
-			conn.dropped = true
-			close(conn.closed)
-		}
+	for _, conn := range h.connsByID {
+		conn.dropped = true
+		close(conn.closed)
 	}
 	h.accounts = map[string][]*Conn{}
-	h.connections = 0
+	h.connsByID = map[string]*Conn{}
 	h.topics = map[string]*topicState{}
 }
 
 func (h *Hub) sweep() {
 	now := h.config.Now()
-	for id, expiresAt := range h.usedTokens {
-		if expiresAt.Before(now) {
+	for id, forgetAfter := range h.usedTokens {
+		if forgetAfter.Before(now) {
 			delete(h.usedTokens, id)
 		}
 	}
@@ -369,7 +425,31 @@ func (t *topicState) confirmed() bool {
 	return len(t.awaiting) == 0 && t.lastRequested == subscribed
 }
 
-var readyFrame = []byte("event: ready\ndata: {}\n\n")
+type readyEvent struct {
+	Connection string   `json:"connection,omitempty"`
+	Topics     []string `json:"topics"`
+}
+
+func readyFrame(conn *Conn) ([]byte, error) {
+	event := readyEvent{
+		Topics: slices.Sorted(func(yield func(string) bool) {
+			for topic := range conn.topics {
+				if !yield(topic) {
+					return
+				}
+			}
+		}),
+	}
+	if !conn.announced {
+		event.Connection = conn.id
+	}
+	body, err := json.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+	frame := append([]byte("event: ready\ndata: "), body...)
+	return append(frame, '\n', '\n'), nil
+}
 
 func messageFrame(topic, payload string) ([]byte, error) {
 	if !json.Valid([]byte(payload)) {

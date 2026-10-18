@@ -48,6 +48,7 @@ func TestBusAgainstRedis(t *testing.T) {
 		Options:        &redis.Options{Addr: addr, Protocol: 2, ClientName: clientName},
 		PingInterval:   time.Second,
 		ReceiveTimeout: 3 * time.Second,
+		CommandTimeout: time.Second,
 		MinBackoff:     50 * time.Millisecond,
 		MaxBackoff:     time.Second,
 		Now:            time.Now,

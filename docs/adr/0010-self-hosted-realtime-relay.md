@@ -6,7 +6,7 @@ status: proposed
 
 Realtime Connections are held by a small Go relay on a Compute Engine e2-micro at `events.boardtogether.games`, not by Ably or by the backend on Cloud Run. Ably's free tier caps concurrent connections and monthly messages, so it will not carry the site as it grows. Cloud Run bills an open stream as a busy instance, ends a request after 60 minutes, and drains streams on every backend replacement ([backend restart memory](../backend-restart-memory.md)). Firebase Hosting cannot forward to a VM and cuts the requests it forwards at 60 seconds, so streams cannot share `boardtogether.games`.
 
-The backend keeps every authorization decision: it signs a short-lived token listing the Topics a User Account may receive, and the relay forwards Redis pubsub messages it does not interpret. The relay keeps no event buffer. A reconnect is a new connection that signals a Discontinuity for each Topic once its subscriptions are confirmed, and consumers reconcile with their canonical source. The design is in [docs/realtime-relay.md](../realtime-relay.md).
+The backend keeps every authorization decision: it signs a short-lived token listing the Topics a User Account may receive, and the relay forwards Redis pubsub messages it does not interpret. The relay keeps no event buffer. A reconnect is a new connection that signals a Discontinuity for each Topic once its subscriptions are confirmed, and consumers reconcile with their canonical source. A tab changes its Topics on its one stream rather than opening a replacement, because two streams give no ordering between them and an update in flight on the closing one could be lost. The design is in [docs/realtime-relay.md](../realtime-relay.md).
 
 ## Considered Options
 

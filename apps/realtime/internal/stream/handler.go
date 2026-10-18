@@ -17,6 +17,7 @@ type Verifier interface {
 
 type Hub interface {
 	Open(registration token.Registration) (*hub.Conn, error)
+	ChangeTopics(connID string, registration token.Registration) error
 	Close(conn *hub.Conn)
 	Stats() hub.Stats
 }
@@ -37,6 +38,7 @@ func NewHandler(config Config, verifier Verifier, hub Hub) http.Handler {
 	h := &Handler{config: config, verifier: verifier, hub: hub}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /stream", h.stream)
+	mux.HandleFunc("POST /stream/{connection}/topics", h.changeTopics)
 	mux.HandleFunc("GET /health", h.health)
 	return mux
 }
@@ -89,6 +91,30 @@ func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 		if err := h.write(w, writer, frame); err != nil {
 			return
 		}
+	}
+}
+
+func (h *Handler) changeTopics(w http.ResponseWriter, r *http.Request) {
+	h.allowOrigin(w, r)
+
+	registration, err := h.verifier.Verify(r.URL.Query().Get("t"))
+	if err != nil {
+		slog.Info("topic change refused", "reason", err)
+		http.Error(w, "invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	err = h.hub.ChangeTopics(r.PathValue("connection"), registration)
+	switch {
+	case err == nil:
+		w.WriteHeader(http.StatusAccepted)
+	case errors.Is(err, hub.ErrUnknownConnection):
+		http.Error(w, err.Error(), http.StatusNotFound)
+	case errors.Is(err, hub.ErrRejected):
+		slog.Info("topic change refused", "account", registration.Account, "reason", err)
+		http.Error(w, "token rejected", http.StatusUnauthorized)
+	default:
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 	}
 }
 

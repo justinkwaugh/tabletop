@@ -20,7 +20,14 @@ const DEFAULT_RECONNECT_TIMING: RelayReconnectTiming = {
 
 type RelayStream = {
     eventSource: EventSource
-    topics: Set<string>
+    connectionId?: string
+    requested: Set<string>
+    synced: Set<string>
+}
+
+type ReadyEvent = {
+    connection?: string
+    topics: string[]
 }
 
 export class RelayConnection implements RealtimeConnection {
@@ -29,15 +36,18 @@ export class RelayConnection implements RealtimeConnection {
     private wanted = false
     private attempt = 0
     private failures = 0
-    private live?: RelayStream
-    private replacement?: RelayStream
+    private opening = false
+    private changingTopics = false
+    private stream?: RelayStream
     private reconnectTimer?: ReturnType<typeof setTimeout>
 
     constructor(
         private readonly api: Pick<TabletopApi, 'getRealtimeToken'>,
         private readonly relayHost: string,
         private readonly timing: RelayReconnectTiming = DEFAULT_RECONNECT_TIMING,
-        private readonly random: () => number = Math.random
+        private readonly random: () => number = Math.random,
+        private readonly post: (url: string) => Promise<Response> = (url) =>
+            fetch(url, { method: 'POST' })
     ) {}
 
     setHandler(handler: RealtimeEventHandler) {
@@ -49,14 +59,15 @@ export class RelayConnection implements RealtimeConnection {
             return
         }
         this.channels.set(identifier.channelName, identifier)
-        this.reopen()
+        this.channelsChanged()
     }
 
     async removeChannel(identifier: ChannelIdentifier): Promise<void> {
         if (!this.channels.delete(identifier.channelName)) {
             return
         }
-        this.reopen()
+        this.stream?.synced.delete(identifier.channelName)
+        this.channelsChanged()
     }
 
     async connect(): Promise<void> {
@@ -69,18 +80,25 @@ export class RelayConnection implements RealtimeConnection {
 
     disconnect() {
         this.wanted = false
-        this.attempt++
         this.cancelReconnect()
-        this.closeReplacement()
-        this.closeLive()
+        this.close()
     }
 
-    private reopen() {
+    private channelsChanged() {
         if (!this.wanted) {
             return
         }
+        if (this.stream?.connectionId !== undefined) {
+            void this.changeTopics()
+        } else if (!this.stream && !this.opening && this.reconnectTimer === undefined) {
+            this.reopen()
+        }
+    }
+
+    private reopen() {
         this.cancelReconnect()
-        const attempt = ++this.attempt
+        this.close()
+        const attempt = this.attempt
         queueMicrotask(() => {
             if (attempt === this.attempt) {
                 void this.open(attempt)
@@ -88,19 +106,27 @@ export class RelayConnection implements RealtimeConnection {
         })
     }
 
+    private close() {
+        this.attempt++
+        this.opening = false
+        this.changingTopics = false
+        this.stream?.eventSource.close()
+        this.stream = undefined
+    }
+
     private async open(attempt: number) {
         if (this.channels.size === 0) {
-            this.closeReplacement()
-            this.closeLive()
             return
         }
-        const topics = new Set(this.channels.keys())
+        this.opening = true
+        const requested = new Set(this.channels.keys())
         let token: string
         try {
             token = await this.api.getRealtimeToken(this.gameIds())
         } catch (error) {
             console.error('Failed to get a realtime token', error)
             if (attempt === this.attempt) {
+                this.opening = false
                 this.scheduleReconnect()
             }
             return
@@ -108,61 +134,91 @@ export class RelayConnection implements RealtimeConnection {
         if (attempt !== this.attempt) {
             return
         }
+        this.opening = false
 
-        this.closeReplacement()
         const stream: RelayStream = {
             eventSource: new EventSource(
                 `${this.relayHost}/stream?${new URLSearchParams({ t: token })}`
             ),
-            topics
+            requested,
+            synced: new Set()
         }
-        this.replacement = stream
-        stream.eventSource.addEventListener('ready', () => this.promote(stream))
+        this.stream = stream
+        stream.eventSource.addEventListener('ready', (event: MessageEvent<string>) =>
+            this.ready(stream, event.data)
+        )
         stream.eventSource.onmessage = (event: MessageEvent<string>) => this.receive(event.data)
         stream.eventSource.onerror = () => this.failed(stream)
     }
 
-    private promote(stream: RelayStream) {
-        if (stream !== this.replacement) {
+    private async changeTopics() {
+        const stream = this.stream
+        if (this.changingTopics || stream?.connectionId === undefined) {
             return
         }
-        const continuous = this.live?.topics ?? new Set<string>()
-        this.closeLive()
-        this.live = stream
-        this.replacement = undefined
-        this.failures = 0
+        this.changingTopics = true
+        const attempt = this.attempt
+        stream.requested = new Set(this.channels.keys())
+        try {
+            const token = await this.api.getRealtimeToken(this.gameIds())
+            if (attempt !== this.attempt) {
+                return
+            }
+            const response = await this.post(
+                `${this.relayHost}/stream/${encodeURIComponent(stream.connectionId)}/topics?${new URLSearchParams({ t: token })}`
+            )
+            if (!response.ok) {
+                throw new Error(`The relay refused the topic change with ${response.status}`)
+            }
+        } catch (error) {
+            console.error('Failed to change realtime topics', error)
+            if (attempt === this.attempt) {
+                this.failed(stream)
+            }
+        }
+    }
 
-        const discontinuous = new Set(
-            [...this.channels.values()]
-                .filter((identifier) => !continuous.has(identifier.channelName))
-                .map((identifier) => identifier.channel)
+    private ready(stream: RelayStream, data: string) {
+        const event = this.parseReady(data)
+        if (stream !== this.stream || !event) {
+            return
+        }
+        if (stream.connectionId === undefined) {
+            stream.connectionId = event.connection
+            this.failures = 0
+        }
+        this.changingTopics = false
+
+        const carried = new Set(event.topics)
+        const newlySynced = [...this.channels.values()].filter(
+            (identifier) =>
+                carried.has(identifier.channelName) && !stream.synced.has(identifier.channelName)
         )
-        for (const channel of discontinuous) {
+        for (const identifier of newlySynced) {
+            stream.synced.add(identifier.channelName)
+        }
+        for (const channel of new Set(newlySynced.map((identifier) => identifier.channel))) {
             this.handler?.({ type: RealtimeEventType.Discontinuity, channel })
         }
+
+        if (!this.requestedTheCurrentChannels(stream)) {
+            void this.changeTopics()
+        }
+    }
+
+    private requestedTheCurrentChannels(stream: RelayStream): boolean {
+        return (
+            stream.requested.size === this.channels.size &&
+            [...this.channels.keys()].every((topic) => stream.requested.has(topic))
+        )
     }
 
     private failed(stream: RelayStream) {
-        stream.eventSource.close()
-        if (stream === this.live) {
-            this.live = undefined
-            if (!this.replacement) {
-                this.scheduleReconnect()
-            }
-        } else if (stream === this.replacement) {
-            this.replacement = undefined
-            this.scheduleReconnect()
+        if (stream !== this.stream) {
+            return
         }
-    }
-
-    private closeLive() {
-        this.live?.eventSource.close()
-        this.live = undefined
-    }
-
-    private closeReplacement() {
-        this.replacement?.eventSource.close()
-        this.replacement = undefined
+        this.close()
+        this.scheduleReconnect()
     }
 
     private gameIds(): string[] {
@@ -173,7 +229,7 @@ export class RelayConnection implements RealtimeConnection {
     }
 
     private receive(data: string) {
-        const event = this.parseEvent(data)
+        const event = this.parseMessage(data)
         const identifier = event && this.channels.get(event.topic)
         if (!event || !identifier) {
             return
@@ -185,7 +241,25 @@ export class RelayConnection implements RealtimeConnection {
         })
     }
 
-    private parseEvent(data: string): { topic: string; message: unknown } | undefined {
+    private parseReady(data: string): ReadyEvent | undefined {
+        const parsed = this.parseJson(data)
+        if (
+            typeof parsed === 'object' &&
+            parsed !== null &&
+            'topics' in parsed &&
+            this.isStringList(parsed.topics)
+        ) {
+            const connection =
+                'connection' in parsed && typeof parsed.connection === 'string'
+                    ? parsed.connection
+                    : undefined
+            return { connection, topics: parsed.topics }
+        }
+        console.error('Unreadable realtime ready event', data)
+        return undefined
+    }
+
+    private parseMessage(data: string): { topic: string; message: unknown } | undefined {
         const parsed = this.parseJson(data)
         if (
             typeof parsed === 'object' &&
@@ -198,6 +272,10 @@ export class RelayConnection implements RealtimeConnection {
         }
         console.error('Unreadable realtime event', data)
         return undefined
+    }
+
+    private isStringList(value: unknown): value is string[] {
+        return Array.isArray(value) && value.every((item) => typeof item === 'string')
     }
 
     private parseJson(data: string): unknown {
@@ -223,7 +301,9 @@ export class RelayConnection implements RealtimeConnection {
         this.reconnectTimer = setTimeout(
             () => {
                 this.reconnectTimer = undefined
-                this.reopen()
+                if (this.wanted) {
+                    this.reopen()
+                }
             },
             this.random() * this.timing.maxJitterMs + backoff
         )

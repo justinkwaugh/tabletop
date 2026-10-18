@@ -25,6 +25,7 @@ type Config struct {
 	Options        *redis.Options
 	PingInterval   time.Duration
 	ReceiveTimeout time.Duration
+	CommandTimeout time.Duration
 	MinBackoff     time.Duration
 	MaxBackoff     time.Duration
 	Now            func() time.Time
@@ -148,7 +149,9 @@ func (b *Bus) command(send func(context.Context, *redis.PubSub) error) error {
 	if pubsub == nil {
 		return errNotConnected
 	}
-	if err := send(context.Background(), pubsub); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), b.config.CommandTimeout)
+	defer cancel()
+	if err := send(ctx, pubsub); err != nil {
 		_ = pubsub.Close()
 		return err
 	}

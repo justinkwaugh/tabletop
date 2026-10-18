@@ -24,13 +24,8 @@ export default async function (fastify: FastifyInstance) {
                 throw new Error('No user found for token request')
             }
 
-            const topics = [userTopic(request.user.id), GLOBAL_TOPIC]
-            for (const gameId of new Set(request.query.game)) {
-                if (!(await fastify.gameService.getGame({ gameId }))) {
-                    return reply.code(404).send()
-                }
-                topics.push(gameTopic(gameId))
-            }
+            const gameIds = [...new Set(request.query.game)]
+            const topics = [userTopic(request.user.id), GLOBAL_TOPIC, ...gameIds.map(gameTopic)]
 
             reply.header('Cache-Control', 'no-store')
             return {

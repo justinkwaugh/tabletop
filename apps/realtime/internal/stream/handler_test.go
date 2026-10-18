@@ -3,10 +3,12 @@ package stream
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -15,7 +17,10 @@ import (
 	"tabletop/realtime/internal/token"
 )
 
-var issuedAt = time.Unix(1_800_000_000, 0)
+var (
+	connectedAt = time.Unix(1_800_000_000, 0)
+	issuedAt    = connectedAt.Add(time.Second)
+)
 
 const origin = "https://boardtogether.games"
 
@@ -47,13 +52,22 @@ func newServer(t *testing.T, keepalive time.Duration) (*httptest.Server, *hub.Hu
 	t.Cleanup(cancel)
 	go relayHub.Run(ctx)
 
-	verifier := fakeVerifier{"good": {
-		Account:   "a",
-		Topics:    []string{"game-1"},
-		IssuedAt:  issuedAt,
-		ExpiresAt: issuedAt.Add(time.Minute),
-		ID:        "token-1",
-	}}
+	verifier := fakeVerifier{
+		"good": {
+			Account:   "a",
+			Topics:    []string{"game-1"},
+			IssuedAt:  issuedAt,
+			ExpiresAt: issuedAt.Add(time.Minute),
+			ID:        "token-1",
+		},
+		"more": {
+			Account:   "a",
+			Topics:    []string{"game-1", "game-2"},
+			IssuedAt:  issuedAt,
+			ExpiresAt: issuedAt.Add(time.Minute),
+			ID:        "token-2",
+		},
+	}
 	server := httptest.NewServer(NewHandler(Config{
 		AllowedOrigins:    []string{origin},
 		KeepaliveInterval: keepalive,
@@ -77,6 +91,40 @@ func get(t *testing.T, ctx context.Context, url string) *http.Response {
 	return response
 }
 
+type readyEvent struct {
+	Connection string   `json:"connection"`
+	Topics     []string `json:"topics"`
+}
+
+func readReady(t *testing.T, reader *bufio.Reader) readyEvent {
+	t.Helper()
+	frame := readFrame(t, reader)
+	body, found := strings.CutPrefix(frame, "event: ready\ndata: ")
+	if !found {
+		t.Fatalf("expected a ready event, got %q", frame)
+	}
+	var event readyEvent
+	if err := json.Unmarshal([]byte(strings.TrimSpace(body)), &event); err != nil {
+		t.Fatal(err)
+	}
+	return event
+}
+
+func post(t *testing.T, url string) *http.Response {
+	t.Helper()
+	request, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Origin", origin)
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	return response
+}
+
 func readFrame(t *testing.T, reader *bufio.Reader) string {
 	t.Helper()
 	var frame strings.Builder
@@ -94,7 +142,7 @@ func readFrame(t *testing.T, reader *bufio.Reader) string {
 
 func TestAnInvalidTokenIsUnauthorized(t *testing.T) {
 	server, relayHub := newServer(t, time.Minute)
-	relayHub.RedisConnected(issuedAt)
+	relayHub.RedisConnected(connectedAt)
 	response := get(t, context.Background(), server.URL+"/stream?t=bad")
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusUnauthorized {
@@ -107,7 +155,7 @@ func TestAnInvalidTokenIsUnauthorized(t *testing.T) {
 
 func TestAReusedTokenIsUnauthorized(t *testing.T) {
 	server, relayHub := newServer(t, time.Minute)
-	relayHub.RedisConnected(issuedAt)
+	relayHub.RedisConnected(connectedAt)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	first := get(t, ctx, server.URL+"/stream?t=good")
@@ -130,7 +178,7 @@ func TestStreamsAreRefusedUntilRedisConnects(t *testing.T) {
 
 func TestAStreamReceivesReadyThenMessages(t *testing.T) {
 	server, relayHub := newServer(t, time.Minute)
-	relayHub.RedisConnected(issuedAt)
+	relayHub.RedisConnected(connectedAt)
 	ctx, cancel := context.WithCancel(context.Background())
 	response := get(t, ctx, server.URL+"/stream?t=good")
 	defer response.Body.Close()
@@ -143,8 +191,9 @@ func TestAStreamReceivesReadyThenMessages(t *testing.T) {
 	reader := bufio.NewReader(response.Body)
 
 	relayHub.Subscribed("game-1")
-	if frame := readFrame(t, reader); frame != "event: ready\ndata: {}\n\n" {
-		t.Fatalf("first frame %q", frame)
+	ready := readReady(t, reader)
+	if ready.Connection == "" || !slices.Equal(ready.Topics, []string{"game-1"}) {
+		t.Fatalf("first ready %+v", ready)
 	}
 	relayHub.Published("game-1", `{"n":1}`)
 	if frame := readFrame(t, reader); frame != "data: {\"topic\":\"game-1\",\"message\":{\"n\":1}}\n\n" {
@@ -161,9 +210,41 @@ func TestAStreamReceivesReadyThenMessages(t *testing.T) {
 	}
 }
 
+func TestTopicsChangeOnTheOpenStream(t *testing.T) {
+	server, relayHub := newServer(t, time.Minute)
+	relayHub.RedisConnected(connectedAt)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	response := get(t, ctx, server.URL+"/stream?t=good")
+	defer response.Body.Close()
+	reader := bufio.NewReader(response.Body)
+	relayHub.Subscribed("game-1")
+	connection := readReady(t, reader).Connection
+
+	for path, want := range map[string]int{
+		"/stream/" + connection + "/topics?t=bad": http.StatusUnauthorized,
+		"/stream/elsewhere/topics?t=more":         http.StatusNotFound,
+	} {
+		refused := post(t, server.URL+path)
+		if refused.StatusCode != want || refused.Header.Get("Access-Control-Allow-Origin") != origin {
+			t.Fatalf("%s: status %d", path, refused.StatusCode)
+		}
+	}
+
+	changed := post(t, server.URL+"/stream/"+connection+"/topics?t=more")
+	if changed.StatusCode != http.StatusAccepted {
+		t.Fatalf("topic change status %d", changed.StatusCode)
+	}
+	relayHub.Subscribed("game-2")
+	ready := readReady(t, reader)
+	if ready.Connection != "" || !slices.Equal(ready.Topics, []string{"game-1", "game-2"}) {
+		t.Fatalf("second ready %+v", ready)
+	}
+}
+
 func TestAnIdleStreamGetsKeepalives(t *testing.T) {
 	server, relayHub := newServer(t, 20*time.Millisecond)
-	relayHub.RedisConnected(issuedAt)
+	relayHub.RedisConnected(connectedAt)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	response := get(t, ctx, server.URL+"/stream?t=good")
@@ -175,7 +256,7 @@ func TestAnIdleStreamGetsKeepalives(t *testing.T) {
 
 func TestTheRelayClosingAConnectionEndsTheStream(t *testing.T) {
 	server, relayHub := newServer(t, time.Minute)
-	relayHub.RedisConnected(issuedAt)
+	relayHub.RedisConnected(connectedAt)
 	response := get(t, context.Background(), server.URL+"/stream?t=good")
 	defer response.Body.Close()
 	relayHub.RedisDisconnected()
@@ -189,7 +270,7 @@ func TestHealthReflectsTheRedisSubscriber(t *testing.T) {
 	server, relayHub := newServer(t, time.Minute)
 	down := get(t, context.Background(), server.URL+"/health")
 	down.Body.Close()
-	relayHub.RedisConnected(issuedAt)
+	relayHub.RedisConnected(connectedAt)
 	up := get(t, context.Background(), server.URL+"/health")
 	up.Body.Close()
 	if down.StatusCode != http.StatusServiceUnavailable || up.StatusCode != http.StatusOK {

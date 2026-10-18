@@ -26,11 +26,6 @@ async function createServer({ withIssuer = true }: { withIssuer?: boolean } = {}
     Reflect.set(server, 'verifyRoleUser', async () => undefined)
     const issue = vi.fn(({ topics }: { userId: string; topics: string[] }) => topics.join(','))
     Reflect.set(server, 'realtimeTokenIssuer', withIssuer ? { issue } : undefined)
-    Reflect.set(server, 'gameService', {
-        getGame: vi.fn(async ({ gameId }: { gameId: string }) =>
-            gameId === 'missing' ? undefined : { id: gameId }
-        )
-    })
     await server.register(tokenRoute)
     return { server, issue }
 }
@@ -67,12 +62,11 @@ describe('GET /token', () => {
         expect(response.json().payload.token).toBe('user-u1,global,game-g1,game-g2')
     })
 
-    it('refuses a game that does not exist', async () => {
-        const { server, issue } = await createServer()
+    it('grants a game topic without looking the game up', async () => {
+        const { server } = await createServer()
         servers.push(server)
-        const response = await server.inject({ method: 'GET', url: '/token?game=missing' })
-        expect(response.statusCode).toBe(404)
-        expect(issue).not.toHaveBeenCalled()
+        const response = await server.inject({ method: 'GET', url: '/token?game=g1&game=g1' })
+        expect(response.json().payload.token).toBe('user-u1,global,game-g1')
     })
 
     it('is absent when the relay is not configured', async () => {

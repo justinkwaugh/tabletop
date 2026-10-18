@@ -47,6 +47,7 @@ func run() error {
 		},
 		PingInterval:   10 * time.Second,
 		ReceiveTimeout: 30 * time.Second,
+		CommandTimeout: 2 * time.Second,
 		MinBackoff:     time.Second,
 		MaxBackoff:     30 * time.Second,
 		Now:            time.Now,
@@ -55,7 +56,7 @@ func run() error {
 		MaxConnections:           cfg.MaxConnections,
 		MaxConnectionsPerAccount: cfg.MaxConnectionsPerAccount,
 		ConnectionBuffer:         64,
-		RevocationMemory:         token.MaxLifetime,
+		RevocationMemory:         token.MaxLifetime + token.ClockLeeway + time.Second,
 		SweepInterval:            10 * time.Second,
 		Now:                      time.Now,
 	}, redisBus)

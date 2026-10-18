@@ -2,6 +2,7 @@ package hub
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -14,6 +15,7 @@ import (
 )
 
 var connectedAt = time.Unix(1_800_000_000, 0)
+var issuedAt = connectedAt.Add(time.Second)
 
 type fakeSubscriptions struct {
 	mu       sync.Mutex
@@ -77,8 +79,8 @@ func (h *harness) registration(account string, topics ...string) token.Registrat
 	return token.Registration{
 		Account:   account,
 		Topics:    topics,
-		IssuedAt:  connectedAt,
-		ExpiresAt: connectedAt.Add(time.Minute),
+		IssuedAt:  issuedAt,
+		ExpiresAt: issuedAt.Add(time.Minute),
 		ID:        fmt.Sprintf("token-%d", h.nextToken),
 	}
 }
@@ -90,6 +92,13 @@ func (h *harness) open(account string, topics ...string) *Conn {
 		h.t.Fatal(err)
 	}
 	return conn
+}
+
+func (h *harness) change(conn *Conn, topics ...string) {
+	h.t.Helper()
+	if err := h.hub.ChangeTopics(conn.id, h.registration(conn.account, topics...)); err != nil {
+		h.t.Fatal(err)
+	}
 }
 
 func (h *harness) settle() {
@@ -119,7 +128,7 @@ func frames(conn *Conn) []string {
 func expectFrames(t *testing.T, conn *Conn, want ...string) {
 	t.Helper()
 	if got := frames(conn); !slices.Equal(got, want) {
-		t.Fatalf("frames %q, want %q", got, want)
+		t.Fatalf("frames %q\nwant   %q", got, want)
 	}
 }
 
@@ -132,7 +141,15 @@ func isClosed(conn *Conn) bool {
 	}
 }
 
-const ready = "event: ready\ndata: {}\n\n"
+func readyFor(topics ...string) string {
+	body, _ := json.Marshal(readyEvent{Topics: topics})
+	return "event: ready\ndata: " + string(body) + "\n\n"
+}
+
+func firstReady(conn *Conn, topics ...string) string {
+	body, _ := json.Marshal(readyEvent{Connection: conn.id, Topics: topics})
+	return "event: ready\ndata: " + string(body) + "\n\n"
+}
 
 func message(topic, payload string) string {
 	return fmt.Sprintf("data: {\"topic\":%q,\"message\":%s}\n\n", topic, payload)
@@ -149,7 +166,7 @@ func TestReadyOnlyAfterEveryTopicIsConfirmed(t *testing.T) {
 
 	h.hub.Subscribed("global")
 	h.settle()
-	expectFrames(t, conn, ready)
+	expectFrames(t, conn, firstReady(conn, "game-1", "global"))
 }
 
 func TestMessagesBeforeReadyAreDropped(t *testing.T) {
@@ -160,7 +177,7 @@ func TestMessagesBeforeReadyAreDropped(t *testing.T) {
 	h.hub.Subscribed("global")
 	h.hub.Published("game-1", `{"late":true}`)
 	h.settle()
-	expectFrames(t, conn, ready, message("game-1", `{"late":true}`))
+	expectFrames(t, conn, firstReady(conn, "game-1", "global"), message("game-1", `{"late":true}`))
 }
 
 func TestASharedTopicIsSubscribedOnceAndFannedOut(t *testing.T) {
@@ -172,22 +189,8 @@ func TestASharedTopicIsSubscribedOnceAndFannedOut(t *testing.T) {
 	h.hub.Subscribed("game-1")
 	h.hub.Published("game-1", `{"n":1}`)
 	h.settle()
-	expectFrames(t, first, ready, message("game-1", `{"n":1}`))
-	expectFrames(t, second, ready, message("game-1", `{"n":1}`))
-}
-
-func TestAConnectionWaitsForASubscriptionAnotherRequested(t *testing.T) {
-	h := newHarness(t)
-	first := h.open("a", "game-1")
-	second := h.open("b", "game-1")
-	h.settle()
-	expectFrames(t, first)
-	expectFrames(t, second)
-
-	h.hub.Subscribed("game-1")
-	h.settle()
-	expectFrames(t, first, ready)
-	expectFrames(t, second, ready)
+	expectFrames(t, first, firstReady(first, "game-1"), message("game-1", `{"n":1}`))
+	expectFrames(t, second, firstReady(second, "game-1"), message("game-1", `{"n":1}`))
 }
 
 func TestAConfirmedTopicMakesANewConnectionReadyAtOnce(t *testing.T) {
@@ -196,7 +199,7 @@ func TestAConfirmedTopicMakesANewConnectionReadyAtOnce(t *testing.T) {
 	h.hub.Subscribed("game-1")
 	second := h.open("b", "game-1")
 	h.expectRequests("subscribe game-1")
-	expectFrames(t, second, ready)
+	expectFrames(t, second, firstReady(second, "game-1"))
 }
 
 func TestResubscribingWhileAnUnsubscribeIsInFlight(t *testing.T) {
@@ -213,7 +216,7 @@ func TestResubscribingWhileAnUnsubscribeIsInFlight(t *testing.T) {
 
 	h.hub.Subscribed("game-1")
 	h.settle()
-	expectFrames(t, second, ready)
+	expectFrames(t, second, firstReady(second, "game-1"))
 }
 
 func TestTheLastConnectionUnsubscribes(t *testing.T) {
@@ -228,6 +231,88 @@ func TestTheLastConnectionUnsubscribes(t *testing.T) {
 	h.hub.Unsubscribed("game-1")
 	if topics := h.hub.Stats().Topics; topics != 0 {
 		t.Fatalf("%d topics left", topics)
+	}
+}
+
+func TestAddingATopicKeepsTheOthersFlowing(t *testing.T) {
+	h := newHarness(t)
+	conn := h.open("a", "global", "user-a")
+	h.hub.Subscribed("global")
+	h.hub.Subscribed("user-a")
+	h.settle()
+	frames(conn)
+
+	h.change(conn, "game-1", "global", "user-a")
+	h.hub.Published("user-a", `{"n":1}`)
+	h.hub.Published("game-1", `{"early":true}`)
+	h.hub.Subscribed("game-1")
+	h.hub.Published("game-1", `{"late":true}`)
+	h.hub.Published("user-a", `{"n":2}`)
+	h.settle()
+	expectFrames(t, conn,
+		message("user-a", `{"n":1}`),
+		readyFor("game-1", "global", "user-a"),
+		message("game-1", `{"late":true}`),
+		message("user-a", `{"n":2}`),
+	)
+}
+
+func TestRemovingATopicStopsItAndAnnouncesTheChange(t *testing.T) {
+	h := newHarness(t)
+	conn := h.open("a", "game-1", "global")
+	h.hub.Subscribed("game-1")
+	h.hub.Subscribed("global")
+	h.settle()
+	frames(conn)
+	h.subscriptions.taken()
+
+	h.change(conn, "global")
+	h.hub.Published("game-1", `{"n":1}`)
+	h.hub.Published("global", `{"n":2}`)
+	h.expectRequests("unsubscribe game-1")
+	expectFrames(t, conn,
+		readyFor("global"),
+		message("global", `{"n":2}`),
+	)
+}
+
+func TestAChangeDuringAnUnfinishedChangeWaitsForBoth(t *testing.T) {
+	h := newHarness(t)
+	conn := h.open("a", "global")
+	h.hub.Subscribed("global")
+	h.settle()
+	frames(conn)
+
+	h.change(conn, "game-1", "global")
+	h.change(conn, "game-1", "game-2", "global")
+	h.hub.Subscribed("game-1")
+	h.settle()
+	expectFrames(t, conn)
+	h.hub.Subscribed("game-2")
+	h.settle()
+	expectFrames(t, conn, readyFor("game-1", "game-2", "global"))
+}
+
+func TestTopicChangesAreCheckedLikeNewStreams(t *testing.T) {
+	h := newHarness(t)
+	conn := h.open("a", "global")
+	if err := h.hub.ChangeTopics("missing", h.registration("a", "global")); !errors.Is(err, ErrUnknownConnection) {
+		t.Fatalf("unknown connection: got %v", err)
+	}
+	if err := h.hub.ChangeTopics(conn.id, h.registration("b", "global")); !errors.Is(err, ErrRejected) {
+		t.Fatalf("another account: got %v", err)
+	}
+	reused := h.registration("a", "global")
+	if err := h.hub.ChangeTopics(conn.id, reused); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.hub.ChangeTopics(conn.id, reused); !errors.Is(err, ErrRejected) {
+		t.Fatalf("reused token: got %v", err)
+	}
+	h.hub.Published(token.ControlChannel, fmt.Sprintf(`{"revoke":"a","at":%d}`, issuedAt.Unix()))
+	h.settle()
+	if !isClosed(conn) {
+		t.Fatal("revoked connection still open")
 	}
 }
 
@@ -279,11 +364,21 @@ func TestATokenIsUsedOnce(t *testing.T) {
 	}
 }
 
-func TestUsedTokensAreForgottenAfterTheyExpire(t *testing.T) {
+func TestUsedTokensAreRememberedUntilTheVerifierStopsAcceptingThem(t *testing.T) {
 	now := connectedAt
 	h := newHarness(t, func(c *Config) { c.Now = func() time.Time { return now } })
-	h.open("a", "global")
-	now = connectedAt.Add(2 * time.Minute)
+	registration := h.registration("a", "global")
+	if _, err := h.hub.Open(registration); err != nil {
+		t.Fatal(err)
+	}
+
+	now = registration.ExpiresAt.Add(token.ClockLeeway - time.Millisecond)
+	h.hub.await(h.hub.sweep)
+	if _, err := h.hub.Open(registration); !errors.Is(err, ErrRejected) {
+		t.Fatalf("replay inside the clock leeway: got %v, want ErrRejected", err)
+	}
+
+	now = registration.ExpiresAt.Add(token.ClockLeeway + time.Second)
 	h.hub.await(h.hub.sweep)
 	if used := len(h.hub.usedTokens); used != 0 {
 		t.Fatalf("%d used tokens remembered", used)
@@ -296,7 +391,7 @@ func TestRevocationClosesConnectionsAndRejectsOlderTokens(t *testing.T) {
 	kept := h.open("b", "global")
 	older := h.registration("a", "global")
 
-	h.hub.Published(token.ControlChannel, fmt.Sprintf(`{"revoke":"a","at":%d.5}`, connectedAt.Unix()))
+	h.hub.Published(token.ControlChannel, fmt.Sprintf(`{"revoke":"a","at":%d.5}`, issuedAt.Unix()))
 	h.settle()
 	if !isClosed(revoked) || isClosed(kept) {
 		t.Fatal("expected only account a's connection to close")
@@ -306,7 +401,7 @@ func TestRevocationClosesConnectionsAndRejectsOlderTokens(t *testing.T) {
 	}
 
 	newer := h.registration("a", "global")
-	newer.IssuedAt = connectedAt.Add(time.Second)
+	newer.IssuedAt = issuedAt.Add(time.Second)
 	if _, err := h.hub.Open(newer); err != nil {
 		t.Fatalf("token issued after the revocation refused: %v", err)
 	}
@@ -318,15 +413,17 @@ func TestControlMessagesAreNeverForwarded(t *testing.T) {
 	h.hub.Subscribed("global")
 	h.hub.Published(token.ControlChannel, `{"revoke":"b","at":1}`)
 	h.settle()
-	expectFrames(t, conn, ready)
+	expectFrames(t, conn, firstReady(conn, "global"))
 }
 
-func TestTokensIssuedBeforeRedisConnectedAreRejected(t *testing.T) {
+func TestTokensIssuedUpToTheRedisConnectSecondAreRejected(t *testing.T) {
 	h := newHarness(t)
-	stale := h.registration("a", "global")
-	stale.IssuedAt = connectedAt.Add(-time.Second)
-	if _, err := h.hub.Open(stale); !errors.Is(err, ErrRejected) {
-		t.Fatalf("got %v, want ErrRejected", err)
+	for _, offset := range []time.Duration{-time.Second, 0} {
+		stale := h.registration("a", "global")
+		stale.IssuedAt = connectedAt.Add(offset)
+		if _, err := h.hub.Open(stale); !errors.Is(err, ErrRejected) {
+			t.Fatalf("issued at connect%+v: got %v, want ErrRejected", offset, err)
+		}
 	}
 }
 
@@ -346,13 +443,15 @@ func TestARedisDisconnectClosesEverythingAndRefusesUntilReconnected(t *testing.T
 		t.Fatalf("got %v, want ErrUnavailable", err)
 	}
 
-	reconnectedAt := connectedAt.Add(10 * time.Second)
+	reconnectedAt := connectedAt.Add(10*time.Second + 900*time.Millisecond)
 	h.hub.RedisConnected(reconnectedAt)
-	if _, err := h.hub.Open(h.registration("a", "game-1")); !errors.Is(err, ErrRejected) {
-		t.Fatalf("token issued before the reconnect: got %v, want ErrRejected", err)
+	sameSecond := h.registration("a", "game-1")
+	sameSecond.IssuedAt = reconnectedAt.Truncate(time.Second)
+	if _, err := h.hub.Open(sameSecond); !errors.Is(err, ErrRejected) {
+		t.Fatalf("token issued in the reconnect second: got %v, want ErrRejected", err)
 	}
 	fresh := h.registration("a", "game-1")
-	fresh.IssuedAt = reconnectedAt
+	fresh.IssuedAt = reconnectedAt.Truncate(time.Second).Add(time.Second)
 	if _, err := h.hub.Open(fresh); err != nil {
 		t.Fatal(err)
 	}
@@ -367,7 +466,7 @@ func TestNonJSONPayloadsAreNotForwarded(t *testing.T) {
 	h.hub.Published("global", "{\n  \"pretty\": true\n}")
 	h.settle()
 	got := frames(conn)
-	if len(got) != 2 || got[0] != ready || strings.Count(got[1], "\n") != 2 {
+	if len(got) != 2 || got[0] != firstReady(conn, "global") || strings.Count(got[1], "\n") != 2 {
 		t.Fatalf("frames %q", got)
 	}
 }
