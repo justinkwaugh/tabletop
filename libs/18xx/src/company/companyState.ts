@@ -48,13 +48,19 @@ export type CompanyState = StockCompanyState &
     Type.Static<Type.TObject<typeof CompanyFields>> & { tranches?: CompanyTranche[] }
 export type FormationState = StockState & CompanyState
 
-export function availableCompanyTranche(
+export type NextCompanyTranche = {
+    tranche: CompanyTranche
+    waitingCompanyIds: string[]
+}
+
+export function nextCompanyTranche(
     tranches: readonly CompanyTranche[],
     completed: (companyId: string) => boolean
-): CompanyTranche | undefined {
+): NextCompanyTranche | undefined {
+    const waitingCompanyIds: string[] = []
     for (const tranche of tranches) {
-        if (tranche.companyIds.length < tranche.capacity) return tranche
-        if (!tranche.companyIds.every(completed)) return undefined
+        if (tranche.companyIds.length < tranche.capacity) return { tranche, waitingCompanyIds }
+        waitingCompanyIds.push(...tranche.companyIds.filter((companyId) => !completed(companyId)))
     }
     return undefined
 }

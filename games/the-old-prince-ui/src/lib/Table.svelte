@@ -111,7 +111,12 @@
         <div class="board-tranches" aria-label="Company tranches">
             <span class="board-tranches-label">Tranches</span>
             <div class="board-tranche-groups">
-                <Tranches {session} slotSize={MarketTokenSize * 1.42} layout="stacked" />
+                <Tranches
+                    {session}
+                    slotSize={MarketTokenSize * 1.42}
+                    layout="stacked"
+                    showInitial
+                />
             </div>
         </div>
     {/snippet}
