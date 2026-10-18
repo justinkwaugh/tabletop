@@ -125,6 +125,7 @@ export function placeShip(
         transit: 0,
         damage: 0,
         settlements: 0,
+        goods: [],
         loadedFromBase: false,
         explored: false,
         ...overrides
@@ -139,7 +140,15 @@ export function placeBase(
     systemId: string,
     settlements: number
 ): Base {
-    const base: Base = { playerId, systemId, settlements, spent: 0, cloned: false }
+    const base: Base = {
+        playerId,
+        systemId,
+        settlements,
+        spent: 0,
+        cloned: false,
+        goods: [],
+        goodsReceived: 0
+    }
     state.bases[baseKey(playerId, systemId)] = base
     return base
 }

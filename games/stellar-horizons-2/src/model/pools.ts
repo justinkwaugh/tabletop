@@ -1,4 +1,5 @@
 import { TechField } from '../components/techFields.js'
+import type { TradeGood } from '../components/tradeGoods.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { EarnedMarkers } from './pieces.js'
 
@@ -91,4 +92,25 @@ export function drawWorldTile(
 
 export function returnWorldTile(state: HydratedStellarHorizonsGameState, tileId: string) {
     state.worldPool.push(tileId)
+}
+
+// A Branch may not touch the shared pool, so goods a Player discards while playing one wait
+// beside them until the span completes.
+export function discardGoods(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    goods: readonly TradeGood[]
+) {
+    if (state.parallelSpan?.branchPlayerId === undefined) {
+        state.goodsPool.push(...goods)
+    } else {
+        state.getPlayerState(playerId).discardedGoods.push(...goods)
+    }
+}
+
+export function returnDiscardedGoods(state: HydratedStellarHorizonsGameState) {
+    for (const player of state.players) {
+        state.goodsPool.push(...player.discardedGoods)
+        player.discardedGoods = []
+    }
 }

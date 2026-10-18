@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { AnomalyChallenge } from '../components/anomalyCatalog.js'
 import { TechField } from '../components/techFields.js'
+import { TradeGood } from '../components/tradeGoods.js'
 import { WorldSide } from '../components/worlds.js'
 
 export type WorldPlacement = Type.Static<typeof WorldPlacement>
@@ -15,7 +16,8 @@ export const SystemState = Type.Object({
     explorationMarker: Type.Number(),
     worlds: Type.Array(WorldPlacement),
     anomaly: Type.Optional(Type.String()),
-    anomalyResolved: Type.Optional(Type.Boolean())
+    anomalyResolved: Type.Optional(Type.Boolean()),
+    demand: Type.Optional(Type.Enum(TradeGood))
 })
 
 export type ShipState = Type.Static<typeof ShipState>
@@ -26,6 +28,7 @@ export const ShipState = Type.Object({
     transit: Type.Number(),
     damage: Type.Number(),
     settlements: Type.Number(),
+    goods: Type.Array(Type.Enum(TradeGood)),
     loadedFromBase: Type.Boolean(),
     explored: Type.Boolean()
 })
@@ -42,7 +45,10 @@ export const Base = Type.Object({
     settlements: Type.Number(),
     spent: Type.Number(),
     cloned: Type.Boolean(),
-    production: Type.Optional(Production)
+    production: Type.Optional(Production),
+    goods: Type.Array(Type.Enum(TradeGood)),
+    // Goods taken in this turn, against the base's assignment limit (rulebook 4.5).
+    goodsReceived: Type.Number()
 })
 
 export function baseKey(playerId: string, systemId: string): string {
@@ -108,6 +114,24 @@ export const SettlementReward = Type.Object({
     settlements: Type.Number()
 })
 
+// Goods an anomaly's reward gives, waiting to be placed (rulebook 1.16).
+export type GoodsReward = Type.Static<typeof GoodsReward>
+export const GoodsReward = Type.Object({
+    playerId: Type.String(),
+    anomalyId: Type.String(),
+    systemId: Type.String(),
+    good: Type.Enum(TradeGood),
+    count: Type.Number()
+})
+
+// Demand markers drawn for a system, one to be kept (rulebook 1.9).
+export type DemandDraw = Type.Static<typeof DemandDraw>
+export const DemandDraw = Type.Object({
+    playerId: Type.String(),
+    systemId: Type.String(),
+    drawn: Type.Array(Type.Enum(TradeGood))
+})
+
 // An event challenge on the map (rulebook 4.2).
 export type ActiveEvent = Type.Static<typeof ActiveEvent>
 export const ActiveEvent = Type.Object({
@@ -141,7 +165,8 @@ export const PactShare = Type.Object({
     influence: Type.Number(),
     cash: Type.Number(),
     markers: Type.Number(),
-    settlements: Type.Number()
+    settlements: Type.Number(),
+    goods: Type.Number()
 })
 
 export type PactTerms = Type.Static<typeof PactTerms>

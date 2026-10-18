@@ -3,6 +3,8 @@ import { isRevealedWorld } from '../components/worlds.js'
 import { blocksBases } from './anomalies.js'
 import { atBaseLimit, effectiveHabitability } from './campaign.js'
 import { capabilitiesOf, freeCargo, hasArrived } from './fleet.js'
+import { drawDemand, releaseDemand } from './demand.js'
+import { discardGoods } from './pools.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { baseKey, type ShipState } from './pieces.js'
 
@@ -74,8 +76,11 @@ export function addSettlements(
         systemId,
         settlements: count,
         spent: 0,
-        cloned: false
+        cloned: false,
+        goods: [],
+        goodsReceived: 0
     }
+    drawDemand(state, playerId, systemId)
 }
 
 export function removeBaseSettlement(
@@ -89,6 +94,8 @@ export function removeBaseSettlement(
     }
     base.settlements -= 1
     if (base.settlements === 0) {
+        discardGoods(state, playerId, base.goods)
         delete state.bases[baseKey(playerId, systemId)]
+        releaseDemand(state, systemId)
     }
 }

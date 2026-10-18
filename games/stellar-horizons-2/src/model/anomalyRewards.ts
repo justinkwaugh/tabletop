@@ -7,6 +7,7 @@ import { gainInfluence } from './campaign.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { awardTechMarkers, drawWorldTile } from './pools.js'
 import { canStartInSystem } from './surveys.js'
+import { queueRewardGoods } from './trade.js'
 
 export type GrantedReward = Type.Static<typeof GrantedReward>
 export const GrantedReward = Type.Object({
@@ -16,6 +17,8 @@ export const GrantedReward = Type.Object({
     markers: Type.Array(Type.Number()),
     emptyPoolCash: Type.Number(),
     settlements: Type.Number(),
+    goods: Type.Number(),
+    goodsCash: Type.Number(),
     notYet: Type.Array(Type.String())
 })
 
@@ -25,12 +28,18 @@ export const TurnedOver = Type.Object({
     worlds: Type.Array(Type.Object({ systemId: Type.String(), tileId: Type.String() }))
 })
 
-// Rulebook 1.16: the front's reward goes to whoever resolves the anomaly. Trade goods and cards
-// wait for slices 3 and 4 of the campaign plan; settlements are placed by the Player afterwards.
+export interface RewardSource {
+    anomalyId: string
+    systemId: string
+}
+
+// Rulebook 1.16: the front's reward goes to whoever resolves the anomaly. Its settlements and
+// goods are placed by the Player afterwards; cards wait for slice 4 of the campaign plan.
 export function grantReward(
     state: HydratedStellarHorizonsGameState,
     playerId: string,
-    reward: AnomalyReward
+    reward: AnomalyReward,
+    source: RewardSource
 ): GrantedReward {
     const player = state.getPlayerState(playerId)
     const influence = reward.influence ?? 0
@@ -40,18 +49,24 @@ export function grantReward(
     const award = reward.markers
         ? awardTechMarkers(state, playerId, reward.markers.field, reward.markers.count)
         : { markers: [], cash: 0 }
-    const notYet = [
-        ...(reward.goods ? [`${reward.goods.count} ${reward.goods.good}`] : []),
-        ...(reward.card ? [`a level I ${reward.card} card`] : [])
-    ]
+    const settlements = reward.settlements ?? 0
+    if (settlements > 0) {
+        state.settlementRewards.push({ playerId, ...source, settlements })
+    }
+    const goods = reward.goods?.count ?? 0
+    const goodsCash = reward.goods
+        ? queueRewardGoods(state, { playerId, ...source, good: reward.goods.good }, goods)
+        : 0
     return {
         playerId,
         influence,
         cash,
         markers: award.markers,
         emptyPoolCash: award.cash,
-        settlements: reward.settlements ?? 0,
-        notYet
+        settlements,
+        goods,
+        goodsCash,
+        notYet: reward.card ? [`a level I ${reward.card} card`] : []
     }
 }
 

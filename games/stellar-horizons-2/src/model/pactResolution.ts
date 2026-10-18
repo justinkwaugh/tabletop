@@ -46,24 +46,23 @@ export function grantPactShares(
 ): GrantedReward[] {
     const anomaly = anomalyDefinition(candidate.terms.targetId)
     const field = anomaly.reward.markers?.field
+    const good = anomaly.reward.goods?.good
     return candidate.terms.partnerIds.map((playerId, index) => {
         const share = candidate.terms.shares[playerId]
-        const granted = grantReward(state, playerId, {
-            influence: share.influence,
-            cash: share.cash,
-            markers: field && share.markers > 0 ? { field, count: share.markers } : undefined,
-            settlements: share.settlements,
-            // Goods and cards cannot be split; they wait for slices 3 and 4 either way.
-            ...(index === 0 ? { goods: anomaly.reward.goods, card: anomaly.reward.card } : {})
-        })
-        if (granted.settlements > 0) {
-            state.settlementRewards.push({
-                playerId,
-                anomalyId: anomaly.id,
-                systemId: candidate.systemId,
-                settlements: granted.settlements
-            })
-        }
+        const granted = grantReward(
+            state,
+            playerId,
+            {
+                influence: share.influence,
+                cash: share.cash,
+                markers: field && share.markers > 0 ? { field, count: share.markers } : undefined,
+                settlements: share.settlements,
+                goods: good && share.goods > 0 ? { good, count: share.goods } : undefined,
+                // A card cannot be split; cards wait for slice 4 either way.
+                ...(index === 0 ? { card: anomaly.reward.card } : {})
+            },
+            { anomalyId: anomaly.id, systemId: candidate.systemId }
+        )
         state.getPlayerState(playerId).anomalies.push(anomaly.id)
         return granted
     })

@@ -11,6 +11,7 @@ import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import { CASH_PRODUCTION, Production, type Base } from './pieces.js'
 import { awardTechMarkers } from './pools.js'
 import { removeBaseSettlement, addSettlements } from './settling.js'
+import { ProducedGoods, produceGoods } from './trade.js'
 
 // Rulebook 4.0: tiles are drawn without replacement and reshuffled once all seven are used,
 // and the tile of the turn before is never drawn twice running.
@@ -136,7 +137,8 @@ export const BaseProductionResult = Type.Object({
     amount: Type.Number(),
     markers: Type.Array(Type.Number()),
     cash: Type.Number(),
-    settlements: Type.Number()
+    settlements: Type.Number(),
+    goods: ProducedGoods
 })
 
 // Hostile Xenomorphs take a settlement during production; Symbiotic Spores add one after it,
@@ -161,7 +163,7 @@ function payCash(state: HydratedStellarHorizonsGameState, playerId: string, amou
 }
 
 // Production is collected on the Main Line once every base has chosen, in initiative order,
-// since tech markers come from the shared pools.
+// since tech markers and goods come from the shared pools.
 export function produceAtBases(state: HydratedStellarHorizonsGameState): BaseProductionResult[] {
     const results: BaseProductionResult[] = []
     for (const playerId of state.initiativeOrder()) {
@@ -180,6 +182,7 @@ export function produceAtBases(state: HydratedStellarHorizonsGameState): BasePro
                 production === CASH_PRODUCTION
                     ? payCash(state, playerId, amount)
                     : awardTechMarkers(state, playerId, production, amount)
+            const goods = produceGoods(state, base)
             const settlements = settleProductionEffects(state, base)
             results.push({
                 playerId,
@@ -188,7 +191,8 @@ export function produceAtBases(state: HydratedStellarHorizonsGameState): BasePro
                 amount,
                 markers,
                 cash,
-                settlements
+                settlements,
+                goods
             })
         }
     }

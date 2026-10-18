@@ -20,7 +20,8 @@ export interface PhaseDefinition {
 
 // Rulebook 1.0: building and movement go in reverse initiative order and cargo transfer in
 // initiative order, while exploration and tech development are simultaneous. The campaign's
-// initiative declaration and base production choices (4.1, 4.4) are simultaneous too.
+// initiative declaration, base production choices and goods assignment (4.1, 4.4, 4.5) are
+// simultaneous too.
 export const PHASE_DEFINITIONS: Record<TurnPhase, PhaseDefinition> = {
     [TurnPhase.Build]: {
         phase: TurnPhase.Build,
@@ -70,7 +71,20 @@ export const PHASE_DEFINITIONS: Record<TurnPhase, PhaseDefinition> = {
         playState: MachineState.ChoosingProduction,
         direction: MergeDirection.Initiative,
         merge: 'barrier'
+    },
+    [TurnPhase.TradeGoods]: {
+        phase: TurnPhase.TradeGoods,
+        branchingState: MachineState.TradeGoodsPhase,
+        playState: MachineState.AssigningGoods,
+        direction: MergeDirection.Initiative,
+        merge: 'barrier'
     }
+}
+
+// The campaign plays the cargo and trade phase on the Main Line, one Player at a time in
+// initiative order, since selling draws from the shared demand pool (campaign plan, decision 1).
+export const MAIN_LINE_PHASE_STATES: Partial<Record<MachineState, TurnPhase>> = {
+    [MachineState.Trading]: TurnPhase.Cargo
 }
 
 export function phaseDefinition(phase: TurnPhase): PhaseDefinition {
@@ -86,16 +100,20 @@ export function playState(phase: TurnPhase): MachineState {
 }
 
 export function phaseOfMachineState(machineState: MachineState): TurnPhase | undefined {
-    return Object.values(PHASE_DEFINITIONS).find(
-        (definition) =>
-            definition.branchingState === machineState || definition.playState === machineState
-    )?.phase
+    return (
+        Object.values(PHASE_DEFINITIONS).find(
+            (definition) =>
+                definition.branchingState === machineState || definition.playState === machineState
+        )?.phase ?? MAIN_LINE_PHASE_STATES[machineState]
+    )
 }
 
 export function playPhase(state: { machineState: MachineState }): TurnPhase | undefined {
-    return Object.values(PHASE_DEFINITIONS).find(
-        (definition) => definition.playState === state.machineState
-    )?.phase
+    return (
+        Object.values(PHASE_DEFINITIONS).find(
+            (definition) => definition.playState === state.machineState
+        )?.phase ?? MAIN_LINE_PHASE_STATES[state.machineState]
+    )
 }
 
 export function currentPhase(state: { machineState: MachineState }): TurnPhase {

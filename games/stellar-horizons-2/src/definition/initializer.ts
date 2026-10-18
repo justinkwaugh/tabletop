@@ -17,6 +17,7 @@ import { STAR_MAP } from '../components/starMap.js'
 import { SOL_SYSTEM_ID, systemsInSectors } from '../components/systems.js'
 import { TECH_FIELDS } from '../components/techFields.js'
 import { techsThroughColumn } from '../components/techs.js'
+import { initialDemandPool, initialGoodsPool } from '../components/tradeGoods.js'
 import { ALL_WORLD_TILE_IDS, WorldClass, worldTile } from '../components/worlds.js'
 import {
     HydratedStellarHorizonsGameState,
@@ -78,7 +79,10 @@ export class StellarHorizonsGameInitializer
                     shipTerraforms: [],
                     eventAttempts: [],
                     breakthroughs: [],
-                    explorationMarkers: 0
+                    explorationMarkers: 0,
+                    earthGoods: [],
+                    drawnGoods: [],
+                    discardedGoods: []
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
@@ -118,7 +122,12 @@ export class StellarHorizonsGameInitializer
             homesteaders: [],
             pacts: [],
             pledgeableShips: [],
-            settlementRewards: []
+            settlementRewards: [],
+            goodsRewards: [],
+            goodsPool: scenario.campaign ? initialGoodsPool() : [],
+            demandPool: scenario.campaign ? initialDemandPool() : [],
+            demandDraws: [],
+            traders: []
         })
         const hydrated = new HydratedStellarHorizonsGameState(stellarState)
         for (const worldClass of Object.values(WorldClass)) {

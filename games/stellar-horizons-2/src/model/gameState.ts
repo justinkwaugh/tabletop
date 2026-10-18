@@ -11,6 +11,7 @@ import {
     type RandomState
 } from '@tabletop/common'
 import { EconomicTile } from '../components/economicTiles.js'
+import { TradeGood } from '../components/tradeGoods.js'
 import { ScenarioId, scenarioDefinition, type ScenarioDefinition } from '../components/scenarios.js'
 import { MachineState } from '../definition/states.js'
 import {
@@ -21,7 +22,9 @@ import {
     TechPools,
     TerraformChoice,
     ActiveEvent,
+    DemandDraw,
     EventPlacement,
+    GoodsReward,
     Pact,
     PledgeableShip,
     SettlementReward,
@@ -49,6 +52,12 @@ export const StellarHorizonsGameState = Type.Object({
     terraformChoice: Type.Optional(TerraformChoice),
     terraformedWorlds: Type.Array(TerraformRecord),
     settlementRewards: Type.Array(SettlementReward),
+    goodsRewards: Type.Array(GoodsReward),
+    goodsPool: Type.Array(Type.Enum(TradeGood)),
+    demandPool: Type.Array(Type.Enum(TradeGood)),
+    demandDraws: Type.Array(DemandDraw),
+    // The Players still to take their turn in the campaign's cargo and trade phase.
+    traders: Type.Array(Type.String()),
     eventPool: Type.Array(Type.String()),
     events: Type.Array(ActiveEvent),
     eventPlacement: Type.Optional(EventPlacement),
@@ -105,6 +114,11 @@ export class HydratedStellarHorizonsGameState
     declare terraformChoice?: TerraformChoice
     declare terraformedWorlds: TerraformRecord[]
     declare settlementRewards: SettlementReward[]
+    declare goodsRewards: GoodsReward[]
+    declare goodsPool: TradeGood[]
+    declare demandPool: TradeGood[]
+    declare demandDraws: DemandDraw[]
+    declare traders: string[]
     declare eventPool: string[]
     declare events: ActiveEvent[]
     declare eventPlacement?: EventPlacement

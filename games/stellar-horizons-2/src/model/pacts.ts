@@ -36,7 +36,7 @@ export interface PactTarget {
 }
 
 export function emptyShare(): PactShare {
-    return { influence: 0, cash: 0, markers: 0, settlements: 0 }
+    return { influence: 0, cash: 0, markers: 0, settlements: 0, goods: 0 }
 }
 
 // The target as everyone sees it: an unresolved anomaly or an event on the map, its difficulty
@@ -64,7 +64,8 @@ export function pactTarget(
                       influence: anomaly.reward.influence ?? 0,
                       cash: anomaly.reward.cash ?? 0,
                       markers: anomaly.reward.markers?.count ?? 0,
-                      settlements: anomaly.reward.settlements ?? 0
+                      settlements: anomaly.reward.settlements ?? 0,
+                      goods: anomaly.reward.goods?.count ?? 0
                   }
                 : emptyShare()
         }
@@ -322,7 +323,8 @@ function sumsMatch(terms: PactTerms, reward: PactShare): boolean {
         total('influence') === reward.influence &&
         total('cash') === reward.cash &&
         total('markers') === reward.markers &&
-        total('settlements') === reward.settlements
+        total('settlements') === reward.settlements &&
+        total('goods') === reward.goods
     )
 }
 

@@ -5,6 +5,7 @@ import { AnomalyChallenge, anomalyDefinition } from '../components/anomalies.js'
 import { Faction } from '../components/factions.js'
 import { TechField } from '../components/techFields.js'
 import { TechId } from '../components/techs.js'
+import { TradeGood } from '../components/tradeGoods.js'
 import {
     EarnedMarkers,
     Operation,
@@ -53,6 +54,9 @@ export const StellarHorizonsPlayerState = Type.Evaluate(
             eventAttempts: Type.Array(PendingEventAttempt),
             breakthroughs: Type.Array(Type.Enum(TechField)),
             explorationMarkers: Type.Number(),
+            earthGoods: Type.Array(Type.Enum(TradeGood)),
+            drawnGoods: Type.Array(Type.Enum(TradeGood)),
+            discardedGoods: Type.Array(Type.Enum(TradeGood)),
             initiativeBid: Type.Optional(Type.Number())
         })
     ])
@@ -83,6 +87,9 @@ export class HydratedStellarHorizonsPlayerState
     declare eventAttempts: PendingEventAttempt[]
     declare breakthroughs: TechField[]
     declare explorationMarkers: number
+    declare earthGoods: TradeGood[]
+    declare drawnGoods: TradeGood[]
+    declare discardedGoods: TradeGood[]
     declare initiativeBid?: number
 
     constructor(data: StellarHorizonsPlayerState) {

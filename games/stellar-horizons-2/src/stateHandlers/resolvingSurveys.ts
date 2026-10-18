@@ -34,6 +34,9 @@ export class ResolvingSurveysStateHandler implements MachineStateHandler<
         if (state.surveyChoice) {
             return MachineState.ChoosingSurveyWorld
         }
+        if (state.demandDraws.length > 0) {
+            return MachineState.ChoosingDemand
+        }
         return anyPendingSurveys(state)
             ? MachineState.ResolvingSurveys
             : stateAfterSurveys(state)

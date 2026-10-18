@@ -10,6 +10,7 @@ import {
 } from '../components/worlds.js'
 import { AnomalySearch, searchForAnomaly } from './anomalies.js'
 import { gainInfluence, isCampaign } from './campaign.js'
+import { drawDemand } from './demand.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { WorldPlacement } from './pieces.js'
 import type { HydratedStellarHorizonsPlayerState } from './playerState.js'
@@ -81,10 +82,12 @@ export function resolveNextSurvey(state: HydratedStellarHorizonsGameState): Surv
     system.explorationMarker -= 1
     resolution.completed = true
     resolution.explorationMarker = system.explorationMarker
-    // Campaign: whoever completes the last survey keeps the marker and earns 1 IP.
+    // Campaign: whoever completes the last survey keeps the marker, earns 1 IP and draws the
+    // system's demand marker if it has none.
     if (system.explorationMarker === 0 && isCampaign(state)) {
         player.explorationMarkers += 1
         gainInfluence(state, player.playerId, LAST_SURVEY_INFLUENCE)
+        drawDemand(state, player.playerId, survey.systemId)
     }
     drawSurveyWorld(state, resolution)
     resolution.anomaly = searchForAnomaly(state, survey.systemId, player.playerId)

@@ -24,6 +24,13 @@ import { StartPhase } from '../actions/startPhase.js'
 import { StartTurn } from '../actions/startTurn.js'
 import { Terraform } from '../actions/terraform.js'
 import { TransferCargo } from '../actions/transferCargo.js'
+import { TransferGoods } from '../actions/transferGoods.js'
+import { SellGoods } from '../actions/sellGoods.js'
+import { ChooseDemand } from '../actions/chooseDemand.js'
+import { DestroyGoods } from '../actions/destroyGoods.js'
+import { DrawTradeGoods } from '../actions/drawTradeGoods.js'
+import { AssignGoods } from '../actions/assignGoods.js'
+import { PlaceRewardGoods } from '../actions/placeRewardGoods.js'
 import { AcceptPact, ProposePact, WithdrawPact } from '../actions/pactActions.js'
 import { DrawEvent } from '../actions/drawEvent.js'
 import { PlaceEvent } from '../actions/placeEvent.js'
@@ -59,6 +66,13 @@ export const StellarHorizonsApiActions = {
     [ActionType.ScrapShip]: ScrapShip,
     [ActionType.CloneSettlement]: CloneSettlement,
     [ActionType.TransferCargo]: TransferCargo,
+    [ActionType.TransferGoods]: TransferGoods,
+    [ActionType.SellGoods]: SellGoods,
+    [ActionType.ChooseDemand]: ChooseDemand,
+    [ActionType.DestroyGoods]: DestroyGoods,
+    [ActionType.DrawTradeGoods]: DrawTradeGoods,
+    [ActionType.AssignGoods]: AssignGoods,
+    [ActionType.PlaceRewardGoods]: PlaceRewardGoods,
     [ActionType.MoveShip]: MoveShip,
     [ActionType.Explore]: Explore,
     [ActionType.AttemptAnomaly]: AttemptAnomaly,

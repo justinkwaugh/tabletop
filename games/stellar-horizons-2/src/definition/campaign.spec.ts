@@ -27,6 +27,10 @@ import { resolveNextSurvey } from '../model/surveys.js'
 import { terraformTargets, terraformingQueue } from '../model/terraforming.js'
 import { WorldClass, WorldSide, worldTile } from '../components/worlds.js'
 import type { DrawEconomicTileMetadata } from '../actions/drawEconomicTile.js'
+import type { DrawTradeGoodsMetadata } from '../actions/drawTradeGoods.js'
+import { SOL_SYSTEM_ID } from '../components/systems.js'
+import { TradeGood } from '../components/tradeGoods.js'
+import { GoodsHolderKind, canAssignToEarth } from '../model/trade.js'
 import type { GrowSettlementsMetadata } from '../actions/growSettlements.js'
 import type { ProduceAtBasesMetadata } from '../actions/produceAtBases.js'
 import type { RollInitiativeMetadata } from '../actions/rollInitiative.js'
@@ -63,7 +67,8 @@ interface Played {
 }
 
 // Takes the simplest choice wherever a Player has to act: no IP for initiative, cash at every
-// base, no conversion, no terraforming, and otherwise ends the phase.
+// base, no conversion, no terraforming, goods discarded, the first demand marker drawn, and
+// otherwise ends the phase.
 function step(game: Game, state: StellarHorizonsProjectedState): Played {
     const [playerId] = state.activePlayerIds
     assertExists(playerId, `Nobody can act in ${state.machineState}`)
@@ -103,6 +108,14 @@ function step(game: Game, state: StellarHorizonsProjectedState): Played {
             return run(ActionType.PlaceRewardSettlements, {
                 placements: [{ systemId, settlements }]
             })
+        }
+        case MachineState.AssigningGoods:
+            return run(ActionType.AssignGoods, { assignments: [] })
+        case MachineState.PlacingRewardGoods:
+            return run(ActionType.PlaceRewardGoods, { placements: [] })
+        case MachineState.ChoosingDemand: {
+            const [good] = hydrate(state).demandDraws[0].drawn
+            return run(ActionType.ChooseDemand, { good })
         }
         case MachineState.ChoosingTerraformWorld:
             return run(ActionType.ChooseTerraformWorld, { removedTileIds: [] })
@@ -738,5 +751,102 @@ describe('Review fixes', () => {
         expect(() => engine.startGame(createGame(5), { masterSeed: MASTER_SEED })).toThrow(
             /at most 4/
         )
+    })
+})
+
+describe('Trade goods', () => {
+    it('are drawn on their tile, then each Player assigns their own in a Barrier span', () => {
+        const { game, state } = campaign()
+        const played = nextTurnWith(game, state, EconomicTile.DrawTradeGoods)
+        const [draw] = actionsOf(played.actions, ActionType.DrawTradeGoods)
+        const { draws } = metadataOf<DrawTradeGoodsMetadata>(draw)
+        for (const record of draws) {
+            const faction = hydrate(state).getPlayerState(record.playerId).faction
+            assertExists(faction)
+            expect(record.goods).toHaveLength(centuryRow(faction, 2110).tradeGoods)
+        }
+        let current = played.state
+        expect(current.machineState).toBe(MachineState.AssigningGoods)
+        while (current.machineState === MachineState.AssigningGoods) {
+            const [playerId] = current.activePlayerIds
+            const drawn = hydrate(current).getPlayerState(playerId).drawnGoods
+            const assignments = drawn.filter(canAssignToEarth).map((good) => ({ good }))
+            current = executeAll(
+                game,
+                current,
+                userAction(game, playerId, ActionType.AssignGoods, { assignments })
+            ).state
+        }
+        const settled = hydrate(current)
+        let kept = 0
+        for (const record of draws) {
+            const player = settled.getPlayerState(record.playerId)
+            const earth = record.goods.filter(canAssignToEarth)
+            expect(player.earthGoods).toEqual(earth)
+            expect(player.drawnGoods).toEqual([])
+            expect(player.discardedGoods).toEqual([])
+            kept += earth.length
+        }
+        // Discards made inside the Branches are back in the pool once the span completes.
+        expect(settled.goodsPool).toHaveLength(92 - kept)
+    })
+})
+
+describe('The cargo and trade phase', () => {
+    it('is played on the Main Line, one Player at a time in initiative order', () => {
+        const { game, state } = campaign()
+        const SYSTEM = 'alpha-centauri'
+        const order = hydrate(state).initiativeOrder()
+        const [first, second] = order
+        const arrived = (hydrated: HydratedStellarHorizonsGameState, playerId: string) => {
+            const ship = hydrated.shipsOf(playerId).find((candidate) => candidate.transit === 0)
+            assertExists(ship, 'Every faction starts with a ship in place')
+            return ship
+        }
+        let shipIds: string[] = []
+        const played = nextTurnWith(game, state, EconomicTile.EarthProduction, (hydrated) => {
+            const seller = arrived(hydrated, first)
+            seller.systemId = SYSTEM
+            seller.goods = [TradeGood.Food]
+            const earthSeller = arrived(hydrated, second)
+            earthSeller.systemId = SOL_SYSTEM_ID
+            earthSeller.goods = [TradeGood.Ore]
+            hydrated.systemState(SYSTEM).demand = TradeGood.Food
+            hydrated.demandPool.splice(hydrated.demandPool.indexOf(TradeGood.Food), 1)
+            shipIds = [seller.shipId, earthSeller.shipId]
+        })
+        let current = playUntil(
+            game,
+            played.state,
+            (candidate) => candidate.machineState === MachineState.Trading
+        ).state
+        const act = (playerId: string, type: ActionType, fields: Record<string, unknown> = {}) => {
+            current = executeAll(game, current, userAction(game, playerId, type, fields)).state
+        }
+        const influence = hydrate(current).getPlayerState(first).influence
+        expect(current.activePlayerIds).toEqual([first])
+
+        act(first, ActionType.SellGoods, {
+            systemId: SYSTEM,
+            good: TradeGood.Food,
+            sources: [{ holder: { kind: GoodsHolderKind.Ship, shipId: shipIds[0] }, count: 1 }]
+        })
+        expect(current.machineState).toBe(MachineState.ChoosingDemand)
+        expect(current.activePlayerIds).toEqual([first])
+        const [kept] = hydrate(current).demandDraws[0].drawn
+        act(first, ActionType.ChooseDemand, { good: kept })
+        expect(current.machineState).toBe(MachineState.Trading)
+        expect(hydrate(current).systemState(SYSTEM).demand).toBe(kept)
+        expect(hydrate(current).getPlayerState(first).influence).toBe(influence + 1)
+
+        // With nothing left to sell or move, the first Player's turn ends by itself.
+        expect(current.activePlayerIds).toEqual([second])
+        act(second, ActionType.SellGoods, {
+            systemId: SOL_SYSTEM_ID,
+            good: TradeGood.Ore,
+            sources: [{ holder: { kind: GoodsHolderKind.Ship, shipId: shipIds[1] }, count: 1 }]
+        })
+        // The third Player has nothing to load, unload or sell either, so the phase moves on.
+        expect(playPhase(current)).toBe(TurnPhase.Movement)
     })
 })

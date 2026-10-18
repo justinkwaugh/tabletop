@@ -104,10 +104,26 @@ describe('These are the Voyages starting bases', () => {
         expect(placed.machineState).toBe(MachineState.Building)
         const hydrated = hydrate(placed)
         expect(hydrated.basesOf(order[2])).toEqual([
-            { playerId: order[2], systemId: 'luhman-16', settlements: 25, spent: 0, cloned: false }
+            {
+                playerId: order[2],
+                systemId: 'luhman-16',
+                settlements: 25,
+                spent: 0,
+                cloned: false,
+                goods: [],
+                goodsReceived: 0
+            }
         ])
         expect(hydrated.basesOf(order[1])).toEqual([
-            { playerId: order[1], systemId: 'luhman-16', settlements: 25, spent: 0, cloned: false }
+            {
+                playerId: order[1],
+                systemId: 'luhman-16',
+                settlements: 25,
+                spent: 0,
+                cloned: false,
+                goods: [],
+                goodsReceived: 0
+            }
         ])
         expect(hydrated.basesOf(order[0])).toEqual([
             {
@@ -115,7 +131,9 @@ describe('These are the Voyages starting bases', () => {
                 systemId: 'alpha-centauri',
                 settlements: 25,
                 spent: 0,
-                cloned: false
+                cloned: false,
+                goods: [],
+                goodsReceived: 0
             }
         ])
     })

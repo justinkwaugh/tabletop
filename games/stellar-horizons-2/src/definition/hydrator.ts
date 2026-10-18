@@ -34,6 +34,13 @@ import { HydratedStartPhase, isStartPhase } from '../actions/startPhase.js'
 import { HydratedStartTurn, isStartTurn } from '../actions/startTurn.js'
 import { HydratedTerraform, isTerraform } from '../actions/terraform.js'
 import { HydratedTransferCargo, isTransferCargo } from '../actions/transferCargo.js'
+import { HydratedTransferGoods, isTransferGoods } from '../actions/transferGoods.js'
+import { HydratedSellGoods, isSellGoods } from '../actions/sellGoods.js'
+import { HydratedChooseDemand, isChooseDemand } from '../actions/chooseDemand.js'
+import { HydratedDestroyGoods, isDestroyGoods } from '../actions/destroyGoods.js'
+import { HydratedDrawTradeGoods, isDrawTradeGoods } from '../actions/drawTradeGoods.js'
+import { HydratedAssignGoods, isAssignGoods } from '../actions/assignGoods.js'
+import { HydratedPlaceRewardGoods, isPlaceRewardGoods } from '../actions/placeRewardGoods.js'
 import {
     HydratedAcceptPact,
     HydratedProposePact,
@@ -100,6 +107,20 @@ export class StellarHorizonsHydrator implements GameHydrator<
                 return new HydratedCloneSettlement(data)
             case isTransferCargo(data):
                 return new HydratedTransferCargo(data)
+            case isTransferGoods(data):
+                return new HydratedTransferGoods(data)
+            case isSellGoods(data):
+                return new HydratedSellGoods(data)
+            case isChooseDemand(data):
+                return new HydratedChooseDemand(data)
+            case isDestroyGoods(data):
+                return new HydratedDestroyGoods(data)
+            case isDrawTradeGoods(data):
+                return new HydratedDrawTradeGoods(data)
+            case isAssignGoods(data):
+                return new HydratedAssignGoods(data)
+            case isPlaceRewardGoods(data):
+                return new HydratedPlaceRewardGoods(data)
             case isMoveShip(data):
                 return new HydratedMoveShip(data)
             case isExplore(data):

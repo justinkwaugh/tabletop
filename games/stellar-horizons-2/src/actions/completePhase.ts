@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
+import { returnDiscardedGoods } from '../model/pools.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { queuePactAttempts } from '../model/pactResolution.js'
 import { TurnPhase } from '../model/turn.js'
@@ -41,6 +42,7 @@ export class HydratedCompletePhase
         if (phase === TurnPhase.Exploration) {
             queuePactAttempts(state)
         }
+        returnDiscardedGoods(state)
         this.metadata = { phase }
     }
 }

@@ -8,11 +8,13 @@ import { ChoosingSurveyWorldStateHandler } from '../stateHandlers/choosingSurvey
 import { ChoosingTerraformWorldStateHandler } from '../stateHandlers/choosingTerraformWorld.js'
 import { DevelopingStateHandler } from '../stateHandlers/developing.js'
 import {
+    AssigningGoodsStateHandler,
     ChoosingProductionStateHandler,
     ConvertingSettlementsStateHandler,
     DecidingInitiativeStateHandler
 } from '../stateHandlers/economicChoices.js'
 import {
+    DrawingTradeGoodsStateHandler,
     EconomicPhaseStateHandler,
     GrowingSettlementsStateHandler,
     ProducingAtBasesStateHandler,
@@ -29,6 +31,7 @@ import {
 import { ExploringStateHandler } from '../stateHandlers/exploring.js'
 import { MovingStateHandler } from '../stateHandlers/moving.js'
 import { ExplorationPhaseStateHandler, PhaseStateHandler } from '../stateHandlers/phase.js'
+import { PlacingRewardGoodsStateHandler } from '../stateHandlers/placingRewardGoods.js'
 import { PlacingRewardSettlementsStateHandler } from '../stateHandlers/placingRewardSettlements.js'
 import { PlacingStartingBasesStateHandler } from '../stateHandlers/placingStartingBases.js'
 import { ResolvingAnomaliesStateHandler } from '../stateHandlers/resolvingAnomalies.js'
@@ -38,6 +41,7 @@ import { SettlingExplorationsStateHandler } from '../stateHandlers/settlingExplo
 import { SettlingSyndicateTakesStateHandler } from '../stateHandlers/settlingSyndicateTakes.js'
 import { StartOfTurnStateHandler } from '../stateHandlers/startOfTurn.js'
 import { TerraformingStateHandler } from '../stateHandlers/terraforming.js'
+import { ChoosingDemandStateHandler, TradingStateHandler } from '../stateHandlers/trading.js'
 import { TransferringCargoStateHandler } from '../stateHandlers/transferringCargo.js'
 
 export const StellarHorizonsStateHandlers: Record<
@@ -57,12 +61,17 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.BaseProductionPhase]: new PhaseStateHandler(TurnPhase.BaseProduction),
     [MachineState.ChoosingProduction]: new ChoosingProductionStateHandler(),
     [MachineState.ProducingAtBases]: new ProducingAtBasesStateHandler(),
+    [MachineState.DrawingTradeGoods]: new DrawingTradeGoodsStateHandler(),
+    [MachineState.TradeGoodsPhase]: new PhaseStateHandler(TurnPhase.TradeGoods),
+    [MachineState.AssigningGoods]: new AssigningGoodsStateHandler(),
     [MachineState.GrowingSettlements]: new GrowingSettlementsStateHandler(),
     [MachineState.ConvertingSettlements]: new ConvertingSettlementsStateHandler(),
     [MachineState.BuildPhase]: new PhaseStateHandler(TurnPhase.Build),
     [MachineState.Building]: new BuildingStateHandler(),
     [MachineState.CargoPhase]: new PhaseStateHandler(TurnPhase.Cargo),
     [MachineState.TransferringCargo]: new TransferringCargoStateHandler(),
+    [MachineState.Trading]: new TradingStateHandler(),
+    [MachineState.ChoosingDemand]: new ChoosingDemandStateHandler(),
     [MachineState.MovementPhase]: new PhaseStateHandler(TurnPhase.Movement),
     [MachineState.Moving]: new MovingStateHandler(),
     [MachineState.ExplorationPhase]: new ExplorationPhaseStateHandler(),
@@ -71,6 +80,7 @@ export const StellarHorizonsStateHandlers: Record<
     [MachineState.SettlingSyndicateTakes]: new SettlingSyndicateTakesStateHandler(),
     [MachineState.ResolvingAnomalies]: new ResolvingAnomaliesStateHandler(),
     [MachineState.PlacingRewardSettlements]: new PlacingRewardSettlementsStateHandler(),
+    [MachineState.PlacingRewardGoods]: new PlacingRewardGoodsStateHandler(),
     [MachineState.ResolvingEvents]: new ResolvingEventsStateHandler(),
     [MachineState.ResolvingSurveys]: new ResolvingSurveysStateHandler(),
     [MachineState.ChoosingSurveyWorld]: new ChoosingSurveyWorldStateHandler(),

@@ -23,6 +23,7 @@ export function beginTurn(state: HydratedStellarHorizonsGameState): TurnStart {
     for (const base of state.allBases()) {
         base.spent = 0
         base.cloned = false
+        base.goodsReceived = 0
     }
     const income = isEvenDecade(state.year) ? state.scenarioDefinition().evenDecadeIncome : 0
     for (const player of state.players) {

@@ -51,6 +51,7 @@ export class HydratedBuildShip extends HydratableAction<typeof BuildShip> implem
             transit: 0,
             damage: 0,
             settlements: 0,
+            goods: [],
             loadedFromBase: false,
             explored: false
         }

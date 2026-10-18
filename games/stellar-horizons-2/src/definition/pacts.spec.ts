@@ -70,8 +70,8 @@ function terms(starfarers: string, givers: string): PactTerms {
         partnerIds: [starfarers, givers],
         pledges: { [starfarers]: ['starfarers-orion'], [givers]: ['givers-darwin'] },
         shares: {
-            [starfarers]: { influence: 2, cash: 0, markers: 1, settlements: 0 },
-            [givers]: { influence: 0, cash: 0, markers: 1, settlements: 0 }
+            [starfarers]: { influence: 2, cash: 0, markers: 1, settlements: 0, goods: 0 },
+            [givers]: { influence: 0, cash: 0, markers: 1, settlements: 0, goods: 0 }
         }
     }
 }

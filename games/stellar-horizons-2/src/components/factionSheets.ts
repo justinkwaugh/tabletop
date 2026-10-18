@@ -28,6 +28,8 @@ export interface FactionAbilities {
     extraTerraforms?: number
     habitabilityBonus?: number
     converts?: true
+    sellsWithoutPaying?: true
+    demandDraws?: number
 }
 
 export interface FactionSheet {
@@ -89,7 +91,7 @@ export const FACTION_SHEETS: readonly FactionSheet[] = [
             ship('consortium-nostromo', 'lalande-21185', 1),
             ship('consortium-sapphire', 'alpha-centauri', 3)
         ],
-        abilities: {}
+        abilities: { sellsWithoutPaying: true, demandDraws: 3 }
     },
     {
         faction: Faction.Givers,

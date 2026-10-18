@@ -10,6 +10,7 @@ import { canOperateAnyShip } from './operations.js'
 import { canJoinAnyPact } from './pacts.js'
 import { OperationKind } from './pieces.js'
 import { shipTerraformSlots } from './terraforming.js'
+import { canTransferAnyGoods, saleOptions } from './trade.js'
 import { TurnPhase } from './turn.js'
 
 // A phase ends by itself once the player can do nothing more in it. Exploring is the exception:
@@ -27,7 +28,11 @@ export function isIdleInPhase(
                 cloningBases(state, playerId).length === 0
             )
         case TurnPhase.Cargo:
-            return !canTransferAnyCargo(state, playerId)
+            return (
+                !canTransferAnyCargo(state, playerId) &&
+                !canTransferAnyGoods(state, playerId) &&
+                saleOptions(state, playerId).length === 0
+            )
         case TurnPhase.Movement:
             return !canMoveAnyShip(state, playerId)
         case TurnPhase.Exploration:
@@ -47,6 +52,7 @@ export function isIdleInPhase(
             return !canDevelopAnyTech(state, playerId)
         case TurnPhase.Initiative:
         case TurnPhase.BaseProduction:
+        case TurnPhase.TradeGoods:
             return true
     }
 }

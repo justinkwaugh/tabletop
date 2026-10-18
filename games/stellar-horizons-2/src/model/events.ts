@@ -50,6 +50,12 @@ export function halts(state: HydratedStellarHorizonsGameState, systemId: string)
     return hasEffect(state, systemId, EventEffectKind.NoProductionOrGrowth)
 }
 
+// Smugglers: the system "can't produce trade goods", so its bases neither produce goods nor
+// are assigned new ones while it is unresolved.
+export function smuggled(state: HydratedStellarHorizonsGameState, systemId: string): boolean {
+    return hasEffect(state, systemId, EventEffectKind.NoTradeGoods)
+}
+
 // First Contact: Earth production gives one more marker of each type while it is unresolved.
 export function extraEarthMarkers(state: HydratedStellarHorizonsGameState): number {
     return state.events.reduce((total, candidate) => {

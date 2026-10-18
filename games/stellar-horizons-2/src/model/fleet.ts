@@ -4,7 +4,7 @@ import { playerCapabilities, type Capabilities } from './capabilities.js'
 import type { HydratedStellarHorizonsGameState } from './gameState.js'
 import type { CompensationCounts } from './exploration.js'
 import { MarkerReason, type ShipState } from './pieces.js'
-import { earnMarkers } from './pools.js'
+import { discardGoods, earnMarkers } from './pools.js'
 import { roundHalfUp } from './turn.js'
 
 export interface ShipLoss {
@@ -29,7 +29,7 @@ export function cargoCapacity(state: HydratedStellarHorizonsGameState, ship: Shi
 }
 
 export function freeCargo(state: HydratedStellarHorizonsGameState, ship: ShipState): number {
-    return cargoCapacity(state, ship) - ship.settlements
+    return cargoCapacity(state, ship) - ship.settlements - ship.goods.length
 }
 
 export function hasArrived(ship: ShipState): boolean {
@@ -54,7 +54,10 @@ export function currentCombat(ship: ShipState): number {
     return combat === 0 ? 0 : Math.max(1, combat - ship.damage)
 }
 
+// A lost ship's goods go back to the pool.
 export function removeShip(state: HydratedStellarHorizonsGameState, shipId: string) {
+    const ship = state.ship(shipId)
+    discardGoods(state, ship.playerId, ship.goods)
     delete state.ships[shipId]
 }
 

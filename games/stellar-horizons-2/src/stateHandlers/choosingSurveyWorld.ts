@@ -40,6 +40,9 @@ export class ChoosingSurveyWorldStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         const state = context.gameState
+        if (state.demandDraws.length > 0) {
+            return MachineState.ChoosingDemand
+        }
         return anyPendingSurveys(state)
             ? MachineState.ResolvingSurveys
             : stateAfterSurveys(state)

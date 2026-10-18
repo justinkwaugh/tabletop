@@ -11,6 +11,11 @@ import {
     isDrawEconomicTile
 } from '../actions/drawEconomicTile.js'
 import {
+    DrawTradeGoods,
+    HydratedDrawTradeGoods,
+    isDrawTradeGoods
+} from '../actions/drawTradeGoods.js'
+import {
     GrowSettlements,
     HydratedGrowSettlements,
     isGrowSettlements
@@ -28,7 +33,12 @@ import {
 import type { ActionType } from '../definition/actions.js'
 import type { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { stateAfterEconomicPhase, stateAfterGrowth, stateForEconomicTile } from './transitions.js'
+import {
+    stateAfterEconomicPhase,
+    stateAfterGrowth,
+    stateAfterGoodsDraw,
+    stateForEconomicTile
+} from './transitions.js'
 
 abstract class SystemStepHandler<Action extends HydratedAction> implements MachineStateHandler<
     Action,
@@ -114,5 +124,20 @@ export class GrowingSettlementsStateHandler extends SystemStepHandler<HydratedGr
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         return stateAfterGrowth(context.gameState)
+    }
+}
+
+export class DrawingTradeGoodsStateHandler extends SystemStepHandler<HydratedDrawTradeGoods> {
+    protected readonly systemAction = DrawTradeGoods
+
+    isValidAction(action: HydratedAction): action is HydratedDrawTradeGoods {
+        return isDrawTradeGoods(action)
+    }
+
+    onAction(
+        _action: HydratedDrawTradeGoods,
+        context: MachineContext<HydratedStellarHorizonsGameState>
+    ): MachineState {
+        return stateAfterGoodsDraw(context.gameState)
     }
 }

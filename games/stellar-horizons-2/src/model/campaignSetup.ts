@@ -16,6 +16,7 @@ export function setUpCampaignFaction(state: HydratedStellarHorizonsGameState, pl
             transit: initial.transit,
             damage: 0,
             settlements: 0,
+            goods: [],
             loadedFromBase: false,
             explored: false
         }

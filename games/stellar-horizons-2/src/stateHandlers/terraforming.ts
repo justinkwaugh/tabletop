@@ -1,14 +1,13 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedPassTerraform, isPassTerraform } from '../actions/passTerraform.js'
-import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInfluence.js'
 import { HydratedTerraform, isTerraform } from '../actions/terraform.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
-import { influenceActions } from './influence.js'
+import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
 import { stateAfterTerraformer } from './transitions.js'
 
-type TerraformingAction = HydratedTerraform | HydratedPassTerraform | HydratedSpendInfluence
+type TerraformingAction = HydratedTerraform | HydratedPassTerraform | ConversionAction
 
 export class TerraformingStateHandler implements MachineStateHandler<
     TerraformingAction,
@@ -18,7 +17,7 @@ export class TerraformingStateHandler implements MachineStateHandler<
         action: HydratedAction,
         _context: MachineContext<HydratedStellarHorizonsGameState>
     ): action is TerraformingAction {
-        return isTerraform(action) || isPassTerraform(action) || isSpendInfluence(action)
+        return isTerraform(action) || isPassTerraform(action) || isConversion(action)
     }
 
     validActionsForPlayer(
@@ -32,7 +31,7 @@ export class TerraformingStateHandler implements MachineStateHandler<
         return [
             ActionType.Terraform,
             ActionType.PassTerraform,
-            ...influenceActions(state, playerId)
+            ...conversionActions(state, playerId)
         ]
     }
 
@@ -44,7 +43,7 @@ export class TerraformingStateHandler implements MachineStateHandler<
         action: TerraformingAction,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        if (isSpendInfluence(action)) {
+        if (isConversion(action)) {
             return MachineState.Terraforming
         }
         if (isTerraform(action) && action.metadata?.awaitingChoice) {

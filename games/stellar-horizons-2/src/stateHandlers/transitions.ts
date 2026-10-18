@@ -9,6 +9,7 @@ import { pendingSyndicateTakes } from '../model/operations.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { playersWithEarnedMarkers } from '../model/settlement.js'
 import { discardUnplaceableRewards } from '../model/settlementRewards.js'
+import { destroyUnplaceableRewardGoods } from '../model/trade.js'
 import { anyPendingSurveys } from '../model/surveys.js'
 import { nextShipTerraformer, refillWorldPool, terraformingQueue } from '../model/terraforming.js'
 import { TurnPhase } from '../model/turn.js'
@@ -25,6 +26,8 @@ export function stateAfterPhase(
             return MachineState.RollingInitiative
         case TurnPhase.BaseProduction:
             return MachineState.ProducingAtBases
+        case TurnPhase.TradeGoods:
+            return stateAfterEconomicPhase(state)
         default:
             return stateOfNextPhase(state, phase)
     }
@@ -42,6 +45,8 @@ export function stateForEconomicTile(
             return branchingState(TurnPhase.BaseProduction)
         case EconomicTile.DrawEvent:
             return MachineState.DrawingEvent
+        case EconomicTile.DrawTradeGoods:
+            return MachineState.DrawingTradeGoods
         case EconomicTile.SettlementGrowth:
             return MachineState.GrowingSettlements
         case EconomicTile.Terraforming:
@@ -65,8 +70,27 @@ export function stateAfterEventDraw(state: HydratedStellarHorizonsGameState): Ma
         : stateAfterEconomicPhase(state)
 }
 
+// Each Player assigns the goods they drew in a Barrier span.
+export function stateAfterGoodsDraw(state: HydratedStellarHorizonsGameState): MachineState {
+    return state.players.some((player) => player.drawnGoods.length > 0)
+        ? branchingState(TurnPhase.TradeGoods)
+        : stateAfterEconomicPhase(state)
+}
+
 export function stateAfterEconomicPhase(state: HydratedStellarHorizonsGameState): MachineState {
-    return branchingState(firstPhase(state))
+    return stateForPhase(state, firstPhase(state))
+}
+
+// The campaign plays the cargo and trade phase on the Main Line, in initiative order.
+export function stateForPhase(
+    state: HydratedStellarHorizonsGameState,
+    phase: TurnPhase
+): MachineState {
+    if (phase === TurnPhase.Cargo && isCampaign(state)) {
+        state.traders = state.initiativeOrder()
+        return MachineState.Trading
+    }
+    return branchingState(phase)
 }
 
 export function stateAfterGrowth(state: HydratedStellarHorizonsGameState): MachineState {
@@ -87,7 +111,7 @@ function stateAfterTerraforming(state: HydratedStellarHorizonsGameState): Machin
 
 function stateOfNextPhase(state: HydratedStellarHorizonsGameState, phase: TurnPhase): MachineState {
     const next = phaseAfter(state, phase)
-    return next === undefined ? stateAfterLastPhase(state) : branchingState(next)
+    return next === undefined ? stateAfterLastPhase(state) : stateForPhase(state, next)
 }
 
 export function stateAfterExploring(state: HydratedStellarHorizonsGameState): MachineState {
@@ -106,11 +130,19 @@ export function stateAfterSyndicateTakes(state: HydratedStellarHorizonsGameState
     return anyAnomalyAttempts(state) ? MachineState.ResolvingAnomalies : stateAfterAnomalies(state)
 }
 
-// After each anomaly attempt: its settlement reward is placed, then the next attempt resolves.
+// After each anomaly attempt: its settlement reward is placed, a base it founds draws its
+// demand marker, its goods are placed, then the next attempt resolves.
 export function stateAfterAnomaly(state: HydratedStellarHorizonsGameState): MachineState {
+    if (state.demandDraws.length > 0) {
+        return MachineState.ChoosingDemand
+    }
     discardUnplaceableRewards(state)
     if (state.settlementRewards.length > 0) {
         return MachineState.PlacingRewardSettlements
+    }
+    destroyUnplaceableRewardGoods(state)
+    if (state.goodsRewards.length > 0) {
+        return MachineState.PlacingRewardGoods
     }
     return anyAnomalyAttempts(state) ? MachineState.ResolvingAnomalies : stateAfterAnomalies(state)
 }

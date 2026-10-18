@@ -61,15 +61,10 @@ export class HydratedResolveAnomaly
             return
         }
         const { playerId, systemId, anomalyId } = resolution
-        const reward = grantReward(state, playerId, anomalyDefinition(anomalyId).reward)
-        if (reward.settlements > 0) {
-            state.settlementRewards.push({
-                playerId,
-                anomalyId,
-                systemId,
-                settlements: reward.settlements
-            })
-        }
+        const reward = grantReward(state, playerId, anomalyDefinition(anomalyId).reward, {
+            anomalyId,
+            systemId
+        })
         this.metadata = { ...resolution, reward, turnedOver: turnOver(state, systemId) }
     }
 

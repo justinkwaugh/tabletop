@@ -1,23 +1,23 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import { HydratedAssignGoods, isAssignGoods } from '../actions/assignGoods.js'
 import { HydratedChooseProduction, isChooseProduction } from '../actions/chooseProduction.js'
 import { HydratedConvertSettlement, isConvertSettlement } from '../actions/convertSettlement.js'
 import { HydratedDeclareInitiative, isDeclareInitiative } from '../actions/declareInitiative.js'
 import { HydratedPassConversion, isPassConversion } from '../actions/passConversion.js'
 import { HydratedSkipPhase, SkipPhase, isSkipPhase } from '../actions/skipPhase.js'
-import { HydratedSpendInfluence, isSpendInfluence } from '../actions/spendInfluence.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { basesAwaitingProduction, converters, maxInitiativeBid } from '../model/economy.js'
 import type { HydratedStellarHorizonsGameState } from '../model/gameState.js'
 import { TurnPhase } from '../model/turn.js'
 import { branchPlayerId, branchingState, playState } from '../model/turnPlan.js'
-import { influenceActions } from './influence.js'
+import { type ConversionAction, conversionActions, isConversion } from './conversions.js'
 import { stateAfterEconomicPhase } from './transitions.js'
 
-// The campaign's simultaneous economic choices (rulebook 4.1 and 4.4), each a Barrier span's
+// The campaign's simultaneous economic choices (rulebook 4.1, 4.4 and 4.5), each a Barrier span's
 // Branch. A Player with nothing to choose skips it; one who has chosen everything is done.
 abstract class EconomicChoiceHandler<Action extends HydratedAction> implements MachineStateHandler<
-    Action | HydratedSpendInfluence | HydratedSkipPhase,
+    Action | ConversionAction | HydratedSkipPhase,
     HydratedStellarHorizonsGameState
 > {
     protected abstract readonly phase: TurnPhase
@@ -30,8 +30,8 @@ abstract class EconomicChoiceHandler<Action extends HydratedAction> implements M
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedStellarHorizonsGameState>
-    ): action is Action | HydratedSpendInfluence | HydratedSkipPhase {
-        return this.isChoice(action) || isSpendInfluence(action) || isSkipPhase(action)
+    ): action is Action | ConversionAction | HydratedSkipPhase {
+        return this.isChoice(action) || isConversion(action) || isSkipPhase(action)
     }
 
     validActionsForPlayer(
@@ -42,7 +42,7 @@ abstract class EconomicChoiceHandler<Action extends HydratedAction> implements M
         if (!state.isActivePlayer(playerId)) {
             return []
         }
-        return [this.choice, ...influenceActions(state, playerId)]
+        return [this.choice, ...conversionActions(state, playerId)]
     }
 
     enter(context: MachineContext<HydratedStellarHorizonsGameState>) {
@@ -54,7 +54,7 @@ abstract class EconomicChoiceHandler<Action extends HydratedAction> implements M
     }
 
     onAction(
-        action: Action | HydratedSpendInfluence | HydratedSkipPhase,
+        action: Action | ConversionAction | HydratedSkipPhase,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
         const state = context.gameState
@@ -94,7 +94,20 @@ export class ChoosingProductionStateHandler extends EconomicChoiceHandler<Hydrat
     }
 }
 
-type ConvertingAction = HydratedConvertSettlement | HydratedPassConversion | HydratedSpendInfluence
+export class AssigningGoodsStateHandler extends EconomicChoiceHandler<HydratedAssignGoods> {
+    protected readonly phase = TurnPhase.TradeGoods
+    protected readonly choice = ActionType.AssignGoods
+
+    protected isChoice(action: HydratedAction): action is HydratedAssignGoods {
+        return isAssignGoods(action)
+    }
+
+    protected hasChoice(state: HydratedStellarHorizonsGameState, playerId: string): boolean {
+        return state.getPlayerState(playerId).drawnGoods.length > 0
+    }
+}
+
+type ConvertingAction = HydratedConvertSettlement | HydratedPassConversion | ConversionAction
 
 // The True Path's conversion after growth (faction ability 1), on the Main Line.
 export class ConvertingSettlementsStateHandler implements MachineStateHandler<
@@ -105,7 +118,7 @@ export class ConvertingSettlementsStateHandler implements MachineStateHandler<
         action: HydratedAction,
         _context: MachineContext<HydratedStellarHorizonsGameState>
     ): action is ConvertingAction {
-        return isConvertSettlement(action) || isPassConversion(action) || isSpendInfluence(action)
+        return isConvertSettlement(action) || isPassConversion(action) || isConversion(action)
     }
 
     validActionsForPlayer(
@@ -119,7 +132,7 @@ export class ConvertingSettlementsStateHandler implements MachineStateHandler<
         return [
             ActionType.ConvertSettlement,
             ActionType.PassConversion,
-            ...influenceActions(state, playerId)
+            ...conversionActions(state, playerId)
         ]
     }
 
@@ -131,7 +144,7 @@ export class ConvertingSettlementsStateHandler implements MachineStateHandler<
         action: ConvertingAction,
         context: MachineContext<HydratedStellarHorizonsGameState>
     ): MachineState {
-        return isSpendInfluence(action)
+        return isConversion(action)
             ? MachineState.ConvertingSettlements
             : stateAfterEconomicPhase(context.gameState)
     }
