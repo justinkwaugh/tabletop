@@ -152,7 +152,7 @@ Every title's UI package carries its own dev harness, even when a shared playgro
 
 Player Identity is the player ID ([player relationships](../../../docs/DESIGN.md#player-relationships)): changing player colors leaves attribution, rules, scoring, action availability, replay, and undo unchanged. Color may be a rule fact, such as the color of a player's pieces, when relationships are stored against player IDs. Record this item explicitly, reporting each rule where color stands in for a player ID.
 
-Assign untrusted-code violations to gate 1, thumbnail violations to gate 3, forbidden-construct violations to gate 4, animation violations to gates 5 or 6, changed-path violations to gate 7, UI entry weight violations to gate 9, metadata and stored-game compatibility violations to gate 10, tournament setup violations to gate 11, and hidden-information violations to gate 12. Report their architectural impact in those gates without duplicating them in gate 8. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
+Assign untrusted-code violations to gate 1, thumbnail violations to gate 3, forbidden-construct violations to gate 4, animation violations to gates 5 or 6, changed-path violations to gate 7, UI entry weight violations to gate 9, metadata and stored-game compatibility violations to gate 10, tournament setup violations to gate 11, hidden-information violations to gate 12, and State shape violations, including a State field that refers to a Player by anything but its ID, to gate 14. Report their architectural impact in those gates without duplicating them in gate 8. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
 
 ### 9. Metadata-only UI entry
 
@@ -168,6 +168,7 @@ Check the title's `GameInfo` and runtime registration (`logic_hits.title_metadat
 
 - player counts are not positive integers with `minPlayers <= defaultPlayerCount <= maxPlayers`;
 - `metadata.version` does not come from `GAME_VERSION`, or the generated `src/definition/version.ts` differs from the logic `package.json` version;
+- a released title's change sets a version (`release_owned_changes`: `version_module_changed`, or an entry in `package_versions`). The release tools bump each package's `version` and regenerate `version.ts`, so a change that sets them conflicts with the next release. A new title sets its starting versions (`release_owned_changes` is `null`);
 - a new title (`new_title`) omits `metadata.visibility`. Without it, a title with `beta: false` is listed as Public on its first publication (`libs/common/src/site/titleVisibility.ts`). Report the declared value;
 - the runtime does not register `canonicalStateValidator` with the compiled validator of the title's strict canonical state schema.
 
@@ -219,6 +220,14 @@ Prove it in the built bundle: `css_encapsulation.bundle_scan` parses every style
 
 The **platform layer** is the CSS that `@tabletop/frontend-components` and its third-party libraries ship identically in every title, such as the emoji picker, the Sonner toaster, and `GameChat`. It is shared by design and passes; the scan counts it under `platformLeaks` and `platformAtRules` instead of listing it. A third-party package the title's UI depends on directly is game-specific, and the scan lists its leaks.
 
+### 14. State shape
+
+The authority is the design's [State shape](../../../docs/DESIGN.md#state-shape). This gate catches shapes that cost a migration once games are stored; apply that section's rules to every State field in scope and record each as passing or failing.
+
+For a new title, the scope is the whole canonical State: start from the schema behind `canonicalStateValidator` and follow every nested schema, including those a family library supplies, such as the 18xx library's. A family library's violation counts against every title that ships it, with the fix in the library. For a released title, the scope is the State the change adds or alters (`schema_diff`); a violation in State the change leaves untouched is a strong recommendation.
+
+`state_shape.object_schemas` maps every TypeBox object schema in the logic package and its logic family libraries. `state_shape.constant_tables` lists the title's constant tables made mostly of literal values, and its JSON files: a starting point for rule data, not a complete list. Trace what initialization and each Action write into State, and open `state_shape.unparsed_files` manually.
+
 ## Report
 
 Return a self-contained Markdown report with:
@@ -227,7 +236,7 @@ Return a self-contained Markdown report with:
 2. a gate summary, one row per gate, with `PASS`, `FAIL`, or `NOT RUN` and violation count;
 3. every violation, grouped by gate, with a stable ID such as `IMG-001`, `CAST-002`, `HIDDEN-001`, or `THREAT-001`;
 4. for each violation: file and line or asset path, observed evidence, violated rule, user-visible or deployment impact, and a concrete remediation;
-5. verification details for passing gates, including the searches/files examined, image/title dimensions, the UI entry's static graph files and bytes, the CSS scan's scoped-rule count, the exempt harness cast, the declared catalog visibility, the hidden-information decision, and the reason for every passing `untrusted_code` hit;
+5. verification details for passing gates, including the searches/files examined, image/title dimensions, the UI entry's static graph files and bytes, the CSS scan's scoped-rule count, the exempt harness cast, the declared catalog visibility, the hidden-information decision, the State fields gate 14 recorded, and the reason for every passing `untrusted_code` hit;
 6. strong recommendations in a separate non-blocking section, excluded from gate violation counts and the readiness verdict;
 7. an uncertainty section. Any unresolved uncertainty that prevents proving a gate passes makes that gate fail.
 
