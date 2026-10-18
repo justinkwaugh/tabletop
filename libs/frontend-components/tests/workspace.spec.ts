@@ -34,3 +34,20 @@ test('workspace works without a game and ignores railway theme variables', async
     await editor.click()
     await expect(page.getByRole('textbox', { name: 'editor draft' })).toHaveValue('preserved')
 })
+
+test('a pane menu opened low on the screen stays inside the window', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 400 })
+    await page.goto('/session-test.html')
+    await page.evaluate(async () => {
+        const { mountWorkspace } = await import(new URL('/src/lib/components/tests/workspace.fixture.ts', location.href).href)
+        mountWorkspace()
+    })
+    await page.getByRole('button', { name: 'Pane options for Example pane 1' }).click()
+    await page.getByRole('button', { name: 'Split pane 1 horizontally' }).click()
+    await page.getByRole('button', { name: 'Pane options for Example pane 2' }).click()
+    const menu = page.locator('.widget-menu:popover-open')
+    const bounds = await menu.boundingBox()
+    expect(bounds!.y).toBeGreaterThanOrEqual(0)
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(400)
+    await expect(menu.getByRole('button', { name: 'Delete pane 2', exact: true })).toBeInViewport({ ratio: 1 })
+})

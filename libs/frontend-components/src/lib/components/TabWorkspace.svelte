@@ -49,7 +49,16 @@
         if (fixed.tabs.includes(tab)) fixed = { ...fixed, active: tab }
     }
     let element: HTMLDivElement
-    let menuPosition = $state({ top: 0, right: 0 })
+    let menuPosition = $state({ top: 'auto', bottom: 'auto', right: 0, room: 0 })
+    // Opens on the side of the button with more room, so a low pane's menu grows upward instead of off the screen.
+    function placeMenu(button: HTMLElement) {
+        const rect = button.getBoundingClientRect()
+        const right = Math.max(8, window.innerWidth - Math.max(188, rect.right))
+        const below = window.innerHeight - rect.bottom
+        menuPosition = below >= rect.top
+            ? { top: `${rect.bottom + 4}px`, bottom: 'auto', right, room: below - 12 }
+            : { top: 'auto', bottom: `${window.innerHeight - rect.top + 4}px`, right, room: rect.top - 12 }
+    }
     let dragged: string | undefined = $state()
     let pendingDrop: { tab: string; pane: string; beforeTab?: string } | undefined
     let insertBefore: string | undefined = $state()
@@ -181,10 +190,11 @@
                 </div>
                 {#if splittable && (item.pane.id !== 'fixed' || item.pane.tabs.length || availableTabs(item.pane.id).length)}<div class="split-controls">
                     <button class="split-button" aria-label={`Pane options for ${paneLabel(item)}`} title="Pane options" popovertarget={menuId}
-                        onclick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); menuPosition = { top: rect.bottom + 4, right: Math.max(8, window.innerWidth - Math.max(188, rect.right)) } }}>
+                        onclick={(event) => placeMenu(event.currentTarget)}>
                         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 9v2m6-2v2m6-2v2" stroke-width="3" stroke-linecap="round"/></svg>
                     </button>
-                    <div class="widget-menu" id={menuId} popover style:top={`${menuPosition.top}px`} style:right={`${menuPosition.right}px`}>
+                    <div class="widget-menu" id={menuId} popover style:top={menuPosition.top} style:bottom={menuPosition.bottom} style:right={`${menuPosition.right}px`}
+                        style:max-height={`min(70dvh, ${menuPosition.room}px)`}>
                         {#if item.pane.id !== 'fixed'}
                         <div class="pane-actions">
                             {#each ['horizontal', 'vertical'] as const as axis (axis)}
@@ -281,7 +291,7 @@
     .panel.inactive { visibility: hidden; pointer-events: none; }
     .empty { flex: 1; display: grid; place-items: center; color: var(--workspace-muted, #6b7280); font-size: 13px; }
     .drop-target { outline: 2px dashed var(--workspace-focus, #2563eb); outline-offset: -4px; }
-    .widget-menu { margin: 0; left: auto; width: 180px; box-sizing: border-box; max-height: 70dvh; overflow: auto; padding: 4px; border: 1px solid var(--workspace-border, #d1d5db); border-radius: 6px; background: var(--workspace-surface, #ffffff); color: var(--workspace-text, #374151); }
+    .widget-menu { margin: 0; left: auto; width: 180px; box-sizing: border-box; overflow: auto; padding: 4px; border: 1px solid var(--workspace-border, #d1d5db); border-radius: 6px; background: var(--workspace-surface, #ffffff); color: var(--workspace-text, #374151); }
     .existing-tab { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 26px; font-size: 12px; padding-left: 4px; }
     .widget-menu .close-tab { width: 24px; height: 24px; padding: 0; display: grid; place-items: center; justify-content: center; gap: 0; flex: none; }
     .widget-menu .pane-actions { display: flex; gap: 2px; }
