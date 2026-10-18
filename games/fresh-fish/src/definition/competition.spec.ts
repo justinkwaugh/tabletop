@@ -1,51 +1,22 @@
 import {
-    ActionSource,
     assertExists,
-    defaultGameConfig,
-    normalizeGameConfig,
     GameEngine,
     GameResult,
     MachineContext,
-    PlayerStatus,
     validateGameResult
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import type { PlaceDisk } from '../actions/placeDisk.js'
-import { CellType } from '../components/cells.js'
-import { ActionType } from './actions.js'
-import { Definition } from './gameDefinition.js'
-import type { FreshFishGameConfig } from './gameConfig.js'
-import { FreshFishInfo } from './info.js'
-import { FreshFishRuntime } from './runtime.js'
+import { RuleSet } from './gameConfig.js'
+import { FreshFishRuntime, FreshFishVisibility } from './runtime.js'
 import { MachineState } from './states.js'
+import { createTestGame, firstEmptyCellDisk } from '../util/testHelper.js'
 
 const engine = new GameEngine(FreshFishRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
 
-function createGame(count: number, config: FreshFishGameConfig = {}) {
-    return FreshFishRuntime.initializer.initializeGame(
-        {
-            id: 'fresh-fish-competition',
-            typeId: FreshFishInfo.id,
-            ownerId: 'owner',
-            config: normalizeGameConfig({
-                ...defaultGameConfig(FreshFishInfo.configurator?.options ?? []),
-                ...config
-            }),
-            players: Array.from({ length: count }, (_, index) => ({
-                id: `p${index}`,
-                name: `Player ${index}`,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
-
 describe.each([2, 3, 4, 5])('Fresh Fish tournaments with %i players', (count) => {
     it('honors every starting seat through actual first-round turns', () => {
-        const game = createGame(count)
+        const game = createTestGame(count)
         const playerIds = game.players.map((player) => player.id)
         for (let offset = 0; offset < count; offset++) {
             const order = [...playerIds.slice(offset), ...playerIds.slice(0, offset)]
@@ -58,17 +29,7 @@ describe.each([2, 3, 4, 5])('Fresh Fish tournaments with %i players', (count) =>
             expect(startedGame.protectedInformation).toBe(true)
             for (const playerId of order) {
                 expect(state.activePlayerIds).toEqual([playerId])
-                const hydrated = FreshFishRuntime.hydrator.hydrateState(state)
-                const cell = [...hydrated.board].find(({ cell }) => cell.type === CellType.Empty)
-                assertExists(cell, 'Expected an empty cell for the first disk')
-                const action: PlaceDisk = {
-                    id: `disk-${playerId}`,
-                    gameId: game.id,
-                    source: ActionSource.User,
-                    type: ActionType.PlaceDisk,
-                    playerId,
-                    coords: cell.coords
-                }
+                const action = firstEmptyCellDisk(game, state, playerId)
                 state = engine.executeCanonicalAction({ game, state, action }).updatedState
             }
             expect(state.activePlayerIds).toEqual([order[0]])
@@ -78,9 +39,8 @@ describe.each([2, 3, 4, 5])('Fresh Fish tournaments with %i players', (count) =>
     it.each([false, true])(
         'preserves ordinary seeded setup and options (variant %s)',
         (variant) => {
-            const game = createGame(count, {
-                auctioneerWinsTie: variant,
-                forceThreeDisks: !variant,
+            const game = createTestGame(count, {
+                ruleSet: variant ? RuleSet.Classic : RuleSet.Kyles,
                 ...(variant ? { boardSeed: 0 } : {})
             })
             const uninitialized = engine.generateUninitializedState(game, masterSeed)
@@ -104,7 +64,7 @@ describe.each([2, 3, 4, 5])('Fresh Fish tournaments with %i players', (count) =>
                 ...order.map((playerId) => ({ kind: 'player', playerId }) as const),
                 { kind: 'spectator' } as const
             ]) {
-                const projected = FreshFishRuntime.visibility.state.project(assigned, perspective)
+                const projected = FreshFishVisibility.state.project(assigned, perspective)
                 expect(projected.turnManager.turnOrder).toEqual(order)
                 expect(projected.tileBag.items).toEqual([])
                 expect(projected.protectedPrng).toEqual({ seed: 0, invocations: 0 })
@@ -115,7 +75,7 @@ describe.each([2, 3, 4, 5])('Fresh Fish tournaments with %i players', (count) =>
     it.each([false, true])(
         'records the terminal winners used by tournament scoring (tie %s)',
         (tied) => {
-            const game = createGame(count)
+            const game = createTestGame(count)
             const state = FreshFishRuntime.hydrator.hydrateState(
                 engine.startGame(game, {
                     masterSeed,
@@ -134,7 +94,9 @@ describe.each([2, 3, 4, 5])('Fresh Fish tournaments with %i players', (count) =>
             expect(state.result).toBe(tied ? GameResult.Draw : GameResult.Win)
             expect(state.winningPlayerIds).toEqual(tied ? ['p0', 'p1'] : ['p0'])
             expect(() => validateGameResult(state.dehydrate())).not.toThrow()
-            const finalScores = FreshFishRuntime.scoring.finalScores(state.dehydrate())
+            const scoring = FreshFishRuntime.scoring
+            assertExists(scoring, 'Fresh Fish declares final scores')
+            const finalScores = scoring.finalScores(state.dehydrate())
             expect(finalScores).toEqual(
                 Object.fromEntries(state.players.map((player) => [player.playerId, player.score]))
             )
