@@ -36,6 +36,7 @@ export class ChannelIdentifier {
 export type RealtimeEventHandler = (event: RealtimeEvent) => void
 
 export interface RealtimeConnection {
+    readonly staysConnectedWhileHidden: boolean
     setHandler(handler: RealtimeEventHandler): void
     addChannel(identifier: ChannelIdentifier): Promise<void>
     removeChannel(identifier: ChannelIdentifier): Promise<void>

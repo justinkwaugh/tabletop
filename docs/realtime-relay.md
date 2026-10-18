@@ -54,7 +54,7 @@ The payload:
 
 ## Realtime Connection lifecycle
 
-A browser tab holds one Realtime Connection, one stream, for its whole life, carrying all of its Topic Registrations (`apps/frontend/src/lib/network/relayConnection.ts`). Caddy serves HTTP/2, so the stream and the topic changes below share one connection.
+A browser tab holds one Realtime Connection, one stream, for its whole life, carrying all of its Topic Registrations (`apps/frontend/src/lib/network/relayConnection.ts`). Caddy serves HTTP/2, so the stream and the topic changes below share one connection. The stream stays open while the tab is hidden, so a background game tab's title and favicon still show whose turn it is; Ably and the old SSE routes close hidden tabs instead (`staysConnectedWhileHidden`). When a hidden tab becomes visible while its stream is waiting to retry, it reconnects at once rather than after the backoff. Mobile browsers freeze background tabs regardless, and such a tab reconnects and resyncs when it is next shown.
 
 1. The client asks the backend for a token, then opens `EventSource` on the relay.
 2. The relay verifies the token and subscribes to any Topic it is not already subscribed to.

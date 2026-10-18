@@ -27,6 +27,8 @@ type ChannelData = {
 export class SseConnection implements RealtimeConnection {
     static MAX_RETRY_TIMEOUT = 10000
 
+    readonly staysConnectedWhileHidden = false
+
     public connectionStatus = ConnectionStatus.Disconnected
 
     private api: TabletopApi

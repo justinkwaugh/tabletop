@@ -31,6 +31,7 @@ type ReadyEvent = {
 }
 
 export class RelayConnection implements RealtimeConnection {
+    readonly staysConnectedWhileHidden = true
     private handler?: RealtimeEventHandler
     private readonly channels = new Map<string, ChannelIdentifier>()
     private wanted = false
@@ -71,11 +72,10 @@ export class RelayConnection implements RealtimeConnection {
     }
 
     async connect(): Promise<void> {
-        if (this.wanted) {
-            return
+        if (!this.wanted || this.reconnectTimer !== undefined) {
+            this.wanted = true
+            this.reopen()
         }
-        this.wanted = true
-        this.reopen()
     }
 
     disconnect() {

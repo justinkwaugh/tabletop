@@ -297,6 +297,33 @@ describe('RelayConnection', () => {
         expect(FakeEventSource.opened).toHaveLength(1)
     })
 
+    it('ignores connect while its stream is open', async () => {
+        const { connection, getRealtimeToken } = await connected(user, global)
+
+        await connection.connect()
+        await settle()
+        expect(getRealtimeToken).toHaveBeenCalledOnce()
+        expect(FakeEventSource.opened).toHaveLength(1)
+    })
+
+    it('reconnects at once when connected again while a retry is waiting', async () => {
+        const { connection, getRealtimeToken } = setup({ random: () => 1 })
+        await connection.addChannel(user)
+        await connection.connect()
+        await settle()
+        FakeEventSource.latest().fail()
+        await settle()
+        expect(getRealtimeToken).toHaveBeenCalledOnce()
+
+        await connection.connect()
+        await settle()
+        expect(getRealtimeToken).toHaveBeenCalledTimes(2)
+        expect(FakeEventSource.opened).toHaveLength(2)
+
+        await vi.advanceTimersByTimeAsync(60_000)
+        expect(getRealtimeToken).toHaveBeenCalledTimes(2)
+    })
+
     it('stops everything on disconnect', async () => {
         const { connection, getRealtimeToken } = setup({ random: () => 1 })
         await connection.addChannel(user)

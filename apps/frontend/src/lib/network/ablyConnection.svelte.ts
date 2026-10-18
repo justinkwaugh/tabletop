@@ -14,6 +14,7 @@ type ChannelData = {
 }
 
 export class AblyConnection implements RealtimeConnection {
+    readonly staysConnectedWhileHidden = false
     private handler?: RealtimeEventHandler
 
     private channels: Map<string, ChannelData> = new Map()

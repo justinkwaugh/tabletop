@@ -10,6 +10,7 @@ import {
     type DiscontinuityEvent,
     NotificationChannel
 } from '@tabletop/frontend-components'
+import { untrack } from 'svelte'
 import { PUBLIC_VAPID_KEY } from '$env/static/public'
 import { isPushSubscriptionChangedMessage } from '$lib/network/pushSubscriptionChangedMessage'
 import { applicationServerKeyFromVapid } from '$lib/network/applicationServerKey'
@@ -33,7 +34,10 @@ export class NotificationService {
     private userChannelReady = false
 
     private shouldConnectRealtime: boolean = $derived.by(() => {
-        return this.currentSessionUserId !== undefined && this.visibilityService.visible
+        return (
+            this.currentSessionUserId !== undefined &&
+            (this.visibilityService.visible || this.realtimeConnection.staysConnectedWhileHidden)
+        )
     })
 
     constructor(
@@ -107,6 +111,18 @@ export class NotificationService {
                 } else {
                     this.userChannelReady = false
                     this.realtimeConnection.disconnect()
+                }
+            })
+
+            $effect(() => {
+                if (
+                    this.visibilityService.visible &&
+                    this.realtimeConnection.staysConnectedWhileHidden &&
+                    untrack(() => this.shouldConnectRealtime)
+                ) {
+                    this.realtimeConnection.connect().catch((e) => {
+                        console.error('Failed to reconnect realtime connection', e)
+                    })
                 }
             })
         })
