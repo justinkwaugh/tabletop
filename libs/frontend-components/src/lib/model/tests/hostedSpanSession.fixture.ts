@@ -1384,6 +1384,61 @@ export async function runHostedSpanCommonActionUndoKeepsCloses() {
     }
 }
 
+// Undo offers whichever of the Player's latest Branch Action and own latest Common Action the
+// host recorded later; the fixture host stamps them like the real one, a moment apart.
+const aMomentLater = () => new Promise((resolve) => setTimeout(resolve, 3))
+
+export async function runHostedSpanUndoOrder() {
+    const t = await table()
+    try {
+        const p1 = await t.join('p1')
+        const p2 = await t.join('p2')
+        await p1.session.act('begin', 'begin')
+        await t.settleAll()
+
+        await p2.session.act('work', 'w2')
+        await aMomentLater()
+        await p2.session.act('chant', 'c2')
+        const commonActionAfterBranchActionComesFirst = p2.session.undoableAction?.id === 'c2'
+        await p2.session.undo()
+        await settle(p2.session)
+        const thenTheBranchAction =
+            p2.session.undoableAction?.id === 'w2' && summary(t.host.actions).join() === 'begin:p1'
+
+        await p2.session.act('chant', 'c2b')
+        await aMomentLater()
+        await p2.session.act('work', 'w2b')
+        const branchActionAfterCommonActionComesFirst = p2.session.undoableAction?.id === 'w2b'
+        await p2.session.undo()
+        await settle(p2.session)
+        const thenTheCommonAction =
+            p2.session.undoableAction?.id === 'c2b' &&
+            t.host.unmergedBranch('p2')?.branch.actionCount === 2
+
+        await p1.session.act('finish', 'f1')
+        await aMomentLater()
+        await p1.session.act('chant', 'c1')
+        await t.settleAll()
+        const closedPlayersCommonActionComesBeforeTheClose =
+            p1.session.undoableAction?.id === 'c1'
+        await p1.session.undo()
+        await settle(p1.session)
+        const thenTheClose =
+            p1.session.undoableAction?.id === 'f1' &&
+            summary(t.host.actions).join() === 'begin:p1,chant:p2,closeBranch:p1'
+        return {
+            commonActionAfterBranchActionComesFirst,
+            thenTheBranchAction,
+            branchActionAfterCommonActionComesFirst,
+            thenTheCommonAction,
+            closedPlayersCommonActionComesBeforeTheClose,
+            thenTheClose
+        }
+    } finally {
+        t.dispose()
+    }
+}
+
 export async function runHostedSpanCommonActionRace() {
     const t = await table()
     try {

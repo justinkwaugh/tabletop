@@ -92,6 +92,28 @@ export class CommonActionRefusedError extends Error {
     }
 }
 
+function recordedAt(action: GameAction): number | undefined {
+    return action.createdAt === undefined ? undefined : new Date(action.createdAt).getTime()
+}
+
+// Of the Player's latest Branch Action and their own latest Common Action, the one the host
+// recorded later. A Branch is private and the Main Line is public, so neither history can place
+// the other; the host stamps both as it accepts them, and that is the one record of their
+// order. Without a time for either, or on a tie, the Branch Action comes first, as before.
+function recordedLater(
+    branchAction: GameAction | undefined,
+    commonAction: GameAction | undefined
+): GameAction | undefined {
+    if (branchAction === undefined || commonAction === undefined) {
+        return branchAction ?? commonAction
+    }
+    const branchTime = recordedAt(branchAction)
+    const commonTime = recordedAt(commonAction)
+    return branchTime !== undefined && commonTime !== undefined && commonTime > branchTime
+        ? commonAction
+        : branchAction
+}
+
 export enum GameSessionMode {
     Play = 'play',
     Explore = 'explore',
@@ -293,8 +315,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         const player = this.myPlayer
         if (!player) return undefined
-        return (
-            latestPlayerUndoTarget(this.undoableActions({ stopAtReveal: false }), player.id) ??
+        return recordedLater(
+            latestPlayerUndoTarget(this.undoableActions({ stopAtReveal: false }), player.id),
             this.ownCommonActionUndoTarget()
         )
     })

@@ -29,6 +29,7 @@ const scenarios = {
         'runHostedSpanCommonActionOwnSide',
         'runHostedSpanCommonActionUndo',
         'runHostedSpanCommonActionUndoKeepsCloses',
+        'runHostedSpanUndoOrder',
         'runHostedSpanCommonActionRace'
     ]
 }
