@@ -529,6 +529,31 @@ func TestStatsAreBroadcastToWatchersOnlyWhenTheyChange(t *testing.T) {
 	expectFrames(t, admin, statsFrame(3, 3, 2))
 }
 
+func TestANewWatcherIsCorrectedWhenTheCountsReturnToTheLastBroadcast(t *testing.T) {
+	h := newHarness(t)
+	first := h.open("a", "relay-stats")
+	visitor := h.open("b", "global")
+	h.hub.Subscribed("global")
+	h.broadcastStats()
+	expectFrames(t, first,
+		"event: ready\ndata: {\"connection\":\""+first.id+"\",\"topics\":[\"relay-stats\"]}\n\n",
+		statsFrame(1, 1, 1),
+		statsFrame(2, 2, 2))
+
+	second := h.open("c", "relay-stats")
+	expectFrames(t, second,
+		"event: ready\ndata: {\"connection\":\""+second.id+"\",\"topics\":[\"relay-stats\"]}\n\n",
+		statsFrame(3, 3, 3))
+	h.hub.Close(visitor)
+	h.broadcastStats()
+	expectFrames(t, second, statsFrame(4, 2, 2))
+	expectFrames(t, first, statsFrame(4, 2, 2))
+
+	h.broadcastStats()
+	expectFrames(t, first)
+	expectFrames(t, second)
+}
+
 func TestLeavingTheStatsTopicStopsTheCountsWithoutRedis(t *testing.T) {
 	h := newHarness(t)
 	admin := h.open("a", "global", "relay-stats")
