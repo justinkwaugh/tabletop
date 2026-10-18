@@ -23,6 +23,7 @@ const WILD_CRY = 'denizen.beast.wild-cry'
 const BRACKEN = 'denizen.beast.bracken'
 const PARTY = 'denizen.hearth.welcoming-party'
 const AUGURY = 'denizen.arcane.augury'
+const MUSHROOMS = 'denizen.beast.mushrooms'
 const WOLVES = 'denizen.beast.wolves'
 
 const atRevision = OathRevision.CostsAndFacedownModifiers
@@ -165,6 +166,13 @@ describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Sea
         const s = table(INN, [AUGURY])
         expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', { cardId: INN, play: SearchPlay.Site, modifiers: [modifierUse(AUGURY)] })).toBe(`${AUGURY} changes a Search's draw, and this play draws nothing`)
         expect(() => play(INN, SearchPlay.Site, { modifiers: [modifierUse(AUGURY)] }).apply(s)).toThrow(/this play draws nothing/)
+    })
+
+    it('R-11-H-Marshes — at the Marshes, Mushrooms is refused for the same reason, not for its count', () => {
+        const s = table(INN, [MUSHROOMS], [], OathRevision.EngineFixes12)
+        s.siteCards = { ...s.siteCards, c1: 'site.marshes' }
+        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', { cardId: INN, play: SearchPlay.Site, modifiers: [modifierUse(MUSHROOMS)] })).toBe(`${MUSHROOMS} changes a Search's draw, and this play draws nothing`)
+        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', { cardId: INN, play: SearchPlay.Site })).toBeUndefined()
     })
 
     it('R-9.4 — another seat sees the modifier named on a discard, never the card discarded', () => {

@@ -33,6 +33,7 @@ const ENVOY = 'denizen.nomad.special-envoy'
 const PORTAL = 'denizen.arcane.portal'
 const POVERTY = 'denizen.beast.vow-of-poverty'
 const DISGUISE = 'denizen.arcane.master-of-disguise'
+const MUSHROOMS = 'denizen.beast.mushrooms'
 
 function reliquary(uncovered: number[] = []) {
     return range(0, 4)
@@ -510,6 +511,16 @@ describe('Greedy — Search (R-6.6.2.a)', () => {
     it('draws two more, without being declared', () => {
         expect(HydratedSearch.drawCount(board([]), 'ruler')).toBe(3)
         expect(HydratedSearch.drawCount(board([GREEDY]), 'ruler')).toBe(5)
+    })
+
+    it('R-11-H-Marshes — with Mushrooms at the Marshes, the two more and the one fewer both act on its one card', () => {
+        const mushrooms = [modifierUse(MUSHROOMS)]
+        const at = (oathRevision: number) =>
+            board([GREEDY], { oathRevision, siteCards: { c1: 'site.marshes' } }, { secrets: 2 }, [INN], [MUSHROOMS])
+        expect(HydratedSearch.drawCount(at(OathRevision.EngineFixes12), 'ruler', mushrooms, SearchSource.Discard)).toBe(2)
+        expect(HydratedSearch.reasonCannotSearch(at(OathRevision.EngineFixes12), 'ruler', SearchSource.Discard, mushrooms)).toBeUndefined()
+        // R-X.4 — before revision 16 the Marshes' one fewer was lost under Mushrooms' one.
+        expect(HydratedSearch.drawCount(at(OathRevision.EngineFixes11), 'ruler', mushrooms, SearchSource.Discard)).toBe(3)
     })
 
     it('cannot search when it would spend more than 2 Supply', () => {
