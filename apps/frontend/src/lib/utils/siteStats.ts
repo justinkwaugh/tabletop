@@ -1,5 +1,6 @@
 import {
     addUtcDays,
+    emptyHistogram,
     histogramQuantile,
     histogramShareBelow,
     histogramTotal,
@@ -12,28 +13,37 @@ import {
     type Histogram,
     type SiteGameCounts,
     type SiteStatsDay,
+    type SiteStatsNow,
     type SiteStatsRange,
+    type SiteStatsReport,
     type SiteTitleDay,
-    type UtcDay
+    type UtcDay,
+    type UtcDayRange
 } from '@tabletop/common'
-
-export type DayRange = { from: UtcDay; to: UtcDay }
+import { formatRate } from './gameStats'
+import type { SiteChartSeries } from './siteStatsChart'
 
 export const RANGE_PRESETS = [7, 28, 90, 365]
 export const TURN_TIME_DISPLAY_LIMITS = [60, 600, 3600, 14400, 43200, 86400, 259200]
 const WEEKLY_AFTER_DAYS = 120
 const DAY_IN_SECONDS = 86400
+const HOUR_IN_SECONDS = 3600
 
-export type ChartSlot = { start: UtcDay; label: string; days: SiteStatsDay[] }
+export type ChartSlot = { label: string; days: SiteStatsDay[] }
 
-export type RangeTotals = {
-    rolledDays: number
-    newUsers: number
-    games: SiteGameCounts
-    userActions: number
-    turnTimes: Histogram
-    gameLengths: Histogram
-}
+export type StatFigure = { value: string; label: string; note?: string }
+
+export type RangeTotals = Pick<
+    SiteStatsDay,
+    | 'newUsers'
+    | 'games'
+    | 'uncountedGamesCreated'
+    | 'userActions'
+    | 'systemActions'
+    | 'turnTimes'
+    | 'publicFillTimes'
+    | 'gameLengths'
+>
 
 export type TurnSummary = {
     turns: number
@@ -45,8 +55,7 @@ export type TurnSummary = {
 
 export type TitleRow = {
     titleId: string
-    created: number
-    finished: number
+    games: SiteGameCounts
     userActions: number
     activeUsers: number
     turns: TurnSummary
@@ -58,28 +67,42 @@ const dayLabel = new Intl.DateTimeFormat(undefined, {
     timeZone: 'UTC'
 })
 
+const dateLabel = new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC'
+})
+
 export function formatUtcDay(day: UtcDay): string {
     return dayLabel.format(utcDayStart(day))
 }
 
-export function presetRange(days: number, yesterday: UtcDay): DayRange {
+export function formatUtcDate(day: UtcDay): string {
+    return dateLabel.format(utcDayStart(day))
+}
+
+export function formatUtcRange(range: UtcDayRange): string {
+    const format = range.from.slice(0, 4) === range.to.slice(0, 4) ? formatUtcDay : formatUtcDate
+    return `${format(range.from)} – ${format(range.to)}`
+}
+
+export function presetRange(days: number, yesterday: UtcDay): UtcDayRange {
     return { from: addUtcDays(yesterday, 1 - days), to: yesterday }
 }
 
-export function previousRange(range: DayRange): DayRange {
-    const days = utcDayCount(range.from, range.to)
-    return { from: addUtcDays(range.from, -days), to: addUtcDays(range.from, -1) }
+export function slotsAreWeeks(range: UtcDayRange): boolean {
+    return utcDayCount(range.from, range.to) > WEEKLY_AFTER_DAYS
 }
 
 export function chartSlots(range: SiteStatsRange): ChartSlot[] {
     const byDay = new Map(range.days.map((day) => [day.day, day]))
     const days = utcDaysThrough(range.from, range.to)
-    const slotLength = days.length > WEEKLY_AFTER_DAYS ? 7 : 1
+    const slotLength = slotsAreWeeks(range) ? 7 : 1
     const slots: ChartSlot[] = []
     for (let index = 0; index < days.length; index += slotLength) {
         const slotDays = days.slice(index, index + slotLength)
         slots.push({
-            start: slotDays[0],
             label: formatUtcDay(slotDays[0]),
             days: slotDays.flatMap((day) => byDay.get(day) ?? [])
         })
@@ -87,12 +110,8 @@ export function chartSlots(range: SiteStatsRange): ChartSlot[] {
     return slots
 }
 
-export function slotsAreWeeks(range: DayRange): boolean {
-    return utcDayCount(range.from, range.to) > WEEKLY_AFTER_DAYS
-}
-
 export function slotSum(slot: ChartSlot, value: (day: SiteStatsDay) => number) {
-    return slot.days.length ? slot.days.reduce((total, day) => total + value(day), 0) : undefined
+    return slot.days.length ? sum(slot.days, value) : undefined
 }
 
 export function slotLatest(slot: ChartSlot, value: (day: SiteStatsDay) => number) {
@@ -100,16 +119,55 @@ export function slotLatest(slot: ChartSlot, value: (day: SiteStatsDay) => number
     return latest ? value(latest) : undefined
 }
 
+export function userActionSeries(slots: ChartSlot[]): SiteChartSeries[] {
+    return [columns('actions', 'User actions', 'blue', slots, (day) => day.userActions)]
+}
+
+export function activeUserSeries(slots: ChartSlot[], weekly: boolean): SiteChartSeries[] {
+    return [
+        ...(weekly ? [] : [columns('daily', 'That day', 'blue', slots, (day) => day.activeUsers)]),
+        {
+            key: 'week',
+            name: 'Trailing 7 days',
+            tone: 'orange',
+            kind: 'line',
+            values: slots.map((slot) => slotLatest(slot, (day) => day.activeUsers7d))
+        },
+        {
+            key: 'month',
+            name: 'Trailing 28 days',
+            tone: 'green',
+            kind: 'line',
+            values: slots.map((slot) => slotLatest(slot, (day) => day.activeUsers28d))
+        }
+    ]
+}
+
+export function gameSeries(slots: ChartSlot[]): SiteChartSeries[] {
+    return [
+        columns('created', 'Created', 'blue', slots, (day) => day.games.created),
+        columns('started', 'Started', 'orange', slots, (day) => day.games.started),
+        columns('finished', 'Finished', 'green', slots, (day) => day.games.finished)
+    ]
+}
+
+export function newUserSeries(slots: ChartSlot[]): SiteChartSeries[] {
+    return [columns('users', 'New users', 'blue', slots, (day) => day.newUsers)]
+}
+
 export function rangeTotals(days: readonly SiteStatsDay[]): RangeTotals {
     return {
-        rolledDays: days.length,
         newUsers: sum(days, (day) => day.newUsers),
         games: gameCounts(days.map((day) => day.games)),
+        uncountedGamesCreated: {
+            hotseat: sum(days, (day) => day.uncountedGamesCreated.hotseat),
+            forks: sum(days, (day) => day.uncountedGamesCreated.forks),
+            explorations: sum(days, (day) => day.uncountedGamesCreated.explorations)
+        },
         userActions: sum(days, (day) => day.userActions),
-        turnTimes: sumHistograms(
-            SITE_TURN_TIME_LIMITS_SECONDS,
-            days.map((day) => day.turnTimes)
-        ),
+        systemActions: sum(days, (day) => day.systemActions),
+        turnTimes: turnHistogram(days.map((day) => day.turnTimes)),
+        publicFillTimes: turnHistogram(days.map((day) => day.publicFillTimes)),
         gameLengths: sumHistograms(
             SITE_GAME_LENGTH_LIMITS_DAYS,
             days.map((day) => day.gameLengths)
@@ -123,7 +181,7 @@ export function turnSummary(turnTimes: Histogram): TurnSummary {
         turns: histogramTotal(turnTimes),
         median: histogramQuantile(limits, turnTimes, 0.5),
         p75: histogramQuantile(limits, turnTimes, 0.75),
-        within1h: histogramShareBelow(limits, turnTimes, 3600),
+        within1h: histogramShareBelow(limits, turnTimes, HOUR_IN_SECONDS),
         within24h: histogramShareBelow(limits, turnTimes, DAY_IN_SECONDS)
     }
 }
@@ -136,16 +194,10 @@ export function titleRows(range: SiteStatsRange): TitleRow[] {
     return [...byTitle]
         .map(([titleId, days]) => ({
             titleId,
-            created: sum(days, (day) => day.games.created),
-            finished: sum(days, (day) => day.games.finished),
+            games: gameCounts(days.map((day) => day.games)),
             userActions: sum(days, (day) => day.userActions),
-            activeUsers: range.titleActiveUsers[titleId] ?? 0,
-            turns: turnSummary(
-                sumHistograms(
-                    SITE_TURN_TIME_LIMITS_SECONDS,
-                    days.map((day) => day.turnTimes)
-                )
-            )
+            activeUsers: range.titleActiveUsers[titleId],
+            turns: turnSummary(turnHistogram(days.map((day) => day.turnTimes)))
         }))
         .sort((a, b) => b.userActions - a.userActions || a.titleId.localeCompare(b.titleId))
 }
@@ -155,7 +207,7 @@ export function regroupHistogram(
     limits: readonly number[],
     displayLimits: readonly number[]
 ): Histogram {
-    const grouped = new Array<number>(displayLimits.length + 1).fill(0)
+    const grouped = emptyHistogram(displayLimits)
     histogram.forEach((count, bucket) => {
         const upper = limits[bucket] ?? Infinity
         grouped[displayLimits.filter((limit) => limit < upper).length] += count
@@ -173,8 +225,8 @@ export function bucketLabels(limits: readonly number[], format: (value: number) 
 
 export function formatDuration(seconds: number): string {
     if (seconds < 60) return `${Math.round(seconds)} s`
-    if (seconds < 3600) return `${Math.round(seconds / 60)} min`
-    if (seconds < DAY_IN_SECONDS) return `${trimmed(seconds / 3600)} h`
+    if (seconds < HOUR_IN_SECONDS) return `${Math.round(seconds / 60)} min`
+    if (seconds < DAY_IN_SECONDS) return `${trimmed(seconds / HOUR_IN_SECONDS)} h`
     return `${trimmed(seconds / DAY_IN_SECONDS)} d`
 }
 
@@ -184,6 +236,98 @@ export function formatDays(days: number): string {
 
 export function changeFrom(current: number, previous: number): number | undefined {
     return previous > 0 ? (current - previous) / previous : undefined
+}
+
+export function nowFigures(now: SiteStatsNow): StatFigure[] {
+    const { users, games } = now
+    return [
+        {
+            value: count(users.active),
+            label: 'users',
+            note: `${users.incomplete} incomplete · ${users.inactive} inactive`
+        },
+        {
+            value: count(games.started),
+            label: 'games in progress',
+            note: `${games.waitingForPlayers} waiting for players · ${games.waitingToStart} waiting to start`
+        },
+        { value: count(games.finished), label: 'games finished all time' },
+        {
+            value: count(games.quietFor7Days),
+            label: 'in progress, quiet 7+ days',
+            note: `${games.quietFor30Days} of them 30+ days`
+        }
+    ]
+}
+
+export function rangeFigures(report: SiteStatsReport): StatFigure[] {
+    const { current, previous } = report
+    const totals = rangeTotals(current.days)
+    const earlier = rangeTotals(previous.days)
+    const turns = turnSummary(totals.turnTimes)
+    const days = utcDayCount(current.from, current.to)
+    const change = (now: number, before: number) => {
+        const ratio = changeFrom(now, before)
+        if (ratio === undefined) return undefined
+        const sign = ratio > 0 ? '+' : ratio < 0 ? '−' : '±'
+        return `${sign}${formatRate(Math.abs(ratio))} vs previous ${days} days`
+    }
+    const perUser = current.activeUsers ? totals.userActions / current.activeUsers : undefined
+    return [
+        {
+            value: count(totals.userActions),
+            label: 'user actions',
+            note: change(totals.userActions, earlier.userActions)
+        },
+        {
+            value: count(current.activeUsers),
+            label: 'active users',
+            note: joinNotes(
+                change(current.activeUsers, previous.activeUsers),
+                perUser === undefined ? undefined : `${trimmed(perUser)} actions each`
+            )
+        },
+        {
+            value: count(totals.games.created),
+            label: 'games created',
+            note: change(totals.games.created, earlier.games.created)
+        },
+        {
+            value: count(totals.newUsers),
+            label: 'new users',
+            note: change(totals.newUsers, earlier.newUsers)
+        },
+        {
+            value: turns.median === undefined ? '–' : `≈ ${formatDuration(turns.median)}`,
+            label: 'median turn',
+            note:
+                turns.within24h === undefined
+                    ? undefined
+                    : `${formatRate(turns.within24h)} within 24 h`
+        }
+    ]
+}
+
+function joinNotes(...notes: (string | undefined)[]): string | undefined {
+    return notes.filter((note) => note !== undefined).join(' · ') || undefined
+}
+
+function count(value: number): string {
+    return value.toLocaleString()
+}
+
+function columns(
+    key: string,
+    name: string,
+    tone: SiteChartSeries['tone'],
+    slots: ChartSlot[],
+    value: (day: SiteStatsDay) => number
+): SiteChartSeries {
+    return { key, name, tone, kind: 'column', values: slots.map((slot) => slotSum(slot, value)) }
+}
+
+function turnHistogram(histograms: Histogram[]): Histogram {
+    return sumHistograms(SITE_TURN_TIME_LIMITS_SECONDS, histograms)
 }
 
 function trimmed(value: number): string {

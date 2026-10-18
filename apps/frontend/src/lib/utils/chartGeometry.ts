@@ -1,6 +1,26 @@
 const MAX_GRID_INTERVALS = 5
 
-export function gridStep(peak: number): number {
+export type ValueAxis = {
+    ceiling: number
+    y: (value: number) => number
+    gridlines: { value: number; y: number }[]
+}
+
+export function valueAxis(peak: number, top: number, bottom: number): ValueAxis {
+    const step = gridStep(Math.max(1, peak))
+    const ceiling = Math.ceil(Math.max(1, peak) / step) * step
+    const y = (value: number) => bottom - (value / ceiling) * (bottom - top)
+    return {
+        ceiling,
+        y,
+        gridlines: Array.from({ length: ceiling / step + 1 }, (_, index) => ({
+            value: index * step,
+            y: y(index * step)
+        }))
+    }
+}
+
+function gridStep(peak: number): number {
     let magnitude = 1
     for (;;) {
         for (const multiple of [1, 2, 5]) {

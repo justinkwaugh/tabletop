@@ -1,4 +1,4 @@
-import { columnPath, gridStep } from './chartGeometry'
+import { columnPath, valueAxis } from './chartGeometry'
 import { monthName, type MonthIndex, type MonthlyGames } from './gameStats'
 
 const AXIS_WIDTH = 22
@@ -34,12 +34,12 @@ export function monthlyChart(
     height: number
 ): MonthlyChart {
     const byMonth = new Map(monthlyGames.map((entry) => [entry.month, entry]))
-    const peak = Math.max(1, ...monthlyGames.map((entry) => entry.games))
-    const step = gridStep(peak)
-    const ceiling = Math.ceil(peak / step) * step
     const plotBottom = height - AXIS_LABEL_HEIGHT
-    const plotHeight = plotBottom - PLOT_TOP
-    const y = (value: number) => plotBottom - (value / ceiling) * plotHeight
+    const { y, gridlines } = valueAxis(
+        Math.max(0, ...monthlyGames.map((entry) => entry.games)),
+        PLOT_TOP,
+        plotBottom
+    )
     const slotWidth = (width - AXIS_WIDTH) / months.length
     const columnWidth = Math.max(1, Math.min(MAX_COLUMN_WIDTH, slotWidth - COLUMN_SPACING))
     const labelEvery = Math.ceil(months.length / Math.max(2, Math.floor(width / MONTH_LABEL_WIDTH)))
@@ -47,10 +47,7 @@ export function monthlyChart(
         plotLeft: AXIS_WIDTH,
         plotBottom,
         slotWidth,
-        gridlines: Array.from({ length: ceiling / step + 1 }, (_, index) => ({
-            value: index * step,
-            y: y(index * step)
-        })),
+        gridlines,
         columns: months.map((month, index) => {
             const { games = 0, wonOrTied = 0 } = byMonth.get(month) ?? {}
             const slotX = AXIS_WIDTH + index * slotWidth

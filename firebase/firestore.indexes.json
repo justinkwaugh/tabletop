@@ -133,28 +133,13 @@
             "indexes": []
         },
         {
-            "collectionGroup": "siteStatsDays",
-            "fieldPath": "titles",
+            "collectionGroup": "siteStatsMonths",
+            "fieldPath": "days",
             "indexes": []
         },
         {
-            "collectionGroup": "siteStatsDays",
-            "fieldPath": "turnTimes",
-            "indexes": []
-        },
-        {
-            "collectionGroup": "siteStatsDays",
-            "fieldPath": "gameLengths",
-            "indexes": []
-        },
-        {
-            "collectionGroup": "siteStatsActiveUsers",
-            "fieldPath": "users",
-            "indexes": []
-        },
-        {
-            "collectionGroup": "siteStatsActiveUsers",
-            "fieldPath": "titles",
+            "collectionGroup": "siteStatsMonths",
+            "fieldPath": "activeUsers",
             "indexes": []
         }
     ]

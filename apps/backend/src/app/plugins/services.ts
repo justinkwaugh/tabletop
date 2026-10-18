@@ -126,8 +126,9 @@ export default fp(async (fastify: FastifyInstance) => {
         pubSubService = redisPubSubService
     }
 
+    const notificationStore = new FirestoreNotificationStore(redisCacheService, fastify.firestore)
     const notificationService = await DefaultNotificationService.createNotificationService(
-        new FirestoreNotificationStore(redisCacheService, fastify.firestore),
+        notificationStore,
         pubSubService
     )
 
@@ -145,10 +146,10 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate(
         'siteStatsService',
         new SiteStatsService(
-            gameStore,
-            userStore,
+            { games: gameStore, users: userStore, subscriptions: notificationStore },
             new FirestoreSiteStatsStore(fastify.firestore),
-            taskService
+            taskService,
+            redisCacheService
         )
     )
 

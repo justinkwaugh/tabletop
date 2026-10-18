@@ -26,8 +26,8 @@ import {
     GameHistoryPage,
     UserGameStats,
     SiteStatsNow,
-    SiteStatsRange,
-    type UtcDay,
+    SiteStatsReport,
+    type UtcDayRange,
     User,
     UserPreferences,
     Visibility,
@@ -987,13 +987,13 @@ export class TabletopApi {
         return response.payload.games.map((game) => this.validateGame(game))
     }
 
-    async getSiteStatsRange(from: UtcDay, to: UtcDay): Promise<SiteStatsRange> {
+    async getSiteStatsReport(range: UtcDayRange): Promise<SiteStatsReport> {
         const response = await this.wretch
-            .get(`/admin/stats/daily?from=${from}&to=${to}`)
+            .get(`/admin/stats/report?from=${range.from}&to=${range.to}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<unknown>()
-        Value.Assert(Type.Object({ payload: SiteStatsRange }), response)
+        Value.Assert(Type.Object({ payload: SiteStatsReport }), response)
         return response.payload
     }
 

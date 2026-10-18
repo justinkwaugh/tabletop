@@ -4,11 +4,13 @@ import type {
     GameStatus,
     SiteStatsDay,
     UserStatus,
-    UtcDay
+    UtcDayRange
 } from '@tabletop/common'
-import type { SiteDayActiveUsers, SiteDayRollup } from '../../stats/siteStatsRollup.js'
+import type { ActiveUserSketches, StoredSiteStatsMonth } from '../model/storedSiteStatsMonth.js'
 
 export type GameTimestampField = 'createdAt' | 'startedAt' | 'finishedAt'
+
+export type TimeWindow = { start: Date; end: Date }
 
 export type PlayActions = {
     actions: GameAction[]
@@ -16,22 +18,25 @@ export type PlayActions = {
 }
 
 export interface SiteStatsGameSource {
-    findGamesWithTimestampBetween(field: GameTimestampField, start: Date, end: Date): Promise<Game[]>
-    findGamesInPlayBetween(start: Date, end: Date): Promise<Game[]>
-    findPlayActionsBetween(game: Game, start: Date, end: Date): Promise<PlayActions>
+    findGamesWithTimestampIn(field: GameTimestampField, window: TimeWindow): Promise<Game[]>
+    findGamesInPlayDuring(window: TimeWindow): Promise<Game[]>
+    findPlayActionsDuring(game: Game, window: TimeWindow): Promise<PlayActions>
     findEarliestGameCreatedAt(): Promise<Date | undefined>
     countGamesWithStatus(status: GameStatus): Promise<number>
     countStartedGamesQuietSince(lastActionBefore: Date): Promise<number>
 }
 
 export interface SiteStatsUserSource {
-    countUsersCreatedBetween(start: Date, end: Date): Promise<number>
+    countUsersCreatedIn(window: TimeWindow): Promise<number>
     countUsersWithStatus(status: UserStatus): Promise<number>
 }
 
+export interface SiteStatsSubscriptionSource {
+    countSubscriptionsWithTransport(transport: string): Promise<number>
+}
+
 export interface SiteStatsStore {
-    saveDay(rollup: SiteDayRollup): Promise<void>
-    findDays(from: UtcDay, to: UtcDay): Promise<SiteStatsDay[]>
-    findActiveUsers(from: UtcDay, to: UtcDay): Promise<SiteDayActiveUsers[]>
-    findLatestDay(): Promise<UtcDay | undefined>
+    saveDay(stats: SiteStatsDay, activeUsers: ActiveUserSketches): Promise<void>
+    findMonths(range: UtcDayRange): Promise<StoredSiteStatsMonth[]>
+    findRolledDays(): Promise<Partial<UtcDayRange>>
 }

@@ -10,6 +10,7 @@ import { AlreadyExistsError, UnknownStorageError } from '../stores/errors.js'
 import { BaseError } from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
 import { NotificationStore } from '../stores/notificationStore.js'
+import type { SiteStatsSubscriptionSource } from '../stores/siteStatsStore.js'
 import { StoredPushTopic } from '../model/storedPushTopic.js'
 import { PushClient } from '../../notifications/pushClient.js'
 import { PushTopic } from '../../notifications/pushTopic.js'
@@ -18,7 +19,7 @@ import { StoredSubscription } from '../model/storedSubscription.js'
 import { NotificationSubscriptionIdentifier } from '../../notifications/subscriptions/notificationSubscriptionIdentifier.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
 
-export class FirestoreNotificationStore implements NotificationStore {
+export class FirestoreNotificationStore implements NotificationStore, SiteStatsSubscriptionSource {
     readonly notificationSubscriptions: CollectionReference
     readonly pushTopics: CollectionReference
 
@@ -191,6 +192,20 @@ export class FirestoreNotificationStore implements NotificationStore {
             return storedTopic.clients
         } catch (error) {
             this.handleError(error, topic, 'PushTopic')
+            throw Error('unreachable')
+        }
+    }
+
+    async countSubscriptionsWithTransport(transport: string): Promise<number> {
+        try {
+            const snapshot = await this.notificationSubscriptions
+                .where('transport', '==', transport)
+                .count()
+                .get()
+            this.recordRead('notificationSubscriptions')
+            return snapshot.data().count
+        } catch (error) {
+            this.handleError(error, transport, 'NotificationSubscription')
             throw Error('unreachable')
         }
     }

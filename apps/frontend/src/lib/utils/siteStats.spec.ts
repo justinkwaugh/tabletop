@@ -11,7 +11,7 @@ import {
     chartSlots,
     formatDuration,
     presetRange,
-    previousRange,
+    rangeFigures,
     rangeTotals,
     regroupHistogram,
     slotLatest,
@@ -24,13 +24,17 @@ function day(date: string, overrides: Partial<SiteStatsDay> = {}): SiteStatsDay 
     return {
         day: date,
         computedAt: 0,
+        rollup: { gamesInPlay: 1, durationMs: 10 },
         newUsers: 1,
         games: { created: 2, started: 1, finished: 1, abandoned: 0 },
+        uncountedGamesCreated: { hotseat: 1, forks: 0, explorations: 0 },
         userActions: 10,
+        systemActions: 4,
         activeUsers: 3,
         activeUsers7d: 5,
         activeUsers28d: 8,
         turnTimes: emptyHistogram(SITE_TURN_TIME_LIMITS_SECONDS),
+        publicFillTimes: emptyHistogram(SITE_TURN_TIME_LIMITS_SECONDS),
         gameLengths: emptyHistogram(SITE_GAME_LENGTH_LIMITS_DAYS),
         titles: {},
         ...overrides
@@ -42,10 +46,21 @@ function range(from: string, to: string, days: SiteStatsDay[]): SiteStatsRange {
 }
 
 describe('site stats ranges', () => {
-    it('ends presets yesterday and compares with the period before', () => {
-        const last28 = presetRange(28, '2026-10-17')
-        expect(last28).toEqual({ from: '2026-09-20', to: '2026-10-17' })
-        expect(previousRange(last28)).toEqual({ from: '2026-08-23', to: '2026-09-19' })
+    it('ends presets yesterday', () => {
+        expect(presetRange(28, '2026-10-17')).toEqual({ from: '2026-09-20', to: '2026-10-17' })
+    })
+
+    it('compares range figures with the period before', () => {
+        const figures = rangeFigures({
+            current: range('2026-10-16', '2026-10-17', [day('2026-10-16'), day('2026-10-17')]),
+            previous: { ...range('2026-10-14', '2026-10-15', [day('2026-10-14')]), activeUsers: 2 }
+        })
+        expect(figures[0]).toEqual({
+            value: '20',
+            label: 'user actions',
+            note: '+100% vs previous 2 days'
+        })
+        expect(figures[1].note).toBe('+100% vs previous 2 days · 5 actions each')
     })
 
     it('gives one slot per day and leaves days not rolled up empty', () => {
@@ -72,9 +87,10 @@ describe('site stats totals', () => {
     it('adds days together', () => {
         const totals = rangeTotals([day('2026-10-16'), day('2026-10-17')])
         expect(totals).toMatchObject({
-            rolledDays: 2,
             newUsers: 2,
             userActions: 20,
+            systemActions: 8,
+            uncountedGamesCreated: { hotseat: 2, forks: 0, explorations: 0 },
             games: { created: 4, started: 2, finished: 2, abandoned: 0 }
         })
     })
@@ -92,7 +108,7 @@ describe('site stats totals', () => {
                 day('2026-10-17', { titles: { sol: title(4) } })
             ])
         )
-        expect(rows.map((row) => [row.titleId, row.userActions, row.created, row.activeUsers])).toEqual([
+        expect(rows.map((row) => [row.titleId, row.userActions, row.games.created, row.activeUsers])).toEqual([
             ['sol', 9, 2, 3],
             ['kaivai', 7, 1, 2]
         ])

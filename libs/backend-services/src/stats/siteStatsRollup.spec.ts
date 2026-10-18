@@ -4,17 +4,14 @@ import {
     GameCategory,
     GameResult,
     histogramBucket,
+    histogramTotal,
     PlayerStatus,
     SITE_GAME_LENGTH_LIMITS_DAYS,
     SITE_TURN_TIME_LIMITS_SECONDS,
     type GameAction
 } from '@tabletop/common'
-import {
-    summarizeSiteDay,
-    type SiteDayActiveUsers,
-    type SiteDayGame,
-    type SiteDaySource
-} from './siteStatsRollup.js'
+import { sketchOf } from './hyperLogLog.js'
+import { summarizeSiteDay, type SiteDayGame, type SiteDaySource } from './siteStatsRollup.js'
 
 const DAY = '2026-10-17'
 const at = (time: string) => new Date(`${DAY}T${time}Z`)
@@ -25,8 +22,10 @@ function game(id: string, overrides: Partial<SiteDayGame> = {}): SiteDayGame {
         id,
         typeId: 'sol',
         hotseat: false,
+        isPublic: false,
+        createdAt: before('08:00:00'),
         startedAt: before('09:00:00'),
-        players: ['a', 'b', 'bot'].map((playerId) => ({
+        players: ['a', 'b', 'c', 'bot'].map((playerId) => ({
             id: playerId,
             userId: playerId === 'bot' ? undefined : `user-${playerId}`,
             name: playerId,
@@ -64,12 +63,20 @@ function source(overrides: Partial<SiteDaySource> = {}): SiteDaySource {
     }
 }
 
-function turnBucket(seconds: number) {
+function turnsTaken(actions: GameAction[], includesFirstAction = false) {
+    const { stats } = summarizeSiteDay(
+        source({ plays: [{ game: game('g1'), actions, includesFirstAction }] }),
+        1
+    )
+    return stats.turnTimes
+}
+
+function bucket(seconds: number) {
     return histogramBucket(SITE_TURN_TIME_LIMITS_SECONDS, seconds)
 }
 
 describe('site day rollup', () => {
-    it('counts lifecycle events for counted games only, per title', () => {
+    it('counts lifecycle events for counted games, per title, and the rest on their own', () => {
         const { stats } = summarizeSiteDay(
             source({
                 newUsers: 3,
@@ -80,16 +87,18 @@ describe('site day rollup', () => {
                     game('fork', { parentId: 'g1' }),
                     game('explore', { category: GameCategory.Exploration })
                 ],
-                startedGames: [game('g1')],
+                startedGames: [game('g1', { isPublic: true, startedAt: before('11:00:00') })],
                 finishedGames: [
                     game('g3', { result: GameResult.Win, finishedAt: at('12:00:00') }),
-                    game('g4', { result: GameResult.Abandoned, finishedAt: at('12:00:00') })
+                    game('g4', { result: GameResult.Abandoned, finishedAt: at('12:00:00') }),
+                    game('hotseat-done', { hotseat: true, finishedAt: at('12:00:00') })
                 ]
             }),
             1
         )
         expect(stats.newUsers).toBe(3)
         expect(stats.games).toEqual({ created: 2, started: 1, finished: 1, abandoned: 1 })
+        expect(stats.uncountedGamesCreated).toEqual({ hotseat: 1, forks: 1, explorations: 1 })
         expect(stats.titles['sol'].games).toEqual({
             created: 1,
             started: 1,
@@ -97,16 +106,16 @@ describe('site day rollup', () => {
             abandoned: 1
         })
         expect(stats.titles['kaivai'].games.created).toBe(1)
+        expect(stats.publicFillTimes[bucket(3 * 3600)]).toBe(1)
         expect(stats.gameLengths[histogramBucket(SITE_GAME_LENGTH_LIMITS_DAYS, 1.125)]).toBe(1)
     })
 
-    it('counts human user actions in the day and times turns from the previous player', () => {
+    it('counts human actions in the day, system actions apart, and times turns from the previous player', () => {
         const actions = [
             action('a', before('23:00:00')),
             action('b', at('00:30:00')),
             action('b', at('00:31:00')),
-            action('bot', at('00:32:00')),
-            action('a', at('02:31:00'), ActionSource.System),
+            action('a', at('00:31:00'), ActionSource.System),
             action('a', at('04:31:00')),
             action('b', new Date('2026-10-18T00:00:00Z'))
         ]
@@ -114,14 +123,37 @@ describe('site day rollup', () => {
             source({ plays: [{ game: game('g1'), actions, includesFirstAction: false }] }),
             1
         )
-        expect(stats.userActions).toBe(3)
-        expect(stats.activeUsers).toBe(2)
-        expect(activeUsers.users).toEqual(['user-a', 'user-b'])
-        const turns = stats.turnTimes
-        expect(turns.reduce((total, count) => total + count, 0)).toBe(2)
-        expect(turns[turnBucket(90 * 60)]).toBe(1)
-        expect(turns[turnBucket(4 * 60 * 60)]).toBe(1)
+        expect(stats).toMatchObject({ userActions: 3, systemActions: 1, activeUsers: 2 })
+        expect(activeUsers.users).toEqual(sketchOf(['user-a', 'user-b']))
+        expect(histogramTotal(stats.turnTimes)).toBe(2)
+        expect(stats.turnTimes[bucket(90 * 60)]).toBe(1)
+        expect(stats.turnTimes[bucket(4 * 3600)]).toBe(1)
         expect(stats.titles['sol']).toMatchObject({ userActions: 3, activeUsers: 2 })
+    })
+
+    it("times a human's turn from a bot's move, without counting the bot", () => {
+        const turns = turnsTaken([
+            action('a', before('23:00:00')),
+            action('bot', at('01:00:00')),
+            action('a', at('01:10:00'))
+        ])
+        expect(histogramTotal(turns)).toBe(1)
+        expect(turns[bucket(600)]).toBe(1)
+    })
+
+    it('times each simultaneous player from the move before theirs', () => {
+        const turns = turnsTaken([
+            action('a', at('01:00:00')),
+            action('b', at('01:05:00')),
+            action('c', at('01:35:00'))
+        ])
+        expect(turns[bucket(300)]).toBe(1)
+        expect(turns[bucket(1800)]).toBe(1)
+    })
+
+    it('times the turn after an undo from the move that is left', () => {
+        const turns = turnsTaken([action('a', at('01:00:00')), action('b', at('03:00:00'))])
+        expect(turns[bucket(7200)]).toBe(1)
     })
 
     it('times the first turn from the start only when the history is complete', () => {
@@ -129,40 +161,23 @@ describe('site day rollup', () => {
         const timed = summarizeSiteDay(
             source({
                 plays: [
-                    { game: game('g1', { startedAt: at('09:00:00') }), actions: first, includesFirstAction: true }
-                ]
-            }),
-            1
-        )
-        expect(timed.stats.turnTimes[turnBucket(3600)]).toBe(1)
-        const untimed = summarizeSiteDay(
-            source({ plays: [{ game: game('g1'), actions: first, includesFirstAction: false }] }),
-            1
-        )
-        expect(untimed.stats.turnTimes.every((count) => count === 0)).toBe(true)
-    })
-
-    it('ignores play in hotseat games', () => {
-        const { stats } = summarizeSiteDay(
-            source({
-                plays: [
                     {
-                        game: game('g1', { hotseat: true }),
-                        actions: [action('a', at('10:00:00'))],
+                        game: game('g1', { startedAt: at('09:00:00') }),
+                        actions: first,
                         includesFirstAction: true
                     }
                 ]
             }),
             1
         )
-        expect(stats.userActions).toBe(0)
+        expect(timed.stats.turnTimes[bucket(3600)]).toBe(1)
+        expect(histogramTotal(turnsTaken(first))).toBe(0)
     })
 
     it('counts distinct users over the trailing 7 and 28 days', () => {
-        const earlier = (day: string, users: string[]): SiteDayActiveUsers => ({
+        const earlier = (day: string, users: string[]) => ({
             day,
-            users,
-            titles: {}
+            activeUsers: { users: sketchOf(users), titles: {} }
         })
         const { stats } = summarizeSiteDay(
             source({

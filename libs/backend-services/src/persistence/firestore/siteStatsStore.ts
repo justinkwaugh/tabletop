@@ -1,63 +1,57 @@
 import { CollectionReference, FieldPath, Firestore, Query } from '@google-cloud/firestore'
-import { BaseError, SiteStatsDay, type UtcDay } from '@tabletop/common'
+import { BaseError, utcMonthOf, type SiteStatsDay, type UtcDayRange } from '@tabletop/common'
 import * as Value from 'typebox/value'
 import type { SiteStatsStore } from '../stores/siteStatsStore.js'
-import { SiteDayActiveUsers, type SiteDayRollup } from '../../stats/siteStatsRollup.js'
+import {
+    StoredSiteStatsMonth,
+    type ActiveUserSketches
+} from '../model/storedSiteStatsMonth.js'
 import { UnknownStorageError } from '../stores/errors.js'
 
 export class FirestoreSiteStatsStore implements SiteStatsStore {
-    private readonly days: CollectionReference
-    private readonly activeUsers: CollectionReference
+    private readonly months: CollectionReference
 
-    constructor(private readonly firestore: Firestore) {
-        this.days = firestore.collection('siteStatsDays')
-        this.activeUsers = firestore.collection('siteStatsActiveUsers')
+    constructor(firestore: Firestore) {
+        this.months = firestore.collection('siteStatsMonths')
     }
 
-    async saveDay(rollup: SiteDayRollup): Promise<void> {
-        const batch = this.firestore.batch()
-        batch.set(this.days.doc(rollup.stats.day), rollup.stats)
-        batch.set(this.activeUsers.doc(rollup.stats.day), rollup.activeUsers)
+    async saveDay(stats: SiteStatsDay, activeUsers: ActiveUserSketches): Promise<void> {
+        const month = utcMonthOf(stats.day)
+        const dayFields = [new FieldPath('days', stats.day), new FieldPath('activeUsers', stats.day)]
         try {
-            await batch.commit()
+            await this.months
+                .doc(month)
+                .set(
+                    { month, days: { [stats.day]: stats }, activeUsers: { [stats.day]: activeUsers } },
+                    { mergeFields: ['month', ...dayFields] }
+                )
         } catch (error) {
-            this.handleError(error, rollup.stats.day)
+            this.handleError(error, stats.day)
         }
     }
 
-    async findDays(from: UtcDay, to: UtcDay): Promise<SiteStatsDay[]> {
-        const documents = await this.readRange(this.days, from, to)
-        return documents.map((data) => {
-            Value.Assert(SiteStatsDay, data)
-            return data
-        })
+    async findMonths(range: UtcDayRange): Promise<StoredSiteStatsMonth[]> {
+        const query = this.months
+            .where('month', '>=', utcMonthOf(range.from))
+            .where('month', '<=', utcMonthOf(range.to))
+            .orderBy('month')
+        return this.read(query, `${range.from}..${range.to}`)
     }
 
-    async findActiveUsers(from: UtcDay, to: UtcDay): Promise<SiteDayActiveUsers[]> {
-        const documents = await this.readRange(this.activeUsers, from, to)
-        return documents.map((data) => {
-            Value.Assert(SiteDayActiveUsers, data)
-            return data
-        })
+    async findRolledDays(): Promise<Partial<UtcDayRange>> {
+        const [first] = await this.read(this.months.orderBy('month').limit(1), 'first')
+        const [last] = await this.read(this.months.orderBy('month', 'desc').limit(1), 'last')
+        const days = (month: StoredSiteStatsMonth | undefined) => Object.keys(month?.days ?? {}).sort()
+        return { from: days(first).at(0), to: days(last).at(-1) }
     }
 
-    async findLatestDay(): Promise<UtcDay | undefined> {
-        const query = this.days.orderBy('day', 'desc').limit(1)
-        const [latest] = await this.read(query, 'latest')
-        return latest?.id
-    }
-
-    private async readRange(collection: CollectionReference, from: UtcDay, to: UtcDay) {
-        const query = collection
-            .where(FieldPath.documentId(), '>=', from)
-            .where(FieldPath.documentId(), '<=', to)
-            .orderBy(FieldPath.documentId())
-        return (await this.read(query, `${from}..${to}`)).map((document) => document.data())
-    }
-
-    private async read(query: Query, label: string) {
+    private async read(query: Query, label: string): Promise<StoredSiteStatsMonth[]> {
         try {
-            return (await query.get()).docs
+            return (await query.get()).docs.map((document) => {
+                const data = document.data()
+                Value.Assert(StoredSiteStatsMonth, data)
+                return data
+            })
         } catch (error) {
             this.handleError(error, label)
         }

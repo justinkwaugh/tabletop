@@ -21,7 +21,7 @@ import {
 } from '../stores/errors.js'
 
 import { UserStore } from '../stores/userStore.js'
-import type { SiteStatsUserSource } from '../stores/siteStatsStore.js'
+import type { SiteStatsUserSource, TimeWindow } from '../stores/siteStatsStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
@@ -68,9 +68,9 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
-    async countUsersCreatedBetween(start: Date, end: Date): Promise<number> {
+    async countUsersCreatedIn(window: TimeWindow): Promise<number> {
         return this.countQuery(
-            this.users.where('createdAt', '>=', start).where('createdAt', '<', end),
+            this.users.where('createdAt', '>=', window.start).where('createdAt', '<', window.end),
             'created'
         )
     }

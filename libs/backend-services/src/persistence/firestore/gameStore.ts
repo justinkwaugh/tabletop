@@ -99,7 +99,8 @@ import { TournamentCacheKeys } from './tournamentCacheKeys.js'
 import type {
     GameTimestampField,
     PlayActions,
-    SiteStatsGameSource
+    SiteStatsGameSource,
+    TimeWindow
 } from '../stores/siteStatsStore.js'
 import { gameAutoStartChange } from '../../games/gameAutoStart.js'
 import {
@@ -873,17 +874,18 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         }
     }
 
-    async findGamesWithTimestampBetween(
-        field: GameTimestampField,
-        start: Date,
-        end: Date
-    ): Promise<Game[]> {
-        return this.readGames(this.games.where(field, '>=', start).where(field, '<', end), field)
+    async findGamesWithTimestampIn(field: GameTimestampField, window: TimeWindow): Promise<Game[]> {
+        return this.readGames(
+            this.games.where(field, '>=', window.start).where(field, '<', window.end),
+            field
+        )
     }
 
-    async findGamesInPlayBetween(start: Date, end: Date): Promise<Game[]> {
+    async findGamesInPlayDuring(window: TimeWindow): Promise<Game[]> {
         return this.readGames(
-            this.games.where('lastActionAt', '>=', start).where('startedAt', '<', end),
+            this.games
+                .where('lastActionAt', '>=', window.start)
+                .where('startedAt', '<', window.end),
             'inPlay'
         )
     }
@@ -909,12 +911,13 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         )
     }
 
-    async findPlayActionsBetween(game: Game, start: Date, end: Date): Promise<PlayActions> {
-        const actionChunkSize = Reflect.get(game, 'actionChunkSize')
+    async findPlayActionsDuring(game: Game, window: TimeWindow): Promise<PlayActions> {
+        const actionChunkSize: unknown = Reflect.get(game, 'actionChunkSize')
+        assert(typeof actionChunkSize === 'number', 'Stored games record their action chunk size')
         try {
             return actionChunkSize
-                ? await this.findChunkedPlayActions(game.id, actionChunkSize, start)
-                : await this.findLegacyPlayActions(game.id, start, end)
+                ? await this.findChunkedPlayActions(game.id, actionChunkSize, window.start)
+                : await this.findLegacyPlayActions(game.id, window)
         } catch (error) {
             this.handleError(error, game.id)
             throw Error('unreachable')
@@ -940,20 +943,16 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 actionChunkCollection: collection,
                 chunkIds: [this.chunkIdForChunkNumber(firstChunk, gameId)]
             })
-            if (!earlier) break
+            assertExists(earlier, `Action chunk ${firstChunk} of game ${gameId} is missing`)
             actions = [...earlier.actions, ...actions]
         }
         return { actions, includesFirstAction: actions[0]?.index === 0 }
     }
 
-    private async findLegacyPlayActions(
-        gameId: string,
-        start: Date,
-        end: Date
-    ): Promise<PlayActions> {
+    private async findLegacyPlayActions(gameId: string, window: TimeWindow): Promise<PlayActions> {
         const collection = this.getActionCollection(gameId)
         const during = await this.readQuery(
-            collection.where('createdAt', '>=', start).where('createdAt', '<', end)
+            collection.where('createdAt', '>=', window.start).where('createdAt', '<', window.end)
         )
         const actions = during.docs
             .map((document) => this.convertGameAction(document.data()))

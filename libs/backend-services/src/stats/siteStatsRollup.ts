@@ -1,9 +1,12 @@
 import {
     ActionSource,
     addToHistogram,
+    addUtcDays,
     emptyHistogram,
+    GameCategory,
     GameResult,
     isCountedGame,
+    isListedPublicGame,
     MILLISECONDS_PER_DAY,
     SITE_GAME_LENGTH_LIMITS_DAYS,
     SITE_TURN_TIME_LIMITS_SECONDS,
@@ -13,10 +16,11 @@ import {
     type SiteGameCounts,
     type SiteStatsDay,
     type SiteTitleDay,
-    UtcDay,
-    addUtcDays
+    type UtcDay
 } from '@tabletop/common'
-import * as Type from 'typebox'
+import type { ActiveUserSketches } from '../persistence/model/storedSiteStatsMonth.js'
+import type { PlayActions, TimeWindow } from '../persistence/stores/siteStatsStore.js'
+import { countDistinct, sketchOf } from './hyperLogLog.js'
 
 export type SiteDayGame = Pick<
     Game,
@@ -26,23 +30,17 @@ export type SiteDayGame = Pick<
     | 'hotseat'
     | 'parentId'
     | 'category'
+    | 'isPublic'
+    | 'unlisted'
     | 'result'
+    | 'createdAt'
     | 'startedAt'
     | 'finishedAt'
 >
 
-export type SiteDayPlay = {
-    game: SiteDayGame
-    actions: GameAction[]
-    includesFirstAction: boolean
-}
+export type SiteDayPlay = PlayActions & { game: SiteDayGame }
 
-export const SiteDayActiveUsers = Type.Object({
-    day: UtcDay,
-    users: Type.Array(Type.String()),
-    titles: Type.Record(Type.String(), Type.Array(Type.String()))
-})
-export type SiteDayActiveUsers = Type.Static<typeof SiteDayActiveUsers>
+export type EarlierActiveUsers = { day: UtcDay; activeUsers: ActiveUserSketches }
 
 export type SiteDaySource = {
     day: UtcDay
@@ -51,17 +49,15 @@ export type SiteDaySource = {
     startedGames: SiteDayGame[]
     finishedGames: SiteDayGame[]
     plays: SiteDayPlay[]
-    earlierActiveUsers: SiteDayActiveUsers[]
+    earlierActiveUsers: EarlierActiveUsers[]
 }
 
 export type SiteDayRollup = {
-    stats: SiteStatsDay
-    activeUsers: SiteDayActiveUsers
+    stats: Omit<SiteStatsDay, 'rollup'>
+    activeUsers: ActiveUserSketches
 }
 
 export const EARLIER_ACTIVE_USER_DAYS = 27
-
-type DayWindow = { start: number; end: number }
 
 class TitleTally {
     readonly games: SiteGameCounts = { created: 0, started: 0, finished: 0, abandoned: 0 }
@@ -79,46 +75,131 @@ class TitleTally {
     }
 }
 
-export function summarizeSiteDay(source: SiteDaySource, computedAt: number): SiteDayRollup {
-    const start = utcDayStart(source.day).getTime()
-    const window = { start, end: start + MILLISECONDS_PER_DAY }
-    const site = new TitleTally()
-    const titles = new Map<string, TitleTally>()
-    const tallies = (game: SiteDayGame) => {
-        let title = titles.get(game.typeId)
+class SiteDayTally {
+    readonly site = new TitleTally()
+    readonly titles = new Map<string, TitleTally>()
+    readonly uncountedGamesCreated = { hotseat: 0, forks: 0, explorations: 0 }
+    readonly publicFillTimes = emptyHistogram(SITE_TURN_TIME_LIMITS_SECONDS)
+    readonly gameLengths = emptyHistogram(SITE_GAME_LENGTH_LIMITS_DAYS)
+    systemActions = 0
+
+    constructor(private readonly window: TimeWindow) {}
+
+    siteAndTitle(game: SiteDayGame): TitleTally[] {
+        let title = this.titles.get(game.typeId)
         if (!title) {
             title = new TitleTally()
-            titles.set(game.typeId, title)
+            this.titles.set(game.typeId, title)
         }
-        return [site, title]
+        return [this.site, title]
     }
-    const gameLengths = emptyHistogram(SITE_GAME_LENGTH_LIMITS_DAYS)
 
-    for (const game of source.createdGames.filter(isCountedGame))
-        for (const tally of tallies(game)) tally.games.created += 1
-    for (const game of source.startedGames.filter(isCountedGame))
-        for (const tally of tallies(game)) tally.games.started += 1
-    for (const game of source.finishedGames.filter(isCountedGame)) {
+    created(game: SiteDayGame) {
+        if (isCountedGame(game)) for (const tally of this.siteAndTitle(game)) tally.games.created += 1
+        else if (game.hotseat) this.uncountedGamesCreated.hotseat += 1
+        else if (game.parentId !== undefined) this.uncountedGamesCreated.forks += 1
+        else if (game.category === GameCategory.Exploration)
+            this.uncountedGamesCreated.explorations += 1
+    }
+
+    started(game: SiteDayGame) {
+        for (const tally of this.siteAndTitle(game)) tally.games.started += 1
+        if (isListedPublicGame(game) && game.createdAt && game.startedAt)
+            addToHistogram(
+                this.publicFillTimes,
+                SITE_TURN_TIME_LIMITS_SECONDS,
+                (game.startedAt.getTime() - game.createdAt.getTime()) / 1000
+            )
+    }
+
+    finished(game: SiteDayGame) {
         const abandoned = game.result === GameResult.Abandoned
-        for (const tally of tallies(game))
+        for (const tally of this.siteAndTitle(game))
             if (abandoned) tally.games.abandoned += 1
             else tally.games.finished += 1
         if (!abandoned && game.startedAt && game.finishedAt)
             addToHistogram(
-                gameLengths,
+                this.gameLengths,
                 SITE_GAME_LENGTH_LIMITS_DAYS,
                 (game.finishedAt.getTime() - game.startedAt.getTime()) / MILLISECONDS_PER_DAY
             )
     }
-    for (const play of source.plays.filter((play) => isCountedGame(play.game)))
-        tallyPlay(play, window, tallies(play.game))
 
-    const activeUsers: SiteDayActiveUsers = {
-        day: source.day,
-        users: [...site.users].sort(),
+    played(play: SiteDayPlay) {
+        const tallies = this.siteAndTitle(play.game)
+        let previousTurn: GameAction | undefined
+        for (const action of play.actions) {
+            const at = this.timeDuring(action)
+            if (action.source === ActionSource.System) {
+                if (at !== undefined) this.systemActions += 1
+                continue
+            }
+            const userId = this.humanUserId(play.game, action)
+            if (at !== undefined && userId !== undefined) {
+                const turnStartedAt = this.turnStart(play, previousTurn, action)
+                for (const tally of tallies) {
+                    tally.userActions += 1
+                    tally.users.add(userId)
+                    if (turnStartedAt !== undefined)
+                        addToHistogram(
+                            tally.turnTimes,
+                            SITE_TURN_TIME_LIMITS_SECONDS,
+                            Math.max(0, at - turnStartedAt) / 1000
+                        )
+                }
+            }
+            previousTurn = action
+        }
+    }
+
+    private turnStart(
+        play: SiteDayPlay,
+        previousTurn: GameAction | undefined,
+        action: GameAction
+    ): number | undefined {
+        if (!previousTurn) return play.includesFirstAction ? play.game.startedAt?.getTime() : undefined
+        if (previousTurn.playerId === action.playerId) return undefined
+        return previousTurn.createdAt?.getTime()
+    }
+
+    private humanUserId(game: SiteDayGame, action: GameAction): string | undefined {
+        const player = game.players.find((candidate) => candidate.id === action.playerId)
+        return player?.isHuman ? player.userId : undefined
+    }
+
+    private timeDuring(action: GameAction): number | undefined {
+        const at = action.createdAt
+        return at && at >= this.window.start && at < this.window.end ? at.getTime() : undefined
+    }
+}
+
+export function summarizeSiteDay(source: SiteDaySource, computedAt: number): SiteDayRollup {
+    const start = utcDayStart(source.day)
+    const tally = new SiteDayTally({
+        start,
+        end: new Date(start.getTime() + MILLISECONDS_PER_DAY)
+    })
+    for (const game of source.createdGames) tally.created(game)
+    for (const game of source.startedGames.filter(isCountedGame)) tally.started(game)
+    for (const game of source.finishedGames.filter(isCountedGame)) tally.finished(game)
+    for (const play of source.plays.filter((play) => isCountedGame(play.game))) tally.played(play)
+
+    const activeUsers: ActiveUserSketches = {
+        users: sketchOf(tally.site.users),
         titles: Object.fromEntries(
-            [...titles].map(([titleId, title]) => [titleId, [...title.users].sort()])
+            [...tally.titles]
+                .filter(([, title]) => title.users.size > 0)
+                .map(([titleId, title]) => [titleId, sketchOf(title.users)])
         )
+    }
+    const trailing = (days: number) => {
+        const first = addUtcDays(source.day, 1 - days)
+        return countDistinct([
+            activeUsers.users,
+            ...source.earlierActiveUsers
+                .filter((earlier) => earlier.day >= first)
+                .map((earlier) => earlier.activeUsers.users)
+        ])
     }
     return {
         activeUsers,
@@ -126,68 +207,19 @@ export function summarizeSiteDay(source: SiteDaySource, computedAt: number): Sit
             day: source.day,
             computedAt,
             newUsers: source.newUsers,
-            games: site.games,
-            userActions: site.userActions,
-            activeUsers: site.users.size,
-            activeUsers7d: distinctUsers([activeUsers, ...within(source, 7)]),
-            activeUsers28d: distinctUsers([activeUsers, ...within(source, 28)]),
-            turnTimes: site.turnTimes,
-            gameLengths,
+            games: tally.site.games,
+            uncountedGamesCreated: tally.uncountedGamesCreated,
+            userActions: tally.site.userActions,
+            systemActions: tally.systemActions,
+            activeUsers: tally.site.users.size,
+            activeUsers7d: trailing(7),
+            activeUsers28d: trailing(28),
+            turnTimes: tally.site.turnTimes,
+            publicFillTimes: tally.publicFillTimes,
+            gameLengths: tally.gameLengths,
             titles: Object.fromEntries(
-                [...titles].map(([titleId, title]) => [titleId, title.summary()])
+                [...tally.titles].map(([titleId, title]) => [titleId, title.summary()])
             )
         }
     }
-}
-
-export function distinctUsers(days: readonly SiteDayActiveUsers[], titleId?: string): number {
-    const users = new Set<string>()
-    for (const day of days)
-        for (const userId of titleId === undefined ? day.users : (day.titles[titleId] ?? []))
-            users.add(userId)
-    return users.size
-}
-
-function within(source: SiteDaySource, days: number): SiteDayActiveUsers[] {
-    const first = addUtcDays(source.day, 1 - days)
-    return source.earlierActiveUsers.filter((earlier) => earlier.day >= first)
-}
-
-function tallyPlay(play: SiteDayPlay, window: DayWindow, tallies: TitleTally[]) {
-    let previous: GameAction | undefined
-    for (const action of play.actions) {
-        const userId = humanUserId(play.game, action)
-        if (userId === undefined) continue
-        const at = action.createdAt?.getTime()
-        if (at !== undefined && at >= window.start && at < window.end) {
-            const turnStartedAt = turnStart(play, previous, action)
-            for (const tally of tallies) {
-                tally.userActions += 1
-                tally.users.add(userId)
-                if (turnStartedAt !== undefined)
-                    addToHistogram(
-                        tally.turnTimes,
-                        SITE_TURN_TIME_LIMITS_SECONDS,
-                        Math.max(0, at - turnStartedAt) / 1000
-                    )
-            }
-        }
-        previous = action
-    }
-}
-
-function turnStart(
-    play: SiteDayPlay,
-    previous: GameAction | undefined,
-    action: GameAction
-): number | undefined {
-    if (!previous) return play.includesFirstAction ? play.game.startedAt?.getTime() : undefined
-    if (previous.playerId === action.playerId) return undefined
-    return previous.createdAt?.getTime()
-}
-
-function humanUserId(game: SiteDayGame, action: GameAction): string | undefined {
-    if (action.source !== ActionSource.User) return undefined
-    const player = game.players.find((candidate) => candidate.id === action.playerId)
-    return player?.isHuman ? player.userId : undefined
 }

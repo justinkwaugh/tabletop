@@ -15,13 +15,16 @@ export type UtcDay = Type.Static<typeof UtcDay>
 export const Histogram = Type.Array(Type.Integer({ minimum: 0 }))
 export type Histogram = Type.Static<typeof Histogram>
 
+export const UtcDayRange = Type.Object(
+    { from: UtcDay, to: UtcDay },
+    { additionalProperties: false }
+)
+export type UtcDayRange = Type.Static<typeof UtcDayRange>
+
+const Count = Type.Integer({ minimum: 0 })
+
 export const SiteGameCounts = Type.Object(
-    {
-        created: Type.Integer({ minimum: 0 }),
-        started: Type.Integer({ minimum: 0 }),
-        finished: Type.Integer({ minimum: 0 }),
-        abandoned: Type.Integer({ minimum: 0 })
-    },
+    { created: Count, started: Count, finished: Count, abandoned: Count },
     { additionalProperties: false }
 )
 export type SiteGameCounts = Type.Static<typeof SiteGameCounts>
@@ -29,8 +32,8 @@ export type SiteGameCounts = Type.Static<typeof SiteGameCounts>
 export const SiteTitleDay = Type.Object(
     {
         games: SiteGameCounts,
-        userActions: Type.Integer({ minimum: 0 }),
-        activeUsers: Type.Integer({ minimum: 0 }),
+        userActions: Count,
+        activeUsers: Count,
         turnTimes: Histogram
     },
     { additionalProperties: false }
@@ -41,13 +44,23 @@ export const SiteStatsDay = Type.Object(
     {
         day: UtcDay,
         computedAt: Type.Integer(),
-        newUsers: Type.Integer({ minimum: 0 }),
+        rollup: Type.Object(
+            { gamesInPlay: Count, durationMs: Count },
+            { additionalProperties: false }
+        ),
+        newUsers: Count,
         games: SiteGameCounts,
-        userActions: Type.Integer({ minimum: 0 }),
-        activeUsers: Type.Integer({ minimum: 0 }),
-        activeUsers7d: Type.Integer({ minimum: 0 }),
-        activeUsers28d: Type.Integer({ minimum: 0 }),
+        uncountedGamesCreated: Type.Object(
+            { hotseat: Count, forks: Count, explorations: Count },
+            { additionalProperties: false }
+        ),
+        userActions: Count,
+        systemActions: Count,
+        activeUsers: Count,
+        activeUsers7d: Count,
+        activeUsers28d: Count,
         turnTimes: Histogram,
+        publicFillTimes: Histogram,
         gameLengths: Histogram,
         titles: Type.Record(Type.String(), SiteTitleDay)
     },
@@ -59,36 +72,45 @@ export const SiteStatsRange = Type.Object(
     {
         from: UtcDay,
         to: UtcDay,
-        rolledThrough: Type.Optional(UtcDay),
         days: Type.Array(SiteStatsDay),
-        activeUsers: Type.Integer({ minimum: 0 }),
-        titleActiveUsers: Type.Record(Type.String(), Type.Integer({ minimum: 0 }))
+        activeUsers: Count,
+        titleActiveUsers: Type.Record(Type.String(), Count)
     },
     { additionalProperties: false }
 )
 export type SiteStatsRange = Type.Static<typeof SiteStatsRange>
 
+export const SiteStatsReport = Type.Object(
+    {
+        rolledFrom: Type.Optional(UtcDay),
+        rolledThrough: Type.Optional(UtcDay),
+        current: SiteStatsRange,
+        previous: SiteStatsRange
+    },
+    { additionalProperties: false }
+)
+export type SiteStatsReport = Type.Static<typeof SiteStatsReport>
+
 export const SiteStatsNow = Type.Object(
     {
         asOf: Type.Integer(),
         users: Type.Object(
-            {
-                active: Type.Integer({ minimum: 0 }),
-                incomplete: Type.Integer({ minimum: 0 }),
-                inactive: Type.Integer({ minimum: 0 }),
-                deleted: Type.Integer({ minimum: 0 })
-            },
+            { active: Count, incomplete: Count, inactive: Count, deleted: Count },
             { additionalProperties: false }
         ),
         games: Type.Object(
             {
-                waitingForPlayers: Type.Integer({ minimum: 0 }),
-                waitingToStart: Type.Integer({ minimum: 0 }),
-                started: Type.Integer({ minimum: 0 }),
-                finished: Type.Integer({ minimum: 0 }),
-                quietFor7Days: Type.Integer({ minimum: 0 }),
-                quietFor30Days: Type.Integer({ minimum: 0 })
+                waitingForPlayers: Count,
+                waitingToStart: Count,
+                started: Count,
+                finished: Count,
+                quietFor7Days: Count,
+                quietFor30Days: Count
             },
+            { additionalProperties: false }
+        ),
+        notificationClients: Type.Object(
+            { webPush: Count, discord: Count },
             { additionalProperties: false }
         )
     },
@@ -115,6 +137,28 @@ export function isRealUtcDay(day: UtcDay): boolean {
 
 export function utcDayCount(from: UtcDay, to: UtcDay): number {
     return Math.round((utcDayStart(to).getTime() - utcDayStart(from).getTime()) / MILLISECONDS_PER_DAY) + 1
+}
+
+export function utcMonthOf(day: UtcDay): string {
+    return day.slice(0, 7)
+}
+
+export function previousUtcRange(range: UtcDayRange): UtcDayRange {
+    const days = utcDayCount(range.from, range.to)
+    return { from: addUtcDays(range.from, -days), to: addUtcDays(range.from, -1) }
+}
+
+export function utcRangeProblem(
+    range: UtcDayRange,
+    latest: UtcDay,
+    maxDays = SITE_STATS_MAX_RANGE_DAYS
+): string | undefined {
+    if (!isRealUtcDay(range.from) || !isRealUtcDay(range.to)) return 'Both ends must be real days'
+    if (range.from > range.to) return 'The range must not end before it starts'
+    if (range.to > latest) return `The range must end by ${latest}`
+    if (utcDayCount(range.from, range.to) > maxDays)
+        return `The range may span at most ${maxDays} days`
+    return undefined
 }
 
 export function utcDaysThrough(from: UtcDay, to: UtcDay): UtcDay[] {

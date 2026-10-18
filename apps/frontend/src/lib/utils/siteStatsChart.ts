@@ -1,4 +1,4 @@
-import { columnPath, gridStep } from './chartGeometry'
+import { columnPath, valueAxis } from './chartGeometry'
 
 export type ChartSeries = { key: string; values: (number | undefined)[] }
 
@@ -10,12 +10,14 @@ export type SiteChartSeries = ChartSeries & {
     kind: 'column' | 'line'
 }
 
+type SeriesPath = { key: string; path: string }
+
 export type SiteChartSlot = {
     slotX: number
     centerX: number
     topY: number
     label?: string
-    columns: { key: string; path: string }[]
+    columns: SeriesPath[]
 }
 
 export type SiteChart = {
@@ -24,7 +26,7 @@ export type SiteChart = {
     slotWidth: number
     gridlines: { value: number; y: number; label: string }[]
     slots: SiteChartSlot[]
-    lines: { key: string; path: string }[]
+    lines: SeriesPath[]
 }
 
 const AXIS_LABEL_HEIGHT = 20
@@ -53,11 +55,9 @@ export function siteChart({
     const values = [...columns, ...lines].flatMap((series) =>
         series.values.filter((value) => value !== undefined)
     )
-    const step = gridStep(Math.max(1, ...values))
-    const ceiling = Math.ceil(Math.max(1, ...values) / step) * step
-    const plotLeft = AXIS_GAP + AXIS_DIGIT_WIDTH * ceiling.toLocaleString().length
     const plotBottom = height - AXIS_LABEL_HEIGHT
-    const y = (value: number) => plotBottom - (value / ceiling) * (plotBottom - PLOT_TOP)
+    const { ceiling, y, gridlines } = valueAxis(Math.max(0, ...values), PLOT_TOP, plotBottom)
+    const plotLeft = AXIS_GAP + AXIS_DIGIT_WIDTH * ceiling.toLocaleString().length
     const slotWidth = (width - plotLeft) / Math.max(1, labels.length)
     const groupWidth = Math.max(1, Math.min(MAX_GROUP_WIDTH, slotWidth - COLUMN_SPACING))
     const columnWidth = Math.max(
@@ -72,11 +72,7 @@ export function siteChart({
         plotLeft,
         plotBottom,
         slotWidth,
-        gridlines: Array.from({ length: ceiling / step + 1 }, (_, index) => ({
-            value: index * step,
-            y: y(index * step),
-            label: (index * step).toLocaleString()
-        })),
+        gridlines: gridlines.map((line) => ({ ...line, label: line.value.toLocaleString() })),
         slots: labels.map((label, index) => {
             const groupX = centerX(index) - groupWidth / 2
             const slotValues = [...columns, ...lines].map((series) => series.values[index] ?? 0)

@@ -1,10 +1,11 @@
 <script lang="ts">
+    import { histogramTotal } from '@tabletop/common'
     import { formatRate } from '$lib/utils/gameStats'
 
     let { caption, labels, counts }: { caption: string; labels: string[]; counts: number[] } =
         $props()
 
-    const total = $derived(counts.reduce((sum, count) => sum + count, 0))
+    const total = $derived(histogramTotal(counts))
     const peak = $derived(Math.max(1, ...counts))
 </script>
 
