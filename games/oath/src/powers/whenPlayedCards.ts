@@ -10,6 +10,7 @@ import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/power
 import { registerEffect, chosen, type PlayMapChanges } from './registry.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import { persistentMatchingAdvisers } from '../util/persistent.js'
 import {
     burnSecretsFromDarkestSecret,
     denizensOnMap,
@@ -77,11 +78,16 @@ registerEffect(
             // "(including Fabled Feast)": counted as one of the hearth cards you rule, an adviser or at a site
             // you rule. Before revision 10 it also counted itself at a site you do not rule.
             const ruled = ruledCardsOfSuit(ctx.state, ctx.playerId, Suit.Hearth)
-            const x =
+            const cards =
                 isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6) ||
                 ruled.includes('denizen.hearth.fabled-feast')
                     ? ruled.length
                     : ruled.length + 1
+            // R-2.2.2-H1 — from revision 16 Marriage, "two hearth advisers", is two hearth cards you
+            // rule, as Trade, the Conspiracy and Military Parade count it.
+            const x = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes12)
+                ? cards + persistentMatchingAdvisers(ctx.state, ctx.playerId, Suit.Hearth)
+                : cards
             const gained = gainFavorFromBank(ctx.state, ctx.playerId, bank.suit, x)
             return {
                 summary: `took ${gained} favor (of ${x} hearth cards ruled) from the ${bank.suit} bank`
