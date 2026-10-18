@@ -604,7 +604,7 @@ describe('R-6.1, R-7.3.3 — Bewitch turned faceup to a site counts the secret B
     const BOOK = 'relic.book-of-records'
 
     /** The seat, an Exile with 2 secrets, holds Bewitch facedown and Book of Records; the Chancellor holds 2. */
-    function flippingBewitch(oathRevision: OathRevision) {
+    async function flippingBewitch(oathRevision: OathRevision) {
         const state = testState(
             [
                 testPlayer({ playerId: 'me', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', secrets: 2, relicIds: [BOOK], advisers: [{ cardId: BEWITCH, faceUp: false }] }),
@@ -618,14 +618,14 @@ describe('R-6.1, R-7.3.3 — Bewitch turned faceup to a site counts the secret B
             }
         )
         openTurn(state, 'me')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.selection.set('action', ActionType.PlayFacedownAdviser)
         return { session, sent }
     }
 
     it('from revision 16, the play waits for the yes, which the engine accepts, and is sent with it', async () => {
-        const { session, sent } = flippingBewitch(OathRevision.EngineFixes12)
+        const { session, sent } = await flippingBewitch(OathRevision.EngineFixes12)
         await session.chooseAdviserPlay(BEWITCH, SearchPlay.Site)
         expect(sent).not.toHaveBeenCalled()
         expect(session.adviserPlayChoices.map((legal) => legal.options)).toEqual([[{ kind: PowerChoiceKind.Yes }]])
@@ -638,7 +638,7 @@ describe('R-6.1, R-7.3.3 — Bewitch turned faceup to a site counts the secret B
     })
 
     it('before revision 16, nothing is asked: the play is sent at once, with no choice', async () => {
-        const { session, sent } = flippingBewitch(OathRevision.EngineFixes11)
+        const { session, sent } = await flippingBewitch(OathRevision.EngineFixes11)
         await session.chooseAdviserPlay(BEWITCH, SearchPlay.Site)
         const action = sent.mock.calls[0][0]
         assert(isPlayFacedownAdviser(action), 'the play is sent')
