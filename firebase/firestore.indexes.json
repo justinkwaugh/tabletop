@@ -81,6 +81,34 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "games",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "lastActionAt",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "startedAt",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "games",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "lastActionAt",
+                    "order": "ASCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": [
@@ -102,6 +130,31 @@
         {
             "collectionGroup": "schedules",
             "fieldPath": "*",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "siteStatsDays",
+            "fieldPath": "titles",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "siteStatsDays",
+            "fieldPath": "turnTimes",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "siteStatsDays",
+            "fieldPath": "gameLengths",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "siteStatsActiveUsers",
+            "fieldPath": "users",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "siteStatsActiveUsers",
+            "fieldPath": "titles",
             "indexes": []
         }
     ]

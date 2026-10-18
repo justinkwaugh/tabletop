@@ -6,6 +6,7 @@ import {
     DocumentData,
     Firestore,
     PartialWithFieldValue,
+    Query,
     QueryDocumentSnapshot,
     Timestamp
 } from '@google-cloud/firestore'
@@ -20,11 +21,12 @@ import {
 } from '../stores/errors.js'
 
 import { UserStore } from '../stores/userStore.js'
+import type { SiteStatsUserSource } from '../stores/siteStatsStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
 
-export class FirestoreUserStore implements UserStore {
+export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
     readonly users: CollectionReference
     readonly userUsernames: CollectionReference
     readonly userExternalIds: CollectionReference
@@ -62,6 +64,28 @@ export class FirestoreUserStore implements UserStore {
             return this.sanitize(user)
         } catch (error) {
             this.handleError(error, email)
+            throw Error('unreachable')
+        }
+    }
+
+    async countUsersCreatedBetween(start: Date, end: Date): Promise<number> {
+        return this.countQuery(
+            this.users.where('createdAt', '>=', start).where('createdAt', '<', end),
+            'created'
+        )
+    }
+
+    async countUsersWithStatus(status: UserStatus): Promise<number> {
+        return this.countQuery(this.users.where('status', '==', status), status)
+    }
+
+    private async countQuery(query: Query, label: string): Promise<number> {
+        try {
+            const snapshot = await query.count().get()
+            this.recordRead()
+            return snapshot.data().count
+        } catch (error) {
+            this.handleError(error, label)
             throw Error('unreachable')
         }
     }

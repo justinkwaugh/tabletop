@@ -25,6 +25,9 @@ import {
     GameValidator,
     GameHistoryPage,
     UserGameStats,
+    SiteStatsNow,
+    SiteStatsRange,
+    type UtcDay,
     User,
     UserPreferences,
     Visibility,
@@ -982,6 +985,36 @@ export class TabletopApi {
             .json<GamesResponse>()
 
         return response.payload.games.map((game) => this.validateGame(game))
+    }
+
+    async getSiteStatsRange(from: UtcDay, to: UtcDay): Promise<SiteStatsRange> {
+        const response = await this.wretch
+            .get(`/admin/stats/daily?from=${from}&to=${to}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<unknown>()
+        Value.Assert(Type.Object({ payload: SiteStatsRange }), response)
+        return response.payload
+    }
+
+    async getSiteStatsNow(): Promise<SiteStatsNow> {
+        const response = await this.wretch
+            .get('/admin/stats/now')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<unknown>()
+        Value.Assert(Type.Object({ payload: SiteStatsNow }), response)
+        return response.payload
+    }
+
+    async startSiteStatsRollup(): Promise<string> {
+        const response = await this.wretch
+            .post({}, '/admin/stats/rollup')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<unknown>()
+        Value.Assert(Type.Object({ payload: Type.Object({ runId: Type.String() }) }), response)
+        return response.payload.runId
     }
 
     async setGameState(state: GameState): Promise<void> {

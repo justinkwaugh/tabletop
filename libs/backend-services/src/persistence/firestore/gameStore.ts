@@ -24,6 +24,7 @@ import {
 import {
     GameCreationOptions,
     MasterSeed,
+    ActionSource,
     GameAction,
     Game,
     GameState,
@@ -95,6 +96,11 @@ import {
     type TournamentTableRelease
 } from '../../games/tournamentGames.js'
 import { TournamentCacheKeys } from './tournamentCacheKeys.js'
+import type {
+    GameTimestampField,
+    PlayActions,
+    SiteStatsGameSource
+} from '../stores/siteStatsStore.js'
 import { gameAutoStartChange } from '../../games/gameAutoStart.js'
 import {
     StoredTournamentSchedule,
@@ -107,8 +113,9 @@ const ACTION_CHUNK_SIZE = 200
 const STATE_CACHE_SECONDS = 7 * 24 * 60 * 60
 const HISTORY_PAGE_CACHE_SECONDS = 24 * 60 * 60
 const GAME_STATS_CACHE_SECONDS = 7 * 24 * 60 * 60
+const LEGACY_EARLIER_ACTIONS = 20
 
-export class FirestoreGameStore implements GameStore {
+export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     readonly games: CollectionReference<Game>
     private readonly tournamentCacheKeys: TournamentCacheKeys
 
@@ -862,6 +869,140 @@ export class FirestoreGameStore implements GameStore {
             return snapshot.docs.map((document) => this.normalizeGame(document.data()))
         } catch (error) {
             this.handleError(error, afterGameId ?? 'finished')
+            throw Error('unreachable')
+        }
+    }
+
+    async findGamesWithTimestampBetween(
+        field: GameTimestampField,
+        start: Date,
+        end: Date
+    ): Promise<Game[]> {
+        return this.readGames(this.games.where(field, '>=', start).where(field, '<', end), field)
+    }
+
+    async findGamesInPlayBetween(start: Date, end: Date): Promise<Game[]> {
+        return this.readGames(
+            this.games.where('lastActionAt', '>=', start).where('startedAt', '<', end),
+            'inPlay'
+        )
+    }
+
+    async findEarliestGameCreatedAt(): Promise<Date | undefined> {
+        const [earliest] = await this.readGames(
+            this.games.orderBy('createdAt').limit(1),
+            'earliest'
+        )
+        return earliest?.createdAt
+    }
+
+    async countGamesWithStatus(status: GameStatus): Promise<number> {
+        return this.countQuery(this.games.where('status', '==', status), status)
+    }
+
+    async countStartedGamesQuietSince(lastActionBefore: Date): Promise<number> {
+        return this.countQuery(
+            this.games
+                .where('status', '==', GameStatus.Started)
+                .where('lastActionAt', '<', lastActionBefore),
+            'quiet'
+        )
+    }
+
+    async findPlayActionsBetween(game: Game, start: Date, end: Date): Promise<PlayActions> {
+        const actionChunkSize = Reflect.get(game, 'actionChunkSize')
+        try {
+            return actionChunkSize
+                ? await this.findChunkedPlayActions(game.id, actionChunkSize, start)
+                : await this.findLegacyPlayActions(game.id, start, end)
+        } catch (error) {
+            this.handleError(error, game.id)
+            throw Error('unreachable')
+        }
+    }
+
+    private async findChunkedPlayActions(
+        gameId: string,
+        actionChunkSize: number,
+        start: Date
+    ): Promise<PlayActions> {
+        const collection = this.getActionChunkCollection(gameId)
+        const snapshot = await this.readQuery(collection.where('updatedAt', '>=', start))
+        this.recordRead('actionChunk', Math.max(1, snapshot.size))
+        const chunks = snapshot.docs
+            .map((document) => this.convertActionChunk(document.data()))
+            .sort((a, b) => a.startIndex - b.startIndex)
+        let actions = chunks.flatMap((chunk) => chunk.actions)
+        let firstChunk = chunks.length ? Math.floor(chunks[0].startIndex / actionChunkSize) : 0
+        while (firstChunk > 0 && this.lacksTurnStartBefore(actions, start)) {
+            firstChunk -= 1
+            const [earlier] = await this.getActionChunksById({
+                actionChunkCollection: collection,
+                chunkIds: [this.chunkIdForChunkNumber(firstChunk, gameId)]
+            })
+            if (!earlier) break
+            actions = [...earlier.actions, ...actions]
+        }
+        return { actions, includesFirstAction: actions[0]?.index === 0 }
+    }
+
+    private async findLegacyPlayActions(
+        gameId: string,
+        start: Date,
+        end: Date
+    ): Promise<PlayActions> {
+        const collection = this.getActionCollection(gameId)
+        const during = await this.readQuery(
+            collection.where('createdAt', '>=', start).where('createdAt', '<', end)
+        )
+        const actions = during.docs
+            .map((document) => this.convertGameAction(document.data()))
+            .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+        const firstIndex = actions[0]?.index ?? 0
+        const earlier = await this.readQuery(
+            collection
+                .where('index', '<', firstIndex)
+                .orderBy('index', 'desc')
+                .limit(LEGACY_EARLIER_ACTIONS)
+        )
+        this.recordRead('action', Math.max(1, during.size) + Math.max(1, earlier.size))
+        const earlierActions = earlier.docs
+            .map((document) => this.convertGameAction(document.data()))
+            .reverse()
+        return {
+            actions: [...earlierActions, ...actions],
+            includesFirstAction: earlier.size < LEGACY_EARLIER_ACTIONS
+        }
+    }
+
+    private lacksTurnStartBefore(actions: GameAction[], start: Date): boolean {
+        const firstDuring = actions.findIndex(
+            (action) => action.createdAt !== undefined && action.createdAt >= start
+        )
+        if (firstDuring === -1) return false
+        return !actions
+            .slice(0, firstDuring)
+            .some((action) => action.source === ActionSource.User)
+    }
+
+    private async readGames(query: Query<Game>, label: string): Promise<Game[]> {
+        try {
+            const snapshot = await this.readQuery(query)
+            this.recordRead('game', Math.max(1, snapshot.size))
+            return snapshot.docs.map((document) => this.normalizeGame(document.data()))
+        } catch (error) {
+            this.handleError(error, label)
+            throw Error('unreachable')
+        }
+    }
+
+    private async countQuery(query: Query<Game>, label: string): Promise<number> {
+        try {
+            const snapshot = await query.count().get()
+            this.recordRead('gameCount')
+            return snapshot.data().count
+        } catch (error) {
+            this.handleError(error, label)
             throw Error('unreachable')
         }
     }

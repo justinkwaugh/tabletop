@@ -61,3 +61,7 @@ export { TurnReminderTask } from './games/turnReminders.js'
 export { FinalScoresBackfillTask } from './games/finalScoresBackfill.js'
 
 export * from './games/catalogService.js'
+export * from './persistence/stores/siteStatsStore.js'
+export * from './persistence/firestore/siteStatsStore.js'
+export * from './stats/siteStatsRollup.js'
+export * from './stats/siteStatsService.js'
