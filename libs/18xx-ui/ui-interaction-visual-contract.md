@@ -932,6 +932,16 @@ still move the board. The boardAutoZoom family preference persists the choice
 across reloads and 18xx titles and defaults to on. TOP and 1889 need updated Logic
 and matching UI Artifacts because the backend validates the added preference key
 against the published Logic schema.
+
+The Companies view lays its cards out in reading order, left to right, wrapping
+onto new rows and scrolling vertically. A Wrap switch, sharing Auto zoom's switch
+style, sits at the top right of the view above the cards. Turning it off keeps the
+cards in one row that scrolls sideways; there a vertical mouse wheel scrolls the
+row sideways, passing through once the row reaches its end, and Shift, Ctrl or a
+sideways gesture keep their usual behaviour. The companyCardsWrap family preference
+persists the choice and defaults to on; like boardAutoZoom it needs updated Logic
+and matching UI Artifacts.
+
 Market cells share single-width borders with values at the upper left. In the
 dark table, neutral (white) cells use the raised table surface and table borders,
 while colored cells keep each market color's hue at dark-surface lightness,
