@@ -8,10 +8,12 @@ import {
     reasonCannotPlayCard,
     reasonCannotPlaySecondCard,
     searchPlayModifiers,
+    sitePlayGain,
     type LegalChoice,
     type PlayMapChanges,
     type PowerChoice,
     type SearchSecondPlay,
+    type SitePlayGain,
     type Suit
 } from '@tabletop/oath'
 import { FACEDOWN_ADVISER_LABEL, PLAY_LABELS } from './adviserPlacements.js'
@@ -211,6 +213,25 @@ export class SearchDraft implements PanelDraft {
     /** R-7.3.3 — the favor banks the When Played picks are judged on (Salad Days'). */
     get whenPlayedBanks(): Readonly<Record<Suit, number>> {
         return whenPlayedBanks(this.session.gameState, this.playChanges)
+    }
+
+    /**
+     * R-5.1.4.I, R-11.2, R-7.4 — what "To your site" gains the kept card's player, as the engine plans the play on
+     * the banks as they stand, with the card picked to go first; none while "Play to:" names another site.
+     */
+    get siteGain(): SitePlayGain | undefined {
+        const cardId = this.kept
+        const playerId = this.playerId
+        if (!cardId || !playerId || this.toSite !== undefined) return undefined
+        return sitePlayGain(
+            playMapChanges(
+                this.session.gameState,
+                playerId,
+                cardId,
+                SearchPlay.Site,
+                this.playExtras(SearchPlay.Site)
+            )
+        )
     }
 
     get picks(): PowerChoicePicks {

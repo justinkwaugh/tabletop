@@ -54,6 +54,7 @@ import {
     type CitizenshipTransfer,
     type ExchangeTerms,
     type ExchangeTransfer,
+    type FavorShort,
     type CampaignBattleMetadata,
     type HeldAttackRoll,
     type CampaignPlacement,
@@ -674,7 +675,7 @@ function describeActionCited(
         return (
             `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
             (facedown ? ', facedown' : '') +
-            gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0) +
+            gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId)
         )
     }
@@ -767,7 +768,7 @@ function describeActionCited(
                 : describeAdviserPlay(action.play, played)) +
             (meta?.discardToWorldDeck ? ` under the world deck${inBrackets(horn)}` : '') +
             (first ? `, discarding ${cardName(first)} first${inBrackets(rotated)}` : '') +
-            gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0) +
+            gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             cardsInBrackets(meta?.modifiers, new Set([...named, ...grew, ...rotated, ...horn])) +
             whenPlayedClause(
                 meta?.whenPlayed,
@@ -942,13 +943,20 @@ const CRACKED_HORN = 'relic.cracked-horn'
 // False Prophet's answer names the Vision it played or discarded.
 const PROPHESIED = /\bvision\.[a-z0-9-]+/
 
-/** What a play gained: "gaining 1 secret", "gaining 2 favor". */
-function gaining(secrets: number, favor: number): string {
+/**
+ * What a play gained: "gaining 1 secret", "gaining 2 favor". R-9.3 — a site play whose favor came up short says
+ * why: "gaining no favor: the Beast bank was empty", "gaining 1 favor: the Hearth bank ran out".
+ */
+function gaining(secrets: number, favor: number, short: readonly FavorShort[] = []): string {
     const gained = [
         ...(secrets > 0 ? [plural(secrets, 'secret')] : []),
-        ...(favor > 0 ? [`${favor} favor`] : [])
+        ...(favor > 0 ? [`${favor} favor`] : short.length > 0 ? ['no favor'] : [])
     ]
-    return gained.length > 0 ? `, gaining ${listed(gained)}` : ''
+    const why = short.map(
+        ({ suit, ranOut }) => `the ${suitName(suit)} bank ${ranOut ? 'ran out' : 'was empty'}`
+    )
+    if (gained.length === 0) return ''
+    return `, gaining ${listed(gained)}` + (why.length > 0 ? `: ${listed(why)}` : '')
 }
 
 /**

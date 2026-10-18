@@ -2687,6 +2687,7 @@ type PickerTwoScene =
     | 'pickerSaladShort'
     | 'pickerSaladSite'
     | 'pickerSaladSiteTwo'
+    | 'pickerSaladNoBeast'
     | 'pickerMay'
     | 'pickerMayCitizen'
     | 'pickerVault'
@@ -2724,7 +2725,8 @@ const SALAD_SITE_BANKS: Record<Suit, number> = {
  *   `pickerSaladShort`: only two banks hold favor. `pickerSaladSite`: Discord 0, Arcane 3,
  *   Order 3, Hearth 1, Beast 3, Nomad 2, so playing it to the River takes the Hearth bank's last
  *   favor first. `pickerSaladSiteTwo`: Arcane 3, Order 3, Hearth 1, the rest empty, so after that
- *   play only two banks hold favor.
+ *   play only two banks hold favor. `pickerSaladNoBeast`: the Beast bank empty, so Wolves played
+ *   to the River gains no favor.
  * - `pickerMay`: Ann's turn, an Exile ruling the Mountain (2) and the Wastes (3), searching with
  *   Royal Ambitions drawn; Dana rules only the Plains (2). The Reliquary holds four relics.
  *   `pickerMayCitizen`: Ann is a Citizen.
@@ -2744,13 +2746,20 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
         pickerSaladShort: 'rhys',
         pickerSaladSite: 'rhys',
         pickerSaladSiteTwo: 'rhys',
+        pickerSaladNoBeast: 'rhys',
         pickerMay: 'ann',
         pickerMayCitizen: 'ann',
         pickerVault: 'bea',
         pickerVaultLast: 'bea',
         pickerFacedownBracken: 'rhys'
     }
-    const salad = ['pickerSalad', 'pickerSaladShort', 'pickerSaladSite', 'pickerSaladSiteTwo'].includes(scene)
+    const salad = [
+        'pickerSalad',
+        'pickerSaladShort',
+        'pickerSaladSite',
+        'pickerSaladSiteTwo',
+        'pickerSaladNoBeast'
+    ].includes(scene)
     const searching = salad || scene === 'pickerMay' || scene === 'pickerMayCitizen'
     const may = scene === 'pickerMay' || scene === 'pickerMayCitizen'
     const vault = scene === 'pickerVault' || scene === 'pickerVaultLast'
@@ -2865,7 +2874,9 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
                       ? SALAD_SITE_BANKS
                       : scene === 'pickerSaladSiteTwo'
                         ? { ...SALAD_SITE_BANKS, [Suit.Beast]: 0, [Suit.Nomad]: 0 }
-                        : PICKER_BANKS,
+                        : scene === 'pickerSaladNoBeast'
+                          ? { ...PICKER_BANKS, [Suit.Beast]: 0 }
+                          : PICKER_BANKS,
             discardPileCounts: { cradle: 5, provinces: 3, hinterland: 8 },
             discardTopBackType: {
                 cradle: CardKind.Denizen,
@@ -4898,6 +4909,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     pickerSaladShort: () => pickerTwoTable('pickerSaladShort'),
     pickerSaladSite: () => pickerTwoTable('pickerSaladSite'),
     pickerSaladSiteTwo: () => pickerTwoTable('pickerSaladSiteTwo'),
+    pickerSaladNoBeast: () => pickerTwoTable('pickerSaladNoBeast'),
     pickerMay: () => pickerTwoTable('pickerMay'),
     pickerMayCitizen: () => pickerTwoTable('pickerMayCitizen'),
     pickerVault: () => pickerTwoTable('pickerVault'),

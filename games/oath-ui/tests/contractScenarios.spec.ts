@@ -5252,7 +5252,7 @@ test('scenario 23: the Search bar stays over the steps with no Back; the plays s
     await expect(bar).toHaveText('Search')
     await expect(stepBacks(page)).toHaveCount(0)
     await expect(grid(page).getByText('How do you play it?', { exact: true })).toBeVisible()
-    const plays = grid(page).getByRole('button', { name: /^(To your site|Adviser, faceup|Adviser, facedown|As your Vision|Play it|Discard)$/ })
+    const plays = grid(page).getByRole('button', { name: /^(To your site(, .+)?|Adviser, faceup|Adviser, facedown|As your Vision|Play it|Discard)$/ })
     expect(await plays.count()).toBeGreaterThan(1)
     const widths = await plays.evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().width)))
     expect(new Set(widths).size).toBe(1)
@@ -8330,7 +8330,8 @@ test.describe('the cards in every action’s menu', () => {
 test.describe('the facedown play: the card beside its plays, each card in the step it changes', () => {
     const playCard = (page: Page) => grid(page).locator('[data-play-card]')
     const column = (page: Page) => grid(page).locator('[data-play-column]')
-    const plays = (page: Page) => column(page).getByRole('button', { name: /: War Tortoise$/ })
+    // "To your site" carries what the play gains: "To your site: War Tortoise, +1 favor".
+    const plays = (page: Page) => column(page).getByRole('button', { name: /: War Tortoise(, .+)?$/ })
     const confirm = (page: Page, word: 'Play' | 'Discard') =>
         grid(page).getByRole('button', { name: `${word} War Tortoise`, exact: true })
     const history = (page: Page) => page.locator('.history')
@@ -8359,7 +8360,7 @@ test.describe('the facedown play: the card beside its plays, each card in the st
     async function choose(page: Page, scene: TableFixture.TableName, play?: string) {
         await openTable(page, scene)
         await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
-        if (play) await grid(page).getByRole('button', { name: `${play}: War Tortoise`, exact: true }).click()
+        if (play) await grid(page).getByRole('button', { name: new RegExp(`^${play}: War Tortoise(, .+)?$`) }).click()
     }
 
     test('one facedown adviser opens at once: the card 280 px tall, ringed, its magnifier; the plays in one column to its right, one width', async ({ page }) => {
@@ -8369,7 +8370,7 @@ test.describe('the facedown play: the card beside its plays, each card in the st
         expect(Math.abs((await cardHeight(page)) - 280)).toBeLessThanOrEqual(1)
         await expect(playCard(page)).toHaveClass(/ring-2/)
         await expect(playCard(page).getByRole('button', { name: 'Enlarge War Tortoise', exact: true })).toBeVisible()
-        await expect(plays(page)).toHaveText(['To your site', 'Turn faceup', 'Discard'])
+        await expect(plays(page)).toHaveText([/^To your site/, 'Turn faceup', 'Discard'])
         await expectOneWidth(plays(page))
         const card = await boxOf(playCard(page))
         const panel = await boxOf(grid(page))
@@ -8465,7 +8466,7 @@ test.describe('the facedown play: the card beside its plays, each card in the st
     test('Great Herd: Tents picked to go first is no longer offered to swap with, and the Oracle is', async ({ page }) => {
         await openTable(page, 'greatHerdFlip')
         await grid(page).getByRole('button', { name: 'Adviser', exact: true }).click()
-        await grid(page).getByRole('button', { name: 'To your site: Great Herd', exact: true }).click()
+        await grid(page).getByRole('button', { name: /^To your site: Great Herd(, .+)?$/ }).click()
         const tents = grid(page).getByRole('button', { name: 'Tents', exact: true })
         const oracle = grid(page).getByRole('button', { name: 'Oracle', exact: true })
         // Under "Discard first" and as a card to swap with.
@@ -8691,7 +8692,7 @@ test.describe('scenario 69: a power’s piles, banks, “may” and “or”', (
     async function keepToSite(page: Page, table: TableFixture.TableName) {
         await openTable(page, table)
         await grid(page).getByRole('button', { name: 'Salad Days' }).first().click()
-        await grid(page).getByRole('button', { name: 'To your site', exact: true }).click()
+        await grid(page).getByRole('button', { name: /^To your site(, .+)?$/ }).click()
     }
     const saladBanks = (page: Page) => grid(page).getByRole('button', { name: / bank, \d favor$/ })
     const saladBank = (page: Page, name: string) => grid(page).getByRole('button', { name: new RegExp(`^${name} bank, \\d favor$`) })
@@ -8874,6 +8875,67 @@ test.describe('scenario 69: a power’s piles, banks, “may” and “or”', (
             })
         })
     }
+})
+
+/**
+ * Scenario 70 (docs/ui-interaction-visual-contract.md, Play a card to your site): "To your site" shows the favor the
+ * site play gains, from the engine's plan on the banks as they stand. Rhys at the River draws Salad Days (Hearth 3),
+ * Wolves (Beast 0) and Tutor; the History of Wolves' play names the empty bank.
+ */
+test.describe('scenario 70: the favor a site play gains', () => {
+    const plays = (page: Page) =>
+        grid(page).getByRole('button', { name: /^(To your site(, .+)?|Adviser, faceup|Adviser, facedown|As your Vision|Play it|Discard)$/ })
+    const toSite = (page: Page) => grid(page).getByRole('button', { name: /^To your site, / })
+    const line = (page: Page) => toSite(page).locator('[data-site-gain] [data-gains]')
+
+    async function keep(page: Page, card: string) {
+        await openTable(page, 'pickerSaladNoBeast')
+        await grid(page).getByRole('button', { name: card, exact: true }).first().click()
+        await expect(grid(page).getByText('How do you play it?', { exact: true })).toBeVisible()
+    }
+
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 }]) {
+        test(`at ${viewport.width}: Wolves with the Beast bank empty shows +0 in grey, Salad Days +1 in gold; the plays keep one width`, async ({ page }) => {
+            await page.setViewportSize(viewport)
+            await keep(page, 'Wolves')
+            await expect(toSite(page)).toHaveAccessibleName('To your site, +0 favor')
+            await expect(line(page)).toHaveText('+0')
+            await expect(line(page)).toHaveClass(/text-oath-text-muted/)
+            await expect(line(page).locator('img[alt="favor"]')).toBeVisible()
+            const widths = await plays(page).evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().width)))
+            expect(widths.length).toBeGreaterThan(1)
+            expect(new Set(widths).size).toBe(1)
+            if (viewport.width < 768) {
+                for (const height of await plays(page).evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height))) {
+                    expect(height).toBeGreaterThanOrEqual(44)
+                }
+            }
+
+            await keep(page, 'Salad Days')
+            await expect(toSite(page)).toHaveAccessibleName('To your site, +1 favor')
+            await expect(line(page)).toHaveText('+1')
+            await expect(line(page)).toHaveClass(/text-oath-accent/)
+            // Tutor is an adviser only: no site play, so no line.
+            await keep(page, 'Tutor')
+            await expect(toSite(page)).toHaveCount(0)
+            await expect(grid(page).locator('[data-site-gain]')).toHaveCount(0)
+        })
+    }
+
+    test('the History of Wolves played to the River with the Beast bank empty: "gaining no [favor]: the [Beast] bank was empty"', async ({ page }) => {
+        await keep(page, 'Wolves')
+        await grid(page).getByRole('button', { name: /^To your site(, .+)?$/ }).click()
+        await expect(grid(page).getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
+        // The last card goes on top by itself, so one tap sends the Search.
+        await grid(page).getByRole('button', { name: 'Salad Days', exact: true }).click()
+        await page.getByRole('tab', { name: 'History' }).click()
+        const row = page.locator('.history p').filter({ hasText: 'kept Wolves and played it to their site' })
+        await expect(row).toContainText('kept Wolves and played it to their site, gaining no')
+        // The bank is its suit's symbol, "the Beast bank" its words for a screen reader, as on every History row.
+        await expect(row).toContainText(/gaining no\s*:\s*was empty; Salad Days, Tutor went to the/)
+        await expect(row.getByRole('img', { name: 'favor' })).toBeVisible()
+        await expect(row.getByRole('img', { name: 'the Beast bank' })).toBeVisible()
+    })
 })
 
 /**
