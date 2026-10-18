@@ -2,7 +2,7 @@ import { CardKind, kindOf } from '@tabletop/oath'
 import type { CardPreview } from './cardPreview.svelte.js'
 
 // The source art's widths for the wide cards: a banner (920 x 460), a Vision's face
-// (1016 x 651) and a site (770 x 596). Drawn no wider, they stay sharp (readiness gate 1).
+// (1016 x 651) and a site (770 x 596). Drawn no wider, they stay sharp (readiness gate 2).
 const BANNER_SOURCE_WIDTH = 920
 const VISION_SOURCE_WIDTH = 1016
 const SITE_SOURCE_WIDTH = 770

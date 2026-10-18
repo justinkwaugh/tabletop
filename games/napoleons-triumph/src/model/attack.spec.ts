@@ -315,6 +315,30 @@ describe('feints', () => {
         )
         expect(() => threaten(game)).toThrow()
     })
+
+    it('refuses an advance that names a unit or commander more than once', () => {
+        const game = frenchTurn(placements)
+        const french = game.playerOf(Side.French)
+        const allied = game.playerOf(Side.Allied)
+        threaten(game)
+        defendWith(game, allied, ['A-one', 'A-two'])
+        game.act(ActionType.DeclareFeint, french, {
+            orders: [{ kind: CommandKind.Unit, unitIds: ['F-inf'] }],
+            end: FeintEnd.Approach
+        })
+        expect(() =>
+            game.act(ActionType.Advance, allied, {
+                unitIds: ['A-one', 'A-one'],
+                commanderIds: []
+            })
+        ).toThrow('A piece advances once')
+        expect(() =>
+            game.act(ActionType.Advance, allied, {
+                unitIds: ['A-one'],
+                commanderIds: ['langeron', 'langeron']
+            })
+        ).toThrow('A piece advances once')
+    })
 })
 
 describe('retreats', () => {

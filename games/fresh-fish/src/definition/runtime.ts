@@ -8,7 +8,6 @@ import {
 } from '../model/gameState.js'
 import { FreshFishHydrator } from './hydrator.js'
 import { FreshFishGameInitializer } from './gameInitializer.js'
-import { FreshFishStateLogger } from '../util/stateLogger.js'
 import { FreshFishActionSchemas } from './actionSchemas.js'
 import { FreshFishApiActions } from './apiActions.js'
 import { FreshFishStateHandlers } from './stateHandlers.js'
@@ -24,7 +23,6 @@ export const FreshFishRuntime = {
     stateHandlers: FreshFishStateHandlers,
     apiActions: FreshFishApiActions,
     playerColors: FreshFishColors,
-    stateLogger: new FreshFishStateLogger(),
     scoring: new FreshFishScoring(),
     visibility: {
         state: Visibility.createProjector(FreshFishGameState),

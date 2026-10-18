@@ -8,9 +8,6 @@ import {
 import { Cell, CellType, RoadCell, TruckCell } from '../components/cells.js'
 import { HydratedGameBoard, type InternalCorner, type Dimensions } from '../components/gameBoard.js'
 import { GoodsType } from '../definition/goodsType.js'
-import chalk from 'chalk'
-import { LogColorizer } from './logColorizer.js'
-import { logBoard } from './stateLogger.js'
 import { Expropriator } from './expropriation.js'
 
 const PlayerStallRegex = /S[FCIL][12345]/
@@ -32,17 +29,6 @@ const BoardTiles: BoardTile[] = [
     { dimensions: [3, 7], marketCount: 5 }
 ]
 
-const colorsByIndex = [
-    chalk.cyanBright,
-    chalk.redBright,
-    chalk.greenBright,
-    chalk.yellowBright,
-    chalk.magentaBright
-]
-const playerIds = ['p1', 'p2', 'p3', 'p4', 'p5']
-const colorFuncs = new Map(playerIds.map((id, index) => [id, colorsByIndex[index]]))
-const colorizer = new LogColorizer(colorFuncs)
-
 export function generateBoard(
     numPlayers: number,
     random: RandomFunction
@@ -55,8 +41,6 @@ export function generateBoard(
 
     placeTrucks(boardData.board, random)
     expropriate(boardData.board)
-
-    logBoard(boardData.board, colorizer)
 
     return boardData
 }
@@ -129,20 +113,11 @@ export function layoutBoard(
 
     // chosenTiles.sort((a, b) => Math.max(...b.dimensions) - Math.max(...a.dimensions))
     // chosenTiles.reverse()
-    console.log('Chosen tiles:')
-    chosenTiles.forEach((tile, index) => {
-        console.log(
-            `Tile ${index + 1}: ${tile.dimensions[0]}x${tile.dimensions[1]} Markets: ${tile.marketCount}`
-        )
-    })
-
-    console.log('Start Layout')
     let currentBoard: HydratedGameBoard = new HydratedGameBoard({ cells: [] })
 
     for (let i = 0; i < chosenTiles.length; i++) {
         const tile = chosenTiles[i]
 
-        console.log('New Tile Dimensions: ', tile.dimensions)
         const boardCorner: Point = { x: 0, y: 0 }
 
         const options = []
@@ -167,7 +142,6 @@ export function layoutBoard(
 
         if (i >= 1) {
             const longestSide = findLongestSide(currentBoard, random)
-            console.log('Longest Side: ', longestSide)
             const regularDimensions: Dimensions = [tile.dimensions[0], tile.dimensions[1]]
             const allowNegative = i < chosenTiles.length - 1
             const startPoint = getStartPointForEdge(
@@ -187,8 +161,6 @@ export function layoutBoard(
                     regularDimensions
                 )
             })
-            console.log('Edge Start Point: ', startPoint.x, startPoint.y)
-            console.log('Edge Tile Dimensions: ', regularDimensions)
 
             const reversedDimensions: Dimensions = [tile.dimensions[1], tile.dimensions[0]]
             const reversedStartPoint = getStartPointForEdge(
@@ -209,15 +181,11 @@ export function layoutBoard(
                     reversedDimensions
                 )
             })
-            console.log('Edge Start Point: ', reversedStartPoint.x, reversedStartPoint.y)
-            console.log('Edge Tile Dimensions: ', reversedDimensions)
         }
 
         if (i > 1) {
             // Try internal corners
             for (const corner of currentBoard.getInternalCorners()) {
-                console.log('Corner: ', corner)
-
                 // Try the tile both ways
                 const regularDimensions: Dimensions = [tile.dimensions[0], tile.dimensions[1]]
                 const startPoint = getStartPointForCorner(corner, regularDimensions)
@@ -231,8 +199,6 @@ export function layoutBoard(
                         regularDimensions
                     )
                 })
-                console.log('Corner Start Point: ', startPoint.x, startPoint.y)
-                console.log('Corner Tile Dimensions: ', regularDimensions)
 
                 const reversedDimensions: Dimensions = [tile.dimensions[1], tile.dimensions[0]]
                 const reversedStartPoint = getStartPointForCorner(corner, reversedDimensions)
@@ -246,8 +212,6 @@ export function layoutBoard(
                         reversedDimensions
                     )
                 })
-                console.log('Corner Start Point: ', reversedStartPoint.x, reversedStartPoint.y)
-                console.log('Corner Tile Dimensions: ', reversedDimensions)
             }
         }
 
@@ -278,11 +242,6 @@ export function layoutBoard(
             }
         })
 
-        console.log('New Board Dimensions: ', width, height)
-        console.log('New Tile Dimensions: ', tileDimensions)
-        console.log('New Start Point: ', newPoint.x, newPoint.y)
-        console.log('Offsets: ', xOffset, yOffset)
-
         const newCells = generateNewBoardWithTile({
             currentBoard,
             newBoardWidth: width,
@@ -294,7 +253,6 @@ export function layoutBoard(
         })
 
         currentBoard = new HydratedGameBoard({ cells: newCells })
-        logBoard(currentBoard, colorizer)
     }
 
     return {
