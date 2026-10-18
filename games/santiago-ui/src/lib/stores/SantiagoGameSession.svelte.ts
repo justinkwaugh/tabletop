@@ -52,6 +52,7 @@ import {
     type Viewer
 } from '$lib/model/turnRules.js'
 import { BirdDirector } from '$lib/birds/birdDirector.js'
+import { roundScoresFromHistory, type PlayerRoundScores } from '$lib/model/scoreHistory.js'
 
 export class SantiagoGameSession extends GameSession<
     SantiagoProjectedState,
@@ -174,6 +175,17 @@ export class SantiagoGameSession extends GameSession<
     get bidIsInvalid(): boolean {
         return this.bidValue > 0 && this.takenBids.includes(this.bidValue)
     }
+
+    scoreHistory: PlayerRoundScores[] | undefined = $derived.by(() => {
+        const actions = this.actions
+        if (
+            this.gameState.machineState !== MachineState.EndOfGame ||
+            !this.hasCompleteHistory ||
+            actions.length !== this.gameState.actionCount
+        )
+            return undefined
+        return roundScoresFromHistory(this.gameState.dehydrate(), actions)
+    })
 
     // Who holds, or is already certain to hold, the canal overseer role; shown as an "Overseer" tag.
     // See projectedOverseerId in turnRules for why mid-bidding only a bid of 0 settles it.
