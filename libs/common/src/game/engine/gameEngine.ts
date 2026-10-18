@@ -269,7 +269,7 @@ export class GameEngine<
         perspective: Perspective | undefined
     }): string[] {
         const runtimeState = this.guardStateForPerspective(
-            this.runtime.hydrator.hydrateState(structuredClone(state)),
+            this.runtime.hydrator.hydrateState(state),
             perspective,
             game
         )
