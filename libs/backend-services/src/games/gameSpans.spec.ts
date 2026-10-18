@@ -1436,6 +1436,27 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 }))
             }
 
+            // Runs `interleaved` once, right after `run` has read the stored Branches for the
+            // given time. An Undo reads them twice: once to see whether the Action is in a
+            // Branch, and again when it settles the span after the reversal.
+            async function whileReadingBranches<T>(
+                interleaved: () => Promise<unknown>,
+                run: () => Promise<T>,
+                onRead = 1
+            ): Promise<T> {
+                const read = store.findUnmergedBranches.bind(store)
+                let reads = 0
+                vi.spyOn(store, 'findUnmergedBranches').mockImplementation(
+                    async (gameId, playerIds) => {
+                        const found = await read(gameId, playerIds)
+                        reads += 1
+                        if (reads === onRead) await interleaved()
+                        return found
+                    }
+                )
+                return run()
+            }
+
             it('refuses one from a Player outside the span, and outside any span', async () => {
                 await host({ sitsOut: ['p2'] })
                 await expect(act('p2', 'chant', 'c2')).rejects.toBeInstanceOf(DisallowedActionError)
@@ -1607,6 +1628,53 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                     expect(state.actionCount).toBe(2)
                     expect(state.offers.o3).toMatchObject({ agreed: false })
                     expect(await branchCounts()).toEqual({ p1: 1, p2: 1, p3: 2 })
+                })
+
+                it('refuses an administrator’s Undo over an agreement when a Branch relied on it while the Undo was being worked out', async () => {
+                    await propose('p3', 'p2', 'o3')
+                    await accept('p2', 'o3', 'a2')
+                    await expect(
+                        whileReadingBranches(
+                            () => act('p2', 'hope', 'h2'),
+                            () => undo('o3', administrator),
+                            2
+                        )
+                    ).rejects.toBeInstanceOf(GameUpdateCollisionError)
+                    const state = await spanState()
+                    expect(state.actionCount).toBe(3)
+                    expect(state.offers.o3).toMatchObject({ agreed: true })
+                    expect((await storedGame()).spanHold).toBeUndefined()
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                    await expect(undo('o3', administrator)).rejects.toBeInstanceOf(
+                        DisallowedUndoError
+                    )
+                })
+
+                it('refuses a Player’s Undo of their own Common Action when their Branch has since used what it held', async () => {
+                    await propose('p2', 'p3', 'o2')
+                    await act('p2', 'withdraw', 'w2', { offerId: 'o2' })
+                    await act('p2', 'drop', 'd2', { itemId: 'start-p2' })
+                    await expect(undo('w2', user('p2'))).rejects.toBeInstanceOf(
+                        DisallowedUndoError
+                    )
+                    expect((await spanState()).offers).toEqual({})
+                    expect((await mainLine()).actionCount).toBe(3)
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
+                })
+
+                it('refuses a Player’s Undo of their own Common Action when their Branch used what it held while the Undo was being worked out', async () => {
+                    await propose('p2', 'p3', 'o2')
+                    await act('p2', 'withdraw', 'w2', { offerId: 'o2' })
+                    await expect(
+                        whileReadingBranches(
+                            () => act('p2', 'drop', 'd2', { itemId: 'start-p2' }),
+                            () => undo('w2', user('p2')),
+                            2
+                        )
+                    ).rejects.toBeInstanceOf(GameUpdateCollisionError)
+                    expect((await spanState()).offers).toEqual({})
+                    expect((await mainLine()).actionCount).toBe(3)
+                    expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })
                 })
 
                 it('refuses an administrator’s Undo over an agreement that an Unmerged Branch relied on', async () => {

@@ -152,16 +152,20 @@ export async function planCommonActionUndo({
     return { target, ...undone }
 }
 
-function passesOverAnAgreement(
+// The Unmerged Branches that must replay the same on the Main Line a reversal leaves: every one
+// when it passes over an agreement, since a Branch may have relied on what it settled; and the
+// Branch of each Player whose Common Action it takes out, since what that Action held may have
+// been used in that Branch meanwhile, and taking it out puts the hold back.
+function branchesThatMustReplay(
+    stored: readonly UnmergedBranch[],
     undone: readonly GameAction[],
     span: ParallelSpanState | undefined
-): boolean {
-    return (
-        span !== undefined &&
-        spanRuns(undone, span).some(
-            (run) => isCommonAction(run[0]) && run.some((action) => action.revealsInfo)
-        )
-    )
+): UnmergedBranch[] {
+    if (span === undefined) return []
+    const commonRuns = spanRuns(undone, span).filter((run) => isCommonAction(run[0]))
+    if (commonRuns.some((run) => run.some((action) => action.revealsInfo))) return [...stored]
+    const playerIds = new Set(commonRuns.map((run) => run[0].playerId))
+    return stored.filter(({ branch }) => playerIds.has(branch.playerId))
 }
 
 export interface ReversalSettlement {
@@ -239,24 +243,23 @@ export async function settleAfterReversal({
         unmergedBranches: held,
         mergesHeld: true
     })
-    if (passesOverAnAgreement(undone, priorSpan)) {
-        const relied = findBranchThatWouldNotReplay({
-            engine,
-            game,
-            state: settlement.updatedState,
-            unmergedBranches: stored
+    const mustReplay = branchesThatMustReplay(stored, undone, priorSpan)
+    const relied = findBranchThatWouldNotReplay({
+        engine,
+        game,
+        state: settlement.updatedState,
+        unmergedBranches: mustReplay
+    })
+    if (relied !== undefined) {
+        throw new DisallowedUndoError({
+            gameId: game.id,
+            actionId: undone[0].id,
+            reason: `the Branch of ${relied.playerId} would not replay the same on the Main Line the Undo leaves: ${relied.reason}`
         })
-        if (relied !== undefined) {
-            throw new DisallowedUndoError({
-                gameId: game.id,
-                actionId: undone[0].id,
-                reason: `the Branch of ${relied.playerId} relied on what the agreement settled: ${relied.reason}`
-            })
-        }
     }
     const expected: ExpectedBranch[] = [
         ...stored
-            .filter(({ branch }) => branch.closed)
+            .filter((record) => record.branch.closed || mustReplay.includes(record))
             .map(({ branch }) => ({ playerId: branch.playerId, branch })),
         ...settlement.createdBranches.map(({ branch }) => ({
             playerId: branch.playerId,

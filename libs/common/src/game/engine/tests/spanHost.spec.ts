@@ -126,6 +126,18 @@ describe('The in-memory host for the span fixture', () => {
             )
         })
 
+        it('refuses the Undo of a Player’s own Common Action when their Branch has since used what it held', () => {
+            const host = new SpanHost()
+            host.submit(spanAction('begin', 'begin', 'p1'))
+            host.submit(offer('o2', 'p2', 'p3'))
+            host.submit(spanAction('w2', 'withdraw', 'p2', { offerId: 'o2' }))
+            host.submit(spanAction('d2', 'drop', 'p2', { itemId: 'start-p2' }))
+            expect(() => host.undo('p2', 'w2')).toThrow('may not undo')
+            expect(summary(host.actions)).toEqual(['begin:p1', 'propose:p2', 'withdraw:p2'])
+            expect(host.state.offers).toEqual({})
+            expect(host.unmergedBranch('p2')?.branch.actionCount).toBe(2)
+        })
+
         it('undoes a Player’s own latest Common Action and replays the closes that followed', () => {
             const host = new SpanHost()
             host.submit(spanAction('begin', 'begin', 'p1'))

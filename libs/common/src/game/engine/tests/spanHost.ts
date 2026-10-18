@@ -4,6 +4,7 @@ import type { UnmergedBranch } from '../branch.js'
 import { executeBranchAction, undoBranchAction } from '../branchExecution.js'
 import {
     executeCommonAction,
+    findBranchThatWouldNotReplay,
     latestCommonActionUndoTarget,
     removeCommonAction,
     settleCommonActionRace
@@ -99,6 +100,20 @@ export class SpanHost {
             history: this.actions,
             actionId
         })
+        const own = this.branches.get(playerId)
+        const relied =
+            own === undefined
+                ? undefined
+                : findBranchThatWouldNotReplay({
+                      engine: this.engine,
+                      game: this.game,
+                      state: undone.state,
+                      unmergedBranches: [own]
+                  })
+        assert(
+            relied === undefined,
+            `Player ${playerId} may not undo Common Action ${actionId}: their Branch would not replay the same: ${relied?.reason}`
+        )
         const startIndex = this.actions.length - undone.removed.length
         this.state = undone.state
         this.actions = [...this.actions.slice(0, startIndex), ...undone.replayed]
