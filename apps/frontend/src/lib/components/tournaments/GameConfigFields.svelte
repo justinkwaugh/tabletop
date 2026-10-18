@@ -1,7 +1,12 @@
 <script lang="ts">
     import { Input, Label, Toggle, Helper } from 'flowbite-svelte'
     import TournamentSelect from './TournamentSelect.svelte'
-    import { ConfigOptionType, type ConfigOption, type GameConfig } from '@tabletop/common'
+    import {
+        ConfigOptionType,
+        listOptionDescription,
+        type ConfigOption,
+        type GameConfig
+    } from '@tabletop/common'
 
     let {
         options,
@@ -60,8 +65,12 @@
                         onchange={(event) => onupdate(option, event.currentTarget.value)}
                     />
                 {/if}
-                {#if option.description}<Helper class="mt-1 text-[.65rem] leading-tight"
-                        >{option.description}</Helper
+                {@const description =
+                    option.type === ConfigOptionType.List
+                        ? listOptionDescription(option, value)
+                        : option.description}
+                {#if description}<Helper class="mt-1 text-[.65rem] leading-tight"
+                        >{description}</Helper
                     >{/if}
             {/if}
         </div>

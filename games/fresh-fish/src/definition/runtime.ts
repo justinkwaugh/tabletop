@@ -1,5 +1,6 @@
+import { FreshFishInfo } from './info.js'
 import { FreshFishGameExploration } from './gameExploration.js'
-import { type GameRuntime, Visibility } from '@tabletop/common'
+import { defineGame, type GameRuntime, Visibility } from '@tabletop/common'
 import {
     FreshFishGameStateValidator,
     FreshFishGameState,
@@ -14,7 +15,12 @@ import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
 import { FreshFishScoring } from './scoring.js'
 
-export const FreshFishRuntime = {
+export const FreshFishVisibility = {
+    state: Visibility.createProjector(FreshFishGameState),
+    actions: Visibility.createActionProjector(FreshFishActionSchemas)
+}
+
+const runtime = {
     randomnessVersion: 1,
     initializer: new FreshFishGameInitializer(),
     exploration: new FreshFishGameExploration(),
@@ -24,8 +30,12 @@ export const FreshFishRuntime = {
     apiActions: FreshFishApiActions,
     playerColors: FreshFishColors,
     scoring: new FreshFishScoring(),
-    visibility: {
-        state: Visibility.createProjector(FreshFishGameState),
-        actions: Visibility.createActionProjector(FreshFishActionSchemas)
-    }
-} satisfies GameRuntime<FreshFishProjectedState, HydratedFreshFishGameState>
+    visibility: FreshFishVisibility
+} satisfies Omit<GameRuntime<FreshFishProjectedState, HydratedFreshFishGameState>, 'configuration'>
+
+export const Definition = defineGame<FreshFishProjectedState, HydratedFreshFishGameState>({
+    info: FreshFishInfo,
+    runtime
+})
+
+export const FreshFishRuntime = Definition.runtime

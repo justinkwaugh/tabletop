@@ -28,6 +28,7 @@
         GameStorage,
         isBooleanConfigOption,
         isListConfigOption,
+        listOptionDescription,
         isNumberInputConfigOption,
         isStringInputConfigOption,
         ListConfigOption,
@@ -384,10 +385,13 @@
         id={option.id}
         size="sm"
         items={option.options}
-        value={option.default}
+        value={`${config[option.id] ?? option.default}`}
         required
         class="w-fit"
     />
+    <Helper class="mt-1 text-[.65rem] dark:text-gray-400 leading-tight">
+        {listOptionDescription(option, config[option.id])}
+    </Helper>
 {/snippet}
 
 {#if showHeading}

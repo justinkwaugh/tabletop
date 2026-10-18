@@ -5,6 +5,7 @@ export interface CreatePushTaskOptions<T> {
     payload: T
     path: string
     inSeconds?: number
+    uniqueName?: string
 }
 
 export interface TaskService {

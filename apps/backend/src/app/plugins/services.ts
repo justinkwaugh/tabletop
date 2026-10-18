@@ -21,6 +21,7 @@ import {
     FirestoreTokenStore,
     FirestoreTournamentStore,
     FirestoreLeagueStore,
+    FirestoreSiteStatsStore,
     FirestoreUserStore,
     GameService,
     LibraryService,
@@ -42,6 +43,7 @@ import {
     TournamentService,
     TournamentStallAlerts,
     LeagueService,
+    SiteStatsService,
     UserService,
     WebPushTransport
 } from '@tabletop/backend-services'
@@ -70,6 +72,7 @@ declare module 'fastify' {
         tournamentService: TournamentService
         tournamentStallAlerts: TournamentStallAlerts
         leagueService: LeagueService
+        siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
     }
 }
@@ -109,11 +112,12 @@ export default fp(async (fastify: FastifyInstance) => {
         ? new LocalTaskService(TASKS_HOST)
         : new CloudTasksTaskService(TASKS_HOST)
     const tokenService = new TokenService(new FirestoreTokenStore(fastify.firestore))
-    const userService = new UserService(
-        new FirestoreUserStore(redisCacheService, fastify.firestore, service === 'local'),
-        tokenService,
-        taskService
+    const userStore = new FirestoreUserStore(
+        redisCacheService,
+        fastify.firestore,
+        service === 'local'
     )
+    const userService = new UserService(userStore, tokenService, taskService)
 
     let pubSubService: PubSubService = new NullPubSubService()
     if (!useAbly) {
@@ -122,8 +126,9 @@ export default fp(async (fastify: FastifyInstance) => {
         pubSubService = redisPubSubService
     }
 
+    const notificationStore = new FirestoreNotificationStore(redisCacheService, fastify.firestore)
     const notificationService = await DefaultNotificationService.createNotificationService(
-        new FirestoreNotificationStore(redisCacheService, fastify.firestore),
+        notificationStore,
         pubSubService
     )
 
@@ -136,6 +141,16 @@ export default fp(async (fastify: FastifyInstance) => {
         notificationService,
         redisCacheService,
         availableTitles
+    )
+
+    fastify.decorate(
+        'siteStatsService',
+        new SiteStatsService(
+            { games: gameStore, users: userStore, subscriptions: notificationStore },
+            new FirestoreSiteStatsStore(fastify.firestore),
+            taskService,
+            redisCacheService
+        )
     )
 
     const catalogService = new CatalogService(path.join(STATIC_ROOT, 'games'))

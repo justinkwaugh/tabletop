@@ -70,6 +70,8 @@ export const AdvanceDecision = Type.Object({
     unitIds: Type.Array(Type.String(), { minItems: 1 })
 })
 
+export type LossDecision = OddLossDecision | ExcessLossesDecision
+
 export type PendingDecision = Type.Static<typeof PendingDecision>
 export const PendingDecision = Type.Union([
     OddLossDecision,

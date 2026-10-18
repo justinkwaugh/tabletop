@@ -54,4 +54,16 @@ describe('local delayed tasks', () => {
         await vi.advanceTimersByTimeAsync(10_000)
         expect(fetch).toHaveBeenCalledTimes(2)
     })
+    it('creates a uniquely named task once', async () => {
+        vi.useFakeTimers()
+        const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response('{}'))
+        vi.stubGlobal('fetch', fetch)
+        const tasks = new LocalTaskService('http://localhost:3000')
+        const task = { queue: 'maintenance', path: '/stats/rollup', payload: {}, uniqueName: 'a' }
+        await tasks.createPushTask(task)
+        await tasks.createPushTask(task)
+        await vi.advanceTimersByTimeAsync(0)
+        expect(fetch).toHaveBeenCalledOnce()
+        tasks.close()
+    })
 })

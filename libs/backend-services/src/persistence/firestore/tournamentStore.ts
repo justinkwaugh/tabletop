@@ -389,6 +389,7 @@ export class FirestoreTournamentStore implements TournamentStore {
                 if (!stage?.dispatch?.finished.includes(request.tableId) || !stage.standings)
                     throw new TournamentError('This table has no accepted result')
                 const gameId = tournamentGameId(
+                    tournament,
                     tournamentTableReference(id, stage, request.tableId)
                 )
                 const gameRef = this.firestore.collection('games').doc(gameId)

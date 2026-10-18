@@ -25,7 +25,7 @@ import { TileType } from '../components/tiles.js'
 import { CellType } from '../components/cells.js'
 import { MachineState } from './states.js'
 import { generateTestState } from '../util/testHelper.js'
-import { FreshFishRuntime } from './runtime.js'
+import { FreshFishRuntime, FreshFishVisibility } from './runtime.js'
 import { GoodsType } from './goodsType.js'
 
 function createCanonicalAuctionState(): FreshFishGameState {
@@ -98,7 +98,7 @@ describe('Fresh Fish visibility', () => {
         expect(another.board).toEqual(first.board)
         expect(another.tileBag.items).not.toEqual(first.tileBag.items)
         expect(
-            FreshFishRuntime.visibility.state.project(first, { kind: 'spectator' }).boardSeed
+            FreshFishVisibility.state.project(first, { kind: 'spectator' }).boardSeed
         ).toBe(first.boardSeed)
         game.config.boardSeed = 0
         const zero = initialize(firstSeed)
@@ -206,9 +206,9 @@ describe('Fresh Fish visibility', () => {
         expect(first.tileBag.items).not.toEqual(second.tileBag.items)
         expect(first.protectedPrng?.invocations).toBeGreaterThan(0)
         expect(
-            FreshFishRuntime.visibility.state.project(first.dehydrate(), { kind: 'spectator' })
+            FreshFishVisibility.state.project(first.dehydrate(), { kind: 'spectator' })
         ).toEqual(
-            FreshFishRuntime.visibility.state.project(second.dehydrate(), { kind: 'spectator' })
+            FreshFishVisibility.state.project(second.dehydrate(), { kind: 'spectator' })
         )
         expect(first.finalStalls).toEqual(second.finalStalls)
     })
@@ -374,17 +374,17 @@ describe('Fresh Fish visibility', () => {
         const spectatorPerspective: Visibility.Perspective = { kind: 'spectator' }
         const actorResult = Visibility.projectActionResult({
             result,
-            visibility: FreshFishRuntime.visibility,
+            visibility: FreshFishVisibility,
             perspective: actorPerspective
         })
         const opponentResult = Visibility.projectActionResult({
             result,
-            visibility: FreshFishRuntime.visibility,
+            visibility: FreshFishVisibility,
             perspective: opponentPerspective
         })
         const spectatorResult = Visibility.projectActionResult({
             result,
-            visibility: FreshFishRuntime.visibility,
+            visibility: FreshFishVisibility,
             perspective: spectatorPerspective
         })
         const actorAction = actorResult.processedActions[0]
@@ -434,13 +434,13 @@ describe('Fresh Fish visibility', () => {
         expect(opponentAction).toEqual(redactedAction)
         expect(spectatorAction).toEqual(redactedAction)
         expect(actorResult.updatedState).toEqual(
-            FreshFishRuntime.visibility.state.project(after, actorPerspective)
+            FreshFishVisibility.state.project(after, actorPerspective)
         )
         expect(opponentResult.updatedState).toEqual(
-            FreshFishRuntime.visibility.state.project(after, opponentPerspective)
+            FreshFishVisibility.state.project(after, opponentPerspective)
         )
         expect(spectatorResult.updatedState).toEqual(
-            FreshFishRuntime.visibility.state.project(after, spectatorPerspective)
+            FreshFishVisibility.state.project(after, spectatorPerspective)
         )
         expect(actorResult.updatedState.currentAuction?.participants[2].bid).toBe(7)
         expect(opponentResult.updatedState.currentAuction?.participants[2].bid).toBeUndefined()
@@ -543,7 +543,7 @@ describe('Fresh Fish visibility', () => {
         const perspective: Visibility.Perspective = { kind: 'player', playerId: 'p3' }
         const visibleResult = Visibility.projectActionResult({
             result,
-            visibility: FreshFishRuntime.visibility,
+            visibility: FreshFishVisibility,
             perspective,
             replay: { game, runtime: FreshFishRuntime }
         })
@@ -561,7 +561,7 @@ describe('Fresh Fish visibility', () => {
             )
         ).toBe(true)
         expect(visibleResult.updatedState).toEqual(
-            FreshFishRuntime.visibility.state.project(result.updatedState, perspective)
+            FreshFishVisibility.state.project(result.updatedState, perspective)
         )
         expect(visibleResult).not.toHaveProperty('actionCascade')
 
@@ -569,7 +569,7 @@ describe('Fresh Fish visibility', () => {
             Visibility.projectActionHistory({
                 currentState: result.updatedState,
                 actions: result.processedActions,
-                visibility: FreshFishRuntime.visibility,
+                visibility: FreshFishVisibility,
                 perspective,
                 replay: { game, runtime: FreshFishRuntime }
             })
@@ -583,7 +583,7 @@ describe('Fresh Fish visibility', () => {
             currentState: result.updatedState,
             actions: result.processedActions.slice(1),
             startIndex: 1,
-            visibility: FreshFishRuntime.visibility,
+            visibility: FreshFishVisibility,
             perspective,
             replay: { game, runtime: FreshFishRuntime }
         })
@@ -593,7 +593,7 @@ describe('Fresh Fish visibility', () => {
             )
         ).toBe(true)
 
-        const visibleBefore = FreshFishRuntime.visibility.state.project(before, perspective)
+        const visibleBefore = FreshFishVisibility.state.project(before, perspective)
         const firstVisibleAction = visibleResult.processedActions[0]
         if (firstVisibleAction === undefined) {
             throw Error('Expected the initiating visible Action')
@@ -605,7 +605,7 @@ describe('Fresh Fish visibility', () => {
                 game
             })
         ).toEqual(
-            FreshFishRuntime.visibility.state.project(firstTransition.after, {
+            FreshFishVisibility.state.project(firstTransition.after, {
                 kind: 'player',
                 playerId: 'p3'
             })
@@ -631,8 +631,8 @@ describe('Fresh Fish visibility', () => {
         canonical.activePlayerIds = ['p3']
         canonical.chosenTile = { type: TileType.Stall, goodsType: GoodsType.Fish }
         const perspective: Visibility.Perspective = { kind: 'player', playerId: 'p3' }
-        const projected = FreshFishRuntime.visibility.state.project(canonical, perspective)
-        const guarded = FreshFishRuntime.visibility.state.guardForExecution(
+        const projected = FreshFishVisibility.state.project(canonical, perspective)
+        const guarded = FreshFishVisibility.state.guardForExecution(
             FreshFishRuntime.hydrator.hydrateState(projected),
             perspective
         )
@@ -666,7 +666,7 @@ describe('Fresh Fish visibility', () => {
         state.activePlayerIds = [playerId]
         const before = state.dehydrate()
         const perspective: Visibility.Perspective = { kind: 'player', playerId }
-        const projected = FreshFishRuntime.visibility.state.project(before, perspective)
+        const projected = FreshFishVisibility.state.project(before, perspective)
         const unchangedProjection = structuredClone(projected)
         const runtime = {
             ...FreshFishRuntime,
@@ -726,7 +726,7 @@ describe('Fresh Fish visibility', () => {
 
         const visibleResult = Visibility.projectActionResult({
             result,
-            visibility: FreshFishRuntime.visibility,
+            visibility: FreshFishVisibility,
             perspective,
             replay: { game, runtime: FreshFishRuntime }
         })
@@ -741,10 +741,10 @@ describe('Fresh Fish visibility', () => {
         expect(
             engine.applyProcessedAction({
                 action: visibleAction,
-                state: FreshFishRuntime.visibility.state.project(before, perspective),
+                state: FreshFishVisibility.state.project(before, perspective),
                 game
             })
-        ).toEqual(FreshFishRuntime.visibility.state.project(result.updatedState, perspective))
+        ).toEqual(FreshFishVisibility.state.project(result.updatedState, perspective))
 
         const secondState = FreshFishRuntime.hydrator.hydrateState(result.updatedState)
         const secondPlayerId = secondState.activePlayerIds[0]
@@ -767,7 +767,7 @@ describe('Fresh Fish visibility', () => {
         const projectedHistory = Visibility.projectActionHistory({
             currentState: secondResult.updatedState,
             actions: [...result.processedActions, ...secondResult.processedActions],
-            visibility: FreshFishRuntime.visibility,
+            visibility: FreshFishVisibility,
             perspective,
             replay: { game, runtime: FreshFishRuntime }
         })
@@ -781,7 +781,7 @@ describe('Fresh Fish visibility', () => {
     })
 
     it('carries the bag and bid declarations into the full state projection', () => {
-        const projection = FreshFishRuntime.visibility.state.schema
+        const projection = FreshFishVisibility.state.schema
 
         expect(
             Reflect.get(
@@ -814,7 +814,7 @@ describe('Fresh Fish visibility', () => {
         const canonical = createCanonicalAuctionState()
         canonical.seed = 101
         canonical.protectedPrng = { seed: 8675309, invocations: 42 }
-        const projector = FreshFishRuntime.visibility.state
+        const projector = FreshFishVisibility.state
 
         const playerOneProjection = projector.project(canonical, {
             kind: 'player',

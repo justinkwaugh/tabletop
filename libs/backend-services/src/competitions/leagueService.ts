@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import {
     assertExists,
     generateSeed,
@@ -30,6 +29,7 @@ import {
     type User
 } from '@tabletop/common'
 import { requireActiveAccount, requireAdministrator, touchRevision } from './competitionAccess.js'
+import { derivedId } from './derivedId.js'
 import * as Value from 'typebox/value'
 import type { LeagueSeasonResultsProps, LeagueSeasonStartLevel } from '@tabletop/email'
 import type { NotificationService } from '../notifications/notificationService.js'
@@ -554,10 +554,9 @@ export class LeagueService {
         }
     }
 
+    // Fixed when sign-up closes and kept on the season, so earlier seasons keep their longer ids.
     private groupTournamentId(leagueId: string, season: number, groupId: string) {
-        return `league-${createHash('sha256')
-            .update(JSON.stringify([leagueId, season, groupId]))
-            .digest('hex')}`
+        return derivedId([leagueId, season, groupId])
     }
 
     private allocationResults(

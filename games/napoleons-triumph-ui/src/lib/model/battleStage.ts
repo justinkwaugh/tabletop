@@ -67,6 +67,7 @@ import { RideChoice } from './moveCommands.js'
 import { movableCommander, retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
 import type { StagedSelection } from './stagedSelection.js'
 import { copyOf } from './stateCopy.js'
+import { oddStepTakers } from './battleWaiting.js'
 
 export type VisibleAttack = Omit<Attack, 'defensePlan' | 'attackPlan'> & {
     attackPlan?: { order?: ThreatOrder }
@@ -168,6 +169,7 @@ export interface CounterStage extends Picking {
 export interface OddLossStage extends Picking {
     kind: StageKind.OddLoss
     units: ProjectedUnit[]
+    takers: string
 }
 
 export interface ExcessLossStage extends Picking {
@@ -554,6 +556,7 @@ function decisionStage(
         return {
             kind: StageKind.OddLoss,
             units: decision.unitIds.map((id) => state.unit(id)),
+            takers: oddStepTakers(attack, decision),
             pickableIds: decision.unitIds,
             roles: {}
         }

@@ -2,6 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import { UnitType, sameFace } from '../components/pieces.js'
 import {
     DecisionKind,
+    type LossDecision,
     type LossEntry,
     type MoralePenalty,
     type PendingDecision,
@@ -292,8 +293,23 @@ export function resolveCombat(
     return { ...concludeCombat(state, cost), finalResult: final, attackerWon }
 }
 
-function isLossDecision(decision: PendingDecision): boolean {
+export function isLossDecision(decision: PendingDecision): decision is LossDecision {
     return decision.kind === DecisionKind.OddLoss || decision.kind === DecisionKind.ExcessLosses
+}
+
+/** Rule 11, step 9: an odd step is placed by the enemy of the side that owes it. */
+export function lossOwnerOf(
+    attack: Pick<AttackState, 'attackerId' | 'defenderId'>,
+    decision: LossDecision
+): string {
+    if (decision.kind === DecisionKind.ExcessLosses) {
+        return decision.playerId
+    }
+    return decision.playerId === attack.attackerId ? attack.defenderId : attack.attackerId
+}
+
+export function stepsOwed(decision: LossDecision): number {
+    return decision.kind === DecisionKind.OddLoss ? 1 : decision.amount
 }
 
 export function concludeAttack(

@@ -65,6 +65,12 @@
                             <td>{line.steps}</td>
                         </tr>
                     {/each}
+                    {#if side.owed > 0}
+                        <tr>
+                            <th scope="row">Of these, still to be taken once the units are chosen</th>
+                            <td>{side.owed}</td>
+                        </tr>
+                    {/if}
                     {#if side.paidForSteps > 0}
                         <tr>
                             <th scope="row">Morale for the steps lost</th>

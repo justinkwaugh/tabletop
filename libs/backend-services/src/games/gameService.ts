@@ -272,7 +272,7 @@ export class GameService {
         assertExists(stage, 'Scheduled tournament stage not found')
         assert(stage.scheduleId === schedule.id, 'Tournament schedule changed')
         const reference = tournamentTableReference(tournament.id, stage, tableId)
-        const gameId = tournamentGameId(reference)
+        const gameId = tournamentGameId(tournament, reference)
         const existing = await this.gameStore.findGameById(gameId, false)
         if (existing) {
             assert(

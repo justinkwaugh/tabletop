@@ -131,6 +131,7 @@ export class TournamentService {
                 ...draft,
                 id,
                 organizerId: user.id,
+                shortGameIds: true,
                 status: 'draft',
                 revision: 1,
                 entrants: [],
@@ -169,6 +170,7 @@ export class TournamentService {
                 id,
                 organizerId,
                 league,
+                shortGameIds: true,
                 status: 'locked',
                 revision: 1,
                 entrants: entrantIds.map((userId) => ({ userId, joinedAt: now })),
@@ -460,7 +462,7 @@ export class TournamentService {
         assertExists(stage, 'Tournament has no stage')
         for (const tableId of tournamentActiveTables(updated, schedule.tables, place.userId))
             await replacement.handOver(
-                tournamentGameId(tournamentTableReference(updated.id, stage, tableId)),
+                tournamentGameId(updated, tournamentTableReference(updated.id, stage, tableId)),
                 tableId,
                 place
             )

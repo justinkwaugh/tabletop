@@ -614,7 +614,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     attackLosses: AttackLosses | undefined = $derived(
         this.shownAttack
-            ? lossesOfAttack(this.history.visibleContext.actions, this.shownAttack)
+            ? lossesOfAttack(
+                  this.history.visibleContext.actions,
+                  this.shownAttack,
+                  this.attack?.pending ?? []
+              )
             : undefined
     )
 

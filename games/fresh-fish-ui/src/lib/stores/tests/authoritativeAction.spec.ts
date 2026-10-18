@@ -27,9 +27,11 @@ import {
     Definition,
     CellType,
     FreshFishRuntime,
+    FreshFishVisibility,
     PlaceDisk,
     TileType,
-    type FreshFishGameState
+    type FreshFishGameState,
+    RuleSet
 } from '@tabletop/fresh-fish'
 import * as Type from 'typebox'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
@@ -88,7 +90,7 @@ function createStartedGame(): { game: Game; state: FreshFishGameState; playerId:
                 status: PlayerStatus.Joined
             })),
             config: {
-                forceThreeDisks: false,
+                ruleSet: RuleSet.Classic,
                 boardSeed: 7
             },
             hotseat: false,
@@ -153,7 +155,7 @@ describe('projected Action availability', () => {
     test('does not infer an Action from protected state redacted for the Player', () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
-        const projectedState = FreshFishRuntime.visibility.state.project(started.state, perspective)
+        const projectedState = FreshFishVisibility.state.project(started.state, perspective)
         const stateHandler = FreshFishUiRuntime.stateHandlers[started.state.machineState]
         assertExists(stateHandler, `Fresh Fish has no handler for ${started.state.machineState}`)
         const runtime = {
@@ -205,7 +207,7 @@ describe('projected hosted Actions', () => {
             const started = createStartedGame()
             const perspective = { kind: 'player', playerId: started.playerId } as const
             let hostState = structuredClone(started.state)
-            const projectedState = FreshFishRuntime.visibility.state.project(hostState, perspective)
+            const projectedState = FreshFishVisibility.state.project(hostState, perspective)
             const appContext = createHarnessAppContext(HARNESS_DEFINITION)
             const bridgedContext = new BridgedContext({
                 authorizationService: appContext.authorizationService,
@@ -231,13 +233,13 @@ describe('projected hosted Actions', () => {
                     const representation = classifyReplay
                         ? Visibility.projectActionResult({
                               result,
-                              visibility: FreshFishRuntime.visibility,
+                              visibility: FreshFishVisibility,
                               perspective,
                               replay: { game: started.game, runtime: FreshFishRuntime }
                           })
                         : Visibility.projectActionResult({
                               result,
-                              visibility: FreshFishRuntime.visibility,
+                              visibility: FreshFishVisibility,
                               perspective
                           })
                     representedActions = representation.processedActions
@@ -288,7 +290,7 @@ describe('projected hosted Actions', () => {
                 await session.waitForVisibleTransitionSettled()
 
                 expect(session.history.visibleContext.state).toEqual(
-                    FreshFishRuntime.visibility.state.project(hostState, perspective)
+                    FreshFishVisibility.state.project(hostState, perspective)
                 )
                 expect(checkSync).not.toHaveBeenCalled()
             } finally {
@@ -302,7 +304,7 @@ describe('projected hosted Actions', () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
         let hostState = structuredClone(started.state)
-        const projectedState = FreshFishRuntime.visibility.state.project(hostState, perspective)
+        const projectedState = FreshFishVisibility.state.project(hostState, perspective)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
         const bridgedContext = new BridgedContext({
             authorizationService: appContext.authorizationService,
@@ -326,7 +328,7 @@ describe('projected hosted Actions', () => {
                 hostState = result.updatedState
                 const representation = Visibility.projectActionResult({
                     result,
-                    visibility: FreshFishRuntime.visibility,
+                    visibility: FreshFishVisibility,
                     perspective,
                     replay: { game: started.game, runtime: FreshFishRuntime }
                 })
@@ -367,7 +369,7 @@ describe('projected hosted Actions', () => {
             await session.waitForVisibleTransitionSettled()
 
             expect(session.history.visibleContext.state).toEqual(
-                FreshFishRuntime.visibility.state.project(hostState, perspective)
+                FreshFishVisibility.state.project(hostState, perspective)
             )
             expect(session.history.visibleContext.actions.map(({ id }) => id)).toContain(action.id)
         } finally {
@@ -380,13 +382,13 @@ describe('projected hosted Actions', () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
         let hostState = structuredClone(started.state)
-        const projectedState = FreshFishRuntime.visibility.state.project(hostState, perspective)
+        const projectedState = FreshFishVisibility.state.project(hostState, perspective)
         const clientVisibility = FreshFishUiRuntime.visibility
         assertExists(clientVisibility, 'Fresh Fish UI Runtime has no visibility registration')
         const hostRuntime = {
             ...FreshFishRuntime,
             visibility: {
-                ...FreshFishRuntime.visibility,
+                ...FreshFishVisibility,
                 actions: opaquePlaceDiskActionProjector
             }
         } satisfies typeof FreshFishRuntime
@@ -468,7 +470,7 @@ describe('projected hosted Actions', () => {
             await session.waitForVisibleTransitionSettled()
 
             expect(session.history.visibleContext.state).toEqual(
-                FreshFishRuntime.visibility.state.project(hostState, perspective)
+                FreshFishVisibility.state.project(hostState, perspective)
             )
             expect(session.history.visibleContext.actions).toEqual(representedActions)
         } finally {
@@ -480,7 +482,7 @@ describe('projected hosted Actions', () => {
     test('uses incremental synchronization after an authoritative submission fails', async () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
-        const projectedState = FreshFishRuntime.visibility.state.project(started.state, perspective)
+        const projectedState = FreshFishVisibility.state.project(started.state, perspective)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
         const bridgedContext = new BridgedContext({
             authorizationService: appContext.authorizationService,
@@ -529,7 +531,7 @@ describe('projected hosted Actions', () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
         let hostState = structuredClone(started.state)
-        const projectedState = FreshFishRuntime.visibility.state.project(hostState, perspective)
+        const projectedState = FreshFishVisibility.state.project(hostState, perspective)
         expect(projectedState.tileBag.items).toEqual([])
 
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
@@ -556,7 +558,7 @@ describe('projected hosted Actions', () => {
                 hostState = result.updatedState
                 const representation = Visibility.projectActionResult({
                     result,
-                    visibility: FreshFishRuntime.visibility,
+                    visibility: FreshFishVisibility,
                     perspective,
                     replay: { game: started.game, runtime: FreshFishRuntime }
                 })
@@ -599,7 +601,7 @@ describe('projected hosted Actions', () => {
             await pendingApplication
             await session.waitForVisibleTransitionSettled()
 
-            const expectedState = FreshFishRuntime.visibility.state.project(hostState, perspective)
+            const expectedState = FreshFishVisibility.state.project(hostState, perspective)
             expect(session.history.visibleContext.state).toEqual(expectedState)
             expect(session.history.visibleContext.state.tileBag.items).toEqual([])
             expect(session.history.visibleContext.actions.length).toBeGreaterThan(0)
@@ -772,7 +774,7 @@ describe('projected hosted Actions', () => {
         const started = createStartedGame()
         const playerPerspective = { kind: 'player', playerId: started.playerId } as const
         const spectatorPerspective = { kind: 'spectator' } as const
-        const projectedState = FreshFishRuntime.visibility.state.project(
+        const projectedState = FreshFishVisibility.state.project(
             started.state,
             playerPerspective
         )
@@ -807,13 +809,13 @@ describe('projected hosted Actions', () => {
             const responseGame = gameWithoutState(started.game, result.updatedState)
             const spectatorResult = Visibility.projectActionResult({
                 result,
-                visibility: FreshFishRuntime.visibility,
+                visibility: FreshFishVisibility,
                 perspective: spectatorPerspective,
                 replay: { game: started.game, runtime: FreshFishRuntime }
             })
             const playerResult = Visibility.projectActionResult({
                 result,
-                visibility: FreshFishRuntime.visibility,
+                visibility: FreshFishVisibility,
                 perspective: playerPerspective,
                 replay: { game: started.game, runtime: FreshFishRuntime }
             })
@@ -853,7 +855,7 @@ describe('projected hosted Actions', () => {
             await session.waitForVisibleTransitionSettled()
 
             expect(session.history.visibleContext.state).toEqual(
-                FreshFishRuntime.visibility.state.project(result.updatedState, playerPerspective)
+                FreshFishVisibility.state.project(result.updatedState, playerPerspective)
             )
             expect(session.history.visibleContext.actions.map((item) => item.id)).toEqual(
                 result.processedActions.map((item) => item.id)
@@ -871,7 +873,7 @@ describe('projected hosted Actions', () => {
         async (channel) => {
             const started = createStartedGame()
             const perspective = { kind: 'player', playerId: started.playerId } as const
-            const projectedState = FreshFishRuntime.visibility.state.project(
+            const projectedState = FreshFishVisibility.state.project(
                 started.state,
                 perspective
             )
@@ -905,7 +907,7 @@ describe('projected hosted Actions', () => {
                 const projectedHistory = Visibility.projectActionHistory({
                     currentState: result.updatedState,
                     actions: result.processedActions,
-                    visibility: FreshFishRuntime.visibility,
+                    visibility: FreshFishVisibility,
                     perspective,
                     replay: { game: started.game, runtime: FreshFishRuntime }
                 })
@@ -942,7 +944,7 @@ describe('projected hosted Actions', () => {
     test('falls back to a full reload when an incremental Action cannot be applied', async () => {
         const started = createStartedGame()
         const perspective = { kind: 'player', playerId: started.playerId } as const
-        const projectedState = FreshFishRuntime.visibility.state.project(started.state, perspective)
+        const projectedState = FreshFishVisibility.state.project(started.state, perspective)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
         const bridgedContext = new BridgedContext({
             authorizationService: appContext.authorizationService,

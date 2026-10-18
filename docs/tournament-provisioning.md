@@ -4,7 +4,7 @@ Slice 5 of [the tournament roadmap](https://github.com/justinkwaugh/tabletop/iss
 
 ## Identity and initialization
 
-An optional `Game.tournament` records `tournamentId`, `stageId`, `tableId` and `scheduleId`. The Game ID is derived from the Tournament/Stage/Table identities. Its ordinary `players` array maps assigned Entrant User IDs to Game Player IDs in Starting Position order; there is no additional identity map or association document. Saved schedules remain immutable and retain their packed assignment representation.
+An optional `Game.tournament` records `tournamentId`, `stageId`, `tableId` and `scheduleId`. The Game ID is derived from the Tournament/Stage/Table identities and a restarted Table's attempt. It is 21 characters, as long as an ordinary Game ID; Tournaments created before `shortGameIds` keep their earlier `tournament-` IDs, which are 75 characters. Its ordinary `players` array maps assigned Entrant User IDs to Game Player IDs in Starting Position order; there is no additional identity map or association document. Saved schedules remain immutable and retain their packed assignment representation.
 
 The Tournament organizer remains the Game Owner for attribution. Execution authority comes from the trusted backend call, not impersonation of an organizer or a synthetic User Account. The organizer need not play or remain active. Each assigned account must still be active at creation. Tournament enrollment supplies participation consent, so assigned Players are Joined immediately and receive normal game notifications without invitations.
 
