@@ -125,8 +125,8 @@ Started 2026-10-18. What slice 1 builds, and how:
 
 The rulebook leaves these open. Each is decided in its slice, recorded in `docs/rules-interpretations.md` with the reasoning, and raised with you:
 
-- Base production of tech: read as that many tech markers of the chosen type (the highest research value of that type in the system, plus the tech bonus), as rule 4.4 says "cash or tech markers produced". Slice 1.
-- The largest base bonus when Players tie: each tied Player gets it. Slice 1.
+- Base production of tech: read as that many tech markers of the chosen type (the highest research value of that type in the system, plus the tech bonus), as rule 4.4 says "cash or tech markers produced". Agreed 2026-10-18.
+- The largest base bonus when Players tie: each tied Player gets it. Agreed 2026-10-18.
 
 - The truce: whether blockades are allowed during it (disputed on BoardGameGeek).
 - "No exploration" anomalies: whether they also block mining and research.
