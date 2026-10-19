@@ -44,6 +44,7 @@
     import {
         DefaultTableLayout,
         DefaultTabs,
+        GameToaster,
         TabWorkspace,
         DebouncedLayout,
         HistoryControls,
@@ -973,6 +974,8 @@
     </div>
 {/snippet}
 
+<!-- The sidebar's tabs mount the toaster; the pane layout has no sidebar. -->
+{#if paneLayout.current}<GameToaster />{/if}
 <div
     class="railway-table"
     class:published-artwork={publishedArtwork}
