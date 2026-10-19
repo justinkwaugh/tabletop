@@ -52,11 +52,13 @@ export class AutomaticTrackCompletionHandler<
     }
 
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
-        if (isFinishTrack(action) && action.source === ActionSource.System)
-            return (
-                action.companyId === context.gameState.trackStep?.companyId &&
-                this.canFinish(context, action.playerId)
-            )
+        if (
+            isFinishTrack(action) &&
+            action.source === ActionSource.System &&
+            action.companyId === context.gameState.trackStep?.companyId &&
+            this.canFinish(context, action.playerId)
+        )
+            return true
         return this.handler.isValidAction(action, context)
     }
 

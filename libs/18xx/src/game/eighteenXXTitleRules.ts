@@ -24,6 +24,7 @@ import { type TransferRules } from '../transfers/purchaseOffer.js'
 import type * as Type from 'typebox'
 import type { Visibility } from '@tabletop/common'
 import type { OperatingStepState } from '../operating/operatingSteps.js'
+import type { ReceivershipRules } from '../finance/receivership.js'
 import type {
     EighteenXXMachineState,
     EighteenXXRuntimeSchema,
@@ -88,4 +89,6 @@ export interface EighteenXXTitleRules<
     additionalConstructionActions?: readonly string[]
     loanRules?: LoanRules
     cashCrisisRules?: CashCrisisRules
+    /** How a company without a president keeps operating, and how a presidency is reclaimed. */
+    receivershipRules?: ReceivershipRules
 }

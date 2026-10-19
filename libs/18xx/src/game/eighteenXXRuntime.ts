@@ -28,7 +28,8 @@ import { operatingActions } from '../operating/operatingActions.js'
 import {
     BetweenCompaniesState,
     OperatingStepStates,
-    stateAfterOperatingStep
+    stateAfterOperatingStep,
+    type OperatingStepState
 } from '../operating/operatingSteps.js'
 import { StartOperatingSetHandler } from '../operating/startOperatingSetHandler.js'
 import { StartOperatingTurnHandler } from '../operating/startOperatingTurn.js'
@@ -48,6 +49,14 @@ import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js
 import { stockActions } from '../stock/stockActions.js'
 import { StockInstructionHandler } from '../stock/stockInstructionHandler.js'
 import { StockRoundHandler } from '../stock/stockRoundHandler.js'
+import {
+    HydratedClaimPresidency,
+    ClaimPresidency,
+    PresidencyClaimsHandler,
+    isClaimPresidency
+} from '../stock/claimPresidency.js'
+import { ReceivershipHandler } from '../operating/receivershipHandler.js'
+import { defineAction } from '../actions/actionDefinition.js'
 import { AutomaticTrainCompletionHandler } from '../trains/automaticTrainCompletionHandler.js'
 import { BuyingTrainsHandler, OrdinaryBuyingTrainsHandler } from '../trains/buyingTrainsHandler.js'
 import { DiscardingTrainsHandler } from '../trains/discardTrain.js'
@@ -161,7 +170,18 @@ export function createEighteenXXRuntime<
             : handler
     const awaitsPar = (handler: Handler): Handler =>
         companyRules.parAfterAward ? new PendingParHandler(handler) : handler
-    const { loanRules, trainFundingRules } = options
+    const { loanRules, trainFundingRules, receivershipRules } = options
+    const receivership = (step: OperatingStepState, handler: Handler): Handler =>
+        receivershipRules
+            ? new ReceivershipHandler(step, handler, {
+                  earningsRules: options.earningsRules,
+                  trainRules: options.trainRules
+              })
+            : handler
+    const allowsPresidencyClaims = (handler: Handler): Handler =>
+        receivershipRules?.presidencyClaim
+            ? new PresidencyClaimsHandler(handler, { stockRules: rules, receivershipRules })
+            : handler
     const familySteps = options.operatingSteps ?? OperatingStepStates
     const operatingSteps = loanRules ? [...familySteps, 'RepayingLoans'] : familySteps
     const after = (step: string) => stateAfterOperatingStep(step, operatingSteps)
@@ -228,7 +248,9 @@ export function createEighteenXXRuntime<
                           )
                       )
                   ),
-                  Bankrupt: endsGame(decides('Bankrupt', new BankruptHandler()))
+                  ...(trainFundingRules.elimination
+                      ? {}
+                      : { Bankrupt: endsGame(decides('Bankrupt', new BankruptHandler())) })
               }
             : {}),
         GameOver: new TerminalStateHandler(),
@@ -248,12 +270,14 @@ export function createEighteenXXRuntime<
                     allowsCompanyDecisions(
                         new AutomaticStockTurnHandler(
                             allowsExchange(
-                                decides(
-                                    'StockRound',
-                                    new StockRoundHandler(
-                                        rules,
-                                        'StartingOperatingSet',
-                                        companyRules
+                                allowsPresidencyClaims(
+                                    decides(
+                                        'StockRound',
+                                        new StockRoundHandler(
+                                            rules,
+                                            'StartingOperatingSet',
+                                            companyRules
+                                        )
                                     )
                                 )
                             )
@@ -288,9 +312,12 @@ export function createEighteenXXRuntime<
         LayingTrack: new AutomaticTrackCompletionHandler(
             options.trackRules,
             operatingStep(
-                decides(
+                receivership(
                     'LayingTrack',
-                    new LayingTrackHandler(options.trackRules, after('LayingTrack'))
+                    decides(
+                        'LayingTrack',
+                        new LayingTrackHandler(options.trackRules, after('LayingTrack'))
+                    )
                 )
             ),
             options.additionalConstructionActions
@@ -298,40 +325,58 @@ export function createEighteenXXRuntime<
         ...(familySteps.includes('PlacingStation')
             ? {
                   PlacingStation: operatingStep(
-                      decides(
+                      receivership(
                           'PlacingStation',
-                          new PlacingStationHandler(options.stationRules, after('PlacingStation'))
+                          decides(
+                              'PlacingStation',
+                              new PlacingStationHandler(
+                                  options.stationRules,
+                                  after('PlacingStation')
+                              )
+                          )
                       )
                   )
               }
             : {}),
         RunningTrains: operatingStep(
-            decides(
+            receivership(
                 'RunningTrains',
-                new RunningTrainsHandler(options.routeRules, after('RunningTrains'))
+                decides(
+                    'RunningTrains',
+                    new RunningTrainsHandler(options.routeRules, after('RunningTrains'))
+                )
             )
         ),
         DistributingEarnings: operatingStep(
-            decides(
+            receivership(
                 'DistributingEarnings',
-                new DistributingEarningsHandler(
-                    options.earningsRules,
-                    after('DistributingEarnings')
+                decides(
+                    'DistributingEarnings',
+                    new DistributingEarningsHandler(
+                        options.earningsRules,
+                        after('DistributingEarnings')
+                    )
                 )
             )
         ),
         BuyingTrains: new AutomaticTrainCompletionHandler(
             operatingStep(
-                decides(
+                receivership(
                     'BuyingTrains',
-                    trainFundingRules
-                        ? new BuyingTrainsHandler(
-                              options.trainRules,
-                              trainFundingRules,
-                              rules,
-                              after('BuyingTrains')
-                          )
-                        : new OrdinaryBuyingTrainsHandler(options.trainRules, after('BuyingTrains'))
+                    decides(
+                        'BuyingTrains',
+                        trainFundingRules
+                            ? new BuyingTrainsHandler(
+                                  options.trainRules,
+                                  trainFundingRules,
+                                  rules,
+                                  after('BuyingTrains')
+                              )
+                            : new OrdinaryBuyingTrainsHandler(
+                                  options.trainRules,
+                                  after('BuyingTrains')
+                              )
+                    )
                 )
             )
         ),
@@ -369,7 +414,22 @@ export function createEighteenXXRuntime<
             options.auctionRules,
             options.selectionAuctionRules
         ),
-        ...(trainFundingRules ? fundingActions(trainFundingRules, rules, options.trainRules) : []),
+        ...(trainFundingRules
+            ? fundingActions(trainFundingRules, rules, options.trainRules, receivershipRules)
+            : []),
+        ...(receivershipRules?.presidencyClaim
+            ? [
+                  defineAction(
+                      ClaimPresidency,
+                      isClaimPresidency,
+                      (action) =>
+                          new HydratedClaimPresidency(action, {
+                              stockRules: rules,
+                              receivershipRules
+                          })
+                  )
+              ]
+            : []),
         ...privateActions(options),
         ...trackActions(options.trackRules),
         ...transferActions(
@@ -379,7 +439,13 @@ export function createEighteenXXRuntime<
             options.transferRules.companyAcquisitions
         ),
         ...phaseActions(options),
-        ...operatingActions(operatingRules, options.trainRules, options.endingRules, loanRules),
+        ...operatingActions(
+            operatingRules,
+            options.trainRules,
+            options.endingRules,
+            loanRules,
+            receivershipRules
+        ),
         ...loanActions(loanRules, rules),
         ...cashCrisisActions(options.cashCrisisRules),
         ...stockActions(rules),

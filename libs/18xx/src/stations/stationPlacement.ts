@@ -1,7 +1,8 @@
 import type { RevenueCenter } from '../routes/route.js'
+import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
-import { cashOwnedBy, controllingOwner, getCompany } from '../finance/finance.js'
+import { cashOwnedBy, getCompany } from '../finance/finance.js'
 import type { CompanyState } from '../company/companyState.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import { StationPosition, type StationReservation, type StationState } from '../map/station.js'
@@ -83,7 +84,7 @@ export class StationPlacement {
             step?.companyId === companyId &&
             !step.completed &&
             !getCompany(this.state, companyId).closed &&
-            controllingOwner(this.state, companyId)?.playerId === playerId
+            actsFor(this.state, playerId, companyId)
         )
     }
     choices(stationId: string): StationPlacementDetails[] {

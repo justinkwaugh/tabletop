@@ -1,6 +1,7 @@
 import type { RevenueCenter } from '../routes/route.js'
+import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
-import { cashOwnedBy, controllingOwner, type Owner } from '../finance/finance.js'
+import { cashOwnedBy, type Owner } from '../finance/finance.js'
 import type { CompanyState } from '../company/companyState.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import type { RailwayMap } from '../map/map.js'
@@ -169,7 +170,7 @@ export class TrackConstruction {
             this.state.companies.some((company) => company.id === companyId && !company.closed) &&
             !turn.completed &&
             turn.companyId === companyId &&
-            controllingOwner(this.state, companyId)?.playerId === playerId
+            actsFor(this.state, playerId, companyId)
         )
     }
     canReach(locationId: string): boolean {

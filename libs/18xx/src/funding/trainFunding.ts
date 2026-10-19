@@ -15,6 +15,7 @@ import { trainsOwnedBy } from '../trains/train.js'
 import { evaluateShareDisposal, applyShareSale, type ShareSaleDetails } from '../stock/shareSale.js'
 import type { StockRules, ShareSaleTerms } from '../stock/stockRules.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
+import type { EliminationRules } from './elimination.js'
 
 export const TrainFunding = Type.Object(
     {
@@ -52,11 +53,25 @@ export interface TrainFundingRules {
     includeMarketTrains: boolean
     sellInBlocks: boolean
     contributors(state: FundingState, companyId: string): Owner[]
+    /**
+     * Terms for issuing the company's treasury shares, given how many it holds; it issues
+     * `maximumShares` of them, as one block.
+     */
     issuanceTerms(
         state: FundingState,
         companyId: string,
         shares: number
     ): ShareSaleTerms | undefined
+    /** The purchases the funding may be for, from every offer; the cheapest unless given. */
+    fundablePurchases?(
+        state: FundingState,
+        companyId: string,
+        offers: readonly TrainPurchaseDetails[]
+    ): TrainPurchaseDetails[]
+    /** Whether a legal sale may raise funds; every legal sale unless given. */
+    permitsSale?(state: FundingState, details: ShareSaleDetails): boolean
+    /** How a player whose funding is exhausted leaves the game; without it, bankruptcy ends it. */
+    elimination?: EliminationRules
     saleTerms(
         state: FundingState,
         companyId: string,
@@ -73,6 +88,10 @@ export type FundingChoice =
     | { kind: 'buy'; purchase: TrainPurchaseDetails }
     | { kind: 'bankrupt'; shortfall: number }
 
+function cheapestOffers(offers: readonly TrainPurchaseDetails[]): TrainPurchaseDetails[] {
+    const price = Math.min(...offers.map((offer) => offer.price))
+    return offers.filter((offer) => offer.price === price)
+}
 export class EmergencyTrainFunding {
     constructor(
         private readonly state: FundingState,
@@ -123,9 +142,11 @@ export class EmergencyTrainFunding {
                 ? purchase.marketOffers().flatMap((offer) => (offer.details ? [offer.details] : []))
                 : [])
         ]
-        const price = Math.min(...offers.map((offer) => offer.price))
-        if (this.cash({ kind: 'company', companyId }) >= price) return []
-        return offers.filter((offer) => offer.price === price)
+        const treasury = this.cash({ kind: 'company', companyId })
+        const fundable = this.rules.fundablePurchases
+            ? this.rules.fundablePurchases(this.state, companyId, offers)
+            : cheapestOffers(offers)
+        return fundable.filter((offer) => offer.price > treasury)
     }
     preview(purchase: TrainPurchaseDetails) {
         const state: FundingState = {
@@ -201,11 +222,10 @@ export class EmergencyTrainFunding {
         const treasury: Owner = { kind: 'company', companyId }
         const shortfall = this.shortfall()
         if (shortfall) {
-            const shares = sharesOwned(this.state, companyId, treasury)
-            const terms = shares
-                ? this.rules.issuanceTerms(this.state, companyId, shares)
-                : undefined
-            if (terms) {
+            const held = sharesOwned(this.state, companyId, treasury)
+            const terms = held ? this.rules.issuanceTerms(this.state, companyId, held) : undefined
+            const shares = Math.min(held, terms?.maximumShares ?? 0)
+            if (terms && shares > 0) {
                 const result = evaluateShareDisposal(
                     this.state,
                     treasury,
@@ -273,7 +293,8 @@ export class EmergencyTrainFunding {
                                 sale.companyId,
                                 funding.purchase.companyId
                             )
-                    )
+                    ) ||
+                    this.rules.permitsSale?.(this.state, result.details) === false
                 )
                     continue
                 if (required) {

@@ -382,13 +382,7 @@ function describeShared(
         assertExists(action.metadata, 'Recorded bankruptcy requires its consequences')
         return {
             text: 'Went bankrupt',
-            detail:
-                [
-                    ...action.metadata.record.liquidatedCompanyIds.map(
-                        (id) => `${companyName(id)} liquidated`
-                    ),
-                    `${money(action.metadata.forgiven)} forgiven`
-                ].join(' · ') || undefined,
+            detail: `${money(action.metadata.forgiven)} forgiven`,
             important: true
         }
     }

@@ -91,7 +91,8 @@ export class FundingTrainHandler<
     }
     onAction(action: HydratedAction, context: MachineContext<State>): string {
         const state = context.gameState
-        if (action.type === 'DeclareBankruptcy') return 'Bankrupt'
+        if (action instanceof HydratedDeclareBankruptcy)
+            return action.metadata?.continuation ?? 'Bankrupt'
         if (action instanceof HydratedBuyTrain) {
             delete state.trainFunding
             if (state.phaseChange) state.phaseChange.continuation.machineState = 'BuyingTrains'

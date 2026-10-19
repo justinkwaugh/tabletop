@@ -1,8 +1,8 @@
 import * as Type from 'typebox'
+import { actsFor, inReceivership } from '../finance/receivership.js'
 import { assert } from '@tabletop/common'
 import {
     Owner,
-    controllingOwner,
     getCompany,
     sameOwner,
     signedShares,
@@ -90,10 +90,13 @@ export class EarningsDistribution {
         private readonly state: DistributionState,
         readonly rules: EarningsRules
     ) {}
+    /** The choice that needs no decision: a receiver's only one, or withholding nothing. */
     automaticChoice(companyId: string): EarningsChoice | undefined {
+        const choices = this.rules.choices(this.state, companyId)
+        if (inReceivership(this.state, companyId) && choices.length === 1) return choices[0]
         return this.state.routeStep?.result?.revenue === 0 &&
             this.state.routeStep.result.routes.length === 0 &&
-            this.rules.choices(this.state, companyId).includes('withhold')
+            choices.includes('withhold')
             ? 'withhold'
             : undefined
     }
@@ -103,7 +106,7 @@ export class EarningsDistribution {
             !!this.state.routeStep.result &&
             !this.state.earningsDistribution &&
             !getCompany(this.state, companyId).closed &&
-            controllingOwner(this.state, companyId)?.playerId === playerId
+            actsFor(this.state, playerId, companyId)
         )
     }
     evaluate(

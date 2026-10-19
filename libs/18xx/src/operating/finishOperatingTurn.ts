@@ -1,4 +1,6 @@
 import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
+import { inReceivership } from '../finance/receivership.js'
+import { actsFor } from '../finance/receivership.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -11,7 +13,6 @@ import {
     type HydratedGameState,
     type GameAction
 } from '@tabletop/common'
-import { controllingOwner } from '../finance/finance.js'
 import type { DistributionState } from '../earnings/earningsDistribution.js'
 import type { ConstructionState } from '../construction/trackConstruction.js'
 import type { StationPlacementState } from '../stations/stationPlacement.js'
@@ -37,9 +38,11 @@ export function finishOperatingTurnReason(
         state.trainPurchaseStep?.companyId !== companyId
     )
         return 'This company is not finishing its operating turn.'
+    // A receivership buys what it can afford; it is excused when it cannot.
     if (
         !trainsOwnedBy(state, { kind: 'company', companyId }).length &&
-        rules.requiresTrain(state, companyId)
+        rules.requiresTrain(state, companyId) &&
+        !inReceivership(state, companyId)
     )
         return 'This company must buy a train before finishing its operating turn.'
     return undefined
@@ -80,7 +83,7 @@ export class HydratedFinishOperatingTurn
         assert(
             (this.source === ActionSource.User || this.source === ActionSource.System) &&
                 state.activePlayerIds.includes(this.playerId) &&
-                controllingOwner(state, this.companyId)?.playerId === this.playerId,
+                actsFor(state, this.playerId, this.companyId),
             'Only the operating company’s controlling owner may finish its turn'
         )
         const reason = finishOperatingTurnReason(state, this.#rules, this.companyId)

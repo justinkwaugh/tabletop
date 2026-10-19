@@ -1,4 +1,5 @@
 import { trainsOwnedBy } from '../trains/train.js'
+import { actsFor } from '../finance/receivership.js'
 import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
 import {
@@ -7,7 +8,7 @@ import {
     type RouteRevenueStop,
     type RouteRevenuePolicy
 } from './routeScoring.js'
-import { controllingOwner, getCompany, sameOwner } from '../finance/finance.js'
+import { getCompany, sameOwner } from '../finance/finance.js'
 import { RailwayMapState } from '../map/mapState.js'
 import { cityIsBlocked } from '../map/station.js'
 import type { RailwayMap } from '../map/map.js'
@@ -110,7 +111,7 @@ export class RouteEvaluation {
             !getCompany(this.state, companyId).closed &&
             (this.rules.canOperate
                 ? this.rules.canOperate(this.state, playerId, companyId)
-                : controllingOwner(this.state, companyId)?.playerId === playerId)
+                : actsFor(this.state, playerId, companyId))
         )
     }
     runnableTrains(companyId: string): Train[] {

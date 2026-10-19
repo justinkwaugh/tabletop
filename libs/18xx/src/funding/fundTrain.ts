@@ -73,7 +73,14 @@ export class HydratedFundTrain extends HydratableAction<typeof FundTrain> implem
     apply(state: HydratedGameState & FundingState): void {
         assert(this.isValid(state), 'Invalid FundTrain action')
         const funding = new EmergencyTrainFunding(state, this.#rules, this.#stocks, this.#trains)
-        const purchase = funding.purchases().find((purchase) => purchase.trainId === this.trainId)
+        const purchase = funding
+            .purchases()
+            .find(
+                (purchase) =>
+                    purchase.trainId === this.trainId &&
+                    purchase.definitionId === this.definitionId &&
+                    purchase.price === this.expectedPrice
+            )
         assert(purchase, 'Funding requires an eligible purchase')
         state.trainFunding = funding.begin(purchase)
     }

@@ -40,12 +40,11 @@ export class AutomaticTrainCompletionHandler<
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         if (
             (isFinishOperatingTurn(action) || isFinishTrains(action)) &&
-            action.source === ActionSource.System
+            action.source === ActionSource.System &&
+            action.companyId === context.gameState.trainPurchaseStep?.companyId &&
+            this.onlyFinish(context, action.playerId) === action.type
         )
-            return (
-                action.companyId === context.gameState.trainPurchaseStep?.companyId &&
-                this.onlyFinish(context, action.playerId) === action.type
-            )
+            return true
         return this.handler.isValidAction(action, context)
     }
 

@@ -2,12 +2,12 @@ import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { finiteCashOwnedBy, sharesOwned, type Owner } from '../finance/finance.js'
-import { StockMarketMove } from '../stock/stockMarket.js'
 import { evaluateShareDisposal, type ShareSale, type ShareSaleResult } from '../stock/shareSale.js'
 import type { ShareSaleTerms, StockRules } from '../stock/stockRules.js'
 import type { StockState } from '../stock/stockState.js'
 import type { OperatingState } from '../operating/operatingSet.js'
 import type { LoanState } from '../loans/loans.js'
+import type { EliminationRules } from './elimination.js'
 
 const Id = Type.String({ minLength: 1 })
 export const Debt = Type.Object(
@@ -29,15 +29,6 @@ export type CashCrisisState = OperatingState &
     LoanState &
     Type.Static<Type.TObject<typeof CashCrisisFields>>
 
-export const BankruptcyRecord = Type.Object(
-    {
-        liquidatedCompanyIds: Type.Array(Id),
-        marketMoves: Type.Array(StockMarketMove)
-    },
-    { additionalProperties: false }
-)
-export type BankruptcyRecord = Type.Static<typeof BankruptcyRecord>
-
 /** A sale to raise cash is refused if it would pass a presidency to another player. */
 export interface CashCrisisRules extends Pick<
     StockRules,
@@ -49,11 +40,8 @@ export interface CashCrisisRules extends Pick<
         shares: number,
         seller: Owner
     ): ShareSaleTerms | string
-    /**
-     * Disposes of a bankrupt player's shares and companies; the family then takes their cash,
-     * forgives the debt and removes them from play.
-     */
-    bankrupt(state: CashCrisisState, playerId: string): BankruptcyRecord
+    /** How a player who cannot pay leaves the game; the family forgives their debt. */
+    elimination: EliminationRules
 }
 
 export function isBankrupt(state: StockState, playerId: string): boolean {
