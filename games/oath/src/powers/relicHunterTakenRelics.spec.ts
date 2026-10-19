@@ -22,6 +22,7 @@ import { openTurn, testBanners, testPlayer, testState, testVaultWithRelics } fro
 import { served } from '../testing/projection.js'
 import { ongoingCampaign } from '../testing/required.js'
 import { OathRevision, CURRENT_OATH_REVISION } from '../util/revision.js'
+import { cagePurpleChoiceBoards } from '../util/obsidianCage.js'
 import '../powers/index.js'
 
 // Relic Hunter: "You may target facedown relics at targeted sites, adding 1 [defenseDie] per relic.
@@ -245,7 +246,7 @@ describe('Relic Hunter — what follows a relic sent down', () => {
         const onBoard = (s: Board, playerId: string, owner: string) => s.getPlayerState(playerId).warbandsOnBoard[owner] ?? 0
         const inBank = (s: Board, playerId: string, owner: string) => s.getPlayerState(playerId).warbandsInPersonalBank[owner] ?? 0
 
-        it("an Exile's caged warbands go to their own board, and the History names it", () => {
+        it("an Exile's caged warbands go to their own board, and the record says where, beside the Cage, not as a power's note", () => {
             const s = board({ bea: { relicIds: [CAGE] } }, caged({ ann: 2 }))
             win(s, [HOME, held(CAGE)])
             expect(reason(s, { bottomRelicIds: [CAGE] })).toBeUndefined()
@@ -255,7 +256,8 @@ describe('Relic Hunter — what follows a relic sent down', () => {
             expect(s.warbandsOnCard(CAGE)).toEqual({ ann: 0 })
             expect({ board: onBoard(s, 'ann', 'ann'), bank: inBank(s, 'ann', 'ann') }).toEqual({ board: before.board + 2, bank: before.bank })
             expect(s.requireVault().relicDeck).toEqual([DECK, CAGE])
-            expect(v?.metadata?.triggered).toEqual(["Obsidian Cage: its warbands went back: 2 to ann's board"])
+            expect(v?.metadata?.cageWentBack).toBe("its warbands went back: 2 to ann's board")
+            expect(v?.metadata?.triggered).toBeUndefined()
         })
 
         it("the Empire's warbands with two Imperial boards go as the attacker places them; without a placement the victory is refused", () => {
@@ -268,9 +270,11 @@ describe('Relic Hunter — what follows a relic sent down', () => {
             expect(reason(s, { bottomRelicIds: [CAGE], cagePlacement: placement })).toBeUndefined()
             // Kept, the Cage keeps its warbands, and a placement is refused.
             expect(reason(s, { cagePlacement: placement })).toBe('only the Obsidian Cage sent down places warbands')
-            expectWarbandsConserved(s, () => resolve(s, { bottomRelicIds: [CAGE], cagePlacement: placement }))
+            let v: HydratedCampaignResolveVictory | undefined
+            expectWarbandsConserved(s, () => (v = resolve(s, { bottomRelicIds: [CAGE], cagePlacement: placement })))
             expect([onBoard(s, 'chan', IMPERIAL_WARBANDS), onBoard(s, 'cit', IMPERIAL_WARBANDS)]).toEqual([4, 2])
             expect(s.warbandsOnCard(CAGE)).toEqual({ [IMPERIAL_WARBANDS]: 0 })
+            expect(v?.metadata?.cageWentBack).toBe("its warbands went back: 1 to chan's board, 1 to cit's board")
         })
 
         it('kept, the Cage goes to the attacker with its warbands on it', () => {
@@ -286,7 +290,9 @@ describe('Relic Hunter — what follows a relic sent down', () => {
             win(s, [HOME, held(CAGE)])
             expect(reason(s, { bottomRelicIds: [CAGE], cagePlacement: [{ playerId: 'chan', count: 2 }] })).toBe('only the Obsidian Cage sent down places warbands')
             const before = { board: onBoard(s, 'ann', 'ann'), bank: inBank(s, 'ann', 'ann') }
-            expectWarbandsConserved(s, () => resolve(s, { bottomRelicIds: [CAGE] }))
+            let v: HydratedCampaignResolveVictory | undefined
+            expectWarbandsConserved(s, () => (v = resolve(s, { bottomRelicIds: [CAGE] })))
+            expect(v?.metadata?.cageWentBack).toBeUndefined()
             expect(s.warbandsOnCard(CAGE)).toEqual({ ann: 0 })
             expect({ board: onBoard(s, 'ann', 'ann'), bank: inBank(s, 'ann', 'ann') }).toEqual({ board: before.board, bank: before.bank + 2 })
         })
@@ -308,6 +314,19 @@ describe("Relic Hunter's bottom choice on a player's own view", () => {
         expect(reason(guarded, { bottomRelicIds: [HORN] })).toMatch(/did not take/)
         expect(reason(guarded, { bottomRelicIds: [CAGE], cagePlacement: [{ playerId: 'chan', count: 1 }] })).toMatch(/did not take/)
         expect(JSON.stringify(served(s, view))).toBe(before)
+    })
+
+    it("the Cage's purple: the Imperial boards and the placement's check read nothing hidden on the attacker's served view", () => {
+        const cit = testPlayer({ playerId: 'cit', color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'h1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 1 }, warbandsInPersonalBank: { cit: 14 } })
+        const s = board({ bea: { relicIds: [CAGE] } }, { warbandsOnCards: { [CAGE]: { [IMPERIAL_WARBANDS]: 2 } } }, [cit])
+        win(s, [HOME, MARSHES, SITE_RELIC, held(CAGE)])
+        const view = { kind: 'player' as const, playerId: 'ann' }
+        const guarded = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, view)), view)
+        expect(cagePurpleChoiceBoards(guarded)).toEqual(cagePurpleChoiceBoards(s))
+        expect(cagePurpleChoiceBoards(guarded)).toEqual(['chan', 'cit'])
+        const choices: Bottoms[] = [{ bottomRelicIds: [CAGE] }, { bottomRelicIds: [CAGE], cagePlacement: [{ playerId: 'chan', count: 1 }] }, { bottomRelicIds: [CAGE], bottomRelicSlotIds: [SLOT], cagePlacement: [{ playerId: 'chan', count: 1 }, { playerId: 'cit', count: 1 }] }, { cagePlacement: [{ playerId: 'cit', count: 2 }] }]
+        for (const choice of choices) expect(reason(guarded, choice)).toBe(reason(s, choice))
+        expect(reason(guarded, choices[2])).toBeUndefined()
     })
 
     it("the record names the defender's relic sent down to everyone; a facedown relic sent down stays the attacker's alone", () => {

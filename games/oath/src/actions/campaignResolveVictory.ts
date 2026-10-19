@@ -80,6 +80,8 @@ export const CampaignResolveVictoryMetadata = Type.Object({
     relicsToDeckBottom: Type.Optional(
         Visibility.protect(Type.Array(Type.String()), { policy: Visibility.Policy.Actor })
     ),
+    /** R-10.13-H1 — the Obsidian Cage sent down by Relic Hunter: where its warbands went back. */
+    cageWentBack: Type.Optional(Type.String()),
     /** Sneak Attack — where the interrupted turn resumes. */
     resumeMachineState: Type.Optional(Type.Enum(MachineState)),
     /** R-5.5.8, R-9.4 */
@@ -155,7 +157,7 @@ export class HydratedCampaignResolveVictory
         assertExists(campaign, 'Resolving victory requires a Campaign in progress')
 
         const warbandsPlaced = this.placeWarbands(state, campaign)
-        const { relicsTaken, bannersSeized, seizeBurned, toBottom, cageNotes } = this.takeSpoils(
+        const { relicsTaken, bannersSeized, seizeBurned, toBottom, cageWentBack } = this.takeSpoils(
             state,
             campaign
         )
@@ -165,12 +167,7 @@ export class HydratedCampaignResolveVictory
             this.banishAndBurn(state, campaign)
         // R-5.5.8, after R-5.5.7: a banish waiting on an answer runs it there (`settleBanishedVictory`).
         const conclusion = campaign.banishPending ? undefined : concludeVictory(state)
-        const triggered = [
-            ...cageNotes,
-            ...relicNotes,
-            ...banishNotes,
-            ...(conclusion?.notes ?? [])
-        ]
+        const triggered = [...relicNotes, ...banishNotes, ...(conclusion?.notes ?? [])]
         const pileDeposits = conclusion?.pileDeposits ?? []
 
         this.metadata = {
@@ -184,6 +181,7 @@ export class HydratedCampaignResolveVictory
             favorBurned,
             defenderPlayerId: campaign.defenderPlayerId,
             relicsToDeckBottom: toBottom.length > 0 ? toBottom : undefined,
+            cageWentBack,
             revealedSiteCardId: revealed?.siteCardId,
             relicsRevealed: revealed?.relicsRevealed ?? 0,
             resumeMachineState: conclusion?.resumeMachineState,
@@ -221,7 +219,7 @@ export class HydratedCampaignResolveVictory
         const relicsTaken: string[] = []
         const bannersSeized: Banner[] = []
         const toBottom: string[] = []
-        const cageNotes: string[] = []
+        let cageWentBack: string | undefined
         let seizeBurned = 0
 
         for (const target of campaign.targets) {
@@ -229,7 +227,7 @@ export class HydratedCampaignResolveVictory
                 releaseRelic(state, defender.playerId, target.cardId)
                 if (this.bottomRelicIds?.includes(target.cardId)) {
                     toBottom.push(target.cardId)
-                    if (target.cardId === OBSIDIAN_CAGE_ID) cageNotes.push(...this.emptyCage(state))
+                    if (target.cardId === OBSIDIAN_CAGE_ID) cageWentBack = this.emptyCage(state)
                     // R-X.3(b) — the relic goes into the vault, which is never rolled back.
                     this.revealsInfo = true
                 } else {
@@ -256,21 +254,21 @@ export class HydratedCampaignResolveVictory
             }
         }
 
-        return { relicsTaken, bannersSeized, seizeBurned, toBottom, cageNotes }
+        return { relicsTaken, bannersSeized, seizeBurned, toBottom, cageWentBack }
     }
 
     /**
      * R-10.13-H1 — the Obsidian Cage sent down: its warbands go back as its Action moves them, the
      * Empire's as the attacker places them; before revision 17 (R-X.4) they return to their banks.
+     * The History tells it after the Cage's own clause, so it is no power's note.
      */
-    private emptyCage(state: HydratedOathGameState): string[] {
+    private emptyCage(state: HydratedOathGameState): string | undefined {
         if (!cageReturnsToBoards(state)) {
             returnWarbandsOnCardToBanks(state, OBSIDIAN_CAGE_ID)
-            return []
+            return undefined
         }
         const groups = cagedGroupsToBoards(state, this.cagePlacement)
-        const wentBack = cageWentBackSummary(returnCagedWarbands(state, groups))
-        return wentBack ? [`Obsidian Cage: ${wentBack}`] : []
+        return cageWentBackSummary(returnCagedWarbands(state, groups)) || undefined
     }
 
     private banishAndBurn(state: HydratedOathGameState, campaign: CampaignState) {
