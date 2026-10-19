@@ -1,4 +1,5 @@
 import {
+    EmergencyTrainFunding,
     placeStockMarker,
     discardableTrains,
     getCompany,
@@ -6,8 +7,9 @@ import {
     type TrackLayDetails
 } from '@tabletop/18xx'
 import { TrainRules1846, trainBuyingChoices1846 } from './trains.js'
+import { TrainFundingRules1846 } from './trainFundingRules.js'
 import { EighteenFortySixTileSet } from './tiles.js'
-import { stockChoices, Market1846 } from './stock.js'
+import { stockChoices, Market1846, StockRules1846 } from './stock.js'
 import {
     GameEngine,
     PlayerStatus,
@@ -322,4 +324,40 @@ export function relocateStation(
     )
     assert(station?.status === 'placed')
     station.position = { locationId, nodeId, slot: 0 }
+}
+
+export function fundingModel(table: StockTestGame) {
+    return new EmergencyTrainFunding(
+        table.hydrated,
+        TrainFundingRules1846,
+        StockRules1846,
+        TrainRules1846
+    )
+}
+export function fundablePurchases(table: StockTestGame) {
+    return fundingModel(table).purchases()
+}
+export function fundTrain(table: StockTestGame, definitionId?: string) {
+    const purchase = fundablePurchases(table).find(
+        (purchase) => !definitionId || purchase.definitionId === definitionId
+    )
+    assertExists(purchase, 'A fundable purchase is required')
+    const { price, ...request } = purchase
+    return table.act('FundTrain', { ...request, expectedPrice: price })
+}
+/** Issues, contributes and buys as the funding directs, stopping at a sale or a bankruptcy. */
+export function resolveFunding(table: StockTestGame): TransactionResult | undefined {
+    let result: TransactionResult | undefined
+    while (table.state.machineState === 'FundingTrain') {
+        const next = fundingModel(table).next()
+        if (next.kind === 'issue')
+            result = table.act('IssueTreasuryShares', { expectedProceeds: next.details.proceeds })
+        else if (next.kind === 'contribute')
+            result = table.act('ContributeTrainFunds', { owner: next.owner, amount: next.amount })
+        else if (next.kind === 'buy') {
+            const { price, ...request } = next.purchase
+            result = table.act('BuyTrain', { ...request, expectedPrice: price })
+        } else break
+    }
+    return result
 }

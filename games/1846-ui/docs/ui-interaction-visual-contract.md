@@ -76,9 +76,11 @@ runtime resumes public purchases automatically.
   C&WI's extra station is a separate title action, not an ordinary token allowance.
 - Independent absorption uses shared negotiated-purchase selection, price and
   response controls. The title engine handles cash/trains, closure and restrictions.
-- Emergency funding retains title-issued shares, personal sales, contribution and
-  bankruptcy decisions; it does not create generic funding state. Receivers use
-  shared automatic routes and title settlement/train-buying rules.
+- Emergency funding is the family's compulsory train funding under 1846's rules
+  (issuance first, one block per corporation, the operating presidency and the
+  corporation protected); the shared funding panel drives it. Bankruptcy follows
+  automatically once funding is exhausted and the game goes on. Receivers run
+  trains through the shared route UI; the receiver's other steps are automatic.
 
 All controls use shared theme variables, keyboard buttons and accessible labels.
 Read-only history, a pending publication or another actor's turn disable mutation.
@@ -107,7 +109,7 @@ uses recorded inputs/metadata, never action patches as descriptions.
 - Run ordinary and express trains, including Mail Contract and a barred acquired
   train; preview revenue agrees with committed rules. Receiver routes use the same UI.
 - Buy a private/independent, accept/decline, buy/discard trains, distribute dividends,
-  fund a mandatory train, declare bankruptcy and take over a receiver.
+  fund a mandatory train, go bankrupt and take over a receiver.
 - Two-player opening and final operating turn work through the shared table.
 - Desktop and narrow viewports retain accessible actions and board navigation;
   other titles retain their normal sequential operating controls.

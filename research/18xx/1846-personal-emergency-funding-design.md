@@ -1,5 +1,10 @@
 # 1846 personal emergency train funding
 
+> Superseded on 2026-10-19: 1846 now runs the family's compulsory train funding with
+> `TrainFundingRules1846` (`games/1846/src/trainFundingRules.ts`) and an elimination
+> policy (`Elimination1846`); see [train funding](train-funding-slice-design.md) and
+> [receivership](receivership-design.md). The procedure below is the rules evidence.
+
 This slice extends the atomic emergency purchase with committed treasury issuance
 and personal stock sales. Bankruptcy, receivership, returned trains and later
 train phases remain separate work. An unfunded corporation cannot finish its turn.

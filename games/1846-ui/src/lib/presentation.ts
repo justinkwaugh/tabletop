@@ -120,13 +120,13 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
         {
             label: 'Payout',
             states: ['DistributingEarnings'],
-            actions: ['DistributeEarnings', 'SettleIndependent', 'SettleReceiver'],
+            actions: ['DistributeEarnings', 'SettleIndependent'],
             status: (_state, _actions, summaries) => summaries.payout
         },
         {
             label: 'Trains',
             states: ['BuyingTrains', 'FundingTrain', 'DiscardingTrains'],
-            actions: ['BuyTrain', 'EmergencyBuyTrain', 'BuyReceiverTrain'],
+            actions: ['BuyTrain', 'FundTrain'],
             status: (_state, _actions, summaries) => summaries.trains
         }
     ],

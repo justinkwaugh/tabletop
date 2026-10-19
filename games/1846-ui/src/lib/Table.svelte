@@ -21,7 +21,6 @@
     import Draft from './Draft.svelte'
     import RevenueMarkerPrompt from './RevenueMarkerPrompt.svelte'
     import SteamboatAssignment from './SteamboatAssignment.svelte'
-    import EmergencyTrains from './EmergencyTrains.svelte'
     import CorporateFinance from './CorporateFinance.svelte'
     import { describe1846Action } from './history.js'
     import './panels.css'
@@ -123,17 +122,6 @@
                             <RevenueMarkerPrompt {session} />
                         {:else if state.machineState === 'AssigningSteamboat'}
                             <SteamboatAssignment {session} />
-                        {:else if state.machineState === 'RunningReceiver'}
-                            <AutomaticRoutes
-                                {session}
-                                {createRouteWorker}
-                                onFocusRoute={focusRoute}
-                                trainColors={session.presentation.trainColors}
-                            />
-                        {:else if state.machineState === 'FundingTrain'}
-                            <section aria-label="Emergency train funding">
-                                <EmergencyTrains {session} />
-                            </section>
                         {:else}
                             {#if session.constructionMode === 'finance' && session.financeChoices.length && !state.purchaseOffer}
                                 <CorporateFinance {session} />
@@ -159,22 +147,19 @@
                                     onFocusRoute={focusRoute}
                                 />
                             {/if}
-                            {#if state.machineState === 'StockRound' && session.receiverShares.length}
+                            {#if state.machineState === 'StockRound' && session.presidencyClaims.length}
                                 <section aria-label="Companies in receivership">
                                     <h2>Take over a company</h2>
-                                    {#each session.receiverShares as choice (choice.companyId)}
+                                    {#each session.presidencyClaims as offer (offer.companyId)}
                                         <button
                                             disabled={!session.canChooseAction}
-                                            onclick={() => session.buyReceiverShare(choice)}
-                                            >{choice.companyId} · buy 10% for ${choice.price} and become
+                                            onclick={() => session.claimPresidency(offer)}
+                                            >{offer.companyId} · buy 10% for ${offer.price} and become
                                             president</button
                                         >
                                     {/each}
                                 </section>
                             {/if}
-                            {#if state.machineState === 'BuyingTrains'}<EmergencyTrains
-                                    {session}
-                                />{/if}
                         {/if}
                     </div>{/key}
             </div>

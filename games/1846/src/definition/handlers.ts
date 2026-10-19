@@ -17,7 +17,6 @@ import {
     isFinishTrack,
     isPlaceStation,
     nextOperatingCompany,
-    canStartOperatingRound,
     canStartStockRound,
     trainsRustingAfterOperation,
     type EighteenXXStateHandler
@@ -31,21 +30,10 @@ import {
     corporationAwaitingClosure,
     corporationClosureHandler
 } from '../closeCorporation.js'
-import { BuyReceiverShareAction, receiverShareChoices } from '../receiverShares.js'
-import { StartReceiverTurn, StartReceiverTurnAction } from '../receiverOperations.js'
-import { inReceivership } from '../receivership.js'
 import { AssignSteamboatAction, steamboatOwner } from '../steamboat.js'
 import { SettleIndependent, SettleIndependentAction } from '../settleIndependent.js'
 import { CorporateFinanceAction, corporateFinanceChoices } from '../corporateFinance.js'
 import { StationRules1846, stationChoices1846 } from '../stations.js'
-import {
-    EmergencyBuyTrainAction,
-    StartEmergencyFundingAction,
-    emergencyFundingStart,
-    emergencyTrainChoices
-} from '../emergencyTrain.js'
-import { SellEmergencySharesAction, emergencyShareSaleChoices } from '../emergencyFunding.js'
-import { DeclareBankruptcyAction, bankruptcyShortfall } from '../bankruptcy.js'
 import type { HydratedEighteenFortySixState } from '../state.js'
 
 type State = HydratedEighteenFortySixState
@@ -63,16 +51,6 @@ function resumingOpeningPurchases(state: State): boolean {
         state.draft.stage === 'operating' &&
         canStartStockRound(state)
     )
-}
-/** The next company to operate when it is in receivership and its turn can begin. */
-function receiverTurnCompany(state: State): string | undefined {
-    const companyId = nextOperatingCompany(state)
-    return companyId &&
-        state.operatingSet?.privateIncomePaid &&
-        !canStartOperatingRound(state) &&
-        inReceivership(state, companyId)
-        ? companyId
-        : undefined
 }
 
 export const draftingHandler: Handler = {
@@ -112,7 +90,7 @@ export const revealingDraftHandler: Handler = {
     }
 }
 
-/** Zero-price corporations close before trading, and receivers' shares may be bought. */
+/** Zero-price corporations close before trading. */
 export function stockRound1846(family: Handler): Handler {
     return {
         enter(context) {
@@ -123,19 +101,11 @@ export function stockRound1846(family: Handler): Handler {
         validActionsForPlayer: (playerId, context) =>
             corporationAwaitingClosure(context.gameState)
                 ? []
-                : [
-                      ...family.validActionsForPlayer(playerId, context),
-                      ...(receiverShareChoices(context.gameState, playerId).length
-                          ? ['BuyReceiverShare']
-                          : [])
-                  ],
+                : family.validActionsForPlayer(playerId, context),
         isValidAction(action, context) {
-            const companyId = corporationAwaitingClosure(context.gameState)
-            return companyId
+            return corporationAwaitingClosure(context.gameState)
                 ? corporationClosureHandler.isValidAction(action, context)
-                : action instanceof BuyReceiverShareAction
-                  ? action.isValid(context.gameState)
-                  : family.isValidAction(action, context)
+                : family.isValidAction(action, context)
         },
         onAction(_action, context) {
             if (
@@ -151,37 +121,26 @@ export function stockRound1846(family: Handler): Handler {
 }
 
 /**
- * Between companies: the Steamboat is assigned as a round starts, receivers operate their
- * railroads, and the two-player opening resumes its purchases after the preliminary set.
+ * Between companies: the Steamboat is assigned as a round starts, and the two-player opening
+ * resumes its purchases after the preliminary set.
  */
 export function operatingSet1846(family: Handler): Handler {
     return {
         enter(context) {
-            const state = context.gameState
-            if (resumingOpeningPurchases(state)) {
+            if (resumingOpeningPurchases(context.gameState))
                 context.addSystemAction(ResumeOpeningPurchases)
-                return
-            }
-            const companyId = receiverTurnCompany(state)
-            if (companyId) context.addSystemAction(StartReceiverTurn, { companyId })
             else family.enter(context)
         },
         validActionsForPlayer: (playerId, context) =>
             family.validActionsForPlayer(playerId, context),
         isValidAction(action, context) {
-            const state = context.gameState
-            if (action instanceof ResumeOpeningPurchasesAction) return action.isValid(state)
-            if (action instanceof StartReceiverTurnAction)
-                return (
-                    action.source === ActionSource.System &&
-                    action.companyId === receiverTurnCompany(state)
-                )
+            if (action instanceof ResumeOpeningPurchasesAction)
+                return action.isValid(context.gameState)
             return family.isValidAction(action, context)
         },
         onAction(action, context) {
             const state = context.gameState
             if (action instanceof ResumeOpeningPurchasesAction) return 'BuyingOpeningCompanies'
-            if (action instanceof StartReceiverTurnAction) return 'RunningReceiver'
             if (action instanceof HydratedStartOperatingRound && steamboatOwner(state))
                 return 'AssigningSteamboat'
             if (action instanceof HydratedStartOperatingTurn) delete state.financeStep
@@ -300,44 +259,36 @@ export function distributingEarnings1846(family: Handler): Handler {
 export function buyingTrains1846(family: Handler): Handler {
     return {
         enter: (context) => family.enter(context),
-        validActionsForPlayer: (id, context) => [
-            ...family.validActionsForPlayer(id, context),
-            ...(context.gameState.activePlayerIds.includes(id) &&
-            emergencyTrainChoices(context.gameState).length
-                ? ['EmergencyBuyTrain']
-                : []),
-            ...(context.gameState.activePlayerIds.includes(id) &&
-            emergencyFundingStart(context.gameState)
-                ? ['StartEmergencyFunding']
-                : [])
-        ],
-        isValidAction: (action, context) =>
-            action instanceof EmergencyBuyTrainAction ||
-            action instanceof StartEmergencyFundingAction
-                ? action.isValid(context.gameState)
-                : family.isValidAction(action, context),
-        onAction(action, { gameState }) {
-            if (gameState.emergencyFunding) return 'FundingTrain'
-            if (gameState.phaseChange) return 'AdvancingPhase'
-            if (!isFinishOperatingTurn(action)) return 'BuyingTrains'
-            gameState.activePlayerIds = []
-            return 'OperatingSet'
+        validActionsForPlayer: (id, context) => family.validActionsForPlayer(id, context),
+        isValidAction: (action, context) => family.isValidAction(action, context),
+        onAction(action, context) {
+            const next = family.onAction(action, context)
+            if (isFinishOperatingTurn(action)) context.gameState.activePlayerIds = []
+            return next
         }
     }
 }
 
-export function rustingTrains1846(family: Handler): Handler {
+/** A corporation whose price falls to zero during funding closes before funding goes on. */
+export function fundingTrain1846(family: Handler): Handler {
     return {
-        enter: (context) => family.enter(context),
-        validActionsForPlayer: () => [],
-        isValidAction: (action, context) => family.isValidAction(action, context),
-        onAction(_action, { gameState }) {
-            const companyId = gameState.routeStep?.companyId
-            assertExists(companyId, 'Rusting requires an operating company')
-            return inReceivership(gameState, companyId)
-                ? 'SettlingReceiver'
-                : 'DistributingEarnings'
-        }
+        enter(context) {
+            const companyId = corporationAwaitingClosure(context.gameState)
+            if (companyId) context.addSystemAction(CloseCorporation, { companyId })
+            else family.enter(context)
+        },
+        validActionsForPlayer: (id, context) =>
+            corporationAwaitingClosure(context.gameState)
+                ? []
+                : family.validActionsForPlayer(id, context),
+        isValidAction: (action, context) =>
+            corporationAwaitingClosure(context.gameState)
+                ? corporationClosureHandler.isValidAction(action, context)
+                : family.isValidAction(action, context),
+        onAction: (action, context) =>
+            action instanceof CloseCorporationAction
+                ? 'FundingTrain'
+                : family.onAction(action, context)
     }
 }
 
@@ -369,44 +320,5 @@ export const settlingIndependentHandler: Handler = {
     },
     onAction() {
         return 'OperatingSet'
-    }
-}
-
-export const fundingTrainHandler: Handler = {
-    enter() {},
-    validActionsForPlayer(id, { gameState }) {
-        if (!gameState.activePlayerIds.includes(id)) return []
-        return [
-            ...(bankruptcyShortfall(gameState) !== undefined ? ['DeclareBankruptcy1846'] : []),
-            ...(emergencyTrainChoices(gameState).length ? ['EmergencyBuyTrain'] : []),
-            ...(emergencyShareSaleChoices(gameState).length ? ['SellEmergencyShares'] : [])
-        ]
-    },
-    isValidAction(action, { gameState }) {
-        return (
-            (action instanceof EmergencyBuyTrainAction ||
-                action instanceof SellEmergencySharesAction ||
-                action instanceof DeclareBankruptcyAction) &&
-            action.isValid(gameState)
-        )
-    },
-    onAction(_action, { gameState }) {
-        if (gameState.result) return 'GameOver'
-        if (
-            !gameState.emergencyFunding &&
-            gameState.trainPurchaseStep &&
-            inReceivership(gameState, gameState.trainPurchaseStep.companyId)
-        )
-            return 'BuyingReceiverTrain'
-        if (corporationAwaitingClosure(gameState)) return 'ClosingFundingCorporation'
-        if (gameState.phaseChange) return 'AdvancingPhase'
-        return gameState.emergencyFunding ? 'FundingTrain' : 'BuyingTrains'
-    }
-}
-
-export const closingFundingCorporationHandler: Handler = {
-    ...corporationClosureHandler,
-    onAction(_action: HydratedAction, { gameState }: Context) {
-        return corporationAwaitingClosure(gameState) ? 'ClosingFundingCorporation' : 'FundingTrain'
     }
 }

@@ -11,6 +11,7 @@ import {
     TrainPurchase,
     StationPlacement,
     payingRouteStops,
+    receiverTrainPurchase,
     type TrainDefinition,
     type RouteRevenueStop
 } from '@tabletop/18xx'
@@ -20,13 +21,15 @@ import {
     phaseIIIReadyGame,
     buyTrain,
     discardTrain,
-    setCompanyInReceivership
+    setCompanyInReceivership,
+    fundablePurchases,
+    fundingModel,
+    fundTrain,
+    resolveFunding
 } from './testSupport.js'
 import { TrainDepot1846, TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 import { StationRules1846 } from './stations.js'
 import { RouteRules1846 } from './routes.js'
-import { emergencyBankOffers, emergencyTrainChoices } from './emergencyTrain.js'
-import { receiverTrainPurchase } from './receiverOperations.js'
 import { isAdvancePhase1846 } from './phases.js'
 
 describe('1846 Phase III trains and lifecycle', () => {
@@ -211,16 +214,15 @@ describe('1846 Phase III trains and lifecycle', () => {
                     ? { ...train, status: 'market' }
                     : train
             )
-        expect(Math.min(...emergencyBankOffers(table.hydrated).map((offer) => offer.price))).toBe(
-            160
-        )
-        const choice = emergencyTrainChoices(table.hydrated).find(
-            (offer) => offer.definitionId === '3/5'
-        )
+        expect(Math.min(...fundablePurchases(table).map((offer) => offer.price))).toBe(160)
+        const choice = fundablePurchases(table).find((offer) => offer.definitionId === '3/5')
         assertExists(choice)
-        expect(choice.contribution).toBe(60)
+        expect(fundingModel(table).preview(choice)).toMatchObject({
+            contributions: [{ amount: 60 }]
+        })
         const beforePurchase = structuredClone(table.state)
-        table.act('EmergencyBuyTrain', choice)
+        fundTrain(table, '3/5')
+        resolveFunding(table)
         expect(
             table.state.trainInventory.trains.find((train) => train.id === choice.trainId)
         ).toMatchObject({ status: 'owned', definitionId: '3/5' })
@@ -232,9 +234,9 @@ describe('1846 Phase III trains and lifecycle', () => {
         )
         assertExists(cash)
         cash.amount = 160
-        expect(receiverTrainPurchase(table.hydrated)).toMatchObject({
+        expect(receiverTrainPurchase(table.hydrated, 'IC', TrainRules1846)).toMatchObject({
             definitionId: '3/5',
-            price: 160
+            expectedPrice: 160
         })
     })
     it('retires phased-out trains after an unused final route step and records the removal', () => {

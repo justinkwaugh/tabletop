@@ -1,4 +1,4 @@
-import { inReceivership } from './receivership.js'
+import { inReceivership } from '@tabletop/18xx'
 import { MarketZoneColors1846, Market1846 } from './stock.js'
 import {
     dividendEntitlements,

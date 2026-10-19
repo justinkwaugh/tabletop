@@ -1,4 +1,3 @@
-import { EmergencyFundingFields } from './emergencyFunding.js'
 import { AcquisitionFields } from './acquisitions.js'
 import { RevenueMarkerFields } from './revenueMarkers.js'
 import { SteamboatFields } from './steamboat.js'
@@ -12,6 +11,8 @@ import { Compile } from 'typebox/compile'
 import { Visibility } from '@tabletop/common'
 import {
     CashCrisisFields,
+    FundingFields,
+    validateTrainFunding,
     composeEighteenXXState,
     defineEighteenXXState,
     type HydratedEighteenXXState,
@@ -99,7 +100,7 @@ export const EighteenFortySixState = composeEighteenXXState(
         bankruptPlayerIds: CashCrisisFields.bankruptPlayerIds,
         ...PhaseFields,
         ...AcquisitionFields,
-        ...EmergencyFundingFields,
+        ...FundingFields,
         ...RevenueMarkerFields,
         ...PrivatePowerFields,
         ...CompanyAcquisitionOfferFields,
@@ -138,12 +139,7 @@ export const EighteenFortySixState = composeEighteenXXState(
         'ClosingOperatingCorporation',
         'BuyingTrains',
         'FundingTrain',
-        'RunningReceiver',
-        'SettlingReceiver',
-        'BuyingReceiverTrain',
-        'FinishingReceiverTurn',
         'GameOver',
-        'ClosingFundingCorporation',
         'AdvancingPhase',
         'DiscardingTrains',
         'RustingTrains'
@@ -170,6 +166,7 @@ function validate1846State(state: HydratedEighteenFortySixState, components: Tit
     validateRouteStep(state)
     validatePhaseChange(state)
     validateTrainPurchaseStep(state)
+    validateTrainFunding(state)
     validateRailwayComponents(state, components)
 }
 

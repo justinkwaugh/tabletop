@@ -8,10 +8,9 @@ import {
     purchaseChoices,
     trainsOwnedBy
 } from '@tabletop/18xx'
-import { stockGame } from './testSupport.js'
+import { stockGame, fundTrain } from './testSupport.js'
 import { TransferRules1846 } from './acquisitions.js'
 import { TrainRules1846 } from './trains.js'
-import { emergencyTrainChoices } from './emergencyTrain.js'
 
 function tradingGame(sharedPresident = false) {
     const table = stockGame()
@@ -72,7 +71,7 @@ describe('1846 intercorporation train purchases', () => {
         const cash = finiteCashOwnedBy(table.state, request.seller)
         const actions = [...table.act('OfferPurchase', request).processedActions]
         expect(table.state.activePlayerIds).toEqual(['p2'])
-        expect(emergencyTrainChoices(table.hydrated)).toEqual([])
+        expect(() => fundTrain(table)).toThrow()
         expect(() =>
             table.act('FinishOperatingTurn', { companyId: 'IC', playerId: buyer })
         ).toThrow()

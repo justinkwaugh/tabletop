@@ -7,19 +7,6 @@ import {
     unboughtOpeningCompanies,
     priceFor,
     canPassOpeningPurchase,
-    DeclareBankruptcy,
-    bankruptcyShortfall,
-    BuyReceiverShare,
-    receiverShareChoices,
-    type ReceiverShare,
-    EmergencyBuyTrain,
-    StartEmergencyFunding,
-    SellEmergencyShares,
-    emergencyFundingStart,
-    emergencyFundingChoices,
-    emergencyShareSaleChoices,
-    emergencyTrainChoices,
-    type EmergencyPurchase,
     PrivateConstruction,
     TrackRules1846,
     BuildPrivateTrack,
@@ -39,7 +26,9 @@ import {
     type SteamboatAssignment,
     ChooseDraftCard,
     PassFinalCompany,
-    choicesFor
+    choicesFor,
+    StockRules1846,
+    ReceivershipRules1846
 } from '@tabletop/1846'
 import { assertExists } from '@tabletop/common'
 import {
@@ -49,13 +38,15 @@ import {
     type TitlePrivatePower
 } from '@tabletop/18xx-ui'
 import {
+    ClaimPresidency,
     isOfferPurchase,
     isRespondToPurchaseOffer,
     nextOperatingCompany,
+    presidencyClaims,
+    type PresidencyClaimOffer,
     stationsAfterLay,
     type OfferPurchase,
     type RespondToPurchaseOffer,
-    type ShareSaleDetails,
     type TrackRequest
 } from '@tabletop/18xx'
 import { mapState1846 } from './mapState.js'
@@ -438,50 +429,22 @@ export class EighteenFortySixSession extends BaseSession {
             })
         )
     }
-    readonly bankruptcyShortfall = $derived(bankruptcyShortfall(this.gameState))
-    readonly receiverShares = $derived(
-        this.myPlayer ? receiverShareChoices(this.gameState, this.myPlayer.id) : []
+    readonly presidencyClaims = $derived(
+        this.myPlayer
+            ? presidencyClaims(
+                  this.gameState,
+                  { stockRules: StockRules1846, receivershipRules: ReceivershipRules1846 },
+                  this.myPlayer.id
+              )
+            : []
     )
-    async buyReceiverShare(choice: ReceiverShare): Promise<void> {
+    async claimPresidency(offer: PresidencyClaimOffer): Promise<void> {
         await this.applyAction(
-            this.createPlayerAction(BuyReceiverShare, {
-                companyId: choice.companyId,
-                expectedPrice: choice.price
+            this.createPlayerAction(ClaimPresidency, {
+                companyId: offer.companyId,
+                expectedPrice: offer.price
             })
         )
-    }
-    async declareBankruptcy(): Promise<void> {
-        assertExists(this.gameState.emergencyFunding, 'Bankruptcy requires emergency funding')
-        await this.applyAction(
-            this.createPlayerAction(DeclareBankruptcy, {
-                companyId: this.gameState.emergencyFunding.companyId
-            })
-        )
-    }
-    readonly fundingStart = $derived(emergencyFundingStart(this.gameState))
-    readonly fundingChoices = $derived(emergencyFundingChoices(this.gameState))
-    readonly emergencySales = $derived(emergencyShareSaleChoices(this.gameState))
-    async startEmergencyFunding(): Promise<void> {
-        assertExists(this.fundingStart, 'Emergency funding requires a shortfall')
-        await this.applyAction(
-            this.createPlayerAction(StartEmergencyFunding, {
-                companyId: this.fundingStart.companyId
-            })
-        )
-    }
-    async sellEmergencyShares(choice: ShareSaleDetails): Promise<void> {
-        const sale = choice.sales[0]
-        await this.applyAction(
-            this.createPlayerAction(SellEmergencyShares, {
-                companyId: sale.companyId,
-                shares: sale.shares,
-                expectedProceeds: choice.proceeds
-            })
-        )
-    }
-    readonly emergencyTrainChoices = $derived(emergencyTrainChoices(this.gameState))
-    async emergencyBuyTrain(choice: EmergencyPurchase): Promise<void> {
-        await this.applyAction(this.createPlayerAction(EmergencyBuyTrain, choice))
     }
     readonly financeChoices = $derived(corporateFinanceChoices(this.gameState))
     readonly financeLabel = $derived.by(() => {

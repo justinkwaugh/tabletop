@@ -1,6 +1,6 @@
 import { Charters1846 } from './charters.js'
 import { releasePrivateReservations } from './stations.js'
-import { inReceivership } from './receivership.js'
+import { inReceivership } from '@tabletop/18xx'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {

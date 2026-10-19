@@ -1,8 +1,6 @@
-import { inReceivership } from './receivership.js'
 import { canRunAcquiredTrain } from './acquisitions.js'
 import {
     privateOwningCompany,
-    controllingOwner,
     type RouteRules,
     type TrainRunningState,
     type PaidConnectionBonus
@@ -31,9 +29,6 @@ const EastWestConnection: PaidConnectionBonus = {
 }
 
 export const RouteRules1846: RouteRules = {
-    canOperate: (state, playerId, companyId) =>
-        inReceivership(state, companyId) ||
-        controllingOwner(state, companyId)?.playerId === playerId,
     canRunTrain: canRunAcquiredTrain,
     map: EighteenFortySixMap,
     tileSet: EighteenFortySixTileSet,

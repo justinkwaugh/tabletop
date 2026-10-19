@@ -1,7 +1,6 @@
 import { Visibility, type GameDefinition, type GameRuntime } from '@tabletop/common'
 import {
     GameEndingHandler,
-    RunningTrainsHandler,
     createEighteenXXRuntime,
     defineAction,
     type EighteenXXStateHandler,
@@ -9,45 +8,7 @@ import {
 } from '@tabletop/18xx'
 import { EndingRules1846 } from '../ending.js'
 import { PublicDistributionActions, buyingOpeningCompaniesHandler } from '../publicDistribution.js'
-import {
-    DeclareBankruptcy,
-    DeclareBankruptcyAction,
-    isDeclareBankruptcy1846
-} from '../bankruptcy.js'
-import {
-    BuyReceiverShare,
-    BuyReceiverShareAction,
-    BuyReceiverShareValidator
-} from '../receiverShares.js'
-import {
-    StartReceiverTurn,
-    StartReceiverTurnAction,
-    StartReceiverValidator,
-    SettleReceiver,
-    SettleReceiverAction,
-    SettleReceiverValidator,
-    BuyReceiverTrain,
-    BuyReceiverTrainAction,
-    BuyReceiverValidator,
-    FinishReceiverTurn,
-    FinishReceiverTurnAction,
-    FinishReceiverValidator,
-    settlingReceiverHandler,
-    buyingReceiverHandler
-} from '../receiverOperations.js'
-import {
-    SellEmergencyShares,
-    SellEmergencySharesAction,
-    isSellEmergencyShares
-} from '../emergencyFunding.js'
-import {
-    EmergencyBuyTrain,
-    EmergencyBuyTrainAction,
-    isEmergencyBuyTrain,
-    StartEmergencyFunding,
-    StartEmergencyFundingAction,
-    isStartEmergencyFunding
-} from '../emergencyTrain.js'
+import { ReceivershipRules1846 } from '../receivership.js'
 import {
     BuildPrivateTrack,
     BuildPrivateTrackAction,
@@ -62,6 +23,7 @@ import {
     AssignRevenueMarkerAction
 } from '../revenueMarkers.js'
 import { PhaseRules1846 } from '../phases.js'
+import { TrainFundingRules1846 } from '../trainFundingRules.js'
 import { Phases1846, TrainRules1846 } from '../trains.js'
 import { EarningsRules1846 } from '../earnings.js'
 import { StationRules1846 } from '../stations.js'
@@ -108,16 +70,14 @@ import {
 import {
     assigningSteamboatHandler,
     buyingTrains1846,
-    closingFundingCorporationHandler,
     closingOperatingCorporationHandler,
     distributingEarnings1846,
     draftingHandler,
-    fundingTrainHandler,
+    fundingTrain1846,
     layingTrack1846,
     operatingSet1846,
     revealingDraftHandler,
     runningTrains1846,
-    rustingTrains1846,
     settlingIndependentHandler,
     stockRound1846
 } from './handlers.js'
@@ -152,6 +112,8 @@ export const TitleRules1846: EighteenXXTitleRules<
     trainRules: TrainRules1846,
     phases: Phases1846,
     phaseRules: PhaseRules1846,
+    trainFundingRules: TrainFundingRules1846,
+    receivershipRules: ReceivershipRules1846,
     privateRules: PrivateRules1846,
     privatePowerRules: PrivatePowerRules1846,
     transferRules: TransferRules1846,
@@ -169,7 +131,7 @@ export const TitleRules1846: EighteenXXTitleRules<
         RunningTrains: withPrivatePowers(runningTrains1846),
         DistributingEarnings: withPrivatePowers(distributingEarnings1846),
         BuyingTrains: withPrivatePowers(buyingTrains1846),
-        RustingTrains: rustingTrains1846
+        FundingTrain: fundingTrain1846
     },
     titleStateHandlers: {
         Drafting: endsGame(draftingHandler),
@@ -177,40 +139,9 @@ export const TitleRules1846: EighteenXXTitleRules<
         BuyingOpeningCompanies: endsGame(buyingOpeningCompaniesHandler),
         AssigningSteamboat: endsGame(assigningSteamboatHandler),
         SettlingIndependent: endsGame(settlingIndependentHandler),
-        ClosingOperatingCorporation: endsGame(closingOperatingCorporationHandler),
-        FundingTrain: endsGame(fundingTrainHandler),
-        ClosingFundingCorporation: endsGame(closingFundingCorporationHandler),
-        RunningReceiver: endsGame(new RunningTrainsHandler(RouteRules1846, 'SettlingReceiver')),
-        SettlingReceiver: endsGame(settlingReceiverHandler),
-        BuyingReceiverTrain: endsGame(buyingReceiverHandler),
-        FinishingReceiverTurn: endsGame(buyingReceiverHandler)
+        ClosingOperatingCorporation: endsGame(closingOperatingCorporationHandler)
     },
     titleActions: [
-        defineAction(
-            StartReceiverTurn,
-            (data) => StartReceiverValidator.Check(data),
-            (data) => new StartReceiverTurnAction(data)
-        ),
-        defineAction(
-            SettleReceiver,
-            (data) => SettleReceiverValidator.Check(data),
-            (data) => new SettleReceiverAction(data)
-        ),
-        defineAction(
-            BuyReceiverTrain,
-            (data) => BuyReceiverValidator.Check(data),
-            (data) => new BuyReceiverTrainAction(data)
-        ),
-        defineAction(
-            FinishReceiverTurn,
-            (data) => FinishReceiverValidator.Check(data),
-            (data) => new FinishReceiverTurnAction(data)
-        ),
-        defineAction(
-            BuyReceiverShare,
-            (data) => BuyReceiverShareValidator.Check(data),
-            (data) => new BuyReceiverShareAction(data)
-        ),
         defineAction(
             ChooseDraftCard,
             (data) => ChooseValidator.Check(data),
@@ -252,26 +183,6 @@ export const TitleRules1846: EighteenXXTitleRules<
             (data) => new AssignRevenueMarkerAction(data)
         ),
         ...PublicDistributionActions,
-        defineAction(
-            DeclareBankruptcy,
-            isDeclareBankruptcy1846,
-            (data) => new DeclareBankruptcyAction(data)
-        ),
-        defineAction(
-            StartEmergencyFunding,
-            isStartEmergencyFunding,
-            (data) => new StartEmergencyFundingAction(data)
-        ),
-        defineAction(
-            SellEmergencyShares,
-            isSellEmergencyShares,
-            (data) => new SellEmergencySharesAction(data)
-        ),
-        defineAction(
-            EmergencyBuyTrain,
-            isEmergencyBuyTrain,
-            (data) => new EmergencyBuyTrainAction(data)
-        ),
         defineAction(
             BuildPrivateTrack,
             isBuildPrivateTrack,

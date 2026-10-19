@@ -26,21 +26,21 @@ mountains, passes and tunnels. The playground stages private tile plans with a
 board preview, Back and explicit confirmation.
 
 Corporations can negotiate train purchases from other majors during train buying,
-with seller consent for different presidents. Emergency depot purchases issue the
-necessary treasury shares at the reduced price, then take only the shortfall from
-the president's cash. These purchases commit atomically and show the exact funding
-split in the playground. President funding is forbidden when corporate cash and
-issuance can afford a cheaper available train.
+with seller consent for different presidents. A corporation that cannot pay for a
+train runs the family's compulsory funding under 1846's rules
+(`TrainFundingRules1846`): it issues the treasury shares that cover the chosen train
+at the reduced price, the president pays only the shortfall, and president funding is
+forbidden when corporate cash and issuance can afford a cheaper available train.
+Personal sales come one block per corporation, never more than the shortfall needs,
+and keep the operating corporation open and under its president.
 
-Personal emergency sales first commit mandatory treasury issuance, then offer legal
-stock blocks and depot purchases. Sales preserve the operating presidency, can
-change other presidencies or close other corporations, and restrict cheaper train
-choices after excess proceeds. The playground supports the full flow and Undo.
-
-Bankruptcy liquidates the player, closes their privates/independents, and continues
-with a successor or a receiver. Surviving players enter receiver routes; withholding
-and affordable compulsory depot purchases happen automatically. Stock purchases,
-including the virtual 10% exchange, can restore a president. The last surviving
+Once funding is exhausted the family declares the president bankrupt and applies
+`Elimination1846`: forced sales at price without moving it, their independents and
+privates closed, presidencies to the largest holders or the corporation into
+receivership, and their cash to the corporation. A successor inherits the obligation.
+Under `ReceivershipRules1846` every surviving player runs a receiver's trains; it
+withholds and buys the cheapest train it can afford automatically, and a 10% holder
+recovers the presidency through the shared `ClaimPresidency`. The last surviving
 player wins when all others go bankrupt. These flows support History and Undo.
 
 Phase III adds 4/6 and 5 trains, the three-train limit, deferred retirement of 2s,
