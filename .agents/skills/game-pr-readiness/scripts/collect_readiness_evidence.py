@@ -258,27 +258,35 @@ def is_harness_cast(path: Path, ui_root: Path, text: str) -> bool:
     return path == ui_root / "src" / "routes" / "+page.svelte" and text == HARNESS_CAST
 
 
-def type_escapes(files: list[Path], ui_root: Path, repo: Path) -> dict[str, Any]:
-    script = Path(__file__).with_name("find_type_escapes.mjs")
+def run_node_scan(script_name: str, files: list[Path], ui_root: Path, repo: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Runs a scanner script on files; returns its per-file results and the files it could not parse."""
     result = subprocess.run(
-        ["node", str(script), str(ui_root)],
+        ["node", str(Path(__file__).with_name(script_name)), str(ui_root)],
         input=json.dumps([path.as_posix() for path in files]),
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
     )
-    violations: list[dict[str, Any]] = []
-    exempt: list[dict[str, Any]] = []
+    entries: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
     for entry in json.loads(result.stdout):
-        path = Path(entry["path"])
-        relative = path.relative_to(repo).as_posix()
+        entry["relative"] = Path(entry["path"]).relative_to(repo).as_posix()
         if "error" in entry:
-            errors.append({"path": relative, "error": entry["error"]})
-            continue
+            errors.append({"path": entry["relative"], "error": entry["error"]})
+        else:
+            entries.append(entry)
+    return entries, errors
+
+
+def type_escapes(files: list[Path], ui_root: Path, repo: Path) -> dict[str, Any]:
+    entries, errors = run_node_scan("find_type_escapes.mjs", files, ui_root, repo)
+    violations: list[dict[str, Any]] = []
+    exempt: list[dict[str, Any]] = []
+    for entry in entries:
+        path = Path(entry["path"])
         for finding in entry["findings"]:
-            item = {"path": relative, **finding}
+            item = {"path": entry["relative"], **finding}
             if finding["kind"] == "cast" and is_harness_cast(path, ui_root, finding["text"]):
                 exempt.append(item)
             else:
@@ -448,6 +456,46 @@ def generated_version(logic_root: Path) -> str | None:
         return None
     match = re.search(r"GAME_VERSION\s*=\s*'([^']*)'", path.read_text(encoding="utf-8"))
     return match.group(1) if match else None
+
+
+def base_manifest(root: Path, merge_base: str, repo: Path) -> dict[str, Any]:
+    try:
+        return json.loads(git("show", f"{merge_base}:{(root / 'package.json').relative_to(repo).as_posix()}", cwd=repo))
+    except (subprocess.CalledProcessError, json.JSONDecodeError):
+        return {}
+
+
+def release_owned_changes(
+    merge_base: str, logic_root: Path, ui_root: Path, changes: list[str], new_title: bool, repo: Path
+) -> dict[str, Any] | None:
+    if new_title:
+        return None
+    version_module = (logic_root / "src" / "definition" / "version.ts").relative_to(repo).as_posix()
+    package_versions = []
+    for root in (logic_root, ui_root):
+        base = base_manifest(root, merge_base, repo).get("version")
+        current = package_version(root)
+        if base != current:
+            package_versions.append({"package": root.relative_to(repo).as_posix(), "base": base, "current": current})
+    return {"version_module_changed": version_module in changes, "package_versions": package_versions}
+
+
+def state_shape(files: list[Path], ui_root: Path, repo: Path) -> dict[str, Any]:
+    scripts = [path for path in files if path.suffix in {".ts", ".js"}]
+    entries, errors = run_node_scan("scan_state_shape.mjs", scripts, ui_root, repo)
+    return {
+        "object_schemas": [
+            {"path": entry["relative"], **schema} for entry in entries for schema in entry["schemas"]
+        ],
+        "constant_tables": [
+            {"path": entry["relative"], **table} for entry in entries for table in entry["tables"]
+        ] + [
+            {"path": path.relative_to(repo).as_posix(), "bytes": path.stat().st_size}
+            for path in files
+            if path.suffix == ".json"
+        ],
+        "unparsed_files": errors,
+    }
 
 
 def release_tags(slug: str, repo: Path) -> dict[str, Any]:
@@ -719,10 +767,7 @@ def build_surface(slug: str, roots: list[tuple[Path, str]], files: list[Path], c
 
 def declared_dependencies(root: Path, merge_base: str, repo: Path) -> list[dict[str, Any]]:
     manifest = json.loads((root / "package.json").read_text(encoding="utf-8"))
-    try:
-        before = json.loads(git("show", f"{merge_base}:{(root / 'package.json').relative_to(repo).as_posix()}", cwd=repo))
-    except subprocess.CalledProcessError:
-        before = {}
+    before = base_manifest(root, merge_base, repo)
     result: list[dict[str, Any]] = []
     for field in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
         for name, spec in manifest.get(field, {}).items():
@@ -1002,6 +1047,13 @@ def main() -> int:
         exempt_paths.append(LOCKFILE_PATH)
     family_roots = family_library_roots([logic_root, ui_root], repo)
     family_sources = [path for path in source_files([root / "src" for root in family_roots]) if not is_test_file(path)]
+    logic_family_roots = [root for root in family_roots if not root.name.endswith("-ui")]
+    state_sources = logic_sources + [
+        path for path in family_sources if any(path.is_relative_to(root) for root in logic_family_roots)
+    ] + sorted(
+        path for path in (logic_root / "src").rglob("*.json")
+        if not is_test_file(path) and not (set(path.parts) & IGNORED_PARTS)
+    )
     images = sorted(
         path for path in ui_root.rglob("*")
         if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES and not (set(path.parts) & IGNORED_PARTS)
@@ -1089,6 +1141,8 @@ def main() -> int:
             "ui_package": package_version(ui_root),
             "generated_game_version": generated_version(logic_root),
         },
+        "release_owned_changes": release_owned_changes(merge_base, logic_root, ui_root, changes, new_title, repo),
+        "state_shape": state_shape(state_sources, ui_root, repo),
         "dev_harness": dev_harness(ui_root),
         "css_encapsulation": css_encapsulation(ui_root, production_sources, repo, args.static),
         "competition_specs": sorted(

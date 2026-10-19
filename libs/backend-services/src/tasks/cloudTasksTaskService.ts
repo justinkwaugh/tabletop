@@ -5,6 +5,7 @@ import { CloudTasksClient, protos } from '@google-cloud/tasks'
 const client = new CloudTasksClient()
 const project = await client.getProjectId()
 const location = 'us-central1'
+const ALREADY_EXISTS = 6
 
 export class CloudTasksTaskService extends BaseTaskService {
     constructor(private readonly host: string) {
@@ -28,6 +29,8 @@ export class CloudTasksTaskService extends BaseTaskService {
         }
 
         const task: protos.google.cloud.tasks.v2.ITask = { httpRequest }
+        if (options.uniqueName)
+            task.name = client.taskPath(project, location, options.queue, options.uniqueName)
 
         if (options.inSeconds) {
             task.scheduleTime = {
@@ -39,9 +42,18 @@ export class CloudTasksTaskService extends BaseTaskService {
             parent: parent,
             task: task
         }
-        const [response] = await client.createTask(request)
-        console.log(
-            `Created task ${response.name} for path ${options.path} in queue ${options.queue}`
-        )
+        try {
+            const [response] = await client.createTask(request)
+            console.log(
+                `Created task ${response.name} for path ${options.path} in queue ${options.queue}`
+            )
+        } catch (error) {
+            if (!options.uniqueName || !isAlreadyExists(error)) throw error
+            console.log(`Task ${options.uniqueName} already exists in queue ${options.queue}`)
+        }
     }
+}
+
+function isAlreadyExists(error: unknown): boolean {
+    return error instanceof Error && Reflect.get(error, 'code') === ALREADY_EXISTS
 }

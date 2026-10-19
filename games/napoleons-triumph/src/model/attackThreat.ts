@@ -2,10 +2,11 @@ import { assertExists } from '@tabletop/common'
 import type { ApproachId } from '../components/battleMap.js'
 import { isGuard } from '../components/pieces.js'
 import { DefenseAwaits, type ThreatOrder } from './attack.js'
-import { canThreaten, mayAttackInPlace } from './attackOrders.js'
+import { canThreaten, mayAttackInPlace, rideOnAttackOrder } from './attackOrders.js'
 import { currentAttack, attackLocale, defenseLocale } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { validateDefenseLeaders } from './leaders.js'
+import { endRoadMarch } from './movement.js'
 import { faceOf, samePosition, type ProjectedUnit } from './pieces.js'
 import { distinct, legal } from './legality.js'
 import { hasUsableCommand } from './orders.js'
@@ -63,6 +64,9 @@ export function threatenAttack(
             plan.unitIds.every((id) => state.findUnit(id)?.playerId === attackerId),
         'An attack is planned with the attacker’s own units'
     )
+    if (!rideOnAttackOrder(state, { attackerId, attackApproach }, state.riders())) {
+        endRoadMarch(state)
+    }
     state.attack = {
         attackerId,
         defenderId,

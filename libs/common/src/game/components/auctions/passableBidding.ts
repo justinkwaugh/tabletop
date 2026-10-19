@@ -1,10 +1,6 @@
-import {
-    AuctionType,
-    HydratedSimpleAuction,
-    assert,
-    assertExists,
-    type SimpleAuction
-} from '@tabletop/common'
+import { assert, assertExists } from '../../../util/assertions.js'
+import { AuctionType } from './auction.js'
+import { HydratedSimpleAuction, type SimpleAuction } from './simple.js'
 
 export type BiddingWinner = { playerId: string; amount: number }
 
@@ -119,6 +115,6 @@ export class PassableBidding {
     }
 }
 
-export function validBidStep(amount: number, minimum: number, increment: number): boolean {
+export function isValidBidStep(amount: number, minimum: number, increment: number): boolean {
     return Number.isSafeInteger(amount) && amount >= minimum && (amount - minimum) % increment === 0
 }

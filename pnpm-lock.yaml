@@ -414,6 +414,8 @@ importers:
         specifier: ^1.0.0
         version: 1.1.0(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
+  apps/realtime: {}
+
   config/config-eslint:
     dependencies:
       '@eslint/js':
@@ -1532,9 +1534,6 @@ importers:
 
   games/hill-country-grocers:
     dependencies:
-      '@tabletop/18xx':
-        specifier: workspace:*
-        version: link:../../libs/18xx
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -2457,9 +2456,6 @@ importers:
 
   games/railheads:
     dependencies:
-      '@tabletop/18xx':
-        specifier: workspace:*
-        version: link:../../libs/18xx
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -2577,12 +2573,6 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
     devDependencies:
-      '@babel/core':
-        specifier: ^7.28.6
-        version: 7.29.7
-      '@babel/preset-env':
-        specifier: ^7.28.6
-        version: 7.29.7(@babel/core@7.29.7)
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
@@ -2607,9 +2597,6 @@ importers:
 
   games/reef-encounter-ui:
     dependencies:
-      '@floating-ui/dom':
-        specifier: ^1.7.4
-        version: 1.8.0
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -2622,31 +2609,10 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: ^5.1.6
-        version: 5.1.6
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
         version: 1.63.0
-      '@rollup/plugin-commonjs':
-        specifier: ^29.0.0
-        version: 29.0.3(rollup@4.55.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
-        version: 16.0.3(rollup@4.55.2)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.55.2)
-      '@rollup/plugin-typescript':
-        specifier: ^12.3.0
-        version: 12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)
-      '@rollup/plugin-url':
-        specifier: 8.0.2
-        version: 8.0.2(rollup@4.55.2)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
@@ -2671,15 +2637,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^8.53.1
-        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^8.53.1
-        version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.6.1(postcss@8.5.28)
       eslint:
         specifier: ^9.39.2
         version: 9.39.5(jiti@2.7.0)
@@ -2704,15 +2661,6 @@ importers:
       rollup:
         specifier: 4.55.2
         version: 4.55.2
-      rollup-plugin-brotli:
-        specifier: 3.1.0
-        version: 3.1.0
-      rollup-plugin-postcss:
-        specifier: ^4.0.2
-        version: 4.0.2(postcss@8.5.28)(ts-node@10.9.2(@types/node@26.6.4)(typescript@5.9.3))
-      rollup-plugin-svelte:
-        specifier: ^7.1.0
-        version: 7.2.3(rollup@4.55.2)(svelte@5.49.0)
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
@@ -2722,9 +2670,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -14057,18 +14002,6 @@ snapshots:
     dependencies:
       '@redis/client': 5.10.0
 
-  '@rollup/plugin-commonjs@29.0.3(rollup@4.55.2)':
-    dependencies:
-      '@rollup/pluginutils': 5.4.0(rollup@4.55.2)
-      commondir: 1.0.1
-      estree-walker: 2.0.2
-      fdir: 6.5.0(picomatch@4.0.7)
-      is-reference: 1.2.1
-      magic-string: 0.30.21
-      picomatch: 4.0.7
-    optionalDependencies:
-      rollup: 4.55.2
-
   '@rollup/plugin-commonjs@29.0.3(rollup@4.64.0)':
     dependencies:
       '@rollup/pluginutils': 5.4.0(rollup@4.64.0)
@@ -14111,16 +14044,6 @@ snapshots:
     optionalDependencies:
       rollup: 4.64.0
 
-  '@rollup/plugin-node-resolve@16.0.3(rollup@4.55.2)':
-    dependencies:
-      '@rollup/pluginutils': 5.4.0(rollup@4.55.2)
-      '@types/resolve': 1.20.2
-      deepmerge: 4.3.1
-      is-module: 1.0.0
-      resolve: 1.22.12
-    optionalDependencies:
-      rollup: 4.55.2
-
   '@rollup/plugin-node-resolve@16.0.3(rollup@4.64.0)':
     dependencies:
       '@rollup/pluginutils': 5.4.0(rollup@4.64.0)
@@ -14131,14 +14054,6 @@ snapshots:
     optionalDependencies:
       rollup: 4.64.0
 
-  '@rollup/plugin-terser@0.4.4(rollup@4.55.2)':
-    dependencies:
-      serialize-javascript: 6.0.2
-      smob: 1.6.2
-      terser: 5.51.2
-    optionalDependencies:
-      rollup: 4.55.2
-
   '@rollup/plugin-terser@0.4.4(rollup@4.64.0)':
     dependencies:
       serialize-javascript: 6.0.2
@@ -14146,15 +14061,6 @@ snapshots:
       terser: 5.51.2
     optionalDependencies:
       rollup: 4.64.0
-
-  '@rollup/plugin-typescript@12.3.0(rollup@4.55.2)(tslib@2.8.1)(typescript@5.9.3)':
-    dependencies:
-      '@rollup/pluginutils': 5.4.0(rollup@4.55.2)
-      resolve: 1.22.12
-      typescript: 5.9.3
-    optionalDependencies:
-      rollup: 4.55.2
-      tslib: 2.8.1
 
   '@rollup/plugin-typescript@12.3.0(rollup@4.64.0)(tslib@2.8.1)(typescript@5.9.3)':
     dependencies:
@@ -14164,14 +14070,6 @@ snapshots:
     optionalDependencies:
       rollup: 4.64.0
       tslib: 2.8.1
-
-  '@rollup/plugin-url@8.0.2(rollup@4.55.2)':
-    dependencies:
-      '@rollup/pluginutils': 5.4.0(rollup@4.55.2)
-      make-dir: 3.1.0
-      mime: 3.0.0
-    optionalDependencies:
-      rollup: 4.55.2
 
   '@rollup/plugin-url@8.0.2(rollup@4.64.0)':
     dependencies:
@@ -19201,13 +19099,6 @@ snapshots:
       style-inject: 0.3.0
     transitivePeerDependencies:
       - ts-node
-
-  rollup-plugin-svelte@7.2.3(rollup@4.55.2)(svelte@5.49.0):
-    dependencies:
-      '@rollup/pluginutils': 4.2.1
-      resolve.exports: 2.0.3
-      rollup: 4.55.2
-      svelte: 5.49.0
 
   rollup-plugin-svelte@7.2.3(rollup@4.64.0)(svelte@5.49.0):
     dependencies:

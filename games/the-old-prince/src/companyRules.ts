@@ -2,7 +2,6 @@ import { TheOldPrinceMarket } from './stockMarket.js'
 import {
     applyPresidencyChange,
     applyStationPlacement,
-    availableCompanyTranche,
     closePrivate,
     evaluatePresidency,
     exchangeCertificate,
@@ -10,6 +9,7 @@ import {
     getCompany,
     grantOwnershipLimitExemption,
     homeStationId,
+    nextCompanyTranche,
     presidentCertificate,
     releaseTrains,
     replaceStation,
@@ -26,22 +26,27 @@ import { peirPresident } from './peir.js'
 import { TheOldPrinceStockRules, theOldPrincePurchasePayers } from './stockRules.js'
 import { TheOldPrincePhases } from './trains.js'
 
-export function availableTheOldPrinceTranche(state: FormationState) {
-    assertExists(state.tranches, 'TOP company formation requires tranches')
-    return availableCompanyTranche(state.tranches, (companyId) => {
-        const company = getCompany(state, companyId)
-        return (
-            !!company.operated ||
-            state.certificates.every(
-                (certificate) =>
-                    certificate.kind !== 'share' ||
-                    certificate.companyId !== companyId ||
-                    certificate.poolId === 'reserved' ||
-                    certificate.owner.kind === 'player' ||
-                    (certificate.owner.kind === 'company' && certificate.owner.companyId === 'UB')
-            )
+function releasesNextTranche(state: FormationState, companyId: string): boolean {
+    const company = getCompany(state, companyId)
+    return (
+        !!company.operated ||
+        state.certificates.every(
+            (certificate) =>
+                certificate.kind !== 'share' ||
+                certificate.companyId !== companyId ||
+                certificate.poolId === 'reserved' ||
+                certificate.owner.kind === 'player' ||
+                (certificate.owner.kind === 'company' && certificate.owner.companyId === 'UB')
         )
-    })
+    )
+}
+export function nextTheOldPrinceTranche(state: FormationState) {
+    assertExists(state.tranches, 'TOP company formation requires tranches')
+    return nextCompanyTranche(state.tranches, (companyId) => releasesNextTranche(state, companyId))
+}
+export function availableTheOldPrinceTranche(state: FormationState) {
+    const next = nextTheOldPrinceTranche(state)
+    return next?.waitingCompanyIds.length === 0 ? next.tranche : undefined
 }
 export function theOldPrinceStartMarketSpaces(state: StockState): string[] {
     const reached = (phaseId: string) => TheOldPrincePhases.isAtLeast(state.phaseId, phaseId)

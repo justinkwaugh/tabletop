@@ -310,6 +310,8 @@ export const Tournament = Type.Object(
         id: TournamentId,
         organizerId: Type.String(),
         league: Type.Optional(LeagueGroupReference),
+        // Its Games take 21-character ids; absent on Tournaments created before them.
+        shortGameIds: Type.Optional(Type.Literal(true)),
         status: Type.Union([
             Type.Literal('draft'),
             Type.Literal('open'),

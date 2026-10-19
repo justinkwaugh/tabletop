@@ -7,6 +7,7 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
     const backend = config.backend
     const backendAdmin = config.backendAdmin
     const hosting = config.hosting
+    const realtime = config.realtime
     return {
         gcsBucket: typeof config.gcsBucket === 'string' ? config.gcsBucket : undefined,
         gcloudCredentialFile:
@@ -41,6 +42,13 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
             : undefined,
         hosting: isObject(hosting)
             ? { channel: typeof hosting.channel === 'string' ? hosting.channel : undefined }
+            : undefined,
+        realtime: isObject(realtime)
+            ? {
+                  instance: typeof realtime.instance === 'string' ? realtime.instance : undefined,
+                  zone: typeof realtime.zone === 'string' ? realtime.zone : undefined,
+                  healthUrl: typeof realtime.healthUrl === 'string' ? realtime.healthUrl : undefined
+              }
             : undefined
     }
 }

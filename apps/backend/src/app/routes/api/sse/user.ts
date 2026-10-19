@@ -1,7 +1,9 @@
 import {
+    GLOBAL_TOPIC,
     NotificationListener,
     SSEAuthorizationTokenData,
-    TokenType
+    TokenType,
+    userTopic
 } from '@tabletop/backend-services'
 import { FastifyInstance } from 'fastify'
 import { Type, Static } from 'typebox'
@@ -50,10 +52,10 @@ export default async function (fastify: FastifyInstance) {
 
         await fastify.notificationService.addTopicListener({
             listener,
-            topic: `user-${user.id}`
+            topic: userTopic(user.id)
         })
 
-        await fastify.notificationService.addTopicListener({ listener, topic: `global` })
+        await fastify.notificationService.addTopicListener({ listener, topic: GLOBAL_TOPIC })
 
         request.raw.on('close', async () => {
             await fastify.notificationService.removeTopicListener({ listenerId: listener.id })

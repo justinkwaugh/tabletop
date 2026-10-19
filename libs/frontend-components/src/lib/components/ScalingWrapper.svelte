@@ -1,5 +1,7 @@
 <script lang="ts">
     import { onDestroy, onMount, untrack, type Snippet } from 'svelte'
+    import type { RectangleDimensions } from '@tabletop/common'
+    import { wheelDeltaUnit } from '../utils/wheelDelta.js'
 
     const DISCRETE_ZOOM_STEP = 0.15
     const OVERPAN_EASE_RELATIVE_ZOOM = 0.05
@@ -47,6 +49,12 @@
     }
 
     type Axis = 'x' | 'y'
+
+    type PlacedView = {
+        size: RectangleDimensions
+        centerY: number
+        expanded: boolean
+    }
 
     type PanRange = {
         min: number
@@ -143,6 +151,7 @@
     let currentTranslateX = $state(0)
     let currentTranslateY = $state(0)
     let isExpanded = $state(false)
+    let placedView: PlacedView = { size: { width: 0, height: 0 }, centerY: 0, expanded: false }
     let fullscreenLayer: HTMLDialogElement | undefined = $state()
     $effect(() => {
         if (!fullscreenLayer) return
@@ -500,10 +509,10 @@
         }
     }
 
-    function getViewportCenterContentPoint() {
+    function getViewportCenterContentPoint(centerX = wrapperWidth / 2, centerY = viewportCenterY()) {
         return {
-            x: clamp((wrapperWidth / 2 - currentTranslateX) / currentScale, 0, contentWidth),
-            y: clamp((viewportCenterY() - currentTranslateY) / currentScale, 0, contentHeight)
+            x: clamp((centerX - currentTranslateX) / currentScale, 0, contentWidth),
+            y: clamp((centerY - currentTranslateY) / currentScale, 0, contentHeight)
         }
     }
 
@@ -793,9 +802,15 @@
         const nextMinScale = computeContainScale()
         const nextRestScale = computeRestScale(nextMinScale)
         const wasAtRestScale = initialized && Math.abs(currentScale - restScale) < EPSILON
+        const previousView = placedView
         const centerPoint = initialized
-            ? getViewportCenterContentPoint()
+            ? getViewportCenterContentPoint(previousView.size.width / 2, previousView.centerY)
             : { x: contentWidth / 2, y: contentHeight / 2 }
+        const size = viewSize()
+        const resized = initialized && !sameSize(size, previousView.size)
+        if (resized || !initialized) {
+            placedView = { size, centerY: viewportCenterY(), expanded: isExpanded }
+        }
 
         minScale = nextMinScale
         restScale = nextRestScale
@@ -816,7 +831,7 @@
         const targetScale =
             !initialized || wasAtRestScale
                 ? nextRestScale
-                : clampScale(currentScale)
+                : clampScale(resized ? scaleKeepingShownArea(previousView, size) : currentScale)
         const targetView = getViewForContentPointAtViewportPoint(
             centerPoint.x,
             centerPoint.y,
@@ -831,6 +846,20 @@
         // The first fit is drawn at its scale at once, before the content is ever painted larger.
         if (!initialized) commitRenderScale()
         initialized = true
+    }
+
+    function viewSize(): RectangleDimensions {
+        return { width: wrapperWidth, height: availableHeight() }
+    }
+
+    function sameSize(a: RectangleDimensions, b: RectangleDimensions) {
+        return Math.abs(a.width - b.width) < EPSILON && Math.abs(a.height - b.height) < EPSILON
+    }
+
+    // Only entering or leaving full screen refits, so a phone's toolbar showing and hiding never drifts the zoom.
+    function scaleKeepingShownArea(previousView: PlacedView, size: RectangleDimensions) {
+        if (previousView.expanded === isExpanded) return currentScale
+        return currentScale * Math.min(1, size.width / previousView.size.width, size.height / previousView.size.height)
     }
 
     function getDiscreteScaleStep() {
@@ -1225,8 +1254,7 @@
         cancelPanInertia()
         cancelScrollInertia()
         clearActiveFocus()
-        const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
-            : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? wrapperHeight : 1
+        const unit = wheelDeltaUnit(event, wrapperHeight)
         if (!event.ctrlKey) {
             if (event.timeStamp - lastWheelTimestamp > 250) smoothWheelGesture = false
             lastWheelTimestamp = event.timeStamp

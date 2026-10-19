@@ -7,6 +7,7 @@ import {
     artillery,
     cavalry,
     infantry,
+    oddLossOnTheAttackers,
     type PiecePlacement,
     defendWith
 } from '@tabletop/napoleons-triumph/testing'
@@ -1230,5 +1231,22 @@ describe('after an attack, the units the enemy knows of', () => {
             unit.defendedApproach = approach
         })
         expect(defended[0]).toBe('inf-3')
+    })
+})
+
+describe('choosing where an odd step falls', () => {
+    it('names the units it falls between as leading units', () => {
+        const game = oddLossOnTheAttackers()
+        expect(stageOf(game, StageKind.OddLoss).takers).toBe('leading')
+    })
+
+    it('names them as counter-attacking units when the step falls between counter-attackers', () => {
+        const game = oddLossOnTheAttackers()
+        const attack = game.hydrated.attack
+        assertExists(attack, 'The attack waits on the odd loss')
+        attack.counterAttackingUnitIds = ['F01', 'F02']
+        const stage = battleStageOf(game.hydrated, attack, emptyBattleSelections())
+        assertExists(stage, 'The defender chooses where the odd step falls')
+        expect(stage.kind === StageKind.OddLoss && stage.takers).toBe('counter-attacking')
     })
 })

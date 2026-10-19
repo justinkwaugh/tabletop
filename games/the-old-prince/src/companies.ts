@@ -9,7 +9,22 @@ export const TheOldPrinceCompanies = [
     { companyId: 'Gt', name: 'Georgetown', number: 6 },
     { companyId: 'C', name: 'Charlottetown', number: 7 }
 ]
-export function theOldPrinceRole(state: FinancialState, role: 'mainline' | 'shortline'): string {
+export const TheOldPrinceRoles = {
+    mainline: { name: 'Mainline', shortName: 'Main' },
+    shortline: { name: 'Shortline', shortName: 'Short' }
+} as const
+export type TheOldPrinceRole = keyof typeof TheOldPrinceRoles
+function isTheOldPrinceRole(role: string | undefined): role is TheOldPrinceRole {
+    return role !== undefined && Object.hasOwn(TheOldPrinceRoles, role)
+}
+export function theOldPrinceCompanyRole(
+    state: FinancialState,
+    companyId: string
+): TheOldPrinceRole | undefined {
+    const role = state.companies.find((company) => company.id === companyId)?.role
+    return isTheOldPrinceRole(role) ? role : undefined
+}
+export function theOldPrinceRole(state: FinancialState, role: TheOldPrinceRole): string {
     const company = state.companies.find((company) => company.role === role)
     assertExists(company, `Missing ${role} company`)
     return company.id

@@ -30,7 +30,11 @@ import type {
     LeagueSeasonDetail,
     LeagueState
 } from '@tabletop/common'
-import type { GameVersionProvider, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
+import type {
+    GameVersionProvider,
+    GetGameOptions,
+    RealtimeTokenOptions
+} from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
 import type { GameChatMessageResponsePayload } from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
@@ -376,6 +380,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getSseToken(): Promise<string> {
         return this.fail('getSseToken')
+    }
+
+    async getRealtimeToken(_gameIds: string[], _options?: RealtimeTokenOptions): Promise<string> {
+        return this.fail('getRealtimeToken')
     }
 
     async getAblyToken(): Promise<Ably.TokenRequest> {

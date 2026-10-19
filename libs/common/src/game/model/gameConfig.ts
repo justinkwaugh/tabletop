@@ -32,7 +32,8 @@ export const ListConfigOption = Type.Object({
     options: Type.Array(
         Type.Object({
             name: Type.String(),
-            value: Type.String()
+            value: Type.String(),
+            description: Type.Optional(Type.String())
         })
     )
 })
@@ -69,6 +70,14 @@ export const ConfigOption = Type.Union([
 
 export function isListConfigOption(option: ConfigOption): option is ListConfigOption {
     return option.type === ConfigOptionType.List
+}
+
+export function listOptionDescription(
+    option: ListConfigOption,
+    value: GameConfig[string] | undefined
+): string {
+    const selected = value ?? option.default
+    return option.options.find((choice) => choice.value === selected)?.description ?? option.description
 }
 
 export function isBooleanConfigOption(option: ConfigOption): option is BooleanConfigOption {

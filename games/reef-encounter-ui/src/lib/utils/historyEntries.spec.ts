@@ -42,6 +42,15 @@ describe('history entries', () => {
         expect(entries.map((entry) => entry.playerId)).toEqual(['a', 'b', 'a'])
     })
 
+    it('keeps the start player’s feed apart from their cubes chosen just after it', () => {
+        const entries = historyEntries([
+            action(ActionType.FeedParrotfish, 'b'),
+            action(ActionType.FeedParrotfish, 'a'),
+            action(ActionType.ChooseLarvaCubes, 'a')
+        ])
+        expect(entries.map((entry) => entry.actions.length)).toEqual([1, 1, 1])
+    })
+
     it('sets the end of the game apart from the last turn', () => {
         const entries = historyEntries([
             action(ActionType.EatCoral, 'a'),
@@ -52,7 +61,6 @@ describe('history entries', () => {
 
     it('replays only entries that move pieces on the table', () => {
         const [setup, trade, turn] = historyEntries([
-            action(ActionType.FeedParrotfish, 'a'),
             action(ActionType.ChooseLarvaCubes, 'a'),
             action(ActionType.ExchangeLarvaCube, 'b'),
             action(ActionType.MoveShrimp, 'a')

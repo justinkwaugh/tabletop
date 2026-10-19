@@ -1,5 +1,11 @@
 import type { GameAction } from '@tabletop/common'
-import { ActionType, isEatCoral, isEndGame, isPlayAlgaCylinder } from '@tabletop/reef-encounter'
+import {
+    ActionType,
+    isEatCoral,
+    isEndGame,
+    isFeedParrotfish,
+    isPlayAlgaCylinder
+} from '@tabletop/reef-encounter'
 
 export type HistoryEntry = {
     // The player whose turn or setup choice this is; absent for the game's end.
@@ -29,7 +35,8 @@ export function movesPieces(entry: HistoryEntry): boolean {
 }
 
 // One entry per stretch of actions by one player, with the system actions they caused (such as
-// the open-sea refill) joining that player's entry; the game's end stands alone.
+// the open-sea refill) joining that player's entry. The game's end stands alone, and so does each
+// parrotfish feed: everyone feeds at once, so the start player's can come just before their cubes.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     for (const action of actions) {
@@ -37,6 +44,8 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
         const joinsCurrent =
             current !== undefined &&
             !isEndGame(action) &&
+            !isFeedParrotfish(action) &&
+            !current.actions.some(isFeedParrotfish) &&
             (action.playerId === undefined || action.playerId === current.playerId)
         if (joinsCurrent) {
             current.actions.push(action)

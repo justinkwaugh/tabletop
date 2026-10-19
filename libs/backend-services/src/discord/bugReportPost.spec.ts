@@ -58,7 +58,9 @@ const context: BugReportPostContext = {
     reporter: { username: 'alice', discordUserId: 'discord-1' },
     liveActionCount: 142,
     appliedTagIds: ['tag-open'],
-    reportedAt: new Date('2026-10-02T18:30:00.000Z')
+    reportedAt: new Date('2026-10-02T18:30:00.000Z'),
+    attachedFilenames: [],
+    screenshotsLeftOut: 0
 }
 
 function fieldValue(post: ReturnType<typeof bugReportPost>, name: string): string | undefined {
@@ -154,13 +156,26 @@ describe('bugReportPost', () => {
     it('names the attached scenario and where it goes', () => {
         const post = bugReportPost(game, report, {
             ...context,
-            scenario: { attached: true, filename: 'bug-report-game-1.json' }
+            scenario: { attached: true, filename: 'bug-report-game-1.json' },
+            attachedFilenames: ['bug-report-game-1.json']
         })
 
         expect(post.message.attachments).toEqual([{ id: 0, filename: 'bug-report-game-1.json' }])
         expect(fieldValue(post, 'Scenario')).toBe(
             "Open `bug-report-game-1.json` with **Load from file…** in the title's dev harness; it is a real game, so keep it out of the repository"
         )
+    })
+
+    it('lists every attached file in upload order', () => {
+        const post = bugReportPost(game, report, {
+            ...context,
+            attachedFilenames: ['bug-report-game-1.json', 'screenshot-1.jpg']
+        })
+
+        expect(post.message.attachments).toEqual([
+            { id: 0, filename: 'bug-report-game-1.json' },
+            { id: 1, filename: 'screenshot-1.jpg' }
+        ])
     })
 
     it('keeps the thread name within the Discord limit', () => {

@@ -52,6 +52,7 @@ import { tournamentGameId } from '../games/tournamentGames.js'
 import type { TaskService } from '../tasks/taskService.js'
 
 import type { GameService } from '../games/gameService.js'
+import { GLOBAL_TOPIC, userTopic } from '../notifications/topics.js'
 
 const seatsAssignedStartingOrder = (title: Pick<GameDefinition, 'runtime'>) =>
     title.runtime.initializer.supportsStartingPositions === true
@@ -131,6 +132,7 @@ export class TournamentService {
                 ...draft,
                 id,
                 organizerId: user.id,
+                shortGameIds: true,
                 status: 'draft',
                 revision: 1,
                 entrants: [],
@@ -169,6 +171,7 @@ export class TournamentService {
                 id,
                 organizerId,
                 league,
+                shortGameIds: true,
                 status: 'locked',
                 revision: 1,
                 entrants: entrantIds.map((userId) => ({ userId, joinedAt: now })),
@@ -460,7 +463,7 @@ export class TournamentService {
         assertExists(stage, 'Tournament has no stage')
         for (const tableId of tournamentActiveTables(updated, schedule.tables, place.userId))
             await replacement.handOver(
-                tournamentGameId(tournamentTableReference(updated.id, stage, tableId)),
+                tournamentGameId(updated, tournamentTableReference(updated.id, stage, tableId)),
                 tableId,
                 place
             )
@@ -720,8 +723,8 @@ export class TournamentService {
                 data: { tournamentId: tournament.id, revision: tournament.revision }
             },
             tournament.publishedAt
-                ? ['global']
-                : async () => (await this.store.administratorIds()).map((id) => `user-${id}`)
+                ? [GLOBAL_TOPIC]
+                : async () => (await this.store.administratorIds()).map(userTopic)
         )
     }
 

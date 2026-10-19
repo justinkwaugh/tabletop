@@ -1,12 +1,13 @@
 ---
 name: release
-description: Release and deploy a game, the site frontend, or the backend to production with tools/deploy. Use when asked to release, deploy, publish, or ship any of them, or to check what is currently serving.
+description: Release and deploy a game, the site frontend, the backend, or the realtime relay to production with tools/deploy. Use when asked to release, deploy, publish, or ship any of them, or to check what is currently serving.
 ---
 
 # Release
 
 Publishing is one command, `release-game` for a game, `release-frontend` for the site frontend,
-or `release-backend` for the Cloud Run backend. Each bumps versions, commits, tags, pushes, and
+`release-backend` for the Cloud Run backend, or `release-realtime` for the realtime relay on its
+VM. Each bumps versions, commits, tags, pushes, and
 deploys. The work of this skill is
 choosing the flags correctly and confirming them with the user. Run every command from the
 repository root as `node tools/deploy/esm/cli.js <command>`; build the tool first with
@@ -21,6 +22,11 @@ The backend is a container image built by Cloud Build and deployed to the `tasks
 serving traffic immediately. `--no-traffic` stages a
 revision instead and `promote-backend` later shifts traffic to it; `--service=backend|tasks`
 narrows either; `rollback-backend <revision>` reverts. A backend deploy takes several minutes because the image builds remotely.
+
+The realtime relay is a Go binary on the `realtime` VM, deployed over IAP. Its preflight is
+`preflight --realtime`, and `rollback-realtime` swaps the previous binary back in. Go must be on
+`PATH` (`/usr/local/go/bin` in the devcontainer). A deploy restarts the relay, which closes every
+stream; clients reconnect within seconds and resync, so say so when suggesting one.
 
 ## 1. Preflight
 
@@ -73,6 +79,10 @@ tolerate, **minor** for new site features, **patch** for fixes and styling.
 For the backend: **major** for an API or persistence change that a deployed frontend or stored
 game cannot survive, **minor** for new endpoints or behaviour, **patch** for fixes. The backend
 loads game logic from the bucket, so a game logic change never needs a backend release.
+
+For the realtime relay: **major** for a change to the stream protocol or token contract that a
+deployed frontend or backend cannot survive, **minor** for new events or behaviour, **patch** for
+fixes.
 
 A hosted game exists for The Old Prince, so a logic major there means an already-running game
 must survive the schema change. Say so in the suggestion when it applies.

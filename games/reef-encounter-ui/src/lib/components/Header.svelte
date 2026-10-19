@@ -3,7 +3,9 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    const turnPlayerId = $derived(gameSession.gameState.activePlayerIds[0])
+    // Everyone feeds their parrotfish at once, so several players can be active.
+    const activePlayerIds = $derived(gameSession.gameState.activePlayerIds)
+    const turnPlayerId = $derived(activePlayerIds.length === 1 ? activePlayerIds[0] : undefined)
     const othersTurn = $derived(
         !gameSession.isViewingHistory &&
             !gameSession.gameState.result &&
@@ -26,6 +28,8 @@
             End of game
         {:else if gameSession.isMyTurn}
             Your turn
+        {:else if activePlayerIds.length > 1}
+            Feeding parrotfish
         {:else if turnPlayerId}
             <PlayerName
                 playerId={turnPlayerId}

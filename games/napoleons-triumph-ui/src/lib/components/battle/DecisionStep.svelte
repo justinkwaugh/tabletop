@@ -28,9 +28,9 @@
 {#if stage.kind === StageKind.OddLoss}
     <div class="nt-battle-prompt">
         {#if folded}
-            The loss is odd. Tap the enemy leading unit on the map that takes the extra step.
+            The loss is odd. Tap the enemy {stage.takers} unit on the map that takes the extra step.
         {:else}
-            The loss is odd. Choose which enemy leading unit takes the extra step.
+            The loss is odd. Choose which enemy {stage.takers} unit takes the extra step.
         {/if}
     </div>
     {#if !folded}

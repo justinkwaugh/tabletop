@@ -222,7 +222,11 @@ export class ChatService {
     }
 
     private NotificationListener = async (event: NotificationEvent) => {
-        if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
+        if (
+            isDiscontinuityEvent(event) &&
+            (event.channel === NotificationChannel.User ||
+                event.channel === NotificationChannel.GameInstance)
+        ) {
             await this.reloadGameChat()
             return
         }

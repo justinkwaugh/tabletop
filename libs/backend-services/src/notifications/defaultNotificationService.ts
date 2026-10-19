@@ -10,6 +10,7 @@ import { NotificationTransport } from './transports/notificationTransport.js'
 import { NotificationSubscription } from './subscriptions/notificationSubscription.js'
 import { NotificationSubscriptionIdentifier } from './subscriptions/notificationSubscriptionIdentifier.js'
 import { TopicTransport } from './transports/topicTransport.js'
+import { GLOBAL_TOPIC } from './topics.js'
 
 export class DefaultNotificationService implements NotificationService {
     private transports: Record<string, NotificationTransport> = {}
@@ -42,7 +43,7 @@ export class DefaultNotificationService implements NotificationService {
 
     private async initialize(): Promise<void> {
         await this.pubSubService.subscribeToTopics({
-            topics: ['global'],
+            topics: [GLOBAL_TOPIC],
             subscriber: this.pubSubSubscriber
         })
         await this.pubSubService.subscribeToTopicPatterns({

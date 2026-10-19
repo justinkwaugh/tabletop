@@ -138,7 +138,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             capacity = 7,
             concurrency = tableSize,
             gamesPerEntrant = tableSize,
-            titleId = 'synthetic'
+            titleId = 'synthetic',
+            shortGameIds = true
         ) {
             enqueue.mockReset()
             enqueue.mockResolvedValue(undefined)
@@ -157,6 +158,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 name: 'Mini',
                 description: '',
                 organizerId: admin.id,
+                ...(shortGameIds ? { shortGameIds } : {}),
                 status: 'locked',
                 revision: 1,
                 createdAt: 1,
@@ -187,7 +189,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const saved = await tournaments.commitSchedule(schedule, 1, admin, 2)
             const table = schedule.tables[0]
             const request = { tournamentId: tournament.id, stageId: 'main', tableId: table.id }
-            const gameId = tournamentGameId(request)
+            const gameId = tournamentGameId(tournament, request)
             createdIds.push(gameId)
             return { tournament: saved, schedule, table, request, gameId }
         }
@@ -791,6 +793,59 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(restored.stages[0].corrections).toHaveLength(2)
         })
 
+        it('keeps finding the long-id games of a tournament created before short ids', async () => {
+            const { tournament } = await fixture(3, 6, 3, 3, 'synthetic', false)
+            vi.spyOn(userService, 'getUserByUsername').mockImplementation(async (name) =>
+                users.find((user) => user.username === name)
+            )
+            await service.runTask({ tournamentId: tournament.id })
+            await service.runTask({ tournamentId: tournament.id })
+            const links = await tournaments.readGameLinks(tournament.id)
+            expect(links).toHaveLength(6)
+            for (const link of links) {
+                expect(link.gameId).toMatch(/^tournament-[0-9a-f]{64}$/)
+                expect(link.gameId).toBe(
+                    tournamentGameId(tournament, { ...link, tournamentId: tournament.id })
+                )
+            }
+            const replaced = users[0].id
+            await service.substituteEntrant(
+                tournament.id,
+                {
+                    revision: (await tournaments.read(tournament.id))?.revision ?? 0,
+                    userId: replaced,
+                    substituteUsername: users[6].username ?? '',
+                    tables: {}
+                },
+                admin
+            )
+            const theirs = links.filter((link) => link.userIds?.includes(replaced))
+            expect(theirs.length).toBeGreaterThan(0)
+            for (const link of theirs)
+                expect(
+                    (await store.findGameById(link.gameId, false))?.players.map(
+                        (player) => player.userId
+                    )
+                ).toContain(users[6].id)
+            await Promise.all(links.map((link) => finish(link.gameId, GameResult.Draw, [0, 1, 2])))
+            const other = links.find((link) => !link.userIds?.includes(replaced))
+            assertExists(other)
+            const winner = (await store.findGameById(other.gameId, false))?.players[1].userId
+            assertExists(winner)
+            const finished = await service.get(tournament.id, admin)
+            const corrected = await service.correctResult(
+                tournament.id,
+                {
+                    revision: finished.tournament.revision,
+                    tableId: other.tableId,
+                    winningUserIds: [winner],
+                    reason: 'Corrected tournament credit'
+                },
+                admin
+            )
+            expect(corrected.stages[0].corrections).toHaveLength(1)
+        })
+
         it.each([
             [3, 7, 2],
             [4, 8, 1],
@@ -818,7 +873,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     expect(seen.has(tableId)).toBe(false)
                     seen.add(tableId)
                     await finish(
-                        tournamentGameId({ tournamentId: tournament.id, stageId: 'main', tableId })
+                        tournamentGameId(tournament, {
+                            tournamentId: tournament.id,
+                            stageId: 'main',
+                            tableId
+                        })
                     )
                     const completed = await tournaments.read(tournament.id)
                     expect(completed?.stages[0].dispatch?.active).not.toContain(tableId)
@@ -1141,7 +1200,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             )
             for (const table of activeTheirs) {
                 const game = await store.findGameById(
-                    tournamentGameId({
+                    tournamentGameId(tournament, {
                         tournamentId: tournament.id,
                         stageId: 'main',
                         tableId: table.id
@@ -1170,7 +1229,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const theirs = schedule.tables
                 .filter((table) => table.entrantIds.includes(leaving))
                 .map((table) =>
-                    tournamentGameId({
+                    tournamentGameId(tournament, {
                         tournamentId: tournament.id,
                         stageId: 'main',
                         tableId: table.id
@@ -1247,7 +1306,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             for (const table of schedule.tables.filter((value) =>
                 value.entrantIds.includes(replaced)
             )) {
-                const gameId = tournamentGameId({
+                const gameId = tournamentGameId(tournament, {
                     tournamentId: tournament.id,
                     stageId: 'main',
                     tableId: table.id
@@ -1287,7 +1346,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             for (const table of schedule.tables.filter((value) =>
                 value.entrantIds.includes(replaced)
             )) {
-                const gameId = tournamentGameId({
+                const gameId = tournamentGameId(tournament, {
                     tournamentId: tournament.id,
                     stageId: 'main',
                     tableId: table.id
@@ -1341,7 +1400,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             )
             const started = await tournaments.read(tournament.id)
             assertExists(started)
-            const firstGameId = tournamentGameId({
+            const firstGameId = tournamentGameId(tournament, {
                 tournamentId: tournament.id,
                 stageId: 'main',
                 tableId: restarted.id
@@ -1363,7 +1422,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(pending?.stages[0].dispatch?.attempts).toEqual({ [restarted.id]: 2 })
             expect(pending?.stages[0].dispatch?.voided ?? []).toEqual([])
             await service.runTask({ tournamentId: tournament.id })
-            const secondGameId = tournamentGameId({
+            const secondGameId = tournamentGameId(tournament, {
                 tournamentId: tournament.id,
                 stageId: 'main',
                 tableId: restarted.id,
@@ -1376,7 +1435,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const links = await tournaments.readGameLinks(tournament.id)
             expect(links.find((link) => link.tableId === restarted.id)?.gameId).toBe(secondGameId)
             for (const table of kept) {
-                const gameId = tournamentGameId({
+                const gameId = tournamentGameId(tournament, {
                     tournamentId: tournament.id,
                     stageId: 'main',
                     tableId: table.id
@@ -1417,7 +1476,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect((await db.doc(`games/${gameId}/private/initialization`).get()).exists).toBe(true)
         })
         it('reminds the first active entrant four hours after their game is provisioned', async () => {
-            const { request, table } = await fixture()
+            const { request, table, gameId } = await fixture()
             const initializer = SyntheticRuntime.initializer
             const initializeGameState = initializer.initializeGameState.bind(initializer)
             vi.spyOn(initializer, 'initializeGameState').mockImplementation((...args) => {
@@ -1432,7 +1491,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(createPushTask).toHaveBeenCalledWith({
                 queue: 'tournaments',
                 path: '/tournaments/stall',
-                payload: { gameId: tournamentGameId(request) },
+                payload: { gameId: gameId },
                 inSeconds: 2 * 86_400
             })
             expect(createPushTask).toHaveBeenCalledWith({
@@ -1441,7 +1500,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 inSeconds: 4 * 60 * 60,
                 payload: {
                     userId: table.entrantIds[0],
-                    gameId: tournamentGameId(request),
+                    gameId: gameId,
                     notificationId: expect.any(String),
                     reminderIndex: DEFERRED_TURN_REMINDER_INDEX,
                     delay: 4 * 60 * 60

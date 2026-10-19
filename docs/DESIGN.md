@@ -126,6 +126,14 @@ Terminal states expose no further actions. Handlers orchestrate the state machin
 
 `GameState` contains the complete replay-relevant model. `PlayerState` contains player-specific game facts. Initialization, dehydration, and hydration must round-trip without losing behavior or changing serialized meaning.
 
+### State shape
+
+Stored games keep their State, so its shape outlives the code that introduced it and changing it costs a migration. State holds the facts play produces:
+
+- **Rule data lives in code.** Fixed definitions the rules supply, such as charts, card and tile definitions, map geometry, costs, and schedules, are code constants keyed by stable ID. State holds only what play changes: where a card is, who owns a tile, which space a marker occupies. A setup outcome is a fact, such as a shuffled deck's order or a randomly chosen board. A State object carrying a definition's printed fields holds rule data: an 18xx stock market's spaces belong to the title's chart, and State keeps only the marker stacks on them.
+- **Game objects are referenced by stable ID.** A relationship from one part of State to another, or from an Action to State, names the object's stable ID: a card, tile, company, or space, never its array index, list position, or copied fields. [Player relationships](#player-relationships) apply the same rule to Players.
+- **State is the current position.** What an Action did belongs in its input and `metadata` ([Actions](#actions)), and earlier positions come from History Navigation or `RecordedHistory`. A growing record of past values is history. State may keep a latest value for display, such as an 18xx company's `lastRunRevenue`, and the least past fact a rule still consults, such as which players have passed this round, dropped once no rule needs it. The shared turn, round, and phase managers' `series` are an exception: they record action-index boundaries for history grouping ([Turns, rounds, and phases](#turns-rounds-and-phases)).
+
 ### Player relationships
 
 Every Game State or Action relationship to a Player must use that Player's stable ID. Name the field for the relationship it represents, such as `playerId`, `actingPlayerId`, or `winnerPlayerId`. Do not identify or resolve a Player through color, display name, seat, turn-order position, array index, or another Player attribute.
@@ -171,6 +179,7 @@ Verify the parts affected by the change:
 - Every machine state is mapped to a handler.
 - Every serialized action is present in the API schema and hydrator.
 - Initialization, dehydration, and hydration preserve the game model.
+- New or changed State follows the [State shape](#state-shape) rules.
 - Player relationships remain correct when player attributes or presentation colors change.
 - Actions validate, apply, and emit metadata correctly.
 - State entry, transitions, and system-action cascades follow the rules.

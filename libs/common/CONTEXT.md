@@ -105,3 +105,8 @@ Deterministic entropy consumed by a Game Title to produce rule-relevant values. 
 
 **Deterministic Execution**:
 The guarantee that the same initial Game State and ordered Processed Actions produce the same resulting Game State and System Action cascade in every Game Runtime.
+
+## Auctions
+
+**Passable Bidding**:
+Bidding on one lot in which each Player, in seat order after the high bidder, raises or passes. A pass withdraws the Player for the rest of the bidding, and the last bidder left wins. Opened without a bid, it starts with the first Player in seat order and the lot goes unsold if everyone passes.

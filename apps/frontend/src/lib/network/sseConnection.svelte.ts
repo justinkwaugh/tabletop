@@ -2,7 +2,7 @@ import { NotificationChannel, TabletopApi } from '@tabletop/frontend-components'
 import {
     RealtimeEventType,
     type ChannelIdentifier,
-    type RealtimeConnection,
+    type RealtimeTransport,
     type RealtimeEvent,
     type RealtimeEventHandler
 } from './realtimeConnection'
@@ -24,7 +24,7 @@ type ChannelData = {
     connectionStatus: ConnectionStatus
 }
 
-export class SseConnection implements RealtimeConnection {
+export class SseConnection implements RealtimeTransport {
     static MAX_RETRY_TIMEOUT = 10000
 
     public connectionStatus = ConnectionStatus.Disconnected

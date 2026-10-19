@@ -178,6 +178,10 @@
     function toggleBoardAutoZoom() {
         session.preferences.set({ boardAutoZoom: !boardAutoZoom }, 'family')
     }
+    const companyCardsWrap = $derived(session.preferences.values.companyCardsWrap)
+    function toggleCompanyCardsWrap() {
+        session.preferences.set({ companyCardsWrap: !companyCardsWrap }, 'family')
+    }
     function autoZooms(wrapper: ScalingWrapper) {
         return boardAutoZoom || wrapper !== boardViewer()
     }
@@ -1176,6 +1180,7 @@
                                 {#if boardMode}<div class="board-focus-strip">
                                         <BoardFocus options={boardFocusOptions} />
                                         <BoardAutoZoom
+                                            small
                                             enabled={boardAutoZoom}
                                             onToggle={toggleBoardAutoZoom}
                                         />
@@ -1268,7 +1273,7 @@
                                         />
                                     </ScalingWrapper>
                                 </div>
-                                {#if session.presentation.marketZones?.length || session.presentation.marketLedge}<MarketLegend
+                                {#if !session.presentation.hideMarketLegend && (session.presentation.marketZones?.length || session.presentation.marketLedge)}<MarketLegend
                                         zones={session.presentation.marketZones ?? []}
                                         ledge={session.presentation.marketLedge}
                                     />{/if}
@@ -1293,8 +1298,8 @@
                                 />
                             </div>{:else if id === 'Companies'}<div class="workspace-view">
                                 <CompanyCardLayout
-                                    paned={paneLayout.current}
-                                    itemCount={startedCompanies.length}
+                                    wrap={companyCardsWrap}
+                                    onToggleWrap={toggleCompanyCardsWrap}
                                 >
                                     {#each startedCompanies as company (company.id)}
                                         {@render companyCard(company)}
@@ -1750,10 +1755,8 @@
         padding: 2px 12px;
         font-size: 11px;
     }
-    .board-focus-strip > :global(.board-auto-zoom) {
+    .board-focus-strip > :global(.view-switch) {
         justify-self: end;
-        padding-block: 2px;
-        font-size: 11px;
     }
     .board-focus-overlay,
     .board-auto-zoom-overlay {

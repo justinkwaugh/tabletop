@@ -56,6 +56,12 @@ export type HostingConfig = {
     channel?: string
 }
 
+export type RealtimeConfig = {
+    instance?: string
+    zone?: string
+    healthUrl?: string
+}
+
 export type DeployConfig = {
     gcsBucket?: string
     gcloudCredentialFile?: string
@@ -70,4 +76,5 @@ export type DeployConfig = {
     backendManifestUrl?: string
     backendAdmin?: BackendAdminConfig
     hosting?: HostingConfig
+    realtime?: RealtimeConfig
 }

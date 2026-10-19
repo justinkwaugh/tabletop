@@ -3,7 +3,6 @@ import type { MapStateData } from '../map/mapState.js'
 import { PrivateEffect, type PrivateRules } from '../privates/privateRules.js'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
 import type { StockRules } from '../stock/stockRules.js'
-import { turnOrderFrom } from '../stock/presidency.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -12,6 +11,7 @@ import {
     HydratableAction,
     assert,
     assertExists,
+    turnOrderFrom,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'

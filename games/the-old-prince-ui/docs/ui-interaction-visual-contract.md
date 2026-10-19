@@ -54,9 +54,19 @@ closes any open stock menu. The split panel then replaces the operating content.
 
 ### Tranche display
 
-Trigger: always, in the game information area. Each tranche shows its capacity as
-slots, filled by the tokens of the companies it holds. A tranche that can no longer
-fill shows a lock in its empty slots. It follows displayed state and has no input.
+Trigger: always, in the game information strip and in the corner of the Board
+view's stock market. Each tranche shows its capacity as slots, filled by the tokens
+of the companies it holds. A tranche that can no longer fill shows a lock in its
+empty slots. It follows displayed state and has no input.
+
+The Board view's chart leads with the Mainline and Shortline tranche, captioned Main
+and Short under the tokens, so it shows every company and which two hold those roles.
+The strip leaves that tranche out for room.
+
+While the next tranche with room is locked, each company it waits for (one that has
+neither operated nor sold out, in a full tranche before it) carries a small flat key
+at its token's top-right, in both places. The key sits above the token so it never
+covers a caption. Neither the lock nor the Tranches label explains the wait.
 
 ### Title presentation
 
@@ -154,7 +164,7 @@ publication and History View, and cleared before each new visible state.
 - **Split entry.** The title supplies Split as an additional stock action. The shared
   strip renders it and owns its selected styling.
 - **Tranches.** The title owns the tranche display inside the shared game
-  information slot.
+  information slot and the Board view's market corner.
 - **Map.** The shared map owns all map rendering. The title supplies both token
   sets (generic and published), the Vernon River marker, the published board image
   with its printed-city layouts, and the published card images; the shared session
@@ -181,6 +191,7 @@ publication and History View, and cleared before each new visible state.
 | Published trains | Buy trains, published artwork | Open the train buying step | Each purchasable train is its printed card at small size; the price is overlaid only when it differs from the card's printed price (market trains, funding); disabled and upcoming trains dim or show a dashed outline; in History View a purchase reads "Bought" followed by the card, with the price overlaid only when it differs, and clicking the card opens the full-screen mask | Generic presentation restores the coloured buttons | Manual in browser |
 | Published cards | Opening auction, generic presentation | Toggle published artwork, click a lot, offer a lot, click the bidding card, step back through history | Clicking a lot opens the printed card centred over a full-screen mask, sized from the viewport; the bidding panel shows the same image sized from the action pane's height with a floor (PEIR lots use the second certificate variant), and clicking it opens the same mask; in History View the position summary shows the lot's card below an offer, bid or pass description, published or generated to match the presentation; Escape or a click closes the mask | Toggling back restores the generated card popover | Automated, browser (`boardArtwork.spec.ts`) |
 | Tranches | Companies started across tranches | Start a company, then Undo | Slots fill and closed tranches lock | Undo empties the slot | Manual |
+| Tranche keys | Opening stock round, Board view and strip | Operate the Mainline, then sell out the Shortline; later fill a tranche and step back through history | The Board chart leads with Main and Short; keys mark both until each operates or sells out, then the next tranche opens; the strip shows keys only on tranches it lists; keys follow the displayed history state | Undo restores the keys | Automated, engine (`companyTranches.spec.ts`); manual in browser |
 
 A sole Split option in the stock action bar opens automatically, excluding Pass
 from the count. Its menu stage is auto-sourced; selecting a parent starts manual

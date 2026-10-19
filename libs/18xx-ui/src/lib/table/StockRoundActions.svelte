@@ -1,6 +1,6 @@
 <script lang="ts">
     import { cashText, optionalMoney } from '../presentation/money.js'
-    import { marketColors } from '../stock/marketColors.js'
+    import { marketSpaceColor, marketZone } from '../stock/marketColors.js'
     import { assertExists } from '@tabletop/common'
     import { cashOwnedBy, getCompany, sharesOwned, sameOwner, type Owner } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -278,11 +278,15 @@
                                         {@const space = session.stockMarketChart.space(
                                             price.marketSpaceId
                                         )}
+                                        {@const zone = marketZone(
+                                            session.presentation.marketZones,
+                                            space.color
+                                        )}
                                         <button
                                             class="par-choice"
+                                            class:recessed={zone?.fill?.kind === 'recessed'}
                                             {disabled}
-                                            style:background={marketColors[space.color] ??
-                                                space.color}
+                                            style:background={marketSpaceColor(space.color, zone)}
                                             data-start-price={price.result.details.parPrice}
                                             onclick={() => {
                                                 session.stock.selectStartPrice(price.marketSpaceId)
@@ -741,6 +745,10 @@
     }
     .par-choice .float-cost {
         font-weight: 700;
+    }
+    button.par-choice.recessed,
+    .par-choice.recessed small {
+        color: var(--rail-text, #39352f);
     }
     button.par-choice:hover:not(:disabled) {
         filter: brightness(0.95);

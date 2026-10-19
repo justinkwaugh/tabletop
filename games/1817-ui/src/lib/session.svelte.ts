@@ -43,8 +43,7 @@ import {
     SellConvertedShares,
     convertedShareSales
 } from '@tabletop/1817'
-import { assert } from '@tabletop/common'
-import { PassableBidding } from '@tabletop/18xx'
+import { assert, PassableBidding } from '@tabletop/common'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import { EighteenSeventeenMapView } from './mapView.js'
 import { EighteenSeventeenPresentation } from './presentation.js'

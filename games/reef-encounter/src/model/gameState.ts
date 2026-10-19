@@ -124,14 +124,30 @@ export const ReefEncounterGameState = Type.Intersect([
 
 export const ReefEncounterGameStateValidator = Compile(ReefEncounterGameState)
 
-// Players feed their parrotfish in turn order at the start of the game, so whether a player's
-// parrotfish holds its hidden polyp yet is public.
+// The players' parrotfish feeds at setup share one Simultaneous Action Group.
+export const ParrotfishFeedingGroupId = 'parrotfish-feeding'
+
+// Players feed their parrotfish at the start of the game, all at once, so whether a player's
+// parrotfish holds its hidden polyp yet is public: a player who has fed is no longer active.
 export function isParrotfishFed(state: ReefEncounterProjectedState, playerId: string): boolean {
     if (state.machineState !== MachineState.ChoosingParrotfishPolyp) {
         return true
     }
+    return !unfedPlayerIds(state).includes(playerId)
+}
+
+// Games begun before feeding was simultaneous feed in turn order, one turn each, so a turn is
+// already in progress; the players from the turn player on have yet to feed.
+export function feedsInTurnOrder(state: ReefEncounterProjectedState): boolean {
+    return state.turnManager.series.length > 0
+}
+
+function unfedPlayerIds(state: ReefEncounterProjectedState): string[] {
+    if (!feedsInTurnOrder(state)) {
+        return state.activePlayerIds
+    }
     const order = state.turnManager.turnOrder
-    return order.indexOf(playerId) < order.indexOf(state.activePlayerIds[0])
+    return order.slice(order.indexOf(state.activePlayerIds[0]))
 }
 
 export const ReefEncounterProjectedState = Visibility.createProjectionSchema(ReefEncounterGameState)

@@ -19,7 +19,7 @@ In the rulebook's order (pp. 3–4):
 4. Each open-sea space gets a larva cube of its colour.
 5. A polyp drawn from the bag names the first open-sea space and goes back into the bag, which is then reshuffled. The spaces then receive 3, 3, 3, 2 and 1 polyps clockwise from it. Clockwise is the direction of the arrows on the second-edition board: white, yellow, orange, pink, grey.
 6. The start player is chosen at random. In turn order from them, players are dealt 6, then 9 (two players); 6, 7, 9 (three); or 6, 7, 8, 9 (four) polyps into their supplies.
-7. In turn order, each player secretly feeds one of their polyps to their parrotfish. Nobody else ever learns its colour before the game ends.
+7. Each player secretly feeds one of their polyps to their parrotfish. Nobody else ever learns its colour before the game ends. The rulebook has players feed in turn order; since no feed reveals anything, all players feed at once here (our ruling, asked for by the user). Everyone sees who has fed. Games begun before this ruling go on feeding in turn order.
 8. In turn order, each player takes two larva cubes from the general supply and shows them. Two of the same colour are allowed.
 
 ## Turns

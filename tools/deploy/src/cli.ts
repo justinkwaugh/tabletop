@@ -24,12 +24,14 @@ import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.
 import { listHistory, rollback, switchFrontend, switchGame } from './lib/publicationHistory.js'
 import { DEFAULT_GRACE_DAYS, prune, pruneAfterDeploy, type PruneScope } from './lib/prune.js'
 import { type PublishContext } from './lib/publishCore.js'
+import { deployRealtime, releaseRealtime, rollbackRealtime } from './lib/realtimePublish.js'
 import { getCataloguePath, getDeployConfigPath, getRepoRoot } from './lib/paths.js'
 import {
     formatPreflightReport,
     runBackendPreflight,
     runFrontendPreflight,
-    runGamePreflight
+    runGamePreflight,
+    runRealtimePreflight
 } from './lib/releasePreflight.js'
 import { type BumpType } from './lib/versions.js'
 
@@ -56,7 +58,7 @@ Commands:
                                uploaded in the last ${DEFAULT_GRACE_DAYS} days. Prints the plan only unless
                                --apply. Game and frontend deploys prune their own target
                                afterwards unless --no-prune.
-  preflight (--game=<id> | --frontend | --backend) [--json]
+  preflight (--game=<id> | --frontend | --backend | --realtime) [--json]
                                Report the serving and local versions, the last release
                                baseline per artifact, and which files and commits changed
                                since it, ending with whether a release is needed. Read-only.
@@ -96,12 +98,23 @@ Commands:
                                Shift traffic to the latest revision of the backend and tasks
                                services (after a --no-traffic deploy)
   rollback-backend [revision] [--service=backend|tasks]  Restore prior revision or select one
+  release-realtime (--major | --minor | --patch) [--no-deploy]
+                               Bump the realtime relay version, commit, tag realtime-v<version>,
+                               push, then deploy (unless --no-deploy).
+  deploy-realtime              Build the relay at HEAD for linux/amd64 with its version stamped
+                               in, copy it and apps/realtime/deploy to the VM over IAP, install
+                               them with setup-vm.sh keeping the previous binary, restart, and
+                               check the relay reports the version with Redis connected and the
+                               public health URL answers 200. A relay that does not come up is
+                               replaced by the previous binary. Same guards as deploy-game.
+  rollback-realtime            Swap the previous relay binary back in and restart it
 
 Release tags:
   <packageId>-v<version>       Logic artifact
   <packageId>-ui-v<version>    UI artifact
   frontend-v<version>          Site frontend
   backend-v<version>           Backend image (also the image tag)
+  realtime-v<version>          Realtime relay binary
 
 Environment:
   TABLETOP_GCS_BUCKET           GCS bucket name
@@ -182,6 +195,7 @@ const main = async () => {
             game: { type: 'string' },
             frontend: { type: 'boolean' },
             backend: { type: 'boolean' },
+            realtime: { type: 'boolean' },
             logic: { type: 'boolean' },
             major: { type: 'boolean' },
             minor: { type: 'boolean' },
@@ -293,17 +307,22 @@ const main = async () => {
         const targets = [
             values.game !== undefined,
             values.frontend === true,
-            values.backend === true
+            values.backend === true,
+            values.realtime === true
         ].filter(Boolean).length
         if (targets !== 1) {
-            throw new Error('preflight takes exactly one of --game=<id>, --frontend, or --backend')
+            throw new Error(
+                'preflight takes exactly one of --game=<id>, --frontend, --backend, or --realtime'
+            )
         }
         const report =
             values.frontend === true
                 ? await runFrontendPreflight(context)
                 : values.backend === true
                   ? await runBackendPreflight(context)
-                  : await runGamePreflight(context, requireGame(command, values.game))
+                  : values.realtime === true
+                    ? await runRealtimePreflight(context)
+                    : await runGamePreflight(context, requireGame(command, values.game))
         console.log(values.json ? JSON.stringify(report, null, 2) : formatPreflightReport(report))
         return
     }
@@ -365,6 +384,25 @@ const main = async () => {
 
     if (command === 'promote-backend') {
         await promoteBackend(context, backendOptions.services)
+        return
+    }
+
+    if (command === 'release-realtime') {
+        await releaseRealtime(context, {
+            bump: resolveBumpType(command, values),
+            deploy: deployByDefault
+        })
+        return
+    }
+
+    if (command === 'deploy-realtime') {
+        rejectBumpFlags(command, values, 'release-realtime')
+        await deployRealtime(context)
+        return
+    }
+
+    if (command === 'rollback-realtime') {
+        await rollbackRealtime(context)
         return
     }
 

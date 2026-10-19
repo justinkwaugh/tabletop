@@ -6,12 +6,16 @@ import {
     isAssignLosses,
     isCounterAttack,
     isDeclareAttack,
+    isLossDecision,
     isRetreat,
     isThreatenAttack,
+    lossOwnerOf,
+    stepsOwed,
     type Attack,
     type Face,
     type LossEntry,
     type MoralePenalty,
+    type PendingDecision,
     type ResultTerm
 } from '@tabletop/napoleons-triumph'
 
@@ -26,6 +30,7 @@ export interface StepLoss {
 export interface SideLosses {
     playerId: string
     steps: number
+    owed: number
     /** Every point of morale the attack has cost this side so far. */
     morale: number
     taken: StepLoss[]
@@ -42,7 +47,7 @@ export interface AttackLosses {
 type FoughtAttack = Pick<Attack, 'attackerId' | 'defenderId' | 'attackingUnitIds'>
 
 function noLosses(playerId: string): SideLosses {
-    return { playerId, steps: 0, morale: 0, taken: [], paidForSteps: 0, penalties: [] }
+    return { playerId, steps: 0, owed: 0, morale: 0, taken: [], paidForSteps: 0, penalties: [] }
 }
 
 function stepsIn(losses: readonly LossEntry[]): number {
@@ -50,7 +55,11 @@ function stepsIn(losses: readonly LossEntry[]): number {
 }
 
 /** What the attack in progress has cost each side, from what its actions recorded since it was threatened. */
-export function lossesOfAttack(actions: readonly GameAction[], attack: FoughtAttack): AttackLosses {
+export function lossesOfAttack(
+    actions: readonly GameAction[],
+    attack: FoughtAttack,
+    pending: readonly PendingDecision[]
+): AttackLosses {
     const attacker = noLosses(attack.attackerId)
     const defender = noLosses(attack.defenderId)
     const sideOf = (playerId: string) => (playerId === attack.attackerId ? attacker : defender)
@@ -94,6 +103,9 @@ export function lossesOfAttack(actions: readonly GameAction[], attack: FoughtAtt
             }
         }
     }
+    for (const decision of pending.filter(isLossDecision)) {
+        sideOf(lossOwnerOf(attack, decision)).owed += stepsOwed(decision)
+    }
     for (const side of [attacker, defender]) {
         side.morale =
             side.paidForSteps + side.penalties.reduce((sum, penalty) => sum + penalty.moraleLost, 0)
@@ -102,19 +114,25 @@ export function lossesOfAttack(actions: readonly GameAction[], attack: FoughtAtt
 }
 
 export function anyLoss(losses: AttackLosses): boolean {
-    return [losses.attacker, losses.defender].some((side) => side.steps > 0 || side.morale > 0)
+    return [losses.attacker, losses.defender].some(
+        (side) => side.steps > 0 || side.owed > 0 || side.morale > 0
+    )
 }
 
-function counted(amount: number, one: string): string {
+export function counted(amount: number, one: string): string {
     return `${amount} ${one}${amount === 1 || one === 'morale' ? '' : 's'}`
 }
 
 export function lossSummary(side: SideLosses): string {
     const parts = [
         ...(side.steps > 0 ? [counted(side.steps, 'step')] : []),
+        ...(side.owed > 0 ? [`${counted(side.owed, 'step')} owed`] : []),
         ...(side.morale > 0 ? [counted(side.morale, 'morale')] : [])
     ]
-    return parts.length > 0 ? parts.join(' and ') : 'no loss'
+    if (parts.length < 2) {
+        return parts[0] ?? 'no loss'
+    }
+    return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
 }
 
 export interface OwedLine {
