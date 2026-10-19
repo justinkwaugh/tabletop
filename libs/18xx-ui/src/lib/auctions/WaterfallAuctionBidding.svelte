@@ -57,7 +57,7 @@
     {session}
     lot={{
         ...lot,
-        income: lot.company.privateRevenue,
+        income: lot.company.revenue,
         description: lot.company.description
     }}
     summary={[

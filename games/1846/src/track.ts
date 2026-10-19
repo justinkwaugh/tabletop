@@ -7,7 +7,8 @@ import {
     rotateTileEdge,
     rotateTileFace,
     sameStopCounts,
-    type TrackRules
+    type TrackRules,
+    laidTileFace
 } from '@tabletop/18xx'
 import { EighteenFortySixMap, LandGrantLocations, PrivateTrackBlocks } from './map.js'
 import { EighteenFortySixTileSet } from './tiles.js'
@@ -32,7 +33,10 @@ export const TrackRules1846: TrackRules = {
     allowance(state, color) {
         const lays = state.trackStep?.lays ?? []
         if (lays.length >= 2) return { reason: 'Two construction actions are allowed per turn.' }
-        if (color !== 'yellow' && lays.some((lay) => lay.color !== 'yellow'))
+        if (
+            color !== 'yellow' &&
+            lays.some((lay) => laidTileFace(state, TrackRules1846, lay).color !== 'yellow')
+        )
             return { reason: 'Only one ordinary upgrade is allowed per turn.' }
         return { cost: 0 }
     },

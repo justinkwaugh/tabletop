@@ -60,6 +60,7 @@
 
 <FinanceInspector
     names={session.names}
+    charters={session.charters}
     stations={gameState.stations}
     stationReservations={gameState.stationReservations}
     certificateWeight={session.certificateWeight}

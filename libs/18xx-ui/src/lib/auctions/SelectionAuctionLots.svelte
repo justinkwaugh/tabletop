@@ -107,7 +107,7 @@
                                             name={lot.name}
                                             description={lot.company.description}
                                             value={lot.price}
-                                            income={lot.company.privateRevenue}
+                                            income={lot.company.revenue}
                                         />
                                         {#if lot.company.description}<span class="power"
                                                 >{lot.company.description}</span

@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoCharters } from './charters.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -12,11 +13,12 @@ import {
 } from '@tabletop/common'
 import {
     CashPayment,
+    companyShareCount,
     CorporateStockActionsHandler,
-    Owner,
     corporateTurnOpen,
     finiteCashOwnedBy,
     getCompany,
+    Owner,
     recordStockAction,
     settleCashPayments,
     sharesOwned,
@@ -43,7 +45,7 @@ const MinimumOutsidePercent = 60
 const companyOwner = (companyId: string) => ({ kind: 'company' as const, companyId })
 
 function shareCountOf(state: EighteenThirtyTwoState, companyId: string): number {
-    const count = getCompany(state, companyId).shareCount
+    const count = companyShareCount(state, EighteenThirtyTwoCharters, companyId)
     assertExists(count, 'Redemption requires a share count')
     return count
 }

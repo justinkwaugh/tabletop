@@ -364,15 +364,12 @@
                     imageUrl={session.publishedCardImage(item.id)}
                     name={session.companyName(item.id)}
                     description={item.description}
-                    income={item.closed ? undefined : item.privateRevenue}
+                    income={item.closed ? undefined : item.revenue}
                 />{#each session.privateActions.powersFor(item.id) as power (power.playerId)}<span
                         class="private-power"><PrivateTrackPowerButton {session} {power} /></span
                     >{/each}
             </div>
-            <span
-                >{purchasePrice ??
-                    (item.closed ? 'Closed' : `${money(item.privateRevenue ?? 0)} / OR`)}</span
-            >
+            <span>{purchasePrice ?? (item.closed ? 'Closed' : `${money(item.revenue)} / OR`)}</span>
         </div>
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
             >{/if}

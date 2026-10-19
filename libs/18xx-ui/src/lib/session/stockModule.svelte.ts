@@ -30,7 +30,8 @@ import {
     type PurchaseRequest,
     type SaleRequest,
     type ShareSale,
-    type ValuationRules
+    type ValuationRules,
+    companyShareCount
 } from '@tabletop/18xx'
 import {
     StockActionStageOrder,
@@ -114,8 +115,12 @@ export class StockModule implements LocalSelection {
     }
 
     private unstartedCompanies() {
-        return this.session.state.companies.filter(
-            (company) => !company.started && !company.closed && company.shareCount
+        const { state, rules } = this.session
+        return state.companies.filter(
+            (company) =>
+                !company.started &&
+                !company.closed &&
+                companyShareCount(state, rules.stockRules.charters, company.id)
         )
     }
     private auctionsCompanies = $derived.by(() => !!this.session.rules.stockRules.companyAuction)

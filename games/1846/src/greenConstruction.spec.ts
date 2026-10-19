@@ -131,8 +131,8 @@ describe('1846 green construction and routes', () => {
         assertExists(paying)
         expect(paying.map((s) => s.locationId)).toEqual(['C5', 'D6', 'C17'])
         expect(routeConnectionBonuses(paying, policy)).toEqual([
-            { locationId: 'C17', amount: 30, label: 'East–West' },
-            { locationId: 'C5', amount: 50, label: 'East–West' }
+            { locationId: 'C17', amount: 30, sourceIds: ['east-west'] },
+            { locationId: 'C5', amount: 50, sourceIds: ['east-west'] }
         ])
         expect(routeConnectionBonuses(stops.slice(1), policy)).toEqual([])
         expect(

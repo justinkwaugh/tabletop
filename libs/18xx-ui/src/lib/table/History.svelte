@@ -84,7 +84,8 @@
             (id) => session.getPlayerName(id),
             companyChanges.get(action.id),
             session.presentation.money,
-            (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName)
+            (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
+            (id) => session.names.routeBonus(id)
         )
     }
     function describe(action: GameAction) {

@@ -57,7 +57,7 @@
     {session}
     lot={{
         ...lot,
-        income: lot.company?.privateRevenue,
+        income: lot.company?.revenue,
         description: lotInfo(lot.id).description
     }}
     summary={bidding.auction.highBid === undefined

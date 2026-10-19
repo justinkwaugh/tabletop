@@ -129,20 +129,17 @@ export class Initializer extends BaseGameInitializer<
                 turnCounts: Object.fromEntries(order.map((id) => [id, 0]))
             },
             removedCorporationIds,
-            bank: { unlimitedAfterExhaustion: true },
+            bank: {},
             companies: [
                 ...Corporations.map((company) => ({
                     id: company.id,
                     kind: 'major',
-                    shareCount: 10,
                     closed: removedCorporationIds.includes(company.id),
                     started: false
                 })),
                 ...privates.map((company) => ({
                     id: company.id,
-                    kind: company.kind === 'independent' ? 'minor' : 'private',
-                    privateRevenue: company.revenue,
-                    ...(company.kind === 'independent' ? { shareCount: 1 } : {})
+                    kind: company.kind === 'independent' ? 'minor' : 'private'
                 }))
             ],
             certificatePools: [{ id: 'open-market', owner: { kind: 'bank' } }],

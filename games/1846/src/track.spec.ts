@@ -7,6 +7,7 @@ import {
     placeStockMarker,
     privateIncomePayments
 } from '@tabletop/18xx'
+import { Charters1846 } from './charters.js'
 import { stockGame, start } from './testSupport.js'
 import { TrackRules1846 } from './track.js'
 import { EighteenFortySixMap } from './map.js'
@@ -30,7 +31,7 @@ function choose(table: ReturnType<typeof stockGame>, locationId: string) {
 describe('1846 phase-I construction', () => {
     it('starts the first independent and pays private income exactly once before its turn', () => {
         const table = stockGame()
-        const payments = privateIncomePayments(table.state)
+        const payments = privateIncomePayments(table.state, { charters: Charters1846 })
         const before = structuredClone(table.state.cash)
         table.finishTurn()
         table.finishTurn()

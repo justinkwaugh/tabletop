@@ -7,8 +7,10 @@ import {
     controllingOwner,
     finiteCashOwnedBy,
     nextOperatingCompany,
-    placeStockMarker
+    placeStockMarker,
+    currentPrivateRevenue
 } from '@tabletop/18xx'
+import { Charters1846 } from './charters.js'
 import { stockGame } from './testSupport.js'
 import { RouteRules1846 } from './routes.js'
 import { trainBuyingChoices1846 } from './trains.js'
@@ -170,7 +172,11 @@ describe('1846 stock and operating sequence', () => {
                                 certificate.owner.playerId === playerId
                         )
                 )
-                .reduce((sum, company) => sum + (company.privateRevenue ?? 0), 0)
+                .reduce(
+                    (sum, company) =>
+                        sum + currentPrivateRevenue(table.state, Charters1846, company.id),
+                    0
+                )
             expect(finiteCashOwnedBy(table.state, { kind: 'player', playerId })).toBe(
                 before[index] + income
             )

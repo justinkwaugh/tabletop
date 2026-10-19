@@ -1,5 +1,6 @@
+import { EighteenSeventeenCharters } from './charters.js'
 import { assertExists } from '@tabletop/common'
-import { getCompany, type FinancialState } from '@tabletop/18xx'
+import { companyShareCount, type FinancialState } from '@tabletop/18xx'
 
 export const EighteenSeventeenCorporations = [
     { id: 'AS', name: 'Alton & Southern Railway', abbreviation: 'A&S' },
@@ -28,7 +29,7 @@ export function corporationShareCount(
     state: Pick<FinancialState, 'companies'>,
     companyId: string
 ): number {
-    const count = getCompany(state, companyId).shareCount
+    const count = companyShareCount(state, EighteenSeventeenCharters, companyId)
     assertExists(count, 'Every 1817 corporation has a share count')
     return count
 }

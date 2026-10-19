@@ -631,6 +631,7 @@
     const startedCompanies = $derived(
         spreadsheetCompanies(
             gameState,
+            session.charters,
             session.actions,
             session.gameState.actionCount,
             displayedCompanyOrder,

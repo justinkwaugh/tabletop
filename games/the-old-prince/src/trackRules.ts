@@ -3,7 +3,8 @@ import {
     privateOwner,
     controllingOwner,
     sameOwner,
-    type TrackRules
+    type TrackRules,
+    laidTileFace
 } from '@tabletop/18xx'
 import { TheOldPrinceMap } from './map.js'
 import { TheOldPrinceTileSet } from './tiles.js'
@@ -16,7 +17,11 @@ export const TheOldPrinceTrackRules: TrackRules = {
     allowance(state, color) {
         const lays = state.trackStep?.lays ?? []
         if (!lays.length) return { cost: 0 }
-        if (lays.length === 1 && lays[0].color === 'yellow' && color === 'yellow')
+        if (
+            lays.length === 1 &&
+            laidTileFace(state, TheOldPrinceTrackRules, lays[0]).color === 'yellow' &&
+            color === 'yellow'
+        )
             return { cost: 20 }
         return { reason: 'TOP permits two yellow lays or one upgrade' }
     },

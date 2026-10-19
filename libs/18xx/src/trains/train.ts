@@ -42,7 +42,8 @@ export const Train = Type.Union([
 export type Train = Type.Static<typeof Train>
 export const TrainInventory = Type.Object(
     {
-        depotId: Id,
+        /** The supply variant chosen at setup; absent for the depot's own supply. */
+        depotId: Type.Optional(Id),
         trains: Type.Array(Train),
         nextTrainNumber: Type.Integer({ minimum: 1 })
     },

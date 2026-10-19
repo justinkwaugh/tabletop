@@ -71,6 +71,7 @@
                 session.gameState,
                 { kind: 'player', playerId },
                 valuationRules,
+                session.charters,
                 !!session.presentation.minorsAsPrivates
             )
         })),
@@ -87,7 +88,12 @@
                 bankrupt: false,
                 liquidity: undefined,
                 certs: undefined,
-                ...ownerPortfolio(session.gameState, { kind: 'company', companyId }, valuationRules)
+                ...ownerPortfolio(
+                    session.gameState,
+                    { kind: 'company', companyId },
+                    valuationRules,
+                    session.charters
+                )
             }
         })
     ])
@@ -325,7 +331,7 @@
                                                 name={lot.name}
                                                 {description}
                                                 value={lot.price}
-                                                income={lot.company?.privateRevenue}
+                                                income={lot.company?.revenue}
                                             />{:else}{lot.name}{/if}
                                     </th>
                                     <td class="amount">{money(amount)}</td>

@@ -18,6 +18,7 @@ import {
 import { allSharesHeld } from '../stock/stockRoundRules.js'
 import { marketSaleTerms } from '../stock/stockRules.js'
 import { fullCapitalizationPayments, sharesStillToFloat } from './companyFlotation.js'
+import { companyCharters } from './companyCharters.js'
 
 const ipo = { owner: { kind: 'bank' } as const, poolId: 'ipo' }
 const alex: Owner = { kind: 'player', playerId: 'alex' }
@@ -40,7 +41,6 @@ function position(sold: number, funded = false) {
                 {
                     id: 'A',
                     kind: 'major',
-                    shareCount: 10,
                     started: true,
                     parPrice: 65,
                     funded,
@@ -49,14 +49,12 @@ function position(sold: number, funded = false) {
                 {
                     id: 'B',
                     kind: 'major',
-                    shareCount: 10,
                     started: true,
                     floated: false
                 },
                 {
                     id: 'C',
                     kind: 'major',
-                    shareCount: 10,
                     started: true,
                     floated: true,
                     closed: true
@@ -65,22 +63,26 @@ function position(sold: number, funded = false) {
         }
     return state
 }
+const charters = companyCharters(() => ({
+    shareCounts: { A: 10, B: 10, C: 10 },
+    privateRevenues: {}
+}))
 const inOffering = (certificate: { poolId?: string }) => certificate.poolId === 'ipo'
 
 describe('helpers for ordinary title rules', () => {
     it('counts the shares that must still leave the offering before a company floats', () => {
-        expect(sharesStillToFloat(position(4), 'A', 50, inOffering)).toBe(1)
-        expect(sharesStillToFloat(position(5), 'A', 50, inOffering)).toBe(0)
-        expect(sharesStillToFloat(position(5), 'A', 60, inOffering)).toBe(1)
-        expect(sharesStillToFloat(position(6), 'A', 60, inOffering)).toBe(0)
+        expect(sharesStillToFloat(position(4), charters, 'A', 50, inOffering)).toBe(1)
+        expect(sharesStillToFloat(position(5), charters, 'A', 50, inOffering)).toBe(0)
+        expect(sharesStillToFloat(position(5), charters, 'A', 60, inOffering)).toBe(1)
+        expect(sharesStillToFloat(position(6), charters, 'A', 60, inOffering)).toBe(0)
     })
 
     it('pays par times the share count once the company can float, and only once', () => {
-        expect(fullCapitalizationPayments(position(4), 'A', 1)).toBeUndefined()
-        expect(fullCapitalizationPayments(position(5), 'A', 0)).toEqual([
+        expect(fullCapitalizationPayments(position(4), charters, 'A', 1)).toBeUndefined()
+        expect(fullCapitalizationPayments(position(5), charters, 'A', 0)).toEqual([
             { from: { kind: 'bank' }, to: { kind: 'company', companyId: 'A' }, amount: 650 }
         ])
-        expect(fullCapitalizationPayments(position(5, true), 'A', 0)).toEqual([])
+        expect(fullCapitalizationPayments(position(5, true), charters, 'A', 0)).toEqual([])
     })
 
     it('finds a company’s open shares and its president certificate', () => {

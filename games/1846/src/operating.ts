@@ -1,3 +1,4 @@
+import { Charters1846 } from './charters.js'
 import { Names1846 } from './names.js'
 import { Market1846 } from './stock.js'
 import { Phases1846 } from './trains.js'
@@ -15,6 +16,7 @@ import {
 import { DraftCompanies } from './catalog.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 export const OperatingRules1846: OperatingRules = {
+    charters: Charters1846,
     roundCount: (state) => Phases1846.phase(state.phaseId).operatingRounds,
     companyOrder(state) {
         const majors = floatedCompaniesInMarketOrder(Market1846, state)

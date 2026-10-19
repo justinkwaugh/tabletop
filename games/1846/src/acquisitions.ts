@@ -1,3 +1,4 @@
+import { Charters1846 } from './charters.js'
 import { releasePrivateReservations } from './stations.js'
 import { inReceivership } from './receivership.js'
 import * as Type from 'typebox'
@@ -45,6 +46,7 @@ export const AcquisitionSteps = [
 ] as const
 
 export const TransferRules1846: TransferRules = {
+    charters: Charters1846,
     operatingCompany(state) {
         return AcquisitionSteps.some((step) => step === state.machineState)
             ? nextOperatingCompany(state)

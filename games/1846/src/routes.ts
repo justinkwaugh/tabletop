@@ -13,15 +13,11 @@ import { EighteenFortySixTileSet } from './tiles.js'
 import { Phases1846, TrainDepot1846 } from './trains.js'
 import type { SteamboatState } from './steamboat.js'
 
-const RevenuePrivateNames: Readonly<Record<string, string>> = {
-    SC: 'Steamboat',
-    MPC: 'Meat Packing',
-    BT: 'Boomtown'
-}
+export const EastWestBonusId = 'east-west'
 const PayingStopLimits: Readonly<Record<string, number>> = { '3/5': 3, '4/6': 4, '7/8': 7 }
 
 const EastWestConnection: PaidConnectionBonus = {
-    label: 'East–West',
+    sourceId: EastWestBonusId,
     from: Object.fromEntries(
         Object.entries(EastWestBonuses)
             .filter(([, bonus]) => bonus.side === 'east')
@@ -50,16 +46,16 @@ export const RouteRules1846: RouteRules = {
     }),
     longestRouteBonusPerStop: (state, companyId) =>
         privateOwningCompany(state, 'MAIL') === companyId ? 10 : 0,
-    longestRouteBonusLabel: 'Mail Contract',
+    longestRouteBonusSourceId: 'MAIL',
     requiresCity: () => true,
     oneStopPerHex: true,
-    stopBonusLabel(
+    stopBonusSourceIds(
         state: TrainRunningState & SteamboatState & RevenueMarkerState,
         _train,
         companyId,
         center
     ) {
-        const names = [
+        return [
             ...(state.steamboat?.companyId === companyId &&
             state.steamboat.locationId === center.locationId
                 ? ['SC']
@@ -70,8 +66,7 @@ export const RouteRules1846: RouteRules = {
                         marker.companyId === companyId && marker.locationId === center.locationId
                 )
                 .map((marker) => marker.privateCompanyId)
-        ].map((privateId) => RevenuePrivateNames[privateId] ?? privateId)
-        return names.length ? names.join(' + ') : undefined
+        ]
     },
     stopBonus(
         state: TrainRunningState & SteamboatState & RevenueMarkerState,

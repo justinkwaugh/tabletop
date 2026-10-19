@@ -72,7 +72,9 @@ export function activeRevenueTokens(
     )
 }
 
-type StopBonus = { amount: number; label: string }
+/** What a revenue token's bonus is called, by the token's kind. */
+export const RevenueTokenBonusNames = { 'key-west': 'Key West', port: 'Port', cotton: 'Cotton' }
+type StopBonus = { amount: number; sourceId: keyof typeof RevenueTokenBonusNames }
 
 function revenueNodes(state: MapStateData, locationId: string, kinds: readonly string[]) {
     return currentTileFace(state, locationId).nodes.filter((node) => kinds.includes(node.kind))
@@ -90,12 +92,12 @@ export function stopBonuses(
     return activeRevenueTokens(state).flatMap((token): StopBonus[] => {
         if (token.kind === 'key-west')
             return token.companyId === companyId && center.locationId === MiamiLocationId
-                ? [{ amount: 50, label: 'Key West' }]
+                ? [{ amount: 50, sourceId: 'key-west' }]
                 : []
         if (token.locationId !== center.locationId || token.nodeId !== center.nodeId) return []
         if (token.kind === 'port')
-            return [{ amount: token.companyId === companyId ? 20 : 10, label: 'Port' }]
-        return token.companyId === companyId ? [{ amount: 10, label: 'Cotton' }] : []
+            return [{ amount: token.companyId === companyId ? 20 : 10, sourceId: 'port' }]
+        return token.companyId === companyId ? [{ amount: 10, sourceId: 'cotton' }] : []
     })
 }
 
@@ -104,25 +106,27 @@ export function miamiFirstRun(state: EighteenThirtyTwoTitleState & { phaseId: st
     return !state.miamiRun && !EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '5')
 }
 
-export const revenueTokenRoutes: Pick<RouteRules, 'stopBonus' | 'stopBonusLabel' | 'stopRevenue'> =
-    {
-        stopRevenue: (state, _companyId, center, printed) =>
-            center.locationId === MiamiLocationId &&
-            miamiFirstRun(requireEighteenThirtyTwoState(state))
-                ? 0
-                : printed,
-        stopBonus: (state, _train, companyId, center) =>
-            stopBonuses(requireEighteenThirtyTwoState(state), companyId, center).reduce(
-                (sum, bonus) => sum + bonus.amount,
-                0
-            ),
-        stopBonusLabel: (state, _train, companyId, center) => {
-            const labels = stopBonuses(requireEighteenThirtyTwoState(state), companyId, center).map(
-                (bonus) => bonus.label
+export const revenueTokenRoutes: Pick<
+    RouteRules,
+    'stopBonus' | 'stopBonusSourceIds' | 'stopRevenue'
+> = {
+    stopRevenue: (state, _companyId, center, printed) =>
+        center.locationId === MiamiLocationId && miamiFirstRun(requireEighteenThirtyTwoState(state))
+            ? 0
+            : printed,
+    stopBonus: (state, _train, companyId, center) =>
+        stopBonuses(requireEighteenThirtyTwoState(state), companyId, center).reduce(
+            (sum, bonus) => sum + bonus.amount,
+            0
+        ),
+    stopBonusSourceIds: (state, _train, companyId, center) => [
+        ...new Set(
+            stopBonuses(requireEighteenThirtyTwoState(state), companyId, center).map(
+                (bonus) => bonus.sourceId
             )
-            return labels.length ? labels.join(' + ') : undefined
-        }
-    }
+        )
+    ]
+}
 
 function currentTurn(set: OperatingSet | undefined) {
     assertExists(set, 'Tokens are placed during an operating round')

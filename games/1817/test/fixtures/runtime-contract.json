@@ -66,7 +66,7 @@
     "ResolveSelectionAuction": "374bbdb83f214c608f00156060e4c0b4575c50e8400fd2d6b5cc47cfe386434a",
     "RespondToPurchaseOffer": "2a80cb1220166e3653cf3d2c16cd62120b8d23a728e0359199e93db0c1afcc27",
     "RespondToTrackConsent": "d444e2f54cdc5a40ef5bb8a6da767fb3c2b30cc1fa54469a8fc04b6cfde5601c",
-    "RunTrains": "a00f6e3a70d2a6cc2c43e4ca917328530cbeaa7ccaae56993080a0c37791424a",
+    "RunTrains": "76d57af755fe72d5d7b936e18324f0adfd17350de4fc41b209c674073956fbc6",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellConvertedShares": "232228a9ca56bda8f8c487c129af2844643d29dd5f8b994a59bf05dee327560f",
@@ -317,9 +317,6 @@
         "additionalProperties": false,
         "properties": {
           "broken": {
-            "type": "boolean"
-          },
-          "unlimitedAfterExhaustion": {
             "type": "boolean"
           }
         },
@@ -2621,13 +2618,18 @@
                             "minimum": 1,
                             "type": "integer"
                           },
-                          "label": {
-                            "minLength": 1,
-                            "type": "string"
-                          },
                           "locationId": {
                             "minLength": 1,
                             "type": "string"
+                          },
+                          "sourceIds": {
+                            "items": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "type": "array",
+                            "uniqueItems": true
                           }
                         },
                         "required": [
@@ -3600,8 +3602,7 @@
         },
         "required": [
           "placements",
-          "retiredPieceIds",
-          "tileSetId"
+          "retiredPieceIds"
         ],
         "type": "object"
       },
@@ -3625,13 +3626,14 @@
                   "minimum": 0,
                   "type": "integer"
                 },
+                "definitionId": {
+                  "type": "string"
+                },
                 "locationId": {
                   "type": "string"
                 }
               },
               "required": [
-                "color",
-                "cost",
                 "locationId"
               ],
               "type": "object"
@@ -3814,8 +3816,7 @@
               },
               "required": [
                 "companyId",
-                "seller",
-                "shares"
+                "seller"
               ],
               "type": "object"
             },
@@ -3981,7 +3982,6 @@
           }
         },
         "required": [
-          "depotId",
           "nextTrainNumber",
           "trains"
         ],

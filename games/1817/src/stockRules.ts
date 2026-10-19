@@ -1,3 +1,4 @@
+import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import {
@@ -22,7 +23,8 @@ import {
     type StationState,
     type StockRules,
     type StockState,
-    standardCertificateWeight
+    standardCertificateWeight,
+    companyShareCount
 } from '@tabletop/18xx'
 import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
 import { EighteenSeventeenMap } from './map.js'
@@ -66,11 +68,12 @@ function privateValue(privateIds: readonly string[]): number {
 /** The stations a company that has not yet operated still needs to buy for its size. */
 export function stationsOwed(state: StockState & StationState, companyId: string): number {
     const company = getCompany(state, companyId)
-    if (!company.started || company.operated || !company.shareCount) return 0
+    const shareCount = companyShareCount(state, EighteenSeventeenCharters, companyId)
+    if (!company.started || company.operated || !shareCount) return 0
     const held = state.stations.filter(
         (station) => station.companyId === companyId && station.status !== 'removed'
     ).length
-    return Math.max(0, StationsBySize[company.shareCount] - held)
+    return Math.max(0, StationsBySize[shareCount] - held)
 }
 
 /** Buys every station the company owes when its treasury can pay for all of them. */
@@ -250,7 +253,11 @@ export function marketSale(
     shares: number
 ): ShareSaleTerms | string {
     const company = getCompany(state, companyId)
-    if (!company.shareCount || !company.president || company.closed)
+    if (
+        !companyShareCount(state, EighteenSeventeenCharters, companyId) ||
+        !company.president ||
+        company.closed
+    )
         return 'This company has no saleable shares.'
     if (inClosingZone(state.stockMarket, companyId))
         return 'Shares in the acquisition or liquidation zone cannot be sold.'
@@ -264,6 +271,7 @@ export function marketSale(
 
 export const EighteenSeventeenStockRules: StockRules = {
     market: EighteenSeventeenMarket,
+    charters: EighteenSeventeenCharters,
     round: EighteenSeventeenStockRoundRules,
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
@@ -301,7 +309,7 @@ export const EighteenSeventeenStockRules: StockRules = {
     certificateWeight: (_state, certificate) =>
         certificate.kind === 'private' ? 0 : standardCertificateWeight(certificate),
     ownershipLimit(state, companyId) {
-        return getCompany(state, companyId).shareCount === 2 ? 100 : 60
+        return companyShareCount(state, EighteenSeventeenCharters, companyId) === 2 ? 100 : 60
     },
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),

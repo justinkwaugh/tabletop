@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TrackConstruction, applyStationPlacement, cashOwnedBy } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
+import { laidTiles } from '@tabletop/18xx/testing'
 import {
     EighteenThirtyTwoRouteRules,
     EighteenThirtyTwoTileSet,
@@ -89,11 +90,15 @@ describe('WVCF tokens and construction', () => {
             EighteenThirtyTwoTrackRules.allowance(play.state, color, upgrade)
         expect(allowance('yellow', false)).toEqual({ cost: 0 })
         expect(allowance('green', true)).toHaveProperty('reason')
+        const tileInventory = structuredClone(play.state.tileInventory)
         const laid = {
             ...play.state,
+            tileInventory,
             trackStep: {
                 companyId: 'CG',
-                lays: [{ locationId: 'P21', color: 'yellow', cost: 0 }],
+                lays: laidTiles(tileInventory, EighteenThirtyTwoTileSet, [
+                    { locationId: 'P21', color: 'yellow' }
+                ]),
                 completed: false
             }
         }
@@ -104,11 +109,15 @@ describe('WVCF tokens and construction', () => {
 
     it('cannot follow an upgrade', () => {
         const play = coalFieldsPlay('ACL')
+        const tileInventory = structuredClone(play.state.tileInventory)
         const upgraded = {
             ...play.state,
+            tileInventory,
             trackStep: {
                 companyId: 'CG',
-                lays: [{ locationId: 'P23', color: 'green', cost: 0 }],
+                lays: laidTiles(tileInventory, EighteenThirtyTwoTileSet, [
+                    { locationId: 'P23', color: 'green' }
+                ]),
                 completed: false
             }
         }

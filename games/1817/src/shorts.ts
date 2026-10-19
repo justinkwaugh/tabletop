@@ -1,3 +1,4 @@
+import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import type {
     HydratedEighteenSeventeenState,
@@ -30,7 +31,9 @@ import {
     sharesOwned,
     type FinancialState,
     type OpenShare,
-    SystemActionFirstHandler
+    SystemActionFirstHandler,
+    companyShareCount,
+    recordStockRoundSale
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
@@ -60,7 +63,8 @@ export function shortReason(
     if (turn.bought || turn.shorted || turn.corporateAction)
         return 'A short must come before any purchase, once a turn.'
     const company = getCompany(state, companyId)
-    if (!company.shareCount || company.shareCount <= 2 || !company.floated || !company.operated)
+    const shareCount = companyShareCount(state, EighteenSeventeenCharters, companyId)
+    if (!shareCount || shareCount <= 2 || !company.floated || !company.operated)
         return 'Only an operated company of more than two shares can be shorted.'
     if (state.phaseId === NoShortsPhase) return 'No shorts can be opened in phase 8.'
     if (inClosingZone(state.stockMarket, companyId))
@@ -69,7 +73,7 @@ export function shortReason(
         return 'A player holding shares of a company cannot short it.'
     const shorts = openShorts(state, companyId).length
     if (
-        shorts >= company.shareCount ||
+        shorts >= shareCount ||
         (eighteenSeventeenOptions(state).fiveShorts && shorts >= FiveShorts)
     )
         return 'This company has as many shorts as it may.'
@@ -142,7 +146,7 @@ export class HydratedShortShare extends HydratableAction<typeof ShortShare> impl
         const { shareId, shortId } = openShort(state, this.companyId, player, marketPool(state))
         const payment = { from: { kind: 'bank' as const }, to: player, amount: this.expectedPrice }
         settleCashPayments(state, [payment])
-        state.stockRound.sales.push({ owner: player, companyId: this.companyId })
+        recordStockRoundSale(state.stockRound, player, this.companyId)
         state.stockRound.turn.shorted = true
         recordStockAction(state, this.playerId, EighteenSeventeenStockRoundRules)
         this.metadata = { shareId, shortId, payment }

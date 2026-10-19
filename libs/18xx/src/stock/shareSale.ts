@@ -1,3 +1,4 @@
+import { companyShareCount } from '../company/companyCharters.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
@@ -117,6 +118,7 @@ export function evaluateShareSale(
     if (!previous || !extending) return evaluateShareDisposal(state, seller, sales, rules)
     return evaluateShareDisposal(state, seller, sales, {
         market: rules.market,
+        charters: rules.charters,
         presidencyCandidates: rules.presidencyCandidates,
         saleTerms(projected, companyId, shares, seller) {
             const terms = rules.saleTerms(projected, companyId, previous.shares + shares, seller)
@@ -141,7 +143,11 @@ export function evaluateShareDisposal(
     sales: ShareSale[],
     rules: Pick<
         StockRules,
-        'market' | 'saleTerms' | 'presidencyCandidates' | 'presidencyExchangeLargestFirst'
+        | 'market'
+        | 'charters'
+        | 'saleTerms'
+        | 'presidencyCandidates'
+        | 'presidencyExchangeLargestFirst'
     >
 ): ShareSaleResult {
     if (!sales.length || new Set(sales.map((sale) => sale.companyId)).size !== sales.length)
@@ -159,7 +165,8 @@ export function evaluateShareDisposal(
         if (sale.shares > terms.maximumShares)
             return { reason: 'The sale exceeds the per-turn sale limit.' }
         const company = getCompany(projected, sale.companyId)
-        assertExists(company.shareCount, 'Traded company requires a share count')
+        const shareCount = companyShareCount(projected, rules.charters, company.id)
+        assertExists(shareCount, 'Traded company requires a share count')
         const owned = sharesOwned(projected, company.id, seller)
         if (sale.shares > owned) return { reason: 'The seller does not own enough shares.' }
         const pool = projected.certificatePools.find((pool) => pool.id === terms.destinationPoolId)
@@ -174,7 +181,7 @@ export function evaluateShareDisposal(
                     : 0),
             0
         )
-        if ((marketShares + sale.shares) * 100 > terms.marketLimit * company.shareCount)
+        if ((marketShares + sale.shares) * 100 > terms.marketLimit * shareCount)
             return { reason: 'The Market cannot hold that many shares.' }
         const presidency = evaluatePresidency(
             projected,
@@ -221,11 +228,7 @@ export function evaluateShareDisposal(
         const owed = payments
             .filter((other) => sameOwner(other.from, payment.from))
             .reduce((sum, other) => sum + other.amount, 0)
-        if (
-            cash !== 'unlimited' &&
-            cash < owed &&
-            !(payment.from.kind === 'bank' && state.bank.unlimitedAfterExhaustion)
-        )
+        if (cash !== 'unlimited' && cash < owed && payment.from.kind !== 'bank')
             return { reason: 'The payer cannot fund this sale.' }
     }
     return { details: { seller, sales: settlements, payments, proceeds: total } }

@@ -633,6 +633,9 @@ export class EighteenXXSession<
     get names() {
         return this.rules.names
     }
+    get charters() {
+        return this.rules.stockRules.charters
+    }
     companyName(companyId: string) {
         return this.rules.names.company(companyId)
     }

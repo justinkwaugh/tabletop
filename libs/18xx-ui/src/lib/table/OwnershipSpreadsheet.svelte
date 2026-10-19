@@ -138,6 +138,7 @@
     const companies = $derived(
         spreadsheetCompanies(
             session.gameState,
+            session.charters,
             session.actions,
             session.gameState.actionCount,
             companyOrder,
@@ -282,7 +283,12 @@
         certs?: { count: number; limit: number }
     }
     function ownerStatisticsFor(owner: Owner, certs?: OwnerStatistics['certs']): OwnerStatistics {
-        const { cash, netWorth, shares } = ownerPortfolio(session.gameState, owner, valuationRules)
+        const { cash, netWorth, shares } = ownerPortfolio(
+            session.gameState,
+            owner,
+            valuationRules,
+            session.charters
+        )
         return { cash, shares, netWorth, certs }
     }
     function firstSortDirection(column: SpreadsheetSortColumn<never>): SpreadsheetSortDirection {

@@ -58,7 +58,6 @@ function addUnstartedMajors(state: CompanyState): void {
         state.companies.push({
             id: major.id,
             kind: 'major',
-            shareCount: 10,
             started: false,
             funded: false,
             floated: false,

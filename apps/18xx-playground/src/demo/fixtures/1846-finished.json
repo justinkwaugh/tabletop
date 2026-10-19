@@ -84,7 +84,6 @@
     "revenueMarkers": [],
     "usedPrivatePowerIds": [],
     "tileInventory": {
-      "tileSetId": "1846",
       "placements": {},
       "retiredPieceIds": []
     },
@@ -128,89 +127,73 @@
       "PRR"
     ],
     "bank": {
-      "unlimitedAfterExhaustion": true
     },
     "companies": [
       {
         "id": "PRR",
         "kind": "major",
-        "shareCount": 10,
         "closed": true,
         "started": false
       },
       {
         "id": "NYC",
         "kind": "major",
-        "shareCount": 10,
         "closed": false,
         "started": false
       },
       {
         "id": "B&O",
         "kind": "major",
-        "shareCount": 10,
         "closed": false,
         "started": false
       },
       {
         "id": "C&O",
         "kind": "major",
-        "shareCount": 10,
         "closed": true,
         "started": false
       },
       {
         "id": "ERIE",
         "kind": "major",
-        "shareCount": 10,
         "closed": false,
         "started": false
       },
       {
         "id": "GT",
         "kind": "major",
-        "shareCount": 10,
         "closed": false,
         "started": false
       },
       {
         "id": "IC",
         "kind": "major",
-        "shareCount": 10,
         "closed": false,
         "started": false
       },
       {
         "id": "MS",
-        "kind": "minor",
-        "privateRevenue": 0,
-        "shareCount": 1
+        "kind": "minor"
       },
       {
         "id": "BIG4",
-        "kind": "minor",
-        "privateRevenue": 0,
-        "shareCount": 1
+        "kind": "minor"
       },
       {
         "id": "C&WI",
-        "kind": "private",
-        "privateRevenue": 10
+        "kind": "private"
       },
       {
         "id": "MAIL",
-        "kind": "private",
-        "privateRevenue": 0
+        "kind": "private"
       },
       {
         "id": "MC",
-        "kind": "private",
-        "privateRevenue": 15
+        "kind": "private"
       },
       {
         "id": "MPC",
-        "kind": "private",
-        "privateRevenue": 15
+        "kind": "private"
       }
     ],
     "certificatePools": [
@@ -993,7 +976,6 @@
       }
     ],
     "trainInventory": {
-      "depotId": "1846",
       "trains": [
         {
           "id": "1846/2/1",

@@ -72,14 +72,14 @@
                                 name={lot.name}
                                 description={info.description}
                                 value={lot.price}
-                                income={lot.company?.privateRevenue}
+                                income={lot.company?.revenue}
                             />
                         </div></th
                     >
                     <td class="amount income"
-                        >{#if lot.company && lot.company.privateRevenue !== undefined}{money(
-                                lot.company.privateRevenue
-                            )}<small> / OR</small>{:else}—{/if}</td
+                        >{#if lot.company}{money(lot.company.revenue)}<small>
+                                / OR</small
+                            >{:else}—{/if}</td
                     >
                     <td class="amount value">{money(lot.price)}</td>
                 </tr>

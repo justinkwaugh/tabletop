@@ -1,3 +1,4 @@
+import { Charters1846 } from './charters.js'
 import { assertExists } from '@tabletop/common'
 import {
     evaluateCompanyStart,
@@ -49,6 +50,7 @@ export const Market1846 = new StockMarketChart(
 
 export const StockRules1846: StockRules = {
     market: Market1846,
+    charters: Charters1846,
     round: {
         passing: 'consecutive',
         nextPlayerOrder: (state) => priorityOrder(state, StockRules1846.round),

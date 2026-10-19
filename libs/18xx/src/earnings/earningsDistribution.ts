@@ -2,7 +2,6 @@ import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import {
     Owner,
-    cashOwnedBy,
     controllingOwner,
     getCompany,
     sameOwner,
@@ -159,16 +158,7 @@ export class EarningsDistribution {
                     amount: -amount
                 })
         }
-        const total = payments.reduce((sum, payment) => sum + payment.amount, 0),
-            bank = cashOwnedBy(this.state, { kind: 'bank' })
-        if (
-            bank !== 'unlimited' &&
-            !this.state.bank.unlimitedAfterExhaustion &&
-            (bank === undefined || bank < total)
-        )
-            return {
-                reason: 'The Bank cannot fund this payment.'
-            }
+        const total = payments.reduce((sum, payment) => sum + payment.amount, 0)
         return {
             details: {
                 companyId,

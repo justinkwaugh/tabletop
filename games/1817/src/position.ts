@@ -24,7 +24,6 @@ export function createEighteenSeventeenPosition(
             ...EighteenSeventeenCorporations.map((company) => ({
                 id: company.id,
                 kind: 'major',
-                shareCount: 2,
                 started: false,
                 floated: false,
                 funded: false,
@@ -32,8 +31,7 @@ export function createEighteenSeventeenPosition(
             })),
             ...privates.map((company) => ({
                 id: company.id,
-                kind: 'private',
-                privateRevenue: 0
+                kind: 'private'
             }))
         ],
         cash: [

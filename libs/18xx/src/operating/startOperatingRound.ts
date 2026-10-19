@@ -1,3 +1,4 @@
+import { currentPrivateRevenue, type CompanyCharters } from '../company/companyCharters.js'
 import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
 import * as Type from 'typebox'
@@ -96,13 +97,16 @@ export class HydratedStartOperatingRound
 
 export function privateIncomePayments<State extends FinancialState>(
     state: State,
-    rules: { privateIncome?(state: State, privateId: string): number } = {}
+    rules: {
+        charters: CompanyCharters
+        privateIncome?(state: State, privateId: string): number
+    }
 ): CashPayment[] {
     return state.companies.flatMap((company) => {
         if (company.closed || company.kind !== 'private') return []
         const amount = rules.privateIncome
             ? rules.privateIncome(state, company.id)
-            : (company.privateRevenue ?? 0)
+            : currentPrivateRevenue(state, rules.charters, company.id)
         const owner = privateOwner(state, company.id)
         return amount && owner && owner.kind !== 'bank'
             ? [{ from: { kind: 'bank' } as const, to: { ...owner }, amount }]

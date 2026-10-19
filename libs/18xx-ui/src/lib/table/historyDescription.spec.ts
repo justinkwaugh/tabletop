@@ -1,6 +1,12 @@
 import { expect, it } from 'vitest'
 import { ActionSource } from '@tabletop/common'
-import type { AuctionAwardDetails, BuyAuctionLot, ResolveAuction, RunTrains } from '@tabletop/18xx'
+import type {
+    AuctionAwardDetails,
+    BuyAuctionLot,
+    ResolveAuction,
+    RouteBonus,
+    RunTrains
+} from '@tabletop/18xx'
 import { historyDescription } from './historyDescription.js'
 import { historyStateFixture } from './history.fixture.js'
 import { TestMarket } from '@tabletop/18xx/testing'
@@ -48,7 +54,7 @@ it('describes purchased and auctioned bonus shares without current certificates 
 
 it('lists a run’s bonuses beneath it, totalled by what earned them', () => {
     const state = historyStateFixture()
-    const route = (bonuses: { locationId: string; amount: number; label?: string }[]) => ({
+    const route = (bonuses: RouteBonus[]) => ({
         trainId: 'train',
         definitionId: '2',
         start: { locationId: 'A1', nodeId: 'city' },
@@ -72,15 +78,26 @@ it('lists a run’s bonuses beneath it, totalled by what earned them', () => {
             revenue: 200,
             routes: [
                 route([
-                    { locationId: 'C17', amount: 30, label: 'East–West' },
-                    { locationId: 'C5', amount: 50, label: 'East–West' },
-                    { locationId: 'B8', amount: 40, label: 'Steamboat' }
+                    { locationId: 'C17', amount: 30, sourceIds: ['east-west'] },
+                    { locationId: 'C5', amount: 50, sourceIds: ['east-west'] },
+                    { locationId: 'B8', amount: 40, sourceIds: ['SC'] }
                 ]),
                 route([{ locationId: 'G9', amount: 20 }])
             ]
         }
     }
-    expect(historyDescription(run, state, TestMarket).detail).toBe(
-        'East–West +$80 · Steamboat +$40 · +$20 at G9'
-    )
+    const bonusNames: Record<string, string> = { 'east-west': 'East–West', SC: 'Steamboat' }
+    expect(
+        historyDescription(
+            run,
+            state,
+            TestMarket,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            (id) => bonusNames[id]
+        ).detail
+    ).toBe('East–West +$80 · Steamboat +$40 · +$20 at G9')
 })

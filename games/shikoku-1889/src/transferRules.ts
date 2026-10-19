@@ -1,3 +1,4 @@
+import { Shikoku1889Charters } from './charters.js'
 import {
     EighteenXXTransferTiming,
     privateOwner,
@@ -8,6 +9,7 @@ import { Shikoku1889PrivateCatalog } from './privates.js'
 import { Shikoku1889Phases } from './trains.js'
 export const Shikoku1889TransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
+    charters: Shikoku1889Charters,
     priceRange(state, _companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
         if (asset.kind !== 'private') return undefined

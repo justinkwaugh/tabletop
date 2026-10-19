@@ -60,7 +60,7 @@ export class PrivateCatalog {
             if (closure === 'never') return []
             if (closure && privateOwner(state, company.id)?.kind === 'player') {
                 const { revenue } = closure.survivesWhilePlayerOwned
-                return company.privateRevenue === revenue
+                return (company.privateRevenue ?? definition.revenue) === revenue
                     ? []
                     : [{ kind: 'income', privateCompanyId: company.id, revenue }]
             }

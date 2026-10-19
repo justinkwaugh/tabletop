@@ -119,7 +119,8 @@
                 undefined,
                 session.presentation.money,
                 (id) =>
-                    auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName)
+                    auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
+                (id) => session.names.routeBonus(id)
             )
         return describeAction?.(action, companyName, shared) ?? shared()
     }
@@ -320,7 +321,7 @@
                         id={latest.lot.id}
                         name={latest.lot.name}
                         price={latest.lot.price}
-                        income={latest.lot.company?.privateRevenue}
+                        income={latest.lot.company?.revenue}
                         description={latest.lot.company?.description ?? ''}
                         token={latest.lot.token}
                     />

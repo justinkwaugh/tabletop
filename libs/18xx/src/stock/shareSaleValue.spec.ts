@@ -13,6 +13,7 @@ import { shareSaleValue } from './shareSaleValue.js'
 import { priorityOrder } from './priorityOrder.js'
 import type { StockState } from './stockState.js'
 import type { StockRules } from './stockRules.js'
+import { companyCharters } from '../company/companyCharters.js'
 
 const seller = { kind: 'player', playerId: 'a' } as const
 const other = { kind: 'player', playerId: 'b' } as const
@@ -29,7 +30,6 @@ function example(): StockState {
             {
                 id: 'R',
                 kind: 'major',
-                shareCount: 10,
                 president: seller,
                 started: true
             }
@@ -72,6 +72,7 @@ function example(): StockState {
 }
 const rules: StockRules = {
     market,
+    charters: companyCharters(() => ({ shareCounts: { R: 10 }, privateRevenues: {} })),
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
     buyers: () => [],
     purchaseTerms: () => 'Unavailable',

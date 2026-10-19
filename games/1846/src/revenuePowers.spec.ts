@@ -11,8 +11,10 @@ import {
     placeStockMarker,
     TrackConstruction,
     type TrainRoute,
-    type RouteRules
+    type RouteRules,
+    currentPrivateRevenue
 } from '@tabletop/18xx'
+import { Charters1846 } from './charters.js'
 import { stockGame, finish } from './testSupport.js'
 import { TransferRules1846 } from './acquisitions.js'
 import { TrainDepot1846, TrainRules1846 } from './trains.js'
@@ -174,7 +176,7 @@ describe('1846 revenue marker powers', () => {
             assign(table, id, locationId)
             const company = table.state.companies.find((company) => company.id === id)
             expect(company?.closed).not.toBe(true)
-            expect(company?.privateRevenue).toBeGreaterThan(0)
+            expect(currentPrivateRevenue(table.state, Charters1846, id)).toBeGreaterThan(0)
             expect(
                 RouteRules1846.stopBonus?.(
                     table.hydrated,
@@ -403,7 +405,7 @@ describe('1846 Mail Contract run scoring', () => {
         expect(result.routes[1].revenue).toBe(80)
         expect(result.revenue).toBe(340)
         expect(result.routes[0].bonuses?.filter((b) => b.locationId === 'D14')).toEqual([
-            { locationId: 'D14', amount: 10, label: 'Mail Contract' }
+            { locationId: 'D14', amount: 10, sourceIds: ['MAIL'] }
         ])
         expect(evaluation.evaluate('NYC', routes.toReversed()).result?.revenue).toBe(340)
         expect(evaluation.evaluate('NYC', [routes[1]]).result?.revenue).toBe(100)

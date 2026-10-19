@@ -15,7 +15,8 @@ import {
     pendingCompanyDecision,
     privateExchangeOffers,
     type EighteenXXTitleRules,
-    type PrivateExchangeRequest
+    type PrivateExchangeRequest,
+    currentPrivateRevenue
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
@@ -55,6 +56,11 @@ export class PrivatesModule {
             .filter((company) => company.kind === 'private')
             .map((company) => ({
                 ...company,
+                revenue: currentPrivateRevenue(
+                    this.session.state,
+                    this.session.rules.stockRules.charters,
+                    company.id
+                ),
                 description: this.session.rules.privateRules.description(
                     this.session.state,
                     company.id
