@@ -1,5 +1,5 @@
 import { shuffle } from '@tabletop/common'
-import { Side, type Face } from '../components/pieces.js'
+import { Side, sameFace, type Face } from '../components/pieces.js'
 import { isLastRound } from '../components/timeTrack.js'
 import { emptyTurnLimits, type HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { endRoadMarch } from './movement.js'
@@ -7,10 +7,20 @@ import { standingGroupKey, type ProjectedUnit } from './pieces.js'
 
 const NIGHT_RECOVERY_LIMIT = 4
 
+/** The enemy has seen every one of these units, all with the same face, so shuffling them hides nothing. */
+function seenAllAlike(units: readonly ProjectedUnit[]): boolean {
+    const firstShown = units[0].shown
+    return (
+        firstShown !== undefined &&
+        units.every((unit) => unit.shown !== undefined && sameFace(unit.shown, firstShown))
+    )
+}
+
 /**
  * Both players re-arrange their blocks out of sight at the end of every turn (rule 7): units
  * standing together in the same corps, or together and detached, become indistinguishable again.
- * A block standing alone stays whatever the opponent has seen it to be.
+ * A block standing alone stays whatever the opponent has seen it to be, and so do blocks the
+ * opponent has seen all alike, since swapping them hides nothing.
  */
 function shuffleBlocks(state: HydratedNapoleonsTriumphGameState) {
     const groups = new Map<string, ProjectedUnit[]>()
@@ -26,11 +36,14 @@ function shuffleBlocks(state: HydratedNapoleonsTriumphGameState) {
         if (units.length < 2) {
             continue
         }
+        const seenAlike = seenAllAlike(units)
         const faces: (Face | undefined)[] = units.map((unit) => unit.face)
         shuffle(faces, random)
         units.forEach((unit, index) => {
             unit.face = faces[index]
-            unit.shown = undefined
+            if (!seenAlike) {
+                unit.shown = undefined
+            }
         })
     }
 }

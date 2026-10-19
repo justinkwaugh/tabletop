@@ -32,8 +32,11 @@ export const TrackStep = Type.Object(
             Type.Object(
                 {
                     locationId: Type.String(),
-                    color: Type.String(),
-                    cost: Type.Integer({ minimum: 0 })
+                    /** The tile laid; stored games from before it was recorded lack it. */
+                    definitionId: Type.Optional(Type.String()),
+                    // Stored games from before these stopped being recorded may hold them; never read.
+                    color: Type.Optional(Type.Unsafe<never>(Type.String())),
+                    cost: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 0 })))
                 },
                 { additionalProperties: false }
             )
@@ -43,6 +46,24 @@ export const TrackStep = Type.Object(
     { additionalProperties: false }
 )
 export type TrackStep = Type.Static<typeof TrackStep>
+
+/**
+ * The face of a tile laid this turn. A lay stored before its tile was recorded reads the board,
+ * which holds the same tile in The Old Prince, the only title with such games.
+ */
+export function laidTileFace(
+    state: Pick<MapStateData, 'tileInventory'>,
+    rules: Pick<TrackRules, 'map' | 'tileSet'>,
+    lay: TrackStep['lays'][number]
+): TileFace {
+    if (!lay.definitionId)
+        return new RailwayMapState(rules.map, rules.tileSet, state.tileInventory).tile(
+            lay.locationId
+        ).face
+    const definition = rules.tileSet.definitions.find((tile) => tile.id === lay.definitionId)
+    assertExists(definition, 'A lay records a tile of its set')
+    return definition.face
+}
 export type ConstructionState = CompanyState & MapStateData & { trackStep?: TrackStep }
 export const TrackRequest = Type.Object(
     {

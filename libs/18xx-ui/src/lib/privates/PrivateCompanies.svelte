@@ -16,8 +16,7 @@
                 {:else}
                     {@const owner = privateOwner(session.gameState, company.id)}
                     <p>
-                        {owner ? session.ownerName(owner) : 'Unowned'} · Revenue {company.privateRevenue ??
-                            0}
+                        {owner ? session.ownerName(owner) : 'Unowned'} · Revenue {company.revenue}
                     </p>
                     <p>{company.description}</p>
                     {#each session.privates.exchangeOptions.filter((offer) => offer.privateCompanyId === company.id) as offer (offer.certificateId)}

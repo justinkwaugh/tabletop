@@ -1,3 +1,4 @@
+import { Shikoku1889Charters } from './charters.js'
 import {
     awardPrivate,
     beginWaterfallAuction,
@@ -24,7 +25,7 @@ export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
     bidOrder: 'clockwise-from-highest',
     award: awardPrivate,
     payIncome(state) {
-        settleCashPayments(state, privateIncomePayments(state))
+        settleCashPayments(state, privateIncomePayments(state, { charters: Shikoku1889Charters }))
     }
 }
 export function createShikoku1889Opening({
@@ -41,12 +42,11 @@ export function createShikoku1889Opening({
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
         stockMarket: { stacks: [] },
-        bank: { unlimitedAfterExhaustion: true },
+        bank: {},
         companies: [
             ...majors.map((company) => ({
                 id: company.id,
                 kind: 'major',
-                shareCount: 10,
                 started: false,
                 floated: false,
                 funded: false,
@@ -54,8 +54,7 @@ export function createShikoku1889Opening({
             })),
             ...privates.map((company) => ({
                 id: company.id,
-                kind: 'private',
-                privateRevenue: company.revenue
+                kind: 'private'
             }))
         ],
         cash: [

@@ -52,6 +52,7 @@ export * from './stock/stopStockInstruction.js'
 export * from './stock/turnPurchases.js'
 
 export * from './company/companyChanges.js'
+export * from './company/companyCharters.js'
 export * from './company/companyFlotation.js'
 export * from './company/companyRules.js'
 export * from './company/companyStart.js'

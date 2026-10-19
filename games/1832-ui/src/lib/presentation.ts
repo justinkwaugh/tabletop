@@ -28,6 +28,7 @@ export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoS
     trainColors: EighteenThirtyTwoTrainColors,
     phaseColors: EighteenThirtyTwoTrainColors,
     marketPoolId: 'open-market',
+    ipoPoolId: 'initial-offering',
     companyNames: EighteenThirtyTwoCompanyNames,
     privatePurchaseHeading: 'Available privates',
     privateTokens: { P7: { companyId: 'CG' } },

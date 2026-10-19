@@ -19,7 +19,6 @@ export function addTheOldPrinceBranches(state: CompanyState): void {
         state.companies.push({
             id: branch.id,
             kind: 'major',
-            shareCount: 10,
             started: false,
             floated: false,
             funded: false,

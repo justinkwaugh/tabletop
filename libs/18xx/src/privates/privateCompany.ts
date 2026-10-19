@@ -18,7 +18,6 @@ export function closePrivate(state: FinancialState, companyId: string): void {
     const company = getCompany(state, companyId)
     assert(company.kind === 'private', 'Only private companies use this closure procedure')
     company.closed = true
-    company.privateRevenue = 0
     removeCertificates(
         state,
         state.certificates

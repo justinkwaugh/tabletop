@@ -23,11 +23,15 @@
 .auction-lot-table tbody th {
     font-weight: 500;
     text-align: left;
-    padding: 3px 7px 3px 0;
+    padding: 6px 7px 6px 0;
 }
 
 .auction-lot-table td {
-    padding: 3px 7px;
+    padding: 6px 7px;
+}
+
+.auction-lot-table tbody tr + tr > * {
+    border-top: 1px solid color-mix(in srgb, var(--rail-border, #c7b8a6) 55%, transparent);
 }
 
 .auction-lot-table .identity {

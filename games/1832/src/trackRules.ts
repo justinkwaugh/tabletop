@@ -4,7 +4,9 @@ import {
     type ConstructionState,
     type MapStateData,
     type TileFace,
-    type TrackRules
+    type TrackRules,
+    laidTileFace,
+    type TrackStep
 } from '@tabletop/18xx'
 import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoMap, MediumCityLocationIds } from './map.js'
@@ -43,11 +45,11 @@ function promotesMediumCity(locationId: string, before: TileFace, after: TileFac
     )
 }
 
-function laidUpgrade(state: ConstructionState, lay: { locationId: string; color: string }) {
+function laidUpgrade(state: ConstructionState, lay: TrackStep['lays'][number]) {
+    const face = laidTileFace(state, EighteenThirtyTwoTrackRules, lay)
     return (
-        lay.color !== 'yellow' ||
-        (MediumCityLocationIds.includes(lay.locationId) &&
-            stopCount(currentTileFace(state, lay.locationId), 'city') > 0)
+        face.color !== 'yellow' ||
+        (MediumCityLocationIds.includes(lay.locationId) && stopCount(face, 'city') > 0)
     )
 }
 

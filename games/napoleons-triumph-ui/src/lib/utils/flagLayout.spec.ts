@@ -53,6 +53,30 @@ describe('which way a flag flies', () => {
     })
 })
 
+describe('the printed marks a flag keeps clear of', () => {
+    const foot = { x: 500, y: 500 }
+    const flag = { key: 'corps', feetByPreference: [foot], width: 150 }
+    const bannerY = foot.y - STAFF_HEIGHT + BANNER_HEIGHT / 2
+    const markAt = (x: number) => [-6, 0, 6].map((dx) => ({ x: x + dx, y: bannerY }))
+
+    it('turns a flag away from a printed mark', () => {
+        expect(placeFlags([flag], [], NORTH, [], [markAt(580)]).corps.side).toBe(FlagSide.Left)
+    })
+
+    it('counts each mark once, however much of it the banner covers', () => {
+        const wholeMarkOnTheRight = markAt(580)
+        const twoMarkCentresOnTheLeft = [[{ x: 430, y: bannerY }], [{ x: 400, y: bannerY }]]
+        const placed = placeFlags(
+            [flag],
+            [],
+            NORTH,
+            [],
+            [wholeMarkOnTheRight, ...twoMarkCentresOnTheLeft]
+        )
+        expect(placed.corps.side).toBe(FlagSide.Right)
+    })
+})
+
 describe('where a flag stands', () => {
     const near = { x: 500, y: 500 }
     const far = { x: 604, y: 500 }

@@ -25,7 +25,8 @@ export const TrainFunding = Type.Object(
             Type.Object({
                 seller: Owner,
                 companyId: Type.String(),
-                shares: Type.Integer({ minimum: 1 })
+                // Stored games from before this stopped being recorded may hold it; never read.
+                shares: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 1 })))
             })
         )
     },
@@ -90,12 +91,11 @@ export class EmergencyTrainFunding {
         assertExists(this.state.trainFunding, 'Funding sale requires active train funding')
         applyShareSale(this.state, details)
         this.rules.afterShareSale?.(this.state, details)
-        for (const sale of details.sales)
-            this.state.trainFunding.sales.push({
-                seller: details.seller,
-                companyId: sale.companyId,
-                shares: sale.shares
-            })
+        if (!this.rules.sellInBlocks) return
+        const funding = this.state.trainFunding
+        for (const { companyId } of details.sales)
+            if (!this.soldInFunding(details.seller, companyId))
+                funding.sales.push({ seller: details.seller, companyId })
     }
     purchases(): TrainPurchaseDetails[] {
         const companyId = this.state.trainPurchaseStep?.companyId
@@ -237,19 +237,18 @@ export class EmergencyTrainFunding {
         assert(typeof amount === 'number', 'Funding requires a finite balance sheet')
         return amount
     }
+    private soldInFunding(seller: Owner, companyId: string): boolean {
+        return !!this.state.trainFunding?.sales.some(
+            (sale) => sameOwner(sale.seller, seller) && sale.companyId === companyId
+        )
+    }
     private sales(owner: Owner, requiredOnly: boolean): ShareSaleDetails[] {
         const funding = this.state.trainFunding!
         const shortfall = this.shortfall()
         return this.state.companies.flatMap((company) => {
             const required = this.rules.requiredSaleShares(this.state, owner, company.id)
             if (requiredOnly && !required) return []
-            if (
-                this.rules.sellInBlocks &&
-                funding.sales.some(
-                    (sale) => sameOwner(sale.seller, owner) && sale.companyId === company.id
-                )
-            )
-                return []
+            if (this.rules.sellInBlocks && this.soldInFunding(owner, company.id)) return []
             const owned = sharesOwned(this.state, company.id, owner)
             const results: ShareSaleDetails[] = []
             for (let shares = 1; shares <= owned; shares++) {
@@ -259,6 +258,7 @@ export class EmergencyTrainFunding {
                     [{ companyId: company.id, shares }],
                     {
                         market: this.stocks.market,
+                        charters: this.stocks.charters,
                         presidencyCandidates: this.stocks.presidencyCandidates,
                         saleTerms: (_state, id, count, seller) =>
                             this.rules.saleTerms(this.state, id, count, seller)

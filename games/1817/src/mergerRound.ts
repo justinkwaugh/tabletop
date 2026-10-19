@@ -1,3 +1,4 @@
+import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import type {
     HydratedEighteenSeventeenState,
@@ -543,6 +544,7 @@ export function convertedShareSales(
             [{ companyId: conversion.companyId, shares }],
             {
                 market: EighteenSeventeenMarket,
+                charters: EighteenSeventeenCharters,
                 saleTerms: marketSale,
                 presidencyCandidates: EighteenSeventeenStockRules.presidencyCandidates
             }

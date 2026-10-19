@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Cash } from '@tabletop/18xx'
     import type { MoneyFormat } from '../presentation/money.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import { TileColors } from '../tiles/tilePresentation.js'
@@ -13,7 +14,8 @@
         trainColors,
         phaseColors,
         tileColors = TileColors,
-        tileColorNames = {}
+        tileColorNames = {},
+        bank
     }: {
         money: MoneyFormat
         depotState: PhaseChartDepotState
@@ -25,6 +27,7 @@
         phaseColors: Readonly<Record<string, string>>
         tileColors?: Readonly<Record<string, string>>
         tileColorNames?: Readonly<Record<string, string>>
+        bank?: { cash: Cash['amount']; broken: boolean }
     } = $props()
     const currentPhase = $derived(chart.phases.find((phase) => phase.id === currentPhaseId))
 </script>
@@ -99,6 +102,15 @@
                         >{currentPhase.trainLimit}</span
                     ></span
                 >
+                {#if bank && (bank.broken || bank.cash !== 'unlimited')}<span class="summary-item"
+                        ><span class="summary-label">Bank</span><span
+                            class="summary-value"
+                            class:broken={bank.broken}
+                            >{bank.broken || bank.cash === 'unlimited'
+                                ? 'Broken'
+                                : money(bank.cash)}</span
+                        ></span
+                    >{/if}
             </div>{/if}
         <section aria-label="Train roster">
             <table>
@@ -205,6 +217,9 @@
         font-weight: 600;
         font-variant-numeric: tabular-nums;
         line-height: 1;
+    }
+    .summary-value.broken {
+        color: var(--rail-negative, #b33a32);
     }
     .exhausted {
         color: var(--rail-muted, #958878);

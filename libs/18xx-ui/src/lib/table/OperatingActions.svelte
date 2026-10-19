@@ -28,10 +28,11 @@
     const { trainColors, poolName, privateTilePrompts } = $derived(session.presentation)
     const gameState = $derived(session.gameState)
     const trainBuying = $derived(gameState.machineState === 'BuyingTrains')
+    const trainOffer = $derived(trainBuying && gameState.purchaseOffer?.asset.kind === 'train')
 </script>
 
 {#snippet actionControls()}
-    {#if (gameState.purchaseOffer && !(trainBuying && gameState.purchaseOffer.asset.kind === 'train')) || gameState.trackConsent || gameState.privateTrackLay || gameState.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.decisions.privateTrainOptions.length || session.decisions.selection || session.privateActions.selection === 'powers'}
+    {#if (gameState.purchaseOffer && !trainOffer) || gameState.trackConsent || gameState.privateTrackLay || gameState.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.decisions.privateTrainOptions.length || session.decisions.selection || session.privateActions.selection === 'powers'}
         <CompanyDecisions
             {session}
             {trainColors}
@@ -40,7 +41,7 @@
             excludeTrainPurchases={trainBuying}
         />
     {/if}
-    {#if !session.privateActions.selection && !session.decisions.selection && !session.privateActions.trackPowerSelection && !gameState.purchaseOffer}
+    {#if !session.privateActions.selection && !session.decisions.selection && !session.privateActions.trackPowerSelection && (!gameState.purchaseOffer || trainOffer)}
         {#if gameState.machineState === 'StockRound' && session.companyAuction.pending}
             <CompanyFormation {session} />
         {:else if gameState.machineState === 'StockRound' && session.companyAuction.auction}

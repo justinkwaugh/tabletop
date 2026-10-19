@@ -4,9 +4,10 @@
     import { onMount, type ComponentType, type Snippet } from 'svelte'
     import { Tabs, TabItem, Indicator } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
-    import { toast, Toaster } from 'svelte-sonner'
+    import { toast } from 'svelte-sonner'
     import { ChatEventType, type ChatEvent } from '$lib/services/chatService.js'
     import ChatToast from '$lib/components/ChatToast.svelte'
+    import GameToaster from '$lib/components/GameToaster.svelte'
     import GameChat from '$lib/components/GameChat.svelte'
     import {
         adminChatAuthorBgColor,
@@ -95,7 +96,7 @@
     })
 </script>
 
-<Toaster position="top-center" richColors closeButton />
+<GameToaster />
 <Tabs
     tabStyle="pill"
     classes={{

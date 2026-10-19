@@ -1,3 +1,4 @@
+import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import type { CashCrisisState } from '@tabletop/18xx'
@@ -9,6 +10,7 @@ import { recordFormerPresident } from './state.js'
 
 export const EighteenSeventeenCashCrisisRules: CashCrisisRules = {
     market: EighteenSeventeenMarket,
+    charters: EighteenSeventeenCharters,
     // A cash crisis arises in an operating round, when even a company that has not yet
     // operated may be sold.
     saleTerms: (state, companyId, shares) => marketSale(state, companyId, shares),

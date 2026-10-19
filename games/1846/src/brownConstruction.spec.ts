@@ -75,10 +75,16 @@ describe('1846 brown construction', () => {
             assertExists(yellow)
             layTrack(table, yellow)
             if (!upgradeFirst) upgrade()
-            expect(table.state.trackStep?.lays.map((lay) => lay.color).sort()).toEqual([
-                'brown',
-                'yellow'
-            ])
+            const board = new RailwayMapState(
+                EighteenFortySixMap,
+                EighteenFortySixTileSet,
+                table.state.tileInventory
+            )
+            expect(
+                table.state.trackStep?.lays
+                    .map((lay) => board.tile(lay.locationId).face.color)
+                    .sort()
+            ).toEqual(['brown', 'yellow'])
             expect(choices(table, 'D14')).toEqual([])
         }
     )

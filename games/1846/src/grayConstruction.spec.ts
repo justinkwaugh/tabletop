@@ -105,10 +105,16 @@ describe('1846 gray construction', () => {
             assertExists(yellow)
             layTrack(table, yellow)
             if (!first) upgrade()
-            expect(table.state.trackStep?.lays.map((lay) => lay.color).sort()).toEqual([
-                'gray',
-                'yellow'
-            ])
+            const board = new RailwayMapState(
+                EighteenFortySixMap,
+                EighteenFortySixTileSet,
+                table.state.tileInventory
+            )
+            expect(
+                table.state.trackStep?.lays
+                    .map((lay) => board.tile(lay.locationId).face.color)
+                    .sort()
+            ).toEqual(['gray', 'yellow'])
             expect(new TrackConstruction(table.hydrated, TrackRules1846).choices('D14')).toEqual([])
         }
     )

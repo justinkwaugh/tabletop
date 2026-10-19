@@ -1,13 +1,8 @@
 import { assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
-import {
-    getCompany,
-    Owner,
-    sameOwner,
-    sharesOwned,
-    type FinancialState
-} from '../finance/finance.js'
+import { Owner, sameOwner, sharesOwned, type FinancialState } from '../finance/finance.js'
 import { StationFields } from '../map/station.js'
+import { companyShareCount, type CompanyCharters } from './companyCharters.js'
 import type { StockState } from '../stock/stockState.js'
 
 export const CompanyTranche = Type.Object(
@@ -67,11 +62,14 @@ export function nextCompanyTranche(
 
 export function grantOwnershipLimitExemption(
     state: StockCompanyState,
+    charters: CompanyCharters,
     companyId: string,
     owner: Owner
 ): void {
-    const company = getCompany(state, companyId)
-    assertExists(company.shareCount, 'Ownership exemptions require shares')
+    assertExists(
+        companyShareCount(state, charters, companyId),
+        'Ownership exemptions require shares'
+    )
     const maximumShares = sharesOwned(state, companyId, owner)
     assertExists(state.ownershipLimitExemptions, 'Ownership exemptions require their title state')
     const existing = state.ownershipLimitExemptions.find(

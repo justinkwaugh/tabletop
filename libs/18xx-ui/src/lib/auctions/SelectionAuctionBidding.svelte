@@ -32,7 +32,7 @@
     {session}
     lot={{
         ...lot,
-        income: lot.company.privateRevenue,
+        income: lot.company.revenue,
         description: lot.company.description ?? ''
     }}
     summary={[
@@ -42,6 +42,7 @@
     ]}
     {amount}
     increment={model.rules.increment}
+    ownTurn={auction.ownTurn}
     canBid={(value) => auction.canBid(value)}
     canPass={auction.canPass}
     onChange={changeBid}

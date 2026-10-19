@@ -67,9 +67,9 @@ describe('Port and Cotton tokens', () => {
         })
         const amount = (companyId: string, locationId: string, phaseId = '3') =>
             stopBonuses({ ...play.state, phaseId }, companyId, { locationId, nodeId: 'city' })
-        expect(amount('CG', 'T29')).toEqual([{ amount: 20, label: 'Port' }])
-        expect(amount('ACL', 'T29')).toEqual([{ amount: 10, label: 'Port' }])
-        expect(amount('CG', 'Q28')).toEqual([{ amount: 10, label: 'Cotton' }])
+        expect(amount('CG', 'T29')).toEqual([{ amount: 20, sourceId: 'port' }])
+        expect(amount('ACL', 'T29')).toEqual([{ amount: 10, sourceId: 'port' }])
+        expect(amount('CG', 'Q28')).toEqual([{ amount: 10, sourceId: 'cotton' }])
         expect(amount('ACL', 'Q28')).toEqual([])
         expect(amount('CG', 'T29', '6')).toEqual([])
         expect(revenueTokenChoices(play.state, 'blair')).toEqual([])
@@ -109,7 +109,7 @@ describe('Miami and Key West', () => {
         }
         const withToken = (phaseId: string) => ({ ...state, phaseId, revenueTokens: [token] })
         expect(stopBonuses(withToken('3'), 'FEC', miami)).toEqual([
-            { amount: 50, label: 'Key West' }
+            { amount: 50, sourceId: 'key-west' }
         ])
         expect(stopBonuses(withToken('3'), 'CG', miami)).toEqual([])
         expect(stopBonuses(withToken('8'), 'FEC', miami)).toEqual([])

@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoCharters } from './charters.js'
 import { assertExists } from '@tabletop/common'
 import {
     getCompany,
@@ -23,6 +24,7 @@ import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './st
 
 const Trading = ipoMarketTrading({
     market: EighteenThirtyTwoMarket,
+    charters: EighteenThirtyTwoCharters,
     ipoPoolId: 'initial-offering',
     marketPoolId: 'open-market',
     marketLimit: 50
@@ -120,6 +122,7 @@ export const EighteenThirtyTwoStockRules: StockRules = {
     // A closing company's certificates are about to leave play (§5.3.5).
     ...marketZoneHoldingLimits({
         market: EighteenThirtyTwoMarket,
+        charters: EighteenThirtyTwoCharters,
         certificateFreeColors: ['yellow', 'green', 'brown', 'black'],
         ownershipFreeColors: ['green', 'brown'],
         ownershipPercent: OwnershipPercent

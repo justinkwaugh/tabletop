@@ -25,17 +25,18 @@ export class OfferAuctionModule {
             ? new OfferAuction(this.session.state, this.session.rules.offerAuctionRules)
             : undefined
     )
+    active = $derived.by(() => !!this.model && !this.model.auction.completed)
+    ownTurn = $derived.by(
+        () =>
+            this.session.validActionTypes.includes('OfferAuctionLot') ||
+            this.session.validActionTypes.includes('PassAuction')
+    )
     selection = $derived.by(() =>
-        !this.session.selectionsVisible || this.model?.auction.completed
+        !this.session.selectionsVisible || !this.active || !this.ownTurn
             ? undefined
             : this.choice.value('choice')
     )
-    canAct = $derived.by(
-        () =>
-            this.session.interactive &&
-            (this.session.validActionTypes.includes('OfferAuctionLot') ||
-                this.session.validActionTypes.includes('PassAuction'))
-    )
+    canAct = $derived.by(() => this.session.interactive && this.ownTurn)
 
     select(lotId: string) {
         assert(this.canAct && this.model, 'Auction selection is unavailable')

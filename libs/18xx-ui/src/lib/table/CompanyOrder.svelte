@@ -28,6 +28,7 @@
         requiresTrain,
         appearances,
         currentCompanyId,
+        restoredSilently = false,
         completedCompanyIds = [],
         companyDetails,
         overview = true,
@@ -45,6 +46,8 @@
         requiresTrain: (companyId: string) => boolean
         appearances: Readonly<Record<string, StationAppearance>>
         currentCompanyId?: string
+        /** The displayed state arrived by a silent swap, so the order neither slides nor scrolls. */
+        restoredSilently?: boolean
         completedCompanyIds?: readonly string[]
         companyDetails: Snippet<[Company]>
         /** Whether the overflow overview renders here; off when the host shows it elsewhere. */
@@ -97,24 +100,35 @@
             }
         }
     }
-    let orderList = $state<HTMLOListElement>()
-    let currentCompanyRevealed = false
-    $effect(() => {
-        const area = orderList
-        const current =
-            area &&
-            [...area.children].find(
+    type Reveal = { currentCompanyId?: string; order: string; quiet: boolean }
+    // Brings the operating company into view; smoothly only for a live move that keeps the
+    // order, so the scroll never runs alongside the chips sliding to a new order.
+    function revealCurrentCompany(area: HTMLOListElement, initial: Reveal) {
+        let shown: Reveal | undefined
+        function reveal(next: Reveal) {
+            const current = [...area.children].find(
                 (child) =>
-                    child instanceof HTMLElement && child.dataset.companyId === currentCompanyId
+                    child instanceof HTMLElement &&
+                    child.dataset.companyId === next.currentCompanyId
             )
-        if (!area || !(current instanceof HTMLElement)) return
-        if (currentCompanyRevealed && fullyVisible(area, current)) return
-        area.scrollTo({
-            left: companyStart(area, current) - parseFloat(getComputedStyle(area).paddingLeft),
-            behavior: currentCompanyRevealed && !prefersReducedMotion.current ? 'smooth' : 'instant'
-        })
-        currentCompanyRevealed = true
-    })
+            if (current instanceof HTMLElement && !(shown && fullyVisible(area, current))) {
+                const smooth =
+                    !!shown &&
+                    shown.order === next.order &&
+                    !next.quiet &&
+                    !prefersReducedMotion.current
+                area.scrollTo({
+                    left:
+                        companyStart(area, current) -
+                        parseFloat(getComputedStyle(area).paddingLeft),
+                    behavior: smooth ? 'smooth' : 'instant'
+                })
+            }
+            if (current) shown = next
+        }
+        reveal(initial)
+        return { update: reveal }
+    }
     const detailsId = $props.id()
     let expandedCompanyId = $state<string>()
     const expandedCompany = $derived(companies.find((company) => company.id === expandedCompanyId))
@@ -148,12 +162,21 @@
             <CompanyOrderOverview {companies} {appearances} {firstVisible} {lastVisible} />
         </div>
     {/if}
-    <ol bind:this={orderList} use:trackVisibleCompanies>
+    <ol
+        use:trackVisibleCompanies
+        use:revealCurrentCompany={{
+            currentCompanyId,
+            order: companies.map((company) => company.id).join(),
+            quiet: restoredSilently
+        }}
+    >
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
             {@const detailed = showDetails || currentCompanyId === company.id}
             <li
-                animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
+                animate:flip={{
+                    duration: restoredSilently || prefersReducedMotion.current ? 0 : 180
+                }}
                 data-company-id={company.id}
                 class:completed
                 aria-current={currentCompanyId === company.id ? 'step' : undefined}

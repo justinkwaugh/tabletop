@@ -31,6 +31,7 @@
     import AuctionLotCard from '../auctions/AuctionLotCard.svelte'
     import { auctionLotDetail } from '../auctions/auctionLotDetails.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
+    import TurnHeading from './TurnHeading.svelte'
     import TrainCardStrip from '../trains/TrainCardStrip.svelte'
     import { shareSign } from './shareCards.js'
 
@@ -119,7 +120,8 @@
                 undefined,
                 session.presentation.money,
                 (id) =>
-                    auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName)
+                    auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
+                (id) => session.names.routeBonus(id)
             )
         return describeAction?.(action, companyName, shared) ?? shared()
     }
@@ -197,7 +199,7 @@
         }
     })
     const result = $derived(gameState.routeStep?.result)
-    const turnPlayerId = $derived(gameState.turnManager.currentTurn()?.playerId)
+    const turnPlayerId = $derived(session.turnPlayerId(gameState))
 </script>
 
 {#if gameState.result}
@@ -205,17 +207,7 @@
 {:else}
     <section class="position centered-panel" aria-label="Position summary">
         {#if !session.isViewingHistory && turnPlayerId}
-            <div class="turn" role="status" aria-label="Active player">
-                <span
-                    class="player-color"
-                    style:background={session.colors.getPlayerBgColorValue(turnPlayerId)}
-                    aria-hidden="true"
-                ></span><span
-                    ><span class="possessive"
-                        ><strong>{session.getPlayerName(turnPlayerId)}</strong>’s</span
-                    > turn</span
-                >
-            </div>
+            <TurnHeading {session} playerId={turnPlayerId} />
         {/if}
         {#if !session.isViewingHistory && latest}
             <header class="last-action"><strong>Last action</strong></header>
@@ -320,7 +312,7 @@
                         id={latest.lot.id}
                         name={latest.lot.name}
                         price={latest.lot.price}
-                        income={latest.lot.company?.privateRevenue}
+                        income={latest.lot.company?.revenue}
                         description={latest.lot.company?.description ?? ''}
                         token={latest.lot.token}
                     />
@@ -335,29 +327,6 @@
         padding: 6px 0;
         color: var(--rail-text, #514536);
         font-size: 13px;
-    }
-    .turn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 6px 0 28px;
-        font-size: 26px;
-        line-height: 32px;
-        color: var(--rail-muted, #7f8e9e);
-    }
-    .possessive {
-        white-space: nowrap;
-    }
-    .turn strong {
-        font-weight: 700;
-        color: var(--rail-text, #e3e9ef);
-    }
-    .player-color {
-        width: 20px;
-        height: 20px;
-        margin-right: 10px;
-        flex-shrink: 0;
-        border-radius: 50%;
     }
     header {
         display: flex;

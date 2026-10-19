@@ -625,9 +625,8 @@
     {#if !artwork}
         <g data-map-layer="names" pointer-events="none" aria-hidden="true">
             {#each entries.filter((entry) => entry.nameShown) as entry (entry.location.id)}
-                {#if entry.nameArc}
-                    {@const arc = entry.nameArc}
-                    {@const pathId = `${perimeterMaskId}-name-${entry.location.id}`}
+                {#each entry.nameArcs as arc, index (index)}
+                    {@const pathId = `${perimeterMaskId}-name-${entry.location.id}-${index}`}
                     <!-- Over the top the path runs clockwise; under the foot it runs back so the letters stay upright. -->
                     {@const middle = (arc.below ? 90 : -90) + arc.rotation}
                     {@const from = middle + (arc.below ? 120 : -120)}
@@ -648,13 +647,13 @@
                         ></path>
                         <text font-size="6" font-weight="700" letter-spacing="0.15"
                             ><textPath href={`#${pathId}`} startOffset="50%" text-anchor="middle"
-                                >{entry.location.name}</textPath
+                                >{arc.text}</textPath
                             ></text
                         >
                     </g>
-                {/if}
+                {/each}
             {/each}
-            {#each entries.filter((entry) => entry.nameShown && !entry.nameArc) as entry (entry.location.id)}
+            {#each entries.filter((entry) => entry.nameShown && !entry.nameArcs.length) as entry (entry.location.id)}
                 {@const lines = entry.nameRows}
                 <!-- A city name the title places itself matches the curved names in their styles. -->
                 {@const curved = entry.namePlaced && appearance.cityNameArcs}
@@ -779,7 +778,7 @@
             }) as marker (marker.id)}
                 <g
                     data-map-marker-local-line={marker.id}
-                    transform={`translate(${entry.center.x + 4} ${entry.center.y + (entry.markerArt[marker.id] && 'above' in entry.markerArt[marker.id] ? -30 : 32)})`}
+                    transform={`translate(${entry.center.x + 4} ${entry.center.y + (entry.localLineAboveY !== undefined && entry.markerArt[marker.id] && 'above' in entry.markerArt[marker.id] ? entry.localLineAboveY : 32)})`}
                     fill={appearance.ink}
                     dominant-baseline="central"
                 >

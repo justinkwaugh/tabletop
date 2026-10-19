@@ -1,4 +1,5 @@
 <script lang="ts">
+    import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
     import { marketSpaceColor, marketZone } from '../stock/marketColors.js'
     import { assertExists } from '@tabletop/common'
@@ -99,7 +100,20 @@
 {/snippet}
 <section class="stock-trading centered-panel" aria-label="Stock trading">
     <div class="stock-controls">
-        {#if session.stock.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
+        {#if session.stock.mustSell}
+            {@const certs = session.myPlayer
+                ? session.playerCertificates(session.myPlayer.id)
+                : undefined}
+            <p class="limit-warning" role="alert">
+                {#if certs && certs.count > certs.limit}Sell down to the certificate limits.
+                    <CertificateCount count={certs.count} limit={certs.limit} />{:else}Sell down to
+                    the ownership limit.{/if}
+            </p>
+        {/if}
+        {#if menu === 'buy' && session.stock.furtherPurchaseCompanyId}<p class="notice">
+                You may buy another {session.companyName(session.stock.furtherPurchaseCompanyId)}
+                share this turn.
+            </p>{/if}
         {#if menu}
             <div class="heading available-shares">
                 <span
@@ -825,6 +839,18 @@
     }
     .owner-toggle button:hover:not(:disabled) {
         color: var(--rail-text, #443c34);
+    }
+    .limit-warning {
+        margin: 0 auto 10px;
+        padding: 6px 14px;
+        width: fit-content;
+        border: 1px solid var(--rail-negative, #b33a32);
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--rail-negative, #b33a32) 14%, transparent);
+        color: var(--rail-text, #443c34);
+        font-size: 13px;
+        font-weight: 600;
+        text-align: center;
     }
     .notice {
         text-align: center;

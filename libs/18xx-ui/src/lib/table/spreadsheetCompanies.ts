@@ -1,8 +1,14 @@
-import { isStartCompany, type StockState } from '@tabletop/18xx'
+import {
+    companyShareCount,
+    isStartCompany,
+    type CompanyCharters,
+    type StockState
+} from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 
 export function spreadsheetCompanies(
     state: StockState,
+    charters: CompanyCharters,
     actions: readonly GameAction[],
     actionCount: number,
     companyOrder?: readonly string[],
@@ -13,7 +19,7 @@ export function spreadsheetCompanies(
         (company) =>
             (company.started || isIncluded(company.id)) &&
             !company.closed &&
-            (company.shareCount !== undefined ||
+            (companyShareCount(state, charters, company.id) !== undefined ||
                 state.certificates.some(
                     (certificate) =>
                         certificate.kind === 'share' && certificate.companyId === company.id

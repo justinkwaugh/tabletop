@@ -1,7 +1,9 @@
+import { TheOldPrinceCharters } from './charters.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import { TheOldPrinceStockRoundRules } from './roundRules.js'
 import { assertExists } from '@tabletop/common'
 import {
+    companyShareCount,
     getCompany,
     marketSaleTerms,
     playersAfterPresident,
@@ -15,6 +17,7 @@ import {
 
 export const TheOldPrinceStockRules: StockRules = {
     market: TheOldPrinceMarket,
+    charters: TheOldPrinceCharters,
     round: TheOldPrinceStockRoundRules,
     buyers(state, playerId) {
         const player: Owner = { kind: 'player', playerId }
@@ -44,13 +47,14 @@ export const TheOldPrinceStockRules: StockRules = {
     },
     saleTerms(state, companyId) {
         const company = getCompany(state, companyId)
-        if (companyId === 'PEIR' || !company.shareCount || !company.president)
+        const shareCount = companyShareCount(state, TheOldPrinceCharters, companyId)
+        if (companyId === 'PEIR' || !shareCount || !company.president)
             return 'This company has no saleable shares.'
         if (!company.operated) return 'Shares cannot be sold until the company has operated.'
         return marketSaleTerms(TheOldPrinceMarket, state, companyId, {
             destinationPoolId: 'market',
             marketLimit: 80,
-            maximumShares: company.shareCount * 0.3,
+            maximumShares: shareCount * 0.3,
             movement: 1
         })
     },

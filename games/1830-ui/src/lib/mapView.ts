@@ -9,8 +9,13 @@ import BMLogo from './images/logos/BM.svg'
 import { EighteenThirtyMap, EighteenThirtyTileSet } from '@tabletop/1830'
 import { towardTileEdge, type MapViewDefinition, type TileLayout } from '@tabletop/18xx-ui'
 
+// Tile layouts are given before a pointy tile's 30° turn, so these land as drawn: centred under
+// the cities, and up in the northeast corner.
+const BottomCentre = { x: 15, y: 26 }
+const NortheastCorner = { x: 20.6, y: -30.4 }
 const separateCities: TileLayout = {
-    nodePositions: { 'city-0': towardTileEdge(1, 16), 'city-1': towardTileEdge(4, 16) }
+    nodePositions: { 'city-0': towardTileEdge(1, 19), 'city-1': towardTileEdge(4, 19) },
+    labelPosition: BottomCentre
 }
 
 export const EighteenThirtyMapView: MapViewDefinition = {
@@ -30,15 +35,29 @@ export const EighteenThirtyMapView: MapViewDefinition = {
         H18: separateCities,
         // New York's lower city sits beside its water marker rather than over it.
         G19: {
-            nodePositions: { 'city-0': towardTileEdge(3, 20), 'city-1': towardTileEdge(1, 18) }
+            nodePositions: { 'city-0': towardTileEdge(3, 20), 'city-1': towardTileEdge(1, 18) },
+            revenuePositions: { 'city-0': NortheastCorner, 'city-1': { x: -18.4, y: 32.1 } },
+            labelPosition: { x: 24.1, y: -2.3 }
         },
         H12: { nodePositions: { city: towardTileEdge(2.5, 22) } },
         A9: { hideRevenue: true },
         I1: { hideRevenue: true }
     },
+    cityNames: {
+        E5: { 'city-0': 'Windsor', 'city-1': 'Detroit' },
+        D10: { 'city-0': 'Hamilton', 'city-1': 'Toronto' },
+        E11: { 'city-0': 'Dunkirk', 'city-1': 'Buffalo' },
+        H18: { 'city-0': 'Philadelphia', 'city-1': 'Trenton' },
+        G19: { 'city-0': 'New York', 'city-1': 'Newark' }
+    },
+    // The label takes the bottom of these hexes.
+    terrainHeights: { E5: -30, D10: -30 },
     joinedEdges: { A9: [4], A11: [1], I1: [5], J2: [2] },
     markerArt: Object.fromEntries(
-        ['SV', 'CS', 'DH', 'MH', 'CA', 'BOP'].map((id) => [`blocks-${id}`, { localLine: true }])
+        ['SV', 'CS', 'DH', 'MH', 'CA', 'BOP'].map((id) => [
+            `blocks-${id}`,
+            { localLine: true, above: true }
+        ])
     ),
     stations: {
         PRR: { color: '#32763f', label: 'PRR', imageUrl: PRRLogo },

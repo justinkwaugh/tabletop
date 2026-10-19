@@ -28,8 +28,8 @@ export const RouteBonus = Type.Object(
     {
         locationId: Id,
         amount: Type.Integer({ minimum: 1 }),
-        /** What earned the bonus, such as a private company, where the title names it. */
-        label: Type.Optional(Type.String({ minLength: 1 }))
+        /** What earned the bonus, such as a private company, by the ids the title names. */
+        sourceIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true }))
     },
     { additionalProperties: false }
 )

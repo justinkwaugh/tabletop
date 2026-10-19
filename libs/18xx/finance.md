@@ -21,7 +21,8 @@ dehydration. Queries have no serialized caches.
 
 `Owner` identifies a player, company, or the bank. Players remain Common Players
 and Player States, referenced by stable Player IDs. Companies have title-defined
-kinds, using `major`, `minor`, and `private` for the agreed categories. Share
+kinds, using `major`, `minor`, and `private` for the agreed categories; the kind says
+which other fields a company record has, so it stays in State. Share
 structure and operating capabilities are independent of the category. The bank is
 separate from companies; Union Bank is a private.
 
@@ -36,9 +37,12 @@ an owner nor pool membership. They do not appear in portfolios or contribute to
 share ownership or certificate-limit counts.
 
 A share certificate records a positive number of `shares`, whether it is a
-president's certificate, and an optional identifying number. A company's optional
-`shareCount` supplies the basis for fixed percentages: two shares in a ten-share
-major represent 20%. A private certificate represents ownership of one private;
+president's certificate, and an optional identifying number. A company's share
+count supplies the basis for fixed percentages: two shares in a ten-share major
+represent 20%. Each title supplies its printed share counts and private revenues as
+`CompanyCharters` on its stock, operating and transfer rules; a company records
+`shareCount` or `privateRevenue` only where play changes it (1817's sizes, a private's
+changed income), and `companyShareCount` and `currentPrivateRevenue` read either. A private certificate represents ownership of one private;
 there is at most one outstanding ownership certificate for each private.
 A certificate's contribution to the certificate limit is not stored: stock rules
 supply it through `certificateWeight`, starting from `standardCertificateWeight`

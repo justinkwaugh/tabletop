@@ -22,14 +22,16 @@ import { UiDefinition as Shikoku1889Ui } from '@tabletop/shikoku-1889-ui'
 import { Shikoku1889MapView } from '@tabletop/shikoku-1889-ui/playground'
 import { EighteenThirtyMap, EighteenThirtyTileSet, EighteenThirtyTitleRules } from '@tabletop/1830'
 import { EighteenThirtyScenarios } from '@tabletop/1830/scenarios'
-import { UiDefinition as EighteenThirtyUi, EighteenThirtyMapView } from '@tabletop/1830-ui'
+import { UiDefinition as EighteenThirtyUi } from '@tabletop/1830-ui'
+import { EighteenThirtyMapView } from '@tabletop/1830-ui/playground'
 import {
     EighteenSeventeenMap,
     EighteenSeventeenTileSet,
     EighteenSeventeenTitleRules
 } from '@tabletop/1817'
 import { EighteenSeventeenScenarios } from '@tabletop/1817/scenarios'
-import { UiDefinition as EighteenSeventeenUi, EighteenSeventeenMapView } from '@tabletop/1817-ui'
+import { UiDefinition as EighteenSeventeenUi } from '@tabletop/1817-ui'
+import { EighteenSeventeenMapView } from '@tabletop/1817-ui/playground'
 import {
     EighteenThirtyTwoMap,
     EighteenThirtyTwoTileSet,

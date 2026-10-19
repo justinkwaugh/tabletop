@@ -29,16 +29,17 @@ export class SelectionAuctionModule {
             : undefined
     )
     active = $derived.by(() => !!this.model && !this.model.auction.completed)
+    ownTurn = $derived.by(() =>
+        ['PassSelectionAuction', 'NominateLot', 'BidForLot'].some((type) =>
+            this.session.validActionTypes.includes(type)
+        )
+    )
     selection = $derived.by(() =>
-        !this.session.selectionsVisible || !this.active ? undefined : this.choice.value('choice')
+        !this.session.selectionsVisible || !this.active || !this.ownTurn
+            ? undefined
+            : this.choice.value('choice')
     )
-    canAct = $derived.by(
-        () =>
-            this.session.interactive &&
-            ['PassSelectionAuction', 'NominateLot', 'BidForLot'].some((type) =>
-                this.session.validActionTypes.includes(type)
-            )
-    )
+    canAct = $derived.by(() => this.session.interactive && this.ownTurn)
     canPass = $derived.by(
         () => this.canAct && this.session.validActionTypes.includes('PassSelectionAuction')
     )

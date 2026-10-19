@@ -4,6 +4,7 @@ import {
     EmergencyTrainFunding,
     getCompany,
     privateExchangeOffers,
+    sharesOwned,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
@@ -110,17 +111,14 @@ it.each(['blair', 'casey'])(
                 sale,
                 'The newly acquired NYC share is saleable along with the existing share'
             )
+            const held = sharesOwned(play.state, 'NYC', sale.seller)
             play.act('SellFundingShares', {
                 seller: sale.seller,
                 companyId: 'NYC',
                 shares: 2,
                 expectedProceeds: sale.proceeds
             })
-            expect(play.state.trainFunding?.sales).toContainEqual({
-                seller: { kind: 'player', playerId },
-                companyId: 'NYC',
-                shares: 2
-            })
+            expect(sharesOwned(play.state, 'NYC', sale.seller)).toBe(held - 2)
         }
     }
 )

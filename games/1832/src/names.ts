@@ -2,6 +2,7 @@ import { titleNames } from '@tabletop/18xx'
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { EighteenThirtyTwoPrivates } from './privates.js'
 import { EighteenThirtyTwoSystems } from './systems.js'
+import { RevenueTokenBonusNames } from './revenueTokens.js'
 
 const PoolNames: Readonly<Record<string, string>> = {
     'initial-offering': 'Initial offering',
@@ -14,5 +15,6 @@ export const EighteenThirtyTwoNames = titleNames(
         ...EighteenThirtyTwoSystems.map((system) => [system.id, system.name]),
         ...EighteenThirtyTwoPrivates.map((company) => [company.id, company.name])
     ]),
-    (poolId) => PoolNames[poolId]
+    (poolId) => PoolNames[poolId],
+    RevenueTokenBonusNames
 )

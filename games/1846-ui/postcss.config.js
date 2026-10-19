@@ -6,7 +6,16 @@ const scopeGameCssPlugin = {
     postcssPlugin: 'scope-game-css-plugin',
     Rule(rule) {
         const sourceFile = (rule.source?.input?.file ?? '').replace(/\\/g, '/')
-        if (!sourceFile.endsWith('/src/lib/styles.css')) {
+        // The 18xx family library's plain stylesheets are injected by every title that ships
+        // the library, so each title scopes them to itself as it does its own styles.
+        if (
+            !sourceFile.endsWith('/src/lib/styles.css') &&
+            !sourceFile.endsWith('/src/lib/panels.css') &&
+            !(
+                /\/18xx-ui\/(?:dist|src\/lib)\/.+\.css$/.test(sourceFile) &&
+                !sourceFile.includes('.svelte')
+            )
+        ) {
             return
         }
 

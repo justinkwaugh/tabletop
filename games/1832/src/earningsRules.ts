@@ -1,11 +1,12 @@
+import { EighteenThirtyTwoCharters } from './charters.js'
 import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
-import { dividendEntitlements, getCompany, type EarningsRules } from '@tabletop/18xx'
+import { companyShareCount, dividendEntitlements, type EarningsRules } from '@tabletop/18xx'
 import { requireEighteenThirtyTwoState } from './state.js'
 import { SystemShareCount, isSystem } from './systems.js'
 
 const shareCount = (state: Parameters<EarningsRules['shareCount']>[0], companyId: string) => {
-    const count = getCompany(state, companyId).shareCount
+    const count = companyShareCount(state, EighteenThirtyTwoCharters, companyId)
     assertExists(count, 'Dividends require a share count')
     return count
 }

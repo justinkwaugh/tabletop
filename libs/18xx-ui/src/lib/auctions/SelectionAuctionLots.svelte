@@ -32,6 +32,16 @@
     const playerId = $derived(auction.playerId)
 </script>
 
+{#snippet slotContent(lot: (typeof lots)[number], open: boolean)}
+    <span class="slot-heading"
+        ><span class="slot-name">{lot.name}</span>
+        <span class="slot-value">{money(lot.price)}</span></span
+    >
+    {#if open && lot.company.description}<span class="power slot-power"
+            >{lot.company.description}</span
+        >{/if}
+{/snippet}
+
 <section class="centered-panel" aria-label="Private auction">
     <div class="layout">
         {#if tiers}
@@ -39,7 +49,7 @@
                 {#each tiers as tier (tier.label)}
                     <div class="tier" class:open={tier.open} role="group" aria-label={tier.label}>
                         {#each tier.slots as lot, index (lot?.id ?? `empty:${index}`)}
-                            {#if lot}
+                            {#if lot && auction.ownTurn}
                                 <button
                                     class="slot"
                                     class:selected={selected?.id === lot.id}
@@ -52,14 +62,16 @@
                                     )}
                                     onclick={() => auction.select(lot.id)}
                                 >
-                                    <span class="slot-heading"
-                                        ><span class="slot-name">{lot.name}</span>
-                                        <span class="slot-value">{money(lot.price)}</span></span
-                                    >
-                                    {#if tier.open && lot.company.description}<span
-                                            class="power slot-power">{lot.company.description}</span
-                                        >{/if}
+                                    {@render slotContent(lot, tier.open)}
                                 </button>
+                            {:else if lot}
+                                <span
+                                    class="slot"
+                                    class:unavailable={!nominable.includes(lot.id)}
+                                    title={lot.company.description}
+                                >
+                                    {@render slotContent(lot, tier.open)}
+                                </span>
                             {:else}
                                 <span class="slot empty" aria-label="Empty slot"></span>
                             {/if}
@@ -71,26 +83,26 @@
             <table class="auction-lot-table">
                 <thead
                     ><tr
-                        ><th><span class="sr-only">Action</span></th><th>Private</th><th
-                            class="amount">Value</th
-                        ><th class="amount">Opening bid</th></tr
+                        >{#if auction.ownTurn}<th><span class="sr-only">Action</span></th>{/if}<th
+                            >Private</th
+                        ><th class="amount">Value</th><th class="amount">Opening bid</th></tr
                     ></thead
                 >
                 <tbody>
                     {#each lots as lot (lot.id)}
                         <tr data-private-description-row class:selected={selected?.id === lot.id}>
-                            <td class="action">
-                                <button
-                                    data-description-exclude
-                                    aria-label={`Auction ${lot.name}`}
-                                    aria-pressed={selected?.id === lot.id}
-                                    disabled={!auction.canNominate(
-                                        lot.id,
-                                        model.minimumBid(lot.id)
-                                    )}
-                                    onclick={() => auction.select(lot.id)}>Auction</button
-                                >
-                            </td>
+                            {#if auction.ownTurn}<td class="action">
+                                    <button
+                                        data-description-exclude
+                                        aria-label={`Auction ${lot.name}`}
+                                        aria-pressed={selected?.id === lot.id}
+                                        disabled={!auction.canNominate(
+                                            lot.id,
+                                            model.minimumBid(lot.id)
+                                        )}
+                                        onclick={() => auction.select(lot.id)}>Auction</button
+                                    >
+                                </td>{/if}
                             <th scope="row"
                                 ><div class="identity">
                                     {#if lot.token}<CompanyToken appearance={lot.token} size={26} />
@@ -107,7 +119,7 @@
                                             name={lot.name}
                                             description={lot.company.description}
                                             value={lot.price}
-                                            income={lot.company.privateRevenue}
+                                            income={lot.company.revenue}
                                         />
                                         {#if lot.company.description}<span class="power"
                                                 >{lot.company.description}</span
@@ -156,7 +168,7 @@
                         onBid={() => auction.nominate()}
                         onPass={() => auction.choice.clear()}
                     />
-                {:else if auction.passOffered}
+                {:else if auction.ownTurn && auction.passOffered}
                     <button
                         class="pass action-button"
                         disabled={!auction.canPass}
@@ -244,7 +256,11 @@
         font: inherit;
         cursor: pointer;
     }
-    .slot:disabled {
+    span.slot {
+        cursor: default;
+    }
+    .slot:disabled,
+    .slot.unavailable {
         cursor: default;
         opacity: 0.55;
     }

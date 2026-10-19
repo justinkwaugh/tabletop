@@ -57,6 +57,16 @@ export class TestGame {
         return new HydratedNapoleonsTriumphGameState(structuredClone(this.state))
     }
 
+    /** The position as the player of that side is shown it. */
+    seenBy(side: Side): HydratedNapoleonsTriumphGameState {
+        const viewer = { kind: 'player' as const, playerId: this.playerOf(side) }
+        return new HydratedNapoleonsTriumphGameState(
+            NapoleonsTriumphRuntime.visibility.state.project(this.canonical, viewer, {
+                config: this.game.config
+            })
+        )
+    }
+
     get canonical(): NapoleonsTriumphGameState {
         if (!NapoleonsTriumphGameStateValidator.Check(this.state)) {
             throw new Error('Expected complete canonical state')

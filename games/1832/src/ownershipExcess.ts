@@ -1,12 +1,13 @@
+import { EighteenThirtyTwoCharters } from './charters.js'
 import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import {
-    getCompany,
+    companyShareCount,
     sameOwner,
     sharesOwned,
     type Owner,
-    type ShareSaleDetails,
     type SharePurchaseDetails,
+    type ShareSaleDetails,
     type StockState
 } from '@tabletop/18xx'
 
@@ -14,7 +15,7 @@ export const OwnershipPercent = 60
 const OwnershipFreeColors: readonly string[] = ['green', 'brown']
 
 function ownershipCeiling(state: StockState, companyId: string): number {
-    const shareCount = getCompany(state, companyId).shareCount
+    const shareCount = companyShareCount(state, EighteenThirtyTwoCharters, companyId)
     assertExists(shareCount, 'Ownership limits require a share count')
     return Math.floor((OwnershipPercent * shareCount) / 100)
 }

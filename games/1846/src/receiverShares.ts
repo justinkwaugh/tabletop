@@ -18,7 +18,8 @@ import {
     recordStockAction,
     sameOwner,
     settleCashPayments,
-    sharesOwned
+    sharesOwned,
+    soldThisStockRound
 } from '@tabletop/18xx'
 import { inReceivership } from './receivership.js'
 import { StockRules1846, Market1846 } from './stock.js'
@@ -56,9 +57,7 @@ export function receiverShareChoices(
         if (
             !inReceivership(state, company.id) ||
             sharesOwned(state, company.id, buyer) !== 1 ||
-            state.stockRound.sales.some(
-                (sale) => sale.companyId === company.id && sameOwner(sale.owner, buyer)
-            )
+            soldThisStockRound(state.stockRound, buyer, company.id)
         )
             return []
         const certificates = state.certificates.filter(

@@ -1,10 +1,12 @@
 <script lang="ts">
     import type { TrainPurchaseDetails } from '@tabletop/18xx'
+    import type { TrainSource } from '../session/trainBuyingSelection.js'
     import TrainPurchaseButton from './TrainPurchaseButton.svelte'
     import TrainBadge from './TrainBadge.svelte'
     import CompanyTrainBuying from './CompanyTrainBuying.svelte'
     import TrainFunding from './TrainFunding.svelte'
     import PhaseChanges from '../phases/PhaseChanges.svelte'
+    import SlidingToggle from '../table/SlidingToggle.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
@@ -17,7 +19,6 @@
     } = $props()
     const money = $derived(session.presentation.money)
     const step = $derived(session.gameState.trainPurchaseStep)
-    const availableTypes = $derived(session.availableTrainDefinitionIds)
     const fundingDepot = $derived(
         session.trainFunding.purchases.filter((purchase) =>
             session.gameState.trainInventory.trains.some(
@@ -25,17 +26,7 @@
             )
         )
     )
-    const remainingDepot = $derived(
-        session.trainBuying.offers.filter((offer) => offer.remaining !== 0)
-    )
-    const currentDepot = $derived(
-        remainingDepot.filter(
-            (offer) =>
-                availableTypes.includes(offer.definitionId) &&
-                (offer.evaluation.details ||
-                    fundingDepot.some((purchase) => purchase.definitionId === offer.definitionId))
-        )
-    )
+    const currentDepot = $derived(session.trainBuying.currentDepotOffers)
     const marketChoices = $derived.by(() => {
         const groups = new Map<string, { details: TrainPurchaseDetails; count: number }>()
         const offers = [
@@ -56,6 +47,11 @@
         }
         return [...groups.values()]
     })
+    const SourceLabels: Readonly<Record<TrainSource, string>> = {
+        depot: 'Depot',
+        mine: 'My companies',
+        others: 'Other companies'
+    }
 </script>
 
 {#snippet trainChoice(
@@ -64,10 +60,11 @@
     remaining: number | 'unlimited',
     details: TrainPurchaseDetails | undefined,
     market = false,
-    funding = false
+    funding = false,
+    reason: string | undefined = undefined
 )}
     {@const definition = session.trainDepot.trainDefinition(definitionId)}
-    <div class="depot-entry">
+    <div class="depot-entry" class:unavailable={!!reason}>
         <TrainPurchaseButton
             {money}
             name={definition.name}
@@ -91,6 +88,7 @@
                 ? 'Unlimited'
                 : `${remaining} remaining`}</small
         >
+        {#if reason}<small class="reason">{reason}</small>{/if}
     </div>
 {/snippet}
 
@@ -125,28 +123,20 @@
                 </header>
             {/if}
 
-            {#if session.trainBuying.companyChoices.length}
+            {#if session.trainBuying.sources.length > 1}
+                {@const sources = session.trainBuying.sources}
                 <nav aria-label="Train source" class="sources">
-                    {#if currentDepot.length || marketChoices.length || session.trainBuying.exchanges.length}
-                        <button
-                            aria-pressed={session.trainBuying.source === 'depot'}
-                            onclick={() => session.trainBuying.selectSource('depot')}>Depot</button
-                        >
-                    {/if}
-                    {#if session.trainBuying.companyChoices.some((choice) => choice.source === 'mine')}
-                        <button
-                            aria-pressed={session.trainBuying.source === 'mine'}
-                            onclick={() => session.trainBuying.selectSource('mine')}
-                            >My companies</button
-                        >
-                    {/if}
-                    {#if session.trainBuying.companyChoices.some((choice) => choice.source === 'others')}
-                        <button
-                            aria-pressed={session.trainBuying.source === 'others'}
-                            onclick={() => session.trainBuying.selectSource('others')}
-                            >Other companies</button
-                        >
-                    {/if}
+                    <span>Buy from</span>
+                    <SlidingToggle
+                        count={sources.length}
+                        selectedIndex={sources.indexOf(session.trainBuying.source)}
+                    >
+                        {#each sources as source (source)}<button
+                                aria-pressed={session.trainBuying.source === source}
+                                onclick={() => session.trainBuying.selectSource(source)}
+                                >{SourceLabels[source]}</button
+                            >{/each}
+                    </SlidingToggle>
                 </nav>
             {/if}
             {#if session.trainBuying.source === 'depot'}
@@ -165,7 +155,8 @@
                                 offer.remaining,
                                 offer.evaluation.details ?? fundingPurchase,
                                 false,
-                                !!fundingPurchase
+                                !!fundingPurchase,
+                                fundingPurchase ? undefined : offer.evaluation.reason
                             )}
                         {/each}
                         {#each marketChoices as { details, count } (`${details.definitionId}:${details.price}`)}
@@ -181,15 +172,36 @@
                             )}
                         {/each}
                     </div>
-                    {#if session.trainBuying.exchanges.length}<h3>Train exchange</h3>
+                    {#if session.trainBuying.exchangeChoices.length}<h3>Trade in</h3>
                         <div class="trains">
-                            {#each session.trainBuying.exchanges as exchange, i (i)}<button
-                                    disabled={!session.trainBuying.canBuy}
-                                    onclick={() => session.trainBuying.buy(exchange)}
-                                    >Exchange {exchange.exchangeTrainId} for {session.trainDepot.trainDefinition(
-                                        exchange.definitionId
-                                    ).name} · {money(exchange.price)}</button
-                                >{/each}
+                            {#each session.trainBuying.exchangeChoices as { exchange, tradedDefinitionId } (`${exchange.definitionId}:${tradedDefinitionId}:${exchange.price}`)}
+                                {@const definition = session.trainDepot.trainDefinition(
+                                    exchange.definitionId
+                                )}
+                                <div class="depot-entry">
+                                    <TrainPurchaseButton
+                                        {money}
+                                        name={definition.name}
+                                        price={exchange.price}
+                                        color={trainColors[exchange.definitionId]}
+                                        imageUrl={session.publishedTrainImage(
+                                            exchange.definitionId
+                                        )}
+                                        listPrice={definition.price}
+                                        definitionId={exchange.definitionId}
+                                        disabled={!session.trainBuying.canBuy}
+                                        onclick={() => session.trainBuying.buy(exchange)}
+                                    />
+                                    <small class="remaining traded"
+                                        >trading in <TrainBadge
+                                            name={session.trainDepot.trainDefinition(
+                                                tradedDefinitionId
+                                            ).name}
+                                            color={trainColors[tradedDefinitionId]}
+                                        /></small
+                                    >
+                                </div>
+                            {/each}
                         </div>{/if}
                 {/if}
             {:else}<CompanyTrainBuying {session} {trainColors} />{/if}
@@ -251,22 +263,30 @@
     .sources {
         display: flex;
         justify-content: center;
-        gap: 4px;
-        margin: 6px 0;
+        align-items: center;
+        gap: 10px;
+        margin: 10px 0;
+        color: var(--rail-muted, #887664);
+        font-size: 12px;
     }
     .sources button {
-        background: transparent;
-        border: 0;
-        padding: 4px 9px;
+        padding: 4px 14px;
+        font-size: 12px;
+        line-height: 16px;
     }
-    .sources button[aria-pressed='true'] {
-        background: var(--rail-surface-raised, #e8dfd2);
+    .unavailable :global(button) {
+        opacity: 0.45;
+    }
+    .reason {
+        max-width: 140px;
+        color: var(--rail-muted, #887664);
+        text-align: center;
     }
     .trains {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        align-items: flex-end;
+        align-items: flex-start;
         gap: 10px;
         margin-top: 6px;
     }
@@ -278,10 +298,16 @@
     .remaining {
         text-align: right;
     }
+    .traded {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 5px;
+    }
     small {
         color: var(--rail-text, #5e675f);
     }
-    button {
+    header button {
         padding: 7px 12px;
         font: inherit;
         cursor: pointer;
@@ -289,7 +315,7 @@
         border: 1px solid var(--rail-border, #c7b8a6);
         border-radius: 4px;
     }
-    button:disabled {
+    header button:disabled {
         opacity: 0.5;
         cursor: default;
     }
@@ -302,7 +328,7 @@
         align-items: center;
         gap: 8px;
     }
-    button:hover:not(:disabled) {
+    header button:hover:not(:disabled) {
         background: var(--rail-surface-raised, #e5d9c8);
     }
     button:focus-visible {

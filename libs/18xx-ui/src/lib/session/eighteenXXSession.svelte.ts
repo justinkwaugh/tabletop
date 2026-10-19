@@ -221,6 +221,14 @@ export class EighteenXXSession<
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
     readonly selectionAuction = new SelectionAuctionModule(this.moduleSession)
     readonly companyAuction = new CompanyAuctionModule(this.moduleSession)
+    get privateAuctionActive(): boolean {
+        return this.offers.active || this.waterfall.active || this.selectionAuction.active
+    }
+    turnPlayerId(state: State = this.gameState): string | undefined {
+        if (state.pendingPar) return state.pendingPar.playerId
+        if (!state.activePlayerIds.length) return undefined
+        return state.turnManager.currentTurn()?.playerId
+    }
     readonly privates = new PrivatesModule(this.moduleSession)
     readonly notices = new TableNotices(
         () => this.isViewingHistory || this.localHotseat,
@@ -590,6 +598,9 @@ export class EighteenXXSession<
     get valuationRules() {
         return this.rules.endingRules
     }
+    get endingRules() {
+        return this.rules.endingRules
+    }
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return shouldContinueHistoryStep(action, next)
     }
@@ -630,6 +641,9 @@ export class EighteenXXSession<
     get names() {
         return this.rules.names
     }
+    get charters() {
+        return this.rules.stockRules.charters
+    }
     companyName(companyId: string) {
         return this.rules.names.company(companyId)
     }
@@ -665,7 +679,16 @@ export class EighteenXXSession<
         if (owner.kind === 'player') return this.getPlayerName(owner.playerId)
         return owner.kind === 'bank' ? 'Bank' : this.companyName(owner.companyId)
     }
+    // A silent swap publishes without calling any state-change listener, so layout settling
+    // and reveal scrolling stay still for it.
+    restoredSilently = $state(true)
+    private listenersSawTransition = false
+    override async onGameStateChange() {
+        this.listenersSawTransition = true
+    }
     override beforeNewState() {
+        this.restoredSilently = !this.listenersSawTransition
+        this.listenersSawTransition = false
         this.map.clearInspection()
         this.localSelections.clear()
     }

@@ -268,9 +268,7 @@ describe('Delaware & Hudson', () => {
     it('lays 57 on F16 as the ordinary lay, then places a free station that is the turn’s', () => {
         const { game, president, before } = scranton()
         expect(cash(game.state, prr)).toBe(before - 120)
-        expect(game.state.trackStep?.lays).toEqual([
-            { locationId: 'F16', color: 'yellow', cost: 120 }
-        ])
+        expect(game.state.trackStep?.lays).toEqual([{ locationId: 'F16', definitionId: '18xx:57' }])
         expect(game.state.privateStation).toEqual({
             privateCompanyId: 'DH',
             companyId: 'PRR',
@@ -312,7 +310,7 @@ describe('Delaware & Hudson', () => {
             ...game.state,
             trackStep: {
                 companyId: 'PRR',
-                lays: [{ locationId: 'H14', color: 'yellow', cost: 0 }],
+                lays: [{ locationId: 'H14' }],
                 completed: false
             }
         }

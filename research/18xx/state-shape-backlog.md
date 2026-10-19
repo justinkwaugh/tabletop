@@ -211,6 +211,9 @@ The 2026-10-10 audit of all six titles' States also found these, left for now:
   read in about sixty places, and the history panel reads TOP's awards and tells an offer
   auction apart from the finished record in current State. It needs `completed` removed
   as a flag and auction history built from `ResolveAuction` metadata.
+  The same change takes the `awards` list these auctions grow during play (deferred
+  2026-10-19): the auction rules read only whether anything was awarded, which the lots
+  left already say, and the auction panels' "Awarded" lists would read award metadata.
 - **The pool's owner repeated on pooled certificates** (0.02–1.2 KB, TOP the most).
   `certificate.owner` is read in about 150 places across 63 files; making it optional
   or deriving it from the pool touches all of them.
@@ -231,6 +234,53 @@ The 2026-10-10 audit of all six titles' States also found these, left for now:
 - **The stock-instruction title snapshot** (`titleSnapshot`, with `positionChange`)
   stays: no title implements it yet, it is optional and never written, so it costs
   nothing in State.
+
+## Second pass (2026-10-19)
+
+The readiness review of 1830, the first title to face the State-shape gate whole, found
+the remaining definition data and dead records below. Each was fixed in the family
+library and all six titles. Every recorded game of every title replays to the same States
+apart from these fields (the 1832 and 1817 recordings as far as they replay on main, where
+they already stop early), and TOP's and 1889's seeded-setup digests, which put the removed
+fields back before hashing, are unchanged.
+
+- **Company charters.** A company's printed share count and a private's printed revenue
+  come from the title's `CompanyCharters` (on its stock, operating and transfer rules).
+  State records `shareCount` only where play sizes a company (1817's formation,
+  conversion and reset) and `privateRevenue` only where play changes an income (a
+  private that survives closure while a player owns it, such as 1889's Uno–Takamatsu
+  ferry); `companyShareCount` and `currentPrivateRevenue` read either. A closed private
+  earns nothing without a stored 0. Evidence: 1832's Systems are chartered at twenty
+  shares; sizes chosen or changed in play (1817, 1856's CGR, resets in 1849, 1858 and
+  18EU) are what State records; income changes come from closure and title powers, not
+  from setup.
+- **Company kind stays.** It says which of a company's fields apply (a private's
+  revenue and charter certificate, a share company's par, president and shares), and the
+  ownership queries read it everywhere; a closed private keeps no other trace of being a
+  private. Owner decision, 2026-10-19.
+- **The bank breaks the same way everywhere.** Every limited bank pays on once it runs
+  out and records `broken`, as the research engine's `Bank#check_cash` does for every
+  title; the stored `unlimitedAfterExhaustion` opt-in is gone.
+- **Route bonuses name their source by id** (`sourceIds`: a private, `east-west`, a
+  revenue token's kind); each title names them through `TitleNames.routeBonus`.
+- **Track lays record the tile laid, not its colour or cost.** `laidTileFace` reads the
+  colour from the tile's definition; the board would not do, since an 1846 private may
+  upgrade a hex the company laid this turn. The cost is in the Action's metadata.
+- **Inventories keep no constant ids.** The tile inventory no longer records its set; the
+  train inventory records `depotId` only for a supply variant chosen at setup (1846's
+  two-player depot).
+- **Sale records hold the least fact.** A stock round records each (owner, company) sale
+  once; train funding records sales only for titles that sell in blocks, without the
+  share count. `stockRound.companyPurchases` stays: TOP's Union Bank rule reads it.
+
+TOP's stored games may hold the removed fields. A lay's `color` and `cost`, the tile
+inventory's `tileSetId` and a funding sale's `shares` stay in the schema as optional
+`never`, so old States and their undo patches load without a migration; they can go at a
+later TOP major once those games have finished. A lay stored without its tile reads the
+board, which is right for TOP. `shareCount`, `privateRevenue` and `depotId` stay live
+fields: an old TOP State's stored values equal its charters and depot, so they read as
+play-recorded values with the same meaning. States written by this logic lack fields the
+previous TOP logic requires, so a TOP release of it is a Logic major.
 
 ## Not a change
 

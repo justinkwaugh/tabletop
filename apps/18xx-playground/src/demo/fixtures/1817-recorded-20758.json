@@ -137,7 +137,6 @@
    {
     "id": "AS",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -146,7 +145,6 @@
    {
     "id": "AA",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -155,7 +153,6 @@
    {
     "id": "BELT",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -164,7 +161,6 @@
    {
     "id": "BESS",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -173,7 +169,6 @@
    {
     "id": "BA",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -182,7 +177,6 @@
    {
     "id": "DLW",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -191,7 +185,6 @@
    {
     "id": "J",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -200,7 +193,6 @@
    {
     "id": "GT",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -209,7 +201,6 @@
    {
     "id": "H",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -218,7 +209,6 @@
    {
     "id": "ME",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -227,7 +217,6 @@
    {
     "id": "NYOW",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -236,7 +225,6 @@
    {
     "id": "NYSW",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -245,7 +233,6 @@
    {
     "id": "PSNR",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -254,7 +241,6 @@
    {
     "id": "PLE",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -263,7 +249,6 @@
    {
     "id": "PW",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -272,7 +257,6 @@
    {
     "id": "R",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -281,7 +265,6 @@
    {
     "id": "SR",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -290,7 +273,6 @@
    {
     "id": "UR",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -299,7 +281,6 @@
    {
     "id": "WT",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -308,7 +289,6 @@
    {
     "id": "WC",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -316,58 +296,47 @@
    },
    {
     "id": "MINC",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "OBC",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MTE",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "PSM",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "CM",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MINM",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "TS",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "UBC",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MAIL",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MAJC",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MAJM",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    }
   ],
   "cash": [
@@ -1095,12 +1064,10 @@
   ],
   "stationReservations": [],
   "tileInventory": {
-   "tileSetId": "1817:standard",
    "placements": {},
    "retiredPieceIds": []
   },
   "trainInventory": {
-   "depotId": "1817",
    "trains": [
     {
      "id": "1817/2/1",

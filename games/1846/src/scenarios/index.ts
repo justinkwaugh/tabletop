@@ -41,11 +41,7 @@ const PositionPrivates: Partial<Record<ScenarioPosition, readonly string[]>> = {
 function dealPrivate(state: ScenarioState, privateId: string, owner: Owner) {
     if (!state.companies.some((company) => company.id === privateId)) {
         const company = draftCompany(privateId)
-        state.companies.push({
-            id: company.id,
-            kind: 'private',
-            privateRevenue: company.revenue
-        })
+        state.companies.push({ id: company.id, kind: 'private' })
         state.certificates.push({
             id: `${company.id}:charter`,
             companyId: company.id,

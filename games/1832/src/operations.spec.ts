@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import {
-    TrackConstruction,
-    getCompany,
-    rotateTileFace,
-    tileUpgradeMappings,
-    type TrackStep
-} from '@tabletop/18xx'
+import { TrackConstruction, getCompany, rotateTileFace, tileUpgradeMappings } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
+import { laidTiles } from '@tabletop/18xx/testing'
 import {
     EighteenThirtyTwoEarningsRules,
     EighteenThirtyTwoTileSet,
@@ -32,12 +27,20 @@ function construction(
 describe('track construction', () => {
     it('lays two yellow tiles or upgrades one tile', () => {
         const { state } = exampleGame(EighteenThirtyTwoScenarios, 'construction', 3)
-        const after = (lays: TrackStep['lays']) => ({
-            ...state,
-            trackStep: { companyId: 'CG', lays, completed: false }
-        })
-        const yellow = { locationId: 'T29', color: 'yellow', cost: 0 }
-        const green = { locationId: 'U28', color: 'green', cost: 0 }
+        const after = (lays: readonly { locationId: string; color: string }[]) => {
+            const tileInventory = structuredClone(state.tileInventory)
+            return {
+                ...state,
+                tileInventory,
+                trackStep: {
+                    companyId: 'CG',
+                    lays: laidTiles(tileInventory, EighteenThirtyTwoTileSet, lays),
+                    completed: false
+                }
+            }
+        }
+        const yellow = { locationId: 'T29', color: 'yellow' }
+        const green = { locationId: 'U28', color: 'green' }
         expect(EighteenThirtyTwoTrackRules.allowance(after([]), 'green')).toEqual({ cost: 0 })
         expect(EighteenThirtyTwoTrackRules.allowance(after([yellow]), 'yellow')).toEqual({
             cost: 0

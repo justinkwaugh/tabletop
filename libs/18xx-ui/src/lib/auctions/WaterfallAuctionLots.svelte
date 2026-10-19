@@ -30,30 +30,32 @@
         <table class="auction-lot-table">
             <thead
                 ><tr
-                    ><th><span class="sr-only">Action</span></th><th>Private</th><th class="amount"
-                        >Income</th
-                    ><th class="bids">Bids</th><th class="amount">Price</th></tr
+                    >{#if auction.ownTurn}<th><span class="sr-only">Action</span></th>{/if}<th
+                        >Private</th
+                    ><th class="amount">Income</th><th class="amount">Price</th><th class="bids"
+                        >Bids</th
+                    ></tr
                 ></thead
             >
             <tbody>
                 {#each lots as lot, index (lot.id)}
                     <tr data-private-description-row class:selected={selectedLot?.id === lot.id}>
-                        <td class="action">
-                            {#if index === 0}<button
-                                    data-description-exclude
-                                    aria-label={`Buy ${lot.name}`}
-                                    disabled={!auction.canAct ||
-                                        !playerId ||
-                                        !model.canPurchase(playerId, lot.id)}
-                                    onclick={() => auction.buy(lot.id)}>Buy</button
-                                >{:else}<button
-                                    data-description-exclude
-                                    aria-label={`Bid on ${lot.name}`}
-                                    aria-pressed={selectedLot?.id === lot.id}
-                                    disabled={!canBid(lot.id, model.minimumBid(lot.id))}
-                                    onclick={() => auction.selectLot('bid', lot.id)}>Bid</button
-                                >{/if}
-                        </td>
+                        {#if auction.ownTurn}<td class="action">
+                                {#if index === 0}<button
+                                        data-description-exclude
+                                        aria-label={`Buy ${lot.name}`}
+                                        disabled={!auction.canAct ||
+                                            !playerId ||
+                                            !model.canPurchase(playerId, lot.id)}
+                                        onclick={() => auction.buy(lot.id)}>Buy</button
+                                    >{:else}<button
+                                        data-description-exclude
+                                        aria-label={`Bid on ${lot.name}`}
+                                        aria-pressed={selectedLot?.id === lot.id}
+                                        disabled={!canBid(lot.id, model.minimumBid(lot.id))}
+                                        onclick={() => auction.selectLot('bid', lot.id)}>Bid</button
+                                    >{/if}
+                            </td>{/if}
                         <th scope="row"
                             ><div class="identity">
                                 {#if lot.token}<CompanyToken appearance={lot.token} size={26} />
@@ -69,14 +71,16 @@
                                     name={lot.name}
                                     description={lot.company.description}
                                     value={lot.price}
-                                    income={lot.company.privateRevenue}
+                                    income={lot.company.revenue}
                                 />
                             </div></th
                         >
                         <td class="amount income"
-                            >{#if lot.company.privateRevenue !== undefined}{money(
-                                    lot.company.privateRevenue
-                                )}<small> / OR</small>{:else}—{/if}</td
+                            >{money(lot.company.revenue)}<small> / OR</small></td
+                        >
+                        <td class="amount value"
+                            >{#if model.price(lot.id) !== lot.price}<s>{money(lot.price)}</s>
+                            {/if}{money(model.price(lot.id))}</td
                         >
                         <td class="bids">
                             {#if lot.bids.length}<ul aria-label={`Bids on ${lot.name}`}>
@@ -98,10 +102,6 @@
                                     {/each}
                                 </ul>{:else}<span class="none">—</span>{/if}
                         </td>
-                        <td class="amount value"
-                            >{#if model.price(lot.id) !== lot.price}<s>{money(lot.price)}</s>
-                            {/if}{money(model.price(lot.id))}</td
-                        >
                     </tr>
                 {/each}
             </tbody>
@@ -137,7 +137,7 @@
                         onBid={() => auction.confirm()}
                         onPass={() => auction.choice.clear()}
                     />
-                {:else}
+                {:else if auction.ownTurn}
                     <button
                         class="pass action-button"
                         disabled={!auction.canAct}
@@ -175,10 +175,12 @@
             width: 132px;
         }
     }
+    .bids {
+        padding-left: 20px;
+    }
     .bids ul {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 3px 10px;
+        display: grid;
+        gap: 2px;
         margin: 0;
         padding: 0;
         list-style: none;

@@ -20,6 +20,7 @@ import {
 } from '../testing/harness.js'
 import { CommandKind } from './attack.js'
 import { VictoryKind } from './gameState.js'
+import { Hold, objectiveHolds } from './victory.js'
 
 const FROM = 95
 const INTO = 108
@@ -397,5 +398,68 @@ describe('a marginal victory (rule 16)', () => {
                 Side.Allied
             )
         })
+    })
+})
+
+describe('the objectives an army holds, as a player sees them (rule 16)', () => {
+    const garrison = (side: Side, locale: number, face: Face): PiecePlacement => ({
+        id: `${side}-garrison`,
+        side,
+        face,
+        locale,
+        commanderId: side === Side.French ? 'lannes' : 'bagration'
+    })
+
+    function holdsSeenBy(game: TestGame, viewerSide: Side, armySide: Side) {
+        return objectiveHolds(game.seenBy(viewerSide), game.playerOf(armySide))
+    }
+
+    it('lists the stars each army is scored on, held where its own player knows a corps holds them', () => {
+        const game = frenchTurn([garrison(Side.French, RED_AND_BLACK_STARS, infantry(2))])
+        expect(holdsSeenBy(game, Side.French, Side.French)).toEqual([
+            { star: Star.Green, locales: [] },
+            { star: Star.Red, locales: [{ locale: RED_AND_BLACK_STARS, hold: Hold.Held }] },
+            { star: Star.Black, locales: [{ locale: RED_AND_BLACK_STARS, hold: Hold.Held }] }
+        ])
+        expect(holdsSeenBy(game, Side.French, Side.Allied)).toEqual([
+            { star: Star.Blue, locales: [] }
+        ])
+    })
+
+    it('leaves a hold the enemy cannot see the faces of as possible, until a face shows', () => {
+        const game = frenchTurn([garrison(Side.Allied, BLUE_STAR, infantry(2))])
+        expect(holdsSeenBy(game, Side.French, Side.Allied)).toEqual([
+            { star: Star.Blue, locales: [{ locale: BLUE_STAR, hold: Hold.Possible }] }
+        ])
+        game.arrange((state) => {
+            state.revealAll(state.units)
+        })
+        expect(holdsSeenBy(game, Side.French, Side.Allied)).toEqual([
+            { star: Star.Blue, locales: [{ locale: BLUE_STAR, hold: Hold.Held }] }
+        ])
+    })
+
+    it('never counts a corps its own player knows to be all cavalry', () => {
+        const game = frenchTurn([garrison(Side.Allied, BLUE_STAR, cavalry(2))])
+        expect(holdsSeenBy(game, Side.Allied, Side.Allied)).toEqual([
+            { star: Star.Blue, locales: [] }
+        ])
+    })
+
+    it('drops a hold whose road back is cut, whoever is looking', () => {
+        const game = frenchTurn([
+            garrison(Side.French, THREE_STARS, infantry(2)),
+            {
+                id: 'A-picket',
+                side: Side.Allied,
+                face: cavalry(2),
+                locale: ONLY_ROAD_FROM_THREE_STARS
+            }
+        ])
+        for (const viewer of [Side.French, Side.Allied]) {
+            expect(
+                holdsSeenBy(game, viewer, Side.French).every(({ locales }) => locales.length === 0)
+            ).toBe(true)
+        }
     })
 })

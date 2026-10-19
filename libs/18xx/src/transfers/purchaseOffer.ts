@@ -15,6 +15,7 @@ import { closePrivatesOnTrainPurchase } from '../trains/buyTrain.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
 import { settleTrainDepartures } from '../trains/trainDepartures.js'
 import { AssetTransfer, StationTransfer } from '../company/companyMerger.js'
+import { companyShareCount, type CompanyCharters } from '../company/companyCharters.js'
 
 const Id = Type.String({ minLength: 1 })
 export const OrdinaryPurchaseAsset = Type.Union([
@@ -104,6 +105,7 @@ export function isCompanyPurchaseOffer(offer: PendingPurchaseOffer): offer is Pu
     return offer.buyer.kind === 'company'
 }
 export interface TransferRules {
+    charters: CompanyCharters
     operatingCompany(state: CompanyDecisionState): string | undefined
     canPurchase(state: CompanyDecisionState, companyId: string, asset: PurchaseAsset): boolean
     priceRange(
@@ -123,10 +125,15 @@ export interface TransferRules {
     ): PurchaseFunding | undefined
 }
 export type PurchaseFunding = { contributors: readonly Owner[]; maximumPrice: number }
-export function assetOwner(state: CompanyDecisionState, asset: PurchaseAsset): Owner | undefined {
+export function assetOwner(
+    state: CompanyDecisionState,
+    charters: CompanyCharters,
+    asset: PurchaseAsset
+): Owner | undefined {
     if (asset.kind === 'company') {
         const company = state.companies.find((item) => item.id === asset.companyId)
-        if (!company || company.closed || !company.shareCount) return undefined
+        const shareCount = company && companyShareCount(state, charters, company.id)
+        if (!company || company.closed || !shareCount) return undefined
         const shares = state.certificates.filter(
             (certificate) => certificate.companyId === company.id
         )
@@ -139,7 +146,7 @@ export function assetOwner(state: CompanyDecisionState, asset: PurchaseAsset): O
             shares.reduce(
                 (sum, certificate) => sum + (certificate.kind === 'share' ? certificate.shares : 0),
                 0
-            ) === company.shareCount
+            ) === shareCount
             ? owner
             : undefined
     }
@@ -167,7 +174,7 @@ export function evaluatePurchaseOffer(
     const buyer = state.companies.find((item) => item.id === request.companyId)
     const buyerPlayerId =
         buyer && !buyer.closed ? controllingOwner(state, buyer.id)?.playerId : undefined
-    const owner = assetOwner(state, request.asset)
+    const owner = assetOwner(state, rules.charters, request.asset)
     if (
         !owner ||
         !sameOwner(owner, request.seller) ||
