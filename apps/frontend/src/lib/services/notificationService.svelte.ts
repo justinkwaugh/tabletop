@@ -32,9 +32,7 @@ export class NotificationService {
     private currentSessionUserId: string | undefined = $state(undefined)
     private userChannelReady = false
 
-    private shouldConnectRealtime: boolean = $derived.by(() => {
-        return this.currentSessionUserId !== undefined && this.visibilityService.visible
-    })
+    private shouldConnectRealtime = $derived(this.currentSessionUserId !== undefined)
 
     constructor(
         private readonly realtimeConnection: RealtimeConnection,
@@ -109,6 +107,10 @@ export class NotificationService {
                     this.realtimeConnection.disconnect()
                 }
             })
+
+            $effect(() => {
+                this.realtimeConnection.tabVisibilityChanged(this.visibilityService.visible)
+            })
         })
     }
 
@@ -146,6 +148,18 @@ export class NotificationService {
     async stopListeningToGame(gameId: string) {
         await this.realtimeConnection?.removeChannel(
             new ChannelIdentifier(NotificationChannel.GameInstance, gameId)
+        )
+    }
+
+    async listenToRelayStats() {
+        await this.realtimeConnection.addChannel(
+            new ChannelIdentifier(NotificationChannel.RelayStats)
+        )
+    }
+
+    async stopListeningToRelayStats() {
+        await this.realtimeConnection.removeChannel(
+            new ChannelIdentifier(NotificationChannel.RelayStats)
         )
     }
 

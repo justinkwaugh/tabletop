@@ -21,6 +21,19 @@ RUN npm install -g \
     pnpm@10.28.2 \
     turbo
 
+# Go: apps/realtime is the realtime relay (docs/realtime-relay.md).
+ARG GO_VERSION=1.27.2
+RUN case "$(dpkg --print-architecture)" in \
+        amd64) go_arch=amd64 go_sha256=ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5 ;; \
+        arm64) go_arch=arm64 go_sha256=94f3e30b8e374bc285e7dadc11e0865726b9bc6e85b841ccceaabc0214c6b7c8 ;; \
+        *) echo "Unsupported architecture for Go" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSLo /tmp/go.tgz "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz" \
+    && echo "${go_sha256}  /tmp/go.tgz" | sha256sum -c - \
+    && tar -C /usr/local -xzf /tmp/go.tgz \
+    && rm /tmp/go.tgz
+ENV PATH="/usr/local/go/bin:${PATH}"
+
 # Keep all Claude Code state, including the .claude.json that normally sits in $HOME,
 # inside the claude-home volume so auth and conversations survive rebuilds.
 ENV CLAUDE_CONFIG_DIR="/home/node/.claude"

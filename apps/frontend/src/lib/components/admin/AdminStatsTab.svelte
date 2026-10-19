@@ -1,7 +1,14 @@
 <script lang="ts">
     import { onMount } from 'svelte'
+    import { PUBLIC_REALTIME_RELAY_HOST } from '$env/static/public'
+    import {
+        isDataEvent,
+        NotificationChannel,
+        type NotificationListener
+    } from '@tabletop/frontend-components'
     import {
         addUtcDays,
+        isRelayStatsNotification,
         utcDayCount,
         utcDayOf,
         utcRangeProblem,
@@ -15,15 +22,17 @@
         formatUtcDate,
         formatUtcRange,
         nowFigures,
+        onlineFigure,
         presetRange,
         RANGE_PRESETS,
         rangeFigures,
-        slotsAreWeeks
+        slotsAreWeeks,
+        type OnlineCounts
     } from '$lib/utils/siteStats'
     import SiteStatsPanels from './stats/SiteStatsPanels.svelte'
     import StatFigures from './stats/StatFigures.svelte'
 
-    const { api } = getAppContext()
+    const { api, notificationService } = getAppContext()
 
     const yesterday = addUtcDays(utcDayOf(new Date()), -1)
     let range = $state<UtcDayRange>(presetRange(28, yesterday))
@@ -33,6 +42,7 @@
     let busy = $state(false)
     let error = $state('')
     let rebuildNote = $state('')
+    let online = $state<OnlineCounts>()
     const requests = new LatestRequest()
 
     const rolledThrough = $derived(report?.latest?.day)
@@ -88,8 +98,24 @@
         }
     }
 
+    const relayStatsListener: NotificationListener = async (event) => {
+        if (
+            isDataEvent(event) &&
+            event.channel === NotificationChannel.RelayStats &&
+            isRelayStatsNotification(event.notification)
+        ) {
+            online = event.notification.data
+        }
+    }
+
     onMount(() => {
         void load()
+        notificationService.addListener(relayStatsListener)
+        void notificationService.listenToRelayStats()
+        return () => {
+            notificationService.removeListener(relayStatsListener)
+            void notificationService.stopListeningToRelayStats()
+        }
     })
 </script>
 
@@ -147,7 +173,9 @@
 
     {#if now}
         <h2>Right now</h2>
-        <StatFigures figures={nowFigures(now)} />
+        <StatFigures
+            figures={[onlineFigure(online, !!PUBLIC_REALTIME_RELAY_HOST), ...nowFigures(now)]}
+        />
     {/if}
 
     {#if report && now}

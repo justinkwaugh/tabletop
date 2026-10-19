@@ -30,6 +30,9 @@ export const getFrontendPackagePath = (repoRoot: string) =>
 export const getBackendPackagePath = (repoRoot: string) =>
     path.join(repoRoot, 'apps', 'backend', 'package.json')
 
+export const getRealtimePackagePath = (repoRoot: string) =>
+    path.join(repoRoot, 'apps', 'realtime', 'package.json')
+
 export const getGamePackagePaths = (repoRoot: string, packageId: string) => ({
     logic: path.join(repoRoot, 'games', packageId, 'package.json'),
     ui: path.join(repoRoot, 'games', `${packageId}-ui`, 'package.json')
@@ -144,3 +147,5 @@ export const uiReleaseTag = (packageId: string, version: string) => `${packageId
 export const frontendReleaseTag = (version: string) => `frontend-v${version}`
 
 export const backendReleaseTag = (version: string) => `backend-v${version}`
+
+export const realtimeReleaseTag = (version: string) => `realtime-v${version}`

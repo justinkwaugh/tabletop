@@ -1,4 +1,8 @@
-import { AnimationContext, GameSession } from '@tabletop/frontend-components'
+import {
+    AnimationContext,
+    GameSession,
+    type PresentedTransition
+} from '@tabletop/frontend-components'
 import {
     ActionType,
     HydratedFreshFishGameState,
@@ -63,8 +67,12 @@ export class FreshFishGameSession extends GameSession<
     previewExpropriateCoords: OffsetTupleCoordinates[] = $state([])
     highlightedCoords: OffsetTupleCoordinates | undefined = $state()
 
-    override beforeNewState() {
+    // A player's own disc replaces the preview they clicked, so only it skips the grow-in.
+    newDiscsGrowIn = $state(true)
+
+    override beforeNewState(transition: PresentedTransition) {
         this.selection = {}
+        this.newDiscsGrowIn = transition.kind !== 'own-action'
     }
 
     override async onGameStateChange(_args: {

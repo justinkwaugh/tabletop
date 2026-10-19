@@ -57,6 +57,7 @@ import {
     leagueSeasonPlacements
 } from './leagueAllocation.js'
 import { entrantTableCounts } from './tournamentDispatch.js'
+import { GLOBAL_TOPIC } from '../notifications/topics.js'
 
 const DAY = 86_400_000
 const REMINDER_LEAD = 2 * DAY
@@ -986,7 +987,7 @@ export class LeagueService {
             await sendCompetitionUpdate(
                 this.notifications,
                 { type: NotificationCategory.League, data: { leagueId } },
-                ['global']
+                [GLOBAL_TOPIC]
             )
         return result
     }

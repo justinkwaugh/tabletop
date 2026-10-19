@@ -12,12 +12,15 @@ Manual choice is the one staged selection (`model/stagedSelection.ts`) and takes
 
 The session owns manual selection and clears it immediately before publishing a replacement visible state. Automatic selection is derived from the displayed state's legal actions and acting-player perspective. The action panel and board consume the same selected action. They continue to describe the old displayed position during its transition, then switch together when the new position is published. Navigation, Undo, replay, and silent restoration all use this publication boundary.
 
+A board cell's placement preview (the lifted disc, stall or market under the pointer) shows while the cell is hovered and is still a legal target. Clicking does not hide it: it lasts until the published position makes the cell illegal, so the placed piece replaces it in the same render. A disc that appears grows in from a dot, except in an `own-action` transition, where it takes over from the preview at full size; the session reads this from the presented transition in `beforeNewState`.
+
 ## Render ownership
 
-The action panel owns instructions and the selected auction/placement tile image. Board cells own legal placement highlights and hit targets. Both use the session selection; neither independently selects an action.
+The action panel owns instructions and the selected auction/placement tile image. Board cells own legal placement highlights, hit targets and placement previews. Both use the session selection; neither independently selects an action.
 
 ## Verification scenarios
 
 - Draw a stall tile as admin: the panel displays bidding and the drawn stall. Undo: the panel returns to the legal action choices with no stale stall image. Verified in the local hosted browser.
 - Start canonical Exploration during an auction and Undo the draw: bidding disappears, the tile returns to the bag, and earlier committed actions remain undoable. Automated Chromium coverage.
 - Choose disk placement, press Undo, and choose it again: Undo returns to the action choices without undoing a committed action, and board targets follow the manual choice. Publishing another position clears that choice. Verified across History navigation and return to Live in the local hosted browser.
+- Hover a legal cell while placing a disc and click: the preview stays until the placed disc replaces it at full size, with no empty or shrunken frame. Step back and forward through History: the disc grows in. Automated Chromium coverage (`tests/discPlacement.spec.ts`).

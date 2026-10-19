@@ -29,8 +29,9 @@ import {
     withTags
 } from './lib.mjs'
 import {
+    checkForumInputs,
     checkStageInputs,
-    forumStatusLine,
+    forumRecord,
     notifiesReporter,
     reporterMessage
 } from './milestones.mjs'
@@ -59,7 +60,7 @@ Write (seen in the Discord forum; milestones also reach the reporter):
   reply <post> (--message <text> | --message-file <path|->)
                                      Post a message; split when over 2000 characters
   status <post> <${STATUS_TAGS.join('|')}>
-         [--note <text>] [--version <text>] [--approved] [--no-notify]
+         [--note <text>] [--finding <text>] [--version <text>] [--approved] [--no-notify]
                                      Replace the post's status tag; a closed post stays closed
   close <post> --as <status> [--note <text>] [--version <text>] [--approved] [--no-notify] [--lock]
                                      Set the status tag, then close the post
@@ -73,10 +74,12 @@ changes nothing.
 
 Milestones: every status but open is a milestone. Setting one posts the status in the forum,
 updates the post, then messages the reporter: by Discord direct message when their account is
-linked, else by email, in the status's fixed wording plus --note. fixed needs --version (it goes
-in the forum line; the reporter reads "our latest update"); wont fix and not a bug need --note;
-not a bug also needs --approved, given only after the user has read its --dry-run. A status the
-post already has is not sent twice; notify sends it again. --no-notify sets the tag alone.
+linked, else by email, in the status's fixed wording plus --note. reproduced needs --finding,
+what was reproduced, posted in the forum under the status (the reporter gets --note, not this);
+fixed needs --version (it goes in the forum line; the reporter reads "our latest update"); wont
+fix and not a bug need --note; not a bug also needs --approved, given only after the user has
+read its --dry-run; suggestion thanks the reporter for the idea. A status the post already has
+is not sent twice; notify sends it again. --no-notify sets the tag alone.
 
 <post> is the post id from list, or a discord.com/channels/... link to the post or a message in it.
 Every read command accepts --json.
@@ -485,15 +488,18 @@ async function changeStatus(discord, forum, thread, status, options, { closed, l
     if (notify && postStatus(appliedTagIds(thread), forum.tags) === stage) {
         fail(`The post is already ${stage}; to message the reporter again, use notify ${thread.id}`)
     }
+    if (notify) checkForumInputs(stage, { finding: options.finding })
+    else if (options.finding) fail('--no-notify sets the tag alone; post the finding with reply')
     const notice = notify ? await prepareNotice(discord, thread, stage, options) : undefined
+    const record = forumRecord(stage, options)
     if (options['dry-run']) {
-        if (notice) console.log(`Would post: ${forumStatusLine(stage, options.version)}`)
+        if (notice) console.log(`Would post:\n${splitMessage(record).join('\n---\n')}`)
         describeChange(forum, thread, change)
         if (notice) await previewNotice(thread, notice)
         return
     }
     if (!notice) return updatePost(discord, forum, thread, change)
-    await reply(discord, thread, forumStatusLine(stage, options.version))
+    await reply(discord, thread, record)
     // Replying reopens a closed post, so the post is read again for its current state.
     const current = await getPost(discord, forum, thread.id)
     await updatePost(discord, forum, current, change, thread.thread_metadata?.archived ?? false)
@@ -501,6 +507,7 @@ async function changeStatus(discord, forum, thread, status, options, { closed, l
 }
 
 async function notifyAgain(discord, forum, thread, options) {
+    if (options.finding) fail('notify messages the reporter alone; post a finding with reply')
     const stage = postStatus(appliedTagIds(thread), forum.tags)
     if (!notifiesReporter(stage)) fail(`The post's status (${stage ?? 'none'}) has no message`)
     const notice = await prepareNotice(discord, thread, stage, options)
@@ -556,6 +563,7 @@ async function main() {
             'message-file': { type: 'string' },
             as: { type: 'string' },
             note: { type: 'string' },
+            finding: { type: 'string' },
             version: { type: 'string' },
             add: { type: 'string' },
             remove: { type: 'string' },

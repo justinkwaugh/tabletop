@@ -1,11 +1,27 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
-test('workspace works without a game and ignores railway theme variables', async ({ page }) => {
+async function openWorkspace(page: Page) {
     await page.goto('/session-test.html')
     await page.evaluate(async () => {
         const { mountWorkspace } = await import(new URL('/src/lib/components/tests/workspace.fixture.ts', location.href).href)
         mountWorkspace()
     })
+}
+
+async function splitTopAndBottom(page: Page) {
+    await page.getByRole('button', { name: 'Pane options for Example pane 1' }).click()
+    await page.getByRole('button', { name: 'Split pane 1 horizontally' }).click()
+}
+
+async function expectInsideWindow(page: Page, menu: Locator) {
+    const bounds = await menu.evaluate(element => element.getBoundingClientRect().toJSON())
+    const window = page.viewportSize()
+    expect(bounds.top).toBeGreaterThanOrEqual(0)
+    expect(bounds.bottom).toBeLessThanOrEqual(window?.height ?? 0)
+}
+
+test('workspace works without a game and ignores railway theme variables', async ({ page }) => {
+    await openWorkspace(page)
     const editor = page.getByRole('tab', { name: 'Editor', exact: true })
     await expect(editor).toHaveCSS('color', 'rgb(55, 65, 81)')
     await page.getByRole('textbox', { name: 'editor draft' }).fill('preserved')
@@ -33,4 +49,44 @@ test('workspace works without a game and ignores railway theme variables', async
     await expect(page.getByRole('button', { name: /^Delete pane /, includeHidden: true })).toHaveCount(0)
     await editor.click()
     await expect(page.getByRole('textbox', { name: 'editor draft' })).toHaveValue('preserved')
+})
+
+test('the menu of a low pane shorter than the menu opens upward inside the window', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 500 })
+    await openWorkspace(page)
+    await splitTopAndBottom(page)
+    const divider = page.getByRole('separator', { name: 'Resize horizontal split' })
+    await divider.focus()
+    await page.keyboard.press('End')
+    for (let step = 0; step < 5; step++) await page.keyboard.press('ArrowUp')
+    await page.getByRole('button', { name: 'Pane options for Example pane 2' }).click()
+    const menu = page.locator('.widget-menu:popover-open')
+    expect((await menu.boundingBox())?.height).toBeGreaterThan((await page.getByRole('region', { name: 'Example pane 2' }).boundingBox())?.height ?? Infinity)
+    await expectInsideWindow(page, menu)
+    await expect(menu.getByRole('button', { name: 'Delete pane 2', exact: true })).toBeInViewport({ ratio: 1 })
+})
+
+test('an open pane menu moves back inside the window when the window shrinks', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 500 })
+    await openWorkspace(page)
+    await splitTopAndBottom(page)
+    await page.getByRole('button', { name: 'Pane options for Example pane 2' }).click()
+    const menu = page.locator('.widget-menu:popover-open')
+    await expectInsideWindow(page, menu)
+    await page.setViewportSize({ width: 800, height: 300 })
+    await expect.poll(() => menu.evaluate(element => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0)
+    await expectInsideWindow(page, menu)
+})
+
+test('a pane menu taller than the room on either side scrolls inside the window', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 500 })
+    await openWorkspace(page)
+    await splitTopAndBottom(page)
+    await page.setViewportSize({ width: 800, height: 120 })
+    await page.getByRole('button', { name: 'Pane options for Example pane 1' }).click()
+    const menu = page.locator('.widget-menu:popover-open')
+    await expectInsideWindow(page, menu)
+    expect(await menu.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true)
+    await menu.getByRole('button', { name: 'Delete pane 1', exact: true }).click()
+    await expect(page.getByRole('tablist')).toHaveCount(1)
 })

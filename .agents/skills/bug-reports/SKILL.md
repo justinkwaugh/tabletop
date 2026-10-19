@@ -11,15 +11,15 @@ Players report bugs with the in-game bug button, and the site's bot opens a post
 to finish.
 
 The reporter hears from you at each **milestone**: `investigating`, `reproduced`, then `fixed`,
-`wont fix` or `not a bug`. Setting one sends them its fixed wording plus your `--note`. Most
-reporters are not in the Discord server, so the message is their only answer.
+`wont fix` or `not a bug`; or `suggestion` alone. Setting one sends them its fixed wording plus
+your `--note`. Most reporters are not in the Discord server, so the message is their only answer.
 
-The note goes to the reporter alone; the forum gets the status. Write it as the site to a
-player, in plain words about what they saw and what changes. Keep opponents' hidden
-information out (hands, hidden stacks, secret choices); the scenario holds all of it. Send each
-milestone as you reach it and tell the user what went out; `not a bug` alone waits for their
-approval (step 3). A command that updated the post but could not reach the reporter says so;
-`notify` sends the message again.
+The note goes to the reporter alone; the forum gets the status, and for a reproduced bug the
+`--finding`. Write the note as the site to a player, in plain words about what they saw and
+what changes. Keep opponents' hidden information out of both (hands, hidden stacks, secret
+choices); the scenario holds all of it. Send each milestone as you reach it and tell the user
+what went out; `not a bug` alone waits for their approval (step 3). A command that updated the
+post but could not reach the reporter says so; `notify` sends the message again.
 
 ## 1. Read
 
@@ -27,10 +27,18 @@ Run `check`, then `list`, or take the post the user named. Read the post with `s
 its files with `download`: the scenario `bug-report-<gameId>.json` and any screenshots. Look at
 every screenshot.
 
-Then send the first milestone: `status <post> investigating`.
+Then sort it: a **suggestion** asks for something new or different (a feature, a convenience, a
+change to how the game looks or plays) rather than saying the game went wrong. A player who
+believes the game broke a rule or misbehaved filed a bug, even when they may be mistaken;
+reproducing it decides between a bug and `not a bug`.
 
-Done when you can state what the player did, what they expected and what they saw, on which
-versions and device, and the reporter has been told it is being investigated.
+- A suggestion: `close <post> --as suggestion`, which thanks the reporter for the idea, with a
+  `--note` when you can say something about this idea in particular. The post is done here.
+- A bug: send the first milestone, `status <post> investigating`.
+
+Done when the post is a closed suggestion, or you can state what the player did, what they
+expected and what they saw, on which versions and device, and the reporter has been told it is
+being investigated.
 
 ## 2. Reproduce
 
@@ -48,7 +56,9 @@ report is expected behaviour.
 Each outcome has its milestone:
 
 - **A bug**: `status <post> reproduced`, with a note saying what goes wrong in the player's
-  terms, and `tag --add UI` or `logic` for where the fault lies.
+  terms, a `--finding` for the forum, and `tag --add UI` or `logic` for where the fault lies.
+  The finding is the public record for the developer and for players who hit the same thing:
+  what goes wrong, in which situation, and the cause step 2 found, in a few plain sentences.
 - **Not a bug**, when the game did what it should and the player expected something else, or it
   behaves that way for a good reason: `close <post> --as "not a bug"`. This message disagrees
   with the player, so the note is **gentle**: take their concern seriously, then explain in a

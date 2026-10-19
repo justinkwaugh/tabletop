@@ -16,6 +16,7 @@ import { NotificationService } from '../notifications/notificationService.js'
 import { DiscordSubscription } from '../notifications/subscriptions/discordSubscription.js'
 import { TransportType } from '../notifications/transports/notificationTransport.js'
 import { DiscordTransport } from '../notifications/transports/discordTransport.js'
+import { userTopic } from '../notifications/topics.js'
 
 const TEST_DISCORD_USER_ID = process.env['TEST_DISCORD_USER_ID']
 const NOTIFY_COMMAND_NAME = 'notify'
@@ -33,7 +34,7 @@ export class DiscordService {
             this.notificationService
                 .registerNotificationSubscription({
                     subscription: this.subscriptionFor(TEST_DISCORD_USER_ID),
-                    topic: `user-XbPcqp2m_ymbv2Q7Tw-gy`
+                    topic: userTopic('XbPcqp2m_ymbv2Q7Tw-gy')
                 })
                 .catch(console.error)
         }
@@ -136,7 +137,7 @@ export class DiscordService {
 
         await this.notificationService.registerNotificationSubscription({
             subscription: this.subscriptionFor(discordUserId),
-            topic: `user-${user.id}`
+            topic: userTopic(user.id)
         })
         return true
     }

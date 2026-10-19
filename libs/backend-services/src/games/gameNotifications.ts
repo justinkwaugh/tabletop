@@ -26,6 +26,7 @@ import {
     createActionResultsRepresentationForPerspective,
     createUndoResultsRepresentationForPerspective
 } from './gameRepresentation.js'
+import { gameTopic, userTopic } from '../notifications/topics.js'
 
 type NotificationSender = Pick<NotificationService, 'sendNotification'>
 
@@ -67,7 +68,7 @@ export async function publishActionResults({
             },
             action: GameNotificationAction.AddActions,
             notificationService,
-            topics: [`game-${game.id}`]
+            topics: [gameTopic(game.id)]
         })
         return
     }
@@ -140,7 +141,7 @@ export async function publishUndoResults({
             },
             action: GameNotificationAction.UndoAction,
             notificationService,
-            topics: [`game-${game.id}`]
+            topics: [gameTopic(game.id)]
         })
         return
     }
@@ -207,14 +208,14 @@ async function publishForGamePerspectives({
     game: Game
     publishForPerspective: (perspective: Visibility.Perspective, topic: string) => Promise<void>
 }): Promise<void> {
-    await publishForPerspective({ kind: 'spectator' }, `game-${game.id}`)
+    await publishForPerspective({ kind: 'spectator' }, gameTopic(game.id))
     for (const player of game.players) {
         if (player.userId === undefined) {
             continue
         }
         await publishForPerspective(
             { kind: 'player', playerId: player.id },
-            `user-${player.userId}`
+            userTopic(player.userId)
         )
     }
 }
