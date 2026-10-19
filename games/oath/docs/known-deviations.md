@@ -54,6 +54,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Mushrooms at the Marshes:** in a game created before revision 16 (R-X.4) the Marshes' one fewer card is lost under Mushrooms' one, so Mushrooms there draws one card, two with Augury, three with Greedy, though the one fewer stacks on Mushrooms as Augury's one more does (R-11.11-H1).
 - **Fabled Feast with Marriage:** in a game created before revision 16 (R-X.4) Fabled Feast counts Marriage as one hearth card its player rules, though Marriage counts as two hearth advisers and an adviser is a card its holder rules (R-2.2.2-H1).
 - **Hearts and Minds, Peace Envoy, Undo:** in a game created before revision 17 (R-X.4) the Campaign step that one of them decides is marked as revealing information, so it cannot be undone, though no dice are rolled and R-5.5.5.b-H1 keeps it undoable.
+- **Family Heirloom, Dowsing Sticks, the kept relic:** in a game created before revision 17 (R-X.4) keeping the relic drawn is not marked as revealing information, so it can be undone, though the keep shows the table a relic only its player had seen (R-X.3(c)), so its player may undo the keep and send the relic, now seen, to the bottom of the relic deck.
 
 ## Rules
 

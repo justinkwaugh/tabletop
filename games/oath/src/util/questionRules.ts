@@ -80,6 +80,8 @@ import {
     endTravelOutOfTurn,
     holdTurnForSkippedFreeAction
 } from './sneakAttack.js'
+import { relicKnownToOthers } from './knowledge.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 
@@ -338,9 +340,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     [PowerQuestionKind.KeepOrBottomRelic]: {
         reasonCannotAnswer: () => undefined,
         apply: (state, _playerId, matched, asked) => {
-            const { relicCardId } = matched.question
+            const { relicCardId, seenBy } = matched.question
             if (matched.answer.keep) {
-                return `took ${relicCardId}${takeNotes(takeRelics(state, asked.playerId, [relicCardId]))}`
+                const summary = `took ${relicCardId}${takeNotes(takeRelics(state, asked.playerId, [relicCardId]))}`
+                // R-X.3(c) — the kept relic is shown to the table: from revision 17 the keep
+                // reveals it, unless every other player knew it already.
+                const disclosed =
+                    isAtLeastOathRevision(state, OathRevision.EngineFixes13) &&
+                    !relicKnownToOthers(state, seenBy, asked.playerId)
+                return disclosed ? { summary, disclosed } : summary
             }
             return {
                 summary: 'put the relic on the bottom of the relic deck',
