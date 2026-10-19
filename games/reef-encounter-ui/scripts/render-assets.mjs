@@ -211,8 +211,40 @@ for (const color of Colors) {
 // Coral tiles: each colour's sheet holds the two tiles on which that colour is stronger on the
 // starfish side, the starfish side on the front sheet and the plain side opposite it on the back.
 // A face shows its stronger coral across the top, its algae at the bottom left and its weaker coral
-// at the bottom right. Each coral gets its own colour's treatment; the algae stay as printed.
+// at the bottom right. Each coral gets its own colour's treatment, and three of the algae are
+// shifted towards their cylinders' colours.
 const CoralTileSize = 544
+// Each shift picks an alga out of the algae corner by hue and saturation, leaving out the orange
+// sponge in the corner's top right, and applies `-modulate lightness,saturation,hue`. The printed
+// purple is magenta and read as red beside the red algae, so it turns violet; the blue is greyish
+// and the green yellowish. Red already matches its cylinder and stays as printed.
+const AlgaShifts = [
+    // purple: hue -43°, saturation ×1.225, lightness ×0.91
+    { picks: 'hue>0.775 && hue<0.955 && saturation>0.10', modulate: '91,122.5,76' },
+    // blue: hue +5°, saturation ×1.9, lightness ×1.06
+    { picks: 'hue>0.52 && hue<0.71 && saturation>0.15', modulate: '106,190,103' },
+    // green: hue +11°, saturation ×1.05, lightness ×0.81
+    { picks: 'hue>0.15 && hue<0.43 && saturation>0.2', modulate: '81,105,106' }
+]
+function shiftAlgae(file) {
+    const mask = `${file}.mask.png`
+    const shifted = `${file}.shifted.png`
+    const original = `${file}.original.png`
+    convert(file, original)
+    for (const shift of AlgaShifts) {
+        convert(
+            original,
+            '-fx',
+            `(${shift.picks}) && !(i/w>0.68 && j/h<0.32) ? 1 : 0`,
+            '-blur',
+            '0x1.9',
+            mask
+        )
+        convert(original, '-modulate', shift.modulate, shifted)
+        convert(file, shifted, mask, '-composite', file)
+    }
+    execFileSync('rm', [mask, shifted, original])
+}
 const CoralTileRows = [1195, 1988]
 const CoralTileX = { front: 201, back: 2917 }
 const CoralTilePixels = Math.round(473 * Scale)
@@ -274,6 +306,9 @@ for (const color of Colors) {
                     work
                 )
             }
+            convert(work, '-crop', `${half}x${half}+0+${half}`, '+repage', piece)
+            shiftAlgae(piece)
+            convert(work, piece, '-geometry', `+0+${half}`, '-composite', work)
             convert(
                 work,
                 '-filter',
