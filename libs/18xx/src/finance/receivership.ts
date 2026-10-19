@@ -1,15 +1,28 @@
 import { assert } from '@tabletop/common'
+import type { DistributionState, EarningsChoice } from '../earnings/earningsDistribution.js'
+import type { MapStateData } from '../map/mapState.js'
 import type { PresidencyClaim } from '../stock/presidency.js'
 import type { StockState } from '../stock/stockState.js'
+import type { TrainPurchaseState } from '../trains/train.js'
+import type { TrainPurchaseDetails, TrainRules } from '../trains/trainPurchase.js'
 import { controllingOwner, getCompany, type FinancialState, type Owner } from './finance.js'
 
 export type PlayerOwner = Extract<Owner, { kind: 'player' }>
 export type PresidencyClaimTerms = { price: number; claim: PresidencyClaim }
+export type ReceiverPurchase = Omit<TrainPurchaseDetails, 'price'> & { expectedPrice: number }
 
 /** How a title keeps a company going when nobody holds its presidency. */
 export interface ReceivershipRules {
     /** The players who act for a company in receivership, the first of them first. */
     operators(state: StockState, companyId: string): string[]
+    /** What the receiver does with its earnings; one of the title's earnings choices. */
+    earningsChoice(state: DistributionState, companyId: string): EarningsChoice
+    /** The train the receiver buys, when it needs one and can pay; none to be excused. */
+    trainPurchase(
+        state: TrainPurchaseState & MapStateData,
+        companyId: string,
+        rules: TrainRules
+    ): ReceiverPurchase | undefined
     /** Terms on which a player takes a presidency out of the market during their stock turn. */
     presidencyClaim?(
         state: StockState,

@@ -2,8 +2,10 @@ import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import type { GameAction } from '@tabletop/common'
 import type { CashCrisisState } from '@tabletop/18xx'
-import { StockMarketMove, getCompany, type CashCrisisRules } from '@tabletop/18xx'
+import { StockMarketMove, getCompany, goBankruptSchema, type CashCrisisRules } from '@tabletop/18xx'
 import { isLiquidated, liquidate } from './liquidation.js'
 import { EighteenSeventeenStockRules, marketSale } from './stockRules.js'
 import { closeMarketShortsAgainstPool, marketPool } from './shorts.js'
@@ -20,6 +22,14 @@ export const EighteenSeventeenBankruptcyRecord = Type.Object(
 export type EighteenSeventeenBankruptcyRecord = Type.Static<
     typeof EighteenSeventeenBankruptcyRecord
 >
+export const EighteenSeventeenGoBankrupt = goBankruptSchema(EighteenSeventeenBankruptcyRecord)
+export type EighteenSeventeenGoBankrupt = Type.Static<typeof EighteenSeventeenGoBankrupt>
+const GoBankruptValidator = Compile(EighteenSeventeenGoBankrupt)
+export function isEighteenSeventeenGoBankrupt(
+    action: GameAction
+): action is EighteenSeventeenGoBankrupt {
+    return action.type === 'GoBankrupt' && GoBankruptValidator.Check(action)
+}
 
 export const EighteenSeventeenCashCrisisRules: CashCrisisRules = {
     market: EighteenSeventeenMarket,

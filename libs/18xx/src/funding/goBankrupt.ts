@@ -11,7 +11,7 @@ import {
 } from '@tabletop/common'
 import { CashPayment } from '../finance/cashPayments.js'
 import { controllingOwner } from '../finance/finance.js'
-import { endOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
+import { abandonOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 import { nextOperatingCompany } from '../operating/operatingSet.js'
 import {
@@ -21,9 +21,9 @@ import {
     type CashCrisisState
 } from './cashCrisis.js'
 import { eliminatePlayer } from './elimination.js'
+import { TitleChanges } from '../actions/titleChanges.js'
 
-const TitleChanges = Type.Record(Type.String(), Type.Unknown())
-export type GoBankruptSchema<Changes extends Type.TSchema = typeof TitleChanges> = Type.TObject<
+export type GoBankruptSchema<Changes extends Type.TSchema = TitleChanges> = Type.TObject<
     Omit<typeof PlayerAction.properties, 'type'> & {
         type: Type.TLiteral<'GoBankrupt'>
         metadata: Type.TOptional<
@@ -100,8 +100,7 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
                 ? nextOperatingCompany(state)
                 : undefined
         if (companyId && !controllingOwner(state, companyId)) {
-            endOperatingTurn(state, companyId)
-            delete state.trainPurchaseStep
+            abandonOperatingTurn(state, companyId)
             crisis.continuation = BetweenCompaniesState
         }
         const forgiven = debt.amount

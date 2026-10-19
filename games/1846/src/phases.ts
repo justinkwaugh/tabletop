@@ -6,12 +6,13 @@ import {
     advancePhaseSchema,
     marketDiscardOrder,
     type AdvancePhaseSchema,
+    operatingPlayerIds,
     type PhaseRules
 } from '@tabletop/18xx'
 import { releaseStationReservations } from './stations.js'
 import { AdditionalReservations } from './map.js'
 import { RevenueMarker } from './revenueMarkers.js'
-import { operatingPlayers1846 } from './receivership.js'
+import { ReceivershipRules1846 } from './receivership.js'
 import { RailroadClosure, closeRailroad } from './closeCorporation.js'
 import { SteamboatAssignment } from './steamboat.js'
 import { Market1846 } from './stock.js'
@@ -30,7 +31,8 @@ export const PhaseChanges1846 = Type.Object(
 export type PhaseChanges1846 = Type.Static<typeof PhaseChanges1846>
 
 export const PhaseRules1846: PhaseRules = {
-    activePlayers: operatingPlayers1846,
+    activePlayers: (state, companyId) =>
+        operatingPlayerIds(state, companyId, ReceivershipRules1846),
     rustTiming: (state, train) => {
         if (state.phaseId === 'IV') {
             if (train.definitionId === '2') return 'immediate'

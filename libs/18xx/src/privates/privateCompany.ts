@@ -1,4 +1,5 @@
 import { assert } from '@tabletop/common'
+import type { StationState } from '../map/station.js'
 import {
     getCompany,
     privateOwner,
@@ -14,10 +15,18 @@ export function privateOwningCompany(state: FinancialState, privateId: string): 
         : undefined
 }
 
-export function closePrivate(state: FinancialState, companyId: string): void {
+/** Closes the private, retiring its certificates and releasing any station it reserved. */
+export function closePrivate(
+    state: FinancialState & Partial<Pick<StationState, 'stationReservations'>>,
+    companyId: string
+): void {
     const company = getCompany(state, companyId)
     assert(company.kind === 'private', 'Only private companies use this closure procedure')
     company.closed = true
+    if (state.stationReservations)
+        state.stationReservations = state.stationReservations.filter(
+            (reservation) => reservation.companyId !== companyId
+        )
     removeCertificates(
         state,
         state.certificates

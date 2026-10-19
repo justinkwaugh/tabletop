@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ReceivershipRules1846 } from './receivership.js'
 import { assertExists, ActionSource } from '@tabletop/common'
 import {
     controllingOwner,
@@ -11,7 +12,6 @@ import {
     TrainPurchase,
     StationPlacement,
     payingRouteStops,
-    receiverTrainPurchase,
     type TrainDefinition,
     type RouteRevenueStop
 } from '@tabletop/18xx'
@@ -234,7 +234,9 @@ describe('1846 Phase III trains and lifecycle', () => {
         )
         assertExists(cash)
         cash.amount = 160
-        expect(receiverTrainPurchase(table.hydrated, 'IC', TrainRules1846)).toMatchObject({
+        expect(
+            ReceivershipRules1846.trainPurchase(table.hydrated, 'IC', TrainRules1846)
+        ).toMatchObject({
             definitionId: '3/5',
             expectedPrice: 160
         })

@@ -22,8 +22,8 @@ import {
     type PhaseChangeState
 } from './phaseChange.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
-const TitleChanges = Type.Record(Type.String(), Type.Unknown())
-export type AdvancePhaseSchema<Changes extends Type.TSchema = typeof TitleChanges> = Type.TObject<
+import { NoTitleChanges } from '../actions/titleChanges.js'
+export type AdvancePhaseSchema<Changes extends Type.TSchema = NoTitleChanges> = Type.TObject<
     Omit<typeof GameAction.properties, 'type'> & {
         type: Type.TLiteral<'AdvancePhase'>
         metadata: Type.TOptional<
@@ -31,19 +31,15 @@ export type AdvancePhaseSchema<Changes extends Type.TSchema = typeof TitleChange
                 event: typeof PhaseEvent
                 nextState: Type.TString
                 companyChanges: Type.TOptional<typeof CompanyChanges>
-                changes: Type.TOptional<Changes>
+                changes: Changes
             }>
         >
     }
 >
 /** The phase Action, recording the title's changes under the title's own schema. */
-export function advancePhaseSchema(): AdvancePhaseSchema
 export function advancePhaseSchema<Changes extends Type.TSchema>(
     changes: Changes
-): AdvancePhaseSchema<Changes>
-export function advancePhaseSchema(
-    changes: Type.TSchema = TitleChanges
-): AdvancePhaseSchema<Type.TSchema> {
+): AdvancePhaseSchema<Changes> {
     return Type.Object(
         {
             ...GameAction.properties,
@@ -54,7 +50,7 @@ export function advancePhaseSchema(
                         event: PhaseEvent,
                         nextState: Type.String(),
                         companyChanges: Type.Optional(CompanyChanges),
-                        changes: Type.Optional(changes)
+                        changes
                     },
                     { additionalProperties: false }
                 )
@@ -63,7 +59,7 @@ export function advancePhaseSchema(
         { additionalProperties: false }
     )
 }
-export const AdvancePhase: AdvancePhaseSchema = advancePhaseSchema()
+export const AdvancePhase: AdvancePhaseSchema = advancePhaseSchema(NoTitleChanges)
 export type AdvancePhase = Type.Static<typeof AdvancePhase>
 const Validator = Compile(AdvancePhase)
 export function isAdvancePhase(action: GameAction): action is AdvancePhase {

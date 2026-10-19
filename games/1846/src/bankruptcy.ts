@@ -1,5 +1,4 @@
 import { Market1846 } from './stock.js'
-import { releasePrivateReservations } from './stations.js'
 import * as Type from 'typebox'
 import {
     CashPayment,
@@ -101,7 +100,6 @@ export const Elimination1846: EliminationRules<typeof BankruptcyChanges1846> = {
             .filter((certificate) => certificate.kind === 'private')
             .map((certificate) => certificate.companyId)
         for (const id of closedPrivateIds) closePrivate(state, id)
-        releasePrivateReservations(state, closedPrivateIds)
         if (closedPrivateIds.includes('SC')) delete state.steamboat
         let closing = corporationAwaitingClosure(state)
         while (closing) {

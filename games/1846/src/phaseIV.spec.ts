@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ReceivershipRules1846 } from './receivership.js'
 import { ActionSource, assert, assertExists } from '@tabletop/common'
 import {
     isRustTrains,
@@ -11,7 +12,6 @@ import {
     discardableTrains,
     trainCanBeTraded,
     payingRouteStops,
-    receiverTrainPurchase,
     routeConnectionBonuses,
     type RouteRevenueStop
 } from '@tabletop/18xx'
@@ -298,7 +298,9 @@ describe('1846 Phase IV trains and lifecycle', () => {
         table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
             (train) => train.status !== 'market'
         )
-        expect(receiverTrainPurchase(table.hydrated, 'IC', TrainRules1846)).toMatchObject({
+        expect(
+            ReceivershipRules1846.trainPurchase(table.hydrated, 'IC', TrainRules1846)
+        ).toMatchObject({
             definitionId: '6',
             expectedPrice: 800
         })
@@ -319,7 +321,7 @@ describe('1846 Phase IV trains and lifecycle', () => {
         table.state.trainPurchaseStep = { companyId: 'IC', purchasedTrainIds: [] }
         table.state.activePlayerIds = [...table.state.turnManager.turnOrder]
         const before = structuredClone(table.state)
-        const purchase = receiverTrainPurchase(table.hydrated, 'IC', TrainRules1846)
+        const purchase = ReceivershipRules1846.trainPurchase(table.hydrated, 'IC', TrainRules1846)
         assertExists(purchase)
         const result = table.act('BuyTrain', { ...purchase, source: ActionSource.System })
         expect(table.state.phaseId).toBe('IV')

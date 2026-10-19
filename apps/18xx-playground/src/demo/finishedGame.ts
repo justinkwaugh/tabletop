@@ -1,12 +1,4 @@
-import {
-    ActionSource,
-    assert,
-    assertExists,
-    Game,
-    GameAction,
-    GameEngine,
-    GameStatus
-} from '@tabletop/common'
+import { assert, assertExists, Game, GameAction, GameEngine, GameStatus } from '@tabletop/common'
 import type { EighteenXXState } from '@tabletop/18xx'
 import * as Value from 'typebox/value'
 import { PlaygroundTitles, type FinishedGameFixture, type PlaygroundTitle } from '../titles.js'
@@ -15,20 +7,6 @@ export async function finishedGame(ownerId: string, name: string, typeId: string
     const title = PlaygroundTitles.find((candidate) => candidate.scenarios.info.id === typeId)
     assertExists(title?.finishedGame, 'This title has no finished game')
     return replayFinishedGame(title, (await title.finishedGame()).default, ownerId, name)
-}
-
-/** A recorded user action the runtime has since made automatic, and just performed itself. */
-function performedAutomatically(command: GameAction, processed: readonly GameAction[]): boolean {
-    return (
-        command.source === ActionSource.User &&
-        processed.some(
-            (action) =>
-                action.source === ActionSource.System &&
-                action.type === command.type &&
-                action.playerId === command.playerId &&
-                action.companyId === command.companyId
-        )
-    )
 }
 
 /** Replays a recorded game's actions, which need not finish it. */
@@ -51,14 +29,11 @@ export async function replayRecordedGame(
     const engine = new GameEngine(title.scenarios.runtime)
     let state = initialState
     const actions: GameAction[] = []
-    let processed: GameAction[] = []
     for (const [index, command] of fixture.actions.entries()) {
         assert(Value.Check(GameAction, command), 'Invalid finished game action')
-        if (performedAutomatically(command, processed)) continue
         const result = engine.executeCanonicalAction({ game, state, action: command })
         state = result.updatedState
-        processed = result.processedActions
-        actions.push(...processed)
+        actions.push(...result.processedActions)
         if (index % 100 === 99) await new Promise((resolve) => setTimeout(resolve, 0))
     }
     return { game, state, actions, initialState, engine }

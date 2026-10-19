@@ -100,7 +100,6 @@ export class PrivateExchangeHandler<
         const state = context.gameState
         const companyId =
             state.machineState === 'StockRound' ? undefined : nextOperatingCompany(state)
-        // A company in receivership keeps its receivers active; no exchange window opens for it.
         if (companyId && inReceivership(state, companyId)) {
             this.handler.enter(context)
             return

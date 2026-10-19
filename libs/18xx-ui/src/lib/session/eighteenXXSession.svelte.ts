@@ -84,6 +84,7 @@ export type EighteenXXSessionRules<
     | 'titleStateHandlers'
     | 'titleActions'
     | 'trainFundingRules'
+    | 'canonicalState'
 > &
     Partial<Pick<EighteenXXTitleRules<Schema, State>, 'trainFundingRules'>>
 

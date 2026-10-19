@@ -31,15 +31,16 @@ Additional selections are title-owned:
 | 1817  | Selection auction, company auction, borrowing, cash crises and player elimination, shorts, private-power usage, location markers, its options, private lay records, mergers and acquisitions |
 
 1846 composes its own fields without `RailwayFields`: a hidden or public private
-distribution, independents, receivership, emergency funding, revenue markers and the
-steamboat. It hydrates through its projection schema so a player's projected view loads,
+distribution, independents, the family's funding and bankruptcy fields, revenue markers
+and the steamboat. It hydrates through its projection schema so a player's projected view loads,
 and hands the runtime its strict canonical schema as `canonicalState`, from which the
 runtime validates canonical state and projects state and Actions. Since 2026-10-19 it
 runs on `createEighteenXXRuntime` like every other title: its draft, receivership,
 closure, Steamboat and independent-settlement states are title states, its versions of
 the stock round, the between-companies state and the operating steps are decision
-wrappers, and it selects the family features it uses (no station step, no family train
-funding, whole-company acquisitions, its phase changes through `PhaseRules.changes`).
+wrappers, and it selects the family features it uses (no station step, its own train
+funding rules, elimination and receivership rules, whole-company acquisitions, its phase
+changes through `PhaseRules.changes`).
 
 Nested company and certificate schemas are selected too. Ordinary companies do not
 acquire loan or role properties; ordinary certificates do not acquire short positions

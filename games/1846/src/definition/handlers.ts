@@ -40,6 +40,16 @@ type State = HydratedEighteenFortySixState
 type Handler = EighteenXXStateHandler<State>
 type Context = MachineContext<State>
 
+/** A wrapper that leaves every family decision alone except the one it overrides. */
+function wrapping(family: Handler, overrides: Partial<Handler>): Handler {
+    return {
+        enter: (context) => family.enter(context),
+        validActionsForPlayer: (id, context) => family.validActionsForPlayer(id, context),
+        isValidAction: (action, context) => family.isValidAction(action, context),
+        onAction: (action, context) => family.onAction(action, context),
+        ...overrides
+    }
+}
 function corporateFinanceActions(playerId: string, state: State): string[] {
     return state.isActivePlayer(playerId) && corporateFinanceChoices(state).length
         ? ['CorporateFinance']
@@ -221,8 +231,7 @@ export function layingTrack1846(family: Handler): Handler {
 }
 
 export function runningTrains1846(family: Handler): Handler {
-    return {
-        enter: (context) => family.enter(context),
+    return wrapping(family, {
         validActionsForPlayer: (id, context) => [
             ...family.validActionsForPlayer(id, context),
             ...corporateFinanceActions(id, context.gameState)
@@ -240,33 +249,27 @@ export function runningTrains1846(family: Handler): Handler {
                 ? 'SettlingIndependent'
                 : 'DistributingEarnings'
         }
-    }
+    })
 }
 
 export function distributingEarnings1846(family: Handler): Handler {
-    return {
-        enter: (context) => family.enter(context),
-        validActionsForPlayer: (id, context) => family.validActionsForPlayer(id, context),
-        isValidAction: (action, context) => family.isValidAction(action, context),
+    return wrapping(family, {
         onAction(_action, { gameState }) {
             return corporationAwaitingClosure(gameState)
                 ? 'ClosingOperatingCorporation'
                 : 'BuyingTrains'
         }
-    }
+    })
 }
 
 export function buyingTrains1846(family: Handler): Handler {
-    return {
-        enter: (context) => family.enter(context),
-        validActionsForPlayer: (id, context) => family.validActionsForPlayer(id, context),
-        isValidAction: (action, context) => family.isValidAction(action, context),
+    return wrapping(family, {
         onAction(action, context) {
             const next = family.onAction(action, context)
             if (isFinishOperatingTurn(action)) context.gameState.activePlayerIds = []
             return next
         }
-    }
+    })
 }
 
 /** A corporation whose price falls to zero during funding closes before funding goes on. */

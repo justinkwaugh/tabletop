@@ -8,15 +8,15 @@ import {
 import type * as Type from 'typebox'
 import { FinishTrack } from '../construction/finishTrack.js'
 import { FinishStations } from '../stations/finishStations.js'
-import type { EarningsRules } from '../earnings/earningsDistribution.js'
 import { BuyTrain } from '../trains/buyTrain.js'
+import { TrainPurchase, type TrainRules } from '../trains/trainPurchase.js'
+import { trainsOwnedBy, type TrainPurchaseState } from '../trains/train.js'
+import type { MapStateData } from '../map/mapState.js'
 import {
-    TrainPurchase,
-    type TrainPurchaseDetails,
-    type TrainRules
-} from '../trains/trainPurchase.js'
-import { trainsOwnedBy } from '../trains/train.js'
-import { inReceivership } from '../finance/receivership.js'
+    inReceivership,
+    type ReceiverPurchase,
+    type ReceivershipRules
+} from '../finance/receivership.js'
 import { FinishOperatingTurn, type OperatingTurnState } from './finishOperatingTurn.js'
 import { nextOperatingCompany } from './operatingSet.js'
 import type { OperatingStepState } from './operatingSteps.js'
@@ -31,15 +31,19 @@ type State = HydratedGameState &
     StationPlacementState &
     DistributionState &
     PhaseState
-type Automatic = { schema: Type.TObject<{ type: Type.TLiteral<string> }>; fields: object }
+type Automatic = {
+    schema: Type.TObject<{ type: Type.TLiteral<string> }>
+    fields: Record<string, unknown>
+}
+/** The step whose decision the receivers make themselves; every other step decides itself. */
+const ReceiverDecision: OperatingStepState = 'RunningTrains'
 
-/** The cheapest train a receiver buys when it needs one and can pay: from the depot or the market. */
-export function receiverTrainPurchase(
-    state: ConstructorParameters<typeof TrainPurchase>[0] &
-        Parameters<TrainRules['requiresTrain']>[0],
+/** The cheapest train the receiver can pay for, from the depot or the market: the usual policy. */
+export function cheapestAffordableTrain(
+    state: TrainPurchaseState & MapStateData,
     companyId: string,
     rules: TrainRules
-): (Omit<TrainPurchaseDetails, 'price'> & { expectedPrice: number }) | undefined {
+): ReceiverPurchase | undefined {
     const owner = { kind: 'company' as const, companyId }
     if (trainsOwnedBy(state, owner).length || !rules.requiresTrain(state, companyId))
         return undefined
@@ -56,9 +60,9 @@ export function receiverTrainPurchase(
 
 /**
  * A company in receivership runs its operating step without a president: it lays nothing,
- * its receivers run its trains, its only earnings choice applies itself, and it buys the
- * cheapest train it can afford when it needs one. Every decision but the routes is a system
- * action.
+ * its receivers run its trains, its earnings go where the title's receivership rules say,
+ * and it buys the train those rules choose when it needs one. Every decision but the routes
+ * is a system action.
  */
 export class ReceivershipHandler<S extends State> implements MachineStateHandler<
     HydratedAction,
@@ -67,7 +71,7 @@ export class ReceivershipHandler<S extends State> implements MachineStateHandler
     constructor(
         private readonly step: OperatingStepState,
         private readonly handler: MachineStateHandler<HydratedAction, S>,
-        private readonly rules: { earningsRules: EarningsRules; trainRules: TrainRules }
+        private readonly rules: { trainRules: TrainRules; receivershipRules: ReceivershipRules }
     ) {}
     private receiver(state: S): string | undefined {
         const companyId = nextOperatingCompany(state)
@@ -90,7 +94,11 @@ export class ReceivershipHandler<S extends State> implements MachineStateHandler
                 return undefined
             case 'BuyingTrains': {
                 if (state.trainPurchaseStep?.companyId !== companyId) return undefined
-                const purchase = receiverTrainPurchase(state, companyId, this.rules.trainRules)
+                const purchase = this.rules.receivershipRules.trainPurchase(
+                    state,
+                    companyId,
+                    this.rules.trainRules
+                )
                 return purchase
                     ? { schema: BuyTrain, fields: { ...purchase, playerId } }
                     : { schema: FinishOperatingTurn, fields: { companyId, playerId } }
@@ -106,7 +114,7 @@ export class ReceivershipHandler<S extends State> implements MachineStateHandler
         return this.handler.isValidAction(action, context)
     }
     validActionsForPlayer(playerId: string, context: MachineContext<S>): string[] {
-        if (this.receiver(context.gameState) && this.step !== 'RunningTrains') return []
+        if (this.receiver(context.gameState) && this.step !== ReceiverDecision) return []
         return this.handler.validActionsForPlayer(playerId, context)
     }
     enter(context: MachineContext<S>): void {

@@ -111,7 +111,6 @@ function validateStateComposition(
             field in schema.properties === supported,
             `${field} state and rules must be selected together`
         )
-    // Any title that eliminates players records them; a cash crisis is one way to be eliminated.
     assert(
         !options.cashCrisisRules || 'bankruptPlayerIds' in schema.properties,
         'Cash crises record the bankrupt players'
@@ -171,11 +170,11 @@ export function createEighteenXXRuntime<
     const awaitsPar = (handler: Handler): Handler =>
         companyRules.parAfterAward ? new PendingParHandler(handler) : handler
     const { loanRules, trainFundingRules, receivershipRules } = options
-    const receivership = (step: OperatingStepState, handler: Handler): Handler =>
+    const operatesReceivership = (step: OperatingStepState, handler: Handler): Handler =>
         receivershipRules
             ? new ReceivershipHandler(step, handler, {
-                  earningsRules: options.earningsRules,
-                  trainRules: options.trainRules
+                  trainRules: options.trainRules,
+                  receivershipRules
               })
             : handler
     const allowsPresidencyClaims = (handler: Handler): Handler =>
@@ -312,7 +311,7 @@ export function createEighteenXXRuntime<
         LayingTrack: new AutomaticTrackCompletionHandler(
             options.trackRules,
             operatingStep(
-                receivership(
+                operatesReceivership(
                     'LayingTrack',
                     decides(
                         'LayingTrack',
@@ -325,7 +324,7 @@ export function createEighteenXXRuntime<
         ...(familySteps.includes('PlacingStation')
             ? {
                   PlacingStation: operatingStep(
-                      receivership(
+                      operatesReceivership(
                           'PlacingStation',
                           decides(
                               'PlacingStation',
@@ -339,7 +338,7 @@ export function createEighteenXXRuntime<
               }
             : {}),
         RunningTrains: operatingStep(
-            receivership(
+            operatesReceivership(
                 'RunningTrains',
                 decides(
                     'RunningTrains',
@@ -348,20 +347,21 @@ export function createEighteenXXRuntime<
             )
         ),
         DistributingEarnings: operatingStep(
-            receivership(
+            operatesReceivership(
                 'DistributingEarnings',
                 decides(
                     'DistributingEarnings',
                     new DistributingEarningsHandler(
                         options.earningsRules,
-                        after('DistributingEarnings')
+                        after('DistributingEarnings'),
+                        receivershipRules
                     )
                 )
             )
         ),
         BuyingTrains: new AutomaticTrainCompletionHandler(
             operatingStep(
-                receivership(
+                operatesReceivership(
                     'BuyingTrains',
                     decides(
                         'BuyingTrains',
@@ -456,7 +456,8 @@ export function createEighteenXXRuntime<
             options.earningsRules,
             options.privateRules,
             rules,
-            after('DistributingEarnings')
+            after('DistributingEarnings'),
+            receivershipRules
         ),
         ...trainActions(options.trainRules, options.phaseRules, !loanRules),
         ...(options.titleActions ?? [])

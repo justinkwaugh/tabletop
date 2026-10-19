@@ -8,7 +8,6 @@ import {
     inReceivership,
     placeStockMarker,
     presidencyClaims,
-    receiverTrainPurchase,
     sharesOwned,
     trainsOwnedBy,
     sameOwner,
@@ -321,6 +320,7 @@ describe('1846 bankruptcy and receivership', () => {
     it('ends immediately when bankruptcy leaves one player, even if the receiver could buy a train', () => {
         const { table } = funding(40, 20)
         table.state.bankruptPlayerIds = ['p3']
+        setCash(table, { kind: 'player', playerId: 'p3' }, 0)
         table.state.turnManager.turnOrder = ['p1', 'p2']
         table.state.stockRound.passedPlayerIds = table.state.stockRound.passedPlayerIds.filter(
             (id) => id !== 'p3'
@@ -421,21 +421,22 @@ describe('1846 bankruptcy and receivership', () => {
         expect(new RouteEvaluation(table.hydrated, RouteRules1846).canAct('p3', 'IC')).toBe(true)
         table.state.routeStep.result = { companyId: 'IC', routes: [], revenue: 0 }
         setPrice(table, 60)
-        const result = new EarningsDistribution(table.hydrated, EarningsRules1846).evaluate(
-            'IC',
-            'withhold'
+        const earnings = new EarningsDistribution(
+            table.hydrated,
+            EarningsRules1846,
+            ReceivershipRules1846
         )
+        const result = earnings.evaluate('IC', 'withhold')
         expect(
             Market1846.spaces.find(
                 (space) => space.id === result.details?.marketMove?.toMarketSpaceId
             )?.price
         ).toBe(40)
-        expect(
-            new EarningsDistribution(table.hydrated, EarningsRules1846).evaluate('IC', 'pay')
-                .details
-        ).toBeUndefined()
+        expect(earnings.evaluate('IC', 'pay').details).toBeUndefined()
         table.state.trainPurchaseStep = { companyId: 'IC', purchasedTrainIds: [] }
         setCash(table, treasury, 1000)
-        expect(receiverTrainPurchase(table.hydrated, 'IC', TrainRules1846)?.definitionId).toBe('2')
+        expect(
+            ReceivershipRules1846.trainPurchase(table.hydrated, 'IC', TrainRules1846)?.definitionId
+        ).toBe('2')
     })
 })

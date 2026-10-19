@@ -24,7 +24,8 @@ the turn order and the stock round, and records them in `bankruptPlayerIds`. The
 bankruptcy Action records the policy's changes under the title's schema
 (`DeclareBankruptcy.metadata.changes`, `GoBankrupt.metadata.changes`). A funding
 bankruptcy without `trainFundingRules.elimination` still ends the game through
-`Bankrupt`, as 1889 and TOP need. An eliminated player cannot win.
+`Bankrupt`, as 1889 and TOP need. Final wealth still ranks every player, eliminated or
+not; whether a bankrupt player may win is a title's ending question, not the family's.
 
 **Continuation after a funding bankruptcy.** A successor president inherits the
 obligation in the same `FundingTrain`; without one, a title with `receivershipRules`

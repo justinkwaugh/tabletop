@@ -183,7 +183,6 @@ export class EighteenFortySixSession extends BaseSession {
         await this.track.finish()
     }
 
-    // A new state or any change to the private action choices clears the staged lay.
     private privateLaySelection = $derived.by((): PrivateLaySelection => {
         void [
             this.gameState,

@@ -1,9 +1,7 @@
-import { assert } from '@tabletop/common'
 import {
-    finiteCashOwnedBy,
+    cheapestAffordableTrain,
     sameOwner,
     inReceivership,
-    operatingPlayerIds,
     type ReceivershipRules
 } from '@tabletop/18xx'
 import { Market1846 } from './stock.js'
@@ -15,6 +13,8 @@ import { Market1846 } from './stock.js'
  */
 export const ReceivershipRules1846: ReceivershipRules = {
     operators: (state) => [...state.turnManager.turnOrder],
+    earningsChoice: () => 'withhold',
+    trainPurchase: cheapestAffordableTrain,
     presidencyClaim(state, companyId, buyer) {
         const certificates = state.certificates.filter(
             (certificate) => certificate.companyId === companyId
@@ -39,7 +39,7 @@ export const ReceivershipRules1846: ReceivershipRules = {
         )
         if (!president || ordinary.length !== 1) return undefined
         const price = Market1846.companySpace(state.stockMarket, companyId).price
-        if (price <= 0 || finiteCashOwnedBy(state, buyer) < price) return undefined
+        if (price <= 0) return undefined
         return {
             price,
             claim: {
@@ -51,14 +51,5 @@ export const ReceivershipRules1846: ReceivershipRules = {
             }
         }
     }
-}
-
-export function operatingPlayers1846(
-    state: Parameters<typeof operatingPlayerIds>[0],
-    companyId: string
-): string[] {
-    const players = operatingPlayerIds(state, companyId, ReceivershipRules1846)
-    assert(players.length > 0, 'An operated corporation requires a president or receivership')
-    return players
 }
 export { inReceivership }

@@ -4011,14 +4011,6 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:249",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "4738",
-   "type": "FinishTrack",
-   "companyId": "R"
-  },
-  {
    "id": "recorded:250",
    "gameId": "1817-1817_game_end_bankrupt",
    "source": "user",

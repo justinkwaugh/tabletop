@@ -9,11 +9,12 @@ import {
 } from '@tabletop/common'
 import { CashPayment } from '../finance/cashPayments.js'
 import { controllingOwner } from '../finance/finance.js'
-import { endOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
+import { abandonOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { eliminatePlayer } from './elimination.js'
+import { NoTitleChanges } from '../actions/titleChanges.js'
 import { inReceivership, type ReceivershipRules } from '../finance/receivership.js'
 import {
     Bankruptcy,
@@ -22,33 +23,27 @@ import {
     type TrainFundingRules
 } from './trainFunding.js'
 
-const TitleChanges = Type.Record(Type.String(), Type.Unknown())
-export type DeclareBankruptcySchema<Changes extends Type.TSchema = typeof TitleChanges> =
-    Type.TObject<
-        Omit<typeof GameAction.properties, 'type'> & {
-            type: Type.TLiteral<'DeclareBankruptcy'>
-            metadata: Type.TOptional<
-                Type.TObject<
-                    typeof Bankruptcy.properties & {
-                        changes: Type.TOptional<Changes>
-                        surrendered: Type.TOptional<typeof CashPayment>
-                        continuation: Type.TOptional<Type.TString>
-                    }
-                >
+export type DeclareBankruptcySchema<Changes extends Type.TSchema = NoTitleChanges> = Type.TObject<
+    Omit<typeof GameAction.properties, 'type'> & {
+        type: Type.TLiteral<'DeclareBankruptcy'>
+        metadata: Type.TOptional<
+            Type.TObject<
+                typeof Bankruptcy.properties & {
+                    changes: Changes
+                    surrendered: Type.TOptional<typeof CashPayment>
+                    continuation: Type.TOptional<Type.TString>
+                }
             >
-        }
-    >
+        >
+    }
+>
 /**
  * The funding bankruptcy Action. A title that eliminates the player records its changes under
  * its own schema and where play continues; otherwise the bankruptcy ends the game.
  */
-export function declareBankruptcySchema(): DeclareBankruptcySchema
 export function declareBankruptcySchema<Changes extends Type.TSchema>(
     changes: Changes
-): DeclareBankruptcySchema<Changes>
-export function declareBankruptcySchema(
-    changes: Type.TSchema = TitleChanges
-): DeclareBankruptcySchema<Type.TSchema> {
+): DeclareBankruptcySchema<Changes> {
     return Type.Object(
         {
             ...GameAction.properties,
@@ -57,7 +52,7 @@ export function declareBankruptcySchema(
                 Type.Object(
                     {
                         ...Bankruptcy.properties,
-                        changes: Type.Optional(changes),
+                        changes,
                         surrendered: Type.Optional(CashPayment),
                         continuation: Type.Optional(Type.String())
                     },
@@ -68,7 +63,7 @@ export function declareBankruptcySchema(
         { additionalProperties: false }
     )
 }
-export const DeclareBankruptcy: DeclareBankruptcySchema = declareBankruptcySchema()
+export const DeclareBankruptcy: DeclareBankruptcySchema = declareBankruptcySchema(NoTitleChanges)
 export type DeclareBankruptcy = Type.Static<typeof DeclareBankruptcy>
 const DeclareBankruptcyValidator = Compile(DeclareBankruptcy)
 export function isDeclareBankruptcy(action: GameAction): action is DeclareBankruptcy {
@@ -76,6 +71,21 @@ export function isDeclareBankruptcy(action: GameAction): action is DeclareBankru
         action instanceof HydratedDeclareBankruptcy ||
         (action.type === 'DeclareBankruptcy' && DeclareBankruptcyValidator.Check(action))
     )
+}
+/** A successor president inherits the obligation; a receivership buys what it can afford. */
+function bankruptcyContinuation(
+    state: HydratedGameState & FundingState & OperatingTurnState,
+    companyId: string,
+    receivership: ReceivershipRules | undefined
+): string {
+    if (controllingOwner(state, companyId)) return 'FundingTrain'
+    delete state.trainFunding
+    if (receivership && inReceivership(state, companyId)) {
+        state.activePlayerIds = receivership.operators(state, companyId)
+        return 'BuyingTrains'
+    }
+    abandonOperatingTurn(state, companyId)
+    return BetweenCompaniesState
 }
 export class HydratedDeclareBankruptcy
     extends HydratableAction<typeof DeclareBankruptcy>
@@ -137,28 +147,11 @@ export class HydratedDeclareBankruptcy
             kind: 'company',
             companyId: bankruptcy.companyId
         })
-        // A successor president inherits the obligation; a receivership buys what it can
-        // afford; otherwise the turn cannot go on.
-        const successor = controllingOwner(state, bankruptcy.companyId)
-        const receivers =
-            !successor && this.#receivership && inReceivership(state, bankruptcy.companyId)
-                ? this.#receivership.operators(state, bankruptcy.companyId)
-                : undefined
-        if (!successor) delete state.trainFunding
-        if (receivers) state.activePlayerIds = receivers
-        if (!successor && !receivers) {
-            endOperatingTurn(state, bankruptcy.companyId)
-            delete state.trainPurchaseStep
-        }
         this.metadata = {
             ...bankruptcy,
             changes,
             ...(surrendered ? { surrendered } : {}),
-            continuation: successor
-                ? 'FundingTrain'
-                : receivers
-                  ? 'BuyingTrains'
-                  : BetweenCompaniesState
+            continuation: bankruptcyContinuation(state, bankruptcy.companyId, this.#receivership)
         }
     }
 }

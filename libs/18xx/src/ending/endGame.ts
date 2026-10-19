@@ -35,18 +35,11 @@ export class HydratedEndGame extends HydratableAction<typeof EndGame> implements
     isValid(state: EndingState): boolean {
         return this.source === ActionSource.System && endingDue(state, this.#rules)
     }
-    apply(
-        state: HydratedGameState &
-            EndingState & { finalWealth?: PlayerWealth[]; bankruptPlayerIds?: readonly string[] }
-    ): void {
+    apply(state: HydratedGameState & EndingState & { finalWealth?: PlayerWealth[] }): void {
         assert(this.isValid(state), 'The game has not reached its ending boundary')
         state.finalWealth = finalWealth(state, this.#rules)
-        // A player who left the game bankrupt cannot win it.
-        const standing = state.finalWealth.filter(
-            (player) => !state.bankruptPlayerIds?.includes(player.playerId)
-        )
-        const maximum = Math.max(...standing.map((player) => player.total))
-        state.winningPlayerIds = standing
+        const maximum = Math.max(...state.finalWealth.map((player) => player.total))
+        state.winningPlayerIds = state.finalWealth
             .filter((player) => player.total === maximum)
             .map((player) => player.playerId)
         state.result = state.winningPlayerIds.length > 1 ? GameResult.Draw : GameResult.Win

@@ -4,6 +4,7 @@ import type { StockRules } from '../stock/stockRules.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import type { PhaseRules } from './phaseChange.js'
 import { Compile } from 'typebox/compile'
+import { NoTitleChanges } from '../actions/titleChanges.js'
 import { HydratedAdvancePhase, advancePhaseSchema, type AdvancePhase } from './advancePhase.js'
 
 export function phaseActions(rules: {
@@ -13,7 +14,7 @@ export function phaseActions(rules: {
     stockRules: StockRules
 }): ActionDefinition[] {
     const changes = rules.phaseRules.changes
-    const schema = changes ? advancePhaseSchema(changes.schema) : advancePhaseSchema()
+    const schema = advancePhaseSchema(changes ? changes.schema : NoTitleChanges)
     const validator = Compile(schema)
     return [
         defineAction(

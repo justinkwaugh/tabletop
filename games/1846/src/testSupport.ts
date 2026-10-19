@@ -289,7 +289,6 @@ export function constructionGame(phaseId: 'III' | 'IV' = 'III') {
         )
         buyTrain(table, '6')
     }
-    // The turn finishes by itself once no train can be bought.
     if (table.state.machineState === 'BuyingTrains')
         table.act('FinishOperatingTurn', { companyId: 'IC' })
     assert(table.state.machineState === 'LayingTrack' && table.state.phaseId === phaseId)

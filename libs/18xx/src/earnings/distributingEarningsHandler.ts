@@ -1,3 +1,4 @@
+import type { ReceivershipRules } from '../finance/receivership.js'
 import {
     ActionSource,
     type HydratedAction,
@@ -23,7 +24,8 @@ export class DistributingEarningsHandler implements MachineStateHandler<
 > {
     constructor(
         private readonly rules: EarningsRules,
-        private readonly nextState: string
+        private readonly nextState: string,
+        private readonly receivership?: ReceivershipRules
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
@@ -32,7 +34,7 @@ export class DistributingEarningsHandler implements MachineStateHandler<
             (action.source !== ActionSource.User &&
                 !(
                     action.source === ActionSource.System &&
-                    new EarningsDistribution(state, this.rules).automaticChoice(
+                    new EarningsDistribution(state, this.rules, this.receivership).automaticChoice(
                         action.companyId
                     ) === action.choice
                 )) ||
@@ -40,7 +42,7 @@ export class DistributingEarningsHandler implements MachineStateHandler<
             !state.activePlayerIds.includes(action.playerId)
         )
             return false
-        const distribution = new EarningsDistribution(state, this.rules)
+        const distribution = new EarningsDistribution(state, this.rules, this.receivership)
         return (
             distribution.canAct(action.playerId, action.companyId) &&
             !!distribution.evaluate(action.companyId, action.choice).details
@@ -51,7 +53,10 @@ export class DistributingEarningsHandler implements MachineStateHandler<
             companyId = state.routeStep?.companyId
         return companyId &&
             state.activePlayerIds.includes(playerId) &&
-            new EarningsDistribution(state, this.rules).canAct(playerId, companyId)
+            new EarningsDistribution(state, this.rules, this.receivership).canAct(
+                playerId,
+                companyId
+            )
             ? ['DistributeEarnings']
             : []
     }
@@ -59,7 +64,11 @@ export class DistributingEarningsHandler implements MachineStateHandler<
         const state = context.gameState
         const companyId = state.routeStep?.companyId
         if (!companyId || state.earningsDistribution) return
-        const choice = new EarningsDistribution(state, this.rules).automaticChoice(companyId)
+        const choice = new EarningsDistribution(
+            state,
+            this.rules,
+            this.receivership
+        ).automaticChoice(companyId)
         if (choice)
             context.addSystemAction(DistributeEarnings, {
                 companyId,

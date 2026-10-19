@@ -20,6 +20,7 @@ import {
     isContributeTrainFunds
 } from './contributeTrainFunds.js'
 import {
+    DeclareBankruptcy,
     declareBankruptcySchema,
     HydratedDeclareBankruptcy,
     isDeclareBankruptcy
@@ -55,7 +56,7 @@ export function fundingActions(
         defineAction(
             funding.elimination
                 ? declareBankruptcySchema(funding.elimination.schema)
-                : declareBankruptcySchema(),
+                : DeclareBankruptcy,
             isDeclareBankruptcy,
             (action) => new HydratedDeclareBankruptcy(action, funding, stock, trains, receivership)
         )

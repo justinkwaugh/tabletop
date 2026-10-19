@@ -3825,14 +3825,6 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:239",
-   "gameId": "1817-15528",
-   "source": "user",
-   "playerId": "655",
-   "type": "FinishTrack",
-   "companyId": "WT"
-  },
-  {
    "id": "recorded:240",
    "gameId": "1817-15528",
    "source": "user",

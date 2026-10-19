@@ -1,6 +1,5 @@
 import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
-import { inReceivership } from '../finance/receivership.js'
-import { actsFor } from '../finance/receivership.js'
+import { actsFor, inReceivership } from '../finance/receivership.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -38,7 +37,6 @@ export function finishOperatingTurnReason(
         state.trainPurchaseStep?.companyId !== companyId
     )
         return 'This company is not finishing its operating turn.'
-    // A receivership buys what it can afford; it is excused when it cannot.
     if (
         !trainsOwnedBy(state, { kind: 'company', companyId }).length &&
         rules.requiresTrain(state, companyId) &&
@@ -94,6 +92,14 @@ export class HydratedFinishOperatingTurn
     }
 }
 
+/** Ends the turn of a company that cannot finish it itself, having lost its president. */
+export function abandonOperatingTurn(
+    state: HydratedGameState & OperatingTurnState,
+    companyId: string
+): void {
+    endOperatingTurn(state, companyId)
+    delete state.trainPurchaseStep
+}
 /** Completes the company's turn and clears its steps, leaving its train purchases to the caller. */
 export function endOperatingTurn(
     state: HydratedGameState & OperatingTurnState,

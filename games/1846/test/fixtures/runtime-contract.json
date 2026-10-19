@@ -1,6 +1,6 @@
 {
   "actionSchemaDigests": {
-    "AdvancePhase": "a60a8994d7398f3112899436d6636f181447a0b455db91961e6d2adab7c8569c",
+    "AdvancePhase": "caa1cfa9e9a536c533502feb07d9a1a1e497235547c64f7f0bef051143142c90",
     "AssignRevenueMarker": "99507556bc2b9d4c56f8013534d5f778b45ba10c6326a74c9dbe7f94a0c0e210",
     "AssignSteamboat": "c90a5f32432482418b417ccd4f8ce5074f52861b366730a633da4758d869ecec",
     "BuildPrivateTrack": "1edc433f55304462fe83c916f0faadcfe4cf00c626e849e6d0cb05890eb8ee00",
@@ -15,7 +15,7 @@
     "ContinueOperatingRound": "9739c28a94fcb60ac7e05435f2d25ccba70f5534d4a28a43ac2107ec3f896637",
     "ContributeTrainFunds": "85fd1b57cdfc74e0e0f0957a5e663792f1cb12ab188988ba50b44dd5dc613931",
     "CorporateFinance": "3f52f4e5e534b41cd07208809c12042d3b1171817bc6f69738fa80365aebcb38",
-    "DeclareBankruptcy": "56b085a0842452028f9a206aefbeb7e8f5dd12096542f549e203eb4e33126210",
+    "DeclareBankruptcy": "bc46219d02a79ab896a69b6ab740b19c9487c92aad21993b9e07328e2cde3de2",
     "DeclinePrivateTile": "c4982db809f4f024354b9e0731dd49c5dcdf66c07687110e8325a3de35e0c8c4",
     "DiscardTrain": "7e20783f11a11d64aff34626e2420dc355adbfce900d7f1cb01eb0b31c175961",
     "DistributeEarnings": "d1a60eb8722250aeb4f79f3fe6b30a59d3fd4b128636228368a0b7f8e6111dbc",

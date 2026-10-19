@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { actsFor, inReceivership } from '../finance/receivership.js'
+import { actsFor, inReceivership, type ReceivershipRules } from '../finance/receivership.js'
 import { assert } from '@tabletop/common'
 import {
     Owner,
@@ -88,12 +88,21 @@ export function dividendEntitlements(
 export class EarningsDistribution {
     constructor(
         private readonly state: DistributionState,
-        readonly rules: EarningsRules
+        readonly rules: EarningsRules,
+        private readonly receivership?: ReceivershipRules
     ) {}
-    /** The choice that needs no decision: a receiver's only one, or withholding nothing. */
-    automaticChoice(companyId: string): EarningsChoice | undefined {
+    /** The choices open to the company: the title's, or a receiver's one. */
+    choices(companyId: string): EarningsChoice[] {
         const choices = this.rules.choices(this.state, companyId)
-        if (inReceivership(this.state, companyId) && choices.length === 1) return choices[0]
+        if (!this.receivership || !inReceivership(this.state, companyId)) return choices
+        const choice = this.receivership.earningsChoice(this.state, companyId)
+        assert(choices.includes(choice), 'A receiver takes one of its earnings choices')
+        return [choice]
+    }
+    /** The choice that needs no decision: a receiver's, or withholding nothing. */
+    automaticChoice(companyId: string): EarningsChoice | undefined {
+        const choices = this.choices(companyId)
+        if (this.receivership && inReceivership(this.state, companyId)) return choices[0]
         return this.state.routeStep?.result?.revenue === 0 &&
             this.state.routeStep.result.routes.length === 0 &&
             choices.includes('withhold')
@@ -121,7 +130,7 @@ export class EarningsDistribution {
             getCompany(this.state, companyId).closed
         )
             return { reason: 'This company is not distributing earnings.' }
-        if (!this.rules.choices(this.state, companyId).includes(choice))
+        if (!this.choices(companyId).includes(choice))
             return { reason: 'This distribution choice is not available.' }
         const revenue = result.revenue,
             retained = this.rules.retainedRevenue(this.state, companyId, choice, revenue)
