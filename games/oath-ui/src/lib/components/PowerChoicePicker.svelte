@@ -419,16 +419,21 @@
                 {@const sites = legal.options.flatMap((o) =>
                     o.kind === PowerChoiceKind.Site ? [o.siteId] : []
                 )}
-                <SiteChips
-                    label={`${legal.spec.what ?? 'a site'}:`}
-                    sites={sites.map((siteId) => ({
-                        siteId,
-                        name: siteName(gameSession.gameState, siteId)
-                    }))}
-                    picked={option?.kind === PowerChoiceKind.Site ? option.siteId : undefined}
-                    onpick={(siteId) => tapOption(legal, i, pick, sites.indexOf(siteId))}
-                    {busy}
-                />
+                <!-- Never a label with no button: with no site to name, as on the lit map. -->
+                {#if sites.length > 0}
+                    <SiteChips
+                        label={`${legal.spec.what ?? 'a site'}:`}
+                        sites={sites.map((siteId) => ({
+                            siteId,
+                            name: siteName(gameSession.gameState, siteId)
+                        }))}
+                        picked={option?.kind === PowerChoiceKind.Site ? option.siteId : undefined}
+                        onpick={(siteId) => tapOption(legal, i, pick, sites.indexOf(siteId))}
+                        {busy}
+                    />
+                {:else if legal.spec.min > 0}
+                    <p class="text-oath-danger">no legal site right now</p>
+                {/if}
             {:else if legal.spec.kind === PowerChoiceKind.Count}
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span class="text-oath-text-muted">{legal.spec.what ?? 'how many'}:</span>

@@ -262,7 +262,16 @@ registerModifier(SMALL_FRIENDS, powerIndexOf(SMALL_FRIENDS, PowerTiming.Modifier
         })
     ],
     // "(You may use Trade modifiers there.)"
-    hooks: { tradeSites: actedAt, actsAsAtSites: actedAt }
+    hooks: {
+        tradeSites: actedAt,
+        actsAsAtSites: actedAt,
+        // From revision 19 its use names a site: with none to name, it is not usable.
+        reasonUnusable: (ctx) =>
+            isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes15) &&
+            faceupSitesWithCardOfSuit(ctx.state, Suit.Beast).length === 0
+                ? 'no faceup site has a Beast card'
+                : undefined
+    }
 })
 
 // "When played, draw a relic. Take it or put it on the bottom of the relic deck." Adviser, locked.

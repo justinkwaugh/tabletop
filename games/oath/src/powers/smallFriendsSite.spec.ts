@@ -206,6 +206,47 @@ describe('Small Friends acts at one picked Beast site (revision 19)', () => {
     })
 })
 
+describe('Small Friends with no faceup Beast site (revision 19)', () => {
+    const noBeastSite = (revision: OathRevision, over: Parameters<typeof scene>[1] = {}) =>
+        scene(revision, over, { p1: [], h1: [] })
+    const declared = (s: HydratedOathGameState, uses: Parameters<typeof resolveModifiers>[3]) =>
+        resolveModifiers(s, 'dana', ActionType.Trade, uses, { cardId: TOLL_ROADS, tradeOption: TradeOption.ForFavor }).reason
+
+    it('is not listed, and its declaration is refused with the reason', () => {
+        const s = noBeastSite(AT_19)
+        expect(usable(s)).not.toContain(SMALL_FRIENDS)
+        expect(usable(s)).toEqual(expect.arrayContaining([BIRDSONG, MAP_LIBRARY]))
+        expect(declared(s, [modifierUse(SMALL_FRIENDS)])).toMatch(/no faceup site has a Beast card/)
+        expect(declared(s, [friendsAt('p1')])).toMatch(/no faceup site has a Beast card/)
+        expect(reason(s, TOLL_ROADS, TradeOption.ForFavor, [modifierUse(SMALL_FRIENDS)])).toMatch(
+            /no faceup site has a Beast card/
+        )
+    })
+
+    it('a borrowed Small Friends is not listed either', () => {
+        const lent = noBeastSite(AT_19, {
+            dana: { advisers: [adviser(MASTER), adviser(BIRDSONG)] },
+            ann: { advisers: [adviser(SMALL_FRIENDS)] }
+        })
+        const disguised = [modifierUse(MASTER, [player('ann')])]
+        expect(usable(lent, disguised)).not.toContain(SMALL_FRIENDS)
+        expect(declared(lent, [...disguised, modifierUse(SMALL_FRIENDS)])).toMatch(/no faceup site has a Beast card/)
+    })
+
+    it('with one Beast site it is listed as ever', () => {
+        const s = scene(AT_19, {}, { h1: [] })
+        expect(usable(s)).toContain(SMALL_FRIENDS)
+        expect(declared(s, [friendsAt('p1')])).toBeUndefined()
+    })
+
+    it('before revision 19 it is listed and declared as recorded', () => {
+        const s = noBeastSite(AT_18)
+        expect(usable(s)).toContain(SMALL_FRIENDS)
+        expect(declared(s, [modifierUse(SMALL_FRIENDS)])).toBeUndefined()
+        expect(reason(s, TOLL_ROADS, TradeOption.ForFavor, [modifierUse(SMALL_FRIENDS)])).toBeUndefined()
+    })
+})
+
 describe('Small Friends before revision 19, as recorded', () => {
     it('reaches every Beast site undeclared and keeps the pawn’s own site', () => {
         const s = scene(AT_18)
@@ -234,5 +275,12 @@ describe('Small Friends on the player’s own view', () => {
             )
         }
         expect(HydratedTrade.legalCards(own, 'dana', [friendsAt('h1')])).toEqual([OAK])
+    })
+
+    it('with no faceup Beast site the listing reads the same as on the table', () => {
+        const s = scene(AT_19, {}, { p1: [], h1: [] })
+        const own = ownView(s, 'dana')
+        expect(usable(own)).toEqual(usable(s))
+        expect(usable(own)).not.toContain(SMALL_FRIENDS)
     })
 })

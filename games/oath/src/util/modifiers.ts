@@ -206,6 +206,7 @@ export function usableModifiers(
             if (power.modifiesAction !== action) continue
             const effect = effectFor(power)
             if (!effect?.modifier || effect.mandatory) continue
+            if (effect.modifier.reasonUnusable?.({ state, playerId, power, choices: [] })) continue
             if (reasonCannotPayPowerCost(state, playerId, power)) continue
             found.push(power)
         }
@@ -307,6 +308,13 @@ export function resolveModifiers(
                 active
             }
         }
+        const unusable = effect.modifier.reasonUnusable?.({
+            state,
+            playerId,
+            power,
+            choices: use.choices ?? []
+        })
+        if (unusable) return { reason: `${use.cardId}: ${unusable}`, active }
         const unpayable = reasonCannotPayPowerCost(state, playerId, power)
         if (unpayable) return { reason: unpayable, active }
         const bankOnArrival =

@@ -174,6 +174,19 @@ describe('Small Friends in the Trade menu: one picked Beast site', () => {
         expect(rows(session)).toEqual([WOLVES])
     })
 
+    it('with no faceup Beast site it is not in the Cards, and the rows stay at the pawn', async () => {
+        const { session } = await sessionAt(friends({}, { p1: [], h1: [] }))
+        session.chooseAction(ActionType.Trade)
+        expect(listed(session)).not.toContain(SMALL_FRIENDS)
+        expect(listed(session)).toEqual(expect.arrayContaining([BIRDSONG, MAP_LIBRARY]))
+        expect(session.modifiers.options.map((power) => power.cardId)).not.toContain(SMALL_FRIENDS)
+        // Not usable, so it cannot be put in use: no pick waits and the rows stay.
+        session.modifiers.declare(use(SMALL_FRIENDS), true)
+        expect(session.modifiers.isDeclared(use(SMALL_FRIENDS))).toBe(false)
+        expect(session.modifiers.picksPending).toBe(false)
+        expect(rows(session)).toEqual([TOLL_ROADS, ORACLE, MAP_LIBRARY])
+    })
+
     it('putting it down brings back the own site’s rows and cards', async () => {
         const { session } = await sessionAt(friends())
         session.chooseAction(ActionType.Trade)

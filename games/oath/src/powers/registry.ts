@@ -143,6 +143,11 @@ export interface OutcomeResult {
 export interface ModifierHooks {
     /** R-7.4.1 — a failing declared optional modifier is refused; a mandatory one is simply not applied. */
     condition?: (ctx: EffectContext) => string | undefined
+    /**
+     * R-7.4 — why the card cannot be declared now, whatever is picked (Small Friends with no site
+     * to name): the listing (`usableModifiers`) leaves it out and the declaration is refused.
+     */
+    reasonUnusable?: (ctx: EffectContext) => string | undefined
     /** R-5.1.1 to R-5.6.1 */
     supplyCost?: (base: number, ctx: EffectContext) => number
     /** R-7.6.2 — beats every `supplyCost`, whichever is declared first. */
