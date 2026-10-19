@@ -13,7 +13,7 @@ import { Scenario } from '../components/timeTrack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { distinct, legal } from './legality.js'
 import { Position, faceOf, samePosition, type ProjectedUnit } from './pieces.js'
-import { ALLIED_OBJECTIVES } from './victory.js'
+import { STARS_SOUGHT } from './victory.js'
 
 export type CorpsDeployment = Type.Static<typeof CorpsDeployment>
 export const CorpsDeployment = Type.Object({
@@ -151,7 +151,7 @@ export function nearAlliedObjective(
     locale: LocaleId
 ): boolean {
     return [locale, ...state.map.adjacentLocales(locale)].some((candidate) =>
-        state.map.locale(candidate).stars.some((star) => ALLIED_OBJECTIVES.includes(star))
+        state.map.locale(candidate).stars.some((star) => STARS_SOUGHT[Side.French].includes(star))
     )
 }
 

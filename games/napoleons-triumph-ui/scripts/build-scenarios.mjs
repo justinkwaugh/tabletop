@@ -9,6 +9,7 @@ import {
     TestGame,
     arrangeBattlefield,
     artillery,
+    cavalry,
     infantry,
     passTurns
 } from '@tabletop/napoleons-triumph/testing'
@@ -192,6 +193,21 @@ write(
         french('F06', infantry(2), FLANK, { commanderId: 'legrand' }),
         ...alliedCorps('prebyshevsky', WIDE_INTO, ['A01', 'A02', 'A03'], { facing: ST_HILAIRE })
     ])
+)
+
+write(
+    'objective-stars-held',
+    'Objective stars held',
+    frenchTurn(
+        [
+            french('F01', infantry(3), 126, { commanderId: 'lannes' }),
+            french('F02', infantry(2), 126, { commanderId: 'lannes' }),
+            french('F03', cavalry(3), 128, { commanderId: 'murat' }),
+            french('F04', cavalry(2), 128, { commanderId: 'murat' }),
+            ...alliedCorps('bagration', 62, ['A01', 'A02'])
+        ],
+        { round: 4 }
+    )
 )
 
 console.log(`Scenarios written to ${OUT}`)
