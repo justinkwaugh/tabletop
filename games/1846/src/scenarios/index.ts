@@ -5,6 +5,7 @@ import {
     assertExists,
     type Game,
     type GameDefinition,
+    type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
 import {
@@ -102,13 +103,18 @@ export const ScenarioPositions1846: readonly ScenarioPosition[] = [
 class ScenarioInitializer1846 extends Initializer {
     override initializeGameState(
         game: Game,
-        base: UninitializedGameState
+        base: UninitializedGameState,
+        startingPositions?: StartingPositionAssignment
     ): HydratedEighteenFortySixState {
-        let state = super.initializeGameState(game, base).dehydrate()
         const requested = game.config?.examplePosition ?? 'opening'
         const position = ScenarioPositions1846.find((item) => item === requested)
         assertExists(position, 'Unsupported 1846 scenario')
-        if (position === 'opening') return hydrateEighteenFortySixState(state)
+        if (position === 'opening') return super.initializeGameState(game, base, startingPositions)
+        assert(
+            startingPositions === undefined,
+            'Prepared scenarios do not support assigned starting positions'
+        )
+        let state = super.initializeGameState(game, base).dehydrate()
         const engine = new GameEngine(Runtime)
         const act = (type: string, fields: object = {}) => {
             state = engine.executeCanonicalAction({

@@ -28,6 +28,24 @@ function openingSeated(state: EighteenXXState, seatOne: string): Partial<Eightee
     }
 }
 
+/** The ordinary setup with the assigned seating: only the turn order and who acts first move. */
+function seatedAsAssigned<Raw extends EighteenXXState>(
+    ordinary: Omit<Raw, 'id'>,
+    playerIds: readonly string[]
+): Omit<Raw, 'id'> {
+    const seatOne = playerIds[0]
+    return {
+        ...ordinary,
+        activePlayerIds: [seatOne],
+        turnManager: {
+            ...ordinary.turnManager,
+            turnOrder: [...playerIds],
+            series: [{ type: 'turn', playerId: seatOne, start: 0 }]
+        },
+        ...openingSeated(ordinary, seatOne)
+    }
+}
+
 function finishOperatingTurn<
     Raw extends EighteenXXState,
     State extends HydratedEighteenXXState & HydratedGameState<Raw>
@@ -46,12 +64,15 @@ export function startingPositionTests<
     playerCounts: readonly number[],
     {
         setupConfigs = [{}],
-        finishEnding = finishOperatingTurn
+        finishEnding = finishOperatingTurn,
+        seated = seatedAsAssigned
     }: {
         /** Configurations that change setup or the first player, each run at every count. */
         setupConfigs?: readonly Record<string, unknown>[]
         /** Plays the prepared final turn to the game's end. */
         finishEnding?: (play: ExamplePlay<Raw, State>) => void
+        /** The ordinary setup as the assigned seating should leave it. */
+        seated?: (ordinary: Omit<Raw, 'id'>, playerIds: readonly string[]) => Omit<Raw, 'id'>
     } = {}
 ) {
     const engine = new GameEngine(definition.runtime)
@@ -100,18 +121,10 @@ export function startingPositionTests<
                 [...ordinary.turnManager.turnOrder].reverse()
             ].map((playerIds) => ({ playerIds }))
         )('seats $playerIds and starts with the first position', ({ playerIds }) => {
-            const seatOne = playerIds[0]
-            // Seating moves only the turn order and who acts first; the rest is the ordinary setup.
-            expect(start(count, playerIds, config)).toEqual({
-                ...ordinary,
-                activePlayerIds: [seatOne],
-                turnManager: {
-                    ...ordinary.turnManager,
-                    turnOrder: playerIds,
-                    series: [{ type: 'turn', playerId: seatOne, start: 0 }]
-                },
-                ...openingSeated(ordinary, seatOne)
-            })
+            const assigned = start(count, playerIds, config)
+            expect(assigned).toEqual(seated(ordinary, playerIds))
+            expect(assigned.activePlayerIds).toEqual([playerIds[0]])
+            expect(assigned.turnManager.turnOrder).toEqual(playerIds)
         })
     })
 

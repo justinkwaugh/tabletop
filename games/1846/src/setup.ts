@@ -8,8 +8,13 @@ import {
     Color,
     Prng,
     assert,
+    assertExists,
     shuffle,
+    validateStartingPositionAssignment,
     type Game,
+    type PlayerState,
+    type RandomFunction,
+    type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
 import {
@@ -31,15 +36,16 @@ export class Initializer extends BaseGameInitializer<
     EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
 > {
-    initializeGameState(game: Game, base: UninitializedGameState): HydratedEighteenFortySixState {
+    readonly supportsStartingPositions = true
+    initializeGameState(
+        game: Game,
+        base: UninitializedGameState,
+        startingPositions?: StartingPositionAssignment
+    ): HydratedEighteenFortySixState {
         const count = game.players.length
         assert(count >= 2 && count <= 5, '1846 supports two through five players')
         const random = new Prng(base.prng).random
-        const players = game.players.map((player, index) => ({
-            playerId: player.id,
-            color: PlayerColors[index]
-        }))
-        shuffle(players, random)
+        const players = this.seatPlayers(game, random, startingPositions)
         const removedPrivateIds = ['orange', 'blue'].flatMap((group) => {
             const candidates = DraftCompanies.filter(
                 (company) => company.kind === 'private' && company.group === group
@@ -195,5 +201,29 @@ export class Initializer extends BaseGameInitializer<
             dealPacket(state)
         }
         return state
+    }
+    /** Seats players in table order: the last seat drafts first and the first holds the priority deal. */
+    private seatPlayers(
+        game: Game,
+        random: RandomFunction,
+        startingPositions?: StartingPositionAssignment
+    ): PlayerState[] {
+        const players = game.players.map((player, index) => ({
+            playerId: player.id,
+            color: PlayerColors[index]
+        }))
+        if (startingPositions !== undefined)
+            validateStartingPositionAssignment(
+                players.map((player) => player.playerId),
+                startingPositions
+            )
+        // The ordinary seating draw is consumed either way so the rest of the seeded setup is unchanged.
+        shuffle(players, random)
+        if (startingPositions === undefined) return players
+        return startingPositions.playerIds.toReversed().map((playerId) => {
+            const player = players.find((candidate) => candidate.playerId === playerId)
+            assertExists(player, 'Assigned players are seated')
+            return player
+        })
     }
 }
