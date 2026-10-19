@@ -11,6 +11,7 @@
         RerolledRollKind,
         type RerolledRoll
     } from '@tabletop/oath'
+    import QuestionCageReturn from '$lib/components/QuestionCageReturn.svelte'
     import QuestionConspiracy from '$lib/components/QuestionConspiracy.svelte'
     import QuestionForm from '$lib/components/QuestionForm.svelte'
     import QuestionGatheringFloor from '$lib/components/QuestionGatheringFloor.svelte'
@@ -143,6 +144,8 @@
             {#snippet line()}Take {cardName(mine.relicCardId)}?{/snippet}
             <QuestionYesNo yes="Take" no="To the bottom" />
         </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.BottomRelic && draft.cageBoards.length > 0}
+        <QuestionCageReturn />
     {:else if mine.kind === PowerQuestionKind.BottomRelic}
         <QuestionForm>
             {#snippet line()}Which relic goes to the bottom?{/snippet}

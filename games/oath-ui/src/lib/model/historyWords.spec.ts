@@ -339,6 +339,14 @@ describe('the History words: each row as the record says it, older records too',
         expect(prophet(SearchPlay.Discard, 'discarded vision.faith')).toBe('False Prophet: 1 warband on Vision of Faith died; discarded it')
     })
 
+    it('Fae Merchant sends the Obsidian Cage down: each board its warbands went back to (R-10.13-H1)', () => {
+        const fae = (summary: string, viewerId?: string) =>
+            row({ type: ActionType.AnswerQuestion, answer: { kind: PowerQuestionKind.BottomRelic, heldRelicCardId: 'relic.obsidian-cage', cagePlacement: [{ playerId: 'p3', count: 1 }, { playerId: 'p2', count: 1 }] }, metadata: { cardId: 'denizen.beast.fae-merchant', kind: PowerQuestionKind.BottomRelic, summary, resumeMachineState: MachineState.ActPhase, last: true } }, viewerId)
+        const summary = "took relic.cup-of-plenty and put relic.obsidian-cage on the bottom of the relic deck; its warbands went back: 1 to p3's board, 1 to p2's board"
+        expect(fae(summary)).toBe("Fae Merchant: took Cup of Plenty and put Obsidian Cage on the bottom of the relic deck; its warbands went back: 1 to Ann's board, 1 to Rhys's board")
+        expect(fae(summary, 'p2')).toBe("Fae Merchant: took Cup of Plenty and put Obsidian Cage on the bottom of the relic deck; its warbands went back: 1 to Ann's board, 1 to your board")
+    })
+
     it('407 the Wake and 410 the Rest: ";" for "—"', () => {
         expect(row({ type: ActionType.ResolveWake, favorSteps: [], metadata: { flippedToUsurper: true, flippedToMob: true } })).toBe('began the turn; the Oathkeeper title flipped to Usurper; the People’s Favor flipped to Mob')
         expect(row({ type: ActionType.CompleteRest, metadata: { endDieRoll: 5, endedRound: true } })).toBe('rested, rolling 5 on the end die; the round ended')

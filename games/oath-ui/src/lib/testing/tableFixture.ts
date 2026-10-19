@@ -29,6 +29,7 @@ import {
     isLetPeek,
     MachineState,
     MoveWarbands,
+    OBSIDIAN_CAGE_ID,
     OathRevision,
     OfferCitizenship,
     OathType,
@@ -377,6 +378,60 @@ function questionTable(
     return tableOf(state)
 }
 
+/**
+ * R-10.13-H1 — Fae Merchant's question to Dana, an Exile, who drew the Cup of Plenty and holds the
+ * Obsidian Cage, 2 Imperial warbands in it from beating Ann's force, and Ring of Devotion. Ann is
+ * the Chancellor and Rhys a Citizen; with `bea`, Bea is a Citizen too: a third Imperial board.
+ */
+function faeMerchantCageTable(bea: boolean): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const seat = (playerId: string, color: Color, status: PlayerStatus) =>
+        testPlayer({ playerId, color, status, siteId: home, favor: 2 })
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: home,
+                favor: 4,
+                secrets: 2,
+                relicIds: [OBSIDIAN_CAGE_ID, RING],
+                warbandsOnBoard: { dana: 3 }
+            }),
+            {
+                ...seat('ann', Color.Purple, PlayerStatus.Chancellor),
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
+            },
+            seat('rhys', Color.Blue, PlayerStatus.Citizen),
+            ...(bea ? [seat('bea', Color.Yellow, PlayerStatus.Citizen)] : [])
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            oathRevision: CURRENT_OATH_REVISION,
+            warbandsOnCards: { [OBSIDIAN_CAGE_ID]: { [IMPERIAL_WARBANDS]: 2 } },
+            pendingQuestions: {
+                queue: [
+                    {
+                        kind: PowerQuestionKind.BottomRelic,
+                        cardId: 'denizen.beast.fae-merchant',
+                        askedPlayerId: 'dana',
+                        relicCardId: CUP
+                    }
+                ],
+                askingPlayerId: 'dana',
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
 const asked = { askedPlayerId: 'me' } as const
 
 const HIDDEN_PLACE = 'site.the-hidden-place'
@@ -487,6 +542,8 @@ const QUESTION_TABLES = {
             },
             { me: { relicIds: [RING] } }
         ),
+    askFaeMerchantCage: () => faeMerchantCageTable(false),
+    askFaeMerchantCageThree: () => faeMerchantCageTable(true),
     askSkeletonKey: () =>
         questionTable({
             kind: PowerQuestionKind.TakeOrLeaveRelic,
