@@ -194,7 +194,7 @@ import {
     PassAction,
     RevealAction
 } from '../actions.js'
-import { choicesFor, hiddenDistribution } from '../distribution.js'
+import { choicesFor, draftExhausted, hiddenDistribution } from '../distribution.js'
 import { EighteenFortySixInfo } from './info.js'
 
 const actionRegistry = new ActionRegistry([
@@ -395,7 +395,7 @@ export const Runtime: GameRuntime<EighteenFortySixProjectedState, HydratedEighte
                 )
             },
             onAction(_action, { gameState }) {
-                return gameState.machineState
+                return draftExhausted(gameState) ? 'RevealingDraft' : 'Drafting'
             }
         },
         RevealingDraft: {

@@ -15,6 +15,7 @@ import { draftCompany } from './catalog.js'
 import { nextDistributionPlayer, priceFor, purchaseOpeningCompany } from './distribution.js'
 
 type State = HydratedEighteenFortySixState
+type OpeningStage = Extract<State['draft'], { kind: 'public' }>['stage']
 
 export function unboughtOpeningCompanies(state: State): string[] {
     return state.certificates
@@ -67,7 +68,6 @@ function finishOpeningPurchase(state: State): void {
     state.turnManager.startTurn(priorityDealPlayerId, state.actionCount + 1)
     state.draft = { kind: 'public', stage: 'complete' }
     delete state.operatingSet
-    state.machineState = 'StockRound'
 }
 
 export const BuyOpeningCompany = Type.Object(
@@ -174,7 +174,6 @@ export class PassOpeningPurchaseAction extends HydratableAction<typeof PassOpeni
             state.turnManager.endTurn(state.actionCount)
             state.activePlayerIds = []
             state.draft = { kind: 'public', stage: 'operating' }
-            state.machineState = 'PreparingOperatingSet'
         } else nextDistributionPlayer(state)
     }
 }
@@ -236,6 +235,12 @@ export const PublicDistributionActions = [
     )
 ]
 
+const OpeningStageStates = {
+    buying: 'BuyingOpeningCompanies',
+    operating: 'PreparingOperatingSet',
+    complete: 'StockRound'
+} as const satisfies Record<OpeningStage, string>
+
 export const buyingOpeningCompaniesHandler: MachineStateHandler<
     BuyOpeningCompanyAction | PassOpeningPurchaseAction,
     State
@@ -255,6 +260,8 @@ export const buyingOpeningCompaniesHandler: MachineStateHandler<
         )
     },
     onAction(_action, { gameState }) {
-        return gameState.machineState
+        const draft = gameState.draft
+        assert(draft.kind === 'public', 'Opening purchases use the public offer')
+        return OpeningStageStates[draft.stage]
     }
 }

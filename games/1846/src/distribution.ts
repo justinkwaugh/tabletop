@@ -32,6 +32,15 @@ export function choicesFor(state: State, playerId: string): string[] {
     return buyer.packet.filter((cardId) => committed + priceFor(state, cardId) <= cash)
 }
 
+/** Every company has been chosen: only blank cards remain undealt and no packet is in hand. */
+export function draftExhausted(state: State): boolean {
+    const draft = hiddenDistribution(state)
+    assertExists(draft.deck, 'Exhaustion is read from the hidden deck')
+    return (
+        draft.deck.every(isBlank) &&
+        draft.participants.every((participant) => participant.packet?.length === 0)
+    )
+}
 /** Moves cards between the hidden queue and the active player's private packet. */
 export function dealPacket(state: State): void {
     const draft = hiddenDistribution(state)
@@ -39,10 +48,7 @@ export function dealPacket(state: State): void {
     assertExists(deck, 'Dealing requires the hidden deck')
     draft.remainingCount = deck.length
     delete draft.finalOffer
-    if (deck.every(isBlank)) {
-        state.machineState = 'RevealingDraft'
-        return
-    }
+    if (deck.every(isBlank)) return
     const buyer = participant(state, state.activePlayerIds[0])
     assert(buyer.packet?.length === 0, 'Previous packet must be returned before dealing')
     buyer.packet = deck.splice(0, state.numPlayers + 2)
@@ -110,7 +116,6 @@ export function settleDistribution(state: State): void {
     const [priorityDealPlayerId] = state.turnManager.turnOrder
     state.activePlayerIds = [priorityDealPlayerId]
     state.turnManager.startTurn(priorityDealPlayerId, state.actionCount + 1)
-    state.machineState = 'StockRound'
 }
 
 export function purchaseOpeningCompany(
