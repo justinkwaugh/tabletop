@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { AuctionAward } from '@tabletop/18xx'
 import { minimalPlayState } from '@tabletop/18xx/testing'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
@@ -26,7 +27,8 @@ function waterfall(valid: string[], availability = {}) {
 function openAuction(
     reservations: { playerId: string; lotId: string; amount: number }[],
     valid = ['PassAuction', 'BuyAuctionLot', 'ReserveBid'],
-    availability = {}
+    availability = {},
+    progress: { remainingLotIds?: string[]; awards?: AuctionAward[] } = {}
 ) {
     const harness = testSession(
         {
@@ -38,7 +40,8 @@ function openAuction(
                 passedPlayerIds: [],
                 discount: 5,
                 awards: [],
-                completed: false
+                completed: false,
+                ...progress
             }
         },
         {
@@ -124,6 +127,14 @@ describe('WaterfallAuctionModule', () => {
         expect(() => waterfall(['PassAuction']).module.setBid(50)).toThrow('Select a bid first')
     })
 
+    it('passing discards a staged bid', async () => {
+        const { module, applied } = openAuction([])
+        module.selectLot('bid', 'B')
+        await module.pass()
+        expect(applied).toMatchObject([{ type: 'PassAuction' }])
+        expect(module.choice.hasManual()).toBe(false)
+    })
+
     it('passes as one action when nothing is selected', async () => {
         const { module, applied } = waterfall(['PassAuction'])
         await module.pass()
@@ -156,5 +167,21 @@ describe('WaterfallAuctionModule', () => {
             ['C', 45]
         ])
         expect(module.playerBids('casey')).toEqual([])
+    })
+
+    it('keeps won lots in waterfall order with their award', () => {
+        const award = { lotId: 'A', playerId: 'blair', price: 15 }
+        const { module } = openAuction(
+            [{ playerId: 'alex', lotId: 'C', amount: 45 }],
+            undefined,
+            undefined,
+            { remainingLotIds: ['B', 'C'], awards: [award] }
+        )
+        expect(module.lots.map(({ lot, award, bids }) => [lot.id, award, bids.length])).toEqual([
+            ['A', award, 0],
+            ['B', undefined, 0],
+            ['C', undefined, 1]
+        ])
+        expect(module.remainingLots.map(({ lot }) => lot.id)).toEqual(['B', 'C'])
     })
 })

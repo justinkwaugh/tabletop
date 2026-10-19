@@ -96,7 +96,6 @@ export { default as CompanyPar } from './stock/CompanyPar.svelte'
 export { default as CompanyActionCard, type CardAction } from './stock/CompanyActionCard.svelte'
 export { default as StockPanelHeading } from './stock/StockPanelHeading.svelte'
 export { default as CompanyActionPanel } from './stock/CompanyActionPanel.svelte'
-export { default as WaterfallAuctionBidding } from './auctions/WaterfallAuctionBidding.svelte'
 
 export { default as PrivateCard } from './privates/PrivateCard.svelte'
 export { createPhaseChart, type PhaseChartData } from './phases/phaseChart.js'

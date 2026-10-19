@@ -60,7 +60,7 @@
                                         lot.id,
                                         model.minimumBid(lot.id)
                                     )}
-                                    onclick={() => auction.select(lot.id)}
+                                    onclick={() => auction.toggle(lot.id)}
                                 >
                                     {@render slotContent(lot, tier.open)}
                                 </button>
@@ -100,7 +100,7 @@
                                             lot.id,
                                             model.minimumBid(lot.id)
                                         )}
-                                        onclick={() => auction.select(lot.id)}>Auction</button
+                                        onclick={() => auction.toggle(lot.id)}>Auction</button
                                     >
                                 </td>{/if}
                             <th scope="row"
@@ -162,11 +162,8 @@
                             selected.id,
                             auction.selection.amount + model.rules.increment
                         )}
-                        canPass={auction.canAct}
-                        passLabel="Back"
                         onChange={(amount) => auction.setBid(amount)}
                         onBid={() => auction.nominate()}
-                        onPass={() => auction.choice.clear()}
                     />
                 {:else if auction.ownTurn && auction.passOffered}
                     <button

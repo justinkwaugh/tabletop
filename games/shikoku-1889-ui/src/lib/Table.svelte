@@ -5,7 +5,6 @@
     import {
         GameTable,
         OperatingActions,
-        WaterfallAuctionBidding,
         WaterfallAuctionLots,
         requireEighteenXXSession
     } from '@tabletop/18xx-ui'
@@ -26,11 +25,7 @@
 <GameTable {session} {privateOperationDescription}>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.waterfall.model && !session.waterfall.model.auction.completed}
-            {#if session.waterfall.model.auction.bidding}
-                <WaterfallAuctionBidding {session} />
-            {:else}
-                <WaterfallAuctionLots {session} />
-            {/if}
+            <WaterfallAuctionLots {session} />
         {:else}
             <OperatingActions
                 {privateOperationDescription}

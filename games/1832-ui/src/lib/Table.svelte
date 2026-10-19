@@ -7,7 +7,6 @@
         GameTable,
         OperatingActions,
         type TitleActionDescription,
-        WaterfallAuctionBidding,
         WaterfallAuctionLots
     } from '@tabletop/18xx-ui'
     import { EighteenThirtyTwoSession } from './session.svelte.js'
@@ -50,11 +49,7 @@
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />
         {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
-            {#if session.waterfall.model.auction.bidding}
-                <WaterfallAuctionBidding {session} />
-            {:else}
-                <WaterfallAuctionLots {session} />
-            {/if}
+            <WaterfallAuctionLots {session} />
         {:else if session.mergerDecision}
             <MergerPhase {session} />
         {:else if session.stockPanels.open === 'company'}

@@ -132,6 +132,10 @@ export class CompanyAuctionModule {
         assert(this.canOpen, 'Company auctions are unavailable')
         this.opening.choose('companyId', companyId)
     }
+    toggleCompany(companyId: string) {
+        if (this.selectedCompanyId === companyId) this.clearOpening()
+        else this.selectCompany(companyId)
+    }
     chooseHome(home: HomePosition) {
         const model = this.model
         assert(this.canOpen && model && this.selectedCompanyId, 'Choose a company first')
@@ -147,10 +151,6 @@ export class CompanyAuctionModule {
     clearOpening() {
         this.opening.clear()
         this.openingBid.clear()
-    }
-    backFromOpeningBid() {
-        this.openingBid.clear()
-        this.opening.back()
     }
     setOpeningBid(amount: number) {
         assert(this.canOpen && this.selectedHome, 'Choose a home first')
