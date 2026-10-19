@@ -1,11 +1,11 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
-import type { GameInfo } from '@tabletop/common'
+import { GameVisibility, type GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 export const EighteenFortySixInfo: GameInfo = {
     preferences: EighteenXXPreferenceDefinition,
     id: '1846',
     metadata: {
-        name: '1846: The Race to the Midwest',
+        name: '1846: The Race for the Midwest',
         designer: 'Thomas Lehmann',
         year: '2005',
         description:
@@ -14,6 +14,7 @@ export const EighteenFortySixInfo: GameInfo = {
         maxPlayers: 5,
         defaultPlayerCount: 3,
         version: GAME_VERSION,
-        beta: true
+        beta: true,
+        visibility: GameVisibility.Beta
     }
 }

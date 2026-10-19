@@ -38,6 +38,7 @@ export const ConstructionPrivateId = Type.Union([
     Type.Literal('LM')
 ])
 export type ConstructionPrivateId = Type.Static<typeof ConstructionPrivateId>
+export const ConstructionPrivateIds: readonly ConstructionPrivateId[] = ['MC', 'O&I', 'LSL', 'LM']
 const Locations: Readonly<Record<ConstructionPrivateId, readonly string[]>> = {
     MC: PrivateTrackBlocks.MC,
     'O&I': PrivateTrackBlocks['O&I'],
@@ -70,7 +71,7 @@ export function constructionPrivateIds(
     state: PrivateConstructionState,
     playerId: string
 ): ConstructionPrivateId[] {
-    return (['MC', 'O&I', 'LSL', 'LM'] as const).filter(
+    return ConstructionPrivateIds.filter(
         (id) => new PrivateConstruction(state, playerId, id).choices([]).length > 0
     )
 }

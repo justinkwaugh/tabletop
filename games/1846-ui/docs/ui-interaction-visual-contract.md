@@ -34,11 +34,14 @@ plan clears ordinary construction/route selection. Pending revenue-marker choice
 and a private construction plan block unrelated shared actions. Purchase responses
 retain the shared response UI and action authority.
 
-Back/Undo first remove shared manual selection, then private-plan steps, and only
-then committed Actions. The operating-mode choice is a view choice, not a step:
-Back/Undo never change it. Automatic singleton choices do not consume Undo. State
-publication, perspective changes and history changes invalidate title-local
-construction selections. No intermediate plan is serialized.
+The private plan's first lay and the Steamboat's railroad, chosen before its port,
+are manual staged selections (`src/lib/stagedSelection.ts`). Undo first removes shared
+manual selection, then the staged first lay or railroad, and only then committed
+Actions. The operating-mode choice is a view choice, not a step: Undo never changes
+it. Automatic singleton choices do not consume Undo. State publication, perspective
+changes and history changes invalidate title-local construction selections, and a
+change to the private action choices clears the staged lay. No intermediate plan is
+serialized.
 
 ## Hidden and public distribution
 

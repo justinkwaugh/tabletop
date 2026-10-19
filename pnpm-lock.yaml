@@ -900,6 +900,9 @@ importers:
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.3.3

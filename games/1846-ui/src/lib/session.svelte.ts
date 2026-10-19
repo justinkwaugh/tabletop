@@ -26,6 +26,7 @@ import {
     chicagoPrivateStation,
     PlaceCWIStation,
     draftCompany,
+    ConstructionPrivateIds,
     type ConstructionPrivateId,
     AssignRevenueMarker,
     revenueMarkerChoices,
@@ -58,6 +59,18 @@ import {
     type TrackRequest
 } from '@tabletop/18xx'
 import { mapState1846 } from './mapState.js'
+import {
+    PrivateLayStageOrder,
+    SteamboatStageOrder,
+    chooseSteamboatCompany,
+    stagePrivateLay,
+    stagedPrivateLays,
+    undoableSelection,
+    type PrivateLaySelection,
+    type PrivateLayValues,
+    type SteamboatSelection,
+    type SteamboatSelectionValues
+} from './stagedSelection.js'
 import { MapView1846 } from './mapView.js'
 import { SessionRules1846 } from './sessionRules.js'
 import { Presentation1846 } from './presentation.js'
@@ -68,7 +81,6 @@ const PrivateTrackPrompts: Readonly<Record<ConstructionPrivateId, string>> = {
     LSL: 'Upgrade Cleveland or Toledo to green for free',
     LM: 'Lay or upgrade tiles to connect Cincinnati and Dayton'
 }
-const ConstructionPrivateIds = Object.keys(PrivateTrackPrompts) as ConstructionPrivateId[]
 function isConstructionPrivateId(id: string): id is ConstructionPrivateId {
     return id in PrivateTrackPrompts
 }
@@ -106,13 +118,15 @@ export class EighteenFortySixSession extends BaseSession {
             ? 'finance'
             : 'stations'
     })
-    // The railroad chosen for the Steamboat before its port is picked on the map; a new state
-    // clears it.
-    steamboatCompanyId = $derived.by((): string | undefined => {
+    private steamboatSelection = $derived.by((): SteamboatSelection => {
         void this.gameState.machineState
         void this.gameState.actionCount
-        return undefined
+        return {}
     })
+    readonly steamboatCompanyId = $derived(this.steamboatSelection.company?.value)
+    chooseSteamboatCompany(companyId: string) {
+        this.steamboatSelection = chooseSteamboatCompany(this.steamboatSelection, companyId)
+    }
     readonly choosingSteamboat = $derived(
         this.gameState.machineState === 'AssigningSteamboat' &&
             !!this.myPlayer &&
@@ -136,17 +150,13 @@ export class EighteenFortySixSession extends BaseSession {
     }
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
-        this.localSelections.register({
-            hasManual: () => !!this.steamboatCompanyId,
-            undo: () => {
-                if (!this.steamboatCompanyId) return false
-                this.steamboatCompanyId = undefined
-                return true
-            },
-            clear: () => {
-                this.steamboatCompanyId = undefined
-            }
-        })
+        this.localSelections.register(
+            undoableSelection<SteamboatSelectionValues>(
+                SteamboatStageOrder,
+                () => this.steamboatSelection,
+                (selection) => (this.steamboatSelection = selection)
+            )
+        )
     }
     protected override get trackBuildingActive() {
         return this.constructionMode === 'track' && !this.decisions.selection
@@ -182,25 +192,25 @@ export class EighteenFortySixSession extends BaseSession {
         await this.track.finish()
     }
 
-    // Lays staged for a private construction power until its combined action is submitted. They
-    // name their power, which may have been chosen automatically; a new state or any change to
-    // the private action choices clears them.
-    private stagedPrivateLays = $derived.by(
-        (): { privateCompanyId: ConstructionPrivateId; lays: TrackRequest[] } | undefined => {
-            void [
-                this.gameState,
-                this.privateActions.stages.state,
-                this.myPlayer?.id,
-                this.isViewingHistory,
-                this.updatingVisibleState
-            ]
-            return undefined
-        }
-    )
+    // A new state or any change to the private action choices clears the staged lay.
+    private privateLaySelection = $derived.by((): PrivateLaySelection => {
+        void [
+            this.gameState,
+            this.privateActions.stages.state,
+            this.myPlayer?.id,
+            this.isViewingHistory,
+            this.updatingVisibleState
+        ]
+        return {}
+    })
     private stagedLaysFor(privateCompanyId: ConstructionPrivateId): TrackRequest[] {
-        const staged = this.stagedPrivateLays
-        return staged?.privateCompanyId === privateCompanyId ? staged.lays : []
+        return stagedPrivateLays(this.privateLaySelection, privateCompanyId)
     }
+    private readonly privateLayUndo = undoableSelection<PrivateLayValues>(
+        PrivateLayStageOrder,
+        () => this.privateLaySelection,
+        (selection) => (this.privateLaySelection = selection)
+    )
     privateDraft = $derived.by(() => {
         const power = this.privateActions.titlePower
         return power?.kind === 'track' && isConstructionPrivateId(power.privateCompanyId)
@@ -284,25 +294,30 @@ export class EighteenFortySixSession extends BaseSession {
                     commit: async (details) => {
                         const { companyId, locationId, definitionId, rotation, nodeMapping } =
                             details
-                        const next = [
-                            ...lays,
-                            { companyId, locationId, definitionId, rotation, nodeMapping }
-                        ]
+                        const request = {
+                            companyId,
+                            locationId,
+                            definitionId,
+                            rotation,
+                            nodeMapping
+                        }
+                        const next = [...lays, request]
                         if (
                             next.length >= plan.maximumLays ||
                             (!plan.choices(next).length && plan.evaluate(next).lays)
                         )
                             await submit(next)
-                        else this.stagedPrivateLays = { privateCompanyId, lays: next }
+                        else
+                            this.privateLaySelection = stagePrivateLay(
+                                this.privateLaySelection,
+                                privateCompanyId,
+                                request
+                            )
                     },
                     ...(lays.length && plan.evaluate(lays).lays
                         ? { finish: { label: 'done', run: () => submit(lays) } }
                         : {}),
-                    undo: () => {
-                        if (!lays.length) return false
-                        this.stagedPrivateLays = { privateCompanyId, lays: lays.slice(0, -1) }
-                        return true
-                    }
+                    undo: () => this.privateLayUndo.undo()
                 }
             ]
         })

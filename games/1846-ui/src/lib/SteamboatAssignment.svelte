@@ -23,7 +23,7 @@
                 disabled={!session.canChooseAction}
                 aria-label={`Steamboat for ${session.mapView.stations[companyId]?.label ?? companyId}`}
                 aria-pressed={chosen === companyId}
-                onclick={() => (session.steamboatCompanyId = companyId)}
+                onclick={() => session.chooseSteamboatCompany(companyId)}
             >
                 <CompanyToken appearance={session.mapView.stations[companyId]} size={44} />
             </button>
