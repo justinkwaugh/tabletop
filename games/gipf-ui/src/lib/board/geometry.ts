@@ -5,8 +5,9 @@ export const SPACING = 60
 // As large as possible while two GIPF-pieces in neighbouring spots just touch.
 export const PIECE_RADIUS = SPACING * 0.428
 export const DOT_RADIUS = SPACING * 0.12
-const BOARD_MARGIN = SPACING * 0.75
-const LABEL_ROOM = SPACING * 0.95
+// From the outermost dots to the frame's edge: room for the coordinate labels and a margin
+// like ZÈRTZ's beyond them.
+const FRAME_REACH = SPACING * 1.1
 
 const HEX_DIMENSIONS = { xRadius: SPACING / Math.sqrt(3), yRadius: SPACING / 2 }
 
@@ -38,9 +39,9 @@ export function playAreaOutline(): string {
 
 export function viewBox(): { viewBox: string; width: number; height: number } {
     const corner = pointCenter({ q: BOARD_RADIUS, r: -BOARD_RADIUS })
-    const halfWidth = Math.abs(corner.x) + BOARD_MARGIN + LABEL_ROOM
+    const halfWidth = Math.abs(corner.x) + FRAME_REACH
     const top = pointCenter({ q: 0, r: -BOARD_RADIUS })
-    const halfHeight = Math.abs(top.y) + BOARD_MARGIN + LABEL_ROOM
+    const halfHeight = Math.abs(top.y) + FRAME_REACH
     return {
         viewBox: `${-halfWidth} ${-halfHeight} ${halfWidth * 2} ${halfHeight * 2}`,
         width: halfWidth * 2,

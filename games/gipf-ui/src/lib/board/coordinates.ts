@@ -14,7 +14,7 @@ export type CoordinateLabel = {
     at: Point
 }
 
-const LABEL_REACH = 1.15
+const LABEL_REACH = 0.6
 const ABOVE: AxialCoordinates = { q: 0, r: -1 }
 const BELOW: AxialCoordinates = { q: 0, r: 1 }
 
