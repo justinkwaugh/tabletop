@@ -24,6 +24,7 @@
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import BargainPicker from '$lib/components/BargainPicker.svelte'
     import PlayerChips from '$lib/components/PlayerChips.svelte'
+    import SiteChips from '$lib/components/SiteChips.svelte'
     import WarbandGroupRows from '$lib/components/WarbandGroupRows.svelte'
     import { avatarImage } from '$lib/images/boardImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
@@ -413,6 +414,21 @@
                         <p class="text-oath-danger">no legal site right now</p>
                     {/if}
                 {/if}
+            {:else if words.siteButtons && legal.spec.kind === PowerChoiceKind.Site && !allowsSeveral(legal)}
+                <!-- A site picked under its card (Small Friends): its name on a button, as a player is their chip. -->
+                {@const sites = legal.options.flatMap((o) =>
+                    o.kind === PowerChoiceKind.Site ? [o.siteId] : []
+                )}
+                <SiteChips
+                    label={`${legal.spec.what ?? 'a site'}:`}
+                    sites={sites.map((siteId) => ({
+                        siteId,
+                        name: siteName(gameSession.gameState, siteId)
+                    }))}
+                    picked={option?.kind === PowerChoiceKind.Site ? option.siteId : undefined}
+                    onpick={(siteId) => tapOption(legal, i, pick, sites.indexOf(siteId))}
+                    {busy}
+                />
             {:else if legal.spec.kind === PowerChoiceKind.Count}
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span class="text-oath-text-muted">{legal.spec.what ?? 'how many'}:</span>

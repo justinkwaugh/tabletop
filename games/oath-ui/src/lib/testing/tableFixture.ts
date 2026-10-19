@@ -108,6 +108,8 @@ import { RecordedStory } from './recordedStory.js'
 
 export type TableName =
     | 'setup'
+    | 'smallFriendsSites'
+    | 'disguiseBorrowed'
     | 'shortBank'
     | 'searching'
     | 'prophets'
@@ -3165,6 +3167,85 @@ function modifierTable(scene: ModifierScene): PlayedTable {
 }
 
 /**
+ * R-7.1.1-H2, R-7.4 — the Trade menu's cards for Small Friends' site and Master of Disguise's
+ * borrowed advisers, in a game of this revision. `smallFriendsSites`: the seat, an Exile, stands
+ * at the Great Slums (Toll Roads, Oracle, Map Library; the Inn at the other Cradle site) with
+ * Birdsong and Small Friends; Wolves are at the Plains and The Old Oak at the Mountain.
+ * `disguiseBorrowed`: the seat stands with Toll Roads, Rowdy Pub and Oracle, and holds Birdsong,
+ * Awaited Return and Master of Disguise; Ann, the Chancellor, holds Secret Signal and Marriage.
+ */
+function tradeSitesTable(scene: 'smallFriendsSites' | 'disguiseBorrowed'): PlayedTable {
+    const [home, other] = mapSlotsFor(Region.Cradle)
+    const plains = mapSlotId(Region.Provinces, 0)
+    const mountain = mapSlotId(Region.Hinterland, 0)
+    const adviser = (cardId: string, faceUp = true) => ({ cardId, faceUp })
+    const friends = scene === 'smallFriendsSites'
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: home,
+                supply: 3,
+                favor: 3,
+                secrets: 2,
+                warbandsOnBoard: { dana: 3 },
+                advisers: friends
+                    ? [adviser('denizen.beast.birdsong'), adviser('denizen.beast.small-friends')]
+                    : [
+                          adviser('denizen.beast.birdsong'),
+                          adviser('denizen.hearth.awaited-return'),
+                          adviser('denizen.arcane.master-of-disguise')
+                      ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 1),
+                advisers: friends
+                    ? []
+                    : [adviser('denizen.arcane.secret-signal'), adviser('denizen.hearth.marriage')]
+            })
+        ],
+        {
+            oathRevision: CURRENT_OATH_REVISION,
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: {
+                ...fixtureSitesOnTheBoard(),
+                [home]: 'site.great-slums',
+                [plains]: 'site.plains',
+                [mountain]: 'site.mountain'
+            },
+            denizensBySite: friends
+                ? {
+                      [home]: [
+                          'denizen.order.toll-roads',
+                          'denizen.nomad.oracle',
+                          'denizen.arcane.map-library'
+                      ],
+                      [other]: ['denizen.hearth.wayside-inn'],
+                      [plains]: ['denizen.beast.wolves'],
+                      [mountain]: ['denizen.beast.the-old-oak']
+                  }
+                : {
+                      [home]: [
+                          'denizen.order.toll-roads',
+                          'denizen.hearth.rowdy-pub',
+                          'denizen.nomad.oracle'
+                      ],
+                      [plains]: ['denizen.beast.wolves']
+                  }
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+/**
  * R-7.1.4 — Toll Roads stands at the first Provinces site, which the Empire rules: travelling there
  * gives the Chancellor (ann) a favor. The seat is at the top Cradle site with Supply to spare.
  */
@@ -4833,6 +4914,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     facedownNewGrowth: () => facedownTable('facedownNewGrowth'),
     greatHerdFlip: greatHerdFlipTable,
     modifierPair: () => modifierTable('modifierPair'),
+    smallFriendsSites: () => tradeSitesTable('smallFriendsSites'),
+    disguiseBorrowed: () => tradeSitesTable('disguiseBorrowed'),
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
     setup: setupTable,

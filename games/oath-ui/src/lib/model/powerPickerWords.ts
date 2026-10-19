@@ -4,6 +4,7 @@
  * they move. `ownPlace`: the card names the one place its warbands come from (Blood Pact's "on
  * your board"), so the pieces stand beside its words with no place named. `site`: the power's
  * site is picked on the lit map; `row` heads it in the panel, and `chip` names it on a lit site.
+ * `siteButtons`: the site is picked under its card, a button with the site's name for each.
  * `pile`: the words over its discard pile rows. `banks`: the words over a run of favor picks,
  * from the favor the run comes to. `or`: the card's two branches as two answers, the words over
  * them, and the second's consequence in rose. `may`: its toggle row's words, with what the yes
@@ -15,6 +16,7 @@ export type PickerWords = {
     tone: 'gold' | 'rose'
     ownPlace?: true
     site?: { row: string; chip: string }
+    siteButtons?: true
     pile?: string
     banks?: (total: number) => string
     or?: { row?: string; first: string; second: string; secondConsequence?: string }
@@ -56,6 +58,7 @@ const WORDS: Record<string, PickerWords> = {
     'denizen.nomad.resettle': { site: { row: 'Place it at:', chip: 'Place it' }, tone: 'gold' },
     'denizen.order.palanquin': { site: { row: 'Carry to:', chip: 'Carry' }, tone: 'gold' },
     'relic.ivory-eye': { site: { row: 'Peek at:', chip: 'Peek' }, tone: 'gold' },
+    'denizen.beast.small-friends': { siteButtons: true, tone: 'gold' },
     'denizen.discord.scryer': { pile: 'Peek at:', tone: 'gold' },
     'denizen.nomad.convoys': { pile: 'Take:', tone: 'gold' },
     'denizen.beast.bracken': { pile: 'To:', or: PILE_SIDES, tone: 'gold' },
