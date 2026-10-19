@@ -545,7 +545,7 @@ export const PowerQuestionValidator = Compile(PowerQuestion)
 /** R-10.13-H1 — so many of the Obsidian Cage's Imperial warbands to a player's board. */
 export type CagePlacement = Type.Static<typeof CagePlacement>
 export const CagePlacement = Type.Array(
-    Type.Object({ playerId: Type.String(), count: Type.Integer({ minimum: 1, maximum: 16 }) }),
+    Type.Object({ playerId: Type.String(), count: Type.Integer({ minimum: 1, maximum: 999 }) }),
     { maxItems: 8 }
 )
 

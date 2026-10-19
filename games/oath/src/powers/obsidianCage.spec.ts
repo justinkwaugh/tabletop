@@ -30,6 +30,7 @@ import { buildAction, defendingSideChooses } from '../testing/actions.js'
 import { siteTarget, battlePlanUse, actionPowerUse, boardWarbands } from '../testing/choices.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { OathRevision } from '../util/revision.js'
+import { CHANCELLOR_WARBANDS } from '../util/setup.js'
 
 /** R-10.9's force; the move to the Cage stands in for R-5.5.6's move to their board. */
 const CAGE = 'relic.obsidian-cage'
@@ -438,6 +439,17 @@ describe('Obsidian Cage — leaving play (R-10.13: a card cannot carry warbands 
             expectWarbandsConserved(s, () => sendCageDown(s, placement))
             expect([onBoard(s, CHAN, IMPERIAL_WARBANDS), onBoard(s, CIT, IMPERIAL_WARBANDS)]).toEqual([chan, cit])
             expect(inBank(s, CHAN, IMPERIAL_WARBANDS)).toBe(8)
+            expect(s.warbandsOnCard(CAGE)).toEqual({ [IMPERIAL_WARBANDS]: 0 })
+        })
+
+        it("…all 24 of the Empire's warbands caged go to one board in a single answer, as the answer schema takes it", () => {
+            const empty = { warbandsOnBoard: {}, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 0 } }
+            const s = faeTable({ [IMPERIAL_WARBANDS]: CHANCELLOR_WARBANDS }, { [CHAN]: empty, [CIT]: { warbandsOnBoard: {} } }, { ...AT_17, warbandsBySite: { c1: { [FOE]: 3 }, c2: { [ME]: 1 }, p1: {} } })
+            expect(cagePurpleChoiceBoards(s)).toEqual([CHAN, CIT])
+            const placement = [{ playerId: CIT, count: CHANCELLOR_WARBANDS }]
+            expect(reasonCannotSend(s, placement)).toBeUndefined()
+            expectWarbandsConserved(s, () => sendCageDown(s, placement))
+            expect([onBoard(s, CHAN, IMPERIAL_WARBANDS), onBoard(s, CIT, IMPERIAL_WARBANDS)]).toEqual([0, CHANCELLOR_WARBANDS])
             expect(s.warbandsOnCard(CAGE)).toEqual({ [IMPERIAL_WARBANDS]: 0 })
         })
 
