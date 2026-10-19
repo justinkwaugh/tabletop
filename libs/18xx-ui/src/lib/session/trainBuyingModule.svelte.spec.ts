@@ -121,6 +121,8 @@ describe('TrainBuyingModule', () => {
             ['BuyTrain', 'OfferPurchase']
         )
         const module = new TrainBuyingModule(session, () => [{ request, minimum: 1 }])
+        expect(module.sources).toEqual(['mine'])
+        expect(module.source).toBe('mine')
         module.selectSource('mine')
         module.selectCompanyTrain(request)
         expect(module.companyContributions).toEqual([

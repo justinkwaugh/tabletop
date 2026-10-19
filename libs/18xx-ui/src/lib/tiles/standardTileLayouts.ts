@@ -62,5 +62,5 @@ export const StandardTileLayouts: Readonly<Record<string, TileLayout>> = {
         revenuePositions: { 'city-0': { x: -27.6, y: 18.2 }, 'city-1': { x: 15.7, y: -28.7 } },
         labelPosition: { x: 30.8, y: 5.3 }
     }),
-    '18xx:68': cities(towardTileEdge(0, 18), towardTileEdge(4, 18))
+    '18xx:68': cities(towardTileEdge(0, 26), towardTileEdge(4, 26))
 }

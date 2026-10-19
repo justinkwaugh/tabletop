@@ -181,7 +181,9 @@
     {#each players as player, index (player.id)}
         <article
             class:compact
-            animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
+            animate:flip={{
+                duration: session.restoredSilently || prefersReducedMotion.current ? 0 : 180
+            }}
             aria-label={`${player.name} portfolio`}
             data-player-id={player.playerId}
             class:active={player.playerId !== undefined &&

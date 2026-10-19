@@ -21,7 +21,9 @@ import {
     createEdgeTilePath,
     createStraightTilePath,
     tilePathPoint,
-    type TileDrawnPath
+    trackCrossings,
+    type TileDrawnPath,
+    type TrackCrossing
 } from './tileTrackGeometry.js'
 import { stagedRevenueLayout, type RevenueCell } from './stagedRevenueLayout.js'
 
@@ -75,6 +77,7 @@ export type TileDrawing = {
     /** Station circle radius the slots are spaced for. */
     citySlotRadius: number
     paths: readonly TileDrawnPath[]
+    crossings: readonly TrackCrossing[]
     nodes: readonly TileDrawnNode[]
     labelPosition: Point
     symbolPosition: Point
@@ -336,6 +339,7 @@ export function createTileDrawing(
         polygon: geometry.vertices.map((point) => `${point.x},${point.y}`).join(' '),
         citySlotRadius,
         paths,
+        crossings: trackCrossings(paths),
         nodes,
         labelPosition,
         symbolPosition,

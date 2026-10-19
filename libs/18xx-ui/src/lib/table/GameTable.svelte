@@ -1077,6 +1077,7 @@
                                     appearances={session.mapView.stations}
                                     completedCompanyIds={operatedCompanyIds}
                                     currentCompanyId={operatingCompanyId}
+                                    restoredSilently={session.restoredSilently}
                                 >
                                     {#snippet companyDetails(company)}
                                         <CompanyDetails

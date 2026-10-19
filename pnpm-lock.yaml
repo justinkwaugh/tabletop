@@ -616,9 +616,6 @@ importers:
         specifier: workspace:*
         version: link:../../libs/common
     devDependencies:
-      '@tabletop/18xx-autorouter':
-        specifier: workspace:*
-        version: link:../../libs/18xx-autorouter
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint

@@ -16,7 +16,7 @@ export type CompanyPricePresentation = {
 
 export const DefaultCompanyPricePresentation: CompanyPricePresentation = {
     showPar: true,
-    label: 'Price'
+    label: 'Value'
 }
 
 export function companySharePrice(

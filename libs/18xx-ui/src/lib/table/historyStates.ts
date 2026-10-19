@@ -1,7 +1,13 @@
-import type { EighteenXXState } from '@tabletop/18xx'
+import type { EighteenXXState, EndingRules, GameEnding } from '@tabletop/18xx'
 import { assert, RecordedHistory, type GameAction, type RecordedTransition } from '@tabletop/common'
 
-function selectHistoryState(state: Readonly<EighteenXXState>) {
+function selectHistoryState(
+    state: Readonly<EighteenXXState>,
+    endingRules: Pick<EndingRules, 'trigger'> | undefined
+) {
+    // The title's ending rule names the ending as soon as the bank breaks; the game records it
+    // in a later step.
+    const ending = state.gameEnding ?? (state.bank.broken ? endingRules?.trigger(state) : undefined)
     const cash = new Map<string, number>()
     for (const entry of state.cash) {
         if (entry.owner.kind !== 'company') continue
@@ -18,7 +24,7 @@ function selectHistoryState(state: Readonly<EighteenXXState>) {
         round: state.operatingSet?.roundNumber ?? 1,
         order: state.operatingSet?.companyOrder ?? [],
         bankBroken: !!state.bank.broken,
-        ending: state.gameEnding ? { lastRound: lastOperatingRound(state) } : undefined,
+        ending: ending ? { lastRound: lastOperatingRound(state, ending) } : undefined,
         auction: !!(
             (state.offerAuction && !state.offerAuction.completed) ||
             (state.openingAuction && !state.openingAuction.completed) ||
@@ -27,9 +33,12 @@ function selectHistoryState(state: Readonly<EighteenXXState>) {
     }
 }
 // A set's round count is fixed when it starts, so a later set's last round is not yet known.
-function lastOperatingRound(state: Readonly<EighteenXXState>): string | undefined {
+function lastOperatingRound(
+    state: Readonly<EighteenXXState>,
+    ending: GameEnding
+): string | undefined {
     const set = state.operatingSet
-    return set && !set.completed && set.number === state.gameEnding?.finalOperatingSet
+    return set && !set.completed && set.number === ending.finalOperatingSet
         ? `${set.number}.${set.roundCount}`
         : undefined
 }
@@ -57,7 +66,10 @@ export function historyBankBreaks(states: HistoryStates): ReadonlyMap<string, Hi
 
 export function historyStates(
     actions: readonly GameAction[],
-    state: EighteenXXState
+    state: EighteenXXState,
+    endingRules?: Pick<EndingRules, 'trigger'>
 ): HistoryStates {
-    return new RecordedHistory(state, actions).select(selectHistoryState)
+    return new RecordedHistory(state, actions).select((recorded) =>
+        selectHistoryState(recorded, endingRules)
+    )
 }

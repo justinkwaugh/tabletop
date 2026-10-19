@@ -1,4 +1,4 @@
-import thumbnailUrl from './images/cover.jpg'
+import thumbnailUrl from './images/cover.webp'
 import { EighteenThirtyInfo } from '@tabletop/1830'
 import type { GameUiDefinition } from '@tabletop/frontend-components'
 import type { EighteenThirtyState, HydratedEighteenThirtyState } from '@tabletop/1830'

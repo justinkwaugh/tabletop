@@ -31,10 +31,11 @@ stops. 1830's six blockers and 1889's Takamatsu use it.
 1846 keep them in the company treasury, which the spreadsheet already shows. A title names
 its IPO pool and the spreadsheet adds an IPO row that buys from it like the Market row.
 
-## Price row
+## Value row
 
-Every title's spreadsheet shows the company price row, under the title's price label. The
-default label is now Price, so it no longer reads like the Market pool row; TOP keeps Value.
+Every title's spreadsheet shows the company's share price as a Value row, under the title's
+price label. The default label is now Value on both the spreadsheet and the company cards,
+so it no longer reads like the Market pool row and matches TOP.
 
 ## Bank on the board and its breaking
 

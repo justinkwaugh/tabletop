@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assert } from '@tabletop/common'
 import {
     TestCompanyId,
     TestPlayerId,
@@ -233,5 +234,96 @@ describe('StockModule', () => {
         module.cancel()
         await module.finishTurn()
         expect(applied.map((action) => action.type)).toEqual(['FinishStockTurn'])
+    })
+
+    describe('a purchase the turn may follow with another', () => {
+        function buyingTwice(
+            allowsAnother: boolean,
+            afterPurchase: (state: StockSession['state']) => void = () => {}
+        ) {
+            const treasury = { kind: 'company', companyId: TestCompanyId } as const
+            const { session, applied } = trading(['BuyShares'])
+            session.state.companies[0].started = true
+            session.state.companies[0].floated = true
+            session.state.companies[0].president = player
+            session.state.cash.push({ owner: player, amount: 100 }, { owner: treasury, amount: 0 })
+            session.state.certificates.push(
+                ...['first', 'second'].map((id) => ({
+                    id,
+                    companyId: TestCompanyId,
+                    kind: 'share' as const,
+                    shares: 1,
+                    owner: treasury
+                })),
+                {
+                    id: 'president',
+                    companyId: TestCompanyId,
+                    kind: 'share',
+                    shares: 2,
+                    president: true,
+                    owner: player
+                }
+            )
+            const rules = {
+                ...session.rules,
+                stockRules: {
+                    ...minimalStockRules,
+                    purchaseTerms: () => ({ price: 10, recipient: treasury, payers: [player] }),
+                    multipleBuys: allowsAnother ? { allowsAnother: () => true } : undefined
+                }
+            }
+            // Publishing the new state clears staged selections before the menu can reopen.
+            const state = $state(session.state)
+            const module: StockModule = new StockModule(
+                {
+                    ...session,
+                    state,
+                    rules,
+                    applyAction: async (action) => {
+                        applied.push(action)
+                        state.stockRound.turn.bought = true
+                        afterPurchase(state)
+                        module.clear()
+                    }
+                },
+                () => {}
+            )
+            return { module, applied }
+        }
+        async function buyFirst(module: StockModule) {
+            module.chooseMenu('buy')
+            const first = module.purchaseChoices.find((choice) => choice.certificate.id === 'first')
+            assert(first, 'The first treasury share is on offer')
+            module.selectPurchase(first.request)
+            await module.confirmPurchase()
+        }
+
+        it('reopens Buy for the same buyer, names the company, and lets Undo reverse the purchase', async () => {
+            const { module, applied } = buyingTwice(true)
+            await buyFirst(module)
+            expect(applied).toHaveLength(1)
+            expect(module.menu.entry('action')).toEqual({
+                value: { menu: 'buy', buyer: player },
+                source: 'auto'
+            })
+            expect(module.furtherPurchaseCompanyId).toBe(TestCompanyId)
+            expect(module.hasManual()).toBe(false)
+            expect(module.undo()).toBe(false)
+        })
+
+        it('closes the menu when no further purchase is legal', async () => {
+            const { module } = buyingTwice(false)
+            await buyFirst(module)
+            expect(module.furtherPurchaseCompanyId).toBeUndefined()
+            expect(module.menu.entry('action')).toBeUndefined()
+        })
+
+        it('closes the menu when the turn passes to another player', async () => {
+            const { module } = buyingTwice(true, (state) => {
+                state.activePlayerIds = ['blair']
+            })
+            await buyFirst(module)
+            expect(module.menu.entry('action')).toBeUndefined()
+        })
     })
 })

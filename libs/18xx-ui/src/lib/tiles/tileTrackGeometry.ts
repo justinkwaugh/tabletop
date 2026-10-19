@@ -100,3 +100,75 @@ export function tilePathPoint(path: TileDrawnPath, t: number): Point {
         { x: 0, y: 0 }
     )
 }
+
+/**
+ * Where two of a tile's tracks cross without connecting, with the later path drawn over the
+ * earlier. ``spread`` widens the crossing for a shallow angle, where the over track runs
+ * longer across the under track.
+ */
+export type TrackCrossing = { point: Point; overPathId: string; spread: number }
+const CrossingSamples = 32
+const CrossingEndClearance = 4
+
+export function trackCrossings(paths: readonly TileDrawnPath[]): TrackCrossing[] {
+    const tracks = paths
+        .filter((path) => !path.spike)
+        .map((path) => ({
+            path,
+            points: Array.from({ length: CrossingSamples + 1 }, (_, index) =>
+                tilePathPoint(path, index / CrossingSamples)
+            )
+        }))
+    const crossings: TrackCrossing[] = []
+    tracks.forEach((under, index) => {
+        for (const over of tracks.slice(index + 1)) {
+            if (sharesEnd(under.path, over.path)) continue
+            for (const crossing of polylineCrossings(under.points, over.points)) {
+                const ends = [under.path.start, under.path.end, over.path.start, over.path.end]
+                if (ends.some((end) => distance(end, crossing.point) < CrossingEndClearance))
+                    continue
+                if (crossings.some((known) => distance(known.point, crossing.point) < 3)) continue
+                crossings.push({ ...crossing, overPathId: over.path.id })
+            }
+        }
+    })
+    return crossings
+}
+
+function sharesEnd(first: TileDrawnPath, second: TileDrawnPath): boolean {
+    return [first.start, first.end].some((end) =>
+        [second.start, second.end].some((other) => distance(end, other) < 0.5)
+    )
+}
+
+function polylineCrossings(
+    under: readonly Point[],
+    over: readonly Point[]
+): { point: Point; spread: number }[] {
+    const crossings: { point: Point; spread: number }[] = []
+    for (let i = 1; i < under.length; i++) {
+        for (let j = 1; j < over.length; j++) {
+            const a = under[i - 1],
+                b = under[i],
+                c = over[j - 1],
+                d = over[j]
+            const r = { x: b.x - a.x, y: b.y - a.y }
+            const q = { x: d.x - c.x, y: d.y - c.y }
+            const cross = r.x * q.y - r.y * q.x
+            if (Math.abs(cross) < 1e-9) continue
+            const t = ((c.x - a.x) * q.y - (c.y - a.y) * q.x) / cross
+            const u = ((c.x - a.x) * r.y - (c.y - a.y) * r.x) / cross
+            if (t < 0 || t > 1 || u < 0 || u > 1) continue
+            const sine = Math.abs(cross) / (Math.hypot(r.x, r.y) * Math.hypot(q.x, q.y))
+            crossings.push({
+                point: { x: a.x + r.x * t, y: a.y + r.y * t },
+                spread: Math.min(3, 1 / Math.max(sine, 1 / 3))
+            })
+        }
+    }
+    return crossings
+}
+
+function distance(a: Point, b: Point): number {
+    return Math.hypot(a.x - b.x, a.y - b.y)
+}

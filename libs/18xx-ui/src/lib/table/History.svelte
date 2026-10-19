@@ -46,7 +46,7 @@
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
     const context = $derived(session.history.visibleContext)
     const gameState = $derived(context.state)
-    const states = $derived(historyStates(context.actions, gameState))
+    const states = $derived(historyStates(context.actions, gameState, session.endingRules))
     const orderChanges = $derived(historyOperatingOrder(context.actions, states))
     const cash = $derived(historyCash(states))
     const entryOrders = $derived(entryOrderChanges(context.actions, orderChanges))

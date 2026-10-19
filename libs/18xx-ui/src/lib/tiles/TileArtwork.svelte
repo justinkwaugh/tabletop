@@ -36,6 +36,7 @@
         trackOverlay?: Snippet<[TileDrawing]>
         overlays?: Snippet<[TileDrawing]>
     } = $props()
+    const crossingClipId = $props.id()
     const fill = $derived.by(() => {
         const color = appearance.colors[face.color]
         assertExists(color, `Tile palette requires color ${face.color}`)
@@ -206,6 +207,30 @@
                 <path d={path.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
                 ></path>
             </g>
+        {/each}
+        {#each drawing.crossings as crossing, index (index)}
+            {@const over = drawing.paths.find((path) => path.id === crossing.overPathId)}
+            {#if over}
+                {@const clipId = `${crossingClipId}-${index}`}
+                <clipPath id={clipId}>
+                    <circle
+                        cx={crossing.point.x}
+                        cy={crossing.point.y}
+                        r={(appearance.trackWidth / 2 + appearance.trackBorderWidth) *
+                            crossing.spread +
+                            appearance.trackBorderWidth}
+                    ></circle>
+                </clipPath>
+                <g clip-path={`url(#${clipId})`} data-track-crossing={over.id}>
+                    <path
+                        d={over.d}
+                        stroke={appearance.paper}
+                        stroke-width={appearance.trackWidth + 2 * appearance.trackBorderWidth}
+                    ></path>
+                    <path d={over.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
+                    ></path>
+                </g>
+            {/if}
         {/each}
     </g>
     {#each drawing.paths.filter((path) => highlightedPathIds.includes(path.id)) as path (path.id)}

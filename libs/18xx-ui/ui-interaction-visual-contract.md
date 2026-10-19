@@ -70,7 +70,10 @@ Through-town positions can move along that curve, as on #56. Central junction
 towns use larger round dots; Classic through-towns use bars. Independent two-town
 tiles preserve distinct node/path identities.
 All track borders render beneath all track strokes, so borders cannot cut through
-the black track at junctions or crossings.
+the black track at junctions or crossings. Where two tracks cross without sharing an
+end, the later one bridges the earlier: it is redrawn over the crossing with its border,
+which breaks the track beneath, and a shallow crossing gets a longer break. Stops on
+crossing tracks sit out toward their edges, clear of the crossing (#68).
 
 Hosts can compose a track-overlay snippet after track and before stops, and an
 overlay snippet after stops and before annotations. Both receive the same drawing,
@@ -123,9 +126,18 @@ A reserved city slot without a token shows the reserving company's token in gray
 at reduced opacity, titled "Reserved for [company]"; without a company appearance it
 falls back to the company id as small text. Track into an offboard ends in a short
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
-own. A marker whose art is a local line shows its label beside two linked circles near
-the foot of the hex while the hex has no tile, drawn above track with a halo in the
-hex's colour; 1830 marks its private-reserved hexes this way.
+own. A marker whose art is a local line shows its label beside two linked circles while
+the hex has no tile, drawn above track with a halo in the hex's colour. It sits near
+the foot of the hex, or, when its art is ``above``, just over the hex's stops: above a
+name curved over a city, below a straight name printed across the top, or above the
+terrain cost of a hex without stops. 1830 marks its private-blocked hexes this way,
+all above; 1889's Takamatsu marker is above.
+
+A map view may name each city of a hex (``cityNames``, 1830's OO and New York hexes):
+each name curves over its own city's drawn centre, turned off the hex's other cities
+and the names already placed, and replaces the hex's single name. A lone city's curved
+name follows the city's drawn centre, so an off-centre city (1830's Altoona) is wrapped
+by its name.
 
 A map view's joined edges draw no outline, in the hex artwork or the map's outline
 layer, so neighbouring hexes read as one area (1830's Canada and Gulf). A tile layout
@@ -1075,7 +1087,7 @@ Offer-list location icons focus the Map tab using ScalingWrapper and select the 
 
 Location focus frames a wider neighborhood around the hex. Repeating the same location-icon click fits the full map; a different icon focuses its location. The local focus toggle resets when the displayed financial state changes.
 
-Operating order collapses by default to a row of 21px miniature tokens in canonical order, with no window. Companies that have already operated in the current operating round are grayscale and darkened, both as miniature tokens and as the token on their dimmed pill; other tokens are at full strength. The operating company is marked in both rows: its miniature token has a light ring in the table text colour, and its pill is 10% larger with a drop shadow and the same ring around the pill's token. Clicking the row toggles the operating pills beneath it. Showing them scrolls the operating company's pill as far toward the start as the row allows. While they are shown, a change of operating company (including history navigation) that leaves its pill not fully visible scrolls it to the start the same way, smoothly unless reduced motion is preferred; collapsing hides them and closes any expanded company card. While the pills are shown and overflow horizontally, a subtle window on the miniature row encloses only the fully visible pills' tokens, following scroll and resize; partially clipped pills remain outside the window and are dimmed. The window disappears when the pills fit. Showing or hiding pills is local UI state and never changes selection or game state. Measurement uses passive scroll events and ResizeObserver, coalesced with requestAnimationFrame; its short local window transition respects reduced motion.
+Operating order collapses by default to a row of 21px miniature tokens in canonical order, with no window. Companies that have already operated in the current operating round are grayscale and darkened, both as miniature tokens and as the token on their dimmed pill; other tokens are at full strength. The operating company is marked in both rows: its miniature token has a light ring in the table text colour, and its pill is 10% larger with a drop shadow and the same ring around the pill's token. Clicking the row toggles the operating pills beneath it. Showing them scrolls the operating company's pill as far toward the start as the row allows. While they are shown, a change of operating company (including history navigation) that leaves its pill not fully visible scrolls it to the start the same way, smoothly unless reduced motion is preferred, the state arrived by a silent restore, or the order changed (the chips are then sliding, so the scroll is instant). A Svelte action reveals the operating company, not an effect; collapsing hides them and closes any expanded company card. While the pills are shown and overflow horizontally, a subtle window on the miniature row encloses only the fully visible pills' tokens, following scroll and resize; partially clipped pills remain outside the window and are dimmed. The window disappears when the pills fit. Showing or hiding pills is local UI state and never changes selection or game state. Measurement uses passive scroll events and ResizeObserver, coalesced with requestAnimationFrame; its short local window transition respects reduced motion.
 
 ScalingWrapper keyboard shortcuts toggle fullscreen with F and exit with Escape. F is ignored in editable fields and with command modifiers; hidden map/market views do not handle it. This is local wrapper behavior, with no host bridge contract change. Deployed UI artifacts that bundle ScalingWrapper need republishing to adopt the shortcuts; old artifacts remain compatible.
 
@@ -1160,7 +1172,7 @@ Below the pane layout (under 1024px), where the map is in the stacked tabs or of
 
 A title may associate a numbered share with a map location. In the pane layout, clicking that share's number/name focuses its location with the same context padding as company station focus; clicking again fits the map. TOP maps PEIR rights to their railway's printed home location, even before that railway forms. PEIR's aggregate ownership row has no map focus.
 
-The table's stock-round panel starts with legal Buy/Sell/Start/Exchange/Pass-or-Finish options. Stock action and sale-company navigation use manual stagedSelection entries in the session, while company starts retain their existing company/price stages. Back/Undo pop selection decisions before reversing committed actions; state transitions clear the menu. Buy choices preserve purchaser, pool, certificate size/presidency and numbered identity, combining only equivalent ordinary certificates. Selecting a purchase commits it directly. Start selects company then legal par price and commits; sales select company and quantity, retain ordered multi-company batches, and commit with Sell. Private exchanges remain available through Exchange. No automatic selection effects or UI-constructed Actions are introduced.
+The table's stock-round panel starts with legal Buy/Sell/Start/Exchange/Pass-or-Finish options. Stock action and sale-company navigation use manual stagedSelection entries in the session, while company starts retain their existing company/price stages. Back/Undo pop selection decisions before reversing committed actions; state transitions clear the menu, except that a purchase the same player's turn may follow with another, such as 1830's brown-zone shares, reopens Buy for the same buyer as an auto-sourced stage with a "You may buy another [company] share this turn." hint, which Undo skips to reverse the purchase. Buy choices preserve purchaser, pool, certificate size/presidency and numbered identity, combining only equivalent ordinary certificates. Selecting a purchase commits it directly. Start selects company then legal par price and commits; sales select company and quantity, retain ordered multi-company batches, and commit with Sell. Private exchanges remain available through Exchange. No automatic selection effects or UI-constructed Actions are introduced.
 
 Company focus also works before home-station placement: if there are no placed stations, use that company's canonical station reservations. The same target helper controls button availability and camera framing. Once stations are placed their actual locations take precedence.
 
@@ -1390,7 +1402,7 @@ API/cache behavior, and mixed-artifact adoption.
 
 History has a compact text toggle above the scrolling list for Newest last / Newest first, defaulting to Newest last. The choice is saved through the session’s existing 18xx family preferences and follows the player between titles. This display choice reverses rounds and their grouped entries, retaining chronological events inside auction and operation cards. Round interstitials remain at the chronological beginning of each round. Short histories align to the top for Newest first and bottom for Newest last. Switching order scrolls to the newest end: top for Newest first, bottom for Newest last. Changing the toggle does not move the game-history cursor or create an Action.
 
-When deferred history becomes complete, the list waits for its rows to render and scrolls to the newest end in the selected order. Ordinary history updates preserve the reader's scroll position. The scroll belongs to the history panel and does not change the history cursor or preferences. This completion behavior uses the existing Game Context completeness flag and requires new TOP and 1889 UI Artifacts only; it adds no host bridge or Logic change and remains compatible with hosts supplying complete history at session creation.
+When deferred history becomes complete, the list waits for its rows to render and scrolls to the newest end in the selected order. While the reader is at the newest end (within 8px), history updates keep the list there so new entries stay in view; scrolled anywhere else, updates preserve the reader's scroll position. The scroll belongs to the history panel and does not change the history cursor or preferences. This completion behavior uses the existing Game Context completeness flag and requires new TOP and 1889 UI Artifacts only; it adds no host bridge or Logic change and remains compatible with hosts supplying complete history at session creation.
 
 The additive historyOrder preference uses existing preference endpoints and defaults for older records; no host bridge contract changes. TOP and 1889 Logic/UI Artifacts must be republished to expose the new schema and control in hosted games.
 
@@ -1713,9 +1725,9 @@ For pass-order stock rounds (TOP), player-card headers show a compact turn-posit
 
 Player cards always follow turnManager.turnOrder. During an SR the prospective order affects only the “Next N” labels (or priority marker for consecutive-pass titles); cards reorder only when the round commits its next turn order.
 
-Player-card reordering uses Svelte animate:flip on the existing keyed articles (180ms). This is non-blocking layout settling: it has no action sequencing or interaction dependency, can be interrupted, and does not own card state. History navigation also animates reordering; only reduced-motion preferences suppress the motion.
+Player-card reordering uses Svelte animate:flip on the existing keyed articles (180ms). This is non-blocking layout settling: it has no action sequencing or interaction dependency, can be interrupted, and does not own card state. History navigation also animates reordering; reduced-motion preferences and a silent restore, which publishes without calling any state-change listener (the session's `restoredSilently`), suppress the motion.
 
-Operating-order chips use the same 180ms Svelte animate:flip layout settling on keyed list items, with no game-state or interaction dependency. Reordering animates during history navigation too; reduced-motion preferences suppress it universally.
+Operating-order chips use the same 180ms Svelte animate:flip layout settling on keyed list items, with no game-state or interaction dependency. Reordering animates during history navigation too; reduced-motion preferences and a silent restore suppress it.
 
 TOP branch allocation opens automatically with an auto-sourced empty allocation after par selection. Two outlined Parent/Branch panels contain stations, trains, Hunslet when initially present, and cash. Transfers remain staged until Confirm split; arrows move assets between panels, protected homes cannot transfer, and the first transferred station supplies the internal branch-home token assignment without a separate choice. Undo resets manually edited allocation to its initial automatic value before backing out the par selection. Station names use the table’s normal location-focus callback. The branch panel includes its bank grant in cash and cannot transfer that grant back to the parent.
 
@@ -1773,6 +1785,8 @@ After a stock share sale settles, keep the Sell menu open at company selection i
 Offered-lot auctions distinguish the auctioneer and initial value from a bidder and high bid. When an offered-lot bidder cannot make the minimum legal bid, the handler records a system PassAuction; it preserves the procedure's re-entry and forced-purchase rules. TOP opts into a system OfferAuctionLot when its auctioneer has exactly one lot remaining; the offer appears in history and bidding opens without a manual selection. Stock rounds likewise record a system FinishStockTurn when the title's full action handler exposes only finishing/passing. These decisions belong to game logic, not a client effect; optional exchanges, starts, and title-specific actions prevent automatic passing. Waterfall auction offering/purchase behavior is unchanged.
 
 Tile selection, placement previews, legal tile hover, and history tile focus use a solid orange (#f07818), eight-unit outline with rounded joins.
+
+The board's depot area lists Phase, Train limit and, for a title with a limited bank, Bank: its remaining cash, or "Broken" in the negative colour once the bank has broken. History marks the action that broke the bank with a "The bank is broken" note on a red-tinted panel with a 4px red left edge, like a phase change's, naming the last operating round when its set is under way, or the next set of operating rounds otherwise.
 
 The operating-order chips are centered when they fit and scroll from the start when they overflow, inset by enough padding to show the operating chip's shadow and token ring.
 

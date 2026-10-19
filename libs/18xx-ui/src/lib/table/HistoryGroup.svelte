@@ -590,8 +590,8 @@
         gap: 2px;
         margin: 6px 0 2px;
         padding: 6px 10px;
-        border: 1px solid var(--rail-negative, #b33a32);
-        border-radius: 6px;
+        border-left: 4px solid var(--rail-negative, #b33a32);
+        border-radius: 3px;
         background: color-mix(in srgb, var(--rail-negative, #b33a32) 16%, transparent);
     }
     .bank-broken strong {

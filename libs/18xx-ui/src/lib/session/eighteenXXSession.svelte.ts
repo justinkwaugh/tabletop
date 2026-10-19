@@ -590,6 +590,9 @@ export class EighteenXXSession<
     get valuationRules() {
         return this.rules.endingRules
     }
+    get endingRules() {
+        return this.rules.endingRules
+    }
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return shouldContinueHistoryStep(action, next)
     }
@@ -665,7 +668,16 @@ export class EighteenXXSession<
         if (owner.kind === 'player') return this.getPlayerName(owner.playerId)
         return owner.kind === 'bank' ? 'Bank' : this.companyName(owner.companyId)
     }
+    // A silent swap publishes without calling any state-change listener, so layout settling
+    // and reveal scrolling stay still for it.
+    restoredSilently = $state(true)
+    private listenersSawTransition = false
+    override async onGameStateChange() {
+        this.listenersSawTransition = true
+    }
     override beforeNewState() {
+        this.restoredSilently = !this.listenersSawTransition
+        this.listenersSawTransition = false
         this.map.clearInspection()
         this.localSelections.clear()
     }
