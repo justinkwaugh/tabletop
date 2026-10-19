@@ -13,6 +13,16 @@ export function banksWithFavor(state: HydratedOathGameState): Suit[] {
     return Object.values(Suit).filter((suit) => state.favorBank[suit] > 0)
 }
 
+/** Vow of Kinship — the most of `owed` its holder can pay from the bank: what is owed, or what it holds. */
+export function homeBankPayable(
+    state: HydratedOathGameState,
+    playerId: string,
+    owed: number
+): number {
+    const bank = favorHomeBankOf(state, playerId)
+    return bank ? Math.min(owed, state.favorBank[bank]) : 0
+}
+
 /** R-7.1.2 */
 export function usableFavor(state: HydratedOathGameState, playerId: string): number {
     const player = state.getPlayerState(playerId)

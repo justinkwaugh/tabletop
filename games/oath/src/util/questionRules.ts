@@ -78,6 +78,7 @@ import {
     whistleUserOnArrival
 } from './powerMoveTolls.js'
 import { payToll } from './tolls.js'
+import { payFromHomeBank, reasonCannotPayFromHomeBank } from './homeBankPayment.js'
 import { flipSecretFacedown, reasonFlipInvalid } from './siteTravel.js'
 import { gainFromDrum, reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
@@ -922,6 +923,12 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 ...woodTravelLanded(state, playerId, question.endsActPhase === true)
             }
         }
+    },
+    [PowerQuestionKind.PayFromHomeBank]: {
+        reasonCannotAnswer: (state, _playerId, matched) =>
+            reasonCannotPayFromHomeBank(state, matched.question, matched.answer.favor),
+        apply: (state, _playerId, matched) =>
+            payFromHomeBank(state, matched.question, matched.answer.favor)
     },
     [PowerQuestionKind.DragonskinDrum]: {
         reasonCannotAnswer: (state, playerId, matched) =>

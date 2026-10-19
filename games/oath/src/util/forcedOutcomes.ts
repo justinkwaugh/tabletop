@@ -4,7 +4,7 @@ import type { HydratedOathPlayerState } from '../model/playerState.js'
 import { PowerQuestionKind, type PowerQuestion, type QuestionOf } from '../model/question.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
 import { cardPowers } from '../data/cardPowers.js'
-import { banksWithFavor, gainFavorFromBank, usableFavor } from './favor.js'
+import { banksWithFavor, gainFavorFromBank, homeBankPayable, usableFavor } from './favor.js'
 import { takeNotes, takeRelicsFrom } from './relics.js'
 import { reasonExchangeInvalid } from './exchange.js'
 import { playersAt } from './pawn.js'
@@ -154,6 +154,11 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
         const card = { cardId: question.cardId, powerIndex: question.powerIndex }
         return gainOnArrival(state, question.askedPlayerId, card, only, question.siteId).join('; ')
     },
+    // Vow of Kinship — asked only while their bank can pay; should it no longer, nothing more is paid.
+    [PowerQuestionKind.PayFromHomeBank]: (state, question) =>
+        homeBankPayable(state, question.askedPlayerId, question.owed) <= 0
+            ? `${question.askedPlayerId} has no favor in a bank to pay from`
+            : undefined,
     // R-11.13-H1 — with no faceup secret to flip (or under Spell Breaker) the move is unable.
     [PowerQuestionKind.FlipToTravel]: (state, question) => {
         const invalid = reasonFlipInvalid(state, question.askedPlayerId, true, true)

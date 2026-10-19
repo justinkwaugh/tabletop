@@ -187,7 +187,13 @@ export enum PowerQuestionKind {
      * bank; once the ruler's pick has landed the asked player, two or more banks match: they choose
      * the one they gain from (R-11.7-H2).
      */
-    HospitalityBank = 'hospitalityBank'
+    HospitalityBank = 'hospitalityBank',
+    /**
+     * Vow of Kinship (revision 18) — Plague Engines or Dissent has every player place favor, and the
+     * asked player's board did not hold all they owe: they may pay the rest from the bank that keeps
+     * their favor, or not, since its Q&A never forces that favor (R-10.10-H1).
+     */
+    PayFromHomeBank = 'payFromHomeBank'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -522,6 +528,16 @@ export const PowerQuestion = Type.Union([
         endsActPhase: Type.Optional(Type.Literal(true))
     }),
     Type.Object({
+        kind: Type.Literal(PowerQuestionKind.PayFromHomeBank),
+        /** Plague Engines or Dissent. */
+        cardId: Type.String(),
+        askedPlayerId: Type.String(),
+        /** What their board left unpaid. */
+        owed: Type.Integer({ minimum: 1, maximum: 99 }),
+        /** Where the favor goes: this bank (Plague Engines), or, absent, onto the card (Dissent). */
+        toBank: Type.Optional(Type.Enum(Suit))
+    }),
+    Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** The power that moved the advisers. */
         cardId: Type.String(),
@@ -642,6 +658,11 @@ export const QuestionAnswer = Type.Union([
     Type.Object({ kind: Type.Literal(PowerQuestionKind.WayStationFavor), give: Type.Boolean() }),
     /** The bank Hospitality gains from: one of the question's `banks`. */
     Type.Object({ kind: Type.Literal(PowerQuestionKind.HospitalityBank), suit: Type.Enum(Suit) }),
+    /** How many favor to pay from the bank, 0 for none. */
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.PayFromHomeBank),
+        favor: Type.Integer({ minimum: 0, maximum: 99 })
+    }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** R-10.5 — in the order they go down, the last on top; a facedown one is named to its holder alone. */

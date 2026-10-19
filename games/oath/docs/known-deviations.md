@@ -27,7 +27,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Bewitch:** in a game created before revision 8 (R-X.4) "(even on cards)" counts only the secrets on faceup advisers, its player's and the Chancellor's (R-7.3.3-H1).
 - **Captains, Wild Allies:** in a game created before revision 8 (R-X.4) they may name a site where no player can defend (R-5.5.1); the cost is paid and the free Campaign from there can only be given up.
 - **The Tribunal:** its exchange binds what changes hands at once, not promises of later actions (R-7.6.3-H1).
-- **Vow of Kinship:** Nomad-bank favor is always put into the People's Favor Wake, and Plague Engines and Dissent force it too; its Q&A makes it optional.
+- **Vow of Kinship:** in a game created before revision 18 (R-X.4) Nomad-bank favor is always put into the People's Favor Wake, and Plague Engines and Dissent force it too; its Q&A makes it optional (R-10.10-H1).
 - **Forced Labor:** in a game created before revision 6 (R-X.4) not charged for Oracle's draw, and before revision 3 not for an R-6.1 play either; both Q&As charge it.
 - **R-6.1:** in a game created before revision 2 (R-X.4), a facedown adviser's play takes no Search modifier, so Book of Records' holder gains favor on a site play and New Growth, Crop Rotation, Wild Cry, Bracken and Cracked Horn cannot be used on it. From revision 2 the engine applies them, but the table offers no way to declare an optional one on that play; Book of Records, being mandatory, applies by itself.
 - **Relic Hunter:** cannot put on the bottom a relic the defender held; only relics taken from sites.
