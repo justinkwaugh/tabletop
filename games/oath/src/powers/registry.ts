@@ -25,6 +25,8 @@ export interface ModifierParticulars {
     tradeOption?: string
     /** Master of Disguise — the player whose advisers a Trade acts with. */
     advisersOf?: string
+    /** Small Friends, from revision 19 (R-X.4) — the site a Trade acts as if the pawn is at. */
+    actsAsAt?: string
     /** `SearchSource`'s value. */
     drawFrom?: string
     playedCardId?: string
