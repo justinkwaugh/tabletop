@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
     TestCompanyId,
+    TestPlayerId,
     TestTrackHomeLocationId,
     minimalPlayState,
     minimalTrackMap,
@@ -24,7 +25,8 @@ function laying(
     tileSet = minimalTrackTileSet,
     valid = ['LayTile', 'FinishTrack'],
     availability = {},
-    privateActions = noPrivateAction
+    privateActions = noPrivateAction,
+    privatePowerRules: TrackSession['rules']['privatePowerRules'] = noPrivateTrack
 ) {
     const base = minimalPlayState()
     const state: TrackSession['state'] = {
@@ -48,7 +50,7 @@ function laying(
     const decisions = { selectPrivateTile: () => {}, confirm: async () => {} }
     const harness = testSession(
         state,
-        { trackRules: minimalTrackRules(tileSet), privatePowerRules: noPrivateTrack },
+        { trackRules: minimalTrackRules(tileSet), privatePowerRules },
         valid,
         availability
     )
@@ -174,6 +176,29 @@ describe('TrackModule', () => {
         expect(module.showChoices).toBe(false)
         expect(module.canBuild).toBe(false)
         expect(module.locationIds).toEqual([])
+    })
+
+    it('marks only a private power’s own locations, even when it needs no connection', () => {
+        const locationId = laying().module.locationIds[0]
+        const power = { privateCompanyId: 'P', playerId: TestPlayerId }
+        const { module } = laying(
+            minimalTrackTileSet,
+            ['LayTile', 'FinishTrack'],
+            {},
+            { ...noPrivateAction, trackPowerSelection: { value: power, source: 'manual' } },
+            {
+                ...noPrivateTrack,
+                trackTerms: () => ({
+                    companyId: TestCompanyId,
+                    locationIds: [locationId],
+                    definitionIds: ['18xx:8', '18xx:9'],
+                    payer: { kind: 'company', companyId: TestCompanyId },
+                    connected: false
+                })
+            }
+        )
+        expect(module.locationIds).toEqual([locationId])
+        expect(module.reachableLocationIds).toEqual([])
     })
 
     it('cannot build while the session is not interactive', () => {
