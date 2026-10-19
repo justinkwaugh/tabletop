@@ -47,6 +47,7 @@ export const AcquisitionSteps = [
 
 export const TransferRules1846: TransferRules = {
     charters: Charters1846,
+    companyAcquisitions: true,
     operatingCompany(state) {
         return AcquisitionSteps.some((step) => step === state.machineState)
             ? nextOperatingCompany(state)

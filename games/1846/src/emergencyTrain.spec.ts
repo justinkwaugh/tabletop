@@ -53,10 +53,22 @@ describe('1846 emergency depot purchases without personal stock sales', () => {
         expect(plan).toMatchObject({ issuedShares: 2, proceeds: 20, contribution: 60 })
         const owner = { kind: 'player' as const, playerId: table.state.activePlayerIds[0] }
         const cash = finiteCashOwnedBy(table.state, owner)
-        table.act('EmergencyBuyTrain', plan)
-        expect(finiteCashOwnedBy(table.state, owner)).toBe(cash - 60)
-        expect(finiteCashOwnedBy(table.state, treasury)).toBe(0)
-        expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(20)
+        const before = table.state
+        const result = table.act('EmergencyBuyTrain', plan)
+        // Nothing else can be bought, so the turn finishes by itself and the next round starts.
+        expect(result.processedActions.map((action) => action.type)).toEqual([
+            'EmergencyBuyTrain',
+            'FinishOperatingTurn',
+            'StartOperatingRound'
+        ])
+        const bought = table.engine.applyProcessedAction({
+            game: table.game,
+            state: before,
+            action: result.processedActions[0]
+        })
+        expect(finiteCashOwnedBy(bought, owner)).toBe(cash - 60)
+        expect(finiteCashOwnedBy(bought, treasury)).toBe(0)
+        expect(Market1846.companySpace(bought.stockMarket, 'IC').price).toBe(20)
     })
     it('cannot issue below $20; proceeds can be $10 a share', () => {
         expect(choice(buyingGame(0, 30))).toMatchObject({
@@ -109,8 +121,10 @@ describe('1846 emergency depot purchases without personal stock sales', () => {
         ).toEqual(['3/5', '4'])
         const result = table.act('EmergencyBuyTrain', choice(table, '4'))
         expect(table.state.phaseId).toBe('II')
-        expect(table.state.machineState).toBe('BuyingTrains')
         expect(result.processedActions.map((a) => a.type)).toContain('AdvancePhase')
+        expect(result.processedActions).toContainEqual(
+            expect.objectContaining({ type: 'FinishOperatingTurn', source: ActionSource.System })
+        )
     })
     it('does not mutate anything or waive the obligation when personal stock sales are needed', () => {
         const table = buyingGame(0, 20)

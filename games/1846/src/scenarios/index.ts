@@ -15,8 +15,8 @@ import {
     type Owner
 } from '@tabletop/18xx'
 import { ScenarioConfigurator, type ScenarioPosition } from '@tabletop/18xx/scenarios'
-import { Initializer } from '../setup.js'
-import { Definition, Runtime } from '../definition/gameDefinition.js'
+import { EighteenXXInitializer } from '@tabletop/18xx'
+import { Definition, Runtime, TitleRules1846 } from '../definition/gameDefinition.js'
 import {
     hydrateEighteenFortySixState,
     type HydratedEighteenFortySixState,
@@ -100,7 +100,13 @@ export const ScenarioPositions1846: readonly ScenarioPosition[] = [
     'ending'
 ]
 
-class ScenarioInitializer1846 extends Initializer {
+class ScenarioInitializer1846 extends EighteenXXInitializer<
+    typeof EighteenFortySixProjectedState,
+    HydratedEighteenFortySixState
+> {
+    constructor() {
+        super(TitleRules1846)
+    }
     override initializeGameState(
         game: Game,
         base: UninitializedGameState,

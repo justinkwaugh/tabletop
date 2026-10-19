@@ -35,10 +35,6 @@ import { inReceivership } from './receivership.js'
 import { OperatingRules1846, ValuationRules1846 } from './operating.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
-export const BankruptcyFields = {
-    bankruptPlayerIds: Type.Array(Type.String(), { uniqueItems: true })
-}
-
 export function bankruptcyShortfall(state: HydratedEighteenFortySixState): number | undefined {
     if (state.machineState !== 'FundingTrain' || !state.emergencyFunding) return undefined
     const companyId = state.emergencyFunding.companyId
@@ -206,7 +202,7 @@ export class DeclareBankruptcyAction extends HydratableAction<typeof DeclareBank
             closing = corporationAwaitingClosure(state)
         }
         reorderPendingOperatingCompanies(state, OperatingRules1846.companyOrder(state))
-        state.bankruptPlayerIds.push(this.playerId)
+        state.bankruptPlayerIds = [...(state.bankruptPlayerIds ?? []), this.playerId]
         state.turnManager.turnOrder = state.turnManager.turnOrder.filter(
             (id) => id !== this.playerId
         )

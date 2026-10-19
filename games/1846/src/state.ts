@@ -1,4 +1,3 @@
-import { BankruptcyFields } from './bankruptcy.js'
 import { EmergencyFundingFields } from './emergencyFunding.js'
 import { AcquisitionFields } from './acquisitions.js'
 import { RevenueMarkerFields } from './revenueMarkers.js'
@@ -12,6 +11,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Visibility } from '@tabletop/common'
 import {
+    CashCrisisFields,
     composeEighteenXXState,
     defineEighteenXXState,
     type HydratedEighteenXXState,
@@ -96,7 +96,7 @@ export const EighteenFortySixState = composeEighteenXXState(
         ...FinanceFields,
         ...EndingFields,
         gameEnding: Type.Optional(GameEnding),
-        ...BankruptcyFields,
+        bankruptPlayerIds: CashCrisisFields.bankruptPlayerIds,
         ...PhaseFields,
         ...AcquisitionFields,
         ...EmergencyFundingFields,
@@ -128,9 +128,8 @@ export const EighteenFortySixState = composeEighteenXXState(
         'RevealingDraft',
         'BuyingOpeningCompanies',
         'StockRound',
-        'PreparingOperatingSet',
-        'StartingOperatingRound',
-        'StartingOperatingTurn',
+        'StartingOperatingSet',
+        'OperatingSet',
         'LayingTrack',
         'AssigningSteamboat',
         'RunningTrains',
@@ -147,8 +146,7 @@ export const EighteenFortySixState = composeEighteenXXState(
         'ClosingFundingCorporation',
         'AdvancingPhase',
         'DiscardingTrains',
-        'RustingTrains',
-        'OperatingSet'
+        'RustingTrains'
     ]
 )
 export type EighteenFortySixState = Type.Static<typeof EighteenFortySixState>

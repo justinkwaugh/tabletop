@@ -237,7 +237,7 @@ export const PublicDistributionActions = [
 
 const OpeningStageStates = {
     buying: 'BuyingOpeningCompanies',
-    operating: 'PreparingOperatingSet',
+    operating: 'StartingOperatingSet',
     complete: 'StockRound'
 } as const satisfies Record<OpeningStage, string>
 

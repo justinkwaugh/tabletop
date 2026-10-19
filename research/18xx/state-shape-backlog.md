@@ -83,6 +83,8 @@ mechanism below, plus the six implemented titles.
 1. **1846 uses shared state composition.** Replace its hand-written schema and hydrated
    class with `composeEighteenXXState` and `defineEighteenXXState`, keeping its own
    runtime, handlers and visibility projector, and add its runtime-contract snapshot.
+   (Superseded on 2026-10-19: 1846 now runs on the shared runtime; see
+   [title-owned state](title-state-design.md).)
    Later changes then land once for all titles. The family validation splits into
    `validateRailwayComponents` (map stations, depot, stations, market, finances), which
    every title runs, and the operating-sequence checks of `validateRailwayState`. 1846

@@ -24,7 +24,10 @@ It reuses family financial owners, certificates, cash settlement, stations and
 train inventory. No new optional properties enter another title's state. The
 full railway runtime is deliberately not used yet: it requires operating and
 stock policies outside this slice. This is a bounded opening runtime, extendable
-with the remaining feature state and handlers when those features exist.
+with the remaining feature state and handlers when those features exist. (Since
+2026-10-19 the opening is a `createOpening` of the shared runtime, whose `begin`
+seats the table and deals the first packet; see
+[title-owned state](title-state-design.md).)
 
 Blank player cards are draft cards, never companies or financial certificates.
 Cards selected during the draft are commitments, not transferred certificates;

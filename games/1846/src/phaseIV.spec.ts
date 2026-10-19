@@ -95,7 +95,7 @@ describe('1846 Phase IV trains and lifecycle', () => {
             assertExists(phase)
             expect(phase.event.rustedTrains).toHaveLength(5)
             expect(phase.event.pendingRustTrainIds).toHaveLength(2)
-            expect(phase.removedRevenueMarkers).toEqual(before.revenueMarkers)
+            expect(phase.changes?.removedRevenueMarkers).toEqual(before.revenueMarkers)
             expect(table.state.revenueMarkers).toEqual([])
             expect(getCompany(table.state, 'MAIL').closed).not.toBe(true)
             const special = (reservation: (typeof before.stationReservations)[number]) =>
@@ -104,7 +104,9 @@ describe('1846 Phase IV trains and lifecycle', () => {
                         additional.companyId === reservation.companyId &&
                         additional.locationId === reservation.locationId
                 )
-            expect(phase.removedReservations).toEqual(before.stationReservations.filter(special))
+            expect(phase.changes?.removedReservations).toEqual(
+                before.stationReservations.filter(special)
+            )
             expect(table.state.stationReservations).toEqual(
                 before.stationReservations.filter((r) => !special(r))
             )
@@ -152,10 +154,12 @@ describe('1846 Phase IV trains and lifecycle', () => {
             ['5', 500],
             ['4/6', 450]
         ])
-        buyTrain(table, '4/6', train.id)
+        const result = buyTrain(table, '4/6', train.id)
         expect(table.state.phaseId).toBe('IV')
         expect(table.state.phaseEvents).toHaveLength(2)
-        expect(trainBuyingChoices1846(table.hydrated)?.offers).toEqual([])
+        expect(result.processedActions).toContainEqual(
+            expect.objectContaining({ type: 'FinishOperatingTurn', source: ActionSource.System })
+        )
         const inventory = TrainDepot1846.createInventory()
         const first = TrainDepot1846.nextTrain(inventory, '6')
         assertExists(first)

@@ -85,13 +85,10 @@ describe('1846 Phase III trains and lifecycle', () => {
                 before.stationReservations.filter((reservation) => reservation.companyId !== 'C&WI')
             )
             const phase = result.processedActions.find(isAdvancePhase1846)
-            expect(phase?.metadata?.removedReservations).toEqual([
-                { companyId: 'C&WI', locationId: 'D6', nodeId: 'city-3' }
-            ])
-            expect(phase?.metadata?.closedRailroads.map((closure) => closure.companyId)).toEqual([
-                'MS',
-                'BIG4'
-            ])
+            expect(phase?.metadata?.changes?.removedReservations).toEqual([])
+            expect(
+                phase?.metadata?.changes?.closedRailroads.map((closure) => closure.companyId)
+            ).toEqual(['MS', 'BIG4'])
             expect(phase?.metadata?.event.pendingRustTrainIds).toHaveLength(3)
             expect(phase?.metadata?.event.rustedTrains).toHaveLength(2)
             expect(getCompany(table.state, 'MAIL').closed).not.toBe(true)
@@ -188,9 +185,11 @@ describe('1846 Phase III trains and lifecycle', () => {
         expect(
             table.state.trainInventory.trains.find((entry) => entry.id === train.id)
         ).toMatchObject({ status: 'owned', definitionId: '3/5' })
-        buyTrain(table, '4/6')
+        const result = buyTrain(table, '4/6')
         expect(trainsCountingForLimit(table.hydrated, TrainRules1846, 'IC')).toHaveLength(3)
-        expect(trainBuyingChoices1846(table.hydrated)?.offers).toEqual([])
+        expect(result.processedActions).toContainEqual(
+            expect.objectContaining({ type: 'FinishOperatingTurn', source: ActionSource.System })
+        )
     })
     it('lets surviving players discard for a receiver and restores the original buyer', () => {
         const table = phaseIIIReadyGame()

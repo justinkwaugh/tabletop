@@ -40,8 +40,8 @@ seat-specific assets hands them out by position.
 public opening) and the draft follows the assignment. Its table order, the `players` array,
 runs the other way, so the last position holds the priority deal for the first stock
 round. 1846 still consumes its ordinary seating shuffle so removals and the deck are
-unchanged, and the title supplies the suite's seated state for its reordered `players`,
-cash rows and dealt packet.
+unchanged, and the title supplies the suite's seated state for its reordered `players`
+and dealt packet.
 
 Unchanged elsewhere: player colors and the `players` array follow `game.players`; TOP still deals
 lot piles by `players`. Pile contents are random, so which player receives which slice

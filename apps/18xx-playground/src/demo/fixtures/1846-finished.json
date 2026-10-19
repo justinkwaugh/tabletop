@@ -79,7 +79,6 @@
     "machineState": "RevealingDraft",
     "phaseId": "I",
     "phaseEvents": [],
-    "bankruptPlayerIds": [],
     "independentAcquisitions": [],
     "revenueMarkers": [],
     "usedPrivatePowerIds": [],
@@ -126,8 +125,7 @@
       "C&O",
       "PRR"
     ],
-    "bank": {
-    },
+    "bank": {},
     "companies": [
       {
         "id": "PRR",
@@ -1002,8 +1000,6 @@
           "definitionId": "2",
           "status": "depot"
         },
-        
-        
         {
           "id": "1846/4/8",
           "definitionId": "4",
@@ -1024,8 +1020,6 @@
           "definitionId": "4",
           "status": "depot"
         },
-        
-        
         {
           "id": "1846/5/14",
           "definitionId": "5",

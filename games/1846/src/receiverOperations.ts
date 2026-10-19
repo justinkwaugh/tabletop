@@ -25,7 +25,7 @@ import { inReceivership, operatingPlayers1846 } from './receivership.js'
 import { emergencyBankOffers } from './emergencyTrain.js'
 import { EarningsRules1846 } from './earnings.js'
 import { TrainRules1846 } from './trains.js'
-import { ValuationRules1846, nextOperatingState1846 } from './operating.js'
+import { ValuationRules1846 } from './operating.js'
 import { corporationAwaitingClosure } from './closeCorporation.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
@@ -51,7 +51,7 @@ export class StartReceiverTurnAction extends HydratableAction<typeof StartReceiv
     apply(state: HydratedEighteenFortySixState): void {
         assert(
             this.source === ActionSource.System &&
-                state.machineState === 'StartingOperatingTurn' &&
+                state.machineState === 'OperatingSet' &&
                 state.operatingSet?.privateIncomePaid &&
                 !state.operatingSet.completed &&
                 nextOperatingCompany(state) === this.companyId &&
@@ -229,7 +229,7 @@ export const buyingReceiverHandler: MachineStateHandler<
     },
     onAction(action, { gameState }) {
         return action instanceof FinishReceiverTurnAction
-            ? nextOperatingState1846(gameState)
+            ? 'OperatingSet'
             : gameState.phaseChange
               ? 'AdvancingPhase'
               : 'FinishingReceiverTurn'

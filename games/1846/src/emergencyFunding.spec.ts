@@ -115,9 +115,12 @@ describe('1846 personal emergency train funding', () => {
             soldCompanyIds: ['NYC']
         })
         expect(emergencyShareSaleChoices(table.hydrated)).toEqual([])
-        buy(table)
+        const bought = buy(table)
         expect(table.state.emergencyFunding).toBeUndefined()
-        expect(table.state.machineState).toBe('BuyingTrains')
+        // Nothing else can be bought, so the turn finishes by itself.
+        expect(bought.processedActions).toContainEqual(
+            expect.objectContaining({ type: 'FinishOperatingTurn', source: ActionSource.System })
+        )
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(0)
         expect(finiteCashOwnedBy(table.state, owner)).toBe(20)
         expect(trainsOwnedBy(table.state, treasury)).toHaveLength(1)
@@ -129,7 +132,6 @@ describe('1846 personal emergency train funding', () => {
         for (const action of actions.toReversed())
             replay = table.engine.undoProcessedAction({ state: replay, action })
         expect(replay).toEqual(before)
-        table.act('FinishOperatingTurn', { companyId: 'IC' })
     })
     it('cannot bypass issuance, repeat it, finish, trade, construct, or forge an emergency sale', () => {
         const { table, playerId } = fundingGame()
@@ -270,9 +272,10 @@ describe('1846 personal emergency train funding', () => {
         ])
         const result = buy(table, '4')
         expect(result.processedActions.map((action) => action.type)).toContain('AdvancePhase')
-        expect(table.state.machineState).toBe('BuyingTrains')
+        expect(result.processedActions).toContainEqual(
+            expect.objectContaining({ type: 'FinishOperatingTurn', source: ActionSource.System })
+        )
         expect(table.state.phaseId).toBe('II')
-        table.act('FinishOperatingTurn', { companyId: 'IC' })
     })
     it('allows either variant when the same sale is necessary for both', () => {
         const { table, playerId } = fundingGame(20, 140)

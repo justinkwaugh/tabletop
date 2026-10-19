@@ -19,17 +19,10 @@ function seated1846(ordinary: Setup, playerIds: readonly string[]): Setup {
             assertExists(row, `Setup has a row for ${playerId}`)
             return row
         })
-    const playerCash = (row: Setup['cash'][number]) =>
-        row.owner.kind === 'player' ? row.owner.playerId : undefined
     const draft = ordinary.draft
     return {
         ...ordinary,
         players: inTableOrder(ordinary.players, (player) => player.playerId),
-        cash: [
-            ...ordinary.cash.filter((row) => row.owner.kind === 'bank'),
-            ...inTableOrder(ordinary.cash, playerCash),
-            ...ordinary.cash.filter((row) => row.owner.kind === 'company')
-        ],
         activePlayerIds: [seatOne],
         turnManager: {
             ...ordinary.turnManager,
