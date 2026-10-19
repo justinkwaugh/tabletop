@@ -22,6 +22,7 @@
             playerId={session.myPlayer?.id}
             playerName={(id) => session.getPlayerName(id)}
             selection={session.offers.selection}
+            ownTurn={session.offers.ownTurn}
             disabled={!session.offers.canAct}
             onChoose={(id) => session.offers.select(id)}
             onBidChange={(amount) => session.offers.setBid(amount)}

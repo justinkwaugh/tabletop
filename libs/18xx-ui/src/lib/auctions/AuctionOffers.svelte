@@ -27,9 +27,9 @@
     <table class="auction-lot-table">
         <thead
             ><tr
-                ><th><span class="sr-only">Action</span></th><th>Private / share</th><th
-                    class="amount">Income</th
-                ><th class="amount">Value</th></tr
+                >{#if session.offers.ownTurn}<th><span class="sr-only">Action</span></th>{/if}<th
+                    >Private / share</th
+                ><th class="amount">Income</th><th class="amount">Value</th></tr
             ></thead
         >
         <tbody>
@@ -37,16 +37,16 @@
                 {@const info = lotInfo(lot.id)}
                 {@const token = lot.token}
                 <tr data-private-description-row>
-                    <td class="action"
-                        ><button
-                            data-description-exclude
-                            aria-label={`Offer ${lot.name}`}
-                            disabled={!session.offers.canAct ||
-                                !session.myPlayer ||
-                                !model.canOffer(session.myPlayer.id, lot.id)}
-                            onclick={() => session.offers.offerLot(lot.id)}>Offer</button
-                        ></td
-                    >
+                    {#if session.offers.ownTurn}<td class="action"
+                            ><button
+                                data-description-exclude
+                                aria-label={`Offer ${lot.name}`}
+                                disabled={!session.offers.canAct ||
+                                    !session.myPlayer ||
+                                    !model.canOffer(session.myPlayer.id, lot.id)}
+                                onclick={() => session.offers.offerLot(lot.id)}>Offer</button
+                            ></td
+                        >{/if}
 
                     <th scope="row"
                         ><div class="identity">

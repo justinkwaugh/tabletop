@@ -221,6 +221,14 @@ export class EighteenXXSession<
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
     readonly selectionAuction = new SelectionAuctionModule(this.moduleSession)
     readonly companyAuction = new CompanyAuctionModule(this.moduleSession)
+    get privateAuctionActive(): boolean {
+        return this.offers.active || this.waterfall.active || this.selectionAuction.active
+    }
+    turnPlayerId(state: State = this.gameState): string | undefined {
+        if (state.pendingPar) return state.pendingPar.playerId
+        if (!state.activePlayerIds.length) return undefined
+        return state.turnManager.currentTurn()?.playerId
+    }
     readonly privates = new PrivatesModule(this.moduleSession)
     readonly notices = new TableNotices(
         () => this.isViewingHistory || this.localHotseat,

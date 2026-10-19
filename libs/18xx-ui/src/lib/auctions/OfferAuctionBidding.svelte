@@ -71,6 +71,7 @@
           ]}
     {amount}
     increment={model.rules.increment}
+    ownTurn={session.offers.ownTurn}
     {canBid}
     canPass={session.offers.canAct}
     onChange={changeBid}

@@ -23,7 +23,11 @@ function waterfall(valid: string[], availability = {}) {
     return { ...harness, module: new WaterfallAuctionModule(harness.session) }
 }
 
-function openAuction(reservations: { playerId: string; lotId: string; amount: number }[]) {
+function openAuction(
+    reservations: { playerId: string; lotId: string; amount: number }[],
+    valid = ['PassAuction', 'BuyAuctionLot', 'ReserveBid'],
+    availability = {}
+) {
     const harness = testSession(
         {
             ...minimalPlayState(),
@@ -50,7 +54,8 @@ function openAuction(reservations: { playerId: string; lotId: string; amount: nu
                 payIncome: () => {}
             }
         },
-        ['PassAuction', 'BuyAuctionLot', 'ReserveBid']
+        valid,
+        availability
     )
     return { ...harness, module: new WaterfallAuctionModule(harness.session) }
 }
@@ -93,6 +98,26 @@ describe('WaterfallAuctionModule', () => {
         expect(waterfall(['PassAuction']).module.canAct).toBe(true)
         expect(waterfall(['OfferAuctionLot']).module.canAct).toBe(false)
         expect(waterfall(['PassAuction'], { interactive: false }).module.canAct).toBe(false)
+    })
+
+    it('is active for every player, with the turn only for the player who may pass', () => {
+        const waiting = openAuction([], []).module
+        expect(waiting.active).toBe(true)
+        expect(waiting.ownTurn).toBe(false)
+        const busy = openAuction([], undefined, { interactive: false }).module
+        expect(busy.ownTurn).toBe(true)
+        expect(busy.canAct).toBe(false)
+        expect(waterfall(['PassAuction']).module.active).toBe(false)
+    })
+
+    it('shows a staged bid only to the player whose turn it is', () => {
+        const bid = { kind: 'bid' as const, lotId: 'B', amount: 35 }
+        const own = openAuction([]).module
+        own.choice.choose('choice', bid)
+        expect(own.selection).toEqual(bid)
+        const waiting = openAuction([], []).module
+        waiting.choice.choose('choice', bid)
+        expect(waiting.selection).toBeUndefined()
     })
 
     it('refuses a bid amount before a bid is selected', () => {

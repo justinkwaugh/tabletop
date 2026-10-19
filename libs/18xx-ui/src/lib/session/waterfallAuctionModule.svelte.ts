@@ -26,14 +26,14 @@ export class WaterfallAuctionModule {
             ? new ReserveBidAuction(this.session.state, this.session.rules.auctionRules)
             : undefined
     )
+    active = $derived.by(() => !!this.model && !this.model.auction.completed)
+    ownTurn = $derived.by(() => this.session.validActionTypes.includes('PassAuction'))
     selection = $derived.by(() =>
-        !this.session.selectionsVisible || this.model?.auction.completed
+        !this.session.selectionsVisible || !this.active || !this.ownTurn
             ? undefined
             : this.choice.value('choice')
     )
-    canAct = $derived.by(
-        () => this.session.interactive && this.session.validActionTypes.includes('PassAuction')
-    )
+    canAct = $derived.by(() => this.session.interactive && this.ownTurn)
     remainingLots = $derived.by(() => {
         const model = this.model
         if (!model || model.auction.completed) return []

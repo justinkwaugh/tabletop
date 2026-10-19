@@ -42,6 +42,7 @@
     ]}
     {amount}
     increment={model.rules.increment}
+    ownTurn={auction.ownTurn}
     canBid={(value) => auction.canBid(value)}
     canPass={auction.canPass}
     onChange={changeBid}

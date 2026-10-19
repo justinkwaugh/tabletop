@@ -17,6 +17,7 @@
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
     import StandingInstruction from '../stock/StandingInstruction.svelte'
+    import TurnHeading from './TurnHeading.svelte'
     import {
         companyFocusLocations,
         companyNetworkFocusLocations
@@ -135,6 +136,10 @@
     )
     const readOnlyPosition = $derived(
         session.isViewingHistory || !session.myPlayer || !session.isMyTurn
+    )
+    const auctionShownToAll = $derived(!session.isViewingHistory && session.privateAuctionActive)
+    const auctionTurnPlayerId = $derived(
+        readOnlyPosition && auctionShownToAll ? session.turnPlayerId() : undefined
     )
     let showPhaseChart = $state(false)
     const depotState = $derived({
@@ -1117,7 +1122,7 @@
                             <PrivatePowerControls {session} />
                         {/if}
                         <section class="action-panel" aria-label="Current action">
-                            {#if readOnlyPosition}
+                            {#if readOnlyPosition && !auctionShownToAll}
                                 <PositionPanel
                                     {session}
                                     {trainColors}
@@ -1127,6 +1132,10 @@
                                         {session}
                                     />{/if}
                             {:else}
+                                {#if auctionTurnPlayerId}<TurnHeading
+                                        {session}
+                                        playerId={auctionTurnPlayerId}
+                                    />{/if}
                                 {@render actions(focusLocation, focusRoute)}
                             {/if}
                         </section>
