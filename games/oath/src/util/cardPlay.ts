@@ -405,7 +405,7 @@ export interface CardPlayResult {
     favorGained: number
     /** Book of Records */
     secretsGained: number
-    /** R-9.3 — each favor the play took before its power, the site's and a Homeland's, as its plan took them. */
+    /** R-9.3 — each favor the play took before its power, the site's and a Homeland's, as its banks gave it. */
     favorTaken: readonly FavorTake[]
     discarded: string[]
     /** R-7.3.3 */
@@ -436,6 +436,9 @@ export function playCard(
     }
     let favorGained = 0
     let secretsGained = 0
+    // R-9.3 — as the banks gave it when this card was played: Land Warden's second card is played after the kept
+    // card's power, which its plan cannot know.
+    const favorTaken: FavorTake[] = []
     let sitePower: string | undefined
     // Read before the play changes the map, as the check reads it.
     const mapChanges = playMapChanges(state, playerId, cardId, play, options)
@@ -462,10 +465,11 @@ export function playCard(
             } else {
                 // R-9.3 — component-limited; take as much as the bank holds.
                 favorGained = gainFavorFromBank(state, playerId, suit, 1)
+                favorTaken.push({ suit, gained: favorGained })
             }
 
             // R-11.2
-            sitePower = homelandPayout(state, playerId, siteId, cardId, options.reveal)
+            sitePower = homelandPayout(state, playerId, siteId, cardId, options.reveal, favorTaken)
             break
         }
 
@@ -544,7 +548,7 @@ export function playCard(
     return {
         favorGained,
         secretsGained,
-        favorTaken: mapChanges.gains?.favorTaken ?? [],
+        favorTaken,
         discarded,
         whenPlayed,
         sitePower,

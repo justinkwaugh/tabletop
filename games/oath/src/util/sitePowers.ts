@@ -10,6 +10,7 @@ import { afterRelicsTakenPersistent } from './persistent.js'
 import { takeRelic, clearSiteRelicSlot } from './relics.js'
 import { homelandLedgerKey, siteDiscardLedgerKey } from './discard.js'
 import type { HiddenReveal } from '../model/hidden.js'
+import type { FavorTake } from '../powers/registry.js'
 import { siteLockedFor } from './locked.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
@@ -100,12 +101,14 @@ export function homelandPowerFor(
     return { ...record.homeland, name: record.name, suit, barred }
 }
 
+/** R-11.2 — the Homeland's reward for a card played to its site. A favor reward's take is added to `favorTaken`. */
 export function homelandPayout(
     state: HydratedOathGameState,
     playerId: string,
     siteId: string,
     cardId: string,
-    reveal?: HiddenReveal
+    reveal?: HiddenReveal,
+    favorTaken?: FavorTake[]
 ): string | undefined {
     const homeland = homelandPowerFor(state, playerId, siteId, cardId)
     if (!homeland) return undefined
@@ -119,6 +122,7 @@ export function homelandPayout(
     switch (homeland.reward) {
         case 'favor': {
             const gained = gainFavorFromBank(state, playerId, suit, 1)
+            favorTaken?.push({ suit, gained })
             return `${name} (Homeland): gained ${gained} ${suit} favor`
         }
         case 'secret': {

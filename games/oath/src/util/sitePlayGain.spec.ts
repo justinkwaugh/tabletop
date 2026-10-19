@@ -10,7 +10,7 @@ import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { OathVisibility } from '../definition/runtime.js'
 import { openTurn, testBanners, testPlayer, testState } from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
-import { modifierUse } from '../testing/choices.js'
+import { bank, modifierUse } from '../testing/choices.js'
 import { FILLER, INN, TENTS } from '../testing/cards.js'
 import { served } from '../testing/projection.js'
 import { favorShortOf, playMapChanges, sitePlayGain, type CardPlayOptions } from './cardPlay.js'
@@ -24,6 +24,7 @@ import '../powers/index.js'
 const WOLVES = 'denizen.beast.wolves'
 const WELCOMING = 'denizen.hearth.welcoming-party'
 const LAND_WARDEN = 'denizen.hearth.land-warden'
+const FEAST = 'denizen.hearth.fabled-feast'
 const VOW = 'denizen.nomad.vow-of-kinship'
 const BOOK = 'relic.book-of-records'
 const VALLEY = 'site.fertile-valley'
@@ -162,6 +163,46 @@ describe('the banks that came up short, as the play records them (R-9.3)', () =>
         const action = resolveSearch(s, INN, { secondPlay: { cardId: WOLVES, play: SearchPlay.Site } }, [INN, WOLVES, FILLER])
         expect(action.metadata?.favorGained).toBe(1)
         expect(action.metadata?.favorShort).toEqual([{ suit: Suit.Beast, ranOut: false }])
+    })
+
+    describe("Land Warden: the second card's favor as the banks stood when it was played, after the kept card's power", () => {
+        // Fabled Feast, kept as an adviser, takes 2 favor (itself and Land Warden) from the Beast bank it names.
+        const feastThenWolves = (beast: number) => {
+            const s = board({ [Suit.Hearth]: 3, [Suit.Beast]: beast }, { dana: { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] } }, carrying(LAND_WARDEN))
+            const keptPlan = playMapChanges(s, 'dana', FEAST, SearchPlay.Adviser, { faceUp: true, carried: searchPlayModifiers(s) })
+            const secondPlan = playMapChanges(s, 'dana', WOLVES, SearchPlay.Site, { carried: searchPlayModifiers(s), earlierMapChanges: keptPlan })
+            const action = resolveSearch(
+                s,
+                FEAST,
+                { play: SearchPlay.Adviser, faceUp: true, choices: [bank(Suit.Beast)], secondPlay: { cardId: WOLVES, play: SearchPlay.Site } },
+                [FEAST, WOLVES, FILLER]
+            )
+            return { s, secondPlan, action }
+        }
+
+        it('the Feast empties the Beast bank: Wolves gains no favor and the record says the Beast bank was empty', () => {
+            const { s, secondPlan, action } = feastThenWolves(2)
+            expect(s.favorBank[Suit.Beast]).toBe(0)
+            expect(action.metadata?.favorGained).toBe(0)
+            expect(action.metadata?.favorShort).toEqual([{ suit: Suit.Beast, ranOut: false }])
+            // The plan, made before anything resolves, still counts the Beast bank as it stood.
+            expect(sitePlayGain(secondPlan)).toEqual({ favor: 1, secrets: 0 })
+        })
+
+        it('the Beast bank still holds favor after the Feast: Wolves gains 1 and nothing is short', () => {
+            const { s, action } = feastThenWolves(3)
+            expect(s.favorBank[Suit.Beast]).toBe(0)
+            expect(action.metadata?.favorGained).toBe(1)
+            expect(action.metadata?.favorShort).toBeUndefined()
+        })
+
+        it("the kept card's own empty bank is recorded as before", () => {
+            // Fabled Feast to Dana's site with the Hearth bank empty, its power on the Order bank.
+            const s = board({ [Suit.Order]: 3, [Suit.Beast]: 1 }, { dana: { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] } }, carrying(LAND_WARDEN))
+            const action = resolveSearch(s, FEAST, { choices: [bank(Suit.Order)], secondPlay: { cardId: WOLVES, play: SearchPlay.Site } }, [FEAST, WOLVES, FILLER])
+            expect(action.metadata?.favorGained).toBe(1)
+            expect(action.metadata?.favorShort).toEqual([{ suit: Suit.Hearth, ranOut: false }])
+        })
     })
 
     it('a facedown adviser played faceup to the site with its bank empty', () => {

@@ -8,6 +8,7 @@ import {
     MachineState,
     PlayFacedownAdviser,
     PlayerStatus,
+    PowerChoiceKind,
     PowerTiming,
     SearchPlay,
     SearchResolve,
@@ -25,6 +26,7 @@ const WOLVES = 'denizen.beast.wolves'
 const INN = 'denizen.hearth.wayside-inn'
 const FILLER = 'denizen.order.wrestlers'
 const LAND_WARDEN = 'denizen.hearth.land-warden'
+const FEAST = 'denizen.hearth.fabled-feast'
 
 const names = { player: (playerId: string) => ({ rhys: 'Rhys', dana: 'Dana' })[playerId] ?? playerId, site: slotLabel, seats: ['rhys', 'dana'] }
 
@@ -98,6 +100,25 @@ describe('the History of a site play names a missing or short favor (R-9.3)', ()
         expect(searchRow(state, INN, { secondPlay: { cardId: WOLVES, play: SearchPlay.Site } }, [INN, WOLVES, FILLER])).toMatch(
             /^kept Wayside Inn and played it to their site, gaining 1 favor: the Beast bank was empty; /
         )
+    })
+
+    describe("Land Warden: Fabled Feast kept as an adviser takes 2 Beast favor, then Wolves goes to the site", () => {
+        const feastThenWolves = (beast: number) => {
+            const pending = { pendingSearchModifiers: [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }] }
+            const state = table({ [Suit.Hearth]: 3, [Suit.Beast]: beast }, 'site.river', { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] }, pending)
+            const extra: Partial<SearchResolve> = { play: SearchPlay.Adviser, faceUp: true, choices: [{ kind: PowerChoiceKind.FavorBank, suit: Suit.Beast }], secondPlay: { cardId: WOLVES, play: SearchPlay.Site } }
+            return searchRow(state, FEAST, extra, [FEAST, WOLVES, FILLER])
+        }
+
+        it('the Feast empties the Beast bank: "gaining no favor: the Beast bank was empty"', () => {
+            expect(feastThenWolves(2)).toMatch(
+                /^kept Fabled Feast and played it as an adviser, gaining no favor: the Beast bank was empty: took 2 favor \(of 2 hearth cards ruled\) from the Beast bank; /
+            )
+        })
+
+        it('the Beast bank still holds favor: "gaining 1 favor"', () => {
+            expect(feastThenWolves(3)).toMatch(/^kept Fabled Feast and played it as an adviser, gaining 1 favor: took 2 favor \(of 2 hearth cards ruled\) from the Beast bank; /)
+        })
     })
 
     it('a facedown adviser played faceup to the site with its bank empty (R-6.1)', () => {

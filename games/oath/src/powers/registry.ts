@@ -85,7 +85,7 @@ export interface PlayGains {
     /**
      * R-5.1.4.I, R-11.2, R-9.3 — each favor this play takes before its power, the site's then a Homeland's, with
      * what its bank gave. This play's own: unlike the rest, Land Warden's second card does not repeat the kept
-     * card's.
+     * card's. Planned before either card's power, so the record takes what `playCard` took instead.
      */
     favorTaken: readonly FavorTake[]
     /**
