@@ -515,13 +515,15 @@ test('the last action line tells the player who ended the turn that they ended t
     await page.getByRole('button', { name: 'End turn', exact: true }).click()
     await expect.poll(() => page.evaluate(() => window.magnaGreciaSession.actions.length)).toBe(2)
 
-    const ender = await page.evaluate(() => window.magnaGreciaSession.actions.at(-1)?.playerId)
+    const ender = await page.evaluate(
+        () => window.magnaGreciaSession.actions.at(-1)?.playerId ?? ''
+    )
+    expect(ender).not.toBe('')
 
-    // As the player who ended the turn sees the game on the site.
     await page.getByRole('button', { name: 'Options', exact: true }).click()
     await page.getByText('Protected mode', { exact: true }).click()
     await page.getByRole('button', { name: 'Options', exact: true }).click()
-    await page.getByLabel('Protected view', { exact: true }).selectOption(ender!)
+    await page.getByLabel('Protected view', { exact: true }).selectOption(ender)
     await expect(page.getByText('ended your turn', { exact: true })).toBeVisible()
     await expect(page.getByText('ended their turn', { exact: true })).toHaveCount(0)
 })
