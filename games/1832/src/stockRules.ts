@@ -42,10 +42,13 @@ function withSoftLedge(saleTerms: StockRules['saleTerms']): StockRules['saleTerm
 }
 
 function withSellDown(saleTerms: StockRules['saleTerms']): StockRules['saleTerms'] {
-    return (state, companyId, shares, seller) =>
-        shares < requiredSellDown(state, companyId, seller)
+    return (state, companyId, shares, seller) => {
+        const terms = saleTerms(state, companyId, shares, seller)
+        if (typeof terms === 'string') return terms
+        return shares < requiredSellDown(state, companyId, seller)
             ? 'Sell down to 60% of this company.'
-            : saleTerms(state, companyId, shares, seller)
+            : terms
+    }
 }
 
 // A reissued share's price goes to its company (§5.11).
