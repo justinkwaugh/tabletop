@@ -16,6 +16,18 @@ function rotations(playerIds: readonly string[]): string[][] {
     return playerIds.map((_, offset) => [...playerIds.slice(offset), ...playerIds.slice(0, offset)])
 }
 
+/** The opening auction with seat one as its first actor. */
+function openingSeated(state: EighteenXXState, seatOne: string): Partial<EighteenXXState> {
+    const { openingAuction, selectionAuction, offerAuction } = state
+    return {
+        ...(openingAuction && { openingAuction: { ...openingAuction, nextPlayerId: seatOne } }),
+        ...(selectionAuction && {
+            selectionAuction: { ...selectionAuction, nominatorId: seatOne }
+        }),
+        ...(offerAuction && { offerAuction: { ...offerAuction, auctioneerId: seatOne } })
+    }
+}
+
 function finishOperatingTurn<
     Raw extends EighteenXXState,
     State extends HydratedEighteenXXState & HydratedGameState<Raw>
@@ -88,14 +100,18 @@ export function startingPositionTests<
                 [...ordinary.turnManager.turnOrder].reverse()
             ].map((playerIds) => ({ playerIds }))
         )('seats $playerIds and starts with the first position', ({ playerIds }) => {
-            const assigned = start(count, playerIds, config)
-            expect(assigned.turnManager.turnOrder).toEqual(playerIds)
-            expect(assigned.activePlayerIds).toEqual([playerIds[0]])
-            expect(assigned.turnManager.series).toEqual([
-                { type: 'turn', playerId: playerIds[0], start: 0 }
-            ])
-            expect(assigned.prng).toEqual(ordinary.prng)
-            expect(assigned.players).toEqual(ordinary.players)
+            const seatOne = playerIds[0]
+            // Seating moves only the turn order and who acts first; the rest is the ordinary setup.
+            expect(start(count, playerIds, config)).toEqual({
+                ...ordinary,
+                activePlayerIds: [seatOne],
+                turnManager: {
+                    ...ordinary.turnManager,
+                    turnOrder: playerIds,
+                    series: [{ type: 'turn', playerId: seatOne, start: 0 }]
+                },
+                ...openingSeated(ordinary, seatOne)
+            })
         })
     })
 
