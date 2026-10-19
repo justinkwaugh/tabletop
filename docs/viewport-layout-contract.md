@@ -145,7 +145,7 @@ So the contract is shared, but the shell measurement source is environment-speci
 
 - In harness mode, top safe area is now allocated in `Harness`, not in the table content area.
 - `DefaultTableLayout` now subtracts `var(--safe-area-top)` from available height instead of padding its own top.
-- `AdminPanel`, `HotseatPanel`, and `ExplorationPanel` are `44px` tall in the current implementation.
+- `AdminPanel`, `HotseatPanel`, and `ExplorationPanel` are `44px` tall in the current implementation; `HotseatPanel` adds a `44px` viewing history line in History View.
 - Contracted game view uses `ScalingWrapper` inside a bounded column instead of raw page-height scaling.
 
 ### What Currently Does Not Match the Contract

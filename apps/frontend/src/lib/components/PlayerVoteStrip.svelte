@@ -1,5 +1,9 @@
 <script lang="ts">
-    import type { GameSession, ViewedHistoryPosition } from '@tabletop/frontend-components'
+    import {
+        ViewingHistoryLine,
+        type GameSession,
+        type ViewedHistoryPosition
+    } from '@tabletop/frontend-components'
     import {
         assertExists,
         playerVoteIneligibility,
@@ -9,16 +13,12 @@
         type UndoVotePreview
     } from '@tabletop/common'
     import { Button } from 'flowbite-svelte'
-    import { ClockArrowOutline, UndoOutline } from 'flowbite-svelte-icons'
+    import { UndoOutline } from 'flowbite-svelte-icons'
     import { toast } from 'svelte-sonner'
     import { readable } from 'svelte/store'
     import { untrack } from 'svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import {
-        undoneDetail,
-        undoneSummary,
-        voteErrorMessage
-    } from '$lib/utils/playerVoteText'
+    import { undoneDetail, undoneSummary, voteErrorMessage } from '$lib/utils/playerVoteText'
 
     type Proposal =
         | { actionIndex: number; kind: 'confirm'; preview: UndoVotePreview }
@@ -87,7 +87,8 @@
     let ownVoteTarget: number | undefined
     $effect(() => {
         if (vote) {
-            ownVoteTarget = vote.initiatorPlayerId === voter?.id ? vote.targetActionIndex : undefined
+            ownVoteTarget =
+                vote.initiatorPlayerId === voter?.id ? vote.targetActionIndex : undefined
             return
         }
         if (!position) {
@@ -135,15 +136,6 @@
         return player.name
     }
 </script>
-
-{#snippet historyLine()}
-    <span class="inline-flex items-center gap-2">
-        <ClockArrowOutline class="h-4 w-4 shrink-0 text-gray-400" />
-        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400"
-            >Viewing history</span
-        >
-    </span>
-{/snippet}
 
 {#if canVote && vote}
     {@const approvals = vote.approvingPlayerIds}
@@ -218,7 +210,7 @@
             {/if}
         </span>
         {#if position}
-            <span class="line own-line">{@render historyLine()}</span>
+            <span class="line own-line"><ViewingHistoryLine /></span>
         {/if}
     </div>
 {:else if position}
@@ -255,7 +247,7 @@
             </span>
         {:else}
             {@const target = position}
-            <span class="line">{@render historyLine()}</span>
+            <span class="line"><ViewingHistoryLine /></span>
             {#if canVote && target.beyondUndoReach && target.startsWithUserAction}
                 <Button
                     size="xs"

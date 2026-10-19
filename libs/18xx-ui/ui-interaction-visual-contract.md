@@ -2136,14 +2136,9 @@ PEIR last and labels its narrow card PEIR; other card names retain their full na
 Company cards with numbered shares show certificate numbers before share counts
 in each ownership row, keeping the count in the rightmost column.
 
-History View displays a 14px cream strip of thick dark-blue horizontal dashes immediately
-above the table header, with VIEWING HISTORY centered on a solid cream label. Each dash is 18px
-wide and 6px tall with an 8px gap, vertically centered; the blue matches the dark-mode table
-background (#18212b). It spans
-the full table width, including the sidebar, in both layouts. The layout height
-accounts for the strip so the table still fits the viewport. It follows the existing session History View flag, uses
-the same colors in both themes, and disappears on return to Live View. This shared
-presentation applies across titles without changing history rules or host contracts.
+History View has no table-level indicator. The hosted site marks it above the Game UI
+for every title: the vote strip for seated games and the hotseat panel for hotseat
+games.
 
 Round interstitials expose their entire surface as a keyboard-accessible jump to
 the recorded final action, without clock icons. In History View, the current
