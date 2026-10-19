@@ -45,6 +45,7 @@ const HEARTS = 'denizen.hearth.hearts-and-minds'
 const PEACE_ENVOY = 'denizen.order.peace-envoy'
 const FIELD_PROMOTION = 'denizen.order.field-promotion'
 const BEAR_TRAPS = 'denizen.order.bear-traps'
+const MOUNTED_PATROL = 'denizen.nomad.mounted-patrol'
 const STORM_CALLER = 'denizen.nomad.storm-caller'
 const JINX = 'denizen.arcane.jinx'
 const TUTOR = 'denizen.arcane.tutor'
@@ -377,6 +378,49 @@ describe('R-5.5.5.b-H1 — Peace Envoy decides the Campaign at its declaration',
         defence.apply(s)
         expect(streams(s)).toBe(before)
         expect(defence.revealsInfo).toBe(false)
+    })
+
+    it('Mounted Patrol halves only a pool that is rolled: against Peace Envoy that defence rolls nothing and reveals nothing; without it, it rolls and reveals', () => {
+        const s = envoyTable({ revision: NOW, ann: { advisers: [adviser(MOUNTED_PATROL)] } })
+        danaAttacks([PEACE_ENVOY])().apply(s)
+        expect(ongoingCampaign(s).pendingDefenderPlans?.queue).toEqual([ANN])
+        const pool = ongoingCampaign(s).attackPool
+        const before = streams(s)
+        const defence = defends(ANN, [MOUNTED_PATROL])()
+        defence.apply(s)
+        expect(ongoingCampaign(s)).toMatchObject({ decidedVictor: 'attacker', attackPool: pool, attackRoll: [] })
+        expect(streams(s)).toBe(before)
+        expect(defence.revealsInfo).toBe(false)
+
+        const rolled = envoyTable({ revision: NOW, dana: noPlans, ann: { advisers: [adviser(MOUNTED_PATROL)] } })
+        danaAttacks([])().apply(rolled)
+        const full = ongoingCampaign(rolled).attackPool
+        const patrol = defends(ANN, [MOUNTED_PATROL])()
+        patrol.apply(rolled)
+        expect(ongoingCampaign(rolled).attackPool).toBe(Math.floor(full / 2))
+        expect(ongoingCampaign(rolled).attackRoll.length).toBeGreaterThan(0)
+        expect(patrol.revealsInfo).toBe(true)
+    })
+
+    it('the flag is all that differs: each decided step leaves the same state at revisions 16 and 17', () => {
+        const steps = (revision: number) => {
+            const defended = envoyTable({ revision, hearts: true, dana: noPlans, ann: noPlans })
+            danaAttacks([])().apply(defended)
+            const defence = defends(BEA, [HEARTS])()
+            defence.apply(defended)
+            const declared = envoyTable({ revision, ann: noPlans })
+            const declaration = danaAttacks([PEACE_ENVOY])()
+            declaration.apply(declared)
+            return {
+                states: [defended, declared].map((state) => ({ ...state.dehydrate(), oathRevision: 0 })),
+                reveals: [defence.revealsInfo, declaration.revealsInfo]
+            }
+        }
+        const now = steps(NOW)
+        const before = steps(BEFORE)
+        expect(now.states).toEqual(before.states)
+        expect(now.reveals).toEqual([false, false])
+        expect(before.reveals).toEqual([true, true])
     })
 
     it('a second defender queued after Hearts and Minds: that defence reveals, the last one does not', () => {

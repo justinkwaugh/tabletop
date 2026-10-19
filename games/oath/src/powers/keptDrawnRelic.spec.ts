@@ -115,6 +115,20 @@ describe('R-X.3(c) — keeping a drawn relic shows it to the table, so Undo stop
                 expect(s.getPlayerState('ruler').relicIds).toContain(CUP)
                 expect(kept.revealsInfo).toBe(false)
             })
+
+            it('the flag is all that differs: the keep leaves the same relics, knowledge and History at revisions 16 and 17', () => {
+                const after = (revision: number) => {
+                    const s = drawn(source, revision, ['other'])
+                    const kept = keep()
+                    kept.apply(s)
+                    return { state: { ...s.dehydrate(), oathRevision: 0 }, summary: kept.metadata?.summary, reveals: kept.revealsInfo }
+                }
+                const now = after(NOW)
+                const before = after(BEFORE)
+                expect(now.state).toEqual(before.state)
+                expect(now.summary).toBe(before.summary)
+                expect([now.reveals, before.reveals]).toEqual([true, false])
+            })
         })
     }
 })
