@@ -66,7 +66,7 @@ export class EighteenSeventeenSession extends BaseSession {
     readonly stockPanels = this.titleStockPanels<StockPanel>([
         {
             id: 'company',
-            label: 'Act for a company',
+            label: 'Company action',
             available: () => this.corporateActions.length > 0,
             held: () => !!this.gameState.stockRound.turn.corporateAction
         },

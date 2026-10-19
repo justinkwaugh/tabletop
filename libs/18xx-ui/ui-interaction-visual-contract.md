@@ -619,7 +619,7 @@ row that is routine unless it needed loans or defaulted.
 
 A title's own stock-round panels (1817's corporate actions and shorts, 1832's redemptions and
 reissues) are stock actions of their own beside Buy and Sell, offered while they have
-something for the player. "Act for a company" opens a card for each company the player may act
+something for the player. "Company action" opens a card for each company the player may act
 for, in the share cards' style: its token and price, its finances, and its actions as
 immediately committed buttons. In 1817 these are Take a loan and Buy back a share (with its
 price and the shares the market holds); once the player has acted for a company, only its card

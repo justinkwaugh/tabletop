@@ -83,7 +83,7 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly stockPanels = this.titleStockPanels<'company'>([
         {
             id: 'company',
-            label: 'Act for a company',
+            label: 'Company action',
             available: () => this.companyShareOptions.length > 0
         }
     ])
