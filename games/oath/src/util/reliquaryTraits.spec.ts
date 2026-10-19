@@ -18,7 +18,7 @@ import { BRUTAL, CARELESS, DECADENT, GREEDY, hasTrait, uncoveredTraits } from '.
 import '../powers/index.js'
 import { ongoingCampaign, required } from '../testing/required.js'
 import { buildAction } from '../testing/actions.js'
-import { modifierUse, player } from '../testing/choices.js'
+import { modifierUse, player, site } from '../testing/choices.js'
 import { FILLER, INN, TENTS } from '../testing/cards.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { RunMode, engine } from '../testing/engine.js'
@@ -297,6 +297,26 @@ describe('Careless — Trade (R-6.6.2.a)', () => {
             expect(counted(board([], {}, {}, [INN], [RETURN]), TradeOption.ForSecrets)).toBe(0)
             expect(gainedBeside(board([], {}, {}, [INN], [RETURN]), TradeOption.ForSecrets)).toBe(0)
         })
+    })
+
+    it('stays with a Chancellor who borrows advisers (Master of Disguise) or acts at a Beast site (Small Friends)', () => {
+        const SMALL_FRIENDS = 'denizen.beast.small-friends'
+        const WOLVES = 'denizen.beast.wolves'
+        const tradeWith = (s: ReturnType<typeof board>, cardId: string, modifiers: ModifierUse[]) => {
+            const action = new HydratedTrade(buildAction(Trade, { playerId: 'ruler', cardId, option: TradeOption.ForFavor, modifiers }))
+            action.apply(s)
+            return action.metadata?.favorGained ?? 0
+        }
+        const disguised = (uncovered: string[]) =>
+            tradeWith(board(uncovered, {}, {}, [INN], [DISGUISE]), INN, [modifierUse(DISGUISE, [player('other')])])
+        expect(disguised([CARELESS])).toBe(disguised([]) + 1)
+        const friends = (uncovered: string[]) =>
+            tradeWith(
+                board(uncovered, { oathRevision: OathRevision.EngineFixes15, denizensBySite: { c1: [INN], p1: [WOLVES] } }, {}, [INN], [SMALL_FRIENDS]),
+                WOLVES,
+                [modifierUse(SMALL_FRIENDS, [site('p1')])]
+            )
+        expect(friends([CARELESS])).toBe(friends([]) + 1)
     })
 })
 

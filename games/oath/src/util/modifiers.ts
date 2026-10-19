@@ -93,14 +93,20 @@ function mayDeclare(
 ): boolean {
     if (disguise === undefined) return hasAccessToCard(state, playerId, cardId)
     if (state.getPlayerState(disguise).faceupAdviserIds().includes(cardId)) return true
-    const ownOtherAdviser =
-        cardId !== MASTER_OF_DISGUISE && state.getPlayerState(playerId).isFaceupAdviser(cardId)
-    return !ownOtherAdviser && hasAccessToCard(state, playerId, cardId)
+    return !isOwnOtherAdviser(state, playerId, cardId) && hasAccessToCard(state, playerId, cardId)
+}
+
+/** Master of Disguise — "(You can't use your other advisers.)": every faceup adviser but itself. */
+function isOwnOtherAdviser(state: HydratedOathGameState, playerId: string, cardId: string) {
+    return cardId !== MASTER_OF_DISGUISE && state.getPlayerState(playerId).isFaceupAdviser(cardId)
 }
 
 /**
  * R-7.1.1 — with Small Friends acting at a site (revision 19), that site's cards stand in for the
- * pawn's own; what the player holds or rules stays in reach.
+ * pawn's own; what the player holds or rules stays in reach. Master of Disguise — "act as if you
+ * had another player's advisers instead": the named player's faceup advisers stand in for the
+ * player's own other advisers (its Q&A: "you fully replace your advisers"), so the listing is
+ * what `resolveModifiers` accepts.
  */
 function modifierCandidates(
     state: HydratedOathGameState,
@@ -113,9 +119,14 @@ function modifierCandidates(
         for (const id of state.denizensAt(siteId)) candidates.add(id)
     }
     const at = actsAsAtSite(state, playerId, action, uses)
-    return [...candidates].filter(
-        (cardId) => at === undefined || hasAccessAt(state, playerId, cardId, at)
+    const disguise = disguisedAs(action, uses)
+    const lent = disguise === undefined ? [] : state.getPlayerState(disguise).faceupAdviserIds()
+    const own = [...candidates].filter(
+        (cardId) =>
+            (at === undefined || hasAccessAt(state, playerId, cardId, at)) &&
+            (disguise === undefined || !isOwnOtherAdviser(state, playerId, cardId))
     )
+    return [...new Set([...own, ...lent])]
 }
 
 /** R-7.4 */
@@ -250,11 +261,7 @@ export function resolveModifiers(
             }
         }
         seen.add(key)
-        if (
-            disguise !== undefined &&
-            use.cardId !== MASTER_OF_DISGUISE &&
-            state.getPlayerState(playerId).isFaceupAdviser(use.cardId)
-        ) {
+        if (disguise !== undefined && isOwnOtherAdviser(state, playerId, use.cardId)) {
             return { reason: `Master of Disguise: you can't use your other advisers`, active }
         }
         // Small Friends from revision 19: its site stands in for the pawn's (Q&A: "Only the new site").
