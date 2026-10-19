@@ -960,9 +960,36 @@ function gaining(secrets: number, favor: number, short: readonly FavorShort[] = 
 }
 
 /**
- * R-5.5.7 — the spoils one step at a time: the placements (I), the relics taken and the banners
- * seized with what their seizing burned (II), the banish and the defender's burn (III), then a
- * toll the banish met. A record without the defender names them by their role.
+ * Relic Hunter — the relics sent to the bottom of the relic deck: one from the defender's board by
+ * name and whose it was; a facedown one from a site by name to the attacker alone (R-9.4).
+ */
+function bottomedClauses(
+    action: CampaignResolveVictory,
+    defender: string,
+    viewerId: string | undefined
+): string[] {
+    const held = action.bottomRelicIds ?? []
+    const facedown = action.bottomRelicSlotIds ?? []
+    const known = (action.metadata?.relicsToDeckBottom ?? []).filter((id) => !held.includes(id))
+    const sites =
+        viewerId === action.playerId && known.length === facedown.length
+            ? listed(known)
+            : facedown.length === 1
+              ? 'a facedown relic'
+              : `${facedown.length} facedown relics`
+    return [
+        ...(held.length > 0
+            ? [`put ${listed(held)} from ${defender} on the bottom of the relic deck`]
+            : []),
+        ...(facedown.length > 0 ? [`put ${sites} on the bottom of the relic deck`] : [])
+    ]
+}
+
+/**
+ * R-5.5.7 — the spoils one step at a time: the placements (I), the relics taken, those sent to the
+ * bottom of the relic deck, and the banners seized with what their seizing burned (II), the banish
+ * and the defender's burn (III), then a toll the banish met. A record without the defender names
+ * them by their role.
  */
 function describeSpoils(
     action: CampaignResolveVictory,
@@ -985,6 +1012,7 @@ function describeSpoils(
     const parts = [
         placementsClause(action.placements, action.playerId, names),
         taken.length > 0 ? `took ${listed(taken)}` : undefined,
+        ...bottomedClauses(action, defender, viewerId),
         banners.length > 0
             ? `seized ${listed(banners.map((banner) => `the ${bannerName(banner)}`))}${burning}`
             : undefined,

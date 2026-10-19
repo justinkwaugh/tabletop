@@ -253,7 +253,7 @@ describe('the spoils one step at a time', () => {
         expect(sent).toHaveBeenCalledWith(
             [{ siteId: 'c1', owner: ME, count: 1 }],
             false,
-            [RELIC_SLOT],
+            { bottomRelicSlotIds: [RELIC_SLOT], bottomRelicIds: [] },
             undefined,
             false
         )
@@ -276,7 +276,7 @@ describe('the spoils one step at a time', () => {
         expect(sent).toHaveBeenCalledWith(
             [{ siteId: 'c1', owner: ME, count: 2 }],
             false,
-            [],
+            { bottomRelicSlotIds: [], bottomRelicIds: [] },
             undefined,
             false
         )
@@ -308,7 +308,7 @@ describe('the spoils one step at a time', () => {
         expect(sent).toHaveBeenCalledWith(
             [{ siteId: 'c1', owner: ME, count: 1 }],
             true,
-            [],
+            { bottomRelicSlotIds: [], bottomRelicIds: [] },
             'c2',
             false
         )
@@ -389,7 +389,7 @@ describe('R-5.5.7.III, R-11.7 — banishing from a Shrouded Wood', () => {
         spoils.letWoodRulerChoose()
         expect(spoils.step).toBe('favor')
         await spoils.takeSpoils(false)
-        expect(sent).toHaveBeenCalledWith([], false, [], undefined, true)
+        expect(sent).toHaveBeenCalledWith([], false, { bottomRelicSlotIds: [], bottomRelicIds: [] }, undefined, true)
     })
 })
 
@@ -745,7 +745,7 @@ describe('R-5.5.7.III — banishing the defeated pawn', () => {
         spoils.banishTo('c2')
         expect(spoils.banishSite).toBe('c2')
         await spoils.takeSpoils(false)
-        expect(sent).toHaveBeenCalledWith([], false, [], 'c2', false)
+        expect(sent).toHaveBeenCalledWith([], false, { bottomRelicSlotIds: [], bottomRelicIds: [] }, 'c2', false)
     })
 })
 

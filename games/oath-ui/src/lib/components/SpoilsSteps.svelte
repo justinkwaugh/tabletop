@@ -10,6 +10,7 @@
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { warbandFigure } from '$lib/images/pieceImages.js'
     import { favorToken } from '$lib/images/tileImages.js'
+    import type { RelicRow } from '$lib/model/battleDrafts.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { cardName, plural, siteName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -40,9 +41,10 @@
         return `Place ${plural(n, 'warband')} at ${siteName(gameState, siteId)}${whose}`
     }
 
-    // R-9.4 — a relic the attacker has not seen is drawn by its back, with no magnifier.
-    function relicPicture(slotId: string): { src: string; cardId?: string; label: string } {
-        const known = gameSession.knownRelicAt(slotId)
+    // R-9.4 — a relic the attacker has not seen is drawn by its back, with no magnifier; one from
+    // the defender's board was faceup there.
+    function relicPicture(row: RelicRow): { src: string; cardId?: string; label: string } {
+        const known = row.kind === 'held' ? row.cardId : gameSession.knownRelicAt(row.slotId)
         const src = known ? cardImage(known) : undefined
         return known && src
             ? { src, cardId: known, label: cardName(known) }
@@ -111,9 +113,9 @@
     </div>
 {:else if spoils.step === 'relics'}
     <div class="flex flex-col gap-1.5" role="list" aria-label="Relics taken">
-        {#each spoils.relicTargets as slotId (slotId)}
-            {@const relic = relicPicture(slotId)}
-            {@const choice = spoils.relicChoice(slotId)}
+        {#each spoils.relicRows as row (row.key)}
+            {@const relic = relicPicture(row)}
+            {@const choice = spoils.relicChoice(row.key)}
             <div
                 role="listitem"
                 class="flex w-fit max-w-full items-center gap-x-3.5 gap-y-2 rounded-md bg-oath-surface-raised px-2 py-1.5
@@ -128,13 +130,13 @@
                         pressed={choice === 'keep'}
                         width={relicWidth}
                         disabled={busy}
-                        onclick={() => spoils.setRelic(slotId, false)}>Keep it</SpoilsOption
+                        onclick={() => spoils.setRelic(row.key, false)}>Keep it</SpoilsOption
                     >
                     <SpoilsOption
                         pressed={choice === 'bottom'}
                         width={relicWidth}
                         disabled={busy}
-                        onclick={() => spoils.setRelic(slotId, true)}
+                        onclick={() => spoils.setRelic(row.key, true)}
                         >Bottom of the relic deck</SpoilsOption
                     >
                 </span>

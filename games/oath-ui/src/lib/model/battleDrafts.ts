@@ -8,6 +8,7 @@ import {
     HydratedCampaignSacrifice,
     HydratedCampaignSkullLosses,
     MachineState,
+    attackerBottomsTakenRelics,
     countOf,
     defeatPickMatters,
     forceTotal,
@@ -38,6 +39,13 @@ import type { OathGameSession } from './session.svelte.js'
 
 /** Keyed by site, then by warband owner. */
 type PlaceCounts = Record<string, Partial<Record<WarbandOwner, number>>>
+
+/** Relic Hunter — a relic taken: a facedown one from a site, by its slot, or one from the defender's board. */
+export type RelicRow =
+    { kind: 'site'; key: string; slotId: string } | { kind: 'held'; key: string; cardId: string }
+
+/** Relic Hunter — the relics the victory sends to the bottom of the relic deck. */
+export type RelicBottoms = { bottomRelicSlotIds: string[]; bottomRelicIds: string[] }
 
 /** R-5.5.7.III, R-11.7 — the defeated pawn left, banished to a site, or left to the Wood's ruler. */
 type PawnChoice = { kind: 'leave' } | { kind: 'site'; siteId: string } | { kind: 'wood' }
@@ -93,7 +101,7 @@ export class VictoryDraft implements PanelDraft {
         if (!this.playerId) return []
         const steps: SpoilsStep[] = []
         if (this.warbandRows.length > 0) steps.push('warbands')
-        if (this.relicTargets.length > 0) steps.push('relics')
+        if (this.relicRows.length > 0) steps.push('relics')
         if (this.banishSites.length > 0 || this.woodChooses) steps.push('pawn')
         if (this.mayBurnFavor) steps.push('favor')
         return steps
@@ -132,7 +140,7 @@ export class VictoryDraft implements PanelDraft {
     get nextShown(): boolean {
         if (this.isLastStep) return false
         if (this.step === 'warbands') return true
-        return this.step === 'relics' && this.relicTargets.length > 1 && this.relicsChosen
+        return this.step === 'relics' && this.relicRows.length > 1 && this.relicsChosen
     }
 
     next(): void {
@@ -286,34 +294,50 @@ export class VictoryDraft implements PanelDraft {
         if (this.warbandRows.length === 1 && !this.isLastStep) this.flow.set('warbands', true)
     }
 
-    // Relic Hunter — "you may put any relics you take on the bottom of the relic deck".
-    get relicTargets() {
-        return this.targets.flatMap((t) =>
-            t.kind === CampaignTargetKind.SiteRelic ? [t.slotId] : []
-        )
+    // Relic Hunter — "you may put any relics you take on the bottom of the relic deck": a facedown
+    // relic at a site, and, when the attacker used it, a relic taken from the defender's board.
+    get relicRows(): RelicRow[] {
+        const campaign = this.session.gameState.campaign
+        const held =
+            campaign !== undefined &&
+            this.playerId !== undefined &&
+            attackerBottomsTakenRelics(this.session.gameState, campaign)
+        return this.targets.flatMap((t): RelicRow[] => {
+            if (t.kind === CampaignTargetKind.SiteRelic) {
+                return [{ kind: 'site', key: t.slotId, slotId: t.slotId }]
+            }
+            if (t.kind === CampaignTargetKind.Relic && held) {
+                return [{ kind: 'held', key: t.cardId, cardId: t.cardId }]
+            }
+            return []
+        })
     }
 
     /** Keep it or the bottom of the relic deck; none until tapped. */
-    relicChoice(slotId: string): 'keep' | 'bottom' | undefined {
-        return this.relicTargets.includes(slotId)
-            ? this.flow.value('relicPicks')?.[slotId]
+    relicChoice(key: string): 'keep' | 'bottom' | undefined {
+        return this.relicRows.some((row) => row.key === key)
+            ? this.flow.value('relicPicks')?.[key]
             : undefined
     }
 
     private get relicsChosen(): boolean {
-        return this.relicTargets.every((slotId) => this.relicChoice(slotId) !== undefined)
+        return this.relicRows.every((row) => this.relicChoice(row.key) !== undefined)
     }
 
-    get bottomSlots() {
-        return this.relicTargets.filter((slotId) => this.relicChoice(slotId) === 'bottom')
+    get bottoms(): RelicBottoms {
+        const down = this.relicRows.filter((row) => this.relicChoice(row.key) === 'bottom')
+        return {
+            bottomRelicSlotIds: down.flatMap((row) => (row.kind === 'site' ? [row.slotId] : [])),
+            bottomRelicIds: down.flatMap((row) => (row.kind === 'held' ? [row.cardId] : []))
+        }
     }
 
     /** One relic's choice; with one relic the tap is the step's choice and moves on, unless it is the last. */
-    setRelic(slotId: string, bottom: boolean): void {
-        if (this.step !== 'relics' || !this.relicTargets.includes(slotId)) return
+    setRelic(key: string, bottom: boolean): void {
+        if (this.step !== 'relics' || !this.relicRows.some((row) => row.key === key)) return
         const choice: 'keep' | 'bottom' = bottom ? 'bottom' : 'keep'
-        this.flow.set('relicPicks', { ...this.flow.value('relicPicks'), [slotId]: choice })
-        if (this.relicTargets.length === 1 && !this.isLastStep) this.flow.set('relics', true)
+        this.flow.set('relicPicks', { ...this.flow.value('relicPicks'), [key]: choice })
+        if (this.relicRows.length === 1 && !this.isLastStep) this.flow.set('relics', true)
     }
 
     /** R-11.7 — the defeated pawn stands at a Shrouded Wood whose enemy ruler chooses where it goes. */
@@ -402,7 +426,8 @@ export class VictoryDraft implements PanelDraft {
                 placements: this.placements,
                 burnFavor: false,
                 banishToSiteId: this.banishSite,
-                banish: this.banishByWood || undefined
+                banish: this.banishByWood || undefined,
+                ...this.bottoms
             }
         )
     }
@@ -426,7 +451,7 @@ export class VictoryDraft implements PanelDraft {
         await this.session.resolveCampaignVictory(
             this.placements,
             burnFavor,
-            this.bottomSlots,
+            this.bottoms,
             this.banishSite,
             this.banishByWood
         )

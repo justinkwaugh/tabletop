@@ -190,6 +190,7 @@ export type TableName =
     | 'wonOutright'
     | 'spoils'
     | 'spoilsRelicHunter'
+    | 'spoilsRelicHunterDrum'
     | QuestionTableName
     | 'warbandGiveAsked'
     | 'offerCitizenship'
@@ -1940,7 +1941,7 @@ function sacrificeSplitTable(onBoard: number, atSite: number): PlayedTable {
  * R-5.5.7, Relic Hunter — the spoils of the same battle when 'att' took the top two Provinces
  * sites and the relic lying at the first (seen, as the targeted relics are), but not the pawn.
  */
-function spoilsRelicHunterTable(): PlayedTable {
+function spoilsRelicHunterState(): HydratedOathGameState {
     const state = battleState('spoils')
     const [first, second] = mapSlotsFor(Region.Provinces)
     const slotId = `${first}.relic.0`
@@ -1954,6 +1955,28 @@ function spoilsRelicHunterTable(): PlayedTable {
         { kind: CampaignTargetKind.Site, siteId: first },
         { kind: CampaignTargetKind.Site, siteId: second },
         { kind: CampaignTargetKind.SiteRelic, slotId }
+    ]
+    // A facedown relic is targeted only with Relic Hunter declared, so it is the attacker's plan.
+    campaign.plansUsedBy = { att: ['denizen.order.relic-hunter'] }
+    return state
+}
+
+function spoilsRelicHunterTable(): PlayedTable {
+    return tableOf(spoilsRelicHunterState())
+}
+
+/**
+ * Relic Hunter's "any relics you take" — the same spoils with 'def''s Dragonskin Drum taken too:
+ * their pawn is at the attacker's site, so the Drum could be targeted (R-5.5.2).
+ */
+function spoilsRelicHunterDrumTable(): PlayedTable {
+    const state = spoilsRelicHunterState()
+    state.getPlayerState('def').relicIds = ['relic.dragonskin-drum']
+    const campaign = state.campaign
+    assertExists(campaign, 'The battle is fought mid-Campaign')
+    campaign.targets = [
+        ...campaign.targets,
+        { kind: CampaignTargetKind.Relic, cardId: 'relic.dragonskin-drum' }
     ]
     return tableOf(state)
 }
@@ -5007,6 +5030,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     wonOutright: () => battleTable('wonOutright'),
     spoils: () => battleTable('spoils'),
     spoilsRelicHunter: spoilsRelicHunterTable,
+    spoilsRelicHunterDrum: spoilsRelicHunterDrumTable,
     ...QUESTION_TABLES,
     oathkeeperTie: oathkeeperTieTable,
     tavernSongs: tavernSongsTable,
@@ -5261,6 +5285,7 @@ export function tableFacts(): {
     secretsOn: Record<string, number>
     discardPiles: Record<Region, number>
     darkestSecret: number
+    relicsOf: Record<string, string[]>
 } {
     const table = current()
     const state = table.gameState
@@ -5283,7 +5308,10 @@ export function tableFacts(): {
             Object.entries(state.cardTokens).map(([cardId, tokens]) => [cardId, tokens.secrets])
         ),
         discardPiles: state.discardPileCounts,
-        darkestSecret: state.banners[Banner.DarkestSecret].value
+        darkestSecret: state.banners[Banner.DarkestSecret].value,
+        relicsOf: Object.fromEntries(
+            state.players.map((player) => [player.playerId, player.relicIds])
+        )
     }
 }
 
