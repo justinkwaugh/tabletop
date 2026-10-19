@@ -152,4 +152,47 @@ describe("Napoleon's Triumph hidden blocks", () => {
         expect(state.corpsUnits('langeron').every((unit) => unit.shown === undefined)).toBe(true)
         expect(state.unit(loner?.id ?? '').shown).toEqual(loner?.face)
     })
+
+    it('keeps blocks standing together seen when the opponent has seen them all with the same face', () => {
+        const game = new TestGame()
+        game.deployBoth()
+        game.arrange((state) => {
+            const [first, second] = state.corpsUnits('bagration')
+            for (const unit of state.corpsUnits('bagration')) {
+                if (unit !== first && unit !== second) {
+                    state.detach(unit)
+                    unit.position = { locale: 68 }
+                }
+            }
+            first.face = cavalry(2)
+            second.face = cavalry(2)
+            state.revealAll([first, second])
+        })
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        expect(game.hydrated.corpsUnits('bagration').map((unit) => unit.shown)).toEqual([
+            cavalry(2),
+            cavalry(2)
+        ])
+    })
+
+    it('forgets blocks standing together the opponent has seen with different faces', () => {
+        const game = new TestGame()
+        game.deployBoth()
+        game.arrange((state) => {
+            const [first, second] = state.corpsUnits('bagration')
+            for (const unit of state.corpsUnits('bagration')) {
+                if (unit !== first && unit !== second) {
+                    state.detach(unit)
+                    unit.position = { locale: 68 }
+                }
+            }
+            first.face = cavalry(2)
+            second.face = infantry(2)
+            state.revealAll([first, second])
+        })
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        expect(
+            game.hydrated.corpsUnits('bagration').every((unit) => unit.shown === undefined)
+        ).toBe(true)
+    })
 })
