@@ -33,8 +33,8 @@ export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoS
     privatePurchaseHeading: 'Available privates',
     privateTokens: { P7: { companyId: 'CG' } },
     gameFacts: (state) => [
-        { label: 'WVCF tokens left', value: String(CoalTokens - state.coalRights.length) },
-        ...(miamiFirstRun(state) ? [{ label: 'Miami', value: '$0 on its first run' }] : [])
+        { label: 'Coal', value: String(CoalTokens - state.coalRights.length) },
+        ...(miamiFirstRun(state) ? [{ label: 'Miami', value: '$0' }] : [])
     ],
     companyFacts: (state, companyId) => [
         ...systemFacts(state, companyId),

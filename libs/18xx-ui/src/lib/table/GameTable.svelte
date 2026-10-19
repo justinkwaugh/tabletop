@@ -942,7 +942,7 @@
         {#each session.presentation.gameFacts?.(session.gameState) ?? [] as fact (fact.label)}
             <span class="game-information-item">
                 <span class="information-label">{fact.label}</span>
-                <span>{fact.value}</span>
+                <span class="information-value">{fact.value}</span>
             </span>
         {/each}
     </button>
@@ -1645,7 +1645,8 @@
         text-align: center;
         line-height: 10px;
     }
-    .train-limit-value {
+    .train-limit-value,
+    .information-value {
         font-size: 16px;
         font-weight: 700;
         line-height: 20px;
