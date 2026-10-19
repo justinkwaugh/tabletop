@@ -16,6 +16,8 @@ import {
     PowerChoiceKind,
     availableImperialWarbands,
     availablePeoplesFavorOptions,
+    peoplesFavorStepCount,
+    peoplesFavorStepIsOptional,
     availableSitePowerTakes,
     banksWithLeastFavor,
     canUseSitePower,
@@ -115,11 +117,13 @@ abstract class OneStepDraft<V> implements PanelDraft {
 }
 
 export type FavorStepKind = 'place' | 'return'
+/** Vow of Kinship's Q&A — a place only its bank would pay may be left: "none" (R-10.10-H1). */
+export type FavorStepAnswer = FavorStepKind | 'none'
 type SiteTake = OpportunityTake | 'nothing'
 type WakeValueByStage = {
-    firstKind: FavorStepKind
+    firstKind: FavorStepAnswer
     firstBank: Suit
-    secondKind: FavorStepKind
+    secondKind: FavorStepAnswer
     secondBank: Suit
     siteTake: SiteTake
 }
@@ -136,16 +140,16 @@ const FAVOR_STEP_STAGES = [
 
 /** The one Wake choice on screen: a People's Favor step, the bank of its return, or the site's take. */
 export type WakeQuestion =
-    | { kind: 'favorStep'; index: number; options: FavorStepKind[] }
+    | { kind: 'favorStep'; index: number; options: FavorStepAnswer[] }
     | { kind: 'returnBank'; index: number; banks: Suit[]; counts: Record<Suit, number> }
     | { kind: 'siteTake'; takes: OpportunityTake[] }
 
 type FavorStepView = {
-    options: FavorStepKind[]
+    options: FavorStepAnswer[]
     leastBanks: Suit[]
     /** Each bank's favor as the steps before this one leave it: what `leastBanks` is judged on. */
     bankCounts: Record<Suit, number>
-    kind?: FavorStepKind
+    kind?: FavorStepAnswer
     step?: WakeFavorStep
 }
 
@@ -171,14 +175,15 @@ export class WakeDraft implements PanelDraft {
             : undefined
     }
 
-    // R-4.1.1 is mandatory for the holder alone; `requiredFavorSteps` counts the steps the
-    // holder is able to take (R-9.2.a) without asking who holds it.
+    // R-4.1.1 is for the holder alone: the steps they could take. `requiredFavorSteps` counts those
+    // they must (R-9.2.a); a place the Vow of Kinship's bank would pay may also be taken.
     get stepCount(): number {
         const playerId = this.playerId
-        return playerId !== undefined &&
-            bannerHolder(this.session.gameState, Banner.PeoplesFavor) === playerId
-            ? requiredFavorSteps(this.session.gameState, playerId)
-            : 0
+        const state = this.session.gameState
+        if (playerId === undefined || bannerHolder(state, Banner.PeoplesFavor) !== playerId) return 0
+        return usableFavor(state, playerId) > 0
+            ? peoplesFavorStepCount(state)
+            : requiredFavorSteps(state, playerId)
     }
 
     private stagesOf(index: number) {
@@ -195,8 +200,11 @@ export class WakeDraft implements PanelDraft {
         const rehearsal = new HydratedOathGameState(this.session.gameState.dehydrate())
         const views: FavorStepView[] = []
         for (const index of range(0, this.stepCount)) {
-            const options = availablePeoplesFavorOptions(rehearsal, playerId)
-            if (options.length === 0) break
+            const able = availablePeoplesFavorOptions(rehearsal, playerId)
+            if (able.length === 0) break
+            const options: FavorStepAnswer[] = peoplesFavorStepIsOptional(rehearsal, playerId)
+                ? [...able, 'none']
+                : able
             const leastBanks = banksWithLeastFavor(rehearsal)
             const bankCounts = { ...rehearsal.favorBank }
             const stages = this.stagesOf(index)
@@ -221,6 +229,7 @@ export class WakeDraft implements PanelDraft {
                       ? { kind, toSuit: bank }
                       : undefined
             views.push({ options, leastBanks, bankCounts, kind, step })
+            // A step left leaves the banner as it was, so nothing more is asked.
             if (!step) break
             applyPeoplesFavorStep(rehearsal, playerId, step)
         }
@@ -252,7 +261,7 @@ export class WakeDraft implements PanelDraft {
 
     get question(): WakeQuestion | undefined {
         const steps = this.steps
-        const open = steps.findIndex((view) => view.step === undefined)
+        const open = steps.findIndex((view) => view.step === undefined && view.kind !== 'none')
         const view = steps[open]
         if (view) {
             return view.kind === 'return'
@@ -303,7 +312,7 @@ export class WakeDraft implements PanelDraft {
         )
     }
 
-    async chooseKind(kind: FavorStepKind): Promise<void> {
+    async chooseKind(kind: FavorStepAnswer): Promise<void> {
         const question = this.question
         if (question?.kind !== 'favorStep' || !question.options.includes(kind)) return
         this.flow.set(this.stagesOf(question.index).kind, kind)

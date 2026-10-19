@@ -103,6 +103,7 @@ import {
 } from './woodCardsTable.js'
 import { woodPickTable } from './woodPicksTable.js'
 import { heldAttackTable } from './heldAttackTable.js'
+import { kinshipDissentTable, kinshipPlagueTable, kinshipWakeTable } from './kinshipTables.js'
 import { RecordedStory } from './recordedStory.js'
 
 export type TableName =
@@ -127,6 +128,9 @@ export type TableName =
     | 'wakeMobReturn'
     | 'wakeSite'
     | 'wakeForced'
+    | 'kinshipWake'
+    | 'kinshipPlague'
+    | 'kinshipDissent'
     | 'endOfRound'
     | 'goalsRail'
     | 'goalsRailThePeople'
@@ -4852,6 +4856,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     wakeMobReturn: () => wakeTable('mobReturn'),
     wakeSite: () => wakeTable('site'),
     wakeForced: () => wakeTable('forced'),
+    kinshipWake: kinshipWakeTable,
+    kinshipPlague: kinshipPlagueTable,
+    kinshipDissent: kinshipDissentTable,
     endOfRound: endOfRoundTable,
     goalsRail: () => goalsRailTable(),
     goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),

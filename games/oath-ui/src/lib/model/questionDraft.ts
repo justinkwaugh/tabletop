@@ -8,6 +8,8 @@ import {
     adviserLimitDiscardCount,
     adviserLimitDiscards,
     banksWithFavor,
+    favorHomeBankOf,
+    homeBankPayable,
     cagePurpleChoiceBoards,
     cardPower,
     countOf,
@@ -58,6 +60,7 @@ import type { OathGameSession } from './session.svelte.js'
 // Only the stages of the open question's kind are ever set.
 type QuestionValueByStage = {
     burn: number
+    homeBankPay: number
     floorWith: string
     floorTerms: ExchangePicks
     conspiracyPlay: ConspiracyStepPlay
@@ -74,6 +77,7 @@ type QuestionValueByStage = {
 
 const QUESTION_STAGE_ORDER = [
     'burn',
+    'homeBankPay',
     'floorWith',
     'floorTerms',
     'conspiracyPlay',
@@ -145,6 +149,22 @@ export class QuestionDraft implements PanelDraft {
     /** Revelation's count, from 1; none until the player picks one ("None" sends 0). */
     get burn(): number | undefined {
         return this.question ? this.flow.value('burn') : undefined
+    }
+
+    /** Vow of Kinship — the count to pay from its bank, from 1; none until picked ("None" sends 0). */
+    get homeBankPay(): number | undefined {
+        return this.question ? this.flow.value('homeBankPay') : undefined
+    }
+
+    /** Vow of Kinship — the bank the asked player pays from, and the most it can pay now. */
+    get homeBank(): { suit: Suit; payable: number } | undefined {
+        const question = this.mine
+        if (question?.kind !== PowerQuestionKind.PayFromHomeBank) return undefined
+        const state = this.session.gameState
+        const suit = favorHomeBankOf(state, question.askedPlayerId)
+        return suit === undefined
+            ? undefined
+            : { suit, payable: homeBankPayable(state, question.askedPlayerId, question.owed) }
     }
 
     get floorCandidates(): string[] {
@@ -389,6 +409,8 @@ export class QuestionDraft implements PanelDraft {
         switch (question.kind) {
             case PowerQuestionKind.BurnFavorForSecrets:
                 return this.burn !== undefined
+            case PowerQuestionKind.PayFromHomeBank:
+                return this.homeBankPay !== undefined
             case PowerQuestionKind.DiscardInstead:
                 return this.instead !== undefined
             case PowerQuestionKind.GatheringFloor:
@@ -754,6 +776,12 @@ export class QuestionDraft implements PanelDraft {
                 assertExists(favor, 'Burning needs the count picked')
                 return { kind: question.kind, favor }
             }
+            case PowerQuestionKind.PayFromHomeBank: {
+                if (!yes) return { kind: question.kind, favor: 0 }
+                const favor = this.homeBankPay
+                assertExists(favor, 'Paying needs the count picked')
+                return { kind: question.kind, favor }
+            }
             case PowerQuestionKind.PayOrLoseRelic:
                 return { kind: question.kind, pay: yes }
             case PowerQuestionKind.Exchange:
@@ -818,6 +846,13 @@ export class QuestionDraft implements PanelDraft {
         if (this.question?.kind !== PowerQuestionKind.BurnFavorForSecrets) return
         if (favor < 1) this.flow.clearFrom('burn')
         else this.flow.set('burn', favor)
+    }
+
+    /** Vow of Kinship's count from its bank; 0 picks none again ("None" is the answer that sends 0). */
+    setHomeBankPay(favor: number): void {
+        if (this.question?.kind !== PowerQuestionKind.PayFromHomeBank) return
+        if (favor < 1) this.flow.clearFrom('homeBankPay')
+        else this.flow.set('homeBankPay', favor)
     }
 
     chooseFloorWith(playerId: string | undefined): void {

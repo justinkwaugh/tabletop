@@ -1440,3 +1440,26 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
         })
     })
 })
+
+describe('Vow of Kinship — what its holder paid from the Nomad bank, its own row after the power', () => {
+    const PLAGUE = 'denizen.arcane.plague-engines'
+    const DISSENT = 'denizen.discord.dissent'
+    const paid = (cardId: string, favor: number, summary: string) =>
+        action({ type: ActionType.AnswerQuestion, playerId: 'p2', answer: { kind: PowerQuestionKind.PayFromHomeBank, favor }, metadata: { cardId, kind: PowerQuestionKind.PayFromHomeBank, summary, resumeMachineState: MachineState.ActPhase, last: true } })
+
+    it('Plague Engines: the count from the Nomad bank into the Arcane bank, or none', () => {
+        const line = describeAction(paid(PLAGUE, 2, 'paid 2 favor from the nomad bank into the arcane bank'), nameOf, 'p1')
+        expect(line).toBe('Plague Engines: paid 2 favor from the Nomad bank into the Arcane bank')
+        expect(tokenParts(line).filter((part) => part.kind === 'suit')).toEqual([
+            { kind: 'suit', suit: Suit.Nomad, bank: true },
+            { kind: 'suit', suit: Suit.Arcane, bank: true }
+        ])
+        expect(describeAction(paid(PLAGUE, 0, 'paid no favor'), nameOf, 'p1')).toBe('Plague Engines: paid no favor')
+    })
+
+    it('Dissent: the count from the Nomad bank onto the card', () => {
+        expect(describeAction(paid(DISSENT, 1, 'paid 1 favor from the nomad bank onto it'), nameOf, 'p1')).toBe(
+            'Dissent: paid 1 favor from the Nomad bank onto it'
+        )
+    })
+})

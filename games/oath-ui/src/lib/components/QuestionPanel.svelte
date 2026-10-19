@@ -85,6 +85,31 @@
             </div>
             <QuestionYesNo yes="Burn" no="None" />
         </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.PayFromHomeBank}
+        <!-- Vow of Kinship: what the board left owing, from its bank only as the player chooses. -->
+        {@const home = draft.homeBank}
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}<TokenText
+                    text="Pay how many favor from {home
+                        ? `the ${suitName(home.suit)} bank`
+                        : 'your bank'}?"
+                />{/snippet}
+            <!-- The payable favor; the picked ones are placed, so they are ringed gold. -->
+            {@const paying = draft.homeBankPay ?? 0}
+            <div class="mb-2">
+                <TokenRow
+                    image={favorToken()}
+                    held={home?.payable ?? 0}
+                    addable={home?.payable ?? 0}
+                    picked={paying}
+                    label={(n) => `pay ${n} favor`}
+                    ontap={(n) => draft.setHomeBankPay(tappedCount(paying, n))}
+                    tone="gold"
+                    {busy}
+                />
+            </div>
+            <QuestionYesNo yes="Pay" no="None" />
+        </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.PayOrLoseRelic}
         <QuestionForm cardId={mine.relicCardId}>
             {#snippet line()}Pay <PlayerName playerId={mine.takerPlayerId} />
