@@ -11,10 +11,12 @@
     } from '@tabletop/magna-grecia'
     import { PlayerName } from '@tabletop/frontend-components'
     import { plural, resupplyText } from '$lib/utils/historyTurns.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
         $props()
 
+    const gameSession = getGameSession()
     const oracleChanges: OracleChange[] = $derived(
         isPlaceRoad(action) || isPlaceCity(action) ? (action.metadata?.oracleChanges ?? []) : []
     )
@@ -54,7 +56,7 @@
     {:else if isSellMarket(action)}
         <span>sold a market for {plural(action.metadata?.value ?? 0, 'point')}</span>
     {:else if isEndTurn(action)}
-        <span>ended their turn</span>
+        <span>ended {action.playerId === gameSession.myPlayer?.id ? 'your' : 'their'} turn</span>
     {:else}
         <span>{action.type}</span>
     {/if}
