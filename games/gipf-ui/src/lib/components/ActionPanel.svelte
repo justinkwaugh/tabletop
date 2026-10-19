@@ -39,7 +39,7 @@
 <div class="panel">
     {#if session.isViewingHistory || !prompt}
         {#if lastEntry}
-            <HistoryEntryLine entry={lastEntry} />
+            <HistoryEntryLine entry={lastEntry} brief />
         {:else}
             <span>{session.isViewingHistory ? 'The game begins' : 'Waiting for turn'}</span>
         {/if}

@@ -4,7 +4,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PieceIcon from './PieceIcon.svelte'
 
-    let { entry }: { entry: HistoryEntry } = $props()
+    let { entry, brief = false }: { entry: HistoryEntry; brief?: boolean } = $props()
 
     const session = getGameSession()
 
@@ -12,7 +12,7 @@
         entry.playerId === session.myPlayer?.id ? 'You' : session.getPlayerName(entry.playerId)
     )
     const color = $derived(session.gameState.getPlayerState(entry.playerId).color)
-    const segments = $derived(entrySegments(entry))
+    const segments = $derived(entrySegments(entry, brief))
 </script>
 
 <span

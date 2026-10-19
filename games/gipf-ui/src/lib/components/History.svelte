@@ -3,6 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries, type HistoryEntry } from '$lib/history/historyEntries.js'
     import HistoryEntryLine from './HistoryEntryLine.svelte'
+    import PieceIcon from './PieceIcon.svelte'
 
     const session = getGameSession()
 
@@ -21,9 +22,7 @@
     }
 </script>
 
-<div
-    class="h-full min-h-[300px] w-full overflow-auto rounded-lg bg-(--gipf-panel) p-2 text-(--gipf-ink) shadow-[inset_0_0_0_1px_var(--gipf-panel-edge)]"
->
+<div class="history h-full min-h-[300px] w-full overflow-auto rounded-lg p-2">
     {#if session.gameState.result && !session.isViewingHistory}
         <div class="divider">Game over</div>
     {/if}
@@ -36,10 +35,12 @@
             onclick={() => replay(entry)}
             in:fade={{ duration: 200 }}
         >
-            <span
-                class="mt-[5px] h-3 w-3 shrink-0 rounded-full"
-                style:background={session.colors.getPlayerUiColor(entry.playerId)}
-            ></span>
+            <span class="mt-[2px] shrink-0">
+                <PieceIcon
+                    color={session.gameState.getPlayerState(entry.playerId).color}
+                    size={16}
+                />
+            </span>
             <span class="text-left text-[15px] leading-snug">
                 <HistoryEntryLine {entry} />
             </span>
@@ -50,6 +51,13 @@
 </div>
 
 <style>
+    /* Light like the player panels, so black pieces show as well as white. */
+    .history {
+        background: #c9d6e8;
+        color: #0d1626;
+        box-shadow: inset 0 0 0 1px #8fa5c4;
+    }
+
     .entry {
         display: flex;
         width: 100%;
@@ -59,7 +67,7 @@
     }
 
     .entry:hover {
-        background: rgb(255 255 255 / 0.06);
+        background: rgb(13 22 38 / 0.07);
     }
 
     .entry.replaying {
@@ -74,7 +82,7 @@
         font-size: 11px;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: var(--gipf-ink-quiet);
+        color: #45577a;
     }
 
     .divider::before,
@@ -82,6 +90,6 @@
         content: '';
         flex: 1;
         height: 1px;
-        background: var(--gipf-panel-edge);
+        background: #8fa5c4;
     }
 </style>

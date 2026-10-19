@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import { Color } from '@tabletop/common'
-    import { pieceDiscs } from '$lib/board/pieceGeometry.js'
+    import { CROWN_SCALE, pieceDiscs } from '$lib/board/pieceGeometry.js'
 
     let { color, gipf, radius }: { color: Color; gipf: boolean; radius: number } = $props()
 
@@ -35,7 +35,7 @@
     {/if}
 {/each}
 {#if gipf}
-    <circle r={radius * 0.55} cy={top.faceY} class="crown" class:light></circle>
+    <circle r={radius * CROWN_SCALE} cy={top.faceY} class="crown" class:light></circle>
 {/if}
 
 <style>

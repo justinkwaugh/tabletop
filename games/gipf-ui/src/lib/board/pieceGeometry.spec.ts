@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { pieceDiscs, pieceExtent } from './pieceGeometry.js'
+import { PIECE_RADIUS, SPACING } from './geometry.js'
 
 const RADIUS = 20
 
@@ -23,5 +24,9 @@ describe('piece geometry', () => {
         expect(lower.covered).toBe(true)
         expect(upper.covered).toBe(false)
         expect(upper.sideY).toBeLessThan(lower.faceY)
+    })
+
+    it('keeps a GIPF-piece within half the spacing, so it never covers a neighbour', () => {
+        expect(pieceExtent(true, PIECE_RADIUS)).toBeLessThan(SPACING / 2)
     })
 })

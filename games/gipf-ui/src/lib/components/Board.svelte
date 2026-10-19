@@ -12,7 +12,9 @@
         viewBox
     } from '$lib/board/geometry.js'
     import PieceShape from './PieceShape.svelte'
-    import { pieceDiscs, pieceExtent } from '$lib/board/pieceGeometry.js'
+    import { CROWN_SCALE, topFaceY } from '$lib/board/pieceGeometry.js'
+    import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
+    import { cubicOut } from 'svelte/easing'
 
     const session = getGameSession()
 
@@ -35,10 +37,28 @@
         )
     )
 
-    const pieces = $derived(session.gameState.board.pieces())
+    const animator = new BoardAnimator(session)
+    let hoveredDot: string | undefined = $state()
+    const pieces = $derived(animator.pieces)
 
-    const RING_GAP = 1.5
-    const OPTIONAL_GAP = 5
+    // The piece you are about to bring in drops onto the dot you chose, until it slides in.
+    const preview = $derived.by(() => {
+        const dot = session.chosenDot
+        const gipf = session.chosenGipf
+        const playerId = session.myPlayer?.id
+        if (dot === undefined || gipf === undefined || playerId === undefined) return undefined
+        return animator.entering ? undefined : { dot, gipf, playerId }
+    })
+
+    function drop(_node: Element) {
+        return {
+            duration: 220,
+            easing: cubicOut,
+            css: (t: number) =>
+                `opacity: ${t}; transform: translateY(${(1 - t) * -18}px) scale(${1 + (1 - t) * 0.15})`
+        }
+    }
+
     const SPOT_RADIUS = PIECE_RADIUS * 0.28
     const markedPieces = $derived(
         pieces
@@ -110,6 +130,7 @@
     height={frame.height}
     role="group"
     aria-label="GIPF board"
+    {@attach animator.attach}
 >
     <defs>
         <filter id="gipf-soft" x="-40%" y="-40%" width="180%" height="180%">
@@ -143,9 +164,13 @@
             aria-label="dot {session.notation.name(coords)}"
             onclick={() => session.chooseDot(coords)}
             onkeydown={(event) => onKey(event, () => session.chooseDot(coords))}
+            onpointerenter={() => (hoveredDot = coordsKey(coords))}
+            onpointerleave={() => (hoveredDot = undefined)}
+            onfocus={() => (hoveredDot = coordsKey(coords))}
+            onblur={() => (hoveredDot = undefined)}
         >
             {#if entry}
-                <circle r={DOT_RADIUS * 2.4} class="dot-ring"></circle>
+                <circle r={DOT_RADIUS * 2.4} class="dot-hit"></circle>
             {/if}
             <circle r={DOT_RADIUS} class="dot-core"></circle>
         </g>
@@ -164,52 +189,87 @@
             onclick={() => role && choosePiece(piece.coords)}
             onkeydown={(event) => role && onKey(event, () => choosePiece(piece.coords))}
         >
-            <PieceShape color={colorOf(piece)} gipf={piece.gipf} radius={PIECE_RADIUS} />
+            <g {@attach animator.piece(coordsKey(piece.coords))}>
+                <PieceShape color={colorOf(piece)} gipf={piece.gipf} radius={PIECE_RADIUS} />
+            </g>
         </g>
     {/each}
 
-    <!-- Marks sit above every piece: a spot on each piece that must go, and a roomier ring on each
-         GIPF-piece you can keep or take, drawn last so it stays whole. -->
-    {#each markedPieces as piece (coordsKey(piece.coords))}
-        {@const center = pointCenter(piece.coords)}
-        {@const role = rowRole(piece.coords)}
-        {@const optional = includesCoords(session.rowGipfPieces, piece.coords)}
-        {@const discs = pieceDiscs(piece.gipf, PIECE_RADIUS)}
-        {@const faceY = center.y + discs[discs.length - 1].faceY}
-        {#if optional}
+    <g {@attach animator.marks()}>
+        {#each session.entryDots as coords (coordsKey(coords))}
+            {@const center = pointCenter(coords)}
             <circle
                 cx={center.x}
                 cy={center.y}
-                r={pieceExtent(piece.gipf, PIECE_RADIUS) + OPTIONAL_GAP}
-                class="row-mark optional role-{role}"
+                r={DOT_RADIUS * 2.4}
+                class="dot-ring"
+                class:chosen={isChosenDot(coords)}
+                class:hovered={hoveredDot === coordsKey(coords)}
             ></circle>
-        {/if}
-        {#if role === 'row'}
-            <circle
-                cx={center.x}
-                cy={center.y}
-                r={pieceExtent(piece.gipf, PIECE_RADIUS) + RING_GAP}
-                class="row-mark role-row"
-            ></circle>
-        {:else}
-            <circle cx={center.x} cy={faceY} r={SPOT_RADIUS} class="mark-spot role-{role}"></circle>
-        {/if}
-    {/each}
+        {/each}
+        <!-- Marks sit on each piece's top face, so they never reach a neighbour: a dashed ring for a
+             row you can choose, a spot on each piece that goes, and on your own GIPF-pieces the
+             crown ring coloured for keep or take. -->
+        {#each markedPieces as piece (coordsKey(piece.coords))}
+            {@const center = pointCenter(piece.coords)}
+            {@const role = rowRole(piece.coords)}
+            {@const faceY = center.y + topFaceY(piece.gipf, PIECE_RADIUS)}
+            {#if role === 'row'}
+                <circle cx={center.x} cy={faceY} r={PIECE_RADIUS - 3} class="row-mark role-row"
+                ></circle>
+            {:else}
+                {#if includesCoords(session.rowGipfPieces, piece.coords)}
+                    <circle
+                        cx={center.x}
+                        cy={faceY}
+                        r={PIECE_RADIUS * CROWN_SCALE}
+                        class="crown-mark role-{role}"
+                    ></circle>
+                {/if}
+                <circle cx={center.x} cy={faceY} r={SPOT_RADIUS} class="mark-spot role-{role}"
+                ></circle>
+            {/if}
+        {/each}
 
-    {#each session.targets as entry (coordsKey(entry.line[0]))}
-        {@const center = pointCenter(entry.line[0])}
-        <g
-            class="target"
-            role="button"
-            tabindex="0"
-            aria-label="push to {session.notation.name(entry.line[0])}"
-            onclick={() => session.push(entry.line[0])}
-            onkeydown={(event) => onKey(event, () => session.push(entry.line[0]))}
-        >
-            <path d={arrow(entry.dot, entry.line[0])} class="arrow"></path>
-            <circle cx={center.x} cy={center.y} r={PIECE_RADIUS + 2} class="target-ring"></circle>
+        {#each session.targets as entry (coordsKey(entry.line[0]))}
+            {@const center = pointCenter(entry.line[0])}
+            <g
+                class="target"
+                role="button"
+                tabindex="0"
+                aria-label="push to {session.notation.name(entry.line[0])}"
+                onclick={() => session.push(entry.line[0])}
+                onkeydown={(event) => onKey(event, () => session.push(entry.line[0]))}
+            >
+                <path d={arrow(entry.dot, entry.line[0])} class="arrow"></path>
+                <circle cx={center.x} cy={center.y} r={PIECE_RADIUS + 2} class="target-ring"
+                ></circle>
+            </g>
+        {/each}
+    </g>
+    {#if animator.entering}
+        {@const center = pointCenter(animator.entering.dot)}
+        <g transform="translate({center.x} {center.y})" class="entering">
+            <g {@attach animator.enteringPiece()}>
+                <PieceShape
+                    color={session.gameState.getPlayerState(animator.entering.playerId).color}
+                    gipf={animator.entering.gipf}
+                    radius={PIECE_RADIUS}
+                />
+            </g>
         </g>
-    {/each}
+    {:else if preview}
+        {@const center = pointCenter(preview.dot)}
+        <g transform="translate({center.x} {center.y})" class="entering">
+            <g in:drop>
+                <PieceShape
+                    color={session.gameState.getPlayerState(preview.playerId).color}
+                    gipf={preview.gipf}
+                    radius={PIECE_RADIUS}
+                />
+            </g>
+        </g>
+    {/if}
 </svg>
 
 <style>
@@ -250,24 +310,24 @@
         cursor: pointer;
     }
 
+    .dot-hit {
+        fill: transparent;
+    }
+
     .dot-ring {
         fill: rgb(240 176 74 / 0.16);
         stroke: var(--gipf-target);
         stroke-width: 2;
+        pointer-events: none;
     }
 
-    .dot.entry:hover .dot-ring,
-    .dot.entry:focus-visible .dot-ring {
+    .dot-ring.hovered {
         fill: rgb(240 176 74 / 0.3);
     }
 
-    .dot.chosen .dot-ring {
+    .dot-ring.chosen {
         fill: rgb(240 176 74 / 0.38);
         stroke-width: 3.5;
-    }
-
-    .dot.chosen .dot-core {
-        fill: var(--gipf-target);
     }
 
     .piece {
@@ -294,8 +354,19 @@
         cursor: pointer;
     }
 
-    .row-mark.optional {
-        stroke-width: 4;
+    /* Your own GIPF-piece's toggle: its crown ring, coloured for keep or take. */
+    .crown-mark {
+        fill: none;
+        stroke-width: 3.5;
+        pointer-events: none;
+    }
+
+    .crown-mark.role-removing {
+        stroke: var(--gipf-row);
+    }
+
+    .crown-mark.role-keeping {
+        stroke: var(--gipf-keep);
     }
 
     .mark-spot {
@@ -322,6 +393,10 @@
 
     .row-mark.role-keeping {
         stroke: var(--gipf-keep);
+    }
+
+    .entering {
+        pointer-events: none;
     }
 
     .target {

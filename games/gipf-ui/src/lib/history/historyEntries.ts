@@ -30,13 +30,23 @@ function takingOf(action: GameAction): Taking | undefined {
     const own = removed.filter((piece) => piece.playerId === action.playerId)
     const theirs = removed.filter((piece) => piece.playerId !== action.playerId)
     const size = (gipf: boolean) => (gipf ? 2 : 1)
+    const [from, to] = inReadingOrder(action.from, action.to)
     return {
-        from: action.from,
-        to: action.to,
+        from,
+        to,
         returned: own.reduce((sum, piece) => sum + size(piece.gipf), 0),
         captured: theirs.reduce((sum, piece) => sum + size(piece.gipf), 0),
         capturedGipf: theirs.filter((piece) => piece.gipf).length
     }
+}
+
+// Rows read from the lower point to the higher: by column, then up the column.
+function inReadingOrder(
+    a: AxialCoordinates,
+    b: AxialCoordinates
+): [AxialCoordinates, AxialCoordinates] {
+    const before = a.q !== b.q ? a.q < b.q : a.r > b.r
+    return before ? [a, b] : [b, a]
 }
 
 // A push and the rows its player takes after it form one entry; rows taken by the other player,

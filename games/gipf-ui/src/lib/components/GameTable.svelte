@@ -16,7 +16,7 @@
     import Header from '$lib/components/Header.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import OverlayToggle from '$lib/components/OverlayToggle.svelte'
+    import BoardModeToggle from '$lib/components/BoardModeToggle.svelte'
     import { GipfGameSession } from '$lib/model/session.svelte.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -60,6 +60,7 @@
                 enabledColor="text-[#eef2f8]"
                 disabledColor="text-[#5a6f90]"
                 borderClass="border-[#34507a] border-b-2"
+                bgClass="bg-[#0b1730]"
             />
         {/snippet}
         {#snippet sideContent()}
@@ -68,6 +69,7 @@
                     enabledColor="text-[#eef2f8]"
                     disabledColor="text-[#5a6f90]"
                     borderClass="rounded-lg border-2 border-[#34507a]"
+                    bgClass="rounded-lg bg-[#0b1730]"
                 />
             </div>
             <DefaultTabs
@@ -108,12 +110,7 @@
                     <Board />
                     {#snippet overlay()}
                         <div class="pointer-events-auto absolute top-1 right-3 z-10">
-                            <OverlayToggle
-                                glyph="◐"
-                                label="Light board"
-                                pressed={gameSession.lightBoard}
-                                onToggle={() => gameSession.toggleLightBoard()}
-                            />
+                            <BoardModeToggle />
                         </div>
                     {/snippet}
                     {#snippet toolbar()}

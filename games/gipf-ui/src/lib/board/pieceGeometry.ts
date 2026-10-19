@@ -4,9 +4,12 @@
 // Everything is laid out so the visible stack is centred on the piece's point, which keeps
 // selection rings even all the way round.
 
+// The ring on a GIPF-piece's top face, as a fraction of its radius.
+export const CROWN_SCALE = 0.55
+
 export type Disc = { faceY: number; sideY: number; covered: boolean }
 
-const SIDE = 0.18
+const SIDE = 0.14
 const RAISE = SIDE * 1.8
 
 export function pieceDiscs(gipf: boolean, radius: number): Disc[] {
@@ -28,4 +31,10 @@ export function pieceExtent(gipf: boolean, radius: number): number {
     const top = Math.min(...discs.map((disc) => disc.faceY)) - radius
     const bottom = Math.max(...discs.map((disc) => disc.sideY)) + radius
     return (bottom - top) / 2
+}
+
+// Where the top face of a piece is centred, relative to its point.
+export function topFaceY(gipf: boolean, radius: number): number {
+    const discs = pieceDiscs(gipf, radius)
+    return discs[discs.length - 1].faceY
 }

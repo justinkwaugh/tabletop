@@ -7,7 +7,11 @@ export type Segment =
     | { kind: 'point'; coords: AxialCoordinates }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
-export function entrySegments(entry: HistoryEntry): Segment[] {
+// The brief form keeps the action banner to one line; the history panel uses the full one.
+export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
+    if (brief) {
+        return briefSegments(entry)
+    }
     const text = (value: string): Segment => ({ kind: 'text', text: value })
     const point = (coords: AxialCoordinates): Segment => ({ kind: 'point', coords })
 
@@ -42,4 +46,29 @@ function describe(taking: Taking): string {
         parts.push(`captured ${taking.captured}${gipf}`)
     }
     return parts.join(', ')
+}
+
+function briefSegments(entry: HistoryEntry): Segment[] {
+    const text = (value: string): Segment => ({ kind: 'text', text: value })
+    const point = (coords: AxialCoordinates): Segment => ({ kind: 'point', coords })
+    const rows = entry.takings.flatMap((taking, index) => [
+        text(index === 0 ? '' : ' and '),
+        point(taking.from),
+        text('–'),
+        point(taking.to)
+    ])
+    const rowWord = entry.takings.length > 1 ? 'rows' : 'row'
+
+    if (entry.kind === 'taking') {
+        return [text(` took ${rowWord} `), ...rows]
+    }
+    return [
+        text(' pushed '),
+        { kind: 'piece', gipf: entry.gipf },
+        text(' from '),
+        point(entry.dot),
+        text(' to '),
+        point(entry.to),
+        ...(rows.length > 0 ? [text(`, taking ${rowWord} `), ...rows] : [])
+    ]
 }
