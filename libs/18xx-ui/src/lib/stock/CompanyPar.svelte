@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import { marketColors } from './marketColors.js'
+    import { marketSpaceColor, marketZone } from './marketColors.js'
     let { session }: { session: EighteenXXSessionView } = $props()
     const pending = $derived(session.gameState.pendingPar)
 </script>
@@ -18,10 +18,12 @@
             <div class="choices" aria-label="Par prices">
                 {#each session.stock.parSpaceIds as spaceId (spaceId)}
                     {@const space = session.stockMarketChart.space(spaceId)}
+                    {@const zone = marketZone(session.presentation.marketZones, space.color)}
                     <button
                         class="par-choice"
+                        class:recessed={zone?.fill?.kind === 'recessed'}
                         disabled={session.busy}
-                        style:background={marketColors[space.color] ?? space.color}
+                        style:background={marketSpaceColor(space.color, zone)}
                         data-par-price={space.price}
                         onclick={() => session.stock.parCompany(spaceId)}>{space.price}</button
                     >
@@ -57,6 +59,9 @@
         border-radius: 0.3rem;
         color: #2c2418;
         font-weight: 600;
+    }
+    .par-choice.recessed {
+        color: var(--rail-text, #2c2418);
     }
     .par-choice:disabled {
         opacity: 0.4;

@@ -102,6 +102,7 @@ import Peir7Thumb from './images/published/peirs/v2/peir-7-charlottetown-600.web
 import { TheOldPrinceCompanies, TheOldPrinceNames } from '@tabletop/the-old-prince'
 import { TheOldPrinceCompanyNames } from './companyPresentation.js'
 import { TheOldPrincePhaseChart } from './phaseChart.js'
+import { TheOldPrinceMarketZones, TheOldPrincePublishedMarketZones } from './marketPresentation.js'
 import {
     TheOldPrinceTrainColors,
     TheOldPrincePublishedTrainColors,
@@ -115,6 +116,8 @@ export const TheOldPrincePresentation: TitlePresentation = {
     trainColors: TheOldPrinceTrainColors,
     phaseColors: TheOldPrinceTrainColors,
     marketPoolId: 'market',
+    marketZones: TheOldPrinceMarketZones,
+    hideMarketLegend: true,
     exchangePoolId: 'reserved',
     companyNames: TheOldPrinceCompanyNames,
     companyPricePresentation: { showPar: false, label: 'Value', showInSpreadsheet: true },
@@ -182,6 +185,7 @@ export const TheOldPrincePresentation: TitlePresentation = {
     },
     publishedTrainColors: TheOldPrincePublishedTrainColors,
     publishedPhaseColors: TheOldPrincePublishedPhaseColors,
+    publishedMarketZones: TheOldPrincePublishedMarketZones,
     // Published presentation: Boda Games private cards and the second-variant PEIR certificates.
     publishedCardImages: {
         MC: MerchantsCard,

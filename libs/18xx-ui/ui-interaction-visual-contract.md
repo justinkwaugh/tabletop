@@ -932,6 +932,16 @@ still move the board. The boardAutoZoom family preference persists the choice
 across reloads and 18xx titles and defaults to on. TOP and 1889 need updated Logic
 and matching UI Artifacts because the backend validates the added preference key
 against the published Logic schema.
+
+The Companies view lays its cards out in reading order, left to right, wrapping
+onto new rows and scrolling vertically. A Wrap switch, sharing Auto zoom's switch
+style, sits at the top right of the view above the cards. Turning it off keeps the
+cards in one row that scrolls sideways; there a vertical mouse wheel scrolls the
+row sideways, passing through once the row reaches its end, and Shift, Ctrl or a
+sideways gesture keep their usual behaviour. The companyCardsWrap family preference
+persists the choice and defaults to on; like boardAutoZoom it needs updated Logic
+and matching UI Artifacts.
+
 Market cells share single-width borders with values at the upper left. In the
 dark table, neutral (white) cells use the raised table surface and table borders,
 while colored cells keep each market color's hue at dark-surface lightness,
@@ -2070,8 +2080,9 @@ it only while the sheet is scrolled.
 Company cards echo the spreadsheet: the cash cell uses the recessed fill, the
 value cell the faint turquoise, and investor rows carry their player's tint to
 the card's left and right edges. Corporate investors follow the player who
-controls them. A sold-out company shows a cream SOLD OUT label at the right of
-its ownership heading, judged by the title's own sold-out rule.
+controls them. The right of a started company's ownership heading carries its
+status: an amber UNFLOATED until it floats, then a cream SOLD OUT while it is
+sold out by the title's own rule. Closed companies show none.
 
 Player cards in workspace panes start 10px below the pane header, matching the
 10px gap between cards in both vertical and horizontal arrangements.
@@ -2125,14 +2136,9 @@ PEIR last and labels its narrow card PEIR; other card names retain their full na
 Company cards with numbered shares show certificate numbers before share counts
 in each ownership row, keeping the count in the rightmost column.
 
-History View displays a 14px cream strip of thick dark-blue horizontal dashes immediately
-above the table header, with VIEWING HISTORY centered on a solid cream label. Each dash is 18px
-wide and 6px tall with an 8px gap, vertically centered; the blue matches the dark-mode table
-background (#18212b). It spans
-the full table width, including the sidebar, in both layouts. The layout height
-accounts for the strip so the table still fits the viewport. It follows the existing session History View flag, uses
-the same colors in both themes, and disappears on return to Live View. This shared
-presentation applies across titles without changing history rules or host contracts.
+History View has no table-level indicator. The hosted site marks it above the Game UI
+for every title: the vote strip for seated games and the hotseat panel for hotseat
+games.
 
 Round interstitials expose their entire surface as a keyboard-accessible jump to
 the recorded final action, without clock icons. In History View, the current

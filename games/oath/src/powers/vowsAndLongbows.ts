@@ -20,10 +20,12 @@ registerBattlePlan(LONGBOWS, powerIndexOf(LONGBOWS, PowerTiming.BattlePlan), {
 const VOW_OF_UNION = 'denizen.beast.vow-of-union'
 registerPersistent(VOW_OF_UNION, powerIndexOf(VOW_OF_UNION, PowerTiming.Persistent), {
     extraForceSites: (ctx, attackerId) =>
-        ctx.ownerIds.includes(attackerId) ? sitesRuledBy(ctx.state, attackerId) : undefined,
+        ctx.ownerIds.includes(attackerId)
+            ? sitesRuledBy(ctx.state, attackerId, ctx.scope)
+            : undefined,
     forbidsTravel: (ctx, actorId, fromSiteId) => {
         if (!ctx.ownerIds.includes(actorId) || !fromSiteId) return undefined
-        if (!rulesSite(ctx.state, actorId, fromSiteId)) return undefined
+        if (!rulesSite(ctx.state, actorId, fromSiteId, ctx.scope)) return undefined
         return warbandsOnBoardOf(ctx.state, actorId) > 0
             ? 'Vow of Union: you cannot travel from a site you rule while any warbands are on your board'
             : undefined

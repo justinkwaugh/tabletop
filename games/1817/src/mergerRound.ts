@@ -21,6 +21,7 @@ import {
     HydratableAction,
     assert,
     assertExists,
+    turnOrderFrom,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext
@@ -38,7 +39,6 @@ import {
     isTakeLoan,
     nextOperatingCompany,
     settleCashPayments,
-    turnOrderFrom,
     type OperatingState,
     type SharePurchaseResult,
     ShareSaleDetails,

@@ -401,18 +401,21 @@ export class EighteenXXSession<
             placements: { ...definition.placements, ...definition.publishedPlacements }
         }
     })
-    /** The title presentation for the current mode: published badge colours replace the generic ones when selected. */
+    /** The title presentation for the current mode: published badge colours and market zones replace the generic ones when selected. */
     readonly presentation: TitlePresentation<EighteenXXState<Schema>> = $derived.by(() => {
         const definition = this.presentationDefinition
+        if (!this.publishedArtwork) return definition
         const trains = definition.publishedTrainColors
-        if (!this.publishedArtwork || !trains) return definition
         return {
             ...definition,
-            trainColors: { ...definition.trainColors, ...trains },
-            phaseColors: {
-                ...definition.phaseColors,
-                ...(definition.publishedPhaseColors ?? trains)
-            }
+            marketZones: definition.publishedMarketZones ?? definition.marketZones,
+            ...(trains && {
+                trainColors: { ...definition.trainColors, ...trains },
+                phaseColors: {
+                    ...definition.phaseColors,
+                    ...(definition.publishedPhaseColors ?? trains)
+                }
+            })
         }
     })
     constructor(
@@ -541,11 +544,14 @@ export class EighteenXXSession<
             ? priorityOrder(this.gameState, this.rules.stockRules.round)
             : this.gameState.turnManager.turnOrder
     )
-    companySoldOut(companyId: string): boolean {
-        return (
+    companyShareStatus(companyId: string): CompanyShareStatus | undefined {
+        const company = getCompany(this.gameState, companyId)
+        if (!company.started || company.closed) return undefined
+        if (!company.floated) return 'unfloated'
+        const soldOut =
             companySharePrice(this.stockMarketChart, this.gameState.stockMarket, companyId) !==
                 undefined && this.rules.stockRules.round.soldOut(this.gameState, companyId)
-        )
+        return soldOut ? 'soldOut' : undefined
     }
     playerLiquidity(playerId: string): number {
         const owner = { kind: 'player', playerId } as const
@@ -712,6 +718,8 @@ export function requireEighteenXXSession(
     assert(session instanceof EighteenXXSession, 'Expected an 18xx session')
     return session
 }
+
+export type CompanyShareStatus = 'unfloated' | 'soldOut'
 
 export type MapLocationChoice = {
     locationIds: readonly string[]

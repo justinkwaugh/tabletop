@@ -1,6 +1,7 @@
 import { bannerHolder } from './oathkeeper.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { attackingSiteOf, forceSitesOf, targetedSiteIds } from './campaignSite.js'
+import { attackingSiteOf, forceSitesOf, sitesWithTargets, targetedSiteIds } from './campaignSite.js'
+import { attackDiceFromSites } from './sitePowers.js'
 import { Banner, PlayerStatus } from '../model/oathEnums.js'
 import { reasonSitesForbidTargets, targetsNeedFlip } from './siteTravel.js'
 import { relicDefenseDice } from '../data/cardRegistry.js'
@@ -288,7 +289,7 @@ export function targetDefenseDice(state: HydratedOathGameState, parties: Campaig
                 dice += printed
                 // Sealing Ward — "your relics add one more defense die when targeted".
                 if (parties.defenderPlayerId)
-                    dice += persistentRelicDefenseBonus(state, parties.defenderPlayerId)
+                    dice += persistentRelicDefenseBonus(state, parties.defenderPlayerId, parties)
                 break
             }
             case CampaignTargetKind.Banner:
@@ -304,7 +305,7 @@ export function targetDefenseDice(state: HydratedOathGameState, parties: Campaig
                 dice += 2
                 // Circlet of Command — "banishing your pawn and favor adds one more".
                 if (parties.defenderPlayerId)
-                    dice += persistentPawnDefenseBonus(state, parties.defenderPlayerId)
+                    dice += persistentPawnDefenseBonus(state, parties.defenderPlayerId, parties)
                 break
         }
     }
@@ -451,6 +452,23 @@ export function applyDiceDelta(pools: DicePools, delta: DiceDelta): DicePools {
     return { attackPool, defensePool: Math.max(0, defensePool) }
 }
 
+/**
+ * R-5.5.2, R-11.4 — the pools as Step 2 leaves them: the attack dice declared, the targets' and
+ * titles' defense dice, then each targeted Plains or Mountain's die, folded one site at a time so
+ * a Mountain's die taken from an empty pool adds a defense die (R-11.4-H1).
+ */
+export function poolsAfterTargets(
+    state: HydratedOathGameState,
+    parties: CampaignParties,
+    attackDice: number
+): DicePools {
+    let pools = { attackPool: attackDice, defensePool: collectDefensePool(state, parties) }
+    for (const delta of attackDiceFromSites(state, sitesWithTargets(state, parties))) {
+        pools = applyDiceDelta(pools, { attack: delta.attack })
+    }
+    return pools
+}
+
 /** R-5.5.2 */
 export function reasonCannotDeclareTargets(
     state: HydratedOathGameState,
@@ -471,20 +489,25 @@ export function reasonCannotDeclareTargets(
     }
 
     const sites = targetedSiteIds(parties)
-    // A non-site target needs the defender's pawn at your site, so it counts as one there.
-    const atAttackerSite =
-        sites.includes(attackerSiteId) ||
-        parties.targets.some((t) => t.kind !== CampaignTargetKind.Site)
-    if (!atAttackerSite) {
-        return 'must declare at least one target at your site'
-    }
+    if (needsTargetAtNamedSite(state, parties)) {
+        // A non-site target needs the defender's pawn at your site, so it counts as one there.
+        const atAttackerSite =
+            sites.includes(attackerSiteId) ||
+            parties.targets.some((t) => t.kind !== CampaignTargetKind.Site)
+        if (!atAttackerSite) {
+            return 'must declare at least one target at your site'
+        }
 
-    const defenderId = parties.defenderPlayerId
-    const defenderRulesAttackerSite = defenderId
-        ? rulesSite(state, defenderId, attackerSiteId, scopeOf(parties))
-        : banditsRuleSite(state, attackerSiteId)
-    if (defenderRulesAttackerSite && !sites.includes(attackerSiteId)) {
-        return `the defender rules ${attackerSiteId}, so you must target your site`
+        const defenderId = parties.defenderPlayerId
+        const defenderRulesAttackerSite = defenderId
+            ? rulesSite(state, defenderId, attackerSiteId, scopeOf(parties))
+            : banditsRuleSite(state, attackerSiteId)
+        if (defenderRulesAttackerSite && !sites.includes(attackerSiteId)) {
+            return `the defender rules ${attackerSiteId}, so you must target your site`
+        }
+    } else if (parties.targets.length === 0) {
+        // Law 5.5.2 — at least one target still.
+        return 'must declare at least one target'
     }
 
     // R-7.1.4 — Giant Python: the targets must add an even total of defense dice; its Q&A
@@ -493,6 +516,20 @@ export function reasonCannotDeclareTargets(
         ? targetDefenseDice(state, parties)
         : collectDefensePool(state, parties)
     return reasonPersistentForbidsTargets(state, parties, targetDice)
+}
+
+/**
+ * R-5.5.2-H2 — Law 5.5.2's two demands at "your site" (a target there; the site itself if the
+ * defender rules it) bind every Campaign but one: a Citizen outside the Empire for the Campaign
+ * (R-5.5.1.a) who acts from the site Captains or Wild Allies names "do[es] not need to target the
+ * site", as Captains' Q&A rules. Before revision 14 (R-X.4) they bound that Citizen too.
+ */
+function needsTargetAtNamedSite(state: HydratedOathGameState, parties: CampaignParties): boolean {
+    return !(
+        isAtLeastOathRevision(state, OathRevision.EngineFixes10) &&
+        parties.asIfSiteId !== undefined &&
+        parties.nonImperialPlayerIds.includes(parties.attackerPlayerId)
+    )
 }
 
 function reasonCannotTarget(
@@ -525,7 +562,7 @@ function reasonCannotTarget(
             return `${target.slotId} is at ${siteId}, which is not a targeted site`
         }
         // Ancient Bloodline — a relic at a site its holder rules is locked for their enemies.
-        return siteLockedFor(state, parties.attackerPlayerId, siteId)
+        return siteLockedFor(state, parties.attackerPlayerId, siteId, parties)
             ? `the relics at ${siteId} are locked (Ancient Bloodline)`
             : undefined
     }
@@ -548,7 +585,8 @@ function reasonCannotTarget(
                 state,
                 parties.attackerPlayerId,
                 defender.playerId,
-                target.cardId
+                target.cardId,
+                parties
             )
         case CampaignTargetKind.Banner:
             if (bannerHolder(state, target.banner) !== defender.playerId) {
@@ -560,7 +598,8 @@ function reasonCannotTarget(
                 parties.attackerPlayerId,
                 target.banner,
                 'seize',
-                defender.playerId
+                defender.playerId,
+                parties
             )
         case CampaignTargetKind.PawnAndFavor:
             return undefined

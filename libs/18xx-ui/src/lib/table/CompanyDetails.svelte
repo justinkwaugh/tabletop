@@ -20,7 +20,10 @@
         type Owner,
         type CertificatePool
     } from '@tabletop/18xx'
-    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type {
+        CompanyShareStatus,
+        EighteenXXSessionView
+    } from '../session/eighteenXXSession.svelte.js'
     import { type CompanyOwnership, companyOwnership } from '../finance/companyOwnership.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -53,6 +56,10 @@
         company: Company
         poolName?: (pool: CertificatePool) => string
     } = $props()
+    const shareStatusLabels: Record<CompanyShareStatus, string> = {
+        unfloated: 'Unfloated',
+        soldOut: 'Sold out'
+    }
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
     const lastRun = $derived(
@@ -88,6 +95,7 @@
     const marketPrice = $derived(
         companySharePrice(session.stockMarketChart, gameState.stockMarket, company.id)
     )
+    const shareStatus = $derived(session.companyShareStatus(company.id))
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const stations = $derived(
         gameState.stations.filter((station) => station.companyId === company.id)
@@ -218,7 +226,11 @@
         <section aria-label="Company ownership">
             <div class="ownership-heading">
                 <h3>Ownership</h3>
-                {#if session.companySoldOut(company.id)}<span class="sold-out">Sold out</span>{/if}
+                {#if shareStatus}<span
+                        class="share-status"
+                        class:unfloated={shareStatus === 'unfloated'}
+                        >{shareStatusLabels[shareStatus]}</span
+                    >{/if}
             </div>
             {#if ownership.length}
                 <table aria-label={`${session.companyName(company.id)} share ownership`}>
@@ -624,12 +636,15 @@
         justify-content: space-between;
         margin-bottom: 6px;
     }
-    .sold-out {
+    .share-status {
         font-size: 10px;
         font-weight: 650;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         color: #f1e6c8;
+    }
+    .share-status.unfloated {
+        color: #e2a84f;
     }
     .ownership-heading h3 {
         margin-bottom: 0;

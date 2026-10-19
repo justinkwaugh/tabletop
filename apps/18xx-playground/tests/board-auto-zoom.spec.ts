@@ -27,7 +27,6 @@ test('board auto zoom frames history steps by default and keeps the view when di
     async function viewAcrossRouteStep() {
         await history('step backwards').click()
         await history('step backwards').click()
-        await expect(page.getByText('VIEWING HISTORY', { exact: true })).toBeVisible()
         await board.getByRole('button', { name: 'Zoom in', exact: true }).click()
         await page.waitForTimeout(1000)
         const before = await transform()

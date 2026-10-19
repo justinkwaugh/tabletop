@@ -1,5 +1,6 @@
 <script lang="ts">
     import { OfferAuctionPanel, type EighteenXXSessionView } from '@tabletop/18xx-ui'
+    import { theOldPrinceCompanyRole, TheOldPrinceRoles } from '@tabletop/the-old-prince'
     let { session, showUndo = true }: { session: EighteenXXSessionView; showUndo?: boolean } =
         $props()
     const gameState = $derived(session.gameState)
@@ -8,11 +9,12 @@
 {#if session.offers.model && !session.offers.model.auction.completed}
     <section class="centered-panel">
         <p class="company-roles">
-            {#each gameState.companies.filter((company) => company.role) as company (company.id)}
-                <span>
-                    {company.role === 'mainline' ? 'Mainline' : 'Shortline'}:
-                    <strong>{session.companyName(company.id)}</strong>
-                </span>
+            {#each gameState.companies as company (company.id)}
+                {@const role = theOldPrinceCompanyRole(gameState, company.id)}
+                {#if role}<span>
+                        {TheOldPrinceRoles[role].name}:
+                        <strong>{session.companyName(company.id)}</strong>
+                    </span>{/if}
             {/each}
         </p>
         <OfferAuctionPanel

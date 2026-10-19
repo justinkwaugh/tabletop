@@ -100,7 +100,7 @@ describe('Revelation — a round of burns in turn order', () => {
         expect(head(s)?.askedPlayerId).toBe('other')
         answerQuestion(s, 'other', { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 0 })
         answerQuestion(s, 'away', { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 1 })
-        expect(settleQueue(s)).toBe(true)
+        expect(settleQueue(s, {})).toBe(true)
     })
 })
 
@@ -344,7 +344,7 @@ describe('Deed Writer — one board pays for every site handed over (R-10.8)', (
         const gathering = rulerTable([], [], { away: { status: PlayerStatus.Chancellor } }, { oathRevision: atRevision })
         playDrawnCard(gathering, GATHERING, SearchPlay.Site)
         answerQuestion(gathering, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
-        settleQueue(gathering)
+        settleQueue(gathering, {})
         expect(HydratedAnswerQuestion.reasonCannotAnswer(gathering, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: twoSites(1, 1) } })).toBe('this exchange cannot include sites')
     })
 })
@@ -357,7 +357,7 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
         expect(s.pendingQuestions?.followUp?.siteId).toBe('c1')
         answerQuestion(s, 'away', { kind: PowerQuestionKind.JoinSite, join: true })
         expect(s.getPlayerState('away').siteId).toBe('c1')
-        expect(settleQueue(s)).toBe(false)
+        expect(settleQueue(s, {})).toBe(false)
         expect(s.pendingQuestions?.queue.map((q) => [q.kind, q.askedPlayerId])).toEqual([
             [PowerQuestionKind.GatheringFloor, 'ruler'],
             [PowerQuestionKind.GatheringFloor, 'other'],
@@ -370,14 +370,14 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
         expect(head(s)?.askedPlayerId).toBe('other')
         answerQuestion(s, 'other', { kind: PowerQuestionKind.GatheringFloor })
         answerQuestion(s, 'away', { kind: PowerQuestionKind.GatheringFloor })
-        expect(settleQueue(s)).toBe(true)
+        expect(settleQueue(s, {})).toBe(true)
     })
 
     it('advisers may change hands; sites may not; the counterparty must be present', () => {
         const s = rulerTable([])
         playDrawnCard(s, GATHERING, SearchPlay.Site)
         answerQuestion(s, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
-        settleQueue(s)
+        settleQueue(s, {})
         expect(() => answerQuestion(s, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'away', terms: { fromProposer: { favor: 1 } } } })).toThrow(/not at c1/)
         expect(() => answerQuestion(s, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } } } })).toThrow(/cannot include sites/)
         answerQuestion(s, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: { fromCounterparty: { adviserRows: [0] }, fromProposer: { favor: 1 } } } })
@@ -397,7 +397,7 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
         })
         playDrawnCard(s, GATHERING, SearchPlay.Site)
         answerQuestion(s, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
-        settleQueue(s)
+        settleQueue(s, {})
         return s
     }
 
@@ -441,7 +441,7 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
         playDrawnCard(s, GATHERING, SearchPlay.Site)
         answerQuestion(s, 'other', { kind: PowerQuestionKind.JoinSite, join: false })
         answerQuestion(s, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
-        expect(settleQueue(s)).toBe(true)
+        expect(settleQueue(s, {})).toBe(true)
     })
 })
 
@@ -514,7 +514,7 @@ describe('The Gathering — its rounds go from the Chancellor, and a locked advi
         for (const playerId of s.pendingQuestions?.queue.map((q) => q.askedPlayerId) ?? []) {
             answerQuestion(s, playerId, { kind: PowerQuestionKind.JoinSite, join: true })
         }
-        settleQueue(s)
+        settleQueue(s, {})
         return { joinOrder, floorOrder: askedInOrder(s) }
     }
 
@@ -541,7 +541,7 @@ describe('The Gathering — its rounds go from the Chancellor, and a locked advi
         }, { oathRevision })
         playDrawnCard(s, GATHERING, SearchPlay.Site)
         answerQuestion(s, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
-        settleQueue(s)
+        settleQueue(s, {})
         return s
     }
     const proposing = (terms: ExchangeTerms): QuestionAnswer => ({ kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms } })

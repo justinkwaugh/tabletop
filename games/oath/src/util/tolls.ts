@@ -29,7 +29,7 @@ export type TollOccasion =
 export function payeeFor(ctx: PersistentContext): string | undefined {
     const state = ctx.state
     if (ctx.ownerIds.length === 0) return undefined
-    const imperial = ctx.ownerIds.some((id) => isImperialPlayer(state, id))
+    const imperial = ctx.ownerIds.some((id) => isImperialPlayer(state, id, ctx.scope))
     if (imperial) return state.chancellorId()
     return ctx.ownerIds[0]
 }
@@ -37,12 +37,12 @@ export function payeeFor(ctx: PersistentContext): string | undefined {
 /** R-10.7 — everyone is an enemy of the bandits. */
 export function enemyOfRuler(ctx: PersistentContext, actorId: string): boolean {
     if (ctx.ownerIds.length === 0) return !!ctx.siteId && banditsRuleSite(ctx.state, ctx.siteId)
-    return ctx.ownerIds.some((owner) => areEnemies(ctx.state, owner, actorId))
+    return ctx.ownerIds.some((owner) => areEnemies(ctx.state, owner, actorId, ctx.scope))
 }
 
 export function rulerRulesSite(ctx: PersistentContext, siteId: string): boolean {
     if (ctx.ownerIds.length === 0) return banditsRuleSite(ctx.state, siteId)
-    return ctx.ownerIds.some((owner) => rulesSite(ctx.state, owner, siteId))
+    return ctx.ownerIds.some((owner) => rulesSite(ctx.state, owner, siteId, ctx.scope))
 }
 
 export function rulerRulesCard(ctx: PersistentContext, cardId: string): boolean {

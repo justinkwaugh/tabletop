@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onDestroy, onMount, untrack, type Snippet } from 'svelte'
     import type { RectangleDimensions } from '@tabletop/common'
+    import { wheelDeltaUnit } from '../utils/wheelDelta.js'
 
     const DISCRETE_ZOOM_STEP = 0.15
     const OVERPAN_EASE_RELATIVE_ZOOM = 0.05
@@ -1253,8 +1254,7 @@
         cancelPanInertia()
         cancelScrollInertia()
         clearActiveFocus()
-        const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
-            : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? wrapperHeight : 1
+        const unit = wheelDeltaUnit(event, wrapperHeight)
         if (!event.ctrlKey) {
             if (event.timeStamp - lastWheelTimestamp > 250) smoothWheelGesture = false
             lastWheelTimestamp = event.timeStamp

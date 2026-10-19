@@ -63,6 +63,7 @@ export type {
     MarketLedge,
     MarketZone,
     MarketZoneBanner,
+    MarketZoneFill,
     PrivateTokenPresentation,
     TitleFact,
     TitlePresentation,
@@ -102,7 +103,7 @@ export { createPhaseChart, type PhaseChartData } from './phases/phaseChart.js'
 
 export * from './stock/marketAnimationSource.js'
 
-export { marketColors } from './stock/marketColors.js'
+export { marketColors, marketSpaceColor, marketZone } from './stock/marketColors.js'
 export { MarketTokenSize } from './stock/marketTokenLayout.js'
 
 export { default as BoardInset } from './maps/BoardInset.svelte'

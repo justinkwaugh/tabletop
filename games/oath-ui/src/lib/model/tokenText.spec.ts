@@ -139,3 +139,27 @@ describe('History text, which draws warbands too', () => {
         ])
     })
 })
+
+describe('the skull as its symbol, in the rows that ask for it', () => {
+    it('draws "skull" and "skulls" as the skull, the word its alt; the count stays words', () => {
+        expect(tokenParts('Dana lost 1 warband to a skull', { warbands: true, skulls: true })).toEqual([
+            text('Dana lost '),
+            { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+            text(' to a '),
+            { kind: 'skull', words: 'skull' }
+        ])
+        expect(tokenParts('lost 2 warbands to skulls', { skulls: true })).toEqual([
+            text('lost 2 warbands to '),
+            { kind: 'skull', words: 'skulls' }
+        ])
+    })
+
+    it('leaves the word alone unless asked, and never draws a word that only contains it', () => {
+        expect(tokenParts('lost 1 warband to skulls', { warbands: true })).toEqual([
+            text('lost '),
+            { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+            text(' to skulls')
+        ])
+        expect(tokenParts('the skullcap', { skulls: true })).toEqual([text('the skullcap')])
+    })
+})

@@ -49,12 +49,18 @@ export type TitleFact = { label: string; value: string }
  */
 export type MarketZoneBanner = { label: string; shape: 'arrow' | 'span' }
 
+/** Replaces the tint of a zone's chart colour, which dark mode dims, where the colour carries meaning. */
+export type MarketZoneFill = { kind: 'solid'; color: string } | { kind: 'recessed' }
+
 /** The meaning of the market spaces of one colour, for their descriptions and the legend. */
 export type MarketZone = {
     color: string
     name: string
     description: string
     banner?: MarketZoneBanner
+    fill?: MarketZoneFill
+    /** Drawn stacked in each space's lower left, clear of a company stack at the right. */
+    marks?: readonly string[]
 }
 
 /**
@@ -126,6 +132,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     marketCell?: MarketCellDimensions
     marketZones?: readonly MarketZone[]
     marketLedge?: MarketLedge
+    /** Leaves the zones and ledge out of a legend below the market; each space's tooltip still names its zone. */
+    hideMarketLegend?: true
     /**
      * Published card artwork for the published presentation, keyed by private company id or
      * certificate id (for shares auctioned like privates). Shown in place of the generated card.
@@ -143,4 +151,6 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     publishedTrainColors?: Readonly<Record<string, string>>
     /** Phase badge colours for the published presentation; defaults to publishedTrainColors. */
     publishedPhaseColors?: Readonly<Record<string, string>>
+    /** Market zones for the published presentation, in place of marketZones. */
+    publishedMarketZones?: readonly MarketZone[]
 }

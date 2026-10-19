@@ -1,7 +1,7 @@
 import { burnFavor } from './burn.js'
 import { spendFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { reasonPersistentForbidsSecretCost } from './persistent.js'
+import { reasonPersistentForbidsSecretCost, type ScopedParties } from './persistent.js'
 import { isFree, PowerTiming, type CardPower, type PowerCost } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { holdsTheTurn } from './turn.js'
@@ -42,10 +42,12 @@ export function addCosts(a: PowerCost, b: PowerCost): PowerCost {
     }
 }
 
+/** `parties`: a battle plan's Campaign, whose scope Spell Breaker is judged in (R-5.5.1.a-H2). */
 export function reasonCannotPayPowerCost(
     state: HydratedOathGameState,
     playerId: string,
-    power: CardPower
+    power: CardPower,
+    parties?: ScopedParties
 ): string | undefined {
     const player = state.getPlayerState(playerId)
 
@@ -64,7 +66,7 @@ export function reasonCannotPayPowerCost(
     }
     // R-7.1.4 — Spell Breaker bars its ruler's enemies from secret costs.
     if (secrets > 0) {
-        const barred = reasonPersistentForbidsSecretCost(state, playerId)
+        const barred = reasonPersistentForbidsSecretCost(state, playerId, parties)
         if (barred) return barred
     }
 

@@ -5,10 +5,17 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { type CampaignState } from '../model/campaign.js'
 import { BattlePlanSide, type CardPower } from '../data/cardPowers.js'
-import { applyBattlePlans, resolveBattlePlans, usableBattlePlans } from '../util/battlePlans.js'
+import {
+    applyBattlePlans,
+    playerIdsOnSide,
+    resolveBattlePlans,
+    usableBattlePlans
+} from '../util/battlePlans.js'
 import { partiesOf, rollCampaign } from '../util/campaignRoll.js'
 import { forceTotal } from '../util/force.js'
 import { BattlePlanUse, BattlePlanUses } from '../model/battlePlanUse.js'
+import { effectFor } from '../powers/registry.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 export type CampaignDefendMetadata = Type.Static<typeof CampaignDefendMetadata>
 export const CampaignDefendMetadata = Type.Object({
@@ -20,7 +27,9 @@ export const CampaignDefendMetadata = Type.Object({
     swords: Type.Number(),
     skullsKilled: Type.Number(),
     /** R-5.5.3.a */
-    awaitingMore: Type.Optional(Type.Array(Type.String()))
+    awaitingMore: Type.Optional(Type.Array(Type.String())),
+    /** R-5.5.4-H1 — the attack dice held for the defender's reroll, as they will be rolled. */
+    heldAttackDice: Type.Optional(Type.Number())
 })
 
 export type CampaignDefend = Type.Static<typeof CampaignDefend>
@@ -78,7 +87,8 @@ export class HydratedCampaignDefend
             this.playerId,
             active,
             { attackPool: campaign.attackPool, defensePool: campaign.defensePool },
-            { parties: partiesOf(state, campaign), side: BattlePlanSide.Defender }
+            { parties: partiesOf(state, campaign), side: BattlePlanSide.Defender },
+            campaign
         )
         campaign.attackPool = outcome.pools.attackPool
         campaign.defensePool = outcome.pools.defensePool
@@ -88,13 +98,17 @@ export class HydratedCampaignDefend
             campaign.plansUsedBy = { ...campaign.plansUsedBy, [this.playerId]: outcome.used }
         }
         campaign.rollRules = { ...campaign.rollRules, ...outcome.rollRules }
-        // Code of Honor — the rest of the defending side may use none (R-10.28-H1).
-        if (outcome.exclusive) campaign.defenderPlansLocked = true
+        // Code of Honor — the rest of the defending side may use none (R-10.28-H1). Peace Envoy's
+        // "you cannot use other battle plans" binds its user alone; before revision 14 it locked
+        // the side too.
+        const locksSide = isAtLeastOathRevision(state, OathRevision.EngineFixes10)
+            ? outcome.locksOwnSide
+            : outcome.exclusive
+        if (locksSide) campaign.defenderPlansLocked = true
         // Hearts and Minds — "as defender, you're victorious now"; the first decision stands.
         if (outcome.decidesVictor && !campaign.decidedVictor) campaign.decidedVictor = 'defender'
         if (outcome.ignoreDefeatKills) campaign.ignoreDefeatKills = true
         if (outcome.ignoreSkulls) campaign.ignoreSkulls = true
-        campaign.killRedirects = [...campaign.killRedirects, ...outcome.killRedirects]
 
         const remaining = campaign.defenderPlansLocked
             ? []
@@ -118,7 +132,8 @@ export class HydratedCampaignDefend
             defense: campaign.defense,
             swords: campaign.swords,
             skullsKilled,
-            awaitingMore: remaining.length > 0 ? remaining : undefined
+            awaitingMore: remaining.length > 0 ? remaining : undefined,
+            heldAttackDice: campaign.pendingAttackRoll ? campaign.attackPool : undefined
         }
     }
 
@@ -151,13 +166,43 @@ export class HydratedCampaignDefend
         // R-5.5.3 — "a specific battle plan cannot be used by multiple players".
         const taken = plans?.find((plan) => campaign.plansUsed.includes(plan.cardId))
         if (taken) return `${taken.cardId}'s battle plan is already used in this Campaign`
-        return resolveBattlePlans(
+        const resolved = resolveBattlePlans(
             state,
             playerId,
             BattlePlanSide.Defender,
             plans,
             partiesOf(state, campaign)
-        ).reason
+        )
+        if (resolved.reason) return resolved.reason
+        for (const plan of resolved.active) {
+            const locked = HydratedCampaignDefend.reasonSideHasUsedPlans(
+                state,
+                campaign,
+                plan.power
+            )
+            if (locked) return locked
+        }
+        return undefined
+    }
+
+    /**
+     * R-5.5.3-H3 — Code of Honor binds its whole side whatever order the side answers in: once anyone
+     * on the defending side has used another battle plan, no one on it may use Code of Honor. The
+     * attacker's plans are the other side's. R-X.4: before revision 13 it was judged forward only.
+     */
+    private static reasonSideHasUsedPlans(
+        state: HydratedOathGameState,
+        campaign: CampaignState,
+        power: CardPower
+    ): string | undefined {
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes9)) return undefined
+        if (!effectFor(power)?.battlePlan?.locksOwnSide) return undefined
+        const sideHasUsed = playerIdsOnSide(campaign, BattlePlanSide.Defender).some(
+            (sidePlayerId) => (campaign.plansUsedBy[sidePlayerId]?.length ?? 0) > 0
+        )
+        return sideHasUsed
+            ? `${power.cardId}: your side has already used another battle plan`
+            : undefined
     }
 
     static usablePlans(state: HydratedOathGameState, playerId: string): CardPower[] {
@@ -170,7 +215,11 @@ export class HydratedCampaignDefend
             playerId,
             BattlePlanSide.Defender,
             partiesOf(state, campaign)
-        ).filter((plan) => !campaign.plansUsed.includes(plan.cardId))
+        ).filter(
+            (plan) =>
+                !campaign.plansUsed.includes(plan.cardId) &&
+                !HydratedCampaignDefend.reasonSideHasUsedPlans(state, campaign, plan)
+        )
     }
 
     static canDoCampaignDefend(state: HydratedOathGameState, playerId: string): boolean {

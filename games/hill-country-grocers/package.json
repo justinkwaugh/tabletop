@@ -17,7 +17,6 @@
         "lint": "eslint ."
     },
     "dependencies": {
-        "@tabletop/18xx": "workspace:*",
         "@tabletop/common": "workspace:*",
         "typebox": "^1.0.79"
     },

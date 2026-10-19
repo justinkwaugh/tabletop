@@ -1,6 +1,6 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { cardDefinition } from '../data/cardRegistry.js'
-import { persistentsInPlay } from './persistent.js'
+import { persistentsInPlay, type ScopedParties } from './persistent.js'
 import { siteHolding } from './access.js'
 
 /** R-7.2.2 — the printed lock, or one a persistent power imposes on this actor. */
@@ -17,9 +17,10 @@ export function isLockedFor(
 export function siteLockedFor(
     state: HydratedOathGameState,
     actorId: string,
-    siteId: string
+    siteId: string,
+    parties?: ScopedParties
 ): boolean {
-    for (const { ctx, hooks } of persistentsInPlay(state)) {
+    for (const { ctx, hooks } of persistentsInPlay(state, parties)) {
         if (hooks.locksSiteFor?.(ctx, actorId, siteId)) return true
     }
     return false

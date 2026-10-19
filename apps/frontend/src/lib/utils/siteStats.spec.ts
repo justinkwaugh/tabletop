@@ -156,16 +156,26 @@ describe('turn time display', () => {
 
 describe('online now', () => {
     it('shows people and tabs from the relay', () => {
-        expect(onlineFigure({ accounts: 13, connections: 15 }, true)).toEqual({
-            value: '13',
-            label: 'online now',
-            note: '15 tabs open · live'
-        })
-        expect(onlineFigure({ accounts: 1, connections: 1 }, true).note).toBe('1 tab open · live')
+        expect(
+            onlineFigure({ available: true, live: true, counts: { accounts: 13, connections: 15 } })
+        ).toEqual({ value: '13', label: 'people online now', note: '15 tabs open' })
+        expect(
+            onlineFigure({ available: true, live: true, counts: { accounts: 1, connections: 1 } })
+                .note
+        ).toBe('1 tab open')
     })
 
-    it('says what it is waiting for before the first count', () => {
-        expect(onlineFigure(undefined, true).note).toBe('waiting for the relay')
-        expect(onlineFigure(undefined, false).note).toBe('needs the realtime relay')
+    it('says why there is no count', () => {
+        const counts = { accounts: 13, connections: 15 }
+        expect(onlineFigure({ available: false, live: false, counts: undefined }).note).toBe(
+            'needs the realtime relay'
+        )
+        expect(onlineFigure({ available: true, live: false, counts }).note).toBe(
+            'connecting to the relay'
+        )
+        expect(onlineFigure({ available: true, live: true, counts: undefined }).note).toBe(
+            'no count from the relay yet'
+        )
+        expect(onlineFigure({ available: true, live: false, counts }).value).toBe('—')
     })
 })

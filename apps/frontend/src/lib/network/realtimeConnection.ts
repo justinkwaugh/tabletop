@@ -2,7 +2,8 @@ import { NotificationChannel } from '@tabletop/frontend-components'
 
 export enum RealtimeEventType {
     Data = 'data',
-    Discontinuity = 'discontinuity'
+    Discontinuity = 'discontinuity',
+    Interrupted = 'interrupted'
 }
 
 export type RealtimeEvent = {

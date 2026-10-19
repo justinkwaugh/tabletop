@@ -96,8 +96,8 @@ const ANCIENT_BLOODLINE = 'denizen.nomad.ancient-bloodline'
 registerPersistent(ANCIENT_BLOODLINE, powerIndexOf(ANCIENT_BLOODLINE, PowerTiming.Persistent), {
     locksSiteFor: (ctx, actorId, siteId) =>
         !ctx.ownerIds.includes(actorId) &&
-        ctx.ownerIds.some((owner) => rulesSite(ctx.state, owner, siteId)) &&
-        ctx.ownerIds.some((owner) => areEnemies(ctx.state, owner, actorId))
+        ctx.ownerIds.some((owner) => rulesSite(ctx.state, owner, siteId, ctx.scope)) &&
+        ctx.ownerIds.some((owner) => areEnemies(ctx.state, owner, actorId, ctx.scope))
 })
 
 // "You may put all the cards you discard on the bottom of the world deck." Search modifier, relic.

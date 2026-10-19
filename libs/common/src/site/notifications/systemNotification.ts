@@ -21,6 +21,8 @@ export const RelayStatsNotification = Type.Evaluate(
     ])
 )
 
+export type RelayCounts = RelayStatsNotification['data']
+
 const RelayStatsNotificationValidator = Compile(RelayStatsNotification)
 
 export function isRelayStatsNotification(

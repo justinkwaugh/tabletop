@@ -51,7 +51,7 @@ function table(
 function exchangeAtGathering(s: HydratedOathGameState, terms: ExchangeTerms): void {
     playDrawnCard(s, GATHERING, SearchPlay.Site)
     answerQuestion(s, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
-    settleQueue(s)
+    settleQueue(s, {})
     answerQuestion(s, 'ruler', {
         kind: PowerQuestionKind.GatheringFloor,
         proposal: { withPlayerId: 'other', terms }
