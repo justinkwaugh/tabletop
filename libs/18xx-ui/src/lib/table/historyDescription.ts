@@ -38,6 +38,7 @@ import {
     isStartOperatingSet,
     isStartOperatingRound,
     isStartOperatingTurn,
+    sameOwner,
     isOfferPurchase,
     isRespondToPurchaseOffer,
     isBuyPrivateTrain,
@@ -609,14 +610,17 @@ function describeShared(
         return { text: `Started ${companyName(action.companyId)}’s turn`, routine: true }
     if (isStartOperatingRound(action)) {
         assertExists(action.metadata, 'A recorded operating round has its payments')
-        const companyIncome = action.metadata.payments.filter(
-            (payment) => payment.to.kind === 'company'
-        )
-        return companyIncome.length
+        const income: { owner: Owner; amount: number }[] = []
+        for (const payment of action.metadata.payments) {
+            const entry = income.find(({ owner }) => sameOwner(owner, payment.to))
+            if (entry) entry.amount += payment.amount
+            else income.push({ owner: payment.to, amount: payment.amount })
+        }
+        return income.length
             ? {
                   text: 'Private income',
-                  detail: companyIncome
-                      .map((payment) => `${nameOf(payment.to)} ${money(payment.amount)}`)
+                  detail: income
+                      .map(({ owner, amount }) => `${nameOf(owner)} ${money(amount)}`)
                       .join(' · ')
               }
             : { text: 'Operating order', important: true }

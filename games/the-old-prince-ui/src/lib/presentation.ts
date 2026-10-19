@@ -120,7 +120,7 @@ export const TheOldPrincePresentation: TitlePresentation = {
     hideMarketLegend: true,
     exchangePoolId: 'reserved',
     companyNames: TheOldPrinceCompanyNames,
-    companyPricePresentation: { showPar: false, label: 'Value', showInSpreadsheet: true },
+    companyPricePresentation: { showPar: false, label: 'Value' },
     numberedShareNames: {
         PEIR: Object.fromEntries(
             TheOldPrinceCompanies.map((company) => [company.number, company.name])

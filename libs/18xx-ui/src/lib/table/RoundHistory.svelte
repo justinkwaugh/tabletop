@@ -65,14 +65,35 @@
         element: HTMLDivElement,
         pin: { newestFirst: boolean; historyComplete: boolean }
     ) {
-        function scrollToNewest({ newestFirst, historyComplete }: typeof pin) {
-            if (!historyComplete) return
-            void tick().then(() => {
-                element.scrollTop = newestFirst ? 0 : element.scrollHeight
-            })
+        let current = pin
+        let atNewest = true
+        const showNewest = () => {
+            element.scrollTop = current.newestFirst ? 0 : element.scrollHeight
         }
+        const onScroll = () => {
+            atNewest = current.newestFirst
+                ? element.scrollTop <= 8
+                : element.scrollHeight - element.scrollTop - element.clientHeight <= 8
+        }
+        function scrollToNewest(next: typeof pin) {
+            current = next
+            if (!next.historyComplete) return
+            atNewest = true
+            void tick().then(showNewest)
+        }
+        const content = new ResizeObserver(() => {
+            if (atNewest && current.historyComplete) showNewest()
+        })
+        for (const child of element.children) content.observe(child)
+        element.addEventListener('scroll', onScroll, { passive: true })
         scrollToNewest(pin)
-        return { update: scrollToNewest }
+        return {
+            update: scrollToNewest,
+            destroy() {
+                content.disconnect()
+                element.removeEventListener('scroll', onScroll)
+            }
+        }
     }
     function phaseBackground(round: HistoryRound) {
         const colors = round.phases

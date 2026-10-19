@@ -1,4 +1,4 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert, assertExists, type GameAction } from '@tabletop/common'
 import {
     BuyShares,
     FinishStockTurn,
@@ -392,43 +392,70 @@ export class StockModule implements LocalSelection {
         this.assertAvailable(this.session.playerId)
         const details = this.selectedPurchaseDetails
         assertExists(details, 'Select an available purchase')
-        await this.session.applyAction(
+        await this.applyAndContinue(
             this.session.createPlayerAction(BuyShares, {
                 buyer: details.buyer,
                 certificateId: details.certificateId,
                 expectedPrice: details.price
-            })
+            }),
+            () =>
+                this.purchaseChoices.some(
+                    (choice) =>
+                        choice.result.details && sameOwner(choice.request.buyer, details.buyer)
+                )
+                    ? { menu: 'buy', buyer: details.buyer }
+                    : undefined
         )
     }
+    furtherPurchaseCompanyId = $derived.by(() => {
+        const { state, playerId } = this.session
+        const buyer: Owner | undefined =
+            this.menuBuyer ?? (playerId ? { kind: 'player', playerId } : undefined)
+        if (!state.stockRound.turn.bought || !buyer) return undefined
+        return this.purchaseChoices.find(
+            (choice) => choice.result.details && sameOwner(choice.request.buyer, buyer)
+        )?.certificate.companyId
+    })
     async confirmSale() {
         this.assertAvailable(this.session.playerId)
-        const playerId = this.session.playerId
-        const roundNumber = this.session.state.stockRound.number
         const details = this.selectedSaleResult?.details
         assertExists(details, 'Select an available sale')
         const sales: ShareSale[] = details.sales.map(({ companyId, shares }) => ({
             companyId,
             shares
         }))
-        await this.session.applyAction(
+        await this.applyAndContinue(
             this.session.createPlayerAction(SellShares, {
                 seller: details.seller,
                 sales,
                 expectedProceeds: details.proceeds
-            })
+            }),
+            () =>
+                this.saleChoices.some((choice) => choice.result.details)
+                    ? { menu: 'sell' }
+                    : undefined
         )
+    }
+    private async applyAndContinue(
+        action: GameAction,
+        nextMenu: () => { menu: StockAction; buyer?: Owner } | undefined
+    ) {
+        const playerId = this.session.playerId
+        const roundNumber = this.session.state.stockRound.number
+        await this.session.applyAction(action)
         await this.session.settled()
         if (
-            playerId &&
-            this.session.playerId === playerId &&
-            this.session.state.activePlayerIds.includes(playerId) &&
-            !this.session.viewingHistory &&
-            this.session.state.stockRound.number === roundNumber &&
-            this.saleChoices.some((choice) => choice.result.details)
-        ) {
-            this.menu.clear()
-            this.menu.choose('action', { menu: 'sell' }, 'auto')
-        }
+            !playerId ||
+            this.session.playerId !== playerId ||
+            !this.session.state.activePlayerIds.includes(playerId) ||
+            this.session.viewingHistory ||
+            this.session.state.stockRound.number !== roundNumber
+        )
+            return
+        const next = nextMenu()
+        if (!next) return
+        this.menu.clear()
+        this.menu.choose('action', next, 'auto')
     }
     sellsPrivates = $derived.by(() => !!this.session.rules.stockRules.privateSales)
     privateChoices = $derived.by(() => {

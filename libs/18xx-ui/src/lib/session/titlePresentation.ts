@@ -91,6 +91,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     trainColors: Readonly<Record<string, string>>
     phaseColors: Readonly<Record<string, string>>
     marketPoolId: string
+    /** The bank's pool of shares not yet sold, where a title has one. */
+    ipoPoolId?: string
     exchangePoolId?: string
     companyNames?: Readonly<Record<string, CompanyNameVariants>>
     companyPricePresentation?: CompanyPricePresentation

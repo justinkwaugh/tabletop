@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { historyStates } from './historyStates.js'
+    import { historyBankBreaks, historyStates } from './historyStates.js'
     import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
     import { controllingOwner } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
     import { historyCash } from './historyCash.js'
-    import { historyOperatingOrder } from './historyOperatingOrder.js'
+    import { entryOrderChanges, historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
     import { auctionLotName } from './auctionHistory.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
@@ -49,6 +49,8 @@
     const states = $derived(historyStates(context.actions, gameState))
     const orderChanges = $derived(historyOperatingOrder(context.actions, states))
     const cash = $derived(historyCash(states))
+    const entryOrders = $derived(entryOrderChanges(context.actions, orderChanges))
+    const bankBreaks = $derived(historyBankBreaks(states))
     const companyChanges = $derived(historyCompanyChanges(context.actions))
     // A system action the title describes is one of its own events, unless it is routine.
     const rounds = $derived(
@@ -88,7 +90,7 @@
     function describe(action: GameAction) {
         const shared = () => describeShared(action)
         const description = describeAction?.(action, companyName, shared) ?? shared()
-        return orderChanges.has(action.id) ? { ...description, important: true } : description
+        return entryOrders.has(action.id) ? { ...description, important: true } : description
     }
 
     function lot(lotId: string) {
@@ -154,8 +156,9 @@
                             {trainColors}
                             shareCards={(action) => session.shareCards(action)}
                             trainName={(id) => session.trainDepot.trainDefinition(id).name}
-                            {orderChanges}
+                            orderChanges={entryOrders}
                             {cash}
+                            {bankBreaks}
                             stations={session.mapView.stations}
                             {describe}
                             {companyName}

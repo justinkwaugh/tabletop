@@ -134,7 +134,7 @@
                         {/each}
                     </div>
                 </div>
-            {:else}<span>No trains available</span>{/each}
+            {:else}<span class="none">No trains available</span>{/each}
         </div>
     {/if}
 </div>
@@ -174,13 +174,19 @@
         cursor: default;
     }
     .choices {
-        align-items: flex-start;
-        gap: 12px 24px;
+        display: grid;
+        grid-template-columns: max-content max-content;
+        justify-content: center;
+        gap: 8px 16px;
+    }
+    .none {
+        grid-column: 1 / -1;
     }
     .company {
-        display: flex;
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-column: 1 / -1;
         align-items: center;
-        gap: 12px;
     }
     .company-heading,
     .company-roster {

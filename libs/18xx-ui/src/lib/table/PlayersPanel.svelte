@@ -1,4 +1,5 @@
 <script lang="ts">
+    import CertificateCount from '../stock/CertificateCount.svelte'
     import './playerTint.css'
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
@@ -290,7 +291,12 @@
                 {#if player.certs}<span class="stat-divider" aria-hidden="true"></span>
                     <dl title="Certificates counted toward the title’s certificate limit">
                         <dt>Certs</dt>
-                        <dd>{player.certs.count}/{player.certs.limit}</dd>
+                        <dd>
+                            <CertificateCount
+                                count={player.certs.count}
+                                limit={player.certs.limit}
+                            />
+                        </dd>
                     </dl>{/if}
                 <span class="stat-divider" aria-hidden="true"></span>
                 <dl>

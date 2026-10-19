@@ -12,13 +12,11 @@ export type NumberedShareNames = Readonly<Record<string, Readonly<Record<number,
 export type CompanyPricePresentation = {
     showPar: boolean
     label: string
-    showInSpreadsheet: boolean
 }
 
 export const DefaultCompanyPricePresentation: CompanyPricePresentation = {
     showPar: true,
-    label: 'Market',
-    showInSpreadsheet: false
+    label: 'Price'
 }
 
 export function companySharePrice(

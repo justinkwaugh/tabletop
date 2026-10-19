@@ -23,6 +23,7 @@
     } from '../maps/companyFocusLocations.js'
     import {
         RailwayMapState,
+        cashOwnedBy,
         getCompany,
         nextOperatingCompany,
         type Company,
@@ -73,7 +74,7 @@
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
-    import type { BoundingBox, GameAction } from '@tabletop/common'
+    import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
     import type { TitleActionDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
@@ -108,6 +109,7 @@
     const money = $derived(session.presentation.money)
     const {
         marketPoolId,
+        ipoPoolId,
         exchangePoolId,
         companyNames,
         companyPricePresentation = DefaultCompanyPricePresentation,
@@ -295,6 +297,11 @@
     let orderLastVisible = $state(-1)
     const orderWindowShown = $derived(orderChipsShown && orderOverflowing)
     const boardAreas = $derived(session.mapView.boardAreas)
+    const bankCash = $derived.by(() => {
+        const cash = cashOwnedBy(session.gameState, { kind: 'bank' })
+        assertExists(cash, 'The board shows the bank, which requires a cash account')
+        return cash
+    })
     const boardExtents = $derived(
         [boardAreas?.market, boardAreas?.depot].filter((area) => area !== undefined)
     )
@@ -854,6 +861,7 @@
                     {depotState}
                     depotOnly
                     onBoard
+                    bank={{ cash: bankCash, broken: !!session.gameState.bank.broken }}
                     chart={phaseChart}
                     currentPhaseId={session.gameState.phaseId}
                     {trainColors}
@@ -993,6 +1001,7 @@
             {/snippet}
             {#snippet gameContent()}
                 <div
+                    class="game-heading"
                     class:workspace-heading={paneLayout.current}
                     class:player-tinted-header={paneLayout.current && !!headerPlayerId}
                     style:--player-color={headerPlayerId
@@ -1283,6 +1292,7 @@
                                 {numberedShareNames}
                                 {includedCompanyIds}
                                 {marketPoolId}
+                                {ipoPoolId}
                                 {exchangePoolId}
                                 {portfolioCompanyIds}
                             />
@@ -1321,26 +1331,28 @@
                         />
                     </div>
                 {:else}
-                    <div class="original-actions">{@render actionContent()}</div>
-                    <div class="stacked-workspace">
-                        <TabWorkspace
-                            tabs={workspaceTabs
-                                .filter(
-                                    (tab) =>
-                                        tab.id !== 'Actions' &&
-                                        tab.id !== 'Player Aid' &&
-                                        !(boardAvailable && tab.id === 'Market')
-                                )
-                                .map((tab) =>
-                                    boardAvailable && tab.id === 'Map'
-                                        ? { ...tab, label: 'Board' }
-                                        : tab
-                                )}
-                            bind:selected={selectedView}
-                            label="Table views"
-                            splittable={false}
-                            {children}
-                        />
+                    <div class="stacked-body">
+                        <div class="original-actions">{@render actionContent()}</div>
+                        <div class="stacked-workspace">
+                            <TabWorkspace
+                                tabs={workspaceTabs
+                                    .filter(
+                                        (tab) =>
+                                            tab.id !== 'Actions' &&
+                                            tab.id !== 'Player Aid' &&
+                                            !(boardAvailable && tab.id === 'Market')
+                                    )
+                                    .map((tab) =>
+                                        boardAvailable && tab.id === 'Map'
+                                            ? { ...tab, label: 'Board' }
+                                            : tab
+                                    )}
+                                bind:selected={selectedView}
+                                label="Table views"
+                                splittable={false}
+                                {children}
+                            />
+                        </div>
                     </div>
                 {/if}
             {/snippet}
@@ -1408,6 +1420,17 @@
         flex-direction: column;
         flex: 1;
         min-height: 50dvh;
+    }
+    .game-heading {
+        flex: none;
+    }
+    .stacked-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: none;
     }
     .workspace-heading {
         padding-inline: 8px;

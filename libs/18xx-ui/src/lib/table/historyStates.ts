@@ -17,6 +17,8 @@ function selectHistoryState(state: Readonly<EighteenXXState>) {
         set: state.operatingSet?.number ?? 1,
         round: state.operatingSet?.roundNumber ?? 1,
         order: state.operatingSet?.companyOrder ?? [],
+        bankBroken: !!state.bank.broken,
+        ending: state.gameEnding ? { lastRound: lastOperatingRound(state) } : undefined,
         auction: !!(
             (state.offerAuction && !state.offerAuction.completed) ||
             (state.openingAuction && !state.openingAuction.completed) ||
@@ -24,10 +26,34 @@ function selectHistoryState(state: Readonly<EighteenXXState>) {
         )
     }
 }
+// A set's round count is fixed when it starts, so a later set's last round is not yet known.
+function lastOperatingRound(state: Readonly<EighteenXXState>): string | undefined {
+    const set = state.operatingSet
+    return set && !set.completed && set.number === state.gameEnding?.finalOperatingSet
+        ? `${set.number}.${set.roundCount}`
+        : undefined
+}
 export type HistoryStates = ReadonlyMap<
     string,
     RecordedTransition<ReturnType<typeof selectHistoryState>>
 >
+export type HistoryBankBreak = { ending?: { lastRound?: string } }
+
+export function historyBankBreaks(states: HistoryStates): ReadonlyMap<string, HistoryBankBreak> {
+    const breaks = new Map<string, HistoryBankBreak>()
+    let unscheduled: string | undefined
+    for (const [id, { before, after }] of states) {
+        if (after.bankBroken && !before?.bankBroken) {
+            breaks.set(id, {})
+            unscheduled = id
+        }
+        if (unscheduled && after.ending) {
+            breaks.set(unscheduled, { ending: after.ending })
+            unscheduled = undefined
+        }
+    }
+    return breaks
+}
 
 export function historyStates(
     actions: readonly GameAction[],

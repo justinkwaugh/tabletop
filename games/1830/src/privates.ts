@@ -47,7 +47,7 @@ export const EighteenThirtyPrivateCatalog = new PrivateCatalog(
                 revenue: 25,
                 blocks: { locationIds: ['H18'], until: 'company-owned' },
                 description:
-                    'Its first buyer also receives a 10% PRR share. Blocks Philadelphia & Trenton (H18) while player-owned. Closes at phase 5.'
+                    'Whoever buys it in the opening auction also receives a 10% PRR share. Blocks Philadelphia & Trenton (H18) while player-owned. Closes at phase 5.'
             },
             {
                 id: 'BOP',
@@ -57,7 +57,7 @@ export const EighteenThirtyPrivateCatalog = new PrivateCatalog(
                 blocks: { locationIds: ['I13', 'I15'], until: 'company-owned' },
                 sale: 'never',
                 description:
-                    'Its first buyer also receives the B&O president’s certificate and sets its par. Closes when the B&O buys a train. Blocks I13 and Baltimore (I15) while player-owned. Cannot be sold to a company. Closes at phase 5.'
+                    'Whoever buys it in the opening auction also receives the B&O president’s certificate and sets the B&O’s par. Closes when the B&O buys a train. Blocks I13 and Baltimore (I15) while player-owned. Cannot be sold to a company. Closes at phase 5.'
             }
         ]
     },

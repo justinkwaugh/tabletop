@@ -32,7 +32,7 @@
                 ><tr
                     ><th><span class="sr-only">Action</span></th><th>Private</th><th class="amount"
                         >Income</th
-                    ><th class="bids">Bids</th><th class="amount">Price</th></tr
+                    ><th class="amount">Price</th><th class="bids">Bids</th></tr
                 ></thead
             >
             <tbody>
@@ -78,6 +78,10 @@
                                     lot.company.privateRevenue
                                 )}<small> / OR</small>{:else}—{/if}</td
                         >
+                        <td class="amount value"
+                            >{#if model.price(lot.id) !== lot.price}<s>{money(lot.price)}</s>
+                            {/if}{money(model.price(lot.id))}</td
+                        >
                         <td class="bids">
                             {#if lot.bids.length}<ul aria-label={`Bids on ${lot.name}`}>
                                     {#each lot.bids as bid (bid.playerId)}
@@ -98,10 +102,6 @@
                                     {/each}
                                 </ul>{:else}<span class="none">—</span>{/if}
                         </td>
-                        <td class="amount value"
-                            >{#if model.price(lot.id) !== lot.price}<s>{money(lot.price)}</s>
-                            {/if}{money(model.price(lot.id))}</td
-                        >
                     </tr>
                 {/each}
             </tbody>
@@ -175,10 +175,12 @@
             width: 132px;
         }
     }
+    .bids {
+        padding-left: 20px;
+    }
     .bids ul {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 3px 10px;
+        display: grid;
+        gap: 2px;
         margin: 0;
         padding: 0;
         list-style: none;
