@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CompanyToken, DecisionResponse } from '@tabletop/18xx-ui'
     import type { EighteenThirtyTwoSession } from './session.svelte.js'
     let { session }: { session: EighteenThirtyTwoSession } = $props()
     const companyName = (companyId: string) =>
@@ -9,58 +10,57 @@
 
 {#if session.redemptionPrompt}
     {@const request = session.redemptionPrompt}
-    <header class="title-prompt">
-        {#if session.canAnswerRedemption}
-            <span
-                >{session.getPlayerName(request.presidentPlayerId)} asks to redeem one of your {companyName(
-                    request.companyId
-                )} shares for {money(request.price)}.</span
-            >
-            <span class="choices"
-                ><button
-                    class="action-button inline-action"
-                    onclick={() => session.answerRedemption(true)}>allow</button
-                ><button
-                    class="action-button inline-action"
-                    onclick={() => session.answerRedemption(false)}>refuse</button
-                ></span
-            >
-        {:else}
+    {#if session.canAnswerRedemption}
+        <DecisionResponse
+            label="Redemption response"
+            acceptLabel="Allow"
+            disabled={session.busy}
+            onAccept={() => session.answerRedemption(true)}
+            onDecline={() => session.answerRedemption(false)}
+        >
+            <CompanyToken appearance={session.mapView.stations[request.companyId]} size={24} />
+            <strong>{request.companyName}</strong>
+            <span>asks to redeem one of your shares for {money(request.price)}</span>
+        </DecisionResponse>
+    {:else}
+        <header class="title-prompt">
             <span
                 >{session.getPlayerName(request.holderPlayerId)} may allow {request.companyName} to redeem
                 their share</span
             >
-        {/if}
-    </header>
+        </header>
+    {/if}
 {/if}
 {#if session.protectionPrompt}
     {@const prompt = session.protectionPrompt}
-    <header class="title-prompt">
-        {#if session.canDecideProtection}
+    {#if session.canDecideProtection}
+        <DecisionResponse
+            label="Price protection response"
+            acceptLabel="Protect"
+            disabled={session.busy}
+            onAccept={() => session.protectShares(prompt.companyId)}
+            onDecline={() => session.declineProtection(prompt.companyId)}
+        >
+            <CompanyToken appearance={session.mapView.stations[prompt.companyId]} size={24} />
+            <strong>{session.companyName(prompt.companyId)}</strong>
             <span
                 >{session.getPlayerName(prompt.sellerPlayerId)} sold {prompt.shares}
-                {companyName(prompt.companyId)}
                 {shares(prompt.shares)} for {money(prompt.proceeds)}. Buy {prompt.shares === 1
                     ? 'it'
-                    : 'them'} to protect the price, returning it to {money(prompt.restoredPrice)}?</span
+                    : 'them'} to protect the price, returning it to {money(
+                    prompt.restoredPrice
+                )}?</span
             >
-            <span class="choices"
-                ><button
-                    class="action-button inline-action"
-                    onclick={() => session.protectShares(prompt.companyId)}>protect</button
-                ><button
-                    class="action-button inline-action"
-                    onclick={() => session.declineProtection(prompt.companyId)}>decline</button
-                ></span
-            >
-        {:else}
+        </DecisionResponse>
+    {:else}
+        <header class="title-prompt">
             <span
                 >{session.getPlayerName(prompt.presidentPlayerId)} may protect the {companyName(
                     prompt.companyId
                 )} price</span
             >
-        {/if}
-    </header>
+        </header>
+    {/if}
 {/if}
 
 {#if session.keyWestChoice && session.canChooseAction}

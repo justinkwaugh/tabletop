@@ -3,6 +3,8 @@
     import {
         CompanyActionCard,
         CompanyActionPanel,
+        CompanyToken,
+        DecisionResponse,
         TrainBadge,
         type CardAction
     } from '@tabletop/18xx-ui'
@@ -55,7 +57,17 @@
 
 {#if session.mergerAnswer}
     {@const { proposal, terms } = session.mergerAnswer}
-    <header class="merger-prompt">
+    <DecisionResponse
+        label="Merger response"
+        acceptLabel="Agree"
+        disabled={busy}
+        onAccept={() => session.answerMerger(true)}
+        onDecline={() => session.answerMerger(false)}
+    >
+        {#each [proposal.companyId, proposal.partnerId] as companyId (companyId)}<CompanyToken
+                appearance={session.mapView.stations[companyId]}
+                size={24}
+            />{/each}
         <span>
             {#if terms.kind === 'system'}
                 {name(proposal.proposerPlayerId)} proposes forming a System of {initials(
@@ -68,18 +80,7 @@
                 {initials(terms.targetId)}, paying {money(terms.price)} for its shares.
             {/if}
         </span>
-        <span class="choices"
-            ><button
-                class="action-button inline-action"
-                disabled={busy}
-                onclick={() => session.answerMerger(true)}>agree</button
-            ><button
-                class="action-button inline-action"
-                disabled={busy}
-                onclick={() => session.answerMerger(false)}>refuse</button
-            ></span
-        >
-    </header>
+    </DecisionResponse>
 {:else if session.takeoverFunding}
     {@const funding = session.takeoverFunding}
     <CompanyActionPanel
@@ -140,14 +141,6 @@
         gap: 6px;
         margin: 4px 0;
         font-size: 13px;
-    }
-    .merger-prompt button {
-        margin: 0;
-    }
-    /* The answers wrap below the question together, never one by one. */
-    .choices {
-        display: inline-flex;
-        gap: 6px;
     }
     .pass {
         display: flex;
