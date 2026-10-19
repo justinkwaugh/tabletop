@@ -18,6 +18,9 @@ import { PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { effectiveAdviserLimit } from '../util/continuous.js'
 import '../powers/index.js'
 import { bank } from '../testing/choices.js'
+import { OathRevision } from '../util/revision.js'
+import { HydratedOathGameState } from '../model/gameState.js'
+import { served } from '../testing/projection.js'
 import { INN } from '../testing/cards.js'
 
 const POVERTY = 'denizen.beast.vow-of-poverty'
@@ -137,6 +140,43 @@ describe('Rest powers — R-4.3.5, R-7.3.4', () => {
         expect(() => rest(SILVER, [bank(Suit.Arcane)]).apply(board([INN, OAK], [SILVER]))).toThrow()
         rest(SILVER, [bank(Suit.Beast)]).apply(s)
         expect(s.getPlayerState('ruler').favor).toBe(4)
+    })
+
+    // R-9.3, R-7.1.3 — an empty bank is a legal pick that takes 0, as for Vow of Obedience.
+    describe('Silver Tongue with every matching bank empty (revision 18)', () => {
+        const empty = (revision: OathRevision) =>
+            board([INN, OAK], [SILVER], {}, {
+                oathRevision: revision,
+                favorBank: { ...board([]).favorBank, [Suit.Beast]: 0, [Suit.Hearth]: 0 }
+            })
+        const offered = (s: ReturnType<typeof board>) =>
+            HydratedUseRestPower.legalRestPowers(s, 'ruler')
+                .find((use) => use.cardId === SILVER)
+                ?.choices[0]?.options.map((o) => (o.kind === PowerChoiceKind.FavorBank ? o.suit : undefined))
+
+        it('offers both empty matching banks, and the pick takes 0', () => {
+            const s = empty(OathRevision.EngineFixes14)
+            expect(offered(s)?.sort()).toEqual([Suit.Beast, Suit.Hearth].sort())
+            rest(SILVER, [bank(Suit.Beast)]).apply(s)
+            expect(s.getPlayerState('ruler').favor).toBe(3)
+            expect(s.favorBank[Suit.Beast]).toBe(0)
+            // Still only the banks matching a card at the site.
+            expect(() => rest(SILVER, [bank(Suit.Arcane)]).apply(empty(OathRevision.EngineFixes14))).toThrow()
+        })
+
+        // Safe on a player's view: the offer on the resting player's own served state matches.
+        it.each([OathRevision.EngineFixes14, OathRevision.EngineFixes13])('at revision %i the offer is the same on the player\'s own view', (revision) => {
+            const s = empty(revision)
+            s.machineState = MachineState.RestPhase
+            const own = new HydratedOathGameState(served(s, { kind: 'player', playerId: 'ruler' }))
+            expect(offered(own)).toEqual(offered(s))
+        })
+
+        it('before revision 18, offers no bank and refuses the empty one, as recorded', () => {
+            const s = empty(OathRevision.EngineFixes13)
+            expect(offered(s) ?? []).toEqual([])
+            expect(() => rest(SILVER, [bank(Suit.Beast)]).apply(s)).toThrow()
+        })
     })
 
     it('Naysayers: takes from the Chancellor only while an Exile holds the title', () => {
