@@ -20,6 +20,9 @@ export function applyPrivateEffects(
         )
         if (effect.kind === 'close') {
             closePrivate(state, company.id)
+            state.stationReservations = state.stationReservations.filter(
+                (reservation) => reservation.companyId !== company.id
+            )
             for (const pieceId of effect.retireUnplacedPieceIds ?? []) {
                 assert(
                     !Object.values(state.tileInventory.placements).some(

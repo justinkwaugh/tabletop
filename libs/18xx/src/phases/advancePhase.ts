@@ -22,22 +22,48 @@ import {
     type PhaseChangeState
 } from './phaseChange.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
-const Fields = Type.Object({
-    type: Type.Literal('AdvancePhase'),
-    metadata: Type.Optional(
-        Type.Object(
-            {
-                event: PhaseEvent,
-                nextState: Type.String(),
-                companyChanges: Type.Optional(CompanyChanges)
-            },
-            { additionalProperties: false }
-        )
+const TitleChanges = Type.Record(Type.String(), Type.Unknown())
+export type AdvancePhaseSchema<Changes extends Type.TSchema = typeof TitleChanges> = Type.TObject<
+    Omit<typeof GameAction.properties, 'type'> & {
+        type: Type.TLiteral<'AdvancePhase'>
+        metadata: Type.TOptional<
+            Type.TObject<{
+                event: typeof PhaseEvent
+                nextState: Type.TString
+                companyChanges: Type.TOptional<typeof CompanyChanges>
+                changes: Type.TOptional<Changes>
+            }>
+        >
+    }
+>
+/** The phase Action, recording the title's changes under the title's own schema. */
+export function advancePhaseSchema(): AdvancePhaseSchema
+export function advancePhaseSchema<Changes extends Type.TSchema>(
+    changes: Changes
+): AdvancePhaseSchema<Changes>
+export function advancePhaseSchema(
+    changes: Type.TSchema = TitleChanges
+): AdvancePhaseSchema<Type.TSchema> {
+    return Type.Object(
+        {
+            ...GameAction.properties,
+            type: Type.Literal('AdvancePhase'),
+            metadata: Type.Optional(
+                Type.Object(
+                    {
+                        event: PhaseEvent,
+                        nextState: Type.String(),
+                        companyChanges: Type.Optional(CompanyChanges),
+                        changes: Type.Optional(changes)
+                    },
+                    { additionalProperties: false }
+                )
+            )
+        },
+        { additionalProperties: false }
     )
-})
-export const AdvancePhase: Type.TObject<
-    Omit<typeof GameAction.properties, 'type'> & typeof Fields.properties
-> = Type.Object({ ...GameAction.properties, ...Fields.properties }, { additionalProperties: false })
+}
+export const AdvancePhase: AdvancePhaseSchema = advancePhaseSchema()
 export type AdvancePhase = Type.Static<typeof AdvancePhase>
 const Validator = Compile(AdvancePhase)
 export function isAdvancePhase(action: GameAction): action is AdvancePhase {
@@ -72,13 +98,14 @@ export class HydratedAdvancePhase
     apply(state: HydratedGameState & PhaseChangeState): void {
         assert(this.source === ActionSource.System, 'Phase advancement requires a system action')
         const companies = new CompanyChangeRecorder(state)
-        const event = advancePhase(state, this.#rules, this.#trainRules)
+        const { event, changes } = advancePhase(state, this.#rules, this.#trainRules)
         event.privateEffects = this.#privateRules.phaseEffects(state)
         applyPrivateEffects(state, event.privateEffects, this.#stockRules)
         this.metadata = {
             companyChanges: companies.changes(state),
             event,
-            nextState: continuePhaseChange(state, this.#rules)
+            nextState: continuePhaseChange(state, this.#rules),
+            ...(changes === undefined ? {} : { changes })
         }
     }
 }

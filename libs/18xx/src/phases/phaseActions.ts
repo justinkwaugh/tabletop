@@ -3,7 +3,8 @@ import type { PrivateRules } from '../privates/privateRules.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import type { PhaseRules } from './phaseChange.js'
-import { AdvancePhase, HydratedAdvancePhase, isAdvancePhase } from './advancePhase.js'
+import { Compile } from 'typebox/compile'
+import { HydratedAdvancePhase, advancePhaseSchema, type AdvancePhase } from './advancePhase.js'
 
 export function phaseActions(rules: {
     phaseRules: PhaseRules
@@ -11,10 +12,14 @@ export function phaseActions(rules: {
     privateRules: PrivateRules
     stockRules: StockRules
 }): ActionDefinition[] {
+    const changes = rules.phaseRules.changes
+    const schema = changes ? advancePhaseSchema(changes.schema) : advancePhaseSchema()
+    const validator = Compile(schema)
     return [
         defineAction(
-            AdvancePhase,
-            isAdvancePhase,
+            schema,
+            (action): action is AdvancePhase =>
+                action.type === 'AdvancePhase' && validator.Check(action),
             (action) =>
                 new HydratedAdvancePhase(
                     action,

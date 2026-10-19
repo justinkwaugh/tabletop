@@ -40,7 +40,12 @@ export type Opening<
     ? { titleState?: InitialTitleState<Schema> }
     : { titleState: InitialTitleState<Schema> })
 
-function beginWith(state: HydratedEighteenXXState, machineState: string, playerId: string): void {
+/** Starts play in a machine state with its first player, as an opening's `begin` does. */
+export function beginOpening(
+    state: HydratedEighteenXXState,
+    machineState: string,
+    playerId: string
+): void {
     state.turnManager.newFirstPlayer(playerId)
     state.turnManager.series = [{ type: 'turn', playerId, start: 0 }]
     state.activePlayerIds = [playerId]
@@ -76,7 +81,7 @@ export function beginWaterfallAuction(
             awards: [],
             completed: false
         }
-        beginWith(state, 'WaterfallAuction', firstPlayerId)
+        beginOpening(state, 'WaterfallAuction', firstPlayerId)
     }
 }
 
@@ -99,7 +104,7 @@ export function beginSelectionAuction(
             closedLotIds: [],
             completed: false
         }
-        beginWith(state, 'SelectionAuction', firstPlayerId)
+        beginOpening(state, 'SelectionAuction', firstPlayerId)
     }
 }
 
@@ -110,6 +115,6 @@ export function beginOfferPileAuction(auction: OfferPileAuction): Opening['begin
             'The first auctioneer must be a player'
         )
         state.offerAuction = auction
-        beginWith(state, 'OfferingLot', auction.auctioneerId)
+        beginOpening(state, 'OfferingLot', auction.auctioneerId)
     }
 }
