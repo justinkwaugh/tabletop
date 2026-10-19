@@ -211,6 +211,9 @@ The 2026-10-10 audit of all six titles' States also found these, left for now:
   read in about sixty places, and the history panel reads TOP's awards and tells an offer
   auction apart from the finished record in current State. It needs `completed` removed
   as a flag and auction history built from `ResolveAuction` metadata.
+  The same change takes the `awards` list these auctions grow during play (deferred
+  2026-10-19): the auction rules read only whether anything was awarded, which the lots
+  left already say, and the auction panels' "Awarded" lists would read award metadata.
 - **The pool's owner repeated on pooled certificates** (0.02–1.2 KB, TOP the most).
   `certificate.owner` is read in about 150 places across 63 files; making it optional
   or deriving it from the pool touches all of them.
