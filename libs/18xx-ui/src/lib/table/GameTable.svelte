@@ -156,14 +156,6 @@
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
     const tileAppearance = $derived(session.tileAppearance)
-    function paintBodyBackground(_table: HTMLElement, initialColor: string | undefined) {
-        const original = document.body.style.backgroundColor
-        function paint(color: string | undefined) {
-            document.body.style.backgroundColor = color ?? original
-        }
-        paint(initialColor)
-        return { update: paint, destroy: () => paint(undefined) }
-    }
     async function toggleArtwork() {
         session.toggleArtwork()
         restoreRouteView = undefined
@@ -984,7 +976,6 @@
 <div
     class="railway-table"
     class:published-artwork={publishedArtwork}
-    use:paintBodyBackground={boardArtwork?.backgroundColor}
     use:framePlacement={activePlacementFocusKey}
     use:frameRoutes={{ runningCompanyId, preview: routePreview }}
     use:frameStartCompany={session.stock.selectedStartCompany}
