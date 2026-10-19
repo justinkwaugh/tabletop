@@ -1142,6 +1142,8 @@ Income calculation receives only visible context actions; it does not read or re
 
 Current ownership cells show the shared President badge for the company's canonical president in either orientation. Corporate presidencies are marked in that company's cell (such as Union Bank), never its controlling player's cell. Share numbers stay centered independently of the badge. The visible top of the P aligns with the top of the share number.
 
+Where a title has an IPO pool, a Par line sits between the owners and the IPO: a row in Player view and a column in Company view, ruled off by the stronger divider on both sides like Value. It shows a company's par, the price of an IPO share, only while that company is started, not closed and has shares in the IPO; other companies show a dash. The line is absent when no company has IPO shares for sale, and for titles whose price presentation hides par. Its blank intersections with owner statistics carry the pool divider once, on the Par line. Par is not a sort header.
+
 Where a title has a reserved exchange pool, Exchange appears immediately before Treasury in either orientation. The owners/pools divider precedes Exchange, and its financial-summary cells are dashes. Counts come from the supplied exchange pool and follow visible state and Undo.
 
 Operating pills always render as detailed chips. The Tokens only / Detailed chips control is removed for now; the table ignores the stored display preference.

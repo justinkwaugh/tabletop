@@ -445,6 +445,14 @@
                 session.gameState.stockMarket,
                 company.id
             ),
+            // Par is the IPO purchase price, so it only matters while the IPO is selling.
+            par:
+                ipoPoolId &&
+                company.started &&
+                !company.closed &&
+                poolShares(ipoPoolId, company.id) > 0
+                    ? company.parPrice
+                    : undefined,
             stations: session.gameState.stations.filter(
                 (station) => station.companyId === company.id
             ),
@@ -461,6 +469,12 @@
         }))
     )
     type CompanyRow = (typeof companyRows)[number]
+    const showPar = $derived(
+        pricePresentation.showPar && companyRows.some((row) => row.par !== undefined)
+    )
+    function parBefore(ownerId: string): boolean {
+        return showPar && ownerId === 'ipo'
+    }
     const companySortColumns = $derived.by(
         (): Record<CompanyStatistic, SpreadsheetSortColumn<CompanyRow>> => {
             const operatingOrder = orderedAs(
@@ -699,6 +713,12 @@
     </td>
 {/snippet}
 
+{#snippet parCell(par: number | undefined, operating: boolean)}
+    <td class="pool-start value-cell" class:operating-column={operating}
+        >{par?.toLocaleString('en-US') ?? '—'}</td
+    >
+{/snippet}
+
 {#snippet shareValue(text: string, president: boolean)}
     <span class="share-value" class:president
         >{text}{#if president}<span class="badge" aria-label="President">P</span>{/if}</span
@@ -798,6 +818,7 @@
                             <col class="label-column" />
                             {#if view === 'Company'}
                                 {#each owners as owner (owner.id)}
+                                    {#if parBefore(owner.id)}<col class="pool-section" />{/if}
                                     <col class:pool-section={owner.id in poolColumnLabels} />
                                 {/each}
                                 <col span={companyStatisticCount} class="financial-section" />
@@ -821,7 +842,10 @@
                                     >
                                 </th>
                                 {#if view === 'Company'}
-                                    {#each owners as owner, index (owner.id)}<th
+                                    {#each owners as owner, index (owner.id)}{#if parBefore(owner.id)}<th
+                                                scope="col"
+                                                class="pool-start">Par</th
+                                            >{/if}<th
                                             scope="col"
                                             class:pool-start={owner.id === firstPoolId}
                                             class:current-player-column={currentPlayerOwners.has(
@@ -887,7 +911,10 @@
                                             aria-label={session.companyName(row.company.id)}
                                             >{@render companyLabel(row.company)}</th
                                         >
-                                        {#each row.shares as shares, index (index)}{@render shareCell(
+                                        {#each row.shares as shares, index (index)}{#if parBefore(owners[index].id)}{@render parCell(
+                                                    row.par,
+                                                    false
+                                                )}{/if}{@render shareCell(
                                                 shares,
                                                 row.company.id,
                                                 owners[index].id,
@@ -931,8 +958,11 @@
                                     <tr class="financial-row" class:stat-start={index === 0}>
                                         {@render playerSortHeader('row', key)}
                                         {#each owners as owner (owner.id)}
+                                            {#if parBefore(owner.id)}<td class="pool-start void"
+                                                ></td>{/if}
                                             <td
-                                                class:pool-start={owner.id === firstPoolId}
+                                                class:pool-start={owner.id === firstPoolId &&
+                                                    !parBefore(owner.id)}
                                                 class:bright-cell={statistics.has(owner.id)}
                                                 class:player-financial={!!ownerTintColor(owner.id)}
                                                 style:--player-color={ownerTintColor(owner.id)}
@@ -953,9 +983,23 @@
                                 {/each}
                             {:else}
                                 {#each owners as owner, index (owner.id)}
+                                    {#if parBefore(owner.id)}
+                                        <tr class="pool-start pool-row">
+                                            <th scope="row" class="non-player-owner">Par</th>
+                                            {#each rows as row (row.company.id)}{@render parCell(
+                                                    row.par,
+                                                    row.company.id === operatingCompanyId
+                                                )}{/each}
+                                            {#each ownerStatisticKeys as _, statIndex (statIndex)}<td
+                                                    class:stat-start={statIndex === 0}
+                                                    class="void"
+                                                ></td>{/each}
+                                        </tr>
+                                    {/if}
                                     <tr
                                         class:current-player={currentPlayerOwners.has(owner.id)}
                                         class:pool-start={owner.id === firstPoolId}
+                                        class:after-par={parBefore(owner.id)}
                                         class:pool-row={owner.id in poolColumnLabels}
                                     >
                                         <th
@@ -1828,7 +1872,8 @@
     tbody tr:hover td.void {
         background: var(--rail-table-background, #18212b);
     }
-    .transposed tr.company-stat-start > td.void {
+    .transposed tr.company-stat-start > td.void,
+    .transposed tr.after-par > td.void {
         border-top: 0;
     }
     tr.stat-start > td.void {
