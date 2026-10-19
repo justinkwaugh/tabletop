@@ -67,6 +67,21 @@ export function actsAsAtSite(
     action: ActionType,
     uses: readonly ModifierUse[] | undefined
 ): string | undefined {
+    return actingSite(state, playerId, action, uses)?.siteId
+}
+
+/**
+ * `actsAsAtSite`'s site and the card whose use names it. That card is used from where the pawn
+ * really stands: access to a modifier is judged when it is declared (R-7.4, R-7.4.1), so a Small
+ * Friends at the pawn's site may name another site. Only the other cards are judged as if the
+ * pawn were at the named site.
+ */
+function actingSite(
+    state: HydratedOathGameState,
+    playerId: string,
+    action: ActionType,
+    uses: readonly ModifierUse[] | undefined
+): { siteId: string; cardId: string } | undefined {
     if (action !== ActionType.Trade) return undefined
     if (!isAtLeastOathRevision(state, OathRevision.EngineFixes15)) return undefined
     const disguise = disguisedAs(action, uses)
@@ -76,7 +91,7 @@ export function actsAsAtSite(
         const hook = effectFor(power)?.modifier?.actsAsAtSites
         if (!hook || !mayDeclare(state, playerId, use.cardId, disguise)) continue
         const [siteId] = hook({ state, playerId, power, choices: use.choices ?? [] })
-        if (siteId !== undefined) return siteId
+        if (siteId !== undefined) return { siteId, cardId: use.cardId }
     }
     return undefined
 }
@@ -103,10 +118,11 @@ function isOwnOtherAdviser(state: HydratedOathGameState, playerId: string, cardI
 
 /**
  * R-7.1.1 — with Small Friends acting at a site (revision 19), that site's cards stand in for the
- * pawn's own; what the player holds or rules stays in reach. Master of Disguise — "act as if you
- * had another player's advisers instead": the named player's faceup advisers stand in for the
- * player's own other advisers (its Q&A: "you fully replace your advisers"), so the listing is
- * what `resolveModifiers` accepts.
+ * pawn's own; what the player holds or rules stays in reach, and so does the card naming the
+ * site, reached from where the pawn stands. Master of Disguise — "act as if you had another
+ * player's advisers instead": the named player's faceup advisers stand in for the player's own
+ * other advisers (its Q&A: "you fully replace your advisers"), so the listing is what
+ * `resolveModifiers` accepts.
  */
 function modifierCandidates(
     state: HydratedOathGameState,
@@ -118,12 +134,14 @@ function modifierCandidates(
     for (const siteId of reachableSitesFor(state, playerId, action, uses)) {
         for (const id of state.denizensAt(siteId)) candidates.add(id)
     }
-    const at = actsAsAtSite(state, playerId, action, uses)
+    const acting = actingSite(state, playerId, action, uses)
     const disguise = disguisedAs(action, uses)
     const lent = disguise === undefined ? [] : state.getPlayerState(disguise).faceupAdviserIds()
     const own = [...candidates].filter(
         (cardId) =>
-            (at === undefined || hasAccessAt(state, playerId, cardId, at)) &&
+            (acting === undefined ||
+                cardId === acting.cardId ||
+                hasAccessAt(state, playerId, cardId, acting.siteId)) &&
             (disguise === undefined || !isOwnOtherAdviser(state, playerId, cardId))
     )
     return [...new Set([...own, ...lent])]
@@ -252,7 +270,7 @@ export function resolveModifiers(
     const disguise = disguisedAs(action, uses)
     const disguisedAdvisers =
         disguise === undefined ? [] : state.getPlayerState(disguise).faceupAdviserIds()
-    const actingAt = actsAsAtSite(state, playerId, action, uses)
+    const acting = actingSite(state, playerId, action, uses)
     for (const use of uses ?? []) {
         const key = powerKey(use.cardId, use.powerIndex)
         if (seen.has(key)) {
@@ -265,14 +283,17 @@ export function resolveModifiers(
         if (disguise !== undefined && isOwnOtherAdviser(state, playerId, use.cardId)) {
             return { reason: `Master of Disguise: you can't use your other advisers`, active }
         }
-        // Small Friends from revision 19: its site stands in for the pawn's (Q&A: "Only the new site").
+        // Small Friends from revision 19: its site stands in for the pawn's (Q&A: "Only the new site")
+        // for every card but the one naming it, which is used from where the pawn stands (R-7.4.1).
         const inReach =
-            actingAt === undefined
+            acting === undefined
                 ? hasAccessToCard(state, playerId, use.cardId) ||
                   reachableSitesFor(state, playerId, action).includes(
                       siteHolding(state, use.cardId) ?? ''
                   )
-                : hasAccessAt(state, playerId, use.cardId, actingAt)
+                : use.cardId === acting.cardId
+                  ? hasAccessToCard(state, playerId, use.cardId)
+                  : hasAccessAt(state, playerId, use.cardId, acting.siteId)
         if (!disguisedAdvisers.includes(use.cardId) && !inReach) {
             return { reason: `you neither rule ${use.cardId} nor is your pawn at its site`, active }
         }

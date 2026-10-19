@@ -207,6 +207,26 @@ describe('Small Friends in the Trade menu: one picked Beast site', () => {
         expect(rows(session)).toEqual([WOLVES])
     })
 
+    it("a Small Friends at the pawn's site picks the Mountain: it stays in use and the rows follow there", async () => {
+        const { session, sent } = await sessionAt(friends({ advisers: [adviser(BIRDSONG)] }, { c1: [TOLL_ROADS, MAP_LIBRARY, SMALL_FRIENDS] }))
+        session.chooseAction(ActionType.Trade)
+        session.modifiers.declare(use(SMALL_FRIENDS), true)
+        const [legal] = session.modifiers.choicesOf(smallFriends(session))
+        const mountain = legal?.options.findIndex((o) => o.kind === PowerChoiceKind.Site && o.siteId === 'h1') ?? -1
+        expect(mountain).toBeGreaterThanOrEqual(0)
+        pickSite(session, mountain)
+        expect(session.modifiers.isDeclared(use(SMALL_FRIENDS))).toBe(true)
+        expect(session.modifiers.options.map((power) => power.cardId)).toContain(SMALL_FRIENDS)
+        expect(session.modifiers.picksPending).toBe(false)
+        expect(rows(session)).toEqual([OAK])
+        expect(listed(session)).toEqual(expect.arrayContaining([SMALL_FRIENDS, BIRDSONG, OAK]))
+        expect(listed(session)).not.toContain(MAP_LIBRARY)
+        await session.chooseTrade(OAK, TradeOption.ForFavor)
+        const action = sent.mock.calls[0][0]
+        assert(isTrade(action), 'a Trade is sent')
+        expect(action.modifiers).toEqual(expect.arrayContaining([{ ...use(SMALL_FRIENDS), choices: [{ kind: PowerChoiceKind.Site, siteId: 'h1' }] }]))
+    })
+
     it('in a game created before revision 19 it asks for no site and reaches every Beast site, as recorded', async () => {
         const { session } = await sessionAt(friends({}, {}, OathRevision.EngineFixes14))
         session.chooseAction(ActionType.Trade)
