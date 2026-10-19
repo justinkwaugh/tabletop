@@ -191,7 +191,7 @@ describe('Salad Days played to the site: the picker shows each bank as the play 
         expect(picker.tableBanks[Suit.Hearth]).toBe(1)
         expect(openAfter(picker, [])).toEqual([Suit.Arcane, Suit.Order, Suit.Beast, Suit.Nomad])
         expect(openAfter(picker, [Suit.Arcane, Suit.Order])).toEqual([Suit.Beast, Suit.Nomad])
-        // Brief 121's case: Hearth, Arcane, Order yields 2 of 3 once played, so the engine refuses it.
+        // The Hearth bank is empty once the card is played: Hearth, Arcane, Order yields 2 of 3, so the engine refuses it.
         expect(picker.reasonFor([Suit.Hearth, Suit.Arcane, Suit.Order])).toMatch(/the banks named yield 2, and 3 can be had/)
         expect(picker.reasonFor([Suit.Arcane, Suit.Order, Suit.Beast])).toBeUndefined()
         expectAgreement(picker)
@@ -202,7 +202,7 @@ describe('Salad Days played to the site: the picker shows each bank as the play 
         expect(picker.banks).toEqual({ ...TWO_LEFT, [Suit.Hearth]: 0 })
         expect(openAfter(picker, [])).toEqual(ALL)
         expect(openAfter(picker, [Suit.Arcane, Suit.Order])).toEqual([Suit.Discord, Suit.Hearth, Suit.Beast, Suit.Nomad])
-        // Brief 121's case: Arcane, Order, Beast is accepted once played.
+        // Arcane, Order, Beast is accepted once played.
         expect(picker.reasonFor([Suit.Arcane, Suit.Order, Suit.Beast])).toBeUndefined()
         expectAgreement(picker)
     })
