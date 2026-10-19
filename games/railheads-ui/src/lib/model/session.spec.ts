@@ -356,4 +356,30 @@ describe('the Midwest', () => {
         )
         expect(indianapolis?.cost).toBe(6)
     })
+
+    it('totals two companies’ discs on one site at the price each one pays', async () => {
+        const nyc = withTrack(firstTurnTable({ edition: EditionId.Midwest }), CompanyId.NYC, [
+            [11, 31]
+        ])
+        const table = withTrack(nyc, CompanyId.ERIE, [[11, 31]])
+        const session = openSessionOn(choose(table, ActionSpaceId.LayTrackII))
+        const indianapolis = printedPointyHex(12, 30)
+        const companies = [CompanyId.NYC, CompanyId.ERIE]
+        for (const companyId of companies) {
+            session.chooseTrackCompany(companyId)
+            await session.clickHex(indianapolis)
+        }
+        expect(session.placements).toHaveLength(2)
+        const paid = companies.reduce(
+            (sum, companyId) =>
+                sum +
+                session.gameState.company(companyId).treasury -
+                session.shownState.company(companyId).treasury,
+            0
+        )
+        // Over the B&O's home disc the NYC pays $6; the ERIE's disc then sits on
+        // two and costs $8, halved to $4 without an ERIE share.
+        expect(paid).toBe(10)
+        expect(session.stagedCost).toBe(paid)
+    })
 })
