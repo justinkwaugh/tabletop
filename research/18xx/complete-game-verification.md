@@ -64,7 +64,8 @@ so it stays available with no active player, and the engine test for the stall
 proves the whole consequence reverses exactly.
 
 1889 uses its standard game, not an additional beginner configuration. Automatic
-route finding, physical-board artwork and final desktop/mobile UI remain deferred.
+route finding has since been added ([design](autorouter-design.md)); published-board
+artwork and final mobile UI remain deferred.
 
 ## Local distribution
 
