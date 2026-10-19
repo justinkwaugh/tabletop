@@ -16,13 +16,14 @@
                     request.companyId
                 )} shares for {money(request.price)}.</span
             >
-            <button
-                class="action-button inline-action"
-                onclick={() => session.answerRedemption(true)}>allow</button
-            >
-            <button
-                class="action-button inline-action"
-                onclick={() => session.answerRedemption(false)}>refuse</button
+            <span class="choices"
+                ><button
+                    class="action-button inline-action"
+                    onclick={() => session.answerRedemption(true)}>allow</button
+                ><button
+                    class="action-button inline-action"
+                    onclick={() => session.answerRedemption(false)}>refuse</button
+                ></span
             >
         {:else}
             <span
@@ -43,13 +44,14 @@
                     ? 'it'
                     : 'them'} to protect the price, returning it to {money(prompt.restoredPrice)}?</span
             >
-            <button
-                class="action-button inline-action"
-                onclick={() => session.protectShares(prompt.companyId)}>protect</button
-            >
-            <button
-                class="action-button inline-action"
-                onclick={() => session.declineProtection(prompt.companyId)}>decline</button
+            <span class="choices"
+                ><button
+                    class="action-button inline-action"
+                    onclick={() => session.protectShares(prompt.companyId)}>protect</button
+                ><button
+                    class="action-button inline-action"
+                    onclick={() => session.declineProtection(prompt.companyId)}>decline</button
+                ></span
             >
         {:else}
             <span
@@ -82,11 +84,13 @@
 {#if session.londonCompanies.length}
     <header class="title-prompt">
         <span>London Investment Company: take a free share of</span>
-        {#each session.londonCompanies as { companyId, certificateId } (companyId)}<button
-                class="action-button inline-action"
-                onclick={() => session.takeLondonShare(certificateId)}
-                >{companyName(companyId)}</button
-            >{/each}
+        <span class="choices"
+            >{#each session.londonCompanies as { companyId, certificateId } (companyId)}<button
+                    class="action-button inline-action"
+                    onclick={() => session.takeLondonShare(certificateId)}
+                    >{companyName(companyId)}</button
+                >{/each}</span
+        >
     </header>
 {/if}
 
@@ -96,11 +100,19 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: center;
+        text-align: center;
         gap: 6px;
         margin: 4px 0;
         font-size: 13px;
     }
     .title-prompt button {
         margin: 0;
+    }
+    /* A prompt's choices wrap below its question together, never one by one. */
+    .choices {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
     }
 </style>

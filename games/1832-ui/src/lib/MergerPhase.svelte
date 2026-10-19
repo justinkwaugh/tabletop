@@ -68,15 +68,16 @@
                 {initials(terms.targetId)}, paying {money(terms.price)} for its shares.
             {/if}
         </span>
-        <button
-            class="action-button inline-action"
-            disabled={busy}
-            onclick={() => session.answerMerger(true)}>agree</button
-        >
-        <button
-            class="action-button inline-action"
-            disabled={busy}
-            onclick={() => session.answerMerger(false)}>refuse</button
+        <span class="choices"
+            ><button
+                class="action-button inline-action"
+                disabled={busy}
+                onclick={() => session.answerMerger(true)}>agree</button
+            ><button
+                class="action-button inline-action"
+                disabled={busy}
+                onclick={() => session.answerMerger(false)}>refuse</button
+            ></span
         >
     </header>
 {:else if session.takeoverFunding}
@@ -135,12 +136,18 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: center;
+        text-align: center;
         gap: 6px;
         margin: 4px 0;
         font-size: 13px;
     }
     .merger-prompt button {
         margin: 0;
+    }
+    /* The answers wrap below the question together, never one by one. */
+    .choices {
+        display: inline-flex;
+        gap: 6px;
     }
     .pass {
         display: flex;
