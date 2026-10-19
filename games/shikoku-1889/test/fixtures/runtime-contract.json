@@ -1694,10 +1694,6 @@
       "privateTrackLay": {
         "additionalProperties": false,
         "properties": {
-          "companyId": {
-            "minLength": 1,
-            "type": "string"
-          },
           "playerId": {
             "minLength": 1,
             "type": "string"
@@ -1708,7 +1704,6 @@
           }
         },
         "required": [
-          "companyId",
           "playerId",
           "privateCompanyId"
         ],

@@ -25,10 +25,6 @@ export const Shikoku1889TransferRules: TransferRules = {
             offer.asset.privateCompanyId === 'ER' &&
             !privatePowerUsed(state, 'ER')
         )
-            state.privateTrackLay = {
-                privateCompanyId: 'ER',
-                companyId: offer.buyer.companyId,
-                playerId: offer.sellerPlayerId
-            }
+            state.privateTrackLay = { privateCompanyId: 'ER', playerId: offer.sellerPlayerId }
     }
 }

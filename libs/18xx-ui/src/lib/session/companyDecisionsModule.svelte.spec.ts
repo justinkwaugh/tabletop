@@ -147,11 +147,7 @@ describe('CompanyDecisionsModule', () => {
         })
 
         const lay = deciding(['DeclinePrivateTile'], {
-            privateTrackLay: {
-                privateCompanyId: PrivateId,
-                companyId: TestCompanyId,
-                playerId: TestPlayerId
-            }
+            privateTrackLay: { privateCompanyId: PrivateId, playerId: TestPlayerId }
         })
         await lay.module.declinePrivateTile()
         expect(lay.applied[0]).toMatchObject({
