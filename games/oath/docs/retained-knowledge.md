@@ -24,7 +24,7 @@ Each field records a fact the player saw, kept in step with later public events 
 | A shown adviser discarded | the players it was shown to know it among the cards discarded | their pile record, as a set, whatever became of a Search's kept card | the same as any other position |
 | Family Heirloom, Dowsing Sticks | a drawn relic sent to the bottom | new `knownRelicDeckBottom: (cardId \| null)[]`, Owner, last element the bottom | every relic sent to the bottom appends to every player's list, the id to those who know it and `null` to the rest; a draw that reaches into the list trims it from the top |
 | Fae Merchant | the drawn relic, or a held one (public) | the same field; a held relic is public, so it is named in everyone's list | the same |
-| Relic Hunter | the site relics taken, then bottomed | the same field, for the attacker and anyone who had peeked at that slot | the same |
+| Relic Hunter | the relics taken, then bottomed: a site's, or one from the defender's board (public) | the same field, a site's for the attacker and anyone who had peeked at that slot; one from the defender's board is public, so it is named in everyone's list | the same |
 | Relic Breaker | nothing new | the same field, named only for players who had peeked at that slot | the same |
 
 The relic deck's length is not in public state. It follows from public state (every relic, less those held, in slots, or out of play), so trimming against it discloses nothing new.

@@ -256,6 +256,8 @@ export interface BattlePlanHooks {
     killsEnemyForce?: boolean
     /** Relic Hunter */
     targetsSiteRelics?: boolean
+    /** Relic Hunter — "you may put any relics you take on the bottom of the relic deck". */
+    bottomsTakenRelics?: boolean
     /** Wild Mounts, R-5.5.8 — one of `insteadCardIds` is discarded instead. */
     sparesEndDiscards?: (
         ctx: PlayerPlanContext,
