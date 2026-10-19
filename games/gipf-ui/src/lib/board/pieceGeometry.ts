@@ -9,7 +9,7 @@ export const CROWN_SCALE = 0.55
 
 export type Disc = { faceY: number; sideY: number; covered: boolean }
 
-const SIDE = 0.14
+const SIDE = 0.12
 const RAISE = SIDE * 1.8
 
 export function pieceDiscs(gipf: boolean, radius: number): Disc[] {

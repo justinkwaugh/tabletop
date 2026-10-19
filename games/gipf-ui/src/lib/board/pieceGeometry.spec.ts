@@ -26,7 +26,9 @@ describe('piece geometry', () => {
         expect(upper.sideY).toBeLessThan(lower.faceY)
     })
 
-    it('keeps a GIPF-piece within half the spacing, so it never covers a neighbour', () => {
-        expect(pieceExtent(true, PIECE_RADIUS)).toBeLessThan(SPACING / 2)
+    it('lets neighbouring GIPF-pieces touch but never overlap', () => {
+        const gap = SPACING - 2 * pieceExtent(true, PIECE_RADIUS)
+        expect(gap).toBeGreaterThanOrEqual(0)
+        expect(gap).toBeLessThan(0.5)
     })
 })

@@ -2,8 +2,8 @@ import { flatHexCoordsToCenterPoint, type AxialCoordinates, type Point } from '@
 import { BOARD_RADIUS, PLAY_RADIUS } from '@tabletop/gipf'
 
 export const SPACING = 60
-// As large as a GIPF-piece's taller stack allows without reaching into a neighbouring spot.
-export const PIECE_RADIUS = SPACING * 0.41
+// As large as possible while two GIPF-pieces in neighbouring spots just touch.
+export const PIECE_RADIUS = SPACING * 0.428
 export const DOT_RADIUS = SPACING * 0.12
 const BOARD_MARGIN = SPACING * 0.75
 const LABEL_ROOM = SPACING * 0.95
