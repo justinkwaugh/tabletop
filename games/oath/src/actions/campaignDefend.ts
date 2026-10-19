@@ -11,7 +11,7 @@ import {
     resolveBattlePlans,
     usableBattlePlans
 } from '../util/battlePlans.js'
-import { partiesOf, rollCampaign } from '../util/campaignRoll.js'
+import { campaignStepRevealsInfo, partiesOf, rollCampaign } from '../util/campaignRoll.js'
 import { forceTotal } from '../util/force.js'
 import { BattlePlanUse, BattlePlanUses } from '../model/battlePlanUse.js'
 import { effectFor } from '../powers/registry.js'
@@ -121,8 +121,9 @@ export class HydratedCampaignDefend
             skullsKilled = forceTotal(rollCampaign(state, campaign, pending?.skullLossOrder))
         }
 
-        // R-X.3 — the PRNG moved, or a plan was declared for it to move on.
-        this.revealsInfo = true
+        // R-X.3 — the PRNG moved, or a plan was declared for it to move on; R-5.5.5.b-H1 — unless a
+        // plan decided the Campaign and no defending plans are left to wait on.
+        this.revealsInfo = campaignStepRevealsInfo(state)
 
         this.metadata = {
             plansUsed: outcome.used,

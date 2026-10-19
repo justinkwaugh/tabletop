@@ -53,6 +53,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Great Herd, Roving Terror, Enchantress, their own lock:** in a game created before revision 16 (R-X.4) each moves itself out of a site where it is locked for its user (R-7.2.2): Great Herd played to a site an enemy holding Ancient Bloodline rules is offered and makes its swap, and Roving Terror there moves to the site whose card it discards, though Great Herd's Q&A says a locked card cannot be moved or swapped and Ancient Bloodline's leaves such cards stuck at the site for all but its ruler. Enchantress has the same guard, but an adviser-only card reaches no site in a legal game.
 - **Mushrooms at the Marshes:** in a game created before revision 16 (R-X.4) the Marshes' one fewer card is lost under Mushrooms' one, so Mushrooms there draws one card, two with Augury, three with Greedy, though the one fewer stacks on Mushrooms as Augury's one more does (R-11.11-H1).
 - **Fabled Feast with Marriage:** in a game created before revision 16 (R-X.4) Fabled Feast counts Marriage as one hearth card its player rules, though Marriage counts as two hearth advisers and an adviser is a card its holder rules (R-2.2.2-H1).
+- **Hearts and Minds, Peace Envoy, Undo:** in a game created before revision 17 (R-X.4) the Campaign step that one of them decides is marked as revealing information, so it cannot be undone, though no dice are rolled and R-5.5.5.b-H1 keeps it undoable.
 
 ## Rules
 
