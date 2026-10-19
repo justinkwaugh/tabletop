@@ -7,6 +7,15 @@ import { standingGroupKey, type ProjectedUnit } from './pieces.js'
 
 const NIGHT_RECOVERY_LIMIT = 4
 
+/** The enemy has seen every one of these units, all with the same face, so shuffling them hides nothing. */
+function seenAllAlike(units: readonly ProjectedUnit[]): boolean {
+    const firstShown = units[0].shown
+    return (
+        firstShown !== undefined &&
+        units.every((unit) => unit.shown !== undefined && sameFace(unit.shown, firstShown))
+    )
+}
+
 /**
  * Both players re-arrange their blocks out of sight at the end of every turn (rule 7): units
  * standing together in the same corps, or together and detached, become indistinguishable again.
@@ -27,10 +36,7 @@ function shuffleBlocks(state: HydratedNapoleonsTriumphGameState) {
         if (units.length < 2) {
             continue
         }
-        const seen = units[0].shown
-        const seenAlike =
-            seen !== undefined &&
-            units.every((unit) => unit.shown !== undefined && sameFace(unit.shown, seen))
+        const seenAlike = seenAllAlike(units)
         const faces: (Face | undefined)[] = units.map((unit) => unit.face)
         shuffle(faces, random)
         units.forEach((unit, index) => {
