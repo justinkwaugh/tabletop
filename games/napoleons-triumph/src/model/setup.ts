@@ -221,6 +221,14 @@ function placements(state: HydratedNapoleonsTriumphGameState, deployment: Deploy
     )
 }
 
+/** Rule 18: with the Santon rule in use, a fixed battery set up on the Santon stands in reserve there; anywhere else it blocks an approach (rule 6, step 9). */
+export function fixedBatterySetsUpInReserve(
+    state: HydratedNapoleonsTriumphGameState,
+    locale: number
+): boolean {
+    return state.santon && locale === SANTON_LOCALE
+}
+
 function validateFixedBattery(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -239,12 +247,7 @@ function validateFixedBattery(
             faceOf(candidate.unit).type === UnitType.Artillery
     )
     legal(placement?.position !== undefined, 'The fixed battery is an artillery unit on the map')
-    // Table ruling: with the Santon rule in use the fixed battery stands on the Santon, as it did. Rule 18 itself only says what follows if it sets up there.
-    if (state.santon) {
-        legal(
-            placement.position.locale === SANTON_LOCALE,
-            'With the Santon in use the fixed battery sets up on the Santon'
-        )
+    if (fixedBatterySetsUpInReserve(state, placement.position.locale)) {
         legal(
             placement.position.approach === undefined && battery.approach === undefined,
             'A fixed battery on the Santon sets up in reserve'
