@@ -2,6 +2,13 @@ import type { CagePlacement } from '@tabletop/oath'
 
 // R-10.13-H1 — the Obsidian Cage sent down: its Imperial warbands, so many per Imperial board.
 
+/** The step's question, as Fae Merchant's and Relic Hunter's Cage steps both ask it. */
+export function cageQuestion(total: number): string {
+    return total === 1
+        ? 'Obsidian Cage: where does its 1 purple warband go?'
+        : `Obsidian Cage: where do its ${total} purple warbands go?`
+}
+
 /**
  * The most a row may hold. With two boards a row may take them all, the other row holding the
  * rest; with more, a row takes what the other rows leave.

@@ -191,6 +191,7 @@ export type TableName =
     | 'spoils'
     | 'spoilsRelicHunter'
     | 'spoilsRelicHunterDrum'
+    | 'spoilsRelicHunterCage'
     | QuestionTableName
     | 'warbandGiveAsked'
     | 'offerCitizenship'
@@ -1978,6 +1979,89 @@ function spoilsRelicHunterDrumTable(): PlayedTable {
         ...campaign.targets,
         { kind: CampaignTargetKind.Relic, cardId: 'relic.dragonskin-drum' }
     ]
+    return tableOf(state)
+}
+
+/**
+ * Relic Hunter's "any relics you take" with the Obsidian Cage (R-10.13-H1): Dana won against Bea
+ * at the Steppe, which Bea rules, taking it, the facedown Cup of Plenty there and Bea's Cage, which
+ * holds 2 Imperial warbands. Ann is the Chancellor and Rhys a Citizen, so the Cage sent down asks
+ * Dana which of their boards take them.
+ */
+function spoilsRelicHunterCageTable(): PlayedTable {
+    const site = mapSlotId(Region.Provinces, 0)
+    const slotId = `${site}.relic.0`
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: site,
+                warbandsOnBoard: { dana: 4 },
+                warbandsInPersonalBank: { dana: 10 },
+                peekedRelics: { [slotId]: 'relic.cup-of-plenty' }
+            }),
+            testPlayer({
+                playerId: 'bea',
+                color: Color.Yellow,
+                siteId: site,
+                favor: 4,
+                warbandsOnBoard: { bea: 2 },
+                warbandsInPersonalBank: { bea: 10 },
+                relicIds: [OBSIDIAN_CAGE_ID]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0),
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: mapSlotId(Region.Cradle, 0),
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 1 }
+            })
+        ],
+        {
+            machineState: MachineState.CampaignVictory,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            oathRevision: CURRENT_OATH_REVISION,
+            siteCards: { ...fixtureSitesOnTheBoard(), [site]: 'site.steppe' },
+            warbandsBySite: { [site]: { bea: 1 } },
+            warbandsOnCards: { [OBSIDIAN_CAGE_ID]: { [IMPERIAL_WARBANDS]: 2 } },
+            banners: testBanners({}),
+            relicsBySite: { [site]: [{ slotId }] },
+            vault: testVaultWithRelics({ [slotId]: 'relic.cup-of-plenty' }),
+            campaign: {
+                attackerPlayerId: 'dana',
+                defenderPlayerId: 'bea',
+                nonImperialPlayerIds: [],
+                allyPlayerIds: [],
+                targets: [
+                    { kind: CampaignTargetKind.Site, siteId: site },
+                    { kind: CampaignTargetKind.SiteRelic, slotId },
+                    { kind: CampaignTargetKind.Relic, cardId: OBSIDIAN_CAGE_ID }
+                ],
+                attackPool: 3,
+                defensePool: 4,
+                attackRoll: range(0, 3).map(() => ({ swords: 1, hollowSwords: 0, skulls: 0 })),
+                defenseRoll: [1, 1, 0, 0].map((shields) => ({ shields, doubling: false })),
+                defense: 2,
+                swords: 3,
+                defendingForce: [{ at: { kind: 'site', siteId: site }, owner: 'bea', count: 1 }],
+                defendingBandits: 0,
+                ...campaignRecords(),
+                plansUsedBy: { dana: ['denizen.order.relic-hunter'] },
+                attackerVictorious: true
+            }
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
     return tableOf(state)
 }
 
@@ -5031,6 +5115,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     spoils: () => battleTable('spoils'),
     spoilsRelicHunter: spoilsRelicHunterTable,
     spoilsRelicHunterDrum: spoilsRelicHunterDrumTable,
+    spoilsRelicHunterCage: spoilsRelicHunterCageTable,
     ...QUESTION_TABLES,
     oathkeeperTie: oathkeeperTieTable,
     tavernSongs: tavernSongsTable,

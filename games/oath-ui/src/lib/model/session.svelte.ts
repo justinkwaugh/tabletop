@@ -507,7 +507,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     async resolveCampaignVictory(
         placements: CampaignPlacement[],
         burnFavor: boolean,
-        { bottomRelicSlotIds, bottomRelicIds }: RelicBottoms,
+        { bottomRelicSlotIds, bottomRelicIds, cagePlacement }: RelicBottoms,
         banishToSiteId?: string,
         banish?: boolean
     ): Promise<void> {
@@ -519,7 +519,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 ...(banishToSiteId ? { banishToSiteId } : {}),
                 ...(banish ? { banish } : {}),
                 ...(bottomRelicSlotIds.length > 0 ? { bottomRelicSlotIds } : {}),
-                ...(bottomRelicIds.length > 0 ? { bottomRelicIds } : {})
+                ...(bottomRelicIds.length > 0 ? { bottomRelicIds } : {}),
+                ...(cagePlacement && cagePlacement.length > 0 ? { cagePlacement } : {})
             })
         )
     }

@@ -49,6 +49,7 @@ import {
     soleOwner,
     PowerMoveTollOutcome,
     IMPERIAL_WARBANDS,
+    OBSIDIAN_CAGE_ID,
     type AnswerConsentMetadata,
     type Banner,
     type CitizenshipTransfer,
@@ -960,12 +961,15 @@ function gaining(secrets: number, favor: number, short: readonly FavorShort[] = 
 }
 
 /**
- * Relic Hunter — the relics sent to the bottom of the relic deck: one from the defender's board by
- * name and whose it was; a facedown one from a site by name to the attacker alone (R-9.4).
+ * Relic Hunter — the relics sent to the bottom of the relic deck, each clause naming the card: one
+ * from the defender's board by name and whose it was; a facedown one from a site by name to the
+ * attacker alone (R-9.4). The Obsidian Cage sent down is told on its own, then where its warbands
+ * went back (R-10.13-H1).
  */
 function bottomedClauses(
     action: CampaignResolveVictory,
     defender: string,
+    names: HistoryNames,
     viewerId: string | undefined
 ): string[] {
     const held = action.bottomRelicIds ?? []
@@ -977,11 +981,19 @@ function bottomedClauses(
             : facedown.length === 1
               ? 'a facedown relic'
               : `${facedown.length} facedown relics`
+    const wentBack = action.metadata?.cageWentBack
+    const cage = wentBack !== undefined && held.includes(OBSIDIAN_CAGE_ID)
+    const others = cage ? held.filter((id) => id !== OBSIDIAN_CAGE_ID) : held
+    const down = (relics: string) => `put ${relics} on the bottom of the relic deck (Relic Hunter)`
     return [
-        ...(held.length > 0
-            ? [`put ${listed(held)} from ${defender} on the bottom of the relic deck`]
+        ...(others.length > 0 ? [down(`${listed(others)} from ${defender}`)] : []),
+        ...(cage
+            ? [
+                  down(`${listed([OBSIDIAN_CAGE_ID])} from ${defender}`),
+                  namedNote(wentBack, action.playerId, names, viewerId)
+              ]
             : []),
-        ...(facedown.length > 0 ? [`put ${sites} on the bottom of the relic deck`] : [])
+        ...(facedown.length > 0 ? [down(sites)] : [])
     ]
 }
 
@@ -1012,7 +1024,7 @@ function describeSpoils(
     const parts = [
         placementsClause(action.placements, action.playerId, names),
         taken.length > 0 ? `took ${listed(taken)}` : undefined,
-        ...bottomedClauses(action, defender, viewerId),
+        ...bottomedClauses(action, defender, names, viewerId),
         banners.length > 0
             ? `seized ${listed(banners.map((banner) => `the ${bannerName(banner)}`))}${burning}`
             : undefined,
