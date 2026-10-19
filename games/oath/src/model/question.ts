@@ -542,6 +542,13 @@ export const PowerQuestion = Type.Union([
 /** A question as the host and its asked player see it, every protected field present. */
 export const PowerQuestionValidator = Compile(PowerQuestion)
 
+/** R-10.13-H1 — so many of the Obsidian Cage's Imperial warbands to a player's board. */
+export type CagePlacement = Type.Static<typeof CagePlacement>
+export const CagePlacement = Type.Array(
+    Type.Object({ playerId: Type.String(), count: Type.Integer({ minimum: 1, maximum: 16 }) }),
+    { maxItems: 8 }
+)
+
 export type QuestionAnswer = Type.Static<typeof QuestionAnswer>
 export const QuestionAnswer = Type.Union([
     Type.Object({
@@ -561,7 +568,12 @@ export const QuestionAnswer = Type.Union([
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.BottomRelic),
         /** A relic held before the draw; absent, the drawn relic goes, unnamed. */
-        heldRelicCardId: Type.Optional(Type.String())
+        heldRelicCardId: Type.Optional(Type.String()),
+        /**
+         * R-10.13-H1 — the Obsidian Cage sent down: where its Imperial warbands go, when two or
+         * more Imperial boards may take them. Absent in every other answer.
+         */
+        cagePlacement: Type.Optional(CagePlacement)
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.RelicThiefRoll), roll: Type.Boolean() }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.TakeOrLeaveRelic), take: Type.Boolean() }),

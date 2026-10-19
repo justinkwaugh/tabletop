@@ -47,8 +47,15 @@ import {
     reasonExchangeInvalid,
     reasonTermsOutsideCard
 } from './exchange.js'
-import { GRAND_SCEPTER_ID } from '../data/relics.js'
+import { GRAND_SCEPTER_ID, OBSIDIAN_CAGE_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
+import {
+    cagedGroupsToBoards,
+    cageReturnsToBoards,
+    cageWentBackSummary,
+    reasonCagePlacementInvalid,
+    returnCagedWarbands
+} from './obsidianCage.js'
 import { powerTravelNeedsFlip, reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
 import {
     gainOnArrival,
@@ -358,13 +365,16 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     },
     [PowerQuestionKind.BottomRelic]: {
         reasonCannotAnswer: (state, playerId, matched) => {
-            const held = matched.answer.heldRelicCardId
-            if (held === undefined || heldRelicsToBottom(state, playerId).includes(held)) {
-                return undefined
+            const { heldRelicCardId: held, cagePlacement } = matched.answer
+            if (held !== undefined && !heldRelicsToBottom(state, playerId).includes(held)) {
+                return held === GRAND_SCEPTER_ID
+                    ? 'the Grand Scepter cannot go to the bottom'
+                    : `you do not hold ${held}`
             }
-            return held === GRAND_SCEPTER_ID
-                ? 'the Grand Scepter cannot go to the bottom'
-                : `you do not hold ${held}`
+            if (held === OBSIDIAN_CAGE_ID) return reasonCagePlacementInvalid(state, cagePlacement)
+            return cagePlacement === undefined
+                ? undefined
+                : 'only the Obsidian Cage sent down places warbands'
         },
         apply: (state, _playerId, matched, asked) => {
             const { relicCardId } = matched.question
@@ -378,11 +388,19 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             }
             const notes = takeRelics(state, asked.playerId, [relicCardId])
             releaseRelic(state, asked.playerId, held)
-            returnWarbandsOnCardToBanks(state, held)
-            return {
-                summary: `took ${relicCardId} and put ${held} on the bottom of the relic deck${takeNotes(notes)}`,
-                relicToDeckBottom: held
+            const summary = `took ${relicCardId} and put ${held} on the bottom of the relic deck${takeNotes(notes)}`
+            // R-10.13-H1 — from revision 17 (R-X.4) the Cage's warbands go back to boards, as its
+            // Action moves them (its Q&A); before it, as every card leaving play, to their banks.
+            if (held === OBSIDIAN_CAGE_ID && cageReturnsToBoards(state)) {
+                const groups = cagedGroupsToBoards(state, matched.answer.cagePlacement)
+                const wentBack = cageWentBackSummary(returnCagedWarbands(state, groups))
+                return {
+                    summary: wentBack ? `${summary}; ${wentBack}` : summary,
+                    relicToDeckBottom: held
+                }
             }
+            returnWarbandsOnCardToBanks(state, held)
+            return { summary, relicToDeckBottom: held }
         }
     },
     [PowerQuestionKind.TakeOrLeaveRelic]: {
