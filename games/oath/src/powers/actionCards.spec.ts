@@ -465,9 +465,9 @@ describe('Order', () => {
 })
 
 describe('The doorway with the room furnished', () => {
-    it('a card outside the playtest deck still refuses, unimplemented, and pays nothing', () => {
+    it('a power with no effect still refuses, last, and pays nothing', () => {
         const s = board([UNBUILT])
-        expect(() => actionPowerUse('ruler', UNBUILT).apply(s)).toThrow(/not implemented yet/)
+        expect(() => actionPowerUse('ruler', UNBUILT).apply(s)).toThrow(/power 0 cannot be used as an "Action:" power/)
         expect(s.tokensOn(UNBUILT).favor).toBe(0)
         expect(s.getPlayerState('ruler')).toMatchObject({ favor: 3, secrets: 2 })
     })

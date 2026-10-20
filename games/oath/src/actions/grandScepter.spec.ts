@@ -122,7 +122,7 @@ describe('Scepter double delivery: the same act is reachable through two doors w
             GRAND_SCEPTER_ID,
             1
         )
-        expect(holderHasAccess).toMatch(/not implemented yet/)
+        expect(holderHasAccess).toMatch(/power 1 cannot be used as an "Action:" power/)
     })
 })
 
