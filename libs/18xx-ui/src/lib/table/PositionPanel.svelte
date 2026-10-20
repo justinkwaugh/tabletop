@@ -12,7 +12,8 @@
         isDistributeEarnings,
         isLayTile,
         isPrivateTileLay,
-        isRespondToTrackConsent
+        isRespondToTrackConsent,
+        trainsOwnedBy
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
@@ -96,7 +97,14 @@
                         'BuyingTrains'
                     ].includes(gameState.machineState)
                   ? undefined
-                  : statusLabels[gameState.machineState]
+                  : gameState.trainFunding &&
+                      trainsOwnedBy(gameState, {
+                          kind: 'company',
+                          companyId: gameState.trainFunding.purchase.companyId
+                      }).length
+                    ? // A president's optional help is an ordinary purchase, not an emergency.
+                      statusLabels.BuyingTrains
+                    : statusLabels[gameState.machineState]
     )
     function companyName(id: string) {
         return session.companyName(id)

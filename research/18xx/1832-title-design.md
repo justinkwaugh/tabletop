@@ -477,16 +477,28 @@ stay in 1832.
 - A run tracing reachability for a merger ends at an off-board area.
 - History and the round heading call the phase "Merger phase", numbered by the stock round it
   follows, or by the operating round when it follows the first 6-train.
+- **A System president's voluntary help (§11.6.7, added 2026-10-19).** While a System holds no
+  more trains than one shell's limit and cannot afford the cheapest train alone, its president
+  may help buy that train: the cheapest from the bank or open market, with the whole treasury
+  spent, from the president's cash alone. Without enough cash they may not help. The help may
+  be given again whenever the condition still holds. The research implementation instead lets
+  the president add cash toward any voluntary purchase; the rulebook's "usual restrictions"
+  rule that out.
 
 ### Shared changes
 
 `EarningsRules.holderDividend` pays a holding rather than a share; `TitleRound.followsStockRound`
 numbers a title's round by the stock round it follows when no operating round is under way.
+`TrainFundingRules.voluntaryFunding` lets a title offer the compulsory-purchase flow to a company
+that owns a train, funded from its contributors' cash alone. Among researched titles 1858, 1882
+and 1877: Stockholm Tramways let a president contribute only to a trainless company, which needs no
+hook. 1828's Systems let a president help fill an empty shell, apparently with share sales; a
+cash-only yes or no does not cover that, so 1828 would need the hook extended.
 
 ### Limits after slice 5
 
-The optional forced purchase of a System's second train (§11.6.7) is not offered. The
-playground has no prepared phase 4 position with the two homes joined; tests cover the flow.
+The playground has no prepared phase 4 position with the two homes joined, nor a System at its
+train step; tests cover the flow.
 
 ### Acceptance examples
 

@@ -472,7 +472,7 @@ function describeShared(
         }
     if (isFundTrain(action))
         return {
-            text: 'Must buy a train',
+            text: action.metadata?.voluntary ? 'Helped buy a train' : 'Must buy a train',
             important: true
         }
     if (isAdvancePhase(action)) {

@@ -1,8 +1,11 @@
-import { presidentTrainFundingRules } from '@tabletop/18xx'
+import { presidentTrainFundingRules, trainsOwnedBy } from '@tabletop/18xx'
 import { refreshSellerExcess } from './ownershipExcess.js'
 import { recordProtectableSale } from './priceProtection.js'
 import { EighteenThirtyTwoOperatingRules } from './roundRules.js'
 import { EighteenThirtyTwoShareTrading, EighteenThirtyTwoStockRules } from './stockRules.js'
+import { isSystem } from './systems.js'
+import { EighteenThirtyTwoPhases } from './trains.js'
+import { requireEighteenThirtyTwoState } from './state.js'
 
 // A president funds a compulsory train from personal cash and share sales that may not change
 // the buying company's presidency (§10.6).
@@ -16,5 +19,11 @@ export const EighteenThirtyTwoTrainFundingRules = presidentTrainFundingRules({
     afterShareSale(state, details) {
         recordProtectableSale(state, details)
         refreshSellerExcess(state, details)
-    }
+    },
+    // A System's president may help it buy another train while it has no more than one shell's
+    // limit, from their cash alone (§11.6.7).
+    voluntaryFunding: (state, companyId) =>
+        isSystem(requireEighteenThirtyTwoState(state), companyId) &&
+        trainsOwnedBy(state, { kind: 'company', companyId }).length <=
+            EighteenThirtyTwoPhases.phase(state.phaseId).trainLimit
 })

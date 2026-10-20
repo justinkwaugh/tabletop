@@ -3,6 +3,7 @@ import { ActionSource } from '@tabletop/common'
 import type {
     AuctionAwardDetails,
     BuyAuctionLot,
+    FundTrain,
     ResolveAuction,
     RouteBonus,
     RunTrains
@@ -100,4 +101,23 @@ it('lists a run’s bonuses beneath it, totalled by what earned them', () => {
             (id) => bonusNames[id]
         ).detail
     ).toBe('East–West +$80 · Steamboat +$40 · +$20 at G9')
+})
+
+it('says whether a funded train was compulsory or the president’s choice', () => {
+    const state = historyStateFixture()
+    const fund: FundTrain = {
+        id: 'fund',
+        gameId: 'history',
+        source: ActionSource.User,
+        playerId: 'alex',
+        type: 'FundTrain',
+        companyId: 'R',
+        trainId: 'train',
+        definitionId: '4',
+        expectedPrice: 300
+    }
+    // Games recorded before the choice was kept hold only compulsory funding.
+    expect(historyDescription(fund, state, TestMarket).text).toBe('Must buy a train')
+    fund.metadata = { voluntary: true }
+    expect(historyDescription(fund, state, TestMarket).text).toBe('Helped buy a train')
 })

@@ -823,6 +823,13 @@ shortfall and offers no further gameplay actions. Engine Undo restores the fundi
 state, including the contribution that triggered bankruptcy. Final scoring is a
 later slice. Prototype save identity is version 22.
 
+A title may let the president help a company that already owns a train, from cash
+alone (1832's Systems). That help is optional, so the ordinary train list and
+finish stay in place instead of the funding panel. The funded train carries a note
+of each contribution, and choosing it records FundTrain, the contributions and the
+purchase in one step. History reads "Helped buy a train" rather than "Must buy a
+train".
+
 ### 1817 merger and acquisition station choices
 
 A duplicate New York placement requires a choice even below the eight-piece limit.

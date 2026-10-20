@@ -78,10 +78,17 @@
         </div>
     </section>
 {:else if purchase && plan}
-    <section aria-label="Compulsory train funding">
+    <section
+        aria-label={session.trainFunding.voluntary
+            ? 'Voluntary train funding'
+            : 'Compulsory train funding'}
+    >
         <header>
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
-            <span>{session.companyName(purchase.companyId)} must buy a</span>
+            <span
+                >{session.companyName(purchase.companyId)}
+                {session.trainFunding.voluntary ? 'buys' : 'must buy'} a</span
+            >
             <TrainBadge
                 name={session.trainDepot.trainDefinition(purchase.definitionId).name}
                 color={trainColors[purchase.definitionId]}
