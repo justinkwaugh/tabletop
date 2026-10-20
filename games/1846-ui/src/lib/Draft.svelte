@@ -14,7 +14,7 @@
 </script>
 
 {#if hiddenDraft}
-    <section class="draft centered-panel" aria-label="Private company draft">
+    <section class="draft midwest-panel centered-panel" aria-label="Private company draft">
         <header class="draft-heading">
             <h2>{choosers.join(', ')} to choose</h2>
             <p>

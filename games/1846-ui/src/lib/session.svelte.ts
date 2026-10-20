@@ -85,8 +85,7 @@ const BaseSession: ReturnType<
     typeof EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
 >(TitleRules1846, MapView1846, Presentation1846)
-type ConstructionMode = 'track' | 'stations' | 'finance' | 'nothing'
-/** The stock-round panel 1846 adds beside Buy and Sell. */
+type ConstructionMode = 'track' | 'stations' | 'finance'
 export type StockPanel1846 = 'receivership'
 export class EighteenFortySixSession extends BaseSession {
     readonly stockPanels = this.titleStockPanels<StockPanel1846>([
@@ -115,10 +114,17 @@ export class EighteenFortySixSession extends BaseSession {
         if (manual && this.constructionModeAvailable(manual)) return manual
         if (this.validActionTypes.includes('LayTile')) return 'track'
         if (this.validActionTypes.includes('PlaceStation')) return 'stations'
-        if (this.gameState.machineState !== 'LayingTrack') return 'stations'
-        if (this.financeChoices.length) return 'finance'
-        return this.validActionTypes.includes('FinishTrack') ? 'nothing' : 'stations'
+        return this.gameState.machineState === 'LayingTrack' && this.financeChoices.length
+            ? 'finance'
+            : 'stations'
     })
+    readonly nothingToBuild = $derived.by(
+        () =>
+            this.gameState.machineState === 'LayingTrack' &&
+            this.validActionTypes.includes('FinishTrack') &&
+            !this.validActionTypes.some((type) => type === 'LayTile' || type === 'PlaceStation') &&
+            !this.financeChoices.length
+    )
     private steamboatSelection = $derived.by((): SteamboatSelection => {
         void this.gameState.machineState
         void this.gameState.actionCount
@@ -175,7 +181,6 @@ export class EighteenFortySixSession extends BaseSession {
     }
     private constructionModeAvailable(mode: ConstructionMode): boolean {
         if (mode === 'finance') return this.financeChoices.length > 0
-        if (mode === 'nothing') return false
         return this.validActionTypes.includes(mode === 'track' ? 'LayTile' : 'PlaceStation')
     }
     chooseConstructionMode(mode: ConstructionMode | undefined) {

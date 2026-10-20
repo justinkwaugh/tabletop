@@ -10,7 +10,7 @@
     const locationName = (id: string) => MapView1846.map.location(id).name ?? id
 </script>
 
-<section class="steamboat centered-panel" aria-label="Steamboat assignment">
+<section class="steamboat midwest-panel centered-panel" aria-label="Steamboat assignment">
     <h2>Assign the Steamboat</h2>
     <p>
         {#if chosen}Choose a port on the map for {session.mapView.stations[chosen]?.label ??

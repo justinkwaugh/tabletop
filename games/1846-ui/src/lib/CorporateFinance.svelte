@@ -47,7 +47,7 @@
     </div>
 {/snippet}
 
-<section class="corporate-finance centered-panel" aria-label="Corporate finance">
+<section class="corporate-finance midwest-panel centered-panel" aria-label="Corporate finance">
     {#if canFinishConstruction}
         <header class="finance-prompt">
             <span>{session.financePrompt}, or</span>

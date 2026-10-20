@@ -4,7 +4,7 @@
     const money = $derived(session.presentation.money)
 </script>
 
-<section class="receivership centered-panel" aria-label="Companies in receivership">
+<section class="receivership midwest-panel centered-panel" aria-label="Companies in receivership">
     <h2>Take over a company</h2>
     <div class="choices">
         {#each session.presidencyClaims as offer (offer.companyId)}

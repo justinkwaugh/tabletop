@@ -9,7 +9,6 @@
     import {
         GameTable,
         OperatingActions,
-        AutomaticRoutes,
         StationBuilding,
         CompanyDecisions,
         SlidingToggle
@@ -112,7 +111,7 @@
     {#snippet actions(_focusLocation, focusRoute)}
         <div class="midwest-actions">
             {#if showOperatingModes}
-                <nav aria-label="Operating mode" class="operating-mode">
+                <nav aria-label="Operating mode" class="operating-mode midwest-panel">
                     <SlidingToggle
                         count={operatingModes.length}
                         selectedIndex={operatingModes.findIndex((mode) => mode.selected)}
@@ -141,17 +140,6 @@
                         <PresidencyClaims {session} />
                     {:else if showFinance}
                         <CorporateFinance {session} />
-                    {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'nothing' && !state.purchaseOffer}
-                        <div class="centered-panel">
-                            <CompanyDecisions
-                                {session}
-                                trainColors={session.presentation.trainColors}
-                                showUndo={false}
-                            />
-                            {#if !session.privateActions.selection && !session.decisions.selection}
-                                <NothingToBuild {session} />
-                            {/if}
-                        </div>
                     {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'stations' && !state.purchaseOffer}
                         <div class="centered-panel">
                             <CompanyDecisions
@@ -160,12 +148,16 @@
                                 showUndo={false}
                             />
                             {#if !session.privateActions.selection && !session.decisions.selection}
-                                <StationBuilding
-                                    {session}
-                                    showUndo={false}
-                                    canSkip={session.canChooseAction}
-                                    onSkip={() => session.finishConstruction()}
-                                />
+                                {#if session.nothingToBuild}
+                                    <NothingToBuild {session} />
+                                {:else}
+                                    <StationBuilding
+                                        {session}
+                                        showUndo={false}
+                                        canSkip={session.canChooseAction}
+                                        onSkip={() => session.finishConstruction()}
+                                    />
+                                {/if}
                             {/if}
                         </div>
                     {:else}

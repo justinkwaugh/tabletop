@@ -34,7 +34,6 @@ function gameData(config) {
     }
 }
 
-/** IC buying trains in phase II with $1000, holding the given depot trains, each bought as `definitionId`. */
 function phaseIIPurchase(held) {
     const engine = new GameEngine(Scenarios1846.runtime)
     const prepared = Scenarios1846.runtime.initializer.initializeGame(
@@ -61,7 +60,6 @@ function phaseIIPurchase(held) {
     return { engine, game, state, companyId }
 }
 
-/** Takes every unsold train of the given depot types out of play, so the next type is on sale. */
 function soldOut(position, depotIds) {
     position.state.trainInventory.trains = position.state.trainInventory.trains.filter(
         (train) => train.status !== 'depot' || !depotIds.includes(train.definitionId)
@@ -102,7 +100,6 @@ function write(slug, name, { game, state }) {
 
 mkdirSync(OUT, { recursive: true })
 
-/** Returns IC's newest trains of `definitionId` to the market and refills its treasury to $1000, so it can buy again. */
 function readyToBuyAgain(position, definitionId) {
     position.state.trainInventory.trains = position.state.trainInventory.trains.map((train) =>
         train.status === 'owned' && train.definitionId === definitionId
@@ -121,7 +118,6 @@ function readyToBuyAgain(position, definitionId) {
     return position
 }
 
-/** Plays every other step, building and buying nothing, until IC is buying trains again. */
 function untilBuying(position) {
     for (let i = 0; i < 200; i++) {
         const companyId = nextOperatingCompany(position.state)
