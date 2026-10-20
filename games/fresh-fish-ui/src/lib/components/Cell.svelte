@@ -116,9 +116,7 @@
             gameSession.highlightedCoords[0] === coords[0] &&
             gameSession.highlightedCoords[1] === coords[1]
     )
-    // A finger has no hover, and a tap places the piece at once, so only a mouse or pen
-    // previews it. A phone need not report the finger leaving, which would leave the
-    // preview on a square that Undo makes legal again.
+    // Touch has no hover, and iOS may never report the finger leaving after a tap.
     let hovered = $state(false)
     let previewing = $derived(hovered && interactable)
 

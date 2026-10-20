@@ -1,25 +1,12 @@
 import { devices, expect, test } from '@playwright/test'
+import { firstLegalCell, openProtectedGame } from './protectedGame.js'
 
 const { defaultBrowserType: _browser, ...iPhone } = devices['iPhone 13']
 test.use(iPhone)
 
 test('a tapped placement leaves no preview behind once undone', async ({ page }) => {
-    await page.goto('/')
-    await page.evaluate(async () => {
-        const fixture = await import(
-            new URL('/src/lib/stores/tests/exploration.fixture.ts', location.href).href
-        )
-        return fixture.saveProtectedHarnessGame()
-    })
-    await page.reload()
-    await page.getByRole('button', { name: 'Games', exact: true }).tap()
-    await page.getByText('Protected Fresh Fish', { exact: true }).tap()
-    await expect(page.getByText('Please place a disc', { exact: true })).toBeVisible()
-    const cells = page.locator('.land .cell')
-    const target = await cells.evaluateAll((elements) =>
-        elements.findIndex((element) => element.classList.contains('cursor-pointer'))
-    )
-    const cell = cells.nth(target)
+    await openProtectedGame(page, 'tap')
+    const cell = await firstLegalCell(page)
 
     await cell.tap()
     await expect(page.getByText('placed a disc')).toBeVisible()
