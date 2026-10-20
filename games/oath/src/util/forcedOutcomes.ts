@@ -159,6 +159,14 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
         homeBankPayable(state, question.askedPlayerId, question.owed) <= 0
             ? `${question.askedPlayerId} has no favor in a bank to pay from`
             : undefined,
+    // R-7.1.3-H2 — nothing rolled or no bank with favor gains nothing; one bank is taken from unasked.
+    [PowerQuestionKind.GamblingHallBank]: (state, question) => {
+        const [only, ...more] = question.banks
+        if (question.shields === 0 || only === undefined) return 'gained nothing'
+        if (more.length > 0) return undefined
+        const gained = gainFavorFromBank(state, question.askedPlayerId, only, question.shields)
+        return `gained ${gained} favor from the ${only} bank`
+    },
     // R-11.13-H1 — without the faceup secrets to flip (or under Spell Breaker) the move is unable.
     [PowerQuestionKind.FlipToTravel]: (state, question) => {
         const flips = question.flips ?? 1

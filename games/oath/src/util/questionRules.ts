@@ -6,6 +6,7 @@ import { SearchPlay } from '../model/oathEnums.js'
 import {
     PowerQuestionKind,
     RerolledRollKind,
+    type RerolledRoll,
     type ShroudedWoodPick,
     type ShroudedWoodTravel
 } from '../model/question.js'
@@ -15,7 +16,7 @@ import { cardPowers, type CardPower, type PowerUseKey } from '../data/cardPowers
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
 import { pawnSiteId, regionOfPawn } from './pawn.js'
 import type { SiteFlip } from './hiddenInputs.js'
-import { rollDefenseShields } from '../data/dice.js'
+import { defenseShieldsFromFaces, rollDefenseShields } from '../data/dice.js'
 import {
     playCard,
     playConspiracy,
@@ -233,6 +234,20 @@ function reasonCannotUsePowerToReroll(
 ): string | undefined {
     const power = cardPowers(question.cardId)[question.powerIndex]
     return power ? reasonCannotPayPowerCost(state, playerId, power) : 'the power is not in play'
+}
+
+/** Jinx — "reroll all those dice once": the same dice, rolled again (the doubling faces multiply anew). */
+function rerollStanding(
+    state: HydratedOathGameState,
+    roll: Exclude<RerolledRoll, { kind: RerolledRollKind.Campaign }>
+): Exclude<RerolledRoll, { kind: RerolledRollKind.Campaign }> {
+    const prng = state.getProtectedPrng()
+    if (roll.kind === RerolledRollKind.GamblingHallDice) {
+        const faces = rollDefenseDice(prng, roll.faces.length)
+        return { ...roll, faces, shields: defenseShieldsFromFaces(faces) }
+    }
+    const dice = roll.kind === RerolledRollKind.GamblingHall ? 4 : roll.relicCardIds.length
+    return { ...roll, shields: rollDefenseShields(prng, dice) }
 }
 
 function powerForQuestion(state: HydratedOathGameState, question: PowerUseKey): CardPower {
@@ -634,23 +649,25 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!matched.answer.reroll) return undefined
             return reasonCannotUsePowerToReroll(state, playerId, matched.question)
         },
-        apply: (state, playerId, matched) => {
+        apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const { roll } = matched.question
             if (roll.kind !== RerolledRollKind.Campaign) {
-                // What the roll postponed (Gambling Hall's favor, Relic Thief's take) lands now;
-                // a take is a title moment (its Q&A: "at each moment that relics change hands").
+                // What the roll postponed (Gambling Hall's favor or bank, Relic Thief's take) lands
+                // now; a take is a title moment (its Q&A: "at each moment that relics change hands").
                 if (!matched.answer.reroll) {
-                    const kept = settleRoll(state, playerId, roll)
+                    const kept = settleRoll(state, askingPlayerId, playerId, roll)
                     return {
                         summary: `kept the roll; ${kept.summary}`,
                         titleMoment: kept.relicsTaken
                     }
                 }
                 payPowerCost(state, playerId, powerForQuestion(state, matched.question))
-                const dice =
-                    roll.kind === RerolledRollKind.GamblingHall ? 4 : roll.relicCardIds.length
-                const shields = rollDefenseShields(state.getProtectedPrng(), dice)
-                const rerolled = settleRoll(state, playerId, { ...roll, shields })
+                const rerolled = settleRoll(
+                    state,
+                    askingPlayerId,
+                    playerId,
+                    rerollStanding(state, roll)
+                )
                 return {
                     summary: `Jinx: rerolled — ${rerolled.summary}`,
                     rolled: true,
@@ -681,7 +698,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!matched.answer.roll) return undefined
             return reasonCannotUsePowerToReroll(state, playerId, matched.question)
         },
-        apply: (state, playerId, matched) => {
+        apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const { takerPlayerId, relicCardIds } = matched.question
             if (!matched.answer.roll) return 'let the relics go'
             payPowerCost(state, playerId, powerForQuestion(state, matched.question))
@@ -701,7 +718,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                     rolled: true
                 }
             }
-            const settled = settleRoll(state, playerId, roll)
+            const settled = settleRoll(state, askingPlayerId, playerId, roll)
             return { summary: settled.summary, rolled: true, titleMoment: settled.relicsTaken }
         }
     },
@@ -937,6 +954,20 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 summary: notes.join('; '),
                 ...woodTravelLanded(state, playerId, question.endsActPhase === true)
             }
+        }
+    },
+    [PowerQuestionKind.GamblingHallBank]: {
+        reasonCannotAnswer: (_state, _playerId, matched) => {
+            const { banks } = matched.question
+            return banks.includes(matched.answer.suit)
+                ? undefined
+                : `the ${matched.answer.suit} bank had no favor when the roll stood: choose ${banks.join(' or ')}`
+        },
+        // R-7.1.3-H2, R-9.3 — the total, or what the chosen bank holds.
+        apply: (state, playerId, matched) => {
+            const { suit } = matched.answer
+            const gained = gainFavorFromBank(state, playerId, suit, matched.question.shields)
+            return `gained ${gained} favor from the ${suit} bank`
         }
     },
     [PowerQuestionKind.PayFromHomeBank]: {

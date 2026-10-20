@@ -43,7 +43,8 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { totalWarbands, countOf, soleOwnerOf } from '../util/warbands.js'
 import { ANY_WARBANDS_MOVES, playerChoicesAtYourSite, siteChoicesYouRule } from './choiceDomains.js'
 import { RerolledRollKind } from '../model/question.js'
-import { offerReroll, settleRoll } from '../util/reroll.js'
+import { offerReroll, rolledShields, settleRoll } from '../util/reroll.js'
+import { defenseShieldsFromFaces, rollDefenseDice } from '../data/dice.js'
 import { isLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { categoryAt } from '../util/sitePowers.js'
 import { siteHolding } from '../util/access.js'
@@ -255,12 +256,29 @@ registerEffect(
 
 // "Action: Roll 4[defenseDie] and take X[favor] equal to the total [shield]
 // result from any one favor bank."
+// From revision 21 the bank is chosen once the roll stands, after any Jinx reroll (R-7.1.3-H2);
+// before it, the bank was named at the use, and recorded uses carry it (R-X.4).
+const BANK_AT_USE = { beforeRevision: OathRevision.EngineFixes17 }
 registerEffect(
     'denizen.discord.gambling-hall',
     powerIndexOf('denizen.discord.gambling-hall', PowerTiming.Action),
     {
-        choices: [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })],
+        choices: [one(PowerChoiceKind.FavorBank, { what: 'a favor bank', ...BANK_AT_USE })],
         resolve: (ctx) => {
+            if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes17)) {
+                const faces = rollDefenseDice(ctx.state.getProtectedPrng(), 4)
+                const shields = defenseShieldsFromFaces(faces)
+                const roll = { kind: RerolledRollKind.GamblingHallDice as const, shields, faces }
+                // Jinx — the bank waits on the reroll's answer.
+                if (offerReroll(ctx.state, ctx.playerId, ctx.playerId, roll)) {
+                    return {
+                        summary: `${rolledShields(shields)}; Jinx may reroll them`,
+                        rolled: true
+                    }
+                }
+                const settled = settleRoll(ctx.state, ctx.playerId, ctx.playerId, roll)
+                return { summary: settled.summary, rolled: true }
+            }
             const [bank] = chosen(ctx, PowerChoiceKind.FavorBank)
             const shields = rollDefenseShields(ctx.state.getProtectedPrng(), 4)
             const roll = { kind: RerolledRollKind.GamblingHall as const, bank: bank.suit, shields }
@@ -268,7 +286,10 @@ registerEffect(
             if (offerReroll(ctx.state, ctx.playerId, ctx.playerId, roll)) {
                 return { summary: `rolled ${shields} shields; Jinx may reroll them`, rolled: true }
             }
-            return { summary: settleRoll(ctx.state, ctx.playerId, roll).summary, rolled: true }
+            return {
+                summary: settleRoll(ctx.state, ctx.playerId, ctx.playerId, roll).summary,
+                rolled: true
+            }
         }
     }
 )

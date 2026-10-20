@@ -7,6 +7,7 @@ import { Region, SearchPlay, Suit } from './oathEnums.js'
 import { ConspiracyPlay } from './conspiracy.js'
 import { WarbandOwner } from './warbandCounts.js'
 import { PowerMoveKind } from './powerMoveToll.js'
+import { RolledDefenseFace } from './campaign.js'
 
 export const AskedPlayerPolicy = 'oath.askedPlayer'
 
@@ -90,7 +91,10 @@ export const OathVisibilityPolicies = {
 /** Jinx — "after you roll … for any reason": the roll, and what waits on it. */
 export enum RerolledRollKind {
     Campaign = 'campaign',
+    /** Before revision 21: the bank named at the use waits with the roll. */
     GamblingHall = 'gamblingHall',
+    /** From revision 21: the faces and their total; the bank is asked once the roll stands (R-7.1.3-H2). */
+    GamblingHallDice = 'gamblingHallDice',
     RelicThief = 'relicThief'
 }
 
@@ -104,6 +108,11 @@ export const RerolledRoll = Type.Union([
         kind: Type.Literal(RerolledRollKind.GamblingHall),
         bank: Type.Enum(Suit),
         shields: Type.Number()
+    }),
+    Type.Object({
+        kind: Type.Literal(RerolledRollKind.GamblingHallDice),
+        shields: Type.Number(),
+        faces: Type.Array(RolledDefenseFace, { maxItems: 4 })
     }),
     Type.Object({
         kind: Type.Literal(RerolledRollKind.RelicThief),
@@ -193,7 +202,12 @@ export enum PowerQuestionKind {
      * asked player's board did not hold all they owe: they may pay the rest from the bank that keeps
      * their favor, or not, since its Q&A never forces that favor (R-10.10-H1).
      */
-    PayFromHomeBank = 'payFromHomeBank'
+    PayFromHomeBank = 'payFromHomeBank',
+    /**
+     * Gambling Hall (revision 21) — the roll stands, after any Jinx reroll, and two or more banks
+     * hold favor: the roller chooses the one they take the total from (R-7.1.3-H2).
+     */
+    GamblingHallBank = 'gamblingHallBank'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -560,6 +574,18 @@ export const PowerQuestion = Type.Union([
         receivedFacedownCardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
             policy: AskedPlayerPolicy
         })
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.GamblingHallBank),
+        /** Gambling Hall. */
+        cardId: Type.String(),
+        /** The roller. */
+        askedPlayerId: Type.String(),
+        /** The total, 2x faces multiplied (the card's Q&A). */
+        shields: Type.Integer({ minimum: 0, maximum: 64 }),
+        faces: Type.Array(RolledDefenseFace, { maxItems: 4 }),
+        /** The banks that held favor when the roll stood. */
+        banks: Type.Array(Type.Enum(Suit), { maxItems: 6 })
     })
 ])
 
@@ -680,7 +706,9 @@ export const QuestionAnswer = Type.Union([
         discardedAdviserCardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
             policy: Visibility.Policy.Actor
         })
-    })
+    }),
+    /** The bank Gambling Hall takes from: one of the question's `banks`. */
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.GamblingHallBank), suit: Type.Enum(Suit) })
 ])
 
 export type QuestionOf<K extends PowerQuestionKind> = Extract<PowerQuestion, { kind: K }>
