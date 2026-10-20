@@ -230,9 +230,9 @@ no UI republish is needed for a logic change. See
 [ADR 0011](../../docs/adr/0011-game-logic-runs-as-collectible-factories.md).
 
 Artifacts published before the build emitted the factory are imported the old way and stay
-resident until the worker restarts. `migrate-logic-artifacts` lists every selectable logic version
-(the current one and its rollback history) that lacks it and, with `--apply`, builds it from the
-published ESM bundle and uploads it beside it:
+resident until the worker restarts. `migrate-logic-artifacts` lists each title's current logic
+version that lacks it and, with `--apply`, builds it from the published ESM bundle and uploads it
+beside it. Rollback targets are left alone; a release republishes them with the factory anyway:
 
 ```
 tabletop-deploy migrate-logic-artifacts            # plan only

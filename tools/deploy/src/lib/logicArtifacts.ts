@@ -10,8 +10,9 @@ import { assertDeployConfig, type PublishContext } from './publishCore.js'
 import type { GameManifestEntry } from './types.js'
 
 // Logic artifacts published before the build emitted it lack the collectible factory the backend
-// activates in place. Migration adds it beside the immutable ESM bundle; nothing already
-// published changes.
+// activates in place. Migration adds it beside the immutable ESM bundle of each title's current
+// logic version; nothing already published changes, and rollback targets are left alone because
+// a release republishes them anyway.
 export const SIDECAR_FILES = ['index.cjs'] as const
 
 export type LogicArtifactPlan = {
@@ -21,15 +22,6 @@ export type LogicArtifactPlan = {
     url: string
     missing: string[]
 }
-
-// The versions the manifest can select for a title: the current one and its rollback history.
-export const selectableLogicVersions = (entry: GameManifestEntry): string[] => [
-    ...new Set([
-        entry.logicVersion,
-        ...(entry.history ?? []).map((record) => record.logicVersion),
-        ...(entry.priorLogicVersions ?? [])
-    ])
-]
 
 const logicArtifactUrl = (bucket: string, packageId: string, version: string) =>
     `gs://${bucket}/games/${packageId}/logic/${version}`
@@ -41,22 +33,15 @@ export const planLogicArtifactMigration = async (
 ): Promise<LogicArtifactPlan[]> => {
     const plans: LogicArtifactPlan[] = []
     for (const entry of entries) {
-        for (const version of selectableLogicVersions(entry)) {
-            if (!version) continue
-            const url = logicArtifactUrl(bucket, entry.packageId, version)
-            const missing: string[] = []
-            for (const file of SIDECAR_FILES) {
-                if (!(await exists(`${url}/${file}`))) missing.push(file)
-            }
-            if (missing.length) {
-                plans.push({
-                    packageId: entry.packageId,
-                    gameId: entry.gameId,
-                    version,
-                    url,
-                    missing
-                })
-            }
+        const version = entry.logicVersion
+        if (!version) continue
+        const url = logicArtifactUrl(bucket, entry.packageId, version)
+        const missing: string[] = []
+        for (const file of SIDECAR_FILES) {
+            if (!(await exists(`${url}/${file}`))) missing.push(file)
+        }
+        if (missing.length) {
+            plans.push({ packageId: entry.packageId, gameId: entry.gameId, version, url, missing })
         }
     }
     return plans
@@ -121,7 +106,7 @@ export const migrateLogicArtifacts = async (
     if (options.game && !entries.length) throw new Error(`Unknown game "${options.game}"`)
     const plans = await planLogicArtifactMigration(entries, bucket)
     if (!plans.length) {
-        context.log('every selectable logic artifact already has its factory')
+        context.log('every current logic artifact already has its factory')
         return plans
     }
     for (const plan of plans) {
