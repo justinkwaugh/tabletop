@@ -2,6 +2,7 @@
     import type { MapDrawing, MapRoute } from './mapDrawing.js'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
     import { drawMapRoutes } from './routeDrawing.js'
+    import { spikePoints } from '../tiles/tileTrackGeometry.js'
 
     let {
         scene,
@@ -59,14 +60,26 @@
             {#each locations as location (location.id)}
                 <g transform={`translate(${location.center.x} ${location.center.y})`}>
                     {#each location.paths as path (path.id)}
-                        <path
-                            data-map-route={width === 6.5 ? path.routeId : undefined}
-                            d={path.d}
-                            stroke={width === 9
+                        {@const stroke =
+                            width === 9
                                 ? `color-mix(in srgb, ${path.color} 55%, black)`
                                 : path.color}
-                            stroke-width={width}
-                        ></path>
+                        {#if path.spike}
+                            <polygon
+                                data-map-route={width === 6.5 ? path.routeId : undefined}
+                                points={spikePoints(path.spike, 6.5)}
+                                fill={stroke}
+                                stroke={width === 9 ? stroke : 'none'}
+                                stroke-width={width - 6.5}
+                            ></polygon>
+                        {:else}
+                            <path
+                                data-map-route={width === 6.5 ? path.routeId : undefined}
+                                d={path.d}
+                                {stroke}
+                                stroke-width={width}
+                            ></path>
+                        {/if}
                     {/each}
                 </g>
             {/each}
