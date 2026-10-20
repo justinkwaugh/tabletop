@@ -74,12 +74,6 @@ export type CompanyShareOptions = {
     reissue?: ReissueChoice
 }
 
-/** The only choice, or the one chosen while it is still a choice. */
-function onlyOrChosen(choices: readonly string[], chosen: string | undefined) {
-    if (chosen && choices.includes(chosen)) return chosen
-    return choices.length === 1 ? choices[0] : undefined
-}
-
 export class EighteenThirtyTwoSession extends BaseSession {
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
@@ -196,7 +190,7 @@ export class EighteenThirtyTwoSession extends BaseSession {
         ...new Set(this.mergerPairings.map((pairing) => pairing.companyId))
     ])
     readonly mergerCompanyId = $derived(
-        onlyOrChosen(this.mergerCompanyIds, this.mergerSelection.companyId)
+        this.onlyOrChosen(this.mergerCompanyIds, this.mergerSelection.companyId)
     )
     readonly mergerPartnerIds = $derived(
         this.mergerPairings
@@ -204,7 +198,7 @@ export class EighteenThirtyTwoSession extends BaseSession {
             .map((pairing) => pairing.partnerId)
     )
     readonly mergerPartnerId = $derived(
-        onlyOrChosen(this.mergerPartnerIds, this.mergerSelection.partnerId)
+        this.onlyOrChosen(this.mergerPartnerIds, this.mergerSelection.partnerId)
     )
     /**
      * What merging the chosen pair could make: a System under either president, and a takeover
@@ -247,6 +241,11 @@ export class EighteenThirtyTwoSession extends BaseSession {
             takeovers
         }
     })
+    /** The only choice, or the one chosen while it is still a choice. */
+    private onlyOrChosen(choices: readonly string[], chosen: string | undefined) {
+        if (chosen && choices.includes(chosen)) return chosen
+        return choices.length === 1 ? choices[0] : undefined
+    }
     // Choosing what is already chosen, even automatically, records nothing for Undo to pop.
     chooseMergerCompany(companyId: string) {
         if (companyId !== this.mergerCompanyId) this.mergerSelection = { companyId }

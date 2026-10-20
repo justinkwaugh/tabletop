@@ -695,6 +695,10 @@ export class EighteenXXSession<
     override async onGameStateChange() {
         this.listenersSawTransition = true
     }
+    override dispose() {
+        this.notices.dispose()
+        super.dispose()
+    }
     override beforeNewState() {
         this.restoredSilently = !this.listenersSawTransition
         this.listenersSawTransition = false

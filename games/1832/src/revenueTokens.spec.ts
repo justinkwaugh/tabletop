@@ -172,6 +172,7 @@ describe('Miami’s first run', () => {
                     routes: [
                         {
                             trainId: 'train',
+                            definitionId: '2',
                             start: { locationId: 'W26', nodeId: 'city' },
                             paths: [{ locationId: 'W26', pathId: 'edge-5' }],
                             visits: [

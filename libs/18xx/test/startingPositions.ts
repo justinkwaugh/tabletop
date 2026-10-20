@@ -17,7 +17,10 @@ function rotations(playerIds: readonly string[]): string[][] {
 }
 
 /** The opening auction with seat one as its first actor. */
-function openingSeated(state: EighteenXXState, seatOne: string): Partial<EighteenXXState> {
+function openingSeated(
+    state: Pick<EighteenXXState, 'openingAuction' | 'selectionAuction' | 'offerAuction'>,
+    seatOne: string
+): Partial<EighteenXXState> {
     const { openingAuction, selectionAuction, offerAuction } = state
     return {
         ...(openingAuction && { openingAuction: { ...openingAuction, nextPlayerId: seatOne } }),

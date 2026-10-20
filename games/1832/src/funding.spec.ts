@@ -4,6 +4,7 @@ import {
     EmergencyTrainFunding,
     cashOwnedBy,
     getCompany,
+    isFundTrain,
     trainsOwnedBy,
     type FundingChoice
 } from '@tabletop/18xx'
@@ -77,7 +78,7 @@ describe('compulsory train purchases', () => {
             kind: 'player',
             playerId: 'blair'
         })
-        expect(play.processed.find((action) => action.type === 'FundTrain')?.metadata).toEqual({
+        expect(play.processed.find(isFundTrain)?.metadata).toEqual({
             voluntary: false
         })
     })
@@ -150,7 +151,7 @@ describe('voluntary System train purchases', () => {
         expect(trainsOwnedBy(play.state, amtk)).toHaveLength(2)
         expect(cashOwnedBy(play.state, amtk)).toBe(0)
         expect(cashOwnedBy(play.state, president)).toBe(400)
-        expect(play.processed.find((action) => action.type === 'FundTrain')?.metadata).toEqual({
+        expect(play.processed.find(isFundTrain)?.metadata).toEqual({
             voluntary: true
         })
     })

@@ -1,5 +1,5 @@
 import { EighteenThirtyTwoNames } from '../names.js'
-import { type GameDefinition } from '@tabletop/common'
+import { defineGame, type GameDefinition } from '@tabletop/common'
 import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
 import {
     CapitalizeCompany,
@@ -236,7 +236,8 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     ]
 }
 
-export const Definition: GameDefinition<EighteenThirtyTwoState, HydratedEighteenThirtyTwoState> = {
-    info: EighteenThirtyTwoInfo,
-    runtime: createEighteenXXRuntime(EighteenThirtyTwoTitleRules)
-}
+export const Definition: GameDefinition<EighteenThirtyTwoState, HydratedEighteenThirtyTwoState> =
+    defineGame({
+        info: EighteenThirtyTwoInfo,
+        runtime: createEighteenXXRuntime(EighteenThirtyTwoTitleRules)
+    })

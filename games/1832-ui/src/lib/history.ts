@@ -141,7 +141,7 @@ export function describe1832Action(
         return {
             text: `${companyName(action.companyId)} closed, its price in the black area`,
             ...(action.metadata?.forfeit
-                ? { detail: `Its president lost $${action.metadata.forfeit.amount}` }
+                ? { detail: `Its president lost ${money(action.metadata.forfeit.amount)}` }
                 : {}),
             omitActor: true,
             important: true
