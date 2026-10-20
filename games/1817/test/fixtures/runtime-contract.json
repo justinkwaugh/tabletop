@@ -3748,6 +3748,7 @@
           },
           "sales": {
             "items": {
+              "additionalProperties": false,
               "properties": {
                 "companyId": {
                   "type": "string"

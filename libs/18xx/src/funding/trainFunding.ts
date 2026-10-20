@@ -23,12 +23,15 @@ export const TrainFunding = Type.Object(
         playerId: Type.String(),
         contributors: Type.Array(Owner),
         sales: Type.Array(
-            Type.Object({
-                seller: Owner,
-                companyId: Type.String(),
-                // Stored games from before this stopped being recorded may hold it; never read.
-                shares: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 1 })))
-            })
+            Type.Object(
+                {
+                    seller: Owner,
+                    companyId: Type.String(),
+                    // Stored games from before this stopped being recorded may hold it; never read.
+                    shares: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 1 })))
+                },
+                { additionalProperties: false }
+            )
         )
     },
     { additionalProperties: false }
