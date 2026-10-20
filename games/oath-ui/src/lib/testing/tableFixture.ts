@@ -92,6 +92,7 @@ import {
 } from './sessionHarness.js'
 import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
+import { wrestlersDefends } from './wrestlersTable.js'
 import {
     FOREST_PATHS,
     HOSPITALITY,
@@ -260,6 +261,8 @@ export type TableName =
     | 'messengerTwoOwners'
     | 'gamblingHallAsked'
     | 'gamblingHallJinx'
+    | 'wrestlersPick'
+    | 'wrestlersOnePlace'
     | 'warningSignals'
     | PickerScene
     | PowerSitesScene
@@ -5212,6 +5215,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     // R-7.1.3-H2 — Dana rolled 6 and is asked the bank; with Jinx, the reroll is asked first.
     gamblingHallAsked: () => gamblingHallUsed(),
     gamblingHallJinx: () => gamblingHallUsed({ jinx: true }),
+    // R-10.22 — Ann answers Dana's Campaign at the Plains with Wrestlers; Rhys is their Ally.
+    wrestlersPick: () => wrestlersDefends(),
+    wrestlersOnePlace: () => wrestlersDefends({ annBoard: 0, rhysBoard: 0 }),
     warningSignals: warningSignalsTable,
     pickerWhistle: () => powerPickerTable('pickerWhistle'),
     pickerTerror: () => powerPickerTable('pickerTerror'),

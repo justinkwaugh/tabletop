@@ -143,7 +143,8 @@ export function warbandGrids(choices: readonly LegalChoice[]): WarbandGrid[] {
     let index = 0
     while (index < choices.length) {
         const legal = choices[index]
-        if (legal.spec.kind !== PowerChoiceKind.Warbands) {
+        // A place picked whole is one tap per place (Wrestlers), not a row of pieces.
+        if (legal.spec.kind !== PowerChoiceKind.Warbands || legal.spec.byPlace) {
             index += 1
             continue
         }
@@ -153,6 +154,7 @@ export function warbandGrids(choices: readonly LegalChoice[]): WarbandGrid[] {
                 specs.length + index < choices.length &&
                 choices[index + specs.length].spec.kind === PowerChoiceKind.Warbands &&
                 !allowsSeveral(choices[index + specs.length]) &&
+                !choices[index + specs.length].spec.byPlace &&
                 sameDomain(legal, choices[index + specs.length])
             ) {
                 specs.push(index + specs.length)

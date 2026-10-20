@@ -5,6 +5,8 @@
  * your board"), so the pieces stand beside its words with no place named. `site`: the power's
  * site is picked on the lit map; `row` heads it in the panel, and `chip` names it on a lit site.
  * `siteButtons`: the site is picked under its card, a button with the site's name for each.
+ * `place`: the words before a pick of one place in a force (Wrestlers' sacrifice), a button for
+ * each place ("at Plains", "on your board", another player's board by their chip).
  * `pile`: the words over its discard pile rows. `banks`: the words over a run of favor picks,
  * from the favor the run comes to. `or`: the card's two branches as two answers, the words over
  * them, and the second's consequence in rose. `may`: its toggle row's words, with what the yes
@@ -17,6 +19,7 @@ export type PickerWords = {
     ownPlace?: true
     site?: { row: string; chip: string }
     siteButtons?: true
+    place?: string
     pile?: string
     banks?: (total: number) => string
     or?: { row?: string; first: string; second: string; secondConsequence?: string }
@@ -52,6 +55,7 @@ const WORDS: Record<string, PickerWords> = {
     'relic.whistle': { player: 'Call:', tone: 'gold' },
     'denizen.arcane.terror-spells': { warbands: (total) => `Kill ${total}:`, tone: 'rose' },
     'denizen.arcane.blood-pact': { warbands: () => 'Sacrifice:', tone: 'rose', ownPlace: true },
+    'denizen.order.wrestlers': { place: 'the warband you sacrifice:', tone: 'rose' },
     'denizen.order.captains': { site: CAMPAIGN_AT, tone: 'gold' },
     'denizen.beast.wild-allies': { site: CAMPAIGN_AT, tone: 'gold' },
     'denizen.order.siege-engines': { site: { row: 'Kill 2 at:', chip: 'Kill 2' }, tone: 'gold' },

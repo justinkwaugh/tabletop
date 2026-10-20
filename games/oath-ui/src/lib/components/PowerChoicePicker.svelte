@@ -17,6 +17,7 @@
     import CountPicker from '$lib/components/CountPicker.svelte'
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
     import PileRows from '$lib/components/PileRows.svelte'
+    import PlaceChips from '$lib/components/PlaceChips.svelte'
     import { range } from '@tabletop/common'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import TokenRow from '$lib/components/TokenRow.svelte'
@@ -385,6 +386,18 @@
                     per={grid.step === 2 ? 2 : 1}
                     toward={grid.shared}
                     ownerWord={grid.namesOwners}
+                />
+            {:else if legal.spec.byPlace}
+                <!-- One warband from a place picked whole (Wrestlers' sacrifice): a button per place. -->
+                {@const places = legal.options.flatMap((o) =>
+                    o.kind === PowerChoiceKind.Warbands ? [o.group.at] : []
+                )}
+                <PlaceChips
+                    label={words.place ?? `${legal.spec.what ?? 'a place'}:`}
+                    {places}
+                    picked={pick === NO_OPTION ? undefined : pick}
+                    onpick={(j) => tapOption(legal, i, pick, j)}
+                    {busy}
                 />
             {:else if legal.spec.kind === PowerChoiceKind.Bargain}
                 <BargainPicker

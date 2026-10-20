@@ -19,13 +19,19 @@ import {
     type PowerMoves
 } from './powerMoves.js'
 
-/** R-5.5.3 — the choices a battle plan's text opens (Mountain Giant's ±3, Warning Signals' moves). */
+/**
+ * R-5.5.3 — the choices a battle plan's text opens (Mountain Giant's ±3, Warning Signals' moves),
+ * less one asked only while it has an option and with none now (Wrestlers with no warband in the
+ * force): there is nothing to name, and the plan is declared without it.
+ */
 export function planChoices(
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower
 ): LegalChoice[] {
-    return offeredChoices(state, playerId, power)
+    return offeredChoices(state, playerId, power).filter(
+        (legal) => !legal.spec.askedIfAny || legal.options.length > 0
+    )
 }
 
 /** Warning Signals' moves, one at a time as Messenger's are; undefined for a plan whose picks are not moves. */
