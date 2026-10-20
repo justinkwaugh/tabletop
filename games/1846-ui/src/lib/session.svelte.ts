@@ -51,7 +51,7 @@ import {
     type TrackRequest
 } from '@tabletop/18xx'
 import { mapState1846 } from './mapState.js'
-import { undoableStagedSelection } from '@tabletop/frontend-components'
+import { undoableStagedSelection, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     PrivateLayStageOrder,
     SteamboatStageOrder,
@@ -530,8 +530,8 @@ export class EighteenFortySixSession extends BaseSession {
         this.hidePacket()
         await this.applyAction(this.createPlayerAction(PassFinalCompany))
     }
-    override beforeNewState(): void {
-        super.beforeNewState()
+    override beforeNewState(transition: PresentedTransition): void {
+        super.beforeNewState(transition)
         this.hidePacket()
     }
 }

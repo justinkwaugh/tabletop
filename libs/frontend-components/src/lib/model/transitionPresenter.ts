@@ -23,7 +23,15 @@ export type TransitionIntent = 'actions' | 'state' | 'silent'
 
 export type TransitionRequest = { kind: TransitionKind; intent?: TransitionIntent }
 
-export type PresentedTransition = { kind: TransitionKind; actions: readonly GameAction[] }
+/**
+ * A published transition: its kind, the actions its listeners replayed, and the intent it was
+ * presented with, `silent` when no listener saw it.
+ */
+export type PresentedTransition = {
+    kind: TransitionKind
+    actions: readonly GameAction[]
+    intent: TransitionIntent
+}
 
 export interface AnimationTimeline {
     play(): Promise<void>
@@ -135,7 +143,11 @@ export class TransitionPresenter<
         } finally {
             const { context, state } = this.observe()
             this.pending = undefined
-            this.show(context, context.runtime.hydrator.hydrateState(state), { kind, actions: [] })
+            this.show(context, context.runtime.hydrator.hydrateState(state), {
+                kind,
+                actions: [],
+                intent: 'silent'
+            })
         }
     }
 
@@ -205,7 +217,7 @@ export class TransitionPresenter<
         this.incomingState = to
         try {
             const actions = await this.animate(context, from, to, kind, intent)
-            if (this.displayed === from) this.show(context, to, { kind, actions })
+            if (this.displayed === from) this.show(context, to, { kind, actions, intent })
         } catch (error) {
             this.deps.onError(error)
         } finally {

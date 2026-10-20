@@ -22,7 +22,7 @@ import {
 } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { assert, assertExists, GameStorage } from '@tabletop/common'
-import type { TitlePreferences } from '@tabletop/frontend-components'
+import type { PresentedTransition, TitlePreferences } from '@tabletop/frontend-components'
 import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
 import {
     HistoricalMaps,
@@ -689,19 +689,14 @@ export class EighteenXXSession<
         return owner.kind === 'bank' ? 'Bank' : this.companyName(owner.companyId)
     }
     // A silent swap publishes without calling any state-change listener, so layout settling
-    // and reveal scrolling stay still for it.
+    // stays still for it; the published transition says which it was.
     restoredSilently = $state(true)
-    private listenersSawTransition = false
-    override async onGameStateChange() {
-        this.listenersSawTransition = true
-    }
     override dispose() {
         this.notices.dispose()
         super.dispose()
     }
-    override beforeNewState() {
-        this.restoredSilently = !this.listenersSawTransition
-        this.listenersSawTransition = false
+    override beforeNewState(transition: PresentedTransition) {
+        this.restoredSilently = transition.intent === 'silent'
         this.map.clearInspection()
         this.localSelections.clear()
     }
