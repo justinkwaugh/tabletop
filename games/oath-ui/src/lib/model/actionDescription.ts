@@ -72,7 +72,8 @@ import {
     type ResolveWake,
     type UseRestPower,
     type WarbandMove,
-    type WarbandOwner
+    type WarbandOwner,
+    secretsFlipped
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -538,6 +539,11 @@ function freeActionClause(cardId: string | undefined): string {
     return cardId ? ` (free, ${cardName(cardId)})` : ''
 }
 
+/** R-11.12, R-11.13 — each secret a Travel flipped: "; flipped 1 secret", "; flipped 2 secrets". */
+function flippedClause(secrets: number): string {
+    return secrets > 0 ? `; flipped ${plural(secrets, 'secret')}` : ''
+}
+
 const TOLL_GIVEN = /^(.+): gave a favor to (.+)$/
 const TOLL_BURNED = /^(.+): burned a favor for the bandits$/
 
@@ -616,7 +622,7 @@ function describeActionCited(
             `traveled to ${names.site(action.siteId)}` +
             costWith(meta?.supplySpent, cardsInBrackets(meta?.modifiers, named)) +
             tollClauses(meta?.tollsPaid, nameOf) +
-            (meta?.secretFlipped ? '; flipped 1 secret' : '') +
+            flippedClause(secretsFlipped(meta?.secretFlipped)) +
             revealed +
             freeActionClause(meta?.freeActionOf)
         )

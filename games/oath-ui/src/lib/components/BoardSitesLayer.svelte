@@ -103,11 +103,11 @@
                 class="travel-cost__token"
                 src={favorTokenImage()}
                 alt="favor"
-            />{/if}{#if way.secret}+<img
-                class="travel-cost__token"
-                src={secretTokenImage()}
-                alt="secret"
-            />{/if}</span
+            />{/if}{#if way.secrets > 0}+{#each { length: way.secrets }, index (index)}<img
+                    class="travel-cost__token"
+                    src={secretTokenImage()}
+                    alt="secret"
+                />{/each}{/if}</span
     >
 {/snippet}
 
@@ -165,19 +165,20 @@
                 {#if 'words' in text.chip}
                     {text.chip.words}
                 {:else if 'free' in text.chip}
-                    <!-- A free move: Toll Roads' "toll 1 [favor]", The Hidden Place's "+[secret]". -->
+                    <!-- A free move: Toll Roads' "toll 1 [favor]", The Hidden Place's "+[secret]", and
+                         with the Buried Giant's past a Narrow Pass "+[secret][secret]". -->
                     <span class="travel-cost__cost"
                         >{#if text.chip.free.toll}toll 1<img
                                 class="travel-cost__token"
                                 src={favorTokenImage()}
                                 alt="favor"
-                            />{/if}{#if text.chip.free.toll && text.chip.free.secret}<span
+                            />{/if}{#if text.chip.free.toll && text.chip.free.secrets > 0}<span
                                 class="travel-cost__or">{' · '}</span
-                            >{/if}{#if text.chip.free.secret}+<img
-                                class="travel-cost__token"
-                                src={secretTokenImage()}
-                                alt="secret"
-                            />{/if}</span
+                            >{/if}{#if text.chip.free.secrets > 0}+{#each { length: text.chip.free.secrets }, index (index)}<img
+                                    class="travel-cost__token"
+                                    src={secretTokenImage()}
+                                    alt="secret"
+                                />{/each}{/if}</span
                     >
                 {:else}
                     <span class="travel-cost__cost">

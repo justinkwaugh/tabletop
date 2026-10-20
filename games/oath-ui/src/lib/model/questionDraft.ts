@@ -21,7 +21,8 @@ import {
     reasonWoodStayRefused,
     playersAt,
     powerMoveToll,
-    powerTravelNeedsFlip,
+    powerTravelFlipsNeeded,
+    travelFlipOf,
     shroudedWoodDestinations,
     usableFavor,
     warbandOwnerGainedByPower,
@@ -585,19 +586,21 @@ export class QuestionDraft implements PanelDraft {
         )
     }
 
-    /** R-11.13-H1 — Brass Horse's user reaches The Hidden Place (or passes the Narrow Pass) only by flipping a secret. */
-    travelFlipAt(siteId: string): boolean {
+    /**
+     * R-11.13-H1 — Brass Horse's user reaches The Hidden Place (or passes the Narrow Pass) only by
+     * flipping a secret; from the Buried Giant past a Narrow Pass into The Hidden Place, two (R-11.13-H2).
+     */
+    travelFlipsAt(siteId: string): number {
         const question = this.question
-        return (
-            question?.kind === PowerQuestionKind.TravelFreeTo &&
-            powerTravelNeedsFlip(this.session.gameState, question.askedPlayerId, siteId)
-        )
+        if (question?.kind !== PowerQuestionKind.TravelFreeTo) return 0
+        return powerTravelFlipsNeeded(this.session.gameState, question.askedPlayerId, siteId)
     }
 
     async travelTo(siteId: string): Promise<void> {
+        const flips = this.travelFlipsAt(siteId)
         await this.send(
-            this.travelFlipAt(siteId)
-                ? { kind: PowerQuestionKind.TravelFreeTo, siteId, flipSecret: true }
+            flips > 0
+                ? { kind: PowerQuestionKind.TravelFreeTo, siteId, flipSecret: travelFlipOf(flips) }
                 : { kind: PowerQuestionKind.TravelFreeTo, siteId }
         )
     }
@@ -653,7 +656,7 @@ export class QuestionDraft implements PanelDraft {
                     cost: undefined,
                     foldedBy: [],
                     toll: this.travelTollAt(siteId),
-                    flip: this.travelFlipAt(siteId)
+                    flips: this.travelFlipsAt(siteId)
                 }))
             }
         }
@@ -670,7 +673,7 @@ export class QuestionDraft implements PanelDraft {
                         cost,
                         foldedBy,
                         toll: this.woodTollAt(siteId),
-                        flip: false
+                        flips: 0
                     }))
                 )
             }
@@ -686,7 +689,7 @@ export class QuestionDraft implements PanelDraft {
                 cost: undefined,
                 foldedBy: [],
                 toll: this.woodTollAt(siteId),
-                flip: false
+                flips: 0
             }))
         }
     }

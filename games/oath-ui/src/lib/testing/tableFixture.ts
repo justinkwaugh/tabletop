@@ -116,6 +116,9 @@ export type TableName =
     | 'offTurn'
     | 'actPhase'
     | 'leavingBuriedGiant'
+    | 'buriedGiantHiddenPlace'
+    | 'buriedGiantHiddenPlaceRich'
+    | 'buriedGiantHiddenPlacePoor'
     | 'warbandMoveAsked'
     | 'staleWarbandMoveAsked'
     | 'joinDefenceAsked'
@@ -1180,6 +1183,21 @@ function leavingBuriedGiantTable(): PlayedTable {
     )
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
+ * R-11.13-H2: the Buried Giant's table, with The Hidden Place in the middle Hinterland slot and two
+ * faceup secrets: from the Buried Giant one flip satisfies The Hidden Place at 4 Supply, and two
+ * make the Travel free. 3 Supply leaves only the free way; 5 offers both; 3 with one faceup secret
+ * (the other facedown) leaves The Hidden Place unlit.
+ */
+function buriedGiantHiddenPlaceTable(supply: number, secrets = 2): PlayedTable {
+    const table = leavingBuriedGiantTable()
+    const state = new HydratedOathGameState(table.state)
+    state.oathRevision = CURRENT_OATH_REVISION
+    state.siteCards[mapSlotId(Region.Hinterland, 1)] = 'site.the-hidden-place'
+    Object.assign(state.getPlayerState('me'), { supply, secrets, secretsFacedown: 2 - secrets })
     return tableOf(state)
 }
 
@@ -5032,6 +5050,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     offTurn: offTurnTable,
     actPhase: actPhaseTable,
     leavingBuriedGiant: leavingBuriedGiantTable,
+    buriedGiantHiddenPlace: () => buriedGiantHiddenPlaceTable(3),
+    buriedGiantHiddenPlaceRich: () => buriedGiantHiddenPlaceTable(5),
+    buriedGiantHiddenPlacePoor: () => buriedGiantHiddenPlaceTable(3, 1),
     warbandMoveAsked: warbandMoveAskedTable,
     staleWarbandMoveAsked: staleWarbandMoveAskedTable,
     joinDefenceAsked: joinDefenceAskedTable,

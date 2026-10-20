@@ -590,13 +590,13 @@ describe('Hospitality’s gain in words', () => {
     })
 
     it('the map chip reads the gold cost, then the gain with each bank’s suit', () => {
-        expect(travelChip([way(Suit.Beast)])).toEqual({ ways: [{ cost: 2, favor: 0, secret: false }], banks: [Suit.Beast] })
+        expect(travelChip([way(Suit.Beast)])).toEqual({ ways: [{ cost: 2, favor: 0, secrets: 0 }], banks: [Suit.Beast] })
         expect(travelChip([way(Suit.Beast), way(Suit.Nomad)])).toEqual({
-            ways: [{ cost: 2, favor: 0, secret: false }],
+            ways: [{ cost: 2, favor: 0, secrets: 0 }],
             banks: [Suit.Beast, Suit.Nomad]
         })
         expect(travelChip([way()])).toEqual({ words: '2 Supply' })
-        expect(chipWords({ ways: [{ cost: 2, favor: 0, secret: false }], banks: [Suit.Beast, Suit.Nomad] })).toBe(
+        expect(chipWords({ ways: [{ cost: 2, favor: 0, secrets: 0 }], banks: [Suit.Beast, Suit.Nomad] })).toBe(
             '2 Supply, gain 1 favor from the Beast or Nomad bank'
         )
     })

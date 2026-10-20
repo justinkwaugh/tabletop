@@ -303,15 +303,12 @@
             {/if}
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.FlipToTravel}
-        <!-- R-11.13-H1 — The Hidden Place (or the Narrow Pass from the Buried Giant) only with a flip. -->
+        <!-- R-11.13-H1 — The Hidden Place (or the Narrow Pass from the Buried Giant) only with a flip;
+             R-11.13-H2 — both at once take two. -->
+        {@const flips = mine.flips === 2 ? 'flip 2 secrets' : 'flip 1 secret'}
         <QuestionForm cardId={mine.cardId}>
             {#snippet line()}Travel to {siteName(gameState, mine.siteId)}?{/snippet}
-            <QuestionYesNo
-                yes="Travel"
-                no="Stay"
-                cost="flip 1 secret"
-                yesLabel="Travel and flip 1 secret"
-            />
+            <QuestionYesNo yes="Travel" no="Stay" cost={flips} yesLabel={`Travel and ${flips}`} />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.WayStationFavor}
         <!-- R-11.7-H3 — Way Station at the Shrouded Wood's pick: its ruler's favor instead of the Supply;
