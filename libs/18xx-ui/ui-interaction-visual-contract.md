@@ -696,15 +696,18 @@ initiator status appears only as its result: the other company buying, or a choi
 president inset in the System tile, one row per player with their colour, when the other
 president would preside instead; the chosen row is tinted with that player's colour, and the
 whole tile takes the hover tint so it still reads as one button. A lone company or
-partner is chosen automatically; the company and partner are manual local selections that
-Undo clears, partner first, and every new state clears. Pass ends their proposals. The partner's president sees the proposal with Agree and Refuse.
+partner is chosen automatically. The company, the partner and a yielded presidency are
+manual stages of one staged selection; Undo pops the latest first (the other president's
+presidency, then the partner, then the company), choosing a company or partner anew clears
+the stages after it, choosing one's own presidency clears that stage, and every new state
+clears them all. Pass ends their proposals. The partner's president sees the proposal with Agree and Refuse.
 A buyer's president short of a takeover's price sees, centred, "<buyer> takes over
 <target>", a breakdown (the target's shares, less the buyer's treasury, their cash and what
 their own target shares are paid, to the amount still to raise), the sales made so far, and
 a card per company with each sale they may make, capped at what the rest needs, and a buyer over its train limit sees, centred, "<company>
 discards <n> trains" with its limit and that discards go to the open market, a train badge
-per kind of train with its count, and Discard once a kind is chosen (a manual local selection
-that Undo clears). Other players see who is deciding. History records
+per kind of train with its count, and Discard once a kind is chosen (a manual stage that
+choosing the kind again or Undo clears). Other players see who is deciding. History records
 Systems formed and takeovers as important rows, proposals and answers, funding sales with
 their proceeds, and discards.
 

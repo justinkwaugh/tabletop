@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { setStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
+import {
+    setStagedSelectionValue,
+    undoableStagedSelection,
+    type StagedSelectionState
+} from '@tabletop/frontend-components'
 import type { TrackRequest } from '@tabletop/18xx'
 import {
     PrivateLayStageOrder,
@@ -7,7 +11,6 @@ import {
     chooseSteamboatCompany,
     stagePrivateLay,
     stagedPrivateLays,
-    undoableSelection,
     type PrivateLaySelection,
     type PrivateLayValues,
     type SteamboatSelection,
@@ -27,7 +30,7 @@ function held<Values extends Record<string, unknown>>(
     initial: StagedSelectionState<Values>
 ) {
     let selection = initial
-    const local = undoableSelection<Values>(
+    const local = undoableStagedSelection<Values>(
         order,
         () => selection,
         (next) => (selection = next)

@@ -5,6 +5,7 @@ import {
     getStagedSelectionValue,
     popHighestManualStagedSelection,
     setStagedSelectionValue,
+    undoableStagedSelection,
     type StagedSelectionState
 } from './stagedSelection.js'
 
@@ -85,5 +86,43 @@ describe('stagedSelection', () => {
                 'missing' as unknown as keyof TestSelection
             )
         ).toThrowError('does not exist in stage order')
+    })
+})
+
+describe('undoableStagedSelection', () => {
+    function held(initial: StagedSelectionState<TestSelection>) {
+        let state = initial
+        const undoable = undoableStagedSelection<TestSelection>(
+            STAGE_ORDER,
+            () => state,
+            (next) => (state = next)
+        )
+        return { undoable, current: () => state }
+    }
+
+    it('pops the highest manual stage on Undo', () => {
+        const { undoable, current } = held({
+            one: { value: 'A', source: 'manual' },
+            two: { value: 'B', source: 'manual' }
+        })
+        expect(undoable.hasManual()).toBe(true)
+        expect(undoable.undo()).toBe(true)
+        expect(current()).toEqual({ one: { value: 'A', source: 'manual' } })
+    })
+
+    it('leaves Undo to the last action when only automatic stages are set', () => {
+        const automatic: StagedSelectionState<TestSelection> = {
+            one: { value: 'A', source: 'auto' }
+        }
+        const { undoable, current } = held(automatic)
+        expect(undoable.hasManual()).toBe(false)
+        expect(undoable.undo()).toBe(false)
+        expect(current()).toBe(automatic)
+    })
+
+    it('clears every stage', () => {
+        const { undoable, current } = held({ one: { value: 'A', source: 'manual' } })
+        undoable.clear()
+        expect(current()).toEqual({})
     })
 })

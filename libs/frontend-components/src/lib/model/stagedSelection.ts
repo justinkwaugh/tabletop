@@ -133,3 +133,24 @@ export function popHighestManualStagedSelection<
         poppedStage
     }
 }
+
+/**
+ * A staged selection as a session's contextual Undo sees it: Undo pops its highest manual stage
+ * and reports nothing to pop, so the session can undo the last action instead.
+ */
+export function undoableStagedSelection<TValueByStage extends Record<string, unknown>>(
+    stageOrder: readonly StageKey<TValueByStage>[],
+    read: () => StagedSelectionState<TValueByStage>,
+    write: (state: StagedSelectionState<TValueByStage>) => void
+): { hasManual: () => boolean; undo: () => boolean; clear: () => void } {
+    return {
+        hasManual: () => hasManualStagedSelection(read(), stageOrder),
+        undo: () => {
+            const { nextState, poppedStage } = popHighestManualStagedSelection(read(), stageOrder)
+            if (!poppedStage) return false
+            write(nextState)
+            return true
+        },
+        clear: () => write({})
+    }
+}

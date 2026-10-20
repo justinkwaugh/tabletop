@@ -51,13 +51,13 @@ import {
     type TrackRequest
 } from '@tabletop/18xx'
 import { mapState1846 } from './mapState.js'
+import { undoableStagedSelection } from '@tabletop/frontend-components'
 import {
     PrivateLayStageOrder,
     SteamboatStageOrder,
     chooseSteamboatCompany,
     stagePrivateLay,
     stagedPrivateLays,
-    undoableSelection,
     type PrivateLaySelection,
     type PrivateLayValues,
     type SteamboatSelection,
@@ -158,7 +158,7 @@ export class EighteenFortySixSession extends BaseSession {
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
         this.localSelections.register(
-            undoableSelection<SteamboatSelectionValues>(
+            undoableStagedSelection<SteamboatSelectionValues>(
                 SteamboatStageOrder,
                 () => this.steamboatSelection,
                 (selection) => (this.steamboatSelection = selection)
@@ -212,7 +212,7 @@ export class EighteenFortySixSession extends BaseSession {
     private stagedLaysFor(privateCompanyId: ConstructionPrivateId): TrackRequest[] {
         return stagedPrivateLays(this.privateLaySelection, privateCompanyId)
     }
-    private readonly privateLayUndo = undoableSelection<PrivateLayValues>(
+    private readonly privateLayUndo = undoableStagedSelection<PrivateLayValues>(
         PrivateLayStageOrder,
         () => this.privateLaySelection,
         (selection) => (this.privateLaySelection = selection)

@@ -1,11 +1,6 @@
 import type { TrackRequest } from '@tabletop/18xx'
 import type { ConstructionPrivateId } from '@tabletop/1846'
-import {
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
-    setStagedSelectionValue,
-    type StagedSelectionState
-} from '@tabletop/frontend-components'
+import { setStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
 
 type StageOrder<Values extends Record<string, unknown>> = readonly Extract<keyof Values, string>[]
 
@@ -56,28 +51,4 @@ export function stagedPrivateLays(
 ): TrackRequest[] {
     const staged = selection.firstLay?.value
     return staged?.privateCompanyId === privateCompanyId ? [staged.request] : []
-}
-
-/**
- * Registers a staged selection with the session's contextual Undo: Undo pops its highest manual
- * stage, and reports nothing to pop so the session can undo the last action instead.
- */
-export function undoableSelection<Values extends Record<string, unknown>>(
-    order: StageOrder<Values>,
-    read: () => StagedSelectionState<Values>,
-    write: (selection: StagedSelectionState<Values>) => void
-) {
-    return {
-        hasManual: () => hasManualStagedSelection<Values>(read(), order),
-        undo: () => {
-            const { nextState, poppedStage } = popHighestManualStagedSelection<Values>(
-                read(),
-                order
-            )
-            if (!poppedStage) return false
-            write(nextState)
-            return true
-        },
-        clear: () => write({})
-    }
 }
