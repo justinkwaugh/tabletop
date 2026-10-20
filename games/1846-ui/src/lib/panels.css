@@ -6,16 +6,20 @@
     font-size: 13px;
     padding: 8px 12px;
 }
-.midwest-actions section {
+.midwest-actions
+    :where(section.draft, section.steamboat, section.corporate-finance, section.receivership) {
     padding: 8px 0;
 }
-.midwest-actions h2,
-.midwest-actions h3 {
+.midwest-actions
+    :where(.draft, .steamboat, .corporate-finance, .marker-prompt, .receivership, .operating-mode)
+    :where(h2, h3) {
     font-size: 14px;
     font-weight: 650;
     margin: 6px 0;
 }
-.midwest-actions p {
+.midwest-actions
+    :where(.draft, .steamboat, .corporate-finance, .marker-prompt, .receivership, .operating-mode)
+    :where(p) {
     margin: 6px 0 10px;
 }
 .midwest-actions .choices {
@@ -55,7 +59,9 @@
 .midwest-actions .operating-mode button:disabled {
     opacity: 0.35;
 }
-.midwest-actions button {
+.midwest-actions
+    :where(.draft, .steamboat, .corporate-finance, .marker-prompt, .receivership, .operating-mode)
+    :where(button) {
     font: inherit;
     padding: 8px 12px;
     border: 1px solid var(--rail-border, #c7b8a6);
@@ -64,15 +70,23 @@
     color: var(--rail-text, #514536);
     cursor: pointer;
 }
-.midwest-actions button:hover:not(:disabled),
-.midwest-actions button[aria-pressed='true'] {
+.midwest-actions
+    :where(.draft, .steamboat, .corporate-finance, .marker-prompt, .receivership, .operating-mode)
+    :where(button):hover:not(:disabled),
+.midwest-actions
+    :where(.draft, .steamboat, .corporate-finance, .marker-prompt, .receivership, .operating-mode)
+    :where(button[aria-pressed='true']) {
     background: var(--rail-surface-selected, #ded0c2);
 }
-.midwest-actions button:focus-visible {
+.midwest-actions
+    :where(.draft, .steamboat, .corporate-finance, .marker-prompt, .receivership, .operating-mode)
+    :where(button):focus-visible {
     outline: 2px solid #a87948;
     outline-offset: 2px;
 }
-.midwest-actions button:disabled {
+.midwest-actions
+    :where(.draft, .steamboat, .corporate-finance, .marker-prompt, .receivership, .operating-mode)
+    :where(button):disabled {
     opacity: 0.45;
     cursor: default;
 }

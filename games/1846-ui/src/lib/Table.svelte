@@ -148,7 +148,10 @@
                                 />
                             {/if}
                             {#if state.machineState === 'StockRound' && session.presidencyClaims.length}
-                                <section aria-label="Companies in receivership">
+                                <section
+                                    class="receivership"
+                                    aria-label="Companies in receivership"
+                                >
                                     <h2>Take over a company</h2>
                                     {#each session.presidencyClaims as offer (offer.companyId)}
                                         <button
