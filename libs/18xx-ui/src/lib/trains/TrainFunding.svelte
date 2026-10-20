@@ -19,7 +19,59 @@
     const disabled = $derived(!(session.trainFunding.canFund || session.trainFunding.canResolve))
 </script>
 
-{#if purchase && plan}
+{#snippet undoButton()}
+    {#if showUndo}<button
+            disabled={session.busy || session.updatingVisibleState || session.isViewingHistory}
+            onclick={() => session.undo()}>Undo</button
+        >{/if}
+{/snippet}
+
+{#if purchase && session.trainFunding.options.length > 1}
+    <section aria-label="Compulsory train funding">
+        <header>
+            <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
+            <span>{session.companyName(purchase.companyId)} must buy a train</span>
+            {@render undoButton()}
+        </header>
+        <div class="options">
+            {#each session.trainFunding.options as option (`${option.purchase.trainId}:${option.purchase.definitionId}`)}
+                {@const definition = session.trainDepot.trainDefinition(
+                    option.purchase.definitionId
+                )}
+                <div class="option">
+                    <TrainPurchaseButton
+                        {money}
+                        name={definition.name}
+                        definitionId={option.purchase.definitionId}
+                        price={option.purchase.price}
+                        color={trainColors[option.purchase.definitionId]}
+                        imageUrl={session.publishedTrainImage(option.purchase.definitionId)}
+                        listPrice={definition.price}
+                        disabled={!session.trainFunding.canFund}
+                        onclick={() => {
+                            void session.trainFunding.choose(option.purchase)
+                        }}
+                    />
+                    {#if option.plan.treasuryProceeds}<small
+                            >Treasury shares raise {money(option.plan.treasuryProceeds)}</small
+                        >{/if}
+                    {#each option.plan.contributions as contribution, index (index)}<small
+                            >{session.ownerName(contribution.owner)} pays {money(
+                                contribution.amount
+                            )}</small
+                        >{/each}
+                    {#if option.plan.choice.kind === 'sell'}<small
+                            >{session.ownerName(option.plan.choice.owner)} sells shares for {money(
+                                option.plan.amountToRaise
+                            )}</small
+                        >{:else if option.plan.choice.kind === 'bankrupt'}<small
+                            >{money(option.plan.amountToRaise)} short</small
+                        >{/if}
+                </div>
+            {/each}
+        </div>
+    </section>
+{:else if purchase && plan}
     <section aria-label="Compulsory train funding">
         <header>
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
@@ -29,12 +81,7 @@
                 color={trainColors[purchase.definitionId]}
             />
             <span>for {money(purchase.price)}</span>
-            {#if showUndo}<button
-                    disabled={session.busy ||
-                        session.updatingVisibleState ||
-                        session.isViewingHistory}
-                    onclick={() => session.undo()}>Undo</button
-                >{/if}
+            {@render undoButton()}
         </header>
         {#if session.gameState.bankruptcy}
             <p>
@@ -183,6 +230,22 @@
         color: inherit;
         font: inherit;
         cursor: pointer;
+    }
+    .options {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: 10px;
+    }
+    .option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+    }
+    .option small {
+        color: var(--rail-muted, #817565);
     }
     .sale-choice {
         flex-direction: column;
