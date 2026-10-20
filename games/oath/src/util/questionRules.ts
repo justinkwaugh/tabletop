@@ -56,7 +56,11 @@ import {
     reasonCagePlacementInvalid,
     returnCagedWarbands
 } from './obsidianCage.js'
-import { powerTravelNeedsFlip, reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
+import {
+    powerTravelFlipsNeeded,
+    reasonCannotTravelByPower,
+    travelByPower
+} from './powerTravel.js'
 import {
     gainOnArrival,
     reasonWoodPickRefused,
@@ -79,7 +83,7 @@ import {
 } from './powerMoveTolls.js'
 import { payToll } from './tolls.js'
 import { payFromHomeBank, reasonCannotPayFromHomeBank } from './homeBankPayment.js'
-import { flipSecretFacedown, reasonFlipInvalid } from './siteTravel.js'
+import { flipSecretFacedown, reasonFlipInvalid, secretsFlipped } from './siteTravel.js'
 import { gainFromDrum, reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { forgoFreeActionNow } from './freeActions.js'
@@ -595,26 +599,30 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             }
             const unable = reasonCannotTravelByPower(state, playerId, siteId)
             if (unable) return unable
-            // R-11.13-H1 — the user's own flip rides the answer, for a site that asks for one only.
-            const needsFlip = powerTravelNeedsFlip(state, playerId, siteId)
-            if (needsFlip && !matched.answer.flipSecret) {
-                return `travelling to ${siteId} takes a faceup secret flipped facedown`
+            // R-11.13-H1 — the user's own flip rides the answer, for a site that asks for one only;
+            // R-11.13-H2 — two where each site's power takes its own.
+            const needed = powerTravelFlipsNeeded(state, playerId, siteId)
+            const flips = secretsFlipped(matched.answer.flipSecret)
+            if (needed > 0 && flips !== needed) {
+                return needed === 1
+                    ? `travelling to ${siteId} takes a faceup secret flipped facedown`
+                    : `travelling to ${siteId} takes ${needed} faceup secrets flipped facedown`
             }
-            return reasonFlipInvalid(state, playerId, needsFlip, matched.answer.flipSecret === true)
+            return reasonFlipInvalid(state, playerId, needed, flips)
         },
         apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const siteId = matched.answer.siteId
             // Toll Roads — Brass Horse's user travels, so they pay as they go.
             const toll = powerMoveToll(state, playerId, siteId)
             if (toll) payToll(state, playerId, toll)
-            const flipped = matched.answer.flipSecret === true
-            if (flipped) flipSecretFacedown(state, playerId)
+            const flips = secretsFlipped(matched.answer.flipSecret)
+            if (flips > 0) flipSecretFacedown(state, playerId, flips)
             const { notes } = travelByPower(state, playerId, siteId, {
                 playerId: askingPlayerId,
                 next: true
             })
             const after = notes.length ? ` (${notes.join('; ')})` : ''
-            const travelled = `${flipped ? 'flipped a secret facedown and travelled' : 'travelled'} to ${siteId} for no Supply`
+            const travelled = `${flips > 0 ? `flipped ${secretsWord(flips)} facedown and travelled` : 'travelled'} to ${siteId} for no Supply`
             if (!toll) return `${travelled}${after}`
             // The History's form for a toll inside a row: what was paid, then the card.
             const paid = toll.payeeId ? `paid ${toll.payeeId}` : 'burned'
@@ -847,7 +855,14 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     },
     [PowerQuestionKind.FlipToTravel]: {
         reasonCannotAnswer: (state, playerId, matched) =>
-            matched.answer.flip ? reasonFlipInvalid(state, playerId, true, true) : undefined,
+            matched.answer.flip
+                ? reasonFlipInvalid(
+                      state,
+                      playerId,
+                      matched.question.flips ?? 1,
+                      matched.question.flips ?? 1
+                  )
+                : undefined,
         apply: (state, _playerId, matched, _asked, askingPlayerId) => {
             const { question } = matched
             // R-11.13-H1 — no flip, no travel: the pawn stays; a banish's burn, plans and end follow.
@@ -860,7 +875,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             const settled = settlePowerMoveFlip(state, question, askingPlayerId)
             if ('tollMove' in settled) {
                 // Toll Roads follows; the secret is flipped once the toll is paid.
-                const summary = `chose to flip a secret to travel to ${question.siteId}`
+                const summary = `chose to flip ${secretsWord(question.flips ?? 1)} to travel to ${question.siteId}`
                 return settled.tollMove.outcome === PowerMoveTollOutcome.Asked
                     ? summary
                     : { summary, tollMove: settled.tollMove, ...settleBanishedVictory(state) }
@@ -869,7 +884,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             const secret = secretsTaken ? `, taking ${secretsTaken} secret from the Whistle` : ''
             const after = notes.length ? ` (${notes.join('; ')})` : ''
             return {
-                summary: `flipped a secret facedown and travelled to ${question.siteId}${secret}${after}`,
+                summary: `flipped ${secretsWord(question.flips ?? 1)} facedown and travelled to ${question.siteId}${secret}${after}`,
                 disclosed: revealed ? true : undefined,
                 ...settleBanishedVictory(state)
             }
@@ -972,4 +987,9 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             }
         }
     }
+}
+
+/** R-11.13-H2 — the History names each flipped secret: "a secret", "2 secrets". */
+function secretsWord(flips: number): string {
+    return flips === 1 ? 'a secret' : `${flips} secrets`
 }

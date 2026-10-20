@@ -159,9 +159,10 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
         homeBankPayable(state, question.askedPlayerId, question.owed) <= 0
             ? `${question.askedPlayerId} has no favor in a bank to pay from`
             : undefined,
-    // R-11.13-H1 — with no faceup secret to flip (or under Spell Breaker) the move is unable.
+    // R-11.13-H1 — without the faceup secrets to flip (or under Spell Breaker) the move is unable.
     [PowerQuestionKind.FlipToTravel]: (state, question) => {
-        const invalid = reasonFlipInvalid(state, question.askedPlayerId, true, true)
+        const flips = question.flips ?? 1
+        const invalid = reasonFlipInvalid(state, question.askedPlayerId, flips, flips)
         return invalid
             ? `${question.askedPlayerId} cannot flip a secret to travel to ${question.siteId}: ${invalid}`
             : undefined

@@ -5,8 +5,10 @@ import { reasonTollsUnpaid, tollsFor, travelFreeByToll, wayStationRuled } from '
 import {
     reasonFlipInvalid,
     reasonSitesForbidTravel,
+    secretsFlipped,
     shroudedWoodChooser,
-    siteTravelTerms
+    siteTravelTerms,
+    type TravelFlip
 } from './siteTravel.js'
 import { baseTravelCost } from './travelCost.js'
 import {
@@ -35,14 +37,17 @@ import {
     tollPayment
 } from './actionPayment.js'
 
-/** The optional payments a Travel carries: the tolls paid and the Buried Giant's flip. */
-export type TravelTerms = { tolls: string[]; flipSecret: boolean }
+/**
+ * The optional payments a Travel carries: the tolls paid and the secrets flipped for the Buried
+ * Giant and The Hidden Place, as the action records them (`TravelFlip`).
+ */
+export type TravelTerms = { tolls: string[]; flipSecret: TravelFlip }
 
 /** R-11.7 — before `UiBatch1`: 2 Supply to leave, or none on a free Travel. */
 export function shroudedWoodTravelCost(state: HydratedOathGameState, playerId: string): number {
     return isFreeTravelNow(state, playerId)
         ? 0
-        : siteTravelTerms(state, pawnSiteId(state, playerId), pawnSiteId(state, playerId), 0, false)
+        : siteTravelTerms(state, pawnSiteId(state, playerId), pawnSiteId(state, playerId), 0, 0)
               .cost
 }
 
@@ -59,7 +64,7 @@ export function reasonCannotLeaveShroudedWood(
         siteId?: string
         modifiers?: readonly ModifierUse[]
         tolls?: readonly string[]
-        flipSecret?: boolean
+        flipSecret?: TravelFlip
     }
 ): string | undefined {
     const chooser = shroudedWoodChooser(state, playerId)
@@ -112,9 +117,10 @@ export function travelPlan(
     siteId: string,
     modifiers?: readonly ModifierUse[],
     tolls?: readonly string[],
-    flipSecret = false
+    flipSecret: TravelFlip = false
 ): ActionPlan & { siteNotes: string[] } {
     const player = state.getPlayerState(playerId)
+    const flips = secretsFlipped(flipSecret)
     if (woodChooserForTravel(state, playerId, modifiers) !== undefined) {
         return {
             reason: "the Shrouded Wood's ruler chooses where you go",
@@ -152,13 +158,13 @@ export function travelPlan(
     const sitesIgnored = resolved.active.some((m) => m.hooks.ignoresSitePowers === true)
     // R-11.8, R-11.13 — the Narrow Pass's must and The Hidden Place's cannot.
     const barred = sitesIgnored
-        ? reasonFlipInvalid(state, playerId, false, flipSecret)
-        : reasonSitesForbidTravel(state, playerId, here, siteId, flipSecret)
+        ? reasonFlipInvalid(state, playerId, 0, flips)
+        : reasonSitesForbidTravel(state, playerId, here, siteId, flips)
     if (barred) return { reason: barred, cost: base, active: [], siteNotes: [] }
     // R-11.3, R-11.6, R-11.7, R-11.12 — the sites' own prices.
     const siteTerms = sitesIgnored
         ? { cost: base, spendsNoSupply: false, notes: [] }
-        : siteTravelTerms(state, here, siteId, base, flipSecret)
+        : siteTravelTerms(state, here, siteId, base, flips)
     let cost = foldSupplyCost(
         siteTerms.cost,
         state,
@@ -173,7 +179,7 @@ export function travelPlan(
     const unaffordable = reasonCannotPayInAll(state, playerId, [
         modifierPayment(resolved.active),
         tollPayment(tolls),
-        secretPayment(flipSecret ? 1 : 0)
+        secretPayment(flips)
     ])
     if (unaffordable)
         return {
@@ -206,7 +212,7 @@ export function reasonCannotTravel(
     siteId: string,
     modifiers?: readonly ModifierUse[],
     tolls?: readonly string[],
-    flipSecret = false
+    flipSecret: TravelFlip = false
 ): string | undefined {
     return travelPlan(state, playerId, siteId, modifiers, tolls, flipSecret).reason
 }
@@ -221,9 +227,9 @@ export function travelCostFor(
 }
 
 /**
- * R-7.1.4, R-11.12, R-X.1 — every legal pairing of the player's optional travel payments:
- * Way Station's favor instead of Supply, and the Buried Giant's flipped secret. Demanded
- * tolls are in every pairing.
+ * R-7.1.4, R-11.12, R-11.13-H2, R-X.1 — every legal pairing of the player's optional travel
+ * payments: Way Station's favor instead of Supply, and the secrets flipped (none, one, or from
+ * the Buried Giant to The Hidden Place two). Demanded tolls are in every pairing.
  */
 export function legalTravelTerms(
     state: HydratedOathGameState,
@@ -238,13 +244,17 @@ export function legalTravelTerms(
         ...available.filter((t) => t.discount).map((t) => [...demanded, t.cardId])
     ]
     return tollSets
-        .flatMap((tolls) => [false, true].map((flipSecret) => ({ tolls, flipSecret })))
+        .flatMap((tolls) =>
+            TRAVEL_FLIPS.map((flipSecret): TravelTerms => ({ tolls, flipSecret }))
+        )
         .filter(
             (terms) =>
                 travelPlan(state, playerId, siteId, modifiers, terms.tolls, terms.flipSecret)
                     .reason === undefined
         )
 }
+
+const TRAVEL_FLIPS: readonly TravelFlip[] = [false, true, 2]
 
 /** R-5.6.1 */
 export function legalTravelDestinations(

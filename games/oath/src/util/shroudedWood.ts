@@ -184,7 +184,7 @@ function planWoodPick(
     stationFavor: number
 ): { pick: WoodPick; active: ActiveModifier[] } {
     const here = pawnSiteId(state, travelerId)
-    const base = siteTravelTerms(state, here, here, 0, false).cost
+    const base = siteTravelTerms(state, here, here, 0, 0).cost
     const particulars = { destinationSiteId: siteId }
     const declared = carriedModifiers(
         state,

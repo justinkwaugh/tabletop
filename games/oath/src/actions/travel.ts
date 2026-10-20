@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { afterTravelPersistent } from '../util/persistent.js'
 import { payTolls } from '../util/tolls.js'
-import { flipSecretFacedown } from '../util/siteTravel.js'
+import { flipSecretFacedown, secretsFlipped, type TravelFlip } from '../util/siteTravel.js'
 import { ActionType } from '../definition/actions.js'
 import {
     modifierSummary,
@@ -66,7 +66,8 @@ export const TravelMetadata = Type.Object({
     tollsPaid: Type.Optional(Type.Array(Type.String())),
     /** R-11 */
     siteNotes: Type.Optional(Type.Array(Type.String())),
-    secretFlipped: Type.Optional(Type.Boolean()),
+    /** R-11.12, R-11.13 — as `flipSecret` records it: `true` one secret, `2` two. */
+    secretFlipped: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)])),
     /** Second Wind out of turn (revision 7) — the card whose free Travel this was. */
     freeActionOf: Type.Optional(Type.String()),
     /** Second Wind out of turn — where the held turn resumes once nothing more is asked. */
@@ -86,8 +87,12 @@ export const Travel = Type.Evaluate(
             modifiers: ModifierUses,
             /** R-7.1.4 (Toll Roads, Way Station) */
             tolls: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
-            /** R-11.12, R-11.13 — for the site that asks. */
-            flipSecret: Type.Optional(Type.Boolean()),
+            /**
+             * R-11.12, R-11.13 — the secrets flipped for the sites that ask: `true` one, as every
+             * recorded Travel has it; `2` two, from the Buried Giant to The Hidden Place, one for
+             * each site's power (R-11.13-H2, revision 20 on).
+             */
+            flipSecret: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)])),
             metadata: Type.Optional(TravelMetadata)
         })
     ])
@@ -105,7 +110,7 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
     declare siteId?: string
     declare modifiers?: ModifierUse[]
     declare tolls?: string[]
-    declare flipSecret?: boolean
+    declare flipSecret?: TravelFlip
     declare metadata?: TravelMetadata
 
     constructor(data: Travel) {
@@ -138,8 +143,9 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         }
         const { cost, active } = plan
         if (outOfTurn) holdTurnForFreeActionOutOfTurn(state, this.playerId, ActionType.Travel)
-        // R-11.12, R-11.13
-        if (this.flipSecret) flipSecretFacedown(state, this.playerId)
+        // R-11.12, R-11.13, R-11.13-H2 — each a different faceup secret.
+        const flips = secretsFlipped(this.flipSecret)
+        if (flips > 0) flipSecretFacedown(state, this.playerId, flips)
 
         const fromSiteId = pawnSiteId(state, this.playerId)
 

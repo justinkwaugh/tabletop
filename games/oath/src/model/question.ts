@@ -471,8 +471,11 @@ export const PowerQuestion = Type.Union([
         travel: Type.Optional(ShroudedWoodTravel),
         /** R-11.7-H1 — the power whose move the Shrouded Wood's ruler redirected. */
         power: Type.Optional(ShroudedWoodPower),
-        /** R-11.13-H1 — the secret the asked player chose to flip, flipped once the toll is paid. */
-        flipSecret: Type.Optional(Type.Boolean())
+        /**
+         * R-11.13-H1 — the secret the asked player chose to flip (`true`), or two (`2`, R-11.13-H2),
+         * flipped once the toll is paid.
+         */
+        flipSecret: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)]))
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
@@ -496,7 +499,12 @@ export const PowerQuestion = Type.Union([
         powerCardId: Type.Optional(Type.String()),
         moverPlayerId: Type.String(),
         fromSiteId: Type.String(),
-        siteId: Type.String()
+        siteId: Type.String(),
+        /**
+         * R-11.13-H2 (revision 20) — two secrets, one for each site's power: from the Buried Giant
+         * past a Narrow Pass into The Hidden Place. Absent, one.
+         */
+        flips: Type.Optional(Type.Literal(2))
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.WayStationFavor),
@@ -608,8 +616,11 @@ export const QuestionAnswer = Type.Union([
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.TravelFreeTo),
         siteId: Type.String(),
-        /** R-11.13-H1 — a faceup secret flipped facedown, for a site that asks for one. */
-        flipSecret: Type.Optional(Type.Boolean())
+        /**
+         * R-11.13-H1 — a faceup secret flipped facedown (`true`), for a site that asks for one; two
+         * (`2`) where each site's power takes its own (R-11.13-H2).
+         */
+        flipSecret: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)]))
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.RerollDice), reroll: Type.Boolean() }),
     Type.Object({
