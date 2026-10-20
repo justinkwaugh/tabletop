@@ -89,6 +89,14 @@
             !session.decisions.selection &&
             !session.privateActions.selection
     )
+    const showFinance = $derived(
+        session.constructionMode === 'finance' &&
+            session.financeChoices.length > 0 &&
+            !state.purchaseOffer &&
+            !session.privateActions.selection &&
+            !session.privateActions.trackPowerSelection &&
+            !session.decisions.selection
+    )
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
@@ -130,7 +138,7 @@
                         <SteamboatAssignment {session} />
                     {:else if session.stockPanels.open === 'receivership'}
                         <PresidencyClaims {session} />
-                    {:else if session.constructionMode === 'finance' && session.financeChoices.length && !state.purchaseOffer}
+                    {:else if showFinance}
                         <CorporateFinance {session} />
                     {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'stations' && !state.purchaseOffer}
                         <div class="centered-panel">
