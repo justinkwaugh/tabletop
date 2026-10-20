@@ -1,8 +1,15 @@
 import { assertExists } from '@tabletop/common'
+import type { HydratedOathGameState } from '../model/gameState.js'
 import { bannerHolder } from '../util/oathkeeper.js'
 import { removeFavorFromBoard } from '../util/favor.js'
 import { burnFavor, burnFavorFromBank } from '../util/burn.js'
-import { countKilled, killBoardWarbandsInCampaign, killOrRedirect } from '../util/campaignRoll.js'
+import {
+    countKilled,
+    killBoardWarbandsInCampaign,
+    killOrRedirect,
+    partiesOf,
+    sameLossSource
+} from '../util/campaignRoll.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { type CampaignKillPath, CampaignTargetKind, type WarbandGroup } from '../model/campaign.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
@@ -17,8 +24,8 @@ import { targetedSiteIds } from '../util/campaignSite.js'
 import { forceTotal, warbandsOnBoardOf } from '../util/force.js'
 import { type ImperialScope, isImperialPlayer } from '../util/rule.js'
 import { banditRuledCardIds, ruledFaceupCardIds, siteHolding } from '../util/access.js'
-import { registerBattlePlan, type BattlePlanContext } from './registry.js'
-import { PowerChoiceKind, optional } from '../util/powerChoice.js'
+import { chosen, registerBattlePlan, type BattlePlanContext } from './registry.js'
+import { PowerChoiceKind, one, optional, type PowerChoice } from '../util/powerChoice.js'
 import {
     burnSecretsDownTo,
     burnSecretsFromPlayer,
@@ -606,27 +613,76 @@ registerBattlePlan(
 )
 
 // "+1 defense die if you sacrifice one warband in your force." Defender, cost-free.
-// Using it is choosing to sacrifice.
-registerBattlePlan(
-    'denizen.order.wrestlers',
-    powerIndexOf('denizen.order.wrestlers', PowerTiming.BattlePlan),
-    {
-        hooks: {
-            dice: (ctx) => {
-                const user = ctx.playerId
-                // R-7.6.5 — bandits are never warbands, so the bandits have none to sacrifice.
-                if (user === undefined) return undefined
-                const force = collectDefendingForce(ctx.state, ctx.campaign.parties).filter(
-                    (g) => g.at.kind === 'site' || g.at.playerId === user
-                )
-                const group = force.find((g) => g.at.kind === 'board') ?? force[0]
-                if (!group) return undefined
-                const killed = planKillsGroup(ctx, BattlePlanSide.Defender, { ...group, count: 1 })
-                return killed > 0 ? { defense: 1 } : undefined
+// Using it is choosing to sacrifice. From revision 22 its user picks the warband (Law 10.22).
+const WRESTLERS = 'denizen.order.wrestlers'
+/**
+ * Wrestlers, from revision 22 — one warband at each place of the defending force (R-5.5.4,
+ * R-10.9): the targeted sites, and the defender's and each Ally's board that adds to the force,
+ * as its Q&A has it ("If their board is adding warbands to your force, yes"). Each place holds one
+ * colour (R-6.6.2), so it is one option. Every defending player who uses it sees the same force.
+ */
+function defendingForcePlaces(state: HydratedOathGameState): PowerChoice[] {
+    const campaign = state.campaign
+    assertExists(campaign, 'Wrestlers is used by a defender, once the Campaign is mustered')
+    return collectDefendingForce(state, partiesOf(state, campaign))
+        .filter((group) => group.count > 0)
+        .map((group) => ({ kind: PowerChoiceKind.Warbands, group: { ...group, count: 1 } }))
+}
+/**
+ * The warband picked, while its place still holds it: a plan the user declared before Wrestlers
+ * (Warning Signals) may have moved it away, and then there is none to sacrifice.
+ */
+function pickedSacrifice(ctx: BattlePlanContext): WarbandGroup | undefined {
+    const [picked] = chosen(ctx, PowerChoiceKind.Warbands)
+    if (!picked) return undefined
+    const there = defendingForcePlaces(ctx.state).some(
+        (option) =>
+            option.kind === PowerChoiceKind.Warbands && sameLossSource(option.group, picked.group)
+    )
+    return there ? picked.group : undefined
+}
+function sacrificedWhere(group: WarbandGroup): string {
+    return group.at.kind === 'site' ? `at ${group.at.siteId}` : `on ${group.at.playerId}'s board`
+}
+registerBattlePlan(WRESTLERS, powerIndexOf(WRESTLERS, PowerTiming.BattlePlan), {
+    choices: [
+        one(PowerChoiceKind.Warbands, {
+            what: 'the warband you sacrifice',
+            domain: defendingForcePlaces,
+            byPlace: true,
+            askedIfAny: true,
+            fromRevision: OathRevision.EngineFixes18
+        })
+    ],
+    hooks: {
+        dice: (ctx) => {
+            const user = ctx.playerId
+            // R-7.6.5 — bandits are never warbands, so the bandits have none to sacrifice.
+            if (user === undefined) return undefined
+            // The picked warband is sacrificed as the plan is used, below.
+            if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes18)) {
+                return pickedSacrifice(ctx) ? { defense: 1 } : undefined
             }
+            // R-X.4 — before revision 22 the engine picks: the user's board first, else the
+            // first targeted site; an Ally's board is never offered.
+            const force = collectDefendingForce(ctx.state, ctx.campaign.parties).filter(
+                (g) => g.at.kind === 'site' || g.at.playerId === user
+            )
+            const group = force.find((g) => g.at.kind === 'board') ?? force[0]
+            if (!group) return undefined
+            const killed = planKillsGroup(ctx, BattlePlanSide.Defender, { ...group, count: 1 })
+            return killed > 0 ? { defense: 1 } : undefined
+        },
+        onUse: (ctx) => {
+            if (ctx.playerId === undefined) return undefined
+            if (!isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes18)) return undefined
+            const group = pickedSacrifice(ctx)
+            if (!group) return undefined
+            planKillsGroup(ctx, BattlePlanSide.Defender, group)
+            return `Wrestlers: sacrificed a warband ${sacrificedWhere(group)}`
         }
     }
-)
+})
 
 // "±2 attack dice but you cannot use other battle plans." Cost-free.
 registerBattlePlan(
