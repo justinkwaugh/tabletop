@@ -328,6 +328,7 @@ const SPECIAL_ENVOY = /^Special Envoy ends \S+'s Act Phase$/
 const TYRANT = /^Tyrant killed a warband at (\S+)$/
 const AWAITED_RETURN = /^sacrificed a warband from your board \(Awaited Return\)$/
 const CARELESS = /^Careless: (.+)$/
+const SECOND_WIND = 'Second Wind: the next Travel, and then a Campaign, cost no Supply'
 // A note recorded with the reader's "you" read wrong for every other seat; the engine names the seat now.
 const SAYS_YOU = /\byour?\b/i
 
@@ -351,6 +352,10 @@ function noteClause(note: string, actorId: string | undefined): NoteClause | und
     if (careless) {
         const gained = careless[1] === 'gained 1 favor' ? 1 : 0
         return { text: `gained ${gained} favor (Careless)`, card: 'Careless' }
+    }
+    // R-5.5.8 — Second Wind's grant, on the spoils row (or the banish's answer) that recorded it.
+    if (note === SECOND_WIND) {
+        return { text: 'free Travel and Campaign next (Second Wind)', card: 'Second Wind' }
     }
     if (SAYS_YOU.test(note)) return undefined
     const carded = CARD_NOTE.exec(note)

@@ -1428,6 +1428,48 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             expect(pieces(row)).toEqual([{ count: 2, owner: IMPERIAL_WARBANDS }, { count: 3, owner: IMPERIAL_WARBANDS }])
         })
 
+        describe('R-5.5.8 — Second Wind’s grant on the row that recorded it: "free Travel and Campaign next (Second Wind)"', () => {
+            // The engine's note, unchanged since the card was built.
+            const SECOND_WIND_NOTE = 'Second Wind: the next Travel, and then a Campaign, cost no Supply'
+            const spoils = (metadata: Record<string, unknown>, fields: Record<string, unknown> = {}) =>
+                describeAction(action({ type: ActionType.CampaignResolveVictory, playerId: 'p1', placements: [{ siteId: PLAINS, owner: 'p1', count: 2 }], burnFavor: false, ...fields, metadata: { warbandsPlaced: 2, relicsTaken: [], bannersSeized: [], seizeBurned: 0, favorBurned: 0, ...metadata } }), nameOf)
+
+            it('a victory on the attacker’s own turn', () => {
+                expect(spoils({ triggered: [SECOND_WIND_NOTE] })).toBe('took the spoils: placed 2 warbands at Provinces 1; free Travel and Campaign next (Second Wind)')
+            })
+
+            it('a victory in a Sneak Attack, out of turn, reads the same', () => {
+                const row = spoils(
+                    { warbandsPlaced: 0, favorBurned: 2, defenderPlayerId: 'p2', resumeMachineState: MachineState.ActPhase, triggered: [SECOND_WIND_NOTE] },
+                    { placements: [], burnFavor: true }
+                )
+                expect(row).toBe('took the spoils: burned 2 favor from Bob; free Travel and Campaign next (Second Wind)')
+            })
+
+            it('the answer a banish waited on carries it, after the burn kept for it', () => {
+                const row = describeAction(
+                    action({
+                        type: ActionType.AnswerQuestion,
+                        playerId: 'p3',
+                        answer: { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'slot.cradle.0' },
+                        metadata: { cardId: 'site.shrouded-wood', kind: PowerQuestionKind.ShroudedWoodDestination, summary: 'sent p2 to slot.cradle.0', triggered: ['p1 burned 2 favor', SECOND_WIND_NOTE], resumeMachineState: MachineState.ActPhase, last: true }
+                    }),
+                    nameOf
+                )
+                expect(row).toBe('Shrouded Wood: sent Bob to Cradle 1; Alice burned 2 favor; free Travel and Campaign next (Second Wind)')
+            })
+
+            it('a victory without it prints the row it always did', () => {
+                expect(spoils({})).toBe('took the spoils: placed 2 warbands at Provinces 1')
+                expect(describeAction(action({ type: ActionType.CampaignSacrifice, playerId: 'p1', sacrifice: 1, metadata: { sacrificed: 1, attackerVictorious: true } }), nameOf)).toBe('sacrificed 1 warband and won the battle')
+            })
+
+            it('beside another plan’s note, each keeps the order it was recorded in, one clause each', () => {
+                expect(spoils({ triggered: ['Field Promotion: gained 3 warbands', SECOND_WIND_NOTE] })).toBe('took the spoils: placed 2 warbands at Provinces 1; gained 3 warbands (Field Promotion); free Travel and Campaign next (Second Wind)')
+                expect(spoils({ triggered: [SECOND_WIND_NOTE, 'Field Promotion: gained 3 warbands'] })).toBe('took the spoils: placed 2 warbands at Provinces 1; free Travel and Campaign next (Second Wind); gained 3 warbands (Field Promotion)')
+            })
+        })
+
         it('a record without them prints the line it always did', () => {
             expect(describeAction(action({ type: ActionType.SearchResolve, playerId: 'p2', keptCardId: 'denizen.discord.a-small-favor', discardOrder: [], play: SearchPlay.Adviser, metadata: { ...searched, playedCardId: 'denizen.discord.a-small-favor' } }), nameOf)).toBe('kept A Small Favor and played it as an adviser')
             expect(describeAction(action({ type: ActionType.Travel, playerId: 'p2', siteId: PLAINS, metadata: { supplySpent: 2 } }), nameOf)).toBe('traveled to Provinces 1, spending 2 Supply')

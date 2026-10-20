@@ -269,6 +269,7 @@ export type TableName =
     | PickerTwoScene
     | 'historyAct'
     | 'historyCampaign'
+    | 'historySecondWind'
     | 'historyDeals'
 
 const PROPHET_ADVISERS = [
@@ -4760,7 +4761,7 @@ function drumTable(scene: DrumScene): PlayedTable {
 }
 
 /** The History's rows for each scene, oldest first, as their records hold them. */
-type HistoryScene = 'act' | 'campaign' | 'deals'
+type HistoryScene = 'act' | 'campaign' | 'secondWind' | 'deals'
 
 /**
  * The History's words, read from records alone: Ann (blue, on the clock) reads the rows of Dana
@@ -4802,6 +4803,7 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
     state.vault = testVaultWithRelics({})
     const table = tableOf(state)
     const battle = { attackPool: 6, defensePool: 4, defense: 4, swords: 5, skullsKilled: 0 }
+    const sneakBattle = { attackPool: 3, defensePool: 1, defense: 1, swords: 4, skullsKilled: 0 }
     const rows: Record<
         HistoryScene,
         ({ type: ActionType; playerId: string } & Record<string, unknown>)[]
@@ -4939,6 +4941,61 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
                     defenderPlayerId: 'rhys',
                     triggered: ['Field Promotion: dana gained 3 warbands']
                 }
+            }
+        ],
+        // R-5.5.8 — Dana's Sneak Attack on Rhys, with Second Wind: the victory, the spoils that
+        // record the grant, then the free Travel.
+        secondWind: [
+            {
+                type: ActionType.Campaign,
+                playerId: 'dana',
+                defender: { kind: 'player', playerId: 'rhys' },
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                attackDice: 3,
+                plans: [
+                    {
+                        cardId: SECOND_WIND,
+                        powerIndex: powerIndexOf(SECOND_WIND, PowerTiming.BattlePlan)
+                    }
+                ],
+                metadata: {
+                    supplySpent: 0,
+                    battle: { ...sneakBattle, defense: 0, swords: 0, awaitingDefender: true }
+                }
+            },
+            {
+                type: ActionType.CampaignDefend,
+                playerId: 'rhys',
+                plans: [],
+                metadata: { ...sneakBattle, plansUsed: [] }
+            },
+            {
+                type: ActionType.CampaignSacrifice,
+                playerId: 'dana',
+                sacrifice: 0,
+                metadata: { attack: 4, defense: 1, attackerVictorious: true, sacrificed: 0 }
+            },
+            {
+                type: ActionType.CampaignResolveVictory,
+                playerId: 'dana',
+                placements: [],
+                burnFavor: true,
+                metadata: {
+                    warbandsPlaced: 0,
+                    relicsTaken: [],
+                    bannersSeized: [],
+                    seizeBurned: 0,
+                    favorBurned: 2,
+                    defenderPlayerId: 'rhys',
+                    resumeMachineState: MachineState.ActPhase,
+                    triggered: ['Second Wind: the next Travel, and then a Campaign, cost no Supply']
+                }
+            },
+            {
+                type: ActionType.Travel,
+                playerId: 'dana',
+                siteId: mine,
+                metadata: { supplySpent: 0, supplyRemaining: 4, freeActionOf: SECOND_WIND }
             }
         ],
         deals: [
@@ -5240,6 +5297,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     pickerFacedownBracken: () => pickerTwoTable('pickerFacedownBracken'),
     historyAct: () => historyWordsTable('act'),
     historyCampaign: () => historyWordsTable('campaign'),
+    historySecondWind: () => historyWordsTable('secondWind'),
     historyDeals: () => historyWordsTable('deals')
 }
 
