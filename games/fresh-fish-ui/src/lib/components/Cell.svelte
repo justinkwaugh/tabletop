@@ -116,8 +116,15 @@
             gameSession.highlightedCoords[0] === coords[0] &&
             gameSession.highlightedCoords[1] === coords[1]
     )
+    // A finger has no hover, and a tap places the piece at once, so only a mouse or pen
+    // previews it. A phone need not report the finger leaving, which would leave the
+    // preview on a square that Undo makes legal again.
     let hovered = $state(false)
     let previewing = $derived(hovered && interactable)
+
+    function handlePointerHover(event: PointerEvent, over: boolean) {
+        if (event.pointerType !== 'touch') hovered = over
+    }
 
     let mayExpropriate = $derived(
         (isDiskCell(cell) &&
@@ -129,14 +136,12 @@
     )
 
     function handleMouseOver() {
-        hovered = true
         if (mayExpropriate) {
             gameSession.previewExpropriation(coords)
         }
     }
 
     function handleMouseLeave() {
-        hovered = false
         if (mayExpropriate) {
             gameSession.clearExpropriationPreview()
         }
@@ -186,6 +191,8 @@
     onkeypress={async () => handleClick()}
     onmouseover={() => handleMouseOver()}
     onmouseleave={() => handleMouseLeave()}
+    onpointerenter={(event) => handlePointerHover(event, true)}
+    onpointerleave={(event) => handlePointerHover(event, false)}
     class="cell relative isolate w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center items-center
         {interactable && interacting ? 'cursor-pointer' : ''}
         {disabled ? 'dimmed' : ''}"
