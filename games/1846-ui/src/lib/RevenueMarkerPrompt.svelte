@@ -6,7 +6,7 @@
 </script>
 
 {#if pending}
-    <header class="marker-prompt">
+    <header class="marker-prompt centered-panel">
         <span>Choose a hex for {draftCompany(pending.privateCompanyId).name} or</span>
         <button
             class="action-button inline-action"

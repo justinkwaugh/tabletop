@@ -86,7 +86,17 @@ const BaseSession: ReturnType<
     HydratedEighteenFortySixState
 >(SessionRules1846, MapView1846, Presentation1846)
 type ConstructionMode = 'track' | 'stations' | 'finance'
+/** The stock-round panel 1846 adds beside Buy and Sell. */
+export type StockPanel1846 = 'receivership'
 export class EighteenFortySixSession extends BaseSession {
+    readonly stockPanels = this.titleStockPanels<StockPanel1846>([
+        {
+            id: 'receivership',
+            label: 'Receivership',
+            available: () =>
+                this.gameState.machineState === 'StockRound' && this.presidencyClaims.length > 0
+        }
+    ])
     private readonly constructionModeScope = $derived(
         [
             this.gameState.machineState,

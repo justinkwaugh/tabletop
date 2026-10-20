@@ -4,7 +4,11 @@
     flex-direction: column;
     color: var(--rail-text, #514536);
     font-size: 13px;
-    padding: 8px 12px;
+}
+.midwest-actions .midwest-content {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
 }
 .midwest-actions
     :where(section.draft, section.steamboat, section.corporate-finance, section.receivership) {

@@ -22,6 +22,7 @@
     import RevenueMarkerPrompt from './RevenueMarkerPrompt.svelte'
     import SteamboatAssignment from './SteamboatAssignment.svelte'
     import CorporateFinance from './CorporateFinance.svelte'
+    import PresidencyClaims from './PresidencyClaims.svelte'
     import { describe1846Action } from './history.js'
     import './panels.css'
     let {
@@ -93,7 +94,12 @@
     }
 </script>
 
-<GameTable {session} {privateOperationDescription} historyDescription={describe1846Action}>
+<GameTable
+    {session}
+    {privateOperationDescription}
+    historyDescription={describe1846Action}
+    additionalStockActions={session.stockPanels.menuOptions}
+>
     {#snippet actions(_focusLocation, focusRoute)}
         <div class="midwest-actions">
             {#if showOperatingModes}
@@ -110,62 +116,47 @@
                     </SlidingToggle>
                 </nav>
             {/if}
-            <div class="midwest-content centered-panel">
-                {#key showOperatingModes ? session.constructionMode : undefined}<div
-                        in:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}
-                    >
-                        {#if state.machineState === 'BuyingOpeningCompanies'}
-                            <OpeningCompanies {session} />
-                        {:else if state.machineState === 'Drafting' || state.machineState === 'RevealingDraft'}
-                            <Draft {session} />
-                        {:else if state.pendingRevenueMarker}
-                            <RevenueMarkerPrompt {session} />
-                        {:else if state.machineState === 'AssigningSteamboat'}
-                            <SteamboatAssignment {session} />
-                        {:else}
-                            {#if session.constructionMode === 'finance' && session.financeChoices.length && !state.purchaseOffer}
-                                <CorporateFinance {session} />
-                            {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'stations' && !state.purchaseOffer}
-                                <CompanyDecisions
+            {#key showOperatingModes ? session.constructionMode : undefined}<div
+                    class="midwest-content"
+                    in:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}
+                >
+                    {#if state.machineState === 'BuyingOpeningCompanies'}
+                        <OpeningCompanies {session} />
+                    {:else if state.machineState === 'Drafting' || state.machineState === 'RevealingDraft'}
+                        <Draft {session} />
+                    {:else if state.pendingRevenueMarker}
+                        <RevenueMarkerPrompt {session} />
+                    {:else if state.machineState === 'AssigningSteamboat'}
+                        <SteamboatAssignment {session} />
+                    {:else if session.stockPanels.open === 'receivership'}
+                        <PresidencyClaims {session} />
+                    {:else if session.constructionMode === 'finance' && session.financeChoices.length && !state.purchaseOffer}
+                        <CorporateFinance {session} />
+                    {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'stations' && !state.purchaseOffer}
+                        <div class="centered-panel">
+                            <CompanyDecisions
+                                {session}
+                                trainColors={session.presentation.trainColors}
+                                showUndo={false}
+                            />
+                            {#if !session.privateActions.selection && !session.decisions.selection}
+                                <StationBuilding
                                     {session}
-                                    trainColors={session.presentation.trainColors}
                                     showUndo={false}
-                                />
-                                {#if !session.privateActions.selection && !session.decisions.selection}
-                                    <StationBuilding
-                                        {session}
-                                        showUndo={false}
-                                        canSkip={session.canChooseAction}
-                                        onSkip={() => session.finishConstruction()}
-                                    />
-                                {/if}
-                            {:else}
-                                <OperatingActions
-                                    {session}
-                                    {privateOperationDescription}
-                                    {createRouteWorker}
-                                    onFocusRoute={focusRoute}
+                                    canSkip={session.canChooseAction}
+                                    onSkip={() => session.finishConstruction()}
                                 />
                             {/if}
-                            {#if state.machineState === 'StockRound' && session.presidencyClaims.length}
-                                <section
-                                    class="receivership"
-                                    aria-label="Companies in receivership"
-                                >
-                                    <h2>Take over a company</h2>
-                                    {#each session.presidencyClaims as offer (offer.companyId)}
-                                        <button
-                                            disabled={!session.canChooseAction}
-                                            onclick={() => session.claimPresidency(offer)}
-                                            >{offer.companyId} · buy 10% for ${offer.price} and become
-                                            president</button
-                                        >
-                                    {/each}
-                                </section>
-                            {/if}
-                        {/if}
-                    </div>{/key}
-            </div>
+                        </div>
+                    {:else}
+                        <OperatingActions
+                            {session}
+                            {privateOperationDescription}
+                            {createRouteWorker}
+                            onFocusRoute={focusRoute}
+                        />
+                    {/if}
+                </div>{/key}
         </div>
     {/snippet}
 </GameTable>
