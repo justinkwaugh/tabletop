@@ -224,8 +224,8 @@ migrate-logic-artifacts [--game=<id>] [--apply]  Add index.cjs and validators.cj
 A logic build emits `index.cjs`, the bundle as a collectible CommonJS factory, and `validators.cjs`,
 its request validators compiled ahead of time, beside the ESM bundle. The backend activates a new
 logic selection inside its running worker: the invalidation request holds the connection open until
-the instance it reaches has activated and answers `activation: "complete"`; other instances
-activate on their next request. No process is replaced and no UI republish is needed for a logic
+the instance it reaches has activated and answers `activation: "complete"`; every other instance
+activates during its next request, which waits for the load. No process is replaced and no UI republish is needed for a logic
 change. See [ADR 0011](../../docs/adr/0011-game-logic-runs-as-collectible-factories.md).
 
 Artifacts published before the build emitted those files are imported the old way and stay

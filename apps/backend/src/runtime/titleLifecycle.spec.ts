@@ -14,6 +14,7 @@ import { RedisCacheService } from '../../../../libs/backend-services/src/cache/c
 import { logicPublicationFixture } from '../../../../libs/backend-services/src/games/tests/logicPublicationFixture.js'
 import games from '../app/plugins/games.js'
 import { installTitleScope } from './titleScope.js'
+import { installManifestRefresh } from './manifestRefresh.js'
 import { TitleValidation } from './titleValidation.js'
 import { errorStatusCode } from '../app/lib/errorStatusCode.js'
 
@@ -125,4 +126,64 @@ it('preserves callback-based responses while tracking the request lifetime', asy
     expect(response.statusCode).toBe(200)
     expect(response.json()).toEqual({ completed: true })
     expect(release).toHaveBeenCalled()
+})
+
+async function refreshingServer(gate?: PromiseWithResolvers<void>, fail = false) {
+    const f = await logicPublicationFixture()
+    cleanups.push(f.close)
+    await f.artifact('1.0.0')
+    await f.artifact('1.1.0')
+    await f.publish(f.manifest('1.0.0'))
+    const validation = new TitleValidation()
+    const library = new LibraryService(RedisCacheService.prototype, {
+        useCache: false,
+        manifestPath: f.manifestPath,
+        logicRoot: f.directory,
+        prepare: async (generation) => {
+            await validation.prepare(generation)
+            if (generation.publication.logicVersion !== '1.1.0') return
+            if (fail) throw new Error('Invalid validator')
+            await gate?.promise
+        }
+    })
+    await library.getTitlesMap()
+    const server = Fastify()
+    cleanups.push(() => server.close())
+    server.decorate('libraryService', library)
+    installManifestRefresh(server, ['/api'])
+    const version = async () => ({
+        version: library.getGeneration(f.titleId)?.definition.info.metadata.version
+    })
+    server.get('/api/version', version)
+    server.get('/other', version)
+    await server.ready()
+    return { f, server }
+}
+
+it('a request arriving while an activation is pending waits for it and runs the new logic', async () => {
+    const gate = Promise.withResolvers<void>()
+    const { f, server } = await refreshingServer(gate)
+    expect((await server.inject('/api/version')).json().version).toBe('1.0.0')
+    await f.publish(f.manifest('1.1.0'))
+    const waiting = server.inject('/api/version')
+    const later = server.inject('/api/version')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Paths outside the API do not refresh and still see the loaded titles meanwhile.
+    expect((await server.inject('/other')).json().version).toBe('1.0.0')
+    gate.resolve()
+    expect((await waiting).json().version).toBe('1.1.0')
+    expect((await later).json().version).toBe('1.1.0')
+})
+
+it('a request proceeds on the loaded titles when the activation it waited for fails', async () => {
+    const { f, server } = await refreshingServer(undefined, true)
+    const reported = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await f.publish(f.manifest('1.1.0'))
+    const response = await server.inject('/api/version')
+    expect(response.statusCode).toBe(200)
+    expect(response.json().version).toBe('1.0.0')
+    expect(reported).toHaveBeenCalledWith(
+        expect.stringContaining('Title activation failed'),
+        expect.any(Error)
+    )
 })
