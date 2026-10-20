@@ -60,6 +60,7 @@ export function drawMapRoutes(scene: MapDrawing, routes: readonly MapRoute[]) {
                         routeId: route.id,
                         color: route.color,
                         d: path.d,
+                        spike: path.spike,
                         pathId: path.id
                     }
                 })

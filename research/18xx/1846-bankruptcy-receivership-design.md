@@ -1,5 +1,9 @@
 # 1846 bankruptcy and receivership
 
+> Superseded on 2026-10-19: elimination and receivership are family features; 1846
+> supplies `Elimination1846` and `ReceivershipRules1846`. See
+> [receivership](receivership-design.md). The evidence and rules below still apply.
+
 ## Evidence and variations
 
 Surveyed the full September 8 title-profile assignments: control resolution (190),

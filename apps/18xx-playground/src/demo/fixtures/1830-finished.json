@@ -111,14 +111,11 @@
   "stockMarket": {
    "stacks": []
   },
-  "bank": {
-   "unlimitedAfterExhaustion": true
-  },
+  "bank": {},
   "companies": [
    {
     "id": "PRR",
     "kind": "major",
-    "shareCount": 10,
     "started": false,
     "floated": false,
     "funded": false,
@@ -127,7 +124,6 @@
    {
     "id": "NYC",
     "kind": "major",
-    "shareCount": 10,
     "started": false,
     "floated": false,
     "funded": false,
@@ -136,7 +132,6 @@
    {
     "id": "CPR",
     "kind": "major",
-    "shareCount": 10,
     "started": false,
     "floated": false,
     "funded": false,
@@ -145,7 +140,6 @@
    {
     "id": "BO",
     "kind": "major",
-    "shareCount": 10,
     "started": false,
     "floated": false,
     "funded": false,
@@ -154,7 +148,6 @@
    {
     "id": "CO",
     "kind": "major",
-    "shareCount": 10,
     "started": false,
     "floated": false,
     "funded": false,
@@ -163,7 +156,6 @@
    {
     "id": "ERIE",
     "kind": "major",
-    "shareCount": 10,
     "started": false,
     "floated": false,
     "funded": false,
@@ -172,7 +164,6 @@
    {
     "id": "NYNH",
     "kind": "major",
-    "shareCount": 10,
     "started": false,
     "floated": false,
     "funded": false,
@@ -181,7 +172,6 @@
    {
     "id": "BM",
     "kind": "major",
-    "shareCount": 10,
     "started": false,
     "floated": false,
     "funded": false,
@@ -189,33 +179,27 @@
    },
    {
     "id": "SV",
-    "kind": "private",
-    "privateRevenue": 5
+    "kind": "private"
    },
    {
     "id": "CS",
-    "kind": "private",
-    "privateRevenue": 10
+    "kind": "private"
    },
    {
     "id": "DH",
-    "kind": "private",
-    "privateRevenue": 15
+    "kind": "private"
    },
    {
     "id": "MH",
-    "kind": "private",
-    "privateRevenue": 20
+    "kind": "private"
    },
    {
     "id": "CA",
-    "kind": "private",
-    "privateRevenue": 25
+    "kind": "private"
    },
    {
     "id": "BOP",
-    "kind": "private",
-    "privateRevenue": 30
+    "kind": "private"
    }
   ],
   "cash": [
@@ -1270,12 +1254,10 @@
    }
   ],
   "tileInventory": {
-   "tileSetId": "1830:standard",
    "placements": {},
    "retiredPieceIds": []
   },
   "trainInventory": {
-   "depotId": "1830",
    "trains": [
     {
      "id": "1830/2/1",

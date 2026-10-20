@@ -52,7 +52,7 @@ export const Commander = Type.Object({
     enteredThisTurn: Type.Optional(Type.Literal(true))
 })
 
-function knownFace(unit: ProjectedUnit): Face | undefined {
+export function knownFace(unit: ProjectedUnit): Face | undefined {
     return unit.shown ?? unit.face
 }
 

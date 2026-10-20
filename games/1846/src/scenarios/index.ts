@@ -5,6 +5,7 @@ import {
     assertExists,
     type Game,
     type GameDefinition,
+    type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
 import {
@@ -14,8 +15,8 @@ import {
     type Owner
 } from '@tabletop/18xx'
 import { ScenarioConfigurator, type ScenarioPosition } from '@tabletop/18xx/scenarios'
-import { Initializer } from '../setup.js'
-import { Definition, Runtime } from '../definition/gameDefinition.js'
+import { EighteenXXInitializer } from '@tabletop/18xx'
+import { Definition, Runtime, TitleRules1846 } from '../definition/gameDefinition.js'
 import {
     hydrateEighteenFortySixState,
     type HydratedEighteenFortySixState,
@@ -41,11 +42,7 @@ const PositionPrivates: Partial<Record<ScenarioPosition, readonly string[]>> = {
 function dealPrivate(state: ScenarioState, privateId: string, owner: Owner) {
     if (!state.companies.some((company) => company.id === privateId)) {
         const company = draftCompany(privateId)
-        state.companies.push({
-            id: company.id,
-            kind: 'private',
-            privateRevenue: company.revenue
-        })
+        state.companies.push({ id: company.id, kind: 'private' })
         state.certificates.push({
             id: `${company.id}:charter`,
             companyId: company.id,
@@ -103,16 +100,27 @@ export const ScenarioPositions1846: readonly ScenarioPosition[] = [
     'ending'
 ]
 
-class ScenarioInitializer1846 extends Initializer {
+class ScenarioInitializer1846 extends EighteenXXInitializer<
+    typeof EighteenFortySixProjectedState,
+    HydratedEighteenFortySixState
+> {
+    constructor() {
+        super(TitleRules1846)
+    }
     override initializeGameState(
         game: Game,
-        base: UninitializedGameState
+        base: UninitializedGameState,
+        startingPositions?: StartingPositionAssignment
     ): HydratedEighteenFortySixState {
-        let state = super.initializeGameState(game, base).dehydrate()
         const requested = game.config?.examplePosition ?? 'opening'
         const position = ScenarioPositions1846.find((item) => item === requested)
         assertExists(position, 'Unsupported 1846 scenario')
-        if (position === 'opening') return hydrateEighteenFortySixState(state)
+        if (position === 'opening') return super.initializeGameState(game, base, startingPositions)
+        assert(
+            startingPositions === undefined,
+            'Prepared scenarios do not support assigned starting positions'
+        )
+        let state = super.initializeGameState(game, base).dehydrate()
         const engine = new GameEngine(Runtime)
         const act = (type: string, fields: object = {}) => {
             state = engine.executeCanonicalAction({
@@ -130,7 +138,7 @@ class ScenarioInitializer1846 extends Initializer {
         }
         for (let i = 0; i < 100 && state.machineState !== 'StockRound'; i++) {
             const hydrated = hydrateEighteenFortySixState(state)
-            if (state.draft.kind === 'public') {
+            if (state.draft?.kind === 'public') {
                 const choice = openingPurchaseChoices(hydrated, state.activePlayerIds[0])[0]
                 assertExists(choice, 'Opening scenario requires an affordable company')
                 act('BuyOpeningCompany', choice)

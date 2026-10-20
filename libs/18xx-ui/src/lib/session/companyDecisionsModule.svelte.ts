@@ -203,13 +203,13 @@ export class CompanyDecisionsModule {
             'Purchasing is unavailable'
         )
         let price = request.price
-        if (request.asset.kind === 'private') {
+        if (request.asset.kind !== 'train') {
             const range = this.session.rules.transferRules.priceRange(
                 this.session.state,
                 request.companyId,
                 request.asset
             )
-            assertExists(range, 'Private purchase requires a price range')
+            assertExists(range, 'A private or company purchase requires a price range')
             const cash = cashOwnedBy(this.session.state, {
                 kind: 'company',
                 companyId: request.companyId

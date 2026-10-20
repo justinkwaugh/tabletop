@@ -97,8 +97,14 @@ export const EighteenThirtyTwoMapView: MapViewDefinition = {
         )
     },
     layouts: { ...EighteenThirtyTwoTileLayouts, S22: AtlantaPrinted },
+    // New Orleans's anchor sits at the bottom, clear of its revenue; Miami's at its right side,
+    // between the arrows in from the north and the revenue below.
+    symbolPositions: {
+        W14: { x: 0, y: 31 },
+        AA28: { x: 30, y: 0 }
+    },
     markerArt: {
-        port: { tileSymbol: 'port' },
+        port: { revenueSymbol: 'port' },
         'medium-city': { townRing: true },
         ...Object.fromEntries(
             placedTokenKinds.map(({ id, companyId, token }) => [

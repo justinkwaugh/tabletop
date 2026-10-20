@@ -1,4 +1,4 @@
-import { inReceivership } from './receivership.js'
+import { inReceivership } from '@tabletop/18xx'
 import { MarketZoneColors1846, Market1846 } from './stock.js'
 import {
     dividendEntitlements,
@@ -7,10 +7,10 @@ import {
     type EarningsRules,
     type DistributionState
 } from '@tabletop/18xx'
+import { ReceivershipRules1846 } from './receivership.js'
 
 export const EarningsRules1846: EarningsRules = {
-    choices: (state, companyId) =>
-        inReceivership(state, companyId) ? ['withhold'] : ['pay', 'half-pay', 'withhold'],
+    choices: () => ['pay', 'half-pay', 'withhold'],
     shareCount: () => 10,
     entitlements: (state, companyId) =>
         dividendEntitlements(state, companyId, (certificate) => certificate.owner),
@@ -54,8 +54,8 @@ export const EarningsRules1846: EarningsRules = {
 export function earningsChoices1846(state: DistributionState) {
     const companyId = state.routeStep?.companyId
     if (!companyId || !state.routeStep?.result || state.earningsDistribution) return []
-    const distribution = new EarningsDistribution(state, EarningsRules1846)
-    return EarningsRules1846.choices(state, companyId).flatMap((choice) => {
+    const distribution = new EarningsDistribution(state, EarningsRules1846, ReceivershipRules1846)
+    return distribution.choices(companyId).flatMap((choice) => {
         const result = distribution.evaluate(companyId, choice)
         return result.details ? [result.details] : []
     })

@@ -26,28 +26,51 @@ export class WaterfallAuctionModule {
             ? new ReserveBidAuction(this.session.state, this.session.rules.auctionRules)
             : undefined
     )
+    active = $derived.by(() => !!this.model && !this.model.auction.completed)
+    ownTurn = $derived.by(() => this.session.validActionTypes.includes('PassAuction'))
     selection = $derived.by(() =>
-        !this.session.selectionsVisible || this.model?.auction.completed
+        !this.session.selectionsVisible || !this.active || !this.ownTurn
             ? undefined
             : this.choice.value('choice')
     )
-    canAct = $derived.by(
-        () => this.session.interactive && this.session.validActionTypes.includes('PassAuction')
-    )
-    remainingLots = $derived.by(() => {
+    canAct = $derived.by(() => this.session.interactive && this.ownTurn)
+    lots = $derived.by(() => {
         const model = this.model
         if (!model || model.auction.completed) return []
         const commitments = model.commitments()
+        return model.lots.map((lot) => ({
+            lot,
+            award: model.auction.awards.find((award) => award.lotId === lot.id),
+            bids: commitments
+                .filter((bid) => bid.lotId === lot.id)
+                .sort((a, b) => b.amount - a.amount)
+        }))
+    })
+    remainingLots = $derived.by(() => {
+        const model = this.model
+        if (!model || model.auction.completed) return []
         return model.auction.remainingLotIds.map((lotId) => {
-            const lot = model.lots.find((item) => item.id === lotId)
-            assertExists(lot, 'Remaining auction lot must be known')
-            return {
-                lot,
-                bids: commitments
-                    .filter((bid) => bid.lotId === lotId)
-                    .sort((a, b) => b.amount - a.amount)
-            }
+            const entry = this.lots.find(({ lot }) => lot.id === lotId)
+            assertExists(entry, 'Remaining auction lot must be known')
+            return entry
         })
+    })
+    openLotId = $derived(this.model?.auction.remainingLotIds[0])
+    contest = $derived.by(() => {
+        const bidding = this.model?.auction.bidding
+        if (!bidding) return undefined
+        const highBid = bidding.auction.highBid
+        assertExists(highBid, 'Contested lots open with a reserved high bid')
+        const leader = bidding.auction.participants.find(
+            (participant) => !participant.passed && participant.bid === highBid
+        )
+        assertExists(leader, 'High bid requires a bidder')
+        return { lotId: bidding.lotId, highBid, highBidderId: leader.playerId }
+    })
+    raiseAmount = $derived.by(() => {
+        const contest = this.contest
+        if (!contest || !this.model) return undefined
+        return this.selection?.amount ?? this.model.minimumBid(contest.lotId)
     })
 
     playerBids(playerId: string) {
@@ -70,6 +93,18 @@ export class WaterfallAuctionModule {
         const bid = this.choice.value('choice')
         assert(this.canAct && bid?.kind === 'bid', 'Select a bid first')
         this.choice.choose('choice', { ...bid, amount })
+    }
+    setRaise(amount: number) {
+        const contest = this.contest
+        assert(this.canAct && contest, 'No private is being contested')
+        if (!this.selection) this.selectLot('bid', contest.lotId)
+        this.setBid(amount)
+    }
+    async raise() {
+        const amount = this.raiseAmount
+        assert(amount !== undefined, 'No private is being contested')
+        this.setRaise(amount)
+        await this.confirm()
     }
     async buy(lotId: string) {
         assert(this.canAct && this.model, 'Auction purchase is unavailable')
@@ -100,7 +135,8 @@ export class WaterfallAuctionModule {
             )
     }
     async pass() {
-        assert(this.canAct && !this.selection, 'Finish the auction selection first')
+        assert(this.canAct, 'Passing is unavailable')
+        this.choice.clear()
         await this.session.applyAction(this.session.createPlayerAction(PassAuction, {}))
     }
 }

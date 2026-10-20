@@ -1,4 +1,4 @@
-import thumbnailUrl from './images/cover.svg'
+import thumbnailUrl from './images/cover.webp'
 import {
     EighteenFortySixInfo,
     type EighteenFortySixProjectedState,

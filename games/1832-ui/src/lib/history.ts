@@ -20,7 +20,8 @@ import {
     isStartPriceProtection,
     isPlaceRevenueToken,
     isRecordMiamiRun,
-    isTakeLondonShare
+    isTakeLondonShare,
+    EighteenThirtyTwoMap
 } from '@tabletop/1832'
 import type { GameAction } from '@tabletop/common'
 import type { HistoryDescription, HistoryNames, MoneyFormat } from '@tabletop/18xx-ui'
@@ -29,6 +30,10 @@ import { redemptionHolderName } from './companyShareFacts.js'
 const TokenNames = { port: 'Port', cotton: 'Cotton', 'key-west': 'Key West' } as const
 
 /** 1832's own actions, as history rows. */
+const placeName = (locationId: string) =>
+    EighteenThirtyTwoMap.definition.locations.find((location) => location.id === locationId)
+        ?.name ?? locationId
+
 export function describe1832Action(
     action: GameAction,
     names: HistoryNames,
@@ -54,7 +59,7 @@ export function describe1832Action(
         }
     if (isPlaceRevenueToken(action))
         return {
-            text: `${companyName(action.companyId)} placed the ${TokenNames[action.kind]} token at ${action.locationId}`
+            text: `${companyName(action.companyId)} placed the ${TokenNames[action.kind]} token in ${placeName(action.locationId)}`
         }
     if (isTakeLondonShare(action))
         return {
@@ -136,7 +141,7 @@ export function describe1832Action(
         return {
             text: `${companyName(action.companyId)} closed, its price in the black area`,
             ...(action.metadata?.forfeit
-                ? { detail: `Its president lost $${action.metadata.forfeit.amount}` }
+                ? { detail: `Its president lost ${money(action.metadata.forfeit.amount)}` }
                 : {}),
             omitActor: true,
             important: true

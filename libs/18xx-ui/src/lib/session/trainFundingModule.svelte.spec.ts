@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { TrainDepot, isFundTrain } from '@tabletop/18xx'
 import {
+    TestCompanyId,
+    TestPlayerId,
     minimalPlayState,
     minimalStockRules,
     minimalTrainFundingRules,
@@ -28,7 +31,84 @@ function funding(
     return { ...harness, module: new TrainFundingModule(harness.session) }
 }
 
+const VariantDepot = new TrainDepot({
+    id: 'variants',
+    trains: [
+        { id: '2', name: '2', price: 100, distance: { measure: 'revenue-centers', maximum: 2 } },
+        { id: '3', name: '3', price: 150, distance: { measure: 'revenue-centers', maximum: 3 } }
+    ],
+    supply: [{ definitionId: '2', variantDefinitionIds: ['3'], count: 2 }]
+})
+
+function trainlessRailway() {
+    const president = { kind: 'player' as const, playerId: TestPlayerId }
+    const railway = { kind: 'company' as const, companyId: TestCompanyId }
+    const base = minimalPlayState()
+    const state: TrainFundingSession['state'] = {
+        ...base,
+        machineState: 'BuyingTrains',
+        actionCount: 0,
+        usedPrivatePowerIds: [],
+        companies: [{ id: TestCompanyId, kind: 'major', president }],
+        cash: [...base.cash, { owner: president, amount: 500 }, { owner: railway, amount: 0 }],
+        certificates: [
+            {
+                id: `${TestCompanyId}:president`,
+                companyId: TestCompanyId,
+                kind: 'share',
+                shares: 2,
+                president: true,
+                owner: president
+            }
+        ],
+        trainInventory: VariantDepot.createInventory(),
+        trainPurchaseStep: { companyId: TestCompanyId, purchasedTrainIds: [] },
+        operatingSet: {
+            number: 1,
+            completed: false,
+            roundNumber: 1,
+            roundCount: 1,
+            companyOrder: [TestCompanyId],
+            completedCompanyIds: [],
+            privateIncomePaid: false
+        }
+    }
+    const rules: TrainFundingSession['rules'] = {
+        stockRules: minimalStockRules,
+        trainFundingRules: {
+            ...minimalTrainFundingRules,
+            contributors: () => [president],
+            fundablePurchases: (_state, _companyId, offers) => [...offers]
+        },
+        trainRules: {
+            ...minimalTrainRules,
+            depot: VariantDepot,
+            requiresTrain: () => true,
+            availableDefinitions: () => ['2', '3']
+        }
+    }
+    const harness = testSession(state, rules, ['FundTrain'])
+    return { ...harness, module: new TrainFundingModule(harness.session) }
+}
+
 describe('TrainFundingModule', () => {
+    it('offers every fundable train with its own plan, and funds the one chosen', async () => {
+        const { module, applied } = trainlessRailway()
+        expect(
+            module.options.map(({ purchase, plan }) => [
+                purchase.definitionId,
+                plan.contributions.map((contribution) => contribution.amount)
+            ])
+        ).toEqual([
+            ['2', [100]],
+            ['3', [150]]
+        ])
+        const [, three] = module.options
+        await module.fundOption(three.purchase)
+        const [action] = applied
+        expect(isFundTrain(action) && action.definitionId).toBe('3')
+    })
+
     it('offers no funded purchases or choice outside their machine states', () => {
         const { module } = funding('StockRound', [])
         expect(module.purchases).toEqual([])

@@ -38,6 +38,10 @@ function saleReason(play: Play, playerId: string, companyId: string, shares: num
     ).reason
 }
 
+function ownershipLimit(play: Play, playerId: string, companyId: string) {
+    return EighteenThirtyTwoStockRules.ownershipLimit(play.state, companyId, player(playerId))
+}
+
 function setPlayerCash(state: EighteenThirtyTwoState, playerId: string, amount: number) {
     const cash = state.cash.find(
         (entry) => entry.owner.kind === 'player' && entry.owner.playerId === playerId
@@ -176,9 +180,7 @@ describe('share price protection', () => {
         play.act('FinishStockTurn')
         play.act('ProtectShares', { companyId: 'CG' }, 'blair')
         expect(sharesOwned(play.state, 'CG', player('blair'))).toBe(8)
-        expect(play.state.ownershipLimitExemptions).toEqual([
-            { owner: player('blair'), companyId: 'CG', maximumShares: 8 }
-        ])
+        expect(ownershipLimit(play, 'blair', 'CG')).toBe(80)
         play.act('FinishStockTurn', {}, 'casey')
         play.act('FinishStockTurn', {}, 'alex')
         expect(play.state.activePlayerIds).toEqual(['blair'])
@@ -186,7 +188,7 @@ describe('share price protection', () => {
         expect(saleReason(play, 'blair', 'CG', 1)).toBe('Sell down to 60% of this company.')
         sell(play, 'CG', 2)
         expect(sharesOwned(play.state, 'CG', player('blair'))).toBe(6)
-        expect(play.state.ownershipLimitExemptions).toEqual([])
+        expect(ownershipLimit(play, 'blair', 'CG')).toBe(60)
     })
 
     it('keeps an excess bought in the green area after the price leaves it', () => {
@@ -206,10 +208,8 @@ describe('share price protection', () => {
         )?.id
         assertExists(certificateId, 'A CG share is in the market')
         play.act('BuyShares', { buyer: player('blair'), certificateId, expectedPrice: 50 }, 'blair')
-        expect(play.state.ownershipLimitExemptions).toEqual([
-            { owner: player('blair'), companyId: 'CG', maximumShares: 7 }
-        ])
         placeStockMarker(play.state.stockMarket, 'CG', '1:6')
+        expect(ownershipLimit(play, 'blair', 'CG')).toBe(70)
         expect(play.valid('blair')).toContain('FinishStockTurn')
     })
 
@@ -369,8 +369,7 @@ describe('black-area closure', () => {
                     kind: 'port',
                     companyId: 'CG',
                     locationId: 'U28',
-                    nodeId: 'city-0',
-                    placed: { set: 1, round: 1 }
+                    nodeId: 'city-0'
                 }
             ]
             state.trainInventory.trains = state.trainInventory.trains.map((train, index) =>

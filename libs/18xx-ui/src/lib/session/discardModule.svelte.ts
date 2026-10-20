@@ -2,6 +2,7 @@ import { assert } from '@tabletop/common'
 import {
     DiscardTrain,
     discardableTrains,
+    isAdvancePhase,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type PhaseChangeState
@@ -24,6 +25,15 @@ export class DiscardModule {
             : undefined
     )
     companyId = $derived.by(() => this.session.state.phaseChange?.discardCompanyIds[0])
+    phaseEvent = $derived.by(() => {
+        const id = this.session.state.phaseChange?.event.id
+        if (!id) return undefined
+        return this.session.recordedActions.flatMap((action) =>
+            isAdvancePhase(action) && action.metadata?.event.id === id
+                ? [action.metadata.event]
+                : []
+        )[0]
+    })
     trains = $derived.by(() =>
         this.companyId
             ? discardableTrains(this.session.state, this.companyId, this.session.rules.trainRules)

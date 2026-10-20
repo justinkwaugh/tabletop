@@ -18,9 +18,7 @@ const StraightTilePair = [
     { definitionId: '18xx:9', rotation: 1 }
 ] as const
 function financeSummary(actions: readonly GameAction[]) {
-    const start = actions.findLastIndex(
-        (action) => action.type === 'StartOperatingTurn' || action.type === 'StartReceiverTurn'
-    )
+    const start = actions.findLastIndex((action) => action.type === 'StartOperatingTurn')
     const transactions = actions
         .slice(start + 1)
         .filter((action) => CorporateFinanceValidator.Check(action))
@@ -113,20 +111,20 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
         },
         {
             label: 'Run',
-            states: ['RunningTrains', 'RunningReceiver', 'RustingTrains'],
+            states: ['RunningTrains', 'RustingTrains'],
             actions: ['RunTrains'],
             status: (_state, _actions, summaries) => summaries.run
         },
         {
             label: 'Payout',
             states: ['DistributingEarnings'],
-            actions: ['DistributeEarnings', 'SettleIndependent', 'SettleReceiver'],
+            actions: ['DistributeEarnings', 'SettleIndependent'],
             status: (_state, _actions, summaries) => summaries.payout
         },
         {
             label: 'Trains',
             states: ['BuyingTrains', 'FundingTrain', 'DiscardingTrains'],
-            actions: ['BuyTrain', 'EmergencyBuyTrain', 'BuyReceiverTrain'],
+            actions: ['BuyTrain', 'FundTrain'],
             status: (_state, _actions, summaries) => summaries.trains
         }
     ],

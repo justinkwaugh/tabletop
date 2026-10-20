@@ -1,4 +1,5 @@
 <script lang="ts">
+    import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
     import './playerTint.css'
     import {
@@ -22,7 +23,8 @@
         type Company,
         type Owner,
         type PurchaseRequest,
-        type ValuationRules
+        type ValuationRules,
+        isObsoleteTrain
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
@@ -54,6 +56,7 @@
         onPreviewMap,
         companyOrder,
         marketPoolId,
+        ipoPoolId,
         exchangePoolId,
         valuationRules,
         trainColors,
@@ -69,6 +72,7 @@
         onPreviewMap: (action: GameAction) => void
         session: EighteenXXSessionView
         marketPoolId: string
+        ipoPoolId?: string
         exchangePoolId?: string
         trainColors: Readonly<Record<string, string>>
         valuationRules: ValuationRules
@@ -135,6 +139,7 @@
     const companies = $derived(
         spreadsheetCompanies(
             session.gameState,
+            session.charters,
             session.actions,
             session.gameState.actionCount,
             companyOrder,
@@ -176,8 +181,9 @@
               ? `company:${owner.companyId}`
               : 'bank'
     }
-    const firstPoolId = 'market'
+    const firstPoolId = $derived(ipoPoolId ? 'ipo' : 'market')
     const poolColumnLabels: Readonly<Record<string, string>> = {
+        ipo: 'IPO',
         market: 'Market',
         treasury: 'Treas.',
         exchange: 'Exch.'
@@ -203,16 +209,18 @@
             companyId
         )
     }
+    type PurchaseCertificate = (typeof availablePurchases)[number]['certificate']
+    const inPool = (poolId: string) => (certificate: PurchaseCertificate) =>
+        certificate.poolId === poolId
     function purchaseForCell(companyId: string, ownerId: string) {
-        return availablePurchases.find(
-            (choice) =>
-                choice.certificate.companyId === companyId &&
-                (ownerId === 'market'
-                    ? choice.certificate.poolId === marketPoolId
-                    : ownerId === 'treasury' &&
-                      choice.certificate.owner.kind === 'company' &&
-                      choice.certificate.owner.companyId === companyId)
-        )
+        const owner = owners.find((candidate) => candidate.id === ownerId)
+        const sells = owner && 'sells' in owner ? owner.sells : undefined
+        return sells
+            ? availablePurchases.find(
+                  (choice) =>
+                      choice.certificate.companyId === companyId && sells(choice.certificate)
+              )
+            : undefined
     }
     function saleChoicesForCell(companyId: string, ownerId: string) {
         return availableSales.filter(
@@ -276,7 +284,12 @@
         certs?: { count: number; limit: number }
     }
     function ownerStatisticsFor(owner: Owner, certs?: OwnerStatistics['certs']): OwnerStatistics {
-        const { cash, netWorth, shares } = ownerPortfolio(session.gameState, owner, valuationRules)
+        const { cash, netWorth, shares } = ownerPortfolio(
+            session.gameState,
+            owner,
+            valuationRules,
+            session.charters
+        )
         return { cash, shares, netWorth, certs }
     }
     function firstSortDirection(column: SpreadsheetSortColumn<never>): SpreadsheetSortDirection {
@@ -320,7 +333,7 @@
     type CompanyStatistic = 'value' | 'cash' | 'lastRun' | `column:${string}`
     const titleColumns = $derived(session.presentation.companyColumns ?? [])
     const companyStatisticHeadings = $derived([
-        ...(pricePresentation.showInSpreadsheet ? ['Value'] : []),
+        pricePresentation.label,
         'Cash',
         'Trains',
         'Tokens',
@@ -361,16 +374,30 @@
                 ...portfolioOwners.filter((owner) => owner.controllerId === playerId)
             ]),
             ...portfolioOwners.filter((owner) => !owner.controllerId),
+            ...(ipoPoolId
+                ? [
+                      {
+                          id: 'ipo',
+                          name: 'IPO',
+                          count: (companyId: string) => poolShares(ipoPoolId, companyId),
+                          sells: inPool(ipoPoolId)
+                      }
+                  ]
+                : []),
             {
                 id: 'market',
                 name: 'Market',
-                count: (companyId: string) => poolShares(marketPoolId, companyId)
+                count: (companyId: string) => poolShares(marketPoolId, companyId),
+                sells: inPool(marketPoolId)
             },
             {
                 id: 'treasury',
                 name: 'Treasury',
                 count: (companyId: string) =>
-                    sharesOwned(session.gameState, companyId, { kind: 'company', companyId })
+                    sharesOwned(session.gameState, companyId, { kind: 'company', companyId }),
+                sells: (certificate: PurchaseCertificate) =>
+                    certificate.owner.kind === 'company' &&
+                    certificate.owner.companyId === certificate.companyId
             },
             ...(exchangePoolId
                 ? [
@@ -419,6 +446,14 @@
                 session.gameState.stockMarket,
                 company.id
             ),
+            // Par is the IPO purchase price, so it only matters while the IPO is selling.
+            par:
+                ipoPoolId &&
+                company.started &&
+                !company.closed &&
+                poolShares(ipoPoolId, company.id) > 0
+                    ? company.parPrice
+                    : undefined,
             stations: session.gameState.stations.filter(
                 (station) => station.companyId === company.id
             ),
@@ -435,6 +470,12 @@
         }))
     )
     type CompanyRow = (typeof companyRows)[number]
+    const showPar = $derived(
+        pricePresentation.showPar && companyRows.some((row) => row.par !== undefined)
+    )
+    function parBefore(ownerId: string): boolean {
+        return showPar && ownerId === 'ipo'
+    }
     const companySortColumns = $derived.by(
         (): Record<CompanyStatistic, SpreadsheetSortColumn<CompanyRow>> => {
             const operatingOrder = orderedAs(
@@ -502,7 +543,11 @@
     <span
         class:included-net-worth={included}
         aria-describedby={included ? `${footnoteId}-${ownerId}` : undefined}
-        >{values ? ownerStatisticColumns[key].text(values) : '—'}{#if included}<sup>*</sup
+        >{#if key === 'certs' && values?.certs}<CertificateCount
+                count={values.certs.count}
+                limit={values.certs.limit}
+            />{:else}{values ? ownerStatisticColumns[key].text(values) : '—'}{/if}{#if included}<sup
+                >*</sup
             >{/if}</span
     >
 {/snippet}
@@ -613,6 +658,7 @@
             <TrainBadge
                 name={session.trainShortLabel(train.definitionId)}
                 color={trainColors[train.definitionId]}
+                obsolete={isObsoleteTrain(train)}
             />
         {:else}<span class="empty">—</span>{/each}
     </span>
@@ -646,7 +692,7 @@
         {#if purchase}
             <button
                 class="share-trade"
-                aria-label={`Buy ${session.companyName(companyId)} from ${ownerId === 'market' ? 'Market' : 'Treasury'}`}
+                aria-label={`Buy ${session.companyName(companyId)} from ${owners.find((owner) => owner.id === ownerId)?.name}`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'buy', request: purchase.request })}
                 ><span class="share-value">{shares}</span></button
@@ -667,6 +713,12 @@
             {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers)}
         {/if}
     </td>
+{/snippet}
+
+{#snippet parCell(par: number | undefined, operating: boolean)}
+    <td class="pool-start value-cell" class:operating-column={operating}
+        >{par?.toLocaleString('en-US') ?? '—'}</td
+    >
 {/snippet}
 
 {#snippet shareValue(text: string, president: boolean)}
@@ -768,6 +820,7 @@
                             <col class="label-column" />
                             {#if view === 'Company'}
                                 {#each owners as owner (owner.id)}
+                                    {#if parBefore(owner.id)}<col class="pool-section" />{/if}
                                     <col class:pool-section={owner.id in poolColumnLabels} />
                                 {/each}
                                 <col span={companyStatisticCount} class="financial-section" />
@@ -791,7 +844,10 @@
                                     >
                                 </th>
                                 {#if view === 'Company'}
-                                    {#each owners as owner, index (owner.id)}<th
+                                    {#each owners as owner, index (owner.id)}{#if parBefore(owner.id)}<th
+                                                scope="col"
+                                                class="pool-start">Par</th
+                                            >{/if}<th
                                             scope="col"
                                             class:pool-start={owner.id === firstPoolId}
                                             class:current-player-column={currentPlayerOwners.has(
@@ -813,11 +869,11 @@
                                                     ></span>{/if}
                                             </span></th
                                         >{/each}
-                                    {#if pricePresentation.showInSpreadsheet}{@render companySortHeader(
-                                            'col',
-                                            pricePresentation.label,
-                                            'value'
-                                        )}{/if}
+                                    {@render companySortHeader(
+                                        'col',
+                                        pricePresentation.label,
+                                        'value'
+                                    )}
                                     {@render companySortHeader('col', 'Cash', 'cash')}
                                     <th scope="col">Trains</th>
                                     <th scope="col">Tokens</th>
@@ -857,7 +913,10 @@
                                             aria-label={session.companyName(row.company.id)}
                                             >{@render companyLabel(row.company)}</th
                                         >
-                                        {#each row.shares as shares, index (index)}{@render shareCell(
+                                        {#each row.shares as shares, index (index)}{#if parBefore(owners[index].id)}{@render parCell(
+                                                    row.par,
+                                                    false
+                                                )}{/if}{@render shareCell(
                                                 shares,
                                                 row.company.id,
                                                 owners[index].id,
@@ -869,12 +928,11 @@
                                                 poolAlternate(owners[index].id),
                                                 row.shareNumbers[index]
                                             )}{/each}
-                                        {#if pricePresentation.showInSpreadsheet}<td
-                                                class="company-stat-start bright-cell value-cell"
-                                                >{row.value === undefined
-                                                    ? '—'
-                                                    : row.value.toLocaleString('en-US')}</td
-                                            >{/if}
+                                        <td class="company-stat-start bright-cell value-cell"
+                                            >{row.value === undefined
+                                                ? '—'
+                                                : row.value.toLocaleString('en-US')}</td
+                                        >
                                         <td class="company-stat-start bright-cell"
                                             >{@render companyCash(row.cash)}</td
                                         >
@@ -902,8 +960,11 @@
                                     <tr class="financial-row" class:stat-start={index === 0}>
                                         {@render playerSortHeader('row', key)}
                                         {#each owners as owner (owner.id)}
+                                            {#if parBefore(owner.id)}<td class="pool-start void"
+                                                ></td>{/if}
                                             <td
-                                                class:pool-start={owner.id === firstPoolId}
+                                                class:pool-start={owner.id === firstPoolId &&
+                                                    !parBefore(owner.id)}
                                                 class:bright-cell={statistics.has(owner.id)}
                                                 class:player-financial={!!ownerTintColor(owner.id)}
                                                 style:--player-color={ownerTintColor(owner.id)}
@@ -924,9 +985,23 @@
                                 {/each}
                             {:else}
                                 {#each owners as owner, index (owner.id)}
+                                    {#if parBefore(owner.id)}
+                                        <tr class="pool-start pool-row">
+                                            <th scope="row" class="non-player-owner">Par</th>
+                                            {#each rows as row (row.company.id)}{@render parCell(
+                                                    row.par,
+                                                    row.company.id === operatingCompanyId
+                                                )}{/each}
+                                            {#each ownerStatisticKeys as _, statIndex (statIndex)}<td
+                                                    class:stat-start={statIndex === 0}
+                                                    class="void"
+                                                ></td>{/each}
+                                        </tr>
+                                    {/if}
                                     <tr
                                         class:current-player={currentPlayerOwners.has(owner.id)}
                                         class:pool-start={owner.id === firstPoolId}
+                                        class:after-par={parBefore(owner.id)}
                                         class:pool-row={owner.id in poolColumnLabels}
                                     >
                                         <th
@@ -971,27 +1046,25 @@
                                         {/each}
                                     </tr>
                                 {/each}
-                                {#if pricePresentation.showInSpreadsheet}
-                                    <tr class="company-stat-start financial-row">
-                                        {@render companySortHeader(
-                                            'row',
-                                            pricePresentation.label,
-                                            'value'
-                                        )}
-                                        {#each rows as row (row.company.id)}<td
-                                                class:operating-column={row.company.id ===
-                                                    operatingCompanyId}
-                                                class="bright-cell value-cell"
-                                                >{row.value === undefined
-                                                    ? '—'
-                                                    : row.value.toLocaleString('en-US')}</td
-                                            >{/each}
-                                        {#each ownerStatisticKeys as _, index (index)}<td
-                                                class:stat-start={index === 0}
-                                                class="void"
-                                            ></td>{/each}
-                                    </tr>
-                                {/if}
+                                <tr class="company-stat-start financial-row">
+                                    {@render companySortHeader(
+                                        'row',
+                                        pricePresentation.label,
+                                        'value'
+                                    )}
+                                    {#each rows as row (row.company.id)}<td
+                                            class:operating-column={row.company.id ===
+                                                operatingCompanyId}
+                                            class="bright-cell value-cell"
+                                            >{row.value === undefined
+                                                ? '—'
+                                                : row.value.toLocaleString('en-US')}</td
+                                        >{/each}
+                                    {#each ownerStatisticKeys as _, index (index)}<td
+                                            class:stat-start={index === 0}
+                                            class="void"
+                                        ></td>{/each}
+                                </tr>
                                 <tr class="company-stat-start financial-row">
                                     {@render companySortHeader('row', 'Cash', 'cash')}
                                     {#each rows as row (row.company.id)}<td
@@ -1801,7 +1874,8 @@
     tbody tr:hover td.void {
         background: var(--rail-table-background, #18212b);
     }
-    .transposed tr.company-stat-start > td.void {
+    .transposed tr.company-stat-start > td.void,
+    .transposed tr.after-par > td.void {
         border-top: 0;
     }
     tr.stat-start > td.void {

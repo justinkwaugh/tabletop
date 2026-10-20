@@ -1,3 +1,4 @@
+import { TheOldPrinceCharters } from './charters.js'
 import {
     awardCertificates,
     beginOfferPileAuction,
@@ -66,7 +67,9 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
     payIncome(state) {
         settleCashPayments(
             state,
-            privateIncomePayments(state).filter((payment) => payment.to.kind === 'player')
+            privateIncomePayments(state, { charters: TheOldPrinceCharters }).filter(
+                (payment) => payment.to.kind === 'player'
+            )
         )
     },
     firstStockOrder(state) {
@@ -137,7 +140,6 @@ export function createTheOldPrinceOpening({
             ...TheOldPrinceCompanies.map((c) => ({
                 id: c.companyId,
                 kind: 'major',
-                shareCount: 10,
                 started: c === mainline || c === shortline,
                 floated: c === mainline,
                 funded: c === mainline,
@@ -151,8 +153,7 @@ export function createTheOldPrinceOpening({
             { id: 'PEIR', kind: 'major' },
             ...privates.map((p) => ({
                 id: p.id,
-                kind: 'private',
-                privateRevenue: p.revenue
+                kind: 'private'
             }))
         ],
         cash: [

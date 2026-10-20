@@ -24,6 +24,7 @@ export type Owner = Type.Static<typeof Owner>
 export const CompanyProperties = {
     id: Id,
     kind: Id,
+    /** Set where play sizes the company, such as 1817's formation; otherwise its charter's. */
     shareCount: Type.Optional(Type.Integer({ minimum: 1 })),
     parPrice: Type.Optional(Type.Integer({ minimum: 1 })),
     started: Type.Optional(Type.Boolean()),
@@ -32,6 +33,7 @@ export const CompanyProperties = {
     operated: Type.Optional(Type.Boolean()),
     floated: Type.Optional(Type.Boolean()),
     president: Type.Optional(President),
+    /** Set where play changes a private's income; otherwise its charter's. */
     privateRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
     lastRunRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
     /** The highest number its certificates or stations have used, once any has left play. */
@@ -54,10 +56,7 @@ export const Company = Type.Object(
 )
 export type Company = Type.Static<typeof Company>
 export const Bank = Type.Object(
-    {
-        unlimitedAfterExhaustion: Type.Optional(Type.Boolean()),
-        broken: Type.Optional(Type.Boolean())
-    },
+    { broken: Type.Optional(Type.Boolean()) },
     { additionalProperties: false }
 )
 export type Bank = Type.Static<typeof Bank>

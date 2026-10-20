@@ -134,6 +134,12 @@ Stored games keep their State, so its shape outlives the code that introduced it
 - **Game objects are referenced by stable ID.** A relationship from one part of State to another, or from an Action to State, names the object's stable ID: a card, tile, company, or space, never its array index, list position, or copied fields. [Player relationships](#player-relationships) apply the same rule to Players.
 - **State is the current position.** What an Action did belongs in its input and `metadata` ([Actions](#actions)), and earlier positions come from History Navigation or `RecordedHistory`. A growing record of past values is history. State may keep a latest value for display, such as an 18xx company's `lastRunRevenue`, and the least past fact a rule still consults, such as which players have passed this round, dropped once no rule needs it. The shared turn, round, and phase managers' `series` are an exception: they record action-index boundaries for history grouping ([Turns, rounds, and phases](#turns-rounds-and-phases)).
 
+Three cases pass these rules:
+
+- **A record's own kind.** A field naming what kind of object a record is, such as an 18xx company's `kind` (private, minor or major), says which of the record's other fields apply, so it stays even where the kind is printed.
+- **A field stored games still hold.** When a released title stops writing a field, its schema keeps the field optional, typed `never` so no code reads it, until the stored games that hold it have finished. Old States and their undo patches then load without a migration.
+- **A recorded decision.** A shape that a family's State-shape note records as decided or deferred, with its reason, is reported as a recommendation until that note is revisited. For 18xx the note is `research/18xx/state-shape-backlog.md`.
+
 ### Player relationships
 
 Every Game State or Action relationship to a Player must use that Player's stable ID. Name the field for the relationship it represents, such as `playerId`, `actingPlayerId`, or `winnerPlayerId`. Do not identify or resolve a Player through color, display name, seat, turn-order position, array index, or another Player attribute.

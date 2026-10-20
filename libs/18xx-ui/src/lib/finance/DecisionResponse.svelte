@@ -37,6 +37,7 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
+        text-align: center;
     }
     .controls {
         margin-top: 8px;

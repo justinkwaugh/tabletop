@@ -2,13 +2,13 @@ import { assertExists } from '@tabletop/common'
 import {
     certificatesInPool,
     certificatesOwnedBy,
-    getCompany,
     sameOwner,
     sharesOwned,
     type Owner,
     type Portfolio,
     type President
 } from '../finance/finance.js'
+import { companyShareCount, type CompanyCharters } from '../company/companyCharters.js'
 import type { CompanyAuctionRules } from './companyAuction.js'
 import type { PrivateSaleRules } from './privateSale.js'
 import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from './sharePurchase.js'
@@ -30,6 +30,7 @@ export type ShareSaleTerms = {
 }
 export interface StockRules {
     market: StockMarketChart
+    charters: CompanyCharters
     round: StockRoundRules
     instructions?: StockInstructionRules
     sellers(state: StockState, playerId: string): Owner[]
@@ -85,11 +86,11 @@ export function purchaseOwnershipCeiling(
     state: StockState,
     companyId: string,
     buyer: Owner,
-    rules: Pick<StockRules, 'ownershipLimit'>
+    rules: Pick<StockRules, 'ownershipLimit' | 'charters'>
 ): number {
-    const company = getCompany(state, companyId)
-    assertExists(company.shareCount, 'Ownership limits require a share count')
-    return Math.floor((rules.ownershipLimit(state, companyId, buyer) * company.shareCount) / 100)
+    const shareCount = companyShareCount(state, rules.charters, companyId)
+    assertExists(shareCount, 'Ownership limits require a share count')
+    return Math.floor((rules.ownershipLimit(state, companyId, buyer) * shareCount) / 100)
 }
 
 export function certificateLimitAllows(
@@ -128,11 +129,12 @@ export function exceedsStockLimits(state: StockState, owner: Owner, rules: Stock
     return (
         stockCertificateCount(state, owner, rules) > rules.certificateLimit(state, owner) ||
         state.companies.some((company) => {
-            if (!company.shareCount) return false
+            const shareCount = companyShareCount(state, rules.charters, company.id)
+            if (!shareCount) return false
             return (
                 sharesOwned(state, company.id, owner) * 100 >
                 Math.max(
-                    rules.ownershipLimit(state, company.id, owner) * company.shareCount,
+                    rules.ownershipLimit(state, company.id, owner) * shareCount,
                     ...(state.ownershipLimitExemptions ?? [])
                         .filter(
                             (exemption) =>

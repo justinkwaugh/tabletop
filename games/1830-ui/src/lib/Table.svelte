@@ -6,7 +6,6 @@
         CompanyPar,
         GameTable,
         OperatingActions,
-        WaterfallAuctionBidding,
         WaterfallAuctionLots,
         requireEighteenXXSession
     } from '@tabletop/18xx-ui'
@@ -46,11 +45,7 @@
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />
         {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
-            {#if session.waterfall.model.auction.bidding}
-                <WaterfallAuctionBidding {session} />
-            {:else}
-                <WaterfallAuctionLots {session} />
-            {/if}
+            <WaterfallAuctionLots {session} />
         {:else}
             <OperatingActions
                 {privateOperationDescription}

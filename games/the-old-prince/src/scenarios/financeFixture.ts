@@ -23,12 +23,11 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
     return {
         bank: {},
         companies: [
-            { id: 'UB', kind: 'private', privateRevenue: 0 },
+            { id: 'UB', kind: 'private' },
             {
                 id: 'ML',
                 role: 'mainline',
                 kind: 'major',
-                shareCount: 10,
                 started: true,
                 funded: true,
                 operated: true,
@@ -39,7 +38,6 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                 id: 'So',
                 role: 'shortline',
                 kind: 'major',
-                shareCount: 10,
                 started: true,
                 funded: true,
                 operated: true,
@@ -48,11 +46,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
             },
             { id: 'PEIR', kind: 'major', president: blair },
             { id: 'VR', kind: 'private', privateRevenue: 10 },
-            {
-                id: TheOldPrinceKingsMail.id,
-                kind: 'private',
-                privateRevenue: TheOldPrinceKingsMail.revenue
-            }
+            { id: TheOldPrinceKingsMail.id, kind: 'private' }
         ],
         certificatePools: [
             { id: 'market', owner: bank },

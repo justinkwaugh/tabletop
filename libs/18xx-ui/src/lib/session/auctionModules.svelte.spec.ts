@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { AuctionAward } from '@tabletop/18xx'
 import { minimalPlayState } from '@tabletop/18xx/testing'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
@@ -23,7 +24,12 @@ function waterfall(valid: string[], availability = {}) {
     return { ...harness, module: new WaterfallAuctionModule(harness.session) }
 }
 
-function openAuction(reservations: { playerId: string; lotId: string; amount: number }[]) {
+function openAuction(
+    reservations: { playerId: string; lotId: string; amount: number }[],
+    valid = ['PassAuction', 'BuyAuctionLot', 'ReserveBid'],
+    availability = {},
+    progress: { remainingLotIds?: string[]; awards?: AuctionAward[] } = {}
+) {
     const harness = testSession(
         {
             ...minimalPlayState(),
@@ -34,7 +40,8 @@ function openAuction(reservations: { playerId: string; lotId: string; amount: nu
                 passedPlayerIds: [],
                 discount: 5,
                 awards: [],
-                completed: false
+                completed: false,
+                ...progress
             }
         },
         {
@@ -50,7 +57,8 @@ function openAuction(reservations: { playerId: string; lotId: string; amount: nu
                 payIncome: () => {}
             }
         },
-        ['PassAuction', 'BuyAuctionLot', 'ReserveBid']
+        valid,
+        availability
     )
     return { ...harness, module: new WaterfallAuctionModule(harness.session) }
 }
@@ -95,8 +103,36 @@ describe('WaterfallAuctionModule', () => {
         expect(waterfall(['PassAuction'], { interactive: false }).module.canAct).toBe(false)
     })
 
+    it('is active for every player, with the turn only for the player who may pass', () => {
+        const waiting = openAuction([], []).module
+        expect(waiting.active).toBe(true)
+        expect(waiting.ownTurn).toBe(false)
+        const busy = openAuction([], undefined, { interactive: false }).module
+        expect(busy.ownTurn).toBe(true)
+        expect(busy.canAct).toBe(false)
+        expect(waterfall(['PassAuction']).module.active).toBe(false)
+    })
+
+    it('shows a staged bid only to the player whose turn it is', () => {
+        const bid = { kind: 'bid' as const, lotId: 'B', amount: 35 }
+        const own = openAuction([]).module
+        own.choice.choose('choice', bid)
+        expect(own.selection).toEqual(bid)
+        const waiting = openAuction([], []).module
+        waiting.choice.choose('choice', bid)
+        expect(waiting.selection).toBeUndefined()
+    })
+
     it('refuses a bid amount before a bid is selected', () => {
         expect(() => waterfall(['PassAuction']).module.setBid(50)).toThrow('Select a bid first')
+    })
+
+    it('passing discards a staged bid', async () => {
+        const { module, applied } = openAuction([])
+        module.selectLot('bid', 'B')
+        await module.pass()
+        expect(applied).toMatchObject([{ type: 'PassAuction' }])
+        expect(module.choice.hasManual()).toBe(false)
     })
 
     it('passes as one action when nothing is selected', async () => {
@@ -131,5 +167,21 @@ describe('WaterfallAuctionModule', () => {
             ['C', 45]
         ])
         expect(module.playerBids('casey')).toEqual([])
+    })
+
+    it('keeps won lots in waterfall order with their award', () => {
+        const award = { lotId: 'A', playerId: 'blair', price: 15 }
+        const { module } = openAuction(
+            [{ playerId: 'alex', lotId: 'C', amount: 45 }],
+            undefined,
+            undefined,
+            { remainingLotIds: ['B', 'C'], awards: [award] }
+        )
+        expect(module.lots.map(({ lot, award, bids }) => [lot.id, award, bids.length])).toEqual([
+            ['A', award, 0],
+            ['B', undefined, 0],
+            ['C', undefined, 1]
+        ])
+        expect(module.remainingLots.map(({ lot }) => lot.id)).toEqual(['B', 'C'])
     })
 })

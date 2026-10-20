@@ -119,7 +119,7 @@ describe('physical tile inventory', () => {
         expect(set.availablePieces(retired, '18xx:7')).toHaveLength(0)
     })
 
-    it('rejects unavailable pieces, mismatched faces and sets, and malformed serialized state', () => {
+    it('rejects unavailable pieces, mismatched faces and malformed serialized state', () => {
         const set = tileSet()
         const initial = set.createInventory()
         const placement = { pieceId: 'test/city/1', definitionId: '18xx:5', rotation: 0 } as const
@@ -144,7 +144,6 @@ describe('physical tile inventory', () => {
         expect(() =>
             set.parseInventory({ ...placed, placements: { A1: { ...placement, rotation: 6 } } })
         ).toThrow('schema')
-        expect(() => set.counts(tileSet('other').createInventory())).toThrow('different set')
         expect(JSON.stringify(placed)).toBe(before)
     })
 

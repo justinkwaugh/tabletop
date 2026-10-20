@@ -46,14 +46,14 @@ function cross(origin: Point, a: Point, b: Point): number {
 }
 
 /**
- * Every place the centre of a level square of the given half size can stand and still touch the
- * outline: the outline grown by the square, the hull of its corners moved to the square's corners.
+ * Every place the centre of a level box of the given half sizes can stand and still touch the
+ * outline: the outline grown by the box, the hull of its corners moved to the box's corners.
  */
-export function grownBySquare(outline: ConvexOutline, half: number): Point[] {
+export function grownByLevelBox(outline: ConvexOutline, halfX: number, halfY: number): Point[] {
     const points = outline
         .flatMap((corner) =>
-            [-half, half].flatMap((dx) =>
-                [-half, half].map((dy) => ({ x: corner.x + dx, y: corner.y + dy }))
+            [-halfX, halfX].flatMap((dx) =>
+                [-halfY, halfY].map((dy) => ({ x: corner.x + dx, y: corner.y + dy }))
             )
         )
         .sort((a, b) => a.x - b.x || a.y - b.y)

@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoCharters } from './charters.js'
 import { assertExists } from '@tabletop/common'
 import {
     getCompany,
@@ -10,12 +11,7 @@ import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
 import { isClosingSpace, saleDescent, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { londonTradable } from './londonInvestment.js'
-import {
-    OwnershipPercent,
-    refreshBuyerExcess,
-    refreshSellerExcess,
-    requiredSellDown
-} from './ownershipExcess.js'
+import { OwnershipPercent, requiredSellDown, withHeldExcess } from './ownershipExcess.js'
 import { recordProtectableSale } from './priceProtection.js'
 import { isReissuedShare, lockReissueProceeds } from './redemption.js'
 import { systemOf } from './systems.js'
@@ -23,6 +19,7 @@ import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './st
 
 const Trading = ipoMarketTrading({
     market: EighteenThirtyTwoMarket,
+    charters: EighteenThirtyTwoCharters,
     ipoPoolId: 'initial-offering',
     marketPoolId: 'open-market',
     marketLimit: 50
@@ -40,10 +37,13 @@ function withSoftLedge(saleTerms: StockRules['saleTerms']): StockRules['saleTerm
 }
 
 function withSellDown(saleTerms: StockRules['saleTerms']): StockRules['saleTerms'] {
-    return (state, companyId, shares, seller) =>
-        shares < requiredSellDown(state, companyId, seller)
+    return (state, companyId, shares, seller) => {
+        const terms = saleTerms(state, companyId, shares, seller)
+        if (typeof terms === 'string') return terms
+        return shares < requiredSellDown(state, companyId, seller)
             ? 'Sell down to 60% of this company.'
-            : saleTerms(state, companyId, shares, seller)
+            : terms
+    }
 }
 
 // A reissued share's price goes to its company (§5.11).
@@ -62,6 +62,15 @@ export const EighteenThirtyTwoShareTrading = {
     stockSaleTerms: withSellDown(withSoftLedge(Trading.stockSaleTerms)),
     emergencySaleTerms: withSoftLedge(Trading.emergencySaleTerms)
 }
+
+// A closing company's certificates are about to leave play (§5.3.5).
+const HoldingLimits = marketZoneHoldingLimits({
+    market: EighteenThirtyTwoMarket,
+    charters: EighteenThirtyTwoCharters,
+    certificateFreeColors: ['yellow', 'green', 'brown', 'black'],
+    ownershipFreeColors: ['green', 'brown'],
+    ownershipPercent: OwnershipPercent
+})
 
 // Certificate limits by player count, for 10, 9, 8, 7 and at most 6 companies (Table 2).
 const CertificateLimits: Readonly<Record<number, readonly number[]>> = {
@@ -117,21 +126,10 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         assertExists(limit, 'Unsupported 1832 player count')
         return limit
     },
-    // A closing company's certificates are about to leave play (§5.3.5).
-    ...marketZoneHoldingLimits({
-        market: EighteenThirtyTwoMarket,
-        certificateFreeColors: ['yellow', 'green', 'brown', 'black'],
-        ownershipFreeColors: ['green', 'brown'],
-        ownershipPercent: OwnershipPercent
-    }),
-    afterSale(state, details) {
-        recordProtectableSale(state, details)
-        refreshSellerExcess(state, details)
-    },
-    afterSharePurchase(state, details) {
-        lockReissueProceeds(state, details)
-        refreshBuyerExcess(state, details)
-    },
+    ...HoldingLimits,
+    ownershipLimit: withHeldExcess(HoldingLimits.ownershipLimit),
+    afterSale: recordProtectableSale,
+    afterSharePurchase: lockReissueProceeds,
     // A System's new president exchanges any vice-president's certificate (§5.5).
     presidencyExchangeLargestFirst: true,
     presidencyCandidates: (state, companyId) =>

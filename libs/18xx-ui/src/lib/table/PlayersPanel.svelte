@@ -1,4 +1,5 @@
 <script lang="ts">
+    import CertificateCount from '../stock/CertificateCount.svelte'
     import './playerTint.css'
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
@@ -70,6 +71,7 @@
                 session.gameState,
                 { kind: 'player', playerId },
                 valuationRules,
+                session.charters,
                 !!session.presentation.minorsAsPrivates
             )
         })),
@@ -86,7 +88,12 @@
                 bankrupt: false,
                 liquidity: undefined,
                 certs: undefined,
-                ...ownerPortfolio(session.gameState, { kind: 'company', companyId }, valuationRules)
+                ...ownerPortfolio(
+                    session.gameState,
+                    { kind: 'company', companyId },
+                    valuationRules,
+                    session.charters
+                )
             }
         })
     ])
@@ -180,7 +187,9 @@
     {#each players as player, index (player.id)}
         <article
             class:compact
-            animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
+            animate:flip={{
+                duration: session.restoredSilently || prefersReducedMotion.current ? 0 : 180
+            }}
             aria-label={`${player.name} portfolio`}
             data-player-id={player.playerId}
             class:active={player.playerId !== undefined &&
@@ -290,7 +299,12 @@
                 {#if player.certs}<span class="stat-divider" aria-hidden="true"></span>
                     <dl title="Certificates counted toward the title’s certificate limit">
                         <dt>Certs</dt>
-                        <dd>{player.certs.count}/{player.certs.limit}</dd>
+                        <dd>
+                            <CertificateCount
+                                count={player.certs.count}
+                                limit={player.certs.limit}
+                            />
+                        </dd>
                     </dl>{/if}
                 <span class="stat-divider" aria-hidden="true"></span>
                 <dl>
@@ -317,7 +331,7 @@
                                                 name={lot.name}
                                                 {description}
                                                 value={lot.price}
-                                                income={lot.company?.privateRevenue}
+                                                income={lot.company?.revenue}
                                             />{:else}{lot.name}{/if}
                                     </th>
                                     <td class="amount">{money(amount)}</td>

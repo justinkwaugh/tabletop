@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { getCompany } from '../finance/finance.js'
 import type { StockMarketChart } from '../stock/stockMarket.js'
+import type { CompanyCharters } from '../company/companyCharters.js'
 import type { StockState } from '../stock/stockState.js'
 import type { TrainState } from '../trains/train.js'
 
@@ -21,6 +22,7 @@ export const OperatingSet = Type.Object(
 export type OperatingSet = Type.Static<typeof OperatingSet>
 export type OperatingState = StockState & { operatingSet?: OperatingSet }
 export interface OperatingRules {
+    charters: CompanyCharters
     roundCount(state: OperatingState): number
     companyOrder(state: OperatingState): string[]
     /** The kinds of the depot trains exported, in order, when the current operating round ends. */

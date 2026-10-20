@@ -28,6 +28,7 @@ import {
     isCloseMarketShorts,
     isConvertCompany,
     isDiscardMergedTrain,
+    isEighteenSeventeenGoBankrupt,
     isFinishConversionLoans,
     isLiquidateCompany,
     isMergeCompanies,
@@ -65,6 +66,19 @@ export function eighteenSeventeenHistoryDescription(
             detail: joinDetails(
                 description.detail,
                 `Loan Shark paid ${companyName(action.companyId)} ${money(LoanSharkCash)}`
+            )
+        }
+    }
+    if (
+        isEighteenSeventeenGoBankrupt(action) &&
+        action.metadata?.changes.liquidatedCompanyIds.length
+    ) {
+        const description = shared()
+        return {
+            ...description,
+            detail: joinDetails(
+                description.detail,
+                `Liquidated ${action.metadata.changes.liquidatedCompanyIds.map(companyName).join(', ')}`
             )
         }
     }

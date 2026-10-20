@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/1832-ui",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",
@@ -30,6 +30,7 @@
         "bundle": "svelte-kit sync && rimraf bundle && rollup -c ./rollup.config.ts",
         "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
         "dev": "vite dev",
+        "test": "node --test tests/scenarioFiles.test.mjs && vitest run",
         "lint": "eslint ."
     },
     "peerDependencies": {
@@ -60,6 +61,7 @@
         "vite": "^7.3.1",
         "@tabletop/rollup-config": "workspace:*",
         "rollup": "4.55.2",
-        "@tabletop/eslint-config": "workspace:*"
+        "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*"
     }
 }

@@ -20,7 +20,7 @@ import { EighteenThirtyTwoShareTrading, EighteenThirtyTwoStockRules } from './st
 import { isClosingSpace, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { isSystem, nextSystemId, shellsOf, systemMarketSpace, systemPresident } from './systems.js'
 import { eighteenThirtyTwoMapState } from './tileState.js'
-import type { MergerKind, MergerProposal, TakeoverFunding } from './titleState.js'
+import type { MergerProposal, TakeoverFunding } from './titleState.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
 
 /**
@@ -39,11 +39,11 @@ export function presidentId(state: EighteenThirtyTwoState, companyId: string) {
     return controllingOwner(state, companyId)?.playerId
 }
 
-// A System begins with its components' takeover (§11.5).
-function involvedIn(state: EighteenThirtyTwoState, companyId: string, kind: MergerKind) {
-    const ids = [companyId, ...shellsOf(state, companyId)]
-    return state.mergers.some(
-        (merger) => merger.kind === kind && merger.companyIds.some((id) => ids.includes(id))
+// A company bought in a takeover closes, so only buyers remain; a System begins with its
+// components' takeovers (§11.5).
+function inTakeover(state: EighteenThirtyTwoState, companyId: string) {
+    return [companyId, ...shellsOf(state, companyId)].some((id) =>
+        state.takeoverBuyerIds.includes(id)
     )
 }
 
@@ -286,8 +286,8 @@ function* optionsOf(state: EighteenThirtyTwoState, playerId: string): Generator<
                 if (
                     buyerPresident &&
                     !refused(state, takeover) &&
-                    !involvedIn(state, buyerId, 'takeover') &&
-                    !involvedIn(state, targetId, 'takeover') &&
+                    !inTakeover(state, buyerId) &&
+                    !inTakeover(state, targetId) &&
                     fundable(state, { buyerId, targetId, playerId: buyerPresident }) &&
                     connects(company.id, partner.id)
                 )

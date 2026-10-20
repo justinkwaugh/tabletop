@@ -5,7 +5,7 @@
     let { session }: { session: EighteenFortySixSession } = $props()
     const state = $derived(session.gameState)
     const money = $derived(session.presentation.money)
-    const hiddenDraft = $derived(state.draft.kind === 'hidden' ? state.draft : undefined)
+    const hiddenDraft = $derived(state.draft?.kind === 'hidden' ? state.draft : undefined)
     const mine = $derived(
         hiddenDraft?.participants.find((player) => player.playerId === session.myPlayer?.id)
     )
@@ -14,7 +14,7 @@
 </script>
 
 {#if hiddenDraft}
-    <section class="draft" aria-label="Private company draft">
+    <section class="draft midwest-panel centered-panel" aria-label="Private company draft">
         <header class="draft-heading">
             <h2>{choosers.join(', ')} to choose</h2>
             <p>

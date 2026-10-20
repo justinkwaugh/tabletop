@@ -70,5 +70,21 @@
   {
     "gameId": "railheads",
     "packageId": "railheads"
+  },
+  {
+    "gameId": "1830",
+    "packageId": "1830"
+  },
+  {
+    "gameId": "shikoku-1889",
+    "packageId": "shikoku-1889"
+  },
+  {
+    "gameId": "1846",
+    "packageId": "1846"
+  },
+  {
+    "gameId": "1832",
+    "packageId": "1832"
   }
 ]

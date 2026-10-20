@@ -1,4 +1,6 @@
-import { getCompany, cashOwnedBy } from '@tabletop/18xx'
+import { Shikoku1889Charters } from '@tabletop/shikoku-1889'
+import { TheOldPrinceCharters } from '@tabletop/the-old-prince'
+import { cashOwnedBy, companyShareCount } from '@tabletop/18xx'
 import { expect, it } from 'vitest'
 import { Color, GameEngine, GameStorage, PlayerStatus } from '@tabletop/common'
 import { TopScenarios as Top, ShikokuScenarios as Shikoku } from '../scenarios/definitions.js'
@@ -57,7 +59,13 @@ it.each([Top, Shikoku])(
         )
         if (president?.kind !== 'share') throw new Error('Missing president certificate')
         expect(president.shares).toBe(2)
-        expect(getCompany(restored, president.companyId).shareCount).toBe(10)
+        expect(
+            companyShareCount(
+                restored,
+                definition === Top ? TheOldPrinceCharters : Shikoku1889Charters,
+                president.companyId
+            )
+        ).toBe(10)
         expect(restored.activePlayerIds[0]).toBe('alex')
         expect(Object.keys(definition.runtime.apiActions).sort()).toEqual(
             [

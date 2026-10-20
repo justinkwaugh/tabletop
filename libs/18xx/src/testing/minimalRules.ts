@@ -6,7 +6,7 @@ import {
 } from '../ending/finalWealth.js'
 import type { PrivateRules } from '../privates/privateRules.js'
 import type { StockRules } from '../stock/stockRules.js'
-import { TestMarket, TestNames } from './minimalState.js'
+import { TestCharters, TestMarket, TestNames } from './minimalState.js'
 import type { TrainFundingRules } from '../funding/trainFunding.js'
 import { TrainDepot } from '../trains/trainDepot.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
@@ -14,6 +14,7 @@ import type { TransferRules } from '../transfers/purchaseOffer.js'
 
 export const minimalStockRules: StockRules = {
     market: TestMarket,
+    charters: TestCharters,
     round: {
         passing: 'consecutive',
         nextPlayerOrder: (state) => [...state.turnManager.turnOrder],
@@ -75,6 +76,7 @@ export const minimalTrainFundingRules: TrainFundingRules = {
 }
 
 export const minimalTransferRules: TransferRules = {
+    charters: TestCharters,
     operatingCompany: () => undefined,
     canPurchase: () => false,
     priceRange: () => undefined,

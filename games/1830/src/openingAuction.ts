@@ -1,3 +1,4 @@
+import { EighteenThirtyCharters } from './charters.js'
 import {
     awardCertificates,
     beginWaterfallAuction,
@@ -48,7 +49,10 @@ export const EighteenThirtyAuctionRules: WaterfallAuctionRules = {
         if (award.lotId === 'BOP') requirePar(state, 'BO', award.playerId)
     },
     payIncome(state) {
-        settleCashPayments(state, privateIncomePayments(state))
+        settleCashPayments(
+            state,
+            privateIncomePayments(state, { charters: EighteenThirtyCharters })
+        )
     }
 }
 export function createEighteenThirtyOpening({
@@ -63,12 +67,11 @@ export function createEighteenThirtyOpening({
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
         stockMarket: { stacks: [] },
-        bank: { unlimitedAfterExhaustion: true },
+        bank: {},
         companies: [
             ...majors.map((company) => ({
                 id: company.id,
                 kind: 'major',
-                shareCount: 10,
                 started: false,
                 floated: false,
                 funded: false,
@@ -76,8 +79,7 @@ export function createEighteenThirtyOpening({
             })),
             ...EighteenThirtyPrivates.map((company) => ({
                 id: company.id,
-                kind: 'private',
-                privateRevenue: company.revenue
+                kind: 'private'
             }))
         ],
         cash: [

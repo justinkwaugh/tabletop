@@ -194,6 +194,9 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
             }),
             postcss({
                 inject: true,
+                // Every stylesheet the title bundles, a dependency's included, goes through the
+                // title's own PostCSS config, as it does under Vite, so its scoping covers them.
+                config: { path: packageRoot },
                 plugins: [
                     publishCssAssets({ destDir: assetsDirectory, publicPath: publicAssetsPath })
                 ]

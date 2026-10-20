@@ -205,7 +205,8 @@ titles against this before conversion becomes a family procedure.
 **Decision.** Count shares, not percentages, as the family already does. The
 president's certificate is always 2 shares and every other certificate 1 share.
 The company's `shareCount` is 2, 5 or 10. A company is set up with only its
-president's certificate and `shareCount: 2`. Sizing it at formation issues three or
+president's certificate and counts as 2 shares, its charter's size, until sizing
+records `shareCount`. Sizing it at formation issues three or
 eight 1-share certificates into its treasury and sets `shareCount`. A later
 conversion (slice 5) only issues more certificates and raises `shareCount`; no
 existing certificate changes. Shorts (slice 4) are then one share each in every

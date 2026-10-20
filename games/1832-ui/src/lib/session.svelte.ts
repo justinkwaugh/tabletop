@@ -12,6 +12,8 @@ import {
     mergerTerms,
     takeoverSales,
     takeoverShortfall,
+    isSellTakeoverShares,
+    takeoverPayments,
     type MergerOption,
     BuyCoalRights,
     ConsentingRedemptionState,
@@ -38,7 +40,8 @@ import {
     EighteenThirtyTwoMarket
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
-import { type ShareSaleDetails } from '@tabletop/18xx'
+import { undoableStagedSelection } from '@tabletop/frontend-components'
+import { cashOwnedBy, sameOwner, type Owner, type ShareSaleDetails } from '@tabletop/18xx'
 import {
     createEighteenXXSessionClass,
     type HistoricalMapState,
@@ -48,6 +51,19 @@ import { mapState1832 } from './mapState.js'
 import { EighteenThirtyTwoMapView } from './mapView.js'
 import { EighteenThirtyTwoPresentation } from './presentation.js'
 import { PrivateOperatingPowers } from './privatePowers.js'
+import {
+    MergedDiscardStageOrder,
+    MergerStageOrder,
+    stageMergerCompany,
+    stageMergerPartner,
+    stageSystemPresidency,
+    stagedMergerChoices,
+    toggleMergedDiscard,
+    type MergedDiscardSelection,
+    type MergedDiscardValues,
+    type MergerSelection,
+    type MergerSelectionValues
+} from './stagedSelection.js'
 
 const BaseSession: ReturnType<
     typeof createEighteenXXSessionClass<
@@ -73,6 +89,24 @@ export type CompanyShareOptions = {
 }
 
 export class EighteenThirtyTwoSession extends BaseSession {
+    constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
+        super(options)
+        // Undo pops the latest choice first: the System's president, the partner, the company.
+        this.localSelections.register(
+            undoableStagedSelection<MergerSelectionValues>(
+                MergerStageOrder,
+                () => this.mergerSelection,
+                (selection) => (this.mergerSelection = selection)
+            )
+        )
+        this.localSelections.register(
+            undoableStagedSelection<MergedDiscardValues>(
+                MergedDiscardStageOrder,
+                () => this.mergedDiscardSelection,
+                (selection) => (this.mergedDiscardSelection = selection)
+            )
+        )
+    }
     readonly canChooseAction = $derived(
         this.isPlayable &&
             this.isMyTurn &&
@@ -83,7 +117,7 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly stockPanels = this.titleStockPanels<'company'>([
         {
             id: 'company',
-            label: 'Act for a company',
+            label: 'Company action',
             available: () => this.companyShareOptions.length > 0
         }
     ])
@@ -148,6 +182,86 @@ export class EighteenThirtyTwoSession extends BaseSession {
             return { companyId: option.companyId, partnerId: option.partnerId, proposals }
         })
     })
+    /** The merger being chosen: the player's company, then the company to merge it with. */
+    private mergerSelection = $state<MergerSelection>({})
+    private readonly mergerChoices = $derived(stagedMergerChoices(this.mergerSelection))
+    readonly mergerCompanyIds = $derived([
+        ...new Set(this.mergerPairings.map((pairing) => pairing.companyId))
+    ])
+    readonly mergerCompanyId = $derived(
+        this.onlyOrChosen(this.mergerCompanyIds, this.mergerChoices.companyId)
+    )
+    readonly mergerPartnerIds = $derived(
+        this.mergerPairings
+            .filter((pairing) => pairing.companyId === this.mergerCompanyId)
+            .map((pairing) => pairing.partnerId)
+    )
+    readonly mergerPartnerId = $derived(
+        this.onlyOrChosen(this.mergerPartnerIds, this.mergerChoices.partnerId)
+    )
+    /**
+     * What merging the chosen pair could make: a System under either president, and a takeover
+     * either way. Yielding initiator status is offered as its result, the other president's
+     * System or the other company buying.
+     */
+    readonly mergerOutcomes = $derived.by(() => {
+        const pairing = this.mergerPairings.find(
+            (pairing) =>
+                pairing.companyId === this.mergerCompanyId &&
+                pairing.partnerId === this.mergerPartnerId
+        )
+        if (!pairing) return undefined
+        const systems = pairing.proposals.flatMap((proposal) =>
+            proposal.terms.kind === 'system' ? [{ ...proposal, terms: proposal.terms }] : []
+        )
+        const presidencies = systems.filter(
+            (proposal, index) =>
+                !systems
+                    .slice(0, index)
+                    .some((earlier) => earlier.terms.president === proposal.terms.president)
+        )
+        const system =
+            presidencies.find(
+                (proposal) => !!proposal.option.yielded === this.mergerChoices.yielded
+            ) ?? presidencies[0]
+        // The player's company buying comes before it being bought.
+        const takeovers = pairing.proposals
+            .flatMap((proposal) =>
+                proposal.terms.kind === 'takeover' ? [{ ...proposal, terms: proposal.terms }] : []
+            )
+            .toSorted(
+                (left, right) => Number(!!left.option.yielded) - Number(!!right.option.yielded)
+            )
+        return {
+            companyId: pairing.companyId,
+            partnerId: pairing.partnerId,
+            system,
+            presidencies,
+            takeovers
+        }
+    })
+    /** The only choice, or the one chosen while it is still a choice. */
+    private onlyOrChosen(choices: readonly string[], chosen: string | undefined) {
+        if (chosen && choices.includes(chosen)) return chosen
+        return choices.length === 1 ? choices[0] : undefined
+    }
+    chooseMergerCompany(companyId: string) {
+        this.mergerSelection = stageMergerCompany(
+            this.mergerSelection,
+            companyId,
+            this.mergerCompanyId
+        )
+    }
+    chooseMergerPartner(partnerId: string) {
+        this.mergerSelection = stageMergerPartner(
+            this.mergerSelection,
+            partnerId,
+            this.mergerPartnerId
+        )
+    }
+    chooseSystemPresidency(yielded: boolean) {
+        this.mergerSelection = stageSystemPresidency(this.mergerSelection, yielded)
+    }
     /** The proposal the player is asked to answer, with what it would cost or make. */
     readonly mergerAnswer = $derived.by(() => {
         const decision = this.myMergerDecision
@@ -165,8 +279,27 @@ export class EighteenThirtyTwoSession extends BaseSession {
         if (decision?.kind !== 'fund' || !funding) return undefined
         const sales = takeoverSales(this.gameState, funding)
         const companyIds = [...new Set(sales.map((sale) => sale.sales[0].companyId))]
+        const payments = takeoverPayments(this.gameState, funding.buyerId, funding.targetId)
+        const cash = (owner: Owner) => {
+            const amount = cashOwnedBy(this.gameState, owner)
+            return typeof amount === 'number' ? amount : 0
+        }
+        const president = { kind: 'player' as const, playerId: funding.playerId }
+        const recorded = this.actions.slice(0, this.gameState.actionCount)
+        const firstSale = recorded.findLastIndex((action) => !isSellTakeoverShares(action)) + 1
         return {
             ...funding,
+            price: payments.reduce((sum, payment) => sum + payment.amount, 0),
+            treasury: cash({ kind: 'company', companyId: funding.buyerId }),
+            presidentCash: cash(president),
+            ownSharesPaid: payments
+                .filter((payment) => sameOwner(payment.to, president))
+                .reduce((sum, payment) => sum + payment.amount, 0),
+            sold: recorded
+                .slice(firstSale)
+                .flatMap((action) =>
+                    isSellTakeoverShares(action) && action.metadata ? [action.metadata] : []
+                ),
             shortfall: takeoverShortfall(
                 this.gameState,
                 funding.buyerId,
@@ -179,11 +312,42 @@ export class EighteenThirtyTwoSession extends BaseSession {
             }))
         }
     })
-    readonly mergedTrainDiscards = $derived(
-        this.myMergerDecision?.kind === 'discard'
-            ? mergedTrainDiscards(this.gameState, this.myMergerDecision.playerId)
-            : undefined
+    readonly mergedTrainDiscards = $derived.by(() => {
+        const discards =
+            this.myMergerDecision?.kind === 'discard'
+                ? mergedTrainDiscards(this.gameState, this.myMergerDecision.playerId)
+                : undefined
+        if (!discards) return undefined
+        const definitionIds = [...new Set(discards.trains.map((train) => train.definitionId))]
+        return {
+            ...discards,
+            limit: discards.trains.length - discards.excess,
+            // Trains of one kind are interchangeable, so each kind is one choice.
+            kinds: definitionIds.map((definitionId) => ({
+                definitionId,
+                trainIds: discards.trains
+                    .filter((train) => train.definitionId === definitionId)
+                    .map((train) => train.id)
+            }))
+        }
+    })
+    private mergedDiscardSelection = $state<MergedDiscardSelection>({})
+    /** The kind of train chosen for discard, while it is still a choice. */
+    readonly mergedDiscardChoice = $derived(
+        this.mergedTrainDiscards?.kinds.find(
+            (kind) => kind.definitionId === this.mergedDiscardSelection.kind?.value
+        )
     )
+    chooseMergedDiscard(definitionId: string) {
+        this.mergedDiscardSelection = toggleMergedDiscard(this.mergedDiscardSelection, definitionId)
+    }
+    async discardChosenMergedTrain(): Promise<void> {
+        const discards = this.mergedTrainDiscards
+        const trainId = this.mergedDiscardChoice?.trainIds[0]
+        assertExists(discards, 'No merged company is over its train limit')
+        assertExists(trainId, 'Choose a train to discard')
+        await this.discardMergedTrain(discards.companyId, trainId)
+    }
     async proposeMerger(option: MergerOption): Promise<void> {
         await this.applyAction(this.createPlayerAction(ProposeMerger, option))
     }
@@ -217,6 +381,19 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly keyWestChoice = $derived(
         this.revenueTokenChoices.find((choice) => choice.kind === 'key-west')
     )
+    // The FEC places its Key West token in Miami instead of a station (§7.5).
+    override get titleStationActions() {
+        const choice = this.keyWestChoice
+        return choice && this.canChooseAction
+            ? [
+                  {
+                      id: 'key-west',
+                      label: 'Place Key West token in Miami',
+                      run: () => this.placeRevenueToken(choice)
+                  }
+              ]
+            : []
+    }
     readonly canBuyCoalRights = $derived(
         this.canChooseAction && this.validActionTypes.includes('BuyCoalRights')
     )
@@ -261,6 +438,7 @@ export class EighteenThirtyTwoSession extends BaseSession {
                     privateCompanyId: RevenueTokenPrivateIds[kind],
                     playerId,
                     label: `${name} token`,
+                    stationStepLabel: `Place ${name} token`,
                     prompt: `Choose a ${kind === 'port' ? 'coastal' : 'non-coastal'} city for the ${name} token`,
                     locationIds: [...new Set(choices.map((choice) => choice.locationId))],
                     choose: (locationId, nodeId) => this.chooseTokenCity(kind, locationId, nodeId)

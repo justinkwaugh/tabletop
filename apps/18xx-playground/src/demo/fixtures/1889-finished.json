@@ -124,13 +124,11 @@
             "stacks": []
         },
         "bank": {
-            "unlimitedAfterExhaustion": true
         },
         "companies": [
             {
                 "id": "AR",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -139,7 +137,6 @@
             {
                 "id": "IR",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -148,7 +145,6 @@
             {
                 "id": "SR",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -157,7 +153,6 @@
             {
                 "id": "KO",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -166,7 +161,6 @@
             {
                 "id": "TR",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -175,7 +169,6 @@
             {
                 "id": "KU",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -184,7 +177,6 @@
             {
                 "id": "UR",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -192,38 +184,31 @@
             },
             {
                 "id": "TE",
-                "kind": "private",
-                "privateRevenue": 5
+                "kind": "private"
             },
             {
                 "id": "MF",
-                "kind": "private",
-                "privateRevenue": 5
+                "kind": "private"
             },
             {
                 "id": "ER",
-                "kind": "private",
-                "privateRevenue": 10
+                "kind": "private"
             },
             {
                 "id": "SRR",
-                "kind": "private",
-                "privateRevenue": 15
+                "kind": "private"
             },
             {
                 "id": "DR",
-                "kind": "private",
-                "privateRevenue": 15
+                "kind": "private"
             },
             {
                 "id": "PR",
-                "kind": "private",
-                "privateRevenue": 20
+                "kind": "private"
             },
             {
                 "id": "UTF",
-                "kind": "private",
-                "privateRevenue": 30
+                "kind": "private"
             }
         ],
         "cash": [
@@ -1135,12 +1120,10 @@
             }
         ],
         "tileInventory": {
-            "tileSetId": "shikoku-1889:standard",
             "placements": {},
             "retiredPieceIds": []
         },
         "trainInventory": {
-            "depotId": "shikoku-1889",
             "trains": [
                 {
                     "id": "shikoku-1889/2/1",

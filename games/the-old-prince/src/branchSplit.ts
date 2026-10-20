@@ -1,6 +1,8 @@
+import { TheOldPrinceCharters } from './charters.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import { assert, type GameState } from '@tabletop/common'
 import {
+    companyShareCount,
     homeStationId,
     cashOwnedBy,
     getCompany,
@@ -85,7 +87,7 @@ export class TheOldPrinceBranchSplit {
         if (
             !parent ||
             parent.kind !== 'major' ||
-            parent.shareCount !== 10 ||
+            companyShareCount(this.state, TheOldPrinceCharters, parent.id) !== 10 ||
             parent.closed ||
             !parent.started ||
             !parent.floated
@@ -106,7 +108,11 @@ export class TheOldPrinceBranchSplit {
     }
     parents(playerId: string) {
         return this.state.companies
-            .filter((company) => company.shareCount === 10 && company.started)
+            .filter(
+                (company) =>
+                    companyShareCount(this.state, TheOldPrinceCharters, company.id) === 10 &&
+                    company.started
+            )
             .map((company) => ({ company, reason: this.parentReason(playerId, company.id) }))
     }
     branches() {

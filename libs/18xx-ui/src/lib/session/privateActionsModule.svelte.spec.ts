@@ -119,7 +119,7 @@ describe('PrivateActionsModule', () => {
 
     it('offers the power without opening a source while the state awaits a private tile lay', () => {
         const { module } = privateActions([Alpha], {
-            privateTrackLay: { privateCompanyId: 'alpha', playerId: 'alex', companyId: 'R' }
+            privateTrackLay: { privateCompanyId: 'alpha', playerId: 'alex' }
         })
         expect(module.selection).toBeUndefined()
         expect(module.trackPowerSelection?.value).toEqual(Alpha)

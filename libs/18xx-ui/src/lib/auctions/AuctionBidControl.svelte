@@ -7,8 +7,8 @@
         canBid,
         canDecrease,
         canIncrease,
-        canPass,
-        passLabel = 'Pass',
+        canPass = false,
+        inline = false,
         onChange,
         onBid,
         onPass
@@ -19,15 +19,15 @@
         canBid: boolean
         canDecrease: boolean
         canIncrease: boolean
-        canPass: boolean
-        passLabel?: string
+        canPass?: boolean
+        inline?: boolean
         onChange: (amount: number) => void
         onBid: () => void
-        onPass: () => void
+        onPass?: () => void
     } = $props()
 </script>
 
-<div class="controls">
+<div class="controls" class:inline>
     <div class="amount-control" role="group" aria-label="Bid amount">
         <button
             aria-label="Decrease bid"
@@ -42,7 +42,8 @@
         >
     </div>
     <button class="bid action-button" disabled={!canBid} onclick={onBid}>Bid</button>
-    <button class="pass action-button" disabled={!canPass} onclick={onPass}>{passLabel}</button>
+    {#if onPass}<button class="pass action-button" disabled={!canPass} onclick={onPass}>Pass</button
+        >{/if}
 </div>
 
 <style>
@@ -50,6 +51,27 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
+    }
+    .controls.inline {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .controls.inline button {
+        height: 28px;
+        padding: 0 12px;
+    }
+    .controls.inline .amount-control button {
+        width: 28px;
+        padding: 0;
+        font-size: 17px;
+    }
+    .controls.inline output {
+        min-width: 58px;
+        font-size: 14px;
+    }
+    .bid:last-child {
+        grid-column: 1 / -1;
     }
     .amount-control {
         grid-column: 1 / -1;

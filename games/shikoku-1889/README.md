@@ -12,13 +12,13 @@ construction facts, reservations, and markers. See the [M1 map design](../../lib
 See the [T3 inventory design and evidence](../../libs/18xx/inventory.md), including
 the rulebook's extra beginner #57. The public `Definition` initializes the real opening auction for 2–6 players.
 Its registered Actions and handlers cover setup, stock rounds, company operations,
-private powers, trains, emergency funding and game endings. Scenario initialization
-is also available through the development configurator; the shared runtime retains
-its `FinanceExample` naming while the session and table UI remain provisional.
+private powers, trains, emergency funding and game endings. The Dôgo Railway exchange
+and Mitsubishi Ferry port lay are sequenced out-of-turn Actions
+([ADR 0009](../../docs/adr/0009-sequenced-out-of-turn-actions.md)). Scenario
+initialization is also available through the development configurator.
 See [complete-game verification](../../research/18xx/complete-game-verification.md)
 and the [client autorouter design](../../research/18xx/autorouter-design.md).
-The title's Logic and UI packages participate in artifact staging; this is not a
-claim that they have been published or accepted for production.
+The title is listed as Beta.
 
 
 ## Rule evidence
@@ -32,7 +32,7 @@ claim that they have been published or accepted for production.
 
 Standard and Beginner Game supplies are separate manifests. The standard runtime
 is implemented; beginner-specific runtime differences remain deferred, along with
-physical-board artwork and mobile presentation. Shikoku 1889 owns its map, private
+the published-artwork presentation and mobile presentation. Shikoku 1889 owns its map, private
 powers, setup, rule choices, and round composition. Shared stock, operating, and
 financial mechanisms belong in the family library when their semantics match.
 See the [family mechanism map](../../libs/18xx/README.md#initial-title-pair).

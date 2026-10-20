@@ -145,7 +145,7 @@ const withAreaLabel = (location: MapLocation): MapLocation => {
 }
 export const EighteenFortySixMap = new RailwayMap({
     id: '1846',
-    name: '1846: The Race to the Midwest',
+    name: '1846: The Race for the Midwest',
     orientation: HexOrientation.Pointy,
     locations: [
         ...locations(

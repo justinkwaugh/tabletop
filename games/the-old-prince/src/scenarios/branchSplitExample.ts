@@ -72,11 +72,7 @@ export function prepareTheOldPrinceBranchSplit(
     TheOldPrinceTrainDepot.purchase(state.trainInventory, train.id, train.definitionId, owner)
     const hunslet = TheOldPrincePrivates.find((company) => company.id === 'HS')
     assert(hunslet, 'The split example requires Hunslet')
-    state.companies.push({
-        id: hunslet.id,
-        kind: 'private',
-        privateRevenue: hunslet.revenue
-    })
+    state.companies.push({ id: hunslet.id, kind: 'private' })
     state.certificates.push({
         id: 'HS:charter',
         companyId: 'HS',

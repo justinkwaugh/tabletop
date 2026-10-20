@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest'
 import { Definition } from './definition/gameDefinition.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import { TheOldPrinceNames } from './names.js'
+import { TheOldPrinceCharters } from './charters.js'
 import { recordLeavingNumber, type StockMarketSpace } from '@tabletop/18xx'
 
 function readFixture(name: string) {
@@ -116,6 +117,69 @@ function currentRouteStep(
     }
 }
 
+// TOP never relays a hex in one turn, so a lay's tile is the one now on its hex.
+function laidDefinitionId(state: TheOldPrinceState, locationId: string): string {
+    const placement = state.tileInventory.placements[locationId]
+    assertExists(placement, 'A recorded lay left a tile')
+    return placement.definitionId
+}
+
+/** Definition data and repeated records the State no longer keeps, as current logic writes it. */
+function withoutDefinitionData(state: TheOldPrinceState): TheOldPrinceState {
+    const { tileSetId: _tileSetId, ...tileInventory } = state.tileInventory
+    const { depotId: _depotId, ...trainInventory } = state.trainInventory
+    const uniqueBy = <Item>(items: readonly Item[], key: (item: Item) => string) =>
+        items.filter(
+            (item, index) => items.findIndex((other) => key(other) === key(item)) === index
+        )
+    return {
+        ...state,
+        companies: state.companies.map(({ shareCount, privateRevenue, ...company }) => ({
+            ...company,
+            ...(shareCount !== undefined &&
+            shareCount !== TheOldPrinceCharters.shareCount(company.id)
+                ? { shareCount }
+                : {}),
+            ...(privateRevenue !== undefined &&
+            !company.closed &&
+            privateRevenue !== TheOldPrinceCharters.privateRevenue(company.id)
+                ? { privateRevenue }
+                : {})
+        })),
+        tileInventory,
+        trainInventory,
+        stockRound: {
+            ...state.stockRound,
+            sales: uniqueBy(state.stockRound.sales, (sale) => JSON.stringify(sale))
+        },
+        ...(state.trackStep
+            ? {
+                  trackStep: {
+                      ...state.trackStep,
+                      lays: state.trackStep.lays.map(({ locationId }) => ({
+                          locationId,
+                          definitionId: laidDefinitionId(state, locationId)
+                      }))
+                  }
+              }
+            : {}),
+        ...(state.trainFunding
+            ? {
+                  trainFunding: {
+                      ...state.trainFunding,
+                      sales: uniqueBy(
+                          state.trainFunding.sales.map(({ seller, companyId }) => ({
+                              seller,
+                              companyId
+                          })),
+                          (sale) => JSON.stringify(sale)
+                      )
+                  }
+              }
+            : {})
+    }
+}
+
 function withoutName<Item>({ name: _name, ...item }: Named<Item>): Omit<Named<Item>, 'name'> {
     return item
 }
@@ -140,7 +204,7 @@ function currentShape({
         certificatePools: recorded.certificatePools.map(({ name: _name, ...pool }) => pool),
         bank: withoutName(recorded.bank)
     }
-    return {
+    return withoutDefinitionData({
         ...state,
         stockMarket: { stacks },
         certificates: currentCertificates(state, certificates),
@@ -158,7 +222,7 @@ function currentShape({
             toPhaseId
         })),
         ...(routeStep ? { routeStep: currentRouteStep(routeStep, trains) } : {})
-    }
+    })
 }
 
 /** The recorded shape kept a run's result only until its company's turn ended. */

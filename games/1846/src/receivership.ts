@@ -1,24 +1,55 @@
-import { assertExists } from '@tabletop/common'
-import { controllingOwner, getCompany, type FinancialState, type StockState } from '@tabletop/18xx'
+import {
+    cheapestAffordableTrain,
+    sameOwner,
+    inReceivership,
+    type ReceivershipRules
+} from '@tabletop/18xx'
+import { Market1846 } from './stock.js'
 
-export function inReceivership(state: FinancialState, companyId: string): boolean {
-    const company = getCompany(state, companyId)
-    return (
-        company.kind === 'major' &&
-        !company.closed &&
-        !company.president &&
-        state.certificates.some(
+/**
+ * GMT §8: every surviving player runs a receiver's trains, it withholds and buys the cheapest
+ * train it can afford, and a 10% holder takes the presidency back by buying half the
+ * president's certificate from the market when no other share of it is there.
+ */
+export const ReceivershipRules1846: ReceivershipRules = {
+    operators: (state) => [...state.turnManager.turnOrder],
+    earningsChoice: () => 'withhold',
+    trainPurchase: cheapestAffordableTrain,
+    presidencyClaim(state, companyId, buyer) {
+        const certificates = state.certificates.filter(
+            (certificate) => certificate.companyId === companyId
+        )
+        if (
+            certificates.some(
+                (certificate) =>
+                    certificate.kind === 'share' &&
+                    !certificate.president &&
+                    certificate.poolId === 'open-market'
+            )
+        )
+            return undefined
+        const president = certificates.find(
+            (certificate) => certificate.kind === 'share' && certificate.president
+        )
+        const ordinary = certificates.filter(
             (certificate) =>
                 certificate.kind === 'share' &&
-                certificate.companyId === companyId &&
-                certificate.president &&
-                certificate.poolId === 'open-market'
+                !certificate.president &&
+                sameOwner(certificate.owner, buyer)
         )
-    )
+        if (!president || ordinary.length !== 1) return undefined
+        const price = Market1846.companySpace(state.stockMarket, companyId).price
+        if (price <= 0) return undefined
+        return {
+            price,
+            claim: {
+                companyId,
+                next: buyer,
+                presidentCertificateId: president.id,
+                exchangedCertificateIds: [ordinary[0].id],
+                poolId: 'open-market'
+            }
+        }
+    }
 }
-export function operatingPlayers1846(state: StockState, companyId: string): string[] {
-    if (inReceivership(state, companyId)) return [...state.turnManager.turnOrder]
-    const owner = controllingOwner(state, companyId)
-    assertExists(owner, 'An operated corporation requires a president or receivership')
-    return [owner.playerId]
-}
+export { inReceivership }

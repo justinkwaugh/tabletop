@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { createOrdinaryShareCertificates } from '@tabletop/18xx'
+import { companyCharters, createOrdinaryShareCertificates } from '@tabletop/18xx'
 import {
+    TestCompanyId,
     TestPlayerId,
     minimalCompanyRules,
     minimalPlayState,
@@ -24,7 +25,13 @@ function privates(availability = {}) {
         state,
         {
             privateRules: minimalPrivateRules,
-            stockRules: minimalStockRules,
+            stockRules: {
+                ...minimalStockRules,
+                charters: companyCharters(() => ({
+                    shareCounts: { [TestCompanyId]: 10 },
+                    privateRevenues: { P: 15 }
+                }))
+            },
             companyRules: minimalCompanyRules,
             names: TestNames,
             privatePowerRules: { trackTerms: () => undefined, earlyTrainCompany: () => undefined }

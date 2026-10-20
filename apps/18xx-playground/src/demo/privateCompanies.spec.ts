@@ -7,14 +7,16 @@ import {
     Definition as Top,
     TheOldPrincePrivateRules,
     TheOldPrinceStockRules,
-    TheOldPrinceTrainRules
+    TheOldPrinceTrainRules,
+    TheOldPrinceCharters
 } from '@tabletop/the-old-prince'
 import {
     Definition as Shikoku,
     Shikoku1889PrivateRules,
     Shikoku1889TrackRules,
     Shikoku1889StockRules,
-    Shikoku1889TrainRules
+    Shikoku1889TrainRules,
+    Shikoku1889Charters
 } from '@tabletop/shikoku-1889'
 import {
     nextOperatingCompany,
@@ -419,7 +421,7 @@ it.each([
             expect(getCompany(updated, 'ER').closed).toBe(true)
             expect(getCompany(updated, 'UTF')).toMatchObject({ privateRevenue: 50 })
             expect(getCompany(updated, 'UTF').closed).not.toBe(true)
-            expect(privateIncomePayments(updated)).toEqual([
+            expect(privateIncomePayments(updated, { charters: Shikoku1889Charters })).toEqual([
                 { from: { kind: 'bank' }, to: { kind: 'player', playerId: 'drew' }, amount: 50 }
             ])
             expect(updated.machineState).toBe('DiscardingTrains')
@@ -507,6 +509,14 @@ it('TOP concessions close on operation and no longer receive private income', ()
         kind: 'private',
         owner: { kind: 'player', playerId: 'alex' }
     })
+    const concessionIncome = (position: typeof state) =>
+        privateIncomePayments(position, { charters: TheOldPrinceCharters }).filter(
+            (payment) =>
+                payment.to.kind === 'player' &&
+                payment.to.playerId === 'alex' &&
+                payment.amount === 20
+        ).length
+    const incomeBefore = concessionIncome(state)
     let current = state
     for (const type of ['FinishTrack', 'FinishStations', 'RunTrains']) {
         current = engine.executeCanonicalAction({
@@ -518,7 +528,8 @@ it('TOP concessions close on operation and no longer receive private income', ()
             })
         }).updatedState
     }
-    expect(getCompany(current, 'MLC')).toMatchObject({ closed: true, privateRevenue: 0 })
+    expect(getCompany(current, 'MLC').closed).toBe(true)
+    expect(concessionIncome(current)).toBe(incomeBefore - 1)
     expect(privateOwner(current, 'MLC')).toBeUndefined()
     expect(TheOldPrincePrivateRules.operationEffects(current, 'ML')).toEqual([])
 })

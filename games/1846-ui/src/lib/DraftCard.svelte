@@ -1,8 +1,7 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import { draftCompany, isBlank } from '@tabletop/1846'
+    import { CompanyDescriptions1846, draftCompany, isBlank } from '@tabletop/1846'
     import { PrivateCard } from '@tabletop/18xx-ui'
-    import { CompanyDescriptions } from './companyDescriptions.js'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let {
         session,
@@ -33,7 +32,7 @@
             {money}
             phaseColors={session.presentation.phaseColors}
             name={company.name}
-            description={CompanyDescriptions[cardId]}
+            description={CompanyDescriptions1846[cardId]}
             income={company.kind === 'private' && company.revenue ? company.revenue : undefined}
             token={company.kind === 'independent'
                 ? session.mapView.stations[cardId]

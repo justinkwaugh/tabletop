@@ -1,4 +1,5 @@
 import { titleNames } from '../game/titleNames.js'
+import { companyCharters } from '../company/companyCharters.js'
 import { Color } from '@tabletop/common'
 import type { FormationState } from '../company/companyState.js'
 import type { DistributionState } from '../earnings/earningsDistribution.js'
@@ -13,6 +14,10 @@ import {
 
 export const TestCompanyId = 'R'
 export const TestNames = titleNames({ [TestCompanyId]: 'Railway' }, () => undefined)
+export const TestCharters = companyCharters(() => ({
+    shareCounts: { [TestCompanyId]: 10 },
+    privateRevenues: {}
+}))
 export const TestMarket = new StockMarketChart(
     createRectangularStockMarketSpaces([[100, 110, 120]], () => 'white')
 )
@@ -21,15 +26,15 @@ export function minimalRailwayState(): DistributionState {
     const stockMarket: StockMarket = { stacks: [] }
     TestMarket.placeMarker(stockMarket, TestCompanyId, '0:0')
     return {
-        companies: [{ id: TestCompanyId, kind: 'major', shareCount: 10 }],
+        companies: [{ id: TestCompanyId, kind: 'major' }],
         bank: {},
         cash: [{ owner: { kind: 'bank' }, amount: 'unlimited' }],
         certificates: [],
         certificatePools: [],
         stations: [],
         stationReservations: [],
-        tileInventory: { tileSetId: 'tiles', placements: {}, retiredPieceIds: [] },
-        trainInventory: { depotId: 'trains', trains: [], nextTrainNumber: 1 },
+        tileInventory: { placements: {}, retiredPieceIds: [] },
+        trainInventory: { trains: [], nextTrainNumber: 1 },
         phaseId: '3',
         stockMarket
     }

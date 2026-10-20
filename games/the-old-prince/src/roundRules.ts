@@ -1,3 +1,4 @@
+import { TheOldPrinceCharters } from './charters.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import { TheOldPrincePhases } from './trains.js'
 import {
@@ -22,6 +23,7 @@ export const TheOldPrinceStockRoundRules: StockRoundRules = {
         )
 }
 export const TheOldPrinceOperatingRules: OperatingRules = {
+    charters: TheOldPrinceCharters,
     roundCount: (state) => TheOldPrincePhases.phase(state.phaseId).operatingRounds,
     companyOrder(state) {
         const companies = floatedCompaniesInMarketOrder(TheOldPrinceMarket, state)

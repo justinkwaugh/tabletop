@@ -17,12 +17,14 @@
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
     import StandingInstruction from '../stock/StandingInstruction.svelte'
+    import TurnHeading from './TurnHeading.svelte'
     import {
         companyFocusLocations,
         companyNetworkFocusLocations
     } from '../maps/companyFocusLocations.js'
     import {
         RailwayMapState,
+        cashOwnedBy,
         getCompany,
         nextOperatingCompany,
         type Company,
@@ -43,6 +45,7 @@
     import {
         DefaultTableLayout,
         DefaultTabs,
+        GameToaster,
         TabWorkspace,
         DebouncedLayout,
         HistoryControls,
@@ -73,7 +76,7 @@
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
-    import type { BoundingBox, GameAction } from '@tabletop/common'
+    import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
     import type { TitleActionDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
@@ -108,6 +111,7 @@
     const money = $derived(session.presentation.money)
     const {
         marketPoolId,
+        ipoPoolId,
         exchangePoolId,
         companyNames,
         companyPricePresentation = DefaultCompanyPricePresentation,
@@ -133,6 +137,10 @@
     const readOnlyPosition = $derived(
         session.isViewingHistory || !session.myPlayer || !session.isMyTurn
     )
+    const auctionShownToAll = $derived(!session.isViewingHistory && session.privateAuctionActive)
+    const auctionTurnPlayerId = $derived(
+        readOnlyPosition && auctionShownToAll ? session.turnPlayerId() : undefined
+    )
     let showPhaseChart = $state(false)
     const depotState = $derived({
         depot: session.trainDepot,
@@ -148,14 +156,6 @@
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
     const tileAppearance = $derived(session.tileAppearance)
-    function paintBodyBackground(_table: HTMLElement, initialColor: string | undefined) {
-        const original = document.body.style.backgroundColor
-        function paint(color: string | undefined) {
-            document.body.style.backgroundColor = color ?? original
-        }
-        paint(initialColor)
-        return { update: paint, destroy: () => paint(undefined) }
-    }
     async function toggleArtwork() {
         session.toggleArtwork()
         restoreRouteView = undefined
@@ -295,6 +295,11 @@
     let orderLastVisible = $state(-1)
     const orderWindowShown = $derived(orderChipsShown && orderOverflowing)
     const boardAreas = $derived(session.mapView.boardAreas)
+    const bankCash = $derived.by(() => {
+        const cash = cashOwnedBy(session.gameState, { kind: 'bank' })
+        assertExists(cash, 'The board shows the bank, which requires a cash account')
+        return cash
+    })
     const boardExtents = $derived(
         [boardAreas?.market, boardAreas?.depot].filter((area) => area !== undefined)
     )
@@ -560,7 +565,10 @@
             | undefined => {
             if (session.isViewingHistory)
                 return mapRoutes.length
-                    ? { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+                    ? {
+                          legalLocationIds: [],
+                          highlightedLocationIds: routeLocationIds(mapRoutes, session.mapView)
+                      }
                     : undefined
             if (maskPlacementLocations)
                 return {
@@ -568,7 +576,10 @@
                     highlightedLocationIds: highlightedPlacementLocationIds
                 }
             if (routePreview && !session.routes.editor.trainId && mapRoutes.length)
-                return { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+                return {
+                    legalLocationIds: [],
+                    highlightedLocationIds: routeLocationIds(mapRoutes, session.mapView)
+                }
             return undefined
         }
     )
@@ -624,6 +635,7 @@
     const startedCompanies = $derived(
         spreadsheetCompanies(
             gameState,
+            session.charters,
             session.actions,
             session.gameState.actionCount,
             displayedCompanyOrder,
@@ -781,11 +793,7 @@
         artwork={boardArtwork}
         tokens={session.map.displayedTokens}
         stationAppearances={session.mapView.stations}
-        reservations={[
-            ...(session.track.displayedStations?.stationReservations ??
-                session.stations.displayState.stationReservations),
-            ...powerReservations
-        ]}
+        reservations={[...session.map.displayedReservations, ...powerReservations]}
         routes={mapRoutes}
         selection={session.isViewingHistory
             ? historyMapSettled
@@ -854,6 +862,7 @@
                     {depotState}
                     depotOnly
                     onBoard
+                    bank={{ cash: bankCash, broken: !!session.gameState.bank.broken }}
                     chart={phaseChart}
                     currentPhaseId={session.gameState.phaseId}
                     {trainColors}
@@ -929,7 +938,7 @@
         {#each session.presentation.gameFacts?.(session.gameState) ?? [] as fact (fact.label)}
             <span class="game-information-item">
                 <span class="information-label">{fact.label}</span>
-                <span>{fact.value}</span>
+                <span class="information-value">{fact.value}</span>
             </span>
         {/each}
     </button>
@@ -964,10 +973,11 @@
     </div>
 {/snippet}
 
+<!-- The sidebar's tabs mount the toaster; the pane layout has no sidebar. -->
+{#if paneLayout.current}<GameToaster />{/if}
 <div
     class="railway-table"
     class:published-artwork={publishedArtwork}
-    use:paintBodyBackground={boardArtwork?.backgroundColor}
     use:framePlacement={activePlacementFocusKey}
     use:frameRoutes={{ runningCompanyId, preview: routePreview }}
     use:frameStartCompany={session.stock.selectedStartCompany}
@@ -993,6 +1003,7 @@
             {/snippet}
             {#snippet gameContent()}
                 <div
+                    class="game-heading"
                     class:workspace-heading={paneLayout.current}
                     class:player-tinted-header={paneLayout.current && !!headerPlayerId}
                     style:--player-color={headerPlayerId
@@ -1068,6 +1079,7 @@
                                     appearances={session.mapView.stations}
                                     completedCompanyIds={operatedCompanyIds}
                                     currentCompanyId={operatingCompanyId}
+                                    restoredSilently={session.restoredSilently}
                                 >
                                     {#snippet companyDetails(company)}
                                         <CompanyDetails
@@ -1103,7 +1115,7 @@
                             <PrivatePowerControls {session} />
                         {/if}
                         <section class="action-panel" aria-label="Current action">
-                            {#if readOnlyPosition}
+                            {#if readOnlyPosition && !auctionShownToAll}
                                 <PositionPanel
                                     {session}
                                     {trainColors}
@@ -1113,6 +1125,10 @@
                                         {session}
                                     />{/if}
                             {:else}
+                                {#if auctionTurnPlayerId}<TurnHeading
+                                        {session}
+                                        playerId={auctionTurnPlayerId}
+                                    />{/if}
                                 {@render actions(focusLocation, focusRoute)}
                             {/if}
                         </section>
@@ -1283,6 +1299,7 @@
                                 {numberedShareNames}
                                 {includedCompanyIds}
                                 {marketPoolId}
+                                {ipoPoolId}
                                 {exchangePoolId}
                                 {portfolioCompanyIds}
                             />
@@ -1321,26 +1338,28 @@
                         />
                     </div>
                 {:else}
-                    <div class="original-actions">{@render actionContent()}</div>
-                    <div class="stacked-workspace">
-                        <TabWorkspace
-                            tabs={workspaceTabs
-                                .filter(
-                                    (tab) =>
-                                        tab.id !== 'Actions' &&
-                                        tab.id !== 'Player Aid' &&
-                                        !(boardAvailable && tab.id === 'Market')
-                                )
-                                .map((tab) =>
-                                    boardAvailable && tab.id === 'Map'
-                                        ? { ...tab, label: 'Board' }
-                                        : tab
-                                )}
-                            bind:selected={selectedView}
-                            label="Table views"
-                            splittable={false}
-                            {children}
-                        />
+                    <div class="stacked-body">
+                        <div class="original-actions">{@render actionContent()}</div>
+                        <div class="stacked-workspace">
+                            <TabWorkspace
+                                tabs={workspaceTabs
+                                    .filter(
+                                        (tab) =>
+                                            tab.id !== 'Actions' &&
+                                            tab.id !== 'Player Aid' &&
+                                            !(boardAvailable && tab.id === 'Market')
+                                    )
+                                    .map((tab) =>
+                                        boardAvailable && tab.id === 'Map'
+                                            ? { ...tab, label: 'Board' }
+                                            : tab
+                                    )}
+                                bind:selected={selectedView}
+                                label="Table views"
+                                splittable={false}
+                                {children}
+                            />
+                        </div>
                     </div>
                 {/if}
             {/snippet}
@@ -1408,6 +1427,17 @@
         flex-direction: column;
         flex: 1;
         min-height: 50dvh;
+    }
+    .game-heading {
+        flex: none;
+    }
+    .stacked-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: none;
     }
     .workspace-heading {
         padding-inline: 8px;
@@ -1611,7 +1641,8 @@
         text-align: center;
         line-height: 10px;
     }
-    .train-limit-value {
+    .train-limit-value,
+    .information-value {
         font-size: 16px;
         font-weight: 700;
         line-height: 20px;

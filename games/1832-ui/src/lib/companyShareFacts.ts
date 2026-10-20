@@ -1,6 +1,16 @@
-import { spendableCash, type EighteenThirtyTwoState } from '@tabletop/1832'
+import {
+    EighteenThirtyTwoCharters,
+    spendableCash,
+    type EighteenThirtyTwoState
+} from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
-import { finiteCashOwnedBy, getCompany, sharesOwned, type Owner } from '@tabletop/18xx'
+import {
+    companyShareCount,
+    finiteCashOwnedBy,
+    getCompany,
+    sharesOwned,
+    type Owner
+} from '@tabletop/18xx'
 import type { MoneyFormat, TitleFact } from '@tabletop/18xx-ui'
 
 /**
@@ -13,7 +23,8 @@ export function companyShareFacts(
     money: MoneyFormat
 ): TitleFact[] {
     const company = getCompany(state, companyId)
-    assertExists(company.shareCount, 'A company acting for its shares has a share count')
+    const shareCount = companyShareCount(state, EighteenThirtyTwoCharters, companyId)
+    assertExists(shareCount, 'A company acting for its shares has a share count')
     assertExists(company.parPrice, 'A company acting for its shares has a par price')
     const cash = finiteCashOwnedBy(state, { kind: 'company', companyId })
     const spendable = spendableCash(state, companyId)
@@ -21,7 +32,7 @@ export function companyShareFacts(
     return [
         { label: 'Cash', value: money(cash) },
         ...(spendable === cash ? [] : [{ label: 'Spendable', value: money(spendable) }]),
-        { label: 'Redeemed', value: `${(redeemed * 100) / company.shareCount}%` },
+        { label: 'Redeemed', value: `${(redeemed * 100) / shareCount}%` },
         { label: 'Par', value: money(company.parPrice) }
     ]
 }

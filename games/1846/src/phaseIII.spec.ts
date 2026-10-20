@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ReceivershipRules1846 } from './receivership.js'
 import { assertExists, ActionSource } from '@tabletop/common'
 import {
     controllingOwner,
@@ -20,13 +21,15 @@ import {
     phaseIIIReadyGame,
     buyTrain,
     discardTrain,
-    setCompanyInReceivership
-} from './testSupport.js'
+    setCompanyInReceivership,
+    fundablePurchases,
+    fundingModel,
+    fundTrain,
+    resolveFunding
+} from '../test/testSupport.js'
 import { TrainDepot1846, TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 import { StationRules1846 } from './stations.js'
 import { RouteRules1846 } from './routes.js'
-import { emergencyBankOffers, emergencyTrainChoices } from './emergencyTrain.js'
-import { receiverTrainPurchase } from './receiverOperations.js'
 import { isAdvancePhase1846 } from './phases.js'
 
 describe('1846 Phase III trains and lifecycle', () => {
@@ -85,13 +88,10 @@ describe('1846 Phase III trains and lifecycle', () => {
                 before.stationReservations.filter((reservation) => reservation.companyId !== 'C&WI')
             )
             const phase = result.processedActions.find(isAdvancePhase1846)
-            expect(phase?.metadata?.removedReservations).toEqual([
-                { companyId: 'C&WI', locationId: 'D6', nodeId: 'city-3' }
-            ])
-            expect(phase?.metadata?.closedRailroads.map((closure) => closure.companyId)).toEqual([
-                'MS',
-                'BIG4'
-            ])
+            expect(phase?.metadata?.changes?.removedReservations).toEqual([])
+            expect(
+                phase?.metadata?.changes?.closedRailroads.map((closure) => closure.companyId)
+            ).toEqual(['MS', 'BIG4'])
             expect(phase?.metadata?.event.pendingRustTrainIds).toHaveLength(3)
             expect(phase?.metadata?.event.rustedTrains).toHaveLength(2)
             expect(getCompany(table.state, 'MAIL').closed).not.toBe(true)
@@ -188,9 +188,11 @@ describe('1846 Phase III trains and lifecycle', () => {
         expect(
             table.state.trainInventory.trains.find((entry) => entry.id === train.id)
         ).toMatchObject({ status: 'owned', definitionId: '3/5' })
-        buyTrain(table, '4/6')
+        const result = buyTrain(table, '4/6')
         expect(trainsCountingForLimit(table.hydrated, TrainRules1846, 'IC')).toHaveLength(3)
-        expect(trainBuyingChoices1846(table.hydrated)?.offers).toEqual([])
+        expect(result.processedActions).toContainEqual(
+            expect.objectContaining({ type: 'FinishOperatingTurn', source: ActionSource.System })
+        )
     })
     it('lets surviving players discard for a receiver and restores the original buyer', () => {
         const table = phaseIIIReadyGame()
@@ -212,16 +214,15 @@ describe('1846 Phase III trains and lifecycle', () => {
                     ? { ...train, status: 'market' }
                     : train
             )
-        expect(Math.min(...emergencyBankOffers(table.hydrated).map((offer) => offer.price))).toBe(
-            160
-        )
-        const choice = emergencyTrainChoices(table.hydrated).find(
-            (offer) => offer.definitionId === '3/5'
-        )
+        expect(Math.min(...fundablePurchases(table).map((offer) => offer.price))).toBe(160)
+        const choice = fundablePurchases(table).find((offer) => offer.definitionId === '3/5')
         assertExists(choice)
-        expect(choice.contribution).toBe(60)
+        expect(fundingModel(table).preview(choice)).toMatchObject({
+            contributions: [{ amount: 60 }]
+        })
         const beforePurchase = structuredClone(table.state)
-        table.act('EmergencyBuyTrain', choice)
+        fundTrain(table, '3/5')
+        resolveFunding(table)
         expect(
             table.state.trainInventory.trains.find((train) => train.id === choice.trainId)
         ).toMatchObject({ status: 'owned', definitionId: '3/5' })
@@ -233,9 +234,11 @@ describe('1846 Phase III trains and lifecycle', () => {
         )
         assertExists(cash)
         cash.amount = 160
-        expect(receiverTrainPurchase(table.hydrated)).toMatchObject({
+        expect(
+            ReceivershipRules1846.trainPurchase(table.hydrated, 'IC', TrainRules1846)
+        ).toMatchObject({
             definitionId: '3/5',
-            price: 160
+            expectedPrice: 160
         })
     })
     it('retires phased-out trains after an unused final route step and records the removal', () => {

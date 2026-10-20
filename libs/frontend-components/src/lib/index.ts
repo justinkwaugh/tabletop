@@ -11,6 +11,7 @@ export { default as ViewingHistoryLine } from './components/ViewingHistoryLine.s
 export { default as DefaultSideContent } from './components/DefaultSideContent.svelte'
 export { default as DefaultTableLayout } from './components/DefaultTableLayout.svelte'
 export { default as DefaultTabs } from './components/DefaultTabs.svelte'
+export { default as GameToaster } from './components/GameToaster.svelte'
 export { default as Floater } from './components/Floater.svelte'
 export { default as Typeahead } from './components/Typeahead.svelte'
 export { default as GameEditForm } from './components/GameEditForm.svelte'

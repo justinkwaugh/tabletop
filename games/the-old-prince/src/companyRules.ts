@@ -1,3 +1,4 @@
+import { TheOldPrinceCharters } from './charters.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import {
     applyPresidencyChange,
@@ -86,6 +87,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
     sharesToFloat: (state, companyId) =>
         sharesStillToFloat(
             state,
+            TheOldPrinceCharters,
             companyId,
             60,
             (certificate) => certificate.owner.kind === 'bank' && certificate.poolId !== 'reserved'
@@ -93,6 +95,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
     flotationPayments: (state, companyId) =>
         fullCapitalizationPayments(
             state,
+            TheOldPrinceCharters,
             companyId,
             TheOldPrinceCompanyRules.sharesToFloat?.(state, companyId)
         ),
@@ -126,7 +129,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         )
         assertExists(replacement, 'PEIR exchange requires an ordinary Bank share')
         const exchange = exchangeCertificate(state, association.peirCertificateId, replacement.id)
-        grantOwnershipLimitExemption(state, companyId, exchange.owner)
+        grantOwnershipLimitExemption(state, TheOldPrinceCharters, companyId, exchange.owner)
         const presidency = evaluatePresidency(
             state,
             companyId,

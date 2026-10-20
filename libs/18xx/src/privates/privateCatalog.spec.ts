@@ -59,11 +59,10 @@ function state(phaseId: string, owners: Record<string, Owner>, closed: string[] 
         cash: [],
         certificatePools: [],
         companies: [
-            { id: 'R', kind: 'major', shareCount: 10 },
+            { id: 'R', kind: 'major' },
             ...Object.keys(owners).map((id) => ({
                 id,
                 kind: 'private',
-                privateRevenue: catalog.definition(id).revenue,
                 ...(closed.includes(id) ? { closed: true } : {})
             }))
         ],

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { privatePowerUsed } from '@tabletop/18xx'
+    import { privatePowerUsed, isObsoleteTrain } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import {
         companySharePrice,
@@ -97,6 +97,8 @@
     )
     const shareStatus = $derived(session.companyShareStatus(company.id))
     const trains = $derived(trainsOwnedBy(gameState, owner))
+    const marks = $derived(session.presentation.companyMarks?.(gameState, company.id) ?? [])
+    const origin = $derived(session.presentation.companyOrigin?.(gameState, company.id))
     const stations = $derived(
         gameState.stations.filter((station) => station.companyId === company.id)
     )
@@ -164,19 +166,22 @@
                         <TrainBadge
                             name={definition.name}
                             color={trainColors[train.definitionId]}
+                            obsolete={isObsoleteTrain(train)}
                             title={definition.distance.maximum === 'unlimited'
                                 ? 'Unlimited'
                                 : `${definition.distance.maximum} ${definition.distance.measure === 'hex-edges' ? 'hex edges' : definition.distance.measure === 'cities-and-offboards' ? 'cities / offboards + towns' : 'revenue centers'}`}
                         />
-                        {#if train.status === 'owned' && train.rustsAfterOperation}
-                            <span class="status">Rusts after running</span>
-                        {/if}
                     {:else}<span
                             class="empty"
                             class:train-required={session.companyRequiresTrain(company.id)}
                             title={session.companyRequiresTrain(company.id)
                                 ? 'Must buy a train when operating'
                                 : undefined}>No trains</span
+                        >{/each}
+                    {#each marks as mark (mark.label)}<span
+                            class="company-mark"
+                            title={mark.description}
+                            aria-label={mark.description}>{mark.label}</span
                         >{/each}
                 </div>
                 {#if company.closed}<p class="subtitle">Closed</p>{/if}
@@ -221,6 +226,18 @@
             </div>
         </div>
     </header>
+    {#if origin}
+        <p class="origin">
+            {origin.text}
+            {#each origin.companyIds as id, index (id)}{#if index}<span>&amp;</span>{/if}<span
+                    class="origin-company"
+                    ><CompanyToken appearance={session.mapView.stations[id]} size={15} /><strong
+                        >{session.presentation.companyNames?.[id]?.initials ??
+                            session.companyName(id)}</strong
+                    ></span
+                >{/each}
+        </p>
+    {/if}
     <div class="financial-summary">{@render prices()}</div>
     <div class="detail-columns">
         <section aria-label="Company ownership">
@@ -364,15 +381,12 @@
                     imageUrl={session.publishedCardImage(item.id)}
                     name={session.companyName(item.id)}
                     description={item.description}
-                    income={item.closed ? undefined : item.privateRevenue}
+                    income={item.closed ? undefined : item.revenue}
                 />{#each session.privateActions.powersFor(item.id) as power (power.playerId)}<span
                         class="private-power"><PrivateTrackPowerButton {session} {power} /></span
                     >{/each}
             </div>
-            <span
-                >{purchasePrice ??
-                    (item.closed ? 'Closed' : `${money(item.privateRevenue ?? 0)} / OR`)}</span
-            >
+            <span>{purchasePrice ?? (item.closed ? 'Closed' : `${money(item.revenue)} / OR`)}</span>
         </div>
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
             >{/if}
@@ -518,6 +532,40 @@
         font-size: 15px;
         font-weight: 650;
         white-space: nowrap;
+    }
+    .company-mark {
+        padding: 0 5px;
+        border: 1px solid var(--rail-border, #c7b8a6);
+        border-radius: 3px;
+        background: #111418;
+        color: #e8edf2;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        line-height: 15px;
+        text-transform: uppercase;
+        cursor: help;
+    }
+    .origin {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        margin: 0;
+        padding: 3px 10px;
+        border-bottom: 1px solid var(--rail-border, #e3d9cd);
+        color: var(--rail-muted, #887664);
+        font-size: 11px;
+    }
+    .origin-company {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--rail-text, #514536);
+    }
+    .origin strong {
+        font-weight: 650;
     }
     .subtitle {
         margin: 2px 0 0;

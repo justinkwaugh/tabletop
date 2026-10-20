@@ -1,3 +1,5 @@
+import { soldThisStockRound } from './stockRound.js'
+import { companyShareCount } from '../company/companyCharters.js'
 import * as Type from 'typebox'
 import { openShorts, retireCertificates } from './shorts.js'
 import { furtherShareAllowed } from './turnPurchases.js'
@@ -86,11 +88,7 @@ export function evaluateShareAcquisition(
         return { reason: 'This player cannot buy for that owner.' }
     const transfer = evaluateShareTransfer(state, request, rules, terms)
     const companyId = transfer.details?.companyId
-    if (
-        state.stockRound.sales.some(
-            (sale) => sameOwner(sale.owner, buyer) && sale.companyId === companyId
-        )
-    )
+    if (companyId && soldThisStockRound(state.stockRound, buyer, companyId))
         return { reason: 'The buyer sold shares in this company this stock round.' }
     return transfer
 }
@@ -109,7 +107,10 @@ export function evaluateShareTransfer(
         return { reason: 'The buyer already owns this certificate.' }
     if (typeof terms === 'string') return { reason: terms }
     const company = getCompany(state, certificate.companyId)
-    assertExists(company.shareCount, 'Priced shares require a share count')
+    assertExists(
+        companyShareCount(state, rules.charters, company.id),
+        'Priced shares require a share count'
+    )
     // A share that closes the buyer's short leaves their holdings and certificates unchanged.
     const coveredShort = openShorts(state, company.id, buyer)[0]
     if (

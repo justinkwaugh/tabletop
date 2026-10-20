@@ -5,7 +5,9 @@ import {
     stockCertificateCount,
     finiteCashOwnedBy,
     getCompany,
+    inReceivership,
     placeStockMarker,
+    presidencyClaims,
     sharesOwned,
     trainsOwnedBy,
     sameOwner,
@@ -16,20 +18,18 @@ import {
     type RoutePath,
     type Owner
 } from '@tabletop/18xx'
-import { emergencyBuyingGame } from './testSupport.js'
-import { bankruptcyShortfall } from './bankruptcy.js'
-import { inReceivership } from './receivership.js'
-import { receiverShareChoices } from './receiverShares.js'
-import { receiverTrainPurchase } from './receiverOperations.js'
+import { emergencyBuyingGame, fundTrain, fundingModel, resolveFunding } from '../test/testSupport.js'
+import { ReceivershipRules1846 } from './receivership.js'
 import { StockRules1846, Market1846 } from './stock.js'
 import { TrackRules1846 } from './track.js'
 import { TransferRules1846 } from './acquisitions.js'
 import { RouteRules1846 } from './routes.js'
 import { EarningsRules1846 } from './earnings.js'
-import { emergencyTrainChoices } from './emergencyTrain.js'
+import { TrainRules1846 } from './trains.js'
 
 type Table = ReturnType<typeof emergencyBuyingGame>
 const treasury = { kind: 'company', companyId: 'IC' } as const
+const claimRules = { stockRules: StockRules1846, receivershipRules: ReceivershipRules1846 }
 function setCash(table: Table, owner: Owner, amount: number) {
     const balance = table.state.cash.find((entry) => sameOwner(entry.owner, owner))
     assertExists(balance)
@@ -62,8 +62,23 @@ function funding(price = 40, cash = 0) {
     setCash(table, { kind: 'player', playerId }, cash)
     return { table, playerId }
 }
-function declare(table: Table) {
-    return table.act('DeclareBankruptcy1846', { companyId: 'IC' })
+/** Funds the train and exhausts the president, so the runtime declares their bankruptcy. */
+function goBankrupt(table: Table, definitionId?: string) {
+    const start = table.actions.length
+    fundTrain(table, definitionId)
+    const since = () => table.actions.slice(start)
+    const bankrupt = () => since().find((action) => action.type === 'DeclareBankruptcy')
+    while (!bankrupt() && table.state.machineState === 'FundingTrain') {
+        const next = fundingModel(table).next()
+        if (next.kind === 'issue')
+            table.act('IssueTreasuryShares', { expectedProceeds: next.details.proceeds })
+        else if (next.kind === 'contribute')
+            table.act('ContributeTrainFunds', { owner: next.owner, amount: next.amount })
+        else break
+    }
+    const declared = bankrupt()
+    assertExists(declared, 'The exhausted president goes bankrupt')
+    return { actions: since(), declared }
 }
 function stockRound(table: Table, playerId = 'p2') {
     table.state.machineState = 'StockRound'
@@ -73,8 +88,7 @@ function stockRound(table: Table, playerId = 'p2') {
 }
 function receiverStock() {
     const { table } = funding()
-    table.act('StartEmergencyFunding', { companyId: 'IC' })
-    declare(table)
+    goBankrupt(table)
     stockRound(table)
     if (getCompany(table.state, 'IC').closed) throw Error('Fixture must preserve IC')
     return table
@@ -83,19 +97,22 @@ function receiverStock() {
 describe('1846 bankruptcy and receivership', () => {
     it('liquidates the president, closes their independent and private, eliminates them, and replays/undoes atomically', () => {
         const { table, playerId } = funding()
-        table.act('StartEmergencyFunding', { companyId: 'IC' })
-        expect(bankruptcyShortfall(table.hydrated)).toBe(60)
         const before = structuredClone(table.state)
-        const result = declare(table)
+        const { actions, declared } = goBankrupt(table)
         expect(table.state.bankruptPlayerIds).toEqual([playerId])
         expect(table.state.turnManager.turnOrder).not.toContain(playerId)
         expect(finiteCashOwnedBy(table.state, { kind: 'player', playerId })).toBe(0)
         expect(getCompany(table.state, 'BIG4').closed).toBe(true)
         expect(getCompany(table.state, 'SC').closed).toBe(true)
-        expect(result.processedActions[0].metadata).toMatchObject({
-            receiverCompanyIds: ['IC'],
-            forcedSales: [{ companyId: 'IC', shares: 2, price: 20, proceeds: 40 }],
-            closedPrivateIds: ['SC']
+        expect(declared.metadata).toMatchObject({
+            playerId,
+            companyId: 'IC',
+            continuation: 'BuyingTrains',
+            changes: {
+                receiverCompanyIds: ['IC'],
+                forcedSales: [{ companyId: 'IC', shares: 2, price: 20, proceeds: 40 }],
+                closedPrivateIds: ['SC']
+            }
         })
         expect(
             table.state.certificates.some(
@@ -103,10 +120,10 @@ describe('1846 bankruptcy and receivership', () => {
             )
         ).toBe(false)
         let replay = before
-        for (const action of result.processedActions)
+        for (const action of actions)
             replay = table.engine.applyProcessedAction({ game: table.game, state: replay, action })
         expect(replay).toEqual(table.state)
-        for (const action of result.processedActions.toReversed())
+        for (const action of actions.toReversed())
             replay = table.engine.undoProcessedAction({ state: replay, action })
         expect(replay).toEqual(before)
     })
@@ -119,54 +136,64 @@ describe('1846 bankruptcy and receivership', () => {
                 certificate.poolId = 'open-market'
             }
         }
-        table.act('StartEmergencyFunding', { companyId: 'IC' })
-        expect(bankruptcyShortfall(table.hydrated)).toBe(60)
-        const result = declare(table)
-        expect(result.processedActions[0].metadata).toMatchObject({
-            sales: [{ proceeds: 20 }],
-            forcedSales: [{ shares: 5, price: 10, proceeds: 50 }]
+        fundTrain(table)
+        const next = fundingModel(table).next()
+        assert(next.kind === 'sell', 'The president sells what the market can hold')
+        expect(next.sales.map((sale) => [sale.sales[0].shares, sale.proceeds])).toEqual([[1, 20]])
+        const start = table.actions.length
+        table.act('SellFundingShares', {
+            seller: next.owner,
+            companyId: 'IC',
+            shares: 1,
+            expectedProceeds: 20
+        })
+        resolveFunding(table)
+        const declared = table.actions
+            .slice(start)
+            .find((action) => action.type === 'DeclareBankruptcy')
+        expect(declared?.metadata).toMatchObject({
+            changes: { forcedSales: [{ shares: 5, price: 10, proceeds: 50 }] }
         })
         expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(10)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(10)
         expect(trainsOwnedBy(table.state, treasury)).toHaveLength(0)
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(70)
     })
-    it('rejects premature, wrong-player, and forged system declarations', () => {
-        const { table } = funding()
-        expect(() => declare(table)).toThrow()
-        table.act('StartEmergencyFunding', { companyId: 'IC' })
-        expect(() =>
-            table.act('DeclareBankruptcy1846', { companyId: 'IC', playerId: 'p2' })
-        ).toThrow()
-        expect(() =>
-            table.act('DeclareBankruptcy1846', { companyId: 'IC', source: ActionSource.System })
-        ).toThrow()
-        setCash(table, { kind: 'player', playerId: table.state.activePlayerIds[0] }, 60)
-        expect(bankruptcyShortfall(table.hydrated)).toBeUndefined()
-        expect(() => declare(table)).toThrow()
+    it('declares bankruptcy only once funding is exhausted, and for the funding player', () => {
+        const { table, playerId } = funding()
+        expect(() => table.act('DeclareBankruptcy', {})).toThrow()
+        fundTrain(table)
+        expect(() => table.act('DeclareBankruptcy', { playerId: 'p2' })).toThrow()
+        expect(() => table.act('DeclareBankruptcy', { source: ActionSource.System })).toThrow()
+        setCash(table, { kind: 'player', playerId }, 60)
+        const result = table.act('IssueTreasuryShares', { expectedProceeds: 20 })
+        expect(result.processedActions.map((action) => action.type)).not.toContain(
+            'DeclareBankruptcy'
+        )
+        expect(fundingModel(table).next()).toMatchObject({ kind: 'contribute', amount: 60 })
     })
     it('hands the compulsory purchase to an eligible new president without their predecessor’s sale restrictions', () => {
         const { table, playerId } = funding()
         giveShares(table, 'IC', 'p2', 2)
-        table.act('StartEmergencyFunding', { companyId: 'IC' })
-        declare(table)
+        setCash(table, { kind: 'player', playerId: 'p2' }, 500)
+        const { declared } = goBankrupt(table)
+        expect(declared.metadata).toMatchObject({ continuation: 'FundingTrain' })
         expect(getCompany(table.state, 'IC').president).toEqual({ kind: 'player', playerId: 'p2' })
-        expect(table.state.machineState).toBe('BuyingTrains')
+        expect(table.state.machineState).toBe('FundingTrain')
         expect(table.state.activePlayerIds).toEqual(['p2'])
-        expect(table.state.emergencyFunding).toBeUndefined()
+        expect(table.state.trainFunding?.playerId).toBe('p2')
         expect(table.state.bankruptPlayerIds).toEqual([playerId])
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: 'p2' })).toBe(2)
-        setCash(table, { kind: 'player', playerId: 'p2' }, 500)
-        const choice = emergencyTrainChoices(table.hydrated)[0]
-        assertExists(choice)
-        table.act('EmergencyBuyTrain', choice)
+        expect(fundingModel(table).next()).toMatchObject({ kind: 'contribute' })
+        resolveFunding(table)
         expect(trainsOwnedBy(table.state, treasury)).toHaveLength(1)
     })
     it('automatically buys a receiver’s cheapest train using the forced liquidation proceeds', () => {
         const { table } = funding(40, 20)
-        table.act('StartEmergencyFunding', { companyId: 'IC' })
-        const result = declare(table)
-        expect(result.processedActions.map((a) => a.type)).toContain('BuyReceiverTrain')
+        const { actions } = goBankrupt(table)
+        expect(actions).toContainEqual(
+            expect.objectContaining({ type: 'BuyTrain', source: ActionSource.System })
+        )
         expect(trainsOwnedBy(table.state, treasury).map((t) => t.definitionId)).toEqual(['2'])
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(0)
         expect(inReceivership(table.state, 'IC')).toBe(true)
@@ -176,15 +203,16 @@ describe('1846 bankruptcy and receivership', () => {
         table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
             (train) => !(train.status === 'depot' && train.definitionId === '2')
         )
-        table.act('StartEmergencyFunding', { companyId: 'IC' })
-        expect(bankruptcyShortfall(table.hydrated)).toBe(40)
         const before = structuredClone(table.state)
-        const result = declare(table)
-        expect(result.processedActions.map((action) => action.type)).toEqual([
-            'DeclareBankruptcy1846',
-            'BuyReceiverTrain',
+        const { actions } = goBankrupt(table, '3/5')
+        expect(actions.map((action) => action.type)).toEqual([
+            'FundTrain',
+            'IssueTreasuryShares',
+            'ContributeTrainFunds',
+            'DeclareBankruptcy',
+            'BuyTrain',
             'AdvancePhase',
-            'FinishReceiverTurn',
+            'FinishOperatingTurn',
             'StartOperatingRound',
             'StartOperatingTurn'
         ])
@@ -195,7 +223,7 @@ describe('1846 bankruptcy and receivership', () => {
         ])
         expect(getCompany(table.state, 'IC').president).toBeUndefined()
         let replay = before
-        for (const action of result.processedActions)
+        for (const action of actions)
             replay = table.engine.applyProcessedAction({ game: table.game, state: replay, action })
         expect(replay).toEqual(table.state)
     })
@@ -206,15 +234,20 @@ describe('1846 bankruptcy and receivership', () => {
         'automatically operates a trainless receiver at $%i and closes it only at zero',
         (price, after, closed) => {
             const { table } = funding()
-            table.act('StartEmergencyFunding', { companyId: 'IC' })
-            declare(table)
+            goBankrupt(table)
             setPrice(table, price)
             expect(table.state.machineState).toBe('LayingTrack')
             const result = table.act('FinishTrack', { companyId: 'MS' })
-            expect(result.processedActions.map((action) => action.type)).toContain(
-                'StartReceiverTurn'
+            const types = result.processedActions.map((action) => action.type)
+            expect(types).toContain('StartOperatingTurn')
+            expect(result.processedActions).toContainEqual(
+                expect.objectContaining({
+                    type: 'DistributeEarnings',
+                    source: ActionSource.System,
+                    companyId: 'IC',
+                    choice: 'withhold'
+                })
             )
-            expect(result.processedActions.map((action) => action.type)).toContain('SettleReceiver')
             expect(getCompany(table.state, 'IC').closed ?? false).toBe(closed)
             if (after !== undefined) {
                 expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(after)
@@ -225,8 +258,7 @@ describe('1846 bankruptcy and receivership', () => {
     )
     it('accepts a surviving player’s routes, automatically withholds, and forbids receiver train sales', () => {
         const { table } = funding(40, 20)
-        table.act('StartEmergencyFunding', { companyId: 'IC' })
-        declare(table)
+        goBankrupt(table)
         setPrice(table, 60)
         const station = table.state.stations.find(
             (station) => station.companyId === 'IC' && station.status === 'placed'
@@ -246,7 +278,8 @@ describe('1846 bankruptcy and receivership', () => {
         })
         table.act('FinishTrack', { companyId: 'MS' })
         table.act('RunTrains', { companyId: 'MS', routes: [] })
-        expect(table.state.machineState).toBe('RunningReceiver')
+        expect(table.state.machineState).toBe('RunningTrains')
+        expect(table.state.routeStep?.companyId).toBe('IC')
         expect(table.state.activePlayerIds.toSorted()).toEqual(['p2', 'p3'])
         const evaluation = new RouteEvaluation(table.hydrated, RouteRules1846)
         const start = { locationId: 'C15', nodeId: 'city' }
@@ -270,11 +303,11 @@ describe('1846 bankruptcy and receivership', () => {
         expect(() => table.act('RunTrains', { companyId: 'IC', routes, playerId: 'p1' })).toThrow()
         expect(() => table.act('FinishTrack', { companyId: 'IC' })).toThrow()
         const result = table.act('RunTrains', { companyId: 'IC', routes, playerId: 'p3' })
-        expect(result.processedActions.map((action) => action.type)).toContain('SettleReceiver')
-        expect(result.processedActions[1].metadata).toMatchObject({
+        expect(result.processedActions[1]).toMatchObject({
+            type: 'DistributeEarnings',
+            source: ActionSource.System,
             choice: 'withhold',
-            revenue: 60,
-            retained: 60
+            metadata: { revenue: 60, retained: 60 }
         })
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(60)
         expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(50)
@@ -287,19 +320,19 @@ describe('1846 bankruptcy and receivership', () => {
     it('ends immediately when bankruptcy leaves one player, even if the receiver could buy a train', () => {
         const { table } = funding(40, 20)
         table.state.bankruptPlayerIds = ['p3']
+        setCash(table, { kind: 'player', playerId: 'p3' }, 0)
         table.state.turnManager.turnOrder = ['p1', 'p2']
         table.state.stockRound.passedPlayerIds = table.state.stockRound.passedPlayerIds.filter(
             (id) => id !== 'p3'
         )
         table.state.gameEnding = { reason: 'Bank broken', finalOperatingSet: 2 }
-        table.act('StartEmergencyFunding', { companyId: 'IC' })
-        const result = declare(table)
+        const { actions } = goBankrupt(table)
         expect(table.state.machineState).toBe('GameOver')
         expect(table.state.result).toBe(GameResult.Win)
         expect(table.state.gameEnding).toEqual({ reason: 'All other players bankrupt' })
         expect(table.state.winningPlayerIds).toEqual(['p2'])
         expect(table.state.activePlayerIds).toEqual([])
-        expect(result.processedActions.map((a) => a.type)).not.toContain('BuyReceiverTrain')
+        expect(actions.map((a) => a.type)).not.toContain('BuyTrain')
         expect(table.state.finalWealth).toHaveLength(3)
     })
     it('keeps 10% holders out of the presidency, then exchanges two shares on an ordinary stock purchase', () => {
@@ -346,20 +379,20 @@ describe('1846 bankruptcy and receivership', () => {
             certificate.owner = treasury
             delete certificate.poolId
         }
-        expect(receiverShareChoices(table.hydrated, 'p2')).toEqual([])
+        expect(presidencyClaims(table.hydrated, claimRules, 'p2')).toEqual([])
         giveShares(table, 'IC', 'p2', 1)
-        const choice = receiverShareChoices(table.hydrated, 'p2')[0]
-        assertExists(choice)
+        const offer = presidencyClaims(table.hydrated, claimRules, 'p2')[0]
+        assertExists(offer)
         const before = structuredClone(table.state)
-        const result = table.act('BuyReceiverShare', {
+        const result = table.act('ClaimPresidency', {
             companyId: 'IC',
-            expectedPrice: choice.price
+            expectedPrice: offer.price
         })
         expect(getCompany(table.state, 'IC').president).toEqual({ kind: 'player', playerId: 'p2' })
         expect(sharesOwned(table.state, 'IC', { kind: 'player', playerId: 'p2' })).toBe(2)
         expect(sharesOwned(table.state, 'IC', { kind: 'bank' })).toBe(1)
         expect(result.processedActions.map((action) => action.type)).toEqual([
-            'BuyReceiverShare',
+            'ClaimPresidency',
             'FinishStockTurn'
         ])
         expect(table.state.activePlayerIds).not.toContain('p2')
@@ -388,21 +421,22 @@ describe('1846 bankruptcy and receivership', () => {
         expect(new RouteEvaluation(table.hydrated, RouteRules1846).canAct('p3', 'IC')).toBe(true)
         table.state.routeStep.result = { companyId: 'IC', routes: [], revenue: 0 }
         setPrice(table, 60)
-        const result = new EarningsDistribution(table.hydrated, EarningsRules1846).evaluate(
-            'IC',
-            'withhold'
+        const earnings = new EarningsDistribution(
+            table.hydrated,
+            EarningsRules1846,
+            ReceivershipRules1846
         )
+        const result = earnings.evaluate('IC', 'withhold')
         expect(
             Market1846.spaces.find(
                 (space) => space.id === result.details?.marketMove?.toMarketSpaceId
             )?.price
         ).toBe(40)
-        expect(
-            new EarningsDistribution(table.hydrated, EarningsRules1846).evaluate('IC', 'pay')
-                .details
-        ).toBeUndefined()
+        expect(earnings.evaluate('IC', 'pay').details).toBeUndefined()
         table.state.trainPurchaseStep = { companyId: 'IC', purchasedTrainIds: [] }
         setCash(table, treasury, 1000)
-        expect(receiverTrainPurchase(table.hydrated)?.definitionId).toBe('2')
+        expect(
+            ReceivershipRules1846.trainPurchase(table.hydrated, 'IC', TrainRules1846)?.definitionId
+        ).toBe('2')
     })
 })

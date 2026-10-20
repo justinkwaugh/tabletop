@@ -102,7 +102,7 @@
 
     function batteryGuidance(seat: FixedBatterySeat): string {
         if (seat.holdsTheSanton) {
-            return 'With the Santon in use the fixed battery holds the Santon.'
+            return 'The fixed battery holds the Santon from reserve. Tap the battery to take it back.'
         }
         if (seat.position?.approach !== undefined) {
             return 'The fixed battery is placed. Tap another approach of its locale to turn it, or the battery to take it back.'
@@ -110,9 +110,10 @@
         if (seat.position) {
             return 'Now tap the approach the fixed battery blocks.'
         }
+        const onTheSanton = game.santon ? ' On the Santon it stays in reserve.' : ''
         return heldStack
-            ? 'Now tap the locale the fixed battery stands in.'
-            : 'Tap an artillery unit to make it the fixed battery: it blocks an approach and never moves again.'
+            ? `Now tap the locale the fixed battery stands in.${onTheSanton}`
+            : `Tap an artillery unit to make it the fixed battery: it blocks an approach and never moves again.${onTheSanton}`
     }
 
     const guidance = $derived.by(() => {
@@ -267,12 +268,8 @@
                                 {playerId}
                                 face={game.unit(unitId).face}
                                 scale={SLOT_SCALE}
-                                label={battery.holdsTheSanton
-                                    ? 'The fixed battery on the Santon'
-                                    : 'Take this unit back'}
-                                onclick={battery.holdsTheSanton
-                                    ? undefined
-                                    : () => gameSession.returnToPool(unitId)}
+                                label="Take this unit back"
+                                onclick={() => gameSession.returnToPool(unitId)}
                             />
                         {:else}
                             {@render emptySlots(1, 1)}

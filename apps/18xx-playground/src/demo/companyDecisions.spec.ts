@@ -264,11 +264,7 @@ function buyEhime() {
 }
 it('1889 gives Ehime’s seller a single optional extra tile lay and resumes the buyer', () => {
     const { game, engine, state, bought } = buyEhime()
-    expect(bought.privateTrackLay).toEqual({
-        companyId: 'IR',
-        privateCompanyId: 'ER',
-        playerId: 'alex'
-    })
+    expect(bought.privateTrackLay).toEqual({ privateCompanyId: 'ER', playerId: 'alex' })
     expect(privateOwner(bought, 'ER')).toEqual({ kind: 'company', companyId: 'IR' })
     expect(bought.activePlayerIds).toEqual(['alex'])
     const hydrated = Shikoku.runtime.hydrator.hydrateState(bought)

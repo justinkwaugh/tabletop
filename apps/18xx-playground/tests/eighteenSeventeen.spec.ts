@@ -124,7 +124,7 @@ test('1817 presidents act for a company in place of their stock turn', async ({ 
     await page.getByLabel('Game', { exact: true }).selectOption('1817')
     await page.getByLabel('Position', { exact: true }).selectOption('trading')
     await page.getByRole('button', { name: 'Pass', exact: true }).first().click()
-    await page.getByRole('button', { name: 'Act for a company', exact: true }).click()
+    await page.getByRole('button', { name: 'Company action', exact: true }).click()
     const corporate = page.getByRole('region', { name: 'Corporate actions' })
     await corporate
         .getByRole('button', { name: 'Take a loan for Boston and Albany Railroad' })
