@@ -1,7 +1,6 @@
 import fp from 'fastify-plugin'
-import { FastifyInstance, FastifyPluginOptions } from 'fastify'
-import { GameDefinition } from '@tabletop/common'
-
+import type { FastifyInstance, FastifyPluginOptions, FastifyRequest } from 'fastify'
+import type { GameDefinition } from '@tabletop/common'
 import Preferences from '../routes/titleSpecific/preferences.js'
 import CreateGame from '../routes/titleSpecific/create.js'
 import StartGame from '../routes/titleSpecific/start.js'
@@ -9,89 +8,76 @@ import ApplyAction from '../routes/titleSpecific/action.js'
 import UndoAction from '../routes/titleSpecific/undo.js'
 import ForkGame from '../routes/titleSpecific/fork.js'
 import PlayerVotes from '../routes/titleSpecific/vote.js'
-
 import { GameVersionMismatchError } from '../lib/errors.js'
 
-async function registerGame(
-    definition: GameDefinition,
-    fastify: FastifyInstance,
-    opts: FastifyPluginOptions
-) {
-    const prefix = `${opts.prefix || ''}/game/${definition.info.id}`
-
-    await fastify.register(
-        async function (instance) {
-            instance.addHook('onRequest', async (request, reply) => {
-                const logicVersion = definition.info.metadata.version
-                const requestHeader = request.headers['x-tabletop-game-logic-version']
-                const requestVersion = Array.isArray(requestHeader)
-                    ? requestHeader[0]
-                    : requestHeader
-                const serverMajor = parseMajorVersion(logicVersion)
-                const requestMajor = parseMajorVersion(requestVersion)
-                if (serverMajor != null && requestMajor != null && serverMajor !== requestMajor) {
-                    console.warn(
-                        `Game logic major version mismatch for ${definition.info.id}: server=${logicVersion} client=${requestVersion}`
-                    )
-                    reply.code(400)
-                    throw new GameVersionMismatchError({
-                        requestedVersion: requestVersion ?? 'unknown',
-                        serverVersion: logicVersion ?? 'unknown'
-                    })
-                }
-            })
-
-            instance.addHook('onSend', async (_request, reply, payload) => {
-                const logicVersion = definition.info.metadata.version ?? '0.0.0'
-                let uiVersion = '0.0.0'
-                try {
-                    const manifest = await instance.libraryService.getServedManifest()
-                    const entry = manifest.games?.find((game) => game.gameId === definition.info.id)
-                    if (entry?.uiVersion) {
-                        uiVersion = entry.uiVersion
-                    }
-                } catch (error) {
-                    console.warn(
-                        `Unable to resolve ui manifest version for ${definition.info.id}`,
-                        error
-                    )
-                }
-                reply.header('X-TABLETOP-GAME-LOGIC-VERSION', logicVersion)
-                reply.header('X-TABLETOP-GAME-UI-VERSION', uiVersion)
-                return payload
-            })
-
-            await instance.register(Preferences.bind(null, definition))
-            await instance.register(CreateGame.bind(null, definition))
-            await instance.register(StartGame.bind(null, definition))
-            await instance.register(UndoAction.bind(null, definition))
-            await instance.register(ForkGame.bind(null, definition))
-            await instance.register(PlayerVotes.bind(null, definition))
-
-            // Register all the actions
-            for (const actionType of Object.keys(definition.runtime.apiActions)) {
-                const actionSchema = definition.runtime.apiActions[actionType]
-                await instance.register(
-                    ApplyAction.bind(null, definition, actionType, actionSchema)
-                )
-            }
-        },
-        { prefix }
-    )
-}
-
 const parseMajorVersion = (version?: string) => {
-    if (!version) return null
-    const match = version.match(/^(\d+)\./)
+    const match = version?.match(/^(\d+)\./)
     return match ? Number(match[1]) : null
 }
 
 const Games = async (fastify: FastifyInstance, opts: FastifyPluginOptions) => {
-    const titles = await fastify.libraryService.getTitles()
-
-    for (const title of titles) {
-        await registerGame(title, fastify, opts)
-    }
+    await fastify.libraryService.getTitles()
+    await fastify.register(
+        async (instance) => {
+            const definitions = new WeakMap<FastifyRequest, GameDefinition>()
+            const definitionFor = (request: FastifyRequest) => {
+                const definition = definitions.get(request)
+                if (!definition) throw Object.assign(new Error('Not Found'), { statusCode: 404 })
+                return definition
+            }
+            instance.addHook('onRequest', async (request) => {
+                const params = request.params
+                if (
+                    typeof params !== 'object' ||
+                    params === null ||
+                    !('titleId' in params) ||
+                    typeof params.titleId !== 'string'
+                ) {
+                    throw Object.assign(new Error('Not Found'), { statusCode: 404 })
+                }
+                const generation = instance.libraryService.getGeneration(params.titleId)
+                if (!generation) throw Object.assign(new Error('Not Found'), { statusCode: 404 })
+                definitions.set(request, generation.definition)
+                const logicVersion = generation.publication.logicVersion
+                const header = request.headers['x-tabletop-game-logic-version']
+                const requestVersion = Array.isArray(header) ? header[0] : header
+                const serverMajor = parseMajorVersion(logicVersion)
+                const requestMajor = parseMajorVersion(requestVersion)
+                if (serverMajor !== null && requestMajor !== null && serverMajor !== requestMajor) {
+                    throw Object.assign(
+                        new GameVersionMismatchError({
+                            requestedVersion: requestVersion ?? 'unknown',
+                            serverVersion: logicVersion
+                        }),
+                        { statusCode: 400 }
+                    )
+                }
+            })
+            instance.addHook('onSend', async (request, reply, payload) => {
+                const definition = definitions.get(request)
+                if (definition) {
+                    const generation = instance.libraryService.getGeneration(definition.info.id)
+                    reply.header('X-TABLETOP-GAME-LOGIC-VERSION', definition.info.metadata.version)
+                    reply.header(
+                        'X-TABLETOP-GAME-UI-VERSION',
+                        generation?.publication.uiVersion ?? '0.0.0'
+                    )
+                }
+                return payload
+            })
+            instance.addHook('onResponse', async (request) => {
+                definitions.delete(request)
+            })
+            await instance.register(Preferences.bind(null, definitionFor))
+            await instance.register(CreateGame.bind(null, definitionFor))
+            await instance.register(StartGame.bind(null, definitionFor))
+            await instance.register(UndoAction.bind(null, definitionFor))
+            await instance.register(ForkGame.bind(null, definitionFor))
+            await instance.register(PlayerVotes.bind(null, definitionFor))
+            await instance.register(ApplyAction.bind(null, definitionFor, undefined, undefined))
+        },
+        { prefix: `${opts.prefix ?? ''}/game/:titleId` }
+    )
 }
 
 export default fp(Games)

@@ -14,7 +14,9 @@
         "lint": "eslint ."
     },
     "dependencies": {
-        "@tabletop/games-config": "workspace:*"
+        "@tabletop/games-config": "workspace:*",
+        "@tabletop/common": "workspace:*",
+        "@tabletop/rollup-config": "workspace:*"
     },
     "devDependencies": {
         "@typescript/native-preview": "7.0.0-dev.20260707.2",

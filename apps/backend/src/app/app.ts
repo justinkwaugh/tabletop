@@ -1,3 +1,4 @@
+import { installTitleScope } from '../runtime/titleScope.js'
 import RequestTimingsPlugin from './plugins/requestTimings.js'
 import { STATIC_ROOT } from '@tabletop/backend-services'
 import { measure } from '@tabletop/backend-services/diagnostics'
@@ -23,7 +24,6 @@ import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
-import type { ReplacementRequest } from '../runtime/replacementRequest.js'
 
 const __dirname = import.meta.dirname
 
@@ -43,7 +43,6 @@ const SESSION_KEY = process.env['SESSION_KEY']
 
 export interface AppOptions {
     prefix?: string
-    replacement: Pick<ReplacementRequest, 'request' | 'outcome'>
 }
 
 async function frontendVersion(fastify: FastifyInstance): Promise<string> {
@@ -164,6 +163,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin)
     await fastify.register(ServicesPlugin)
+    installTitleScope(fastify)
 
     if (service !== 'local') {
         fastify.addHook('onRequest', async (request, _reply) => {
@@ -171,6 +171,8 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             if (!path.startsWith(API_PREFIX) && !path.startsWith(TASKS_PREFIX)) {
                 return
             }
+            // Reads the manifest only; a title activation it asks for runs in the library's queue
+            // while the loaded titles keep serving, so no request waits for another title's load.
             try {
                 await measure('manifest.refresh', () => fastify.libraryService.refreshManifest())
             } catch (error) {
@@ -178,12 +180,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             }
         })
     }
-
-    const unsubscribeManifest = fastify.libraryService.onManifestMismatch(() => {
-        console.log('Manifest mismatch detected, replacing backend process...')
-        opts.replacement.request()
-    })
-    fastify.addHook('onClose', async () => unsubscribeManifest())
 
     await fastify.register(GamesPlugin, { prefix: API_PREFIX })
 

@@ -1,3 +1,4 @@
+import { lookupTitle, lookupTitles, type TitleLookup } from '../games/titleLookup.js'
 import {
     defaultGameConfig,
     normalizeGameConfig,
@@ -72,7 +73,7 @@ export class TournamentService {
     constructor(
         private readonly store: TournamentStore,
         private readonly users: Pick<UserService, 'getUsers' | 'getUserByUsername'>,
-        private readonly titles: Record<string, Pick<GameDefinition, 'info' | 'runtime'>>,
+        private readonly titles: TitleLookup<Pick<GameDefinition, 'info' | 'runtime'>>,
         private readonly notifications: Pick<NotificationService, 'sendNotification'>,
         private readonly games: Pick<
             GameService,
@@ -587,7 +588,7 @@ export class TournamentService {
             user,
             this.now(),
             async (typeId, readState) => {
-                const scoring = this.titles[typeId]?.runtime.scoring
+                const scoring = lookupTitle(this.titles, typeId)?.runtime.scoring
                 return scoring ? scoring.finalScores(await readState()) : undefined
             }
         )
@@ -704,7 +705,7 @@ export class TournamentService {
     }
 
     tournamentTitleIds(): string[] {
-        return Object.entries(this.titles)
+        return Object.entries(lookupTitles(this.titles))
             .filter(([, title]) => seatsAssignedStartingOrder(title))
             .map(([titleId]) => titleId)
     }
@@ -763,7 +764,7 @@ export class TournamentService {
         if (draft.format.kind !== 'mini')
             throw new TournamentError('Multi-stage tournaments are not available yet', 400)
         const gamesPerEntrant = draft.format.stages[0].gamesPerEntrant
-        const title = this.titles[rules.titleId]
+        const title = lookupTitle(this.titles, rules.titleId)
         if (!title) throw new TournamentError('This game title is unavailable', 400)
         if (!seatsAssignedStartingOrder(title))
             throw new TournamentError('This game is not available for tournaments yet', 400)

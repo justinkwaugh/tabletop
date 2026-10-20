@@ -2,7 +2,13 @@
     "name": "@tabletop/rollup-config",
     "type": "module",
     "version": "0.0.0",
-    "exports": "./index.js",
+    "exports": {
+        ".": "./index.js",
+        "./logic-sidecars": {
+            "types": "./logic-sidecars.d.ts",
+            "default": "./logic-sidecars.js"
+        }
+    },
     "scripts": {
         "test": "node --test *.test.mjs"
     },
@@ -17,7 +23,11 @@
         "rollup-plugin-brotli": "3.1.0",
         "rollup-plugin-postcss": "^4.0.2",
         "rollup-plugin-svelte": "^7.1.0",
-        "typescript": "5.9.3"
+        "typescript": "5.9.3",
+        "@tabletop/common": "workspace:*",
+        "@fastify/ajv-compiler": "^4.0.5",
+        "ajv": "^8.17.1",
+        "rollup": "^4.59.0"
     },
     "publishConfig": {
         "access": "public"

@@ -1,9 +1,8 @@
+import { resolveTitle, type TitleDefinition } from '../../lib/titleDefinition.js'
 import type { FastifyInstance } from 'fastify'
-import { PreferenceChange, PreferenceError, type GameDefinition } from '@tabletop/common'
+import { PreferenceChange, PreferenceError } from '@tabletop/common'
 
-export default async function (definition: GameDefinition, fastify: FastifyInstance) {
-    const preferences = definition.info.preferences
-    if (!preferences) return
+export default async function (source: TitleDefinition, fastify: FastifyInstance) {
     const auth = {
         onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
             relation: 'and' as const
@@ -11,6 +10,9 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
     }
 
     fastify.get('/preferences', auth, async (request, reply) => {
+        const definition = resolveTitle(source, request)
+        const preferences = definition.info.preferences
+        if (!preferences) return reply.code(404).send({ message: 'Not Found' })
         if (!request.user) return reply.code(401).send()
         const match = request.headers['if-none-match']
         const result = await fastify.preferenceService.read(
@@ -36,6 +38,9 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
             schema: { body: PreferenceChange }
         },
         async (request, reply) => {
+            const definition = resolveTitle(source, request)
+            const preferences = definition.info.preferences
+            if (!preferences) return reply.code(404).send({ message: 'Not Found' })
             if (!request.user) return reply.code(401).send()
             const match = request.headers['if-match']
             if (typeof match !== 'string')

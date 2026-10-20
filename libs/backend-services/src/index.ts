@@ -70,3 +70,6 @@ export * from './stats/siteStatsRollup.js'
 export * from './stats/siteStatsService.js'
 export * from './stats/hyperLogLog.js'
 export * from './persistence/model/storedSiteStatsMonth.js'
+
+export * from './games/titleLookup.js'
+export * from './games/logicFactory.js'

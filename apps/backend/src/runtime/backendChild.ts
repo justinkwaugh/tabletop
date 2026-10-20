@@ -1,5 +1,4 @@
 import { fork, type ChildProcess } from 'node:child_process'
-import type { ReplacementEnded } from './replacementRequest.js'
 
 export class BackendChild {
     readonly exited: Promise<void>
@@ -9,12 +8,7 @@ export class BackendChild {
     private requests = 0
     private readonly idleWaiters = new Set<() => void>()
 
-    constructor(
-        entry: URL,
-        startupTimeoutMs: number,
-        onReload: () => void,
-        env: NodeJS.ProcessEnv = {}
-    ) {
+    constructor(entry: URL, startupTimeoutMs: number, env: NodeJS.ProcessEnv = {}) {
         this.child = fork(entry, [], {
             stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
             env: { ...process.env, ...env }
@@ -43,9 +37,7 @@ export class BackendChild {
                 fail(new Error(`Backend exited: code=${code}, signal=${signal}`))
             })
             this.child.on('message', (message: unknown) => {
-                if (message === 'reload') {
-                    onReload()
-                } else if (
+                if (
                     typeof message === 'object' &&
                     message !== null &&
                     'port' in message &&
@@ -59,10 +51,6 @@ export class BackendChild {
                 }
             })
         })
-    }
-
-    notify(ended: ReplacementEnded): void {
-        if (this.child.connected) this.child.send(ended)
     }
 
     retain(): () => void {

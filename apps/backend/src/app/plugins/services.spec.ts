@@ -30,6 +30,7 @@ vi.mock('@tabletop/backend-services', async () => {
                 'FirestoreTournamentStore',
                 'FirestoreUserStore',
                 'GameService',
+                'TitleLibrary',
                 'LeagueService',
                 'NullPubSubService',
                 'PreferenceService',

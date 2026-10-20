@@ -454,6 +454,9 @@ importers:
 
   config/config-rollup:
     dependencies:
+      '@fastify/ajv-compiler':
+        specifier: ^4.0.5
+        version: 4.0.6
       '@rollup/plugin-commonjs':
         specifier: ^29.0.0
         version: 29.0.3(rollup@4.64.0)
@@ -472,9 +475,18 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^6.2.4
         version: 6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@tabletop/common':
+        specifier: workspace:*
+        version: link:../../libs/common
       '@tabletop/games-config':
         specifier: workspace:*
         version: link:../config-games
+      ajv:
+        specifier: ^8.17.1
+        version: 8.20.0
+      rollup:
+        specifier: ^4.59.0
+        version: 4.64.0
       rollup-plugin-brotli:
         specifier: 3.1.0
         version: 3.1.0
@@ -3498,6 +3510,9 @@ importers:
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260203.1
         version: 7.0.0-dev.20260203.1
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -3535,6 +3550,9 @@ importers:
       '@types/fnv-plus':
         specifier: ^1.3.2
         version: 1.3.2
+      '@types/node':
+        specifier: ^25.0.9
+        version: 25.9.9
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260203.1
         version: 7.0.0-dev.20260203.1
@@ -3546,7 +3564,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.12
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@25.9.9)(vite@7.3.6(@types/node@25.9.9)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   libs/email:
     dependencies:
@@ -3778,9 +3796,15 @@ importers:
 
   tools/deploy:
     dependencies:
+      '@tabletop/common':
+        specifier: workspace:*
+        version: link:../../libs/common
       '@tabletop/games-config':
         specifier: workspace:*
         version: link:../../config/config-games
+      '@tabletop/rollup-config':
+        specifier: workspace:*
+        version: link:../../config/config-rollup
     devDependencies:
       '@tabletop/eslint-config':
         specifier: workspace:*

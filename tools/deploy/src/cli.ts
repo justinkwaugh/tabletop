@@ -21,6 +21,7 @@ import { listBackendHistory, switchBackend } from './lib/backendHistory.js'
 import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
 import { syncHostingToManifest } from './lib/hostingPublish.js'
 import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.js'
+import { migrateLogicArtifacts } from './lib/logicArtifacts.js'
 import { listHistory, rollback, switchFrontend, switchGame } from './lib/publicationHistory.js'
 import { DEFAULT_GRACE_DAYS, prune, pruneAfterDeploy, type PruneScope } from './lib/prune.js'
 import { type PublishContext } from './lib/publishCore.js'
@@ -77,6 +78,10 @@ Commands:
   deploy-ui <gameId>           deploy-game for the UI only, with the same guards
   build-logic <gameId>         Build a game logic bundle (rollup)
   deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
+  migrate-logic-artifacts [--game=<id>] [--apply]
+                               Add the collectible factory (index.cjs) and standalone validators
+                               (validators.cjs) beside every selectable logic artifact that was
+                               published without them. Prints the plan only unless --apply.
   release-frontend (--major | --minor | --patch) [--no-deploy] [--no-prune]
                                Bump the frontend package version, sync the manifest, commit,
                                tag frontend-v<version>, push, then deploy (unless --no-deploy).
@@ -300,6 +305,11 @@ const main = async () => {
             throw new Error('--grace-days must be a whole number of days')
         }
         await prune(context, scope, { apply: values.apply === true, graceDays })
+        return
+    }
+
+    if (command === 'migrate-logic-artifacts') {
+        await migrateLogicArtifacts(context, { apply: values.apply === true, game: values.game })
         return
     }
 

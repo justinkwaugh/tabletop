@@ -40,6 +40,7 @@
             "cache": false,
             "persistent": true,
             "passThroughEnv": [
+                "BACKEND_HEALTH_PORT",
                 "BACKEND_VERSION",
                 "BUILD_TIME",
                 "BUILD_TIMESTAMP",
@@ -60,6 +61,7 @@
             "cache": false,
             "persistent": true,
             "passThroughEnv": [
+                "BACKEND_HEALTH_PORT",
                 "BACKEND_VERSION",
                 "BUILD_TIME",
                 "BUILD_TIMESTAMP",

@@ -1,3 +1,4 @@
+import { lookupTitle, lookupTitles, type TitleLookup } from './titleLookup.js'
 import { enqueueTournamentTask } from '../competitions/tournamentTasks.js'
 import { watchTournamentGame } from '../competitions/tournamentStalls.js'
 import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
@@ -167,15 +168,15 @@ export class GameService {
         private readonly taskService: TaskService,
         private readonly notificationService: NotificationService,
         private readonly cacheService: RedisCacheService,
-        private readonly availableTitles: Record<string, GameDefinition>
+        private readonly availableTitles: TitleLookup
     ) {}
 
     getTitle(titleId: string): GameDefinition | undefined {
-        return this.availableTitles[titleId]
+        return lookupTitle(this.availableTitles, titleId)
     }
 
     getTitles(): GameDefinition[] {
-        return Object.values(this.availableTitles)
+        return Object.values(lookupTitles(this.availableTitles))
     }
 
     async createGame({
@@ -971,6 +972,7 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        this.assertGameTitle(game, definition)
         assertOrdinaryGame(game)
 
         if (game.ownerId !== user.id && !user.roles.includes(Role.Admin)) {
@@ -1101,6 +1103,7 @@ export class GameService {
         if (!game || !game.state) {
             throw new GameNotFoundError({ id: gameId })
         }
+        this.assertGameTitle(game, definition)
 
         // Fill in the player id if not specified
         if (!action.playerId) {
@@ -1416,6 +1419,7 @@ export class GameService {
         actionId: string
     }): Promise<UndoResultsRepresentation> {
         const { game, undoWindow } = await this.readUndoWindow(gameId, { actionId })
+        this.assertGameTitle(game, definition)
         assertTournamentUndoAllowed(game)
         const userPlayer = user.roles.includes(Role.Admin)
             ? undefined
@@ -1523,6 +1527,7 @@ export class GameService {
         voteId: string
     }): Promise<Game> {
         const game = await this.requireGame(gameId)
+        this.assertGameTitle(game, definition)
         const player = this.findVotingPlayer({ user, game })
         const [updatedGame, updatedFields] = await this.gameStore.updateGame({
             game,
@@ -1670,6 +1675,7 @@ export class GameService {
         actionIndex: number
     }): Promise<{ game: Game; plan: UndoPlan }> {
         const { game, undoWindow } = await this.readUndoWindow(gameId, { actionIndex })
+        this.assertGameTitle(game, definition)
         if (!undoWindow) {
             throw new DisallowedPlayerVoteError({
                 gameId,
@@ -2037,6 +2043,11 @@ export class GameService {
 
     private hasDeveloperAccess(user: User): boolean {
         return user.roles.includes(Role.Admin) || user.roles.includes(Role.Developer)
+    }
+
+    // A title route may only act on that title's games: another title's game is not found there.
+    private assertGameTitle(game: Game, definition: GameDefinition): void {
+        if (game.typeId !== definition.info.id) throw new GameNotFoundError({ id: game.id })
     }
 
     private getRequiredTitle(game: Game): GameDefinition {
