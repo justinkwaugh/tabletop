@@ -87,7 +87,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
             stationAppearances: view.stations,
             routes,
             selection,
-            locations: locationId ? [locationId] : routeLocationIds(routes)
+            locations: locationId ? [locationId] : routeLocationIds(routes, view)
         }
         this.cache.set(action.id, preview)
         if (this.cache.size > 3) this.cache.delete(this.cache.keys().next().value!)

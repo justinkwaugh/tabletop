@@ -50,8 +50,22 @@ export type MapRoute = {
     color: string
     segments: readonly RoutePath[]
 }
-export function routeLocationIds(routes: readonly MapRoute[]): string[] {
-    return [...new Set(routes.flatMap((route) => route.segments.map((path) => path.locationId)))]
+/** The hexes the routes pass through, with every hex printed in the same area as one of them. */
+export function routeLocationIds(
+    routes: readonly MapRoute[],
+    { map, joinedEdges = {} }: Pick<MapViewDefinition, 'map' | 'joinedEdges'>
+): string[] {
+    const ids = new Set(routes.flatMap((route) => route.segments.map((path) => path.locationId)))
+    const pending = [...ids]
+    for (let id = pending.pop(); id !== undefined; id = pending.pop())
+        for (const edge of joinedEdges[id] ?? []) {
+            const neighborId = map.neighbor(id, edge)?.id
+            if (neighborId && !ids.has(neighborId)) {
+                ids.add(neighborId)
+                pending.push(neighborId)
+            }
+        }
+    return [...ids]
 }
 /**
  * A presentation-only relocation of an untiled hex, for boards whose print rearranges cells.

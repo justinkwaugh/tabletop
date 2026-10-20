@@ -565,7 +565,10 @@
             | undefined => {
             if (session.isViewingHistory)
                 return mapRoutes.length
-                    ? { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+                    ? {
+                          legalLocationIds: [],
+                          highlightedLocationIds: routeLocationIds(mapRoutes, session.mapView)
+                      }
                     : undefined
             if (maskPlacementLocations)
                 return {
@@ -573,7 +576,10 @@
                     highlightedLocationIds: highlightedPlacementLocationIds
                 }
             if (routePreview && !session.routes.editor.trainId && mapRoutes.length)
-                return { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+                return {
+                    legalLocationIds: [],
+                    highlightedLocationIds: routeLocationIds(mapRoutes, session.mapView)
+                }
             return undefined
         }
     )
