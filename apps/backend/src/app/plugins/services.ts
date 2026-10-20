@@ -106,8 +106,7 @@ export default fp(async (fastify: FastifyInstance) => {
         fallbackManifest: EnvService.isLocal()
             ? () => createLocalManifest(LOCAL_WORKSPACE_ROOT)
             : undefined,
-        useCache: !EnvService.isLocal(),
-        prepare: (generation) => titleValidation.prepare(generation)
+        useCache: !EnvService.isLocal()
     })
     await libraryService.getTitlesMap()
     const availableTitles = new TitleLibrary(

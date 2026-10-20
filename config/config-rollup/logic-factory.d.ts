@@ -1,11 +1,8 @@
-import type { GameDefinition } from '@tabletop/common'
+import type { Plugin } from 'rollup'
 
 export function collectibleChunkProblem(chunk: {
     imports: readonly string[]
     dynamicImports: readonly string[]
 }): string | undefined
+export function collectibleLogic(): Plugin
 export function buildLogicFactorySource(esmFilename: string): Promise<string>
-export function buildValidatorsSource(
-    definition: GameDefinition,
-    outputDir: string
-): Promise<string>

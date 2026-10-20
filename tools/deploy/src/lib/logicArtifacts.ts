@@ -2,20 +2,17 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { evaluateLogicFactory } from '@tabletop/common/node/collectible-factory'
-import {
-    buildLogicFactorySource,
-    buildValidatorsSource
-} from '@tabletop/rollup-config/logic-sidecars'
+import { buildLogicFactorySource } from '@tabletop/rollup-config/logic-factory'
 import { gcsPathExists } from './gcs.js'
 import { runCommand, type CommandSpec } from './commands.js'
 import { fetchBucketManifest } from './remoteManifest.js'
 import { assertDeployConfig, type PublishContext } from './publishCore.js'
 import type { GameManifestEntry } from './types.js'
 
-// Logic artifacts published before the build emitted them lack the collectible factory and the
-// standalone validators the backend activates in place. Migration adds both beside the
-// immutable ESM bundle; nothing already published changes.
-export const SIDECAR_FILES = ['index.cjs', 'validators.cjs'] as const
+// Logic artifacts published before the build emitted it lack the collectible factory the backend
+// activates in place. Migration adds it beside the immutable ESM bundle; nothing already
+// published changes.
+export const SIDECAR_FILES = ['index.cjs'] as const
 
 export type LogicArtifactPlan = {
     packageId: string
@@ -79,8 +76,8 @@ const copyCommand = (
     requiresDeploy: true
 })
 
-// Builds a published artifact's sidecars from its ESM bundle into `directory` and checks the
-// factory evaluates to the Definition the manifest names before anything is uploaded.
+// Builds a published artifact's factory from its ESM bundle into `directory` and checks it
+// evaluates to the Definition the manifest names before anything is uploaded.
 export const buildLogicSidecars = async (
     plan: LogicArtifactPlan,
     esmFilename: string,
@@ -106,20 +103,9 @@ export const buildLogicSidecars = async (
             `${plan.url}/index.js is ${info.id} ${info.metadata.version}, not ${plan.gameId} ${plan.version}`
         )
     }
-    const sources: Record<(typeof SIDECAR_FILES)[number], string> = {
-        'index.cjs': factory,
-        'validators.cjs': await buildValidatorsSource(
-            definition as Parameters<typeof buildValidatorsSource>[0],
-            directory
-        )
-    }
-    const written: string[] = []
-    for (const file of plan.missing as (typeof SIDECAR_FILES)[number][]) {
-        const target = path.join(directory, file)
-        await fs.writeFile(target, sources[file])
-        written.push(target)
-    }
-    return written
+    const target = path.join(directory, 'index.cjs')
+    await fs.writeFile(target, factory)
+    return [target]
 }
 
 export const migrateLogicArtifacts = async (
@@ -135,7 +121,7 @@ export const migrateLogicArtifacts = async (
     if (options.game && !entries.length) throw new Error(`Unknown game "${options.game}"`)
     const plans = await planLogicArtifactMigration(entries, bucket)
     if (!plans.length) {
-        context.log('every selectable logic artifact already has its factory and validators')
+        context.log('every selectable logic artifact already has its factory')
         return plans
     }
     for (const plan of plans) {

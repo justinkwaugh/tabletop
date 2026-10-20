@@ -1,4 +1,4 @@
-import { resolveTitle, type TitleDefinition } from '../../lib/titleDefinition.js'
+import type { TitleResolver } from '../../lib/titleDefinition.js'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 
@@ -8,7 +8,7 @@ const UndoRequest = Type.Object({
     actionId: Type.String()
 })
 
-export default async function (source: TitleDefinition, fastify: FastifyInstance) {
+export default async function (title: TitleResolver, fastify: FastifyInstance) {
     fastify.post<{ Body: UndoRequest }>(
         '/undo',
         {
@@ -17,7 +17,7 @@ export default async function (source: TitleDefinition, fastify: FastifyInstance
             onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
         },
         async function (request, _reply) {
-            const definition = resolveTitle(source, request)
+            const definition = title(request)
             if (!request.user) {
                 throw Error('No user found for create request')
             }

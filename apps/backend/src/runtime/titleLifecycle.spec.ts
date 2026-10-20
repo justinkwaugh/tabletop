@@ -33,8 +33,7 @@ it('changes actions and AJV schemas without rebuilding routes, while pinning in-
     const library = new LibraryService(RedisCacheService.prototype, {
         useCache: false,
         manifestPath: f.manifestPath,
-        logicRoot: f.directory,
-        prepare: (generation) => validation.prepare(generation)
+        logicRoot: f.directory
     })
     await library.getTitlesMap()
     const server = Fastify()
@@ -134,13 +133,11 @@ async function refreshingServer(gate?: PromiseWithResolvers<void>, fail = false)
     await f.artifact('1.0.0')
     await f.artifact('1.1.0')
     await f.publish(f.manifest('1.0.0'))
-    const validation = new TitleValidation()
     const library = new LibraryService(RedisCacheService.prototype, {
         useCache: false,
         manifestPath: f.manifestPath,
         logicRoot: f.directory,
         prepare: async (generation) => {
-            await validation.prepare(generation)
             if (generation.publication.logicVersion !== '1.1.0') return
             if (fail) throw new Error('Invalid validator')
             await gate?.promise

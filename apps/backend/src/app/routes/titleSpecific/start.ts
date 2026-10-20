@@ -1,4 +1,4 @@
-import { resolveTitle, type TitleDefinition } from '../../lib/titleDefinition.js'
+import type { TitleResolver } from '../../lib/titleDefinition.js'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { omitGameState } from '@tabletop/common'
@@ -8,7 +8,7 @@ const StartGameRequest = Type.Object({
     gameId: Type.String()
 })
 
-export default async function (source: TitleDefinition, fastify: FastifyInstance) {
+export default async function (title: TitleResolver, fastify: FastifyInstance) {
     fastify.post<{ Body: StartGameRequest }>(
         `/start`,
         {
@@ -18,7 +18,7 @@ export default async function (source: TitleDefinition, fastify: FastifyInstance
             })
         },
         async function (request, _reply) {
-            const definition = resolveTitle(source, request)
+            const definition = title(request)
             if (!request.user) {
                 throw Error('No user found for create request')
             }

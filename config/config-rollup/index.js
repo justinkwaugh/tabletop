@@ -1,4 +1,4 @@
-import { logicValidators } from './logic-validators.js'
+import { collectibleLogic } from './logic-factory.js'
 import fs from 'node:fs'
 import { moduleWorkers } from './workers.js'
 import { publishCssAssets } from './css-assets.js'
@@ -257,7 +257,7 @@ export const createGameLogicRollupConfig = ({ packageRootUrl }) => {
                 extensions: ['.ts', '.js', '.mjs']
             }),
             commonjs(),
-            logicValidators(outputDir)
+            collectibleLogic()
         ]
     }
 }

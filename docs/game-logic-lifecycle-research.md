@@ -25,8 +25,10 @@ on the development host; they are disposable benchmarks, not product code.
   ownership, 40 retired, 0 reachable after GC.
 - Resident ESM with the same heap limit fails the run; the compilation cache keeps old scripts
   until GC pressure, so RSS falls later than the heap.
-- Standalone AJV validators compiled at build time match Fastify's runtime compiler on
-  coercion, dates and error arrays, and remove validator compilation from the server.
+- Standalone AJV validators compiled at build time matched Fastify's runtime compiler on
+  coercion, dates and error arrays. They were replaced by TypeBox validators compiled on first
+  use, about 3 ms per action, which removed the build-time sidecar and a second validation
+  semantics from the action path.
 
 ## Limits
 

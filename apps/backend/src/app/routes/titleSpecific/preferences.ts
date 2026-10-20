@@ -1,8 +1,8 @@
-import { resolveTitle, type TitleDefinition } from '../../lib/titleDefinition.js'
+import type { TitleResolver } from '../../lib/titleDefinition.js'
 import type { FastifyInstance } from 'fastify'
 import { PreferenceChange, PreferenceError } from '@tabletop/common'
 
-export default async function (source: TitleDefinition, fastify: FastifyInstance) {
+export default async function (title: TitleResolver, fastify: FastifyInstance) {
     const auth = {
         onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
             relation: 'and' as const
@@ -10,7 +10,7 @@ export default async function (source: TitleDefinition, fastify: FastifyInstance
     }
 
     fastify.get('/preferences', auth, async (request, reply) => {
-        const definition = resolveTitle(source, request)
+        const definition = title(request)
         const preferences = definition.info.preferences
         if (!preferences) return reply.code(404).send({ message: 'Not Found' })
         if (!request.user) return reply.code(401).send()
@@ -38,7 +38,7 @@ export default async function (source: TitleDefinition, fastify: FastifyInstance
             schema: { body: PreferenceChange }
         },
         async (request, reply) => {
-            const definition = resolveTitle(source, request)
+            const definition = title(request)
             const preferences = definition.info.preferences
             if (!preferences) return reply.code(404).send({ message: 'Not Found' })
             if (!request.user) return reply.code(401).send()

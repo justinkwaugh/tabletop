@@ -454,9 +454,6 @@ importers:
 
   config/config-rollup:
     dependencies:
-      '@fastify/ajv-compiler':
-        specifier: ^4.0.5
-        version: 4.0.6
       '@rollup/plugin-commonjs':
         specifier: ^29.0.0
         version: 29.0.3(rollup@4.64.0)
@@ -475,15 +472,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^6.2.4
         version: 6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
-      '@tabletop/common':
-        specifier: workspace:*
-        version: link:../../libs/common
       '@tabletop/games-config':
         specifier: workspace:*
         version: link:../config-games
-      ajv:
-        specifier: ^8.17.1
-        version: 8.20.0
       rollup:
         specifier: ^4.59.0
         version: 4.64.0

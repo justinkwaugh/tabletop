@@ -20,12 +20,8 @@ test('selectable versions are the current logic and its rollback history, once e
     assert.deepEqual(selectableLogicVersions({ ...entry, history: undefined }), ['2.0.0', '1.9.0'])
 })
 
-test('the plan names only the artifacts missing a sidecar, per missing file', async () => {
-    const present = new Set([
-        'gs://bucket/games/oath/logic/2.0.0/index.cjs',
-        'gs://bucket/games/oath/logic/2.0.0/validators.cjs',
-        'gs://bucket/games/oath/logic/1.9.0/index.cjs'
-    ])
+test('the plan names only the artifacts missing their factory', async () => {
+    const present = new Set(['gs://bucket/games/oath/logic/2.0.0/index.cjs'])
     const plans = await planLogicArtifactMigration([entry], 'bucket', async (url) =>
         present.has(url)
     )
@@ -35,14 +31,14 @@ test('the plan names only the artifacts missing a sidecar, per missing file', as
             gameId: 'oath',
             version: '1.9.0',
             url: 'gs://bucket/games/oath/logic/1.9.0',
-            missing: ['validators.cjs']
+            missing: ['index.cjs']
         },
         {
             packageId: 'oath',
             gameId: 'oath',
             version: '1.8.0',
             url: 'gs://bucket/games/oath/logic/1.8.0',
-            missing: ['index.cjs', 'validators.cjs']
+            missing: ['index.cjs']
         }
     ])
 })

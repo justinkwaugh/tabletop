@@ -74,7 +74,7 @@ const Games = async (fastify: FastifyInstance, opts: FastifyPluginOptions) => {
             await instance.register(UndoAction.bind(null, definitionFor))
             await instance.register(ForkGame.bind(null, definitionFor))
             await instance.register(PlayerVotes.bind(null, definitionFor))
-            await instance.register(ApplyAction.bind(null, definitionFor, undefined, undefined))
+            await instance.register(ApplyAction.bind(null, definitionFor))
         },
         { prefix: `${opts.prefix ?? ''}/game/:titleId` }
     )

@@ -1,4 +1,4 @@
-import { resolveTitle, type TitleDefinition } from '../../lib/titleDefinition.js'
+import type { TitleResolver } from '../../lib/titleDefinition.js'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
 
@@ -30,14 +30,14 @@ const VoteReference = Type.Object(
     { additionalProperties: false }
 )
 
-export default async function (source: TitleDefinition, fastify: FastifyInstance) {
+export default async function (title: TitleResolver, fastify: FastifyInstance) {
     const onRequest = fastify.auth([fastify.verifyUser], { relation: 'and' })
 
     fastify.post<{ Body: UndoVoteTarget }>(
         '/vote/undo/preview',
         { schema: { body: UndoVoteTarget }, onRequest },
         async function (request) {
-            const definition = resolveTitle(source, request)
+            const definition = title(request)
             if (!request.user) {
                 throw Error('No user found for undo vote preview')
             }
@@ -54,7 +54,7 @@ export default async function (source: TitleDefinition, fastify: FastifyInstance
         '/vote/undo/open',
         { schema: { body: UndoVoteOpening }, onRequest },
         async function (request) {
-            const definition = resolveTitle(source, request)
+            const definition = title(request)
             if (!request.user) {
                 throw Error('No user found for opening an undo vote')
             }
@@ -71,7 +71,7 @@ export default async function (source: TitleDefinition, fastify: FastifyInstance
         '/vote/approve',
         { schema: { body: VoteReference }, onRequest },
         async function (request) {
-            const definition = resolveTitle(source, request)
+            const definition = title(request)
             if (!request.user) {
                 throw Error('No user found for approving a vote')
             }

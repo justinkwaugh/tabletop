@@ -79,9 +79,9 @@ Commands:
   build-logic <gameId>         Build a game logic bundle (rollup)
   deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
   migrate-logic-artifacts [--game=<id>] [--apply]
-                               Add the collectible factory (index.cjs) and standalone validators
-                               (validators.cjs) beside every selectable logic artifact that was
-                               published without them. Prints the plan only unless --apply.
+                               Add the collectible factory (index.cjs) beside every selectable
+                               logic artifact published without it. Prints the plan only unless
+                               --apply.
   release-frontend (--major | --minor | --patch) [--no-deploy] [--no-prune]
                                Bump the frontend package version, sync the manifest, commit,
                                tag frontend-v<version>, push, then deploy (unless --no-deploy).

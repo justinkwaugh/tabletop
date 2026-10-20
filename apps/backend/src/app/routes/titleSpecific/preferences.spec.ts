@@ -53,12 +53,13 @@ async function fixture(authenticated = true, title = definition) {
     )
     Reflect.set(server, 'verifyRoleUser', async () => {})
     const data = { title: { version: 1, revision: 1, values: { compact: true } } }
-    const read = vi.fn(
-        async (): Promise<{ data?: TitlePreferenceData; etag: string }> => ({ data, etag: '"1"' })
-    )
+    const read = vi.fn(async (): Promise<{ data?: TitlePreferenceData; etag: string }> => ({
+        data,
+        etag: '"1"'
+    }))
     const update = vi.fn(async () => ({ data, etag: '"2"' }))
     Reflect.set(server, 'preferenceService', { read, update })
-    await server.register(preferencesRoute.bind(undefined, title))
+    await server.register(preferencesRoute.bind(undefined, () => title))
     return { server, read, update }
 }
 it('scopes cacheable reads to the authenticated user, not the query account', async () => {
@@ -82,7 +83,8 @@ it('requires authentication and conditional writes', async () => {
     const { server, update } = await fixture()
     const payload = { scope: 'title', version: 1, set: { compact: true }, unset: [] }
     expect(
-        (await server.inject({ method: 'POST', url: '/updateTitlePreferences', payload })).statusCode
+        (await server.inject({ method: 'POST', url: '/updateTitlePreferences', payload }))
+            .statusCode
     ).toBe(428)
     expect(update).not.toHaveBeenCalled()
     const result = await server.inject({
@@ -107,7 +109,8 @@ it('preserves preference conflict statuses and rejects malformed update envelope
     const headers = { 'if-match': '"old"' }
     const payload = { scope: 'title', version: 1, set: {}, unset: [] }
     expect(
-        (await server.inject({ method: 'POST', url: '/updateTitlePreferences', headers, payload })).statusCode
+        (await server.inject({ method: 'POST', url: '/updateTitlePreferences', headers, payload }))
+            .statusCode
     ).toBe(412)
     expect(
         (

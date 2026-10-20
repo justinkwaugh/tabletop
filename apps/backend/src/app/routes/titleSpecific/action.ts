@@ -1,61 +1,47 @@
-import { resolveTitle, type TitleDefinition } from '../../lib/titleDefinition.js'
-import { FastifyInstance } from 'fastify'
-import { TSchema, Type, type Static } from 'typebox'
-import { GameAction, ActionSource, actionRequestSchema } from '@tabletop/common'
+import type { FastifyInstance } from 'fastify'
 import * as Value from 'typebox/value'
+import { ActionSource } from '@tabletop/common'
+import type { TitleResolver } from '../../lib/titleDefinition.js'
 import { InvalidActionError } from '../../lib/errors.js'
-import { actionAjvOptions } from '../../../runtime/ajvOptions.js'
-import { lazyValidatorCompiler } from '../../../runtime/lazyValidation.js'
+import { gameActionEnvelope } from '../../../runtime/titleValidation.js'
 
-export default async function (
-    source: TitleDefinition,
-    registeredActionType: string | undefined,
-    registeredActionSchema: TSchema | undefined,
-    fastify: FastifyInstance
-) {
-    type ActionRequest = Static<typeof ActionRequest>
-    const ActionRequest = registeredActionSchema
-        ? actionRequestSchema(registeredActionSchema)
-        : Type.Object(
-              { gameId: Type.String(), action: Type.Unknown() },
-              { additionalProperties: false }
-          )
+type ActionRequest = { gameId: string; action: unknown }
 
-    fastify.post<{ Body: ActionRequest }>(
-        `/action/${registeredActionType ?? ':actionType'}`,
+export default async function (title: TitleResolver, fastify: FastifyInstance) {
+    fastify.post(
+        '/action/:actionType',
         {
             config: { requestTiming: true },
-            preValidation: registeredActionSchema
-                ? undefined
-                : async (request) => {
-                      const type = actionType(request)
-                      fastify.titleValidation.validate(
-                          resolveTitle(source, request),
-                          `action:${type}`,
-                          request.body
-                      )
-                  },
-            schema: {
-                body: ActionRequest
+            // The body is validated against the pinned generation's schema for this action, so
+            // the route needs no schema of its own and a new logic version changes no route.
+            preValidation: async (request) => {
+                request.body = fastify.titleValidation.request(
+                    title(request),
+                    `action:${actionType(request)}`,
+                    request.body
+                )
             },
-            validatorCompiler: lazyValidatorCompiler(() => fastify.getSchemas(), actionAjvOptions),
             onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
                 relation: 'and'
             })
         },
         async function (request, _reply) {
-            const definition = resolveTitle(source, request)
-            const type = registeredActionType ?? actionType(request)
-            const actionSchema = registeredActionSchema ?? definition.runtime.apiActions[type]
-            if (!actionSchema) throw Object.assign(new Error('Not Found'), { statusCode: 404 })
+            const definition = title(request)
+            const type = actionType(request)
+            const actionSchema = definition.runtime.apiActions[type]
+            const validator = fastify.titleValidation.action(definition, type)
+            if (!actionSchema || !validator) {
+                throw Object.assign(new Error('Not Found'), { statusCode: 404 })
+            }
             const user = request.user
             if (!user) {
                 throw Error('No user found for create request')
             }
 
-            // convert dates
-            const action = Value.Convert(actionSchema, request.body.action)
-            if (!Value.Check(GameAction, action)) {
+            // The wire form carries dates as strings; the Action the title executes has Dates.
+            const body = request.body as ActionRequest
+            const action = Value.Convert(actionSchema, body.action)
+            if (!gameActionEnvelope.Check(action)) {
                 throw new InvalidActionError({
                     actionType: type,
                     problem: 'Invalid Action envelope'
@@ -63,14 +49,14 @@ export default async function (
             }
             action.source = ActionSource.User
 
-            if (!Value.Check(actionSchema, action)) {
-                const [error] = Value.Errors(actionSchema, action)
+            if (!validator.Check(action)) {
+                const [error] = validator.Errors(action)
                 throw new InvalidActionError({
                     actionType: type,
-                    problem: `${error.instancePath} ${error.message}`
+                    problem: error ? `${error.instancePath} ${error.message}` : 'invalid'
                 })
             }
-            if (action.gameId !== request.body.gameId) {
+            if (action.gameId !== body.gameId) {
                 throw new InvalidActionError({
                     actionType: type,
                     problem: 'the Action is for a different game'

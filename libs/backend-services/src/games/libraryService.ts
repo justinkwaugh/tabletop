@@ -29,7 +29,6 @@ const ACTIVATION_RETRY_MS = 30_000
 export type TitleGeneration = {
     definition: GameDefinition
     publication: SiteManifestGame
-    directory: string
 }
 
 // The generations a request has resolved so far. Once released, lookups fall through to the
@@ -45,7 +44,7 @@ export type LibraryServiceOptions = {
     useCache?: boolean
     fallbackManifest?: () => Promise<SiteManifest>
     logicRoot?: string
-    // Runs for every generation before it is installed, for example to load its validators.
+    // Runs for every generation before it is installed; a failure keeps the previous titles.
     prepare?: (generation: TitleGeneration) => Promise<void>
 }
 
@@ -256,7 +255,7 @@ export class LibraryService {
     }
 
     private async loadGeneration(entry: SiteManifestGame): Promise<TitleGeneration> {
-        const { directory, factory, legacy } = await this.logicLocation(entry)
+        const { factory, legacy } = await this.logicLocation(entry)
         const definition = factory
             ? await loadLogicFactory(factory)
             : await importLogicModule(legacy, entry.packageId)
@@ -268,7 +267,7 @@ export class LibraryService {
                 `Logic artifact identity differs from publication: ${entry.packageId} ${entry.logicVersion}`
             )
         }
-        return { definition, publication: entry, directory }
+        return { definition, publication: entry }
     }
 
     // A published artifact is its collectible factory, or for artifacts published before the
@@ -276,7 +275,7 @@ export class LibraryService {
     // development runs the workspace's compiled sources when there is no published artifact.
     private async logicLocation(
         entry: SiteManifestGame
-    ): Promise<{ directory: string; factory?: string; legacy: string }> {
+    ): Promise<{ factory?: string; legacy: string }> {
         if (
             !entry.packageId ||
             !entry.logicVersion ||
@@ -300,16 +299,13 @@ export class LibraryService {
                 this.modifiedAt(compiled)
             ])
             if (factoryModified !== undefined && factoryModified >= (compiledModified ?? 0)) {
-                return { directory: bundle, factory, legacy: path.join(bundle, 'index.js') }
+                return { factory, legacy: path.join(bundle, 'index.js') }
             }
-            if (compiledModified !== undefined) {
-                return { directory: path.dirname(compiled), legacy: compiled }
-            }
-            return { directory: bundle, legacy: path.join(bundle, 'index.js') }
+            if (compiledModified !== undefined) return { legacy: compiled }
+            return { legacy: path.join(bundle, 'index.js') }
         }
         const factory = path.join(published, 'index.cjs')
         return {
-            directory: published,
             factory: (await this.pathExists(factory)) ? factory : undefined,
             legacy: path.join(published, 'index.js')
         }
