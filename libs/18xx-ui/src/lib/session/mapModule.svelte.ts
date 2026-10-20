@@ -106,6 +106,13 @@ export class MapModule {
             ? stationMapTokens(this.stations.displayState, this.view().stations)
             : this.tokens
     })
+    // Reservations move with a previewed lay's tile, so they wait for it to land like tokens.
+    displayedReservations = $derived.by(() => {
+        const preview = this.track.displayedStations
+        return preview && !this.track.tileInFlight
+            ? preview.stationReservations
+            : this.stations.displayState.stationReservations
+    })
     style = $derived.by((): MapStyle =>
         this.session.playerId
             ? (this.styles[this.session.playerId] ?? DefaultMapStyle)

@@ -92,6 +92,9 @@ type SessionOptions<
     Schema extends TitleStateSchema,
     State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 > = ConstructorParameters<typeof GameSession<EighteenXXState<Schema>, State>>[0]
+/** A placement of a title's own in the station step, such as 1832's Key West token. */
+export type TitleStationAction = { id: string; label: string; run(): Promise<void> }
+
 export class EighteenXXSession<
     Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
     State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState =
@@ -494,6 +497,10 @@ export class EighteenXXSession<
     }
     /** Private powers whose rules the title applies itself, offered under Use privates. */
     protected get titlePrivatePowers(): readonly TitlePrivatePower[] {
+        return []
+    }
+    /** A title's own placements in the station step, offered as buttons beside its stations. */
+    get titleStationActions(): readonly TitleStationAction[] {
         return []
     }
     /**

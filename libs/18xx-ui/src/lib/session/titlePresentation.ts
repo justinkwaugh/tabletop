@@ -42,6 +42,10 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
 
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = { label: string; value: string }
+/** A right or marker a company holds, shown beside its trains, such as access to coal fields. */
+export type CompanyMark = { label: string; description: string }
+/** The companies a company was formed from, shown under its header, such as a System's shells. */
+export type CompanyOrigin = { text: string; companyIds: readonly string[] }
 
 /**
  * A label above a market zone, drawn across its spaces as an arrow toward its far end or as a span
@@ -126,6 +130,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     companyColumns?: readonly CompanyColumn<State>[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
+    companyMarks?(state: State, companyId: string): readonly CompanyMark[]
+    companyOrigin?(state: State, companyId: string): CompanyOrigin | undefined
     /**
      * What an operating company takes off printed terrain and border costs, by terrain kind, such
      * as a private's mountain discount; the map shows the costs it would pay.

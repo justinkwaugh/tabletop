@@ -13,6 +13,20 @@
     } = $props()
     const step = $derived(session.gameState.stationStep)
     const selection = $derived(session.stations.selection)
+    const titlePlacements = $derived([
+        ...session.privateActions.titlePowers.flatMap((power) =>
+            power.kind === 'location' && power.stationStepLabel
+                ? [
+                      {
+                          id: power.privateCompanyId,
+                          label: power.stationStepLabel,
+                          run: () => session.privateActions.startTitlePower(power)
+                      }
+                  ]
+                : []
+        ),
+        ...session.titleStationActions
+    ])
 </script>
 
 {#if step}
@@ -48,7 +62,16 @@
                     {/each}
                 </div>
             {/if}
-            {#if session.stations.canPlace && !session.validActionTypes.includes('PlaceStation')}<p>
+            {#if titlePlacements.length}
+                <div class="choices">
+                    {#each titlePlacements as { id, label, run } (id)}
+                        <button disabled={!session.stations.canPlace} onclick={() => void run()}
+                            >{label}</button
+                        >
+                    {/each}
+                </div>
+            {:else if session.stations.canPlace && !session.validActionTypes.includes('PlaceStation')}<p
+                >
                     No legal station placement is available.
                 </p>{/if}
         {/if}
@@ -60,6 +83,9 @@
         padding: 4px 0;
         color: var(--rail-text, #514536);
         font-size: 13px;
+    }
+    p {
+        text-align: center;
     }
     header,
     .choices {

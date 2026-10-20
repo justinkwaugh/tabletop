@@ -93,7 +93,10 @@ export type MapMarkerArt =
      * point the badge both ways, as for an east–west bonus.
      */
     | { revenueBadge: true; arrows?: true }
-    /** The marker's symbol, once per count, at revenue size beneath the hex's revenue. */
+    /**
+     * The marker's symbol, once per count, at revenue size in the clear space nearest the hex's
+     * revenue, unless the tile prints it.
+     */
     | { revenueSymbol: TileSymbolName }
     /**
      * A marker placed during play: the hex is outlined in the colour, with a badge on its top
@@ -513,6 +516,7 @@ export function createMapDrawing(
                     markerArt,
                     hexVertices,
                     symbolPositions[location.id],
+                    face.symbols ?? [],
                     [
                         ...badges.map((badge) =>
                             box(
@@ -716,6 +720,7 @@ function revenueSymbols(
     markerArt: Readonly<Record<string, MapMarkerArt>>,
     vertices: readonly Point[],
     positions: LocationSymbolPositions | undefined,
+    printedSymbols: readonly string[],
     printed: readonly Obstacle[]
 ): RevenueAnnotation[] {
     const shown = drawing.nodes.find(
@@ -765,7 +770,9 @@ function revenueSymbols(
     const symbols: RevenueAnnotation[] = []
     for (const marker of markers) {
         const art = markerArt[marker.id]
-        if (!art || !('revenueSymbol' in art)) continue
+        // A tile that prints the symbol already shows it.
+        if (!art || !('revenueSymbol' in art) || printedSymbols.includes(art.revenueSymbol))
+            continue
         // Positions are for every symbol in the location, or by marker.
         const fixed = positions && !isSymbolPosition(positions) ? positions[marker.id] : positions
         const count = marker.count ?? 1

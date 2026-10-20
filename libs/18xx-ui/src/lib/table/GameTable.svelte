@@ -793,11 +793,7 @@
         artwork={boardArtwork}
         tokens={session.map.displayedTokens}
         stationAppearances={session.mapView.stations}
-        reservations={[
-            ...(session.track.displayedStations?.stationReservations ??
-                session.stations.displayState.stationReservations),
-            ...powerReservations
-        ]}
+        reservations={[...session.map.displayedReservations, ...powerReservations]}
         routes={mapRoutes}
         selection={session.isViewingHistory
             ? historyMapSettled

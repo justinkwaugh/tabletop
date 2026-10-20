@@ -351,7 +351,8 @@ shares sit in one pool), "until" and a Float / I own goal segment with a
 share stepper bounded to one more than the player holds up to the smaller of
 the ordinary ownership ceiling and what the player could buy by spending
 current cash on the preferred pool while it holds shares, or otherwise on the
-cheapest other pool, at each share's own price, and a "then pass" switch. Pool and
+cheapest other pool, at each share's own price, and a "then pass" switch, off until the
+player turns it on. Pool and
 goal segments are sliding toggles whose thumb sizes to the selected segment.
 The then-pass switch shares the board Auto zoom switch's track, green when on.
 The tray's corners round fully on one line and soften when it wraps. A green Enable follows the tray and
@@ -373,7 +374,9 @@ floated company with no reachable share goal.
 The toggle's selected kind, company, pool, goal, count and then-pass values are
 local component UI state. They are not staged selections: they are never
 registered with LocalSelections, `Back` and `Undo` ignore them, and a stale
-company or pool falls back to the first legal option. Only Enable and
+company or pool falls back to the first legal option. They belong to the player
+the bar declares for: when that player changes, as when hotseat play passes the
+turn, the next player starts with nothing chosen. Only Enable and
 Cancel commit `SetStockInstruction` through the session with `outOfTurn` set.
 Controls disable while the session is busy, while viewing history, or when the
 action is no longer valid. The existing Pass / End turn and Undo buttons keep
@@ -668,6 +671,12 @@ immediately committed button.
 Compact company cards narrow their summary columns so a fourth value, such as loans,
 fits without clipping.
 
+A title's `companyMarks` appear after a company's trains as small dark chips, such as 1832's
+"Coal" for West Virginia Coal Fields rights, whose description shows on hover and is their
+accessible name. A title's `companyOrigin` appears as a band under the card's header naming
+what the company was formed from, such as "System of [CoG] CoG & [GRR] GRR" with each
+company's token. Neither belongs in the summary row of figures.
+
 ### Title rounds
 
 A title may name rounds of its own that follow an operating round (1817's merger and
@@ -679,13 +688,23 @@ round's number, "Merger phase 3"; held within an operating round it takes that r
 history then shows the operating round as two sections around it.
 
 1832's merger phase replaces the operating panels for the player deciding. The proposer
-sees a card for each company they may merge with, headed by their company and the partner,
-whose committed buttons form a System (with its price and president) or take over the
-partner (with the price of its shares), as initiator or yielding to the partner's president;
-Pass ends their proposals. The partner's president sees the proposal with Agree and Refuse.
-A buyer's president short of a takeover's price sees the amount to raise and a card per
-company with each sale they may make, and a buyer over its train limit names the excess and
-discards trains, shown as train badges. Other players see who is deciding. History records
+chooses in two steps: "Merge <company> with" and a row of partner tokens (preceded by a row
+of their own companies when they preside over more than one), then up to three outcome tiles
+for the chosen pair, each committing its proposal: "Form <System>" with its price per share,
+and "<buyer> buys <target>" each way with the price of the target's shares. Yielding
+initiator status appears only as its result: the other company buying, or a choice of
+president inset in the System tile, one row per player with their colour, when the other
+president would preside instead; the chosen row is tinted with that player's colour, and the
+whole tile takes the hover tint so it still reads as one button. A lone company or
+partner is chosen automatically; the company and partner are manual local selections that
+Undo clears, partner first, and every new state clears. Pass ends their proposals. The partner's president sees the proposal with Agree and Refuse.
+A buyer's president short of a takeover's price sees, centred, "<buyer> takes over
+<target>", a breakdown (the target's shares, less the buyer's treasury, their cash and what
+their own target shares are paid, to the amount still to raise), the sales made so far, and
+a card per company with each sale they may make, capped at what the rest needs, and a buyer over its train limit sees, centred, "<company>
+discards <n> trains" with its limit and that discards go to the open market, a train badge
+per kind of train with its count, and Discard once a kind is chosen (a manual local selection
+that Undo clears). Other players see who is deciding. History records
 Systems formed and takeovers as important rows, proposals and answers, funding sales with
 their proceeds, and discards.
 
@@ -785,6 +804,9 @@ A private power that marks a location (a title's `markerTerms`, such as 1817's
 bridges) appears under Use privates as one immediately committed button per location,
 "Place [marker] on [location] ([private])". Placed markers join the map's printed
 markers, by the names the title's map view gives them, in the live and historical maps.
+Printed `revenueSymbol` markers (1832's and 1846's port anchors) take clear space beside the
+revenue, or the title's `symbolPositions` (1832's New Orleans at the bottom, Miami at its
+right side), and are left out where the tile prints the symbol itself.
 A title's reusable private lays (1817's coal mines and ranches) stay offered until its
 terms end them. A lay can also clear markers (1817's city tiles clear the ranches beside
 them), which leave the live and historical maps with it. History notes what a lay paid
@@ -1475,6 +1497,8 @@ When a selected track hex has exactly one legal tile definition, its tile and in
 After a track lay, construction automatically finishes if the composed action handlers offer no further ordinary, private, or consent-based track placement, nor, while the company has a lay left, a loan that could pay for one. The system completion is part of the lay’s action cascade. A company entering construction whose only legal action, for every active player, is finishing it finishes the same way, in the cascade that starts its turn. The map prompt reads “Choose a space or” with a Skip button; skipped/finished construction advances through the canonical FinishTrack action.
 
 The currently operating company always displays its detailed chip. Station placement presents “Choose a city to place a station or” followed by Skip.
+
+A title's location power with a `stationStepLabel` (1832's Port and Cotton tokens) appears beneath that line as a button with the label, such as “Place Port token”, while the power is available, in place of “No legal station placement is available.” The button starts the power as its private's Use button does: the map offers the power's locations under its prompt, and a click places the token. A title's own station-step placements (`titleStationActions`, such as 1832's “Place Key West token in Miami”) appear as buttons in the same row and commit when pressed. “No legal station placement is available.” is centred.
 
 Entering station placement with no legal token/location choice automatically finishes the step. This uses full placement validation, including available tokens, costs, connectivity, reservations and the title’s placement limit.
 

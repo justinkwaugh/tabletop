@@ -267,6 +267,26 @@
                                 reservation.locationId === id && reservation.nodeId === node.node.id
                         )
                         .map((reservation) => reservation.companyId)}
+                    <!-- A reservation holds a space, not a particular one: show it in the free spaces. -->
+                    {@const reservedBySlot = node.slots
+                        .map((_, slot) => slot)
+                        .filter(
+                            (slot) =>
+                                !tokens.some(
+                                    (token) =>
+                                        token.locationId === id &&
+                                        token.nodeId === node.node.id &&
+                                        token.slot === slot
+                                )
+                        )
+                        .slice(0, reservedCompanyIds.length)
+                        .reduce<Record<number, string>>(
+                            (reserved, slot, index) => ({
+                                ...reserved,
+                                [slot]: reservedCompanyIds[index]
+                            }),
+                            {}
+                        )}
                     {@const tokenSize = 2 * node.slotRadius}
                     {#each node.slots as point, slot (slot)}
                         {@const token = tokens.find(
@@ -285,12 +305,9 @@
                                 />
                             </g>
                         {/if}
-                        {@const reservedAppearance = stationAppearances[reservedCompanyIds[slot]]}
+                        {@const reservedAppearance = stationAppearances[reservedBySlot[slot]]}
                         {#if !token && reservedAppearance}
-                            <g
-                                class="reserved-token"
-                                data-map-reservation={reservedCompanyIds[slot]}
-                            >
+                            <g class="reserved-token" data-map-reservation={reservedBySlot[slot]}>
                                 <title>{`Reserved for ${reservedAppearance.label}`}</title>
                                 <CompanyToken
                                     appearance={reservedAppearance}
