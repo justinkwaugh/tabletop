@@ -1509,14 +1509,6 @@
       "companyId": "B&O"
     },
     {
-      "id": "recorded:47",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:48",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -1887,14 +1879,6 @@
       "type": "FinishStockTurn",
       "source": "user",
       "playerId": "hoolaking"
-    },
-    {
-      "id": "recorded:79",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "MS"
     },
     {
       "id": "recorded:80",
@@ -5616,14 +5600,6 @@
       "companyId": "IC"
     },
     {
-      "id": "recorded:322",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC"
-    },
-    {
       "id": "recorded:323",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -7103,14 +7079,6 @@
       "companyId": "NYC"
     },
     {
-      "id": "recorded:400",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC"
-    },
-    {
       "id": "recorded:401",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -7370,14 +7338,6 @@
       "type": "FinishStockTurn",
       "source": "user",
       "playerId": "the_seaward"
-    },
-    {
-      "id": "recorded:426",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT"
     },
     {
       "id": "recorded:427",
@@ -8075,14 +8035,6 @@
       "companyId": "NYC"
     },
     {
-      "id": "recorded:453",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT"
-    },
-    {
       "id": "recorded:454",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -8161,14 +8113,6 @@
       "playerId": "gragatrim",
       "companyId": "GT",
       "choice": "pay"
-    },
-    {
-      "id": "recorded:458",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O"
     },
     {
       "id": "recorded:459",

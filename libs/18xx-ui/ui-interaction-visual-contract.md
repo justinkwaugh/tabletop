@@ -1456,7 +1456,7 @@ A trainless company entering RunningTrains receives a canonical empty RunTrains 
 
 When a selected track hex has exactly one legal tile definition, its tile and initial legal rotation are auto-selected. The picker scales that tile directly into the hex with no arc detour; rotation and acceptance remain available. The map preview is suppressed during this local entrance using the existing in-flight flag. Undo skips these automatic stages, and reduced-motion displays the selection immediately.
 
-After a track lay, construction automatically finishes if the composed action handlers offer no further ordinary, private, or consent-based track placement, nor, while the company has a lay left, a loan that could pay for one. The system completion is part of the lay’s action cascade. The map prompt reads “Choose a space or” with a Skip button; skipped/finished construction advances through the canonical FinishTrack action.
+After a track lay, construction automatically finishes if the composed action handlers offer no further ordinary, private, or consent-based track placement, nor, while the company has a lay left, a loan that could pay for one. The system completion is part of the lay’s action cascade. A company entering construction whose only legal action, for every active player, is finishing it finishes the same way, in the cascade that starts its turn. The map prompt reads “Choose a space or” with a Skip button; skipped/finished construction advances through the canonical FinishTrack action.
 
 The currently operating company always displays its detailed chip. Station placement presents “Choose a city to place a station or” followed by Skip.
 

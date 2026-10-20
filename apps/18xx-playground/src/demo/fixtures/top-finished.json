@@ -3289,14 +3289,6 @@
             "playerId": "3574"
         },
         {
-            "id": "recorded:151",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "FinishTrack",
-            "playerId": "12729",
-            "companyId": "MS"
-        },
-        {
             "id": "recorded:153",
             "gameId": "top-finished",
             "source": "user",

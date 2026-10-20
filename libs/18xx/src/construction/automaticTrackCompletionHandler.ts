@@ -24,12 +24,12 @@ export class AutomaticTrackCompletionHandler<
         if (
             !step ||
             step.completed ||
-            !step.lays.length ||
             controllingOwner(state, step.companyId)?.playerId !== playerId
         )
             return false
         const actions = this.handler.validActionsForPlayer(playerId, context)
         if (!actions.includes('FinishTrack')) return false
+        if (!step.lays.length) return this.onlyFinishing(context, playerId, actions)
         // While the company has a lay left, it may borrow to pay for one it cannot yet afford.
         if (actions.includes('TakeLoan') && this.hasLayLeft(state)) return false
         return !state.activePlayerIds.some((id) =>
@@ -41,6 +41,18 @@ export class AutomaticTrackCompletionHandler<
                         'RequestTrackConsent',
                         ...this.additionalConstructionActions
                     ].includes(action)
+            )
+        )
+    }
+
+    private onlyFinishing(
+        context: MachineContext<State>,
+        playerId: string,
+        actions: readonly string[]
+    ): boolean {
+        return context.gameState.activePlayerIds.every((id) =>
+            (id === playerId ? actions : this.handler.validActionsForPlayer(id, context)).every(
+                (action) => action === 'FinishTrack'
             )
         )
     }

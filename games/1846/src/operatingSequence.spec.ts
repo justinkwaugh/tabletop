@@ -57,7 +57,46 @@ function operate(table: ReturnType<typeof stockGame>, companyId: string, buy = f
     }
     return table.act('FinishOperatingTurn', { companyId })
 }
+/** NYC next to operate with the given treasury, nothing to issue and no privates for sale. */
+function nyCentralWithTreasury(table: ReturnType<typeof stockGame>, amount: number) {
+    for (const company of table.state.companies)
+        if (company.kind === 'private') company.closed = true
+    for (const certificate of table.state.certificates)
+        if (certificate.companyId === 'NYC' && certificate.owner.kind === 'company') {
+            certificate.owner = { kind: 'bank' }
+            certificate.poolId = 'open-market'
+        }
+    const treasury = table.state.cash.find(
+        (balance) => balance.owner.kind === 'company' && balance.owner.companyId === 'NYC'
+    )
+    assertExists(treasury)
+    treasury.amount = amount
+}
 describe('1846 stock and operating sequence', () => {
+    it('finishes construction by itself when finishing is all the corporation can do', () => {
+        const table = twoMajors()
+        nyCentralWithTreasury(table, 0)
+        const result = operate(table, 'IC', true)
+        expect(
+            result.processedActions.some(
+                (action) =>
+                    action.type === 'FinishTrack' &&
+                    action.source === ActionSource.System &&
+                    'companyId' in action &&
+                    action.companyId === 'NYC'
+            )
+        ).toBe(true)
+        expect(table.state.trackStep?.companyId === 'NYC' && !table.state.trackStep.completed).toBe(
+            false
+        )
+    })
+    it('keeps construction open while the corporation can still make an offer', () => {
+        const table = twoMajors()
+        nyCentralWithTreasury(table, 5)
+        operate(table, 'IC', true)
+        expect(table.state.machineState).toBe('LayingTrack')
+        expect(table.state.trackStep).toEqual({ companyId: 'NYC', lays: [], completed: false })
+    })
     it("clears a corporation's issue or redeem direction when the next turn starts", () => {
         const table = twoMajors()
         const issue = corporateFinanceChoices(table.hydrated).find(
