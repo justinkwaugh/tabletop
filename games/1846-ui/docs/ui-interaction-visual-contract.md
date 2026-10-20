@@ -21,10 +21,11 @@ physical board artwork is claimed for 1846.
   building, station placement or issuing/redeeming shares (Finance), chosen with the
   operating-mode switch. The switch lists only modes available now and appears when
   there are at least two; before routes are run, Finance also sits beside Run trains.
-- **Nothing to build.** When the operating railroad's only legal action is finishing
-  construction, the action area says "<railroad> can't lay track or place a station" with
-  an inline **finish**. Company decisions such as buying a private or independent still
-  show above it.
+- **Nothing to build.** When the operating railroad can lay no tile, place no station and
+  issue or redeem nothing, but still has another decision such as buying a private or an
+  independent, the action area shows those decisions above "<railroad> can't lay track or
+  place a station" with an inline **finish**. With no decision left at all, the engine
+  finishes construction itself and the step is never shown.
 - **Issuing or redeeming.** Each transaction commits at once; the first locks the turn to
   issuing or to redeeming. When issuing or redeeming is all that is left, the switch
   selects Finance and its panel offers skip to end construction.
@@ -88,7 +89,8 @@ station placement or nothing to build, then the shared operating actions.
   perspective or in history. Validity: a chosen mode that is no longer available falls
   back to the derived one. A view choice, not a step: Undo never changes it, and an
   automatically selected mode consumes no Undo step.
-- **Nothing to build** (`nothingToBuild`). Meaning: construction can only be finished.
+- **Nothing to build** (`nothingToBuild`). Meaning: no construction is possible, though
+  other decisions may remain.
   Derived from the legal actions and the Finance choices; consumed only by the action
   area. It has no lifetime of its own.
 - **Private plan and Steamboat railroad.** Manual staged selections: the plan's first lay
@@ -133,8 +135,10 @@ station placement or nothing to build, then the shared operating actions.
    perspective's own cards and disables purchases. Manual.
 2. Choose a track tile, rotate and preview it, then Undo. Nothing changes until
    confirmation; after Undo, inventory, treasury, stations and the drawing agree. Manual.
-3. In combined construction, place a station, then continue with track. Undo first
-   clears a selected station placement, then leaves station mode. Manual.
+3. In combined construction, choose Place station, place a station, then Undo. Undo
+   clears any station selection first and then reverses the placement; the mode stays
+   Place station, since Undo never changes the mode. Placing a station and switching back
+   to track continues construction. Manual.
 4. Stage a two-lay private plan. The shared map previews it; clearing it changes nothing;
    confirming creates one Action. A revenue-marker interruption blocks unrelated
    actions. Manual.

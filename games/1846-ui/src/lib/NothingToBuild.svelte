@@ -5,7 +5,7 @@
 </script>
 
 {#if companyId}
-    <header class="nothing-to-build centered-panel">
+    <header class="nothing-to-build midwest-panel centered-panel">
         <span>{session.companyName(companyId)} can't lay track or place a station</span>
         <button
             class="action-button inline-action"

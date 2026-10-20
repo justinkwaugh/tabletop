@@ -20,6 +20,7 @@ function seated1846(ordinary: Setup, playerIds: readonly string[]): Setup {
             return row
         })
     const draft = ordinary.draft
+    assertExists(draft, 'Setup deals the opening')
     return {
         ...ordinary,
         players: inTableOrder(ordinary.players, (player) => player.playerId),

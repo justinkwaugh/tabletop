@@ -9,7 +9,7 @@
     )
 </script>
 
-<section class="draft centered-panel" aria-label="Opening company purchases">
+<section class="draft midwest-panel centered-panel" aria-label="Opening company purchases">
     <header class="draft-heading">
         <h2>
             {session.gameState.activePlayerIds.map((id) => session.getPlayerName(id)).join(', ')} · buy
