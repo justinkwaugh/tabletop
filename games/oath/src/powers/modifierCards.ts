@@ -18,6 +18,7 @@ import {
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
 import { CARELESS, hasTrait, reasonTradeForSecretsGainsNoFavor } from '../util/reliquaryTraits.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 
 function player(ctx: EffectContext) {
     return ctx.state.getPlayerState(ctx.playerId)
@@ -298,7 +299,11 @@ registerModifier(
                 }
                 if (ctx.particulars?.tradeOption !== 'forSecrets')
                     return 'you are not trading for secrets'
-                const beast = hasFaceupAdviserOfSuit(ctx.state, ctx.playerId, Suit.Beast)
+                // R-7.4-H1 — from revision 23, the advisers the Trade acts with (Master of Disguise).
+                const holder = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes19)
+                    ? (ctx.particulars.advisersOf ?? ctx.playerId)
+                    : ctx.playerId
+                const beast = hasFaceupAdviserOfSuit(ctx.state, holder, Suit.Beast)
                 return beast ? undefined : 'you have no beast adviser'
             },
             tradeSecrets: (base) => base + 1
