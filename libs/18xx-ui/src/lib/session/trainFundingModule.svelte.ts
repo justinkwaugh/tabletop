@@ -97,7 +97,7 @@ export class TrainFundingModule {
         )
         await this.completeCashFunding(buy)
     }
-    async choose(purchase: TrainPurchaseDetails) {
+    async fundOption(purchase: TrainPurchaseDetails) {
         const option = this.options.find((option) => option.purchase === purchase)
         assert(option, 'Choose a fundable train')
         await this.fund(purchase, !option.plan.requiresSales)

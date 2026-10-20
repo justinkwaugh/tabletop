@@ -104,7 +104,7 @@ describe('TrainFundingModule', () => {
             ['3', [150]]
         ])
         const [, three] = module.options
-        await module.choose(three.purchase)
+        await module.fundOption(three.purchase)
         const [action] = applied
         expect(isFundTrain(action) && action.definitionId).toBe('3')
     })

@@ -17,7 +17,27 @@
     const purchase = $derived(session.trainFunding.purchase)
     const plan = $derived(session.trainFunding.plan)
     const disabled = $derived(!(session.trainFunding.canFund || session.trainFunding.canResolve))
+    type FundingPlan = NonNullable<EighteenXXSessionView['trainFunding']['plan']>
 </script>
+
+{#snippet planNotes(plan: FundingPlan)}
+    {#if plan.treasuryProceeds}<p>
+            Treasury shares will raise {money(plan.treasuryProceeds)}.
+        </p>{/if}
+    {#each plan.contributions as contribution, index (index)}
+        <p>{session.ownerName(contribution.owner)} contributes {money(contribution.amount)}.</p>
+    {/each}
+    {#if plan.choice.kind === 'sell'}
+        <p>
+            {session.ownerName(plan.choice.owner)}
+            {#if plan.amountToRaise > 0}must raise <strong>{money(plan.amountToRaise)}</strong> by selling
+                shares.
+            {:else}must sell shares to meet the ownership limit.{/if}
+        </p>
+    {:else if plan.choice.kind === 'bankrupt'}
+        <p>Unable to raise the remaining {money(plan.amountToRaise)}.</p>
+    {/if}
+{/snippet}
 
 {#snippet undoButton()}
     {#if showUndo}<button
@@ -49,24 +69,10 @@
                         listPrice={definition.price}
                         disabled={!session.trainFunding.canFund}
                         onclick={() => {
-                            void session.trainFunding.choose(option.purchase)
+                            void session.trainFunding.fundOption(option.purchase)
                         }}
                     />
-                    {#if option.plan.treasuryProceeds}<small
-                            >Treasury shares raise {money(option.plan.treasuryProceeds)}</small
-                        >{/if}
-                    {#each option.plan.contributions as contribution, index (index)}<small
-                            >{session.ownerName(contribution.owner)} pays {money(
-                                contribution.amount
-                            )}</small
-                        >{/each}
-                    {#if option.plan.choice.kind === 'sell'}<small
-                            >{session.ownerName(option.plan.choice.owner)} sells shares for {money(
-                                option.plan.amountToRaise
-                            )}</small
-                        >{:else if option.plan.choice.kind === 'bankrupt'}<small
-                            >{money(option.plan.amountToRaise)} short</small
-                        >{/if}
+                    {@render planNotes(option.plan)}
                 </div>
             {/each}
         </div>
@@ -89,9 +95,6 @@
                 game has ended.
             </p>
         {:else}
-            {#if plan.treasuryProceeds}<p>
-                    Treasury shares will raise {money(plan.treasuryProceeds)}.
-                </p>{/if}
             {#each session.trainFunding.contributions as contribution (contribution.id)}
                 <p>
                     {session.ownerName(contribution.owner)} contributed {money(
@@ -99,21 +102,8 @@
                     )}.
                 </p>
             {/each}
-            {#each plan.contributions as contribution, index (index)}
-                <p>
-                    {session.ownerName(contribution.owner)} contributes {money(
-                        contribution.amount
-                    )}.
-                </p>
-            {/each}
+            {@render planNotes(plan)}
             {#if plan.choice.kind === 'sell'}
-                <p>
-                    {session.ownerName(plan.choice.owner)}
-                    {#if plan.amountToRaise > 0}must raise <strong
-                            >{money(plan.amountToRaise)}</strong
-                        > by selling shares.
-                    {:else}must sell shares to meet the ownership limit.{/if}
-                </p>
                 <div class="choices" aria-label="Funding share sales">
                     {#each session.trainFunding.sales as sale, index (index)}
                         {@const companyId = sale.sales[0].companyId}
@@ -138,7 +128,6 @@
                     {/each}
                 </div>
             {:else if plan.choice.kind === 'bankrupt'}
-                <p>Unable to raise the remaining {money(plan.amountToRaise)}.</p>
                 <div class="choices">
                     <button
                         class="action-button"
@@ -244,8 +233,10 @@
         align-items: center;
         gap: 2px;
     }
-    .option small {
+    .option p {
+        margin: 0;
         color: var(--rail-muted, #817565);
+        font-size: 12px;
     }
     .sale-choice {
         flex-direction: column;

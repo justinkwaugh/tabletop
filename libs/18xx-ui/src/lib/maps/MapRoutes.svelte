@@ -11,6 +11,9 @@
     }: { scene: MapDrawing; routes: readonly MapRoute[]; appearance: TileAppearance } = $props()
     const maskId = $props.id()
     const locations = $derived(drawMapRoutes(scene, routes))
+    const RouteWidth = 6.5
+    const RouteEdgeWidth = 9
+    const RouteLayers = ['edge', 'fill'] as const
 </script>
 
 <g data-map-layer="routes" pointer-events="none" aria-hidden="true">
@@ -56,28 +59,28 @@
         </mask>
     </defs>
     <g mask={`url(#${maskId})`} fill="none" stroke-linecap="round" stroke-linejoin="round">
-        {#each [9, 6.5] as width (width)}
+        {#each RouteLayers as layer (layer)}
             {#each locations as location (location.id)}
                 <g transform={`translate(${location.center.x} ${location.center.y})`}>
                     {#each location.paths as path (path.id)}
-                        {@const stroke =
-                            width === 9
-                                ? `color-mix(in srgb, ${path.color} 55%, black)`
-                                : path.color}
+                        {@const edge = layer === 'edge'}
+                        {@const stroke = edge
+                            ? `color-mix(in srgb, ${path.color} 55%, black)`
+                            : path.color}
                         {#if path.spike}
                             <polygon
-                                data-map-route={width === 6.5 ? path.routeId : undefined}
-                                points={spikePoints(path.spike, 6.5)}
+                                data-map-route={edge ? undefined : path.routeId}
+                                points={spikePoints(path.spike, RouteWidth)}
                                 fill={stroke}
-                                stroke={width === 9 ? stroke : 'none'}
-                                stroke-width={width - 6.5}
+                                stroke={edge ? stroke : 'none'}
+                                stroke-width={RouteEdgeWidth - RouteWidth}
                             ></polygon>
                         {:else}
                             <path
-                                data-map-route={width === 6.5 ? path.routeId : undefined}
+                                data-map-route={edge ? undefined : path.routeId}
                                 d={path.d}
                                 {stroke}
-                                stroke-width={width}
+                                stroke-width={edge ? RouteEdgeWidth : RouteWidth}
                             ></path>
                         {/if}
                     {/each}

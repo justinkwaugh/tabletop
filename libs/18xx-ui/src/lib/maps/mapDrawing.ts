@@ -50,7 +50,6 @@ export type MapRoute = {
     color: string
     segments: readonly RoutePath[]
 }
-/** The hexes the routes pass through, with every hex printed in the same area as one of them. */
 export function routeLocationIds(
     routes: readonly MapRoute[],
     { map, joinedEdges = {} }: Pick<MapViewDefinition, 'map' | 'joinedEdges'>
