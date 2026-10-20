@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { access, readFile } from 'node:fs/promises'
+import { access, readFile, stat } from 'node:fs/promises'
 import { GameDefinition } from '@tabletop/common'
 import type { SiteManifest, SiteManifestGame } from '@tabletop/games-config'
 import { RedisCacheService } from '../cache/cacheService.js'
@@ -289,23 +289,37 @@ export class LibraryService {
         }
         const published = path.join(this.logicRoot, entry.packageId, 'logic', entry.logicVersion)
         if (this.fallbackManifest && !(await this.pathExists(published))) {
+            // The workspace bundle is the production artifact, so it is preferred whenever it is
+            // at least as fresh as the compiled sources; otherwise the sources are imported.
             const workspace = path.join(this.logicRoot, entry.packageId)
+            const bundle = path.join(workspace, 'bundle')
+            const factory = path.join(bundle, 'index.cjs')
             const compiled = path.join(workspace, 'esm', 'index.js')
-            if (await this.pathExists(compiled)) {
+            const [factoryModified, compiledModified] = await Promise.all([
+                this.modifiedAt(factory),
+                this.modifiedAt(compiled)
+            ])
+            if (factoryModified !== undefined && factoryModified >= (compiledModified ?? 0)) {
+                return { directory: bundle, factory, legacy: path.join(bundle, 'index.js') }
+            }
+            if (compiledModified !== undefined) {
                 return { directory: path.dirname(compiled), legacy: compiled }
             }
-            const bundle = path.join(workspace, 'bundle')
-            return {
-                directory: bundle,
-                factory: path.join(bundle, 'index.cjs'),
-                legacy: path.join(bundle, 'index.js')
-            }
+            return { directory: bundle, legacy: path.join(bundle, 'index.js') }
         }
         const factory = path.join(published, 'index.cjs')
         return {
             directory: published,
             factory: (await this.pathExists(factory)) ? factory : undefined,
             legacy: path.join(published, 'index.js')
+        }
+    }
+
+    private async modifiedAt(filePath: string): Promise<number | undefined> {
+        try {
+            return (await stat(filePath)).mtimeMs
+        } catch {
+            return undefined
         }
     }
 
