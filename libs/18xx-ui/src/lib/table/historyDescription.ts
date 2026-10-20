@@ -438,14 +438,18 @@ function describeShared(
                     .join(' · ') || undefined
         }
     }
-    if (isStartCompany(action))
+    if (isStartCompany(action)) {
+        const details = action.metadata
         return {
-            text: `Started ${companyName(action.companyId)} for ${money(action.expectedPrice)}`,
-            detail: action.metadata
-                ? `${action.metadata.shares} shares · Par ${action.metadata.parPrice}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
-                : undefined,
+            text: `Started ${companyName(action.companyId)} at ${money(marketPrice(action.marketSpaceId))} par`,
+            detail: joinDetails(
+                details && `${details.shares} shares`,
+                money(action.expectedPrice),
+                details?.presidency && presidency(details.presidency)
+            ),
             important: true
         }
+    }
     if (isParCompany(action))
         return {
             text: `Set ${companyName(action.companyId)}’s par at ${money(marketPrice(action.marketSpaceId))}`,

@@ -162,7 +162,7 @@
                             {bankBreaks}
                             stations={session.mapView.stations}
                             {describe}
-                            {companyName}
+                            companyName={fullCompanyName}
                         />
                     </li>
                 {/if}
