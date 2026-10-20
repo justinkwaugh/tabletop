@@ -30,6 +30,7 @@
         "bundle": "svelte-kit sync && rimraf bundle && rollup -c ./rollup.config.ts",
         "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
         "dev": "vite dev",
+        "test": "node --test tests/scenarioFiles.test.mjs",
         "lint": "eslint ."
     },
     "peerDependencies": {
