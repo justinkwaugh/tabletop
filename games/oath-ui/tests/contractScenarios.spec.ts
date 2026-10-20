@@ -6178,7 +6178,7 @@ test('scenario 60: between rounds the Chancellor rolls the end die; the last sea
 
     await openTable(page, 'endOfRound')
     await grid(page).getByRole('button', { name: 'Roll the end die' }).click()
-    await expect(page.getByRole('region', { name: 'End die', exact: true })).toContainText(/last [1-6]/)
+    await expect(page.locator('.board-rail').getByRole('region', { name: 'End die', exact: true })).toHaveCount(0)
     await page.getByRole('tab', { name: 'History' }).click()
     await expect(page.locator('[data-major-event="endDie"]')).toContainText('rolled the end die:')
     await expect(page.locator('[data-major-event="endDie"]')).toContainText('end of round 6')
@@ -6200,6 +6200,29 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 
         }))
         expect(width).toBeLessThan(room / 2)
         if (viewport.width < 640) expect(height).toBeGreaterThanOrEqual(44)
+    })
+}
+
+/** The end die is told by its panel, "Next to win" and the History; the rail keeps only the goals and the banners. */
+for (const viewport of [{ width: 1280, height: 900 }, { width: 375, height: 812 }]) {
+    test(`scenario 60: the rail has no End die box while the die is live or after the roll, at ${viewport.width}`, async ({ page }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, 'endOfRound')
+        const rail = page.locator('.board-rail')
+        const railPieces = rail.locator('.rail > *')
+        await expect(grid(page).getByRole('heading', { name: 'End die', exact: true })).toBeVisible()
+        await expect(rail.locator('.next')).toContainText('if the end die ends the game after round 6')
+        await expect(rail.getByRole('region', { name: 'End die', exact: true })).toHaveCount(0)
+        await expect(rail.getByText('End die', { exact: true })).toHaveCount(0)
+        await expect(railPieces).toHaveCount(2)
+        await expect(railPieces.last()).toContainText('Unclaimed')
+
+        await grid(page).getByRole('button', { name: 'Roll the end die' }).click()
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.locator('[data-major-event="endDie"]')).toContainText('rolled the end die:')
+        await expect(rail.getByRole('region', { name: 'End die', exact: true })).toHaveCount(0)
+        await expect(rail.getByText('End die', { exact: true })).toHaveCount(0)
+        await expect(railPieces).toHaveCount(2)
     })
 }
 
@@ -8126,8 +8149,11 @@ test.describe('no hover titles in Oath’s own areas', () => {
         await expectNoHoverTitles(page, 'the Wake')
 
         await openTable(page, 'endOfRound')
+        await expect(grid(page).getByRole('button', { name: 'Roll the end die' })).toBeVisible()
+        await expectNoHoverTitles(page, 'the End die panel')
         await grid(page).getByRole('button', { name: 'Roll the end die' }).click()
-        await expect(page.locator('.rail')).toContainText(/last [1-6]/)
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.locator('[data-major-event="endDie"]')).toBeVisible()
         await expectNoHoverTitles(page, 'the end die')
 
         await openTable(page, 'majorEvents')
