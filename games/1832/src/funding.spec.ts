@@ -78,9 +78,8 @@ describe('compulsory train purchases', () => {
             kind: 'player',
             playerId: 'blair'
         })
-        expect(play.processed.find(isFundTrain)?.metadata).toEqual({
-            voluntary: false
-        })
+        // Compulsory funding records nothing, as before voluntary funding existed.
+        expect(play.processed.find(isFundTrain)?.metadata).toBeUndefined()
     })
 
     it('ends the game at once when the president cannot raise the price', () => {
