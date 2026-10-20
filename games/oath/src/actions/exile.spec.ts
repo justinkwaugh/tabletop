@@ -262,6 +262,17 @@ describe('Self-Exiling (R-6.8)', () => {
         expect(() => selfExile('cit').apply(state)).toThrow(/nobody holds the Grand Scepter/)
     })
 
+    it('refuses while the Grand Scepter lies in the relic deck (Relic Hunter sent it down), as does exiling a Citizen', () => {
+        const state = table({ favor: 40 })
+        state.getPlayerState('chan').relicIds = []
+        state.requireVault().relicDeck.push(GRAND_SCEPTER_ID)
+        expect(state.relicHolderOf(GRAND_SCEPTER_ID)).toBeUndefined()
+        expect(HydratedSelfExile.reasonCannotSelfExile(state, 'cit')).toBe('nobody holds the Grand Scepter to give the favor to')
+        expect(() => selfExile('cit').apply(state)).toThrow(/nobody holds the Grand Scepter/)
+        // R-6.7 — the Scepter's other powers have no holder either: the Chancellor cannot exile them.
+        expect(HydratedExileCitizen.reasonCannotExile(state, 'chan', 'cit')).toBe('exiling a Citizen requires the Grand Scepter')
+    })
+
     it('replaces only the board, like R-6.7 and unlike R-6.6.2', () => {
         const state = table({ favor: 40 })
         expectWarbandTotalConserved(state, () => {
