@@ -84,10 +84,15 @@ export class EighteenThirtyTwoSession extends BaseSession {
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
         this.localSelections.register({
-            hasManual: () => !!this.mergerSelection.companyId || !!this.mergerSelection.partnerId,
+            hasManual: () => {
+                const { companyId, partnerId, yielded } = this.mergerSelection
+                return !!companyId || !!partnerId || !!yielded
+            },
+            // The latest choice goes first: the System's president, the partner, the company.
             undo: () => {
-                const { companyId, partnerId } = this.mergerSelection
-                if (partnerId) this.mergerSelection = { companyId }
+                const { companyId, partnerId, yielded } = this.mergerSelection
+                if (yielded) this.mergerSelection = { companyId, partnerId }
+                else if (partnerId) this.mergerSelection = { companyId }
                 else if (companyId) this.mergerSelection = {}
                 else return false
                 return true
@@ -242,14 +247,20 @@ export class EighteenThirtyTwoSession extends BaseSession {
             takeovers
         }
     })
+    // Choosing what is already chosen, even automatically, records nothing for Undo to pop.
     chooseMergerCompany(companyId: string) {
-        this.mergerSelection = { companyId }
+        if (companyId !== this.mergerCompanyId) this.mergerSelection = { companyId }
     }
     chooseMergerPartner(partnerId: string) {
-        this.mergerSelection = { companyId: this.mergerSelection.companyId, partnerId }
+        if (partnerId !== this.mergerPartnerId)
+            this.mergerSelection = { companyId: this.mergerSelection.companyId, partnerId }
     }
+    /** The proposer's own presidency is the default; only yielding it is a choice to undo. */
     chooseSystemPresidency(yielded: boolean) {
-        this.mergerSelection = { ...this.mergerSelection, yielded }
+        const { companyId, partnerId } = this.mergerSelection
+        this.mergerSelection = yielded
+            ? { companyId, partnerId, yielded }
+            : { companyId, partnerId }
     }
     /** The proposal the player is asked to answer, with what it would cost or make. */
     readonly mergerAnswer = $derived.by(() => {

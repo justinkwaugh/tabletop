@@ -446,7 +446,8 @@ export class EighteenXXSession<
             () => this.mapView,
             (companyId) => this.companyName(companyId),
             (state) =>
-                this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules)))
+                this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
+            (state) => this.stations.openReservations(state)
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))

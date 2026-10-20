@@ -56,6 +56,7 @@ type Stations = Pick<
     | 'selection'
     | 'preview'
     | 'displayState'
+    | 'openReservations'
     | 'canPlace'
     | 'locationIds'
     | 'choices'
@@ -109,9 +110,9 @@ export class MapModule {
     // Reservations move with a previewed lay's tile, so they wait for it to land like tokens.
     displayedReservations = $derived.by(() => {
         const preview = this.track.displayedStations
-        return preview && !this.track.tileInFlight
-            ? preview.stationReservations
-            : this.stations.displayState.stationReservations
+        return this.stations.openReservations(
+            preview && !this.track.tileInFlight ? preview : this.stations.displayState
+        )
     })
     style = $derived.by((): MapStyle =>
         this.session.playerId

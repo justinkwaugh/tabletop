@@ -31,7 +31,11 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
     constructor(
         private readonly currentView: () => MapViewDefinition,
         private readonly companyName: (companyId: string) => string,
-        private readonly read: (state: State) => HistoricalMapState
+        private readonly read: (state: State) => HistoricalMapState,
+        /** The reservations that still hold a space, as the title's station rules judge them. */
+        private readonly openReservations: (
+            state: HistoricalMapState
+        ) => HistoricalMapState['stationReservations'] = (state) => state.stationReservations
     ) {}
 
     preview(state: State, actions: readonly GameAction[], action: GameAction) {
@@ -83,7 +87,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                 view
             ),
             tokens: stationMapTokens(snapshot, view.stations),
-            reservations: snapshot.stationReservations,
+            reservations: this.openReservations(snapshot),
             stationAppearances: view.stations,
             routes,
             selection,

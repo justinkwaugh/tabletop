@@ -168,11 +168,7 @@ export class StationPlacement {
                         reservation.locationId === locationId &&
                         reservation.nodeId === nodeId &&
                         reservation.companyId !== companyId &&
-                        !occupied.some(
-                            (station) =>
-                                station.companyId === reservation.companyId ||
-                                station.id === this.rules.reservationOccupant?.(reservation)
-                        )
+                        !reservationFulfilled(this.state, reservation, this.rules)
                 )
                 .map((reservation) => reservation.companyId)
         ).size
@@ -213,6 +209,25 @@ export class StationPlacement {
         return placements
     }
 }
+/**
+ * Whether a station placed in a reservation's city already answers it: its company's, or the
+ * station the rules name as occupying it.
+ */
+export function reservationFulfilled(
+    state: StationState,
+    reservation: StationReservation,
+    rules: Pick<StationRules, 'reservationOccupant'>
+): boolean {
+    return state.stations.some(
+        (station) =>
+            station.status === 'placed' &&
+            station.position.locationId === reservation.locationId &&
+            station.position.nodeId === reservation.nodeId &&
+            (station.companyId === reservation.companyId ||
+                station.id === rules.reservationOccupant?.(reservation))
+    )
+}
+
 // A placed home fulfils its company's reservations on the home hexes.
 export function releaseHomeReservations(
     state: StationState,
