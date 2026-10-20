@@ -44,7 +44,7 @@
                 <HistoryControls borderClass="border-gray-700 border-b-2" />
             {/if}
         </div>
-        <div {@attach scrollToRight} class="w-full overflow-auto">
+        <div {@attach scrollToRight} class="table-scroller w-full overflow-auto">
             <div class="p-2 w-full h-full flex flex-row justify-between items-start" style:padding-top={topPadding + 'px'} style:padding-inline={horizontalPadding + 'px'}>
                 {#if showSidebar}<div
                     class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass}"
@@ -77,6 +77,10 @@
 </div>
 
 <style>
+    /* Contains visually hidden labels, which otherwise escape the scroller's clip and widen the page. */
+    .table-scroller {
+        position: relative;
+    }
     @media (width < 40rem) {
         .game-column {
             padding-inline-end: var(--table-inline-padding);

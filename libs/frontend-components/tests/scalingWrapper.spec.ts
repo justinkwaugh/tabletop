@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { Point } from '@tabletop/common'
 import type { WrapperFixtureProps } from '../src/lib/components/tests/scalingWrapper.fixture.js'
 
 async function mountWrapper(page: Page, props: WrapperFixtureProps = {}) {
@@ -43,6 +44,37 @@ test('trackpad pan hands remaining movement and momentum to the enclosing table'
         expectedScroll += deltaX
         await expect.poll(() => table.evaluate(element => element.scrollLeft)).toBe(expectedScroll)
     }
+})
+
+async function touchDrag(target: Locator, from: Point, to: Point) {
+    await target.evaluate((element, { from, to }) => {
+        const touchAt = (point: Point) =>
+            new Touch({ identifier: 1, target: element, clientX: point.x, clientY: point.y })
+        const dispatch = (type: string, touches: Touch[]) =>
+            element.dispatchEvent(new TouchEvent(type, { touches, changedTouches: touches, bubbles: true, cancelable: true }))
+        dispatch('touchstart', [touchAt(from)])
+        for (let step = 1; step <= 5; step++) {
+            dispatch('touchmove', [touchAt({ x: from.x + (to.x - from.x) * step / 5, y: from.y + (to.y - from.y) * step / 5 })])
+        }
+    }, { from, to })
+}
+
+test.describe('touch', () => {
+    test.use({ hasTouch: true })
+
+    test('dragging a fitted board inside a vertical body scrolls each axis in the scroller that moves along it', async ({ page }) => {
+        await mountWrapper(page, { scrollable: true, verticalBody: true })
+        const board = page.getByTestId('board')
+        const table = page.getByTestId('table-scroll')
+        const body = page.getByTestId('body-scroll')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+        await table.evaluate(element => { element.scrollLeft = 400 })
+        await touchDrag(board, { x: 100, y: 150 }, { x: 250, y: 150 })
+        expect(await table.evaluate(element => element.scrollLeft)).toBe(250)
+        await touchDrag(board, { x: 200, y: 200 }, { x: 200, y: 120 })
+        expect(await body.evaluate(element => element.scrollTop)).toBe(80)
+        expect(await table.evaluate(element => element.scrollLeft)).toBe(250)
+    })
 })
 
 test('full screen keeps the table and page behind it from scrolling', async ({ page }) => {

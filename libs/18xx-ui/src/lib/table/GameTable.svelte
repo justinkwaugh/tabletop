@@ -1437,7 +1437,7 @@
         flex: 1;
         min-height: 0;
         overflow: auto;
-        overscroll-behavior: none;
+        overscroll-behavior-y: none;
     }
     .workspace-heading {
         padding-inline: 8px;

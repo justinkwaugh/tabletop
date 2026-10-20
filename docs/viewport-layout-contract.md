@@ -254,6 +254,21 @@ The contracted game layout should have exactly one chain of vertical truth:
 
 No child component should re-derive the viewport independently.
 
+## Horizontal table scroller
+
+On small screens the sidebar and game column scroll sideways inside `DefaultTableLayout`'s table
+scroller. The scroller is positioned, so absolutely positioned descendants without a nearer
+positioned ancestor, such as visually hidden labels, stay inside its clip. Without that, such a
+label keeps its unscrolled position against the page and widens the document, letting the whole
+page, site header included, scroll sideways into blank space. `tests/tableLayout.spec.ts` in
+`libs/frontend-components` checks the page stays at the screen width.
+
+This is bundled rendering with no host-bridge change. Every Game UI Artifact bundles
+`DefaultTableLayout`, the 18xx titles through `@tabletop/18xx-ui`, so each title keeps the wide
+page until it is republished. The 18xx phone body (`GameTable` in `@tabletop/18xx-ui`) and
+Napoleon's Triumph's body stop overscroll only vertically, so sideways swipes over them reach the
+table scroller.
+
 ## Published artifact CSS compatibility
 
 Older Game UI artifacts retain the layout utility classes they were built with.
