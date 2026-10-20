@@ -9,6 +9,7 @@ import {
     adviserLimitDiscards,
     banksWithFavor,
     favorHomeBankOf,
+    favorTakenFrom,
     homeBankPayable,
     cagePurpleChoiceBoards,
     cardPower,
@@ -482,6 +483,25 @@ export class QuestionDraft implements PanelDraft {
     /** R-11.7-H2 — Hospitality's bank, after the Shrouded Wood ruler's pick: one tap gains. */
     async gainHospitalityFavor(suit: Suit): Promise<void> {
         await this.send({ kind: PowerQuestionKind.HospitalityBank, suit })
+    }
+
+    /**
+     * R-7.1.3-H2 — Gambling Hall's banks once the roll stands, each with what it gives: the total,
+     * or what the bank holds if less (R-9.3).
+     */
+    get gamblingHallGains(): { suit: Suit; gain: number }[] {
+        const question = this.mine
+        if (question?.kind !== PowerQuestionKind.GamblingHallBank) return []
+        const banks = this.session.gameState.favorBank
+        return question.banks.map((suit) => ({
+            suit,
+            gain: favorTakenFrom(banks[suit], question.shields)
+        }))
+    }
+
+    /** R-7.1.3-H2 — one tap takes Gambling Hall's favor from that bank. */
+    async takeGamblingHallFavor(suit: Suit): Promise<void> {
+        await this.send({ kind: PowerQuestionKind.GamblingHallBank, suit })
     }
 
     /** Fae Merchant — the relics held before the draw that may go down; the Grand Scepter never does. */

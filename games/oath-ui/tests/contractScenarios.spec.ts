@@ -6851,7 +6851,8 @@ test.describe('power questions', () => {
             ['askFalseProphet', ['As your Vision', 'Discard']],
             ['askFlipToTravel', ['Travel and flip 1 secret', 'Stay']],
             ['askWayStation', ['Give, paying 1 favor', 'Pay 2 Supply']],
-            ['askHospitalityBank', ['+1 favor from the Order bank', '+1 favor from the Nomad bank']]
+            ['askHospitalityBank', ['+1 favor from the Order bank', '+1 favor from the Nomad bank']],
+            ['askGamblingHallBank', ['+3 favor from the Discord bank', '+2 favor from the Arcane bank', '+4 favor from the Order bank', '+1 favor from the Hearth bank', '+3 favor from the Nomad bank']]
         ] as const) {
             test(`${table}: no label is wider than its button; the answers share one width, at least 44 px tall`, async ({ page }) => {
                 await openTable(page, table)

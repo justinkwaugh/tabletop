@@ -23,12 +23,13 @@
     import WoodStay from '$lib/components/WoodStay.svelte'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import DefenseDice from '$lib/components/DefenseDice.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { favorToken } from '$lib/images/tileImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
-    import { cardName, listed, siteName, suitName, transferText } from '$lib/model/names.js'
+    import { cardName, listed, plural, siteName, suitName, transferText } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // Every "no" is a first-class button: silence is not an answer (R-X.1).
@@ -44,9 +45,9 @@
     // Jinx — "after you roll … for any reason".
     function rolledDice(roll: RerolledRoll): string {
         if (roll.kind === RerolledRollKind.Campaign) return `the ${roll.side} dice`
-        return roll.kind === RerolledRollKind.GamblingHall
-            ? 'the Gambling Hall dice'
-            : 'the Relic Thief dice'
+        return roll.kind === RerolledRollKind.RelicThief
+            ? 'the Relic Thief dice'
+            : 'the Gambling Hall dice'
     }
 
     function standingRoll(roll: RerolledRoll): string {
@@ -339,6 +340,33 @@
                         onclick={() => draft.gainHospitalityFavor(suit)}
                     >
                         <FavorCost count={1} sign="+" />
+                        <img
+                            class="inline-block h-[1.1em] w-auto"
+                            src={suitImage(suit)}
+                            alt="the {suitName(suit)} bank"
+                        />
+                    </AnswerButton>
+                {/each}
+            </div>
+        </QuestionForm>
+    {:else if mine.kind === PowerQuestionKind.GamblingHallBank}
+        <!-- R-7.1.3-H2 — the roll stands, after any Jinx reroll: its faces, then one button per bank
+             with favor, "+M [favor] [suit]", M the total or what the bank holds if less (R-9.3). -->
+        <QuestionForm cardId={mine.cardId}>
+            {#snippet line()}Rolled {plural(mine.shields, 'shield')}:{/snippet}
+            <div class="mb-2 flex flex-wrap items-center gap-1">
+                <DefenseDice faces={mine.faces} />
+            </div>
+            <p class="mb-2 text-base"><TokenText text="Gain {mine.shields} favor from:" /></p>
+            <div class="flex flex-wrap gap-2">
+                {#each draft.gamblingHallGains as { suit, gain } (suit)}
+                    <AnswerButton
+                        width={bankWidth}
+                        disabled={busy}
+                        label="+{gain} favor from the {suitName(suit)} bank"
+                        onclick={() => draft.takeGamblingHallFavor(suit)}
+                    >
+                        <FavorCost count={gain} sign="+" />
                         <img
                             class="inline-block h-[1.1em] w-auto"
                             src={suitImage(suit)}

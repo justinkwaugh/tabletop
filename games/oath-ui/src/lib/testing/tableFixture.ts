@@ -91,6 +91,7 @@ import {
     type PlayedTable
 } from './sessionHarness.js'
 import { shroudedWoodState } from './shroudedWoodTable.js'
+import { gamblingHallUsed } from './gamblingHallTable.js'
 import {
     FOREST_PATHS,
     HOSPITALITY,
@@ -257,6 +258,8 @@ export type TableName =
     | 'drumAfterBrassHorse'
     | 'messenger'
     | 'messengerTwoOwners'
+    | 'gamblingHallAsked'
+    | 'gamblingHallJinx'
     | 'warningSignals'
     | PickerScene
     | PowerSitesScene
@@ -348,7 +351,11 @@ const faceup = (cardId: string) => ({ cardId, faceUp: true })
 function questionTable(
     question: PowerQuestion,
     seats: { me?: Partial<Seat>; ann?: Partial<Seat> } = {},
-    board: { siteCards?: Record<string, string>; oathRevision?: number } = {}
+    board: {
+        siteCards?: Record<string, string>
+        oathRevision?: number
+        favorBank?: Record<Suit, number>
+    } = {}
 ): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -376,6 +383,7 @@ function questionTable(
             map: allMapSlots(),
             siteCards: { ...fixtureSitesOnTheBoard(), ...board.siteCards },
             oathRevision: board.oathRevision,
+            ...(board.favorBank ? { favorBank: board.favorBank } : {}),
             pendingQuestions: {
                 queue: [question],
                 askingPlayerId: 'ann',
@@ -659,6 +667,35 @@ const QUESTION_TABLES = {
             },
             {},
             { oathRevision: CURRENT_OATH_REVISION }
+        ),
+    // R-7.1.3-H2 — shield, two shields, blank and a doubling: (1 + 2) × 2 = 6, the Beast bank empty.
+    askGamblingHallBank: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.GamblingHallBank,
+                cardId: 'denizen.discord.gambling-hall',
+                ...asked,
+                shields: 6,
+                faces: [
+                    { shields: 1, doubling: false },
+                    { shields: 2, doubling: false },
+                    { shields: 0, doubling: false },
+                    { shields: 0, doubling: true }
+                ],
+                banks: [Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Nomad]
+            },
+            {},
+            {
+                oathRevision: CURRENT_OATH_REVISION,
+                favorBank: {
+                    [Suit.Discord]: 3,
+                    [Suit.Arcane]: 2,
+                    [Suit.Order]: 4,
+                    [Suit.Hearth]: 1,
+                    [Suit.Beast]: 0,
+                    [Suit.Nomad]: 3
+                }
+            }
         ),
     askSneakAttack: () =>
         questionTable({
@@ -5172,6 +5209,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     oracleNoFavor: () => oracleTable(0),
     messenger: messengerTable,
     messengerTwoOwners: messengerTwoOwnersTable,
+    // R-7.1.3-H2 — Dana rolled 6 and is asked the bank; with Jinx, the reroll is asked first.
+    gamblingHallAsked: () => gamblingHallUsed(),
+    gamblingHallJinx: () => gamblingHallUsed({ jinx: true }),
     warningSignals: warningSignalsTable,
     pickerWhistle: () => powerPickerTable('pickerWhistle'),
     pickerTerror: () => powerPickerTable('pickerTerror'),

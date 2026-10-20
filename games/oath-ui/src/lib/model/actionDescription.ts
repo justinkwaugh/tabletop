@@ -862,6 +862,15 @@ function describeActionCited(
             const gain = noteClause(meta.summary, action.playerId)?.text ?? meta.summary
             return namedNote(gain, action.playerId, names, viewerId)
         }
+        // R-7.1.3-H2 — Gambling Hall's bank once the roll stood, read as Hospitality's bank reads.
+        if (meta.kind === PowerQuestionKind.GamblingHallBank) {
+            return namedNote(
+                `${meta.summary} (${cardName(meta.cardId)})`,
+                action.playerId,
+                names,
+                viewerId
+            )
+        }
         const answer = action.answer
         // The Gathering — the proposal's terms, from the answer's own record.
         if (answer.kind === PowerQuestionKind.GatheringFloor && answer.proposal) {
