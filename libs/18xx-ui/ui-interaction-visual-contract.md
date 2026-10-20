@@ -1024,6 +1024,15 @@ Train badges in the company strip and expanded header share TrainBadge. Backgrou
 use the train's title-provided phase color from the existing tile palette, with
 contrasting dark text. They retain the train's own color as the game advances.
 
+An owned train a phase change has made obsolete (it runs once more, then leaves) keeps
+its colour and is crossed by one diagonal line in its text colour, clipped to the badge,
+wherever a company's owned trains are drawn: the company card, operating order,
+spreadsheet Trains row, run table (live and recorded), company purchase card, TOP's
+branch split and 1817's merger discards. Its tooltip adds "Obsolete: removed after its
+next run" and screen readers hear "obsolete" after its name; the card has no separate
+note. Badges that stand for a train type rather than an owned train (depot, phase chart,
+history rows) are never crossed.
+
 Player panels use priority order, with a Priority deal marker on the first player
 and a subtle border for the currently acting player. Cash, liquidity, shares, Certs (weighted count/limit), and current net worth precede the ownership table (company token, name, percentage; president
 bold) and private-company table (income per OR and value). Liquidity is cash plus
@@ -1047,7 +1056,7 @@ During actionable track construction, all locations absent from the session’s 
 
 Hovering a legal track-lay location uses the same solid red outline as selection, without stacking a second outline. Masked locations receive no hover outline. Pointer exit, scene changes, and construction-availability changes clear this local presentation state; hover never selects or commits an action.
 
-While the run-trains step displays autorouted routes and no train is selected for manual editing, the same translucent mask covers every hex outside those routes, and no map space is clickable or keyboard-selectable. Selecting a train for manual editing or committing the run clears the mask while the routes stay drawn. While navigating history, the table map masks non-route hexes whenever the settled position is a train run, and clears the mask at every other position. The historical map dialog masks non-route hexes the same way for run previews.
+While the run-trains step displays autorouted routes and no train is selected for manual editing, the same translucent mask covers every hex outside those routes, except the other hexes of a printed area a route reaches (a two-hex offboard such as 1846's Pittsburgh), and no map space is clickable or keyboard-selectable. Selecting a train for manual editing or committing the run clears the mask while the routes stay drawn. While navigating history, the table map masks non-route hexes, by the same rule, whenever the settled position is a train run, and clears the mask at every other position. The historical map dialog masks non-route hexes the same way for run previews.
 
 ### Map track picker
 
@@ -1551,7 +1560,7 @@ contributions before purchase. Clicking the train executes canonical mandatory f
 remain selectable before that commitment when company cash permits them. Reload
 and undo do not themselves execute funding actions.
 
-The forced train view names the obligated company beside its token and shows the required train badge and price. Each legal funding sale appears as a company token above its share count and proceeds. Clicking commits the sale directly; Undo reverses the committed sale. A sales ledger persists throughout funding. Raising sufficient cash reveals the normal train purchase button; it does not purchase automatically. Completed contributions remain visible above the next owner’s shortfall, derived from the current funding sequence’s visible actions. Pending cash contributions are shown and executed on that explicit purchase click.
+When more than one train can be funded (1846's 5 and 4/6), the forced train view first names the company with "must buy a train" and lists each fundable train as a train button with its own plan beneath: the treasury shares it would issue, each owner's contribution, the shares still to sell or the shortfall. Choosing a train starts its funding and, when no sale is needed, buys it. With one fundable train, or once funding has started, the forced train view names the obligated company beside its token and shows the required train badge and price. Each legal funding sale appears as a company token above its share count and proceeds. Clicking commits the sale directly; Undo reverses the committed sale. A sales ledger persists throughout funding. Raising sufficient cash reveals the normal train purchase button; it does not purchase automatically. Completed contributions remain visible above the next owner’s shortfall, derived from the current funding sequence’s visible actions. Pending cash contributions are shown and executed on that explicit purchase click.
 
 On entering train running, a company with no trains or no connected station route
 records an automatic empty run. Empty, zero-income runs automatically withhold
@@ -1695,7 +1704,7 @@ Undo recomputes the total from the remaining visible action prefix.
 
 When private purchases are legal during an operating turn, Buy privates sits at the right end of the OR strip after Trains. It opens the existing staged private-purchase panel and highlights while selected; there is no duplicate entry button in the action panel. The purchase remains optional and available across eligible OR steps, rather than becoming a sequential step.
 
-Private purchase choices reuse compact private-card headers with name, income and purchase range, without descriptions. TOP omits the chooser heading because Hunslet is its sole buyable private. Other titles show AVAILABLE PRIVATES. When both sources exist, Mine / Other players uses a short vertical divider and a selected background.
+Private purchase choices reuse compact private-card headers with name, income and purchase range, without descriptions. A company bought by a company, private or minor alike, opens its price at the top of the title's range, capped by the buyer's treasury. TOP omits the chooser heading because Hunslet is its sole buyable private. Other titles show AVAILABLE PRIVATES. When both sources exist, Mine / Other players uses a short vertical divider and a selected background.
 
 Private purchase cards use equal-width responsive grid columns. Another player's ownership is shown beneath the card as right-aligned “owned by [name]”.
 
@@ -1796,7 +1805,7 @@ Live and historical table maps allow manual zoom to twice native size. ScalingWr
 
 X and T upgrade locations show only the standard tile-label-sized X or T, inset from the left edge and vertically centered. This marker remains on yellow tile placements until the tile itself carries the label; tile definitions remain unchanged, and existing tile labels are not duplicated.
 
-Routes render above tile artwork and map borders as continuous round-ended strokes with a darker shade of each route’s color as their border. City interiors are masked to preserve station tokens; cities have no route outline. Matching regular track endpoints are redrawn only within a two-unit strip across tile edges above the map borders, without bridging unmatched track ends. Map names render above these seam repairs. Names up to 18 characters (such as “Royalty Jct & York”) stay on one line; longer names split at the word boundary nearest their midpoint into two centered lines, retaining the full name instead of truncating it. The first line keeps the single-line top inset, and the second line extends downward. Single-word names remain intact. Tile annotation text declares its central baseline directly, rather than relying on an SVG group baseline, so WebKit and Chromium both center fixed and staged revenues in their backgrounds. This presentation is shared by live and historical maps across titles.
+Routes render above tile artwork and map borders as continuous round-ended strokes with a darker shade of each route’s color as their border. A route into an offboard ends in the same point as the printed track's offboard spike, filled in the route's color with the same darker border, rather than running on to the offboard's centre. City interiors are masked to preserve station tokens; cities have no route outline. Matching regular track endpoints are redrawn only within a two-unit strip across tile edges above the map borders, without bridging unmatched track ends. Map names render above these seam repairs. Names up to 18 characters (such as “Royalty Jct & York”) stay on one line; longer names split at the word boundary nearest their midpoint into two centered lines, retaining the full name instead of truncating it. The first line keeps the single-line top inset, and the second line extends downward. Single-word names remain intact. Tile annotation text declares its central baseline directly, rather than relying on an SVG group baseline, so WebKit and Chromium both center fixed and staged revenues in their backgrounds. This presentation is shared by live and historical maps across titles.
 
 The zoom wrapper does not permanently promote its content with `will-change: transform`, allowing vector content to repaint at the settled zoom scale. This is an internal rendering change with no host-bridge API change; UI artifacts bundling ScalingWrapper must be republished to adopt it.
 
