@@ -15,6 +15,7 @@
     } from '@tabletop/18xx'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
+    import { isObsolete } from '../trains/obsoleteTrain.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import CompanyOrderOverview from './CompanyOrderOverview.svelte'
     let {
@@ -146,7 +147,8 @@
                 }).map((train) => ({
                     id: train.id,
                     color: trainColors[train.definitionId],
-                    name: trainDepot.trainDefinition(train.definitionId).name
+                    name: trainDepot.trainDefinition(train.definitionId).name,
+                    obsolete: isObsolete(train)
                 })),
                 remainingTokens: gameState.stations.filter(
                     (station) => station.companyId === company.id && station.status === 'available'
@@ -180,7 +182,7 @@
                 data-company-id={company.id}
                 class:completed
                 aria-current={currentCompanyId === company.id ? 'step' : undefined}
-                aria-label={`${companyName(company.id)}, cash ${amount === undefined ? 'not applicable' : amount}, trains ${trains.map((train) => train.name).join(', ') || 'none'}, ${remainingTokens.length} station tokens remaining${currentCompanyId === company.id ? ', operating' : completed ? ', operated' : ''}`}
+                aria-label={`${companyName(company.id)}, cash ${amount === undefined ? 'not applicable' : amount}, trains ${trains.map((train) => (train.obsolete ? `${train.name} obsolete` : train.name)).join(', ') || 'none'}, ${remainingTokens.length} station tokens remaining${currentCompanyId === company.id ? ', operating' : completed ? ', operated' : ''}`}
                 title={companyName(company.id)}
             >
                 <button
@@ -216,7 +218,11 @@
                             </div>
                             <div class="trains">
                                 {#each trains as train (train.id)}
-                                    <TrainBadge name={train.name} color={train.color} />
+                                    <TrainBadge
+                                        name={train.name}
+                                        color={train.color}
+                                        obsolete={train.obsolete}
+                                    />
                                 {:else}
                                     <span
                                         class="no-trains"

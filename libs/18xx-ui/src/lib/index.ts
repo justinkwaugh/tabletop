@@ -82,6 +82,7 @@ export { default as CompanyOrder } from './table/CompanyOrder.svelte'
 export { default as CompanyDetails } from './table/CompanyDetails.svelte'
 
 export { default as TrainBadge } from './trains/TrainBadge.svelte'
+export { isObsolete } from './trains/obsoleteTrain.js'
 
 export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'
 

@@ -47,6 +47,7 @@
 
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
+    import { isObsolete } from '../trains/obsoleteTrain.js'
 
     let {
         session,
@@ -657,6 +658,7 @@
             <TrainBadge
                 name={session.trainShortLabel(train.definitionId)}
                 color={trainColors[train.definitionId]}
+                obsolete={isObsolete(train)}
             />
         {:else}<span class="empty">—</span>{/each}
     </span>

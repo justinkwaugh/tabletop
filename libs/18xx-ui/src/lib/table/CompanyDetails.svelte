@@ -26,6 +26,7 @@
     } from '../session/eighteenXXSession.svelte.js'
     import { type CompanyOwnership, companyOwnership } from '../finance/companyOwnership.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
+    import { isObsolete } from '../trains/obsoleteTrain.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
@@ -164,13 +165,11 @@
                         <TrainBadge
                             name={definition.name}
                             color={trainColors[train.definitionId]}
+                            obsolete={isObsolete(train)}
                             title={definition.distance.maximum === 'unlimited'
                                 ? 'Unlimited'
                                 : `${definition.distance.maximum} ${definition.distance.measure === 'hex-edges' ? 'hex edges' : definition.distance.measure === 'cities-and-offboards' ? 'cities / offboards + towns' : 'revenue centers'}`}
                         />
-                        {#if train.status === 'owned' && train.rustsAfterOperation}
-                            <span class="status">Rusts after running</span>
-                        {/if}
                     {:else}<span
                             class="empty"
                             class:train-required={session.companyRequiresTrain(company.id)}

@@ -2,6 +2,7 @@
     import type { MoneyFormat } from '../presentation/money.js'
     import type { OperatingResult, Train } from '@tabletop/18xx'
     import TrainBadge from '../trains/TrainBadge.svelte'
+    import { isObsolete } from '../trains/obsoleteTrain.js'
     import { routeColor } from './routePresentation.js'
 
     let {
@@ -34,7 +35,7 @@
                     ><button
                         class="route-focus"
                         disabled={!route || !onFocusRoute}
-                        aria-label={`Show ${trainName(train.definitionId)} route for ${money(route?.revenue ?? 0)}`}
+                        aria-label={`Show ${trainName(train.definitionId)}${isObsolete(train) ? ' obsolete' : ''} route for ${money(route?.revenue ?? 0)}`}
                         onclick={() => onFocusRoute?.(train.id)}
                         ><span class="train">
                             <span
@@ -44,6 +45,7 @@
                             <TrainBadge
                                 name={trainName(train.definitionId)}
                                 color={trainColors[train.definitionId]}
+                                obsolete={isObsolete(train)}
                             />
                         </span><span class="income">{money(route?.revenue ?? 0)}</span></button
                     ></td

@@ -4,6 +4,7 @@
     import PrivateCard from '../privates/PrivateCard.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
+    import { isObsolete } from '../trains/obsoleteTrain.js'
     import { cashText } from '../presentation/money.js'
     let {
         session,
@@ -43,6 +44,7 @@
                 >Trains {#each trainsOwnedBy(session.gameState, owner) as train (train.id)}<TrainBadge
                         name={session.trainDepot.trainDefinition(train.definitionId).name}
                         color={session.presentation.trainColors[train.definitionId]}
+                        obsolete={isObsolete(train)}
                     />{:else}None{/each}</span
             >
         </div>
