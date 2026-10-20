@@ -116,6 +116,8 @@
                     aria-hidden={!compact}>{heading.abbreviation}</span
                 >
                 {heading.number}
+                {#if heading.roundCount}<span class="round-count">(of {heading.roundCount})</span
+                    >{/if}
             {/if}
         </strong>
         {#if company && gameState.stockRound.completed && !gameState.result}<span
@@ -245,6 +247,11 @@
     .round-short,
     .auction-label {
         font: inherit;
+    }
+    .round-count {
+        font: inherit;
+        text-transform: none;
+        letter-spacing: 0.02em;
     }
     .round-short,
     .compact .round-full {
