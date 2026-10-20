@@ -170,7 +170,6 @@ export function createOpening1846({ players, prng, startingPositions }: OpeningS
         titleState: {
             removedCorporationIds,
             revenueMarkers: [],
-            independentAcquisitions: [],
             purchases: [],
             draft:
                 count === 2
@@ -199,7 +198,7 @@ export function createOpening1846({ players, prng, startingPositions }: OpeningS
             })
             state.turnManager.turnOrder = [...draftOrder]
             beginOpening(state, count === 2 ? 'BuyingOpeningCompanies' : 'Drafting', draftOrder[0])
-            if (state.draft.kind === 'hidden') {
+            if (state.draft?.kind === 'hidden') {
                 assertExists(state.draft.deck, 'Draft deck is required')
                 shuffle(state.draft.deck, state.getProtectedPrng().random)
                 dealPacket(state)

@@ -56,6 +56,7 @@ export const Purchase = Type.Object(
     { ...Selection.properties, playerId: Id },
     { additionalProperties: false }
 )
+export type Purchase = Type.Static<typeof Purchase>
 const Participant = Type.Object(
     {
         playerId: Id,
@@ -87,7 +88,7 @@ const PublicDistribution = Type.Union([
     Type.Object(
         {
             kind: Type.Literal('public'),
-            stage: Type.Union([Type.Literal('operating'), Type.Literal('complete')])
+            stage: Type.Literal('operating')
         },
         { additionalProperties: false }
     )
@@ -121,8 +122,8 @@ export const EighteenFortySixState = composeEighteenXXState(
         trainInventory: TrainInventory,
         trainPurchaseStep: Type.Optional(TrainPurchaseStep),
         removedCorporationIds: Type.Array(Id, { uniqueItems: true }),
-        draft: Type.Union([HiddenDistribution, PublicDistribution]),
-        purchases: Type.Array(Purchase)
+        draft: Type.Optional(Type.Union([HiddenDistribution, PublicDistribution])),
+        purchases: Type.Optional(Type.Array(Purchase))
     },
     [
         'Drafting',

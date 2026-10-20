@@ -138,7 +138,7 @@ class ScenarioInitializer1846 extends EighteenXXInitializer<
         }
         for (let i = 0; i < 100 && state.machineState !== 'StockRound'; i++) {
             const hydrated = hydrateEighteenFortySixState(state)
-            if (state.draft.kind === 'public') {
+            if (state.draft?.kind === 'public') {
                 const choice = openingPurchaseChoices(hydrated, state.activePlayerIds[0])[0]
                 assertExists(choice, 'Opening scenario requires an affordable company')
                 act('BuyOpeningCompany', choice)

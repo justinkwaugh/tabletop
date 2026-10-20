@@ -58,6 +58,13 @@
   "canonicalState": {
     "additionalProperties": false,
     "properties": {
+      "acquiredTrainIds": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
       "actionChecksum": {
         "type": "number"
       },
@@ -713,16 +720,8 @@
                     "type": "string"
                   },
                   "stage": {
-                    "anyOf": [
-                      {
-                        "const": "operating",
-                        "type": "string"
-                      },
-                      {
-                        "const": "complete",
-                        "type": "string"
-                      }
-                    ]
+                    "const": "operating",
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -1468,35 +1467,6 @@
       },
       "id": {
         "type": "string"
-      },
-      "independentAcquisitions": {
-        "items": {
-          "additionalProperties": false,
-          "properties": {
-            "companyId": {
-              "type": "string"
-            },
-            "roundNumber": {
-              "minimum": 1,
-              "type": "integer"
-            },
-            "setNumber": {
-              "minimum": 1,
-              "type": "integer"
-            },
-            "trainId": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "companyId",
-            "roundNumber",
-            "setNumber",
-            "trainId"
-          ],
-          "type": "object"
-        },
-        "type": "array"
       },
       "machineState": {
         "anyOf": [
@@ -3643,16 +3613,13 @@
       "certificatePools",
       "certificates",
       "companies",
-      "draft",
       "gameId",
       "id",
-      "independentAcquisitions",
       "machineState",
       "phaseEvents",
       "phaseId",
       "players",
       "prng",
-      "purchases",
       "removedCorporationIds",
       "revenueMarkers",
       "stationReservations",

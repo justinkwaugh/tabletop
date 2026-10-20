@@ -1,7 +1,9 @@
 import { start, finish, action } from '../test/testSupport.js'
 import { describe, expect, it } from 'vitest'
-import { ActionSource, Visibility, assert, assertExists } from '@tabletop/common'
+import { ActionSource, Visibility, assert, assertExists, type GameAction } from '@tabletop/common'
+import * as Value from 'typebox/value'
 import { Runtime } from './definition/gameDefinition.js'
+import { RevealDraft } from './actions.js'
 import {
     CanonicalValidator,
     hydrateEighteenFortySixState,
@@ -15,6 +17,11 @@ function money(state: EighteenFortySixProjectedState) {
         assert(typeof cash.amount === 'number', 'Finite money expected')
         return total + cash.amount
     }, 0)
+}
+function revealedPurchases(actions: readonly GameAction[]) {
+    const reveal = actions.find((action) => action.type === 'RevealDraft')
+    assert(Value.Check(RevealDraft, reveal) && reveal.metadata, 'The draft was revealed')
+    return reveal.metadata.purchases
 }
 describe('1846 setup and distribution', () => {
     it.each([3, 4, 5])('initializes the second-printing setup for %i players', (count) => {
@@ -129,13 +136,14 @@ describe('1846 setup and distribution', () => {
         'completes varied %i-player drafts and settles independent assets',
         (count) => {
             for (let seed = 1; seed <= 12; seed++) {
-                const { state } = finish(count, seed, seed % 2 === 0)
+                const { state, actions } = finish(count, seed, seed % 2 === 0)
                 expect(CanonicalValidator.Check(state)).toBe(true)
                 expect(money(state)).toBe(BankSize[count])
-                expect(state.purchases).toHaveLength(2 * count)
-                expect(new Set(state.purchases.map((p) => p.cardId)).size).toBe(
-                    state.purchases.length
-                )
+                expect(state.draft).toBeUndefined()
+                expect(state.purchases).toBeUndefined()
+                const purchases = revealedPurchases(actions)
+                expect(purchases).toHaveLength(2 * count)
+                expect(new Set(purchases.map((p) => p.cardId)).size).toBe(purchases.length)
                 expect(state.activePlayerIds).toEqual([state.players[0].playerId])
                 expect(state.result).toBeUndefined()
                 expect(state.turnManager.turnOrder[0]).toBe(state.players[0].playerId)
@@ -179,7 +187,7 @@ describe('1846 setup and distribution', () => {
                 player.packet = player.playerId === state.activePlayerIds[0] ? [id] : []
             const expectedOwner = state.turnManager.turnOrder[1]
             const result = engine.executeCanonicalAction({ game, state, action: action(state) })
-            expect(result.updatedState.purchases).toEqual([
+            expect(revealedPurchases(result.processedActions)).toEqual([
                 { playerId: expectedOwner, cardId: id, price: debt }
             ])
             expect(result.processedActions.map((action) => action.type)).toEqual([
@@ -232,12 +240,14 @@ describe('1846 setup and distribution', () => {
         hiddenDistribution(state).finalOffer = { cardId: 'MS', price: 110 }
         for (const player of hiddenDistribution(state).participants)
             player.packet = player.playerId === playerId ? ['MS'] : []
-        const { updatedState } = engine.executeCanonicalAction({
+        const { updatedState, processedActions } = engine.executeCanonicalAction({
             game,
             state,
             action: action(state, 'MS')
         })
-        expect(updatedState.purchases).toEqual([{ playerId, cardId: 'MS', price: 110 }])
+        expect(revealedPurchases(processedActions)).toEqual([
+            { playerId, cardId: 'MS', price: 110 }
+        ])
         expect(
             updatedState.cash.find(
                 (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'MS'
@@ -315,10 +325,10 @@ describe('1846 setup and distribution', () => {
                     state: canonical,
                     action: original
                 })
-                expect(hiddenDistribution(replay).deck).toBeUndefined()
-                if (canonical.draft.kind === 'hidden') expectOwnDraft(replay, canonical)
+                if (replay.draft) expect(hiddenDistribution(replay).deck).toBeUndefined()
+                if (canonical.draft) expectOwnDraft(replay, canonical)
             }
-            expect(replay.purchases).toEqual(state.purchases)
+            expect(replay.draft).toBeUndefined()
             expect(replay).toEqual(history.currentState)
             for (const recorded of history.actions.toReversed())
                 replay = engine.undoProcessedAction({ state: replay, action: recorded })

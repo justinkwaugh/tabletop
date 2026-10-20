@@ -74,7 +74,6 @@ export class RevealAction extends HydratableAction<typeof RevealDraft> {
         super(data, RevealValidator)
     }
     apply(state: HydratedEighteenFortySixState): void {
-        settleDistribution(state)
-        this.metadata = { purchases: structuredClone(state.purchases) }
+        this.metadata = { purchases: settleDistribution(state) }
     }
 }

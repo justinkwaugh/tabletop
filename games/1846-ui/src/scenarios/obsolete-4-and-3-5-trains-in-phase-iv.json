@@ -37,15 +37,15 @@
   "activePlayerIds": [
    "p2"
   ],
-  "createdAt": "2026-10-20T02:56:33.689Z",
+  "createdAt": "2026-10-20T05:01:27.831Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-20T02:56:33.689Z",
+  "startedAt": "2026-10-20T05:01:27.831Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "R7DjMcT6Jldr-CS1Pv7GD",
+  "id": "Yf3VWaHu8n0X2mAaJEKYo",
   "gameId": "scenario-obsolete-4-and-3-5-trains-in-phase-iv",
   "seed": 1450899060,
   "prng": {
@@ -978,61 +978,6 @@
    "ERIE"
   ],
   "revenueMarkers": [],
-  "independentAcquisitions": [],
-  "purchases": [
-   {
-    "cardId": "BIG4",
-    "price": 100,
-    "playerId": "p1"
-   },
-   {
-    "cardId": "SC",
-    "price": 40,
-    "playerId": "p1"
-   },
-   {
-    "cardId": "C&WI",
-    "price": 60,
-    "playerId": "p2"
-   },
-   {
-    "cardId": "MS",
-    "price": 140,
-    "playerId": "p2"
-   },
-   {
-    "cardId": "O&I",
-    "price": 40,
-    "playerId": "p3"
-   },
-   {
-    "cardId": "MAIL",
-    "price": 80,
-    "playerId": "p3"
-   }
-  ],
-  "draft": {
-   "kind": "hidden",
-   "deck": [],
-   "participants": [
-    {
-     "playerId": "p1",
-     "packet": [],
-     "selections": []
-    },
-    {
-     "playerId": "p2",
-     "packet": [],
-     "selections": []
-    },
-    {
-     "playerId": "p3",
-     "packet": [],
-     "selections": []
-    }
-   ],
-   "remainingCount": 0
-  },
   "operatingSet": {
    "number": 1,
    "roundNumber": 2,

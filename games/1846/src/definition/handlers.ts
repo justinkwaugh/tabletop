@@ -9,6 +9,7 @@ import {
     FinishStations,
     HydratedStartOperatingRound,
     HydratedStartOperatingTurn,
+    HydratedStartStockRound,
     StationPlacement,
     endOperatingTurn,
     getCompany,
@@ -57,7 +58,7 @@ function corporateFinanceActions(playerId: string, state: State): string[] {
 }
 function resumingOpeningPurchases(state: State): boolean {
     return (
-        state.draft.kind === 'public' &&
+        state.draft?.kind === 'public' &&
         state.draft.stage === 'operating' &&
         canStartStockRound(state)
     )
@@ -150,6 +151,12 @@ export function operatingSet1846(family: Handler): Handler {
         },
         onAction(action, context) {
             const state = context.gameState
+            if (
+                action instanceof HydratedStartOperatingTurn ||
+                action instanceof HydratedStartOperatingRound ||
+                action instanceof HydratedStartStockRound
+            )
+                delete state.acquiredTrainIds
             if (action instanceof ResumeOpeningPurchasesAction) return 'BuyingOpeningCompanies'
             if (action instanceof HydratedStartOperatingRound && steamboatOwner(state))
                 return 'AssigningSteamboat'

@@ -487,7 +487,7 @@ export class EighteenFortySixSession extends BaseSession {
         this.myPlayer ? openingPurchaseChoices(this.gameState, this.myPlayer.id) : []
     )
     readonly openingCompanies = $derived(
-        this.gameState.draft.kind === 'public' && this.gameState.draft.stage === 'buying'
+        this.gameState.draft?.kind === 'public' && this.gameState.draft.stage === 'buying'
             ? unboughtOpeningCompanies(this.gameState).map((companyId) => ({
                   companyId,
                   expectedPrice: priceFor(this.gameState, companyId)

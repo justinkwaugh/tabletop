@@ -5,7 +5,7 @@
     const draft = $derived(session.gameState.draft)
     const money = $derived(session.presentation.money)
     const finalOffer = $derived(
-        draft.kind === 'public' && draft.stage === 'buying' && !!draft.finalOffer
+        draft?.kind === 'public' && draft.stage === 'buying' && !!draft.finalOffer
     )
 </script>
 

@@ -40,14 +40,14 @@ export function canPassOpeningPurchase(state: State, playerId: string): boolean 
     return (
         state.machineState === 'BuyingOpeningCompanies' &&
         state.isActivePlayer(playerId) &&
-        state.purchases.length > 0
+        !!state.purchases?.length
     )
 }
 
 function updateOpeningOffer(state: State): void {
     const draft = state.draft
     assert(
-        draft.kind === 'public' && draft.stage === 'buying',
+        draft?.kind === 'public' && draft.stage === 'buying',
         'Purchasing requires a public offer'
     )
     const remaining = unboughtOpeningCompanies(state)
@@ -66,7 +66,8 @@ function finishOpeningPurchase(state: State): void {
     const [priorityDealPlayerId] = state.turnManager.turnOrder
     state.activePlayerIds = [priorityDealPlayerId]
     state.turnManager.startTurn(priorityDealPlayerId, state.actionCount + 1)
-    state.draft = { kind: 'public', stage: 'complete' }
+    delete state.draft
+    delete state.purchases
     delete state.operatingSet
 }
 
@@ -104,7 +105,7 @@ export class BuyOpeningCompanyAction extends HydratableAction<typeof BuyOpeningC
         assert(this.isValid(state), 'Opening purchase must match a current affordable offer')
         const draft = state.draft
         assert(
-            draft.kind === 'public' && draft.stage === 'buying',
+            draft?.kind === 'public' && draft.stage === 'buying',
             'Purchasing requires a public offer'
         )
         this.metadata = {
@@ -150,7 +151,7 @@ export class PassOpeningPurchaseAction extends HydratableAction<typeof PassOpeni
         assert(this.isValid(state), 'The first opening purchase cannot be passed')
         const draft = state.draft
         assert(
-            draft.kind === 'public' && draft.stage === 'buying',
+            draft?.kind === 'public' && draft.stage === 'buying',
             'Passing requires a public offer'
         )
         this.metadata = {}
@@ -199,7 +200,7 @@ export class ResumeOpeningPurchasesAction extends HydratableAction<typeof Resume
     isValid(state: State): boolean {
         return (
             this.source === ActionSource.System &&
-            state.draft.kind === 'public' &&
+            state.draft?.kind === 'public' &&
             state.draft.stage === 'operating' &&
             canStartStockRound(state)
         )
@@ -237,8 +238,7 @@ export const PublicDistributionActions = [
 
 const OpeningStageStates = {
     buying: 'BuyingOpeningCompanies',
-    operating: 'StartingOperatingSet',
-    complete: 'StockRound'
+    operating: 'StartingOperatingSet'
 } as const satisfies Record<OpeningStage, string>
 
 export const buyingOpeningCompaniesHandler: MachineStateHandler<
@@ -261,6 +261,7 @@ export const buyingOpeningCompaniesHandler: MachineStateHandler<
     },
     onAction(_action, { gameState }) {
         const draft = gameState.draft
+        if (!draft) return 'StockRound'
         assert(draft.kind === 'public', 'Opening purchases use the public offer')
         return OpeningStageStates[draft.stage]
     }

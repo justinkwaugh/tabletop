@@ -2,11 +2,15 @@ import { assert, assertExists, shuffle } from '@tabletop/common'
 import { settleCashPayments, getCompany, finiteCashOwnedBy } from '@tabletop/18xx'
 import { draftCompany, isBlank } from './catalog.js'
 import { independentTrainId } from './trains.js'
-import type { EighteenFortySixProjectedState, HydratedEighteenFortySixState } from './state.js'
+import type {
+    EighteenFortySixProjectedState,
+    HydratedEighteenFortySixState,
+    Purchase
+} from './state.js'
 
 type State = HydratedEighteenFortySixState
 export function hiddenDistribution(state: Pick<EighteenFortySixProjectedState, 'draft'>) {
-    assert(state.draft.kind === 'hidden', 'This distribution uses private packets')
+    assert(state.draft?.kind === 'hidden', 'This distribution uses private packets')
     return state.draft
 }
 export function participant(state: State, playerId: string) {
@@ -18,7 +22,7 @@ export function participant(state: State, playerId: string) {
 }
 export function priceFor(state: State, cardId: string): number {
     if (isBlank(cardId)) return 0
-    const offer = 'finalOffer' in state.draft ? state.draft.finalOffer : undefined
+    const offer = state.draft && 'finalOffer' in state.draft ? state.draft.finalOffer : undefined
     if (offer?.cardId === cardId) return offer.price
     const company = draftCompany(cardId)
     return company.price + company.debt
@@ -96,7 +100,7 @@ export function passFinalCompany(state: State, playerId: string): void {
     buyer.packet = [offer.cardId]
     if (offer.price === company.debt) chooseCard(state, buyer.playerId, offer.cardId)
 }
-export function settleDistribution(state: State): void {
+export function settleDistribution(state: State): Purchase[] {
     const draft = hiddenDistribution(state)
     assert(state.machineState === 'RevealingDraft', 'Distribution is not ready to reveal')
     for (const buyer of draft.participants) {
@@ -105,23 +109,23 @@ export function settleDistribution(state: State): void {
             if (isBlank(selection.cardId)) continue
             purchaseOpeningCompany(state, buyer.playerId, selection)
         }
-        buyer.packet = []
-        buyer.selections = []
     }
-    draft.deck = []
-    draft.remainingCount = 0
-    delete draft.finalOffer
+    const purchases = state.purchases
+    assertExists(purchases, 'The draft records its purchases until it ends')
+    delete state.draft
+    delete state.purchases
     state.turnManager.endTurn(state.actionCount)
     state.turnManager.turnOrder = state.players.map((player) => player.playerId)
     const [priorityDealPlayerId] = state.turnManager.turnOrder
     state.activePlayerIds = [priorityDealPlayerId]
     state.turnManager.startTurn(priorityDealPlayerId, state.actionCount + 1)
+    return purchases
 }
 
 export function purchaseOpeningCompany(
     state: State,
     playerId: string,
-    selection: Pick<EighteenFortySixProjectedState['purchases'][number], 'cardId' | 'price'>
+    selection: Pick<Purchase, 'cardId' | 'price'>
 ): void {
     const company = draftCompany(selection.cardId)
     const certificate = state.certificates.find(
@@ -133,6 +137,7 @@ export function purchaseOpeningCompany(
         settleCashPayments(state, [
             { from: certificate.owner, to: { kind: 'bank' }, amount: selection.price }
         ])
+    assertExists(state.purchases, 'Opening purchases are recorded until the opening ends')
     state.purchases.push({ ...selection, playerId })
     if (company.kind === 'independent') {
         const independent = getCompany(state, company.id)

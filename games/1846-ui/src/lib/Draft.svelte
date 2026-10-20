@@ -5,7 +5,7 @@
     let { session }: { session: EighteenFortySixSession } = $props()
     const state = $derived(session.gameState)
     const money = $derived(session.presentation.money)
-    const hiddenDraft = $derived(state.draft.kind === 'hidden' ? state.draft : undefined)
+    const hiddenDraft = $derived(state.draft?.kind === 'hidden' ? state.draft : undefined)
     const mine = $derived(
         hiddenDraft?.participants.find((player) => player.playerId === session.myPlayer?.id)
     )

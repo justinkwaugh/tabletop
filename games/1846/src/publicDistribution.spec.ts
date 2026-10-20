@@ -246,11 +246,8 @@ describe('1846 two-player opening', () => {
                 expect(table.state.operatingSet).toBeUndefined()
             }
             expect(table.state.machineState).toBe('StockRound')
-            expect(table.state.draft).toEqual({ kind: 'public', stage: 'complete' })
-            expect(table.state.purchases.at(-1)).toMatchObject({
-                cardId: last,
-                price: company.debt
-            })
+            expect(table.state.draft).toBeUndefined()
+            expect(table.state.purchases).toBeUndefined()
             expect(table.actions.at(-1)).toMatchObject({
                 metadata: { purchase: { cardId: last, price: company.debt } }
             })

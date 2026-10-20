@@ -208,7 +208,7 @@ worth their cost for now:
 The 2026-10-10 audit of all six titles' States also found these, left for now:
 
 - **Finished opening-auction records** (`offerAuction`, `openingAuction`,
-  `selectionAuction`; 1846's `draft` and `purchases`), 0.4–0.9 KB kept for the rest of
+  `selectionAuction`; 1846's `draft` and `purchases`, since removed, see below), 0.4–0.9 KB kept for the rest of
   the game. Deleting the record at completion is the right model, but `completed` is
   read in about sixty places, and the history panel reads TOP's awards and tells an offer
   auction apart from the finished record in current State. It needs `completed` removed
@@ -223,8 +223,8 @@ The 2026-10-10 audit of all six titles' States also found these, left for now:
   without piece ids** (1.2–3.3 KB), and **zero cash rows**. Each changes a shared
   component's interface for a small saving.
 - **TOP's ownership-limit exemptions that no longer apply** (0.6 KB), and stale setup
-  records: `companyStarts`, 1817's `seedMoney`, 1846's `independentAcquisitions` and
-  `removedCorporationIds` (the UI reads the last to draw the removed corporations'
+  records: `companyStarts`, 1817's `seedMoney`, 1846's `independentAcquisitions` (since made
+  turn-scoped, see below) and `removedCorporationIds` (the UI reads the last to draw the removed corporations'
   blocking tokens).
 - **Step records kept after their step** (`routeStep.result` mid-turn,
   `earningsDistribution`): history and the UI read the latest result from State.
@@ -283,6 +283,28 @@ board, which is right for TOP. `shareCount`, `privateRevenue` and `depotId` stay
 fields: an old TOP State's stored values equal its charters and depot, so they read as
 play-recorded values with the same meaning. States written by this logic lack fields the
 previous TOP logic requires, so a TOP release of it is a Logic major.
+
+## 1846 before its first release (2026-10-20)
+
+The readiness review of 1846 reported these; 1846 has no stored games, so its own shapes
+change freely.
+
+- **The finished opening leaves State.** The hidden draft and the two-player opening delete
+  `draft` and `purchases` when they end; the reveal's `RevealDraft` metadata and the
+  two-player purchases' metadata already record what was bought. The finished public stage
+  `complete` is gone: an absent draft means the opening is over.
+- **The acquired independent's train bar is turn-scoped.** `independentAcquisitions` kept
+  every purchase with its set and round for the rest of the game. It is now
+  `acquiredTrainIds`, the trains bought with an independent in the current turn (§6.93: they
+  cannot run in the round of purchase, and the buyer does not operate again that round),
+  cleared when the next operating turn, operating round or stock round starts.
+- **A funding sale record is strict.** `trainFunding.sales[]` rejects unknown fields; every
+  stored record holds only declared ones.
+
+Still open, for the owner: **`companies[].president`** repeats the president certificate's
+owner. Receivership deletes it while the certificate is in the market, and presidency
+changes write both. Deriving it from the certificate touches every reader across the family
+and changes stored TOP, 1889 and 1830 States; keeping it needs a recorded reason here.
 
 ## Not a change
 

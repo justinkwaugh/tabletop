@@ -131,8 +131,11 @@ describe('1846 corporate acquisitions', () => {
         for (const action of actions.toReversed())
             replay = table.engine.undoProcessedAction({ state: replay, action })
         expect(replay).toEqual(before)
-        assertExists(table.state.operatingSet)
-        table.state.operatingSet.roundNumber++
+        table.act('FinishTrack', { companyId: 'NYC' })
+        expect(table.state.machineState).toBe('BuyingTrains')
+        expect(table.state.acquiredTrainIds).toEqual(['MS:2'])
+        table.act('FinishOperatingTurn', { companyId: 'NYC' })
+        expect(table.state.acquiredTrainIds).toBeUndefined()
         expect(canRunAcquiredTrain(table.hydrated, train)).toBe(true)
     })
     it('suspends the buyer for an external seller and resumes unchanged after refusal', () => {
