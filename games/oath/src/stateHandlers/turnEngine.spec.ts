@@ -507,8 +507,9 @@ describe('R-6.6.2 and R-6.8 end the Act Phase from inside a minor action', () =>
         expect(state.players[0].status).toBe(PlayerStatus.Exile)
     })
 
-    // R-6.8 — Rest follows in the same turn; R-4.3.4's saving is read from the Supply spent, not the marker.
-    it('R-4.3.4 — Supply spent before a self-exile stays spent through Rest', () => {
+    // R-6.8 — Rest follows in the same turn; before revision 24 (R-X.4) R-4.3.4's saving is read
+    // from the Supply spent, not the marker.
+    it('R-4.3.4 — before revision 24, Supply spent before a self-exile stays spent through Rest', () => {
         const game = testGame(['p1', 'p2'])
         let state = buildState(
             { vault: reliquaryVault() },

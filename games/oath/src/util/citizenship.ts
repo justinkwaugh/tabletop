@@ -84,7 +84,7 @@ export function becomeCitizen(
         state.oathkeeperIsUsurper = false
     }
 
-    // R-1.10 — unconditional; only the marker moves, so the turn's spent-Supply ledger stands.
+    // R-1.10 — unconditional.
     player.supply = MAX_SUPPLY
 
     return {
@@ -115,7 +115,7 @@ export function becomeExile(state: HydratedOathGameState, playerId: string): Con
     const unreplacedReturned = isAtLeastOathRevision(state, OathRevision.EngineFixes2)
     if (unreplacedReturned) removeUnreplaced(state, groups, replaced)
 
-    // R-1.10 — only the marker moves; the Supply already spent this turn stays spent.
+    // R-1.10 — unconditional.
     player.supply = MAX_SUPPLY
 
     return {
