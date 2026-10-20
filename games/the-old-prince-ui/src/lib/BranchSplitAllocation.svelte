@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { isObsoleteTrain } from '@tabletop/18xx'
     import { TheOldPrinceMap } from '@tabletop/the-old-prince'
-    import { CompanyToken, TrainBadge, isObsolete } from '@tabletop/18xx-ui'
+    import { CompanyToken, TrainBadge } from '@tabletop/18xx-ui'
     import { TheOldPrinceTrainColors } from './trainPresentation.js'
     import type { TheOldPrinceSession } from './session.svelte.js'
     let {
@@ -79,7 +80,7 @@
                                         name={session.trainDepot.trainDefinition(train.definitionId)
                                             .name}
                                         color={TheOldPrinceTrainColors[train.definitionId]}
-                                        obsolete={isObsolete(train)}
+                                        obsolete={isObsoleteTrain(train)}
                                     />
                                 </div>
                             {:else}<span class="empty">None</span>{/each}

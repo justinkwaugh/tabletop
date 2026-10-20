@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { privatePowerUsed } from '@tabletop/18xx'
+    import { privatePowerUsed, isObsoleteTrain } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import {
         companySharePrice,
@@ -26,7 +26,6 @@
     } from '../session/eighteenXXSession.svelte.js'
     import { type CompanyOwnership, companyOwnership } from '../finance/companyOwnership.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
-    import { isObsolete } from '../trains/obsoleteTrain.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
@@ -165,7 +164,7 @@
                         <TrainBadge
                             name={definition.name}
                             color={trainColors[train.definitionId]}
-                            obsolete={isObsolete(train)}
+                            obsolete={isObsoleteTrain(train)}
                             title={definition.distance.maximum === 'unlimited'
                                 ? 'Unlimited'
                                 : `${definition.distance.maximum} ${definition.distance.measure === 'hex-edges' ? 'hex edges' : definition.distance.measure === 'cities-and-offboards' ? 'cities / offboards + towns' : 'revenue centers'}`}

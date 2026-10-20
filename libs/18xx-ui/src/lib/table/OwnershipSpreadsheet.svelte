@@ -23,7 +23,8 @@
         type Company,
         type Owner,
         type PurchaseRequest,
-        type ValuationRules
+        type ValuationRules,
+        isObsoleteTrain
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
@@ -47,7 +48,6 @@
 
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
-    import { isObsolete } from '../trains/obsoleteTrain.js'
 
     let {
         session,
@@ -658,7 +658,7 @@
             <TrainBadge
                 name={session.trainShortLabel(train.definitionId)}
                 color={trainColors[train.definitionId]}
-                obsolete={isObsolete(train)}
+                obsolete={isObsoleteTrain(train)}
             />
         {:else}<span class="empty">—</span>{/each}
     </span>

@@ -11,11 +11,11 @@
         type FinancialState,
         type TrainState,
         type StationState,
-        type TrainDepot
+        type TrainDepot,
+        isObsoleteTrain
     } from '@tabletop/18xx'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
-    import { isObsolete } from '../trains/obsoleteTrain.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import CompanyOrderOverview from './CompanyOrderOverview.svelte'
     let {
@@ -148,7 +148,7 @@
                     id: train.id,
                     color: trainColors[train.definitionId],
                     name: trainDepot.trainDefinition(train.definitionId).name,
-                    obsolete: isObsolete(train)
+                    obsolete: isObsoleteTrain(train)
                 })),
                 remainingTokens: gameState.stations.filter(
                     (station) => station.companyId === company.id && station.status === 'available'

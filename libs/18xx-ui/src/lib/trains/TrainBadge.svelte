@@ -36,6 +36,9 @@
         line-height: calc(4em / 3);
         white-space: nowrap;
     }
+    .obsolete {
+        clip-path: inset(0 round 3px);
+    }
     .obsolete::after {
         content: '';
         position: absolute;

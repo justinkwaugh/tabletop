@@ -1,10 +1,15 @@
 <script lang="ts">
-    import { cashOwnedBy, currentPrivateRevenue, getCompany, trainsOwnedBy } from '@tabletop/18xx'
+    import {
+        cashOwnedBy,
+        currentPrivateRevenue,
+        getCompany,
+        trainsOwnedBy,
+        isObsoleteTrain
+    } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import PrivateCard from '../privates/PrivateCard.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
-    import { isObsolete } from '../trains/obsoleteTrain.js'
     import { cashText } from '../presentation/money.js'
     let {
         session,
@@ -44,7 +49,7 @@
                 >Trains {#each trainsOwnedBy(session.gameState, owner) as train (train.id)}<TrainBadge
                         name={session.trainDepot.trainDefinition(train.definitionId).name}
                         color={session.presentation.trainColors[train.definitionId]}
-                        obsolete={isObsolete(train)}
+                        obsolete={isObsoleteTrain(train)}
                     />{:else}None{/each}</span
             >
         </div>
