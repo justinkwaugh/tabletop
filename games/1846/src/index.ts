@@ -50,6 +50,7 @@ export * from './receivership.js'
 export * from './phases.js'
 export * from './opening.js'
 export * from './privateRules.js'
+export * from './companyDescriptions.js'
 
 export { pendingBlockingStations } from './stations.js'
 

@@ -28,7 +28,8 @@ import {
     PassFinalCompany,
     choicesFor,
     StockRules1846,
-    ReceivershipRules1846
+    ReceivershipRules1846,
+    TitleRules1846
 } from '@tabletop/1846'
 import { assertExists } from '@tabletop/common'
 import {
@@ -63,7 +64,6 @@ import {
     type SteamboatSelectionValues
 } from './stagedSelection.js'
 import { MapView1846 } from './mapView.js'
-import { SessionRules1846 } from './sessionRules.js'
 import { Presentation1846 } from './presentation.js'
 
 const PrivateTrackPrompts: Readonly<Record<ConstructionPrivateId, string>> = {
@@ -84,7 +84,7 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass<
     typeof EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
->(SessionRules1846, MapView1846, Presentation1846)
+>(TitleRules1846, MapView1846, Presentation1846)
 type ConstructionMode = 'track' | 'stations' | 'finance'
 /** The stock-round panel 1846 adds beside Buy and Sell. */
 export type StockPanel1846 = 'receivership'

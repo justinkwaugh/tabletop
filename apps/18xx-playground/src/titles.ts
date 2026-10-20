@@ -1,7 +1,7 @@
-import { EighteenFortySixMap, EighteenFortySixTileSet } from '@tabletop/1846'
+import { EighteenFortySixMap, EighteenFortySixTileSet, TitleRules1846 } from '@tabletop/1846'
 import { Scenarios1846, ScenarioPositions1846 } from '@tabletop/1846/scenarios'
 import { UiDefinition as FortySixUi } from '@tabletop/1846-ui'
-import { MapView1846, TileLayouts1846, SessionRules1846 } from '@tabletop/1846-ui/playground'
+import { MapView1846, TileLayouts1846 } from '@tabletop/1846-ui/playground'
 import { assertExists } from '@tabletop/common'
 import {
     TheOldPrinceMap,
@@ -149,7 +149,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         key: '1846',
         name: '1846',
         scenarioVersion: 32,
-        rules: SessionRules1846,
+        rules: TitleRules1846,
         scenarios: Scenarios1846,
         host: scenarioHost(FortySixUi, Scenarios1846),
         map: EighteenFortySixMap,

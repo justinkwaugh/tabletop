@@ -3,7 +3,8 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import {
         type EighteenFortySixProjectedState,
-        type HydratedEighteenFortySixState
+        type HydratedEighteenFortySixState,
+        CompanyDescriptions1846
     } from '@tabletop/1846'
     import {
         GameTable,
@@ -16,7 +17,6 @@
     import { fade } from 'svelte/transition'
     import { prefersReducedMotion } from 'svelte/motion'
     import { EighteenFortySixSession } from './session.svelte.js'
-    import { CompanyDescriptions } from './companyDescriptions.js'
     import OpeningCompanies from './OpeningCompanies.svelte'
     import Draft from './Draft.svelte'
     import RevenueMarkerPrompt from './RevenueMarkerPrompt.svelte'
@@ -34,7 +34,7 @@
         return gameSession
     })
     const state = $derived(session.gameState)
-    const privateOperationDescription = (id: string) => CompanyDescriptions[id]
+    const privateOperationDescription = (id: string) => CompanyDescriptions1846[id]
     const operatingModes = $derived.by(() => {
         const mode = session.constructionMode
         const finance = session.financeChoices.length

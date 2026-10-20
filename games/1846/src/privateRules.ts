@@ -1,4 +1,5 @@
 import { privateOwningCompany, type PrivatePowerRules, type PrivateRules } from '@tabletop/18xx'
+import { CompanyDescriptions1846 } from './companyDescriptions.js'
 
 /** Privates close as phase III begins; the Mail Contract survives in a railroad's hands. */
 export const PrivateRules1846: PrivateRules = {
@@ -14,7 +15,7 @@ export const PrivateRules1846: PrivateRules = {
         )
     },
     operationEffects: () => [],
-    description: () => ''
+    description: (_state, id) => CompanyDescriptions1846[id] ?? ''
 }
 
 /** 1846's private powers are title actions, not the family's tile, train and marker powers. */

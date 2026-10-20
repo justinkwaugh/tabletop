@@ -1,4 +1,4 @@
-export const CompanyDescriptions: Readonly<Record<string, string>> = {
+export const CompanyDescriptions1846: Readonly<Record<string, string>> = {
     MS: 'Independent railroad in Detroit. Operates first, splitting its revenue with its owner.',
     BIG4: 'Independent railroad in Indianapolis. Operates after Michigan Southern, splitting its revenue with its owner.',
     'C&WI': 'Grants an extra free station in the reserved Chicago & Western Indiana space in Chicago.',
