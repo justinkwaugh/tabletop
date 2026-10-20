@@ -59,6 +59,33 @@ describe('merger phase', () => {
         expect(play.valid(playerId)).toEqual(['ProposeMerger', 'PassMerger'])
     })
 
+    it('gives each proposer a turn in priority order, answers falling within it', () => {
+        const play = mergerPhase()
+        const start = play.state.turnManager.series.length - 1
+        const passed: string[] = []
+        while (proposer(play) !== 'alex') {
+            passed.push(proposer(play))
+            play.act('PassMerger', {}, proposer(play))
+        }
+        play.act(
+            'ProposeMerger',
+            { companyId: 'ACL', partnerId: 'CG', kind: 'system', yielded: false },
+            'alex'
+        )
+        const open = play.state.turnManager.series.at(-1)
+        expect(open?.playerId).toBe('alex')
+        expect(open?.end).toBeUndefined()
+        play.act('AnswerMerger', { accept: true }, 'blair')
+        const turns = play.state.turnManager.series.slice(start, start + passed.length + 1)
+        expect(turns.map((turn) => turn.playerId)).toEqual([...passed, 'alex'])
+        const order = play.state.turnManager.turnOrder
+        expect(turns.map((turn) => order.indexOf(turn.playerId))).toEqual(
+            turns.map((turn) => order.indexOf(turn.playerId)).sort((a, b) => a - b)
+        )
+        // The answer ended alex's turn, as nothing was left for them to propose.
+        expect(turns.every((turn) => turn.end !== undefined)).toBe(true)
+    })
+
     it('does not open before the first 4-train', () => {
         const play = playExample(EighteenThirtyTwoScenarios, 'trading', 3, (state) => {
             state.tileInventory = EighteenThirtyTwoTileSet.createInventory(JoiningTrack)
@@ -89,7 +116,7 @@ describe('merger phase', () => {
         expect(getCompany(play.state, 'AMTK').president).toEqual(player('alex'))
         // Nothing remains to merge, so the phase ends and the operating set begins.
         expect(play.state.mergerPhase).toBeUndefined()
-        expect(play.state.mergedAfterStockRound).toBe(play.state.stockRound.number)
+        expect(play.state.mergerPhaseHeld).toBeUndefined()
         expect(play.state.operatingSet?.companyOrder).toContain('AMTK')
     })
 
@@ -136,9 +163,7 @@ describe('merger phase', () => {
         )
         play.act('AnswerMerger', { accept: true }, 'blair')
         expect(getCompany(play.state, 'CG').closed).toBe(true)
-        expect(play.state.mergers).toEqual([
-            { kind: 'takeover', companyIds: ['ACL', 'CG'], survivorId: 'ACL' }
-        ])
+        expect(play.state.takeoverBuyerIds).toEqual(['ACL'])
         // ACL paid $1000 from its $600 and Alex's $400 and took CG's $600 treasury and the
         // coal fields private, whose $15 it collects as the operating set begins.
         expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'ACL' })).toBe(615)
@@ -185,9 +210,7 @@ describe('merger phase', () => {
         play.act('ProposeMerger', { ...takeover, yielded: true }, 'alex')
         play.act('AnswerMerger', { accept: true }, 'blair')
         expect(getCompany(play.state, 'ACL').closed).toBe(true)
-        expect(play.state.mergers).toEqual([
-            { kind: 'takeover', companyIds: ['CG', 'ACL'], survivorId: 'CG' }
-        ])
+        expect(play.state.takeoverBuyerIds).toEqual(['CG'])
     })
 
     it('returns a second WVCF token after a takeover', () => {

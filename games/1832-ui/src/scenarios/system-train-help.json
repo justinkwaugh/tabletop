@@ -36,13 +36,13 @@
   "activePlayerIds": [
    "blair"
   ],
-  "createdAt": "2026-10-20T01:43:55.587Z",
+  "createdAt": "2026-10-20T13:50:29.964Z",
   "storage": "local",
   "category": "standard"
  },
  "state": {
   "systemVersion": 3,
-  "id": "U1RNoxxqUoK7BzxuIOIXF",
+  "id": "Kiq6kv2rjke6A9rlAqRro",
   "gameId": "scenario-system-train-help",
   "seed": 5,
   "prng": {
@@ -50,7 +50,7 @@
    "invocations": 0
   },
   "protectedPrng": {
-   "seed": 2985765661,
+   "seed": 288095237,
    "invocations": 0
   },
   "activePlayerIds": [
@@ -582,7 +582,6 @@
     }
    ]
   },
-  "ownershipLimitExemptions": [],
   "variants": {},
   "systems": {
    "AMTK": [
@@ -590,7 +589,7 @@
     "CG"
    ]
   },
-  "mergers": [],
+  "takeoverBuyerIds": [],
   "coalRights": [],
   "revenueTokens": [],
   "companyStarts": {},

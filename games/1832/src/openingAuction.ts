@@ -24,10 +24,9 @@ import { EighteenThirtyTwoGameConfig } from './definition/gameConfig.js'
 
 export const EighteenThirtyTwoBank = 12000
 export const EighteenThirtyTwoInitialTitleState = {
-    ownershipLimitExemptions: [],
     variants: {},
     systems: {},
-    mergers: [],
+    takeoverBuyerIds: [],
     coalRights: [],
     revenueTokens: [],
     companyStarts: {}

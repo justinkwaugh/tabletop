@@ -110,6 +110,7 @@ import {
     isRedeemShare,
     isReissueShares
 } from '../redemption.js'
+import { clearsSpentRecords } from '../spentRecords.js'
 
 // A company closes as its price enters the black area; once a seller finishes, the presidents
 // of the companies sold may protect their prices (§5.1.1, §5.9).
@@ -142,16 +143,20 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     additionalConstructionActions: ['BuyCoalRights'],
     decisionHandlers: {
         StockRound: (family) =>
-            closesAndProtects(
-                redeemsAndReissues(new TitleActionsHandler(family, [TakeLondonShareStep]))
+            clearsSpentRecords(
+                closesAndProtects(
+                    redeemsAndReissues(new TitleActionsHandler(family, [TakeLondonShareStep]))
+                )
             ),
         StartingOperatingSet: (family) =>
-            capitalizesFloatedCompanies(startsMergerPhase(family, false)),
-        OperatingSet: (family) => closesAndProtects(startsMergerPhase(family, true)),
+            clearsSpentRecords(capitalizesFloatedCompanies(startsMergerPhase(family, false))),
+        OperatingSet: (family) =>
+            clearsSpentRecords(closesAndProtects(startsMergerPhase(family, true))),
         FundingTrain: closesCompanies,
         BuyingTrains: closesAndProtects,
         LayingTrack: (family) => new TitleActionsHandler(family, [BuyCoalRightsStep]),
-        PlacingStation: (family) => new TitleActionsHandler(family, [PlaceRevenueTokenStep]),
+        PlacingStation: (family) =>
+            clearsSpentRecords(new TitleActionsHandler(family, [PlaceRevenueTokenStep])),
         DistributingEarnings: recordsMiamiRun
     },
     titleStateHandlers: {

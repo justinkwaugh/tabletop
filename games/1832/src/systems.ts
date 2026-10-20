@@ -12,7 +12,6 @@ import {
     removeCertificates
 } from '@tabletop/18xx'
 import type { EighteenThirtyTwoState } from './state.js'
-import { refreshOwnershipExcess } from './ownershipExcess.js'
 import { isLowerArea, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
 
@@ -46,18 +45,6 @@ export function systemOf(
     return Object.keys(state.systems).find((systemId) =>
         state.systems[systemId].includes(companyId)
     )
-}
-
-/** The company now holding a railroad's assets: itself, or what it merged into (§11.6, §11.7). */
-export function successorOf(state: Pick<EighteenThirtyTwoState, 'mergers'>, companyId: string) {
-    let current = companyId
-    for (;;) {
-        const merger = state.mergers.find(
-            (entry) => entry.survivorId !== current && entry.companyIds.includes(current)
-        )
-        if (!merger) return current
-        current = merger.survivorId
-    }
 }
 
 export function nextSystemId(state: Pick<EighteenThirtyTwoState, 'systems'>): string | undefined {
@@ -275,8 +262,6 @@ export function formSystem(
         true
     )
     if (presidency.change) applyPresidencyChange(state, presidency.change)
-    for (const player of state.players)
-        refreshOwnershipExcess(state, systemId, { kind: 'player', playerId: player.playerId })
 
     return {
         systemId,

@@ -11,12 +11,7 @@ import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
 import { isClosingSpace, saleDescent, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { londonTradable } from './londonInvestment.js'
-import {
-    OwnershipPercent,
-    refreshBuyerExcess,
-    refreshSellerExcess,
-    requiredSellDown
-} from './ownershipExcess.js'
+import { OwnershipPercent, requiredSellDown, withHeldExcess } from './ownershipExcess.js'
 import { recordProtectableSale } from './priceProtection.js'
 import { isReissuedShare, lockReissueProceeds } from './redemption.js'
 import { systemOf } from './systems.js'
@@ -67,6 +62,15 @@ export const EighteenThirtyTwoShareTrading = {
     stockSaleTerms: withSellDown(withSoftLedge(Trading.stockSaleTerms)),
     emergencySaleTerms: withSoftLedge(Trading.emergencySaleTerms)
 }
+
+// A closing company's certificates are about to leave play (§5.3.5).
+const HoldingLimits = marketZoneHoldingLimits({
+    market: EighteenThirtyTwoMarket,
+    charters: EighteenThirtyTwoCharters,
+    certificateFreeColors: ['yellow', 'green', 'brown', 'black'],
+    ownershipFreeColors: ['green', 'brown'],
+    ownershipPercent: OwnershipPercent
+})
 
 // Certificate limits by player count, for 10, 9, 8, 7 and at most 6 companies (Table 2).
 const CertificateLimits: Readonly<Record<number, readonly number[]>> = {
@@ -122,22 +126,10 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         assertExists(limit, 'Unsupported 1832 player count')
         return limit
     },
-    // A closing company's certificates are about to leave play (§5.3.5).
-    ...marketZoneHoldingLimits({
-        market: EighteenThirtyTwoMarket,
-        charters: EighteenThirtyTwoCharters,
-        certificateFreeColors: ['yellow', 'green', 'brown', 'black'],
-        ownershipFreeColors: ['green', 'brown'],
-        ownershipPercent: OwnershipPercent
-    }),
-    afterSale(state, details) {
-        recordProtectableSale(state, details)
-        refreshSellerExcess(state, details)
-    },
-    afterSharePurchase(state, details) {
-        lockReissueProceeds(state, details)
-        refreshBuyerExcess(state, details)
-    },
+    ...HoldingLimits,
+    ownershipLimit: withHeldExcess(HoldingLimits.ownershipLimit),
+    afterSale: recordProtectableSale,
+    afterSharePurchase: lockReissueProceeds,
     // A System's new president exchanges any vice-president's certificate (§5.5).
     presidencyExchangeLargestFirst: true,
     presidencyCandidates: (state, companyId) =>

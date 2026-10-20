@@ -49,7 +49,7 @@ type Decision =
     | { kind: 'discard'; playerId: string; companyId: string }
     | { kind: 'fund'; playerId: string }
     | { kind: 'answer'; playerId: string; proposal: MergerProposal }
-    | { kind: 'propose'; playerId: string; index: number }
+    | { kind: 'propose'; playerId: string }
 
 /** Who acts next in the merger phase, and on what. */
 export function mergerDecision(state: EighteenThirtyTwoState): Decision | undefined {
@@ -66,11 +66,33 @@ export function mergerDecision(state: EighteenThirtyTwoState): Decision | undefi
         assertExists(playerId, 'A proposed partner has a president')
         return { kind: 'answer', playerId, proposal: phase.proposal }
     }
-    for (let index = phase.index; index < phase.playerIds.length; index++) {
-        const playerId = phase.playerIds[index]
-        if (hasMergerOptions(state, playerId)) return { kind: 'propose', playerId, index }
-    }
-    return undefined
+    const playerId = state.turnManager.series.findLast((turn) => turn.end === undefined)?.playerId
+    return playerId && hasMergerOptions(state, playerId) ? { kind: 'propose', playerId } : undefined
+}
+
+/**
+ * The next player in priority order, after ``after`` or from the first, with a merger to
+ * propose. Each player's proposing turn comes once a phase, ending when they pass or run out of
+ * mergers to propose (§11.1).
+ */
+function nextProposer(state: EighteenThirtyTwoState, after?: string): string | undefined {
+    const order = state.turnManager.turnOrder
+    const start = after === undefined ? 0 : order.indexOf(after) + 1
+    return order.slice(start).find((playerId) => hasMergerOptions(state, playerId))
+}
+
+/**
+ * Ends the proposer's turn with the action at ``lastIndex`` and starts the next proposer's, if
+ * any player has one left.
+ */
+function passProposingTurn(
+    state: HydratedEighteenThirtyTwoState,
+    playerId: string,
+    lastIndex: number
+) {
+    state.turnManager.endTurn(lastIndex)
+    const next = nextProposer(state, playerId)
+    if (next) state.turnManager.startTurn(next, lastIndex + 1)
 }
 
 export const MergerOutcome = Type.Object(
@@ -126,10 +148,7 @@ function completeTakeover(
     settleCashPayments(state, settled)
     const discardedHomeStationId = discardSharedHome(state, buyerId, targetId)
     const absorption = absorbCompany(state, targetId, buyerId, 'takeover')
-    state.mergers = [
-        ...state.mergers,
-        { kind: 'takeover', companyIds: [buyerId, targetId], survivorId: buyerId }
-    ]
+    state.takeoverBuyerIds = [...state.takeoverBuyerIds, buyerId]
     const phase = state.mergerPhase
     assertExists(phase, 'A takeover happens in a merger phase')
     delete phase.funding
@@ -154,14 +173,6 @@ function executeMerger(
     if (proposal.kind === 'system') {
         const initiator = proposal.yielded ? partnerPresident : proposal.proposerPlayerId
         const system = formSystem(state, [proposal.companyId, proposal.partnerId], initiator)
-        state.mergers = [
-            ...state.mergers,
-            {
-                kind: 'system',
-                companyIds: [proposal.companyId, proposal.partnerId],
-                survivorId: system.systemId
-            }
-        ]
         return {
             kind: 'system',
             companyIds: [proposal.companyId, proposal.partnerId],
@@ -219,12 +230,12 @@ export function isStartMergerPhase(action: GameAction): action is StartMergerPha
     )
 }
 
-function phaseFor(state: EighteenThirtyTwoState, final: boolean) {
-    return { final, playerIds: [...state.turnManager.turnOrder], index: 0, refused: [] }
+function phaseFor(final: boolean) {
+    return { final, refused: [] }
 }
 
 function anyOptions(state: EighteenThirtyTwoState, final: boolean) {
-    const probe = { ...state, mergerPhase: phaseFor(state, final) }
+    const probe = { ...state, mergerPhase: phaseFor(final) }
     return state.players.some((player) => hasMergerOptions(probe, player.playerId))
 }
 
@@ -234,7 +245,7 @@ function stockMergerPhaseDue(state: EighteenThirtyTwoState): boolean {
         mergersAllowed(state) &&
         !state.mergerPhase &&
         !EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '6') &&
-        state.mergedAfterStockRound !== state.stockRound.number &&
+        !state.mergerPhaseHeld &&
         anyOptions(state, false)
     )
 }
@@ -268,9 +279,14 @@ export class HydratedStartMergerPhase
             this.source === ActionSource.System && mergerPhaseDue(state, this.final),
             'A merger phase begins after a stock round in phases 4 and 5, or the first 6-train'
         )
+        assert(!state.turnManager.currentTurn(), 'A merger phase begins between turns')
         const held = !this.final || anyOptions(state, true)
-        if (held) state.mergerPhase = phaseFor(state, this.final)
-        else state.mergersEnded = true
+        if (held) {
+            state.mergerPhase = phaseFor(this.final)
+            const first = nextProposer(state)
+            assertExists(first, 'A merger phase is held for a player with a merger to propose')
+            state.turnManager.startTurn(first, state.actionCount + 1)
+        } else state.mergersEnded = true
         this.metadata = { held }
     }
 }
@@ -312,8 +328,9 @@ export class HydratedCompleteMergerPhase
             this.source === ActionSource.System && phase && !mergerDecision(state),
             'A merger phase ends once every player has passed'
         )
+        assert(!state.turnManager.currentTurn(), 'Every proposing turn has ended')
         if (phase.final) state.mergersEnded = true
-        else state.mergedAfterStockRound = state.stockRound.number
+        else state.mergerPhaseHeld = true
         delete state.mergerPhase
         this.metadata = { final: phase.final }
     }
@@ -492,11 +509,8 @@ export class HydratedPassMerger extends HydratableAction<typeof PassMerger> impl
         )
     }
     apply(state: HydratedEighteenThirtyTwoState): void {
-        const decision = currentDecision(state, 'propose', this.playerId)
-        assert(this.source === ActionSource.User && decision, 'Only the proposing player passes')
-        const phase = state.mergerPhase
-        assertExists(phase, 'Players pass in a merger phase')
-        phase.index = decision.index + 1
+        assert(this.isValid(state), 'Only the proposing player passes')
+        passProposingTurn(state, this.playerId, state.actionCount)
     }
 }
 
@@ -720,6 +734,18 @@ export class MergingHandler implements EighteenThirtyTwoStateHandler {
             context.addSystemAction(CompleteTakeover, {})
             return
         }
+        const phase = state.mergerPhase
+        const proposer = state.turnManager.currentTurn()?.playerId
+        // A proposer left with nothing to propose after a merger has finished their turn.
+        if (
+            phase &&
+            proposer &&
+            !phase.discardCompanyId &&
+            !phase.funding &&
+            !phase.proposal &&
+            !hasMergerOptions(state, proposer)
+        )
+            passProposingTurn(state, proposer, state.actionCount - 1)
         const decision = mergerDecision(state)
         if (decision) state.activePlayerIds = [decision.playerId]
         else context.addSystemAction(CompleteMergerPhase, {})

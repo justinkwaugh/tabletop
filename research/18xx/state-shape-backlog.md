@@ -301,6 +301,38 @@ change freely.
 - **A funding sale record is strict.** `trainFunding.sales[]` rejects unknown fields; every
   stored record holds only declared ones.
 
+## 1832 before its first release (2026-10-20)
+
+The readiness review of 1832 reported these; 1832 has no stored games, so its own shapes
+change freely.
+
+- **Merger proposers take turns through the turn manager.** `mergerPhase.playerIds` and
+  `index` copied the turn order and counted through it by position. Each proposer now has a
+  turn in the series, in priority order; a partner's answer falls within the proposer's
+  turn, which ends when they pass or have nothing left to propose.
+- **Price protection keeps only what it reads.** It returns to its machine state and
+  re-derives who acts (the stock round's turn, the merger phase's next decision or the
+  operating company's operators) instead of storing a copy of `activePlayerIds`, records
+  only `lastProtectorId`, and a protectable sale drops its unread `fromStackIndex`.
+- **Turn and round records clear when they end.** The WVCF purchase (`coalTokenBought`)
+  and the Key West placement (`keyWestPlaced`) clear as the next operating turn or round
+  starts, as 1846's acquired-train bar does. Redemption refusals clear as the stock turn
+  finishes; `redemptions` and `lockedProceeds` hold counts and amounts for the current stock
+  round and clear as it completes; `mergerPhaseHeld` clears as the operating set begins; a
+  returned station leaves `returnedStationIds` once placed again. Revenue tokens no longer
+  record the round they were placed in.
+- **Expired tokens and private records leave at the phase change.** 1832's
+  `PhaseRules.changes` removes the Port and Cotton tokens at phase 6 and the Key West token
+  at 8, recording them in the phase Action, and clears `londonCompanyId` and `miamiRun` at
+  phase 5, when the privates close and Miami pays in full.
+- **`mergers` is replaced by what the rules read**: `takeoverBuyerIds` (a company bought in
+  a takeover closes, so only buyers can be barred from another) and `keyWestCompanyId`, the
+  holder of the FEC's Key West right once the FEC has merged away. History reads the merger
+  Actions' outcomes.
+- **The 60% excess is derived.** 1832's ownership limit for a player is the larger of the
+  zone's limit and what they hold, so a protected or merged excess is kept until they sell
+  but cannot grow; 1832 no longer composes `ownershipLimitExemptions`.
+
 Still open, for the owner: **`companies[].president`** repeats the president certificate's
 owner. Receivership deletes it while the certificate is in the market, and presidency
 changes write both. Deriving it from the certificate touches every reader across the family

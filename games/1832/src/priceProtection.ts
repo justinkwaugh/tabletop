@@ -16,10 +16,12 @@ import {
     copyStockState,
     finiteCashOwnedBy,
     getCompany,
+    nextOperatingCompany,
+    operatingPlayerIds,
     reorderPendingOperatingCompanies,
     restoreStockMarker,
-    sameOwner,
     settleCashPayments,
+    sharesOwned,
     stockCertificateCount,
     type ShareSaleDetails,
     type StockState
@@ -30,10 +32,10 @@ import {
     type EighteenThirtyTwoStateHandler,
     type HydratedEighteenThirtyTwoState
 } from './state.js'
-import { refreshOwnershipExcess } from './ownershipExcess.js'
+import { ownershipCeiling } from './ownershipExcess.js'
 import { EighteenThirtyTwoOperatingRules } from './roundRules.js'
 import { EighteenThirtyTwoStockRules } from './stockRules.js'
-import { ProtectingPriceState, type ProtectableSale } from './titleState.js'
+import { MergingState, ProtectingPriceState, type ProtectableSale } from './titleState.js'
 
 type SaleRecord = NonNullable<EighteenThirtyTwoState['priceProtection']>
 type StackSnapshot = SaleRecord['stacks'][number]
@@ -83,12 +85,11 @@ export function recordProtectableSale(state: object, details: ShareSaleDetails):
                       shares: sale.shares,
                       proceeds: sale.proceeds,
                       certificateIds: sale.certificateIds,
-                      fromMarketSpaceId: sale.fromMarketSpaceId,
-                      fromStackIndex
+                      fromMarketSpaceId: sale.fromMarketSpaceId
                   }
               ]
     }
-    title.priceProtection = { sellerPlayerId: seller.playerId, sales, stacks, protectorIds: [] }
+    title.priceProtection = { sellerPlayerId: seller.playerId, sales, stacks }
 }
 
 /** The player president, other than the seller, who may buy back a sale of their company. */
@@ -233,11 +234,7 @@ export class HydratedStartPriceProtection
             'Price protection starts once the seller finishes'
         )
         const protectable = !!protectionDecision(state)
-        if (protectable)
-            record.resume = {
-                machineState: state.machineState,
-                activePlayerIds: [...state.activePlayerIds]
-            }
+        if (protectable) record.resume = { machineState: state.machineState }
         else delete state.priceProtection
         this.metadata = { protectable }
     }
@@ -321,14 +318,11 @@ export class HydratedProtectShares
         const record = state.priceProtection
         assertExists(record, 'A protection decision requires sales awaiting it')
         const payment = applyProtection(state, sale, this.playerId, record.stacks)
-        const owner = { kind: 'player' as const, playerId: this.playerId }
-        refreshOwnershipExcess(state, this.companyId, owner)
-        const exemptOwnershipLimit = state.ownershipLimitExemptions.some(
-            (exemption) =>
-                exemption.companyId === this.companyId && sameOwner(exemption.owner, owner)
-        )
+        const exemptOwnershipLimit =
+            sharesOwned(state, this.companyId, { kind: 'player', playerId: this.playerId }) >
+            ownershipCeiling(state, this.companyId)
         decided(state, this.companyId)
-        record.protectorIds.push(this.playerId)
+        record.lastProtectorId = this.playerId
         this.metadata = {
             sellerPlayerId: record.sellerPlayerId,
             shares: sale.shares,
@@ -396,6 +390,23 @@ export function isCompletePriceProtection(action: GameAction): action is Complet
 }
 
 /**
+ * The players play returns to when no stock round turn is skipped: the stock round's player
+ * whose turn is under way, none in a merger phase, which names its next decision on entry, and
+ * otherwise the operators of the company the seller was operating.
+ */
+function resumedPlayerIds(state: HydratedEighteenThirtyTwoState, machineState: string): string[] {
+    if (machineState === 'StockRound') {
+        const turn = state.turnManager.currentTurn()
+        assertExists(turn, 'The stock round has a turn under way')
+        return [turn.playerId]
+    }
+    if (machineState === MergingState) return []
+    const companyId = nextOperatingCompany(state)
+    assertExists(companyId, 'Play resumes with an operating company')
+    return operatingPlayerIds(state, companyId)
+}
+
+/**
  * Returns play to where the sale left it. In a stock round with a protection, play passes to
  * the left of the president whose shares were sold last, which may skip players (§5.9.6-5.9.7).
  */
@@ -417,8 +428,8 @@ export class HydratedCompletePriceProtection
             this.source === ActionSource.System && record?.resume && !protectionDecision(state),
             'Price protection completes once no president has a decision left'
         )
-        const { machineState, activePlayerIds } = record.resume
-        const lastProtector = record.protectorIds.at(-1)
+        const { machineState } = record.resume
+        const lastProtector = record.lastProtectorId
         let nextPlayerId: string | undefined
         if (machineState === 'StockRound' && lastProtector) {
             nextPlayerId = state.turnManager.nextPlayer(lastProtector)
@@ -432,9 +443,9 @@ export class HydratedCompletePriceProtection
             state.activePlayerIds = [nextPlayerId]
             state.stockRound.passedPlayerIds = []
         } else {
-            state.activePlayerIds = activePlayerIds
+            state.activePlayerIds = resumedPlayerIds(state, machineState)
             // A restored price restores the company's place in the operating order (§4.1.3).
-            if (record.protectorIds.length)
+            if (lastProtector)
                 reorderPendingOperatingCompanies(
                     state,
                     EighteenThirtyTwoOperatingRules.companyOrder(state)

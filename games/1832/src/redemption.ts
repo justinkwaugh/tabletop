@@ -32,7 +32,6 @@ import {
     type EighteenThirtyTwoStateHandler,
     type HydratedEighteenThirtyTwoState
 } from './state.js'
-import { refreshOwnershipExcess } from './ownershipExcess.js'
 import { EighteenThirtyTwoStockRules } from './stockRules.js'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
 import { MaximumReissuePar, ReissueParPrices, EighteenThirtyTwoMarket } from './stockMarket.js'
@@ -52,11 +51,9 @@ function shareCountOf(state: EighteenThirtyTwoState, companyId: string): number 
 
 /** The company's money it may spend now, less reissued shares' proceeds this stock round. */
 export function spendableCash(state: EighteenThirtyTwoState, companyId: string): number {
-    const locked =
-        state.lockedProceeds?.stockRound === state.stockRound.number
-            ? (state.lockedProceeds.amounts[companyId] ?? 0)
-            : 0
-    return finiteCashOwnedBy(state, companyOwner(companyId)) - locked
+    return (
+        finiteCashOwnedBy(state, companyOwner(companyId)) - (state.lockedProceeds?.[companyId] ?? 0)
+    )
 }
 
 function actingForCompany(state: EighteenThirtyTwoState, playerId: string, companyId: string) {
@@ -83,16 +80,8 @@ function outsideShares(state: EighteenThirtyTwoState, companyId: string): number
     )
 }
 
-// The stock turn under way is the turn series' last entry.
-function refusalsThisTurn(state: EighteenThirtyTwoState) {
-    const refusals = state.redemptionRefusals
-    return refusals && refusals.turnStart === state.turnManager.series.at(-1)?.start
-        ? refusals.refusals
-        : []
-}
-
 function refused(state: EighteenThirtyTwoState, companyId: string, playerId: string) {
-    return refusalsThisTurn(state).some(
+    return (state.redemptionRefusals ?? []).some(
         (refusal) => refusal.companyId === companyId && refusal.playerId === playerId
     )
 }
@@ -115,12 +104,8 @@ export function redemptionChoices(
 ): RedemptionChoice[] {
     return state.companies.flatMap((company) => {
         if (!actingForCompany(state, playerId, company.id)) return []
-        const redeemed = state.redemptions?.[company.id]
         // A System may redeem two shares a stock round, one a turn (§11.6.9).
-        if (
-            redeemed?.stockRound === state.stockRound.number &&
-            redeemed.count >= (isSystem(state, company.id) ? 2 : 1)
-        )
+        if ((state.redemptions?.[company.id] ?? 0) >= (isSystem(state, company.id) ? 2 : 1))
             return []
         const shareCount = shareCountOf(state, company.id)
         const held = sharesOwned(state, company.id, companyOwner(company.id))
@@ -212,14 +197,9 @@ function applyRedemption(
     assert(certificate, 'A redeemed share is in play')
     certificate.owner = companyOwner(choice.companyId)
     delete certificate.poolId
-    refreshOwnershipExcess(state, choice.companyId, choice.holder)
-    const redeemed = state.redemptions?.[choice.companyId]
     state.redemptions = {
         ...state.redemptions,
-        [choice.companyId]: {
-            stockRound: state.stockRound.number,
-            count: redeemed?.stockRound === state.stockRound.number ? redeemed.count + 1 : 1
-        }
+        [choice.companyId]: (state.redemptions?.[choice.companyId] ?? 0) + 1
     }
     state.stockRound.turn.corporateAction = { companyId: choice.companyId }
     recordStockAction(state, presidentId, EighteenThirtyTwoStockRoundRules)
@@ -337,15 +317,10 @@ export class HydratedAnswerRedemption
         delete state.redemptionRequest
         state.activePlayerIds = [request.presidentPlayerId]
         if (!this.accept) {
-            const turnStart = state.turnManager.series.at(-1)?.start
-            assertExists(turnStart, 'A redemption is asked on a stock turn')
-            state.redemptionRefusals = {
-                turnStart,
-                refusals: [
-                    ...refusalsThisTurn(state),
-                    { companyId: request.companyId, playerId: request.holderPlayerId }
-                ]
-            }
+            state.redemptionRefusals = [
+                ...(state.redemptionRefusals ?? []),
+                { companyId: request.companyId, playerId: request.holderPlayerId }
+            ]
             this.metadata = { request }
             return
         }
@@ -530,13 +505,9 @@ export function lockReissueProceeds(state: StockState, details: SharePurchaseDet
         )
         .reduce((total, payment) => total + payment.amount, 0)
     if (!amount) return
-    const current =
-        title.lockedProceeds?.stockRound === title.stockRound.number
-            ? title.lockedProceeds.amounts
-            : {}
     title.lockedProceeds = {
-        stockRound: title.stockRound.number,
-        amounts: { ...current, [details.companyId]: (current[details.companyId] ?? 0) + amount }
+        ...title.lockedProceeds,
+        [details.companyId]: (title.lockedProceeds?.[details.companyId] ?? 0) + amount
     }
 }
 
