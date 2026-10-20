@@ -20,6 +20,7 @@
     import OpeningCompanies from './OpeningCompanies.svelte'
     import Draft from './Draft.svelte'
     import RevenueMarkerPrompt from './RevenueMarkerPrompt.svelte'
+    import NothingToBuild from './NothingToBuild.svelte'
     import SteamboatAssignment from './SteamboatAssignment.svelte'
     import CorporateFinance from './CorporateFinance.svelte'
     import PresidencyClaims from './PresidencyClaims.svelte'
@@ -140,6 +141,17 @@
                         <PresidencyClaims {session} />
                     {:else if showFinance}
                         <CorporateFinance {session} />
+                    {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'nothing' && !state.purchaseOffer}
+                        <div class="centered-panel">
+                            <CompanyDecisions
+                                {session}
+                                trainColors={session.presentation.trainColors}
+                                showUndo={false}
+                            />
+                            {#if !session.privateActions.selection && !session.decisions.selection}
+                                <NothingToBuild {session} />
+                            {/if}
+                        </div>
                     {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'stations' && !state.purchaseOffer}
                         <div class="centered-panel">
                             <CompanyDecisions
