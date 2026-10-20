@@ -266,7 +266,13 @@ registerModifier(
                 assertExists(cardId, 'A Trade names the card it is made with')
                 const suit = suitOf(cardId)
                 assertExists(suit, 'A Trade is made with a card of a suit')
-                const gained = gainFavorFromBank(ctx.state, ctx.playerId, suit, 1)
+                const gained = gainFavorFromBank(
+                    ctx.state,
+                    ctx.playerId,
+                    suit,
+                    1,
+                    ctx.particulars.advisersOf
+                )
                 return {
                     summary:
                         gained > 0

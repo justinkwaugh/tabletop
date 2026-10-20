@@ -219,13 +219,15 @@ export function usableModifiers(
     uses?: readonly ModifierUse[]
 ): CardPower[] {
     const found: CardPower[] = []
+    // Master of Disguise — a cost is paid as `resolveModifiers` judges it, under the lent Vow of Kinship.
+    const advisersOf = disguisedAs(action, uses)
     for (const cardId of modifierCandidates(state, playerId, action, uses)) {
         for (const power of powersWithTiming(cardId, PowerTiming.Modifier)) {
             if (power.modifiesAction !== action) continue
             const effect = effectFor(power)
             if (!effect?.modifier || effect.mandatory) continue
             if (effect.modifier.reasonUnusable?.({ state, playerId, power, choices: [] })) continue
-            if (reasonCannotPayPowerCost(state, playerId, power)) continue
+            if (reasonCannotPayPowerCost(state, playerId, power, undefined, advisersOf)) continue
             found.push(power)
         }
     }
@@ -336,7 +338,13 @@ export function resolveModifiers(
             choices: use.choices ?? []
         })
         if (unusable) return { reason: `${use.cardId}: ${unusable}`, active }
-        const unpayable = reasonCannotPayPowerCost(state, playerId, power)
+        const unpayable = reasonCannotPayPowerCost(
+            state,
+            playerId,
+            power,
+            undefined,
+            particulars.advisersOf
+        )
         if (unpayable) return { reason: unpayable, active }
         const bankOnArrival =
             mode.destinationUnknown === true &&
@@ -413,14 +421,15 @@ export function discardTargetOf(
         .find((t) => t !== undefined)
 }
 
-/** R-7.1.2 */
+/** R-7.1.2 — `advisersOf`: whose Vow of Kinship a Trade's favor follows (`favorHomeBankOf`). */
 export function payModifierCosts(
     state: HydratedOathGameState,
     playerId: string,
-    active: readonly ActiveModifier[]
+    active: readonly ActiveModifier[],
+    advisersOf?: string
 ): void {
     for (const m of active) {
-        if (!m.mandatory) payPowerCost(state, playerId, m.power)
+        if (!m.mandatory) payPowerCost(state, playerId, m.power, advisersOf)
     }
 }
 

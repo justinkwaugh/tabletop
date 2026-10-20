@@ -117,14 +117,6 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         if (plan.reason) {
             throw Error(`Cannot trade: ${plan.reason}`)
         }
-        // R-7.1.4 — Curfew's toll, paid before anything else is placed.
-        const tollNotes = payTolls(
-            state,
-            this.playerId,
-            { kind: 'trade', cardId: this.cardId },
-            this.tolls
-        )
-        const { cost, active } = plan
         const particulars = HydratedTrade.particulars(
             state,
             this.playerId,
@@ -132,13 +124,24 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             this.option,
             this.modifiers
         )
+        // Master of Disguise — the Trade's favor, paid and gained, follows the lent Vow of Kinship.
+        const { advisersOf } = particulars
+        // R-7.1.4 — Curfew's toll, paid before anything else is placed.
+        const tollNotes = payTolls(
+            state,
+            this.playerId,
+            { kind: 'trade', cardId: this.cardId },
+            this.tolls,
+            advisersOf
+        )
+        const { cost, active } = plan
 
         const suit = suitOf(this.cardId)
         assertExists(suit, `${this.cardId} has no suit`)
         const matching = HydratedTrade.matchingAdvisers(state, this.playerId, this.cardId, active)
 
         // R-7.1.2 — the price includes side-effects ("if you sacrifice one warband").
-        payModifierCosts(state, this.playerId, active)
+        payModifierCosts(state, this.playerId, active, advisersOf)
         const notes = runBefore(state, this.playerId, active, particulars)
 
         // R-5.3.1
@@ -151,7 +154,7 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             player.secrets -= 1
             state.addTokensOn(this.cardId, { secrets: 1 })
         } else {
-            spendFavor(state, this.playerId, 2)
+            spendFavor(state, this.playerId, 2, advisersOf)
             state.addTokensOn(this.cardId, { favor: 2 })
         }
 
@@ -164,7 +167,9 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             matching
         )
         // R-9.3 — favor is component-limited: take as many as possible.
-        const favorGained = forFavor ? gainFavorFromBank(state, this.playerId, suit, wanted) : 0
+        const favorGained = forFavor
+            ? gainFavorFromBank(state, this.playerId, suit, wanted, advisersOf)
+            : 0
         const secretsGained = forFavor ? 0 : wanted
         player.secrets += secretsGained
 
@@ -311,28 +316,36 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         // R-7.1.4 — a persistent "cannot trade with …" (Forest Council).
         const forbidden = reasonPersistentForbidsTrade(state, playerId, cardId)
         if (forbidden) return { cost, active, reason: forbidden }
+        // R-7.1.4-H1, R-9.2 — Master of Disguise trades as the other player's advisers: their Vow of
+        // Poverty's "cannot gain favor from Trade", and from revision 23 their Vow of Kinship (R-7.4-H1).
+        const advisersOf = particulars.advisersOf ?? playerId
         // R-7.1.4 — Curfew's "unless they give favor" (`util/tolls.ts`).
-        const unpaid = reasonTollsUnpaid(state, playerId, { kind: 'trade', cardId }, tolls)
+        const unpaid = reasonTollsUnpaid(
+            state,
+            playerId,
+            { kind: 'trade', cardId },
+            tolls,
+            advisersOf
+        )
         if (unpaid) return { cost, active, reason: unpaid }
         if (option === TradeOption.ForFavor && player.secrets < 1) {
             return { cost, active, reason: 'trading for favor requires one secret to place' }
         }
-        // R-7.1.4-H1, R-9.2 — Vow of Poverty's "cannot gain favor from Trade"; Master of Disguise trades as the other player's advisers.
-        const advisersOf = particulars.advisersOf ?? playerId
         if (
             option === TradeOption.ForFavor &&
             cannotGainFavorFromTrade(state, playerId, advisersOf)
         ) {
             return { cost, active, reason: 'you cannot gain favor from Trade (Vow of Poverty)' }
         }
-        if (option === TradeOption.ForSecrets && usableFavor(state, playerId) < 2) {
+        if (option === TradeOption.ForSecrets && usableFavor(state, playerId, advisersOf) < 2) {
             return { cost, active, reason: 'trading for secrets requires two favor to place' }
         }
-        const unaffordable = reasonCannotPayInAll(state, playerId, [
-            modifierPayment(active),
-            tollPayment(tolls),
-            HydratedTrade.placement(state, option)
-        ])
+        const unaffordable = reasonCannotPayInAll(
+            state,
+            playerId,
+            [modifierPayment(active), tollPayment(tolls), HydratedTrade.placement(state, option)],
+            advisersOf
+        )
         if (unaffordable) return { cost, active, reason: unaffordable }
         return { cost, active }
     }
