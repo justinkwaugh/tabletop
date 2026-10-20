@@ -10,7 +10,7 @@ import {
     getCompany,
     StationPlacement
 } from '@tabletop/18xx'
-import { stockGame } from './testSupport.js'
+import { stockGame } from '../test/testSupport.js'
 import { TransferRules1846, canRunAcquiredTrain } from './acquisitions.js'
 import { TrainDepot1846, TrainRules1846 } from './trains.js'
 import { RouteRules1846 } from './routes.js'

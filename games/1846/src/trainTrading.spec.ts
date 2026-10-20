@@ -8,7 +8,7 @@ import {
     purchaseChoices,
     trainsOwnedBy
 } from '@tabletop/18xx'
-import { stockGame, fundTrain } from './testSupport.js'
+import { stockGame, fundTrain } from '../test/testSupport.js'
 import { TransferRules1846 } from './acquisitions.js'
 import { TrainRules1846 } from './trains.js'
 

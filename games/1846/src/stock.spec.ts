@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { finiteCashOwnedBy, getCompany, placeStockMarker, sharesOwned } from '@tabletop/18xx'
-import { stockGame } from './testSupport.js'
+import { stockGame } from '../test/testSupport.js'
 import { StockRules1846, Market1846 } from './stock.js'
 
 describe('1846 first stock round', () => {

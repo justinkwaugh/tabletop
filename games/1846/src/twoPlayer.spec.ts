@@ -9,7 +9,7 @@ import {
     validateStations,
     evaluateSharePurchase
 } from '@tabletop/18xx'
-import { openingGame, installTile, layTrack, buyTrain } from './testSupport.js'
+import { openingGame, installTile, layTrack, buyTrain } from '../test/testSupport.js'
 import { openingPurchaseChoices } from './publicDistribution.js'
 import { StockRules1846 } from './stock.js'
 import {

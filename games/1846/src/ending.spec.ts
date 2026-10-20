@@ -10,7 +10,7 @@ import {
     placeStockMarker,
     trainsOwnedBy
 } from '@tabletop/18xx'
-import { buyTrain, constructionGame, emergencyBuyingGame, stockGame } from './testSupport.js'
+import { buyTrain, constructionGame, emergencyBuyingGame, stockGame } from '../test/testSupport.js'
 import { corporateFinanceChoices } from './corporateFinance.js'
 import { EndingRules1846 } from './ending.js'
 import { Names1846 } from './names.js'

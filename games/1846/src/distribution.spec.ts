@@ -1,4 +1,4 @@
-import { start, finish, action } from './testSupport.js'
+import { start, finish, action } from '../test/testSupport.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, Visibility, assert, assertExists } from '@tabletop/common'
 import { Runtime } from './definition/gameDefinition.js'
@@ -269,11 +269,27 @@ describe('1846 setup and distribution', () => {
             expect(hiddenDistribution(projected).deck).toBeUndefined()
             expect(projected.protectedPrng).toEqual({ seed: 0, invocations: 0 })
             expect(projected.masterSeed).toBeUndefined()
-            for (const p of hiddenDistribution(projected).participants) {
-                const mine = perspective.kind === 'player' && p.playerId === perspective.playerId
-                expect(p.packet !== undefined).toBe(mine)
-                expect(p.selections !== undefined).toBe(mine)
+            const owns = (playerId: string) =>
+                perspective.kind === 'player' && playerId === perspective.playerId
+            const expectOwnDraft = (
+                shown: EighteenFortySixProjectedState,
+                canonical: EighteenFortySixProjectedState
+            ) => {
+                for (const p of hiddenDistribution(shown).participants) {
+                    const real = hiddenDistribution(canonical).participants.find(
+                        (participant) => participant.playerId === p.playerId
+                    )
+                    assertExists(real)
+                    if (owns(p.playerId)) {
+                        expect(p.packet).toEqual(real.packet)
+                        expect(p.selections).toEqual(real.selections)
+                    } else {
+                        expect(p.packet).toBeUndefined()
+                        expect(p.selections).toBeUndefined()
+                    }
+                }
             }
+            expectOwnDraft(projected, initialState)
             expect(hydrateEighteenFortySixState(projected).dehydrate()).toEqual(projected)
             const history = Visibility.projectActionHistory({
                 currentState: state,
@@ -283,19 +299,24 @@ describe('1846 setup and distribution', () => {
                 replay: { game, runtime: Runtime }
             })
             let replay = projected
-            for (const recorded of history.actions) {
-                if (
-                    recorded.type === 'ChooseDraftCard' &&
-                    (perspective.kind === 'spectator' || recorded.playerId !== perspective.playerId)
-                )
-                    expect(recorded).not.toHaveProperty('cardId')
+            let canonical = initialState
+            for (const [index, recorded] of history.actions.entries()) {
+                const original = actions[index]
+                expect(recorded.id).toBe(original.id)
+                if (recorded.type === 'ChooseDraftCard') {
+                    assert('cardId' in original, 'A recorded draft choice names its card')
+                    if (recorded.playerId !== undefined && owns(recorded.playerId))
+                        expect(recorded).toHaveProperty('cardId', original.cardId)
+                    else expect(recorded).not.toHaveProperty('cardId')
+                }
                 replay = engine.applyProcessedAction({ game, state: replay, action: recorded })
+                canonical = engine.applyProcessedAction({
+                    game,
+                    state: canonical,
+                    action: original
+                })
                 expect(hiddenDistribution(replay).deck).toBeUndefined()
-                for (const p of hiddenDistribution(replay).participants)
-                    if (perspective.kind === 'spectator' || p.playerId !== perspective.playerId) {
-                        expect(p.selections).toBeUndefined()
-                        expect(p.packet).toBeUndefined()
-                    }
+                if (canonical.draft.kind === 'hidden') expectOwnDraft(replay, canonical)
             }
             expect(replay.purchases).toEqual(state.purchases)
             expect(replay).toEqual(history.currentState)

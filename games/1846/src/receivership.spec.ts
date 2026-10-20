@@ -18,7 +18,7 @@ import {
     type RoutePath,
     type Owner
 } from '@tabletop/18xx'
-import { emergencyBuyingGame, fundTrain, fundingModel, resolveFunding } from './testSupport.js'
+import { emergencyBuyingGame, fundTrain, fundingModel, resolveFunding } from '../test/testSupport.js'
 import { ReceivershipRules1846 } from './receivership.js'
 import { StockRules1846, Market1846 } from './stock.js'
 import { TrackRules1846 } from './track.js'

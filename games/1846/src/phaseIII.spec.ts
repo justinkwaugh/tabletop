@@ -26,7 +26,7 @@ import {
     fundingModel,
     fundTrain,
     resolveFunding
-} from './testSupport.js'
+} from '../test/testSupport.js'
 import { TrainDepot1846, TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 import { StationRules1846 } from './stations.js'
 import { RouteRules1846 } from './routes.js'

@@ -15,7 +15,7 @@ import {
     currentPrivateRevenue
 } from '@tabletop/18xx'
 import { Charters1846 } from './charters.js'
-import { stockGame, finish } from './testSupport.js'
+import { stockGame, finish } from '../test/testSupport.js'
 import { TransferRules1846 } from './acquisitions.js'
 import { TrainDepot1846, TrainRules1846 } from './trains.js'
 import { RouteRules1846 } from './routes.js'

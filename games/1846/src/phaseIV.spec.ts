@@ -24,7 +24,7 @@ import {
     fundablePurchases,
     fundTrain,
     resolveFunding
-} from './testSupport.js'
+} from '../test/testSupport.js'
 import { TrainDepot1846, TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 import { isAdvancePhase1846 } from './phases.js'
 import { AdditionalReservations } from './map.js'

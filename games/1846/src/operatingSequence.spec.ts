@@ -11,7 +11,7 @@ import {
     currentPrivateRevenue
 } from '@tabletop/18xx'
 import { Charters1846 } from './charters.js'
-import { stockGame } from './testSupport.js'
+import { stockGame } from '../test/testSupport.js'
 import { RouteRules1846 } from './routes.js'
 import { trainBuyingChoices1846 } from './trains.js'
 import { corporateFinanceChoices } from './corporateFinance.js'
@@ -57,7 +57,6 @@ function operate(table: ReturnType<typeof stockGame>, companyId: string, buy = f
     }
     return table.act('FinishOperatingTurn', { companyId })
 }
-/** NYC next to operate with the given treasury, nothing to issue and no privates for sale. */
 function nyCentralWithTreasury(table: ReturnType<typeof stockGame>, amount: number) {
     for (const company of table.state.companies)
         if (company.kind === 'private') company.closed = true

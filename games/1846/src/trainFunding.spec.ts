@@ -16,7 +16,7 @@ import {
     fundTrain,
     fundingModel,
     resolveFunding
-} from './testSupport.js'
+} from '../test/testSupport.js'
 
 type Table = ReturnType<typeof buyingGame>
 const treasury = { kind: 'company' as const, companyId: 'IC' }

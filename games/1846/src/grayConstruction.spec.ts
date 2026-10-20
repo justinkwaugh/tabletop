@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { TrackConstruction, RailwayMapState, finiteCashOwnedBy } from '@tabletop/18xx'
-import { constructionGame, installTile, relocateStation, layTrack } from './testSupport.js'
+import { constructionGame, installTile, relocateStation, layTrack } from '../test/testSupport.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { EighteenFortySixMap } from './map.js'
 import { TrackRules1846 } from './track.js'

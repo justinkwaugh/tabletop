@@ -7,7 +7,7 @@ import {
     privateOwner,
     trainsOwnedBy
 } from '@tabletop/18xx'
-import { openingGame, installTile } from './testSupport.js'
+import { openingGame, installTile } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
 import { openingPurchaseChoices, unboughtOpeningCompanies } from './publicDistribution.js'
 import { DraftCompanies } from './catalog.js'

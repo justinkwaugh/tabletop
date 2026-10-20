@@ -8,7 +8,7 @@ import {
     privateIncomePayments
 } from '@tabletop/18xx'
 import { Charters1846 } from './charters.js'
-import { stockGame, start } from './testSupport.js'
+import { stockGame, start } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
 import { EighteenFortySixMap } from './map.js'
 import { EighteenFortySixTileSet } from './tiles.js'

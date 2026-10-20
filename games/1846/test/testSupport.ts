@@ -6,10 +6,10 @@ import {
     type TileRotation,
     type TrackLayDetails
 } from '@tabletop/18xx'
-import { TrainRules1846, trainBuyingChoices1846 } from './trains.js'
-import { TrainFundingRules1846 } from './trainFundingRules.js'
-import { EighteenFortySixTileSet } from './tiles.js'
-import { stockChoices, Market1846, StockRules1846 } from './stock.js'
+import { TrainRules1846, trainBuyingChoices1846 } from '../src/trains.js'
+import { TrainFundingRules1846 } from '../src/trainFundingRules.js'
+import { EighteenFortySixTileSet } from '../src/tiles.js'
+import { stockChoices, Market1846, StockRules1846 } from '../src/stock.js'
 import {
     GameEngine,
     PlayerStatus,
@@ -19,15 +19,15 @@ import {
     type Game,
     type GameAction
 } from '@tabletop/common'
-import { Runtime, Definition } from './definition/gameDefinition.js'
+import { Runtime, Definition } from '../src/definition/gameDefinition.js'
 import {
     CanonicalValidator,
     hydrateEighteenFortySixState,
     type HydratedEighteenFortySixState,
     type EighteenFortySixProjectedState
-} from './state.js'
-import { choicesFor, hiddenDistribution } from './distribution.js'
-import { isBlank } from './catalog.js'
+} from '../src/state.js'
+import { choicesFor, hiddenDistribution } from '../src/distribution.js'
+import { isBlank } from '../src/catalog.js'
 type TestGame = {
     game: Game
     state: EighteenFortySixProjectedState
