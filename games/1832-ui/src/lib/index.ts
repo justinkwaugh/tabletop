@@ -1,7 +1,7 @@
 import { EighteenThirtyTwoInfo } from '@tabletop/1832'
 import type { EighteenThirtyTwoState, HydratedEighteenThirtyTwoState } from '@tabletop/1832'
 import type { GameUiDefinition } from '@tabletop/frontend-components'
-import thumbnailUrl from './images/cover.svg'
+import thumbnailUrl from './images/cover.webp'
 
 export const UiDefinition: GameUiDefinition<
     EighteenThirtyTwoState,
