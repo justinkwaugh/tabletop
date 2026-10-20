@@ -12,6 +12,7 @@
     import { EighteenThirtyTwoSession } from './session.svelte.js'
     import { describe1832Action } from './history.js'
     import TitleActions from './TitleActions.svelte'
+    import PendingDecision from './PendingDecision.svelte'
     import CompanyShareActions from './CompanyShareActions.svelte'
     import MergerPhase from './MergerPhase.svelte'
     function createRouteWorker() {
@@ -50,6 +51,8 @@
             <CompanyPar {session} />
         {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
             <WaterfallAuctionLots {session} />
+        {:else if session.redemptionPrompt || session.protectionPrompt}
+            <PendingDecision {session} />
         {:else if session.mergerDecision}
             <MergerPhase {session} />
         {:else if session.stockPanels.open === 'company'}
