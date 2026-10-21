@@ -51,6 +51,14 @@ export interface WaterfallAuctionRules {
     lots(state: FinancialState): readonly AuctionLot[]
     increment: number
     bidOrder: 'clockwise-from-highest' | 'lowest-bid-first'
+    /** Bids must be multiples of this amount, as 1894's multiples of F5. */
+    bidMultiple?: number
+    /**
+     * When every player passes: the first lot's price falls until a lot is sold and income is
+     * paid after (the default), or, with ``discount-and-income``, the first lot's price falls
+     * while it is unsold and income is paid whenever any lot has been sold.
+     */
+    allPass?: 'discount-or-income' | 'discount-and-income'
     award(state: AuctionState, award: AuctionAward): void
     payIncome(state: AuctionState): void
 }
@@ -139,7 +147,11 @@ export class ReserveBidAuction {
                 : !this.auction.remainingLotIds.slice(1).includes(lotId)
         )
             return false
-        return amount >= this.minimumBid(lotId) && amount <= this.availableCash(playerId, lotId)
+        return (
+            amount >= this.minimumBid(lotId) &&
+            amount <= this.availableCash(playerId, lotId) &&
+            (!this.rules.bidMultiple || amount % this.rules.bidMultiple === 0)
+        )
     }
     bid(playerId: string, lotId: string, amount: number): void {
         assert(this.canBid(playerId, lotId, amount), 'Invalid auction bid')
@@ -202,8 +214,15 @@ export class ReserveBidAuction {
                 award: { lotId, playerId: bids[0].playerId, price: bids[0].amount }
             }
         if (bids.length > 1) return { kind: 'open-bidding', lotId }
-        if (this.auction.passedPlayerIds.length === this.state.players.length)
+        if (this.auction.passedPlayerIds.length === this.state.players.length) {
+            if (this.rules.allPass === 'discount-and-income')
+                return {
+                    kind: this.auction.remainingLotIds.includes(this.lots[0].id)
+                        ? 'discount'
+                        : 'income'
+                }
             return { kind: this.auction.awards.length ? 'income' : 'discount' }
+        }
         return undefined
     }
     resolve(actionId: string): AuctionResolution {
@@ -242,6 +261,8 @@ export class ReserveBidAuction {
                     this.auction.discount + this.rules.increment
                 )
                 this.auction.passedPlayerIds = []
+                if (this.rules.allPass === 'discount-and-income' && this.auction.awards.length)
+                    this.rules.payIncome(this.state)
                 if (this.price(this.lots[0].id) === 0) {
                     this.award({
                         lotId: this.lots[0].id,

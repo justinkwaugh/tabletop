@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
     RouteNetwork,
     cityIsBlocked,
@@ -151,36 +151,65 @@ export class EncodedRoutes {
         const trains = new RouteEvaluation(state, rules).runnableTrains(companyId).map((train) => {
             const definition = rules.depot.trainDefinition(train.definitionId)
             const countsCrossings = definition.distance.measure === 'hex-edges'
-            const visitCosts = nodes.map((node) =>
-                countsCrossings ||
-                (definition.distance.measure === 'cities-and-offboards' && node.kind === 'town')
-                    ? 0
-                    : 1
-            )
+            const { maximum, extraTowns = 0 } = definition.distance
+            // A train with extra towns weighs stops so that one limit holds both of its limits:
+            // a town costs one more than the maximum, any other stop one more again.
+            assert(extraTowns <= 1, 'The autorouter encodes at most one extra town')
+            const visitCosts = nodes.map((node) => {
+                if (
+                    countsCrossings ||
+                    (definition.distance.measure === 'cities-and-offboards' && node.kind === 'town')
+                )
+                    return 0
+                if (!extraTowns || maximum === 'unlimited') return 1
+                return node.kind === 'town' ? maximum + 1 : maximum + 2
+            })
             const policy = rules.revenuePolicy?.(definition)
+            const values = nodes.map((node, index) => {
+                const center = this.centers[index]
+                assertExists(center, 'Revenue center requires a location')
+                if (node.kind === 'junction') throw new Error('A junction is not a revenue center')
+                return stopValue(state, rules, companyId, center, node, definition)
+            })
+            const bestStopBonuses = (
+                rules.bestStopBonuses?.(state, companyId, definition) ?? []
+            ).map(({ locationIds, ignoredLocationIds = [] }) => ({
+                from: this.centers.map((center) =>
+                    locationIds.includes(center.locationId) ? 0 : null
+                ),
+                to: this.centers.map((center, index) =>
+                    locationIds.includes(center.locationId) ||
+                    ignoredLocationIds.includes(center.locationId)
+                        ? null
+                        : (values[index] ?? null)
+                )
+            }))
             return {
                 id: train.id,
                 distance:
-                    definition.distance.maximum === 'unlimited'
+                    maximum === 'unlimited'
                         ? visitCosts.reduce<number>((sum, cost) => sum + cost, 0) +
                           arcs.reduce((sum, arc) => sum + arc.crossings, 0)
-                        : definition.distance.maximum,
+                        : extraTowns
+                          ? (maximum + 2) * maximum + maximum + 1
+                          : maximum,
                 counts_crossings: countsCrossings,
                 visit_costs: visitCosts,
                 requires_city: rules.requiresCity(definition),
                 paying_stop_limit: policy?.payingStopLimit ?? null,
                 require_paying_token: policy?.requirePayingStation ?? false,
-                connection_bonuses: (policy?.connectionBonuses ?? []).map(({ from, to }) => ({
-                    from: this.centers.map((center) => from[center.locationId] ?? null),
-                    to: this.centers.map((center) => to[center.locationId] ?? null)
-                })),
-                revenues: nodes.map((node, index) => {
-                    if (node.kind === 'junction')
-                        throw new Error('A junction is not a revenue center')
+                connection_bonuses: [
+                    ...(policy?.connectionBonuses ?? []).map(({ from, to }) => ({
+                        from: this.centers.map((center) => from[center.locationId] ?? null),
+                        to: this.centers.map((center) => to[center.locationId] ?? null)
+                    })),
+                    ...bestStopBonuses
+                ],
+                revenues: nodes.map((_, index) => {
                     const center = this.centers[index]
                     assertExists(center, 'Revenue center requires a location')
                     return (
-                        stopValue(state, rules, companyId, center, node, definition) +
+                        (values[index] ?? 0) +
                         (rules.stopBonus?.(state, definition, companyId, center) ?? 0)
                     )
                 }),

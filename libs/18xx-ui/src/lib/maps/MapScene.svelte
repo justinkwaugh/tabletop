@@ -85,7 +85,13 @@
     const selectedPath = $derived(selection?.kind === 'path' ? selection.pathId : undefined)
 
     function borderColor(kind: string): string {
-        return kind === 'water' ? '#226db5' : kind === 'mountain' ? '#875e36' : '#b02235'
+        return kind === 'water'
+            ? '#226db5'
+            : kind === 'mountain'
+              ? '#875e36'
+              : kind === 'province'
+                ? '#8a6a3f'
+                : '#b02235'
     }
     const borderCosts = $derived(
         mapBorderCosts(scene).map((cost) => ({
@@ -629,6 +635,7 @@
                             y2={end.y}
                             stroke={borderColor(border.kind)}
                             stroke-width="3"
+                            stroke-dasharray={border.kind === 'province' ? '7 5' : undefined}
                         ></line>
                     {/each}
                 </g>

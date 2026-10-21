@@ -40,6 +40,16 @@ import {
     requireEighteenThirtyTwoState
 } from '@tabletop/1832'
 import {
+    Definition as EighteenNinetyFour,
+    EighteenNinetyFourAuctionRules,
+    EighteenNinetyFourStockRules,
+    EighteenNinetyFourCompanyRules,
+    EighteenNinetyFourTrackRules,
+    EighteenNinetyFourTrainRules,
+    EighteenNinetyFourRouteRules,
+    EighteenNinetyFourTrainFundingRules
+} from '@tabletop/1894'
+import {
     OfferAuction,
     ReserveBidAuction,
     evaluateCompanyStart,
@@ -125,6 +135,36 @@ export const FullGameTitles = [
                 return trains < EighteenThirtyTwoTrainRules.trainLimit(state, companyId) &&
                     typeof cash === 'number' &&
                     cash < price
+                    ? ('withhold' as const)
+                    : ('pay' as const)
+            }
+        }
+    },
+    {
+        definition: EighteenNinetyFour,
+        stocks: EighteenNinetyFourStockRules,
+        companies: EighteenNinetyFourCompanyRules,
+        track: EighteenNinetyFourTrackRules,
+        trains: EighteenNinetyFourTrainRules,
+        routes: EighteenNinetyFourRouteRules,
+        funding: EighteenNinetyFourTrainFundingRules,
+        waterfall: EighteenNinetyFourAuctionRules,
+        ending: 'Purple phase',
+        finalPhaseId: 'purple',
+        // Companies withhold to afford their next train, which keeps prices under F450 while
+        // the trains run out.
+        policy: {
+            floatedTarget: () => 5,
+            laysEveryTurn: true,
+            dividend: (state: EighteenXXState, companyId: string) => {
+                const next = EighteenNinetyFourTrainRules.availableDefinitions(state)[0]
+                const price = next
+                    ? EighteenNinetyFourTrainRules.depot.trainDefinition(next).price
+                    : Infinity
+                const cash = state.cash.find(
+                    (entry) => entry.owner.kind === 'company' && entry.owner.companyId === companyId
+                )?.amount
+                return typeof cash === 'number' && cash < price
                     ? ('withhold' as const)
                     : ('pay' as const)
             }

@@ -13,6 +13,7 @@ import {
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { privateOwner, type FinancialState } from '../finance/finance.js'
 import type { TrainState } from '../trains/train.js'
+import type { MapStateData } from '../map/mapState.js'
 import type { LoanRules, LoanState } from '../loans/loans.js'
 import {
     OperatingSet,
@@ -74,7 +75,13 @@ export class HydratedStartOperatingRound
         this.#valuationRules = valuationRules
         this.#loanRules = loanRules
     }
-    apply(state: HydratedGameState & OperatingState & LoanState & TrainState): void {
+    apply(
+        state: HydratedGameState &
+            OperatingState &
+            LoanState &
+            TrainState &
+            Pick<MapStateData, 'tileInventory'>
+    ): void {
         assert(
             this.source === ActionSource.System && canStartOperatingRound(state),
             'The next operating round is not ready'

@@ -3,7 +3,13 @@ import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { cashOwnedBy, getCompany } from '../finance/finance.js'
-import { trainsOwnedBy, trainCanBeTraded, type Train, type TrainPurchaseState } from './train.js'
+import {
+    trainsOwnedBy,
+    trainCanBeTraded,
+    type Train,
+    type TrainDestination,
+    type TrainPurchaseState
+} from './train.js'
 import type { TrainDepot } from './trainDepot.js'
 import type { DeparturePayment, TrainDeparture } from './trainDepartures.js'
 export interface TrainRules {
@@ -21,6 +27,8 @@ export interface TrainRules {
     countsForLimit?(state: TrainPurchaseState, train: Train): boolean
     marketDefinitions?(state: TrainPurchaseState, train: Train): readonly string[]
     purchaseLimit(state: TrainPurchaseState, companyId: string): number | 'unlimited'
+    /** Where a train given in exchange goes: the open market unless the title removes it. */
+    exchangedTrainDestination?: TrainDestination
     /** The open privates that close when the company acquires a train by any purchase. */
     privatesClosedByPurchase?(state: TrainPurchaseState, companyId: string): readonly string[]
     /** Records the title's consequences of trains departing, returning what the bank pays. */

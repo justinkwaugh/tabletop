@@ -233,6 +233,8 @@ export * from './construction/automaticTrackCompletionHandler.js'
 export {
     payingRouteStops,
     routeConnectionBonuses,
+    routeBestStopBonuses,
+    type BestStopBonus,
     type PaidConnectionBonus,
     type RouteRevenuePolicy
 } from './routes/routeScoring.js'

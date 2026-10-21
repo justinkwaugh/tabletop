@@ -357,3 +357,39 @@ it('returns a legal partial result when the scoring search runs out of time', ()
     expect(result.exhaustive).toBe(false)
     expect(result.result.routes).toEqual([])
 })
+it('limits a train with an extra town to its maximum of other stops', () => {
+    const faces = [
+        city('yellow', [0], 20, 1),
+        town('yellow', [[3, 0]], 10),
+        city('yellow', [3, 0], 30, 1),
+        city('yellow', [3, 0], 40, 1),
+        town('yellow', [[3]], 10)
+    ]
+    // Two stops and a town: the 20, the town, the 30; or skip the town's extra to reach 40.
+    const { state, rules } = position(faces, [
+        { measure: 'revenue-centers', maximum: 2, extraTowns: 1 }
+    ])
+    const result = router.solve(state, rules, 'A')
+    expect(result.exhaustive).toBe(true)
+    expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+    expect(result.result.revenue).toBe(60)
+})
+it('adds the best value of the route’s other stops where a title asks', () => {
+    const faces = [
+        city('yellow', [0], 20, 1),
+        city('yellow', [3, 0], 50, 1),
+        offboard([3], staged([['yellow', 0]]))
+    ]
+    const { state, rules } = position(
+        faces,
+        [{ measure: 'revenue-centers', maximum: 3 }],
+        {},
+        {
+            bestStopBonuses: () => [{ locationIds: ['2'] }]
+        }
+    )
+    const result = router.solve(state, rules, 'A')
+    expect(result.exhaustive).toBe(true)
+    expect(result.result.revenue).toBe(120)
+    expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+})

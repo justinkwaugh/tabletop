@@ -23,4 +23,6 @@ export interface CompanyRules {
      * auction waits while the new owner sets it.
      */
     parAfterAward?: true
+    /** The par spaces open to a player setting par after an award; ``startMarketSpaces`` unless given. */
+    awardParSpaces?(state: FormationState, companyId: string): string[]
 }

@@ -4,7 +4,9 @@ import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
 import {
     payingRouteStops,
+    routeBestStopBonuses,
     routeConnectionBonuses,
+    type BestStopBonus,
     type RouteRevenueStop,
     type RouteRevenuePolicy
 } from './routeScoring.js'
@@ -33,6 +35,15 @@ export interface RouteRules {
     longestRouteBonusSourceId?: string
     canRunTrain?(state: TrainRunningState, train: Train): boolean
     revenuePolicy?(train: TrainDefinition): RouteRevenuePolicy
+    /**
+     * Stops worth the best value among the route's other paying stops, for this company. A
+     * title with a paying-stop limit chooses the paying stops without these bonuses.
+     */
+    bestStopBonuses?(
+        state: TrainRunningState,
+        companyId: string,
+        train: TrainDefinition
+    ): readonly BestStopBonus[]
 
     map: RailwayMap
     tileSet: TileSet
@@ -160,7 +171,7 @@ export class RouteEvaluation {
                 return { reason: 'A route may stop only once in each hex.' }
         }
         const distance = this.distance(definition, trace)
-        if (definition.distance.maximum !== 'unlimited' && distance > definition.distance.maximum)
+        if (this.exceedsDistance(definition, trace))
             return { reason: `The route exceeds the ${definition.name} train’s distance limit.` }
         if (complete) {
             if (
@@ -219,7 +230,14 @@ export class RouteEvaluation {
             nodeId,
             amount
         }))
-        const bonuses = [...this.bonuses(route, paying), ...routeConnectionBonuses(paying, policy)]
+        const bonuses = [
+            ...this.bonuses(route, paying),
+            ...routeConnectionBonuses(paying, policy),
+            ...routeBestStopBonuses(
+                paying,
+                this.rules.bestStopBonuses?.(this.state, companyId, definition) ?? []
+            )
+        ]
         return {
             result: {
                 ...route,
@@ -314,6 +332,14 @@ export class RouteEvaluation {
             (visit) => this.rules.map.location(visit.locationId).stopGroup ?? []
         )
         return groups.find((group, index) => groups.indexOf(group) !== index)
+    }
+    private exceedsDistance(train: TrainDefinition, trace: RouteTrace): boolean {
+        const { maximum, extraTowns = 0 } = train.distance
+        if (maximum === 'unlimited') return false
+        const distance = this.distance(train, trace)
+        if (!extraTowns) return distance > maximum
+        const towns = trace.visits.filter((visit) => visit.node.kind === 'town').length
+        return distance > maximum + extraTowns || distance - towns > maximum
     }
     private distance(train: TrainDefinition, trace: RouteTrace): number {
         if (train.distance.measure === 'hex-edges') return trace.crossings
