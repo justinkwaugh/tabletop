@@ -1,6 +1,6 @@
 import { prefersReducedMotion } from 'svelte/motion'
 import { gsap } from 'gsap'
-import type { Point } from '@tabletop/common'
+import { assertExists, type Point } from '@tabletop/common'
 import type { AnimationContext, GameStateChangeListener } from '@tabletop/frontend-components'
 import { isBringVisitors, type HydratedMarracashGameState } from '@tabletop/marracash'
 import type { MarracashGameSession } from '$lib/model/session.svelte.js'
@@ -32,12 +32,15 @@ const RollBodyWidth = 10
 const RevealGap = 100000
 const CutOverlap = 30
 
+// All the queue writes to a visitor's element besides its opacity.
+export type QueueVisitorElement = Pick<SVGElement, 'setAttribute'>
+
 // Firefox 140 leaves the offset of an SVG matrix() transform, which GSAP writes for x and y, out of
 // the CSS zoom the board is drawn at, so visitors are placed with a translate() of their own.
-const placed = new WeakMap<SVGElement, Point>()
+const visitorPoints = new WeakMap<QueueVisitorElement, Point>()
 
-function placeAt(element: SVGElement, point: Point) {
-    placed.set(element, { x: point.x, y: point.y })
+function placeAt(element: QueueVisitorElement, point: Point) {
+    visitorPoints.set(element, { x: point.x, y: point.y })
     element.setAttribute('transform', `translate(${point.x} ${point.y})`)
 }
 
@@ -53,10 +56,10 @@ export type QueueAnimationHost = Pick<
 
 // Visitors keep their element for the whole game, named by their place in the original queue, and
 // their position belongs to this animator: placed when they mount or change place, moved here when
-// visitors leave or return at the front. The runner's back end rolls up behind the line as it shortens,
-// then unrolls a little to make room for its label.
+// visitors leave or return at the front. The runner's back end rolls up behind the line as it
+// shortens, then unrolls a little to make room for its label.
 export class QueueAnimator {
-    private elements = new Map<number, SVGElement>()
+    private elements = new Map<number, QueueVisitorElement>()
     private runnerParts = new Map<RunnerPart, SVGElement>()
     private readonly listener = (change: GameStateChange) => this.onGameStateChange(change)
 
@@ -72,7 +75,7 @@ export class QueueAnimator {
         this.runnerParts.clear()
     }
 
-    setElement(visitorId: number, element: SVGElement | undefined) {
+    setElement(visitorId: number, element: QueueVisitorElement | undefined) {
         if (element) this.elements.set(visitorId, element)
         else this.elements.delete(visitorId)
     }
@@ -230,7 +233,9 @@ export class QueueAnimator {
     ) {
         for (const { element, place } of this.stayers(firstId, count, Math.max(shift, 0))) {
             const { x, y } = pointAtQueueSlot(place - shift)
-            const at = { ...(placed.get(element) ?? { x, y }) }
+            const placed = visitorPoints.get(element)
+            assertExists(placed, 'Every visitor in line was placed when it mounted')
+            const at = { ...placed }
             animationContext.actionTimeline.to(
                 at,
                 { x, y, duration: DirectSeconds, onUpdate: () => placeAt(element, at) },
@@ -244,14 +249,14 @@ export class QueueAnimator {
             const place = shift + offset
             return { element: this.elements.get(firstId + place), place }
         }).filter(
-            (stayer): stayer is { element: SVGElement; place: number } =>
+            (stayer): stayer is { element: QueueVisitorElement; place: number } =>
                 stayer.element !== undefined
         )
     }
 }
 
 export function placeQueueVisitor(
-    node: SVGElement,
+    node: QueueVisitorElement,
     params: { animator: QueueAnimator; visitorId: number; at: Point }
 ) {
     let current = params

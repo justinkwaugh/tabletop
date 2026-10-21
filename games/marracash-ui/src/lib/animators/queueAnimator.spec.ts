@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { Point } from '@tabletop/common'
 import { AnimationContext, type GameStateChangeListener } from '@tabletop/frontend-components'
 import { MarketColor, type HydratedMarracashGameState } from '@tabletop/marracash'
+import { startedGameState } from '$lib/testing/startedGameState.js'
 import { pointAtQueueSlot } from '$lib/utils/boardGeometry.js'
 import { placeQueueVisitor, QueueAnimator, type QueueAnimationHost } from './queueAnimator.js'
 
-// Stands in for a visitor's SVG group: the transform attribute is all the queue may write.
 class FakeVisitor {
     attributes = new Map<string, string>()
     setAttribute(name: string, value: string) {
@@ -16,7 +16,6 @@ class FakeVisitor {
     }
 }
 
-// Where a visitor stands, read back from a transform that must be a plain translate().
 function standing(element: FakeVisitor): Point {
     const transform = element.getAttribute('transform') ?? ''
     const match = /^translate\((\S+) (\S+)\)$/.exec(transform)
@@ -49,7 +48,7 @@ function createHost() {
 function mountQueue(animator: QueueAnimator, firstId: number, count: number) {
     return Array.from({ length: count }, (_, place) => {
         const element = new FakeVisitor()
-        placeQueueVisitor(element as unknown as SVGElement, {
+        placeQueueVisitor(element, {
             animator,
             visitorId: firstId + place,
             at: pointAtQueueSlot(place)
@@ -59,7 +58,9 @@ function mountQueue(animator: QueueAnimator, firstId: number, count: number) {
 }
 
 function queueState(queue: MarketColor[]): HydratedMarracashGameState {
-    return { queue } as unknown as HydratedMarracashGameState
+    const state = startedGameState('queue-animation', 3)
+    state.queue = queue
+    return state
 }
 
 const Line = [
@@ -70,14 +71,13 @@ const Line = [
     MarketColor.Purple
 ]
 
-// Firefox 140 leaves the offset of an SVG matrix() transform out of a CSS zoom, which the board's
-// view scale uses, so the queue is placed with translate() alone.
+// Firefox 140 leaves the offset of an SVG matrix() transform out of the board's CSS zoom.
 describe('the visitor queue', () => {
     it('places each visitor with a translate transform', () => {
         const { animator } = createHost()
         const at = pointAtQueueSlot(3)
         const element = new FakeVisitor()
-        const action = placeQueueVisitor(element as unknown as SVGElement, {
+        const action = placeQueueVisitor(element, {
             animator,
             visitorId: 3,
             at
