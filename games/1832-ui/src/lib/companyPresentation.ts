@@ -12,7 +12,7 @@ export const EighteenThirtyTwoCompanyNames = companyNameVariants(EighteenThirtyT
     LN: { initials: 'L&N' },
     NW: { initials: 'N&W' },
     SAL: { initials: 'SAL' },
-    SOU: { initials: 'Sou' },
+    SOU: { initials: 'SR' },
     AMTK: { initials: 'AMTK' },
     BNSF: { initials: 'BNSF', short: 'BNSF' },
     IC: { initials: 'IC' },

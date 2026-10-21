@@ -10,6 +10,9 @@ import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyTwoPhaseChart, eighteenThirtyTwoPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTwoTrainColors } from './trainPresentation.js'
+import CottonToken from './images/tokens/cotton.svg'
+import PortToken from './images/tokens/port.svg'
+import UnknownToken from './images/tokens/unknown.svg'
 
 // A System names its letter and the two companies it was formed from (§11.6).
 export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoState> = {
@@ -22,7 +25,12 @@ export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoS
     ipoPoolId: 'initial-offering',
     companyNames: EighteenThirtyTwoCompanyNames,
     privatePurchaseHeading: 'Available privates',
-    privateTokens: { P7: { companyId: 'CG' } },
+    privateTokens: {
+        P2: { imageUrl: CottonToken },
+        P3: { imageUrl: PortToken },
+        P4: { imageUrl: UnknownToken },
+        P7: { companyId: 'CG' }
+    },
     gameFacts: (state) => [
         { label: 'Coal', value: String(CoalTokens - state.coalRights.length) },
         ...(miamiFirstRun(state) ? [{ label: 'Miami', value: '$0' }] : [])
