@@ -304,6 +304,7 @@ export class EmergencyTrainFunding {
                         market: this.stocks.market,
                         charters: this.stocks.charters,
                         presidencyCandidates: this.stocks.presidencyCandidates,
+                        holdsMarketMove: this.stocks.holdsMarketMove,
                         saleTerms: (_state, id, count, seller) =>
                             this.rules.saleTerms(this.state, id, count, seller)
                     }
