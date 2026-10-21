@@ -32,6 +32,15 @@ const RollBodyWidth = 10
 const RevealGap = 100000
 const CutOverlap = 30
 
+// Firefox 140 leaves the offset of an SVG matrix() transform, which GSAP writes for x and y, out of
+// the CSS zoom the board is drawn at, so visitors are placed with a translate() of their own.
+const placed = new WeakMap<SVGElement, Point>()
+
+function placeAt(element: SVGElement, point: Point) {
+    placed.set(element, { x: point.x, y: point.y })
+    element.setAttribute('transform', `translate(${point.x} ${point.y})`)
+}
+
 type GameStateChange = Parameters<GameStateChangeListener<HydratedMarracashGameState>>[0]
 
 export type RunnerPart =
@@ -43,8 +52,8 @@ export type QueueAnimationHost = Pick<
 >
 
 // Visitors keep their element for the whole game, named by their place in the original queue, and
-// their position belongs to GSAP: placed when they mount or change place, moved here when visitors
-// leave or return at the front. The runner's back end rolls up behind the line as it shortens,
+// their position belongs to this animator: placed when they mount or change place, moved here when
+// visitors leave or return at the front. The runner's back end rolls up behind the line as it shortens,
 // then unrolls a little to make room for its label.
 export class QueueAnimator {
     private elements = new Map<number, SVGElement>()
@@ -130,7 +139,7 @@ export class QueueAnimator {
                 ease: 'power1.inOut',
                 onUpdate: () => {
                     for (const { element, place } of stayers) {
-                        this.place(element, pointAtQueueSlot(place - progress.moved))
+                        placeAt(element, pointAtQueueSlot(place - progress.moved))
                     }
                 }
             },
@@ -221,7 +230,12 @@ export class QueueAnimator {
     ) {
         for (const { element, place } of this.stayers(firstId, count, Math.max(shift, 0))) {
             const { x, y } = pointAtQueueSlot(place - shift)
-            animationContext.actionTimeline.to(element, { x, y, duration: DirectSeconds }, 0)
+            const at = { ...(placed.get(element) ?? { x, y }) }
+            animationContext.actionTimeline.to(
+                at,
+                { x, y, duration: DirectSeconds, onUpdate: () => placeAt(element, at) },
+                0
+            )
         }
     }
 
@@ -234,10 +248,6 @@ export class QueueAnimator {
                 stayer.element !== undefined
         )
     }
-
-    private place(element: SVGElement, point: Point) {
-        gsap.set(element, { x: point.x, y: point.y })
-    }
 }
 
 export function placeQueueVisitor(
@@ -245,7 +255,8 @@ export function placeQueueVisitor(
     params: { animator: QueueAnimator; visitorId: number; at: Point }
 ) {
     let current = params
-    gsap.set(node, { x: params.at.x, y: params.at.y, opacity: 1 })
+    placeAt(node, params.at)
+    gsap.set(node, { opacity: 1 })
     current.animator.setElement(current.visitorId, node)
     return {
         update(next: typeof params) {
@@ -254,7 +265,7 @@ export function placeQueueVisitor(
                 next.animator.setElement(next.visitorId, node)
             }
             if (next.at.x !== current.at.x || next.at.y !== current.at.y) {
-                gsap.set(node, { x: next.at.x, y: next.at.y })
+                placeAt(node, next.at)
             }
             current = next
         },
