@@ -20,7 +20,7 @@
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import PresidentBadge from '../finance/PresidentBadge.svelte'
+    import PresidentName from '../finance/PresidentName.svelte'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
@@ -439,8 +439,11 @@
                                             ><button
                                                 class="company-focus"
                                                 {...companyButton(entry.company.id)}
-                                                >{session.companyName(entry.company.id)}</button
-                                            >{#if entry.president}<PresidentBadge />{/if}</th
+                                                ><PresidentName
+                                                    name={session.companyName(entry.company.id)}
+                                                    president={entry.president}
+                                                /></button
+                                            ></th
                                         >
                                         <td class="amount">{percent.format(entry.percentage)}%</td>
                                     </tr>

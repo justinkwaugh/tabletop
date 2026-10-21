@@ -30,7 +30,7 @@
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import { companyLastRun } from './companyLastRun.js'
-    import PresidentBadge from '../finance/PresidentBadge.svelte'
+    import PresidentName from '../finance/PresidentName.svelte'
     let {
         session,
         onPreviewMap,
@@ -260,7 +260,7 @@
                     <tbody>
                         {#each ownership as entry, index (index)}
                             {@const president =
-                                company.president && sameOwner(entry.owner, company.president)}
+                                !!company.president && sameOwner(entry.owner, company.president)}
                             <tr
                                 class:pool-divider={index > 0 && index === sharePoolsStart}
                                 class:president
@@ -279,8 +279,10 @@
                                     >
                                 {:else}
                                     <th scope="row" title={president ? 'President' : undefined}
-                                        >{ownershipName(entry)}{#if president}<PresidentBadge
-                                            />{/if}</th
+                                        ><PresidentName
+                                            name={ownershipName(entry)}
+                                            {president}
+                                        /></th
                                     >
                                     {#if numberedShares}<td title="Certificate numbers"
                                             >{entry.certificateNumbers.join(', ') || '—'}</td
@@ -689,14 +691,6 @@
     .wide-fill h2 {
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-    .wide-fill .header-summary {
-        flex-shrink: 1;
-        min-width: 0;
-    }
-    .wide-fill .remaining-tokens {
-        flex-wrap: wrap;
-        justify-content: flex-end;
     }
     .wide-fill .financial-summary .prices {
         flex-wrap: wrap;
