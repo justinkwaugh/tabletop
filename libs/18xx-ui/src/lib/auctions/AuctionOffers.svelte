@@ -40,7 +40,7 @@
                     {#if session.offers.ownTurn}<td class="action"
                             ><button
                                 data-description-exclude
-                                aria-label={`Offer ${lot.name}`}
+                                aria-label={`Offer ${session.lotName(lot)}`}
                                 disabled={!session.offers.canAct ||
                                     !session.myPlayer ||
                                     !model.canOffer(session.myPlayer.id, lot.id)}
@@ -53,15 +53,16 @@
                             <button
                                 class="lot-icon"
                                 data-description-exclude={info.locationId ? true : undefined}
-                                aria-label={info.locationId ? `Show ${lot.name} on map` : lot.name}
+                                aria-label={info.locationId
+                                    ? `Show ${session.lotName(lot)} on map`
+                                    : session.lotName(lot)}
                                 onclick={() => {
                                     if (info.locationId) onFocus(info.locationId)
                                 }}
                             >
                                 {#if token}<CompanyToken appearance={token} size={26} />
                                 {:else}<span class="private-icon" aria-hidden="true"
-                                        >{session.presentation.companyNames?.[lot.id]?.initials ??
-                                            lot.id}</span
+                                        >{session.lotInitials(lot)}</span
                                     >{/if}
                             </button>
                             <PrivateDescription
@@ -69,7 +70,8 @@
                                 phaseColors={session.presentation.phaseColors}
                                 {token}
                                 imageUrl={session.publishedCardImage(lot.id)}
-                                name={lot.name}
+                                shortName={session.lotName(lot)}
+                                fullName={lot.name}
                                 description={info.description}
                                 value={lot.price}
                                 income={lot.company?.revenue}

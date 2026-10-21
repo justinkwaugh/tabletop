@@ -12,7 +12,6 @@ import {
     BuildPrivateTrack,
     chicagoPrivateStation,
     PlaceCWIStation,
-    draftCompany,
     ConstructionPrivateIds,
     type ConstructionPrivateId,
     AssignRevenueMarker,
@@ -273,7 +272,7 @@ export class EighteenFortySixSession extends BaseSession {
                     kind: 'track',
                     privateCompanyId,
                     playerId,
-                    label: draftCompany(privateCompanyId).name,
+                    label: this.companyName(privateCompanyId),
                     prompt: lays.length
                         ? 'Lay a second tile connected to the first'
                         : PrivateTrackPrompts[privateCompanyId],
@@ -338,7 +337,7 @@ export class EighteenFortySixSession extends BaseSession {
                 kind: 'confirm',
                 privateCompanyId: 'C&WI',
                 playerId,
-                label: draftCompany('C&WI').name,
+                label: this.companyName('C&WI'),
                 prompt: 'Place your reserved token in Chicago?',
                 confirmLabel: 'yes',
                 // The token can only go in the C&WI's own city, shown as it will be placed.
@@ -359,7 +358,7 @@ export class EighteenFortySixSession extends BaseSession {
         const choices = revenueMarkerChoices(this.gameState, playerId)
         return [...new Set(choices.map((choice) => choice.privateCompanyId))].map(
             (privateCompanyId) => {
-                const name = draftCompany(privateCompanyId).name
+                const name = this.companyName(privateCompanyId)
                 const placed = this.gameState.revenueMarkers.some(
                     (marker) => marker.privateCompanyId === privateCompanyId
                 )

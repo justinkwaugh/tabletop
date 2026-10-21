@@ -12,6 +12,7 @@ import {
     titleComponents,
     TileUpgrades,
     trainsOwnedBy,
+    type AuctionLot,
     type EighteenXXPreferences,
     type EighteenXXState,
     type EighteenXXTitleRules,
@@ -669,7 +670,24 @@ export class EighteenXXSession<
         return this.rules.stockRules.charters
     }
     companyName(companyId: string) {
-        return this.rules.names.company(companyId)
+        return this.companyNameVariants(companyId).short
+    }
+    companyInitials(companyId: string) {
+        return this.companyNameVariants(companyId).initials
+    }
+    companyFullName(companyId: string) {
+        return this.companyNameVariants(companyId).full
+    }
+    private companyNameVariants(companyId: string) {
+        const names = this.presentation.companyNames[companyId]
+        assertExists(names, `Company ${companyId} requires its names`)
+        return names
+    }
+    lotName(lot: Pick<AuctionLot, 'id' | 'name'>) {
+        return this.presentation.companyNames[lot.id]?.short ?? lot.name
+    }
+    lotInitials(lot: Pick<AuctionLot, 'id'>) {
+        return this.presentation.companyNames[lot.id]?.initials ?? lot.id
     }
     poolName(poolId: string) {
         return this.rules.names.pool(poolId)

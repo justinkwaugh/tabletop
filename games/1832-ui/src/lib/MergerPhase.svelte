@@ -14,8 +14,7 @@
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
     const busy = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory)
-    const initials = (companyId: string) =>
-        session.presentation.companyNames?.[companyId]?.initials ?? companyId
+    const initials = (companyId: string) => session.companyInitials(companyId)
     const name = (playerId: string) => session.getPlayerName(playerId)
     const presides = (playerId: string, proposerPlayerId: string) =>
         playerId === proposerPlayerId ? 'you preside' : `${name(playerId)} presides`

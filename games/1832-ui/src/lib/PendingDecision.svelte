@@ -2,8 +2,7 @@
     import { CompanyToken, DecisionResponse } from '@tabletop/18xx-ui'
     import type { EighteenThirtyTwoSession } from './session.svelte.js'
     let { session }: { session: EighteenThirtyTwoSession } = $props()
-    const companyName = (companyId: string) =>
-        session.presentation.companyNames?.[companyId]?.initials ?? companyId
+    const companyName = (companyId: string) => session.companyInitials(companyId)
     const money = (amount: number) => session.presentation.money(amount)
     const shares = (count: number) => (count === 1 ? 'share' : 'shares')
 </script>

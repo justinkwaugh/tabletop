@@ -71,7 +71,7 @@
     import BoardFocus from './BoardFocus.svelte'
     import BoardAutoZoom from './BoardAutoZoom.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
@@ -115,7 +115,6 @@
         marketPoolId,
         ipoPoolId,
         exchangePoolId,
-        companyNames,
         companyPricePresentation = DefaultCompanyPricePresentation,
         includedCompanyIds = [],
         numberedShareNames,
@@ -759,7 +758,6 @@
 <svelte:window onkeydown={navigateByShortcut} />
 
 {#snippet playerCards()}<PlayersPanel
-        {companyNames}
         {session}
         {valuationRules}
         {auctionLotDescription}
@@ -780,7 +778,6 @@
 )}<CompanyDetails
         pricePresentation={companyPricePresentation}
         {layout}
-        displayName={companyNames?.[company.id]?.card}
         {company}
         {session}
         {trainColors}
@@ -815,7 +812,6 @@
         {phaseTileColors}
         tileColors={tileAppearance.colors}
         tileColorNames={tileAppearance.colorNames}
-        {companyNames}
         describeAction={historyDescription}
     />{/snippet}
 
@@ -1053,7 +1049,6 @@
                             {publishedArtwork}
                             onToggleArtwork={() => session.toggleArtwork()}
                             {session}
-                            {companyNames}
                             bordered={!paneLayout.current}
                             centered={paneLayout.current}
                         />
@@ -1336,7 +1331,6 @@
                                 {trainColors}
                                 {valuationRules}
                                 {session}
-                                {companyNames}
                                 {numberedShareNames}
                                 {includedCompanyIds}
                                 {marketPoolId}

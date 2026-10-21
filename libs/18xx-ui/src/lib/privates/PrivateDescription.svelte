@@ -9,7 +9,8 @@
 
     let {
         money,
-        name,
+        shortName,
+        fullName,
         description,
         value,
         income,
@@ -18,7 +19,8 @@
         imageUrl
     }: {
         money: MoneyFormat
-        name: string
+        shortName: string
+        fullName: string
         description: string
         value?: number
         income?: number
@@ -63,12 +65,12 @@
     class="name"
     use:triggerRow
     aria-expanded={open}
-    aria-describedby={open ? `${id}-description` : undefined}>{name}</button
+    aria-describedby={open ? `${id}-description` : undefined}>{shortName}</button
 >
 {#if open && imageUrl}
     <CardLightbox
         {imageUrl}
-        {name}
+        name={fullName}
         onclose={() => {
             open = false
         }}
@@ -91,7 +93,15 @@
         }}
     >
         <div id={`${id}-description`} class="description" role="tooltip">
-            <PrivateCard {money} {phaseColors} {name} {description} {value} {income} {token} />
+            <PrivateCard
+                {money}
+                {phaseColors}
+                name={fullName}
+                {description}
+                {value}
+                {income}
+                {token}
+            />
         </div>
     </Floater>
 {/if}

@@ -3,7 +3,6 @@
     import './playerTint.css'
     import type { GameAction } from '@tabletop/common'
     import type { StationAppearance } from '../maps/stationPresentation.js'
-    import type { CompanyNameVariants } from './companyPresentation.js'
     import type { OperatingRoundHistory } from './operatingHistory.js'
     import PlayerName from './PlayerName.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -14,7 +13,7 @@
         players,
         appearances,
         view,
-        companyNames,
+        companyInitials,
         companyName,
         onPreviewMap
     }: {
@@ -24,7 +23,7 @@
         players: { playerId: string; name: string; color: string }[]
         appearances: Readonly<Record<string, StationAppearance>>
         view: 'Company' | 'Player'
-        companyNames: Readonly<Record<string, CompanyNameVariants>>
+        companyInitials: (companyId: string) => string
         companyName: (companyId: string) => string
     } = $props()
     const companies = $derived(
@@ -73,9 +72,7 @@
                                             appearance={appearances[companyId]}
                                             size={22}
                                         />{/if}
-                                    <span title={name}
-                                        >{companyNames[companyId]?.initials ?? companyId}</span
-                                    >
+                                    <span title={name}>{companyInitials(companyId)}</span>
                                 </span>
                             </th>
                         {/each}

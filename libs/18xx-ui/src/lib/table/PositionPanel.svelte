@@ -114,8 +114,8 @@
             const lot = session.auctionLotsFor(gameState).find((lot) => lot.id === action.lotId)
             assert(lot, 'Recorded auction requires its lot')
             return isOfferAuctionLot(action)
-                ? { text: `offered ${lot.name} for auction at ${money(lot.price)}` }
-                : { text: `bid ${money(action.amount)} for ${lot.name}` }
+                ? { text: `offered ${session.lotName(lot)} for auction at ${money(lot.price)}` }
+                : { text: `bid ${money(action.amount)} for ${session.lotName(lot)}` }
         }
         if (isPassAuction(action)) return { text: 'passed' }
         const shared = () =>

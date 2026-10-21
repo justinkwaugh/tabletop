@@ -34,7 +34,7 @@
 
 {#snippet slotContent(lot: (typeof lots)[number], open: boolean)}
     <span class="slot-heading"
-        ><span class="slot-name">{lot.name}</span>
+        ><span class="slot-name">{session.lotName(lot)}</span>
         <span class="slot-value">{money(lot.price)}</span></span
     >
     {#if open && lot.company.description}<span class="power slot-power"
@@ -53,7 +53,7 @@
                                 <button
                                     class="slot"
                                     class:selected={selected?.id === lot.id}
-                                    aria-label={`Auction ${lot.name}`}
+                                    aria-label={`Auction ${session.lotName(lot)}`}
                                     aria-pressed={selected?.id === lot.id}
                                     title={lot.company.description}
                                     disabled={!auction.canNominate(
@@ -94,7 +94,7 @@
                             {#if auction.ownTurn}<td class="action">
                                     <button
                                         data-description-exclude
-                                        aria-label={`Auction ${lot.name}`}
+                                        aria-label={`Auction ${session.lotName(lot)}`}
                                         aria-pressed={selected?.id === lot.id}
                                         disabled={!auction.canNominate(
                                             lot.id,
@@ -107,8 +107,7 @@
                                 ><div class="identity">
                                     {#if lot.token}<CompanyToken appearance={lot.token} size={26} />
                                     {:else}<span class="private-icon" aria-hidden="true"
-                                            >{session.presentation.companyNames?.[lot.id]
-                                                ?.initials ?? lot.id}</span
+                                            >{session.lotInitials(lot)}</span
                                         >{/if}
                                     <span class="lot-name">
                                         <PrivateDescription
@@ -116,7 +115,8 @@
                                             phaseColors={session.presentation.phaseColors}
                                             token={lot.token}
                                             imageUrl={session.publishedCardImage(lot.id)}
-                                            name={lot.name}
+                                            shortName={session.lotName(lot)}
+                                            fullName={lot.name}
                                             description={lot.company.description}
                                             value={lot.price}
                                             income={lot.company.revenue}
@@ -144,7 +144,7 @@
                 </div>
                 {#if selected && auction.selection}
                     <div class="summary">
-                        <span>Auction <strong>{selected.name}</strong></span>
+                        <span>Auction <strong>{session.lotName(selected)}</strong></span>
                         {#if tiers && selected.company.description}<span class="power full"
                                 >{selected.company.description}</span
                             >{/if}

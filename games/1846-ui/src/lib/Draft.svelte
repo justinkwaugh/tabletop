@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { draftCompany, isBlank, priceFor } from '@tabletop/1846'
+    import { isBlank, priceFor } from '@tabletop/1846'
     import DraftCard from './DraftCard.svelte'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
@@ -10,7 +10,7 @@
         hiddenDraft?.participants.find((player) => player.playerId === session.myPlayer?.id)
     )
     const choosers = $derived(state.activePlayerIds.map((id) => session.getPlayerName(id)))
-    const label = (id: string) => (isBlank(id) ? 'Pass' : draftCompany(id).name)
+    const label = (id: string) => (isBlank(id) ? 'Pass' : session.companyName(id))
 </script>
 
 {#if hiddenDraft}

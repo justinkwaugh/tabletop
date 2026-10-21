@@ -5,10 +5,8 @@
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import type { CompanyNameVariants } from './companyPresentation.js'
     let {
         session,
-        companyNames = {},
         bordered = true,
         centered = false,
         artworkAvailable = false,
@@ -21,7 +19,6 @@
         bordered?: boolean
         centered?: boolean
         session: EighteenXXSessionView
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
     } = $props()
     let compact = $state(false)
     function fitRoundLabel(header: HTMLElement) {
@@ -126,8 +123,7 @@
             ><span class="company" title={session.companyName(company.id)}
                 ><CompanyToken appearance={session.mapView.stations[company.id]} size={22} /><span
                     class="max-sm:hidden">{session.companyName(company.id)}</span
-                ><span class="sm:hidden">{companyNames[company.id]?.initials ?? company.id}</span
-                ></span
+                ><span class="sm:hidden">{session.companyInitials(company.id)}</span></span
             >{/if}
         {#if centered && turnPlayerIds.length}<span class="separator" aria-hidden="true">/</span
             >{@render turnLabel()}{/if}

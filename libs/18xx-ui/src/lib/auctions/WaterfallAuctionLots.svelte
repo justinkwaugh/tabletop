@@ -100,14 +100,14 @@
                         {#if actionable}<td class="action">
                                 {#if !lot.award && selectedLot?.id !== lot.id}{#if lot.id === auction.openLotId}<button
                                             data-description-exclude
-                                            aria-label={`Buy ${lot.name}`}
+                                            aria-label={`Buy ${session.lotName(lot)}`}
                                             disabled={!auction.canAct ||
                                                 !playerId ||
                                                 !model.canPurchase(playerId, lot.id)}
                                             onclick={() => auction.buy(lot.id)}>Buy</button
                                         >{:else}<button
                                             data-description-exclude
-                                            aria-label={`Bid on ${lot.name}`}
+                                            aria-label={`Bid on ${session.lotName(lot)}`}
                                             disabled={!canBid(lot.id, model.minimumBid(lot.id))}
                                             onclick={() => auction.selectLot('bid', lot.id)}
                                             >Bid</button
@@ -117,15 +117,15 @@
                             ><div class="identity">
                                 {#if lot.token}<CompanyToken appearance={lot.token} size={26} />
                                 {:else}<span class="private-icon" aria-hidden="true"
-                                        >{session.presentation.companyNames?.[lot.id]?.initials ??
-                                            lot.id}</span
+                                        >{session.lotInitials(lot)}</span
                                     >{/if}
                                 <PrivateDescription
                                     {money}
                                     phaseColors={session.presentation.phaseColors}
                                     token={lot.token}
                                     imageUrl={session.publishedCardImage(lot.id)}
-                                    name={lot.name}
+                                    shortName={session.lotName(lot)}
+                                    fullName={lot.name}
                                     description={lot.company.description}
                                     value={lot.price}
                                     income={lot.company.revenue}
@@ -150,7 +150,9 @@
                                         )}
                                         aria-hidden="true"
                                     ></span><span class="name">{winner}</span></span
-                                >{:else if lot.bids.length}<ul aria-label={`Bids on ${lot.name}`}>
+                                >{:else if lot.bids.length}<ul
+                                    aria-label={`Bids on ${session.lotName(lot)}`}
+                                >
                                     {#each lot.bids as bid (bid.playerId)}
                                         <li
                                             class:mine={bid.playerId === playerId}

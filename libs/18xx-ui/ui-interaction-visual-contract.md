@@ -2096,8 +2096,12 @@ stock-round action and pass has its own line, untinted, with the player's name a
 medium-weight rounded badge: a 45% mix of that player's color over the theme surface
 behind the name only, with no dot or colon. The description and its values stay
 regular weight. A player-attributed stock description starts with a lowercase verb after
-the player name. History descriptions use full company names unless a title provides a
-history-specific name. Automatic flotation names the company without a player
+the player name. Every title names each company three ways: its printed full name, a
+short name (the full name without a closing Railroad, Railway, Company or Transportation
+unless only one word would remain, or a title-given one such as BNSF or PEIR) and its
+initials. Play text uses the short name; private cards and their popups keep the full
+name. History descriptions name corporations by their initials and privates by their short
+name; operation headers use the short name. Automatic flotation names the company without a player
 name or player tint and places its company token beside both the flotation
 summary and detail. Stock sales remain separate recorded lines. Both use the
 viewing player's palette.
@@ -2211,7 +2215,8 @@ exercise the two supported ordering paths.
 
 Titles may explicitly include existing share companies in Companies even when they
 have no start action or started flag. Explicitly included companies follow the normally ordered companies. TOP places
-PEIR last and labels its narrow card PEIR; other card names retain their full names.
+PEIR last. Card headers use the company's short name (PEIR for TOP's PEIR), with the
+full name on hover.
 
 Company cards with numbered shares show certificate numbers before share counts
 in each ownership row, keeping the count in the rightmost column.

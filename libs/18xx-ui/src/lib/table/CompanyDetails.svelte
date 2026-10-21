@@ -36,7 +36,6 @@
         onPreviewMap,
         company,
         pricePresentation = DefaultCompanyPricePresentation,
-        displayName = session.companyName(company.id),
         layout = 'wide',
         unavailable = false,
         purchaseSources,
@@ -53,7 +52,6 @@
         onPreviewMap?: (action: GameAction) => void
         session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
-        displayName?: string
         company: Company
         poolName?: (pool: CertificatePool) => string
     } = $props()
@@ -165,7 +163,9 @@
                 size={vertical ? 32 : 36}
             />
             <div>
-                <h2 title={displayName}>{displayName}</h2>
+                <h2 title={session.companyFullName(company.id)}>
+                    {session.companyName(company.id)}
+                </h2>
                 <div class="train-roster" aria-label="Trains">
                     {#each trains as train (train.id)}
                         {@const definition = session.trainDepot.trainDefinition(train.definitionId)}
@@ -238,8 +238,7 @@
             {#each origin.companyIds as id, index (id)}{#if index}<span>&amp;</span>{/if}<span
                     class="origin-company"
                     ><CompanyToken appearance={session.mapView.stations[id]} size={15} /><strong
-                        >{session.presentation.companyNames?.[id]?.initials ??
-                            session.companyName(id)}</strong
+                        >{session.companyInitials(id)}</strong
                     ></span
                 >{/each}
         </p>
@@ -387,7 +386,8 @@
                     phaseColors={session.presentation.phaseColors}
                     token={session.privateCompanyTokens[item.id]}
                     imageUrl={session.publishedCardImage(item.id)}
-                    name={session.companyName(item.id)}
+                    shortName={session.companyName(item.id)}
+                    fullName={session.companyFullName(item.id)}
                     description={item.description}
                     income={item.closed ? undefined : item.revenue}
                 />{#each session.privateActions.powersFor(item.id) as power (power.playerId)}<span
