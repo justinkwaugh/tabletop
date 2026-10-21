@@ -112,9 +112,9 @@
     })
 
     let highlighted = $derived(
-        gameSession.highlightedCoords !== undefined &&
-            gameSession.highlightedCoords[0] === coords[0] &&
-            gameSession.highlightedCoords[1] === coords[1]
+        gameSession.boardHighlightCoords !== undefined &&
+            gameSession.boardHighlightCoords[0] === coords[0] &&
+            gameSession.boardHighlightCoords[1] === coords[1]
     )
     // Touch has no hover, and iOS may never report the finger leaving after a tap.
     let hovered = $state(false)
