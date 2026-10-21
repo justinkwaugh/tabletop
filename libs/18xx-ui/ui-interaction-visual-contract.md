@@ -122,8 +122,8 @@ Show sample tile, token & route switch replaces its displayed inventory and over
 a different map replaces the whole scene. Neither operation is a game Action.
 
 A company token on the map fills its city slot's circle.
-A reserved city slot without a token shows the reserving company's token in grayscale
-at reduced opacity, titled "Reserved for [company]"; without a company appearance it
+A reserved city slot without a token shows the reserving company's token in its own
+colours at reduced opacity, titled "Reserved for [company]"; without a company appearance it
 falls back to the company id as small text. Track into an offboard ends in a short
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
 own. A marker whose art is a local line shows its label beside two linked circles while
