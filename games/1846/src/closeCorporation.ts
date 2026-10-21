@@ -9,7 +9,14 @@ import {
     assertExists,
     type MachineStateHandler
 } from '@tabletop/common'
-import { CompanyClosure, closeShareCompany } from '@tabletop/18xx'
+import {
+    CompanyClosure,
+    RoundEnd,
+    closeShareCompany,
+    endOperatingTurn,
+    operatingRoundEnd,
+    type ValuationRules
+} from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
 import { RevenueMarker } from './revenueMarkers.js'
 
@@ -36,7 +43,12 @@ const ClosureFields = Type.Object(
         type: Type.Literal('CloseCorporation'),
         source: Type.Literal(ActionSource.System),
         companyId: Type.String(),
-        metadata: Type.Optional(RailroadClosure)
+        metadata: Type.Optional(
+            Type.Object(
+                { ...RailroadClosure.properties, roundEnd: Type.Optional(RoundEnd) },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -51,8 +63,10 @@ export const CloseCorporationValidator: ReturnType<typeof Compile<typeof CloseCo
 export class CloseCorporationAction extends HydratableAction<typeof CloseCorporation> {
     declare companyId: string
     declare metadata?: Type.Static<typeof CloseCorporation>['metadata']
-    constructor(data: Type.Static<typeof CloseCorporation>) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: Type.Static<typeof CloseCorporation>, valuationRules: ValuationRules) {
         super(data, CloseCorporationValidator)
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedEighteenFortySixState): void {
         assert(
@@ -60,7 +74,15 @@ export class CloseCorporationAction extends HydratableAction<typeof CloseCorpora
                 corporationAwaitingClosure(state) === this.companyId,
             'Only the next zero-price corporation can close'
         )
-        this.metadata = closeRailroad(state, this.companyId)
+        const closure = closeRailroad(state, this.companyId)
+        // Closing on its own turn ends that turn.
+        if (state.machineState !== 'ClosingOperatingCorporation') {
+            this.metadata = closure
+            return
+        }
+        endOperatingTurn(state, this.companyId)
+        const ended = operatingRoundEnd(state, this.#valuationRules)
+        this.metadata = { ...closure, ...(ended ? { roundEnd: ended } : {}) }
     }
 }
 

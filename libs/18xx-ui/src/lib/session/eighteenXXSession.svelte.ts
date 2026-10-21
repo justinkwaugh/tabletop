@@ -40,6 +40,7 @@ import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
+import { wealthHistory } from '../table/wealthHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
 import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
@@ -153,6 +154,17 @@ export class EighteenXXSession<
     }
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)
+    }
+    playerWealthHistory() {
+        const { actions, state } = this.history.visibleContext
+        return wealthHistory(actions, state, {
+            startingCash: this.rules.startingCash({
+                playerCount: state.players.length,
+                config: this.game.config
+            }),
+            openingRound: this.presentation.openingRound,
+            titleRounds: this.presentation.titleRounds
+        })
     }
     readonly marketAnimation = createMarketAnimationSource(this, (state) => state.stockMarket)
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(

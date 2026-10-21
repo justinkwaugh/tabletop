@@ -2,7 +2,11 @@ import { EighteenSeventeenNames } from '../names.js'
 import { type GameDefinition } from '@tabletop/common'
 import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
 import { EighteenSeventeenEndingRules } from '../endingRules.js'
-import { EighteenSeventeenAuctionRules, createEighteenSeventeenOpening } from '../openingAuction.js'
+import {
+    EighteenSeventeenAuctionRules,
+    createEighteenSeventeenOpening,
+    eighteenSeventeenStartingCash
+} from '../openingAuction.js'
 import { EighteenSeventeenTrainFundingRules } from '../trainFundingRules.js'
 import { EighteenSeventeenTransferRules } from '../transferRules.js'
 import { EighteenSeventeenPrivatePowerRules } from '../privatePowerRules.js'
@@ -155,6 +159,7 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
     transferRules: EighteenSeventeenTransferRules,
     privatePowerRules: EighteenSeventeenPrivatePowerRules,
     createOpening: createEighteenSeventeenOpening,
+    startingCash: eighteenSeventeenStartingCash,
     stockRules: EighteenSeventeenStockRules,
     companyRules: EighteenSeventeenCompanyRules,
     operatingRules: EighteenSeventeenOperatingRules,
@@ -198,7 +203,7 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
         defineAction(
             EndMergerRound,
             isEndMergerRound,
-            (action) => new HydratedEndMergerRound(action)
+            (action) => new HydratedEndMergerRound(action, EighteenSeventeenEndingRules)
         ),
         defineAction(
             ConvertCompany,
@@ -245,7 +250,7 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
         defineAction(
             EndAcquisitionRound,
             isEndAcquisitionRound,
-            (action) => new HydratedEndAcquisitionRound(action)
+            (action) => new HydratedEndAcquisitionRound(action, EighteenSeventeenEndingRules)
         ),
         defineAction(
             SkipCompanySale,

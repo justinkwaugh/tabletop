@@ -412,10 +412,17 @@ export function createEighteenXXRuntime<
         ...auctionActions(
             options.offerAuctionRules,
             options.auctionRules,
-            options.selectionAuctionRules
+            options.selectionAuctionRules,
+            options.endingRules
         ),
         ...(trainFundingRules
-            ? fundingActions(trainFundingRules, rules, options.trainRules, receivershipRules)
+            ? fundingActions(
+                  trainFundingRules,
+                  rules,
+                  options.trainRules,
+                  options.endingRules,
+                  receivershipRules
+              )
             : []),
         ...(receivershipRules?.presidencyClaim
             ? [
@@ -447,8 +454,8 @@ export function createEighteenXXRuntime<
             receivershipRules
         ),
         ...loanActions(loanRules, rules),
-        ...cashCrisisActions(options.cashCrisisRules),
-        ...stockActions(rules),
+        ...cashCrisisActions(options.cashCrisisRules, options.endingRules),
+        ...stockActions(rules, options.endingRules),
         ...companyActions(companyRules, rules),
         ...stationActions(options.stationRules),
         ...routeActions(options.routeRules),

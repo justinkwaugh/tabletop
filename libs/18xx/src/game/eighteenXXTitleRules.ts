@@ -32,7 +32,7 @@ import type {
     HydratedEighteenXXState,
     TitleStateSchema
 } from './eighteenXXState.js'
-import type { Opening, OpeningSetup } from './opening.js'
+import type { Opening, OpeningSetup, StartingCashSetup } from './opening.js'
 /** A hidden-information title's strict canonical schema and the projector that hides it. */
 export type CanonicalState<Projected extends TitleStateSchema> = {
     schema: Type.TObject
@@ -69,6 +69,8 @@ export interface EighteenXXTitleRules<
     /** The family's emergency train funding; a title funding trains its own way supplies none. */
     trainFundingRules?: TrainFundingRules
     createOpening: (setup: OpeningSetup) => Opening<Schema, State>
+    /** The cash each player's opening gives them, before any opening round. */
+    startingCash: (setup: StartingCashSetup) => number
     stockRules: StockRules
     companyRules: CompanyRules
     operatingRules: OperatingRules

@@ -83,6 +83,8 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import PhaseChart from '../phases/PhaseChart.svelte'
     import PhaseChartContent from '../phases/PhaseChartContent.svelte'
+    import WealthChart from './WealthChart.svelte'
+    import { seatOrderFrom } from './spreadsheetSort.js'
     import type { PhaseChartData } from '../phases/phaseChart.js'
     let {
         session,
@@ -625,6 +627,16 @@
 
     const gameState = $derived(session.gameState)
     const headerState = $derived(tableHeaderState(session))
+    const wealthPlayers = $derived(
+        seatOrderFrom(
+            session.gameState.players.map((player) => player.playerId),
+            session.myPrimaryPlayer?.id
+        ).map((playerId) => ({
+            playerId,
+            name: session.getPlayerName(playerId),
+            color: session.colors.getPlayerBgColorValue(playerId)
+        }))
+    )
     const headerPlayerId = $derived(
         headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined
     )
@@ -692,6 +704,7 @@
         ...workspaceTabs,
         { id: 'Depot', label: 'Depot', optional: true },
         { id: 'Operating Order', label: 'Operating Order', optional: true },
+        { id: 'Stats', label: 'Stats', optional: true },
         ...(boardAvailable ? [{ id: 'Board', label: 'Board', optional: true }] : []),
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
@@ -1184,6 +1197,13 @@
                                 tileColors={tileAppearance.colors}
                                 tileColorNames={tileAppearance.colorNames}
                             />
+                        </div>
+                    {:else if id === 'Stats'}<div class="workspace-view">
+                            {#if active}<WealthChart
+                                    {money}
+                                    points={session.playerWealthHistory()}
+                                    players={wealthPlayers}
+                                />{/if}
                         </div>
                     {:else if id === 'Players'}<div class="workspace-view players-pane">
                             {@render playerCards()}

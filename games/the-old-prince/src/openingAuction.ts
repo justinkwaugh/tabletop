@@ -15,7 +15,8 @@ import {
     type MapStateData,
     type OfferPileAuctionRules,
     type Opening,
-    type OpeningSetup
+    type OpeningSetup,
+    type StartingCashSetup
 } from '@tabletop/18xx'
 import { assert, shuffle } from '@tabletop/common'
 import { addTheOldPrinceBranches } from './branches.js'
@@ -88,9 +89,13 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
         })
     }
 }
+export function theOldPrinceStartingCash({ playerCount }: StartingCashSetup): number {
+    return playerCount === 3 ? 580 : 480
+}
 export function createTheOldPrinceOpening({
     players,
     prng,
+    config,
     startingPositions
 }: OpeningSetup): Opening<typeof TheOldPrinceState, HydratedTheOldPrinceState> {
     assert(players.length === 3 || players.length === 4, 'TOP supports three or four players')
@@ -161,7 +166,7 @@ export function createTheOldPrinceOpening({
             { owner: { kind: 'bank' }, amount: 'unlimited' },
             ...players.map((p) => ({
                 owner: { kind: 'player' as const, playerId: p.playerId },
-                amount: players.length === 3 ? 580 : 480
+                amount: theOldPrinceStartingCash({ playerCount: players.length, config })
             })),
             ...TheOldPrinceCompanies.map((c) => ({
                 owner: { kind: 'company' as const, companyId: c.companyId },

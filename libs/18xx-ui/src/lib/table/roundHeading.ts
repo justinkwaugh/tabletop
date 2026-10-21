@@ -20,7 +20,7 @@ export function stockRoundHeading(number: number): RoundHeading {
 export function operatingRoundHeading(
     set: number,
     round: number,
-    titleRound?: TitleRound
+    titleRound?: Pick<TitleRound, 'name' | 'abbreviation'>
 ): RoundHeading {
     return {
         abbreviation: titleRound?.abbreviation ?? 'OR',
@@ -30,7 +30,10 @@ export function operatingRoundHeading(
 }
 
 /** A title's round held after a stock round, which shares its number. */
-export function titleStockRoundHeading(number: number, titleRound: TitleRound): RoundHeading {
+export function titleStockRoundHeading(
+    number: number,
+    titleRound: Pick<TitleRound, 'name' | 'abbreviation'>
+): RoundHeading {
     return { abbreviation: titleRound.abbreviation, name: titleRound.name, number: `${number}` }
 }
 

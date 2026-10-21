@@ -4,7 +4,11 @@ import { type GameDefinition } from '@tabletop/common'
 import { Shikoku1889CompanyRules } from '../companyRules.js'
 import { Shikoku1889EarningsRules } from '../earningsRules.js'
 import { Shikoku1889EndingRules } from '../endingRules.js'
-import { Shikoku1889AuctionRules, createShikoku1889Opening } from '../openingAuction.js'
+import {
+    Shikoku1889AuctionRules,
+    createShikoku1889Opening,
+    shikoku1889StartingCash
+} from '../openingAuction.js'
 import { Shikoku1889PhaseRules } from '../phaseRules.js'
 import { Shikoku1889PrivatePowerRules } from '../privatePowerRules.js'
 import { Shikoku1889PrivateRules } from '../privateRules.js'
@@ -36,6 +40,7 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules<
     privatePowerRules: Shikoku1889PrivatePowerRules,
     outOfTurnPrivatePowers: true,
     createOpening: createShikoku1889Opening,
+    startingCash: shikoku1889StartingCash,
     stockRules: Shikoku1889StockRules,
     companyRules: Shikoku1889CompanyRules,
     operatingRules: Shikoku1889OperatingRules,

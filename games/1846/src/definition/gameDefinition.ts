@@ -7,7 +7,7 @@ import {
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
 import { EndingRules1846 } from '../ending.js'
-import { PublicDistributionActions, buyingOpeningCompaniesHandler } from '../publicDistribution.js'
+import { publicDistributionActions, buyingOpeningCompaniesHandler } from '../publicDistribution.js'
 import { ReceivershipRules1846 } from '../receivership.js'
 import {
     BuildPrivateTrack,
@@ -53,7 +53,7 @@ import {
     EighteenFortySixStateDefinition,
     type HydratedEighteenFortySixState
 } from '../state.js'
-import { createOpening1846 } from '../opening.js'
+import { createOpening1846, startingCash1846 } from '../opening.js'
 import { PrivatePowerRules1846, PrivateRules1846 } from '../privateRules.js'
 import { Names1846 } from '../names.js'
 import {
@@ -102,6 +102,7 @@ export const TitleRules1846: EighteenXXTitleRules<
     endingRules: EndingRules1846,
     names: Names1846,
     createOpening: createOpening1846,
+    startingCash: startingCash1846,
     stockRules: StockRules1846,
     companyRules: CompanyRules1846,
     operatingRules: OperatingRules1846,
@@ -155,12 +156,12 @@ export const TitleRules1846: EighteenXXTitleRules<
         defineAction(
             RevealDraft,
             (data) => RevealValidator.Check(data),
-            (data) => new RevealAction(data)
+            (data) => new RevealAction(data, EndingRules1846)
         ),
         defineAction(
             CloseCorporation,
             (data) => CloseCorporationValidator.Check(data),
-            (data) => new CloseCorporationAction(data)
+            (data) => new CloseCorporationAction(data, EndingRules1846)
         ),
         defineAction(
             AssignSteamboat,
@@ -170,7 +171,7 @@ export const TitleRules1846: EighteenXXTitleRules<
         defineAction(
             SettleIndependent,
             (data) => SettleIndependentValidator.Check(data),
-            (data) => new SettleIndependentAction(data)
+            (data) => new SettleIndependentAction(data, EndingRules1846)
         ),
         defineAction(
             CorporateFinance,
@@ -182,7 +183,7 @@ export const TitleRules1846: EighteenXXTitleRules<
             (data) => AssignRevenueMarkerValidator.Check(data),
             (data) => new AssignRevenueMarkerAction(data)
         ),
-        ...PublicDistributionActions,
+        ...publicDistributionActions(EndingRules1846),
         defineAction(
             BuildPrivateTrack,
             isBuildPrivateTrack,

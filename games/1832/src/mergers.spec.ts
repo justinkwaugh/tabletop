@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { cashOwnedBy, getCompany, sharesOwned } from '@tabletop/18xx'
+import {
+    cashOwnedBy,
+    getCompany,
+    isStartOperatingRound,
+    recordedRoundEnd,
+    sharesOwned
+} from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     EighteenThirtyTwoTileSet,
+    isCompleteMergerPhase,
     mergerDecision,
     EighteenThirtyTwoStationRules,
     mergedTrainDiscards,
@@ -297,6 +304,23 @@ describe('merger phase', () => {
         )
         expect(play.state.mergersEnded).toBe(true)
         expect(play.state.mergerPhase).toBeUndefined()
+        // The phase's end is the next round's start before that round's private income.
+        const end = recordedRoundEnd(play.processed.find(isCompleteMergerPhase)!)
+        const start = play.processed.find(isStartOperatingRound)?.metadata
+        assertExists(end, 'The merger phase records its end')
+        assertExists(start, 'The operating round records its start')
+        expect(end.round).toBe('title')
+        expect(
+            Object.fromEntries(
+                Object.entries(end.playerNetWorth).map(([playerId, wealth]) => [
+                    playerId,
+                    wealth +
+                        start.payments
+                            .filter(({ to }) => to.kind === 'player' && to.playerId === playerId)
+                            .reduce((sum, payment) => sum + payment.amount, 0)
+                ])
+            )
+        ).toEqual(start.snapshot.playerNetWorth)
         // Neither component had operated this round, so the System operates first.
         expect(play.state.operatingSet?.companyOrder.at(-1)).toBe('AMTK')
         expect(play.state.machineState).toBe('LayingTrack')

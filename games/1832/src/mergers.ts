@@ -19,7 +19,10 @@ import {
     discardTrainToMarket,
     finiteCashOwnedBy,
     settleCashPayments,
-    trainsCountingForLimit
+    trainsCountingForLimit,
+    RoundEnd,
+    roundEnd,
+    type ValuationRules
 } from '@tabletop/18xx'
 import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
 import {
@@ -293,7 +296,12 @@ export class HydratedStartMergerPhase
 
 const CompleteFields = Type.Object({
     type: Type.Literal('CompleteMergerPhase'),
-    metadata: Type.Optional(Type.Object({ final: Type.Boolean() }, { additionalProperties: false }))
+    metadata: Type.Optional(
+        Type.Object(
+            { final: Type.Boolean(), roundEnd: Type.Optional(RoundEnd) },
+            { additionalProperties: false }
+        )
+    )
 })
 export const CompleteMergerPhase: Type.TObject<
     Omit<typeof GameAction.properties, 'type'> & typeof CompleteFields.properties
@@ -316,11 +324,13 @@ export class HydratedCompleteMergerPhase
 {
     declare type: 'CompleteMergerPhase'
     declare metadata?: CompleteMergerPhase['metadata']
-    constructor(data: CompleteMergerPhase) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: CompleteMergerPhase, valuationRules: ValuationRules) {
         super(
             data instanceof HydratedCompleteMergerPhase ? data.dehydrate() : data,
             CompleteValidator
         )
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedEighteenThirtyTwoState): void {
         const phase = state.mergerPhase
@@ -332,7 +342,10 @@ export class HydratedCompleteMergerPhase
         if (phase.final) state.mergersEnded = true
         else state.mergerPhaseHeld = true
         delete state.mergerPhase
-        this.metadata = { final: phase.final }
+        this.metadata = {
+            final: phase.final,
+            roundEnd: roundEnd(state, this.#valuationRules, 'title')
+        }
     }
 }
 

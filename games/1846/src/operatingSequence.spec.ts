@@ -8,9 +8,12 @@ import {
     finiteCashOwnedBy,
     nextOperatingCompany,
     placeStockMarker,
-    currentPrivateRevenue
+    currentPrivateRevenue,
+    playerNetWorth,
+    recordedRoundEnd
 } from '@tabletop/18xx'
 import { Charters1846 } from './charters.js'
+import { EndingRules1846 } from './ending.js'
 import { stockGame } from '../test/testSupport.js'
 import { RouteRules1846 } from './routes.js'
 import { trainBuyingChoices1846 } from './trains.js'
@@ -244,6 +247,8 @@ describe('1846 stock and operating sequence', () => {
         expect(table.state.operatingSet?.completedCompanyIds).toContain('IC')
         expect(nextOperatingCompany(table.state)).toBe('NYC')
         expect(table.state.machineState).toBe('LayingTrack')
+        // The round goes on, so the closure does not end it.
+        expect(result.processedActions.map(recordedRoundEnd).filter(Boolean)).toEqual([])
     })
     it('removes a train when its railroad closes in OR2 and restores it on Undo', () => {
         const table = stockGame()
@@ -285,6 +290,15 @@ describe('1846 stock and operating sequence', () => {
         expect(
             result.processedActions.find((action) => action.type === 'CloseCorporation')?.metadata
         ).toMatchObject({ removedTrainIds: [train.id] })
+        // Closing as the round's last company ends the operating round.
+        expect(
+            recordedRoundEnd(
+                result.processedActions.find((action) => action.type === 'CloseCorporation')!
+            )
+        ).toEqual({
+            round: 'operating',
+            playerNetWorth: playerNetWorth(table.hydrated, EndingRules1846)
+        })
         let replay = before
         for (const action of result.processedActions)
             replay = table.engine.applyProcessedAction({ game: table.game, state: replay, action })

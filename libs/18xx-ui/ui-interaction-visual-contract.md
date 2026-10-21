@@ -2054,6 +2054,13 @@ when present in saved layouts. Operating Order is the first optional widget; in
 the wide layout it replaces the Actions footer and is absent until added. The
 original narrow layout retains its operating-order strip.
 
+Stats is an optional tab charting each player's wealth: one point for the starting
+cash, then one at the end of each finished round (opening, stock, operating and the
+title's own rounds), never one per operating turn and none for a round still being
+played. Lines take the players' colours and end in their names. Hovering a round
+shows its name and every player's wealth, highest first. The chart follows History
+Navigation.
+
 Pane headers consolidate splitting and adding/moving tabs into a compact options
 popover anchored below an ellipsis button, which is the only header control.
 

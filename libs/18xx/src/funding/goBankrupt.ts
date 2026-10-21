@@ -14,6 +14,9 @@ import { controllingOwner } from '../finance/finance.js'
 import { abandonOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 import { nextOperatingCompany } from '../operating/operatingSet.js'
+import { operatingRoundEnd } from '../operating/operatingRoundSnapshot.js'
+import { RoundEnd } from '../ending/roundEnd.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
 import {
     currentDebt,
     settleCurrentDebt,
@@ -32,6 +35,7 @@ export type GoBankruptSchema<Changes extends Type.TSchema = TitleChanges> = Type
                 forgiven: Type.TInteger
                 surrendered: Type.TOptional<typeof CashPayment>
                 continuation: Type.TOptional<Type.TString>
+                roundEnd: Type.TOptional<typeof RoundEnd>
             }>
         >
     }
@@ -50,7 +54,8 @@ export function goBankruptSchema<Changes extends Type.TSchema>(
                         changes,
                         forgiven: Type.Integer({ minimum: 1 }),
                         surrendered: Type.Optional(CashPayment),
-                        continuation: Type.Optional(Type.String())
+                        continuation: Type.Optional(Type.String()),
+                        roundEnd: Type.Optional(RoundEnd)
                     },
                     { additionalProperties: false }
                 )
@@ -74,9 +79,11 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
     declare playerId: string
     declare metadata?: GoBankrupt['metadata']
     readonly #rules: CashCrisisRules
-    constructor(data: GoBankrupt, rules: CashCrisisRules) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: GoBankrupt, rules: CashCrisisRules, valuationRules: ValuationRules) {
         super(data instanceof HydratedGoBankrupt ? data.dehydrate() : data, Validator)
         this.#rules = rules
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedGameState & CashCrisisState & OperatingTurnState): void {
         const crisis = state.cashCrisis
@@ -99,17 +106,20 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
             !state.operatingSet.completed
                 ? nextOperatingCompany(state)
                 : undefined
-        if (companyId && !controllingOwner(state, companyId)) {
+        const abandoned = !!companyId && !controllingOwner(state, companyId)
+        if (companyId && abandoned) {
             abandonOperatingTurn(state, companyId)
             crisis.continuation = BetweenCompaniesState
         }
         const forgiven = debt.amount
         const continuation = settleCurrentDebt(state)
+        const ended = abandoned ? operatingRoundEnd(state, this.#valuationRules) : undefined
         this.metadata = {
             changes,
             forgiven,
             ...(surrendered ? { surrendered } : {}),
-            ...(continuation ? { continuation } : {})
+            ...(continuation ? { continuation } : {}),
+            ...(ended ? { roundEnd: ended } : {})
         }
     }
 }

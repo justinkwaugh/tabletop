@@ -4,6 +4,8 @@ import { ActionSource, Visibility, assert, assertExists, type GameAction } from 
 import * as Value from 'typebox/value'
 import { Runtime } from './definition/gameDefinition.js'
 import { RevealDraft } from './actions.js'
+import { EndingRules1846 } from './ending.js'
+import { roundEnd } from '@tabletop/18xx'
 import {
     CanonicalValidator,
     hydrateEighteenFortySixState,
@@ -194,6 +196,13 @@ describe('1846 setup and distribution', () => {
                 'PassFinalCompany',
                 'RevealDraft'
             ])
+            expect(result.processedActions.at(-1)?.metadata).toMatchObject({
+                roundEnd: roundEnd(
+                    hydrateEighteenFortySixState(result.updatedState),
+                    EndingRules1846,
+                    'opening'
+                )
+            })
             const owned = result.updatedState.certificates.find(
                 (certificate) => certificate.companyId === id
             )
