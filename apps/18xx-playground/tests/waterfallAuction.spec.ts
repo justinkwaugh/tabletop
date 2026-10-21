@@ -90,7 +90,7 @@ test('1889 private auction buys in one step and resolves a contested private by 
     await contest.getByRole('button', { name: 'Pass', exact: true }).click()
     await expect(row('Ehime Railroad')).toContainText('¥50')
     await expect(
-        auction.getByRole('button', { name: 'Buy Sumitomo Besshi Mine Railroad' })
+        auction.getByRole('button', { name: 'Buy Sumitomo Besshi Mine', exact: true })
     ).toBeVisible()
     await expect(page.getByRole('region', { name: / bids$/ })).toHaveCount(0)
 })

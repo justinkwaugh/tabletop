@@ -7,7 +7,7 @@ test('keeps history descriptions aligned when jumping from the beginning to the 
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
     await expect(page.getByRole('table', { name: 'Final wealth', exact: true })).toBeVisible({
         timeout: 30000
@@ -17,6 +17,10 @@ test('keeps history descriptions aligned when jumping from the beginning to the 
     await expect(history).toContainText('Ran', { timeout: 30000 })
     await page.getByRole('button', { name: 'goto my last turn', exact: true }).click()
     await expect(history).not.toContainText('Ran')
+    await expect(page.getByRole('region', { name: 'Current action', exact: true })).toContainText(
+        'Auction offerings',
+        { ignoreCase: true }
+    )
     await page.getByRole('button', { name: 'go to current', exact: true }).click()
     await expect(history).toContainText('Ran')
     expect(errors).toEqual([])

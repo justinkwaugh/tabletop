@@ -114,6 +114,14 @@ export function ownerName(owner: Owner, names: HistoryNames): string {
           : names.companyName(owner.companyId)
 }
 
+/** A player's row after their name: a leading verb in lower case, a leading company name as written. */
+export function afterPlayerName(text: string, companyLabels: readonly string[]): string {
+    const startsWithCompany = companyLabels.some(
+        (label) => text.startsWith(label) && !/\p{L}/u.test(text.charAt(label.length))
+    )
+    return startsWithCompany ? text : text.charAt(0).toLowerCase() + text.slice(1)
+}
+
 /** Joins a row's details, leaving out those it lacks. */
 export function joinDetails(...details: (string | undefined)[]): string | undefined {
     return details.filter(Boolean).join(' · ') || undefined

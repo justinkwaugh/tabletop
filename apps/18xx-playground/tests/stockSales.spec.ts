@@ -65,14 +65,17 @@ test('sales summary moves to a full-height strip only in wide panes', async ({ p
             .poll(() =>
                 summary.evaluate((element) => {
                     const bounds = element.getBoundingClientRect()
-                    const panel = element.closest('.action-panel')!.getBoundingClientRect()
+                    const panel = element.closest('.action-panel')!
                     const controls = element
                         .parentElement!.querySelector('.stock-controls')!
                         .getBoundingClientRect()
+                    const standingBar = panel
+                        .querySelector('.standing-bar')!
+                        .getBoundingClientRect()
                     return (
                         bounds.left >= controls.right &&
-                        Math.abs(bounds.top - panel.top) < 1 &&
-                        Math.abs(bounds.bottom - panel.bottom) < 2
+                        Math.abs(bounds.top - panel.getBoundingClientRect().top) < 1 &&
+                        Math.abs(bounds.bottom - standingBar.top) < 2
                     )
                 })
             )

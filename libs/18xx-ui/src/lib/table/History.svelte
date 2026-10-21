@@ -66,6 +66,12 @@
     function returnToCurrent() {
         if (!jumpDisabled) void session.history.goToEnd()
     }
+    const companyLabels = $derived(
+        gameState.companies.flatMap((company) => [
+            session.companyInitials(company.id),
+            session.companyName(company.id)
+        ])
+    )
     function companyName(id: string) {
         return gameState.companies.find((company) => company.id === id)?.kind === 'private'
             ? session.companyName(id)
@@ -161,6 +167,7 @@
                             stations={session.mapView.stations}
                             {describe}
                             companyName={(id) => session.companyName(id)}
+                            {companyLabels}
                         />
                     </li>
                 {/if}

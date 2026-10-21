@@ -5,7 +5,7 @@ test.use({ browserName: 'webkit' })
 for (const title of ['TOP', '1889']) {
     test(`${title} route rows do not intercept Run trains`, async ({ page }) => {
         await page.goto('/table')
-        await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+        await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('routes')
         const panel = page.getByRole('region', { name: 'Run trains', exact: true })

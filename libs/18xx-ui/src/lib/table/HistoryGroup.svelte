@@ -17,7 +17,7 @@
     } from '@tabletop/18xx'
     import { TileColors } from '../tiles/tilePresentation.js'
     import type { HistoryGroup } from './historyGroups.js'
-    import type { HistoryDescription } from './historyDescription.js'
+    import { afterPlayerName, type HistoryDescription } from './historyDescription.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
     import { shareSign, type ShareCard } from './shareCards.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
@@ -43,6 +43,7 @@
         currentController,
         describe,
         companyName,
+        companyLabels,
         phaseColors,
         phaseTileColors,
         tileColors = TileColors,
@@ -83,6 +84,7 @@
         currentController: (companyId: string) => string | undefined
         describe: (action: GameAction) => HistoryDescription
         companyName: (id: string) => string
+        companyLabels: readonly string[]
     } = $props()
     function phaseChange(action: GameAction) {
         if (!isAdvancePhase(action)) return undefined
@@ -214,7 +216,7 @@
                         />{' '}{/if}
                     <span
                         >{row.stockPlayerId
-                            ? row.text.charAt(0).toLowerCase() + row.text.slice(1)
+                            ? afterPlayerName(row.text, companyLabels)
                             : row.text}{#if row.phase}<span class="phase-colors"
                                 >{row.phase.label}</span
                             >{/if}{#if row.value}{' '}for

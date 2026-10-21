@@ -8,7 +8,10 @@ import {
     type EighteenXXState
 } from '@tabletop/18xx'
 import { assertExists, type GameAction, type GameConfig } from '@tabletop/common'
-import { wealthHistory } from '../../../../libs/18xx-ui/src/lib/table/wealthHistory.js'
+import {
+    wealthHistory,
+    type WealthHistoryTitle
+} from '../../../../libs/18xx-ui/src/lib/table/wealthHistory.js'
 import { EighteenSeventeenPresentation } from '../../../../games/1817-ui/src/lib/presentation.js'
 import { EighteenThirtyTwoPresentation } from '../../../../games/1832-ui/src/lib/presentation.js'
 import { Presentation1846 } from '../../../../games/1846-ui/src/lib/presentation.js'
@@ -20,7 +23,7 @@ import {
 import { finishedGame, replayRecordedGame } from './finishedGame.js'
 import { playgroundTitle, type PlaygroundTitle } from '../titles.js'
 
-const TitleRounds: Readonly<Record<string, typeof EighteenSeventeenPresentation.titleRounds>> = {
+const TitleRounds: Readonly<Record<string, WealthHistoryTitle['titleRounds']>> = {
     '1817': EighteenSeventeenPresentation.titleRounds,
     '1832': EighteenThirtyTwoPresentation.titleRounds
 }

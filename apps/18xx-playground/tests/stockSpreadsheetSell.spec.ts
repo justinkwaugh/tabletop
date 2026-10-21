@@ -9,7 +9,11 @@ for (const title of ['TOP', '1889']) {
 
         const spreadsheet = page.getByRole('table', { name: 'Company share ownership' })
         const confirmation = page.getByRole('dialog', { name: 'Confirm share trade' })
-        const seller = spreadsheet.getByRole('button', { name: /^Sell .* shares$/ }).first()
+        const seller = spreadsheet
+            .getByRole('button', {
+                name: title === 'TOP' ? /^Sell .* shares$/ : 'Sell Awa Railroad shares'
+            })
+            .first()
         await seller.click()
         if (title === 'TOP') {
             await expect(confirmation).toContainText(/Sell\s+shares\?/)

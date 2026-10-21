@@ -87,7 +87,7 @@ test('dark mode has no bright loading canvas on reload', async ({ page }) => {
         requestAnimationFrame(inspectFrame)
     })
     await page.reload()
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await expect.poll(() => page.locator('html').getAttribute('data-startup-frames')).not.toBeNull()
     await expect(page.locator('html')).not.toHaveAttribute('data-bright-startup-frame', 'true')
 })

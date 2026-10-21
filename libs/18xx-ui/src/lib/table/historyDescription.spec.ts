@@ -10,7 +10,7 @@ import type {
     RunTrains,
     StartCompany
 } from '@tabletop/18xx'
-import { historyDescription } from './historyDescription.js'
+import { afterPlayerName, historyDescription } from './historyDescription.js'
 import { historyStateFixture } from './history.fixture.js'
 import { TestMarket } from '@tabletop/18xx/testing'
 
@@ -177,4 +177,17 @@ it('adds a presidency change after a started company’s price', () => {
     expect(historyDescription(start, historyStateFixture(), TestMarket).detail).toBe(
         '2 shares · $220 · President: blair → alex'
     )
+})
+
+it('keeps a leading company name as written after the player name', () => {
+    const labels = ['B&A', 'Boston and Albany', 'C', 'PLE']
+    expect(afterPlayerName('Bought a B&A share', labels)).toBe('bought a B&A share')
+    expect(afterPlayerName('B&A acquired PLE', labels)).toBe('B&A acquired PLE')
+    expect(afterPlayerName('PLE holders received $60 a share', labels)).toBe(
+        'PLE holders received $60 a share'
+    )
+    expect(afterPlayerName('Boston and Albany took a loan', labels)).toBe(
+        'Boston and Albany took a loan'
+    )
+    expect(afterPlayerName('Contributed $40', labels)).toBe('contributed $40')
 })

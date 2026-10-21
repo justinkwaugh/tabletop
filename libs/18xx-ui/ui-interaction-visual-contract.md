@@ -2096,7 +2096,7 @@ stock-round action and pass has its own line, untinted, with the player's name a
 medium-weight rounded badge: a 45% mix of that player's color over the theme surface
 behind the name only, with no dot or colon. The description and its values stay
 regular weight. A player-attributed stock description starts with a lowercase verb after
-the player name. Every title names each company three ways: its printed full name, a
+the player name; one that opens with a company keeps the company's name as written. Every title names each company three ways: its printed full name, a
 short name (the full name without a closing Railroad, Railway, Company or Transportation
 unless only one word would remain, or a title-given one such as BNSF or PEIR) and its
 initials. Play text uses the short name; private cards and their popups keep the full
@@ -2190,7 +2190,7 @@ Player Aid is a default table tab after Tiles, movable and closable like the oth
 
 In pane mode, Chat has no outer border or rounded container corners. Its message composer retains its input styling.
 
-Player Aid and Depot share a live train roster: Remaining shows depot stock / initial supply, including ∞ for unlimited trains; currently available nonempty train types are highlighted and exhausted types dimmed. Depot is an optional tab, absent from the default layout and available through Add tabs.
+Player Aid and Depot share a live train roster: Remaining shows the depot's stock, ∞ for unlimited trains; currently available nonempty train types are highlighted and exhausted types dimmed. Depot is an optional tab, absent from the default layout and available through Add tabs.
 
 Fullscreen and historical-map modals use the shared wrapper’s pre-paint dimension fitting, including the initial route focus, so opening them does not expose an intermediate scale or position.
 

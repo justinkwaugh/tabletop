@@ -16,9 +16,9 @@ test('finished-game map inspection shows past track and routes without changing 
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const header = page.locator('header[aria-label="Game phase"]')
     const currentHeader = await header.innerText()
@@ -101,9 +101,9 @@ test('navigating history masks non-route hexes on the table map only at train ru
 }) => {
     test.setTimeout(90000)
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const tableRoutes = page.locator('[data-map-route]:not([aria-label="Historical map"] *)')
     const tableMask = page.locator(
@@ -162,7 +162,7 @@ for (const title of ['TOP', '1889'] as const) {
         page
     }) => {
         await page.goto('/table')
-        await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+        await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('routes')
         const run = page.getByRole('button', { name: 'Run trains', exact: true })
@@ -176,7 +176,7 @@ for (const title of ['TOP', '1889'] as const) {
             .first()
             .evaluate((element: HTMLButtonElement) => element.click())
         await expect(viewer(page)).toHaveCount(0)
-        await page.getByRole('tab', { name: 'Map', exact: true }).click()
+        await page.getByRole('tab', { name: 'Board', exact: true }).click()
         await expect(run).toBeEnabled()
     })
 }
