@@ -340,8 +340,11 @@ export class EighteenXXSession<
     /**
      * Whether this player is viewing the title's published artwork (board image and token art)
      * instead of the generic presentation. A display choice only: it never changes Game State.
+     * Saved per title, since each title's artwork is its own.
      */
-    publishedArtwork = $state(false)
+    get publishedArtwork(): boolean {
+        return this.publishedArtworkAvailable && this.preferences.values.publishedArtwork
+    }
     get publishedArtworkAvailable(): boolean {
         return (
             !!this.mapViewDefinition.boardArtwork ||
@@ -351,7 +354,7 @@ export class EighteenXXSession<
         )
     }
     toggleArtwork() {
-        this.publishedArtwork = !this.publishedArtwork
+        this.preferences.set({ publishedArtwork: !this.publishedArtwork }, 'title')
     }
     /** Published certificate art for the shares a purchase, sale or issue moved; empty unless that presentation is on. */
     shareCards(action: GameAction): readonly ShareCard[] {

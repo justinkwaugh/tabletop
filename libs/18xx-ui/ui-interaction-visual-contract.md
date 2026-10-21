@@ -2226,9 +2226,14 @@ live removes the arrow and the history strip. Company headers share the full-sur
 The picture button beside Undo is available only when a title supplies board
 artwork. It switches this client's table between generic and published
 presentations, with a pressed state and an accessible label describing the next
-choice. The choice lasts for the mounted table and resets to generic on reload.
-It creates no Action, changes no other client's view, and retains any Action Selection
-and map selection. Switching fits the selected presentation's full bounds.
+choice. The publishedArtwork title preference persists the choice for that title
+only, never for the 18xx family, and defaults to off; it needs updated Logic and
+matching UI Artifacts, with the Logic released first or together, since the backend
+rejects the unknown key and the toggle reverts. A title without artwork reads as
+generic whatever is saved. The choice creates no Action, changes no other player's
+view, and retains any Action Selection and map selection. Any change of the saved
+value, including one from another window or a rejected save, fits the selected
+presentation's full bounds.
 
 The image renders at its native dimensions behind laid tiles, station tokens,
 routes, placement masks, hit targets and selection highlights. Unlaid hexes remain
@@ -2239,8 +2244,9 @@ or pointer hit targets.
 
 History View, historical-map dialogs and Undo use the selected presentation with
 their displayed map state. Existing masks, route emphasis and selection precedence
-continue to apply. The table owns the local presentation choice; MapScene owns the
-background and overlay composition. No Game Session transient value is added.
+continue to apply. The Game Session reads the presentation choice from its title
+preferences; the table fits the map when it changes; MapScene owns the background
+and overlay composition. No Game Session transient value is added.
 
 Browser verification switches modes with a track selection, commits a lay, steps back
 and returns to Live View, then undoes the lay at desktop and mobile widths. The

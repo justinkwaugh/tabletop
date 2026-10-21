@@ -156,11 +156,18 @@
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
     const tileAppearance = $derived(session.tileAppearance)
-    async function toggleArtwork() {
-        session.toggleArtwork()
-        restoreRouteView = undefined
-        await tick()
-        fitMaps()
+    // The saved preference can also change from another window or a rejected save, so
+    // the fit follows the value rather than the click.
+    function framePresentation(_table: HTMLElement, initial: boolean) {
+        let current = initial
+        return {
+            update(next: boolean) {
+                if (next === current) return
+                current = next
+                restoreRouteView = undefined
+                void tick().then(() => fitMaps())
+            }
+        }
     }
 
     let mapWrapper = $state<ScalingWrapper>()
@@ -989,6 +996,7 @@
     use:frameRoutes={{ runningCompanyId, preview: routePreview }}
     use:frameStartCompany={session.stock.selectedStartCompany}
     use:frameHistory={settledHistoricalFocus}
+    use:framePresentation={publishedArtwork}
     style:--rail-table-background={boardArtwork?.backgroundColor}
     data-theme="dark"
     aria-label="Game table"
@@ -1024,7 +1032,7 @@
                         <TableHeader
                             artworkAvailable={session.publishedArtworkAvailable}
                             {publishedArtwork}
-                            onToggleArtwork={toggleArtwork}
+                            onToggleArtwork={() => session.toggleArtwork()}
                             {session}
                             {companyNames}
                             bordered={!paneLayout.current}
