@@ -1,13 +1,14 @@
 <script lang="ts">
     import { IndustryBoost } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { HEX_RADIUS, hexCenter, hexPoints } from '$lib/utils/boardLayout.js'
+    import { boardLayout } from '$lib/utils/boardLayout.js'
 
     const gameSession = getGameSession()
 
     const WIDTH = 176
     const target = $derived(gameSession.boostTarget)
-    const center = $derived(target ? hexCenter(target.coords) : undefined)
+    const layout = $derived(boardLayout(gameSession.gameState.editionId))
+    const center = $derived(target ? layout.hexCenter(target.coords) : undefined)
     // Levels stop at the end of the development track, so near the top a boost raises less.
     const industry = $derived(target?.industry)
     const level = $derived(industry ? gameSession.shownState.industry(industry).level : 0)
@@ -28,8 +29,8 @@
 </script>
 
 {#if center}
-    <polygon points={hexPoints(center, HEX_RADIUS - 5)} class="picked" />
-    <g transform="translate({center.x + HEX_RADIUS + 6} {center.y - 30})">
+    <polygon points={layout.hexPoints(center, layout.hexRadius - 5)} class="picked" />
+    <g transform="translate({center.x + layout.hexRadius + 6} {center.y - 30})">
         <rect width={WIDTH} height="64" rx="8" class="card" />
         {#each choices as choice, index (choice.boost)}
             <g

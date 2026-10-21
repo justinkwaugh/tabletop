@@ -7,7 +7,6 @@
     import { entryOrderChanges, historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
     import { auctionLotName } from './auctionHistory.js'
-    import type { CompanyNameVariants } from './companyPresentation.js'
     import { historyGroups } from './historyGroups.js'
     import { historyDescription, type TitleActionDescription } from './historyDescription.js'
     import HistoryGroup from './HistoryGroup.svelte'
@@ -23,8 +22,7 @@
         tileColors,
         tileColorNames,
         trainColors,
-        describeAction,
-        companyNames
+        describeAction
     }: {
         onPreviewMap: (action: GameAction) => void
         session: EighteenXXSessionView
@@ -33,7 +31,6 @@
         phaseTileColors: Readonly<Record<string, readonly string[]>>
         tileColors?: Readonly<Record<string, string>>
         tileColorNames?: Readonly<Record<string, string>>
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: TitleActionDescription
     } = $props()
     const money = $derived(session.presentation.money)
@@ -69,11 +66,16 @@
     function returnToCurrent() {
         if (!jumpDisabled) void session.history.goToEnd()
     }
-    function fullCompanyName(id: string) {
-        return session.companyName(id)
-    }
+    const companyLabels = $derived(
+        gameState.companies.flatMap((company) => [
+            session.companyInitials(company.id),
+            session.companyName(company.id)
+        ])
+    )
     function companyName(id: string) {
-        return companyNames?.[id]?.history ?? fullCompanyName(id)
+        return gameState.companies.find((company) => company.id === id)?.kind === 'private'
+            ? session.companyName(id)
+            : session.companyInitials(id)
     }
     function describeShared(action: GameAction) {
         return historyDescription(
@@ -121,11 +123,13 @@
         <ol aria-label={`${round.label} actions`}>
             {#each newestFirst ? groups : groups.toReversed() as entry (entry.id)}
                 {#if entry.kind === 'auction'}
+                    {@const offered = lot(entry.offer.lotId)}
                     <li class="auction">
                         <AuctionHistoryCard
                             {money}
                             card={entry}
-                            lot={lot(entry.offer.lotId)}
+                            lot={offered}
+                            lotName={session.lotName(offered)}
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
                         />
@@ -162,7 +166,8 @@
                             {bankBreaks}
                             stations={session.mapView.stations}
                             {describe}
-                            {companyName}
+                            companyName={(id) => session.companyName(id)}
+                            {companyLabels}
                         />
                     </li>
                 {/if}

@@ -16,7 +16,13 @@ import { PowerChoice } from '../util/powerChoice.js'
 import { discardTargetOf, runAfter, searchPlayModifiers } from '../util/modifiers.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses, forgetHand } from '../util/knowledge.js'
-import { playCard, playMapChanges, reasonCannotPlayCard } from '../util/cardPlay.js'
+import {
+    FavorShort,
+    favorShortOf,
+    playCard,
+    playMapChanges,
+    reasonCannotPlayCard
+} from '../util/cardPlay.js'
 import type { PlayMapChanges } from '../powers/registry.js'
 import type { ActiveModifier } from '../util/modifiers.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
@@ -55,6 +61,8 @@ export const SearchResolveMetadata = Type.Object({
     discardToWorldDeck: Type.Optional(Type.Boolean()),
     /** R-5.1.4.I — with Land Warden, both cards' favor. */
     favorGained: Type.Number(),
+    /** R-9.3 — the banks that could not give the favor a site play takes, the site's or a Homeland's. */
+    favorShort: Type.Optional(Type.Array(FavorShort)),
     /** Book of Records — one for each card played to a site. */
     secretsGained: Type.Optional(Type.Number()),
     /** R-7.3.3 */
@@ -164,7 +172,7 @@ export class HydratedSearchResolve
         if (reason) {
             throw Error(`Cannot resolve search: ${reason}`)
         }
-        const keptMapChanges = keptPlayMapChanges(state, this.keptCardId, this)
+        const keptMapChanges = keptPlayMapChanges(state, this.playerId, this.keptCardId, this)
         const reveal = revealForPlay(state, this)
 
         const region = regionOfPawn(state, this.playerId)
@@ -243,6 +251,10 @@ export class HydratedSearchResolve
             ? played.endsActPhase || second?.endsActPhase
             : played.endsActPhase
         const favorGained = played.favorGained + (bothPlays ? (second?.favorGained ?? 0) : 0)
+        const favorShort = favorShortOf([
+            ...played.favorTaken,
+            ...(bothPlays ? (second?.favorTaken ?? []) : [])
+        ])
         this.metadata = {
             ...played.outcome,
             reveal,
@@ -259,6 +271,7 @@ export class HydratedSearchResolve
             discardToBottom: discardTarget?.bottom || undefined,
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
             favorGained,
+            favorShort: favorShort.length > 0 ? favorShort : undefined,
             secretsGained: played.secretsGained + (second?.secretsGained ?? 0) || undefined,
             whenPlayed: played.whenPlayed,
             secondWhenPlayed: second?.whenPlayed,
@@ -295,7 +308,7 @@ export class HydratedSearchResolve
         if (second) {
             const secondReason =
                 reasonCannotPlaySecondCard(state, playerId, choice.keptCardId, second, choice) ??
-                reasonCannotPairSecondPlay(state, playerId, choice.play, second)
+                reasonCannotPairSecondPlay(state, playerId, choice.play, second, choice.toSiteId)
             if (secondReason) return secondReason
         }
         const expected = player
@@ -356,21 +369,34 @@ export function reasonCannotPlaySecondCard(
     const reason = reasonCannotPlayCard(state, playerId, second.cardId, second.play, {
         faceUp: second.faceUp,
         carried: secondPlayModifiers(state, searchPlayModifiers(state)),
-        earlierMapChanges: kept && keptPlayMapChanges(state, keptCardId, kept)
+        earlierMapChanges: kept && keptPlayMapChanges(state, playerId, keptCardId, kept)
     })
     return reason ? `second card: ${reason}` : undefined
 }
 
 /** Land Warden — the kept card's play, which comes before the second card's. */
-type KeptPlay = Pick<SearchResolveChoice, 'play' | 'discardFirstCardId'>
+type KeptPlay = Pick<
+    SearchResolveChoice,
+    'play' | 'discardFirstCardId' | 'toSiteId' | 'faceUp' | 'discardedAdviserCardIds'
+>
 
-/** Land Warden — the kept card's play lands before the second card's When Played power resolves. */
+/**
+ * Land Warden — the kept card's play lands before the second card's When Played power resolves: its map changes,
+ * and what it gains first (R-7.3.3), with the Search's carried modifiers, as `playCard` plays it.
+ */
 function keptPlayMapChanges(
     state: HydratedOathGameState,
+    playerId: string,
     keptCardId: string,
     kept: KeptPlay
 ): PlayMapChanges {
-    return playMapChanges(state, keptCardId, kept.play, { discardFirstCardId: kept.discardFirstCardId })
+    return playMapChanges(state, playerId, keptCardId, kept.play, {
+        carried: searchPlayModifiers(state),
+        discardFirstCardId: kept.discardFirstCardId,
+        toSiteId: kept.toSiteId,
+        faceUp: kept.faceUp,
+        discardedAdviserCardIds: kept.discardedAdviserCardIds
+    })
 }
 
 /** Land Warden — R-7.4: the Search's modifiers last the whole action, so they reach the second card's play as they reach the first. */
@@ -393,18 +419,29 @@ function shownSecondCardForAfter(
     return playShowsCard(second.play, second.faceUp) ? second.cardId : undefined
 }
 
-/** Land Warden — "if you play at least one card to a site", with room for both there. */
+/**
+ * Land Warden — "if you play at least one card to a site", with room for both at your site when both go there.
+ * `keptToSiteId` is where the kept card goes: the People's Favor may send it to another site (R-5.1.4.I), and its
+ * Q&A lets both cards use it.
+ */
 export function reasonCannotPairSecondPlay(
     state: HydratedOathGameState,
     playerId: string,
     firstPlay: SearchPlay,
-    second: SearchSecondPlay
+    second: SearchSecondPlay,
+    keptToSiteId?: string
 ): string | undefined {
     if (firstPlay !== SearchPlay.Site && second.play !== SearchPlay.Site)
         return 'Land Warden: at least one of the two cards must be played to a site'
     if (firstPlay === SearchPlay.Site && second.play === SearchPlay.Site) {
         const here = pawnSiteId(state, playerId)
-        if (state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here))
+        // Each site's room counts the cards that go there; the second card's own check counts it alone. Before
+        // revision 16 (R-X.4), both counted at your site wherever the kept card went.
+        const keptHere =
+            keptToSiteId === undefined ||
+            keptToSiteId === here ||
+            !isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+        if (keptHere && state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here))
             return 'no room at your site for two cards'
     }
     return undefined

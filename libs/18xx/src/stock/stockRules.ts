@@ -15,7 +15,7 @@ import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from 
 import type { StockInstructionRules } from './stockInstruction.js'
 import type { StockMarketChart } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
-import type { ShareSaleDetails } from './shareSale.js'
+import type { ShareSaleDetails, ShareSaleSettlement } from './shareSale.js'
 import type { StockState } from './stockState.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
 
@@ -60,6 +60,13 @@ export interface StockRules {
      * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
      */
     afterSale?(state: StockState, details: ShareSaleDetails): void
+    /**
+     * Whether a sale leaves the company's marker where it is, for the title to move later, as
+     * price protection in 1832, 1850 and 1870 waits for the president's decision. A held sale
+     * records the space it was sold from as its destination, and later sales of the company
+     * fetch the unmoved price. It sees the sale's certificates in the market, marker unmoved.
+     */
+    holdsMarketMove?(state: StockState, sale: ShareSaleSettlement, seller: Owner): boolean
     /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
     afterSharePurchase?(state: StockState, details: SharePurchaseDetails): void
     /** When a turn's sales may come relative to its purchase. */

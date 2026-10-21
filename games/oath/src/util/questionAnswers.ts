@@ -9,6 +9,7 @@ import {
     type QuestionAnswer,
     type QuestionOf,
     type ShroudedWoodPick,
+    type ShroudedWoodStay,
     type WarbandGain
 } from '../model/question.js'
 import type { PileDeposit } from '../model/hidden.js'
@@ -51,6 +52,8 @@ export interface AnswerOutcome {
     disclosed?: boolean
     /** R-11.7 */
     woodPick?: ShroudedWoodPick
+    /** R-11.7-H2 */
+    woodStay?: ShroudedWoodStay
     /** Toll Roads on a power's move. */
     tollMove?: PowerMoveToll
     /** R-5.5.8 — a waiting banish settled: its burn, the "if you're victorious" plans and the end. */

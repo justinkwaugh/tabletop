@@ -37,15 +37,15 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-20T05:01:27.671Z",
+  "createdAt": "2026-10-21T02:11:22.130Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-20T05:01:27.672Z",
+  "startedAt": "2026-10-21T02:11:22.130Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "ZPBeLIJEk6TQPOrFAOFOI",
+  "id": "0AlIRdgDBXU3W9ENMiScz",
   "gameId": "scenario-obsolete-2-train-in-phase-iii",
   "seed": 1450899060,
   "prng": {
@@ -236,6 +236,41 @@
     "owner": {
      "kind": "bank"
     }
+   },
+   {
+    "id": "treasury:NYC",
+    "owner": {
+     "kind": "company",
+     "companyId": "NYC"
+    }
+   },
+   {
+    "id": "treasury:B&O",
+    "owner": {
+     "kind": "company",
+     "companyId": "B&O"
+    }
+   },
+   {
+    "id": "treasury:C&O",
+    "owner": {
+     "kind": "company",
+     "companyId": "C&O"
+    }
+   },
+   {
+    "id": "treasury:GT",
+    "owner": {
+     "kind": "company",
+     "companyId": "GT"
+    }
+   },
+   {
+    "id": "treasury:IC",
+    "owner": {
+     "kind": "company",
+     "companyId": "IC"
+    }
    }
   ],
   "cash": [
@@ -326,7 +361,8 @@
     "owner": {
      "kind": "company",
      "companyId": "NYC"
-    }
+    },
+    "poolId": "treasury:NYC"
    },
    {
     "id": "NYC:share:1",
@@ -336,7 +372,8 @@
     "owner": {
      "kind": "company",
      "companyId": "NYC"
-    }
+    },
+    "poolId": "treasury:NYC"
    },
    {
     "id": "NYC:share:2",
@@ -346,7 +383,8 @@
     "owner": {
      "kind": "company",
      "companyId": "NYC"
-    }
+    },
+    "poolId": "treasury:NYC"
    },
    {
     "id": "NYC:share:3",
@@ -356,7 +394,8 @@
     "owner": {
      "kind": "company",
      "companyId": "NYC"
-    }
+    },
+    "poolId": "treasury:NYC"
    },
    {
     "id": "NYC:share:4",
@@ -366,7 +405,8 @@
     "owner": {
      "kind": "company",
      "companyId": "NYC"
-    }
+    },
+    "poolId": "treasury:NYC"
    },
    {
     "id": "NYC:share:5",
@@ -376,7 +416,8 @@
     "owner": {
      "kind": "company",
      "companyId": "NYC"
-    }
+    },
+    "poolId": "treasury:NYC"
    },
    {
     "id": "NYC:share:6",
@@ -386,7 +427,8 @@
     "owner": {
      "kind": "company",
      "companyId": "NYC"
-    }
+    },
+    "poolId": "treasury:NYC"
    },
    {
     "id": "NYC:share:7",
@@ -396,7 +438,8 @@
     "owner": {
      "kind": "company",
      "companyId": "NYC"
-    }
+    },
+    "poolId": "treasury:NYC"
    },
    {
     "id": "NYC:share:8",
@@ -406,7 +449,8 @@
     "owner": {
      "kind": "company",
      "companyId": "NYC"
-    }
+    },
+    "poolId": "treasury:NYC"
    },
    {
     "id": "B&O:president",
@@ -417,7 +461,8 @@
     "owner": {
      "kind": "company",
      "companyId": "B&O"
-    }
+    },
+    "poolId": "treasury:B&O"
    },
    {
     "id": "B&O:share:1",
@@ -427,7 +472,8 @@
     "owner": {
      "kind": "company",
      "companyId": "B&O"
-    }
+    },
+    "poolId": "treasury:B&O"
    },
    {
     "id": "B&O:share:2",
@@ -437,7 +483,8 @@
     "owner": {
      "kind": "company",
      "companyId": "B&O"
-    }
+    },
+    "poolId": "treasury:B&O"
    },
    {
     "id": "B&O:share:3",
@@ -447,7 +494,8 @@
     "owner": {
      "kind": "company",
      "companyId": "B&O"
-    }
+    },
+    "poolId": "treasury:B&O"
    },
    {
     "id": "B&O:share:4",
@@ -457,7 +505,8 @@
     "owner": {
      "kind": "company",
      "companyId": "B&O"
-    }
+    },
+    "poolId": "treasury:B&O"
    },
    {
     "id": "B&O:share:5",
@@ -467,7 +516,8 @@
     "owner": {
      "kind": "company",
      "companyId": "B&O"
-    }
+    },
+    "poolId": "treasury:B&O"
    },
    {
     "id": "B&O:share:6",
@@ -477,7 +527,8 @@
     "owner": {
      "kind": "company",
      "companyId": "B&O"
-    }
+    },
+    "poolId": "treasury:B&O"
    },
    {
     "id": "B&O:share:7",
@@ -487,7 +538,8 @@
     "owner": {
      "kind": "company",
      "companyId": "B&O"
-    }
+    },
+    "poolId": "treasury:B&O"
    },
    {
     "id": "B&O:share:8",
@@ -497,7 +549,8 @@
     "owner": {
      "kind": "company",
      "companyId": "B&O"
-    }
+    },
+    "poolId": "treasury:B&O"
    },
    {
     "id": "C&O:president",
@@ -508,7 +561,8 @@
     "owner": {
      "kind": "company",
      "companyId": "C&O"
-    }
+    },
+    "poolId": "treasury:C&O"
    },
    {
     "id": "C&O:share:1",
@@ -518,7 +572,8 @@
     "owner": {
      "kind": "company",
      "companyId": "C&O"
-    }
+    },
+    "poolId": "treasury:C&O"
    },
    {
     "id": "C&O:share:2",
@@ -528,7 +583,8 @@
     "owner": {
      "kind": "company",
      "companyId": "C&O"
-    }
+    },
+    "poolId": "treasury:C&O"
    },
    {
     "id": "C&O:share:3",
@@ -538,7 +594,8 @@
     "owner": {
      "kind": "company",
      "companyId": "C&O"
-    }
+    },
+    "poolId": "treasury:C&O"
    },
    {
     "id": "C&O:share:4",
@@ -548,7 +605,8 @@
     "owner": {
      "kind": "company",
      "companyId": "C&O"
-    }
+    },
+    "poolId": "treasury:C&O"
    },
    {
     "id": "C&O:share:5",
@@ -558,7 +616,8 @@
     "owner": {
      "kind": "company",
      "companyId": "C&O"
-    }
+    },
+    "poolId": "treasury:C&O"
    },
    {
     "id": "C&O:share:6",
@@ -568,7 +627,8 @@
     "owner": {
      "kind": "company",
      "companyId": "C&O"
-    }
+    },
+    "poolId": "treasury:C&O"
    },
    {
     "id": "C&O:share:7",
@@ -578,7 +638,8 @@
     "owner": {
      "kind": "company",
      "companyId": "C&O"
-    }
+    },
+    "poolId": "treasury:C&O"
    },
    {
     "id": "C&O:share:8",
@@ -588,7 +649,8 @@
     "owner": {
      "kind": "company",
      "companyId": "C&O"
-    }
+    },
+    "poolId": "treasury:C&O"
    },
    {
     "id": "GT:president",
@@ -599,7 +661,8 @@
     "owner": {
      "kind": "company",
      "companyId": "GT"
-    }
+    },
+    "poolId": "treasury:GT"
    },
    {
     "id": "GT:share:1",
@@ -609,7 +672,8 @@
     "owner": {
      "kind": "company",
      "companyId": "GT"
-    }
+    },
+    "poolId": "treasury:GT"
    },
    {
     "id": "GT:share:2",
@@ -619,7 +683,8 @@
     "owner": {
      "kind": "company",
      "companyId": "GT"
-    }
+    },
+    "poolId": "treasury:GT"
    },
    {
     "id": "GT:share:3",
@@ -629,7 +694,8 @@
     "owner": {
      "kind": "company",
      "companyId": "GT"
-    }
+    },
+    "poolId": "treasury:GT"
    },
    {
     "id": "GT:share:4",
@@ -639,7 +705,8 @@
     "owner": {
      "kind": "company",
      "companyId": "GT"
-    }
+    },
+    "poolId": "treasury:GT"
    },
    {
     "id": "GT:share:5",
@@ -649,7 +716,8 @@
     "owner": {
      "kind": "company",
      "companyId": "GT"
-    }
+    },
+    "poolId": "treasury:GT"
    },
    {
     "id": "GT:share:6",
@@ -659,7 +727,8 @@
     "owner": {
      "kind": "company",
      "companyId": "GT"
-    }
+    },
+    "poolId": "treasury:GT"
    },
    {
     "id": "GT:share:7",
@@ -669,7 +738,8 @@
     "owner": {
      "kind": "company",
      "companyId": "GT"
-    }
+    },
+    "poolId": "treasury:GT"
    },
    {
     "id": "GT:share:8",
@@ -679,7 +749,8 @@
     "owner": {
      "kind": "company",
      "companyId": "GT"
-    }
+    },
+    "poolId": "treasury:GT"
    },
    {
     "id": "IC:president",
@@ -700,7 +771,8 @@
     "owner": {
      "kind": "company",
      "companyId": "IC"
-    }
+    },
+    "poolId": "treasury:IC"
    },
    {
     "id": "IC:share:2",
@@ -710,7 +782,8 @@
     "owner": {
      "kind": "company",
      "companyId": "IC"
-    }
+    },
+    "poolId": "treasury:IC"
    },
    {
     "id": "IC:share:3",
@@ -720,7 +793,8 @@
     "owner": {
      "kind": "company",
      "companyId": "IC"
-    }
+    },
+    "poolId": "treasury:IC"
    },
    {
     "id": "IC:share:4",
@@ -730,7 +804,8 @@
     "owner": {
      "kind": "company",
      "companyId": "IC"
-    }
+    },
+    "poolId": "treasury:IC"
    },
    {
     "id": "IC:share:5",
@@ -740,7 +815,8 @@
     "owner": {
      "kind": "company",
      "companyId": "IC"
-    }
+    },
+    "poolId": "treasury:IC"
    },
    {
     "id": "IC:share:6",
@@ -750,7 +826,8 @@
     "owner": {
      "kind": "company",
      "companyId": "IC"
-    }
+    },
+    "poolId": "treasury:IC"
    },
    {
     "id": "IC:share:7",
@@ -760,7 +837,8 @@
     "owner": {
      "kind": "company",
      "companyId": "IC"
-    }
+    },
+    "poolId": "treasury:IC"
    },
    {
     "id": "IC:share:8",
@@ -770,7 +848,8 @@
     "owner": {
      "kind": "company",
      "companyId": "IC"
-    }
+    },
+    "poolId": "treasury:IC"
    }
   ],
   "stations": [

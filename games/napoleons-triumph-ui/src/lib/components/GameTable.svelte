@@ -497,7 +497,7 @@
         flex-direction: column;
         min-height: 0;
         overflow-y: auto;
-        overscroll-behavior: none;
+        overscroll-behavior-y: none;
     }
 
     .nt-board-host {

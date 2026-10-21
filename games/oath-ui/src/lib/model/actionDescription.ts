@@ -54,6 +54,7 @@ import {
     type CitizenshipTransfer,
     type ExchangeTerms,
     type ExchangeTransfer,
+    type FavorShort,
     type CampaignBattleMetadata,
     type HeldAttackRoll,
     type CampaignPlacement,
@@ -136,9 +137,11 @@ export function rowActorOf(action: GameAction): string | undefined {
     return woodTravelerOf(action) ?? tollMoverOf(action) ?? action.playerId
 }
 
-/** R-11.7 — the ruler's pick settles the traveller's Travel, so the row is the traveller's. */
+/** R-11.7 — the ruler's pick (or stay, R-11.7-H2) settles the traveller's Travel, so the row is the traveller's. */
 function woodTravelerOf(action: GameAction): string | undefined {
-    return isAnswerQuestion(action) ? action.metadata?.woodPick?.travelerPlayerId : undefined
+    if (!isAnswerQuestion(action)) return undefined
+    const meta = action.metadata
+    return meta?.woodPick?.travelerPlayerId ?? meta?.woodStay?.travelerPlayerId
 }
 
 /** R-5.5.4-H1 — the attacker whose warbands the held attack's skulls took, on the answer that rolled it. */
@@ -596,7 +599,9 @@ function describeActionCited(
             const chooser = meta?.destinationChooser
             const ruler = chooser ? nameOf(chooser) : 'its ruler'
             if (meta?.paysAtPick) {
-                return `set out from Shrouded Wood${freeActionClause(meta.freeActionOf)}; ${ruler} picks where`
+                // R-11.7-H2 — the cards declared at the start, in brackets, as a plain Travel names them.
+                const cards = cardsInBrackets(meta.modifiers, named)
+                return `set out from Shrouded Wood${cards}${freeActionClause(meta.freeActionOf)}; ${ruler} picks where`
             }
             return `left Shrouded Wood${supply(meta?.supplySpent)}; ${ruler} picks where`
         }
@@ -670,7 +675,7 @@ function describeActionCited(
         return (
             `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
             (facedown ? ', facedown' : '') +
-            gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0) +
+            gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId)
         )
     }
@@ -763,7 +768,7 @@ function describeActionCited(
                 : describeAdviserPlay(action.play, played)) +
             (meta?.discardToWorldDeck ? ` under the world deck${inBrackets(horn)}` : '') +
             (first ? `, discarding ${cardName(first)} first${inBrackets(rotated)}` : '') +
-            gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0) +
+            gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             cardsInBrackets(meta?.modifiers, new Set([...named, ...grew, ...rotated, ...horn])) +
             whenPlayedClause(
                 meta?.whenPlayed,
@@ -826,15 +831,30 @@ function describeActionCited(
     }
     if (isAnswerQuestion(action)) {
         const meta = action.metadata
-        // R-11.7 — the pick, or the toll's answer that settled it (the ruler is then the mover).
+        // R-11.7 — the pick, or the toll's answer that settled it (the ruler is then the mover), or
+        // the traveller's Way Station answer, which records the ruler (R-11.7-H3).
         if (meta?.woodPick) {
             const toll = meta.tollMove
-            const rulerId = toll?.moverPlayerId ?? action.playerId
+            const rulerId = meta.woodPick.chooserPlayerId ?? toll?.moverPlayerId ?? action.playerId
             return describeWoodPick(meta.woodPick, rulerId, names, viewerId, toll?.toll)
+        }
+        // R-11.7-H2 — the ruler kept the traveller in place: the traveller's row, the ruler's pick.
+        if (meta?.woodStay) {
+            return nameSeats(
+                `stayed at ${names.site(meta.woodStay.siteId)} (${action.playerId}'s pick)`,
+                names,
+                viewerId,
+                meta.woodStay.travelerPlayerId
+            )
         }
         if (meta?.tollMove) return tollMoveText(meta.tollMove, names, viewerId)
         if (!meta) return 'answered a question'
         if (meta.kind === PowerQuestionKind.DragonskinDrum) return drumText(meta.cardId, meta.warbandGain)
+        // R-11.7-H2 — Hospitality's bank after the Wood ruler's pick, as any Travel's gain reads.
+        if (meta.kind === PowerQuestionKind.HospitalityBank) {
+            const gain = noteClause(meta.summary, action.playerId)?.text ?? meta.summary
+            return namedNote(gain, action.playerId, names, viewerId)
+        }
         const answer = action.answer
         // The Gathering — the proposal's terms, from the answer's own record.
         if (answer.kind === PowerQuestionKind.GatheringFloor && answer.proposal) {
@@ -923,13 +943,20 @@ const CRACKED_HORN = 'relic.cracked-horn'
 // False Prophet's answer names the Vision it played or discarded.
 const PROPHESIED = /\bvision\.[a-z0-9-]+/
 
-/** What a play gained: "gaining 1 secret", "gaining 2 favor". */
-function gaining(secrets: number, favor: number): string {
+/**
+ * What a play gained: "gaining 1 secret", "gaining 2 favor". R-9.3 — a site play whose favor came up short says
+ * why: "gaining no favor: the Beast bank was empty", "gaining 1 favor: the Hearth bank ran out".
+ */
+function gaining(secrets: number, favor: number, short: readonly FavorShort[] = []): string {
     const gained = [
         ...(secrets > 0 ? [plural(secrets, 'secret')] : []),
-        ...(favor > 0 ? [`${favor} favor`] : [])
+        ...(favor > 0 ? [`${favor} favor`] : short.length > 0 ? ['no favor'] : [])
     ]
-    return gained.length > 0 ? `, gaining ${listed(gained)}` : ''
+    const why = short.map(
+        ({ suit, ranOut }) => `the ${suitName(suit)} bank ${ranOut ? 'ran out' : 'was empty'}`
+    )
+    if (gained.length === 0) return ''
+    return `, gaining ${listed(gained)}` + (why.length > 0 ? `: ${listed(why)}` : '')
 }
 
 /**
@@ -1039,11 +1066,16 @@ function describeWoodPick(
             return clause ? [`; ${clause.text}`] : []
         })
         .join('')
-    return nameSeats(
-        `traveled from Shrouded Wood to ${names.site(pick.siteId)} (${rulerId}'s pick)${supply(pick.supplySpent)}${tollClause}${notes}`,
-        names,
-        viewerId,
-        pick.travelerPlayerId
+    // R-11.7-H2 — a declared card is named only where it set the price ("spending 0 Supply (Tents)").
+    const cost = costWith(pick.supplySpent, inBrackets((pick.pricedBy ?? []).map(cardName)))
+    // R-11.7-H2 — Hospitality's gain names its bank as any Travel's does ("the Order bank").
+    return namedBanks(
+        nameSeats(
+            `traveled from Shrouded Wood to ${names.site(pick.siteId)} (${rulerId}'s pick)${cost}${tollClause}${notes}`,
+            names,
+            viewerId,
+            pick.travelerPlayerId
+        )
     )
 }
 

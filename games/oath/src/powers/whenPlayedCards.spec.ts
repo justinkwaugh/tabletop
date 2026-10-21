@@ -14,6 +14,7 @@ import { FILLER } from '../testing/cards.js'
 import { OathRevision } from '../util/revision.js'
 import { placedDenizens } from '../testing/census.js'
 import { swapPlayedCardWithSiteCard } from './vocabulary.js'
+import { advisersOfSuit } from '../util/persistent.js'
 
 const SALAD_DAYS = 'denizen.hearth.salad-days'
 
@@ -460,5 +461,70 @@ describe('from revision 10, Animal Host and Fabled Feast count themselves only w
             const a = feast(s, SearchPlay.Site)
             expect(a.metadata?.whenPlayed).toBe('took 2 favor (of 2 hearth cards ruled) from the beast bank')
         })
+    })
+})
+
+describe('Fabled Feast with Marriage, "counts as two hearth advisers", counted as two hearth cards ruled (R-2.2.2-H1)', () => {
+    const FABLED_FEAST = 'denizen.hearth.fabled-feast'
+    const MARRIAGE = 'denizen.hearth.marriage'
+    const KINSHIP = 'denizen.nomad.vow-of-kinship'
+    const marriage = (faceUp = true) => ({ advisers: [{ cardId: MARRIAGE, faceUp }] })
+    const table = (revision: OathRevision, over: Parameters<typeof board>[0] = {}, beastBank = 6) => {
+        const s = board(over)
+        s.oathRevision = revision
+        s.favorBank[Suit.Beast] = beastBank
+        return s
+    }
+    const feast = (s: ReturnType<typeof board>, to: SearchPlay, playerId = 'ruler') =>
+        playDrawnCard(s, FABLED_FEAST, to, [bank(Suit.Beast)], playerId)
+    const now = OathRevision.EngineFixes12
+
+    it('Marriage faceup and the Feast played as an adviser: X = 3, three favor taken', () => {
+        const s = table(now, { ruler: marriage() })
+        const a = feast(s, SearchPlay.Adviser)
+        expect(a.metadata?.whenPlayed).toBe('took 3 favor (of 3 hearth cards ruled) from the beast bank')
+        expect(s.getPlayerState('ruler').favor).toBe(6)
+        expect(s.favorBank[Suit.Beast]).toBe(3)
+        // Trade and the Conspiracy count the same three hearth advisers.
+        expect(advisersOfSuit(s, 'ruler', Suit.Hearth)).toBe(3)
+    })
+
+    it('the Feast played to a site its player rules counts with Marriage; at a site they do not rule only Marriage counts', () => {
+        const ruled = table(now, { ruler: marriage() })
+        expect(feast(ruled, SearchPlay.Site).metadata?.whenPlayed).toBe('took 3 favor (of 3 hearth cards ruled) from the beast bank')
+
+        const unruled = table(now, { ruler: marriage() })
+        unruled.warbandsBySite['c1'] = {}
+        expect(feast(unruled, SearchPlay.Site).metadata?.whenPlayed).toBe('took 2 favor (of 2 hearth cards ruled) from the beast bank')
+    })
+
+    it('a facedown Marriage is not ruled faceup, so it counts for nothing', () => {
+        const s = table(now, { ruler: marriage(false) })
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 1 favor (of 1 hearth cards ruled) from the beast bank')
+    })
+
+    it("another player's Marriage counts for its holder only, not for the Feast's player", () => {
+        const s = table(now, { other: marriage() })
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 1 favor (of 1 hearth cards ruled) from the beast bank')
+    })
+
+    it('the bank gives what it holds (R-9.3)', () => {
+        const s = table(now, { ruler: marriage() }, 2)
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 2 favor (of 3 hearth cards ruled) from the beast bank')
+        expect(s.favorBank[Suit.Beast]).toBe(0)
+    })
+
+    it('with Vow of Kinship the three favor go to the nomad bank', () => {
+        const s = table(now, { ruler: { favor: 0, advisers: [{ cardId: MARRIAGE, faceUp: true }, { cardId: KINSHIP, faceUp: true }] } })
+        const nomad = s.favorBank[Suit.Nomad]
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 3 favor (of 3 hearth cards ruled) from the beast bank')
+        expect(s.favorBank[Suit.Nomad]).toBe(nomad + 3)
+        expect(s.getPlayerState('ruler').favor).toBe(0)
+    })
+
+    it('R-X.4 — before revision 16 Marriage counts once: X = 2', () => {
+        const s = table(OathRevision.EngineFixes11, { ruler: marriage() })
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 2 favor (of 2 hearth cards ruled) from the beast bank')
+        expect(s.favorBank[Suit.Beast]).toBe(4)
     })
 })

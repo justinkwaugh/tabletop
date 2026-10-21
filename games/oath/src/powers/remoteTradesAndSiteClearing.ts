@@ -22,7 +22,7 @@ import { giveFavor, takeFavorFromPlayer, usableFavor } from '../util/favor.js'
 import {
     discardDenizensAtSites,
     faceupSitesInYourRegion,
-    pawnSiteId,
+    siteOfPlayedCard,
     faceupSitesWithCardOfSuit
 } from './vocabulary.js'
 import { bargainChoicesAtYourSite, playerChoicesAtYourSite } from './choiceDomains.js'
@@ -275,7 +275,8 @@ registerModifier(CROP_ROTATION, powerIndexOf(CROP_ROTATION, PowerTiming.Modifier
 registerEffect(SALT_THE_EARTH, powerIndexOf(SALT_THE_EARTH, PowerTiming.WhenPlayed), {
     choices: [],
     resolve: (ctx) => {
-        const siteId = pawnSiteId(ctx.state, ctx.playerId)
+        // "This site": where it was played, which the People's Favor or New Growth may make another site.
+        const siteId = siteOfPlayedCard(ctx.state, ctx.playerId, SALT_THE_EARTH)
         const { discarded, pileDeposits } = discardDenizensAtSites(
             ctx.state,
             ctx.playerId,

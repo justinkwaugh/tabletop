@@ -122,8 +122,8 @@ Show sample tile, token & route switch replaces its displayed inventory and over
 a different map replaces the whole scene. Neither operation is a game Action.
 
 A company token on the map fills its city slot's circle.
-A reserved city slot without a token shows the reserving company's token in grayscale
-at reduced opacity, titled "Reserved for [company]"; without a company appearance it
+A reserved city slot without a token shows the reserving company's token in its own
+colours at reduced opacity, titled "Reserved for [company]"; without a company appearance it
 falls back to the company id as small text. Track into an offboard ends in a short
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
 own. A marker whose art is a local line shows its label beside two linked circles while
@@ -137,7 +137,10 @@ A map view may name each city of a hex (``cityNames``, 1830's OO and New York he
 each name curves over its own city's drawn centre, turned off the hex's other cities
 and the names already placed, and replaces the hex's single name. A lone city's curved
 name follows the city's drawn centre, so an off-centre city (1830's Altoona) is wrapped
-by its name.
+by its name. A map view may instead curve a lone city's name under the city, reading
+along its foot (``namesBelow``), where track leaves over its top: TOP's Souris and
+Wellington, 1846's Huntington, 1832's New Orleans. Styles that print names straight
+across the top keep them there.
 
 A map view's joined edges draw no outline, in the hex artwork or the map's outline
 layer, so neighbouring hexes read as one area (1830's Canada and Gulf). A tile layout
@@ -808,8 +811,8 @@ bridges) appears under Use privates as one immediately committed button per loca
 "Place [marker] on [location] ([private])". Placed markers join the map's printed
 markers, by the names the title's map view gives them, in the live and historical maps.
 Printed `revenueSymbol` markers (1832's and 1846's port anchors) take clear space beside the
-revenue, or the title's `symbolPositions` (1832's New Orleans at the bottom, Miami at its
-right side), and are left out where the tile prints the symbol itself.
+revenue, or the title's `symbolPositions` (1832's New Orleans and Norfolk at the bottom,
+Miami at its right side), and are left out where the tile prints the symbol itself.
 A title's reusable private lays (1817's coal mines and ranches) stay offered until its
 terms end them. A lay can also clear markers (1817's city tiles clear the ranches beside
 them), which leave the live and historical maps with it. History notes what a lay paid
@@ -985,6 +988,19 @@ row sideways, passing through once the row reaches its end, and Shift, Ctrl or a
 sideways gesture keep their usual behaviour. The companyCardsWrap family preference
 persists the choice and defaults to on; like boardAutoZoom it needs updated Logic
 and matching UI Artifacts.
+
+A Wide switch sits to the left of Wrap. Turning it on draws each card in the wide
+style of the operating-order chips' expanded card, with owners beside privates and
+powers, a station token per remaining station, and the last run. Every company
+card, narrow or wide, has the raised header. Wide cards fill the view's width rather than sizing to their
+content. With Wrap on, each row is shared evenly by as many cards of at least
+300px as fit, so a phone shows one full-width card per row; with Wrap off, each
+card is 400px or the view's width if narrower. A wide card shrinks to fit: its name
+wraps, its station tokens wrap, its prices wrap onto a second line, and below
+380px its two columns split the width evenly. It shows all its owners and privates
+rather than scrolling them. The companyCardsWide family preference persists the
+choice and defaults to off; like companyCardsWrap it needs updated Logic and
+matching UI Artifacts.
 
 Market cells share single-width borders with values at the upper left. In the
 dark table, neutral (white) cells use the raised table surface and table borders,
@@ -1872,7 +1888,7 @@ TOP’s Royal Agricultural Society and Railcar Ferry use the Mainline token and 
 
 TOP exchange privates Merchants and Co., Vernon River Bridge, and Shipbuilding use the assigned Shortline company token and a bold opening paragraph: ‘Includes one reserved share of [company].’ Ice Boats uses an outlined token with a large question mark because its exchange target is chosen from eligible companies. The same appearance is used on private cards and auction icons.
 
-Titles may mark a private through their presentation with either a company's token or a shared tile symbol. The session resolves company tokens to the current token art, so the published-artwork toggle applies, and tile symbols to the current tile appearance's ink and paper. 1889 marks Dôgo Railway with the Iyo Railway token, its exchange target, and Mitsubishi Ferry with the port anchor, on their cards, auction rows, portfolio rows and private purchase lists. TOP's role-dependent tokens remain its session override.
+Titles may mark a private through their presentation with a company's token, a shared tile symbol, a terrain icon, a picture of the tiles it lays, or an image of its own. The session resolves company tokens to the current token art, so the published-artwork toggle applies, and tile symbols to the current tile appearance's ink and paper; images draw as supplied. 1832 marks Cotton Warehouse and Atlantic Shipping with the Cotton and Port tokens they place, and London Investment with a filled question-mark token, because its free share's company is chosen later. 1889 marks Dôgo Railway with the Iyo Railway token, its exchange target, and Mitsubishi Ferry with the port anchor, on their cards, auction rows, portfolio rows and private purchase lists. TOP's role-dependent tokens remain its session override.
 
 Map markers may carry title-supplied art in place of their text label: an image drawn across an unplaced hex (TOP's Vernon River Bridge) or a shared tile symbol drawn at the marker position near the lower edge, with the marker label as its hover title. Images appear only on unplaced hexes in the generic presentation. Symbols follow text-marker visibility: unplaced hexes in the generic presentation and placed tiles in either presentation, except where the placed face already shows that symbol; unplaced hexes on the published board show its printed markers. 1889 draws its four eligible port locations with the same anchor as the port tile rather than the word Port.
 
@@ -2041,6 +2057,13 @@ when present in saved layouts. Operating Order is the first optional widget; in
 the wide layout it replaces the Actions footer and is absent until added. The
 original narrow layout retains its operating-order strip.
 
+Stats is an optional tab charting each player's wealth: one point for the starting
+cash, then one at the end of each finished round (opening, stock, operating and the
+title's own rounds), never one per operating turn and none for a round still being
+played. Lines take the players' colours and end in their names. Hovering a round
+shows its name and every player's wealth, highest first. The chart follows History
+Navigation.
+
 Pane headers consolidate splitting and adding/moving tabs into a compact options
 popover anchored below an ellipsis button, which is the only header control.
 
@@ -2076,8 +2099,12 @@ stock-round action and pass has its own line, untinted, with the player's name a
 medium-weight rounded badge: a 45% mix of that player's color over the theme surface
 behind the name only, with no dot or colon. The description and its values stay
 regular weight. A player-attributed stock description starts with a lowercase verb after
-the player name. History descriptions use full company names unless a title provides a
-history-specific name. Automatic flotation names the company without a player
+the player name; one that opens with a company keeps the company's name as written. Every title names each company three ways: its printed full name, a
+short name (the full name without a closing Railroad, Railway, Company or Transportation
+unless only one word would remain, or a title-given one such as BNSF or PEIR) and its
+initials. Play text uses the short name; private cards and their popups keep the full
+name. History descriptions name corporations by their initials and privates by their short
+name; operation headers use the short name. Automatic flotation names the company without a player
 name or player tint and places its company token beside both the flotation
 summary and detail. Stock sales remain separate recorded lines. Both use the
 viewing player's palette.
@@ -2139,9 +2166,10 @@ it only while the sheet is scrolled.
 Company cards echo the spreadsheet: the cash cell uses the recessed fill, the
 value cell the faint turquoise, and investor rows carry their player's tint to
 the card's left and right edges. Corporate investors follow the player who
-controls them. The right of a started company's ownership heading carries its
-status: an amber UNFLOATED until it floats, then a cream SOLD OUT while it is
-sold out by the title's own rule. Closed companies show none.
+controls them. Their shareholding section is headed Owners; player cards keep
+Ownership for what a player holds. The right of a started company's Owners heading
+carries its status: an amber UNFLOATED until it floats, then a cream SOLD OUT while
+it is sold out by the title's own rule. Closed companies show none.
 
 Player cards in workspace panes start 10px below the pane header, matching the
 10px gap between cards in both vertical and horizontal arrangements.
@@ -2165,7 +2193,7 @@ Player Aid is a default table tab after Tiles, movable and closable like the oth
 
 In pane mode, Chat has no outer border or rounded container corners. Its message composer retains its input styling.
 
-Player Aid and Depot share a live train roster: Remaining shows depot stock / initial supply, including ∞ for unlimited trains; currently available nonempty train types are highlighted and exhausted types dimmed. Depot is an optional tab, absent from the default layout and available through Add tabs.
+Player Aid and Depot share a live train roster: Remaining shows the depot's stock, ∞ for unlimited trains; currently available nonempty train types are highlighted and exhausted types dimmed. Depot is an optional tab, absent from the default layout and available through Add tabs.
 
 Fullscreen and historical-map modals use the shared wrapper’s pre-paint dimension fitting, including the initial route focus, so opening them does not expose an intermediate scale or position.
 
@@ -2190,7 +2218,8 @@ exercise the two supported ordering paths.
 
 Titles may explicitly include existing share companies in Companies even when they
 have no start action or started flag. Explicitly included companies follow the normally ordered companies. TOP places
-PEIR last and labels its narrow card PEIR; other card names retain their full names.
+PEIR last. Card headers use the company's short name (PEIR for TOP's PEIR), with the
+full name on hover.
 
 Company cards with numbered shares show certificate numbers before share counts
 in each ownership row, keeping the count in the rightmost column.
@@ -2212,9 +2241,14 @@ live removes the arrow and the history strip. Company headers share the full-sur
 The picture button beside Undo is available only when a title supplies board
 artwork. It switches this client's table between generic and published
 presentations, with a pressed state and an accessible label describing the next
-choice. The choice lasts for the mounted table and resets to generic on reload.
-It creates no Action, changes no other client's view, and retains any Action Selection
-and map selection. Switching fits the selected presentation's full bounds.
+choice. The publishedArtwork title preference persists the choice for that title
+only, never for the 18xx family, and defaults to off; it needs updated Logic and
+matching UI Artifacts, with the Logic released first or together, since the backend
+rejects the unknown key and the toggle reverts. A title without artwork reads as
+generic whatever is saved. The choice creates no Action, changes no other player's
+view, and retains any Action Selection and map selection. Any change of the saved
+value, including one from another window or a rejected save, fits the selected
+presentation's full bounds.
 
 The image renders at its native dimensions behind laid tiles, station tokens,
 routes, placement masks, hit targets and selection highlights. Unlaid hexes remain
@@ -2225,8 +2259,9 @@ or pointer hit targets.
 
 History View, historical-map dialogs and Undo use the selected presentation with
 their displayed map state. Existing masks, route emphasis and selection precedence
-continue to apply. The table owns the local presentation choice; MapScene owns the
-background and overlay composition. No Game Session transient value is added.
+continue to apply. The Game Session reads the presentation choice from its title
+preferences; the table fits the map when it changes; MapScene owns the background
+and overlay composition. No Game Session transient value is added.
 
 Browser verification switches modes with a track selection, commits a lay, steps back
 and returns to Live View, then undoes the lay at desktop and mobile widths. The

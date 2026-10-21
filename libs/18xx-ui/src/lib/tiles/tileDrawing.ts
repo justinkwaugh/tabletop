@@ -29,6 +29,9 @@ import { stagedRevenueLayout, type RevenueCell } from './stagedRevenueLayout.js'
 
 export type { TileDrawnPath } from './tileTrackGeometry.js'
 
+/** Corner radius of every tile and map hex, in the units tiles are drawn in about their centre. */
+export const TileRadius = 50
+
 const OffboardSpikeReach = 0.6
 
 export type TileLayout = {
@@ -95,7 +98,7 @@ export function createTileDrawing(
     // Annotations keep the same distance from larger station circles.
     const markerRadius = MarkerRadius + citySlotRadius - DefaultCitySlotRadius
     const geometry = calculateHexGeometry(
-        { orientation, dimensions: { radius: 50 } },
+        { orientation, dimensions: { radius: TileRadius } },
         { q: 0, r: 0 }
     )
     const angle =

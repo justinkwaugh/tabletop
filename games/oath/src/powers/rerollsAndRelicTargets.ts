@@ -8,6 +8,7 @@ import { nextActionIndex } from '../util/freeActions.js'
 import { reasonCannotTravelByPower } from '../util/powerTravel.js'
 import { canPayPowerMoveToll } from '../util/powerMoveTolls.js'
 import { seeDiscardPile } from '../util/knowledge.js'
+import { askWoodPickForPower, woodChooserForPower } from '../util/shroudedWood.js'
 
 // "You may target facedown relics at targeted sites, adding 1 [defenseDie] per relic.
 //  You may put any relics you take on the bottom of the relic deck." Attacker.
@@ -49,6 +50,19 @@ registerEffect(BRASS_HORSE, powerIndexOf(BRASS_HORSE, PowerTiming.Action), {
                           canPayPowerMoveToll(ctx.state, ctx.playerId, siteId)
                   )
             : []
+        // R-11.7-H1 — from a Shrouded Wood an enemy rules, its ruler picks among the Horse's sites (its Q&A).
+        const chooser = sites.length > 0 ? woodChooserForPower(ctx.state, ctx.playerId) : undefined
+        if (chooser !== undefined) {
+            askWoodPickForPower(ctx.state, ctx.playerId, chooser, ctx.playerId, {
+                powerCardId: BRASS_HORSE,
+                userPlayerId: ctx.playerId,
+                siteIds: sites
+            })
+            return {
+                summary: `Brass Horse: revealed ${top} (${suit}); the Shrouded Wood's ruler chooses among the sites with a ${suit} card`,
+                peeked: top ? [top] : []
+            }
+        }
         if (sites.length > 0) {
             askQuestion(ctx.state, ctx.playerId, {
                 kind: PowerQuestionKind.TravelFreeTo,

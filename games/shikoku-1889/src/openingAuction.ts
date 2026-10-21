@@ -9,6 +9,7 @@ import {
     type InitialPosition,
     type Opening,
     type OpeningSetup,
+    type StartingCashSetup,
     type WaterfallAuctionRules
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
@@ -28,8 +29,12 @@ export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
         settleCashPayments(state, privateIncomePayments(state, { charters: Shikoku1889Charters }))
     }
 }
+export function shikoku1889StartingCash({ playerCount }: StartingCashSetup): number {
+    return playerCount <= 4 ? 420 : 390
+}
 export function createShikoku1889Opening({
     players,
+    config,
     startingPositions
 }: OpeningSetup): Opening<typeof Shikoku1889State, HydratedShikoku1889State> {
     assert(players.length >= 2 && players.length <= 6, '1889 supports two through six players')
@@ -38,7 +43,7 @@ export function createShikoku1889Opening({
         players.length === 2 ? 5 : players.length === 3 ? 6 : 7
     )
     const majors = Object.values(Shikoku1889Majors)
-    const capital = players.length <= 4 ? 420 : 390
+    const capital = shikoku1889StartingCash({ playerCount: players.length, config })
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
         stockMarket: { stacks: [] },

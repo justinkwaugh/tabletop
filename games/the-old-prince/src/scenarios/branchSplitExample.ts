@@ -2,6 +2,7 @@ import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
     getCompany,
+    treasuryPool,
     type CompanyState,
     type MapStateData,
     type TrainState
@@ -41,7 +42,7 @@ export function prepareTheOldPrinceBranchSplit(
         )
     )
     const owner = { kind: 'company' as const, companyId }
-    state.certificatePools.push({ id: `treasury:${companyId}`, owner })
+    state.certificatePools.push(treasuryPool(companyId))
     const cash = state.cash.find(
         (cash) => cash.owner.kind === 'company' && cash.owner.companyId === companyId
     )

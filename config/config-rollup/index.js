@@ -1,3 +1,4 @@
+import { collectibleLogic } from './logic-factory.js'
 import fs from 'node:fs'
 import { moduleWorkers } from './workers.js'
 import { publishCssAssets } from './css-assets.js'
@@ -241,12 +242,12 @@ export const createGameLogicRollupConfig = ({ packageRootUrl }) => {
 
     return {
         input: path.join(packageRoot, 'src/index.ts'),
-        output: {
-            file: path.join(outputDir, 'index.js'),
-            format: 'es',
+        output: ['es', 'cjs'].map((format) => ({
+            file: path.join(outputDir, format === 'es' ? 'index.js' : 'index.cjs'),
+            format,
             sourcemap: true,
             inlineDynamicImports: true
-        },
+        })),
         plugins: [
             createResolveJsExtensions(packageRoot),
             typescript({ tsconfig: path.join(packageRoot, 'tsconfig.rollup.json') }),
@@ -255,7 +256,8 @@ export const createGameLogicRollupConfig = ({ packageRootUrl }) => {
                 exportConditions: ['node'],
                 extensions: ['.ts', '.js', '.mjs']
             }),
-            commonjs()
+            commonjs(),
+            collectibleLogic()
         ]
     }
 }

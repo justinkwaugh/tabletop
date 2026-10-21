@@ -49,13 +49,13 @@
 {/if}
 
 <style>
-    /* One line; the History tab holds the rest. */
+    /* At most two lines; the History tab holds the rest. */
     .summary {
         display: -webkit-box;
         overflow: hidden;
         -webkit-box-orient: vertical;
-        -webkit-line-clamp: 1;
-        line-clamp: 1;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
         line-height: 1.55;
     }
 </style>

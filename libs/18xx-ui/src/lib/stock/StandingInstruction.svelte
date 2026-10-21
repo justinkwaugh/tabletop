@@ -305,12 +305,9 @@
 
 <style>
     .standing-bar {
+        container: standing-bar / inline-size;
         margin-top: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 6px 4px 0;
-        border-top: 1px solid var(--rail-border, #485666);
+        padding-top: 10px;
         font-size: 12px;
         color: var(--rail-text, #e3e9ef);
     }
@@ -320,6 +317,18 @@
         align-items: center;
         gap: 8px;
         min-height: 26px;
+        padding: 6px 4px 0;
+        border-top: 1px solid var(--rail-border, #485666);
+    }
+    @container standing-bar (max-width: 759px) {
+        .tray:not(.notice, .bare) {
+            order: 1;
+            flex: 1 0 100%;
+            box-sizing: border-box;
+        }
+        .connector:has(+ .tray:not(.notice, .bare)) {
+            display: none;
+        }
     }
     .summary {
         color: var(--rail-text, #e3e9ef);

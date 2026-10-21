@@ -2,8 +2,7 @@
     import { CompanyToken, DecisionResponse } from '@tabletop/18xx-ui'
     import type { EighteenThirtyTwoSession } from './session.svelte.js'
     let { session }: { session: EighteenThirtyTwoSession } = $props()
-    const companyName = (companyId: string) =>
-        session.presentation.companyNames?.[companyId]?.initials ?? companyId
+    const companyName = (companyId: string) => session.companyInitials(companyId)
     const money = (amount: number) => session.presentation.money(amount)
     const shares = (count: number) => (count === 1 ? 'share' : 'shares')
 </script>
@@ -48,9 +47,8 @@
                     >{session.getPlayerName(prompt.sellerPlayerId)} sold {prompt.shares}
                     {shares(prompt.shares)} for {money(prompt.proceeds)}. Buy {prompt.shares === 1
                         ? 'it'
-                        : 'them'} to protect the price, returning it to {money(
-                        prompt.restoredPrice
-                    )}?</span
+                        : 'them'} to keep the price at {money(prompt.price)}?{#if prompt.declinedPrice !== prompt.price}{' '}Declining
+                        drops it to {money(prompt.declinedPrice)}.{/if}</span
                 >
             </DecisionResponse>
         {:else}

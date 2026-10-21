@@ -10,7 +10,11 @@ import {
 import { EighteenThirtyTwoCompanyRules } from '../companyRules.js'
 import { EighteenThirtyTwoEarningsRules } from '../earningsRules.js'
 import { EighteenThirtyTwoEndingRules } from '../endingRules.js'
-import { EighteenThirtyTwoAuctionRules, createEighteenThirtyTwoOpening } from '../openingAuction.js'
+import {
+    EighteenThirtyTwoAuctionRules,
+    createEighteenThirtyTwoOpening,
+    eighteenThirtyTwoStartingCash
+} from '../openingAuction.js'
 import { EighteenThirtyTwoPhaseRules } from '../phaseRules.js'
 import { EighteenThirtyTwoPrivatePowerRules } from '../privatePowerRules.js'
 import { EighteenThirtyTwoPrivateRules } from '../privateRules.js'
@@ -129,6 +133,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     transferRules: EighteenThirtyTwoTransferRules,
     privatePowerRules: EighteenThirtyTwoPrivatePowerRules,
     createOpening: createEighteenThirtyTwoOpening,
+    startingCash: eighteenThirtyTwoStartingCash,
     stockRules: EighteenThirtyTwoStockRules,
     companyRules: EighteenThirtyTwoCompanyRules,
     operatingRules: EighteenThirtyTwoOperatingRules,
@@ -165,7 +170,11 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
         Merging: closesAndProtects(new MergingHandler())
     },
     titleActions: [
-        defineAction(CloseCompany, isCloseCompany, (action) => new HydratedCloseCompany(action)),
+        defineAction(
+            CloseCompany,
+            isCloseCompany,
+            (action) => new HydratedCloseCompany(action, EighteenThirtyTwoEndingRules)
+        ),
         defineAction(RedeemShare, isRedeemShare, (action) => new HydratedRedeemShare(action)),
         defineAction(
             StartMergerPhase,
@@ -193,7 +202,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
         defineAction(
             CompleteMergerPhase,
             isCompleteMergerPhase,
-            (action) => new HydratedCompleteMergerPhase(action)
+            (action) => new HydratedCompleteMergerPhase(action, EighteenThirtyTwoEndingRules)
         ),
         defineAction(
             AnswerRedemption,

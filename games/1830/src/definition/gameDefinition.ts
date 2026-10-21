@@ -1,6 +1,10 @@
 import { EighteenThirtyNames } from '../names.js'
 import { EighteenThirtyEndingRules } from '../endingRules.js'
-import { EighteenThirtyAuctionRules, createEighteenThirtyOpening } from '../openingAuction.js'
+import {
+    EighteenThirtyAuctionRules,
+    createEighteenThirtyOpening,
+    eighteenThirtyStartingCash
+} from '../openingAuction.js'
 import { EighteenThirtyTrainFundingRules } from '../trainFundingRules.js'
 import { EighteenThirtyTransferRules } from '../transferRules.js'
 import { EighteenThirtyPrivatePowerRules } from '../privatePowerRules.js'
@@ -36,6 +40,7 @@ export const EighteenThirtyTitleRules: EighteenXXTitleRules<
     privatePowerRules: EighteenThirtyPrivatePowerRules,
     outOfTurnPrivatePowers: true,
     createOpening: createEighteenThirtyOpening,
+    startingCash: eighteenThirtyStartingCash,
     stockRules: EighteenThirtyStockRules,
     companyRules: EighteenThirtyCompanyRules,
     operatingRules: EighteenThirtyOperatingRules,

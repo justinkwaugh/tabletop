@@ -1033,6 +1033,13 @@ export async function mountHistoryControls() {
     })
 }
 
+export async function mountTableLayout() {
+    const { mount } = await import('svelte')
+    await import('../../components/tests/tableLayout.fixture.css')
+    const { default: Fixture } = await import('../../components/tests/TableLayout.fixture.svelte')
+    mount(Fixture, { target: document.body, props: { session: client(new PrivateHandHost(), p1).session } })
+}
+
 export async function verifyHistoryDuringSynchronization() {
     const host = new PrivateHandHost()
     host.apply({ id: 'history-sync-draw', gameId: host.game.id, source: ActionSource.User, playerId: 'p1', type: 'draw', revealsInfo: true })

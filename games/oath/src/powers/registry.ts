@@ -62,6 +62,44 @@ export interface PlayMapChanges {
     leaving: readonly string[]
     /** Put at a site: the played card, and Land Warden's kept card before the second card. */
     arriving: readonly string[]
+    /** R-5.1.4.I — the site the card is played to: the pawn's, or the one the People's Favor or New Growth names. */
+    siteId?: string
+    /**
+     * R-7.3.3 — what the play gains before its When Played power, planned on the state before the play. Unlike the
+     * map, these are not set-like: a check adds them to the state it reads, while the resolve's state holds them.
+     */
+    gains?: PlayGains
+}
+
+/** R-7.3.3 — "Gain favor from playing to site, resolve Homeland site powers, and resolve modifiers before resolving this." */
+export interface PlayGains {
+    /** The player's own: Book of Records' secret instead of favor, a secret Homeland's (R-11.2). */
+    secrets: number
+    /**
+     * R-10.5 — the cards the play discards before its power (the card discarded first, the advisers discarded to
+     * meet the limit): their favor goes back to its bank, and their secrets to the player facedown.
+     */
+    returning: readonly string[]
+    /** Each favor bank once the play has taken its favor and the cards discarded have given theirs back. */
+    favorBank: Readonly<Record<Suit, number>>
+    /**
+     * R-5.1.4.I, R-11.2, R-9.3 — each favor this play takes before its power, the site's then a Homeland's, with
+     * what its bank gave. This play's own: unlike the rest, Land Warden's second card does not repeat the kept
+     * card's. Planned before either card's power, so the record takes what `playCard` took instead.
+     */
+    favorTaken: readonly FavorTake[]
+    /**
+     * R-7.4 — the favor a carried modifier gains once a site play is made (Welcoming Party), from the banks this
+     * plan leaves. It is gained after the power, so it is not taken from `favorBank`; a modifier gains once per
+     * action (R-7.4.2), so Land Warden's second card plans none.
+     */
+    favorAfter: number
+}
+
+/** R-9.3 — one favor a play takes from a bank, and how much the bank gave: 0 when it was empty. */
+export interface FavorTake {
+    suit: Suit
+    gained: number
 }
 
 export interface CampaignContext {
@@ -147,6 +185,8 @@ export interface ModifierHooks {
     discardFirstAtSitePlay?: boolean
     /** Book of Records — instead of R-5.1.4.I's favor. */
     sitePlayGainsSecret?: boolean
+    /** Welcoming Party — the bank its `after` gains 1 favor from once a denizen is played; read to plan it. */
+    playFavorFrom?: Suit
     /** New Growth */
     playAnywhere?: (ctx: EffectContext) => boolean
     /** Land Warden — if at least one play is to a site. */
@@ -159,6 +199,18 @@ export interface ModifierHooks {
     ) => { summary?: string; endsActPhase?: boolean; warbandOwner?: WarbandOwner } | undefined
     /** Portal */
     ignoresSitePowers?: boolean
+    /**
+     * R-11.7-H4 — Portal used from its own site, an enemy's Shrouded Wood: the Wood's "you travel to
+     * the site of the ruler's choice" is ignored with the other site powers (R-9.2-H1), so the
+     * traveller names the site. Forest Paths ignores site powers too, but keeps the ruler's pick.
+     */
+    ignoresOriginShroudedWood?: (ctx: EffectContext) => boolean
+    /**
+     * R-11.7-H2 — Hospitality, whose one choice is a favor bank matching a card at the destination:
+     * on a Travel out of an enemy's Shrouded Wood it is declared with no bank, and the bank is
+     * chosen once the ruler's pick has landed the traveller (Law 7.1.4).
+     */
+    bankChosenOnArrival?: boolean
 }
 
 /** R-7.5, R-5.5.3 */
@@ -371,7 +423,7 @@ export interface EffectDefinition {
     /** R-7.1.4 — the tolls its use owes, paid with its cost (Forced Labor on Oracle). */
     tollOccasion?: TollOccasion
     resolve: (ctx: EffectContext) => EffectResult
-    /** A copy of the state as `ctx.choices` leave it, which `sequential` choices are read on. */
+    /** The state `ctx.choices` leave, `ctx.state` unchanged: what `sequential` choices read. */
     stateAfter?: (ctx: EffectContext) => HydratedOathGameState
     /** R-7.4 — never read by the doorway. */
     modifier?: ModifierHooks

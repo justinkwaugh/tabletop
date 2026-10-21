@@ -33,6 +33,7 @@ import {
     OfferCitizenship,
     OathType,
     PlayerStatus,
+    PowerMoveKind,
     PowerQuestionKind,
     Region,
     RecoverTargetKind,
@@ -89,6 +90,17 @@ import {
     type PlayedTable
 } from './sessionHarness.js'
 import { shroudedWoodState } from './shroudedWoodTable.js'
+import {
+    FOREST_PATHS,
+    HOSPITALITY,
+    TENTS,
+    woodCardsLowState,
+    travelCard,
+    woodCardsState,
+    woodHospitalityState,
+    type WoodCardsScene
+} from './woodCardsTable.js'
+import { woodPickTable } from './woodPicksTable.js'
 import { heldAttackTable } from './heldAttackTable.js'
 import { RecordedStory } from './recordedStory.js'
 
@@ -196,6 +208,20 @@ export type TableName =
     | 'woodRuler'
     | 'woodRulerToll'
     | 'woodTollAsked'
+    | 'woodCards'
+    | 'woodCardsRuler'
+    | 'woodCardsLow'
+    | 'woodStays'
+    | 'woodHospitality'
+    | 'woodHospitalityAsked'
+    | 'woodWayStationPick'
+    | 'woodPickWhistle'
+    | 'woodPickWhistleAway'
+    | 'woodPickWhistleToll'
+    | 'woodPickHorse'
+    | 'woodPickPalanquin'
+    | 'woodPickBanish'
+    | 'horseOwnPick'
     | 'banditCrown'
     | 'banditCrownChancellor'
     | 'banditCrownExile'
@@ -309,7 +335,8 @@ const faceup = (cardId: string) => ({ cardId, faceUp: true })
  */
 function questionTable(
     question: PowerQuestion,
-    seats: { me?: Partial<Seat>; ann?: Partial<Seat> } = {}
+    seats: { me?: Partial<Seat>; ann?: Partial<Seat> } = {},
+    board: { siteCards?: Record<string, string>; oathRevision?: number } = {}
 ): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -335,7 +362,8 @@ function questionTable(
             machineState: MachineState.PowerQuestion,
             chancellorPlayerId: 'ann',
             map: allMapSlots(),
-            siteCards: fixtureSitesOnTheBoard(),
+            siteCards: { ...fixtureSitesOnTheBoard(), ...board.siteCards },
+            oathRevision: board.oathRevision,
             pendingQuestions: {
                 queue: [question],
                 askingPlayerId: 'ann',
@@ -350,6 +378,8 @@ function questionTable(
 }
 
 const asked = { askedPlayerId: 'me' } as const
+
+const HIDDEN_PLACE = 'site.the-hidden-place'
 
 /** R-7.3.3 — a Search kept Fabled Feast, whose When Played power asks for one favor bank of several. */
 function fabledFeastTable(): PlayedTable {
@@ -498,6 +528,70 @@ const QUESTION_TABLES = {
                 mapSlotsFor(Region.Hinterland)[0]
             ]
         }),
+    // R-11.13-H1 — The Hidden Place dealt to the second Cradle site, beside this seat's.
+    askFlipToTravel: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.FlipToTravel,
+                cardId: 'relic.whistle',
+                ...asked,
+                move: PowerMoveKind.Whistle,
+                powerCardId: 'relic.whistle',
+                moverPlayerId: 'ann',
+                fromSiteId: mapSlotsFor(Region.Cradle)[0],
+                siteId: mapSlotsFor(Region.Cradle)[1]
+            },
+            { ann: { relicIds: ['relic.whistle'], siteId: mapSlotsFor(Region.Cradle)[1] } },
+            { siteCards: { [mapSlotsFor(Region.Cradle)[1]]: HIDDEN_PLACE } }
+        ),
+    askBrassHorseHidden: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.TravelFreeTo,
+                cardId: 'relic.brass-horse',
+                ...asked,
+                siteIds: [mapSlotsFor(Region.Cradle)[1], mapSlotsFor(Region.Provinces)[0]]
+            },
+            { me: { relicIds: ['relic.brass-horse'] } },
+            {
+                siteCards: { [mapSlotsFor(Region.Cradle)[1]]: HIDDEN_PLACE },
+                oathRevision: CURRENT_OATH_REVISION
+            }
+        ),
+    // R-11.7-H3 — Ann picked Way Station's site for this seat's Travel out of the Shrouded Wood
+    // here, and this seat can pay the Wood's 2 Supply or give Ann the favor.
+    askWayStation: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.WayStationFavor,
+                cardId: 'denizen.nomad.way-station',
+                ...asked,
+                payeeId: 'ann',
+                chooserPlayerId: 'ann',
+                fromSiteId: mapSlotsFor(Region.Cradle)[0],
+                siteId: mapSlotsFor(Region.Cradle)[1],
+                supplyCost: 2,
+                travel: { free: false }
+            },
+            {},
+            {
+                siteCards: { [mapSlotsFor(Region.Cradle)[0]]: 'site.shrouded-wood' },
+                oathRevision: CURRENT_OATH_REVISION
+            }
+        ),
+    askHospitalityBank: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.HospitalityBank,
+                cardId: HOSPITALITY,
+                powerIndex: travelCard(HOSPITALITY).powerIndex,
+                ...asked,
+                siteId: mapSlotsFor(Region.Cradle)[1],
+                banks: [Suit.Order, Suit.Nomad]
+            },
+            {},
+            { oathRevision: CURRENT_OATH_REVISION }
+        ),
     askSneakAttack: () =>
         questionTable({
             kind: PowerQuestionKind.SneakAttack,
@@ -2591,6 +2685,9 @@ type PickerTwoScene =
     | 'pickerBanks'
     | 'pickerSalad'
     | 'pickerSaladShort'
+    | 'pickerSaladSite'
+    | 'pickerSaladSiteTwo'
+    | 'pickerSaladNoBeast'
     | 'pickerMay'
     | 'pickerMayCitizen'
     | 'pickerVault'
@@ -2606,6 +2703,16 @@ const PICKER_BANKS: Record<Suit, number> = {
     [Suit.Nomad]: 0
 }
 
+/** Salad Days played to the River takes the Hearth bank's last favor first, four banks still holding favor. */
+const SALAD_SITE_BANKS: Record<Suit, number> = {
+    [Suit.Discord]: 0,
+    [Suit.Arcane]: 3,
+    [Suit.Order]: 3,
+    [Suit.Hearth]: 1,
+    [Suit.Beast]: 3,
+    [Suit.Nomad]: 2
+}
+
 /**
  * The rest of the power pickers: discard piles, repeated banks, the "may" and the "or". Seats
  * Dana (purple), Rhys (red), Ann (blue) and Bea (yellow); Dana is the Chancellor.
@@ -2615,7 +2722,11 @@ const PICKER_BANKS: Record<Suit, number> = {
  *   banks hold Discord 2, Arcane 2, Order 4, Hearth 3, Beast 1, Nomad 0; three Beast cards are
  *   at sites, so X is 3.
  * - `pickerSalad`: Rhys searching, with Salad Days drawn beside Wolves and Tutor; the same banks.
- *   `pickerSaladShort`: only two banks hold favor.
+ *   `pickerSaladShort`: only two banks hold favor. `pickerSaladSite`: Discord 0, Arcane 3,
+ *   Order 3, Hearth 1, Beast 3, Nomad 2, so playing it to the River takes the Hearth bank's last
+ *   favor first. `pickerSaladSiteTwo`: Arcane 3, Order 3, Hearth 1, the rest empty, so after that
+ *   play only two banks hold favor. `pickerSaladNoBeast`: the Beast bank empty, so Wolves played
+ *   to the River gains no favor.
  * - `pickerMay`: Ann's turn, an Exile ruling the Mountain (2) and the Wastes (3), searching with
  *   Royal Ambitions drawn; Dana rules only the Plains (2). The Reliquary holds four relics.
  *   `pickerMayCitizen`: Ann is a Citizen.
@@ -2633,15 +2744,24 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
         pickerBanks: 'rhys',
         pickerSalad: 'rhys',
         pickerSaladShort: 'rhys',
+        pickerSaladSite: 'rhys',
+        pickerSaladSiteTwo: 'rhys',
+        pickerSaladNoBeast: 'rhys',
         pickerMay: 'ann',
         pickerMayCitizen: 'ann',
         pickerVault: 'bea',
         pickerVaultLast: 'bea',
         pickerFacedownBracken: 'rhys'
     }
-    const searching = ['pickerSalad', 'pickerSaladShort', 'pickerMay', 'pickerMayCitizen'].includes(scene)
+    const salad = [
+        'pickerSalad',
+        'pickerSaladShort',
+        'pickerSaladSite',
+        'pickerSaladSiteTwo',
+        'pickerSaladNoBeast'
+    ].includes(scene)
+    const searching = salad || scene === 'pickerMay' || scene === 'pickerMayCitizen'
     const may = scene === 'pickerMay' || scene === 'pickerMayCitizen'
-    const salad = scene === 'pickerSalad' || scene === 'pickerSaladShort'
     const vault = scene === 'pickerVault' || scene === 'pickerVaultLast'
     const seats: Record<string, Partial<OathPlayerState>> = {
         dana:
@@ -2750,7 +2870,13 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
             favorBank:
                 scene === 'pickerSaladShort'
                     ? { ...PICKER_BANKS, [Suit.Discord]: 0, [Suit.Arcane]: 0, [Suit.Beast]: 0 }
-                    : PICKER_BANKS,
+                    : scene === 'pickerSaladSite'
+                      ? SALAD_SITE_BANKS
+                      : scene === 'pickerSaladSiteTwo'
+                        ? { ...SALAD_SITE_BANKS, [Suit.Beast]: 0, [Suit.Nomad]: 0 }
+                        : scene === 'pickerSaladNoBeast'
+                          ? { ...PICKER_BANKS, [Suit.Beast]: 0 }
+                          : PICKER_BANKS,
             discardPileCounts: { cradle: 5, provinces: 3, hinterland: 8 },
             discardTopBackType: {
                 cradle: CardKind.Denizen,
@@ -3842,6 +3968,41 @@ function woodTollState(): HydratedOathGameState {
     return state
 }
 
+/** R-11.7-H2 — Dana has set out from Bea's Wood declaring `cards`; Bea picks with them counted. */
+function woodCardsRulerTable(scene: WoodCardsScene, cards: string[]): PlayedTable {
+    const table = tableOf(woodCardsState(scene))
+    return played(table, [
+        createAction(Travel, {
+            ...envelope(table),
+            playerId: 'Dana',
+            modifiers: cards.map(travelCard)
+        })
+    ])
+}
+
+/**
+ * R-11.7-H2 — Dana set out from Bea's Wood with Hospitality, and Bea picked the River: two banks
+ * match there, so Dana is asked which.
+ */
+function woodHospitalityAskedTable(): PlayedTable {
+    const table = tableOf(woodHospitalityState())
+    return played(table, [
+        createAction(Travel, {
+            ...envelope(table),
+            playerId: 'Dana',
+            modifiers: [{ ...travelCard(HOSPITALITY), choices: [] }]
+        }),
+        createAction(AnswerQuestion, {
+            ...envelope(table),
+            playerId: 'Bea',
+            answer: {
+                kind: PowerQuestionKind.ShroudedWoodDestination,
+                siteId: mapSlotsFor(Region.Provinces)[2]
+            }
+        })
+    ])
+}
+
 /** Dana has set out from Rhys's Wood; Rhys picks, the Great Slum marked with its toll. */
 function woodRulerTollTable(): PlayedTable {
     const table = tableOf(woodTollState())
@@ -4713,6 +4874,22 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,
     woodTollAsked: woodTollAskedTable,
+    woodCards: () => tableOf(woodCardsState()),
+    woodCardsRuler: () => woodCardsRulerTable({}, [TENTS, FOREST_PATHS]),
+    woodCardsLow: () => tableOf(woodCardsLowState()),
+    woodStays: () =>
+        woodCardsRulerTable({ supply: 1, favor: 1, advisers: [FOREST_PATHS] }, [FOREST_PATHS]),
+    // R-11.7-H3 — Dana set out with no card; a pick of the Great Slum asks Way Station's question.
+    woodWayStationPick: () => woodCardsRulerTable({ advisers: [] }, []),
+    woodHospitality: () => tableOf(woodHospitalityState()),
+    woodHospitalityAsked: woodHospitalityAskedTable,
+    woodPickWhistle: () => woodPickTable('whistle'),
+    woodPickWhistleAway: () => woodPickTable('whistleAway'),
+    woodPickWhistleToll: () => woodPickTable('whistleToll'),
+    woodPickHorse: () => woodPickTable('horseWood'),
+    woodPickPalanquin: () => woodPickTable('palanquin'),
+    woodPickBanish: () => woodPickTable('banish'),
+    horseOwnPick: () => woodPickTable('horseOwn'),
     tollAsked: tollAskedTable,
     oracleToll: () => oracleTable(4),
     oracleNoFavor: () => oracleTable(0),
@@ -4730,6 +4907,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     pickerBanks: () => pickerTwoTable('pickerBanks'),
     pickerSalad: () => pickerTwoTable('pickerSalad'),
     pickerSaladShort: () => pickerTwoTable('pickerSaladShort'),
+    pickerSaladSite: () => pickerTwoTable('pickerSaladSite'),
+    pickerSaladSiteTwo: () => pickerTwoTable('pickerSaladSiteTwo'),
+    pickerSaladNoBeast: () => pickerTwoTable('pickerSaladNoBeast'),
     pickerMay: () => pickerTwoTable('pickerMay'),
     pickerMayCitizen: () => pickerTwoTable('pickerMayCitizen'),
     pickerVault: () => pickerTwoTable('pickerVault'),

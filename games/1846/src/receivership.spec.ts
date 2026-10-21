@@ -15,6 +15,7 @@ import {
     RouteEvaluation,
     EarningsDistribution,
     evaluateShareSale,
+    treasuryPoolId,
     type RoutePath,
     type Owner
 } from '@tabletop/18xx'
@@ -377,7 +378,7 @@ describe('1846 bankruptcy and receivership', () => {
             )
                 continue
             certificate.owner = treasury
-            delete certificate.poolId
+            certificate.poolId = treasuryPoolId('IC')
         }
         expect(presidencyClaims(table.hydrated, claimRules, 'p2')).toEqual([])
         giveShares(table, 'IC', 'p2', 1)

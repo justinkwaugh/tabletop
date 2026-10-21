@@ -82,9 +82,12 @@ round sequence, ordering rules, token art, train capacity, or whether a roster i
 shown at all. TOP and 1889 exercise the common presentation preference; absent or
 unverified mechanisms in other profiles are not treated as family invariants.
 
-Future board-art or tile-style choices can use this same storage model. They are
-not added now, and no physical-art availability assumption is encoded. Families
-remain title-declared dependencies; shared libraries do not import games.
+`publishedArtwork` saves the published board-art toggle at title scope, not family
+scope: each title's artwork is its own, so turning it on in TOP leaves other 18xx
+titles generic. A title without artwork ignores the saved value, so no
+physical-art availability assumption is encoded. Future tile-style choices can use
+this same storage model. Families remain title-declared dependencies; shared
+libraries do not import games.
 
 ## Verification
 

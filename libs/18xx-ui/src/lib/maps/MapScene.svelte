@@ -873,8 +873,9 @@
 </svg>
 
 <style>
+    /* No grayscale: WebKit ignores CSS filter functions on SVG elements, and players
+       preferred the faded colours it shows. */
     .reserved-token {
-        filter: grayscale(1);
         opacity: 0.4;
     }
     .map-scene {

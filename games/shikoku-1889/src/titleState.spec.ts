@@ -84,6 +84,7 @@ function offersCharterPetition(family: CharterHandler): CharterHandler {
 const CharterRules: EighteenXXTitleRules<typeof CharterState, HydratedCharterState> = {
     ...Shikoku1889TitleRules,
     state: CharterStateDefinition,
+    canonicalState: undefined,
     createOpening: (setup) => ({
         position: Shikoku1889TitleRules.createOpening(setup).position,
         begin: beginWaterfallAuction(Shikoku1889AuctionRules, setup.startingPositions),

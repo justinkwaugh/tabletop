@@ -1,9 +1,21 @@
 <script lang="ts">
-    import { LOGO_ORIGIN } from '$lib/utils/boardLayout.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { boardLayout } from '$lib/utils/boardLayout.js'
+    import { Flag, editionStyle } from '$lib/utils/editionStyle.js'
+
+    const gameSession = getGameSession()
+
+    const origin = $derived(boardLayout(gameSession.gameState.editionId).logo)
+    const style = $derived(editionStyle(gameSession.gameState.editionId))
 
     const RAIL =
         'M -26 8 Q -26 0 -18 0 L 18 0 Q 26 0 26 8 L 26 30 Q 26 38 16 40 Q 9 42 9 52 L 9 118 Q 9 128 22 130 L 64 134 Q 70 135 70 140 L 70 146 L -70 146 L -70 140 Q -70 135 -64 134 L -22 130 Q -9 128 -9 118 L -9 52 Q -9 42 -16 40 Q -26 38 -26 30 Z'
-    const FLAG = ['#111111', '#f4f0d8', '#c8202a']
+    const GERMAN_STRIPES = ['#111111', '#f4f0d8', '#c8202a']
+    const US_STRIPES = Array.from({ length: 7 }, (_, index) => index)
+    const US_STARS = Array.from({ length: 12 }, (_, index) => ({
+        x: -14.5 + (index % 4) * 3.4,
+        y: 10.3 + Math.floor(index / 4) * 3.4
+    }))
 
     // The cover's track underline: two thin rails over ties, as wide as the word.
     const NAME_WIDTH = 178
@@ -16,11 +28,27 @@
     )
 </script>
 
-<g transform="translate({LOGO_ORIGIN.x} {LOGO_ORIGIN.y})" role="img" aria-label="Railheads Germany">
+<g transform="translate({origin.x} {origin.y})" role="img" aria-label="Railheads {style.title}">
     <path d={RAIL} class="rail" />
-    {#each FLAG as color, index (color)}
-        <rect x="-16" y={8 + index * 8} width="32" height="8" fill={color} />
-    {/each}
+    {#if style.flag === Flag.Germany}
+        {#each GERMAN_STRIPES as color, index (color)}
+            <rect x="-16" y={8 + index * 8} width="32" height="8" fill={color} />
+        {/each}
+    {:else}
+        {#each US_STRIPES as stripe (stripe)}
+            <rect
+                x="-16"
+                y={8 + (stripe * 24) / 7}
+                width="32"
+                height={24 / 7}
+                fill={stripe % 2 === 0 ? '#c8202a' : '#f4f0d8'}
+            />
+        {/each}
+        <rect x="-16" y="8" width="14" height={(24 * 4) / 7} fill="#2c3f8a" />
+        {#each US_STARS as star, index (index)}
+            <circle cx={star.x + 0.5} cy={star.y} r="0.8" fill="#f4f0d8" />
+        {/each}
+    {/if}
     <rect x="-16" y="8" width="32" height="24" class="flag-edge" />
     <text y="91" textLength={NAME_WIDTH} lengthAdjust="spacingAndGlyphs" class="name edge"
         >Railheads</text
@@ -40,7 +68,8 @@
             height="0.9"
         />
     </g>
-    <text y="124" class="edition">Germany</text>
+    <text y="124" class="edition" style:stroke={style.titleStroke}>{style.title}</text>
+    <text y="143.2" class="designer">By Pontus Nilsson</text>
 </g>
 
 <style>
@@ -85,8 +114,13 @@
 
     .edition {
         fill: #ffffff;
-        stroke: #3c5816;
         stroke-width: 6px;
         font-size: 25px;
+    }
+
+    .designer {
+        fill: #f4f0d8;
+        font-size: 8.5px;
+        letter-spacing: 0.04em;
     }
 </style>

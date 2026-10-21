@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/santiago-ui",
-    "version": "3.9.0",
+    "version": "3.10.0",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",

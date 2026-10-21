@@ -1,6 +1,7 @@
+import { installTitleScope } from '../runtime/titleScope.js'
+import { installManifestRefresh } from '../runtime/manifestRefresh.js'
 import RequestTimingsPlugin from './plugins/requestTimings.js'
 import { STATIC_ROOT } from '@tabletop/backend-services'
-import { measure } from '@tabletop/backend-services/diagnostics'
 import { assertExists } from '@tabletop/common'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
@@ -23,7 +24,6 @@ import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
-import type { ReplacementRequest } from '../runtime/replacementRequest.js'
 
 const __dirname = import.meta.dirname
 
@@ -43,7 +43,6 @@ const SESSION_KEY = process.env['SESSION_KEY']
 
 export interface AppOptions {
     prefix?: string
-    replacement: Pick<ReplacementRequest, 'request' | 'outcome'>
 }
 
 async function frontendVersion(fastify: FastifyInstance): Promise<string> {
@@ -164,26 +163,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin)
     await fastify.register(ServicesPlugin)
+    installTitleScope(fastify)
 
-    if (service !== 'local') {
-        fastify.addHook('onRequest', async (request, _reply) => {
-            const path = request.url.split('?')[0]
-            if (!path.startsWith(API_PREFIX) && !path.startsWith(TASKS_PREFIX)) {
-                return
-            }
-            try {
-                await measure('manifest.refresh', () => fastify.libraryService.refreshManifest())
-            } catch (error) {
-                console.warn('Unable to refresh manifest', error)
-            }
-        })
-    }
-
-    const unsubscribeManifest = fastify.libraryService.onManifestMismatch(() => {
-        console.log('Manifest mismatch detected, replacing backend process...')
-        opts.replacement.request()
-    })
-    fastify.addHook('onClose', async () => unsubscribeManifest())
+    if (service !== 'local') installManifestRefresh(fastify, [API_PREFIX, TASKS_PREFIX])
 
     await fastify.register(GamesPlugin, { prefix: API_PREFIX })
 

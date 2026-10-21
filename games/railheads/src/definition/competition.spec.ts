@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GameEngine, assert, validateGameResult } from '@tabletop/common'
+import { EditionId } from '../editions/types.js'
 import { RailheadsGameStateValidator, type RailheadsProjectedState } from '../model/gameState.js'
 import { botAction, createGame } from '../testing/bot.js'
 import { RailheadsRuntime } from './runtime.js'
@@ -43,7 +44,11 @@ describe.each([
     [3, {}],
     [4, {}],
     [5, {}],
-    [4, { offTheRails: true }]
+    [4, { offTheRails: true }],
+    [3, { edition: EditionId.Midwest }],
+    [4, { edition: EditionId.Midwest }],
+    [5, { edition: EditionId.Midwest }],
+    [4, { edition: EditionId.Midwest, offTheRails: true }]
 ])('Railheads tournaments with %i players and %o', (count, config) => {
     it('opens the first auction with seat one and bids in the assigned order', () => {
         const game = createGame(count, config)

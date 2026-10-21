@@ -1,5 +1,6 @@
 import { defineAction, type ActionDefinition } from '../actions/actionDefinition.js'
 import type { StockRules } from './stockRules.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
 import { StartStockRound, HydratedStartStockRound, isStartStockRound } from './startStockRound.js'
 import {
     CompleteStockRound,
@@ -33,7 +34,10 @@ import {
     isStopStockInstruction
 } from './stopStockInstruction.js'
 
-export function stockActions(rules: StockRules): ActionDefinition[] {
+export function stockActions(
+    rules: StockRules,
+    valuationRules: ValuationRules
+): ActionDefinition[] {
     return [
         defineAction(
             StartStockRound,
@@ -43,7 +47,8 @@ export function stockActions(rules: StockRules): ActionDefinition[] {
         defineAction(
             CompleteStockRound,
             isCompleteStockRound,
-            (action) => new HydratedCompleteStockRound(action, rules.round, rules.market)
+            (action) =>
+                new HydratedCompleteStockRound(action, rules.round, rules.market, valuationRules)
         ),
         defineAction(BuyShares, isBuyShares, (action) => new HydratedBuyShares(action, rules)),
         defineAction(SellShares, isSellShares, (action) => new HydratedSellShares(action, rules)),

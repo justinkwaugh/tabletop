@@ -74,6 +74,12 @@ export const CertificatePool = Type.Object(
 )
 export type CertificatePool = Type.Static<typeof CertificatePool>
 
+export const treasuryPoolId = (companyId: string) => `treasury:${companyId}`
+export const isTreasuryPoolId = (poolId: string) => poolId.startsWith('treasury:')
+export function treasuryPool(companyId: string): CertificatePool {
+    return { id: treasuryPoolId(companyId), owner: { kind: 'company', companyId } }
+}
+
 const CertificateFields = {
     id: Id,
     companyId: Id

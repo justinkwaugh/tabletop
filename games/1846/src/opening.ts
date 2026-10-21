@@ -10,9 +10,12 @@ import {
     beginOpening,
     createOrdinaryShareCertificates,
     createCompanyStations,
+    treasuryPool,
+    treasuryPoolId,
     type InitialPosition,
     type Opening,
     type OpeningSetup,
+    type StartingCashSetup,
     type Station
 } from '@tabletop/18xx'
 import { BlockingStationLocations } from './stations.js'
@@ -46,9 +49,18 @@ function seatPlayers(
     })
 }
 
-export function createOpening1846({ players, prng, startingPositions }: OpeningSetup): Opening1846 {
+export function startingCash1846({ playerCount }: StartingCashSetup): number {
+    return playerCount === 2 ? 600 : 400
+}
+export function createOpening1846({
+    players,
+    prng,
+    config,
+    startingPositions
+}: OpeningSetup): Opening1846 {
     const count = players.length
     assert(count >= 2 && count <= 5, '1846 supports two through five players')
+    const capital = startingCash1846({ playerCount: count, config })
     const random = prng.random
     const seating = seatPlayers(players, random, startingPositions)
     const removedPrivateIds = ['orange', 'blue'].flatMap((group) => {
@@ -74,7 +86,10 @@ export function createOpening1846({ players, prng, startingPositions }: OpeningS
     const majors = Corporations.filter((company) => !removedCorporationIds.includes(company.id))
     const certificates: EighteenFortySixState['certificates'] = [
         ...majors.flatMap((company) => {
-            const treasury = { owner: { kind: 'company' as const, companyId: company.id } }
+            const treasury = {
+                owner: { kind: 'company' as const, companyId: company.id },
+                poolId: treasuryPoolId(company.id)
+            }
             return createOrdinaryShareCertificates(
                 company.id,
                 Array.from({ length: 8 }, () => treasury),
@@ -135,15 +150,18 @@ export function createOpening1846({ players, prng, startingPositions }: OpeningS
                 kind: company.kind === 'independent' ? 'minor' : 'private'
             }))
         ],
-        certificatePools: [{ id: 'open-market', owner: { kind: 'bank' } }],
+        certificatePools: [
+            { id: 'open-market', owner: { kind: 'bank' } },
+            ...majors.map((company) => treasuryPool(company.id))
+        ],
         cash: [
             {
                 owner: { kind: 'bank' },
-                amount: BankSize[count] - count * (count === 2 ? 600 : 400)
+                amount: BankSize[count] - count * capital
             },
             ...players.map((player) => ({
                 owner: { kind: 'player' as const, playerId: player.playerId },
-                amount: count === 2 ? 600 : 400
+                amount: capital
             })),
             ...[...majors, ...independents].map((company) => ({
                 owner: { kind: 'company' as const, companyId: company.id },

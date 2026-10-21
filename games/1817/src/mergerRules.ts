@@ -21,6 +21,7 @@ import {
     sharesOwned,
     transferCompanyAssets,
     trainsOwnedBy,
+    treasuryPoolId,
     type AssetTransfer,
     type CashPayment,
     type Owner,
@@ -34,7 +35,7 @@ import { corporationShareCount } from './corporations.js'
 import { closingZone, inClosingZone } from './marketZones.js'
 import type { ClosingZone } from './state.js'
 import { isLiquidated } from './liquidation.js'
-import { MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { MarketPoolId } from './roundRules.js'
 import { StationPrice } from './stockRules.js'
 import { EighteenSeventeenTrainRules } from './trains.js'
 import { StationSubsidyId, companyHolding } from './privateHolders.js'

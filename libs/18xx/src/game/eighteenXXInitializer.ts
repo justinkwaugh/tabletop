@@ -7,6 +7,7 @@ import {
     Color,
     HydratedTurnManager,
     Prng,
+    assert,
     validateStartingPositionAssignment
 } from '@tabletop/common'
 import type * as Type from 'typebox'
@@ -32,6 +33,7 @@ export type EighteenXXInitializerRules<
     | 'state'
     | 'phases'
     | 'createOpening'
+    | 'startingCash'
     | 'trackRules'
     | 'stationRules'
     | 'routeRules'
@@ -74,6 +76,20 @@ export class EighteenXXInitializer<
             config: game.config,
             startingPositions
         })
+        const startingCash = this.rules.startingCash({
+            playerCount: players.length,
+            config: game.config
+        })
+        for (const { playerId } of players)
+            assert(
+                opening.position.cash.some(
+                    ({ owner, amount }) =>
+                        owner.kind === 'player' &&
+                        owner.playerId === playerId &&
+                        amount === startingCash
+                ),
+                'The opening gives every player the title’s starting cash'
+            )
         const initialized = this.createInitialState(game, state, {
             stockRoundNumber: 1,
             position: opening.position,

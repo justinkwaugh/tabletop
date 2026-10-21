@@ -30,7 +30,7 @@
         {money}
         phaseColors={session.presentation.phaseColors}
         token={session.privateCompanyTokens[company.id]}
-        name={session.companyName(company.id)}
+        name={session.companyFullName(company.id)}
         description=""
         income={currentPrivateRevenue(session.gameState, session.charters, company.id)}
         {purchaseRange}

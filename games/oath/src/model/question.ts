@@ -170,7 +170,24 @@ export enum PowerQuestionKind {
      * adviser limit: they discard down to it, never a card the swap gave them (R-7.6.4). An
      * exchange that leaves a player over their limit asks the same (R-10.8).
      */
-    DiscardAdvisers = 'discardAdvisers'
+    DiscardAdvisers = 'discardAdvisers',
+    /**
+     * The Hidden Place, the Buried Giant (revision 15) — a power moves the asked player to a site
+     * they reach only by flipping a faceup secret facedown: flip and travel, or stay (R-11.13-H1).
+     */
+    FlipToTravel = 'flipToTravel',
+    /**
+     * Way Station (revision 15) — the Shrouded Wood's ruler sent the asked player's Travel to its
+     * site, and they can both pay the Supply and give its ruler a favor: give it and spend no
+     * Supply, or pay the Supply; either way they travel (R-11.7-H3).
+     */
+    WayStationFavor = 'wayStationFavor',
+    /**
+     * Hospitality (revision 15) — declared on a Travel out of an enemy's Shrouded Wood, it names no
+     * bank; once the ruler's pick has landed the asked player, two or more banks match: they choose
+     * the one they gain from (R-11.7-H2).
+     */
+    HospitalityBank = 'hospitalityBank'
 }
 
 /** Deed Writer — a site changing hands. */
@@ -208,11 +225,41 @@ export const ExchangeTerms = Type.Object({
     fromCounterparty: Type.Optional(ExchangeTransfer)
 })
 
+/**
+ * R-11.7-H2 — a card declared on a Travel out of an enemy's Shrouded Wood. No choice rides it:
+ * Hospitality's bank is chosen once the pick has landed the traveller, and any other card that asks
+ * a choice is refused there, as its choice depends on the site.
+ */
+export type WoodTravelCard = Type.Static<typeof WoodTravelCard>
+export const WoodTravelCard = Type.Object({
+    cardId: Type.String(),
+    powerIndex: Type.Integer({ minimum: 0, maximum: 9 })
+})
+
 /** R-11.7 — the traveller's own Travel, which pays when the Shrouded Wood's ruler names the site. */
 export type ShroudedWoodTravel = Type.Static<typeof ShroudedWoodTravel>
 export const ShroudedWoodTravel = Type.Object({
     /** Second Wind, Brass Horse — the Travel spends no Supply wherever it goes. */
-    free: Type.Boolean()
+    free: Type.Boolean(),
+    /**
+     * R-11.7-H2 (revision 15) — the optional cards declared at the Travel's start, already paid; each
+     * counts only for a pick that meets its condition. Public, as a Travel's declared cards are.
+     */
+    modifiers: Type.Optional(Type.Array(WoodTravelCard, { maxItems: 8 }))
+})
+
+/**
+ * R-11.7-H1 (revision 15) — the power that moves a pawn out of an enemy's Shrouded Wood, whose
+ * ruler then picks the site: the Whistle (any site the pawn can travel to) or the Brass Horse
+ * (only among the sites its revealed suit allows).
+ */
+export type ShroudedWoodPower = Type.Static<typeof ShroudedWoodPower>
+export const ShroudedWoodPower = Type.Object({
+    powerCardId: Type.String(),
+    /** Whistle — its secret goes to the pawn only at its user's site. */
+    userPlayerId: Type.String(),
+    /** Brass Horse — the sites the ruler may pick among; absent, any site the pawn can travel to. */
+    siteIds: Type.Optional(Type.Array(Type.String(), { maxItems: 8 }))
 })
 
 /** R-11.7 — what the ruler's pick settled for the traveller's Travel. */
@@ -225,7 +272,18 @@ export const ShroudedWoodPick = Type.Object({
     /** R-7.4 (Tyrant), R-7.1.4 (Grasping Vines, Boiling Lake) */
     notes: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
     /** R-10.13 — whose warband Tyrant killed. */
-    warbandOwner: Type.Optional(WarbandOwner)
+    warbandOwner: Type.Optional(WarbandOwner),
+    /** R-11.7-H3 — the ruler who picked, when the traveller's own Way Station answer settles the pick. */
+    chooserPlayerId: Type.Optional(Type.String()),
+    /** R-11.7-H2 — the declared cards that set the price of this pick (Tents, Forest Paths), when any did. */
+    pricedBy: Type.Optional(Type.Array(Type.String(), { maxItems: 8 }))
+})
+
+/** R-11.7-H2 — the ruler kept the traveller at the Shrouded Wood their Travel set out from. */
+export type ShroudedWoodStay = Type.Static<typeof ShroudedWoodStay>
+export const ShroudedWoodStay = Type.Object({
+    travelerPlayerId: Type.String(),
+    siteId: Type.String()
 })
 
 /** Dragonskin Drum — the warbands an answer put on its player's board, and whose they are (R-10.13). */
@@ -378,7 +436,9 @@ export const PowerQuestion = Type.Union([
         travelerPlayerId: Type.String(),
         fromSiteId: Type.String(),
         /** Absent when a power moves the pawn, and in a game created before `UiBatch1`. */
-        travel: Type.Optional(ShroudedWoodTravel)
+        travel: Type.Optional(ShroudedWoodTravel),
+        /** The Whistle or the Brass Horse moved the pawn (revision 15). */
+        power: Type.Optional(ShroudedWoodPower)
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.OrderDiscards),
@@ -402,7 +462,11 @@ export const PowerQuestion = Type.Union([
         /** R-5.5.7.III — the attacker's burn, which waits on the answer. */
         burnFavor: Type.Optional(Type.Boolean()),
         /** R-11.7 — the traveller's own Travel out of the Shrouded Wood, which pays its Supply once the toll is paid. */
-        travel: Type.Optional(ShroudedWoodTravel)
+        travel: Type.Optional(ShroudedWoodTravel),
+        /** R-11.7-H1 — the power whose move the Shrouded Wood's ruler redirected. */
+        power: Type.Optional(ShroudedWoodPower),
+        /** R-11.13-H1 — the secret the asked player chose to flip, flipped once the toll is paid. */
+        flipSecret: Type.Optional(Type.Boolean())
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
@@ -415,6 +479,47 @@ export const PowerQuestion = Type.Union([
         kind: Type.Literal(PowerQuestionKind.DragonskinDrum),
         cardId: Type.String(),
         askedPlayerId: Type.String()
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.FlipToTravel),
+        /** The power's card; for a banish, the site whose rule asks: The Hidden Place, or the Buried Giant left. */
+        cardId: Type.String(),
+        askedPlayerId: Type.String(),
+        move: Type.Enum(PowerMoveKind),
+        /** The Whistle or Palanquin; absent for a banish. */
+        powerCardId: Type.Optional(Type.String()),
+        moverPlayerId: Type.String(),
+        fromSiteId: Type.String(),
+        siteId: Type.String()
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.WayStationFavor),
+        /** Way Station. */
+        cardId: Type.String(),
+        /** The traveller. */
+        askedPlayerId: Type.String(),
+        /** Absent: the bandits rule Way Station, so the favor is burned (R-10.3-H1). */
+        payeeId: Type.Optional(Type.String()),
+        /** The Shrouded Wood's ruler, who picked the site. */
+        chooserPlayerId: Type.String(),
+        fromSiteId: Type.String(),
+        siteId: Type.String(),
+        /** What the other answer spends: the Wood's price for this site, the cards counted. */
+        supplyCost: Type.Number(),
+        travel: ShroudedWoodTravel
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.HospitalityBank),
+        /** Hospitality. */
+        cardId: Type.String(),
+        powerIndex: Type.Integer({ minimum: 0, maximum: 9 }),
+        /** The traveller, at the site the Shrouded Wood's ruler picked. */
+        askedPlayerId: Type.String(),
+        siteId: Type.String(),
+        /** The banks that match a card at the site and one of their advisers, and hold favor. */
+        banks: Type.Array(Type.Enum(Suit), { maxItems: 6 }),
+        /** A declared Special Envoy: the Act Phase ends once the bank is answered. */
+        endsActPhase: Type.Optional(Type.Literal(true))
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
@@ -472,7 +577,12 @@ export const QuestionAnswer = Type.Union([
             Visibility.protect(Type.String(), { policy: Visibility.Policy.Actor })
         )
     }),
-    Type.Object({ kind: Type.Literal(PowerQuestionKind.TravelFreeTo), siteId: Type.String() }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.TravelFreeTo),
+        siteId: Type.String(),
+        /** R-11.13-H1 — a faceup secret flipped facedown, for a site that asks for one. */
+        flipSecret: Type.Optional(Type.Boolean())
+    }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.RerollDice), reroll: Type.Boolean() }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.PlayOrDiscardVision),
@@ -497,9 +607,11 @@ export const QuestionAnswer = Type.Union([
         kind: Type.Literal(PowerQuestionKind.OrderDrawnCards),
         order: Type.Array(Type.Number(), { maxItems: 16 })
     }),
+    /** The site picked; or, R-11.7-H2 (revision 15), `stay`: the ruler keeps the traveller in place. */
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.ShroudedWoodDestination),
-        siteId: Type.String()
+        siteId: Type.Optional(Type.String()),
+        stay: Type.Optional(Type.Literal(true))
     }),
     /** Positions in the question's `cardIds`, first discarded first, so the last lies on top. */
     Type.Object({
@@ -513,6 +625,11 @@ export const QuestionAnswer = Type.Union([
         take: Type.Literal(false)
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.DragonskinDrum), gain: Type.Boolean() }),
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.FlipToTravel), flip: Type.Boolean() }),
+    /** `give`: the favor to Way Station's ruler and no Supply; otherwise the Supply. Both travel. */
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.WayStationFavor), give: Type.Boolean() }),
+    /** The bank Hospitality gains from: one of the question's `banks`. */
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.HospitalityBank), suit: Type.Enum(Suit) }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** R-10.5 — in the order they go down, the last on top; a facedown one is named to its holder alone. */

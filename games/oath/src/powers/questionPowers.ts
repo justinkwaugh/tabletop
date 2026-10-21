@@ -16,7 +16,7 @@ import {
     TINKERS_FAIR_ALLOWS
 } from '../util/exchange.js'
 import { registerEffect, registerPersistent, type EffectDefinition, chosen } from './registry.js'
-import { otherPlayersAtYourSite, pawnSiteId } from './vocabulary.js'
+import { otherPlayersAtYourSite, pawnSiteId, siteOfPlayedCard } from './vocabulary.js'
 import { reasonPersistentForbidsRelicTake } from '../util/persistent.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 
@@ -187,9 +187,14 @@ const GATHERING = 'denizen.nomad.the-gathering'
 registerEffect(GATHERING, powerIndexOf(GATHERING, PowerTiming.WhenPlayed), {
     choices: [],
     resolve: (ctx) => {
-        const siteId = pawnSiteId(ctx.state, ctx.playerId)
+        // "This site": where it was played, which the People's Favor may make another site.
+        const siteId = siteOfPlayedCard(ctx.state, ctx.playerId, GATHERING)
+        // R-7.6.3-H3 — "any players": its player too, when their pawn is elsewhere. Before revision 16, never.
+        const asksItsPlayer =
+            isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes12) &&
+            pawnSiteId(ctx.state, ctx.playerId) !== siteId
         for (const playerId of gatheringTurnOrder(ctx.state, ctx.playerId)) {
-            if (playerId === ctx.playerId) continue
+            if (playerId === ctx.playerId && !asksItsPlayer) continue
             askQuestion(ctx.state, ctx.playerId, {
                 kind: PowerQuestionKind.JoinSite,
                 cardId: GATHERING,

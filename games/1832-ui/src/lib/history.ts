@@ -21,8 +21,10 @@ import {
     isPlaceRevenueToken,
     isRecordMiamiRun,
     isTakeLondonShare,
-    EighteenThirtyTwoMap
+    EighteenThirtyTwoMap,
+    EighteenThirtyTwoMarket
 } from '@tabletop/1832'
+import type { StockMarketMove } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import type { HistoryDescription, HistoryNames, MoneyFormat } from '@tabletop/18xx-ui'
 import { redemptionHolderName } from './companyShareFacts.js'
@@ -33,6 +35,29 @@ const TokenNames = { port: 'Port', cotton: 'Cotton', 'key-west': 'Key West' } as
 const placeName = (locationId: string) =>
     EighteenThirtyTwoMap.definition.locations.find((location) => location.id === locationId)
         ?.name ?? locationId
+
+/** Each price that fell, naming its company unless it is the row's own and falls alone. */
+function marketMoveDetail(
+    moves: readonly StockMarketMove[] | undefined,
+    companyName: (id: string) => string,
+    money: MoneyFormat,
+    rowCompanyId?: string
+): string | undefined {
+    const price = (spaceId: string) => money(EighteenThirtyTwoMarket.space(spaceId).price)
+    const fell = moves?.filter((move) => move.fromMarketSpaceId !== move.toMarketSpaceId) ?? []
+    const label = (companyId: string) =>
+        fell.length === 1 && companyId === rowCompanyId
+            ? 'Market'
+            : `${companyName(companyId)} market`
+    return (
+        fell
+            .map(
+                (move) =>
+                    `${label(move.companyId)} ${price(move.fromMarketSpaceId)} → ${price(move.toMarketSpaceId)}`
+            )
+            .join(' · ') || undefined
+    )
+}
 
 export function describe1832Action(
     action: GameAction,
@@ -151,13 +176,28 @@ export function describe1832Action(
             text: action.metadata
                 ? `protected the ${companyName(action.companyId)} price, buying the ${action.metadata.shares} ${action.metadata.shares === 1 ? 'share' : 'shares'} sold`
                 : `protected the ${companyName(action.companyId)} price`,
-            ...(action.metadata ? { value: money(action.metadata.payment.amount) } : {})
+            ...(action.metadata ? { value: money(action.metadata.payment.amount) } : {}),
+            detail: marketMoveDetail(action.metadata?.marketMoves, companyName, money)
         }
     if (isDeclineProtection(action))
-        return { text: `declined to protect the ${companyName(action.companyId)} price` }
+        return {
+            text: `declined to protect the ${companyName(action.companyId)} price`,
+            detail: marketMoveDetail(
+                action.metadata?.marketMoves,
+                companyName,
+                money,
+                action.companyId
+            )
+        }
     if (isCompletePriceProtection(action) && action.metadata?.nextPlayerId)
         return {
             text: 'Play resumed to the left of the last protecting president',
+            omitActor: true
+        }
+    if (isStartPriceProtection(action) && action.metadata?.marketMoves)
+        return {
+            text: 'Sales no president could protect reached the market',
+            detail: marketMoveDetail(action.metadata.marketMoves, companyName, money),
             omitActor: true
         }
     if (isStartPriceProtection(action) || isCompletePriceProtection(action))

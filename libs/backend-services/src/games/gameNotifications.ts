@@ -27,6 +27,7 @@ import {
     createUndoResultsRepresentationForPerspective
 } from './gameRepresentation.js'
 import { gameTopic, userTopic } from '../notifications/topics.js'
+import type { ProjectedHistoryCache } from './projectedHistoryCache.js'
 
 type NotificationSender = Pick<NotificationService, 'sendNotification'>
 
@@ -49,7 +50,8 @@ export async function publishActionResults({
     priorState,
     runtime,
     visibility: registeredVisibility,
-    notificationService
+    notificationService,
+    projectedHistory
 }: {
     game: Game
     result: ActionCascadeResult
@@ -58,6 +60,7 @@ export async function publishActionResults({
     runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     notificationService: NotificationSender
+    projectedHistory?: { cache: ProjectedHistoryCache; logicVersion: string }
 }): Promise<void> {
     const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (game.hotseat || visibility === undefined) {
@@ -97,6 +100,10 @@ export async function publishActionResults({
             notificationService,
             topics: [topic]
         })
+        await projectedHistory?.cache.append(
+            { gameId: game.id, perspective, logicVersion: projectedHistory.logicVersion },
+            representation.actions
+        )
     }
 
     await publishForGamePerspectives({ game, publishForPerspective })

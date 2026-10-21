@@ -134,7 +134,7 @@ const loginWithCredentials = async (
     return cookie
 }
 
-const BackendReplacements = ['none', 'superseded', 'replacement-failed'] as const
+const BackendReplacements = ['none', 'activated', 'superseded', 'replacement-failed'] as const
 export type BackendReplacement = (typeof BackendReplacements)[number]
 
 const isBackendReplacement = (value: unknown): value is BackendReplacement =>
@@ -185,7 +185,14 @@ export const invalidateBackendManifestCache = async (
         throw new Error(`manifest invalidate ${response.status} ${response.statusText}`)
     }
     const body: unknown = await response.json()
-    // Undefined from a backend that does not hold the call open for its replacement.
+    if (
+        typeof body === 'object' &&
+        body !== null &&
+        'activation' in body &&
+        body.activation === 'complete'
+    ) {
+        return 'activated'
+    }
     return typeof body === 'object' &&
         body !== null &&
         'replacement' in body &&

@@ -15,7 +15,8 @@
         /** The card the question is about, small beside the line; a tap or its magnifier enlarges it. */
         cardId?: string
         line: Snippet
-        children: Snippet
+        /** The answers; none when the answer is a tap on the lit map (the Brass Horse's sites). */
+        children?: Snippet
     } = $props()
 
     // The small card keeps its own shape: an upright card 40 px wide, and a wide one (a Vision's
@@ -38,6 +39,6 @@
     {/if}
     <div class="min-w-0 grow">
         <p class="question-line mb-2 text-base">{@render line()}</p>
-        {@render children()}
+        {@render children?.()}
     </div>
 </div>

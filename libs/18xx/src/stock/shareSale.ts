@@ -120,6 +120,7 @@ export function evaluateShareSale(
         market: rules.market,
         charters: rules.charters,
         presidencyCandidates: rules.presidencyCandidates,
+        holdsMarketMove: rules.holdsMarketMove,
         saleTerms(projected, companyId, shares, seller) {
             const terms = rules.saleTerms(projected, companyId, previous.shares + shares, seller)
             if (typeof terms === 'string') return terms
@@ -148,6 +149,7 @@ export function evaluateShareDisposal(
         | 'saleTerms'
         | 'presidencyCandidates'
         | 'presidencyExchangeLargestFirst'
+        | 'holdsMarketMove'
     >
 ): ShareSaleResult {
     if (!sales.length || new Set(sales.map((sale) => sale.companyId)).size !== sales.length)
@@ -217,7 +219,9 @@ export function evaluateShareDisposal(
             ...(presidency.change ? { presidency: presidency.change } : {})
         }
         transferSaleCertificates(projected, settlement)
-        placeStockMarker(projected.stockMarket, company.id, to.id)
+        if (rules.holdsMarketMove?.(projected, settlement, seller))
+            settlement.toMarketSpaceId = from.id
+        placeStockMarker(projected.stockMarket, company.id, settlement.toMarketSpaceId)
         settlements.push(settlement)
         payments.push({ from: terms.payer, to: seller, amount: proceeds })
     }

@@ -114,6 +114,14 @@ export function ownerName(owner: Owner, names: HistoryNames): string {
           : names.companyName(owner.companyId)
 }
 
+/** A player's row after their name: a leading verb in lower case, a leading company name as written. */
+export function afterPlayerName(text: string, companyLabels: readonly string[]): string {
+    const startsWithCompany = companyLabels.some(
+        (label) => text.startsWith(label) && !/\p{L}/u.test(text.charAt(label.length))
+    )
+    return startsWithCompany ? text : text.charAt(0).toLowerCase() + text.slice(1)
+}
+
 /** Joins a row's details, leaving out those it lacks. */
 export function joinDetails(...details: (string | undefined)[]): string | undefined {
     return details.filter(Boolean).join(' · ') || undefined
@@ -438,14 +446,18 @@ function describeShared(
                     .join(' · ') || undefined
         }
     }
-    if (isStartCompany(action))
+    if (isStartCompany(action)) {
+        const details = action.metadata
         return {
-            text: `Started ${companyName(action.companyId)} for ${money(action.expectedPrice)}`,
-            detail: action.metadata
-                ? `${action.metadata.shares} shares · Par ${action.metadata.parPrice}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
-                : undefined,
+            text: `Started ${companyName(action.companyId)} at ${money(marketPrice(action.marketSpaceId))} par`,
+            detail: joinDetails(
+                details && `${details.shares} shares`,
+                money(action.expectedPrice),
+                details?.presidency && presidency(details.presidency)
+            ),
             important: true
         }
+    }
     if (isParCompany(action))
         return {
             text: `Set ${companyName(action.companyId)}’s par at ${money(marketPrice(action.marketSpaceId))}`,

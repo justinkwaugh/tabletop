@@ -44,6 +44,15 @@ export class GameCacheKeys {
         return `finished-games-stats-${userId}`
     }
 
+    static projectedHistory(
+        gameId: string,
+        perspective: string,
+        logicVersion: string,
+        recordFormat: number
+    ): string {
+        return `projected-history-${gameId}:${perspective}:${logicVersion}:${recordFormat}`
+    }
+
     static chatRevision(gameId: string): string {
         return `etag-${gameId}-chat`
     }

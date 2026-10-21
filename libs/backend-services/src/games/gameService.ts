@@ -1,6 +1,8 @@
+import { lookupTitle, lookupTitles, type TitleLookup } from './titleLookup.js'
 import { enqueueTournamentTask } from '../competitions/tournamentTasks.js'
 import { watchTournamentGame } from '../competitions/tournamentStalls.js'
 import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
+import type { ProjectedHistoryCache } from './projectedHistoryCache.js'
 import {
     GameCreationOptions,
     deriveGameSeeds,
@@ -113,6 +115,7 @@ import {
     createActionResultsRepresentation,
     createGameRepresentation,
     createGameRepresentationEtag,
+    historyProjection,
     createGameSyncRepresentation,
     createUndoResultsRepresentation,
     type ActionResultsRepresentation,
@@ -167,15 +170,16 @@ export class GameService {
         private readonly taskService: TaskService,
         private readonly notificationService: NotificationService,
         private readonly cacheService: RedisCacheService,
-        private readonly availableTitles: Record<string, GameDefinition>
+        private readonly availableTitles: TitleLookup,
+        private readonly projectedHistory?: ProjectedHistoryCache
     ) {}
 
     getTitle(titleId: string): GameDefinition | undefined {
-        return this.availableTitles[titleId]
+        return lookupTitle(this.availableTitles, titleId)
     }
 
     getTitles(): GameDefinition[] {
-        return Object.values(this.availableTitles)
+        return Object.values(lookupTitles(this.availableTitles))
     }
 
     async createGame({
@@ -526,7 +530,23 @@ export class GameService {
             game.state.actionChecksum = checksum
         }
 
-        return measureSync('projection.response.game', () =>
+        const projection = includeActions
+            ? historyProjection({ game, hostView, visibility: definition.runtime.visibility, user })
+            : undefined
+        const cached =
+            projection !== undefined && actions.length > 0
+                ? await this.projectedHistory?.read(
+                      {
+                          gameId,
+                          perspective: projection.perspective,
+                          logicVersion: definition.info.metadata.version
+                      },
+                      actions.map((action) => action.id)
+                  )
+                : undefined
+        const projectedPrefix = cached?.actions ?? []
+
+        const representation = measureSync('projection.response.game', () =>
             createGameRepresentation({
                 game,
                 actions: includeActions ? actions : [],
@@ -534,9 +554,17 @@ export class GameService {
                 hostView,
                 runtime: definition.runtime,
                 visibility: definition.runtime.visibility,
-                user
+                user,
+                projectedPrefix
             })
         )
+        if (projection !== undefined) {
+            countTiming('projection.history.cached', projectedPrefix.length)
+            countTiming('projection.history.projected', actions.length - projectedPrefix.length)
+        }
+        const projectedTail = representation.actions.slice(projectedPrefix.length)
+        if (!projectedTail.some(Visibility.isRedactedAction)) await cached?.save(projectedTail)
+        return representation
     }
 
     async userHasCachedActiveGames(user: User): Promise<boolean> {
@@ -971,6 +999,7 @@ export class GameService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
+        this.assertGameTitle(game, definition)
         assertOrdinaryGame(game)
 
         if (game.ownerId !== user.id && !user.roles.includes(Role.Admin)) {
@@ -1101,6 +1130,7 @@ export class GameService {
         if (!game || !game.state) {
             throw new GameNotFoundError({ id: gameId })
         }
+        this.assertGameTitle(game, definition)
 
         // Fill in the player id if not specified
         if (!action.playerId) {
@@ -1262,7 +1292,11 @@ export class GameService {
                 priorState,
                 runtime: definition.runtime,
                 visibility: definition.runtime.visibility,
-                notificationService: this.notificationService
+                notificationService: this.notificationService,
+                projectedHistory: this.projectedHistory && {
+                    cache: this.projectedHistory,
+                    logicVersion: definition.info.metadata.version
+                }
             })
         )
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })
@@ -1416,6 +1450,7 @@ export class GameService {
         actionId: string
     }): Promise<UndoResultsRepresentation> {
         const { game, undoWindow } = await this.readUndoWindow(gameId, { actionId })
+        this.assertGameTitle(game, definition)
         assertTournamentUndoAllowed(game)
         const userPlayer = user.roles.includes(Role.Admin)
             ? undefined
@@ -1523,6 +1558,7 @@ export class GameService {
         voteId: string
     }): Promise<Game> {
         const game = await this.requireGame(gameId)
+        this.assertGameTitle(game, definition)
         const player = this.findVotingPlayer({ user, game })
         const [updatedGame, updatedFields] = await this.gameStore.updateGame({
             game,
@@ -1670,6 +1706,7 @@ export class GameService {
         actionIndex: number
     }): Promise<{ game: Game; plan: UndoPlan }> {
         const { game, undoWindow } = await this.readUndoWindow(gameId, { actionIndex })
+        this.assertGameTitle(game, definition)
         if (!undoWindow) {
             throw new DisallowedPlayerVoteError({
                 gameId,
@@ -2037,6 +2074,11 @@ export class GameService {
 
     private hasDeveloperAccess(user: User): boolean {
         return user.roles.includes(Role.Admin) || user.roles.includes(Role.Developer)
+    }
+
+    // A title route may only act on that title's games: another title's game is not found there.
+    private assertGameTitle(game: Game, definition: GameDefinition): void {
+        if (game.typeId !== definition.info.id) throw new GameNotFoundError({ id: game.id })
     }
 
     private getRequiredTitle(game: Game): GameDefinition {

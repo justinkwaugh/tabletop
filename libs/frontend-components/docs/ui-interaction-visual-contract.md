@@ -223,6 +223,17 @@ Verification (automated in `tests/scalingWrapper.spec.ts`):
 - In full screen, panning past the edge and turning the wheel over the controls scroll neither
   the enclosing table nor the page; after exit the handoff to the table resumes.
 
+- Inside a vertically scrolling body nested in a horizontally scrolling table, a touch drag on a
+  fitted board scrolls the table sideways and the body vertically.
+
+Movement the wrapper does not consume goes, on each axis, to the nearest ancestor that scrolls
+along that axis. A phone layout's vertical body therefore cannot swallow a sideways drag meant
+for the table, and a body that stops overscroll should do so only vertically
+(`overscroll-behavior-y`), so native sideways swipes over it also reach the table.
+The per-axis handoff is bundled rendering with no host-bridge change; every Game UI Artifact
+bundles `ScalingWrapper` (the 18xx titles through `@tabletop/18xx-ui`) and adopts it when next
+republished.
+
 Manual: touch drag, inertia, and pinch on a phone in a horizontally scrolling layout.
 
 This changes bundled rendering only, with no host-bridge change. Hosts that opt in

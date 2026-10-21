@@ -46,6 +46,7 @@
     },
     "devDependencies": {
         "@tabletop/vitest-config": "workspace:*",
+        "esbuild": "^0.28.2",
         "@tabletop/eslint-config": "workspace:*",
         "@types/bcrypt": "^5.0.2",
         "@types/glob-to-regexp": "^0.4.4",

@@ -1,6 +1,6 @@
 import type { EighteenSeventeenState } from '@tabletop/1817'
 import { finiteCashOwnedBy, privateOwningCompany, trainsOwnedBy } from '@tabletop/18xx'
-import { corporationShareCount, heldStations, EighteenSeventeenNames } from '@tabletop/1817'
+import { corporationShareCount, heldStations } from '@tabletop/1817'
 import type { MoneyFormat, TitleFact } from '@tabletop/18xx-ui'
 import { loansAgainstLimit, zoneFact } from './titleFacts.js'
 
@@ -20,7 +20,11 @@ export function companyFinanceFacts(
 }
 
 /** What a company owns besides cash: its trains, privates and stations placed and held. */
-export function companyAssetFacts(state: EighteenSeventeenState, companyId: string): TitleFact[] {
+export function companyAssetFacts(
+    state: EighteenSeventeenState,
+    companyId: string,
+    companyName: (companyId: string) => string
+): TitleFact[] {
     const counts = new Map<string, number>()
     for (const train of trainsOwnedBy(state, { kind: 'company', companyId }))
         counts.set(train.definitionId, (counts.get(train.definitionId) ?? 0) + 1)
@@ -38,9 +42,7 @@ export function companyAssetFacts(state: EighteenSeventeenState, companyId: stri
             ? [
                   {
                       label: 'Privates',
-                      value: privates
-                          .map((company) => EighteenSeventeenNames.company(company.id))
-                          .join(', ')
+                      value: privates.map((company) => companyName(company.id)).join(', ')
                   }
               ]
             : []),
@@ -52,13 +54,14 @@ export function companyAssetFacts(state: EighteenSeventeenState, companyId: stri
 export function companyRoundFacts(
     state: EighteenSeventeenState,
     companyId: string,
-    money: MoneyFormat
+    money: MoneyFormat,
+    companyName: (companyId: string) => string
 ): TitleFact[] {
     const zone = zoneFact(state, companyId)
     return [
         { label: 'Size', value: String(corporationShareCount(state, companyId)) },
         ...companyFinanceFacts(state, companyId, money),
-        ...companyAssetFacts(state, companyId),
+        ...companyAssetFacts(state, companyId, companyName),
         ...(zone ? [zone] : [])
     ]
 }

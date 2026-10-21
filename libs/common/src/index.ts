@@ -123,3 +123,5 @@ export * from './site/gameHistory.js'
 export * from './site/gameStats.js'
 export * from './site/siteStats.js'
 export * from './site/bugReport.js'
+
+export * from './game/definition/titleRequestSchemas.js'

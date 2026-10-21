@@ -8,6 +8,7 @@ import {
     PowerQuestionKind,
     QuestionAnswer,
     ShroudedWoodPick,
+    ShroudedWoodStay,
     WarbandGain
 } from '../model/question.js'
 import { Region } from '../model/oathEnums.js'
@@ -52,6 +53,8 @@ export const AnswerQuestionMetadata = Type.Object({
     relicTakenFromSlotId: Type.Optional(Type.String()),
     /** R-11.7 */
     woodPick: Type.Optional(ShroudedWoodPick),
+    /** R-11.7-H2 */
+    woodStay: Type.Optional(ShroudedWoodStay),
     // Toll Roads on a power's move
     tollMove: Type.Optional(PowerMoveToll),
     /** R-5.5.8 — a banish's answer: its burn, the "if you're victorious" plans and the end. */
@@ -126,6 +129,7 @@ export class HydratedAnswerQuestion
             pileDeposits: outcome.pileDeposits,
             relicTakenFromSlotId: outcome.relicTakenFromSlotId,
             woodPick: outcome.woodPick,
+            woodStay: outcome.woodStay,
             tollMove: outcome.tollMove,
             triggered: outcome.triggered,
             warbandGain: outcome.warbandGain,

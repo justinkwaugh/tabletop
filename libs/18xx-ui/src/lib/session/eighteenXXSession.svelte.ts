@@ -12,6 +12,7 @@ import {
     titleComponents,
     TileUpgrades,
     trainsOwnedBy,
+    type AuctionLot,
     type EighteenXXPreferences,
     type EighteenXXState,
     type EighteenXXTitleRules,
@@ -40,6 +41,7 @@ import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
+import { wealthHistory } from '../table/wealthHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
 import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
@@ -153,6 +155,17 @@ export class EighteenXXSession<
     }
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)
+    }
+    playerWealthHistory() {
+        const { actions, state } = this.history.visibleContext
+        return wealthHistory(actions, state, {
+            startingCash: this.rules.startingCash({
+                playerCount: state.players.length,
+                config: this.game.config
+            }),
+            openingRound: this.presentation.openingRound,
+            titleRounds: this.presentation.titleRounds
+        })
     }
     readonly marketAnimation = createMarketAnimationSource(this, (state) => state.stockMarket)
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(
@@ -340,8 +353,11 @@ export class EighteenXXSession<
     /**
      * Whether this player is viewing the title's published artwork (board image and token art)
      * instead of the generic presentation. A display choice only: it never changes Game State.
+     * Saved per title, since each title's artwork is its own.
      */
-    publishedArtwork = $state(false)
+    get publishedArtwork(): boolean {
+        return this.publishedArtworkAvailable && this.preferences.values.publishedArtwork
+    }
     get publishedArtworkAvailable(): boolean {
         return (
             !!this.mapViewDefinition.boardArtwork ||
@@ -351,7 +367,7 @@ export class EighteenXXSession<
         )
     }
     toggleArtwork() {
-        this.publishedArtwork = !this.publishedArtwork
+        this.preferences.set({ publishedArtwork: !this.publishedArtwork }, 'title')
     }
     /** Published certificate art for the shares a purchase, sale or issue moved; empty unless that presentation is on. */
     shareCards(action: GameAction): readonly ShareCard[] {
@@ -654,7 +670,24 @@ export class EighteenXXSession<
         return this.rules.stockRules.charters
     }
     companyName(companyId: string) {
-        return this.rules.names.company(companyId)
+        return this.companyNameVariants(companyId).short
+    }
+    companyInitials(companyId: string) {
+        return this.companyNameVariants(companyId).initials
+    }
+    companyFullName(companyId: string) {
+        return this.companyNameVariants(companyId).full
+    }
+    private companyNameVariants(companyId: string) {
+        const names = this.presentation.companyNames[companyId]
+        assertExists(names, `Company ${companyId} requires its names`)
+        return names
+    }
+    lotName(lot: Pick<AuctionLot, 'id' | 'name'>) {
+        return this.presentation.companyNames[lot.id]?.short ?? lot.name
+    }
+    lotInitials(lot: Pick<AuctionLot, 'id'>) {
+        return this.presentation.companyNames[lot.id]?.initials ?? lot.id
     }
     poolName(poolId: string) {
         return this.rules.names.pool(poolId)

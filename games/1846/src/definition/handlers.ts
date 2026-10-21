@@ -11,7 +11,6 @@ import {
     HydratedStartOperatingTurn,
     HydratedStartStockRound,
     StationPlacement,
-    endOperatingTurn,
     getCompany,
     isFinishOperatingTurn,
     isFinishStations,
@@ -306,7 +305,6 @@ export const closingOperatingCorporationHandler: Handler = {
     ...corporationClosureHandler,
     onAction(action: HydratedAction, { gameState }: Context) {
         assert(action instanceof CloseCorporationAction, 'Closure requires its system action')
-        endOperatingTurn(gameState, action.companyId)
         gameState.activePlayerIds = []
         return 'OperatingSet'
     }

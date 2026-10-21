@@ -2,7 +2,13 @@ import { assertExists } from '@tabletop/common'
 import type { EighteenXXState } from '@tabletop/18xx'
 import type { TitleRound } from '../session/titlePresentation.js'
 
-export type RoundHeading = { abbreviation: string; name: string; number: string }
+export type RoundHeading = {
+    abbreviation: string
+    name: string
+    number: string
+    /** Operating rounds in the current set, given only when the set has more than one. */
+    roundCount?: number
+}
 
 export const AuctionHeading: RoundHeading = { abbreviation: 'Auction', name: 'Auction', number: '' }
 
@@ -14,7 +20,7 @@ export function stockRoundHeading(number: number): RoundHeading {
 export function operatingRoundHeading(
     set: number,
     round: number,
-    titleRound?: TitleRound
+    titleRound?: Pick<TitleRound, 'name' | 'abbreviation'>
 ): RoundHeading {
     return {
         abbreviation: titleRound?.abbreviation ?? 'OR',
@@ -24,7 +30,10 @@ export function operatingRoundHeading(
 }
 
 /** A title's round held after a stock round, which shares its number. */
-export function titleStockRoundHeading(number: number, titleRound: TitleRound): RoundHeading {
+export function titleStockRoundHeading(
+    number: number,
+    titleRound: Pick<TitleRound, 'name' | 'abbreviation'>
+): RoundHeading {
     return { abbreviation: titleRound.abbreviation, name: titleRound.name, number: `${number}` }
 }
 
@@ -46,5 +55,6 @@ export function currentRoundHeading(
     if (titleRound?.followsStockRound && (!set || set.completed))
         return titleStockRoundHeading(state.stockRound.number, titleRound)
     assertExists(set, 'An operating round belongs to a set')
-    return operatingRoundHeading(set.number, set.roundNumber, titleRound)
+    const heading = operatingRoundHeading(set.number, set.roundNumber, titleRound)
+    return set.roundCount > 1 ? { ...heading, roundCount: set.roundCount } : heading
 }

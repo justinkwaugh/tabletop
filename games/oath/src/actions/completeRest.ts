@@ -64,7 +64,13 @@ export class HydratedCompleteRest
         state.turnManager.endTurn(state.actionCount)
 
         const resting = state.getPlayerState(this.playerId)
-        resting.homelandUsedThisTurn = []
+        // R-11.2 — "during this turn": a discard another player made in this turn (an out-of-turn Campaign's
+        // "At end, discard") bars nothing in their own next turn. Before revision 16 (R-X.4), only the resting
+        // player's record is cleared.
+        const ledgersCleared = isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+            ? state.players
+            : [resting]
+        for (const player of ledgersCleared) player.homelandUsedThisTurn = []
         resting.restPowersUsedThisTurn = []
 
         if (!closesRound) {

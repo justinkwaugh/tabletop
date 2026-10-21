@@ -34,6 +34,7 @@ import {
     moveFavorBetweenBanks,
     moveWarbandsBoardToSite,
     moveWarbandsSiteToBoard,
+    warbandMovesOverlay,
     favorObtainableFromPicks,
     discardDenizensAtSites
 } from './vocabulary.js'
@@ -150,7 +151,7 @@ registerEffect(
         reasonCannotResolve: (ctx) => {
             const picks = chosen(ctx, PowerChoiceKind.FavorBank).map((b) => b.suit)
             const required = alchemistFavor(ctx.state).total
-            const obtainable = favorObtainableFromPicks(ctx.state, picks)
+            const obtainable = favorObtainableFromPicks(ctx.state.favorBank, picks)
             return obtainable < required
                 ? `Alchemist gains four favor: the banks named yield ${obtainable}, and ${required} can be had`
                 : undefined
@@ -490,7 +491,7 @@ registerEffect(
                 return 'the beast bank cannot be a source for itself'
             const required = memoryOfNatureFavor(ctx.state).total
             const obtainable = favorObtainableFromPicks(
-                ctx.state,
+                ctx.state.favorBank,
                 picks.map((b) => b.suit)
             )
             if (obtainable < required) {
@@ -531,8 +532,8 @@ registerEffect(
                 sequential: true
             })
         ]).flat(),
-        reasonCannotResolve: (ctx) => messengerMovesOnCopy(ctx).reason,
-        stateAfter: (ctx) => messengerMovesOnCopy(ctx).state,
+        reasonCannotResolve: (ctx) => messengerMovesChecked(ctx).reason,
+        stateAfter: (ctx) => messengerMovesChecked(ctx).state,
         resolve: (ctx) => ({
             summary: applyMessengerMoves(ctx.state, ctx.playerId, ctx.choices).summary
         })
@@ -570,15 +571,15 @@ function messengerSources(
     return out
 }
 
-function messengerMovesOnCopy(ctx: EffectContext): {
+function messengerMovesChecked(ctx: EffectContext): {
     state: HydratedOathGameState
     reason?: string
 } {
-    const copy = new HydratedOathGameState(ctx.state.dehydrate())
-    return { state: copy, reason: applyMessengerMoves(copy, ctx.playerId, ctx.choices).reason }
+    const after = warbandMovesOverlay(ctx.state, ctx.playerId)
+    return { state: after, reason: applyMessengerMoves(after, ctx.playerId, ctx.choices).reason }
 }
 
-function applyMessengerMoves(
+export function applyMessengerMoves(
     state: EffectContext['state'],
     playerId: string,
     choices: EffectContext['choices']

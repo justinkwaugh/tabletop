@@ -27,7 +27,7 @@
         isObsoleteTrain
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import PlayerName from './PlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
@@ -60,7 +60,6 @@
         exchangePoolId,
         valuationRules,
         trainColors,
-        companyNames = {},
         numberedShareNames = {},
         includedCompanyIds = [],
         includedPortfolioCompanyIds = [],
@@ -76,7 +75,6 @@
         exchangePoolId?: string
         trainColors: Readonly<Record<string, string>>
         valuationRules: ValuationRules
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         numberedShareNames?: NumberedShareNames
         includedCompanyIds?: readonly string[]
         portfolioCompanyIds?: readonly string[]
@@ -189,9 +187,7 @@
         exchange: 'Exch.'
     }
     const portfolioColumnLabels = $derived(
-        new Map(
-            portfolioCompanyIds.map((id) => [`company:${id}`, companyNames[id]?.initials ?? id])
-        )
+        new Map(portfolioCompanyIds.map((id) => [`company:${id}`, session.companyInitials(id)]))
     )
     // A pool's shorts, such as the market's, count against its shares.
     function poolShares(poolId: string, companyId: string): number {
@@ -743,9 +739,7 @@
         {#if session.mapView.stations[company.id]}
             <CompanyToken appearance={session.mapView.stations[company.id]} size={22} />
         {/if}
-        <span title={session.companyName(company.id)}
-            >{companyNames[company.id]?.initials ?? company.id}</span
-        >
+        <span title={session.companyName(company.id)}>{session.companyInitials(company.id)}</span>
     </span>
 {/snippet}
 
@@ -799,7 +793,7 @@
                 }))}
                 appearances={session.mapView.stations}
                 view={period === 'Player income' ? 'Player' : 'Company'}
-                {companyNames}
+                companyInitials={(companyId) => session.companyInitials(companyId)}
                 companyName={(companyId) => session.companyName(companyId)}
                 {onPreviewMap}
             />
@@ -1198,12 +1192,9 @@
                                     data-purchase-buyer={ownerIdFor(choice.request.buyer)}
                                     onclick={() => confirmBuy(choice.request.buyer)}
                                 >
-                                    As {choice.request.buyer.kind === 'company'
-                                        ? (companyNames[choice.request.buyer.companyId]?.short ??
-                                          session.ownerName(choice.request.buyer))
-                                        : session.ownerName(
-                                              choice.request.buyer
-                                          )}{#if contribution > 0}{' + '}{money(contribution)}{/if}
+                                    As {session.ownerName(
+                                        choice.request.buyer
+                                    )}{#if contribution > 0}{' + '}{money(contribution)}{/if}
                                 </button>
                             {/if}
                         {/each}

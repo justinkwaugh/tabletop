@@ -9,6 +9,7 @@ import {
     playersAfterPresident,
     privateOwner,
     sameOwner,
+    treasuryPoolId,
     type Owner,
     type StockState,
     type StockRules,
@@ -37,7 +38,7 @@ export const TheOldPrinceStockRules: StockRules = {
         const treasury =
             certificate.owner.kind === 'company' &&
             certificate.owner.companyId === company.id &&
-            certificate.poolId === `treasury:${company.id}`
+            certificate.poolId === treasuryPoolId(company.id)
         if (!market && !treasury) return 'This certificate is not available for purchase.'
         return {
             price: TheOldPrinceMarket.companySpace(state.stockMarket, company.id).price,

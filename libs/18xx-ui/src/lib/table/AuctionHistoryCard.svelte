@@ -8,24 +8,26 @@
         money,
         card,
         lot,
+        lotName,
         playerName,
         playerColor
     }: {
         money: MoneyFormat
         card: AuctionHistoryCard
         lot: AuctionLot
+        lotName: string
         playerName: (id: string) => string
         playerColor: (id: string) => string
     } = $props()
 </script>
 
-<article class="history-card" aria-label={`${lot.name} auction history`}>
+<article class="history-card" aria-label={`${lotName} auction history`}>
     <header
         class="history-card-header player-tinted-header"
         style:--player-color={playerColor(card.offer.playerId)}
     >
         <div class="history-entry">
-            <strong>{playerName(card.offer.playerId)}</strong> offered <strong>{lot.name}</strong> for
+            <strong>{playerName(card.offer.playerId)}</strong> offered <strong>{lotName}</strong> for
             auction
         </div>
     </header>

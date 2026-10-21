@@ -9,10 +9,12 @@
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
     import ConspiracyNoTake from '$lib/components/ConspiracyNoTake.svelte'
-    import { ActionType } from '@tabletop/oath'
+    import SiteGain from '$lib/components/SiteGain.svelte'
+    import { ActionType, SearchPlay } from '@tabletop/oath'
     import { actionName } from '$lib/model/actionCatalogue.js'
     import { siteName, cardName } from '$lib/model/names.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
+    import { withSiteGain } from '$lib/model/siteGain.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
@@ -141,9 +143,12 @@
                 <!-- One width, the widest label's: a row on a wide screen, a column below it. -->
                 <div class="inline-grid auto-cols-fr gap-1 lg:grid-flow-col">
                     {#each search.placements as option (option.label)}
+                        {@const gain =
+                            option.play === SearchPlay.Site ? search.siteGain : undefined}
                         <button
                             class="rounded border border-oath-frame bg-oath-surface-raised px-3 py-1
                                    text-sm whitespace-nowrap hover:border-oath-accent max-sm:min-h-11"
+                            aria-label={withSiteGain(option.label, gain)}
                             disabled={busy}
                             onclick={() =>
                                 search.choosePlacement({
@@ -151,7 +156,8 @@
                                     faceUp: option.faceUp
                                 })}
                         >
-                            {option.label}
+                            {option.label}{#if gain}<span class="ml-3"><SiteGain {gain} /></span
+                                >{/if}
                         </button>
                     {/each}
                 </div>
@@ -225,6 +231,7 @@
             choices={search.whenPlayed}
             bind:picks={() => search.picks, (picks) => search.setPicks(picks)}
             words={pickerWords(search.kept)}
+            banks={search.whenPlayedBanks}
         />
         {#if search.whenPlayedComplete}
             {#if reason}

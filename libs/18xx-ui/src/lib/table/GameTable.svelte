@@ -71,7 +71,7 @@
     import BoardFocus from './BoardFocus.svelte'
     import BoardAutoZoom from './BoardAutoZoom.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
@@ -83,6 +83,8 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import PhaseChart from '../phases/PhaseChart.svelte'
     import PhaseChartContent from '../phases/PhaseChartContent.svelte'
+    import WealthChart from './WealthChart.svelte'
+    import { seatOrderFrom } from './spreadsheetSort.js'
     import type { PhaseChartData } from '../phases/phaseChart.js'
     let {
         session,
@@ -113,7 +115,6 @@
         marketPoolId,
         ipoPoolId,
         exchangePoolId,
-        companyNames,
         companyPricePresentation = DefaultCompanyPricePresentation,
         includedCompanyIds = [],
         numberedShareNames,
@@ -156,11 +157,18 @@
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
     const tileAppearance = $derived(session.tileAppearance)
-    async function toggleArtwork() {
-        session.toggleArtwork()
-        restoreRouteView = undefined
-        await tick()
-        fitMaps()
+    // The saved preference can also change from another window or a rejected save, so
+    // the fit follows the value rather than the click.
+    function framePresentation(_table: HTMLElement, initial: boolean) {
+        let current = initial
+        return {
+            update(next: boolean) {
+                if (next === current) return
+                current = next
+                restoreRouteView = undefined
+                void tick().then(() => fitMaps())
+            }
+        }
     }
 
     let mapWrapper = $state<ScalingWrapper>()
@@ -177,10 +185,6 @@
     const boardAutoZoom = $derived(session.preferences.values.boardAutoZoom)
     function toggleBoardAutoZoom() {
         session.preferences.set({ boardAutoZoom: !boardAutoZoom }, 'family')
-    }
-    const companyCardsWrap = $derived(session.preferences.values.companyCardsWrap)
-    function toggleCompanyCardsWrap() {
-        session.preferences.set({ companyCardsWrap: !companyCardsWrap }, 'family')
     }
     function autoZooms(wrapper: ScalingWrapper) {
         return boardAutoZoom || wrapper !== boardViewer()
@@ -279,6 +283,20 @@
     const displayedScene = $derived(session.map.displayedScene)
     const paneLayout = new MediaQuery('(min-width: 64rem)')
     const phoneLayout = new MediaQuery('(width < 40rem)')
+    const companyCardsWrapKey = $derived(
+        paneLayout.current ? 'companyCardsWrap' : 'companyCardsWrapTabbed'
+    )
+    const companyCardsWideKey = $derived(
+        paneLayout.current ? 'companyCardsWide' : 'companyCardsWideTabbed'
+    )
+    const companyCardsWrap = $derived(session.preferences.values[companyCardsWrapKey])
+    function toggleCompanyCardsWrap() {
+        session.preferences.set({ [companyCardsWrapKey]: !companyCardsWrap }, 'family')
+    }
+    const companyCardsWide = $derived(session.preferences.values[companyCardsWideKey])
+    function toggleCompanyCardsWide() {
+        session.preferences.set({ [companyCardsWideKey]: !companyCardsWide }, 'family')
+    }
     let shownCompanyCardId: string | undefined = $derived.by(() => {
         paneLayout.current
         return undefined
@@ -608,6 +626,16 @@
 
     const gameState = $derived(session.gameState)
     const headerState = $derived(tableHeaderState(session))
+    const wealthPlayers = $derived(
+        seatOrderFrom(
+            session.gameState.players.map((player) => player.playerId),
+            session.myPrimaryPlayer?.id
+        ).map((playerId) => ({
+            playerId,
+            name: session.getPlayerName(playerId),
+            color: session.colors.getPlayerBgColorValue(playerId)
+        }))
+    )
     const headerPlayerId = $derived(
         headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined
     )
@@ -675,6 +703,7 @@
         ...workspaceTabs,
         { id: 'Depot', label: 'Depot', optional: true },
         { id: 'Operating Order', label: 'Operating Order', optional: true },
+        { id: 'Stats', label: 'Stats', optional: true },
         ...(boardAvailable ? [{ id: 'Board', label: 'Board', optional: true }] : []),
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
@@ -729,7 +758,6 @@
 <svelte:window onkeydown={navigateByShortcut} />
 
 {#snippet playerCards()}<PlayersPanel
-        {companyNames}
         {session}
         {valuationRules}
         {auctionLotDescription}
@@ -744,10 +772,12 @@
         {portfolioCompanyIds}
     />{/snippet}
 
-{#snippet companyCard(company: Company)}<CompanyDetails
+{#snippet companyCard(
+    company: Company,
+    layout: 'wide-fill' | 'vertical' = 'vertical'
+)}<CompanyDetails
         pricePresentation={companyPricePresentation}
-        vertical
-        displayName={companyNames?.[company.id]?.card}
+        {layout}
         {company}
         {session}
         {trainColors}
@@ -782,7 +812,6 @@
         {phaseTileColors}
         tileColors={tileAppearance.colors}
         tileColorNames={tileAppearance.colorNames}
-        {companyNames}
         describeAction={historyDescription}
     />{/snippet}
 
@@ -982,6 +1011,7 @@
     use:frameRoutes={{ runningCompanyId, preview: routePreview }}
     use:frameStartCompany={session.stock.selectedStartCompany}
     use:frameHistory={settledHistoricalFocus}
+    use:framePresentation={publishedArtwork}
     style:--rail-table-background={boardArtwork?.backgroundColor}
     data-theme="dark"
     aria-label="Game table"
@@ -1017,9 +1047,8 @@
                         <TableHeader
                             artworkAvailable={session.publishedArtworkAvailable}
                             {publishedArtwork}
-                            onToggleArtwork={toggleArtwork}
+                            onToggleArtwork={() => session.toggleArtwork()}
                             {session}
-                            {companyNames}
                             bordered={!paneLayout.current}
                             centered={paneLayout.current}
                         />
@@ -1164,6 +1193,13 @@
                                 tileColorNames={tileAppearance.colorNames}
                             />
                         </div>
+                    {:else if id === 'Stats'}<div class="workspace-view">
+                            {#if active}<WealthChart
+                                    {money}
+                                    points={session.playerWealthHistory()}
+                                    players={wealthPlayers}
+                                />{/if}
+                        </div>
                     {:else if id === 'Players'}<div class="workspace-view players-pane">
                             {@render playerCards()}
                         </div>
@@ -1295,7 +1331,6 @@
                                 {trainColors}
                                 {valuationRules}
                                 {session}
-                                {companyNames}
                                 {numberedShareNames}
                                 {includedCompanyIds}
                                 {marketPoolId}
@@ -1307,9 +1342,14 @@
                             <CompanyCardLayout
                                 wrap={companyCardsWrap}
                                 onToggleWrap={toggleCompanyCardsWrap}
+                                wide={companyCardsWide}
+                                onToggleWide={toggleCompanyCardsWide}
                             >
                                 {#each startedCompanies as company (company.id)}
-                                    {@render companyCard(company)}
+                                    {@render companyCard(
+                                        company,
+                                        companyCardsWide ? 'wide-fill' : 'vertical'
+                                    )}
                                 {:else}<p class="widget-empty">No companies have started.</p>{/each}
                             </CompanyCardLayout>
                         </div>{:else if id === 'Tiles'}<div class="workspace-view">
@@ -1437,7 +1477,7 @@
         flex: 1;
         min-height: 0;
         overflow: auto;
-        overscroll-behavior: none;
+        overscroll-behavior-y: none;
     }
     .workspace-heading {
         padding-inline: 8px;

@@ -4,7 +4,11 @@ import type { GameDefinition } from '@tabletop/common'
 import { TheOldPrinceCompanyRules } from '../companyRules.js'
 import { TheOldPrinceEarningsRules } from '../earningsRules.js'
 import { TheOldPrinceEndingRules } from '../endingRules.js'
-import { TheOldPrinceAuctionRules, createTheOldPrinceOpening } from '../openingAuction.js'
+import {
+    TheOldPrinceAuctionRules,
+    createTheOldPrinceOpening,
+    theOldPrinceStartingCash
+} from '../openingAuction.js'
 import { TheOldPrincePhaseRules } from '../phaseRules.js'
 import { TheOldPrincePrivatePowerRules } from '../privatePowerRules.js'
 import { TheOldPrincePrivateRules } from '../privateRules.js'
@@ -41,6 +45,7 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules<
     transferRules: TheOldPrinceTransferRules,
     privatePowerRules: TheOldPrincePrivatePowerRules,
     createOpening: createTheOldPrinceOpening,
+    startingCash: theOldPrinceStartingCash,
     stockRules: TheOldPrinceStockRules,
     companyRules: TheOldPrinceCompanyRules,
     operatingRules: TheOldPrinceOperatingRules,
