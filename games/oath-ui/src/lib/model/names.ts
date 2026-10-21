@@ -342,6 +342,11 @@ export function plural(count: number, noun: string): string {
     return `${count} ${noun}${count === 1 ? '' : 's'}`
 }
 
+/** R-2.8.3 — the bandits at a site, counted, with the verb agreeing: "1 bandit rules", "3 bandits rule". */
+export function banditsDoing(count: number, verb: 'rule' | 'serve'): string {
+    return `${plural(count, 'bandit')} ${count === 1 ? `${verb}s` : verb}`
+}
+
 /** R-10.13 — whose warbands: the Empire's, or a player's by name; never a colour. */
 export function warbandOwnerName(
     owner: WarbandOwner,

@@ -242,6 +242,8 @@ export type TableName =
     | 'banditCrownExile'
     | 'banditCrownCampaign'
     | 'banditCrownFive'
+    | 'banditCrownChief'
+    | 'banditChief'
     | 'tollAsked'
     | 'oracleToll'
     | 'oracleNoFavor'
@@ -1175,8 +1177,13 @@ function fixtureSitesOnTheBoard(): Record<string, string> {
     )
 }
 
-/** This seat's Act Phase at the top Cradle site, which holds no card; the other Cradle site holds one. */
-function actPhaseTable(): PlayedTable {
+const BANDIT_CHIEF = 'denizen.discord.bandit-chief'
+
+/**
+ * This seat's Act Phase at the top Cradle site, which holds no card; the other Cradle site holds one.
+ * With `banditChief`, Ann's faceup Bandit Chief puts 3 bandits on each empty site (R-2.8.3).
+ */
+function actPhaseTable(banditChief = false): PlayedTable {
     const [home, next] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -1186,7 +1193,10 @@ function actPhaseTable(): PlayedTable {
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: mapSlotId(Region.Provinces, 0),
-                advisers: [{ cardId: 'denizen.arcane.tutor', faceUp: false }]
+                advisers: [
+                    { cardId: 'denizen.arcane.tutor', faceUp: false },
+                    ...(banditChief ? [{ cardId: BANDIT_CHIEF, faceUp: true }] : [])
+                ]
             })
         ],
         {
@@ -4369,14 +4379,15 @@ const BANDIT_CROWN = 'relic.bandit-crown'
 /** The empty Provinces site the Bandit Crown's tables enlarge, dealt the Great Slums. */
 const CROWN_SITE = mapSlotId(Region.Provinces, 1)
 
-type CrownScene = 'citizen' | 'chancellor' | 'exile' | 'campaign' | 'five'
+type CrownScene = 'citizen' | 'chancellor' | 'exile' | 'campaign' | 'five' | 'chief'
 
 /**
  * R-7.6.5 with R-6.6.3 — the Bandit Crown in a new game: Dana the Chancellor, Ann a Citizen,
  * Rhys an Exile and the Exile Bea on the clock. The Empire's warbands hold the top Provinces
  * site and Rhys's the top Cradle site; every other site is empty. 'campaign': Ann, holding the
  * Crown, has declared against Dana (R-5.5.1.a suspends her). 'five': Bea, Dov and Wes are
- * Citizens too, and Rhys is on the clock.
+ * Citizens too, and Rhys is on the clock. 'chief': as 'citizen', with Dana's faceup Bandit Chief
+ * putting 3 bandits on each empty site (R-2.8.3).
  */
 function banditCrownTable(scene: CrownScene): PlayedTable {
     const holderId = {
@@ -4384,7 +4395,8 @@ function banditCrownTable(scene: CrownScene): PlayedTable {
         chancellor: 'dana',
         exile: 'rhys',
         campaign: 'ann',
-        five: 'ann'
+        five: 'ann',
+        chief: 'ann'
     }[scene]
     const crown = (playerId: string) => (playerId === holderId ? [BANDIT_CROWN] : [])
     const citizen = (playerId: string, color: Color) =>
@@ -4405,7 +4417,8 @@ function banditCrownTable(scene: CrownScene): PlayedTable {
                 status: PlayerStatus.Chancellor,
                 siteId: plains,
                 relicIds: crown('dana'),
-                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                advisers: scene === 'chief' ? [{ cardId: BANDIT_CHIEF, faceUp: true }] : []
             }),
             citizen('ann', Color.Blue),
             ...(scene === 'five'
@@ -5139,6 +5152,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     banditCrownExile: () => banditCrownTable('exile'),
     banditCrownCampaign: () => banditCrownTable('campaign'),
     banditCrownFive: () => banditCrownTable('five'),
+    banditCrownChief: () => banditCrownTable('chief'),
+    banditChief: () => actPhaseTable(true),
     campaignLossOrder: () => campaignTable(true, true),
     skullLosses: () => forceInPlacesTable('skulls', 1),
     skullLossesTwoSites: () => forceInPlacesTable('skulls', 2),
@@ -5176,7 +5191,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     searching: searchingTable,
     prophets: prophetsTable,
     offTurn: offTurnTable,
-    actPhase: actPhaseTable,
+    actPhase: () => actPhaseTable(),
     leavingBuriedGiant: leavingBuriedGiantTable,
     buriedGiantHiddenPlace: () => buriedGiantHiddenPlaceTable(3),
     buriedGiantHiddenPlaceRich: () => buriedGiantHiddenPlaceTable(5),

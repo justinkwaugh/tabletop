@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { CampaignTargetKind, OathRevision, PlayerStatus } from '@tabletop/oath'
 import { campaignRecords, testPlayer, testState } from '@tabletop/oath/testing'
-import { cardRulerIds, siteRuleOf } from './siteRule.js'
+import { cardRulerIds, sitePieces, siteRuleOf } from './siteRule.js'
+import { banditsDoing } from './names.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 const CROWN = 'relic.bandit-crown'
 const MASK = 'relic.grand-mask'
 const MESSENGER = 'denizen.order.messenger'
+const BANDIT_CHIEF = 'denizen.discord.bandit-chief'
 const ME = 'me'
 const CHAN = 'chan'
 const CIT = 'cit'
@@ -182,5 +184,61 @@ describe('cardRulerIds', () => {
 
     it('during the Grand Mask wearer’s turn the wearer rules it, and the Imperial players do not', () => {
         expect(cardRulerIds(board([MASK], ME), MESSENGER)).toEqual([ME])
+    })
+})
+
+/** R-2.8.3 — each site's bandits are 1, or 3 while Bandit Chief is faceup; the engine's count. */
+describe('sitePieces: the bandit count', () => {
+    function chiefAdvises(state: ReturnType<typeof board>) {
+        state.getPlayerState(CHAN).advisers = [{ cardId: BANDIT_CHIEF, faceUp: true }]
+        return state
+    }
+
+    it('one bandit at an empty site while Bandit Chief is out of play', () => {
+        expect(sitePieces(board([]), 'c2').banditCount).toBe(1)
+    })
+
+    it('three bandits at every empty site while Bandit Chief is a faceup adviser', () => {
+        const state = chiefAdvises(board([]))
+        expect(sitePieces(state, 'c2').banditCount).toBe(3)
+        expect(sitePieces(state, 'h1').banditCount).toBe(3)
+    })
+
+    it('three while Bandit Chief is at a site, and none where warbands stand', () => {
+        const state = board([])
+        state.denizensBySite = { ...state.denizensBySite, h1: [BANDIT_CHIEF] }
+        expect(sitePieces(state, 'c2').banditCount).toBe(3)
+        expect(sitePieces(state, 'p1').banditCount).toBe(0)
+    })
+
+    it('a facedown Bandit Chief adds none', () => {
+        const state = board([])
+        state.getPlayerState(CHAN).advisers = [{ cardId: BANDIT_CHIEF, faceUp: false }]
+        expect(sitePieces(state, 'c2').banditCount).toBe(1)
+    })
+
+    it('the count follows Bandit Chief into and out of play', () => {
+        const state = board([])
+        expect(sitePieces(state, 'c2').banditCount).toBe(1)
+        chiefAdvises(state)
+        expect(sitePieces(state, 'c2').banditCount).toBe(3)
+        state.getPlayerState(CHAN).advisers = []
+        expect(sitePieces(state, 'c2').banditCount).toBe(1)
+    })
+
+    it('the bandits serving the Bandit Crown’s holder are counted the same way', () => {
+        const state = chiefAdvises(board([CROWN]))
+        const pieces = sitePieces(state, 'c2')
+        expect(pieces.rule.banditsHolderId).toBe(ME)
+        expect(pieces.banditCount).toBe(3)
+    })
+})
+
+describe('banditsDoing', () => {
+    it('one bandit takes the singular, three the plural', () => {
+        expect(banditsDoing(1, 'rule')).toBe('1 bandit rules')
+        expect(banditsDoing(3, 'rule')).toBe('3 bandits rule')
+        expect(banditsDoing(1, 'serve')).toBe('1 bandit serves')
+        expect(banditsDoing(3, 'serve')).toBe('3 bandits serve')
     })
 })

@@ -7344,7 +7344,7 @@ test.describe('card power text: none in a panel; every panel card has its magnif
 const CROWN_SITE = 'slot.provinces.1'
 const IMPERIAL_PURPLE = '#943c80'
 const boardBandits = (page: Page) => page.locator('.piece-row .bandits')
-const previewBandits = (page: Page) => preview(page).locator('.piece', { hasText: 'bandits serve' })
+const previewBandits = (page: Page) => preview(page).locator('.piece', { hasText: /\bbandits? serves?\b/ })
 const previewRuledBy = (page: Page) => preview(page).locator('.piece', { hasText: 'ruled by' })
 const chipsIn = (piece: Locator) => piece.locator('span.rounded')
 
@@ -7378,7 +7378,7 @@ test.describe('scenario 13: the Bandit Crown’s bandits on the map and the enla
         await openTable(page, 'banditCrown')
         await enlargeCrownSite(page)
         const bandits = previewBandits(page)
-        await expect(bandits).toHaveText(/^\s*bandits serve\s+ann\s+here\s*$/i)
+        await expect(bandits).toHaveText(/^\s*1 bandit serves\s+ann\s+here\s*$/i)
         expect(await chipsIn(bandits).allTextContents()).toEqual(['ann'])
         expect(await figureBody(bandits.locator('img'))).toBe(IMPERIAL_PURPLE)
         expect(await chipsIn(previewRuledBy(page)).allTextContents()).toEqual(['dana', 'ann'])
@@ -7445,6 +7445,76 @@ for (const viewport of [
                 expect(inside(chip, box)).toBe(true)
                 expect(chip.height, 'a chip on one line').toBeLessThan(lineHeight * 1.5)
             }
+        })
+    })
+}
+
+/** Scenario 71: the bandit count (R-2.8.3) — 1 at each empty site, or 3 while Bandit Chief is faceup. */
+const previewBanditsRule = (page: Page) => preview(page).locator('.piece', { hasText: /\bbandits? rules?\b/ })
+const badgeOf = (figure: Locator) => figure.locator('.warband__count')
+
+async function enlargeSite(page: Page, slotId: string) {
+    await (await uncovered(page, `.site[data-slot="${slotId}"] .board-card`)).click()
+    await expect(preview(page)).toBeVisible()
+}
+
+/** Where a figure's count badge sits against its figure's bottom-right corner, and its type size. */
+async function badgePlace(figure: Locator) {
+    const [figureBox, badgeBox] = [await boxOf(figure), await boxOf(badgeOf(figure))]
+    const fontSize = await badgeOf(figure).evaluate((badge) => getComputedStyle(badge).fontSize)
+    return {
+        right: Math.round(badgeBox.x + badgeBox.width - (figureBox.x + figureBox.width)),
+        bottom: Math.round(badgeBox.y + badgeBox.height - (figureBox.y + figureBox.height)),
+        fontSize
+    }
+}
+
+for (const { name, viewport } of [
+    { name: 'desktop', viewport: { width: 1280, height: 900 } },
+    { name: 'phone', viewport: { width: 375, height: 812 } }
+]) {
+    test.describe(`scenario 71: the bandit count, on a ${name}`, () => {
+        test.use({ viewport })
+
+        test('one bandit: the figure has no badge, and the enlarged site reads "1 bandit rules here"', async ({ page }) => {
+            await openTable(page, 'actPhase')
+            const figures = boardBandits(page)
+            expect(await figures.count()).toBeGreaterThan(1)
+            for (const figure of await figures.all()) await expect(badgeOf(figure)).toHaveCount(0)
+            await enlargeSite(page, CROWN_SITE)
+            await expect(previewBanditsRule(page)).toHaveText(/^\s*1 bandit rules here\s*$/)
+        })
+
+        test('Bandit Chief faceup: every figure wears the warbands’ badge reading 3, and the enlarged site reads "3 bandits rule here"', async ({
+            page
+        }) => {
+            await openTable(page, 'banditChief')
+            const figures = boardBandits(page)
+            expect(await figures.count()).toBeGreaterThan(1)
+            for (const figure of await figures.all()) {
+                await expect(badgeOf(figure)).toHaveText('3')
+                await expect(figure.locator('img')).toHaveAttribute('alt', 'Bandits')
+            }
+            await enlargeSite(page, CROWN_SITE)
+            await expect(previewBanditsRule(page)).toHaveText(/^\s*3 bandits rule here\s*$/)
+        })
+
+        test('the Bandit Crown with Bandit Chief faceup: the Imperial figure reads 3, placed as a warband’s badge, and "3 bandits serve <chip> here"', async ({
+            page
+        }) => {
+            await openTable(page, 'banditCrownChief')
+            const figures = boardBandits(page)
+            expect(await figures.count()).toBeGreaterThan(1)
+            for (const figure of await figures.all()) {
+                await expect(badgeOf(figure)).toHaveText('3')
+                await expect(figure.locator('img')).toHaveAttribute('alt', 'Bandits serving as Imperial warbands')
+            }
+            const warband = page.locator('.piece-row .warband:not(.bandits)').first()
+            await expect(badgeOf(warband)).toBeVisible()
+            expect(await badgePlace(figures.first())).toEqual(await badgePlace(warband))
+            await enlargeSite(page, CROWN_SITE)
+            await expect(previewBandits(page)).toHaveText(/^\s*3 bandits serve\s+ann\s+here\s*$/i)
+            expect(await chipsIn(previewBandits(page)).allTextContents()).toEqual(['ann'])
         })
     })
 }
