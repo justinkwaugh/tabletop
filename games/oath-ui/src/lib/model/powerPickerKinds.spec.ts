@@ -13,6 +13,7 @@ import {
     offeredChoices,
     powerIndexOf,
     type CardPower,
+    type LegalChoice,
     type OathProjectedState
 } from '@tabletop/oath'
 import { required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
@@ -24,6 +25,7 @@ import {
     emptyPicks,
     isMay,
     isOr,
+    offersNothing,
     openRunBanks,
     optionIndexOf,
     picksComplete,
@@ -294,5 +296,46 @@ describe('revision 8: what the pickers offer, the engine accepts', () => {
         expect(judged(state, MEMORY, powerChoicesFrom(choices, picks))).toBeUndefined()
         picks = withRunCount(run, choices, picks, Suit.Order, 2, BANKS[Suit.Order])
         expect(picksComplete(choices, picks)).toBe(false)
+    })
+})
+
+/** Hide what cannot be picked: a choice the card may skip, with nothing offered, draws no row. */
+describe('a choice with nothing to pick', () => {
+    const IVORY_EYE = powerOf('relic.ivory-eye', PowerTiming.Action)
+    const CAPTAINS = powerOf('denizen.order.captains', PowerTiming.Action)
+    // The fixture's own sites: every one faceup, no relic at any.
+    const everySiteFaceup = () => table({}, { siteCards: undefined })
+    const drawn = (choices: LegalChoice[]) => choices.map((_, index) => !offersNothing(choices, index))
+
+    it('Ivory Eye with only a facedown adviser to peek at draws the adviser row alone', () => {
+        const state = everySiteFaceup()
+        state.getPlayerState('dana').advisers.push({ cardId: 'denizen.arcane.tutor', faceUp: false })
+        const choices = offered(IVORY_EYE, state)
+        expect(choices.map((legal) => legal.options.length > 0)).toEqual([true, false, false])
+        expect(drawn(choices)).toEqual([true, false, false])
+    })
+
+    it('a power whose every choice offers nothing keeps its rows: Ivory Eye with nothing facedown', () => {
+        const choices = offered(IVORY_EYE, everySiteFaceup())
+        expect(choices.map((legal) => legal.options.length)).toEqual([0, 0, 0])
+        expect(drawn(choices)).toEqual([true, true, true])
+    })
+
+    it('every choice is drawn while each offers something', () => {
+        const choices = offered(ALCHEMIST)
+        expect(drawn(choices).every(Boolean)).toBe(true)
+    })
+
+    it('a may the card does not offer now is not drawn, as before', () => {
+        const choices = offered(AMBITIONS, table({ status: PlayerStatus.Citizen }))
+        expect(choices[0]?.options).toEqual([])
+        expect(offersNothing(choices, 0)).toBe(true)
+    })
+
+    it('a required choice with nothing offered keeps its row, which says there is none', () => {
+        // Rhys rules no site: Captains has nowhere to Campaign from.
+        const choices = offered(CAPTAINS, table({}, { warbandsBySite: {} }))
+        expect(choices.map((legal) => [legal.spec.min, legal.options.length])).toEqual([[1, 0]])
+        expect(drawn(choices)).toEqual([true])
     })
 })

@@ -61,6 +61,7 @@
         isOr,
         mayOf,
         NO_OPTION,
+        offersNothing,
         openCountCeiling,
         openRunBanks,
         optionIndexOf,
@@ -362,9 +363,9 @@
         (!grid || grid.specs[0] === i) &&
         (!run || run.specs[0] === i) &&
         asked(choices, i, picks) &&
-        !(isMay(legal) && legal.options.length === 0)}
+        !offersNothing(choices, i)}
     <!-- A grid or a run draws every spec it answers once, at its first; a may's own pick shows
-         only while the may is on, and a may the card does not offer now is not drawn. -->
+         only while the may is on; a choice it may skip with nothing offered is not drawn. -->
     {#if shown}
         <div class="mb-1 text-xs">
             {#if grid}

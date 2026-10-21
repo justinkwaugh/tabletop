@@ -269,6 +269,18 @@ export function isMay(legal: LegalChoice | undefined): boolean {
     return legal?.spec.kind === PowerChoiceKind.Yes && legal.spec.min === 0 && !isOr(legal)
 }
 
+/**
+ * A choice the card may skip, with nothing offered now, has nothing to pick and draws no row: a
+ * "may" the card does not offer, or an optional pick with an empty offer (Ivory Eye's facedown
+ * relic when none is at a site) while another of the power's choices offers something. A choice
+ * the power needs keeps its row, which says none is legal; an "or" always draws its answers.
+ */
+export function offersNothing(choices: readonly LegalChoice[], index: number): boolean {
+    const legal = choices[index]
+    if (!legal || legal.options.length > 0 || legal.spec.min > 0 || isOr(legal)) return false
+    return isMay(legal) || choices.some((other) => other.options.length > 0)
+}
+
 /** The "may" a later spec is part of (Royal Ambitions' relic is taken only with its yes). */
 export function mayOf(choices: readonly LegalChoice[], index: number): number | undefined {
     for (let at = index - 1; at >= 0; at -= 1) if (isMay(choices[at])) return at
