@@ -290,13 +290,14 @@ Investment's share and closure.
   market, and its WVCF token and Port, Cotton and Key West tokens leave play. Closing during
   its own train funding, the president's cash goes to the bank too; closing on its own turn
   ends that turn. Sales cannot start from a black space.
-- **Recording.** A player's sale that a president other than the seller could protect is held:
-  the shares go to the open market and the seller is paid, but the marker stays where it is
-  (the family's `holdsMarketMove` hook). Held sales are recorded, merged per company in the order
+- **Recording.** A player's sale is held unless the seller still presides over the company: the
+  shares go to the open market and the seller is paid, but the marker stays where it is (the
+  family's `holdsMarketMove` hook). Held sales are recorded, merged per company in the order
   sold, with each sale's share count. Selling a company ends any excess the seller kept by
-  protecting it (§5.9.8); the family's sell-down then applies outside green and brown. A sale no
-  president could protect moves the price at once. (Changed 2026-10-21: the price used to fall
-  on every sale and return when protected.)
+  protecting it (§5.9.8); the family's sell-down then applies outside green and brown. A sale
+  its seller still presides over can never be protected, so it moves the price at once and a
+  company sold into the black closes immediately (§5.1.1, §10.6.2). (Changed 2026-10-21: the
+  price used to fall on every sale and return when protected.)
 - **Deciding.** Once the seller finishes (the stock turn passes on, or the train is bought), a
   system action sets play aside for the presidents if any may protect; otherwise it discards
   the record. In the order sold, each company's player president other than the seller, with
@@ -340,9 +341,16 @@ eligibility and resumption.
   price, and selling in pieces raises what one block would (as 18xx.games does).
 - The seller's holding limits read held prices as fallen: a seller must assume no president
   protects (§5.3.5). The deciding presidents' limits read the unmoved price.
-- A company's later sales by the same seller are held with its first. A sale no president could
-  protect moves at once and is not offered, even if a later sale of the company passes its
-  presidency to another player.
+- A company's later sales by the same seller are held with its first. A sale its seller still
+  presides over moves at once and is not offered, even if a later sale of the company passes
+  its presidency to another player.
+- Whether a president can protect, with the cash and certificate room, is decided when the
+  seller finishes; sales none can protect then drop, in the order sold.
+- A declined or unprotectable sale's marker arrives below the markers already in its new space,
+  including any that moved since the sale; held sales landing in one space keep the order sold
+  (§5.8.4).
+- A stored record from before sales were held has no sale counts: its prices already fell, so a
+  decline leaves them where they are.
 - The certificate limit applies to protections in operating rounds too, and a president already
   over it may protect shares that do not raise their count.
 - Privates owned by a closing company close with it, and its Port, Cotton and Key West tokens

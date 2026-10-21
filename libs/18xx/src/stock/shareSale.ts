@@ -219,7 +219,6 @@ export function evaluateShareDisposal(
             ...(presidency.change ? { presidency: presidency.change } : {})
         }
         transferSaleCertificates(projected, settlement)
-        // A held move leaves the marker where it is, for the title to move later.
         if (rules.holdsMarketMove?.(projected, settlement, seller))
             settlement.toMarketSpaceId = from.id
         placeStockMarker(projected.stockMarket, company.id, settlement.toMarketSpaceId)

@@ -61,10 +61,10 @@ export interface StockRules {
      */
     afterSale?(state: StockState, details: ShareSaleDetails): void
     /**
-     * Whether a sale leaves the company's marker where it is, for the title to move later: 1832
-     * holds a sale another president may protect until they decide (§5.9). A held sale records
-     * the space it was sold from as its destination, and later sales of the company fetch the
-     * unmoved price. It sees the sale's certificates in the market and the marker unmoved.
+     * Whether a sale leaves the company's marker where it is, for the title to move later, as
+     * price protection in 1832, 1850 and 1870 waits for the president's decision. A held sale
+     * records the space it was sold from as its destination, and later sales of the company
+     * fetch the unmoved price. It sees the sale's certificates in the market, marker unmoved.
      */
     holdsMarketMove?(state: StockState, sale: ShareSaleSettlement, seller: Owner): boolean
     /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */

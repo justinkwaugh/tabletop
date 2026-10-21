@@ -42,7 +42,7 @@
     "PlaceRevenueToken": "2329cbd76c82c07fad6e0f09e9d929991d6b014073acdeeab68146f07eae822b",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
     "ProposeMerger": "8e3242fa526a30ffff98a303afaec7ccc3c326716720dd2c5c00ed844616f653",
-    "ProtectShares": "7dc2b810063957d6b2cb8885ae036635dfc4f1d0c421e606a03fb3b661332ad0",
+    "ProtectShares": "4d3671d572bd6ebdb92fc7741bbc472a9b98ba17e687cf597bf3ff8f7970c300",
     "RaiseAuctionBid": "57f6e49b2afa7412f2013d16dc6a2d38e83627165798e3eed00cb1566354e055",
     "RecordMiamiRun": "07aaa4f3d0d3ab777d03bfda6a3bcbe96d574909d530f693112a0eea0e0a14cc",
     "RedeemShare": "eaaf81ce775d05cf773e5f22447c7bd4ff1a97851b6712314d31fed9bcb692b7",
@@ -1947,7 +1947,6 @@
                 }
               },
               "required": [
-                "blocks",
                 "certificateIds",
                 "companyId",
                 "fromMarketSpaceId",

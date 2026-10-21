@@ -31,8 +31,11 @@ export const ProtectableSale = Type.Object(
         proceeds: Type.Integer({ minimum: 1 }),
         certificateIds: Type.Array(Id, { minItems: 1 }),
         fromMarketSpaceId: Id,
-        /** Each sale's shares, in the order sold; unprotected, the marker falls sale by sale. */
-        blocks: Type.Array(Type.Integer({ minimum: 1 }), { minItems: 1 })
+        /**
+         * Each sale's shares, in the order sold; unprotected, the marker falls sale by sale.
+         * Records stored before sales were held have none, their prices having already fallen.
+         */
+        blocks: Type.Optional(Type.Array(Type.Integer({ minimum: 1 }), { minItems: 1 }))
     },
     { additionalProperties: false }
 )

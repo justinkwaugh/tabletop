@@ -167,12 +167,13 @@ describe('share price protection', () => {
         expect(play.state.priceProtection).toBeUndefined()
     })
 
-    it('needs the cash to buy every share sold, else the price falls at once', () => {
+    it('needs the cash to buy every share sold, else the price falls once the seller finishes', () => {
         const play = trading((state) => setPlayerCash(state, 'blair', 150))
         sell(play, 'CG', 2)
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('0:6')
+        play.act('FinishStockTurn')
         expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('2:6')
         expect(play.state.priceProtection).toBeUndefined()
-        play.act('FinishStockTurn')
         expect(play.state.machineState).toBe('StockRound')
         expect(play.state.activePlayerIds).toEqual(['blair'])
     })
@@ -328,6 +329,31 @@ describe('share price protection', () => {
         expect(
             play.state.stockMarket.stacks.find((stack) => stack.spaceId === '2:6')?.companyIds
         ).toEqual(['ACL', 'CG'])
+    })
+
+    it('moves a seller’s own company at once, a declined sale arriving below it', () => {
+        const play = trading((state) => placeStockMarker(state.stockMarket, 'CG', '1:6'))
+        sell(play, 'CG', 1)
+        sell(play, 'ACL', 1)
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'ACL').id).toBe('2:6')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('1:6')
+        play.act('FinishStockTurn')
+        play.act('DeclineProtection', { companyId: 'CG' }, 'blair')
+        expect(
+            play.state.stockMarket.stacks.find((stack) => stack.spaceId === '2:6')?.companyIds
+        ).toEqual(['ACL', 'CG'])
+    })
+
+    it('leaves a sale recorded before sales were held where its price already fell', () => {
+        const play = trading()
+        sell(play, 'CG', 2)
+        const record = play.state.priceProtection
+        assertExists(record, 'The sale is held')
+        delete record.sales[0].blocks
+        placeStockMarker(play.state.stockMarket, 'CG', '2:6')
+        play.act('FinishStockTurn')
+        play.act('DeclineProtection', { companyId: 'CG' }, 'blair')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('2:6')
     })
 
     it('weighs the seller’s holdings as if their held sales had fallen', () => {

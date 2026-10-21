@@ -130,7 +130,7 @@ export const EighteenThirtyTwoStockRules: StockRules = {
         assertExists(limit, 'Unsupported 1832 player count')
         return limit
     },
-    charters: HoldingLimits.charters,
+    ...HoldingLimits,
     certificateWeight: (state, certificate) =>
         HoldingLimits.certificateWeight(sellerLimitState(state, certificate.owner), certificate),
     ownershipLimit: (state, companyId, owner) =>

@@ -42,8 +42,6 @@ import { EighteenThirtyTwoStockRules } from './stockRules.js'
 import { EighteenThirtyTwoMarket, saleDescent } from './stockMarket.js'
 import { MergingState, ProtectingPriceState, type ProtectableSale } from './titleState.js'
 
-type ProtectionState = StockState & Pick<EighteenThirtyTwoState, 'priceProtection'>
-
 /** The company's president, when that is a player other than the seller. */
 function presidentOtherThan(
     state: StockState,
@@ -122,48 +120,29 @@ export function protectionDecision(
 }
 
 /**
- * Holds a player's sale while a president other than the seller may protect it, and the
- * seller's later sales of that company with it, so the price waits for the decision (§5.9). A
- * sale no one could protect moves the price at once.
+ * Holds a player's sale, and their later sales of that company with it, until its president
+ * decides (§5.9). A sale whose seller still presides over the company can never be protected,
+ * so it moves at once: a company sold into the black closes immediately (§5.1.1, §10.6.2).
+ * The president a sale leaves decides, so the state after the sale gives the same answer.
  */
 export function holdsProtectableMove(
     state: StockState,
-    sale: ShareSaleSettlement,
+    sale: Pick<ShareSaleSettlement, 'companyId'>,
     seller: Owner
 ): boolean {
     if (seller.kind !== 'player') return false
-    const record = (state as ProtectionState).priceProtection
-    if (record?.sales.some((held) => held.companyId === sale.companyId)) return true
-    const playerId = presidentOtherThan(state, sale.companyId, seller.playerId)
+    const held = requireEighteenThirtyTwoState(state).priceProtection?.sales
     return (
-        !!playerId &&
-        canProtect(
-            state,
-            {
-                companyId: sale.companyId,
-                shares: sale.shares,
-                proceeds: sale.proceeds,
-                certificateIds: sale.certificateIds,
-                fromMarketSpaceId: sale.fromMarketSpaceId,
-                blocks: [sale.shares]
-            },
-            playerId
-        )
+        !!held?.some((entry) => entry.companyId === sale.companyId) ||
+        !!presidentOtherThan(state, sale.companyId, seller.playerId)
     )
 }
 
-/**
- * Records a player's held sales for their presidents to decide once the seller finishes. A held
- * sale left its marker in place, so the state after it gives the answer it was held by.
- */
+/** Records a player's held sales for their presidents to decide once the seller finishes. */
 export function recordProtectableSale(state: object, details: ShareSaleDetails): void {
     const title = requireEighteenThirtyTwoState(state)
     const seller = details.seller
-    const held = details.sales.filter(
-        (sale) =>
-            sale.toMarketSpaceId === sale.fromMarketSpaceId &&
-            holdsProtectableMove(title, sale, seller)
-    )
+    const held = details.sales.filter((sale) => holdsProtectableMove(title, sale, seller))
     if (seller.kind !== 'player' || !held.length) return
     const record = title.priceProtection
     assert(
@@ -181,7 +160,7 @@ export function recordProtectableSale(state: object, details: ShareSaleDetails):
                             shares: entry.shares + sale.shares,
                             proceeds: entry.proceeds + sale.proceeds,
                             certificateIds: [...entry.certificateIds, ...sale.certificateIds],
-                            blocks: [...entry.blocks, sale.shares]
+                            blocks: [...saleBlocks(entry), sale.shares]
                         }
                       : entry
               )
@@ -200,14 +179,20 @@ export function recordProtectableSale(state: object, details: ShareSaleDetails):
     title.priceProtection = { sellerPlayerId: seller.playerId, sales }
 }
 
+// Records stored before sales were held have no blocks: their prices already fell.
+function saleBlocks(sale: ProtectableSale): readonly number[] {
+    return sale.blocks ?? []
+}
+
 /**
  * Moves held sales' markers down as their sales would have, sale by sale in the order sold, each
- * stopping on the soft ledge as it would (§5.8.1, §5.8.4).
+ * stopping on the soft ledge as it would and arriving below the markers already there (§5.8.1,
+ * §5.8.4).
  */
 function fallHeldSales(market: StockMarket, sales: readonly ProtectableSale[]): StockMarketMove[] {
     return sales.map((sale) => {
         const from = EighteenThirtyTwoMarket.companySpace(market, sale.companyId).id
-        for (const shares of sale.blocks) {
+        for (const shares of saleBlocks(sale)) {
             const space = EighteenThirtyTwoMarket.companySpace(market, sale.companyId).id
             const to = EighteenThirtyTwoMarket.move(space, 'down', saleDescent(space, shares))
             placeStockMarker(market, sale.companyId, to.id)
@@ -229,7 +214,7 @@ export function declinedMarketSpaceId(state: StockState, sale: ProtectableSale):
  * protect them, with every held price fallen (§5.3.5, §5.9).
  */
 export function sellerLimitState<State extends StockState>(state: State, owner: Owner): State {
-    const record = (state as ProtectionState).priceProtection
+    const record = requireEighteenThirtyTwoState(state).priceProtection
     if (
         !record?.sales.length ||
         record.resume ||
@@ -242,17 +227,29 @@ export function sellerLimitState<State extends StockState>(state: State, owner: 
     return { ...state, stockMarket }
 }
 
-// Drops the sales at the front no president can protect, so the next decision is the first.
-function dropUnprotectable(state: HydratedEighteenThirtyTwoState): StockMarketMove[] {
-    const record = state.priceProtection
-    assertExists(record, 'Held sales await their decisions')
-    const dropped: ProtectableSale[] = []
-    while (record.sales.length && !protectable(state, record.sales[0]))
-        dropped.push(...record.sales.splice(0, 1))
-    return fallHeldSales(state.stockMarket, dropped)
+/**
+ * Drops declined sales and those no president can protect; prices that fell take their
+ * companies' places in the operating order (§4.1.3).
+ */
+function dropSales(
+    state: HydratedEighteenThirtyTwoState,
+    sales: readonly ProtectableSale[]
+): StockMarketMove[] {
+    const moves = fallHeldSales(state.stockMarket, sales)
+    if (moves.length)
+        reorderPendingOperatingCompanies(state, EighteenThirtyTwoOperatingRules.companyOrder(state))
+    return moves
 }
 
-const MarketMoves = Type.Optional(Type.Array(StockMarketMove, { minItems: 1 }))
+function leadingUnprotectableSales(state: HydratedEighteenThirtyTwoState): ProtectableSale[] {
+    const record = state.priceProtection
+    assertExists(record, 'Held sales await their decisions')
+    const index = record.sales.findIndex((sale) => protectable(state, sale))
+    return record.sales.splice(0, index === -1 ? record.sales.length : index)
+}
+
+const MarketMoveList = Type.Array(StockMarketMove, { minItems: 1 })
+const MarketMoves = Type.Optional(MarketMoveList)
 function withMoves(moves: StockMarketMove[]) {
     return moves.length ? { marketMoves: moves } : {}
 }
@@ -313,7 +310,7 @@ export class HydratedStartPriceProtection
                 sellerFinished(state, record.sellerPlayerId),
             'Price protection starts once the seller finishes'
         )
-        const moves = dropUnprotectable(state)
+        const moves = dropSales(state, leadingUnprotectableSales(state))
         const protectable = record.sales.length > 0
         if (protectable) record.resume = { machineState: state.machineState }
         else delete state.priceProtection
@@ -335,6 +332,8 @@ export const ProtectShares = Type.Object(
                     sellerPlayerId: Type.String(),
                     shares: Type.Integer({ minimum: 1 }),
                     payment: CashPayment,
+                    // Stored protections from before sales were held may hold it; never read.
+                    restoredMarketSpaceId: Type.Optional(Type.Unsafe<never>(Type.String())),
                     exemptOwnershipLimit: Type.Boolean(),
                     marketMoves: MarketMoves
                 },
@@ -404,8 +403,7 @@ export class HydratedProtectShares
             ownershipCeiling(state, this.companyId)
         decided(state, this.companyId)
         record.lastProtectorId = this.playerId
-        // Paying may leave a later president unable to protect.
-        const moves = dropUnprotectable(state)
+        const moves = dropSales(state, leadingUnprotectableSales(state))
         this.metadata = {
             sellerPlayerId: record.sellerPlayerId,
             shares: sale.shares,
@@ -421,10 +419,7 @@ export const DeclineProtection = Type.Object(
         ...DecisionFields,
         type: Type.Literal('DeclineProtection'),
         metadata: Type.Optional(
-            Type.Object(
-                { marketMoves: Type.Array(StockMarketMove, { minItems: 1 }) },
-                { additionalProperties: false }
-            )
+            Type.Object({ marketMoves: MarketMoveList }, { additionalProperties: false })
         )
     },
     { additionalProperties: false }
@@ -458,8 +453,9 @@ export class HydratedDeclineProtection
         const sale = protectionDecision(state)?.sale
         assertExists(sale, 'A valid decline has its sale')
         decided(state, this.companyId)
-        const moves = [...fallHeldSales(state.stockMarket, [sale]), ...dropUnprotectable(state)]
-        this.metadata = { marketMoves: moves }
+        this.metadata = {
+            marketMoves: dropSales(state, [sale, ...leadingUnprotectableSales(state)])
+        }
     }
 }
 
@@ -542,11 +538,6 @@ export class HydratedCompletePriceProtection
             state.stockRound.passedPlayerIds = []
         } else {
             state.activePlayerIds = resumedPlayerIds(state, machineState)
-            // Prices that fell take their companies' places in the operating order (§4.1.3).
-            reorderPendingOperatingCompanies(
-                state,
-                EighteenThirtyTwoOperatingRules.companyOrder(state)
-            )
         }
         delete state.priceProtection
         this.metadata = { machineState, ...(nextPlayerId ? { nextPlayerId } : {}) }
