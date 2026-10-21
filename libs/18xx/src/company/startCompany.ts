@@ -16,7 +16,7 @@ import { CompanyStartDetails, evaluateCompanyStart, startCompanyAtPar } from './
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { CompanyRules } from './companyRules.js'
-import type { StationState } from '../map/station.js'
+import type { MapStateData } from '../map/mapState.js'
 
 export const StartCompany = Type.Object(
     {
@@ -58,7 +58,7 @@ export class HydratedStartCompany
         this.#stockRules = stockRules
         this.#companyRules = companyRules
     }
-    apply(state: HydratedGameState & FormationState & Partial<StationState>): void {
+    apply(state: HydratedGameState & FormationState & MapStateData): void {
         assert(this.source === ActionSource.User, 'Starting a company requires a player action')
         const result = evaluateCompanyStart(state, this, this.#stockRules, this.#companyRules)
         assert(result.details, result.reason ?? 'Invalid company start')
@@ -75,7 +75,7 @@ export class HydratedStartCompany
         recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)
         const home = result.details.home
-        if (home && state.stationReservations) {
+        if (home) {
             if (home.nodeId)
                 state.stationReservations.push({
                     companyId: this.companyId,

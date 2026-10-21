@@ -94,9 +94,12 @@ export class StationsModule<State extends StationsState> {
     /** Reservations no placed station answers yet, which still hold a space. */
     openReservations(state: StationState) {
         const rules = this.session.rules.stationRules
+        const open = state.stationReservations.filter(
+            (reservation) => !reservationFulfilled(state, reservation, rules)
+        )
+        if (!state.hexReservations?.length) return open
         const placement = new StationPlacement({ ...this.session.state, ...state }, rules)
-        // A claim on any city of a hex shows in a city with room for it.
-        const hexReservations = (state.hexReservations ?? []).flatMap((reservation) => {
+        const shownInOpenCity = state.hexReservations.flatMap((reservation) => {
             if (hexReservationFulfilled(state, reservation)) return []
             const node = placement.mapState
                 .tile(reservation.locationId)
@@ -108,12 +111,7 @@ export class StationsModule<State extends StationsState> {
                 )
             return node ? [{ ...reservation, nodeId: node.id }] : []
         })
-        return [
-            ...state.stationReservations.filter(
-                (reservation) => !reservationFulfilled(state, reservation, rules)
-            ),
-            ...hexReservations
-        ]
+        return [...open, ...shownInOpenCity]
     }
     displayState = $derived.by((): State => {
         if (!this.preview) return this.session.state

@@ -130,7 +130,6 @@ export class OperatingTurnModule {
             finishShares?: () => Promise<void>
         }
     ): OperatingStepCompletion | undefined {
-        // With a share step first, the strip's steps move one place along.
         const lastTarget = steps.finishShares ? 3 : 2
         if (
             steps.finishShares &&

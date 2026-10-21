@@ -3,6 +3,7 @@ import type { TileDefinition } from '../tiles/tile.js'
 import { rotateTileFace, TileEdges } from '../tiles/topology.js'
 import type { TrackRules } from './trackConstruction.js'
 import {
+    keepsExits,
     replacementMappings,
     replacesColorAndStops,
     requiredLabels,
@@ -115,15 +116,4 @@ export class TileUpgrades {
         this.next.set(before.id, (this.next.get(before.id) ?? new Set()).add(after.id))
         this.previous.set(after.id, (this.previous.get(after.id) ?? new Set()).add(before.id))
     }
-}
-
-function keepsExits(before: TileDefinition['face'], after: TileDefinition['face']): boolean {
-    const exits = (face: TileDefinition['face']) =>
-        new Set(
-            face.paths.flatMap((path) =>
-                path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
-            )
-        )
-    const kept = exits(after)
-    return [...exits(before)].every((edge) => kept.has(edge))
 }

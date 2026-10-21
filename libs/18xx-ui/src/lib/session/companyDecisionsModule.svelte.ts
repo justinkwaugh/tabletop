@@ -9,6 +9,7 @@ import {
     OfferPurchase,
     PlacePrivateMarker,
     PlacePrivateToken,
+    sameStationPosition,
     type StationPosition,
     RespondToPurchaseOffer,
     RespondToTrackConsent,
@@ -393,8 +394,7 @@ export class CompanyDecisionsModule {
             this.privateTokenOptions.some(
                 (listed) =>
                     listed.privateCompanyId === option.privateCompanyId &&
-                    listed.position.locationId === option.position.locationId &&
-                    listed.position.nodeId === option.position.nodeId
+                    sameStationPosition(listed.position, option.position)
             ),
             'This private cannot place a station there now'
         )

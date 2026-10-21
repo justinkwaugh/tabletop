@@ -1,5 +1,5 @@
 import type { MapLocation } from '../map/map.js'
-import type { TileFace } from '../tiles/tile.js'
+import type { TileEdge, TileFace } from '../tiles/tile.js'
 import type { TrackRules } from './trackConstruction.js'
 import { tileUpgradeMappings, type TileNodeMapping } from './trackUpgrade.js'
 
@@ -44,10 +44,20 @@ export function replacementMappings(before: TileFace, after: TileFace): TileNode
     return tileUpgradeMappings(before, after, { townsBecomeCities: before.color === after.color })
 }
 
-export function tileExitCount(face: TileFace): number {
+export function tileExits(face: TileFace): Set<TileEdge> {
     return new Set(
         face.paths.flatMap((path) =>
             path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
         )
-    ).size
+    )
+}
+
+export function tileExitCount(face: TileFace): number {
+    return tileExits(face).size
+}
+
+/** Whether every exit of the replaced tile remains an exit of its replacement. */
+export function keepsExits(before: TileFace, after: TileFace): boolean {
+    const kept = tileExits(after)
+    return [...tileExits(before)].every((edge) => kept.has(edge))
 }

@@ -35,26 +35,16 @@ export type CompanyStartResult =
 
 /** The homes a company may start with: its choices, or none to choose when its home is printed. */
 export function companyHomeOptions(
-    state: FormationState & Partial<MapStateData>,
+    state: FormationState & MapStateData,
     rules: CompanyRules,
     companyId: string
 ): readonly HomeOption[] | undefined {
-    return rules.homeChoices && state.tileInventory && state.stations && state.stationReservations
-        ? rules.homeChoices(
-              {
-                  ...state,
-                  tileInventory: state.tileInventory,
-                  stations: state.stations,
-                  stationReservations: state.stationReservations
-              },
-              companyId
-          )
-        : undefined
+    return rules.homeChoices?.(state, companyId)
 }
 
 /** The home locations a start may name: each choice, or none for a printed home. */
 export function startHomeLocationIds(
-    state: FormationState & Partial<MapStateData>,
+    state: FormationState & MapStateData,
     rules: CompanyRules,
     companyId: string
 ): (string | undefined)[] {
@@ -63,7 +53,7 @@ export function startHomeLocationIds(
 }
 
 export function evaluateCompanyStart(
-    state: FormationState & Partial<MapStateData>,
+    state: FormationState & MapStateData,
     request: CompanyStartRequest,
     stockRules: StockRules,
     rules: CompanyRules

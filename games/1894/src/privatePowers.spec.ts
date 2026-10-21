@@ -64,6 +64,57 @@ describe('Ligne de Reims à Charleville (§11.2.2.1)', () => {
     })
 })
 
+describe('private lays keep 1894’s track limits (§7.3.3, §11.2.2.3)', () => {
+    it('does not lay on a hex a player-owned private blocks', () => {
+        const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, (state) => {
+            belgeOwns(['LRC'])(state)
+            state.companies.push({ id: 'SAC', kind: 'private' })
+            state.certificates.push({
+                id: 'SAC:charter',
+                companyId: 'SAC',
+                kind: 'private',
+                owner: { kind: 'player', playerId: state.players[2].playerId }
+            })
+        })
+        expect(() =>
+            play.act('LayPrivateTile', {
+                privateCompanyId: 'LRC',
+                companyId: 'Belge',
+                locationId: 'D17',
+                definitionId: '18xx:57',
+                rotation: 0,
+                nodeMapping: { city: 'city' },
+                expectedCost: 60
+            })
+        ).toThrow()
+    })
+
+    it('does not upgrade the Liège tile it laid this round', () => {
+        const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, belgeOwns(['GLG']))
+        play.act('LayPrivateTile', {
+            privateCompanyId: 'GLG',
+            companyId: 'Belge',
+            locationId: 'H17',
+            definitionId: '18xx:57',
+            rotation: 0,
+            nodeMapping: { city: 'city' },
+            expectedCost: 0
+        })
+        play.act('DeclinePrivateStation', { privateCompanyId: 'GLG' })
+        expect(() =>
+            play.act('LayPrivateTile', {
+                privateCompanyId: 'GLG',
+                companyId: 'Belge',
+                locationId: 'H17',
+                definitionId: '18xx:14',
+                rotation: 2,
+                nodeMapping: { city: 'city' },
+                expectedCost: 0
+            })
+        ).toThrow()
+    })
+})
+
 describe('Gare de Liège-Guillemins (§11.2.2.3)', () => {
     it('lays in Liège without a connection as a track action, then places a free station', () => {
         const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, belgeOwns(['GLG']))

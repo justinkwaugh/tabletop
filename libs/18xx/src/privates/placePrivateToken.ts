@@ -9,7 +9,7 @@ import {
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { StationPosition } from '../map/station.js'
+import { StationPosition, sameStationPosition } from '../map/station.js'
 import { StationPlacementDetails, applyStationPlacement } from '../stations/stationPlacement.js'
 import { recordPrivatePowerUse, type CompanyDecisionState } from './companyDecision.js'
 import type { PrivatePowerRules, PrivateTokenTerms } from './privatePowers.js'
@@ -66,12 +66,7 @@ export class HydratedPlacePrivateToken
         return this.source === ActionSource.User &&
             state.activePlayerIds.includes(this.playerId) &&
             !!privateTokenStationId(state, terms?.companyId ?? '') &&
-            terms?.positions.some(
-                (position) =>
-                    position.locationId === this.position.locationId &&
-                    position.nodeId === this.position.nodeId &&
-                    position.slot === this.position.slot
-            )
+            terms?.positions.some((position) => sameStationPosition(position, this.position))
             ? terms
             : undefined
     }

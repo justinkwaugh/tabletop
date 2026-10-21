@@ -10,7 +10,12 @@ import {
 } from '@tabletop/common'
 import { controllingOwner, type FinancialState } from '../finance/finance.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
-import { StationPosition, type DisplacedStation, type StationState } from '../map/station.js'
+import {
+    StationPosition,
+    sameStationPosition,
+    type DisplacedStation,
+    type StationState
+} from '../map/station.js'
 import type { StationRules } from './stationPlacement.js'
 
 type State = FinancialState & MapStateData & { activePlayerIds: string[] }
@@ -92,12 +97,7 @@ export class HydratedReturnStation
                 state,
                 new RailwayMapState(this.#rules.map, this.#rules.tileSet, state.tileInventory),
                 station
-            ).some(
-                (position) =>
-                    position.locationId === this.position.locationId &&
-                    position.nodeId === this.position.nodeId &&
-                    position.slot === this.position.slot
-            )
+            ).some((position) => sameStationPosition(position, this.position))
         )
     }
     apply(state: HydratedGameState & State): void {

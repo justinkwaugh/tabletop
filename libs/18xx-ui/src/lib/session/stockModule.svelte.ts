@@ -141,7 +141,6 @@ export class StockModule implements LocalSelection {
             this.unstartedCompanies()
                 .map((company) => {
                     const request = { playerId, buyer, companyId: company.id }
-                    // A company whose president chooses its home is priced at any of its homes.
                     const [homeLocationId] = startHomeLocationIds(
                         state,
                         rules.companyRules,

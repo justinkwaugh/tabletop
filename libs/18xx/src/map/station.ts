@@ -25,6 +25,10 @@ export const StationPosition = Type.Object(
     { additionalProperties: false }
 )
 export type StationPosition = Type.Static<typeof StationPosition>
+
+export function sameStationPosition(a: StationPosition, b: StationPosition): boolean {
+    return a.locationId === b.locationId && a.nodeId === b.nodeId && a.slot === b.slot
+}
 const Identity = { id: Id, companyId: Id }
 export const PlacedStation = Type.Object(
     { ...Identity, status: Type.Literal('placed'), position: StationPosition },

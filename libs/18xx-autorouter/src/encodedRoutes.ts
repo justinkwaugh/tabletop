@@ -152,17 +152,18 @@ export class EncodedRoutes {
             const definition = rules.depot.trainDefinition(train.definitionId)
             const countsCrossings = definition.distance.measure === 'hex-edges'
             const { maximum, extraTowns = 0 } = definition.distance
-            // A train with extra towns weighs stops so that one limit holds both of its limits:
-            // a town costs one more than the maximum, any other stop one more again.
-            assert(extraTowns <= 1, 'The autorouter encodes at most one extra town')
+            const weighted =
+                extraTowns && maximum !== 'unlimited'
+                    ? extraTownWeights(maximum, extraTowns)
+                    : undefined
             const visitCosts = nodes.map((node) => {
                 if (
                     countsCrossings ||
                     (definition.distance.measure === 'cities-and-offboards' && node.kind === 'town')
                 )
                     return 0
-                if (!extraTowns || maximum === 'unlimited') return 1
-                return node.kind === 'town' ? maximum + 1 : maximum + 2
+                if (!weighted) return 1
+                return node.kind === 'town' ? weighted.town : weighted.other
             })
             const policy = rules.revenuePolicy?.(definition)
             const values = nodes.map((node, index) => {
@@ -190,9 +191,7 @@ export class EncodedRoutes {
                     maximum === 'unlimited'
                         ? visitCosts.reduce<number>((sum, cost) => sum + cost, 0) +
                           arcs.reduce((sum, arc) => sum + arc.crossings, 0)
-                        : extraTowns
-                          ? (maximum + 2) * maximum + maximum + 1
-                          : maximum,
+                        : (weighted?.limit ?? maximum),
                 counts_crossings: countsCrossings,
                 visit_costs: visitCosts,
                 requires_city: rules.requiresCity(definition),
@@ -269,4 +268,19 @@ export class EncodedRoutes {
             endpoint.kind === 'edge' ? endpoint.edge : endpoint.nodeId
         ])
     }
+}
+
+/**
+ * Stop costs and a limit that hold a train to its maximum stops plus one extra town in one
+ * distance, as the solver counts only one: no more than the maximum non-town stops, and no more
+ * than one more stop in all.
+ */
+export function extraTownWeights(
+    maximum: number,
+    extraTowns: number
+): { town: number; other: number; limit: number } {
+    assert(extraTowns === 1, 'The autorouter encodes at most one extra town')
+    const town = maximum + 1
+    const other = town + 1
+    return { town, other, limit: other * maximum + town }
 }

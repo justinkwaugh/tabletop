@@ -237,7 +237,8 @@ export class CompleteGameRun {
             return
         }
         if (state.machineState === 'ManagingShares') {
-            this.act('FinishTreasuryShares', { companyId: state.shareStep!.companyId })
+            assertExists(state.shareStep, 'The share step names its company')
+            this.act('FinishTreasuryShares', { companyId: state.shareStep.companyId })
             return
         }
         if (available.includes('DeclinePrivateTile')) {

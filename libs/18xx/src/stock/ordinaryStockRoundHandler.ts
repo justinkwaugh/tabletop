@@ -1,3 +1,4 @@
+import type { MapStateData } from '../map/mapState.js'
 import {
     CompleteStockRound,
     isCompleteStockRound,
@@ -25,7 +26,7 @@ import { evaluateShareSale, hasLegalShareSale, mustSellShares } from './shareSal
 import type { StockRules } from './stockRules.js'
 import type { FormationState } from '../company/companyState.js'
 
-type State = HydratedGameState & FormationState
+type State = HydratedGameState & FormationState & MapStateData
 type Action =
     | HydratedBuyShares
     | HydratedSellShares

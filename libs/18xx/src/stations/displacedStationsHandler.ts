@@ -68,7 +68,6 @@ export class DisplacedStationsHandler<S extends State> implements MachineStateHa
     onAction(action: HydratedAction, context: MachineContext<S>): string {
         if (!(action instanceof HydratedReturnStation))
             return this.handler.onAction(action, context)
-        // The operating company resumes its turn with its president acting again.
         const state = context.gameState
         if (state.machineState !== BetweenCompaniesState && !this.owner(state)) {
             const companyId = nextOperatingCompany(state)

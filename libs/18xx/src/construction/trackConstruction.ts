@@ -18,6 +18,7 @@ import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import { ConstructionReachability } from './constructionReachability.js'
 import { preservesPath, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
 import {
+    keepsExits,
     replacementMappings,
     replacesColorAndStops,
     requiredLabels,
@@ -505,15 +506,9 @@ export class TrackConstruction {
         return [{}]
     }
     private reconfiguring(locationId: string, before: TileFace, after: TileFace): boolean {
-        if (!this.rules.reconfigures?.(locationId, before, after)) return false
-        const exits = (face: TileFace) =>
-            new Set(
-                face.paths.flatMap((path) =>
-                    path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
-                )
-            )
-        const kept = exits(after)
-        return [...exits(before)].every((edge) => kept.has(edge))
+        return (
+            !!this.rules.reconfigures?.(locationId, before, after) && keepsExits(before, after)
+        )
     }
     private replacesTile(locationId: string): boolean {
         return this.rules.colorOrder.indexOf(this.mapState.tile(locationId).face.color) > 0

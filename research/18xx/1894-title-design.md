@@ -38,7 +38,7 @@ companies choose their home when parred; the last operating set builds nothing.
 
 ## Delivery slices
 
-Each slice ends with a code review whose findings are fixed before the next begins.
+The slices were built in order on one branch, with a review of the whole before completion.
 
 1. **Title data and ordinary play.** Packages; the map, tiles, market, companies, privates,
    trains and phases; the opening (random French company and removed private, dealt shares,
@@ -78,10 +78,23 @@ requirements to implement them.
 | Paris as one stop (§13.3)                                 | a stop group may cover the separate cities of one hex                                                                                                                                | 1830 Canada/Gulf (multi-hex groups), 1894 Paris                                                                        |
 | Province borders (§9)                                     | a passable `province` border kind, drawn by the map renderer                                                                                                                         | 1894 France/Belgium; 1835/1824 state borders                                                                           |
 | Purchasable access rights (§14)                           | a family `AccessRights` module: limited rights a company buys during its turn, which open stops for running and building                                                             | 1894 ferry markers; 1832 WVCF coal rights (title code today)                                                           |
-| Paid extra private lay (§11.2.2.1)                        | `PrivateTrackTerms.cost`                                                                                                                                                             | 1894 LRC; TOP's paid second yellow is an allowance                                                                     |
+| Paid extra private lay (§11.2.2.1)                        | `PrivateTrackTerms.cost`, and `recordsLay` to keep the lay in the turn's `TrackStep.extraLays`                                                                                       | 1894 LRC; TOP's paid second yellow is an allowance                                                                     |
 | City splitting with set-aside stations (§12.3.2, §7.3.8)  | `TrackRules.reconfigures`, a `displaced` station status, hex-wide reservations and a `ReturnStation` decision                                                                        | 1894; upgrades that remove or move stations elsewhere (1832 shared cities, 1817 removals)                              |
 | Home chosen at par (§11.3.3)                              | `CompanyRules.homeChoices` and a home location on `StartCompany`                                                                                                                     | 1817 (auction homes), 1894 late companies, 1867/1861 minors                                                            |
-| Step actions offered inside family states                 | `StepActionsHandler` moves into the family from 1832's `TitleActionsHandler`                                                                                                         | 1832 coal rights, 1894 ferry markers and London shipping                                                               |
+
+Smaller additions: `CompanyRules.awardParSpaces` (the F100 par only a shareholding's buyer may
+take, §5.3); `OperatingRules.privateIncome` sees the map (Saint-Quentin à Guise follows its hex's
+tile, §11.2.2.5) and the shared table shows each private's income through the family
+`privateIncome`; `requiresStationRoute` takes the title's `stopAllowed`, so London without a ferry
+marker does not oblige a company to own a train (§13.3); a private token power,
+`PrivatePowerRules.tokenTerms` with `PlacePrivateToken`, places London shipping's A12 station apart
+from the turn's placement (§11.2.2.6), and could carry 1846's C&WI station later.
+
+Hex-wide claims hold station spaces: a placement must leave a free space on the hex for each
+other company's unanswered hex reservation and each station set aside there. That gives §7.3.4's
+two limits on the acting company exactly: no station on a split city with two stations set aside,
+or with one set aside on an unoperated company's home. A returned station may share a city's
+space (§7.3.8); it takes the slot after the city's spaces and is drawn beside them.
 
 Released titles keep their behaviour: every addition is optional and defaults to the current
 procedure. 1846's corporate finance and 1832's coal rights and redemption can adopt the family
