@@ -137,7 +137,10 @@ A map view may name each city of a hex (``cityNames``, 1830's OO and New York he
 each name curves over its own city's drawn centre, turned off the hex's other cities
 and the names already placed, and replaces the hex's single name. A lone city's curved
 name follows the city's drawn centre, so an off-centre city (1830's Altoona) is wrapped
-by its name.
+by its name. A map view may instead curve a lone city's name under the city, reading
+along its foot (``namesBelow``), where track leaves over its top: TOP's Souris and
+Wellington, 1846's Huntington, 1832's New Orleans. Styles that print names straight
+across the top keep them there.
 
 A map view's joined edges draw no outline, in the hex artwork or the map's outline
 layer, so neighbouring hexes read as one area (1830's Canada and Gulf). A tile layout
@@ -808,8 +811,8 @@ bridges) appears under Use privates as one immediately committed button per loca
 "Place [marker] on [location] ([private])". Placed markers join the map's printed
 markers, by the names the title's map view gives them, in the live and historical maps.
 Printed `revenueSymbol` markers (1832's and 1846's port anchors) take clear space beside the
-revenue, or the title's `symbolPositions` (1832's New Orleans at the bottom, Miami at its
-right side), and are left out where the tile prints the symbol itself.
+revenue, or the title's `symbolPositions` (1832's New Orleans and Norfolk at the bottom,
+Miami at its right side), and are left out where the tile prints the symbol itself.
 A title's reusable private lays (1817's coal mines and ranches) stay offered until its
 terms end them. A lay can also clear markers (1817's city tiles clear the ranches beside
 them), which leave the live and historical maps with it. History notes what a lay paid
@@ -1885,7 +1888,7 @@ TOP’s Royal Agricultural Society and Railcar Ferry use the Mainline token and 
 
 TOP exchange privates Merchants and Co., Vernon River Bridge, and Shipbuilding use the assigned Shortline company token and a bold opening paragraph: ‘Includes one reserved share of [company].’ Ice Boats uses an outlined token with a large question mark because its exchange target is chosen from eligible companies. The same appearance is used on private cards and auction icons.
 
-Titles may mark a private through their presentation with either a company's token or a shared tile symbol. The session resolves company tokens to the current token art, so the published-artwork toggle applies, and tile symbols to the current tile appearance's ink and paper. 1889 marks Dôgo Railway with the Iyo Railway token, its exchange target, and Mitsubishi Ferry with the port anchor, on their cards, auction rows, portfolio rows and private purchase lists. TOP's role-dependent tokens remain its session override.
+Titles may mark a private through their presentation with a company's token, a shared tile symbol, a terrain icon, a picture of the tiles it lays, or an image of its own. The session resolves company tokens to the current token art, so the published-artwork toggle applies, and tile symbols to the current tile appearance's ink and paper; images draw as supplied. 1832 marks Cotton Warehouse and Atlantic Shipping with the Cotton and Port tokens they place, and London Investment with a filled question-mark token, because its free share's company is chosen later. 1889 marks Dôgo Railway with the Iyo Railway token, its exchange target, and Mitsubishi Ferry with the port anchor, on their cards, auction rows, portfolio rows and private purchase lists. TOP's role-dependent tokens remain its session override.
 
 Map markers may carry title-supplied art in place of their text label: an image drawn across an unplaced hex (TOP's Vernon River Bridge) or a shared tile symbol drawn at the marker position near the lower edge, with the marker label as its hover title. Images appear only on unplaced hexes in the generic presentation. Symbols follow text-marker visibility: unplaced hexes in the generic presentation and placed tiles in either presentation, except where the placed face already shows that symbol; unplaced hexes on the published board show its printed markers. 1889 draws its four eligible port locations with the same anchor as the port tile rather than the word Port.
 

@@ -873,8 +873,8 @@
 </svg>
 
 <style>
-    /* Faded in its own colours: WebKit ignores CSS filters on SVG content, so grayscale
-       would only show in other browsers. */
+    /* No grayscale: WebKit ignores CSS filter functions on SVG elements, and players
+       preferred the faded colours it shows. */
     .reserved-token {
         opacity: 0.4;
     }
