@@ -10,6 +10,7 @@ import {
     placeStockMarker,
     sharesOwned,
     trainsOwnedBy,
+    treasuryPoolId,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
@@ -21,7 +22,6 @@ import {
     buyerLimit
 } from './index.js'
 import { mergerRoundCompanyId } from './mergerRound.js'
-import { treasuryPoolId } from './roundRules.js'
 import { marketPool } from './shorts.js'
 import { activeAcquisitionRound } from './state.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'

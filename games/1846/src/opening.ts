@@ -10,6 +10,8 @@ import {
     beginOpening,
     createOrdinaryShareCertificates,
     createCompanyStations,
+    treasuryPool,
+    treasuryPoolId,
     type InitialPosition,
     type Opening,
     type OpeningSetup,
@@ -74,7 +76,10 @@ export function createOpening1846({ players, prng, startingPositions }: OpeningS
     const majors = Corporations.filter((company) => !removedCorporationIds.includes(company.id))
     const certificates: EighteenFortySixState['certificates'] = [
         ...majors.flatMap((company) => {
-            const treasury = { owner: { kind: 'company' as const, companyId: company.id } }
+            const treasury = {
+                owner: { kind: 'company' as const, companyId: company.id },
+                poolId: treasuryPoolId(company.id)
+            }
             return createOrdinaryShareCertificates(
                 company.id,
                 Array.from({ length: 8 }, () => treasury),
@@ -135,7 +140,10 @@ export function createOpening1846({ players, prng, startingPositions }: OpeningS
                 kind: company.kind === 'independent' ? 'minor' : 'private'
             }))
         ],
-        certificatePools: [{ id: 'open-market', owner: { kind: 'bank' } }],
+        certificatePools: [
+            { id: 'open-market', owner: { kind: 'bank' } },
+            ...majors.map((company) => treasuryPool(company.id))
+        ],
         cash: [
             {
                 owner: { kind: 'bank' },

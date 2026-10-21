@@ -160,7 +160,10 @@ describe('1846 complete two-player rules', () => {
                 certificate.kind === 'share' &&
                 !certificate.president
         )
-        for (const certificate of ordinary.slice(0, 4)) certificate.owner = owner
+        for (const certificate of ordinary.slice(0, 4)) {
+            certificate.owner = owner
+            delete certificate.poolId
+        }
         expect(sharesOwned(table.state, 'IC', owner)).toBe(6)
         table.finishTurn()
         table.buy('IC')

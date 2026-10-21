@@ -7,6 +7,7 @@ import {
     createOrdinaryShareCertificates,
     drawFirstPlayer,
     getCompany,
+    treasuryPool,
     type StockMarket,
     privateIncomePayments,
     settleCashPayments,
@@ -173,10 +174,7 @@ export function createTheOldPrinceOpening({
             { id: 'market', owner: { kind: 'bank' } },
             { id: 'reserved', owner: { kind: 'bank' } },
             { id: 'auction', owner: { kind: 'bank' } },
-            ...TheOldPrinceCompanies.map((c) => ({
-                id: `treasury:${c.companyId}`,
-                owner: { kind: 'company' as const, companyId: c.companyId }
-            }))
+            ...TheOldPrinceCompanies.map((c) => treasuryPool(c.companyId))
         ],
         certificates: [
             ...TheOldPrinceCompanies.flatMap((c) =>

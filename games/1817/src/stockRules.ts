@@ -15,6 +15,7 @@ import {
     settleCashPayments,
     solventPlayerCount,
     stockCertificateCount,
+    treasuryPoolId,
     type CashPayment,
     type CompanyAuctionRules,
     type CompanyAuctionState,
@@ -26,7 +27,7 @@ import {
     standardCertificateWeight,
     companyShareCount
 } from '@tabletop/18xx'
-import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { EighteenSeventeenStockRoundRules, MarketPoolId } from './roundRules.js'
 import { EighteenSeventeenMap } from './map.js'
 import { EighteenSeventeenStationRules } from './stationRules.js'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
