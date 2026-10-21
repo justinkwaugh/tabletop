@@ -986,6 +986,19 @@ sideways gesture keep their usual behaviour. The companyCardsWrap family prefere
 persists the choice and defaults to on; like boardAutoZoom it needs updated Logic
 and matching UI Artifacts.
 
+A Wide switch sits to the left of Wrap. Turning it on draws each card in the wide
+style of the operating-order chips' expanded card, with owners beside privates and
+powers, a station token per remaining station, and the last run. Every company
+card, narrow or wide, has the raised header. Wide cards fill the view's width rather than sizing to their
+content. With Wrap on, each row is shared evenly by as many cards of at least
+300px as fit, so a phone shows one full-width card per row; with Wrap off, each
+card is 400px or the view's width if narrower. A wide card shrinks to fit: its name
+wraps, its station tokens wrap, its prices wrap onto a second line, and below
+380px its two columns split the width evenly. It shows all its owners and privates
+rather than scrolling them. The companyCardsWide family preference persists the
+choice and defaults to off; like companyCardsWrap it needs updated Logic and
+matching UI Artifacts.
+
 Market cells share single-width borders with values at the upper left. In the
 dark table, neutral (white) cells use the raised table surface and table borders,
 while colored cells keep each market color's hue at dark-surface lightness,
@@ -2139,9 +2152,10 @@ it only while the sheet is scrolled.
 Company cards echo the spreadsheet: the cash cell uses the recessed fill, the
 value cell the faint turquoise, and investor rows carry their player's tint to
 the card's left and right edges. Corporate investors follow the player who
-controls them. The right of a started company's ownership heading carries its
-status: an amber UNFLOATED until it floats, then a cream SOLD OUT while it is
-sold out by the title's own rule. Closed companies show none.
+controls them. Their shareholding section is headed Owners; player cards keep
+Ownership for what a player holds. The right of a started company's Owners heading
+carries its status: an amber UNFLOATED until it floats, then a cream SOLD OUT while
+it is sold out by the title's own rule. Closed companies show none.
 
 Player cards in workspace panes start 10px below the pane header, matching the
 10px gap between cards in both vertical and horizontal arrangements.

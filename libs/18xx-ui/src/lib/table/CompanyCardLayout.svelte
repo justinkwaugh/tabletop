@@ -6,11 +6,15 @@
     let {
         children,
         wrap,
-        onToggleWrap
+        onToggleWrap,
+        wide,
+        onToggleWide
     }: {
         children: Snippet
         wrap: boolean
         onToggleWrap: () => void
+        wide: boolean
+        onToggleWide: () => void
     } = $props()
 
     function scrollRowOnWheel(row: HTMLElement) {
@@ -34,6 +38,15 @@
     <div class="company-card-tools">
         <ViewSwitch
             small
+            enabled={wide}
+            onToggle={onToggleWide}
+            label="Wide"
+            title={wide
+                ? 'Cards show their details side by side. Click for narrow cards.'
+                : 'Cards are narrow. Click to show their details side by side.'}
+        />
+        <ViewSwitch
+            small
             enabled={wrap}
             onToggle={onToggleWrap}
             label="Wrap"
@@ -42,7 +55,13 @@
                 : 'Cards stay in one row. Click to wrap them onto new rows.'}
         />
     </div>
-    <div class="company-cards" class:wrap aria-label="Started companies" {@attach scrollRowOnWheel}>
+    <div
+        class="company-cards"
+        class:wrap
+        class:wide
+        aria-label="Started companies"
+        {@attach scrollRowOnWheel}
+    >
         {@render children()}
     </div>
 </div>
@@ -57,6 +76,7 @@
     .company-card-tools {
         display: flex;
         justify-content: flex-end;
+        gap: 12px;
         padding: 6px 10px 0;
     }
     .company-cards {
@@ -74,5 +94,16 @@
     }
     .company-cards.wrap {
         flex-wrap: wrap;
+    }
+    .company-cards.wide {
+        display: grid;
+        grid-auto-rows: max-content;
+    }
+    .company-cards.wide.wrap {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    }
+    .company-cards.wide:not(.wrap) {
+        grid-auto-flow: column;
+        grid-auto-columns: min(100%, 400px);
     }
 </style>

@@ -37,7 +37,7 @@
         company,
         pricePresentation = DefaultCompanyPricePresentation,
         displayName = session.companyName(company.id),
-        vertical = false,
+        layout = 'wide',
         unavailable = false,
         purchaseSources,
         canPurchase,
@@ -46,7 +46,8 @@
     }: {
         pricePresentation?: CompanyPricePresentation
         unavailable?: boolean
-        vertical?: boolean
+        /** `wide-fill` is the wide card stretched to its container's width. */
+        layout?: 'wide' | 'wide-fill' | 'vertical'
         canPurchase?: (entry: CompanyOwnership) => boolean
         purchaseSources?: Snippet<[CompanyOwnership]>
         onPreviewMap?: (action: GameAction) => void
@@ -56,6 +57,7 @@
         company: Company
         poolName?: (pool: CertificatePool) => string
     } = $props()
+    const vertical = $derived(layout === 'vertical')
     const shareStatusLabels: Record<CompanyShareStatus, string> = {
         unfloated: 'Unfloated',
         soldOut: 'Sold out'
@@ -152,14 +154,18 @@
 <article
     class="company-detail"
     class:vertical
+    class:wide-fill={layout === 'wide-fill'}
     class:unavailable
     aria-label={`${session.companyName(company.id)} details`}
 >
     <header>
         <div class="identity">
-            <CompanyToken appearance={session.mapView.stations[company.id]} size={28} />
+            <CompanyToken
+                appearance={session.mapView.stations[company.id]}
+                size={vertical ? 32 : 36}
+            />
             <div>
-                <h2>{displayName}</h2>
+                <h2 title={displayName}>{displayName}</h2>
                 <div class="train-roster" aria-label="Trains">
                     {#each trains as train (train.id)}
                         {@const definition = session.trainDepot.trainDefinition(train.definitionId)}
@@ -242,7 +248,7 @@
     <div class="detail-columns">
         <section aria-label="Company ownership">
             <div class="ownership-heading">
-                <h3>Ownership</h3>
+                <h3>Owners</h3>
                 {#if shareStatus}<span
                         class="share-status"
                         class:unfloated={shareStatus === 'unfloated'}
@@ -420,7 +426,6 @@
     .vertical header {
         align-items: flex-start;
         gap: 5px;
-        background: var(--rail-surface-raised, #e5dccf);
     }
     .vertical .identity {
         flex: 1;
@@ -428,13 +433,12 @@
         align-items: flex-start;
         gap: 7px;
     }
-    .vertical .identity > :global(svg) {
+    .identity > :global(svg) {
         flex-shrink: 0;
     }
     .vertical h2 {
         white-space: normal;
         font-size: 13px;
-        line-height: 1.2;
     }
     .vertical .header-summary {
         padding-left: 0;
@@ -520,6 +524,7 @@
         gap: 10px;
         padding: 5px 10px;
         border-bottom: 1px solid var(--rail-border, #e3d9cd);
+        background: var(--rail-surface-raised, #e5dccf);
     }
     .identity {
         display: flex;
@@ -531,6 +536,7 @@
         margin: 0;
         font-size: 15px;
         font-weight: 650;
+        line-height: 1.2;
         white-space: nowrap;
     }
     .company-mark {
@@ -662,6 +668,58 @@
         min-width: 390px;
         max-height: 320px;
         overflow: auto;
+    }
+    .company-detail.wide-fill {
+        width: 100%;
+        margin: 0;
+        container-type: inline-size;
+    }
+    .wide-fill .identity {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .wide-fill h2 {
+        white-space: normal;
+    }
+    .vertical .identity > div,
+    .wide-fill .identity > div {
+        min-width: 0;
+    }
+    .vertical h2,
+    .wide-fill h2 {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .wide-fill .header-summary {
+        flex-shrink: 1;
+        min-width: 0;
+    }
+    .wide-fill .remaining-tokens {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .wide-fill .financial-summary .prices {
+        flex-wrap: wrap;
+    }
+    .wide-fill .financial-summary .prices div {
+        padding-inline: 6px;
+    }
+    .wide-fill .ownership-heading {
+        flex-wrap: wrap;
+        column-gap: 8px;
+    }
+    .wide-fill .share-status {
+        white-space: nowrap;
+    }
+    .wide-fill .detail-columns {
+        min-width: 0;
+        max-height: none;
+        overflow: visible;
+    }
+    @container (width < 380px) {
+        .wide-fill .detail-columns {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
     .detail-columns > section {
         min-width: 0;

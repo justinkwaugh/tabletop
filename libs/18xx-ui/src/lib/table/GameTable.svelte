@@ -182,6 +182,10 @@
     function toggleCompanyCardsWrap() {
         session.preferences.set({ companyCardsWrap: !companyCardsWrap }, 'family')
     }
+    const companyCardsWide = $derived(session.preferences.values.companyCardsWide)
+    function toggleCompanyCardsWide() {
+        session.preferences.set({ companyCardsWide: !companyCardsWide }, 'family')
+    }
     function autoZooms(wrapper: ScalingWrapper) {
         return boardAutoZoom || wrapper !== boardViewer()
     }
@@ -744,9 +748,12 @@
         {portfolioCompanyIds}
     />{/snippet}
 
-{#snippet companyCard(company: Company)}<CompanyDetails
+{#snippet companyCard(
+    company: Company,
+    layout: 'wide-fill' | 'vertical' = 'vertical'
+)}<CompanyDetails
         pricePresentation={companyPricePresentation}
-        vertical
+        {layout}
         displayName={companyNames?.[company.id]?.card}
         {company}
         {session}
@@ -1307,9 +1314,14 @@
                             <CompanyCardLayout
                                 wrap={companyCardsWrap}
                                 onToggleWrap={toggleCompanyCardsWrap}
+                                wide={companyCardsWide}
+                                onToggleWide={toggleCompanyCardsWide}
                             >
                                 {#each startedCompanies as company (company.id)}
-                                    {@render companyCard(company)}
+                                    {@render companyCard(
+                                        company,
+                                        companyCardsWide ? 'wide-fill' : 'vertical'
+                                    )}
                                 {:else}<p class="widget-empty">No companies have started.</p>{/each}
                             </CompanyCardLayout>
                         </div>{:else if id === 'Tiles'}<div class="workspace-view">
