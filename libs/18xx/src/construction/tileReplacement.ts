@@ -5,7 +5,7 @@ import { tileUpgradeMappings, type TileNodeMapping } from './trackUpgrade.js'
 
 export type TileReplacementRules = Pick<
     TrackRules,
-    'colorOrder' | 'preservesStops' | 'upgradesWithinColor'
+    'colorOrder' | 'preservesStops' | 'upgradesWithinColor' | 'reconfigures'
 >
 
 export function replacesColorAndStops(
@@ -16,7 +16,10 @@ export function replacesColorAndStops(
 ): boolean {
     const colorStep = rules.colorOrder.indexOf(after.color) - rules.colorOrder.indexOf(before.color)
     if (colorStep === 0) return !!rules.upgradesWithinColor?.(locationId, before, after)
-    return colorStep === 1 && rules.preservesStops(before, after)
+    return (
+        colorStep === 1 &&
+        (rules.preservesStops(before, after) || !!rules.reconfigures?.(locationId, before, after))
+    )
 }
 
 /** A tile of the colour carries the hex's label from that colour on, else the replaced tile's. */

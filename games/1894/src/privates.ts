@@ -10,6 +10,16 @@ export const MajorShareholdings: Readonly<Record<string, string>> = {
     EMS: 'Est',
     BMS: 'Belge'
 }
+/**
+ * The French company drawn at setup (§3): the one whose major shareholding is in play. It and
+ * the Belge start floated and skip financial operations.
+ */
+export function startingFrenchCompanyId(state: { companies: readonly { id: string }[] }) {
+    const id = state.companies
+        .map((company) => MajorShareholdings[company.id])
+        .find((companyId) => companyId && companyId !== 'Belge')
+    return id
+}
 /** One of Gare de Liège-Guillemins and Station Antwerpen Centraal is removed at setup (§3). */
 export const StationPrivateIds: readonly string[] = ['GLG', 'SAC']
 export const NordMinorShareholdingId = 'NMinorS'

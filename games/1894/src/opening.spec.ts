@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { getCompany, privateOwner } from '@tabletop/18xx'
 import { startTable } from '../test/testSupport.js'
+import { startingFrenchCompanyId } from './privates.js'
 
 describe('setup (§3)', () => {
     it.each([3, 4] as const)('deals the %i-player opening', (count) => {
         const table = startTable(count)
         const state = table.hydrated
-        const french = state.frenchCompanyId
+        const french = startingFrenchCompanyId(state)
         expect(['PLM', 'CFOR', 'Nord', 'Ouest', 'Est']).toContain(french)
         for (const player of state.players)
             expect(table.cash(player.playerId)).toBe(count === 3 ? 570 : 480)
@@ -55,7 +56,7 @@ describe('private auction (§5)', () => {
 
     it('sets the shareholding companies’ par, including F100, and floats them', () => {
         const table = startTable(4)
-        const french = table.state.frenchCompanyId
+        const french = startingFrenchCompanyId(table.state) ?? ''
         for (let guard = 0; guard < 40 && table.state.machineState !== 'StockRound'; guard++) {
             const state = table.hydrated
             if (state.pendingPar) {

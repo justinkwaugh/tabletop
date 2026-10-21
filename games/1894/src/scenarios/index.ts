@@ -111,7 +111,11 @@ export function createEighteenNinetyFourScenario(
                     floated: false
                 }
             }),
-            ...['LRC', 'AR', 'SQG', 'LS'].map((id) => ({ id, kind: 'private' }))
+            ...['LRC', 'AR', 'SQG', 'LS', 'PLMMS', 'BMS'].map((id) => ({
+                id,
+                kind: 'private',
+                ...(id.endsWith('MS') ? { closed: true } : {})
+            }))
         ],
         certificatePools: [
             { id: 'initial-offering', owner: bank },
@@ -262,6 +266,5 @@ export const EighteenNinetyFourScenarios: GameDefinition<
 > = withScenarios(Definition, EighteenNinetyFourTitleRules, {
     createMarket: createEighteenNinetyFourScenarioMarket,
     createFinances: createEighteenNinetyFourScenario,
-    prepareEnding: prepareEighteenNinetyFourEnding,
-    titleState: { frenchCompanyId: 'PLM' }
+    prepareEnding: prepareEighteenNinetyFourEnding
 })

@@ -29,6 +29,8 @@ import {
 import { CashCrisisFields } from '../funding/cashCrisis.js'
 import { FundingFields, validateTrainFunding } from '../funding/trainFunding.js'
 import { LoanFields } from '../loans/loans.js'
+import { AccessRightFields } from '../rights/accessRights.js'
+import { TreasuryShareFields } from '../company/treasuryShares.js'
 import { LocationMarkerFields } from '../map/locationMarkers.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
 import { validateStations } from '../map/station.js'
@@ -70,6 +72,7 @@ export const WaterfallAuctionMachineStates = ['WaterfallAuction', 'AuctionBiddin
 export const SelectionAuctionMachineStates = ['SelectionAuction'] as const
 export const LoanMachineStates = ['RepayingLoans'] as const
 export const CashCrisisMachineStates = ['RaisingCash'] as const
+export { TreasuryShareMachineStates } from '../company/treasuryShares.js'
 export type EighteenXXMachineState =
     | (typeof RailwayMachineStates)[number]
     | (typeof OfferAuctionMachineStates)[number]
@@ -77,6 +80,7 @@ export type EighteenXXMachineState =
     | (typeof SelectionAuctionMachineStates)[number]
     | (typeof LoanMachineStates)[number]
     | (typeof CashCrisisMachineStates)[number]
+    | 'ManagingShares'
 
 export const RailwayFields = {
     stockRound: StockRound,
@@ -110,6 +114,8 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof LocationMarkerFields &
     typeof CompanyAuctionFields &
     typeof LoanFields &
+    typeof AccessRightFields &
+    typeof TreasuryShareFields &
     typeof CashCrisisFields & {
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
         ownershipLimitExemptions: Type.TOptional<Type.TArray<typeof OwnershipLimitExemption>>

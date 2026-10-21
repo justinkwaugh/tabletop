@@ -7,6 +7,7 @@ import {
     type TrackRules
 } from '../construction/trackConstruction.js'
 import type { Owner } from '../finance/finance.js'
+import type { StationPosition } from '../map/station.js'
 import type { CompanyDecisionState } from './companyDecision.js'
 import { privatePowerUsed } from './companyDecision.js'
 export interface PrivateTrackTerms {
@@ -19,6 +20,8 @@ export interface PrivateTrackTerms {
     // Several lays: the title's terms, not the family, decide when the power is used up.
     reusable?: true
     terrainDiscount?: number
+    /** What a lay beside the ordinary lays costs beyond terrain, such as 1894's F60. */
+    cost?: number
     free?: true
     restriction?(request: TrackRequest): string | undefined
     relabels?: true
@@ -50,6 +53,20 @@ export interface PrivatePowerRules {
         privateCompanyId: string,
         playerId: string
     ): PrivateMarkerTerms | undefined
+    /**
+     * Where a private lets its owning company place its next station free, apart from the
+     * turn's station placement; the family records the power used once a token is placed.
+     */
+    tokenTerms?(
+        state: CompanyDecisionState,
+        privateCompanyId: string,
+        playerId: string
+    ): PrivateTokenTerms | undefined
+}
+
+export interface PrivateTokenTerms {
+    companyId: string
+    positions: readonly StationPosition[]
 }
 
 export interface PrivateMarkerTerms {
@@ -70,7 +87,9 @@ export function privateTrackConstruction(
         { ...state, trackStep },
         {
             ...rules,
-            allowance: terms.countsAsOrdinaryLay ? rules.allowance : () => ({ cost: 0 }),
+            allowance: terms.countsAsOrdinaryLay
+                ? rules.allowance
+                : () => ({ cost: terms.cost ?? 0 }),
             restriction: (_state, request) =>
                 terms.locationIds.includes(request.locationId) &&
                 terms.definitionIds.includes(request.definitionId)

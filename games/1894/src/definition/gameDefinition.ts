@@ -21,6 +21,8 @@ import { EighteenNinetyFourOperatingRules } from '../roundRules.js'
 import { EighteenNinetyFourCompanyRules } from '../companyRules.js'
 import { EighteenNinetyFourStockRules } from '../stockRules.js'
 import { EighteenNinetyFourInfo } from './info.js'
+import { EighteenNinetyFourAccessRightRules } from '../london.js'
+import { EighteenNinetyFourTreasuryShareRules } from '../corporateFinance.js'
 import {
     EighteenNinetyFourStateDefinition,
     EighteenNinetyFourState,
@@ -49,7 +51,17 @@ export const EighteenNinetyFourTitleRules: EighteenXXTitleRules<
     privateRules: EighteenNinetyFourPrivateRules,
     phases: EighteenNinetyFourPhases,
     phaseRules: EighteenNinetyFourPhaseRules,
-    trainRules: EighteenNinetyFourTrainRules
+    trainRules: EighteenNinetyFourTrainRules,
+    accessRightRules: EighteenNinetyFourAccessRightRules,
+    treasuryShareRules: EighteenNinetyFourTreasuryShareRules,
+    operatingSteps: [
+        'ManagingShares',
+        'LayingTrack',
+        'PlacingStation',
+        'RunningTrains',
+        'DistributingEarnings',
+        'BuyingTrains'
+    ]
 }
 
 export const Definition: GameDefinition<EighteenNinetyFourState, HydratedEighteenNinetyFourState> =

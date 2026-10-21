@@ -13,7 +13,7 @@ import {
 } from '@tabletop/common'
 import { FloatCompany, isFloatCompany, type HydratedFloatCompany } from '../company/floatCompany.js'
 import { isStartCompany, type HydratedStartCompany } from '../company/startCompany.js'
-import { evaluateCompanyStart } from '../company/companyStart.js'
+import { evaluateCompanyStart, startHomeLocationIds } from '../company/companyStart.js'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import { isBuyShares, type HydratedBuyShares } from './buyShares.js'
@@ -95,20 +95,25 @@ export class OrdinaryStockRoundHandler implements MachineStateHandler<Action, St
                 state.companies.some(
                     (company) =>
                         !company.started &&
-                        this.companyRules.startMarketSpaces(state, company.id).some(
-                            (marketSpaceId) =>
-                                evaluateCompanyStart(
-                                    state,
-                                    {
-                                        playerId,
-                                        buyer,
-                                        companyId: company.id,
-                                        marketSpaceId
-                                    },
-                                    this.rules,
-                                    this.companyRules
-                                ).details
-                        )
+                        this.companyRules
+                            .startMarketSpaces(state, company.id)
+                            .some((marketSpaceId) =>
+                                startHomeLocationIds(state, this.companyRules, company.id).some(
+                                    (homeLocationId) =>
+                                        evaluateCompanyStart(
+                                            state,
+                                            {
+                                                playerId,
+                                                buyer,
+                                                companyId: company.id,
+                                                marketSpaceId,
+                                                ...(homeLocationId ? { homeLocationId } : {})
+                                            },
+                                            this.rules,
+                                            this.companyRules
+                                        ).details
+                                )
+                            )
                 )
             )
         )

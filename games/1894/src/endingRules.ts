@@ -9,14 +9,11 @@ import {
     type EndingState
 } from '@tabletop/18xx'
 
-/** The operating set the purple phase makes the last, once it has begun (§15.7). */
-export function finalOperatingSet(state: EndingState): number | undefined {
-    return state.gameEnding?.finalOperatingSet
-}
-
 /** Whether the current operating set is the game's last, in which nothing is built (§15.7). */
-export function inFinalOperatingSet(state: EndingState): boolean {
-    const final = finalOperatingSet(state)
+export function inFinalOperatingSet(
+    state: Pick<EndingState, 'operatingSet' | 'gameEnding'>
+): boolean {
+    const final = state.gameEnding?.finalOperatingSet
     return final !== undefined && state.operatingSet?.number === final
 }
 

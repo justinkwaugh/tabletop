@@ -62,6 +62,10 @@ import {
     EmergencyTrainFunding,
     discardableTrains,
     trainsOwnedBy,
+    displacedStations,
+    returnPositions,
+    controllingOwner,
+    RailwayMapState,
     type EighteenXXState,
     type HydratedEighteenXXState,
     type TrainRoute
@@ -213,6 +217,27 @@ export class CompleteGameRun {
         const available = this.engine.getValidActionTypesForPlayer(this.game, state, playerId)
         if (available.includes('RespondToTrackConsent')) {
             this.act('RespondToTrackConsent', { requestId: state.trackConsent!.id, accept: true })
+            return
+        }
+        if (available.includes('ReturnStation')) {
+            const station = displacedStations(state).find(
+                (entry) => controllingOwner(state, entry.companyId)?.playerId === playerId
+            )
+            assertExists(station, 'A set-aside station awaits its owner')
+            const position = returnPositions(
+                state,
+                new RailwayMapState(
+                    this.title.track.map,
+                    this.title.track.tileSet,
+                    state.tileInventory
+                ),
+                station
+            )[0]
+            this.act('ReturnStation', { stationId: station.id, position })
+            return
+        }
+        if (state.machineState === 'ManagingShares') {
+            this.act('FinishTreasuryShares', { companyId: state.shareStep!.companyId })
             return
         }
         if (available.includes('DeclinePrivateTile')) {

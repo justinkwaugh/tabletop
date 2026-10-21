@@ -16,6 +16,7 @@ import { CompanyStartDetails, evaluateCompanyStart, startCompanyAtPar } from './
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { CompanyRules } from './companyRules.js'
+import type { StationState } from '../map/station.js'
 
 export const StartCompany = Type.Object(
     {
@@ -25,6 +26,7 @@ export const StartCompany = Type.Object(
         companyId: Type.String(),
         marketSpaceId: Type.String(),
         expectedPrice: Type.Integer({ minimum: 1 }),
+        homeLocationId: Type.Optional(Type.String()),
         metadata: Type.Optional(CompanyStartDetails)
     },
     { additionalProperties: false }
@@ -47,6 +49,7 @@ export class HydratedStartCompany
     declare companyId: string
     declare marketSpaceId: string
     declare expectedPrice: number
+    declare homeLocationId?: string
     declare metadata?: CompanyStartDetails
     readonly #stockRules: StockRules
     readonly #companyRules: CompanyRules
@@ -55,7 +58,7 @@ export class HydratedStartCompany
         this.#stockRules = stockRules
         this.#companyRules = companyRules
     }
-    apply(state: HydratedGameState & FormationState): void {
+    apply(state: HydratedGameState & FormationState & Partial<StationState>): void {
         assert(this.source === ActionSource.User, 'Starting a company requires a player action')
         const result = evaluateCompanyStart(state, this, this.#stockRules, this.#companyRules)
         assert(result.details, result.reason ?? 'Invalid company start')
@@ -71,6 +74,20 @@ export class HydratedStartCompany
         recordStockAction(state, this.playerId, this.#stockRules.round)
         recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)
+        const home = result.details.home
+        if (home && state.stationReservations) {
+            if (home.nodeId)
+                state.stationReservations.push({
+                    companyId: this.companyId,
+                    locationId: home.locationId,
+                    nodeId: home.nodeId
+                })
+            else
+                state.hexReservations = [
+                    ...(state.hexReservations ?? []),
+                    { companyId: this.companyId, locationId: home.locationId }
+                ]
+        }
         this.#companyRules.onStart?.(state, result.details)
         this.metadata = result.details
     }

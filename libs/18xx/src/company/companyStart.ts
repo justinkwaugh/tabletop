@@ -5,19 +5,27 @@ import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { Owner } from '../finance/finance.js'
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
-import type { CompanyRules } from './companyRules.js'
+import type { CompanyRules, HomeOption } from './companyRules.js'
+import type { MapStateData } from '../map/mapState.js'
 
 export type CompanyStartRequest = {
     playerId: string
     buyer: Owner
     companyId: string
     marketSpaceId: string
+    /** The home chosen for a company whose title offers home choices. */
+    homeLocationId?: string
 }
+export const CompanyHome = Type.Object(
+    { locationId: Type.String(), nodeId: Type.Optional(Type.String()) },
+    { additionalProperties: false }
+)
 export const CompanyStartDetails = Type.Object(
     {
         ...SharePurchaseDetails.properties,
         marketSpaceId: Type.String(),
-        parPrice: Type.Integer({ minimum: 1 })
+        parPrice: Type.Integer({ minimum: 1 }),
+        home: Type.Optional(CompanyHome)
     },
     { additionalProperties: false }
 )
@@ -25,8 +33,37 @@ export type CompanyStartDetails = Type.Static<typeof CompanyStartDetails>
 export type CompanyStartResult =
     { details: CompanyStartDetails; reason?: never } | { details?: never; reason: string }
 
+/** The homes a company may start with: its choices, or none to choose when its home is printed. */
+export function companyHomeOptions(
+    state: FormationState & Partial<MapStateData>,
+    rules: CompanyRules,
+    companyId: string
+): readonly HomeOption[] | undefined {
+    return rules.homeChoices && state.tileInventory && state.stations && state.stationReservations
+        ? rules.homeChoices(
+              {
+                  ...state,
+                  tileInventory: state.tileInventory,
+                  stations: state.stations,
+                  stationReservations: state.stationReservations
+              },
+              companyId
+          )
+        : undefined
+}
+
+/** The home locations a start may name: each choice, or none for a printed home. */
+export function startHomeLocationIds(
+    state: FormationState & Partial<MapStateData>,
+    rules: CompanyRules,
+    companyId: string
+): (string | undefined)[] {
+    const homes = companyHomeOptions(state, rules, companyId)
+    return homes ? homes.map((home) => home.locationId) : [undefined]
+}
+
 export function evaluateCompanyStart(
-    state: FormationState,
+    state: FormationState & Partial<MapStateData>,
     request: CompanyStartRequest,
     stockRules: StockRules,
     rules: CompanyRules
@@ -37,6 +74,11 @@ export function evaluateCompanyStart(
     if (request.buyer.kind === 'bank') return { reason: 'The Bank cannot start a company.' }
     if (!rules.startMarketSpaces(state, company.id).includes(request.marketSpaceId))
         return { reason: 'Choose an available starting price.' }
+    const homes = companyHomeOptions(state, rules, company.id)
+    const home = homes?.find((option) => option.locationId === request.homeLocationId)
+    if (homes && !home) return { reason: 'Choose a home for the company.' }
+    if (!homes && request.homeLocationId !== undefined)
+        return { reason: 'This company’s home is printed on the map.' }
     const space = stockRules.market.spaces.find((space) => space.id === request.marketSpaceId)
     if (!space) return { reason: 'Unknown stock market space.' }
     const certificate = state.certificates.find(
@@ -63,7 +105,14 @@ export function evaluateCompanyStart(
         terms
     )
     return result.details
-        ? { details: { ...result.details, marketSpaceId: space.id, parPrice: space.price } }
+        ? {
+              details: {
+                  ...result.details,
+                  marketSpaceId: space.id,
+                  parPrice: space.price,
+                  ...(home ? { home: { ...home } } : {})
+              }
+          }
         : { reason: result.reason }
 }
 

@@ -58,7 +58,7 @@ export class TileUpgrades {
             const after = tiles.filter(
                 (tile) =>
                     replacesColorAndStops(this.rules, location.id, before.face, tile.face) &&
-                    this.keepsTrackOf(before, tile)
+                    this.keepsTrackOf(location.id, before, tile)
             )
             for (const tile of this.mostExitsWhereRequired(before, after)) this.add(before, tile)
         }
@@ -76,15 +76,22 @@ export class TileUpgrades {
         )
     }
 
-    private keepsTrackOf(before: TileDefinition, after: TileDefinition): boolean {
-        const key = `${before.id} ${after.id}`
+    private keepsTrackOf(
+        locationId: string,
+        before: TileDefinition,
+        after: TileDefinition
+    ): boolean {
+        const reconfigures = !!this.rules.reconfigures?.(locationId, before.face, after.face)
+        const key = `${before.id} ${after.id} ${reconfigures}`
         let keeps = this.keepsTrack.get(key)
         if (keeps === undefined) {
-            keeps = TileEdges.some(
-                (rotation) =>
-                    replacementMappings(before.face, rotateTileFace(after.face, rotation)).length >
-                    0
-            )
+            keeps = TileEdges.some((rotation) => {
+                const rotated = rotateTileFace(after.face, rotation)
+                return (
+                    replacementMappings(before.face, rotated).length > 0 ||
+                    (reconfigures && keepsExits(before.face, rotated))
+                )
+            })
             this.keepsTrack.set(key, keeps)
         }
         return keeps
@@ -108,4 +115,15 @@ export class TileUpgrades {
         this.next.set(before.id, (this.next.get(before.id) ?? new Set()).add(after.id))
         this.previous.set(after.id, (this.previous.get(after.id) ?? new Set()).add(before.id))
     }
+}
+
+function keepsExits(before: TileDefinition['face'], after: TileDefinition['face']): boolean {
+    const exits = (face: TileDefinition['face']) =>
+        new Set(
+            face.paths.flatMap((path) =>
+                path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
+            )
+        )
+    const kept = exits(after)
+    return [...exits(before)].every((edge) => kept.has(edge))
 }

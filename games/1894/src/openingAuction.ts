@@ -163,7 +163,6 @@ export function createEighteenNinetyFourOpening(
     }
     return {
         position,
-        titleState: { frenchCompanyId: draws.frenchCompanyId },
         begin(state) {
             const [firstPlayerId] = draws.playerOrder
             state.turnManager.turnOrder = [...draws.playerOrder]

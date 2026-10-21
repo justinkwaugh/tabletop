@@ -1,12 +1,16 @@
 import {
+    AccessRightFields,
     AuctionFields,
     composeEighteenXXState,
     defineEighteenXXState,
     PendingParFields,
     PrivatePowerFields,
+    PrivateStationFields,
     RailwayFields,
     RailwayMachineStates,
     StockTurnPurchaseFields,
+    TreasuryShareFields,
+    TreasuryShareMachineStates,
     validatePendingPar,
     validateRailwayState,
     validateWaterfallAuction,
@@ -19,13 +23,14 @@ export const EighteenNinetyFourState = composeEighteenXXState(
     {
         ...RailwayFields,
         ...PrivatePowerFields,
+        ...PrivateStationFields,
         ...PendingParFields,
         ...StockTurnPurchaseFields,
         ...AuctionFields,
-        /** The French company drawn at setup to start floated beside the Belge (§3). */
-        frenchCompanyId: Type.String()
+        ...AccessRightFields,
+        ...TreasuryShareFields
     },
-    [...RailwayMachineStates, ...WaterfallAuctionMachineStates]
+    [...RailwayMachineStates, ...WaterfallAuctionMachineStates, ...TreasuryShareMachineStates]
 )
 export type EighteenNinetyFourState = Type.Static<typeof EighteenNinetyFourState>
 export type HydratedEighteenNinetyFourState = HydratedEighteenXXState<
