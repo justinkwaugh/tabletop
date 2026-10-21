@@ -144,6 +144,7 @@ export type TableName =
     | 'goalsRailProtection'
     | 'goalsRailDevotion'
     | 'trade'
+    | 'heldRow'
     | 'careless'
     | 'musterEmptyBank'
     | 'recover'
@@ -1504,6 +1505,21 @@ function tradeSiteTable(
 /** R-5.3.2: the Discord bank empty. */
 function tradeTable(): PlayedTable {
     return tradeSiteTable()
+}
+
+/** The seat holds four relics and both banners: more than one line of its card holds. */
+function heldRowTable(): PlayedTable {
+    return tradeSiteTable(
+        {
+            relicIds: [
+                'relic.oracular-pig',
+                'relic.circlet-of-command',
+                'relic.ring-of-devotion',
+                'relic.cup-of-plenty'
+            ]
+        },
+        { banners: testBanners({ [Banner.PeoplesFavor]: 'me', [Banner.DarkestSecret]: 'me' }) }
+    )
 }
 
 /** R-6.6.2.a: the seat is the Chancellor with Careless's Reliquary space uncovered, every bank holding favor. */
@@ -5173,6 +5189,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     goalsRailProtection: () => goalsRailTable(OathType.Protection),
     goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
     trade: tradeTable,
+    heldRow: heldRowTable,
     careless: carelessTable,
     musterEmptyBank: musterEmptyBankTable,
     recover: recoverTable,
