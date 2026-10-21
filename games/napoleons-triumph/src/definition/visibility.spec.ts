@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Visibility } from '@tabletop/common'
-import { Side } from '../components/pieces.js'
+import { Side, type Face } from '../components/pieces.js'
 import { CommandKind, DefenseAwaits } from '../model/attack.js'
 import { NapoleonsTriumphProjectedStateValidator } from '../model/gameState.js'
 import { TestGame, arrangeBattlefield, cavalry, infantry } from '../testing/harness.js'
@@ -151,5 +151,39 @@ describe("Napoleon's Triumph hidden blocks", () => {
         const state = game.hydrated
         expect(state.corpsUnits('langeron').every((unit) => unit.shown === undefined)).toBe(true)
         expect(state.unit(loner?.id ?? '').shown).toEqual(loner?.face)
+    })
+
+    /** Bagration's corps cut down to two units, given these faces and both shown to the French. */
+    function seenBagrationPair(first: Face, second: Face): TestGame {
+        const game = new TestGame()
+        game.deployBoth()
+        game.arrange((state) => {
+            const [kept, other, ...rest] = state.corpsUnits('bagration')
+            for (const unit of rest) {
+                state.detach(unit)
+                unit.position = { locale: 68 }
+            }
+            kept.face = first
+            other.face = second
+            state.revealAll([kept, other])
+        })
+        return game
+    }
+
+    it('keeps blocks standing together seen when the opponent has seen them all with the same face', () => {
+        const game = seenBagrationPair(cavalry(2), cavalry(2))
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        expect(game.hydrated.corpsUnits('bagration').map((unit) => unit.shown)).toEqual([
+            cavalry(2),
+            cavalry(2)
+        ])
+    })
+
+    it('forgets blocks standing together the opponent has seen with different faces', () => {
+        const game = seenBagrationPair(cavalry(2), infantry(2))
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        expect(
+            game.hydrated.corpsUnits('bagration').every((unit) => unit.shown === undefined)
+        ).toBe(true)
     })
 })

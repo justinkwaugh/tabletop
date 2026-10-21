@@ -10,13 +10,13 @@ import {
 } from '@tabletop/common'
 import {
     CashPayment,
-    certificatesOwnedBy,
     certificatesInPool,
     nextOperatingCompany,
     getCompany,
     controllingOwner,
     finiteCashOwnedBy,
     settleCashPayments,
+    treasuryPoolId,
     type FinancialState
 } from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
@@ -51,7 +51,7 @@ export function corporateFinanceCertificates(
 ) {
     const certificates =
         operation === 'issue'
-            ? certificatesOwnedBy(state, { kind: 'company', companyId })
+            ? certificatesInPool(state, treasuryPoolId(companyId))
             : certificatesInPool(state, 'open-market')
     return certificates.filter((certificate) => certificate.companyId === companyId)
 }
@@ -181,8 +181,7 @@ export class CorporateFinanceAction extends HydratableAction<typeof CorporateFin
         settleCashPayments(state, payments)
         for (const certificate of certificates) {
             certificate.owner = issuing ? bank : company
-            if (issuing) certificate.poolId = 'open-market'
-            else delete certificate.poolId
+            certificate.poolId = issuing ? 'open-market' : treasuryPoolId(this.companyId)
         }
         state.financeStep = { companyId: this.companyId, operation: this.operation }
         this.metadata = {

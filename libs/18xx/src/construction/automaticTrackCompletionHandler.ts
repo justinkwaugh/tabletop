@@ -24,12 +24,12 @@ export class AutomaticTrackCompletionHandler<
         if (
             !step ||
             step.completed ||
-            !step.lays.length ||
             controllingOwner(state, step.companyId)?.playerId !== playerId
         )
             return false
         const actions = this.handler.validActionsForPlayer(playerId, context)
         if (!actions.includes('FinishTrack')) return false
+        if (!step.lays.length) return this.onlyFinishing(context, playerId, actions)
         // While the company has a lay left, it may borrow to pay for one it cannot yet afford.
         if (actions.includes('TakeLoan') && this.hasLayLeft(state)) return false
         return !state.activePlayerIds.some((id) =>
@@ -45,6 +45,18 @@ export class AutomaticTrackCompletionHandler<
         )
     }
 
+    private onlyFinishing(
+        context: MachineContext<State>,
+        playerId: string,
+        actions: readonly string[]
+    ): boolean {
+        return context.gameState.activePlayerIds.every((id) =>
+            (id === playerId ? actions : this.handler.validActionsForPlayer(id, context)).every(
+                (action) => action === 'FinishTrack'
+            )
+        )
+    }
+
     private hasLayLeft(state: State): boolean {
         return this.rules
             .availableColors(state)
@@ -52,11 +64,13 @@ export class AutomaticTrackCompletionHandler<
     }
 
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
-        if (isFinishTrack(action) && action.source === ActionSource.System)
-            return (
-                action.companyId === context.gameState.trackStep?.companyId &&
-                this.canFinish(context, action.playerId)
-            )
+        if (
+            isFinishTrack(action) &&
+            action.source === ActionSource.System &&
+            action.companyId === context.gameState.trackStep?.companyId &&
+            this.canFinish(context, action.playerId)
+        )
+            return true
         return this.handler.isValidAction(action, context)
     }
 

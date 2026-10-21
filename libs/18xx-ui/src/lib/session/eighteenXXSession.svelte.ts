@@ -12,6 +12,7 @@ import {
     titleComponents,
     TileUpgrades,
     trainsOwnedBy,
+    type AuctionLot,
     type EighteenXXPreferences,
     type EighteenXXState,
     type EighteenXXTitleRules,
@@ -22,7 +23,7 @@ import {
 } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { assert, assertExists, GameStorage } from '@tabletop/common'
-import type { TitlePreferences } from '@tabletop/frontend-components'
+import type { PresentedTransition, TitlePreferences } from '@tabletop/frontend-components'
 import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
 import {
     HistoricalMaps,
@@ -40,6 +41,7 @@ import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
+import { wealthHistory } from '../table/wealthHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
 import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
@@ -84,6 +86,7 @@ export type EighteenXXSessionRules<
     | 'titleStateHandlers'
     | 'titleActions'
     | 'trainFundingRules'
+    | 'canonicalState'
 > &
     Partial<Pick<EighteenXXTitleRules<Schema, State>, 'trainFundingRules'>>
 
@@ -91,6 +94,9 @@ type SessionOptions<
     Schema extends TitleStateSchema,
     State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 > = ConstructorParameters<typeof GameSession<EighteenXXState<Schema>, State>>[0]
+/** A placement of a title's own in the station step, such as 1832's Key West token. */
+export type TitleStationAction = { id: string; label: string; run(): Promise<void> }
+
 export class EighteenXXSession<
     Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
     State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState =
@@ -149,6 +155,17 @@ export class EighteenXXSession<
     }
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)
+    }
+    playerWealthHistory() {
+        const { actions, state } = this.history.visibleContext
+        return wealthHistory(actions, state, {
+            startingCash: this.rules.startingCash({
+                playerCount: state.players.length,
+                config: this.game.config
+            }),
+            openingRound: this.presentation.openingRound,
+            titleRounds: this.presentation.titleRounds
+        })
     }
     readonly marketAnimation = createMarketAnimationSource(this, (state) => state.stockMarket)
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(
@@ -221,6 +238,14 @@ export class EighteenXXSession<
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
     readonly selectionAuction = new SelectionAuctionModule(this.moduleSession)
     readonly companyAuction = new CompanyAuctionModule(this.moduleSession)
+    get privateAuctionActive(): boolean {
+        return this.offers.active || this.waterfall.active || this.selectionAuction.active
+    }
+    turnPlayerId(state: State = this.gameState): string | undefined {
+        if (state.pendingPar) return state.pendingPar.playerId
+        if (!state.activePlayerIds.length) return undefined
+        return state.turnManager.currentTurn()?.playerId
+    }
     readonly privates = new PrivatesModule(this.moduleSession)
     readonly notices = new TableNotices(
         () => this.isViewingHistory || this.localHotseat,
@@ -328,8 +353,11 @@ export class EighteenXXSession<
     /**
      * Whether this player is viewing the title's published artwork (board image and token art)
      * instead of the generic presentation. A display choice only: it never changes Game State.
+     * Saved per title, since each title's artwork is its own.
      */
-    publishedArtwork = $state(false)
+    get publishedArtwork(): boolean {
+        return this.publishedArtworkAvailable && this.preferences.values.publishedArtwork
+    }
     get publishedArtworkAvailable(): boolean {
         return (
             !!this.mapViewDefinition.boardArtwork ||
@@ -339,7 +367,7 @@ export class EighteenXXSession<
         )
     }
     toggleArtwork() {
-        this.publishedArtwork = !this.publishedArtwork
+        this.preferences.set({ publishedArtwork: !this.publishedArtwork }, 'title')
     }
     /** Published certificate art for the shares a purchase, sale or issue moved; empty unless that presentation is on. */
     shareCards(action: GameAction): readonly ShareCard[] {
@@ -434,7 +462,8 @@ export class EighteenXXSession<
             () => this.mapView,
             (companyId) => this.companyName(companyId),
             (state) =>
-                this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules)))
+                this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
+            (state) => this.stations.openReservations(state)
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
@@ -485,6 +514,10 @@ export class EighteenXXSession<
     }
     /** Private powers whose rules the title applies itself, offered under Use privates. */
     protected get titlePrivatePowers(): readonly TitlePrivatePower[] {
+        return []
+    }
+    /** A title's own placements in the station step, offered as buttons beside its stations. */
+    get titleStationActions(): readonly TitleStationAction[] {
         return []
     }
     /**
@@ -590,6 +623,9 @@ export class EighteenXXSession<
     get valuationRules() {
         return this.rules.endingRules
     }
+    get endingRules() {
+        return this.rules.endingRules
+    }
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return shouldContinueHistoryStep(action, next)
     }
@@ -630,8 +666,28 @@ export class EighteenXXSession<
     get names() {
         return this.rules.names
     }
+    get charters() {
+        return this.rules.stockRules.charters
+    }
     companyName(companyId: string) {
-        return this.rules.names.company(companyId)
+        return this.companyNameVariants(companyId).short
+    }
+    companyInitials(companyId: string) {
+        return this.companyNameVariants(companyId).initials
+    }
+    companyFullName(companyId: string) {
+        return this.companyNameVariants(companyId).full
+    }
+    private companyNameVariants(companyId: string) {
+        const names = this.presentation.companyNames[companyId]
+        assertExists(names, `Company ${companyId} requires its names`)
+        return names
+    }
+    lotName(lot: Pick<AuctionLot, 'id' | 'name'>) {
+        return this.presentation.companyNames[lot.id]?.short ?? lot.name
+    }
+    lotInitials(lot: Pick<AuctionLot, 'id'>) {
+        return this.presentation.companyNames[lot.id]?.initials ?? lot.id
     }
     poolName(poolId: string) {
         return this.rules.names.pool(poolId)
@@ -665,7 +721,15 @@ export class EighteenXXSession<
         if (owner.kind === 'player') return this.getPlayerName(owner.playerId)
         return owner.kind === 'bank' ? 'Bank' : this.companyName(owner.companyId)
     }
-    override beforeNewState() {
+    // A silent swap publishes without calling any state-change listener, so layout settling
+    // stays still for it; the published transition says which it was.
+    restoredSilently = $state(true)
+    override dispose() {
+        this.notices.dispose()
+        super.dispose()
+    }
+    override beforeNewState(transition: PresentedTransition) {
+        this.restoredSilently = transition.intent === 'silent'
         this.map.clearInspection()
         this.localSelections.clear()
     }

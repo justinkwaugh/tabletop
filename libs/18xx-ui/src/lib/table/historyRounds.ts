@@ -113,15 +113,13 @@ export function historyRounds(
         }
         section.startActionIndex = action.index
         if (section.phases[0] !== phase) section.phases.unshift(phase)
-        const startsOperatingRound = isStartOperatingRound(action)
-        if (startsOperatingRound) {
+        if (isStartOperatingRound(action)) {
             const order = orderChanges.get(action.id)
             assertExists(order, 'Operating round history requires its recorded company order')
             section.operatingOrder = order
         }
-        // A round's start is history only when privates paid companies, such as mail.
         const entry =
-            (startsOperatingRound && !changedCompanyCashOf(cash.get(action.id))) ||
+            (isStartOperatingRound(action) && !action.metadata?.payments.length) ||
             isSetStockInstruction(action) ||
             isStopStockInstruction(action) ||
             isSetPrivatePowerRequest(action) ||

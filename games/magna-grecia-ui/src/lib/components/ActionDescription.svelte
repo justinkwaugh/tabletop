@@ -54,7 +54,14 @@
     {:else if isSellMarket(action)}
         <span>sold a market for {plural(action.metadata?.value ?? 0, 'point')}</span>
     {:else if isEndTurn(action)}
-        <span>ended their turn</span>
+        <span
+            >ended <PlayerName
+                playerId={action.playerId}
+                possessive={true}
+                plainSelfPossessive={true}
+                possessivePlayerId={action.playerId}
+            /> turn</span
+        >
     {:else}
         <span>{action.type}</span>
     {/if}

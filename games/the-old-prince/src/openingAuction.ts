@@ -1,3 +1,4 @@
+import { TheOldPrinceCharters } from './charters.js'
 import {
     awardCertificates,
     beginOfferPileAuction,
@@ -6,6 +7,7 @@ import {
     createOrdinaryShareCertificates,
     drawFirstPlayer,
     getCompany,
+    treasuryPool,
     type StockMarket,
     privateIncomePayments,
     settleCashPayments,
@@ -13,7 +15,8 @@ import {
     type MapStateData,
     type OfferPileAuctionRules,
     type Opening,
-    type OpeningSetup
+    type OpeningSetup,
+    type StartingCashSetup
 } from '@tabletop/18xx'
 import { assert, shuffle } from '@tabletop/common'
 import { addTheOldPrinceBranches } from './branches.js'
@@ -66,7 +69,9 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
     payIncome(state) {
         settleCashPayments(
             state,
-            privateIncomePayments(state).filter((payment) => payment.to.kind === 'player')
+            privateIncomePayments(state, { charters: TheOldPrinceCharters }).filter(
+                (payment) => payment.to.kind === 'player'
+            )
         )
     },
     firstStockOrder(state) {
@@ -84,9 +89,13 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
         })
     }
 }
+export function theOldPrinceStartingCash({ playerCount }: StartingCashSetup): number {
+    return playerCount === 3 ? 580 : 480
+}
 export function createTheOldPrinceOpening({
     players,
     prng,
+    config,
     startingPositions
 }: OpeningSetup): Opening<typeof TheOldPrinceState, HydratedTheOldPrinceState> {
     assert(players.length === 3 || players.length === 4, 'TOP supports three or four players')
@@ -137,7 +146,6 @@ export function createTheOldPrinceOpening({
             ...TheOldPrinceCompanies.map((c) => ({
                 id: c.companyId,
                 kind: 'major',
-                shareCount: 10,
                 started: c === mainline || c === shortline,
                 floated: c === mainline,
                 funded: c === mainline,
@@ -151,15 +159,14 @@ export function createTheOldPrinceOpening({
             { id: 'PEIR', kind: 'major' },
             ...privates.map((p) => ({
                 id: p.id,
-                kind: 'private',
-                privateRevenue: p.revenue
+                kind: 'private'
             }))
         ],
         cash: [
             { owner: { kind: 'bank' }, amount: 'unlimited' },
             ...players.map((p) => ({
                 owner: { kind: 'player' as const, playerId: p.playerId },
-                amount: players.length === 3 ? 580 : 480
+                amount: theOldPrinceStartingCash({ playerCount: players.length, config })
             })),
             ...TheOldPrinceCompanies.map((c) => ({
                 owner: { kind: 'company' as const, companyId: c.companyId },
@@ -172,10 +179,7 @@ export function createTheOldPrinceOpening({
             { id: 'market', owner: { kind: 'bank' } },
             { id: 'reserved', owner: { kind: 'bank' } },
             { id: 'auction', owner: { kind: 'bank' } },
-            ...TheOldPrinceCompanies.map((c) => ({
-                id: `treasury:${c.companyId}`,
-                owner: { kind: 'company' as const, companyId: c.companyId }
-            }))
+            ...TheOldPrinceCompanies.map((c) => treasuryPool(c.companyId))
         ],
         certificates: [
             ...TheOldPrinceCompanies.flatMap((c) =>

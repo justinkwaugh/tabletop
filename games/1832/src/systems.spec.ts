@@ -4,14 +4,18 @@ import { assertExists } from '@tabletop/common'
 import {
     placeStockMarker,
     cashOwnedBy,
+    companyShareCount,
     getCompany,
     sharesOwned,
     stockMarkerStackIndex
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
+import { laidTiles } from '@tabletop/18xx/testing'
+import { EighteenThirtyTwoCharters } from './charters.js'
 import {
     EighteenThirtyTwoEarningsRules,
     EighteenThirtyTwoStationRules,
+    EighteenThirtyTwoTileSet,
     EighteenThirtyTwoTrackRules,
     EighteenThirtyTwoTrainRules,
     MiamiLocationId,
@@ -56,7 +60,8 @@ describe('System formation', () => {
             exchangedCertificateIds: ['ACL:president', 'ACL:share:1', 'CG:share:2']
         })
         const amtk = getCompany(play.state, 'AMTK')
-        expect(amtk).toMatchObject({ shareCount: 20, president: player('alex'), operated: true })
+        expect(amtk).toMatchObject({ president: player('alex'), operated: true })
+        expect(companyShareCount(play.state, EighteenThirtyTwoCharters, 'AMTK')).toBe(20)
         expect(getCompany(play.state, 'ACL').closed).toBe(true)
         expect(getCompany(play.state, 'CG').closed).toBe(true)
         expect(sharesOwned(play.state, 'AMTK', player('alex'))).toBe(6)
@@ -162,7 +167,7 @@ describe('System formation edge cases', () => {
             ]
         }
         const miami = { locationId: MiamiLocationId, nodeId: 'offboard' }
-        expect(stopBonuses(merged, 'AMTK', miami)).toEqual([{ amount: 50, label: 'Key West' }])
+        expect(stopBonuses(merged, 'AMTK', miami)).toEqual([{ amount: 50, sourceId: 'key-west' }])
         expect(stopBonuses(merged, 'CG', miami)).toEqual([])
     })
 })
@@ -211,24 +216,26 @@ describe('System operations', () => {
 
     it('lays three yellow tiles, or one yellow tile and one upgrade', () => {
         const state = amtk()
-        const lay = (locationId: string, color: string) => ({ locationId, color, cost: 0 })
         const allowance = (
             lays: { locationId: string; color: string }[],
             color: string,
             upgrade: boolean
-        ) =>
-            EighteenThirtyTwoTrackRules.allowance(
+        ) => {
+            const tileInventory = structuredClone(state.tileInventory)
+            return EighteenThirtyTwoTrackRules.allowance(
                 {
                     ...state,
+                    tileInventory,
                     trackStep: {
                         companyId: 'AMTK',
                         completed: false,
-                        lays: lays.map((entry) => lay(entry.locationId, entry.color))
+                        lays: laidTiles(tileInventory, EighteenThirtyTwoTileSet, lays)
                     }
                 },
                 color,
                 upgrade
             )
+        }
         const yellow = { locationId: 'S24', color: 'yellow' }
         expect(allowance([yellow, yellow], 'yellow', false)).toEqual({ cost: 0 })
         expect(allowance([yellow], 'green', true)).toEqual({ cost: 0 })

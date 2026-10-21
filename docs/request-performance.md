@@ -108,13 +108,23 @@ The per-database metric covers non-streaming RPCs and should not be assumed to e
 
 A CPU profile of a four-player Fresh Fish PlaceDisk response plus spectator/player notifications found repeated TypeBox schema validation during union matching. The state projector walks board cells and calls the interpreted `Value.Check` for each candidate branch. That call checks the schema as well as its value on every invocation.
 
-Union matching now reuses compiled branch validators. A weak cache is keyed by both the reference-definition set and branch schema, so a shared reference can resolve differently in different schemas. Each value is still checked on every projection. Privacy policies, canonical/projected validation, all matching-branch comparisons, and both cascade replay proofs remain in place. No canonical or projected values are cached.
+Union matching now reuses compiled branch validators. A weak cache is keyed by both the reference-definition set and branch schema, so a shared reference can resolve differently in different schemas. Each value is still checked on every projection. Privacy policies, canonical/projected validation, all matching-branch comparisons, and both cascade replay proofs remain in place. The projector caches no canonical or projected values; the [projected history cache](projected-history-cache.md) caches projected history records in Redis.
 
 The local benchmark used one fixed generated four-player state, 10 warmup requests and 60 timed requests. Each request generated the acting player's response and five notification payloads, using the real backend representation functions with an in-memory notification sender. Median total time fell from 33.8 ms to 25.9 ms, about 23%. One instrumented request attributed approximately 14 ms to the 18 State projections before compilation and 3.5 ms afterward; these breakdown samples are illustrative, not independent production estimates. Response and notification payloads matched after excluding generated notification IDs and Action creation timestamps. Cloud Run improvement still needs measurement.
 
 Regression coverage checks shared union references under different definition sets, changing values and viewer policies, and ambiguous matching branches. Existing privacy, replay, and hosted-representation tests continue to apply.
 
 This change lives in the shared projector implementation bundled into each Game Runtime. Existing Logic/UI Artifacts retain their old projector. Republish a game's Logic and matching UI Artifacts to adopt the optimization; a backend-only or Site Frontend-only deployment does not update those bundled projectors. Response shapes, stored schemas, and host bridge contracts are unchanged, so existing artifacts remain compatible.
+
+## Projection optimization: evaluated intersects and shared boundary States, 2026-10-21
+
+Readiness probe failures on the backend (`READINESS HTTP probe failed … 503`, about 20–30 a day) matched full loads of protected Games that held the worker past the gateway's 1 s health probe. The worst, a Reef Encounter load with 224 Actions, spent 6,070 ms of 6,265 ms in `projection.response.game`; 43 loads that day spent over a second there.
+
+A local CPU profile of that Game, exported from production, attributed about 85% of projection time to TypeBox `Type.Evaluate` rebuilding the same intersected schemas for every value. The projector now caches the evaluated schema per intersect schema object (`evaluateIntersect`). `projectActionHistory` also projected each State on a cascade boundary twice, once as a cascade's `before` and once as the previous cascade's last `after`, plus the current State once more; it now projects each canonical State object once and reuses the result for diffing.
+
+Local times for the full history projection: Reef Encounter (224 Actions) 1,550 to 100 ms, Sol (492) 550 to 380 ms, Fresh Fish (189) 140 to 90 ms. Output hashes matched the previous implementation for every Player and the spectator in all three Games. What remains is per-State cloning, the schema walk and patch diffing, which grow with history length; see the [projected history cache](projected-history-cache.md).
+
+Like the union-check optimization, this lives in the projector bundled into each Game Runtime. Each protected title adopts it when its Logic is republished.
 
 ## Fresh Fish game opening, 2026-09-18
 

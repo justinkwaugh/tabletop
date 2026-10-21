@@ -2,7 +2,13 @@
     "name": "@tabletop/rollup-config",
     "type": "module",
     "version": "0.0.0",
-    "exports": "./index.js",
+    "exports": {
+        ".": "./index.js",
+        "./logic-factory": {
+            "types": "./logic-factory.d.ts",
+            "default": "./logic-factory.js"
+        }
+    },
     "scripts": {
         "test": "node --test *.test.mjs"
     },
@@ -17,7 +23,8 @@
         "rollup-plugin-brotli": "3.1.0",
         "rollup-plugin-postcss": "^4.0.2",
         "rollup-plugin-svelte": "^7.1.0",
-        "typescript": "5.9.3"
+        "typescript": "5.9.3",
+        "rollup": "^4.59.0"
     },
     "publishConfig": {
         "access": "public"

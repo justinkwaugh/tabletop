@@ -1,4 +1,5 @@
 import { trainsOwnedBy } from '../trains/train.js'
+import { actsFor } from '../finance/receivership.js'
 import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
 import {
@@ -7,7 +8,7 @@ import {
     type RouteRevenueStop,
     type RouteRevenuePolicy
 } from './routeScoring.js'
-import { controllingOwner, getCompany, sameOwner } from '../finance/finance.js'
+import { getCompany, sameOwner } from '../finance/finance.js'
 import { RailwayMapState } from '../map/mapState.js'
 import { cityIsBlocked } from '../map/station.js'
 import type { RailwayMap } from '../map/map.js'
@@ -28,8 +29,8 @@ export type { RouteRevenueStop } from './routeScoring.js'
 export interface RouteRules {
     canOperate?(state: TrainRunningState, playerId: string, companyId: string): boolean
     longestRouteBonusPerStop?(state: TrainRunningState, companyId: string): number
-    /** Names the longest route's per-stop bonus in recorded runs. */
-    longestRouteBonusLabel?: string
+    /** What earns the longest route's per-stop bonus, by the id the title names. */
+    longestRouteBonusSourceId?: string
     canRunTrain?(state: TrainRunningState, train: Train): boolean
     revenuePolicy?(train: TrainDefinition): RouteRevenuePolicy
 
@@ -54,8 +55,8 @@ export interface RouteRules {
     oneStopPerHex?: true
     /** What a route earns for each hex it passes through or stops in, once per route. */
     hexBonus?(state: TrainRunningState, locationId: string): number
-    /** Names a hex's bonus in recorded runs. */
-    hexBonusLabel?(state: TrainRunningState, locationId: string): string | undefined
+    /** What earns a hex's bonus, by the ids the title names. */
+    hexBonusSourceIds?(state: TrainRunningState, locationId: string): readonly string[]
     /** What the train earns beyond the stop's value for stopping at a revenue center. */
     stopBonus?(
         state: TrainRunningState,
@@ -63,13 +64,13 @@ export interface RouteRules {
         companyId: string,
         center: RevenueCenter
     ): number
-    /** Names a stop's bonus in recorded runs. */
-    stopBonusLabel?(
+    /** What earns a stop's bonus, by the ids the title names. */
+    stopBonusSourceIds?(
         state: TrainRunningState,
         train: TrainDefinition,
         companyId: string,
         center: RevenueCenter
-    ): string | undefined
+    ): readonly string[]
 }
 /** A revenue center's value for a company's train: its printed stage value as the title adjusts it. */
 export function stopValue(
@@ -110,7 +111,7 @@ export class RouteEvaluation {
             !getCompany(this.state, companyId).closed &&
             (this.rules.canOperate
                 ? this.rules.canOperate(this.state, playerId, companyId)
-                : controllingOwner(this.state, companyId)?.playerId === playerId)
+                : actsFor(this.state, playerId, companyId))
         )
     }
     runnableTrains(companyId: string): Train[] {
@@ -194,13 +195,14 @@ export class RouteEvaluation {
                 return { reason: 'The route must include a station of this company.' }
         }
         const visits = trace.visits.map((visit): RouteRevenueStop => {
-            const bonusLabel = this.rules.stopBonusLabel?.(this.state, definition, companyId, visit)
+            const bonusSourceIds =
+                this.rules.stopBonusSourceIds?.(this.state, definition, companyId, visit) ?? []
             return {
                 locationId: visit.locationId,
                 nodeId: visit.nodeId,
                 amount: this.revenue(companyId, visit, definition),
                 bonus: this.rules.stopBonus?.(this.state, definition, companyId, visit) ?? 0,
-                ...(bonusLabel ? { bonusLabel } : {}),
+                ...(bonusSourceIds.length ? { bonusSourceIds } : {}),
                 companyStation: this.state.stations.some(
                     (station) =>
                         station.status === 'placed' &&
@@ -265,8 +267,8 @@ export class RouteEvaluation {
                     ? route.visits.map((visit) => ({
                           locationId: visit.locationId,
                           amount: bonusPerStop,
-                          ...(this.rules.longestRouteBonusLabel
-                              ? { label: this.rules.longestRouteBonusLabel }
+                          ...(this.rules.longestRouteBonusSourceId
+                              ? { sourceIds: [this.rules.longestRouteBonusSourceId] }
                               : {})
                       }))
                     : []
@@ -295,14 +297,14 @@ export class RouteEvaluation {
             ...paying.map((stop) => ({
                 locationId: stop.locationId,
                 amount: stop.bonus,
-                ...(stop.bonusLabel ? { label: stop.bonusLabel } : {})
+                ...(stop.bonusSourceIds ? { sourceIds: [...stop.bonusSourceIds] } : {})
             })),
             ...[...hexes].map((locationId) => {
-                const label = this.rules.hexBonusLabel?.(this.state, locationId)
+                const sourceIds = this.rules.hexBonusSourceIds?.(this.state, locationId) ?? []
                 return {
                     locationId,
                     amount: this.rules.hexBonus?.(this.state, locationId) ?? 0,
-                    ...(label ? { label } : {})
+                    ...(sourceIds.length ? { sourceIds: [...sourceIds] } : {})
                 }
             })
         ].filter((bonus) => bonus.amount > 0)

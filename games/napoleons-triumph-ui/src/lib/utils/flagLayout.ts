@@ -90,7 +90,8 @@ export function placeFlags(
     flags: StandingFlag[],
     blocks: BlockFootprint[],
     view: FlagView,
-    keepClear: Point[] = []
+    keepClear: Point[] = [],
+    printedMarks: Point[][] = []
 ): Record<string, FlagPlacement> {
     const { right, down } = screenAxes(view.rotation)
     const onScreen = (point: Point): Point => ({
@@ -99,6 +100,7 @@ export function placeFlags(
     })
     const taken = blocks.flatMap(blockSamples).map(onScreen)
     const prized = keepClear.map(onScreen)
+    const marks = printedMarks.map((mark) => mark.map(onScreen))
     const placements: Record<string, FlagPlacement> = {}
     for (const flag of flags) {
         const reach = flag.width * view.scale
@@ -115,7 +117,8 @@ export function placeFlags(
             const footprint = [bannerOf(placement), staffOf(onScreen(placement.foot), view.scale)]
             const under = (points: Point[]) =>
                 points.filter((point) => footprint.some((part) => boxHolds(part, point))).length
-            return under(taken) + under(prized) * KEEP_CLEAR_WEIGHT
+            const marksUnder = marks.filter((mark) => under(mark) > 0).length
+            return under(taken) + (under(prized) + marksUnder) * KEEP_CLEAR_WEIGHT
         }
         const choices = flag.feetByPreference.flatMap((foot) =>
             [FlagSide.Right, FlagSide.Left].map((side) => ({ foot, side }))
@@ -184,7 +187,8 @@ export function flagMarks(
     view: FlagView,
     keepClear: Point[],
     bearerOf: (group: PieceGroup) => FlagBearer,
-    planted: readonly PlantedFlag[] = []
+    planted: readonly PlantedFlag[] = [],
+    printedMarks: Point[][] = []
 ): FlagMark[] {
     const carried = sprites.flatMap((sprite) => {
         const { commander, units, key } = sprite.group
@@ -220,7 +224,8 @@ export function flagMarks(
         })),
         sprites.flatMap((sprite) => sprite.blocks),
         view,
-        keepClear
+        keepClear,
+        printedMarks
     )
     return standing.map(({ feetByPreference: _feet, ...flag }) => ({
         ...flag,

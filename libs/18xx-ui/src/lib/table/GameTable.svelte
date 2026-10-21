@@ -17,12 +17,14 @@
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
     import StandingInstruction from '../stock/StandingInstruction.svelte'
+    import TurnHeading from './TurnHeading.svelte'
     import {
         companyFocusLocations,
         companyNetworkFocusLocations
     } from '../maps/companyFocusLocations.js'
     import {
         RailwayMapState,
+        cashOwnedBy,
         getCompany,
         nextOperatingCompany,
         type Company,
@@ -43,6 +45,7 @@
     import {
         DefaultTableLayout,
         DefaultTabs,
+        GameToaster,
         TabWorkspace,
         DebouncedLayout,
         HistoryControls,
@@ -68,18 +71,20 @@
     import BoardFocus from './BoardFocus.svelte'
     import BoardAutoZoom from './BoardAutoZoom.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
-    import type { BoundingBox, GameAction } from '@tabletop/common'
+    import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
     import type { TitleActionDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import PhaseChart from '../phases/PhaseChart.svelte'
     import PhaseChartContent from '../phases/PhaseChartContent.svelte'
+    import WealthChart from './WealthChart.svelte'
+    import { seatOrderFrom } from './spreadsheetSort.js'
     import type { PhaseChartData } from '../phases/phaseChart.js'
     let {
         session,
@@ -108,8 +113,8 @@
     const money = $derived(session.presentation.money)
     const {
         marketPoolId,
+        ipoPoolId,
         exchangePoolId,
-        companyNames,
         companyPricePresentation = DefaultCompanyPricePresentation,
         includedCompanyIds = [],
         numberedShareNames,
@@ -133,6 +138,10 @@
     const readOnlyPosition = $derived(
         session.isViewingHistory || !session.myPlayer || !session.isMyTurn
     )
+    const auctionShownToAll = $derived(!session.isViewingHistory && session.privateAuctionActive)
+    const auctionTurnPlayerId = $derived(
+        readOnlyPosition && auctionShownToAll ? session.turnPlayerId() : undefined
+    )
     let showPhaseChart = $state(false)
     const depotState = $derived({
         depot: session.trainDepot,
@@ -148,19 +157,18 @@
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
     const tileAppearance = $derived(session.tileAppearance)
-    function paintBodyBackground(_table: HTMLElement, initialColor: string | undefined) {
-        const original = document.body.style.backgroundColor
-        function paint(color: string | undefined) {
-            document.body.style.backgroundColor = color ?? original
+    // The saved preference can also change from another window or a rejected save, so
+    // the fit follows the value rather than the click.
+    function framePresentation(_table: HTMLElement, initial: boolean) {
+        let current = initial
+        return {
+            update(next: boolean) {
+                if (next === current) return
+                current = next
+                restoreRouteView = undefined
+                void tick().then(() => fitMaps())
+            }
         }
-        paint(initialColor)
-        return { update: paint, destroy: () => paint(undefined) }
-    }
-    async function toggleArtwork() {
-        session.toggleArtwork()
-        restoreRouteView = undefined
-        await tick()
-        fitMaps()
     }
 
     let mapWrapper = $state<ScalingWrapper>()
@@ -177,10 +185,6 @@
     const boardAutoZoom = $derived(session.preferences.values.boardAutoZoom)
     function toggleBoardAutoZoom() {
         session.preferences.set({ boardAutoZoom: !boardAutoZoom }, 'family')
-    }
-    const companyCardsWrap = $derived(session.preferences.values.companyCardsWrap)
-    function toggleCompanyCardsWrap() {
-        session.preferences.set({ companyCardsWrap: !companyCardsWrap }, 'family')
     }
     function autoZooms(wrapper: ScalingWrapper) {
         return boardAutoZoom || wrapper !== boardViewer()
@@ -279,6 +283,20 @@
     const displayedScene = $derived(session.map.displayedScene)
     const paneLayout = new MediaQuery('(min-width: 64rem)')
     const phoneLayout = new MediaQuery('(width < 40rem)')
+    const companyCardsWrapKey = $derived(
+        paneLayout.current ? 'companyCardsWrap' : 'companyCardsWrapTabbed'
+    )
+    const companyCardsWideKey = $derived(
+        paneLayout.current ? 'companyCardsWide' : 'companyCardsWideTabbed'
+    )
+    const companyCardsWrap = $derived(session.preferences.values[companyCardsWrapKey])
+    function toggleCompanyCardsWrap() {
+        session.preferences.set({ [companyCardsWrapKey]: !companyCardsWrap }, 'family')
+    }
+    const companyCardsWide = $derived(session.preferences.values[companyCardsWideKey])
+    function toggleCompanyCardsWide() {
+        session.preferences.set({ [companyCardsWideKey]: !companyCardsWide }, 'family')
+    }
     let shownCompanyCardId: string | undefined = $derived.by(() => {
         paneLayout.current
         return undefined
@@ -295,6 +313,11 @@
     let orderLastVisible = $state(-1)
     const orderWindowShown = $derived(orderChipsShown && orderOverflowing)
     const boardAreas = $derived(session.mapView.boardAreas)
+    const bankCash = $derived.by(() => {
+        const cash = cashOwnedBy(session.gameState, { kind: 'bank' })
+        assertExists(cash, 'The board shows the bank, which requires a cash account')
+        return cash
+    })
     const boardExtents = $derived(
         [boardAreas?.market, boardAreas?.depot].filter((area) => area !== undefined)
     )
@@ -560,7 +583,10 @@
             | undefined => {
             if (session.isViewingHistory)
                 return mapRoutes.length
-                    ? { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+                    ? {
+                          legalLocationIds: [],
+                          highlightedLocationIds: routeLocationIds(mapRoutes, session.mapView)
+                      }
                     : undefined
             if (maskPlacementLocations)
                 return {
@@ -568,7 +594,10 @@
                     highlightedLocationIds: highlightedPlacementLocationIds
                 }
             if (routePreview && !session.routes.editor.trainId && mapRoutes.length)
-                return { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+                return {
+                    legalLocationIds: [],
+                    highlightedLocationIds: routeLocationIds(mapRoutes, session.mapView)
+                }
             return undefined
         }
     )
@@ -597,6 +626,16 @@
 
     const gameState = $derived(session.gameState)
     const headerState = $derived(tableHeaderState(session))
+    const wealthPlayers = $derived(
+        seatOrderFrom(
+            session.gameState.players.map((player) => player.playerId),
+            session.myPrimaryPlayer?.id
+        ).map((playerId) => ({
+            playerId,
+            name: session.getPlayerName(playerId),
+            color: session.colors.getPlayerBgColorValue(playerId)
+        }))
+    )
     const headerPlayerId = $derived(
         headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined
     )
@@ -624,6 +663,7 @@
     const startedCompanies = $derived(
         spreadsheetCompanies(
             gameState,
+            session.charters,
             session.actions,
             session.gameState.actionCount,
             displayedCompanyOrder,
@@ -663,6 +703,7 @@
         ...workspaceTabs,
         { id: 'Depot', label: 'Depot', optional: true },
         { id: 'Operating Order', label: 'Operating Order', optional: true },
+        { id: 'Stats', label: 'Stats', optional: true },
         ...(boardAvailable ? [{ id: 'Board', label: 'Board', optional: true }] : []),
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
@@ -717,7 +758,6 @@
 <svelte:window onkeydown={navigateByShortcut} />
 
 {#snippet playerCards()}<PlayersPanel
-        {companyNames}
         {session}
         {valuationRules}
         {auctionLotDescription}
@@ -732,10 +772,12 @@
         {portfolioCompanyIds}
     />{/snippet}
 
-{#snippet companyCard(company: Company)}<CompanyDetails
+{#snippet companyCard(
+    company: Company,
+    layout: 'wide-fill' | 'vertical' = 'vertical'
+)}<CompanyDetails
         pricePresentation={companyPricePresentation}
-        vertical
-        displayName={companyNames?.[company.id]?.card}
+        {layout}
         {company}
         {session}
         {trainColors}
@@ -770,7 +812,6 @@
         {phaseTileColors}
         tileColors={tileAppearance.colors}
         tileColorNames={tileAppearance.colorNames}
-        {companyNames}
         describeAction={historyDescription}
     />{/snippet}
 
@@ -781,11 +822,7 @@
         artwork={boardArtwork}
         tokens={session.map.displayedTokens}
         stationAppearances={session.mapView.stations}
-        reservations={[
-            ...(session.track.displayedStations?.stationReservations ??
-                session.stations.displayState.stationReservations),
-            ...powerReservations
-        ]}
+        reservations={[...session.map.displayedReservations, ...powerReservations]}
         routes={mapRoutes}
         selection={session.isViewingHistory
             ? historyMapSettled
@@ -854,6 +891,7 @@
                     {depotState}
                     depotOnly
                     onBoard
+                    bank={{ cash: bankCash, broken: !!session.gameState.bank.broken }}
                     chart={phaseChart}
                     currentPhaseId={session.gameState.phaseId}
                     {trainColors}
@@ -929,7 +967,7 @@
         {#each session.presentation.gameFacts?.(session.gameState) ?? [] as fact (fact.label)}
             <span class="game-information-item">
                 <span class="information-label">{fact.label}</span>
-                <span>{fact.value}</span>
+                <span class="information-value">{fact.value}</span>
             </span>
         {/each}
     </button>
@@ -964,375 +1002,383 @@
     </div>
 {/snippet}
 
+<!-- The sidebar's tabs mount the toaster; the pane layout has no sidebar. -->
+{#if paneLayout.current}<GameToaster />{/if}
 <div
     class="railway-table"
     class:published-artwork={publishedArtwork}
-    use:paintBodyBackground={boardArtwork?.backgroundColor}
     use:framePlacement={activePlacementFocusKey}
     use:frameRoutes={{ runningCompanyId, preview: routePreview }}
     use:frameStartCompany={session.stock.selectedStartCompany}
     use:frameHistory={settledHistoricalFocus}
+    use:framePresentation={publishedArtwork}
     style:--rail-table-background={boardArtwork?.backgroundColor}
-    style:--table-header-offset="calc(var(--app-navbar-height, 0px) + {session.isViewingHistory
-        ? 14
-        : 0}px)"
     data-theme="dark"
     aria-label="Game table"
     aria-busy={!session.preferences.ready}
 >
     {#if session.preferences.ready && layoutPreference.ready}
-        {#if session.isViewingHistory}
-            <div class="history-strip" role="status"><span>VIEWING HISTORY</span></div>
-        {/if}
-        <div class="table-layout" style:--app-navbar-height="var(--table-header-offset)">
-            <DefaultTableLayout
-                topPadding={0}
-                horizontalPadding={paneLayout.current || phoneLayout.current ? 0 : 8}
-                showSidebar={!paneLayout.current}
-            >
-                {#snippet mobileControlsContent()}
-                    {@render historyControls()}
-                {/snippet}
-                {#snippet sideContent()}
-                    <div class="max-sm:hidden">{@render historyControls()}</div>
-                    {@render sidebarInformation()}
-                    {@render sidebarTabs()}
-                {/snippet}
-                {#snippet gameContent()}
-                    <div
-                        class:workspace-heading={paneLayout.current}
-                        class:player-tinted-header={paneLayout.current && !!headerPlayerId}
-                        style:--player-color={headerPlayerId
-                            ? session.colors.getPlayerBgColorValue(headerPlayerId)
-                            : undefined}
-                    >
-                        {#if paneLayout.current}<div class="workspace-history-controls">
-                                {@render historyControls(false)}
-                            </div>{/if}
-                        <div class="table-heading">
-                            <TableHeader
-                                artworkAvailable={session.publishedArtworkAvailable}
-                                {publishedArtwork}
-                                onToggleArtwork={toggleArtwork}
-                                {session}
-                                {companyNames}
-                                bordered={!paneLayout.current}
-                                centered={paneLayout.current}
-                            />
-                        </div>
+        <DefaultTableLayout
+            topPadding={0}
+            horizontalPadding={paneLayout.current || phoneLayout.current ? 0 : 8}
+            showSidebar={!paneLayout.current}
+        >
+            {#snippet mobileControlsContent()}
+                {@render historyControls()}
+            {/snippet}
+            {#snippet sideContent()}
+                <div class="max-sm:hidden">{@render historyControls()}</div>
+                {@render sidebarInformation()}
+                {@render sidebarTabs()}
+            {/snippet}
+            {#snippet gameContent()}
+                <div
+                    class="game-heading"
+                    class:workspace-heading={paneLayout.current}
+                    class:player-tinted-header={paneLayout.current && !!headerPlayerId}
+                    style:--player-color={headerPlayerId
+                        ? session.colors.getPlayerBgColorValue(headerPlayerId)
+                        : undefined}
+                >
+                    {#if paneLayout.current}<div class="workspace-history-controls">
+                            {@render historyControls(false)}
+                        </div>{/if}
+                    <div class="table-heading">
+                        <TableHeader
+                            artworkAvailable={session.publishedArtworkAvailable}
+                            {publishedArtwork}
+                            onToggleArtwork={() => session.toggleArtwork()}
+                            {session}
+                            bordered={!paneLayout.current}
+                            centered={paneLayout.current}
+                        />
                     </div>
-                    {#if paneLayout.current && layoutPreference.status}
-                        <button
-                            class="layout-save"
-                            disabled={layoutPreference.status === 'saving' ||
-                                layoutPreference.status === 'saved'}
-                            onclick={() => layoutPreference.save()}
-                            title="Layout saves automatically after three seconds without changes. Click to save now."
-                        >
-                            {layoutPreference.status === 'unsaved'
-                                ? 'Layout unsaved'
-                                : layoutPreference.status === 'saving'
-                                  ? 'Saving…'
-                                  : layoutPreference.status === 'error'
-                                    ? 'Layout not saved · Retry'
-                                    : 'Saved'}
-                        </button>
-                    {/if}
-                    {#snippet operatingOrderContent()}
-                        {#if operating && !gameState.result && companyOrder.length}
-                            <div class="operating-order-footer">
-                                <div class="order-display">
-                                    <button
-                                        class="order-overview-toggle"
-                                        aria-label="Operating order chips"
-                                        aria-expanded={orderChipsShown}
-                                        onclick={() => (orderChipsShown = !orderChipsShown)}
-                                    >
-                                        <CompanyOrderOverview
-                                            companies={companyOrder}
-                                            appearances={session.mapView.stations}
-                                            firstVisible={orderWindowShown ? orderFirstVisible : -1}
-                                            lastVisible={orderWindowShown ? orderLastVisible : -1}
-                                            completedCompanyIds={operatedCompanyIds}
-                                            currentCompanyId={operatingCompanyId}
-                                        />
-                                    </button>
-                                </div>
-                                {#if orderChipsShown}<CompanyOrder
-                                        overview={false}
-                                        bind:overflowing={orderOverflowing}
-                                        bind:firstVisible={orderFirstVisible}
-                                        bind:lastVisible={orderLastVisible}
-                                        {money}
-                                        showDetails
+                </div>
+                {#if paneLayout.current && layoutPreference.status}
+                    <button
+                        class="layout-save"
+                        disabled={layoutPreference.status === 'saving' ||
+                            layoutPreference.status === 'saved'}
+                        onclick={() => layoutPreference.save()}
+                        title="Layout saves automatically after three seconds without changes. Click to save now."
+                    >
+                        {layoutPreference.status === 'unsaved'
+                            ? 'Layout unsaved'
+                            : layoutPreference.status === 'saving'
+                              ? 'Saving…'
+                              : layoutPreference.status === 'error'
+                                ? 'Layout not saved · Retry'
+                                : 'Saved'}
+                    </button>
+                {/if}
+                {#snippet operatingOrderContent()}
+                    {#if operating && !gameState.result && companyOrder.length}
+                        <div class="operating-order-footer">
+                            <div class="order-display">
+                                <button
+                                    class="order-overview-toggle"
+                                    aria-label="Operating order chips"
+                                    aria-expanded={orderChipsShown}
+                                    onclick={() => (orderChipsShown = !orderChipsShown)}
+                                >
+                                    <CompanyOrderOverview
                                         companies={companyOrder}
-                                        companyName={(companyId) => session.companyName(companyId)}
-                                        {gameState}
-                                        trainDepot={session.trainDepot}
-                                        {trainColors}
-                                        requiresTrain={(companyId) =>
-                                            session.companyRequiresTrain(companyId)}
                                         appearances={session.mapView.stations}
+                                        firstVisible={orderWindowShown ? orderFirstVisible : -1}
+                                        lastVisible={orderWindowShown ? orderLastVisible : -1}
                                         completedCompanyIds={operatedCompanyIds}
                                         currentCompanyId={operatingCompanyId}
-                                    >
-                                        {#snippet companyDetails(company)}
-                                            <CompanyDetails
-                                                pricePresentation={companyPricePresentation}
-                                                onPreviewMap={previewHistoryMap}
-                                                {trainColors}
-                                                {session}
-                                                {company}
-                                                {poolName}
-                                            />
-                                        {/snippet}
-                                    </CompanyOrder>{/if}
+                                    />
+                                </button>
                             </div>
-                        {/if}
-                    {/snippet}
-                    {#snippet actionContent()}
-                        <div class="action-body">
-                            <div class="action-information">
-                                {@render gameInformationStrip()}
-                            </div>
-                            <TableNotices notices={session.notices} />
-                            <OperatingSteps
+                            {#if orderChipsShown}<CompanyOrder
+                                    overview={false}
+                                    bind:overflowing={orderOverflowing}
+                                    bind:firstVisible={orderFirstVisible}
+                                    bind:lastVisible={orderLastVisible}
+                                    {money}
+                                    showDetails
+                                    companies={companyOrder}
+                                    companyName={(companyId) => session.companyName(companyId)}
+                                    {gameState}
+                                    trainDepot={session.trainDepot}
+                                    {trainColors}
+                                    requiresTrain={(companyId) =>
+                                        session.companyRequiresTrain(companyId)}
+                                    appearances={session.mapView.stations}
+                                    completedCompanyIds={operatedCompanyIds}
+                                    currentCompanyId={operatingCompanyId}
+                                    restoredSilently={session.restoredSilently}
+                                >
+                                    {#snippet companyDetails(company)}
+                                        <CompanyDetails
+                                            pricePresentation={companyPricePresentation}
+                                            onPreviewMap={previewHistoryMap}
+                                            {trainColors}
+                                            {session}
+                                            {company}
+                                            {poolName}
+                                        />
+                                    {/snippet}
+                                </CompanyOrder>{/if}
+                        </div>
+                    {/if}
+                {/snippet}
+                {#snippet actionContent()}
+                    <div class="action-body">
+                        <div class="action-information">
+                            {@render gameInformationStrip()}
+                        </div>
+                        <TableNotices notices={session.notices} />
+                        <OperatingSteps
+                            {session}
+                            {privatePurchaseLabel}
+                            readOnly={readOnlyPosition}
+                        />
+                        {#if !session.isViewingHistory}
+                            <StockActionStrip
                                 {session}
-                                {privatePurchaseLabel}
+                                additionalActions={additionalStockActions}
                                 readOnly={readOnlyPosition}
                             />
-                            {#if !session.isViewingHistory}
-                                <StockActionStrip
+                            <PrivatePowerControls {session} />
+                        {/if}
+                        <section class="action-panel" aria-label="Current action">
+                            {#if readOnlyPosition && !auctionShownToAll}
+                                <PositionPanel
                                     {session}
-                                    additionalActions={additionalStockActions}
-                                    readOnly={readOnlyPosition}
+                                    {trainColors}
+                                    describeAction={historyDescription}
                                 />
-                                <PrivatePowerControls {session} />
-                            {/if}
-                            <section class="action-panel" aria-label="Current action">
-                                {#if readOnlyPosition}
-                                    <PositionPanel
+                                {#if !session.isViewingHistory}<StandingInstruction
                                         {session}
-                                        {trainColors}
-                                        describeAction={historyDescription}
-                                    />
-                                    {#if !session.isViewingHistory}<StandingInstruction
-                                            {session}
-                                        />{/if}
-                                {:else}
-                                    {@render actions(focusLocation, focusRoute)}
-                                {/if}
-                            </section>
+                                    />{/if}
+                            {:else}
+                                {#if auctionTurnPlayerId}<TurnHeading
+                                        {session}
+                                        playerId={auctionTurnPlayerId}
+                                    />{/if}
+                                {@render actions(focusLocation, focusRoute)}
+                            {/if}
+                        </section>
+                    </div>
+                    {#if !paneLayout.current}{@render operatingOrderContent()}{/if}
+                {/snippet}
+                {#snippet children(id: string, active: boolean)}
+                    {#if id === 'Game info'}<div class="workspace-view game-info-pane">
+                            {@render sidebarInformation()}
                         </div>
-                        {#if !paneLayout.current}{@render operatingOrderContent()}{/if}
-                    {/snippet}
-                    {#snippet children(id: string, active: boolean)}
-                        {#if id === 'Game info'}<div class="workspace-view game-info-pane">
-                                {@render sidebarInformation()}
-                            </div>
-                        {:else if id === 'Player Aid'}<div class="workspace-view">
-                                <PhaseChartContent
+                    {:else if id === 'Player Aid'}<div class="workspace-view">
+                            <PhaseChartContent
+                                {money}
+                                {depotState}
+                                chart={phaseChart}
+                                currentPhaseId={headerState.phaseId}
+                                {trainColors}
+                                {phaseColors}
+                                tileColors={tileAppearance.colors}
+                                tileColorNames={tileAppearance.colorNames}
+                            />
+                        </div>
+                    {:else if id === 'Depot'}<div class="workspace-view">
+                            <PhaseChartContent
+                                {money}
+                                {depotState}
+                                depotOnly
+                                chart={phaseChart}
+                                currentPhaseId={session.gameState.phaseId}
+                                {trainColors}
+                                {phaseColors}
+                                tileColors={tileAppearance.colors}
+                                tileColorNames={tileAppearance.colorNames}
+                            />
+                        </div>
+                    {:else if id === 'Stats'}<div class="workspace-view">
+                            {#if active}<WealthChart
                                     {money}
-                                    {depotState}
-                                    chart={phaseChart}
-                                    currentPhaseId={headerState.phaseId}
-                                    {trainColors}
-                                    {phaseColors}
-                                    tileColors={tileAppearance.colors}
-                                    tileColorNames={tileAppearance.colorNames}
-                                />
-                            </div>
-                        {:else if id === 'Depot'}<div class="workspace-view">
-                                <PhaseChartContent
-                                    {money}
-                                    {depotState}
-                                    depotOnly
-                                    chart={phaseChart}
-                                    currentPhaseId={session.gameState.phaseId}
-                                    {trainColors}
-                                    {phaseColors}
-                                    tileColors={tileAppearance.colors}
-                                    tileColorNames={tileAppearance.colorNames}
-                                />
-                            </div>
-                        {:else if id === 'Players'}<div class="workspace-view players-pane">
-                                {@render playerCards()}
-                            </div>
-                        {:else if id === 'History'}<div class="workspace-view">
-                                {@render historyPanel()}
-                            </div>
-                        {:else if id === 'Chat'}<div class="workspace-view">
-                                {#if active}{@render chatPanel()}{/if}
-                            </div>
-                        {:else if id === 'Operating Order'}<div class="workspace-view">
-                                {@render operatingOrderContent()}{#if !operating || gameState.result || !companyOrder.length}<p
-                                        class="widget-empty"
-                                    >
-                                        No operating order this round.
-                                    </p>{/if}
-                            </div>
-                        {:else if id === 'Actions'}<div class="workspace-view actions-area">
-                                {@render actionContent()}
-                            </div>{:else if id === 'Map'}<div
-                                class="workspace-view map-area"
-                                class:board-area={boardMode}
+                                    points={session.playerWealthHistory()}
+                                    players={wealthPlayers}
+                                />{/if}
+                        </div>
+                    {:else if id === 'Players'}<div class="workspace-view players-pane">
+                            {@render playerCards()}
+                        </div>
+                    {:else if id === 'History'}<div class="workspace-view">
+                            {@render historyPanel()}
+                        </div>
+                    {:else if id === 'Chat'}<div class="workspace-view">
+                            {#if active}{@render chatPanel()}{/if}
+                        </div>
+                    {:else if id === 'Operating Order'}<div class="workspace-view">
+                            {@render operatingOrderContent()}{#if !operating || gameState.result || !companyOrder.length}<p
+                                    class="widget-empty"
+                                >
+                                    No operating order this round.
+                                </p>{/if}
+                        </div>
+                    {:else if id === 'Actions'}<div class="workspace-view actions-area">
+                            {@render actionContent()}
+                        </div>{:else if id === 'Map'}<div
+                            class="workspace-view map-area"
+                            class:board-area={boardMode}
+                        >
+                            {#if boardMode}<div class="board-focus-strip">
+                                    <BoardFocus options={boardFocusOptions} />
+                                    <BoardAutoZoom
+                                        small
+                                        enabled={boardAutoZoom}
+                                        onToggle={toggleBoardAutoZoom}
+                                    />
+                                </div>{/if}
+                            <ScalingWrapper
+                                bind:this={mapWrapper}
+                                maxScale={2}
+                                overpan={mapOverpan}
+                                gestureOverpanReach={MapGestureOverpanReach}
+                                onManualViewChange={() => {
+                                    restoreRouteView = undefined
+                                    boardFocus = undefined
+                                }}
+                                justify="center"
+                                controls="bottom-left"
+                                expandable={true}
                             >
-                                {#if boardMode}<div class="board-focus-strip">
+                                {#if boardMode}<div class="board-view">
+                                        {@render mapScene(true, boardExtents)}
+                                        {@render boardInsets()}
+                                    </div>
+                                {:else}{@render mapScene(true)}{/if}
+                                {#snippet overlay(viewport)}
+                                    {#if active && session.track.canBuild && session.track.selection.locationId}
+                                        <TrackTilePicker
+                                            {session}
+                                            {viewport}
+                                            appearance={tileAppearance}
+                                        />
+                                    {/if}
+                                {/snippet}
+                            </ScalingWrapper>
+                        </div>{:else if id === 'Board'}<div class="workspace-view map-area">
+                            <ScalingWrapper
+                                bind:this={boardWrapper}
+                                insetTop={44}
+                                overpan={mapOverpan}
+                                gestureOverpanReach={MapGestureOverpanReach}
+                                justify="center"
+                                controls="bottom-left"
+                                expandable={true}
+                                allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
+                                onManualViewChange={() => {
+                                    restoreRouteView = undefined
+                                    boardFocus = undefined
+                                }}
+                            >
+                                <div class="board-view">
+                                    {@render mapScene(true, boardExtents)}
+                                    {@render boardInsets()}
+                                </div>
+                                {#snippet overlay(viewport)}
+                                    <div class="board-focus-overlay">
                                         <BoardFocus options={boardFocusOptions} />
+                                    </div>
+                                    <div class="board-auto-zoom-overlay">
                                         <BoardAutoZoom
-                                            small
                                             enabled={boardAutoZoom}
                                             onToggle={toggleBoardAutoZoom}
                                         />
-                                    </div>{/if}
+                                    </div>
+                                    {#if active && session.track.canBuild && session.track.selection.locationId}
+                                        <TrackTilePicker
+                                            {session}
+                                            {viewport}
+                                            appearance={tileAppearance}
+                                        />
+                                    {/if}
+                                {/snippet}
+                            </ScalingWrapper>
+                        </div>{:else if id === 'Market'}<div class="workspace-view market-area">
+                            <div class="market-scene">
                                 <ScalingWrapper
-                                    bind:this={mapWrapper}
-                                    maxScale={2}
-                                    overpan={mapOverpan}
-                                    gestureOverpanReach={MapGestureOverpanReach}
-                                    onManualViewChange={() => {
-                                        restoreRouteView = undefined
-                                        boardFocus = undefined
-                                    }}
-                                    justify="center"
-                                    controls="bottom-left"
-                                    expandable={true}
-                                >
-                                    {#if boardMode}<div class="board-view">
-                                            {@render mapScene(true, boardExtents)}
-                                            {@render boardInsets()}
-                                        </div>
-                                    {:else}{@render mapScene(true)}{/if}
-                                    {#snippet overlay(viewport)}
-                                        {#if active && session.track.canBuild && session.track.selection.locationId}
-                                            <TrackTilePicker
-                                                {session}
-                                                {viewport}
-                                                appearance={tileAppearance}
-                                            />
-                                        {/if}
-                                    {/snippet}
-                                </ScalingWrapper>
-                            </div>{:else if id === 'Board'}<div class="workspace-view map-area">
-                                <ScalingWrapper
-                                    bind:this={boardWrapper}
-                                    insetTop={44}
-                                    overpan={mapOverpan}
-                                    gestureOverpanReach={MapGestureOverpanReach}
                                     justify="center"
                                     controls="bottom-left"
                                     expandable={true}
                                     allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
-                                    onManualViewChange={() => {
-                                        restoreRouteView = undefined
-                                        boardFocus = undefined
-                                    }}
                                 >
-                                    <div class="board-view">
-                                        {@render mapScene(true, boardExtents)}
-                                        {@render boardInsets()}
-                                    </div>
-                                    {#snippet overlay(viewport)}
-                                        <div class="board-focus-overlay">
-                                            <BoardFocus options={boardFocusOptions} />
-                                        </div>
-                                        <div class="board-auto-zoom-overlay">
-                                            <BoardAutoZoom
-                                                enabled={boardAutoZoom}
-                                                onToggle={toggleBoardAutoZoom}
-                                            />
-                                        </div>
-                                        {#if active && session.track.canBuild && session.track.selection.locationId}
-                                            <TrackTilePicker
-                                                {session}
-                                                {viewport}
-                                                appearance={tileAppearance}
-                                            />
-                                        {/if}
-                                    {/snippet}
-                                </ScalingWrapper>
-                            </div>{:else if id === 'Market'}<div class="workspace-view market-area">
-                                <div class="market-scene">
-                                    <ScalingWrapper
-                                        justify="center"
-                                        controls="bottom-left"
-                                        expandable={true}
-                                        allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
-                                    >
-                                        <StockMarketScene
-                                            cell={session.presentation.marketCell}
-                                            animation={session.marketAnimation}
-                                            appearances={session.mapView.stations}
-                                            renderScale={2}
-                                            chart={session.stockMarketChart}
-                                            market={session.gameState.stockMarket}
-                                            companyName={(companyId) =>
-                                                session.companyName(companyId)}
-                                            zones={session.presentation.marketZones}
-                                            ledge={session.presentation.marketLedge}
-                                        />
-                                    </ScalingWrapper>
-                                </div>
-                                {#if !session.presentation.hideMarketLegend && (session.presentation.marketZones?.length || session.presentation.marketLedge)}<MarketLegend
-                                        zones={session.presentation.marketZones ?? []}
+                                    <StockMarketScene
+                                        cell={session.presentation.marketCell}
+                                        animation={session.marketAnimation}
+                                        appearances={session.mapView.stations}
+                                        renderScale={2}
+                                        chart={session.stockMarketChart}
+                                        market={session.gameState.stockMarket}
+                                        companyName={(companyId) => session.companyName(companyId)}
+                                        zones={session.presentation.marketZones}
                                         ledge={session.presentation.marketLedge}
-                                    />{/if}
-                            </div>{:else if id === 'Spreadsheet'}<div
-                                class="workspace-view data-area"
-                            >
-                                <OwnershipSpreadsheet
-                                    pricePresentation={companyPricePresentation}
-                                    fillWidth={paneLayout.current}
-                                    {includedPortfolioCompanyIds}
-                                    companyOrder={displayedCompanyOrder}
-                                    onPreviewMap={previewHistoryMap}
-                                    {trainColors}
-                                    {valuationRules}
-                                    {session}
-                                    {companyNames}
-                                    {numberedShareNames}
-                                    {includedCompanyIds}
-                                    {marketPoolId}
-                                    {exchangePoolId}
-                                    {portfolioCompanyIds}
-                                />
-                            </div>{:else if id === 'Companies'}<div class="workspace-view">
-                                <CompanyCardLayout
-                                    wrap={companyCardsWrap}
-                                    onToggleWrap={toggleCompanyCardsWrap}
-                                >
-                                    {#each startedCompanies as company (company.id)}
-                                        {@render companyCard(company)}
-                                    {:else}<p class="widget-empty">
-                                            No companies have started.
-                                        </p>{/each}
-                                </CompanyCardLayout>
-                            </div>{:else if id === 'Tiles'}<div class="workspace-view">
-                                <TileManifest
-                                    tiles={session.mapView.tileSet.definitions}
-                                    inventory={session.map.tileCounts}
-                                    upgrades={session.tileUpgrades}
-                                    layouts={session.mapView.layouts}
-                                    orientation={session.mapView.map.definition.orientation}
-                                    appearance={tileAppearance}
-                                />
-                            </div>{/if}
-                    {/snippet}
-                    {#if paneLayout.current}
-                        <div class="pane-workspace" {@attach preferBoard}>
-                            <TabWorkspace
-                                tabs={paneTabs}
-                                savedLayout={savedTableLayout}
-                                onLayoutChange={(value) =>
-                                    layoutPreference.change(saveTableWorkspace(value))}
-                                tabTitle={sidebarTabIcon}
-                                bind:selected={selectedView}
-                                label="Table views"
-                                initialLayout={initialTableLayout(paneTabs)}
-                                {children}
+                                    />
+                                </ScalingWrapper>
+                            </div>
+                            {#if !session.presentation.hideMarketLegend && (session.presentation.marketZones?.length || session.presentation.marketLedge)}<MarketLegend
+                                    zones={session.presentation.marketZones ?? []}
+                                    ledge={session.presentation.marketLedge}
+                                />{/if}
+                        </div>{:else if id === 'Spreadsheet'}<div class="workspace-view data-area">
+                            <OwnershipSpreadsheet
+                                pricePresentation={companyPricePresentation}
+                                fillWidth={paneLayout.current}
+                                {includedPortfolioCompanyIds}
+                                companyOrder={displayedCompanyOrder}
+                                onPreviewMap={previewHistoryMap}
+                                {trainColors}
+                                {valuationRules}
+                                {session}
+                                {numberedShareNames}
+                                {includedCompanyIds}
+                                {marketPoolId}
+                                {ipoPoolId}
+                                {exchangePoolId}
+                                {portfolioCompanyIds}
                             />
-                        </div>
-                    {:else}
+                        </div>{:else if id === 'Companies'}<div class="workspace-view">
+                            <CompanyCardLayout
+                                wrap={companyCardsWrap}
+                                onToggleWrap={toggleCompanyCardsWrap}
+                                wide={companyCardsWide}
+                                onToggleWide={toggleCompanyCardsWide}
+                            >
+                                {#each startedCompanies as company (company.id)}
+                                    {@render companyCard(
+                                        company,
+                                        companyCardsWide ? 'wide-fill' : 'vertical'
+                                    )}
+                                {:else}<p class="widget-empty">No companies have started.</p>{/each}
+                            </CompanyCardLayout>
+                        </div>{:else if id === 'Tiles'}<div class="workspace-view">
+                            <TileManifest
+                                tiles={session.mapView.tileSet.definitions}
+                                inventory={session.map.tileCounts}
+                                upgrades={session.tileUpgrades}
+                                layouts={session.mapView.layouts}
+                                orientation={session.mapView.map.definition.orientation}
+                                appearance={tileAppearance}
+                            />
+                        </div>{/if}
+                {/snippet}
+                {#if paneLayout.current}
+                    <div class="pane-workspace" {@attach preferBoard}>
+                        <TabWorkspace
+                            tabs={paneTabs}
+                            savedLayout={savedTableLayout}
+                            onLayoutChange={(value) =>
+                                layoutPreference.change(saveTableWorkspace(value))}
+                            tabTitle={sidebarTabIcon}
+                            bind:selected={selectedView}
+                            label="Table views"
+                            initialLayout={initialTableLayout(paneTabs)}
+                            {children}
+                        />
+                    </div>
+                {:else}
+                    <div class="stacked-body">
                         <div class="original-actions">{@render actionContent()}</div>
                         <div class="stacked-workspace">
                             <TabWorkspace
@@ -1354,10 +1400,10 @@
                                 {children}
                             />
                         </div>
-                    {/if}
-                {/snippet}
-            </DefaultTableLayout>
-        </div>
+                    </div>
+                {/if}
+            {/snippet}
+        </DefaultTableLayout>
 
         {#if showPhaseChart}<PhaseChart
                 {money}
@@ -1394,26 +1440,6 @@
 </div>
 
 <style>
-    .history-strip {
-        display: flex;
-        flex: none;
-        align-items: center;
-        justify-content: center;
-        height: 14px;
-        background:
-            repeating-linear-gradient(90deg, #18212b 0 18px, transparent 18px 26px) center / 100%
-                6px no-repeat,
-            #f4e8ce;
-        color: #18212b;
-    }
-    .history-strip span {
-        padding: 0 12px;
-        background: #f4e8ce;
-        font-size: 9px;
-        font-weight: 800;
-        line-height: 14px;
-        letter-spacing: 0.16em;
-    }
     .layout-save {
         align-self: flex-end;
         flex: none;
@@ -1441,6 +1467,17 @@
         flex-direction: column;
         flex: 1;
         min-height: 50dvh;
+    }
+    .game-heading {
+        flex: none;
+    }
+    .stacked-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior-y: none;
     }
     .workspace-heading {
         padding-inline: 8px;
@@ -1644,7 +1681,8 @@
         text-align: center;
         line-height: 10px;
     }
-    .train-limit-value {
+    .train-limit-value,
+    .information-value {
         font-size: 16px;
         font-weight: 700;
         line-height: 20px;

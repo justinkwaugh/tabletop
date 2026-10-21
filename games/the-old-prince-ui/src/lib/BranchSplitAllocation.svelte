@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { isObsoleteTrain } from '@tabletop/18xx'
     import { TheOldPrinceMap } from '@tabletop/the-old-prince'
     import { CompanyToken, TrainBadge } from '@tabletop/18xx-ui'
     import { TheOldPrinceTrainColors } from './trainPresentation.js'
@@ -79,6 +80,7 @@
                                         name={session.trainDepot.trainDefinition(train.definitionId)
                                             .name}
                                         color={TheOldPrinceTrainColors[train.definitionId]}
+                                        obsolete={isObsoleteTrain(train)}
                                     />
                                 </div>
                             {:else}<span class="empty">None</span>{/each}

@@ -10,6 +10,7 @@
         summary,
         amount,
         increment,
+        ownTurn,
         canBid,
         canPass,
         onChange,
@@ -28,6 +29,7 @@
         summary: readonly { label: string; value: string }[]
         amount: number
         increment: number
+        ownTurn: boolean
         canBid: (amount: number) => boolean
         canPass: boolean
         onChange: (amount: number) => void
@@ -56,18 +58,20 @@
                     <span class="value">{line.label} <strong>{line.value}</strong></span>
                 {/each}
             </div>
-            <AuctionBidControl
-                money={session.presentation.money}
-                {amount}
-                {increment}
-                canBid={canBid(amount)}
-                canDecrease={canBid(amount - increment)}
-                canIncrease={canBid(amount + increment)}
-                {canPass}
-                {onChange}
-                {onBid}
-                {onPass}
-            />
+            {#if ownTurn}
+                <AuctionBidControl
+                    money={session.presentation.money}
+                    {amount}
+                    {increment}
+                    canBid={canBid(amount)}
+                    canDecrease={canBid(amount - increment)}
+                    canIncrease={canBid(amount + increment)}
+                    {canPass}
+                    {onChange}
+                    {onBid}
+                    {onPass}
+                />
+            {/if}
         </div>
     </div>
 </article>

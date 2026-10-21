@@ -15,6 +15,8 @@
     import UnitFace from './UnitFace.svelte'
     import { BLOCK_SYMBOL_HEIGHT, BLOCK_SYMBOL_WIDTH } from '$lib/utils/faceLayout.js'
     import { eliteCommitments } from '$lib/utils/eliteCommitments.js'
+    import { armyObjectives } from '$lib/utils/armyObjectives.js'
+    import StarMark from './StarMark.svelte'
 
     let { onlocate }: { onlocate: (locale: number) => void } = $props()
 
@@ -87,6 +89,26 @@
     </div>
 {/snippet}
 
+{#snippet objectives(playerId: string)}
+    {@const sought = armyObjectives(game, playerId, gameSession.starHolds)}
+    <div class="nt-objectives">
+        <div class="nt-objective-stars">
+            {#each sought.stars as objective (objective.star)}
+                <svg
+                    viewBox="-1.15 -1.15 2.3 2.3"
+                    role="img"
+                    aria-label={objective.explanation}
+                    class:nt-star-unheld={objective.hold === undefined}
+                >
+                    <title>{objective.explanation}</title>
+                    <StarMark star={objective.star} hold={objective.hold} strokeWidth={0.13} />
+                </svg>
+            {/each}
+        </div>
+        <span class="nt-objective-terms">{sought.terms}</span>
+    </div>
+{/snippet}
+
 {#snippet unitBlocks(units: ProjectedUnit[], colors: ArmyColors)}
     <div class="nt-corps-units">
         {#each units as unit (unit.id)}
@@ -120,6 +142,7 @@
                 </div>
             </header>
             <div class="nt-army-body">
+                {@render objectives(player.playerId)}
                 {@render elites(player, colors)}
                 {#if game.turnManager.currentTurn()?.playerId === player.playerId}
                     <div class="nt-army-note">
@@ -294,6 +317,38 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
         opacity: 1;
+    }
+
+    .nt-objectives {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 3px 6px 3px 4px;
+        border: 1px solid color-mix(in srgb, var(--nt-ink) 30%, transparent);
+        border-radius: 3px;
+    }
+
+    .nt-objective-stars {
+        flex: none;
+        display: flex;
+        gap: 3px;
+    }
+
+    .nt-objective-stars svg {
+        flex: none;
+        width: 19px;
+        height: 19px;
+    }
+
+    .nt-star-unheld {
+        opacity: 0.55;
+    }
+
+    .nt-objective-terms {
+        margin-left: auto;
+        font-size: 11px;
+        opacity: 0.75;
+        text-align: right;
     }
 
     .nt-corps-head {

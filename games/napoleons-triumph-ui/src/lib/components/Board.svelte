@@ -12,6 +12,7 @@
     import ApproachBars from './board/ApproachBars.svelte'
     import ApproachSymbols from './board/ApproachSymbols.svelte'
     import CapacityTags from './board/CapacityTags.svelte'
+    import StarTags from './board/StarTags.svelte'
     import GunTags from './board/GunTags.svelte'
     import BattleMarker from './board/BattleMarker.svelte'
     import TrackMarkers from './board/TrackMarkers.svelte'
@@ -89,6 +90,7 @@
             <MovementTrails />
             <ApproachSymbols />
             <CapacityTags />
+            <StarTags />
             <g data-in-picture><FlagLayer /></g>
             <TargetLayer overThePieces />
             <BattleMarker />

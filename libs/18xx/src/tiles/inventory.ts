@@ -38,7 +38,8 @@ export type TilePlacement = Type.Static<typeof TilePlacement>
 
 export const TileInventory = Type.Object(
     {
-        tileSetId: Identifier,
+        // Stored games from before this stopped being recorded may hold it; never read.
+        tileSetId: Type.Optional(Type.Unsafe<never>(Identifier)),
         placements: Type.Record(Identifier, TilePlacement),
         retiredPieceIds: Type.Array(Identifier, { uniqueItems: true })
     },
@@ -109,7 +110,6 @@ export class TileSet {
         placements: readonly (Omit<TilePlacement, 'pieceId'> & { locationId: string })[] = []
     ): TileInventory {
         let inventory: TileInventory = {
-            tileSetId: this.manifest.id,
             placements: {},
             retiredPieceIds: []
         }
@@ -202,7 +202,6 @@ export class TileSet {
         }
         placements.set(replacement.locationId, { ...next })
         return {
-            tileSetId: inventory.tileSetId,
             placements: Object.fromEntries(
                 [...placements].map(([id, placement]) => [id, { ...placement }])
             ),
@@ -212,10 +211,6 @@ export class TileSet {
 
     private assertInventory(inventory: TileInventory): void {
         assert(InventoryValidator.Check(inventory), 'Invalid tile inventory schema')
-        assert(
-            inventory.tileSetId === this.manifest.id,
-            'Tile inventory belongs to a different set'
-        )
         const used = new Set<string>()
         for (const placement of Object.values(inventory.placements)) {
             this.assertPieceFace(placement)

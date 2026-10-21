@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { errorStatusCode } from '../../lib/errorStatusCode.js'
 import applyActionRoute from './action.js'
 import { routeTestDefinition } from './tests/routeTestDefinition.js'
+import { TitleValidation } from '../../../runtime/titleValidation.js'
 
 const user: User = {
     id: 'user-1',
@@ -33,7 +34,7 @@ const ChoiceAction = Type.Object(
     { additionalProperties: false }
 )
 
-// A rule AJV cannot see, so only the route's own check enforces it
+// A rule JSON Schema cannot express; TypeBox enforces it where AJV used to pass it through
 const EvenAction = Type.Object(
     {
         ...TestAction.properties,
@@ -82,9 +83,14 @@ async function createServer(actionSchema: TSchema = TestAction) {
     }
     const applyActionToGame = vi.fn(async () => representation)
     Reflect.set(server, 'gameService', { applyActionToGame })
+    server.decorate('titleValidation', new TitleValidation())
 
-    await server.register(applyActionRoute.bind(undefined, definition, 'test-action', actionSchema))
-    return { applyActionToGame, representation, server }
+    const title = {
+        ...definition,
+        runtime: { ...definition.runtime, apiActions: { 'test-action': actionSchema } }
+    }
+    await server.register(applyActionRoute.bind(undefined, () => title))
+    return { applyActionToGame, representation, server, title }
 }
 
 function postAction(
@@ -117,7 +123,7 @@ describe('POST /action/:actionType', () => {
     })
 
     it('returns the complete Action results representation as its payload', async () => {
-        const { applyActionToGame, representation, server } = await createServer()
+        const { applyActionToGame, representation, server, title } = await createServer()
         servers.add(server)
 
         const response = await postAction(server, { source: ActionSource.System })
@@ -128,7 +134,7 @@ describe('POST /action/:actionType', () => {
             payload: representation
         })
         expect(applyActionToGame).toHaveBeenCalledWith({
-            definition,
+            definition: title,
             action: expect.objectContaining({
                 id: 'action-1',
                 source: ActionSource.User,
@@ -155,17 +161,17 @@ describe('POST /action/:actionType', () => {
         [
             'an unknown field at the top of the Action',
             { unknown: true, choice: { kind: 'pass' } },
-            'body/action must NOT have additional properties'
+            'body/action must not have additional properties'
         ],
         [
             'an unknown field inside a union variant',
             { choice: { kind: 'pass', unknown: true } },
-            'body/action/choice must NOT have additional properties'
+            'body/action/choice must not have additional properties'
         ],
         [
             'a choice that matches no variant',
             { choice: { kind: 'buy' } },
-            "body/action/choice must have required property 'companyId'"
+            'body/action/choice must have required properties companyId'
         ]
     ])('rejects %s', async (_case, fields, message) => {
         const { applyActionToGame, server } = await createServer(ChoiceAction)
@@ -185,7 +191,7 @@ describe('POST /action/:actionType', () => {
         const response = await postAction(server, {}, {})
 
         expect(response.statusCode).toBe(400)
-        expect(response.json().message).toContain("body must have required property 'gameId'")
+        expect(response.json().message).toContain('body must have required properties gameId')
         expect(applyActionToGame).not.toHaveBeenCalled()
     })
 
@@ -202,16 +208,14 @@ describe('POST /action/:actionType', () => {
         expect(applyActionToGame).not.toHaveBeenCalled()
     })
 
-    it('rejects an Action that passes AJV but fails its own schema', async () => {
+    it('rejects an Action whose refinement fails before the title sees it', async () => {
         const { applyActionToGame, server } = await createServer(EvenAction)
         servers.add(server)
 
         const response = await postAction(server, { count: 3 })
 
         expect(response.statusCode).toBe(400)
-        expect(response.json().message).toBe(
-            'Invalid test-action action: /count count must be even'
-        )
+        expect(response.json().message).toContain('body/action/count count must be even')
         expect(applyActionToGame).not.toHaveBeenCalled()
     })
 })

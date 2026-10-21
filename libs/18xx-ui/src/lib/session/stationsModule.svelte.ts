@@ -9,11 +9,13 @@ import {
     pendingHomeChoice,
     StationPlacement,
     applyStationPlacement,
+    reservationFulfilled,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type HomePosition,
     type StationPosition,
-    type StationRequest
+    type StationRequest,
+    type StationState
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection } from './stagedSelection.svelte.js'
@@ -88,6 +90,13 @@ export class StationsModule<State extends StationsState> {
             ? this.model.evaluate(this.selection.placement.value).details
             : undefined
     )
+    /** Reservations no placed station answers yet, which still hold a space. */
+    openReservations(state: StationState) {
+        return state.stationReservations.filter(
+            (reservation) =>
+                !reservationFulfilled(state, reservation, this.session.rules.stationRules)
+        )
+    }
     displayState = $derived.by((): State => {
         if (!this.preview) return this.session.state
         const state: State = {

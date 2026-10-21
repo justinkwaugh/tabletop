@@ -332,26 +332,38 @@ test('a reinforcement corps takes seven two-strength infantry and then only a un
 // With this deal of the blocks the artillery units carry other numbers than in the usual deal.
 const ANOTHER_DEAL = '0000000000000000000000009e3779b1'
 
-test('with the Santon in use the French set-up starts with the fixed battery on the Santon, tied to no corps', async ({
+test('with the Santon in use the fixed battery may hold the Santon from reserve, as a detachment tied to no corps', async ({
     page
 }) => {
     await createGame(page, { santon: true, seed: ANOTHER_DEAL })
     await deployAllies(page)
 
+    await expect(units(page, 'fixed-battery')).toHaveCount(0)
+    await placeFixedBattery(page, { onTheSanton: true })
     await expect(units(page, 'fixed-battery')).toHaveCount(1)
-    await expect(units(page, 'fixed-battery').first()).toBeDisabled()
     await expect(seat(page, 'fixed-battery').locator('.nt-setup-where').first()).toHaveText(
         'Santon'
     )
     await expect(seat(page, 'detached').locator('.nt-setup-where').nth(1)).toHaveText('5 left')
     await expect(page.locator('.nt-setup-progress')).toHaveText('35 units to assign')
-    await expect(page.locator('.nt-setup-seat .nt-unit-tile')).toHaveCount(1)
+    await expect(page.locator('.nt-setup-prompt')).toContainText('holds the Santon')
+    await expect(page.locator('svg [aria-label="Block this approach"]')).toHaveCount(0)
     await expect(neededSlots(page, 'lannes')).toHaveCount(LANNES_MINIMUM)
 
     await fillCorps(page, FRENCH_ARMY)
+
+    await page.getByRole('button', { name: 'Deploy the army' }).click()
+    await expect(page.locator('.nt-setup')).toHaveCount(0)
+    await expect(page.locator('[data-commander="st-hilaire"]')).toBeVisible()
+})
+
+test('with the Santon in use the fixed battery may still block an approach elsewhere', async ({
+    page
+}) => {
+    await createGame(page, { santon: true, seed: ANOTHER_DEAL })
+    await deployAllies(page)
+    await fillCorps(page, FRENCH_ARMY)
     await placeFixedBattery(page)
-    await expect(page.locator('.nt-setup-prompt')).toContainText('holds the Santon')
-    await expect(page.locator('svg [aria-label="Block this approach"]')).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Deploy the army' }).click()
     await expect(page.locator('.nt-setup')).toHaveCount(0)

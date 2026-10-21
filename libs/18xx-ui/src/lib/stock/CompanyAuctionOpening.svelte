@@ -26,7 +26,7 @@
                 aria-label={`Auction ${session.companyName(company.id)}`}
                 aria-pressed={companyId === company.id}
                 data-auction-company={company.id}
-                onclick={() => auction.selectCompany(company.id)}
+                onclick={() => auction.toggleCompany(company.id)}
             >
                 <CompanyToken appearance={session.mapView.stations[company.id]} size={38} />
             </button>
@@ -47,11 +47,8 @@
                     canBid={allowed(amount)}
                     canDecrease={allowed(amount - terms.increment)}
                     canIncrease={allowed(amount + terms.increment)}
-                    canPass={auction.canOpen}
-                    passLabel="Back"
                     onChange={(value) => auction.setOpeningBid(value)}
                     onBid={() => auction.open()}
-                    onPass={() => auction.backFromOpeningBid()}
                 />
             {/if}
         </div>

@@ -1,6 +1,7 @@
 import {
     createCompanyStations,
     createOrdinaryShareCertificates,
+    treasuryPool,
     type CompanyState
 } from '@tabletop/18xx'
 
@@ -19,17 +20,13 @@ export function addTheOldPrinceBranches(state: CompanyState): void {
         state.companies.push({
             id: branch.id,
             kind: 'major',
-            shareCount: 10,
             started: false,
             floated: false,
             funded: false,
             operated: false
         })
         state.cash.push({ owner: { kind: 'company', companyId: branch.id }, amount: 0 })
-        state.certificatePools.push({
-            id: `treasury:${branch.id}`,
-            owner: { kind: 'company', companyId: branch.id }
-        })
+        state.certificatePools.push(treasuryPool(branch.id))
         state.certificates.push(
             ...createOrdinaryShareCertificates(
                 branch.id,

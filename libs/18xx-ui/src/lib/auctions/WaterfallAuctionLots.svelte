@@ -16,70 +16,143 @@
     })
     const playerId = $derived(session.myPlayer?.id)
     const lots = $derived(
-        auction.remainingLots.map(({ lot, bids }) => ({ ...privateLotDetail(session, lot), bids }))
+        auction.lots.map(({ lot, bids, award }) => ({
+            ...privateLotDetail(session, lot),
+            bids,
+            award
+        }))
     )
-    const stagedBid = $derived(auction.selection?.kind === 'bid' ? auction.selection : undefined)
+    const contest = $derived(auction.contest)
+    const actionable = $derived(auction.ownTurn && !contest)
+    const columnCount = $derived(actionable ? 5 : 4)
+    const stagedBid = $derived(
+        actionable && auction.selection?.kind === 'bid' ? auction.selection : undefined
+    )
     const selectedLot = $derived(lots.find((lot) => lot.id === stagedBid?.lotId))
     function canBid(lotId: string, amount: number) {
         return auction.canAct && !!playerId && model.canBid(playerId, lotId, amount)
     }
 </script>
 
+{#snippet cash(playerId: string)}
+    {@const reserved = committedBidAmount(model.commitments(), playerId)}
+    <span>Available <strong>{money(model.availableCash(playerId))}</strong></span>
+    {#if reserved}<span>Reserved <strong>{money(reserved)}</strong></span>{/if}
+{/snippet}
+
+{#snippet stepper(
+    lotId: string,
+    amount: number,
+    onChange: (amount: number) => void,
+    onBid: () => void,
+    onPass?: () => void
+)}
+    <AuctionBidControl
+        {money}
+        inline
+        {amount}
+        increment={model.rules.increment}
+        canBid={canBid(lotId, amount)}
+        canDecrease={canBid(lotId, amount - model.rules.increment)}
+        canIncrease={canBid(lotId, amount + model.rules.increment)}
+        canPass={auction.canAct}
+        {onChange}
+        {onBid}
+        {onPass}
+    />
+{/snippet}
+
+{#snippet turn()}
+    {#if playerId && !contest}
+        <div class="turn">
+            {#if !stagedBid}<div class="summary">{@render cash(playerId)}</div>{/if}
+            {#if auction.ownTurn}
+                <button
+                    class="pass action-button"
+                    disabled={!auction.canAct}
+                    onclick={() => auction.pass()}>Pass</button
+                >
+            {/if}
+        </div>
+    {/if}
+{/snippet}
+
 <section class="centered-panel" aria-label="Private auction">
     <div class="layout">
         <table class="auction-lot-table">
             <thead
                 ><tr
-                    ><th><span class="sr-only">Action</span></th><th>Private</th><th class="amount"
-                        >Income</th
-                    ><th class="bids">Bids</th><th class="amount">Price</th></tr
+                    >{#if actionable}<th><span class="sr-only">Action</span></th>{/if}<th
+                        >Private</th
+                    ><th class="amount">Income</th><th class="amount">Price</th><th class="bids"
+                        >Bids</th
+                    ></tr
                 ></thead
             >
             <tbody>
-                {#each lots as lot, index (lot.id)}
-                    <tr data-private-description-row class:selected={selectedLot?.id === lot.id}>
-                        <td class="action">
-                            {#if index === 0}<button
-                                    data-description-exclude
-                                    aria-label={`Buy ${lot.name}`}
-                                    disabled={!auction.canAct ||
-                                        !playerId ||
-                                        !model.canPurchase(playerId, lot.id)}
-                                    onclick={() => auction.buy(lot.id)}>Buy</button
-                                >{:else}<button
-                                    data-description-exclude
-                                    aria-label={`Bid on ${lot.name}`}
-                                    aria-pressed={selectedLot?.id === lot.id}
-                                    disabled={!canBid(lot.id, model.minimumBid(lot.id))}
-                                    onclick={() => auction.selectLot('bid', lot.id)}>Bid</button
-                                >{/if}
-                        </td>
+                {#each lots as lot (lot.id)}
+                    {@const price = lot.award?.price ?? model.price(lot.id)}
+                    <tr
+                        data-private-description-row
+                        class:selected={selectedLot?.id === lot.id || contest?.lotId === lot.id}
+                        class:won={!!lot.award}
+                    >
+                        {#if actionable}<td class="action">
+                                {#if !lot.award && selectedLot?.id !== lot.id}{#if lot.id === auction.openLotId}<button
+                                            data-description-exclude
+                                            aria-label={`Buy ${session.lotName(lot)}`}
+                                            disabled={!auction.canAct ||
+                                                !playerId ||
+                                                !model.canPurchase(playerId, lot.id)}
+                                            onclick={() => auction.buy(lot.id)}>Buy</button
+                                        >{:else}<button
+                                            data-description-exclude
+                                            aria-label={`Bid on ${session.lotName(lot)}`}
+                                            disabled={!canBid(lot.id, model.minimumBid(lot.id))}
+                                            onclick={() => auction.selectLot('bid', lot.id)}
+                                            >Bid</button
+                                        >{/if}{/if}
+                            </td>{/if}
                         <th scope="row"
                             ><div class="identity">
                                 {#if lot.token}<CompanyToken appearance={lot.token} size={26} />
                                 {:else}<span class="private-icon" aria-hidden="true"
-                                        >{session.presentation.companyNames?.[lot.id]?.initials ??
-                                            lot.id}</span
+                                        >{session.lotInitials(lot)}</span
                                     >{/if}
                                 <PrivateDescription
                                     {money}
                                     phaseColors={session.presentation.phaseColors}
                                     token={lot.token}
                                     imageUrl={session.publishedCardImage(lot.id)}
-                                    name={lot.name}
+                                    shortName={session.lotName(lot)}
+                                    fullName={lot.name}
                                     description={lot.company.description}
                                     value={lot.price}
-                                    income={lot.company.privateRevenue}
+                                    income={lot.company.revenue}
                                 />
                             </div></th
                         >
                         <td class="amount income"
-                            >{#if lot.company.privateRevenue !== undefined}{money(
-                                    lot.company.privateRevenue
-                                )}<small> / OR</small>{:else}—{/if}</td
+                            >{money(lot.company.revenue)}<small> / OR</small></td
+                        >
+                        <td class="amount value">
+                            {#if price < lot.price}<s>{money(lot.price)}</s>
+                            {/if}{money(price)}</td
                         >
                         <td class="bids">
-                            {#if lot.bids.length}<ul aria-label={`Bids on ${lot.name}`}>
+                            {#if lot.award}{@const winner = session.getPlayerName(
+                                    lot.award.playerId
+                                )}<span class="winner" title={winner}
+                                    ><span
+                                        class="dot"
+                                        style:background={session.colors.getPlayerBgColorValue(
+                                            lot.award.playerId
+                                        )}
+                                        aria-hidden="true"
+                                    ></span><span class="name">{winner}</span></span
+                                >{:else if lot.bids.length}<ul
+                                    aria-label={`Bids on ${session.lotName(lot)}`}
+                                >
                                     {#each lot.bids as bid (bid.playerId)}
                                         <li
                                             class:mine={bid.playerId === playerId}
@@ -98,54 +171,57 @@
                                     {/each}
                                 </ul>{:else}<span class="none">—</span>{/if}
                         </td>
-                        <td class="amount value"
-                            >{#if model.price(lot.id) !== lot.price}<s>{money(lot.price)}</s>
-                            {/if}{money(model.price(lot.id))}</td
-                        >
                     </tr>
+                    {#if stagedBid && selectedLot?.id === lot.id}
+                        <tr class="bid-row">
+                            <td colspan={columnCount}>
+                                <div class="bid-line" role="group" aria-label="Your bid">
+                                    {@render stepper(
+                                        lot.id,
+                                        stagedBid.amount,
+                                        (amount) => auction.setBid(amount),
+                                        () => auction.confirm()
+                                    )}
+                                    {#if playerId}<span class="figures"
+                                            >{@render cash(playerId)}</span
+                                        >{/if}
+                                </div>
+                            </td>
+                        </tr>
+                    {:else if contest?.lotId === lot.id}
+                        <tr class="bid-row">
+                            <td colspan={columnCount}>
+                                <div class="bid-line" role="group" aria-label="Current auction">
+                                    {#if auction.ownTurn && auction.raiseAmount !== undefined}
+                                        {@render stepper(
+                                            lot.id,
+                                            auction.raiseAmount,
+                                            (amount) => auction.setRaise(amount),
+                                            () => auction.raise(),
+                                            () => auction.pass()
+                                        )}
+                                    {/if}
+                                    <span class="figures">
+                                        <span
+                                            >High bidder <strong
+                                                >{session.getPlayerName(
+                                                    contest.highBidderId
+                                                )}</strong
+                                            ></span
+                                        >
+                                        <span
+                                            >High bid <strong>{money(contest.highBid)}</strong
+                                            ></span
+                                        >
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
+                    {/if}
                 {/each}
             </tbody>
         </table>
-        {#if playerId}
-            {@const reserved = committedBidAmount(model.commitments(), playerId)}
-            <div class="turn">
-                <div class="summary">
-                    <span>Available <strong>{money(model.availableCash(playerId))}</strong></span>
-                    {#if reserved}<span>Reserved in bids <strong>{money(reserved)}</strong></span
-                        >{/if}
-                </div>
-                {#if stagedBid && selectedLot}
-                    <div class="summary">
-                        <span>Bid on <strong>{selectedLot.name}</strong></span>
-                    </div>
-                    <AuctionBidControl
-                        {money}
-                        amount={stagedBid.amount}
-                        increment={model.rules.increment}
-                        canBid={canBid(selectedLot.id, stagedBid.amount)}
-                        canDecrease={canBid(
-                            selectedLot.id,
-                            stagedBid.amount - model.rules.increment
-                        )}
-                        canIncrease={canBid(
-                            selectedLot.id,
-                            stagedBid.amount + model.rules.increment
-                        )}
-                        canPass={auction.canAct}
-                        passLabel="Back"
-                        onChange={(amount) => auction.setBid(amount)}
-                        onBid={() => auction.confirm()}
-                        onPass={() => auction.choice.clear()}
-                    />
-                {:else}
-                    <button
-                        class="pass action-button"
-                        disabled={!auction.canAct}
-                        onclick={() => auction.pass()}>Pass</button
-                    >
-                {/if}
-            </div>
-        {/if}
+        {@render turn()}
     </div>
 </section>
 
@@ -164,21 +240,78 @@
         flex: 0 1 560px;
         margin-inline: 0;
     }
-    tr.selected {
+    tr.selected > *,
+    tr.bid-row > * {
         background: var(--rail-surface-selected, #e6dccd);
     }
-    tr.selected .action button {
-        border-color: var(--rail-focus, #796047);
+    tr.selected > :first-child {
+        border-top-left-radius: 8px;
+    }
+    tr.selected > :last-child {
+        border-top-right-radius: 8px;
+    }
+    tr.selected:not(:has(+ tr.bid-row)) > :first-child,
+    tr.bid-row > :first-child {
+        border-bottom-left-radius: 8px;
+    }
+    tr.selected:not(:has(+ tr.bid-row)) > :last-child,
+    tr.bid-row > :last-child {
+        border-bottom-right-radius: 8px;
+    }
+    .auction-lot-table tbody tr.selected > :first-child {
+        padding-left: 8px;
+    }
+    .auction-lot-table tbody tr.selected > :last-child {
+        padding-right: 8px;
+    }
+    tr.won > *,
+    tr.won .income {
+        color: var(--rail-muted, #887664);
+    }
+    .winner {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .winner .name {
+        max-width: 6.5em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .auction-lot-table tbody tr.bid-row > * {
+        border-top: 0;
+        padding: 2px 8px 8px;
+    }
+    .bid-line {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 6px 14px;
+        padding: 6px 8px;
+        border: 1px solid var(--rail-border, #c7b8a6);
+        border-radius: 6px;
+        background: var(--rail-surface-inset, #1b232d);
+    }
+    .figures {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.3;
+        color: var(--rail-text, #786550);
+        font-size: 12px;
     }
     @container waterfall-lots (min-width: 640px) {
         th.bids {
             width: 132px;
         }
     }
+    .bids {
+        padding-left: 20px;
+    }
     .bids ul {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 3px 10px;
+        display: grid;
+        gap: 2px;
         margin: 0;
         padding: 0;
         list-style: none;
@@ -214,6 +347,7 @@
         gap: 8px;
         flex: 0 0 200px;
     }
+
     .summary {
         display: flex;
         flex-direction: column;
@@ -252,6 +386,21 @@
         }
         .summary {
             align-items: center;
+        }
+    }
+    @container waterfall-lots (max-width: 420px) {
+        .income small {
+            display: none;
+        }
+        .bids {
+            padding-left: 8px;
+        }
+        .winner .name {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
         }
     }
 </style>

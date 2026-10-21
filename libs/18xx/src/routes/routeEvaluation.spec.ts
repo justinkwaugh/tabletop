@@ -517,3 +517,32 @@ it('adds route-level bonuses from counted stops only', () => {
         }).evaluate('A', [route]).result?.revenue
     ).toBe(20)
 })
+
+it('records what earned each bonus by the ids the title names', () => {
+    const { running, route, rules } = fixture([
+        city('yellow', [0], 20, 1),
+        track('yellow', [[3, 0]]),
+        city('yellow', [3], 30, 1)
+    ])
+    rules.hexBonus = (_state, locationId) => (locationId === '1' ? 10 : 0)
+    rules.hexBonusSourceIds = (_state, locationId) => (locationId === '1' ? ['bridge'] : [])
+    rules.stopBonus = (_state, _train, _companyId, center) => (center.locationId === '2' ? 5 : 0)
+    rules.stopBonusSourceIds = (_state, _train, _companyId, center) =>
+        center.locationId === '2' ? ['port', 'cotton'] : []
+    rules.revenuePolicy = () => ({
+        connectionBonuses: [{ from: { '0': 40 }, to: { '2': 0 }, sourceId: 'east-west' }]
+    })
+    rules.longestRouteBonusPerStop = () => 1
+    rules.longestRouteBonusSourceId = 'mail'
+    const bonuses = running.evaluate('A', [route]).result!.routes[0].bonuses
+    expect(bonuses).toEqual(
+        expect.arrayContaining([
+            { locationId: '2', amount: 5, sourceIds: ['port', 'cotton'] },
+            { locationId: '1', amount: 10, sourceIds: ['bridge'] },
+            { locationId: '0', amount: 40, sourceIds: ['east-west'] },
+            { locationId: '0', amount: 1, sourceIds: ['mail'] },
+            { locationId: '2', amount: 1, sourceIds: ['mail'] }
+        ])
+    )
+    expect(bonuses).toHaveLength(5)
+})

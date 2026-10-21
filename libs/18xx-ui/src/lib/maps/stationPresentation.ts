@@ -41,6 +41,11 @@ export type MapViewDefinition = {
     terrainCostPrefix?: string
     /** Baseline of a location's name, by location id; names otherwise print across the top. */
     namePositions?: Readonly<Record<string, Point>>
+    /**
+     * Each city's own name, by location id then city node id, curved over that city in place of
+     * the location's name where the style curves names.
+     */
+    cityNames?: Readonly<Record<string, Readonly<Record<string, string>>>>
     /** Explicit lines for a location's name, by location id; long names otherwise split in two. */
     nameLines?: Readonly<Record<string, readonly string[]>>
     /**

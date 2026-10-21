@@ -145,7 +145,7 @@ So the contract is shared, but the shell measurement source is environment-speci
 
 - In harness mode, top safe area is now allocated in `Harness`, not in the table content area.
 - `DefaultTableLayout` now subtracts `var(--safe-area-top)` from available height instead of padding its own top.
-- `AdminPanel`, `HotseatPanel`, and `ExplorationPanel` are `44px` tall in the current implementation.
+- `AdminPanel`, `HotseatPanel`, and `ExplorationPanel` are `44px` tall in the current implementation; `HotseatPanel` adds a `44px` viewing history line in History View.
 - Contracted game view uses `ScalingWrapper` inside a bounded column instead of raw page-height scaling.
 
 ### What Currently Does Not Match the Contract
@@ -253,6 +253,21 @@ The contracted game layout should have exactly one chain of vertical truth:
 - local flex splits
 
 No child component should re-derive the viewport independently.
+
+## Horizontal table scroller
+
+On small screens the sidebar and game column scroll sideways inside `DefaultTableLayout`'s table
+scroller. The scroller is positioned, so absolutely positioned descendants without a nearer
+positioned ancestor, such as visually hidden labels, stay inside its clip. Without that, such a
+label keeps its unscrolled position against the page and widens the document, letting the whole
+page, site header included, scroll sideways into blank space. `tests/tableLayout.spec.ts` in
+`libs/frontend-components` checks the page stays at the screen width.
+
+This is bundled rendering with no host-bridge change. Every Game UI Artifact bundles
+`DefaultTableLayout`, the 18xx titles through `@tabletop/18xx-ui`, so each title keeps the wide
+page until it is republished. The 18xx phone body (`GameTable` in `@tabletop/18xx-ui`) and
+Napoleon's Triumph's body stop overscroll only vertically, so sideways swipes over them reach the
+table scroller.
 
 ## Published artifact CSS compatibility
 

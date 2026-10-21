@@ -2,7 +2,8 @@
 
 Extracted from the publisher print files with `tools/art-extraction/extract_shikoku.py`.
 Nothing in this folder is imported yet except as noted; Rollup only bundles imported assets,
-so unused files cost repository space only.
+so unused files cost repository space only. The art is kept for a later published-art
+presentation like TOP's.
 
 | Folder | Contents | Source |
 | --- | --- | --- |

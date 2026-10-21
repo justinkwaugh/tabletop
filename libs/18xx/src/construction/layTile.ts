@@ -94,9 +94,10 @@ export function applyTrackLay(
     state.stationReservations = stationReservations
     if (countsAsOrdinaryLay) {
         assert(state.trackStep, 'An ordinary lay requires a track step')
-        const color = rules.tileSet.definitions.find((tile) => tile.id === details.definitionId)!
-            .face.color
-        state.trackStep.lays.push({ locationId: details.locationId, color, cost: details.cost })
+        state.trackStep.lays.push({
+            locationId: details.locationId,
+            definitionId: details.definitionId
+        })
     }
     const effects = rules.afterLay?.(state, details, payer)
     if (!effects) return details

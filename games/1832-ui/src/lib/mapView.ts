@@ -54,7 +54,7 @@ const Stations: MapViewDefinition['stations'] = {
     LN: { label: 'L&N', color: '#1b5cab', imageUrl: LNLogo },
     NW: { label: 'N&W', color: '#1a1a1a', imageUrl: NWLogo },
     SAL: { label: 'SAL', color: '#e8822a', imageUrl: SALLogo },
-    SOU: { label: 'Sou', color: '#2f7d45', imageUrl: SOULogo },
+    SOU: { label: 'SR', color: '#2f7d45', imageUrl: SOULogo },
     AMTK: { label: 'AMTK', color: '#2a5a9e', imageUrl: AMTKLogo },
     BNSF: { label: 'BNSF', color: '#f2741c', imageUrl: BNSFLogo },
     IC: { label: 'IC', color: '#10803d', imageUrl: ICLogo },
@@ -97,8 +97,17 @@ export const EighteenThirtyTwoMapView: MapViewDefinition = {
         )
     },
     layouts: { ...EighteenThirtyTwoTileLayouts, S22: AtlantaPrinted },
+    // New Orleans's and Norfolk's anchors sit at the bottom, clear of their revenue and track;
+    // Miami's at its right side, between the arrows in from the north and the revenue below.
+    symbolPositions: {
+        O36: { x: 0, y: 31 },
+        W14: { x: 0, y: 31 },
+        AA28: { x: 30, y: 0 }
+    },
+    // New Orleans's name runs under the city, clear of the track leaving its top.
+    namesBelow: ['W14'],
     markerArt: {
-        port: { tileSymbol: 'port' },
+        port: { revenueSymbol: 'port' },
         'medium-city': { townRing: true },
         ...Object.fromEntries(
             placedTokenKinds.map(({ id, companyId, token }) => [

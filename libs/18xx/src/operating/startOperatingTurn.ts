@@ -24,13 +24,12 @@ import {
     GameAction,
     HydratableAction,
     assert,
-    assertExists,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { controllingOwner } from '../finance/finance.js'
+import { operatingPlayerIds, type ReceivershipRules } from '../finance/receivership.js'
 import type { OperatingState } from './operatingSet.js'
 import { BetweenCompaniesState } from './operatingSteps.js'
 import {
@@ -74,8 +73,10 @@ export class HydratedStartOperatingTurn
 {
     declare type: 'StartOperatingTurn'
     declare companyId: string
-    constructor(data: StartOperatingTurn) {
+    readonly #receivership?: ReceivershipRules
+    constructor(data: StartOperatingTurn, receivership?: ReceivershipRules) {
         super(data instanceof HydratedStartOperatingTurn ? data.dehydrate() : data, Validator)
+        this.#receivership = receivership
     }
     apply(state: State): void {
         assert(
@@ -85,10 +86,9 @@ export class HydratedStartOperatingTurn
                 nextOperatingCompany(state) === this.companyId,
             'The operating turn belongs to the next company in operating order'
         )
-        const owner = controllingOwner(state, this.companyId)
-        assertExists(owner, 'The operating company requires a controlling owner')
-        state.activePlayerIds = [owner.playerId]
-        state.turnManager.startTurn(owner.playerId, state.actionCount + 1)
+        const operators = operatingPlayerIds(state, this.companyId, this.#receivership)
+        state.activePlayerIds = operators
+        state.turnManager.startTurn(operators[0], state.actionCount + 1)
     }
 }
 export class StartOperatingTurnHandler implements MachineStateHandler<

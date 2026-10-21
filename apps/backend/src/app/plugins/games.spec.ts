@@ -1,3 +1,4 @@
+import auth from '@fastify/auth'
 import Fastify from 'fastify'
 import { describe, expect, it } from 'vitest'
 import Games from './games.js'
@@ -22,6 +23,10 @@ describe('game route startup readiness', () => {
     it('allows a successfully loaded empty game library', async () => {
         const server = Fastify()
         server.decorate('libraryService', { getTitles: async () => [] })
+        await server.register(auth)
+        for (const method of ['verifyActiveUser', 'verifyRoleUser', 'verifyUser']) {
+            server.decorate(method, async () => {})
+        }
         try {
             await server.register(Games).ready()
             expect((await server.inject('/missing')).statusCode).toBe(404)

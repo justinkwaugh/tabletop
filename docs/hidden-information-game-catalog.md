@@ -24,6 +24,7 @@ The requirements below concern new games adopting protected delivery. Existing v
 | Bus | None identified | None identified | None beyond public setup/identity |
 | Bridges of Shangri-La | None identified | None identified | None beyond public setup |
 | Urbino | None identified | None identified | None beyond public setup |
+| 1846 | Undealt draft deck (host only); each participant's packet and selections (owner only); the two-player opening is public | `ChooseDraftCard.cardId` (actor only); the reveal publishes every purchase | Deck shuffle and the reshuffle of returned cards |
 
 “Until reveal” does not mean an old submission Action should be dynamically unredacted later. Keep private historical submissions protected and publish a separate complete result at the reveal transition.
 
@@ -116,6 +117,15 @@ Sources: [player state](../games/indonesia/src/model/playerState.ts), [initializ
 - **Exploration:** generate feasible unknown city-card allocations preserving the explorer's cards and all revealed placements/cards. The existing hook returns state unchanged.
 
 **Money decision:** the [bundled rulebook](../games/indonesia/indonesia-rules-09-EN.pdf), setup section, allows open or closed money and defaults to closed when no agreement is made. The implementation displays `cash` and `bank` publicly and has no corresponding option. Decide whether to retain open money or introduce a configurable owner-only representation, with final totals public. As elsewhere, public financial history can reveal balances by calculation.
+
+## 1846
+
+Sources: [state](../games/1846/src/state.ts), [opening](../games/1846/src/opening.ts), [distribution](../games/1846/src/distribution.ts), [actions](../games/1846/src/actions.ts), [projection test](../games/1846/src/distribution.spec.ts).
+
+- **Protect:** `draft.deck` for the host only; each participant's `packet` and `selections` for their owner. `remainingCount`, the lone `finalOffer`, who has passed, the seating and the removed companies are public.
+- **Actions:** `ChooseDraftCard.cardId` is the actor's; `PassFinalCompany` and `RevealDraft` are public, and the reveal records every purchase.
+- **Randomness:** the deck shuffle and each reshuffle of returned cards draw from the protected stream; seating and removals use the public stream.
+- **Adopted:** the runtime registers its strict canonical schema through `canonicalState`, from which the family projects state and Actions. There is no projected Exploration.
 
 ## Titles with no identified protection requirement
 

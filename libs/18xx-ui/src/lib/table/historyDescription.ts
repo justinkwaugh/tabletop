@@ -1,4 +1,4 @@
-import type { AuctionAwardDetails } from '@tabletop/18xx'
+import type { AuctionAwardDetails, RouteBonus } from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
     isLayTile,
@@ -38,6 +38,7 @@ import {
     isStartOperatingSet,
     isStartOperatingRound,
     isStartOperatingTurn,
+    sameOwner,
     isOfferPurchase,
     isRespondToPurchaseOffer,
     isBuyPrivateTrain,
@@ -113,6 +114,14 @@ export function ownerName(owner: Owner, names: HistoryNames): string {
           : names.companyName(owner.companyId)
 }
 
+/** A player's row after their name: a leading verb in lower case, a leading company name as written. */
+export function afterPlayerName(text: string, companyLabels: readonly string[]): string {
+    const startsWithCompany = companyLabels.some(
+        (label) => text.startsWith(label) && !/\p{L}/u.test(text.charAt(label.length))
+    )
+    return startsWithCompany ? text : text.charAt(0).toLowerCase() + text.slice(1)
+}
+
 /** Joins a row's details, leaving out those it lacks. */
 export function joinDetails(...details: (string | undefined)[]): string | undefined {
     return details.filter(Boolean).join(' · ') || undefined
@@ -142,16 +151,20 @@ export function departurePaymentsDetail(
 
 // A run's bonuses, totalled by what earned them; unnamed bonuses keep their hex.
 function runBonusesDetail(
-    routes: readonly {
-        bonuses?: readonly { locationId: string; amount: number; label?: string }[]
-    }[],
-    money: MoneyFormat
+    routes: readonly { bonuses?: readonly RouteBonus[] }[],
+    money: MoneyFormat,
+    routeBonusName: (sourceId: string) => string
 ): string | undefined {
     const totals = new Map<string, { amount: number; label?: string; locationId: string }>()
     for (const bonus of routes.flatMap((route) => route.bonuses ?? [])) {
-        const key = bonus.label ?? `@${bonus.locationId}`
+        const label = bonus.sourceIds?.map(routeBonusName).join(' + ')
+        const key = label ?? `@${bonus.locationId}`
         const total = totals.get(key)
-        totals.set(key, { ...bonus, amount: (total?.amount ?? 0) + bonus.amount })
+        totals.set(key, {
+            locationId: bonus.locationId,
+            label,
+            amount: (total?.amount ?? 0) + bonus.amount
+        })
     }
     return totals.size
         ? [...totals.values()]
@@ -170,7 +183,10 @@ export function historyDescription(
     playerName: (id: string) => string = (id) => id,
     companyChanges?: HistoryCompanyChanges,
     money: MoneyFormat = moneyFormat('$'),
-    lotName: (id: string) => string = companyName
+    lotName: (id: string) => string = companyName,
+    routeBonusName: (sourceId: string) => string = (sourceId) => {
+        throw new Error(`Route bonus ${sourceId} needs the title's names`)
+    }
 ): HistoryDescription {
     const description = describeShared(
         action,
@@ -180,7 +196,8 @@ export function historyDescription(
         playerName,
         companyChanges,
         money,
-        lotName
+        lotName,
+        routeBonusName
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
@@ -198,7 +215,8 @@ function describeShared(
     playerName: (id: string) => string,
     companyChanges: HistoryCompanyChanges | undefined,
     money: MoneyFormat,
-    lotName: (id: string) => string
+    lotName: (id: string) => string,
+    routeBonusName: (sourceId: string) => string
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects
@@ -274,7 +292,7 @@ function describeShared(
             text: action.routes.length ? 'Ran' : 'Did not run trains',
             trainDefinitionIds: action.metadata.routes.map((route) => route.definitionId),
             value: action.metadata.revenue ? money(action.metadata.revenue) : undefined,
-            detail: runBonusesDetail(action.metadata.routes, money)
+            detail: runBonusesDetail(action.metadata.routes, money, routeBonusName)
         }
     }
     if (isDistributeEarnings(action)) {
@@ -372,13 +390,7 @@ function describeShared(
         assertExists(action.metadata, 'Recorded bankruptcy requires its consequences')
         return {
             text: 'Went bankrupt',
-            detail:
-                [
-                    ...action.metadata.record.liquidatedCompanyIds.map(
-                        (id) => `${companyName(id)} liquidated`
-                    ),
-                    `${money(action.metadata.forgiven)} forgiven`
-                ].join(' · ') || undefined,
+            detail: `${money(action.metadata.forgiven)} forgiven`,
             important: true
         }
     }
@@ -434,14 +446,18 @@ function describeShared(
                     .join(' · ') || undefined
         }
     }
-    if (isStartCompany(action))
+    if (isStartCompany(action)) {
+        const details = action.metadata
         return {
-            text: `Started ${companyName(action.companyId)} for ${money(action.expectedPrice)}`,
-            detail: action.metadata
-                ? `${action.metadata.shares} shares · Par ${action.metadata.parPrice}${action.metadata.presidency ? ` · ${presidency(action.metadata.presidency)}` : ''}`
-                : undefined,
+            text: `Started ${companyName(action.companyId)} at ${money(marketPrice(action.marketSpaceId))} par`,
+            detail: joinDetails(
+                details && `${details.shares} shares`,
+                money(action.expectedPrice),
+                details?.presidency && presidency(details.presidency)
+            ),
             important: true
         }
+    }
     if (isParCompany(action))
         return {
             text: `Set ${companyName(action.companyId)}’s par at ${money(marketPrice(action.marketSpaceId))}`,
@@ -468,7 +484,7 @@ function describeShared(
         }
     if (isFundTrain(action))
         return {
-            text: 'Must buy a train',
+            text: action.metadata?.voluntary ? 'Helped buy a train' : 'Must buy a train',
             important: true
         }
     if (isAdvancePhase(action)) {
@@ -609,14 +625,17 @@ function describeShared(
         return { text: `Started ${companyName(action.companyId)}’s turn`, routine: true }
     if (isStartOperatingRound(action)) {
         assertExists(action.metadata, 'A recorded operating round has its payments')
-        const companyIncome = action.metadata.payments.filter(
-            (payment) => payment.to.kind === 'company'
-        )
-        return companyIncome.length
+        const income: { owner: Owner; amount: number }[] = []
+        for (const payment of action.metadata.payments) {
+            const entry = income.find(({ owner }) => sameOwner(owner, payment.to))
+            if (entry) entry.amount += payment.amount
+            else income.push({ owner: payment.to, amount: payment.amount })
+        }
+        return income.length
             ? {
                   text: 'Private income',
-                  detail: companyIncome
-                      .map((payment) => `${nameOf(payment.to)} ${money(payment.amount)}`)
+                  detail: income
+                      .map(({ owner, amount }) => `${nameOf(owner)} ${money(amount)}`)
                       .join(' · ')
               }
             : { text: 'Operating order', important: true }

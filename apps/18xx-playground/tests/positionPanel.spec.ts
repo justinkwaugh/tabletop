@@ -11,7 +11,7 @@ test('history shows recorded auction details without action controls', async ({ 
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
     await expect(page.getByRole('table', { name: 'Final wealth', exact: true })).toBeVisible({
         timeout: 30000
@@ -83,7 +83,7 @@ test('backward navigation separates the last payout from its train run', async (
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
     await expect(page.getByRole('table', { name: 'Final wealth', exact: true })).toBeVisible({
         timeout: 30000
@@ -94,7 +94,9 @@ test('backward navigation separates the last payout from its train run', async (
     await back.click()
     await expect(panel).toContainText('Paid out')
     await expect(panel).not.toContainText('Georgetown')
-    await expect(page.locator('.map-area [data-map-route]')).toHaveCount(0)
+    const routes = page.locator('.map-area [data-map-route]')
+    await expect(routes.first()).toBeVisible()
+    const payoutRoutes = await routes.count()
     await expect(panel.getByRole('table', { name: 'Recorded train runs' })).toHaveCount(0)
     const steps = page.getByRole('navigation', { name: 'Operating steps' })
     await expect(steps).toBeVisible()
@@ -104,11 +106,11 @@ test('backward navigation separates the last payout from its train run', async (
     await back.click()
     await expect(panel.getByRole('table', { name: 'Recorded train runs' })).toBeVisible()
     await expect(panel).not.toContainText('Paid out')
-    await expect(page.locator('.map-area [data-map-route]').first()).toBeVisible()
+    await expect(routes).toHaveCount(payoutRoutes)
     await expect(steps.locator('[aria-current=step]')).toContainText('Run')
     await page.getByRole('button', { name: 'step forwards', exact: true }).click()
     await expect(steps.locator('[aria-current=step]')).toContainText('Payout')
-    await expect(page.locator('.map-area [data-map-route]')).toHaveCount(0)
+    await expect(routes).toHaveCount(payoutRoutes)
     await expect(panel).not.toContainText('Cash')
     expect(errors).toEqual([])
 })

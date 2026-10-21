@@ -48,6 +48,7 @@ import {
     pileCoins,
     selectionCost
 } from './economy.js'
+import { regionsReached } from './network.js'
 import type { PayoutRates } from './payouts.js'
 import { HydratedRailheadsPlayerState, RailheadsPlayerState } from './playerState.js'
 import {
@@ -309,6 +310,13 @@ export class HydratedRailheadsGameState
             companyId,
             rules: this.layTrackRules(space),
             siteCapacity: (coords) => this.siteCapacity(coords),
+            industryInDemand: (industry) =>
+                this.edition.definition.industryInDemand(
+                    industry,
+                    companyId,
+                    this.track,
+                    this.edition.map
+                ),
             discsLeft: this.discsLeft(companyId),
             cubesLeft: this.cubesLeft(companyId),
             neighbours: (coords) => this.edition.map.neighbourCoords(coords)
@@ -437,14 +445,12 @@ export class HydratedRailheadsGameState
         }
     }
 
-    railroadBonus(companyId: CompanyId): number {
-        return this.track
-            .filter(
-                (hex) =>
-                    this.edition.map.hex(hex.coords).kind !== HexKind.Countryside &&
-                    hex.discs.at(-1) === companyId
-            )
-            .reduce((sum, hex) => sum + hex.discs.length - 1, 0)
+    endBonusPerShare(companyId: CompanyId): number {
+        return this.edition.definition.endBonusPerShare(companyId, this.track, this.edition.map)
+    }
+
+    regionsReached(companyId: CompanyId): number {
+        return regionsReached(this.track, companyId, this.edition.map)
     }
 
     industrySitesReached(industry: Industry): number {
@@ -468,7 +474,7 @@ export class HydratedRailheadsGameState
         return {
             companies: this.companies.map((company) => ({
                 companyId: company.id,
-                perShare: this.railroadBonus(company.id)
+                perShare: this.endBonusPerShare(company.id)
             })),
             industries: INDUSTRIES.map((industry) => ({
                 industry,

@@ -17,13 +17,14 @@
     } from '@tabletop/18xx'
     import { TileColors } from '../tiles/tilePresentation.js'
     import type { HistoryGroup } from './historyGroups.js'
-    import type { HistoryDescription } from './historyDescription.js'
+    import { afterPlayerName, type HistoryDescription } from './historyDescription.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
     import { shareSign, type ShareCard } from './shareCards.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import type { HistoryCash } from './historyCash.js'
     import type { HistoryOperatingOrder } from './historyOperatingOrder.js'
+    import type { HistoryBankBreak } from './historyStates.js'
     import { isMapHistoryAction } from '../maps/historicalMap.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -42,6 +43,7 @@
         currentController,
         describe,
         companyName,
+        companyLabels,
         phaseColors,
         phaseTileColors,
         tileColors = TileColors,
@@ -51,6 +53,7 @@
         orderChanges,
         stations,
         cash,
+        bankBreaks = new Map(),
         shareCards = () => []
     }: {
         money: MoneyFormat
@@ -58,6 +61,7 @@
         onPreviewMap: (action: GameAction) => void
         previewActionId?: string
         cash: ReadonlyMap<string, HistoryCash>
+        bankBreaks?: ReadonlyMap<string, HistoryBankBreak>
         orderChanges: ReadonlyMap<string, HistoryOperatingOrder>
         stations: Readonly<Record<string, StationAppearance>>
         trainColors: Readonly<Record<string, string>>
@@ -80,6 +84,7 @@
         currentController: (companyId: string) => string | undefined
         describe: (action: GameAction) => HistoryDescription
         companyName: (id: string) => string
+        companyLabels: readonly string[]
     } = $props()
     function phaseChange(action: GameAction) {
         if (!isAdvancePhase(action)) return undefined
@@ -133,7 +138,7 @@
                 action,
                 ...description,
                 stockPlayerId,
-                routine: delta ? false : description.routine,
+                routine: delta || bankBreaks.has(action.id) ? false : description.routine,
                 phase: phaseChange(action),
                 order: orderChanges.get(action.id),
                 delta,
@@ -150,6 +155,18 @@
         rows.filter((row) => !row.routine && (row.text || row.detail || row.order))
     )
 </script>
+
+{#snippet bankBroken(actionId: string)}
+    {@const bankBreak = bankBreaks.get(actionId)}
+    {#if bankBreak}<div class="bank-broken" role="note">
+            <strong>The bank is broken</strong>
+            {#if bankBreak.ending}<span
+                    >The game ends after {bankBreak.ending.lastRound
+                        ? `operating round ${bankBreak.ending.lastRound}`
+                        : 'the next set of operating rounds'}.</span
+                >{/if}
+        </div>{/if}
+{/snippet}
 
 <article
     hidden={!visible.length}
@@ -199,7 +216,7 @@
                         />{' '}{/if}
                     <span
                         >{row.stockPlayerId
-                            ? row.text.charAt(0).toLowerCase() + row.text.slice(1)
+                            ? afterPlayerName(row.text, companyLabels)
                             : row.text}{#if row.phase}<span class="phase-colors"
                                 >{row.phase.label}</span
                             >{/if}{#if row.value}{' '}for
@@ -212,6 +229,7 @@
                             {stations}
                             {companyName}
                         />{/if}
+                    {@render bankBroken(row.action.id)}
                 </div>
             </div>
         {/each}
@@ -309,6 +327,7 @@
                             {stations}
                             {companyName}
                         />{/if}
+                    {@render bankBroken(row.action.id)}
                 </div>
             {/each}
             {#if !visible.length}<div class="history-entry routine">No further actions</div>{/if}
@@ -564,5 +583,27 @@
     }
     .important > span {
         font-weight: 600;
+    }
+    .bank-broken {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        gap: 2px;
+        margin: 6px 0 2px;
+        padding: 6px 10px;
+        border-left: 4px solid var(--rail-negative, #b33a32);
+        border-radius: 3px;
+        background: color-mix(in srgb, var(--rail-negative, #b33a32) 16%, transparent);
+    }
+    .bank-broken strong {
+        color: var(--rail-negative, #b33a32);
+        font-size: 13px;
+        font-weight: 750;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+    .bank-broken span {
+        font-size: 12px;
     }
 </style>

@@ -464,15 +464,31 @@
         }
     }
 
-    function findScrollableAncestor(element: HTMLElement | null): HTMLElement | null {
+    const SCROLL_AXES = {
+        x: {
+            overflow: (style: CSSStyleDeclaration) => style.overflowX,
+            overflows: (element: HTMLElement) => element.scrollWidth > element.clientWidth,
+            position: 'scrollLeft',
+            windowPosition: () => window.scrollX,
+            windowScroll: (delta: number) => ({ left: delta })
+        },
+        y: {
+            overflow: (style: CSSStyleDeclaration) => style.overflowY,
+            overflows: (element: HTMLElement) => element.scrollHeight > element.clientHeight,
+            position: 'scrollTop',
+            windowPosition: () => window.scrollY,
+            windowScroll: (delta: number) => ({ top: delta })
+        }
+    } as const satisfies Record<Axis, unknown>
+
+    function findScrollableAncestor(element: HTMLElement | null, axis: Axis): HTMLElement | null {
+        const scrollAxis = SCROLL_AXES[axis]
         let current = element?.parentElement ?? null
         while (current) {
-            const style = getComputedStyle(current)
-            const canScrollX =
-                /(auto|scroll|overlay)/.test(style.overflowX) && current.scrollWidth > current.clientWidth
-            const canScrollY =
-                /(auto|scroll|overlay)/.test(style.overflowY) && current.scrollHeight > current.clientHeight
-            if (canScrollX || canScrollY) {
+            if (
+                /(auto|scroll|overlay)/.test(scrollAxis.overflow(getComputedStyle(current))) &&
+                scrollAxis.overflows(current)
+            ) {
                 return current
             }
             current = current.parentElement
@@ -483,30 +499,25 @@
 
     function scrollAncestorBy(deltaX: number, deltaY: number) {
         if (isExpanded) return { movedX: 0, movedY: 0 }
-        const scrollAncestor = findScrollableAncestor(scroller)
-        if (scrollAncestor) {
-            const startLeft = scrollAncestor.scrollLeft
-            const startTop = scrollAncestor.scrollTop
-            scrollAncestor.scrollLeft -= deltaX
-            scrollAncestor.scrollTop -= deltaY
-            return {
-                movedX: scrollAncestor.scrollLeft - startLeft,
-                movedY: scrollAncestor.scrollTop - startTop
-            }
-        }
-
-        const startX = window.scrollX
-        const startY = window.scrollY
-        window.scrollBy({
-            left: -deltaX,
-            top: -deltaY,
-            behavior: 'auto'
-        })
-
         return {
-            movedX: window.scrollX - startX,
-            movedY: window.scrollY - startY
+            movedX: scrollAncestorAlong('x', deltaX),
+            movedY: scrollAncestorAlong('y', deltaY)
         }
+    }
+
+    function scrollAncestorAlong(axis: Axis, delta: number) {
+        if (Math.abs(delta) <= EPSILON) return 0
+        const scrollAxis = SCROLL_AXES[axis]
+        const scrollAncestor = findScrollableAncestor(scroller, axis)
+        if (scrollAncestor) {
+            const start = scrollAncestor[scrollAxis.position]
+            scrollAncestor[scrollAxis.position] -= delta
+            return scrollAncestor[scrollAxis.position] - start
+        }
+
+        const start = scrollAxis.windowPosition()
+        window.scrollBy(scrollAxis.windowScroll(-delta))
+        return scrollAxis.windowPosition() - start
     }
 
     function getViewportCenterContentPoint(centerX = wrapperWidth / 2, centerY = viewportCenterY()) {

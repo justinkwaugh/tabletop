@@ -2,7 +2,6 @@ import {
     AuctionFields,
     composeEighteenXXState,
     defineEighteenXXState,
-    OwnershipExemptionFields,
     PendingParFields,
     PrivatePowerFields,
     RailwayFields,
@@ -31,7 +30,6 @@ export const EighteenThirtyTwoState = composeEighteenXXState(
         ...PendingParFields,
         ...StockTurnPurchaseFields,
         ...AuctionFields,
-        ...OwnershipExemptionFields,
         ...EighteenThirtyTwoTitleFields
     },
     [

@@ -15,6 +15,8 @@ import {
 } from './auctionProcedure.js'
 import { OfferAuction } from './offerPileAuction.js'
 import { startFirstStockRound } from './startFirstStockRound.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
+import { RoundEnd, roundEnd } from '../ending/roundEnd.js'
 
 const Resolution = Type.Union([
     Type.Object(
@@ -26,13 +28,11 @@ const Resolution = Type.Union([
         { additionalProperties: false }
     ),
     Type.Object(
-        {
-            kind: Type.Union([
-                Type.Literal('discount'),
-                Type.Literal('income'),
-                Type.Literal('complete')
-            ])
-        },
+        { kind: Type.Union([Type.Literal('discount'), Type.Literal('income')]) },
+        { additionalProperties: false }
+    ),
+    Type.Object(
+        { kind: Type.Literal('complete'), roundEnd: Type.Optional(RoundEnd) },
         { additionalProperties: false }
     )
 ])
@@ -62,12 +62,14 @@ export class HydratedResolveAuction
     declare metadata?: ResolveAuction['metadata']
 
     readonly #rules: OpeningAuctionRules
-    constructor(data: ResolveAuction, rules: OpeningAuctionRules) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: ResolveAuction, rules: OpeningAuctionRules, valuationRules: ValuationRules) {
         super(
             data instanceof HydratedResolveAuction ? data.dehydrate() : data,
             ResolveAuctionValidator
         )
         this.#rules = rules
+        this.#valuationRules = valuationRules
     }
     isValid(state: OpeningAuctionState): boolean {
         const model = activeAuction(state, this.#rules)
@@ -89,6 +91,10 @@ export class HydratedResolveAuction
             else {
                 state.turnManager.newFirstPlayer(model.auction.nextPlayerId)
                 startFirstStockRound(state, state.turnManager.turnOrder)
+            }
+            this.metadata = {
+                kind: 'complete',
+                roundEnd: roundEnd(state, this.#valuationRules, 'opening')
             }
         }
     }

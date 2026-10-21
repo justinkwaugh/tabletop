@@ -17,24 +17,84 @@
     const purchase = $derived(session.trainFunding.purchase)
     const plan = $derived(session.trainFunding.plan)
     const disabled = $derived(!(session.trainFunding.canFund || session.trainFunding.canResolve))
+    type FundingPlan = NonNullable<EighteenXXSessionView['trainFunding']['plan']>
 </script>
 
-{#if purchase && plan}
+{#snippet planNotes(plan: FundingPlan)}
+    {#if plan.treasuryProceeds}<p>
+            Treasury shares will raise {money(plan.treasuryProceeds)}.
+        </p>{/if}
+    {#each plan.contributions as contribution, index (index)}
+        <p>{session.ownerName(contribution.owner)} contributes {money(contribution.amount)}.</p>
+    {/each}
+    {#if plan.choice.kind === 'sell'}
+        <p>
+            {session.ownerName(plan.choice.owner)}
+            {#if plan.amountToRaise > 0}must raise <strong>{money(plan.amountToRaise)}</strong> by selling
+                shares.
+            {:else}must sell shares to meet the ownership limit.{/if}
+        </p>
+    {:else if plan.choice.kind === 'bankrupt'}
+        <p>Unable to raise the remaining {money(plan.amountToRaise)}.</p>
+    {/if}
+{/snippet}
+
+{#snippet undoButton()}
+    {#if showUndo}<button
+            disabled={session.busy || session.updatingVisibleState || session.isViewingHistory}
+            onclick={() => session.undo()}>Undo</button
+        >{/if}
+{/snippet}
+
+{#if purchase && session.trainFunding.options.length > 1}
     <section aria-label="Compulsory train funding">
         <header>
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
-            <span>{session.companyName(purchase.companyId)} must buy a</span>
+            <span>{session.companyName(purchase.companyId)} must buy a train</span>
+            {@render undoButton()}
+        </header>
+        <div class="options">
+            {#each session.trainFunding.options as option (`${option.purchase.trainId}:${option.purchase.definitionId}`)}
+                {@const definition = session.trainDepot.trainDefinition(
+                    option.purchase.definitionId
+                )}
+                <div class="option">
+                    <TrainPurchaseButton
+                        {money}
+                        name={definition.name}
+                        definitionId={option.purchase.definitionId}
+                        price={option.purchase.price}
+                        color={trainColors[option.purchase.definitionId]}
+                        imageUrl={session.publishedTrainImage(option.purchase.definitionId)}
+                        listPrice={definition.price}
+                        disabled={!session.trainFunding.canFund}
+                        onclick={() => {
+                            void session.trainFunding.fundOption(option.purchase)
+                        }}
+                    />
+                    {@render planNotes(option.plan)}
+                </div>
+            {/each}
+        </div>
+    </section>
+{:else if purchase && plan}
+    <section
+        aria-label={session.trainFunding.voluntary
+            ? 'Voluntary train funding'
+            : 'Compulsory train funding'}
+    >
+        <header>
+            <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
+            <span
+                >{session.companyName(purchase.companyId)}
+                {session.trainFunding.voluntary ? 'buys' : 'must buy'} a</span
+            >
             <TrainBadge
                 name={session.trainDepot.trainDefinition(purchase.definitionId).name}
                 color={trainColors[purchase.definitionId]}
             />
             <span>for {money(purchase.price)}</span>
-            {#if showUndo}<button
-                    disabled={session.busy ||
-                        session.updatingVisibleState ||
-                        session.isViewingHistory}
-                    onclick={() => session.undo()}>Undo</button
-                >{/if}
+            {@render undoButton()}
         </header>
         {#if session.gameState.bankruptcy}
             <p>
@@ -42,9 +102,6 @@
                 game has ended.
             </p>
         {:else}
-            {#if plan.treasuryProceeds}<p>
-                    Treasury shares will raise {money(plan.treasuryProceeds)}.
-                </p>{/if}
             {#each session.trainFunding.contributions as contribution (contribution.id)}
                 <p>
                     {session.ownerName(contribution.owner)} contributed {money(
@@ -52,21 +109,8 @@
                     )}.
                 </p>
             {/each}
-            {#each plan.contributions as contribution, index (index)}
-                <p>
-                    {session.ownerName(contribution.owner)} contributes {money(
-                        contribution.amount
-                    )}.
-                </p>
-            {/each}
+            {@render planNotes(plan)}
             {#if plan.choice.kind === 'sell'}
-                <p>
-                    {session.ownerName(plan.choice.owner)}
-                    {#if plan.amountToRaise > 0}must raise <strong
-                            >{money(plan.amountToRaise)}</strong
-                        > by selling shares.
-                    {:else}must sell shares to meet the ownership limit.{/if}
-                </p>
                 <div class="choices" aria-label="Funding share sales">
                     {#each session.trainFunding.sales as sale, index (index)}
                         {@const companyId = sale.sales[0].companyId}
@@ -91,7 +135,6 @@
                     {/each}
                 </div>
             {:else if plan.choice.kind === 'bankrupt'}
-                <p>Unable to raise the remaining {money(plan.amountToRaise)}.</p>
                 <div class="choices">
                     <button
                         class="action-button"
@@ -183,6 +226,24 @@
         color: inherit;
         font: inherit;
         cursor: pointer;
+    }
+    .options {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: 10px;
+    }
+    .option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+    }
+    .option p {
+        margin: 0;
+        color: var(--rail-muted, #817565);
+        font-size: 12px;
     }
     .sale-choice {
         flex-direction: column;

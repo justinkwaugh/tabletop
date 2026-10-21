@@ -1,5 +1,8 @@
 # Backend restart memory
 
+Since ADR 0011 a logic publication is activated inside the running worker and no process is
+replaced for it; this document records the earlier restart and handoff paths.
+
 Before the supervised handoff, the backend's manifest-triggered restart rebuilt
 Fastify inside the existing Node process. The production incident on 2026-09-24 killed that process for exceeding
 its 512 MiB container limit immediately after a manifest mismatch. Local probes
@@ -80,13 +83,10 @@ service serves `/tasks`); it has no copy of the site, so Hosting releases that s
 work, and a frontend rollback goes through `rollback --frontend`. The deploy tool reads
 `X-Tabletop-Version` as the served frontend version.
 
-Game versions follow the same rule through the served manifest
-(`libs/backend-services/src/games/servedManifest.ts`). It is the live manifest
-with each game limited to what the child runs: a game whose logic version still
-matches the loaded logic reports its live publication, so a UI-only release reaches
-clients without a replacement; a game whose logic changed keeps the publication the
-child loaded until its replacement takes over; and a game the child never loaded is
-left out. A child loads its titles once; it never re-imports logic in place.
+Game versions follow the same rule through the served manifest, which since ADR 0011 is the
+manifest whose titles the worker has activated: it trails the bucket manifest only while an
+activation is in progress, and a UI-only release reaches clients as soon as the worker has
+taken the new publication record.
 `/api/v1/manifest`, `/api/v1/catalog`, `X-TABLETOP-GAME-UI-VERSION`,
 `X-Tabletop-Version` and the game names and thumbnails in Discord notifications
 all come from the served manifest, so clients never load a UI whose logic the backend

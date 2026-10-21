@@ -138,7 +138,6 @@
    {
     "id": "AS",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -147,7 +146,6 @@
    {
     "id": "AA",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -156,7 +154,6 @@
    {
     "id": "BELT",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -165,7 +162,6 @@
    {
     "id": "BESS",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -174,7 +170,6 @@
    {
     "id": "BA",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -183,7 +178,6 @@
    {
     "id": "DLW",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -192,7 +186,6 @@
    {
     "id": "J",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -201,7 +194,6 @@
    {
     "id": "GT",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -210,7 +202,6 @@
    {
     "id": "H",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -219,7 +210,6 @@
    {
     "id": "ME",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -228,7 +218,6 @@
    {
     "id": "NYOW",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -237,7 +226,6 @@
    {
     "id": "NYSW",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -246,7 +234,6 @@
    {
     "id": "PSNR",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -255,7 +242,6 @@
    {
     "id": "PLE",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -264,7 +250,6 @@
    {
     "id": "PW",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -273,7 +258,6 @@
    {
     "id": "R",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -282,7 +266,6 @@
    {
     "id": "SR",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -291,7 +274,6 @@
    {
     "id": "UR",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -300,7 +282,6 @@
    {
     "id": "WT",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -309,7 +290,6 @@
    {
     "id": "WC",
     "kind": "major",
-    "shareCount": 2,
     "started": false,
     "floated": false,
     "funded": false,
@@ -317,108 +297,87 @@
    },
    {
     "id": "OBC",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P21",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MTE",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P23",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P19",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P15",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "TS",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MAJC",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "CM",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MINC",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P12",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P13",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P14",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "UBC",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MAIL",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P20",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MINM",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "MAJM",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P18",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P22",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    },
    {
     "id": "P24",
-    "kind": "private",
-    "privateRevenue": 0
+    "kind": "private"
    }
   ],
   "cash": [
@@ -1226,12 +1185,10 @@
   ],
   "stationReservations": [],
   "tileInventory": {
-   "tileSetId": "1817:standard",
    "placements": {},
    "retiredPieceIds": []
   },
   "trainInventory": {
-   "depotId": "1817",
    "trains": [
     {
      "id": "1817/2/1",
@@ -3985,14 +3942,6 @@
    "companyId": "J"
   },
   {
-   "id": "recorded:244",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "18003",
-   "type": "FinishTrack",
-   "companyId": "H"
-  },
-  {
    "id": "recorded:245",
    "gameId": "1817-1817_game_end_bankrupt",
    "source": "user",
@@ -4052,14 +4001,6 @@
    "rotation": 2,
    "nodeMapping": {},
    "expectedCost": 0
-  },
-  {
-   "id": "recorded:249",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "4738",
-   "type": "FinishTrack",
-   "companyId": "R"
   },
   {
    "id": "recorded:250",
@@ -4413,14 +4354,6 @@
    "playerId": "10573",
    "type": "FinishTrains",
    "companyId": "NYOW"
-  },
-  {
-   "id": "recorded:272",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "7791",
-   "type": "FinishTrack",
-   "companyId": "AS"
   },
   {
    "id": "recorded:273",
@@ -5063,14 +4996,6 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:336",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "10573",
-   "type": "FinishTrack",
-   "companyId": "BELT"
-  },
-  {
    "id": "recorded:337",
    "gameId": "1817-1817_game_end_bankrupt",
    "source": "user",
@@ -5158,14 +5083,6 @@
    "playerId": "10573",
    "companyId": "BELT",
    "type": "FinishOperatingTurn"
-  },
-  {
-   "id": "recorded:342",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "12235",
-   "type": "FinishTrack",
-   "companyId": "J"
   },
   {
    "id": "recorded:343",

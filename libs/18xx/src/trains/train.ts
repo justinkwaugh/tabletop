@@ -42,7 +42,8 @@ export const Train = Type.Union([
 export type Train = Type.Static<typeof Train>
 export const TrainInventory = Type.Object(
     {
-        depotId: Id,
+        /** The supply variant chosen at setup; absent for the depot's own supply. */
+        depotId: Type.Optional(Id),
         trains: Type.Array(Train),
         nextTrainNumber: Type.Integer({ minimum: 1 })
     },
@@ -66,8 +67,12 @@ export function trainsOwnedBy(state: TrainState, owner: Owner): Train[] {
     )
 }
 
+export function isObsoleteTrain(train: Train): boolean {
+    return train.status === 'owned' && train.rustsAfterOperation === true
+}
+
 export function trainCanBeTraded(train: Train): boolean {
-    return train.status === 'owned' && !train.rustsAfterOperation
+    return train.status === 'owned' && !isObsoleteTrain(train)
 }
 
 /** Where trains go when they leave a company: the bank's market, or out of play. */

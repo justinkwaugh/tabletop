@@ -275,7 +275,8 @@ Investment's share and closure.
   market or out of play, market marker removed. 1846's railroad closure now uses it.
 - Sales report their details to `StockRules.afterSale` and `TrainFundingRules.afterShareSale`,
   and record the company's place in its market stack before the sale (`fromStackIndex`, an
-  optional metadata field); `restoreStockMarker` puts a marker back at that place.
+  optional metadata field). A title may hold a sale's market move (`holdsMarketMove`): the
+  sale records the space it was sold from as its destination and the title moves it later.
 - `SystemActionFirstHandler` may choose its next state from the action's result, and offers
   players no actions while its system action is due, so the automatic train completion that
   wraps it waits.
@@ -289,15 +290,21 @@ Investment's share and closure.
   market, and its WVCF token and Port, Cotton and Key West tokens leave play. Closing during
   its own train funding, the president's cash goes to the bank too; closing on its own turn
   ends that turn. Sales cannot start from a black space.
-- **Recording.** Every player's sales are recorded, merged per company in the order sold, with
-  the price and stack place before the first sale. Selling a company ends any excess the seller
-  kept by protecting it (§5.9.8); the family's sell-down then applies outside green and brown.
+- **Recording.** A player's sale is held unless the seller still presides over the company: the
+  shares go to the open market and the seller is paid, but the marker stays where it is (the
+  family's `holdsMarketMove` hook). Held sales are recorded, merged per company in the order
+  sold, with each sale's share count. Selling a company ends any excess the seller kept by
+  protecting it (§5.9.8); the family's sell-down then applies outside green and brown. A sale
+  its seller still presides over can never be protected, so it moves the price at once and a
+  company sold into the black closes immediately (§5.1.1, §10.6.2). (Changed 2026-10-21: the
+  price used to fall on every sale and return when protected.)
 - **Deciding.** Once the seller finishes (the stock turn passes on, or the train is bought), a
   system action sets play aside for the presidents if any may protect; otherwise it discards
   the record. In the order sold, each company's player president other than the seller, with
-  the cash and certificate room at the restored price, protects or declines. Protecting pays
-  the sale's proceeds to the bank, takes the sold certificates from the open market and
-  restores the price. **Ruling:** a president already over the certificate limit may still
+  the cash and certificate room at the unmoved price, protects or declines. Protecting pays
+  the sale's proceeds to the bank and takes the sold certificates from the open market; the
+  price never moved. Declining, or no president being able to protect, drops the price sale by
+  sale, each stopping on the soft ledge as it would have on the sale. **Ruling:** a president already over the certificate limit may still
   protect shares that do not raise their count.
 - **Resuming.** In a stock round with a protection, play passes to the left of the last
   protecting president, whose shares were sold last; the open turn is reassigned, so players in
@@ -307,12 +314,12 @@ Investment's share and closure.
 ### Survey
 
 Price protection appears in 1832, 1850 and 1870 (research catalog; upstream `g_1870`, `g_1850`
-price-protection steps). All three queue a seller's sales and let each company's president buy
-them back at the sale price, restoring the price. They differ in who may protect (1870's original
+price-protection steps). All three queue a seller's sales, leaving the price where it is, and
+let each company's president buy them back at the sale price; a pass drops the price. They differ in who may protect (1870's original
 rules bar a president who sold that company this round; 1832 allows it, §5.9.10), in the
 certificate-room test, and in where play resumes. Black-area closure is shared with other
 titles' closing zones (1817's liquidation, 1846's closure). The shared parts are in the family
-library: sale details with the pre-sale stack place, `restoreStockMarker`, `closeShareCompany`
+library: sale details with the pre-sale stack place, `holdsMarketMove`, `closeShareCompany`
 and the hooks. **Limit:** the decision flow (`ProtectingPrice`) stays in 1832 until a second
 title needs it; it is written against those shared pieces so it can move with title hooks for
 eligibility and resumption.
@@ -326,17 +333,31 @@ eligibility and resumption.
 - A company in the black area counts as closed for certificate limits and its certificates
   count for nothing, from the sale that put it there (§5.3.5).
 - A company whose sale no president can protect closes at once, during the decisions included.
+  A held sale cannot put a company in the black; its drop closes it when the president declines.
 - Operating-round protections restore the company's place in the operating order; play then
   returns to the train step, which ends the turn as the treasury is empty (§5.9.6).
-- The protector pays what the seller actually received; split forced sales therefore cost the
-  sum of their falling prices.
+- The protector pays what the seller actually received. A held sale leaves the price unmoved,
+  so the seller's later sales of that company, the pieces of a forced sale, fetch the same
+  price, and selling in pieces raises what one block would (as 18xx.games does).
+- The seller's holding limits read held prices as fallen: a seller must assume no president
+  protects (§5.3.5). The deciding presidents' limits read the unmoved price.
+- A company's later sales by the same seller are held with its first. A sale its seller still
+  presides over moves at once and is not offered, even if a later sale of the company passes
+  its presidency to another player.
+- Whether a president can protect, with the cash and certificate room, is decided when the
+  seller finishes; sales none can protect then drop, in the order sold.
+- A declined or unprotectable sale's marker arrives below the markers already in its new space,
+  including any that moved since the sale; held sales landing in one space keep the order sold
+  (§5.8.4).
+- A stored record from before sales were held has no sale counts: its prices already fell, so a
+  decline leaves them where they are.
 - The certificate limit applies to protections in operating rounds too, and a president already
   over it may protect shares that do not raise their count.
 - Privates owned by a closing company close with it, and its Port, Cotton and Key West tokens
   leave the map ("all tokens of that company", §5.1.1).
-- A company a forced sale sends into the black, whose president may protect it, closes only
-  after the train is bought and the decisions are made.
-- A seller kept over the certificate limit by a yellow-area sale that protection undoes sells
+- A company a forced sale would send into the black, whose president may protect it, stays
+  where it is until the train is bought and the president declines.
+- A seller kept over the certificate limit by a yellow-area sale that is then protected sells
   down on their next stock turn.
 
 ### Release
@@ -477,16 +498,28 @@ stay in 1832.
 - A run tracing reachability for a merger ends at an off-board area.
 - History and the round heading call the phase "Merger phase", numbered by the stock round it
   follows, or by the operating round when it follows the first 6-train.
+- **A System president's voluntary help (§11.6.7, added 2026-10-19).** While a System holds no
+  more trains than one shell's limit and cannot afford the cheapest train alone, its president
+  may help buy that train: the cheapest from the bank or open market, with the whole treasury
+  spent, from the president's cash alone. Without enough cash they may not help. The help may
+  be given again whenever the condition still holds. The research implementation instead lets
+  the president add cash toward any voluntary purchase; the rulebook's "usual restrictions"
+  rule that out.
 
 ### Shared changes
 
 `EarningsRules.holderDividend` pays a holding rather than a share; `TitleRound.followsStockRound`
 numbers a title's round by the stock round it follows when no operating round is under way.
+`TrainFundingRules.voluntaryFunding` lets a title offer the compulsory-purchase flow to a company
+that owns a train, funded from its contributors' cash alone. Among researched titles 1858, 1882
+and 1877: Stockholm Tramways let a president contribute only to a trainless company, which needs no
+hook. 1828's Systems let a president help fill an empty shell, apparently with share sales; a
+cash-only yes or no does not cover that, so 1828 would need the hook extended.
 
 ### Limits after slice 5
 
-The optional forced purchase of a System's second train (§11.6.7) is not offered. The
-playground has no prepared phase 4 position with the two homes joined; tests cover the flow.
+The playground has no prepared phase 4 position with the two homes joined, nor a System at its
+train step; tests cover the flow.
 
 ### Acceptance examples
 

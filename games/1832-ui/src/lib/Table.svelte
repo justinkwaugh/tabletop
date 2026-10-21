@@ -7,12 +7,12 @@
         GameTable,
         OperatingActions,
         type TitleActionDescription,
-        WaterfallAuctionBidding,
         WaterfallAuctionLots
     } from '@tabletop/18xx-ui'
     import { EighteenThirtyTwoSession } from './session.svelte.js'
     import { describe1832Action } from './history.js'
     import TitleActions from './TitleActions.svelte'
+    import PendingDecision from './PendingDecision.svelte'
     import CompanyShareActions from './CompanyShareActions.svelte'
     import MergerPhase from './MergerPhase.svelte'
     function createRouteWorker() {
@@ -50,11 +50,9 @@
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />
         {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
-            {#if session.waterfall.model.auction.bidding}
-                <WaterfallAuctionBidding {session} />
-            {:else}
-                <WaterfallAuctionLots {session} />
-            {/if}
+            <WaterfallAuctionLots {session} />
+        {:else if session.redemptionPrompt || session.protectionPrompt}
+            <PendingDecision {session} />
         {:else if session.mergerDecision}
             <MergerPhase {session} />
         {:else if session.stockPanels.open === 'company'}

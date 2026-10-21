@@ -95,8 +95,9 @@ export class TrackModule {
                     : []
             )
     )
+    // A private power lays only at its own locations, which may need no connection at all.
     reachableLocationIds = $derived.by(() =>
-        this.showChoices
+        this.showChoices && !this.privateActions.trackPowerSelection
             ? this.mapView()
                   .map.definition.locations.filter((location) =>
                       this.construction.canReach(location.id)

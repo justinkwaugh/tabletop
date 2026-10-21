@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { cashOwnedBy, getCompany, placeStockMarker, type Owner } from '@tabletop/18xx'
+import {
+    cashOwnedBy,
+    exceedsStockLimits,
+    getCompany,
+    placeStockMarker,
+    type Owner
+} from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
+    EighteenThirtyTwoStockRules,
     redemptionChoices,
     reissueChoices,
     reissueParPrice,
@@ -150,9 +157,9 @@ describe('share redemption', () => {
 
     it('redeems once per stock round', () => {
         const play = trading()
-        play.state.redemptions = { ACL: { stockRound: play.state.stockRound.number, count: 1 } }
+        play.state.redemptions = { ACL: 1 }
         expect(redemptionChoices(play.state, 'alex')).toEqual([])
-        play.state.redemptions = { ACL: { stockRound: play.state.stockRound.number - 1, count: 1 } }
+        delete play.state.redemptions
         expect(redemptionChoices(play.state, 'alex')).not.toEqual([])
     })
 })
@@ -172,7 +179,20 @@ describe('share redemption limits', () => {
     })
 
     it('is not offered to a president who must first sell down', () => {
-        const play = trading((state) => moveShares(state, inOffering, player('alex'), 4, 'CG'))
+        // Alex holds more certificates than the limit allows.
+        const play = trading((state) => {
+            moveShares(
+                state,
+                (certificate) => !heldBy('alex')(certificate),
+                player('alex'),
+                5,
+                'CG'
+            )
+            moveShares(state, heldBy('casey'), player('alex'), 1)
+        })
+        expect(exceedsStockLimits(play.state, player('alex'), EighteenThirtyTwoStockRules)).toBe(
+            true
+        )
         expect(redemptionChoices(play.state, 'alex')).toEqual([])
         expect(play.valid('alex')).not.toContain('RedeemShare')
     })
@@ -265,6 +285,13 @@ describe('share reissue', () => {
         expect(cashOwnedBy(play.state, acl)).toBe(260)
         expect(spendableCash(play.state, 'ACL')).toBe(100)
         expect(redemptionChoices(play.state, 'alex')).toEqual([])
+        // Casey passed, so Alex's and Blair's passes end the stock round.
+        play.act('FinishStockTurn', {}, 'alex')
+        play.act('FinishStockTurn', {}, 'blair')
+        expect(play.state.stockRound.completed).toBe(true)
+        expect(play.state.lockedProceeds).toBeUndefined()
+        expect(play.state.redemptions).toBeUndefined()
+        expect(spendableCash(play.state, 'ACL')).toBe(260)
     })
 
     it('may reissue in the stock round it redeemed', () => {

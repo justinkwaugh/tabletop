@@ -200,7 +200,6 @@ Decisions made while implementing, beyond the design above:
   replayed (slice 5).
 - The divider lines between the two hexes of Canada and of the Gulf, and the
   single revenue label per group, are drawn with the offboard groups (slice 5).
-- The brown-zone IPO option is offered but not yet enforced (slice 3).
 
 ## Acceptance examples
 

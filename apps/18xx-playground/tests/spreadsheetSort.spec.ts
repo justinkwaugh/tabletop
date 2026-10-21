@@ -79,7 +79,7 @@ test('TOP market value ties follow operating order in both directions', async ({
     const value = sheet.getByRole('rowheader', { name: 'Value' })
     await expect(sheet.locator('thead th[aria-label]')).toHaveCount(8)
     const initial = await companyOrder(sheet)
-    expect(initial.indexOf('Murray River')).toBeLessThan(initial.indexOf('Belfast Branch'))
+    expect(initial.indexOf('Belfast Branch')).toBeLessThan(initial.indexOf('Murray River'))
     await value.getByRole('button').click()
     await expect(value).toHaveAttribute('aria-sort', 'descending')
     expect(await companyOrder(sheet)).toEqual([

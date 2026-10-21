@@ -28,6 +28,8 @@ export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: str
         | {
               kind: 'location'
               locationIds: readonly string[]
+              /** Offers the power in the station step as a button with this label. */
+              stationStepLabel?: string
               /** Chooses a hex, with the city or town clicked within it when there was one. */
               choose(locationId: string, nodeId?: string): Promise<void>
           }

@@ -21,11 +21,16 @@ import {
     createEdgeTilePath,
     createStraightTilePath,
     tilePathPoint,
-    type TileDrawnPath
+    trackCrossings,
+    type TileDrawnPath,
+    type TrackCrossing
 } from './tileTrackGeometry.js'
 import { stagedRevenueLayout, type RevenueCell } from './stagedRevenueLayout.js'
 
 export type { TileDrawnPath } from './tileTrackGeometry.js'
+
+/** Corner radius of every tile and map hex, in the units tiles are drawn in about their centre. */
+export const TileRadius = 50
 
 const OffboardSpikeReach = 0.6
 
@@ -75,6 +80,7 @@ export type TileDrawing = {
     /** Station circle radius the slots are spaced for. */
     citySlotRadius: number
     paths: readonly TileDrawnPath[]
+    crossings: readonly TrackCrossing[]
     nodes: readonly TileDrawnNode[]
     labelPosition: Point
     symbolPosition: Point
@@ -92,7 +98,7 @@ export function createTileDrawing(
     // Annotations keep the same distance from larger station circles.
     const markerRadius = MarkerRadius + citySlotRadius - DefaultCitySlotRadius
     const geometry = calculateHexGeometry(
-        { orientation, dimensions: { radius: 50 } },
+        { orientation, dimensions: { radius: TileRadius } },
         { q: 0, r: 0 }
     )
     const angle =
@@ -336,6 +342,7 @@ export function createTileDrawing(
         polygon: geometry.vertices.map((point) => `${point.x},${point.y}`).join(' '),
         citySlotRadius,
         paths,
+        crossings: trackCrossings(paths),
         nodes,
         labelPosition,
         symbolPosition,

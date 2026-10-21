@@ -1,3 +1,4 @@
+import { Shikoku1889Charters } from './charters.js'
 import { Shikoku1889Market } from './stockMarket.js'
 import { Shikoku1889Phases } from './trains.js'
 import {
@@ -15,6 +16,7 @@ export const Shikoku1889StockRoundRules: StockRoundRules = {
         allSharesHeld(state, companyId, (certificate) => certificate.owner.kind === 'player')
 }
 export const Shikoku1889OperatingRules: OperatingRules = {
+    charters: Shikoku1889Charters,
     roundCount: (state) => Shikoku1889Phases.phase(state.phaseId).operatingRounds,
     companyOrder: (state) => floatedCompaniesInMarketOrder(Shikoku1889Market, state)
 }

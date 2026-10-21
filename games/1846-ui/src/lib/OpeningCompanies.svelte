@@ -5,11 +5,11 @@
     const draft = $derived(session.gameState.draft)
     const money = $derived(session.presentation.money)
     const finalOffer = $derived(
-        draft.kind === 'public' && draft.stage === 'buying' && !!draft.finalOffer
+        draft?.kind === 'public' && draft.stage === 'buying' && !!draft.finalOffer
     )
 </script>
 
-<section class="draft" aria-label="Opening company purchases">
+<section class="draft midwest-panel centered-panel" aria-label="Opening company purchases">
     <header class="draft-heading">
         <h2>
             {session.gameState.activePlayerIds.map((id) => session.getPlayerName(id)).join(', ')} · buy

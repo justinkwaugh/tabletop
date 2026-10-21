@@ -31,6 +31,7 @@ import {
 import {
     createTileDrawing,
     DefaultCitySlotRadius,
+    TileRadius,
     type TileDrawing,
     type TileDrawnPath
 } from '../tiles/tileDrawing.js'
@@ -50,8 +51,21 @@ export type MapRoute = {
     color: string
     segments: readonly RoutePath[]
 }
-export function routeLocationIds(routes: readonly MapRoute[]): string[] {
-    return [...new Set(routes.flatMap((route) => route.segments.map((path) => path.locationId)))]
+export function routeLocationIds(
+    routes: readonly MapRoute[],
+    { map, joinedEdges = {} }: Pick<MapViewDefinition, 'map' | 'joinedEdges'>
+): string[] {
+    const ids = new Set(routes.flatMap((route) => route.segments.map((path) => path.locationId)))
+    const pending = [...ids]
+    for (let id = pending.pop(); id !== undefined; id = pending.pop())
+        for (const edge of joinedEdges[id] ?? []) {
+            const neighborId = map.neighbor(id, edge)?.id
+            if (neighborId && !ids.has(neighborId)) {
+                ids.add(neighborId)
+                pending.push(neighborId)
+            }
+        }
+    return [...ids]
 }
 /**
  * A presentation-only relocation of an untiled hex, for boards whose print rearranges cells.
@@ -69,7 +83,7 @@ export type MapMarkerArt =
     | { tileSymbol: TileSymbolName }
     /** Not drawn, where the location's name or artwork already says it. */
     | { hidden: true }
-    /** Two linked circles after the marker's label, below the hex's centre or ``above`` it. */
+    /** Two linked circles after the marker's label, low in the hex or ``above`` its stops and name. */
     | { localLine: true; above?: true }
     /** The marker's label, large in the centre of an unbuilt hex. */
     | { centeredLabel: true }
@@ -80,7 +94,10 @@ export type MapMarkerArt =
      * point the badge both ways, as for an east–west bonus.
      */
     | { revenueBadge: true; arrows?: true }
-    /** The marker's symbol, once per count, at revenue size beneath the hex's revenue. */
+    /**
+     * The marker's symbol, once per count, at revenue size in the clear space nearest the hex's
+     * revenue, unless the tile prints it.
+     */
     | { revenueSymbol: TileSymbolName }
     /**
      * A marker placed during play: the hex is outlined in the colour, with a badge on its top
@@ -106,6 +123,8 @@ const NameArcCapHeight = 4.6
 const TrackHalfWidth = 4.6
 // A revenue with a badge beneath it rises to leave a gap between them.
 const BadgeLift = 3
+const LocalLineHalfHeight = 3.5
+const LocalLineClearance = 3
 
 export type MapDrawnLocation = {
     location: MapLocation
@@ -141,13 +160,24 @@ export type MapDrawnLocation = {
      */
     namePlaced: boolean
     /**
-     * The circle a lone city's name follows, where the style curves names: centred over the top,
-     * or under the foot when ``below``, turned ``rotation`` degrees clockwise off any track and
-     * spanning ``span`` radians. ``radius`` is the text's baseline.
+     * The circles curved names follow, where the style curves them: a lone city's name, or each
+     * city's own name. Each is centred over the top of its city, or under the foot when
+     * ``below``, turned ``rotation`` degrees clockwise off any track and spanning ``span``
+     * radians. ``radius`` is the text's baseline.
      */
-    nameArc?: { center: Point; radius: number; rotation: number; span: number; below: boolean }
+    nameArcs: readonly NameArc[]
     /** Height of the printed terrain cost row: centred below the hex's stops, or mid-hex. */
     terrainY: number
+    /** Height of a local line drawn ``above``: over the hex's stops and any name curved on them. */
+    localLineAboveY?: number
+}
+export type NameArc = {
+    text: string
+    center: Point
+    radius: number
+    rotation: number
+    span: number
+    below: boolean
 }
 type HexSegment = { start: Point; end: Point }
 export type BoardArtwork = {
@@ -260,6 +290,7 @@ export function createMapDrawing(
         revenueStageLabels,
         terrainCostPrefix = '',
         namePositions = {},
+        cityNames = {},
         namesBelow = [],
         symbolPositions = {},
         nameLines = {},
@@ -276,6 +307,7 @@ export function createMapDrawing(
         | 'revenueStageLabels'
         | 'terrainCostPrefix'
         | 'namePositions'
+        | 'cityNames'
         | 'namesBelow'
         | 'symbolPositions'
         | 'nameLines'
@@ -328,39 +360,57 @@ export function createMapDrawing(
             !!location.name
         const nameBaseline = namePositions[location.id] ?? { x: 0, y: -35 }
         const nameRows = nameLines[location.id] ?? splitName(location.name ?? '')
+        let unannotatedDrawing: TileDrawing | undefined
+        const stopDrawing = () =>
+            (unannotatedDrawing ??= createTileDrawing(
+                face,
+                map.definition.orientation,
+                rotation,
+                tileLayout,
+                drawingStyle
+            ))
+        const terrainRowOf = (tileDrawing: TileDrawing) =>
+            terrainHeights[location.id] ?? terrainY(tileDrawing, face, map.definition.orientation)
         const [loneNode, ...otherNodes] = face.nodes
-        const nameArc =
-            nameShown &&
-            location.name &&
-            drawingStyle?.cityNameArcs &&
-            !namePositions[location.id] &&
-            loneNode?.kind === 'city' &&
-            loneNode.stationSlots === 1 &&
-            !otherNodes.length
-                ? arcAroundCity(
-                      location.name,
-                      (drawingStyle.citySlotRadius ?? DefaultCitySlotRadius) + NameArcGap,
-                      namesBelow.includes(location.id),
-                      createTileDrawing(
-                          face,
-                          map.definition.orientation,
-                          rotation,
-                          tileLayout,
-                          drawingStyle
-                      ).paths,
-                      symbolPoints(symbolPositions[location.id])
-                  )
-                : undefined
-        // Points along the name's outer edge, which annotations keep clear of.
-        const nameArcPoints = nameArc
-            ? [-1, -0.5, 0, 0.5, 1].map((share) => {
-                  const angle =
-                      (((nameArc.below ? 90 : -90) + nameArc.rotation) * Math.PI) / 180 +
-                      (share * nameArc.span) / 2
-                  const reach = nameArc.radius + (nameArc.below ? -2 : 3)
-                  return { x: Math.cos(angle) * reach, y: Math.sin(angle) * reach }
-              })
-            : []
+        const ownCityNames = cityNames[location.id]
+        const arcAround = (text: string, center: Point, obstacles: readonly Point[] = []) =>
+            arcAroundCity(
+                text,
+                (drawingStyle?.citySlotRadius ?? DefaultCitySlotRadius) + NameArcGap,
+                namesBelow.includes(location.id),
+                stopDrawing().paths,
+                symbolPoints(symbolPositions[location.id]),
+                center,
+                obstacles
+            )
+        const nameArcs =
+            !nameShown ||
+            !location.name ||
+            !drawingStyle?.cityNameArcs ||
+            namePositions[location.id]
+                ? []
+                : ownCityNames
+                  ? cityNameArcs(stopDrawing(), ownCityNames, arcAround)
+                  : loneNode?.kind === 'city' && loneNode.stationSlots === 1 && !otherNodes.length
+                    ? [arcAround(location.name, stopDrawing().nodes[0].center)]
+                    : []
+        const curvedName = nameArcs.length > 0
+        const nameArcPoints = nameArcs.flatMap((arc) =>
+            [-0.5, -0.25, 0, 0.25, 0.5].map((share) =>
+                pointOnArc(arc, share, arc.radius + (arc.below ? -2 : 3))
+            )
+        )
+        const localLineAboveY = (location.markers ?? []).some((marker) => {
+            const art = markerArt[marker.id]
+            return !!art && 'localLine' in art && !!art.above
+        })
+            ? aboveStops(
+                  stopDrawing(),
+                  !placement && location.terrain ? terrainRowOf(stopDrawing()) : undefined,
+                  nameArcs,
+                  nameShown && !curvedName ? { baseline: nameBaseline, rows: nameRows } : undefined
+              )
+            : undefined
         const printedDrawing = createTileDrawing(
             face,
             map.definition.orientation,
@@ -370,7 +420,7 @@ export function createMapDrawing(
                 annotationExclusions: [
                     ...(tileLayout.annotationExclusions ?? []),
                     ...nameArcPoints,
-                    ...(nameShown && !nameArc
+                    ...(nameShown && !curvedName
                         ? [-18, 0, 18].map((x) => ({
                               x: nameBaseline.x + x,
                               y: nameBaseline.y - 3
@@ -399,7 +449,7 @@ export function createMapDrawing(
             ? liftRevenue(printedDrawing, BadgeLift)
             : printedDrawing
         const geometry = calculateHexGeometry(
-            { orientation: map.definition.orientation, dimensions: { radius: 50 } },
+            { orientation: map.definition.orientation, dimensions: { radius: TileRadius } },
             relocation?.at ?? location.coordinates
         )
         const segment = (edge: TileEdge): HexSegment => {
@@ -425,8 +475,7 @@ export function createMapDrawing(
             revenueBadges(lifted, markers, markerArt),
             !placement && tileLayout.revenueAlign === 'middle'
         )
-        const terrainRow =
-            terrainHeights[location.id] ?? terrainY(drawing, face, map.definition.orientation)
+        const terrainRow = terrainRowOf(drawing)
         const hexVertices = geometry.vertices.map((point) => ({
             x: point.x - geometry.center.x,
             y: point.y - geometry.center.y
@@ -457,8 +506,9 @@ export function createMapDrawing(
             namePlaced:
                 !!namePositions[location.id] &&
                 !face.nodes.some((node) => node.kind === 'offboard'),
-            nameArc,
+            nameArcs,
             terrainY: terrainRow,
+            localLineAboveY,
             revenueAnnotations: [
                 ...badges,
                 ...revenueSymbols(
@@ -467,6 +517,7 @@ export function createMapDrawing(
                     markerArt,
                     hexVertices,
                     symbolPositions[location.id],
+                    face.symbols ?? [],
                     [
                         ...badges.map((badge) =>
                             box(
@@ -478,7 +529,7 @@ export function createMapDrawing(
                         ...(face.labels.length
                             ? [box(drawing.labelPosition, face.labels.join(' ').length * 4.5, 7)]
                             : []),
-                        ...(nameArc
+                        ...(curvedName
                             ? nameArcPoints.map((point) => disc(point, 3))
                             : nameShown && location.name
                               ? [nameBox(nameRows, nameBaseline)]
@@ -507,7 +558,7 @@ export function createMapDrawing(
     const vertices = locations.flatMap(
         ({ location }) =>
             calculateHexGeometry(
-                { orientation: map.definition.orientation, dimensions: { radius: 50 } },
+                { orientation: map.definition.orientation, dimensions: { radius: TileRadius } },
                 location.coordinates
             ).vertices
     )
@@ -670,6 +721,7 @@ function revenueSymbols(
     markerArt: Readonly<Record<string, MapMarkerArt>>,
     vertices: readonly Point[],
     positions: LocationSymbolPositions | undefined,
+    printedSymbols: readonly string[],
     printed: readonly Obstacle[]
 ): RevenueAnnotation[] {
     const shown = drawing.nodes.find(
@@ -719,7 +771,9 @@ function revenueSymbols(
     const symbols: RevenueAnnotation[] = []
     for (const marker of markers) {
         const art = markerArt[marker.id]
-        if (!art || !('revenueSymbol' in art)) continue
+        // A tile that prints the symbol already shows it.
+        if (!art || !('revenueSymbol' in art) || printedSymbols.includes(art.revenueSymbol))
+            continue
         // Positions are for every symbol in the location, or by marker.
         const fixed = positions && !isSymbolPosition(positions) ? positions[marker.id] : positions
         const count = marker.count ?? 1
@@ -770,8 +824,12 @@ function revenueSymbols(
     return symbols
 }
 
+function stopNodes(drawing: TileDrawing) {
+    return drawing.nodes.filter(({ node }) => node.kind === 'city' || node.kind === 'town')
+}
+
 function terrainY(drawing: TileDrawing, face: TileFace, orientation: HexOrientation): number {
-    const stops = drawing.nodes.filter(({ node }) => node.kind === 'city' || node.kind === 'town')
+    const stops = stopNodes(drawing)
     if (!stops.length) return face.paths.length ? 19 : 0
     const bottom = Math.max(
         ...stops.flatMap(({ node, center, slots, slotRadius, dotRadius }) =>
@@ -787,14 +845,83 @@ function terrainY(drawing: TileDrawing, face: TileFace, orientation: HexOrientat
     return (bottom + boundary) / 2
 }
 
+function aboveStops(
+    drawing: TileDrawing,
+    terrainRow: number | undefined,
+    nameArcs: readonly NameArc[],
+    straightName: { baseline: Point; rows: readonly string[] } | undefined
+): number {
+    const stops = stopNodes(drawing)
+    const tops = [
+        ...stops.flatMap(({ node, center, slots, slotRadius, dotRadius }) =>
+            node.kind === 'city' && slots.length
+                ? slots.map((slot) => slot.y - slotRadius)
+                : [center.y - dotRadius]
+        ),
+        ...(!stops.length && terrainRow !== undefined ? [terrainRow - 6] : []),
+        ...nameArcs
+            .filter((arc) => !arc.below)
+            .map((arc) => arc.center.y - arc.radius - NameArcCapHeight)
+    ]
+    if (!tops.length) return 0
+    const y = Math.min(...tops) - LocalLineClearance - LocalLineHalfHeight
+    if (!straightName || straightName.baseline.y > y) return y
+    const nameFoot = straightName.baseline.y + (straightName.rows.length - 1) * 6 + 1.5
+    return Math.max(y, nameFoot + LocalLineClearance + LocalLineHalfHeight)
+}
+
+function cityNameArcs(
+    drawing: TileDrawing,
+    names: Readonly<Record<string, string>>,
+    arcAround: (text: string, center: Point, obstacles: readonly Point[]) => NameArc
+): NameArc[] {
+    const stops = stopNodes(drawing)
+    return stops
+        .filter(({ node }) => names[node.id])
+        .reduce<NameArc[]>((arcs, { node, center }) => {
+            const otherStops = stops
+                .filter((stop) => stop.node.id !== node.id)
+                .flatMap(({ center, slots, slotRadius, dotRadius }) =>
+                    slots.length
+                        ? slots.flatMap((slot) => ring(slot, slotRadius))
+                        : ring(center, dotRadius)
+                )
+            return [
+                ...arcs,
+                arcAround(names[node.id], center, [...otherStops, ...arcs.flatMap(nameArcBand)])
+            ]
+        }, [])
+}
+
+function ring(center: Point, radius: number): Point[] {
+    return Array.from({ length: 16 }, (_, index) => {
+        const angle = (index / 16) * Math.PI * 2
+        return { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius }
+    })
+}
+
+function pointOnArc(arc: NameArc, share: number, reach: number): Point {
+    const angle = (((arc.below ? 90 : -90) + arc.rotation) * Math.PI) / 180 + share * arc.span
+    return { x: arc.center.x + Math.cos(angle) * reach, y: arc.center.y + Math.sin(angle) * reach }
+}
+
+function nameArcBand(arc: NameArc): Point[] {
+    const inner = arc.below ? arc.radius - NameArcCapHeight : arc.radius
+    return Array.from({ length: 11 }, (_, index) => index / 10 - 0.5).flatMap((share) =>
+        [inner, inner + NameArcCapHeight].map((reach) => pointOnArc(arc, share, reach))
+    )
+}
+
 // The name centres over the top of the city, turning the least it can to stay off the track.
 function arcAroundCity(
     name: string,
     clearance: number,
     below: boolean,
     paths: readonly TileDrawnPath[],
-    symbols: readonly Point[]
-): NonNullable<MapDrawnLocation['nameArc']> {
+    symbols: readonly Point[],
+    center: Point,
+    obstacles: readonly Point[] = []
+): NameArc {
     // Under the city the letters stand inside their baseline, so the baseline moves out by their height.
     const radius = below ? clearance + NameArcCapHeight : clearance
     const span = Math.min((Math.PI * 4) / 3, (name.length * 4) / radius)
@@ -821,7 +948,8 @@ function arcAroundCity(
     )
     const crossings = (rotation: number) => {
         const middle = (((below ? 90 : -90) + rotation) * Math.PI) / 180
-        return [...track, ...covered].filter((point) => {
+        return [...track, ...covered, ...obstacles].filter(({ x, y }) => {
+            const point = { x: x - center.x, y: y - center.y }
             const reach = Math.hypot(point.x, point.y)
             const inner = below ? radius - NameArcCapHeight : radius
             if (reach < inner - 4.5 || reach > inner + 10) return false
@@ -835,7 +963,7 @@ function arcAroundCity(
         index % 2 ? ((index + 1) / 2) * 5 : (-index / 2) * 5
     )
     const rotation = turns.reduce((best, turn) => (crossings(turn) < crossings(best) ? turn : best))
-    return { center: { x: 0, y: 0 }, radius, rotation, span, below }
+    return { text: name, center, radius, rotation, span, below }
 }
 
 function isOffboard(location: MapLocation | undefined): boolean {

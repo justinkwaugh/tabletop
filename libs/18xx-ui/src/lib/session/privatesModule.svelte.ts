@@ -15,7 +15,8 @@ import {
     pendingCompanyDecision,
     privateExchangeOffers,
     type EighteenXXTitleRules,
-    type PrivateExchangeRequest
+    type PrivateExchangeRequest,
+    currentPrivateRevenue
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
@@ -34,7 +35,6 @@ export type PrivatesSession = ModuleSession<
         | 'companyRules'
         | 'outOfTurnPrivatePowers'
         | 'privatePowerRules'
-        | 'names'
     >
 >
 
@@ -55,6 +55,11 @@ export class PrivatesModule {
             .filter((company) => company.kind === 'private')
             .map((company) => ({
                 ...company,
+                revenue: currentPrivateRevenue(
+                    this.session.state,
+                    this.session.rules.stockRules.charters,
+                    company.id
+                ),
                 description: this.session.rules.privateRules.description(
                     this.session.state,
                     company.id
@@ -118,11 +123,9 @@ export class PrivatesModule {
                         requestablePrivateIds(state, playerId, rules.privatePowerRules).length > 0)
             )
     })
-    requestablePrivateNames(playerId: string) {
+    requestablePrivateIds(playerId: string) {
         const { state, rules } = this.session
-        return requestablePrivateIds(state, playerId, rules.privatePowerRules).map((id) =>
-            rules.names.company(id)
-        )
+        return requestablePrivateIds(state, playerId, rules.privatePowerRules)
     }
     hasRequest(playerId: string) {
         return hasPrivatePowerRequest(this.session.state, playerId)

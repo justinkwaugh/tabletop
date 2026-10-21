@@ -10,7 +10,7 @@ import {
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { trainsOwnedBy, releaseTrains, type TrainState } from './train.js'
+import { isObsoleteTrain, trainsOwnedBy, releaseTrains, type TrainState } from './train.js'
 import type { TrainRunningState } from '../routes/route.js'
 import {
     DeparturePayments,
@@ -19,9 +19,7 @@ import {
 } from './trainDepartures.js'
 import type { TrainRules } from './trainPurchase.js'
 export function trainsRustingAfterOperation(state: TrainState, companyId: string) {
-    return trainsOwnedBy(state, { kind: 'company', companyId }).filter(
-        (train) => train.status === 'owned' && train.rustsAfterOperation
-    )
+    return trainsOwnedBy(state, { kind: 'company', companyId }).filter(isObsoleteTrain)
 }
 const Fields = Type.Object({
     type: Type.Literal('RustTrains'),

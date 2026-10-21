@@ -4,14 +4,15 @@ import {
     type ConstructionState,
     type MapStateData,
     type TileFace,
-    type TrackRules
+    type TrackRules,
+    laidTileFace,
+    type TrackStep
 } from '@tabletop/18xx'
 import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoMap, MediumCityLocationIds } from './map.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
 import { coalFieldsOpen } from './coalAccess.js'
 import { currentTileFace } from './tileState.js'
-import { sameOperatingTurn } from './titleState.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
 import { migrateRevenueTokens } from './revenueTokens.js'
 import { isSystem } from './systems.js'
@@ -43,24 +44,19 @@ function promotesMediumCity(locationId: string, before: TileFace, after: TileFac
     )
 }
 
-function laidUpgrade(state: ConstructionState, lay: { locationId: string; color: string }) {
+function laidUpgrade(state: ConstructionState, lay: TrackStep['lays'][number]) {
+    const face = laidTileFace(state, EighteenThirtyTwoTrackRules, lay)
     return (
-        lay.color !== 'yellow' ||
-        (MediumCityLocationIds.includes(lay.locationId) &&
-            stopCount(currentTileFace(state, lay.locationId), 'city') > 0)
+        face.color !== 'yellow' ||
+        (MediumCityLocationIds.includes(lay.locationId) && stopCount(face, 'city') > 0)
     )
 }
 
 /** This turn's lays, each as whether it was an upgrade; a WVCF token counts as a yellow (§6.5.2). */
 function laysThisTurn(state: ConstructionState): boolean[] {
-    const title = requireEighteenThirtyTwoState(state)
-    const companyId = state.trackStep?.companyId
-    const coal = title.coalPurchase
     return [
         ...(state.trackStep?.lays ?? []).map((lay) => laidUpgrade(state, lay)),
-        ...(coal && coal.companyId === companyId && sameOperatingTurn(coal.turn, title.operatingSet)
-            ? [false]
-            : [])
+        ...(requireEighteenThirtyTwoState(state).coalTokenBought ? [false] : [])
     ]
 }
 
@@ -93,7 +89,7 @@ function resolveSharedCities(state: EighteenThirtyTwoState, locationId: string) 
             isHomeStation(state, station.id, station.companyId)
         )
             return { id: station.id, companyId: station.companyId, status: 'removed' }
-        state.returnedStationIds = [...(state.returnedStationIds ?? []), station.id]
+        state.returnedStationIds = [...new Set([...(state.returnedStationIds ?? []), station.id])]
         return { id: station.id, companyId: station.companyId, status: 'available' }
     })
 }

@@ -12,7 +12,7 @@ import { singleChoice } from './stagedSelection.svelte.js'
 
 export type EarningsSession = ModuleSession<
     DistributionState & Pick<EighteenXXState, 'machineState'>,
-    Pick<EighteenXXTitleRules, 'earningsRules'>
+    Pick<EighteenXXTitleRules, 'earningsRules' | 'receivershipRules'>
 >
 
 export class EarningsModule {
@@ -23,7 +23,12 @@ export class EarningsModule {
         () => this.session.state.machineState === 'DistributingEarnings'
     )
     distribution = $derived.by(
-        () => new EarningsDistribution(this.session.state, this.session.rules.earningsRules)
+        () =>
+            new EarningsDistribution(
+                this.session.state,
+                this.session.rules.earningsRules,
+                this.session.rules.receivershipRules
+            )
     )
     canDistribute = $derived.by(
         () =>
@@ -37,12 +42,10 @@ export class EarningsModule {
     choices = $derived.by(() => {
         const companyId = this.session.state.routeStep?.companyId
         return companyId && this.distributing
-            ? this.session.rules.earningsRules
-                  .choices(this.session.state, companyId)
-                  .map((choice) => ({
-                      choice,
-                      evaluation: this.distribution.evaluate(companyId, choice)
-                  }))
+            ? this.distribution.choices(companyId).map((choice) => ({
+                  choice,
+                  evaluation: this.distribution.evaluate(companyId, choice)
+              }))
             : []
     })
     preview = $derived.by(

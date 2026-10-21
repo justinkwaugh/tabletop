@@ -52,15 +52,18 @@ Shared: the five core steps, their order, the successor lookup, the rule that a 
 its step state, and what surrounds every step — game ending, company decisions, private
 exchange, phase advance, discards, rusting, funding, and the turn end.
 
-Title-owned today: nothing about the sequence; 1889 and TOP both use the core alone.
+Title-owned today: which of the family steps a title runs. 1846 places stations within
+its track step and declares `operatingSteps` without `PlacingStation`, so the runtime
+builds no handler for it and track's successor is the route step.
 
 ## Support now and later
 
-Now: one family list, every successor derived from it. `stateAfterOperatingStep` and
+Now: one family list, every successor derived from it, and a title may run a subset of
+it through `EighteenXXTitleRules.operatingSteps`. `stateAfterOperatingStep` and
 `isOperatingStep` already take a list, so a longer list needs no change to them.
 
-Letting a title supply the list is the next step and is deliberately not built, because
-no title needs it yet and it is more than a parameter:
+Letting a title add steps to the list is the next step and is deliberately not built,
+because no title needs it yet and it is more than a parameter:
 
 - `validateCompanyDecisions` runs while a State is hydrated, without rules, and uses the
   family list; a title's list has to reach hydration.

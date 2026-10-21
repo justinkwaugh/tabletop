@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { actsFor } from '../finance/receivership.js'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
@@ -8,7 +9,6 @@ import {
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { controllingOwner } from '../finance/finance.js'
 import type { StationPlacementState } from './stationPlacement.js'
 export const FinishStations = Type.Object(
     { ...PlayerAction.properties, type: Type.Literal('FinishStations'), companyId: Type.String() },
@@ -39,7 +39,7 @@ export class HydratedFinishStations
                 state.activePlayerIds.includes(this.playerId) &&
                 step?.companyId === this.companyId &&
                 !step.completed &&
-                controllingOwner(state, this.companyId)?.playerId === this.playerId,
+                actsFor(state, this.playerId, this.companyId),
             'Only the controlling owner may finish station placement'
         )
         step.completed = true

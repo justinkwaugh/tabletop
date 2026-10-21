@@ -11,7 +11,7 @@ function panels(options: { company: boolean; short: boolean; acting?: boolean })
     const model = new TitleStockPanels<'company' | 'short'>(stock, [
         {
             id: 'company',
-            label: 'Act for a company',
+            label: 'Company action',
             available: () => options.company,
             held: () => !!options.acting
         },
@@ -49,7 +49,7 @@ describe('title stock panels', () => {
     it('lists the available panels as stock menu entries', () => {
         const { model } = panels({ company: true, short: false })
         expect(model.menuOptions.map((option) => [option.label, option.selected])).toEqual([
-            ['Act for a company', false]
+            ['Company action', false]
         ])
         model.menuOptions[0].onSelect()
         expect(model.open).toBe('company')

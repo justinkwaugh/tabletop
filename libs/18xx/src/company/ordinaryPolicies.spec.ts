@@ -20,6 +20,7 @@ import type { FundingState } from '../funding/trainFunding.js'
 import { payOrWithholdEarningsRules } from '../earnings/payOrWithhold.js'
 import { EarningsDistribution, type DistributionState } from '../earnings/earningsDistribution.js'
 import { fullCapitalizationCompanyRules } from './fullCapitalization.js'
+import { companyCharters } from './companyCharters.js'
 
 const bank = { kind: 'bank' } as const
 const player = { kind: 'player', playerId: 'alex' } as const
@@ -32,8 +33,10 @@ function chart(color: (column: number) => string = () => 'pink'): StockMarketCha
     )
 }
 const market = chart()
+const charters = companyCharters(() => ({ shareCounts: { A: 10 }, privateRevenues: {} }))
 const trading = ipoMarketTrading({
     market,
+    charters,
     ipoPoolId: 'ipo',
     marketPoolId: 'market',
     marketLimit: 50
@@ -48,7 +51,6 @@ function position(): FundingState & DistributionState {
             {
                 id: 'A',
                 kind: 'major',
-                shareCount: 10,
                 started: true,
                 floated: true,
                 president: player,
@@ -164,6 +166,7 @@ describe('full capitalization from IPO sales', () => {
         const state = position()
         const rules = fullCapitalizationCompanyRules({
             market: chart((column) => (column === 0 ? 'white' : 'pink')),
+            charters,
             ipoPoolId: 'ipo',
             parSpaceColor: 'pink',
             floatPercent: 60
@@ -190,6 +193,7 @@ describe('full capitalization from IPO sales', () => {
             const state = position()
             const rules = fullCapitalizationCompanyRules({
                 market,
+                charters,
                 ipoPoolId: 'ipo',
                 parSpaceColor: 'pink',
                 floatPercent
@@ -236,7 +240,7 @@ describe('full capitalization from IPO sales', () => {
 describe('pay or withhold distributions', () => {
     it('pays market holdings to the company, leaves IPO dividends in the bank, and moves only floated shares', () => {
         const state = position()
-        const rules = payOrWithholdEarningsRules(market, {
+        const rules = payOrWithholdEarningsRules(market, charters, {
             unpaidPoolIds: ['ipo'],
             companyPoolIds: ['market']
         })
@@ -269,6 +273,7 @@ describe('ownership policy shared with emergency funding', () => {
         function policies(markerColor: string) {
             const limits = marketZoneHoldingLimits({
                 market: chart((column) => (column === 1 ? markerColor : 'pink')),
+                charters,
                 certificateFreeColors: ['yellow', 'orange'],
                 ownershipFreeColors: ['orange'],
                 ownershipPercent: 50

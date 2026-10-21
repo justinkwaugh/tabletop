@@ -13,7 +13,8 @@ import {
     type EighteenXXState,
     type EighteenXXTitleRules,
     type StockInstruction,
-    type StoppedStockInstruction
+    type StoppedStockInstruction,
+    companyShareCount
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 
@@ -65,7 +66,12 @@ export class StockInstructionModule {
         if (!playerId) return []
         const buyer = { kind: 'player', playerId } as const
         return state.companies
-            .filter((company) => company.shareCount && company.started && !company.closed)
+            .filter(
+                (company) =>
+                    companyShareCount(state, rules.stockRules.charters, company.id) &&
+                    company.started &&
+                    !company.closed
+            )
             .map((company) => ({
                 company,
                 pools: state.certificatePools.filter(

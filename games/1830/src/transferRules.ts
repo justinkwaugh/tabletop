@@ -1,3 +1,4 @@
+import { EighteenThirtyCharters } from './charters.js'
 import { assertExists } from '@tabletop/common'
 import { EighteenThirtyPrivateCatalog } from './privates.js'
 import { EighteenThirtyPhases, EighteenThirtyTrainRules } from './trains.js'
@@ -10,6 +11,7 @@ import {
 } from '@tabletop/18xx'
 export const EighteenThirtyTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
+    charters: EighteenThirtyCharters,
     priceRange(state, _companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
         if (asset.kind !== 'private') return undefined

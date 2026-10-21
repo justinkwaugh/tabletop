@@ -7,7 +7,7 @@ import {
     type TrainDefinition,
     type RouteRevenueStop
 } from '@tabletop/18xx'
-import { stockGame, start, buyTrain } from './testSupport.js'
+import { stockGame, start, buyTrain } from '../test/testSupport.js'
 import { corporateFinanceChoices } from './corporateFinance.js'
 import { TrainDepot1846, trainBuyingChoices1846 } from './trains.js'
 import { RouteRules1846 } from './routes.js'

@@ -2,20 +2,20 @@ import { assertExists } from '@tabletop/common'
 import {
     certificatesInPool,
     certificatesOwnedBy,
-    getCompany,
     sameOwner,
     sharesOwned,
     type Owner,
     type Portfolio,
     type President
 } from '../finance/finance.js'
+import { companyShareCount, type CompanyCharters } from '../company/companyCharters.js'
 import type { CompanyAuctionRules } from './companyAuction.js'
 import type { PrivateSaleRules } from './privateSale.js'
 import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from './sharePurchase.js'
 import type { StockInstructionRules } from './stockInstruction.js'
 import type { StockMarketChart } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
-import type { ShareSaleDetails } from './shareSale.js'
+import type { ShareSaleDetails, ShareSaleSettlement } from './shareSale.js'
 import type { StockState } from './stockState.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
 
@@ -30,6 +30,7 @@ export type ShareSaleTerms = {
 }
 export interface StockRules {
     market: StockMarketChart
+    charters: CompanyCharters
     round: StockRoundRules
     instructions?: StockInstructionRules
     sellers(state: StockState, playerId: string): Owner[]
@@ -59,6 +60,13 @@ export interface StockRules {
      * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
      */
     afterSale?(state: StockState, details: ShareSaleDetails): void
+    /**
+     * Whether a sale leaves the company's marker where it is, for the title to move later, as
+     * price protection in 1832, 1850 and 1870 waits for the president's decision. A held sale
+     * records the space it was sold from as its destination, and later sales of the company
+     * fetch the unmoved price. It sees the sale's certificates in the market, marker unmoved.
+     */
+    holdsMarketMove?(state: StockState, sale: ShareSaleSettlement, seller: Owner): boolean
     /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
     afterSharePurchase?(state: StockState, details: SharePurchaseDetails): void
     /** When a turn's sales may come relative to its purchase. */
@@ -85,11 +93,11 @@ export function purchaseOwnershipCeiling(
     state: StockState,
     companyId: string,
     buyer: Owner,
-    rules: Pick<StockRules, 'ownershipLimit'>
+    rules: Pick<StockRules, 'ownershipLimit' | 'charters'>
 ): number {
-    const company = getCompany(state, companyId)
-    assertExists(company.shareCount, 'Ownership limits require a share count')
-    return Math.floor((rules.ownershipLimit(state, companyId, buyer) * company.shareCount) / 100)
+    const shareCount = companyShareCount(state, rules.charters, companyId)
+    assertExists(shareCount, 'Ownership limits require a share count')
+    return Math.floor((rules.ownershipLimit(state, companyId, buyer) * shareCount) / 100)
 }
 
 export function certificateLimitAllows(
@@ -128,11 +136,12 @@ export function exceedsStockLimits(state: StockState, owner: Owner, rules: Stock
     return (
         stockCertificateCount(state, owner, rules) > rules.certificateLimit(state, owner) ||
         state.companies.some((company) => {
-            if (!company.shareCount) return false
+            const shareCount = companyShareCount(state, rules.charters, company.id)
+            if (!shareCount) return false
             return (
                 sharesOwned(state, company.id, owner) * 100 >
                 Math.max(
-                    rules.ownershipLimit(state, company.id, owner) * company.shareCount,
+                    rules.ownershipLimit(state, company.id, owner) * shareCount,
                     ...(state.ownershipLimitExemptions ?? [])
                         .filter(
                             (exemption) =>

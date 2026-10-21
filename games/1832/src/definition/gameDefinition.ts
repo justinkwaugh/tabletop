@@ -1,5 +1,5 @@
 import { EighteenThirtyTwoNames } from '../names.js'
-import { type GameDefinition } from '@tabletop/common'
+import { defineGame, type GameDefinition } from '@tabletop/common'
 import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
 import {
     CapitalizeCompany,
@@ -10,7 +10,11 @@ import {
 import { EighteenThirtyTwoCompanyRules } from '../companyRules.js'
 import { EighteenThirtyTwoEarningsRules } from '../earningsRules.js'
 import { EighteenThirtyTwoEndingRules } from '../endingRules.js'
-import { EighteenThirtyTwoAuctionRules, createEighteenThirtyTwoOpening } from '../openingAuction.js'
+import {
+    EighteenThirtyTwoAuctionRules,
+    createEighteenThirtyTwoOpening,
+    eighteenThirtyTwoStartingCash
+} from '../openingAuction.js'
 import { EighteenThirtyTwoPhaseRules } from '../phaseRules.js'
 import { EighteenThirtyTwoPrivatePowerRules } from '../privatePowerRules.js'
 import { EighteenThirtyTwoPrivateRules } from '../privateRules.js'
@@ -110,6 +114,7 @@ import {
     isRedeemShare,
     isReissueShares
 } from '../redemption.js'
+import { clearsSpentRecords } from '../spentRecords.js'
 
 // A company closes as its price enters the black area; once a seller finishes, the presidents
 // of the companies sold may protect their prices (§5.1.1, §5.9).
@@ -128,6 +133,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     transferRules: EighteenThirtyTwoTransferRules,
     privatePowerRules: EighteenThirtyTwoPrivatePowerRules,
     createOpening: createEighteenThirtyTwoOpening,
+    startingCash: eighteenThirtyTwoStartingCash,
     stockRules: EighteenThirtyTwoStockRules,
     companyRules: EighteenThirtyTwoCompanyRules,
     operatingRules: EighteenThirtyTwoOperatingRules,
@@ -142,16 +148,20 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     additionalConstructionActions: ['BuyCoalRights'],
     decisionHandlers: {
         StockRound: (family) =>
-            closesAndProtects(
-                redeemsAndReissues(new TitleActionsHandler(family, [TakeLondonShareStep]))
+            clearsSpentRecords(
+                closesAndProtects(
+                    redeemsAndReissues(new TitleActionsHandler(family, [TakeLondonShareStep]))
+                )
             ),
         StartingOperatingSet: (family) =>
-            capitalizesFloatedCompanies(startsMergerPhase(family, false)),
-        OperatingSet: (family) => closesAndProtects(startsMergerPhase(family, true)),
+            clearsSpentRecords(capitalizesFloatedCompanies(startsMergerPhase(family, false))),
+        OperatingSet: (family) =>
+            clearsSpentRecords(closesAndProtects(startsMergerPhase(family, true))),
         FundingTrain: closesCompanies,
         BuyingTrains: closesAndProtects,
         LayingTrack: (family) => new TitleActionsHandler(family, [BuyCoalRightsStep]),
-        PlacingStation: (family) => new TitleActionsHandler(family, [PlaceRevenueTokenStep]),
+        PlacingStation: (family) =>
+            clearsSpentRecords(new TitleActionsHandler(family, [PlaceRevenueTokenStep])),
         DistributingEarnings: recordsMiamiRun
     },
     titleStateHandlers: {
@@ -160,7 +170,11 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
         Merging: closesAndProtects(new MergingHandler())
     },
     titleActions: [
-        defineAction(CloseCompany, isCloseCompany, (action) => new HydratedCloseCompany(action)),
+        defineAction(
+            CloseCompany,
+            isCloseCompany,
+            (action) => new HydratedCloseCompany(action, EighteenThirtyTwoEndingRules)
+        ),
         defineAction(RedeemShare, isRedeemShare, (action) => new HydratedRedeemShare(action)),
         defineAction(
             StartMergerPhase,
@@ -188,7 +202,7 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
         defineAction(
             CompleteMergerPhase,
             isCompleteMergerPhase,
-            (action) => new HydratedCompleteMergerPhase(action)
+            (action) => new HydratedCompleteMergerPhase(action, EighteenThirtyTwoEndingRules)
         ),
         defineAction(
             AnswerRedemption,
@@ -236,7 +250,8 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
     ]
 }
 
-export const Definition: GameDefinition<EighteenThirtyTwoState, HydratedEighteenThirtyTwoState> = {
-    info: EighteenThirtyTwoInfo,
-    runtime: createEighteenXXRuntime(EighteenThirtyTwoTitleRules)
-}
+export const Definition: GameDefinition<EighteenThirtyTwoState, HydratedEighteenThirtyTwoState> =
+    defineGame({
+        info: EighteenThirtyTwoInfo,
+        runtime: createEighteenXXRuntime(EighteenThirtyTwoTitleRules)
+    })

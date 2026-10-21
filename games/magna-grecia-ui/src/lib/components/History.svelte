@@ -8,6 +8,7 @@
         historyLines,
         historyRounds,
         historySpaces,
+        winVerb,
         type HistoryRound,
         type HistoryTurn
     } from '$lib/utils/historyTurns.js'
@@ -110,10 +111,11 @@
                 <span>Game over</span>
                 {#if gameSession.gameState.winningPlayerIds.length > 0}
                     <span class="winners">
-                        {#each gameSession.gameState.winningPlayerIds as playerId (playerId)}
+                        {#each gameSession.gameState.winningPlayerIds as playerId, index (playerId)}
+                            {#if index > 0}and{/if}
                             <PlayerName {playerId} />
                         {/each}
-                        {gameSession.gameState.winningPlayerIds.length > 1 ? 'win' : 'wins'}
+                        {winVerb(gameSession.gameState.winningPlayerIds, gameSession.myPlayerId)}
                     </span>
                 {/if}
                 <span class="when">{timeAgo.format(gameSession.game.finishedAt!)}</span>

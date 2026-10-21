@@ -11,6 +11,7 @@ import {
 } from '@tabletop/napoleons-triumph'
 import {
     advanceGuardStillToChoose,
+    batteryHoldsTheSanton,
     choosesAdvanceGuard,
     corpsOf,
     corpsStrengths,
@@ -62,7 +63,7 @@ export interface FixedBatterySeat {
     unitId?: string
     position?: Position
     open: boolean
-    /** Table ruling: with the Santon rule in use the fixed battery stands on the Santon and stays there. */
+    /** Rule 18: with the Santon rule in use, a fixed battery set up on the Santon stands there in reserve. */
     holdsTheSanton: boolean
 }
 
@@ -215,7 +216,7 @@ export function setupTable(
             unitId: battery?.unitId,
             position: battery?.position,
             open: open.kind === DestinationKind.FixedBattery,
-            holdsTheSanton: state.santon
+            holdsTheSanton: batteryHoldsTheSanton(state, setup)
         }
     }
 }
@@ -237,9 +238,7 @@ export function setupTargets(
         return []
     }
     if (setup.detached.some((entry) => entry.unitId === unitId)) {
-        return state.santon && setup.fixedBatteryId === unitId
-            ? []
-            : stillFitting(postStances(state.map, setup, unitId))
+        return stillFitting(postStances(state, setup, unitId))
     }
     return PLACING_APART[open.kind].posts(state, playerId, setup, unitId)
 }

@@ -27,9 +27,9 @@
     <table class="auction-lot-table">
         <thead
             ><tr
-                ><th><span class="sr-only">Action</span></th><th>Private / share</th><th
-                    class="amount">Income</th
-                ><th class="amount">Value</th></tr
+                >{#if session.offers.ownTurn}<th><span class="sr-only">Action</span></th>{/if}<th
+                    >Private / share</th
+                ><th class="amount">Income</th><th class="amount">Value</th></tr
             ></thead
         >
         <tbody>
@@ -37,31 +37,32 @@
                 {@const info = lotInfo(lot.id)}
                 {@const token = lot.token}
                 <tr data-private-description-row>
-                    <td class="action"
-                        ><button
-                            data-description-exclude
-                            aria-label={`Offer ${lot.name}`}
-                            disabled={!session.offers.canAct ||
-                                !session.myPlayer ||
-                                !model.canOffer(session.myPlayer.id, lot.id)}
-                            onclick={() => session.offers.offerLot(lot.id)}>Offer</button
-                        ></td
-                    >
+                    {#if session.offers.ownTurn}<td class="action"
+                            ><button
+                                data-description-exclude
+                                aria-label={`Offer ${session.lotName(lot)}`}
+                                disabled={!session.offers.canAct ||
+                                    !session.myPlayer ||
+                                    !model.canOffer(session.myPlayer.id, lot.id)}
+                                onclick={() => session.offers.offerLot(lot.id)}>Offer</button
+                            ></td
+                        >{/if}
 
                     <th scope="row"
                         ><div class="identity">
                             <button
                                 class="lot-icon"
                                 data-description-exclude={info.locationId ? true : undefined}
-                                aria-label={info.locationId ? `Show ${lot.name} on map` : lot.name}
+                                aria-label={info.locationId
+                                    ? `Show ${session.lotName(lot)} on map`
+                                    : session.lotName(lot)}
                                 onclick={() => {
                                     if (info.locationId) onFocus(info.locationId)
                                 }}
                             >
                                 {#if token}<CompanyToken appearance={token} size={26} />
                                 {:else}<span class="private-icon" aria-hidden="true"
-                                        >{session.presentation.companyNames?.[lot.id]?.initials ??
-                                            lot.id}</span
+                                        >{session.lotInitials(lot)}</span
                                     >{/if}
                             </button>
                             <PrivateDescription
@@ -69,17 +70,18 @@
                                 phaseColors={session.presentation.phaseColors}
                                 {token}
                                 imageUrl={session.publishedCardImage(lot.id)}
-                                name={lot.name}
+                                shortName={session.lotName(lot)}
+                                fullName={lot.name}
                                 description={info.description}
                                 value={lot.price}
-                                income={lot.company?.privateRevenue}
+                                income={lot.company?.revenue}
                             />
                         </div></th
                     >
                     <td class="amount income"
-                        >{#if lot.company && lot.company.privateRevenue !== undefined}{money(
-                                lot.company.privateRevenue
-                            )}<small> / OR</small>{:else}—{/if}</td
+                        >{#if lot.company}{money(lot.company.revenue)}<small>
+                                / OR</small
+                            >{:else}—{/if}</td
                     >
                     <td class="amount value">{money(lot.price)}</td>
                 </tr>

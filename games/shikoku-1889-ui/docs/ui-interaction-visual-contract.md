@@ -9,7 +9,8 @@ and revisiting restores its local example.
 Stock-round history gives every player action and pass its own tinted line with
 the player name repeated in regular-weight text; no player dot or colon appears.
 The action verb starts lowercase after the player name.
-History descriptions use full company names. Automatic flotation names the
+History descriptions name majors by their initials and privates by their short
+names. Automatic flotation names the
 company without a player name or player tint; its token sits beside the summary
 and capital detail.
 Company operation history headers use the recorded controlling player's color tint.
@@ -210,12 +211,10 @@ triggering user Action and its System Action cascade together, restoring the end
 schedule, results, Bank state, and ordinary play. GameOver exposes no game Actions.
 The prototype harness reloads completed games as well as active ones.
 
-The initial game table follows the shared game-table-shell contract. The title's
-normal UiDefinition uses that shell, while PrototypeUiDefinition retains the
-logic-workbench layout. The table supplies title-specific auction/action content,
-uses canonical active player ids and the existing title Session for all decisions,
-and renders the same semantic map and previews. This is the first desktop layout
-increment; the old workbench remains available for detailed rule inspection.
+The game table follows the shared game-table-shell contract. The table supplies
+title-specific auction/action content, uses canonical active player ids and the
+existing title Session for all decisions, and renders the same semantic map and
+previews.
 
 The company-order row and token artwork follow the shared game-table-shell
 contract. This title supplies its existing OperatingRules and packaged token

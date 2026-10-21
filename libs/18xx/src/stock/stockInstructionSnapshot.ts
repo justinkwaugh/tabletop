@@ -1,4 +1,5 @@
-import { getCompany, sameOwner, sharesOwned, type Owner } from '../finance/finance.js'
+import { sameOwner, sharesOwned, type Owner } from '../finance/finance.js'
+import { companyShareCount } from '../company/companyCharters.js'
 import { exceedsStockLimits, type StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 import type {
@@ -18,15 +19,19 @@ export function createStandingStockInstruction(
     return {
         playerId,
         instruction,
-        snapshot: stockPositionSnapshot(state, playerId),
+        snapshot: stockPositionSnapshot(state, playerId, rules),
         ...(titleSnapshot ? { titleSnapshot } : {})
     }
 }
 
-export function stockPositionSnapshot(state: StockState, playerId: string): StockPositionSnapshot {
+export function stockPositionSnapshot(
+    state: StockState,
+    playerId: string,
+    rules: Pick<StockRules, 'charters'>
+): StockPositionSnapshot {
     const owner: Owner = { kind: 'player', playerId }
     return state.companies.flatMap((company) => {
-        if (!company.shareCount) return []
+        if (!companyShareCount(state, rules.charters, company.id)) return []
         const rivalShares = Math.max(
             0,
             ...state.players
@@ -66,7 +71,7 @@ function familyPositionChange(
 ): StockInstructionStopReason | undefined {
     const owner: Owner = { kind: 'player', playerId: standing.playerId }
     if (exceedsStockLimits(state, owner, rules)) return { code: 'limits' }
-    for (const current of stockPositionSnapshot(state, standing.playerId)) {
+    for (const current of stockPositionSnapshot(state, standing.playerId, rules)) {
         const before = standing.snapshot.find((item) => item.companyId === current.companyId)
         if (!before) continue
         const companyId = current.companyId
@@ -82,7 +87,8 @@ function familyPositionChange(
         const presides = current.president !== undefined && sameOwner(current.president, owner)
         const secure =
             rules.instructions?.securePresidency?.(state, current.companyId, owner) ??
-            current.ownerShares * 2 > (getCompany(state, current.companyId).shareCount ?? 0)
+            current.ownerShares * 2 >
+                (companyShareCount(state, rules.charters, current.companyId) ?? 0)
         if (presides && !secure && current.rivalShares > before.rivalShares)
             return { code: 'presidency-threatened', companyId }
     }

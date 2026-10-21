@@ -1,9 +1,10 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/gameSessionContext.js'
     import ActingPlayerControl from './ActingPlayerControl.svelte'
+    import ViewingHistoryLine from './ViewingHistoryLine.svelte'
 
     let gameSession = getGameSession()
-    const { myPlayer, colors } = gameSession.bridge
+    const { myPlayer, colors, isViewingHistory } = gameSession.bridge
     let hotseatPlayerBgColor = $derived($colors.getPlayerBgColorValue($myPlayer?.id))
     let hotseatPlayerTextColor = $derived($colors.getPlayerTextColorValue($myPlayer?.id))
     let showActingPlayerControl = $derived(
@@ -25,5 +26,12 @@
         {:else if $myPlayer}
             <span class="font-bold">{$myPlayer.name}</span>&nbsp;- It's your turn
         {/if}
+    </div>
+{/if}
+{#if $isViewingHistory}
+    <div
+        class="flex min-h-[44px] items-center justify-center border-t border-gray-600 bg-gray-700 px-3 py-1.5"
+    >
+        <ViewingHistoryLine />
     </div>
 {/if}

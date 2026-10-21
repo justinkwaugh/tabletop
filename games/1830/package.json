@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/1830",
-    "version": "0.0.1",
+    "version": "1.1.0",
     "private": true,
     "type": "module",
     "exports": {
@@ -37,7 +37,6 @@
         "vitest": "^4.0.12",
         "@tabletop/rollup-config": "workspace:*",
         "rollup": "4.55.2",
-        "@tabletop/18xx-autorouter": "workspace:*",
         "typebox": "^1.0.79",
         "@tabletop/eslint-config": "workspace:*"
     }

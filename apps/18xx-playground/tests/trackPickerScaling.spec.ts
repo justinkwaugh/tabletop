@@ -37,7 +37,7 @@ for (const title of ['TOP', '1889']) {
             .locator('.tile-choice.chosen')
             .evaluate((tile) => tile.getBoundingClientRect().width)
         await page
-            .getByRole('tabpanel', { name: 'Map', exact: true })
+            .getByRole('tabpanel', { name: 'Board', exact: true })
             .getByRole('button', { name: 'Zoom in', exact: true })
             .click()
         await expect

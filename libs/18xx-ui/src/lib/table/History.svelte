@@ -1,13 +1,12 @@
 <script lang="ts">
-    import { historyStates } from './historyStates.js'
+    import { historyBankBreaks, historyStates } from './historyStates.js'
     import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
     import { controllingOwner } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
     import { historyCash } from './historyCash.js'
-    import { historyOperatingOrder } from './historyOperatingOrder.js'
+    import { entryOrderChanges, historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
     import { auctionLotName } from './auctionHistory.js'
-    import type { CompanyNameVariants } from './companyPresentation.js'
     import { historyGroups } from './historyGroups.js'
     import { historyDescription, type TitleActionDescription } from './historyDescription.js'
     import HistoryGroup from './HistoryGroup.svelte'
@@ -23,8 +22,7 @@
         tileColors,
         tileColorNames,
         trainColors,
-        describeAction,
-        companyNames
+        describeAction
     }: {
         onPreviewMap: (action: GameAction) => void
         session: EighteenXXSessionView
@@ -33,7 +31,6 @@
         phaseTileColors: Readonly<Record<string, readonly string[]>>
         tileColors?: Readonly<Record<string, string>>
         tileColorNames?: Readonly<Record<string, string>>
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: TitleActionDescription
     } = $props()
     const money = $derived(session.presentation.money)
@@ -46,9 +43,11 @@
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
     const context = $derived(session.history.visibleContext)
     const gameState = $derived(context.state)
-    const states = $derived(historyStates(context.actions, gameState))
+    const states = $derived(historyStates(context.actions, gameState, session.endingRules))
     const orderChanges = $derived(historyOperatingOrder(context.actions, states))
     const cash = $derived(historyCash(states))
+    const entryOrders = $derived(entryOrderChanges(context.actions, orderChanges))
+    const bankBreaks = $derived(historyBankBreaks(states))
     const companyChanges = $derived(historyCompanyChanges(context.actions))
     // A system action the title describes is one of its own events, unless it is routine.
     const rounds = $derived(
@@ -67,11 +66,16 @@
     function returnToCurrent() {
         if (!jumpDisabled) void session.history.goToEnd()
     }
-    function fullCompanyName(id: string) {
-        return session.companyName(id)
-    }
+    const companyLabels = $derived(
+        gameState.companies.flatMap((company) => [
+            session.companyInitials(company.id),
+            session.companyName(company.id)
+        ])
+    )
     function companyName(id: string) {
-        return companyNames?.[id]?.history ?? fullCompanyName(id)
+        return gameState.companies.find((company) => company.id === id)?.kind === 'private'
+            ? session.companyName(id)
+            : session.companyInitials(id)
     }
     function describeShared(action: GameAction) {
         return historyDescription(
@@ -82,13 +86,14 @@
             (id) => session.getPlayerName(id),
             companyChanges.get(action.id),
             session.presentation.money,
-            (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName)
+            (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
+            (id) => session.names.routeBonus(id)
         )
     }
     function describe(action: GameAction) {
         const shared = () => describeShared(action)
         const description = describeAction?.(action, companyName, shared) ?? shared()
-        return orderChanges.has(action.id) ? { ...description, important: true } : description
+        return entryOrders.has(action.id) ? { ...description, important: true } : description
     }
 
     function lot(lotId: string) {
@@ -118,11 +123,13 @@
         <ol aria-label={`${round.label} actions`}>
             {#each newestFirst ? groups : groups.toReversed() as entry (entry.id)}
                 {#if entry.kind === 'auction'}
+                    {@const offered = lot(entry.offer.lotId)}
                     <li class="auction">
                         <AuctionHistoryCard
                             {money}
                             card={entry}
-                            lot={lot(entry.offer.lotId)}
+                            lot={offered}
+                            lotName={session.lotName(offered)}
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
                         />
@@ -154,11 +161,13 @@
                             {trainColors}
                             shareCards={(action) => session.shareCards(action)}
                             trainName={(id) => session.trainDepot.trainDefinition(id).name}
-                            {orderChanges}
+                            orderChanges={entryOrders}
                             {cash}
+                            {bankBreaks}
                             stations={session.mapView.stations}
                             {describe}
-                            {companyName}
+                            companyName={(id) => session.companyName(id)}
+                            {companyLabels}
                         />
                     </li>
                 {/if}

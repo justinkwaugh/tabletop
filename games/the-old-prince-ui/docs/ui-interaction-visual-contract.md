@@ -98,7 +98,7 @@ These change shared presentation without adding interaction:
   and T labels, with the brown tier named pink wherever tile colours are written), printed-city station positions, and the three rearranged offboard groups moved to their
   printed cells so routes and hit targets follow the printed track), and
   printed-city station positions
-  for Wellington, Summerside and Charlottetown. In that mode the page and map surround
+  for Wellington, Summerside and Charlottetown. In that mode the table and map surround
   take the board's dark border color, the table takes the board's own palette (light tan
   paper for bright text, the grey-tan of its stock market figures for dimmed text and
   inactive tabs, slate market-cell surfaces and borders), share certificates beside share purchases and sales in history and the position

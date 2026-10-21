@@ -15,13 +15,19 @@ import {
     type SelectionAuctionState
 } from './selectionAuction.js'
 import { startFirstStockRound } from './startFirstStockRound.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
+import { RoundEnd, roundEnd } from '../ending/roundEnd.js'
 import type { StockState } from '../stock/stockState.js'
 
 const ResolveFields = Type.Object({
     type: Type.Literal('ResolveSelectionAuction'),
     metadata: Type.Optional(
         Type.Object(
-            { resolution: SelectionAuctionResolution, completed: Type.Boolean() },
+            {
+                resolution: SelectionAuctionResolution,
+                completed: Type.Boolean(),
+                roundEnd: Type.Optional(RoundEnd)
+            },
             { additionalProperties: false }
         )
     )
@@ -47,9 +53,15 @@ export class HydratedResolveSelectionAuction
     declare type: 'ResolveSelectionAuction'
     declare metadata?: ResolveSelectionAuction['metadata']
     readonly #rules: SelectionAuctionRules
-    constructor(data: ResolveSelectionAuction, rules: SelectionAuctionRules) {
+    readonly #valuationRules: ValuationRules
+    constructor(
+        data: ResolveSelectionAuction,
+        rules: SelectionAuctionRules,
+        valuationRules: ValuationRules
+    ) {
         super(data instanceof HydratedResolveSelectionAuction ? data.dehydrate() : data, Validator)
         this.#rules = rules
+        this.#valuationRules = valuationRules
     }
     isValid(state: SelectionAuctionState & { machineState: string }): boolean {
         const model = activeSelectionAuction(state, this.#rules)
@@ -64,5 +76,6 @@ export class HydratedResolveSelectionAuction
         // The player who would have nominated next has priority in the first stock round.
         state.turnManager.newFirstPlayer(model.auction.nominatorId)
         startFirstStockRound(state, state.turnManager.turnOrder)
+        this.metadata.roundEnd = roundEnd(state, this.#valuationRules, 'opening')
     }
 }

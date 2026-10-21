@@ -5,7 +5,6 @@ import {
     HydratableAction,
     PlayerAction,
     assert,
-    assertExists,
     type GameAction,
     type HydratedAction
 } from '@tabletop/common'
@@ -129,15 +128,10 @@ export class HydratedBuyCoalRights
     }
     apply(state: HydratedEighteenThirtyTwoState): void {
         assert(this.isValid(state), 'The company cannot buy a WVCF token now')
-        const set = state.operatingSet
-        assertExists(set, 'WVCF tokens are bought during an operating round')
         const payments = coalTokenPayments(state, this.companyId)
         settleCashPayments(state, payments)
         state.coalRights.push(this.companyId)
-        state.coalPurchase = {
-            companyId: this.companyId,
-            turn: { set: set.number, round: set.roundNumber }
-        }
+        state.coalTokenBought = true
         this.metadata = { payments }
     }
 }

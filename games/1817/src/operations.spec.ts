@@ -15,6 +15,7 @@ import {
     type EighteenXXState
 } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
+import { laidTiles } from '@tabletop/18xx/testing'
 import {
     EighteenSeventeenEarningsRules,
     EighteenSeventeenRouteRules,
@@ -34,7 +35,11 @@ describe('track construction', () => {
     it('allows a second yellow lay for $20 on another hex', () => {
         const { state, track } = construction()
         expect(EighteenSeventeenTrackRules.allowance(state, 'yellow')).toEqual({ cost: 0 })
-        state.trackStep!.lays.push({ locationId: 'C24', color: 'yellow', cost: 15 })
+        state.trackStep!.lays.push(
+            ...laidTiles(state.tileInventory, EighteenSeventeenTileSet, [
+                { locationId: 'C24', color: 'yellow' }
+            ])
+        )
         expect(EighteenSeventeenTrackRules.allowance(state, 'yellow')).toEqual({ cost: 20 })
         expect(EighteenSeventeenTrackRules.allowance(state, 'green')).toEqual({ cost: 20 })
         expect(track().choices('C24')).toEqual([])
@@ -42,10 +47,18 @@ describe('track construction', () => {
 
     it('allows only one upgrade a turn and no third lay', () => {
         const { state } = construction()
-        state.trackStep!.lays.push({ locationId: 'C26', color: 'green', cost: 0 })
+        state.trackStep!.lays.push(
+            ...laidTiles(state.tileInventory, EighteenSeventeenTileSet, [
+                { locationId: 'C26', color: 'green' }
+            ])
+        )
         expect(EighteenSeventeenTrackRules.allowance(state, 'green')).toHaveProperty('reason')
         expect(EighteenSeventeenTrackRules.allowance(state, 'yellow')).toEqual({ cost: 20 })
-        state.trackStep!.lays.push({ locationId: 'C24', color: 'yellow', cost: 35 })
+        state.trackStep!.lays.push(
+            ...laidTiles(state.tileInventory, EighteenSeventeenTileSet, [
+                { locationId: 'C24', color: 'yellow' }
+            ])
+        )
         expect(EighteenSeventeenTrackRules.allowance(state, 'yellow')).toHaveProperty('reason')
     })
 

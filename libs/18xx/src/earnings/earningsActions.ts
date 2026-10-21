@@ -1,4 +1,5 @@
 import { defineAction, type ActionDefinition } from '../actions/actionDefinition.js'
+import type { ReceivershipRules } from '../finance/receivership.js'
 import type { PrivateRules } from '../privates/privateRules.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { EarningsRules } from './earningsDistribution.js'
@@ -12,13 +13,22 @@ export function earningsActions(
     earnings: EarningsRules,
     privates: Pick<PrivateRules, 'operationEffects'>,
     stock: StockRules,
-    nextState: string
+    nextState: string,
+    receivership?: ReceivershipRules
 ): ActionDefinition[] {
     return [
         defineAction(
             DistributeEarnings,
             isDistributeEarnings,
-            (action) => new HydratedDistributeEarnings(action, earnings, privates, stock, nextState)
+            (action) =>
+                new HydratedDistributeEarnings(
+                    action,
+                    earnings,
+                    privates,
+                    stock,
+                    nextState,
+                    receivership
+                )
         )
     ]
 }

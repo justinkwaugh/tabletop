@@ -1,4 +1,5 @@
 import { OperatingRoundIdentity } from '../operating/operatingRoundSnapshot.js'
+import type { ReceivershipRules } from '../finance/receivership.js'
 import type { MapStateData } from '../map/mapState.js'
 import { PrivateEffect, type PrivateRules } from '../privates/privateRules.js'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
@@ -67,21 +68,24 @@ export class HydratedDistributeEarnings
     readonly #privateRules: Pick<PrivateRules, 'operationEffects'>
     readonly #stockRules: StockRules
     readonly #nextState: string
+    readonly #receivership?: ReceivershipRules
     constructor(
         data: DistributeEarnings,
         rules: EarningsRules,
         privateRules: Pick<PrivateRules, 'operationEffects'>,
         stockRules: StockRules,
-        nextState: string
+        nextState: string,
+        receivership?: ReceivershipRules
     ) {
         super(data instanceof HydratedDistributeEarnings ? data.dehydrate() : data, Validator)
         this.#rules = rules
         this.#privateRules = privateRules
         this.#stockRules = stockRules
         this.#nextState = nextState
+        this.#receivership = receivership
     }
     apply(state: HydratedGameState & DistributionState & CashCrisisState & MapStateData): void {
-        const distribution = new EarningsDistribution(state, this.#rules)
+        const distribution = new EarningsDistribution(state, this.#rules, this.#receivership)
         assert(
             (this.source === ActionSource.User ||
                 (this.source === ActionSource.System &&

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import CertificateCount from '../stock/CertificateCount.svelte'
     import './playerTint.css'
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
@@ -14,18 +15,17 @@
     import { auctionLotDetail, auctionLotDetails } from '../auctions/auctionLotDetails.js'
     import { assertExists } from '@tabletop/common'
     import { numberedSharesOwned } from './numberedShares.js'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import PresidentBadge from '../finance/PresidentBadge.svelte'
+    import PresidentName from '../finance/PresidentName.svelte'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
     let {
         session,
-        companyNames = {},
         valuationRules,
         auctionLotDescription,
         numberedShareNames = {},
@@ -36,7 +36,6 @@
         onShowCompanyCard,
         portfolioCompanyIds = []
     }: {
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         session: EighteenXXSessionView
         valuationRules: ValuationRules
         auctionLotDescription?: (id: string) => string
@@ -70,6 +69,7 @@
                 session.gameState,
                 { kind: 'player', playerId },
                 valuationRules,
+                session.charters,
                 !!session.presentation.minorsAsPrivates
             )
         })),
@@ -86,7 +86,12 @@
                 bankrupt: false,
                 liquidity: undefined,
                 certs: undefined,
-                ...ownerPortfolio(session.gameState, { kind: 'company', companyId }, valuationRules)
+                ...ownerPortfolio(
+                    session.gameState,
+                    { kind: 'company', companyId },
+                    valuationRules,
+                    session.charters
+                )
             }
         })
     ])
@@ -180,7 +185,9 @@
     {#each players as player, index (player.id)}
         <article
             class:compact
-            animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
+            animate:flip={{
+                duration: session.restoredSilently || prefersReducedMotion.current ? 0 : 180
+            }}
             aria-label={`${player.name} portfolio`}
             data-player-id={player.playerId}
             class:active={player.playerId !== undefined &&
@@ -207,7 +214,10 @@
                             imageUrl={session.publishedCardImage(
                                 player.owner.kind === 'company' ? player.owner.companyId : undefined
                             )}
-                            name={player.name}
+                            shortName={player.name}
+                            fullName={player.owner.kind === 'company'
+                                ? session.companyFullName(player.owner.companyId)
+                                : player.name}
                             description={player.description}
                         />{:else}<span>{player.name}</span>{/if}
                 </h3>
@@ -290,7 +300,12 @@
                 {#if player.certs}<span class="stat-divider" aria-hidden="true"></span>
                     <dl title="Certificates counted toward the title’s certificate limit">
                         <dt>Certs</dt>
-                        <dd>{player.certs.count}/{player.certs.limit}</dd>
+                        <dd>
+                            <CertificateCount
+                                count={player.certs.count}
+                                limit={player.certs.limit}
+                            />
+                        </dd>
                     </dl>{/if}
                 <span class="stat-divider" aria-hidden="true"></span>
                 <dl>
@@ -314,11 +329,12 @@
                                                 phaseColors={session.presentation.phaseColors}
                                                 token={lot.token}
                                                 imageUrl={session.publishedCardImage(lot.id)}
-                                                name={lot.name}
+                                                shortName={session.lotName(lot)}
+                                                fullName={lot.name}
                                                 {description}
                                                 value={lot.price}
-                                                income={lot.company?.privateRevenue}
-                                            />{:else}{lot.name}{/if}
+                                                income={lot.company?.revenue}
+                                            />{:else}{session.lotName(lot)}{/if}
                                     </th>
                                     <td class="amount">{money(amount)}</td>
                                 </tr>
@@ -362,8 +378,7 @@
                                                 class="company-focus"
                                                 title={session.companyName(entry.company.id)}
                                                 {...companyButton(entry.company.id)}
-                                                >{companyNames[entry.company.id]?.initials ??
-                                                    entry.company.id}</button
+                                                >{session.companyInitials(entry.company.id)}</button
                                             >
                                             {#if entry.president}<span
                                                     class="compact-president"
@@ -425,8 +440,11 @@
                                             ><button
                                                 class="company-focus"
                                                 {...companyButton(entry.company.id)}
-                                                >{session.companyName(entry.company.id)}</button
-                                            >{#if entry.president}<PresidentBadge />{/if}</th
+                                                ><PresidentName
+                                                    name={session.companyName(entry.company.id)}
+                                                    president={entry.president}
+                                                /></button
+                                            ></th
                                         >
                                         <td class="amount">{percent.format(entry.percentage)}%</td>
                                     </tr>
@@ -473,7 +491,8 @@
                                             phaseColors={session.presentation.phaseColors}
                                             token={session.privateCompanyTokens[entry.company.id]}
                                             imageUrl={session.publishedCardImage(entry.company.id)}
-                                            name={session.companyName(entry.company.id)}
+                                            shortName={session.companyName(entry.company.id)}
+                                            fullName={session.companyFullName(entry.company.id)}
                                             value={entry.value}
                                             income={entry.income}
                                             description={session.privates.companies.find(

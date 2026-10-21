@@ -1,18 +1,19 @@
-import type { CompanyNameVariants } from '@tabletop/18xx-ui'
+import { companyNameVariants } from '@tabletop/18xx-ui'
+import { EighteenThirtyNames } from '@tabletop/1830'
 
-export const EighteenThirtyCompanyNames: Readonly<Record<string, CompanyNameVariants>> = {
-    PRR: { short: 'Pennsylvania', initials: 'PRR' },
-    NYC: { short: 'New York Central', initials: 'NYC' },
-    CPR: { short: 'Canadian Pacific', initials: 'CPR' },
-    BO: { short: 'Baltimore & Ohio', initials: 'B&O' },
-    CO: { short: 'Chesapeake & Ohio', initials: 'C&O' },
-    ERIE: { short: 'Erie', initials: 'Erie' },
-    NYNH: { short: 'New Haven', initials: 'NYNH' },
-    BM: { short: 'Boston & Maine', initials: 'B&M' },
-    SV: { short: 'Schuylkill Valley', initials: 'SV' },
-    CS: { short: 'Champlain & St. Lawrence', initials: 'C&StL' },
-    DH: { short: 'Delaware & Hudson', initials: 'D&H' },
-    MH: { short: 'Mohawk & Hudson', initials: 'M&H' },
-    CA: { short: 'Camden & Amboy', initials: 'C&A' },
-    BOP: { short: 'Baltimore & Ohio', initials: 'B&O' }
-}
+export const EighteenThirtyCompanyNames = companyNameVariants(EighteenThirtyNames, {
+    PRR: { initials: 'PRR' },
+    NYC: { initials: 'NYC' },
+    CPR: { initials: 'CPR' },
+    BO: { initials: 'B&O' },
+    CO: { initials: 'C&O' },
+    ERIE: { initials: 'Erie' },
+    NYNH: { initials: 'NYNH' },
+    BM: { initials: 'B&M' },
+    SV: { initials: 'SV' },
+    CS: { initials: 'C&StL' },
+    DH: { initials: 'D&H' },
+    MH: { initials: 'M&H' },
+    CA: { initials: 'C&A' },
+    BOP: { initials: 'B&O' }
+})

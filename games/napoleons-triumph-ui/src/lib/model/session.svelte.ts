@@ -26,6 +26,8 @@ import {
     ThreatenAttack,
     canStillMove,
     isLegal,
+    objectiveHolds,
+    type StarHold,
     standingGroupKey,
     validateAttach,
     type CommandKind,
@@ -42,7 +44,12 @@ import {
     Side
 } from '@tabletop/napoleons-triumph'
 import { inwardsFromTheEdge } from '$lib/map/battlefield.js'
-import { CAPACITY_BOXES, ENTRY_GEOMETRY, LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
+import {
+    CAPACITY_BOXES,
+    ENTRY_GEOMETRY,
+    LOCALE_GEOMETRY,
+    PRINTED_STARS
+} from '$lib/map/boardGeometry.js'
 import { shadeOf, type ArmyColors } from '$lib/utils/armyColors.js'
 import { BoardView, viewRotation } from '$lib/utils/boardView.js'
 import { commandDiscs } from '$lib/utils/commandTrack.js'
@@ -78,6 +85,7 @@ import {
     type ApproachPlate
 } from '$lib/utils/approachPlates.js'
 import { capacityTags, type CapacityTag } from '$lib/utils/capacityTags.js'
+import { printedStarSquare, starTags, type StarTag } from '$lib/utils/starTags.js'
 import { gunTags, type GunTag } from '$lib/utils/gunTags.js'
 import {
     SYMBOL_TAGS,
@@ -483,14 +491,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
                 ...this.approachSymbolTags.flatMap((tag) =>
                     tag.slid ? boxSamples(tag.cover) : []
                 ),
-                ...Object.values(CAPACITY_BOXES),
                 ...this.movementTrails.flatMap((trail) => [
                     ...lineSamples(trail.line),
                     numberOfTrail(trail, this.flagView.scale).at
                 ])
             ],
             (group) => this.flagBearer(group, this.hasCommanded(group)),
-            this.plantedFlags
+            this.plantedFlags,
+            [
+                ...Object.values(CAPACITY_BOXES).map((box) => [box]),
+                ...Object.values(PRINTED_STARS)
+                    .flat()
+                    .map((star) => boxSamples(printedStarSquare(star)))
+            ]
         )
     })
 
@@ -524,26 +537,45 @@ export class NapoleonsTriumphGameSession extends GameSession<
             : []
     })
 
+    private drawnOverTheMap: ConvexOutline[] = $derived([
+        ...this.sprites.flatMap((sprite) => sprite.blocks.map(blockOutline)),
+        ...this.arrowOutlines,
+        ...plateOutlines(this.approachPlates),
+        ...this.gunTags.map((tag) => cornersOf(tag.box)),
+        ...this.approachSymbolTags.map((tag) => cornersOf(tag.cover)),
+        ...this.movementTrails.flatMap((trail) => [
+            ...drawnArrowOutlines(trail.arrow),
+            trailNumberOutline(numberOfTrail(trail, this.flagSize))
+        ]),
+        ...this.retreatArrows.flatMap(retreatArrowOutlines),
+        ...this.waySigns.map(({ at }) => waySignOutline(at, this.flagSize)),
+        ...this.flags.flatMap((flag) => flagOutlines(flag, this.flagView))
+    ])
+
     // Placed after the flags and kept off them, so no flag hides a capacity; the flags keep off the printed boxes instead.
     capacityTags: CapacityTag[] = $derived.by(() => {
         const map = this.gameState.map
         return capacityTags((locale) => map.locale(locale).capacity, {
             allShown: this.capacitiesShown,
             scale: this.flagSize,
-            obstacles: [
-                ...this.sprites.flatMap((sprite) => sprite.blocks.map(blockOutline)),
-                ...this.arrowOutlines,
-                ...plateOutlines(this.approachPlates),
-                ...this.gunTags.map((tag) => cornersOf(tag.box)),
-                ...this.approachSymbolTags.map((tag) => cornersOf(tag.cover)),
-                ...this.movementTrails.flatMap((trail) => [
-                    ...drawnArrowOutlines(trail.arrow),
-                    trailNumberOutline(numberOfTrail(trail, this.flagSize))
-                ]),
-                ...this.retreatArrows.flatMap(retreatArrowOutlines),
-                ...this.waySigns.map(({ at }) => waySignOutline(at, this.flagSize)),
-                ...this.flags.flatMap((flag) => flagOutlines(flag, this.flagView))
-            ]
+            obstacles: this.drawnOverTheMap
+        })
+    })
+
+    starHolds: StarHold[] = $derived(
+        this.gameState.players.flatMap((player) =>
+            player.side
+                ? objectiveHolds(this.gameState, player.playerId, (unit) => this.visibleFace(unit))
+                : []
+        )
+    )
+
+    starTags: StarTag[] = $derived.by(() => {
+        const map = this.gameState.map
+        return starTags((locale) => map.locale(locale).stars, this.starHolds, {
+            scale: this.flagSize,
+            obstacles: this.drawnOverTheMap,
+            capacityTags: this.capacityTags.map((tag) => cornersOf(tag.cover))
         })
     })
 

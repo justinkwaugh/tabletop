@@ -13,6 +13,7 @@ import { shareSaleValue } from './shareSaleValue.js'
 import { priorityOrder } from './priorityOrder.js'
 import type { StockState } from './stockState.js'
 import type { StockRules } from './stockRules.js'
+import { companyCharters } from '../company/companyCharters.js'
 
 const seller = { kind: 'player', playerId: 'a' } as const
 const other = { kind: 'player', playerId: 'b' } as const
@@ -29,7 +30,6 @@ function example(): StockState {
             {
                 id: 'R',
                 kind: 'major',
-                shareCount: 10,
                 president: seller,
                 started: true
             }
@@ -72,6 +72,7 @@ function example(): StockState {
 }
 const rules: StockRules = {
     market,
+    charters: companyCharters(() => ({ shareCounts: { R: 10 }, privateRevenues: {} })),
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
     buyers: () => [],
     purchaseTerms: () => 'Unavailable',
@@ -298,4 +299,34 @@ it('uses the actual asset owner for directional sales, independently of the acti
         { ...directional, repeatSales: 'extend-block' }
     )
     expect(extended.details?.sales[0].toMarketSpaceId).toBe('0:0')
+})
+
+it('leaves the marker in place for a held sale, so the next sale fetches the same price', () => {
+    const state = example()
+    const held: StockRules = {
+        ...rules,
+        saleTerms: (current, companyId) => ({
+            payer: bank,
+            price: market.companySpace(current.stockMarket, companyId).price,
+            destinationPoolId: 'market',
+            marketLimit: 80,
+            maximumShares: 3,
+            direction: 'down',
+            movement: 1
+        }),
+        holdsMarketMove: (_current, _sale, owner) => owner.kind === 'player'
+    }
+    const first = evaluateShareDisposal(state, seller, [{ companyId: 'R', shares: 1 }], held)
+    if (!first.details) throw new Error('Expected a legal sale')
+    expect(first.details.sales[0]).toMatchObject({
+        fromMarketSpaceId: '0:0',
+        toMarketSpaceId: '0:0'
+    })
+    applyShareSale(state, first.details)
+    expect(market.companySpace(state.stockMarket, 'R').id).toBe('0:0')
+    expect(
+        state.certificates.filter((certificate) => certificate.poolId === 'market')
+    ).toHaveLength(2)
+    const second = evaluateShareDisposal(state, seller, [{ companyId: 'R', shares: 1 }], held)
+    expect(second.details?.proceeds).toBe(100)
 })

@@ -26,10 +26,7 @@ process.on('exit', () => record('exited'))
 process.on('disconnect', () => process.exit(1))
 server.get('/__health/ready', () => ({ status: 'ready' }))
 server.get('/', async () => ({ pid: process.pid }))
-server.get('/reload', async () => {
-    process.send('reload')
-    return { pid: process.pid }
-})
+server.get('/crash', async () => process.exit(1))
 server.post('/mutation', async (request, reply) => {
     record('mutation-started')
     if (request.query.early) reply.send({ pid: process.pid })

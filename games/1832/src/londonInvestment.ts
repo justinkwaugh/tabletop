@@ -50,8 +50,9 @@ function startedThisRound(state: StockState & EighteenThirtyTwoTitleState, compa
     )
 }
 
-function londonUsed(state: { usedPrivatePowerIds: readonly string[] }) {
-    return state.usedPrivatePowerIds.includes(LondonPrivateId)
+// The company London bought into records that its power is used.
+function londonUsed(state: Pick<EighteenThirtyTwoTitleState, 'londonCompanyId'>) {
+    return state.londonCompanyId !== undefined
 }
 
 /**
@@ -149,7 +150,6 @@ export class HydratedTakeLondonShare
         applyShareTransfer(state, details)
         markTurnPurchase(state)
         recordStockAction(state, this.playerId, EighteenThirtyTwoStockRules.round)
-        state.usedPrivatePowerIds.push(LondonPrivateId)
         state.londonCompanyId = details.companyId
         this.metadata = {
             companyId: details.companyId,

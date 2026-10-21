@@ -26,6 +26,7 @@
         imageUrl?: string
     } = $props()
     const paragraphs = $derived(description.split('\n\n'))
+    const phaseReference = /\b(?:phases?|at)\s$/i
 </script>
 
 <div class="private-card" class:image={!!imageUrl} data-card-image={imageUrl ? true : undefined}>
@@ -66,7 +67,10 @@
                 <p>
                     {#if paragraph.startsWith('**') && paragraph.endsWith('**')}<strong
                             class="intro">{paragraph.slice(2, -2)}</strong
-                        >{:else}{#each paragraph.split(/(\b\d+(?:H|\+)?)/g) as part, partIndex (partIndex)}{#if index === paragraphs.length - 1 && phaseColors[part]}<TrainBadge
+                        >{:else}{@const parts =
+                            paragraph.split(
+                                /(\b\d+(?:H|\+)?)/g
+                            )}{#each parts as part, partIndex (partIndex)}{#if phaseColors[part] && phaseReference.test(parts[partIndex - 1] ?? '')}<TrainBadge
                                     name={part}
                                     color={phaseColors[part]}
                                 />{:else}{part}{/if}{/each}{/if}

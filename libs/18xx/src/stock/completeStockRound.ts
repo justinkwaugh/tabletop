@@ -10,6 +10,8 @@ import {
 import { allPlayersPassed, type StockRoundRules } from './stockRoundRules.js'
 import { placeStockMarker, StockMarketMove, type StockMarketChart } from './stockMarket.js'
 import type { StockState } from './stockState.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
+import { RoundEnd, roundEnd } from '../ending/roundEnd.js'
 
 const CompletionFields = Type.Object({
     type: Type.Literal('CompleteStockRound'),
@@ -17,7 +19,8 @@ const CompletionFields = Type.Object({
         Type.Object(
             {
                 nextPlayerOrder: Type.Array(Type.String()),
-                marketMoves: Type.Array(StockMarketMove)
+                marketMoves: Type.Array(StockMarketMove),
+                roundEnd: Type.Optional(RoundEnd)
             },
             { additionalProperties: false }
         )
@@ -45,10 +48,17 @@ export class HydratedCompleteStockRound
     declare metadata?: CompleteStockRound['metadata']
     readonly #rules: StockRoundRules
     readonly #market: StockMarketChart
-    constructor(data: CompleteStockRound, rules: StockRoundRules, market: StockMarketChart) {
+    readonly #valuationRules: ValuationRules
+    constructor(
+        data: CompleteStockRound,
+        rules: StockRoundRules,
+        market: StockMarketChart,
+        valuationRules: ValuationRules
+    ) {
         super(data instanceof HydratedCompleteStockRound ? data.dehydrate() : data, Validator)
         this.#rules = rules
         this.#market = market
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedGameState & StockState): void {
         assert(
@@ -85,6 +95,10 @@ export class HydratedCompleteStockRound
         state.turnManager.turnOrder = [...nextPlayerOrder]
         state.stockRound.completed = true
         delete state.stockRound.instructions
-        this.metadata = { nextPlayerOrder, marketMoves }
+        this.metadata = {
+            nextPlayerOrder,
+            marketMoves,
+            roundEnd: roundEnd(state, this.#valuationRules, 'stock')
+        }
     }
 }

@@ -3,7 +3,7 @@
     import { assert, assertExists, type Point } from '@tabletop/common'
     import type { TileFace } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
-    import type { TileDrawing } from './tileDrawing.js'
+    import { TileRadius, type TileDrawing } from './tileDrawing.js'
     import { spikePoints } from './tileTrackGeometry.js'
     import { ClassicTileAppearance, type TileAppearance } from './tileAppearance.js'
     import TileSymbol from './TileSymbol.svelte'
@@ -36,6 +36,7 @@
         trackOverlay?: Snippet<[TileDrawing]>
         overlays?: Snippet<[TileDrawing]>
     } = $props()
+    const crossingClipId = $props.id()
     const fill = $derived.by(() => {
         const color = appearance.colors[face.color]
         assertExists(color, `Tile palette requires color ${face.color}`)
@@ -49,8 +50,24 @@
         `tile-style-${appearance.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
     )
     const grainId = $derived(`${styleId}-grain`)
-    const inkId = $derived(`${styleId}-ink`)
-    const inkFilter = $derived(appearance.roughness ? `url(#${inkId})` : undefined)
+    const nodeInkId = $derived(`${styleId}-node-ink`)
+    const trackInkId = $derived(`${styleId}-track-ink`)
+    // The track's region is the whole tile, in tile space: one taken from the bounding box is
+    // empty for a straight with no width, and browsers then draw nothing.
+    const trackInkReach = $derived(TileRadius + appearance.trackWidth + (appearance.roughness ?? 0))
+    const inkRegions = $derived([
+        {
+            id: trackInkId,
+            filterUnits: 'userSpaceOnUse',
+            x: -trackInkReach,
+            y: -trackInkReach,
+            width: 2 * trackInkReach,
+            height: 2 * trackInkReach
+        },
+        { id: nodeInkId, x: '-10%', y: '-10%', width: '120%', height: '120%' }
+    ])
+    const nodeInkFilter = $derived(appearance.roughness ? `url(#${nodeInkId})` : undefined)
+    const trackInkFilter = $derived(appearance.roughness ? `url(#${trackInkId})` : undefined)
     const cityRingWidth = $derived(appearance.cityRingWidth ?? 1.1)
     const revenueCircle = $derived(
         appearance.revenueCircle ?? { radius: 8.7, ringWidth: 0.55, fontSize: 10 }
@@ -117,23 +134,25 @@
                 </pattern>
             {/if}
             {#if appearance.roughness}
-                <filter id={inkId} x="-10%" y="-10%" width="120%" height="120%">
-                    <!-- Low-frequency noise gives a gentle hand-inked waver rather than a jitter. -->
-                    <feTurbulence
-                        type="fractalNoise"
-                        baseFrequency="0.16"
-                        numOctaves="1"
-                        seed="7"
-                        result="noise"
-                    ></feTurbulence>
-                    <feDisplacementMap
-                        in="SourceGraphic"
-                        in2="noise"
-                        scale={appearance.roughness}
-                        xChannelSelector="R"
-                        yChannelSelector="G"
-                    ></feDisplacementMap>
-                </filter>
+                {#each inkRegions as { id, ...region } (id)}
+                    <filter {id} {...region}>
+                        <!-- Low-frequency noise gives a gentle hand-inked waver rather than a jitter. -->
+                        <feTurbulence
+                            type="fractalNoise"
+                            baseFrequency="0.16"
+                            numOctaves="1"
+                            seed="7"
+                            result="noise"
+                        ></feTurbulence>
+                        <feDisplacementMap
+                            in="SourceGraphic"
+                            in2="noise"
+                            scale={appearance.roughness}
+                            xChannelSelector="R"
+                            yChannelSelector="G"
+                        ></feDisplacementMap>
+                    </filter>
+                {/each}
             {/if}
         </defs>
     {/if}
@@ -180,7 +199,7 @@
             ></polygon>
         {/if}
     {/each}
-    <g fill="none" stroke-linecap="butt" filter={inkFilter}>
+    <g fill="none" stroke-linecap="butt" filter={trackInkFilter}>
         {#each drawing.paths as path (path.id)}
             {#if path.spike}
                 <polygon
@@ -207,6 +226,30 @@
                 ></path>
             </g>
         {/each}
+        {#each drawing.crossings as crossing, index (index)}
+            {@const over = drawing.paths.find((path) => path.id === crossing.overPathId)}
+            {#if over}
+                {@const clipId = `${crossingClipId}-${index}`}
+                <clipPath id={clipId}>
+                    <circle
+                        cx={crossing.point.x}
+                        cy={crossing.point.y}
+                        r={(appearance.trackWidth / 2 + appearance.trackBorderWidth) *
+                            crossing.spread +
+                            appearance.trackBorderWidth}
+                    ></circle>
+                </clipPath>
+                <g clip-path={`url(#${clipId})`} data-track-crossing={over.id}>
+                    <path
+                        d={over.d}
+                        stroke={appearance.paper}
+                        stroke-width={appearance.trackWidth + 2 * appearance.trackBorderWidth}
+                    ></path>
+                    <path d={over.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
+                    ></path>
+                </g>
+            {/if}
+        {/each}
     </g>
     {#each drawing.paths.filter((path) => highlightedPathIds.includes(path.id)) as path (path.id)}
         <path
@@ -219,7 +262,7 @@
     {/each}
     {@render trackOverlay?.(drawing)}
     {#each drawing.nodes as { node, center, slots, slotRadius: citySlotRadius, townAngle, dotRadius } (node.id)}
-        <g data-node-id={node.id} filter={inkFilter}>
+        <g data-node-id={node.id} filter={nodeInkFilter}>
             {#if node.kind === 'city'}
                 {#if slots.length > 1}
                     {@const band = `M ${slots.map((point) => `${point.x},${point.y}`).join(' L ')} Z`}

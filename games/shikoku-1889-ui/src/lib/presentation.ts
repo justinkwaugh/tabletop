@@ -10,6 +10,7 @@ export const Shikoku1889Presentation: TitlePresentation = {
     trainColors: Shikoku1889TrainColors,
     phaseColors: Shikoku1889TrainColors,
     marketPoolId: 'open-market',
+    ipoPoolId: 'initial-offering',
     companyNames: Shikoku1889CompanyNames,
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: { MF: 'Place the port tile', ER: 'Place a tile in Ohzu' },

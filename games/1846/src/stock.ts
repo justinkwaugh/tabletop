@@ -1,3 +1,4 @@
+import { Charters1846 } from './charters.js'
 import { assertExists } from '@tabletop/common'
 import {
     evaluateCompanyStart,
@@ -13,6 +14,7 @@ import {
     priorityOrder,
     sameOwner,
     sharesOwned,
+    treasuryPoolId,
     type CompanyRules,
     type StockRules
 } from '@tabletop/18xx'
@@ -49,6 +51,7 @@ export const Market1846 = new StockMarketChart(
 
 export const StockRules1846: StockRules = {
     market: Market1846,
+    charters: Charters1846,
     round: {
         passing: 'consecutive',
         nextPlayerOrder: (state) => priorityOrder(state, StockRules1846.round),
@@ -68,8 +71,8 @@ export const StockRules1846: StockRules = {
         if (company.kind !== 'major' || !company.started || company.closed || certificate.president)
             return 'Choose an available ordinary share of a launched corporation.'
         if (
-            !(certificate.owner.kind === 'company' && certificate.owner.companyId === company.id) &&
-            !(certificate.owner.kind === 'bank' && certificate.poolId === 'open-market')
+            certificate.poolId !== treasuryPoolId(company.id) &&
+            certificate.poolId !== 'open-market'
         )
             return 'This share is not in the treasury or market.'
         return {

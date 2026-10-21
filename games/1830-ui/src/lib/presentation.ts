@@ -10,6 +10,7 @@ export const EighteenThirtyPresentation: TitlePresentation = {
     trainColors: EighteenThirtyTrainColors,
     phaseColors: EighteenThirtyTrainColors,
     marketPoolId: 'open-market',
+    ipoPoolId: 'initial-offering',
     companyNames: EighteenThirtyCompanyNames,
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: {

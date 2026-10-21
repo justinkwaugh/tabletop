@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoCharters } from './charters.js'
 import { requireEighteenThirtyTwoState } from './state.js'
 import { EighteenXXTransferTiming, privateOwner, type TransferRules } from '@tabletop/18xx'
 import { CoalFieldsPrivateId, grantCoalRightsToBuyer } from './coalFields.js'
@@ -6,6 +7,7 @@ import { EighteenThirtyTwoPhases } from './trains.js'
 
 export const EighteenThirtyTwoTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
+    charters: EighteenThirtyTwoCharters,
     // Companies buy trains from one another for at least $1 (§10.5). From phase 3 until privates
     // close they buy players' privates for half to double face value; the coal fields alone may be
     // bought in phase 2, for up to face value (§12.1).

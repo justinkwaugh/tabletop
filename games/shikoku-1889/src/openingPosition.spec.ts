@@ -1,12 +1,17 @@
 import { expect, it } from 'vitest'
 import { openingPositionDigest } from '../../../libs/18xx/test/openingPosition.js'
 import { Definition } from './definition/gameDefinition.js'
+import { Shikoku1889Charters } from './charters.js'
+import { Shikoku1889TileSet } from './tiles.js'
+
+const recorded = { charters: Shikoku1889Charters, tileSet: Shikoku1889TileSet }
 
 it('sets up the same opening position for the same seed and player count', () => {
     expect(
         [2, 3, 4, 5, 6].flatMap((players) =>
             [1889, 7].map(
-                (seed) => `${players}p/${seed}: ${openingPositionDigest(Definition, players, seed)}`
+                (seed) =>
+                    `${players}p/${seed}: ${openingPositionDigest(Definition, recorded, players, seed)}`
             )
         )
     ).toMatchInlineSnapshot(`

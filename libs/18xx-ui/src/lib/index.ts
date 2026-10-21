@@ -42,6 +42,7 @@ export { default as TrainBuying } from './trains/TrainBuying.svelte'
 export { default as PrivateCompanies } from './privates/PrivateCompanies.svelte'
 
 export { default as CompanyDecisions } from './finance/CompanyDecisions.svelte'
+export { default as DecisionResponse } from './finance/DecisionResponse.svelte'
 export { default as WaterfallAuctionPanel } from './auctions/WaterfallAuctionPanel.svelte'
 
 export type { AuctionSelection } from './auctions/auctionSelection.js'
@@ -51,7 +52,13 @@ export { default as OfferAuctionPanel } from './auctions/OfferAuctionPanel.svelt
 export { default as GameEnding } from './ending/GameEnding.svelte'
 
 export { default as GameTable } from './table/GameTable.svelte'
-export type { CompanyNameVariants, NumberedShareNames } from './table/companyPresentation.js'
+export {
+    companyNameVariants,
+    shortCompanyName,
+    type CompanyNameVariants,
+    type CompanyNaming,
+    type NumberedShareNames
+} from './table/companyPresentation.js'
 export type {
     HistoryDescription,
     HistoryNames,
@@ -96,7 +103,6 @@ export { default as CompanyPar } from './stock/CompanyPar.svelte'
 export { default as CompanyActionCard, type CardAction } from './stock/CompanyActionCard.svelte'
 export { default as StockPanelHeading } from './stock/StockPanelHeading.svelte'
 export { default as CompanyActionPanel } from './stock/CompanyActionPanel.svelte'
-export { default as WaterfallAuctionBidding } from './auctions/WaterfallAuctionBidding.svelte'
 
 export { default as PrivateCard } from './privates/PrivateCard.svelte'
 export { createPhaseChart, type PhaseChartData } from './phases/phaseChart.js'
