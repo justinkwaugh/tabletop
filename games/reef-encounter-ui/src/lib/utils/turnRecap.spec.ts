@@ -68,4 +68,10 @@ describe('the recap of a turn that ate a coral', () => {
             'fed 8 pink polyps to their parrotfish, then took the grey larva cube with two grey polyps and a white polyp'
         )
     })
+
+    it('says only the feeding when the eat ended the turn', () => {
+        expect(turnSummary([eat], 'their', (boardId) => `Board ${boardId}`)?.text).toBe(
+            'fed 8 pink polyps to their parrotfish'
+        )
+    })
 })

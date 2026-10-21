@@ -1,36 +1,18 @@
 import type { GameAction } from '@tabletop/common'
-import { isEatCoral, isTakeOpenSeaSpace, type CoralColor } from '@tabletop/reef-encounter'
+import { isEatCoral, isTakeOpenSeaSpace } from '@tabletop/reef-encounter'
 import {
+    cube,
     describeAction,
+    parrotfish,
+    phrase,
+    polyp,
     polypsLabel,
     type BoardName,
-    type Phrase,
-    type PhraseIcon,
-    type PhrasePart
+    type Phrase
 } from './actionDescription.js'
 
-type PolypIcon = Extract<PhraseIcon, { icon: 'polyp' }>
-
-const polyp = (color: CoralColor, count: number): PolypIcon => ({
-    icon: 'polyp',
-    color,
-    count,
-    label: `${count} ${color} polyp${count === 1 ? '' : 's'}`
-})
-
-const phrase = (parts: PhrasePart[], text?: string): Phrase => ({
-    parts,
-    text:
-        text ??
-        parts
-            .map((part) =>
-                typeof part === 'string' ? part : 'icon' in part ? part.label : part.text
-            )
-            .join('')
-})
-
-// One line for a finished turn: the coral eaten if there was one, then how the turn ended.
-// The History tab tells the rest.
+// A finished turn: the coral eaten if there was one, then how the turn ended. The History tab
+// tells the rest.
 export function turnSummary(
     actions: readonly GameAction[],
     own: 'your' | 'their',
@@ -39,12 +21,7 @@ export function turnSummary(
     const eaten = actions.find(isEatCoral)?.metadata
     const ended = turnEnding(actions, own, board)
     if (!eaten) return ended
-    const fed = phrase([
-        'fed ',
-        polyp(eaten.color, eaten.polyps),
-        ' to ',
-        { icon: 'parrotfish', label: `${own} parrotfish` }
-    ])
+    const fed = phrase(['fed ', polyp(eaten.color, eaten.polyps), ' to ', parrotfish(own)])
     if (!ended) return fed
     return {
         parts: [...fed.parts, ', then ', ...ended.parts],
@@ -65,19 +42,9 @@ function turnEnding(
         return phrase(
             [
                 'took ',
-                {
-                    icon: 'cube',
-                    color: ending.larvaColor,
-                    count: 1,
-                    label: `the ${ending.larvaColor} larva cube`
-                },
+                cube(ending.larvaColor),
                 // At most three, so each shows on its own rather than as a count.
-                ...(taken.length > 0
-                    ? [
-                          ' with ',
-                          ...taken.map((color) => ({ ...polyp(color, 1), label: `${color} polyp` }))
-                      ]
-                    : [])
+                ...(taken.length > 0 ? [' with ', ...taken.map((color) => polyp(color))] : [])
             ],
             taken.length > 0 ? `${took} with ${polypsLabel(taken)}` : took
         )
