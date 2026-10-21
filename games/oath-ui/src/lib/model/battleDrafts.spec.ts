@@ -1107,13 +1107,21 @@ describe('Warning Signals’ moves in the defence draft', () => {
         expect(defence.usePlansRefusedBecause).toBeUndefined()
     })
 
-    it('with no warband it can move, Warning Signals has nothing to pick and is not listed; Mountain Giant still is', async () => {
+    it('with no warband it can move, Warning Signals stays listed and is declared moving nothing; Mountain Giant still is', async () => {
         // None on the board, and the one at c1 is the site's last.
-        const defence = (await warned({}, { c1: { [FOE]: 1 } }, true)).defence
-        expect(defence.usable.map((power) => power.cardId)).toEqual([GIANT])
-        expect(defence.isDeclared(WARNING_PLAN)).toBe(false)
-        expect(defence.noPlansRefusedBecause).toBeUndefined()
-        // One on the board to move to c1: it is listed again.
+        const session = await warned({}, { c1: { [FOE]: 1 } }, true)
+        const sent = vi.spyOn(session, 'defendCampaign').mockResolvedValue()
+        const defence = session.defence
+        expect(defence.usable.map((power) => power.cardId)).toEqual([WARNING, GIANT])
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(true)
+        const moves = required(defence.movesOf(WARNING_PLAN), 'Warning Signals’ moves')
+        expect(moves.whole).toEqual([])
+        expect(moves.open?.sources).toEqual([])
+        expect(defence.plansComplete).toBe(true)
+        expect(defence.usePlansRefusedBecause).toBeUndefined()
+        await defence.answer(true)
+        expect(sent).toHaveBeenLastCalledWith([{ ...WARNING_PLAN, choices: [] }])
+        // One on the board to move to c1: it is listed as before.
         const one = (await warned({ [FOE]: 1 }, { c1: { [FOE]: 1 } }, true)).defence
         expect(one.usable.map((power) => power.cardId)).toEqual([WARNING, GIANT])
     })

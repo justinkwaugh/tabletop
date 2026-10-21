@@ -1422,6 +1422,13 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             )
         })
 
+        it('Warning Signals declared with nothing to move reads that it moved nothing', () => {
+            const planNotes = ['Warning Signals: p3 moved nothing']
+            expect(describeAction(action({ type: ActionType.CampaignDefend, playerId: 'p3', plans: [], metadata: { plansUsed: ['Warning Signals'], swords: 2, defense: 3, planNotes } }), nameOf)).toBe(
+                'used Warning Signals; 2 swords against 3 defense; moved nothing (Warning Signals)'
+            )
+        })
+
         it('the victor’s plans follow the spoils, after the placements', () => {
             const row = action({ type: ActionType.CampaignResolveVictory, playerId: 'p2', placements: [{ siteId: PLAINS, owner: IMPERIAL_WARBANDS, count: 2 }], burnFavor: false, metadata: { warbandsPlaced: 2, relicsTaken: [], bannersSeized: [], seizeBurned: 0, favorBurned: 0, triggered: ['Field Promotion: gained 3 Imperial warbands'] } })
             expect(describeAction(row, nameOf)).toBe('took the spoils: placed 2 Imperial warbands at Provinces 1; gained 3 Imperial warbands (Field Promotion)')

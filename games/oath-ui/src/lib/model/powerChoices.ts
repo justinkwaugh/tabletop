@@ -294,12 +294,16 @@ function offersNoOption(legal: LegalChoice): boolean {
 
 /**
  * A power whose picks can never be made now, so its list leaves it out: a choice it needs offers
- * nothing (Captains with no site that has a defender), or, for a power of moves, no From is
- * offered, as "Use" waits for a whole move (Warning Signals with no warband it can move). A choice
- * asked only while it has an option, or only with a "may" on, is not needed.
+ * nothing (Captains with no site that has a defender), or, for a power that needs a move, no From
+ * is offered (Messenger with no warband it can move). Warning Signals' moves are all a "may", so
+ * with nothing to move it is used moving nothing. A choice asked only while it has an option, or
+ * only with a "may" on, is not needed.
  */
 export function picksCannotBeMade(choices: readonly LegalChoice[]): boolean {
-    if (isPowerMoves(choices)) return choices[0] !== undefined && offersNoOption(choices[0])
+    if (isPowerMoves(choices)) {
+        const first = choices[0]
+        return first !== undefined && offersNoOption(first) && first.spec.min > 0
+    }
     return choices.some(
         (legal, index) =>
             offersNoOption(legal) &&

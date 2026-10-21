@@ -269,6 +269,7 @@ export type TableName =
     | 'wrestlersPick'
     | 'wrestlersOnePlace'
     | 'warningSignals'
+    | 'warningSignalsNothingToMove'
     | PickerScene
     | PowerSitesScene
     | PickerTwoScene
@@ -2776,10 +2777,11 @@ function messengerTwoOwnersTable(): PlayedTable {
 
 /**
  * Warning Signals: Rhys, an Exile, campaigns against the Ancient City, where Dana, the Chancellor,
- * holds 4 Imperial warbands; she also rules the Steppe (2) and the Marshes (1), her board is
- * empty, and she answers with battle plans, Warning Signals among her advisers.
+ * holds 4 Imperial warbands; they also rule the Steppe (2) and the Marshes (1), their board is
+ * empty, and they answer with battle plans, Warning Signals among their advisers. With
+ * `nothingToMove` the Ancient City holds 1 and Dana rules no other site: no warband can move.
  */
-function warningSignalsTable(): PlayedTable {
+function warningSignalsTable(nothingToMove = false): PlayedTable {
     const [city, steppe] = mapSlotsFor(Region.Cradle)
     const [mountain, marshes] = mapSlotsFor(Region.Provinces)
     const state = testState(
@@ -2816,11 +2818,13 @@ function warningSignalsTable(): PlayedTable {
                 [marshes]: 'site.marshes'
             },
             denizensBySite: { [city]: [], [steppe]: [], [mountain]: [], [marshes]: [] },
-            warbandsBySite: {
-                [city]: { [IMPERIAL_WARBANDS]: 4 },
-                [steppe]: { [IMPERIAL_WARBANDS]: 2 },
-                [marshes]: { [IMPERIAL_WARBANDS]: 1 }
-            },
+            warbandsBySite: nothingToMove
+                ? { [city]: { [IMPERIAL_WARBANDS]: 1 } }
+                : {
+                      [city]: { [IMPERIAL_WARBANDS]: 4 },
+                      [steppe]: { [IMPERIAL_WARBANDS]: 2 },
+                      [marshes]: { [IMPERIAL_WARBANDS]: 1 }
+                  },
             campaign: {
                 attackerPlayerId: 'rhys',
                 defenderPlayerId: 'dana',
@@ -2834,7 +2838,11 @@ function warningSignalsTable(): PlayedTable {
                 defense: 0,
                 swords: 0,
                 defendingForce: [
-                    { at: { kind: 'site', siteId: city }, owner: IMPERIAL_WARBANDS, count: 4 }
+                    {
+                        at: { kind: 'site', siteId: city },
+                        owner: IMPERIAL_WARBANDS,
+                        count: nothingToMove ? 1 : 4
+                    }
                 ],
                 defendingBandits: 0,
                 pendingDefenderPlans: { queue: ['dana'] },
@@ -5325,7 +5333,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     // R-10.22 — Ann answers Dana's Campaign at the Plains with Wrestlers; Rhys is their Ally.
     wrestlersPick: () => wrestlersDefends(),
     wrestlersOnePlace: () => wrestlersDefends({ annBoard: 0, rhysBoard: 0 }),
-    warningSignals: warningSignalsTable,
+    warningSignals: () => warningSignalsTable(),
+    warningSignalsNothingToMove: () => warningSignalsTable(true),
     pickerWhistle: () => powerPickerTable('pickerWhistle'),
     pickerTerror: () => powerPickerTable('pickerTerror'),
     pickerPact: () => powerPickerTable('pickerPact'),
