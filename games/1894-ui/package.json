@@ -30,7 +30,8 @@
         "bundle": "svelte-kit sync && rimraf bundle && rollup -c ./rollup.config.ts",
         "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
         "dev": "vite dev",
-        "lint": "eslint ."
+        "lint": "eslint .",
+        "test": "vitest run"
     },
     "peerDependencies": {
         "@sveltejs/kit": "^2.48.4",
@@ -61,6 +62,7 @@
         "@tabletop/rollup-config": "workspace:*",
         "rollup": "4.55.2",
         "prettier-plugin-svelte": "^3.4.1",
-        "@tabletop/eslint-config": "workspace:*"
+        "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/vitest-config": "workspace:*"
     }
 }

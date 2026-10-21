@@ -1,6 +1,11 @@
 <script lang="ts">
     import type { GameSession } from '@tabletop/frontend-components'
-    import type { EighteenNinetyFourState, HydratedEighteenNinetyFourState } from '@tabletop/1894'
+    import {
+        EighteenNinetyFourPrivateCatalog,
+        type EighteenNinetyFourState,
+        type HydratedEighteenNinetyFourState
+    } from '@tabletop/1894'
+    import { describe1894Action } from './history.js'
     import {
         CompanyPar,
         GameTable,
@@ -16,10 +21,12 @@
     }: { gameSession: GameSession<EighteenNinetyFourState, HydratedEighteenNinetyFourState> } =
         $props()
     const session = $derived(requireEighteenXXSession(gameSession))
-    const privateOperationDescription = () => undefined
+    // A private's power, shown while a company owns it.
+    const privateOperationDescription = (id: string) =>
+        EighteenNinetyFourPrivateCatalog.definition(id).description
 </script>
 
-<GameTable {session} {privateOperationDescription}>
+<GameTable {session} {privateOperationDescription} historyDescription={describe1894Action}>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />

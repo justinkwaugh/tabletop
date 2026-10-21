@@ -72,7 +72,8 @@
                 { kind: 'player', playerId },
                 valuationRules,
                 session.charters,
-                !!session.presentation.minorsAsPrivates
+                !!session.presentation.minorsAsPrivates,
+                (privateId) => session.privateIncome(privateId)
             )
         })),
         ...portfolioCompanyIds.map((companyId) => {
@@ -92,7 +93,9 @@
                     session.gameState,
                     { kind: 'company', companyId },
                     valuationRules,
-                    session.charters
+                    session.charters,
+                    false,
+                    (privateId) => session.privateIncome(privateId)
                 )
             }
         })

@@ -64,7 +64,7 @@ function applyPrivateLay(
         details,
         terms.payer,
         terms.countsAsOrdinaryLay === true,
-        lay.privateCompanyId
+        terms.recordsLay ? lay.privateCompanyId : undefined
     )
     if (!terms.reusable) recordPrivatePowerUse(state, lay.privateCompanyId)
     const powerEffects = powers.afterTrackLay?.(state, lay.privateCompanyId, details)

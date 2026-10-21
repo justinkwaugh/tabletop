@@ -1,3 +1,5 @@
+import { holdsAccessRight } from '@tabletop/18xx'
+import { FerryRightId, holdsLondonShippingStation } from '@tabletop/1894'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenNinetyFourCompanyNames } from './companyPresentation.js'
 import { EighteenNinetyFourPhaseChart } from './phaseChart.js'
@@ -18,6 +20,26 @@ export const EighteenNinetyFourPresentation: TitlePresentation = {
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: {},
     privateTokens: {},
+    // A ferry marker opens London; London shipping's A12 station raises London's value (§14, §11.2.2.6).
+    companyMarks: (state, companyId) => [
+        ...(holdsAccessRight(state, companyId, FerryRightId)
+            ? [
+                  {
+                      label: 'Ferry',
+                      description: 'Ferry marker: may run to and build through London.'
+                  }
+              ]
+            : []),
+        ...(holdsLondonShippingStation(state, companyId)
+            ? [
+                  {
+                      label: 'A12',
+                      description:
+                          'London shipping station: London adds the route’s largest other revenue, besides Luxembourg.'
+                  }
+              ]
+            : [])
+    ],
     // §10.1: the market's four regions.
     marketZones: [
         { color: 'pink', name: 'Par', description: 'A price a company may start at.' },

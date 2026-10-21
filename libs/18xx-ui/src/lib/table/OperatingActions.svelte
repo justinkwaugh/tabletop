@@ -14,6 +14,8 @@
     import CompanyFormation from '../stock/CompanyFormation.svelte'
     import LoanRepayment from '../loans/LoanRepayment.svelte'
     import CashCrisis from '../funding/CashCrisis.svelte'
+    import TreasuryShares from '../treasury/TreasuryShares.svelte'
+    import StationReturnChoice from '../maps/StationReturnChoice.svelte'
     let {
         session,
         createRouteWorker,
@@ -42,7 +44,10 @@
         />
     {/if}
     {#if !session.privateActions.selection && !session.decisions.selection && !session.privateActions.trackPowerSelection && (!gameState.purchaseOffer || trainOffer)}
-        {#if gameState.machineState === 'StockRound' && session.companyAuction.pending}
+        {#if session.stationReturn.pending || (gameState.machineState === 'OperatingSet' && session.stationReturn.waiting.length)}<StationReturnChoice
+                {session}
+            />
+        {:else if gameState.machineState === 'StockRound' && session.companyAuction.pending}
             <CompanyFormation {session} />
         {:else if gameState.machineState === 'StockRound' && session.companyAuction.auction}
             <CompanyAuctionBidding {session} />
@@ -50,6 +55,7 @@
             <StockRoundActions {session} {poolName} />
         {:else if session.stations.homeChoice}<HomeStationChoice {session} />
         {:else if session.stations.privateStation}<PrivateStationChoice {session} />
+        {:else if gameState.machineState === 'ManagingShares'}<TreasuryShares {session} />
         {:else if gameState.machineState === 'LayingTrack'}<TrackBuilding
                 {session}
                 showUndo={false}

@@ -52,7 +52,11 @@ export type PrivateActionsSession = ModuleSession<
 >
 type Decisions = Pick<
     CompanyDecisionsModule,
-    'choice' | 'privateTileOptions' | 'privateTrainOptions' | 'privateMarkerOptions'
+    | 'choice'
+    | 'privateTileOptions'
+    | 'privateTrainOptions'
+    | 'privateMarkerOptions'
+    | 'privateTokenOptions'
 >
 type TrackSelection = Pick<LocalSelection, 'undo' | 'clear'>
 type Exchanges = Pick<PrivatesModule, 'exchangeOptions'>
@@ -97,6 +101,7 @@ export class PrivateActionsModule implements LocalSelection {
             this.decisions.privateTileOptions.length > 0 ||
             this.decisions.privateTrainOptions.length > 0 ||
             this.decisions.privateMarkerOptions.length > 0 ||
+            this.decisions.privateTokenOptions.length > 0 ||
             this.exchanges.exchangeOptions.length > 0 ||
             this.titlePowers.length > 0
         )

@@ -1,4 +1,5 @@
 import type { MapStateData } from '../map/mapState.js'
+import type { AccessRightState } from '../rights/accessRights.js'
 import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
@@ -20,7 +21,10 @@ export interface TrainRules {
         definitionId: string,
         train: Train
     ): number | undefined
-    requiresTrain(state: TrainPurchaseState & MapStateData, companyId: string): boolean
+    requiresTrain(
+        state: TrainPurchaseState & MapStateData & AccessRightState,
+        companyId: string
+    ): boolean
     availableDefinitions(state: TrainPurchaseState): string[]
     phaseAfterPurchase(state: TrainPurchaseState, definitionId: string): string
     trainLimit(state: TrainPurchaseState, companyId: string): number

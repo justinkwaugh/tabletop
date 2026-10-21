@@ -16,7 +16,7 @@ import {
     privateExchangeOffers,
     type EighteenXXTitleRules,
     type PrivateExchangeRequest,
-    currentPrivateRevenue
+    privateIncome
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
@@ -36,7 +36,8 @@ export type PrivatesSession = ModuleSession<
         | 'outOfTurnPrivatePowers'
         | 'privatePowerRules'
         | 'names'
-    >
+    > &
+        Partial<Pick<EighteenXXTitleRules, 'operatingRules'>>
 >
 
 function sameExchange(a: PrivateExchangeRequest, b: PrivateExchangeRequest) {
@@ -56,9 +57,12 @@ export class PrivatesModule {
             .filter((company) => company.kind === 'private')
             .map((company) => ({
                 ...company,
-                revenue: currentPrivateRevenue(
+                revenue: privateIncome(
                     this.session.state,
-                    this.session.rules.stockRules.charters,
+                    {
+                        charters: this.session.rules.stockRules.charters,
+                        privateIncome: this.session.rules.operatingRules?.privateIncome
+                    },
                     company.id
                 ),
                 description: this.session.rules.privateRules.description(

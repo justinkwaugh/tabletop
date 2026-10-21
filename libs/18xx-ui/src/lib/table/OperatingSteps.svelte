@@ -30,11 +30,16 @@
             return current >= 0 ? current : undefined
         }
         return session.isViewingHistory
-            ? historicalOperatingStepIndex(context.actions.at(-1), gameState.machineState)
-            : operatingStepIndex(gameState.machineState)
+            ? historicalOperatingStepIndex(
+                  context.actions.at(-1),
+                  gameState.machineState,
+                  !!session.treasuryShares.rules
+              )
+            : operatingStepIndex(gameState.machineState, !!session.treasuryShares.rules)
     })
     const steps = $derived(
         titleSteps?.map((step) => step.label) ?? [
+            ...(session.treasuryShares.rules ? ['Shares'] : []),
             'Track',
             'Station',
             'Run',
@@ -50,7 +55,7 @@
         const summaries = operatingStepStatuses(gameState, actions, money)
         return titleSteps
             ? titleSteps.map((step) => step.status?.(gameState, actions, summaries))
-            : Object.values(summaries)
+            : [...(session.treasuryShares.rules ? [undefined] : []), ...Object.values(summaries)]
     })
 </script>
 

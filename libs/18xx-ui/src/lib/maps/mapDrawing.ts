@@ -998,6 +998,20 @@ export function mapBorderCosts(scene: MapDrawing): MapBorderCost[] {
     return [...costs.values()]
 }
 
+/**
+ * Where a station stands in its city: its space, or beside the last one when a title lets a
+ * second station share it, as 1894's returned stations may. No other slot has a place.
+ */
+export function stationSlotPoint(
+    node: { center: Point; slots: readonly Point[]; slotRadius: number },
+    slot: number
+): Point | undefined {
+    const point = node.slots[slot]
+    if (point || slot !== node.slots.length) return point
+    const last = node.slots.at(-1) ?? node.center
+    return { x: last.x + node.slotRadius * 1.5, y: last.y }
+}
+
 export function mapSelectionPoint(scene: MapDrawing, selection: MapSelection): Point {
     const entry = scene.locations.find((entry) => entry.location.id === selection.locationId)
     assertExists(entry, 'Selection requires a map location')
@@ -1010,7 +1024,7 @@ export function mapSelectionPoint(scene: MapDrawing, selection: MapSelection): P
     }
     const node = entry.drawing.nodes.find((node) => node.node.id === selection.nodeId)
     assertExists(node, 'Selection requires a map node')
-    const point = selection.kind === 'slot' ? node.slots[selection.slot] : node.center
+    const point = selection.kind === 'slot' ? stationSlotPoint(node, selection.slot) : node.center
     assertExists(point, 'Selection requires a station slot')
     return { x: entry.center.x + point.x, y: entry.center.y + point.y }
 }

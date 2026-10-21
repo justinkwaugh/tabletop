@@ -5,7 +5,13 @@ import {
     EighteenNinetyFourTrainDepot,
     TrainColorOrder
 } from './trains.js'
-import { requiresStationRoute, type TrainRules } from '@tabletop/18xx'
+import {
+    requiresStationRoute,
+    type AccessRightState,
+    type MapStateData,
+    type TrainRules
+} from '@tabletop/18xx'
+import { londonAccess } from './london.js'
 
 const depot = EighteenNinetyFourTrainDepot
 
@@ -31,7 +37,12 @@ export const upgradePrice: TrainRules['exchangePrice'] = (
 
 export const EighteenNinetyFourTrainRules: TrainRules = {
     depot,
-    requiresTrain: requiresStationRoute(EighteenNinetyFourMap, EighteenNinetyFourTileSet),
+    // London counts as a route's stop only for a company with a ferry marker (§14).
+    requiresTrain: requiresStationRoute<MapStateData & AccessRightState>(
+        EighteenNinetyFourMap,
+        EighteenNinetyFourTileSet,
+        londonAccess
+    ),
     // Trains come from the supply in colour order (§7.3.7.1).
     availableDefinitions(state) {
         const next = depot.nextDefinitionId(state.trainInventory)

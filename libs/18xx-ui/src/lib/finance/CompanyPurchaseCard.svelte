@@ -1,11 +1,5 @@
 <script lang="ts">
-    import {
-        cashOwnedBy,
-        currentPrivateRevenue,
-        getCompany,
-        trainsOwnedBy,
-        isObsoleteTrain
-    } from '@tabletop/18xx'
+    import { cashOwnedBy, getCompany, trainsOwnedBy, isObsoleteTrain } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import PrivateCard from '../privates/PrivateCard.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -32,7 +26,7 @@
         token={session.privateCompanyTokens[company.id]}
         name={session.companyName(company.id)}
         description=""
-        income={currentPrivateRevenue(session.gameState, session.charters, company.id)}
+        income={session.privateIncome(company.id)}
         {purchaseRange}
     />
 {:else}

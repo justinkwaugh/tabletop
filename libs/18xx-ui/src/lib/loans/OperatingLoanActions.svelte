@@ -6,6 +6,13 @@
     const rules = $derived(session.loans.rules)
 </script>
 
+{#each session.accessRights.offers as offer (`${offer.companyId}:${offer.rightId}`)}
+    <div class="loan-actions" aria-label="Rights">
+        <button onclick={() => session.accessRights.buy(offer)}
+            >Buy {offer.name.toLowerCase()} ({money(offer.price)})</button
+        >
+    </div>
+{/each}
 {#if rules && companyId}
     <div class="loan-actions" aria-label="Loans">
         <span

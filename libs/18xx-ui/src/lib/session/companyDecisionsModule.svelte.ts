@@ -8,6 +8,8 @@ import {
     LayPrivateTileOutOfTurn,
     OfferPurchase,
     PlacePrivateMarker,
+    PlacePrivateToken,
+    type StationPosition,
     RespondToPurchaseOffer,
     RespondToTrackConsent,
     cashOwnedBy,
@@ -32,6 +34,12 @@ export type PrivateTileOption = {
     details: TrackLayDetails
 }
 export type PrivateTrainOption = { privateCompanyId: string; details: TrainPurchaseDetails }
+export type PrivateTokenOption = {
+    privateCompanyId: string
+    playerId: string
+    companyId: string
+    position: StationPosition
+}
 export type PrivateMarkerOption = {
     privateCompanyId: string
     playerId: string
@@ -155,6 +163,24 @@ export class CompanyDecisionsModule {
                         playerId,
                         kind: terms.kind,
                         locationId
+                    }))
+                })
+        )
+    })
+    privateTokenOptions = $derived.by((): PrivateTokenOption[] => {
+        const { state, rules } = this.session
+        if (pendingCompanyDecision(state)) return []
+        return this.players.flatMap((playerId) =>
+            state.companies
+                .filter((company) => company.kind === 'private' && !company.closed)
+                .flatMap((company) => {
+                    const terms = rules.privatePowerRules.tokenTerms?.(state, company.id, playerId)
+                    if (!terms) return []
+                    return terms.positions.map((position) => ({
+                        privateCompanyId: company.id,
+                        playerId,
+                        companyId: terms.companyId,
+                        position
                     }))
                 })
         )
@@ -358,6 +384,23 @@ export class CompanyDecisionsModule {
         const action = this.session.createPlayerAction(PlacePrivateMarker, {
             privateCompanyId: option.privateCompanyId,
             locationId: option.locationId
+        })
+        action.playerId = option.playerId
+        await this.session.applyAction(action)
+    }
+    async placePrivateToken(option: PrivateTokenOption) {
+        assert(
+            this.privateTokenOptions.some(
+                (listed) =>
+                    listed.privateCompanyId === option.privateCompanyId &&
+                    listed.position.locationId === option.position.locationId &&
+                    listed.position.nodeId === option.position.nodeId
+            ),
+            'This private cannot place a station there now'
+        )
+        const action = this.session.createPlayerAction(PlacePrivateToken, {
+            privateCompanyId: option.privateCompanyId,
+            position: option.position
         })
         action.playerId = option.playerId
         await this.session.applyAction(action)

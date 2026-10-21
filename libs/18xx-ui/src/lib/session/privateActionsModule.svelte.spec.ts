@@ -28,7 +28,8 @@ function privateActions(
             { ...power, details: tileDetails }
         ]),
         privateTrainOptions: [],
-        privateMarkerOptions: []
+        privateMarkerOptions: [],
+        privateTokenOptions: []
     }
     const track = {
         undo: () => {

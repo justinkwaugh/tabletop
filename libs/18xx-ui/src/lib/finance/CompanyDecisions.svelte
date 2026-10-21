@@ -215,6 +215,21 @@
                         {/each}
                     </div>
                 {/if}
+                {#if session.privateActions.selection === 'powers' && session.decisions.privateTokenOptions.length}
+                    <div class="private-track" aria-label="Private stations">
+                        {#each session.decisions.privateTokenOptions as option (`${option.privateCompanyId}:${option.position.locationId}:${option.position.nodeId}`)}
+                            <button
+                                disabled={!session.decisions.canResolve}
+                                onclick={() => session.decisions.placePrivateToken(option)}
+                                >Place a {session.companyName(option.companyId)} station in {session.mapView.map.location(
+                                    option.position.locationId
+                                ).name ?? option.position.locationId} ({session.companyName(
+                                    option.privateCompanyId
+                                )})</button
+                            >
+                        {/each}
+                    </div>
+                {/if}
                 {#if showPowers && session.decisions.privateTrainOptions.length}
                     <PrivateTrainBuying {session} {trainColors} />
                 {/if}

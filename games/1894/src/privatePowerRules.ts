@@ -59,7 +59,8 @@ function trackTerms(
                   definitionIds: YellowTileIds,
                   payer,
                   connected: true,
-                  cost: 60
+                  cost: 60,
+                  recordsLay: true
               }
     // A yellow tile or its upgrade in Liège or Antwerpen as one of the company's track actions,
     // without a connection, then a free station there (§11.2.2.3–4).

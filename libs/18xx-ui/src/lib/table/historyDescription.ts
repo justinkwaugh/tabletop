@@ -4,6 +4,11 @@ import {
     isLayTile,
     isPrivateTileLay,
     isPlacePrivateMarker,
+    isPlacePrivateToken,
+    isReturnStation,
+    isBuyAccessRight,
+    isTradeTreasuryShares,
+    isFinishTreasuryShares,
     type TrackLayEffects,
     isRequestTrackConsent,
     isRespondToTrackConsent,
@@ -265,6 +270,30 @@ function describeShared(
         }
     if (isPlacePrivateMarker(action))
         return { text: `Marked ${action.locationId} with ${companyName(action.privateCompanyId)}` }
+    if (isPlacePrivateToken(action))
+        return {
+            text: `Station at ${action.position.locationId} with ${companyName(action.privateCompanyId)}`,
+            value: 'Free'
+        }
+    if (isReturnStation(action))
+        return { text: `Station placed again at ${action.position.locationId}` }
+    if (isBuyAccessRight(action))
+        return { text: `Bought ${action.rightId} rights`, value: money(action.expectedPrice) }
+    if (isTradeTreasuryShares(action)) {
+        const count = action.certificateIds.length
+        const shares = `${count} share${count === 1 ? '' : 's'}`
+        return action.operation === 'redeem'
+            ? { text: `Redeemed ${shares}`, value: money(action.amount) }
+            : {
+                  text: `Issued ${shares}`,
+                  value: money(action.amount),
+                  detail:
+                      action.parPrice !== undefined &&
+                      action.metadata?.previousParPrice !== undefined
+                          ? `Par ${money(action.metadata.previousParPrice)} → ${money(action.parPrice)}`
+                          : undefined
+              }
+    }
     if (isChooseHomeStation(action)) return { text: `Home station at ${action.locationId}` }
     if (isPlacePrivateStation(action))
         return {
@@ -445,6 +474,7 @@ function describeShared(
             detail: joinDetails(
                 details && `${details.shares} shares`,
                 money(action.expectedPrice),
+                details?.home && `Home at ${details.home.locationId}`,
                 details?.presidency && presidency(details.presidency)
             ),
             important: true
@@ -677,6 +707,7 @@ function describeShared(
             text: `Offered ${money(action.price)} for ${companyName(action.privateCompanyId)}`
         }
     if (isFinishTrack(action)) return { text: 'Finished track', routine: true }
+    if (isFinishTreasuryShares(action)) return { text: 'Finished shares', routine: true }
     if (isFinishStations(action)) return { text: 'Finished stations', routine: true }
     if (isFinishOperatingTurn(action)) return { text: 'Finished operating', routine: true }
     if (isFinishStockTurn(action))

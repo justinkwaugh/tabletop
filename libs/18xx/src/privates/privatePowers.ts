@@ -22,6 +22,11 @@ export interface PrivateTrackTerms {
     terrainDiscount?: number
     /** What a lay beside the ordinary lays costs beyond terrain, such as 1894's F60. */
     cost?: number
+    /**
+     * Records a lay beside the ordinary lays in the turn's track step, for a title whose
+     * restrictions read the turn's tiles, as 1894 forbids upgrading a tile laid that round.
+     */
+    recordsLay?: true
     free?: true
     restriction?(request: TrackRequest): string | undefined
     relabels?: true

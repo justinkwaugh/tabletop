@@ -1,6 +1,7 @@
 import type { EighteenXXRuntimeSchema, TitleStateSchema } from '@tabletop/18xx'
 import { operatingStepIndex } from '../table/operatingStep.js'
 import {
+    privateIncome,
     cashOwnedBy,
     EighteenXXPreferenceDefinition,
     getCompany,
@@ -49,6 +50,9 @@ import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { LoanModule } from './loanModule.svelte.js'
+import { TreasurySharesModule } from './treasurySharesModule.svelte.js'
+import { AccessRightsModule } from './accessRightsModule.svelte.js'
+import { StationReturnModule } from './stationReturnModule.svelte.js'
 import { LocalSelections } from './localSelections.js'
 import { TitleStockPanels, type TitleStockPanel } from './titleStockPanels.svelte.js'
 import { MapModule, MapStyleAppearances } from './mapModule.svelte.js'
@@ -304,7 +308,7 @@ export class EighteenXXSession<
         () => this.operatingStepCompletion,
         (state) => {
             const steps = this.presentation.operatingSteps
-            if (!steps) return operatingStepIndex(state)
+            if (!steps) return operatingStepIndex(state, !!this.rules.treasuryShareRules)
             const index = steps.findIndex((step) => step.states.includes(state))
             return index < 0 ? undefined : index
         }
@@ -336,6 +340,9 @@ export class EighteenXXSession<
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
     readonly loans = new LoanModule(this.moduleSession)
+    readonly treasuryShares = new TreasurySharesModule(this.moduleSession)
+    readonly accessRights = new AccessRightsModule(this.moduleSession)
+    readonly stationReturn = new StationReturnModule(this.moduleSession)
     readonly cashCrisis = new CashCrisisModule(this.moduleSession)
     /**
      * Whether this player is viewing the title's published artwork (board image and token art)
@@ -481,7 +488,10 @@ export class EighteenXXSession<
         if (this.presentation.operatingSteps) return undefined
         return OperatingTurnModule.defaultCompletion(this.moduleSession, {
             finishTrack: () => this.track.finish(),
-            finishStations: () => this.stations.finish()
+            finishStations: () => this.stations.finish(),
+            ...(this.rules.treasuryShareRules
+                ? { finishShares: () => this.treasuryShares.finish() }
+                : {})
         })
     }
     protected onStockSelectionCancelled() {
@@ -518,6 +528,28 @@ export class EighteenXXSession<
     }
     /** Hexes a title currently offers on the map and what choosing one does, such as a private's port. */
     get mapLocationChoice(): MapLocationChoice | undefined {
+        const homes = this.stock.offeredStartHomeLocationIds
+        if (homes.length)
+            return {
+                locationIds: homes,
+                choose: (locationId) => {
+                    this.stock.selectStartHome(locationId)
+                    void this.stock.confirmStart()
+                }
+            }
+        const returning = this.stationReturn.pending
+        if (returning)
+            return {
+                locationIds: [returning.locationId],
+                choose: (_locationId, nodeId) => {
+                    const city =
+                        nodeId ??
+                        (this.stationReturn.positions.length === 1
+                            ? this.stationReturn.positions[0].nodeId
+                            : undefined)
+                    if (city) void this.stationReturn.choose(city)
+                }
+            }
         const power = this.privateActions.titlePower
         if (!power || !this.decisions.canResolve) return undefined
         if (power.kind === 'location')
@@ -652,6 +684,17 @@ export class EighteenXXSession<
     }
     get charters() {
         return this.rules.stockRules.charters
+    }
+    /** What a private pays its owner each operating round now. */
+    privateIncome(privateId: string): number {
+        return privateIncome(
+            this.gameState,
+            {
+                charters: this.charters,
+                privateIncome: this.rules.operatingRules.privateIncome
+            },
+            privateId
+        )
     }
     companyName(companyId: string) {
         return this.rules.names.company(companyId)

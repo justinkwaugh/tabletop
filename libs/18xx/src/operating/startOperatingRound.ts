@@ -102,6 +102,20 @@ export class HydratedStartOperatingRound
     }
 }
 
+/** What a private pays its owner each operating round: the title's income, or its revenue. */
+export function privateIncome<State extends FinancialState>(
+    state: State,
+    rules: {
+        charters: CompanyCharters
+        privateIncome?(state: State, privateId: string): number
+    },
+    privateId: string
+): number {
+    return rules.privateIncome
+        ? rules.privateIncome(state, privateId)
+        : currentPrivateRevenue(state, rules.charters, privateId)
+}
+
 export function privateIncomePayments<State extends FinancialState>(
     state: State,
     rules: {
@@ -111,9 +125,7 @@ export function privateIncomePayments<State extends FinancialState>(
 ): CashPayment[] {
     return state.companies.flatMap((company) => {
         if (company.closed || company.kind !== 'private') return []
-        const amount = rules.privateIncome
-            ? rules.privateIncome(state, company.id)
-            : currentPrivateRevenue(state, rules.charters, company.id)
+        const amount = privateIncome(state, rules, company.id)
         const owner = privateOwner(state, company.id)
         return amount && owner && owner.kind !== 'bank'
             ? [{ from: { kind: 'bank' } as const, to: { ...owner }, amount }]

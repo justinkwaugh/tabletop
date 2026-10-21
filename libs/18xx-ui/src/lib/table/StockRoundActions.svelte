@@ -304,7 +304,8 @@
                                             data-start-price={price.result.details.parPrice}
                                             onclick={() => {
                                                 session.stock.selectStartPrice(price.marketSpaceId)
-                                                void session.stock.confirmStart()
+                                                if (!session.stock.startHomes)
+                                                    void session.stock.confirmStart()
                                             }}
                                         >
                                             <span class="par-value"
@@ -323,6 +324,13 @@
                                     {/if}
                                 {/each}
                             </div>
+                            {#if session.stock.offeredStartHomeLocationIds.length}
+                                <p class="start-home">
+                                    Choose {session.companyName(
+                                        session.stock.selectedStartCompany.companyId
+                                    )}’s home on the map.
+                                </p>
+                            {/if}
                         {/if}
                     </div>
                 {:else if menu === 'auction'}

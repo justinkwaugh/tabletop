@@ -42,8 +42,8 @@
     "FundTrain": "479815ad37224bf42a24deacb873771789c70d04ea887d0341139ffd63701e01",
     "GoBankrupt": "214ef75cbb95b3e25d0362555495fbcc8572e5da71df50c3531d7c8c72581951",
     "IssueTreasuryShares": "5b34043d5d2d293a9a9cb475aef421125913722a7e1d72ccb706aa23cfb428bd",
-    "LayPrivateTile": "4fac8ef2d632fc8411ba570c3ffc6cf77d09d5e79a66693d2c61cf478132ac5c",
-    "LayTile": "7be8e600597ab53b7ceea6acd275d1fb827fcd4590de5d72e71c470e115f03ca",
+    "LayPrivateTile": "231d2ddd101fe0943ce1d4318d67cef6a8e1495b8078bbdec9a78f83b7881875",
+    "LayTile": "82281bbeba1ea674ab69ae5c01e1777d7f5e296294691aaad033b7c63602ce21",
     "LiquidateCompany": "62319e8597d96c810a27cc70db0d00fca760500bde8cdcfcfc09dca32045dfc3",
     "MergeCompanies": "40ef42616a732230e84f6c9faa49c5e7abe4a69f934cd2b200660a0d8f10bab7",
     "NominateLot": "ced79bf0b77f7263a8c0f7add24c6a7a5fef4cd2be2ffc8e85d9260e9b97cbb2",
@@ -65,7 +65,7 @@
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
     "ResolveSelectionAuction": "374bbdb83f214c608f00156060e4c0b4575c50e8400fd2d6b5cc47cfe386434a",
     "RespondToPurchaseOffer": "2a80cb1220166e3653cf3d2c16cd62120b8d23a728e0359199e93db0c1afcc27",
-    "RespondToTrackConsent": "d444e2f54cdc5a40ef5bb8a6da767fb3c2b30cc1fa54469a8fc04b6cfde5601c",
+    "RespondToTrackConsent": "5961ab461170791e61698d2826f3c83d4a32a580b6aa7dce2b70ee46a91a5a2c",
     "RunTrains": "76d57af755fe72d5d7b936e18324f0adfd17350de4fc41b209c674073956fbc6",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
@@ -77,7 +77,7 @@
     "ShortShare": "3b228b1a2306183b1a679eafb7bd8ffb02e7792438abcea8db414c7e9634449d",
     "SkipCompanySale": "c477b0804b42f31b194672a2a080683065938d4bd037adfbec47a6bba6f81a07",
     "StartAcquisitionRound": "65ae9860c83b368e1609b9f2ae1ef1101f9e15536b87e201918d2534250e8f33",
-    "StartCompany": "088dbcf78d2b0ba76714fb09e68fa0e67df031634d115ab88a043c9748ce1450",
+    "StartCompany": "40d34db265092942a3139bc21014f73d7b60cfc153fdf75c1aba716ea56e7364",
     "StartMergerRound": "6ac2ea9acde1449a22f4add9d41b850ab2baac0af212bd6d3a275b1ef6e629be",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
@@ -1729,6 +1729,27 @@
       "gameId": {
         "type": "string"
       },
+      "hexReservations": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "companyId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "locationId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "companyId",
+            "locationId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
       "id": {
         "type": "string"
       },
@@ -3032,6 +3053,34 @@
                 "status"
               ],
               "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "locationId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "status": {
+                  "const": "displaced",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "companyId",
+                "id",
+                "locationId",
+                "status"
+              ],
+              "type": "object"
             }
           ]
         },
@@ -3615,6 +3664,29 @@
           "completed": {
             "type": "boolean"
           },
+          "extraLays": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "definitionId": {
+                  "type": "string"
+                },
+                "locationId": {
+                  "type": "string"
+                },
+                "privateCompanyId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "definitionId",
+                "locationId",
+                "privateCompanyId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "lays": {
             "items": {
               "additionalProperties": false,
@@ -3994,6 +4066,14 @@
           "companyId": {
             "minLength": 1,
             "type": "string"
+          },
+          "exchangedTrainIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
           },
           "purchasedTrainIds": {
             "items": {

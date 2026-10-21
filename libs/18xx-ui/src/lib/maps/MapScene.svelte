@@ -13,6 +13,7 @@
     import { MountainIcon } from './terrainIcons.js'
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
     import {
+        stationSlotPoint,
         assertMapOverlays,
         mapViewport,
         type BoardArtwork,
@@ -336,6 +337,17 @@
                                 data-map-reservation>{reservedCompanyIds.join('/')}</text
                             >
                         {/if}
+                    {/each}
+                    {#each tokens.filter((token) => token.locationId === id && token.nodeId === node.node.id && token.slot >= node.slots.length) as token (token.id)}
+                        {@const point = stationSlotPoint(node, token.slot) ?? node.center}
+                        <g data-map-token={token.id} class="shared-space">
+                            <CompanyToken
+                                appearance={token}
+                                size={tokenSize}
+                                x={point.x - tokenSize / 2}
+                                y={point.y - tokenSize / 2}
+                            />
+                        </g>
                     {/each}
                 {/each}
                 {#if entry.townRing}
