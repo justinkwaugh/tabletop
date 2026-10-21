@@ -20,6 +20,10 @@
 
     let gameSession = getGameSession()
 
+    // On phones each control takes an equal share of the bar so they are not crowded together.
+    const mobileCell = 'max-sm:flex-1'
+    const mobileIconCell = 'max-sm:flex-1 max-sm:*:mx-auto'
+
     let forkRequested = $state(false)
     const explorationDisabled = $derived(!gameSession.isExploring && !gameSession.canExplore)
 
@@ -91,7 +95,7 @@
         {/if}
     {:else}
         <div class="w-full flex flex-row justify-between items-center">
-            <button aria-label="fork game" onclick={requestFork}>
+            <button aria-label="fork game" class={mobileIconCell} onclick={requestFork}>
                 <svg
                     class="w-[22px] h-[22px] {!gameSession.isExploring
                         ? enabledColor
@@ -114,7 +118,7 @@
             </button>
             <button
                 onclick={async () => await goToMyPreviousTurn()}
-                class="flex flex-row justify-center items-center {hasPriorPlayerAction &&
+                class="{mobileCell} flex flex-row justify-center items-center {hasPriorPlayerAction &&
                 !gameSession.history.isDisabled()
                     ? enabledColor
                     : disabledColor}"
@@ -139,9 +143,12 @@
                 <UserSolid size="lg" />
             </button>
 
-            <div class="flex flex-row justify-center items-center space-x-2">
+            <div
+                class="flex flex-row justify-center items-center space-x-2 max-sm:contents max-sm:space-x-0"
+            >
                 <button
                     aria-label="goto my last turn"
+                    class={mobileIconCell}
                     onclick={async () => await gameSession.history.goToBeginning()}
                     ><svg
                         class="w-[25px] h-[25px] {gameSession.history.hasPreviousAction &&
@@ -164,6 +171,7 @@
                 </button>
                 <button
                     aria-label="step backwards"
+                    class={mobileIconCell}
                     onclick={async () => await gameSession.history.goToPreviousAction()}
                     ><svg
                         class="w-[24px] h-[24px] {gameSession.history.hasPreviousAction &&
@@ -189,7 +197,7 @@
                 <button
                     aria-label="play history"
                     onclick={async () => await gameSession.history.playHistory()}
-                    class={gameSession.history.playing ? 'hidden' : ''}
+                    class="{mobileIconCell} {gameSession.history.playing ? 'hidden' : ''}"
                     ><svg
                         class="w-[25px] h-[25px] {!gameSession.history.hasNextAction ||
                         gameSession.history.isDisabled()
@@ -212,7 +220,7 @@
                 <button
                     aria-label="stop history playback"
                     onclick={() => gameSession.history.stopHistoryPlayback()}
-                    class={!gameSession.history.playing ? 'hidden' : ''}
+                    class="{mobileIconCell} {!gameSession.history.playing ? 'hidden' : ''}"
                 >
                     <svg
                         class="w-[25px] h-[25px] {enabledColor}"
@@ -232,6 +240,7 @@
                 </button>
                 <button
                     aria-label="step forwards"
+                    class={mobileIconCell}
                     onclick={async (event: MouseEvent) =>
                         await gameSession.history.goToNextAction(event.shiftKey)}
                     ><svg
@@ -257,6 +266,7 @@
                 </button>
                 <button
                     aria-label="go to current"
+                    class={mobileIconCell}
                     onclick={async () => await gameSession.history.goToEnd()}
                 >
                     <svg
@@ -281,7 +291,7 @@
             </div>
             <button
                 onclick={async () => goToMyNextTurn()}
-                class="flex flex-row justify-center items-center {hasFuturePlayerAction &&
+                class="{mobileCell} flex flex-row justify-center items-center {hasFuturePlayerAction &&
                 !gameSession.history.isDisabled()
                     ? enabledColor
                     : disabledColor}"
@@ -305,6 +315,7 @@
             </button>
             <button
                 aria-label="start exploring"
+                class={mobileIconCell}
                 disabled={explorationDisabled}
                 title={explorationDisabled ? 'Exploration is unavailable for this view' : undefined}
                 onclick={async () =>
