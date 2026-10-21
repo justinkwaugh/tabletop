@@ -101,6 +101,7 @@ import {
     travelCard,
     woodCardsState,
     woodHospitalityState,
+    woodPortalBanksState,
     type WoodCardsScene
 } from './woodCardsTable.js'
 import { woodPickTable } from './woodPicksTable.js'
@@ -226,6 +227,7 @@ export type TableName =
     | 'woodCards'
     | 'woodCardsRuler'
     | 'woodCardsLow'
+    | 'woodPortalBanks'
     | 'woodStays'
     | 'woodHospitality'
     | 'woodHospitalityAsked'
@@ -5298,6 +5300,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     woodCards: () => tableOf(woodCardsState()),
     woodCardsRuler: () => woodCardsRulerTable({}, [TENTS, FOREST_PATHS]),
     woodCardsLow: () => tableOf(woodCardsLowState()),
+    woodPortalBanks: () => tableOf(woodPortalBanksState()),
     woodStays: () =>
         woodCardsRulerTable({ supply: 1, favor: 1, advisers: [FOREST_PATHS] }, [FOREST_PATHS]),
     // R-11.7-H3 — Dana set out with no card; a pick of the Great Slum asks Way Station's question.

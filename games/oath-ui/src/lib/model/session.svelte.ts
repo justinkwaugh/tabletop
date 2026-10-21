@@ -157,7 +157,13 @@ import {
 } from './recoverRows.js'
 import { searchRows, type SearchRow } from './searchRows.js'
 import { tradeModifiers, tradeRows, type TradeRow } from './tradeRows.js'
-import { samePayment, travelRows, type TravelChoice, type TravelRow } from './travelRows.js'
+import {
+    samePayment,
+    travelRows,
+    waysToShow,
+    type TravelChoice,
+    type TravelRow
+} from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
 import { actionCardUses, actionCards, type ActionCard } from './actionCards.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
@@ -1683,12 +1689,18 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    // R-5.6, R-7.1.4 — every destination with its ways to pay.
+    /**
+     * R-5.6, R-7.1.4 — every destination with the ways to pay it shows: where one costs nothing,
+     * that way alone, so the map's chip, the Travel row and a tap on the map agree.
+     */
     get travelRows(): TravelRow[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Travel) return []
         if (this.shroudedWoodChooser || this.modifiers.picksPending) return []
-        return travelRows(this.gameState, playerId, this.modifiers.declared)
+        return travelRows(this.gameState, playerId, this.modifiers.declared).map((row) => ({
+            ...row,
+            ways: waysToShow(row.ways)
+        }))
     }
 
     /** R-11.12 — the destination a map pick opened, with its ways to pay, while it is still offered. */
