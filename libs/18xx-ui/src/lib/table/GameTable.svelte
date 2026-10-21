@@ -307,7 +307,17 @@
     // Below the pane layout, drags may bring the map's edge 30% into the view; focusing a hex
     // still brings it to the centre.
     const MapGestureOverpanReach = 0.3
-    let orderChipsShown = $state(false)
+    // The tabbed layout saves whether the chips are shown; the paned layout starts without them.
+    let orderChipsShownPaned = $state(false)
+    const orderChipsShown = $derived(
+        paneLayout.current
+            ? orderChipsShownPaned
+            : session.preferences.values.operatingOrderChipsTabbed
+    )
+    function toggleOrderChips() {
+        if (paneLayout.current) orderChipsShownPaned = !orderChipsShownPaned
+        else session.preferences.set({ operatingOrderChipsTabbed: !orderChipsShown }, 'family')
+    }
     let orderOverflowing = $state(false)
     let orderFirstVisible = $state(-1)
     let orderLastVisible = $state(-1)
@@ -1079,7 +1089,7 @@
                                     class="order-overview-toggle"
                                     aria-label="Operating order chips"
                                     aria-expanded={orderChipsShown}
-                                    onclick={() => (orderChipsShown = !orderChipsShown)}
+                                    onclick={toggleOrderChips}
                                 >
                                     <CompanyOrderOverview
                                         companies={companyOrder}
