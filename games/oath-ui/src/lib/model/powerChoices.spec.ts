@@ -10,6 +10,7 @@ import {
 } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import {
+    FIRST_BRANCH,
     NO_OPTION,
     emptyPicks,
     gridCeilingAt,
@@ -303,5 +304,33 @@ describe('an exchange choice — the player, then terms that name something, eve
         const named = { ...withRhys, terms: { 0: { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] } } }
         expect(withOptionPick(named, deal, 0, 1).terms).toEqual({})
         expect(withOptionPick(named, deal, 0, 0).terms).toEqual(named.terms)
+    })
+})
+
+/** Undo that lands on picks with nothing in them leaves the step: an entry left at nothing is no pick. */
+describe('hasPicks — every pick record left at nothing is no pick', () => {
+    const left = (over: Partial<PowerChoicePicks>) => ({ ...emptyPicks(), ...over })
+
+    it('an option taken back, a count at 0, an empty list, a bargain with no player, or terms that move nothing', () => {
+        expect(hasPicks(left({ option: { 0: NO_OPTION } }))).toBe(false)
+        expect(hasPicks(left({ count: { 0: 0 } }))).toBe(false)
+        expect(hasPicks(left({ several: { 0: [] } }))).toBe(false)
+        expect(hasPicks(left({ bargain: { 0: [] } }))).toBe(false)
+        expect(hasPicks(left({ terms: { 0: { terms: {}, uncountedSiteIds: [] } } }))).toBe(false)
+        const noFavor = { terms: { fromProposer: { favor: 0 } }, uncountedSiteIds: [] }
+        expect(hasPicks(left({ terms: { 0: noFavor } }))).toBe(false)
+    })
+
+    it('each record with something in it is a pick', () => {
+        expect(hasPicks(left({ option: { 0: 0 } }))).toBe(true)
+        expect(hasPicks(left({ option: { 0: FIRST_BRANCH } }))).toBe(true)
+        expect(hasPicks(left({ count: { 0: 1 } }))).toBe(true)
+        expect(hasPicks(left({ several: { 0: [2] } }))).toBe(true)
+        const rhys = { playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }
+        expect(hasPicks(left({ bargain: { 0: [rhys] } }))).toBe(true)
+        const oneFavor = { terms: { fromProposer: { favor: 1 } }, uncountedSiteIds: [] }
+        expect(hasPicks(left({ terms: { 0: oneFavor } }))).toBe(true)
+        // A site picked and not yet counted is a pick.
+        expect(hasPicks(left({ terms: { 0: { terms: {}, uncountedSiteIds: ['c1'] } } }))).toBe(true)
     })
 })

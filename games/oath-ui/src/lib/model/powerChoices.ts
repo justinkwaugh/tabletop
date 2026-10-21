@@ -9,7 +9,12 @@ import {
     type WarbandGroup
 } from '@tabletop/oath'
 import { bargainChoices, type BargainPick } from './bargainPicks.js'
-import { exchangeComplete, noExchangePicks, type ExchangePicks } from './exchangeTerms.js'
+import {
+    exchangeComplete,
+    exchangePicked,
+    noExchangePicks,
+    type ExchangePicks
+} from './exchangeTerms.js'
 import type { MovePick } from './powerMoves.js'
 
 export type PowerChoicePicks = {
@@ -29,21 +34,24 @@ export function emptyPicks(): PowerChoicePicks {
     return { option: {}, count: {}, terms: {}, several: {}, warbands: {}, bargain: {}, moves: [] }
 }
 
+export const NO_OPTION = -1
+
 /**
- * Anything picked at all: Undo past the last pick leaves the picks. A row of pieces tapped back to
- * none keeps its entry at 0, which is no pick.
+ * Anything picked at all: Undo past the last pick leaves the picks. A pick taken back keeps its
+ * entry with nothing in it, which is no pick: a row of pieces or a count at 0, an option at none,
+ * an emptied list or bargain, or terms that move nothing.
  */
 export function hasPicks(picks: PowerChoicePicks): boolean {
     return (
         picks.moves.length > 0 ||
         Object.values(picks.warbands).some((count) => count > 0) ||
-        [picks.option, picks.count, picks.terms, picks.several, picks.bargain].some(
-            (record) => Object.keys(record).length > 0
-        )
+        Object.values(picks.count).some((count) => count > 0) ||
+        Object.values(picks.option).some((option) => option !== NO_OPTION) ||
+        Object.values(picks.several).some((picked) => picked.length > 0) ||
+        Object.values(picks.bargain).some((picked) => picked.length > 0) ||
+        Object.values(picks.terms).some(exchangePicked)
     )
 }
-
-export const NO_OPTION = -1
 
 /**
  * R-7.1.2 — in a game created before revision 7, an open count (Witch's Bargain) stops at what the

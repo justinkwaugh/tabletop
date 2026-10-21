@@ -21,7 +21,7 @@ import {
     type LegalPowerUse
 } from '@tabletop/oath'
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
-import { emptyPicks, warbandGrids, withGridCount } from './powerChoices.js'
+import { NO_OPTION, emptyPicks, warbandGrids, withGridCount } from './powerChoices.js'
 import { bargainRows, shownBargainPicks, withBargainCount, withBargainPlayer, type BargainPick } from './bargainPicks.js'
 import { withCount, withFrom, withTo, type MovePick } from './powerMoves.js'
 import { restBankChoice, restRows } from './restRows.js'
@@ -512,6 +512,25 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
 
     it('before any pick there is nothing for Undo to take', async () => {
         expect((await using()).hasManualSelection()).toBe(false)
+    })
+
+    it('a count, a list or an option taken back to nothing is no pick: Undo landing there leaves the picks at once', async () => {
+        const nothing = [
+            { ...emptyPicks(), count: { 0: 0 } },
+            { ...emptyPicks(), several: { 0: [] } },
+            { ...emptyPicks(), option: { 0: NO_OPTION } },
+            { ...emptyPicks(), bargain: { 0: [] } }
+        ]
+        for (const left of nothing) {
+            const draft = await using()
+            draft.setPicks(INN_USE, ticked)
+            draft.setPicks(INN_USE, left)
+            draft.setPicks(INN_USE, { ...emptyPicks(), count: { 0: 2 } })
+            // Back past the last pick: nothing stands picked, so the picks are left.
+            expect(draft.back()).toBe(true)
+            expect(draft.hasManualSelection()).toBe(false)
+            expect(draft.back()).toBe(false)
+        }
     })
 
     it('a power not in reach is never given picks', async () => {
