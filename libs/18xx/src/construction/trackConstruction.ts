@@ -506,9 +506,7 @@ export class TrackConstruction {
         return [{}]
     }
     private reconfiguring(locationId: string, before: TileFace, after: TileFace): boolean {
-        return (
-            !!this.rules.reconfigures?.(locationId, before, after) && keepsExits(before, after)
-        )
+        return !!this.rules.reconfigures?.(locationId, before, after) && keepsExits(before, after)
     }
     private replacesTile(locationId: string): boolean {
         return this.rules.colorOrder.indexOf(this.mapState.tile(locationId).face.color) > 0
