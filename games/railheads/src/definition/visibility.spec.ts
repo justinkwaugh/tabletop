@@ -10,7 +10,7 @@ import {
 } from '@tabletop/common'
 import { isResolveIndustryAuction } from '../actions/resolveIndustryAuction.js'
 import type { PlaceSealedBid } from '../actions/placeSealedBid.js'
-import { ActionSpaceId, CompanyId, Industry } from '../editions/types.js'
+import { ActionSpaceId, CompanyId, EditionId, Industry } from '../editions/types.js'
 import { RailheadsGameStateValidator, type RailheadsProjectedState } from '../model/gameState.js'
 import { createGame } from '../testing/bot.js'
 import { Table } from '../testing/table.js'
@@ -32,16 +32,27 @@ function projectState(state: RailheadsProjectedState, perspective: Perspective) 
     return RailheadsRuntime.visibility.state.project(state, perspective)
 }
 
-// p1 holds the Start Player token and invests in grain; everyone can afford a sealed bid.
-function sealedBidding(): Table {
-    const table = new Table(4)
-    table.playInitialAuction({
+const OPENING_BUYERS: Record<EditionId, Partial<Record<CompanyId, string>>> = {
+    [EditionId.Germany]: {
         [CompanyId.KPEV]: 'p0',
         [CompanyId.GBSE]: 'p1',
         [CompanyId.KSSE]: 'p2',
         [CompanyId.KWSE]: 'p3',
         [CompanyId.KBSB]: 'p1'
-    })
+    },
+    [EditionId.Midwest]: {
+        [CompanyId.NYC]: 'p0',
+        [CompanyId.ERIE]: 'p1',
+        [CompanyId.IC]: 'p2',
+        [CompanyId.BO]: 'p3',
+        [CompanyId.PRR]: 'p1'
+    }
+}
+
+// p1 holds the Start Player token and invests in grain; everyone can afford a sealed bid.
+function sealedBidding(edition: EditionId = EditionId.Germany): Table {
+    const table = new Table(4, { edition })
+    table.playInitialAuction(OPENING_BUYERS[edition])
     table.act('p1', { type: ActionType.ChooseAction, space: ActionSpaceId.IndustryInvestment })
     table.act('p1', { type: ActionType.InvestInIndustry, industry: Industry.Grain })
     return table
@@ -220,6 +231,48 @@ describe('Railheads protected visibility', () => {
             })
             const amount = sample.industryAuction?.bids[0].amount
             expect(amount).toBeGreaterThanOrEqual(sample.industryAuction?.minimum ?? 0)
+        }
+    })
+})
+
+describe.each(Object.values(EditionId))('%s hidden information', (edition) => {
+    it('shows every player’s cash to everyone, since only sealed bids are hidden', () => {
+        const table = sealedBidding(edition)
+        for (const perspective of perspectives) {
+            const projected = projectState(table.state, perspective)
+            expect(projected.players.map((player) => player.cash)).toEqual(
+                table.state.players.map((player) => player.cash)
+            )
+        }
+    })
+
+    it('invents only bids the rules allow, for every seed', () => {
+        const table = sealedBidding(edition)
+        submit(table, 'p1', 3)
+        submit(table, 'p0', 0)
+        expect(
+            projectState(table.state, opponent).industryAuction?.bids.map((bid) => bid.amount)
+        ).toEqual([undefined, undefined])
+        for (let seed = 1; seed <= 200; seed++) {
+            const sample = RailheadsRuntime.exploration.createFromProjectedState({
+                game: table.game,
+                state: projectState(table.state, opponent),
+                actions: [],
+                perspective: opponent,
+                random: getPrng(seed)
+            })
+            expect(RailheadsGameStateValidator.Check(sample)).toBe(true)
+            const auction = sample.industryAuction
+            assertExists(auction, 'The auction is still open')
+            for (const { playerId, amount } of auction.bids) {
+                const player = sample.players.find((candidate) => candidate.playerId === playerId)
+                assertExists(player, 'Every bid belongs to a player')
+                assertExists(amount, 'Every bid is filled in')
+                const floor = playerId === auction.investorId ? auction.minimum : 0
+                expect(amount).toBeGreaterThanOrEqual(floor)
+                expect(amount === 0 || amount >= auction.minimum).toBe(true)
+                expect(amount).toBeLessThanOrEqual(player.cash)
+            }
         }
     })
 })

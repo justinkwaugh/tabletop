@@ -3,6 +3,7 @@ import { AxialCoordinates, sameCoordinates } from '@tabletop/common'
 import { hexKey, type MapHex } from '../editions/editions.js'
 import { CompanyId, HexKind, Industry, type LayTrackRules } from '../editions/types.js'
 import type { TrackHex } from './components.js'
+import { networkHexes } from './network.js'
 
 export enum PlacementKind {
     Disc = 'Disc',
@@ -48,11 +49,7 @@ export function trackAt(
 }
 
 export function networkKeys(track: readonly TrackHex[], companyId: CompanyId): Set<number> {
-    return new Set(
-        track
-            .filter((hex) => hex.discs.includes(companyId) || hex.cube === companyId)
-            .map((hex) => hexKey(hex.coords))
-    )
+    return new Set(networkHexes(track, companyId).map((hex) => hexKey(hex.coords)))
 }
 
 export function discsPlaced(track: readonly TrackHex[], companyId: CompanyId): number {
@@ -71,6 +68,7 @@ export type PlacementContext = {
     companyId: CompanyId
     rules: LayTrackRules
     siteCapacity: (coords: AxialCoordinates) => number
+    industryInDemand: (industry: Industry) => boolean
     discsLeft: number
     cubesLeft: number
     neighbours: (coords: AxialCoordinates) => AxialCoordinates[]
@@ -92,6 +90,7 @@ export function placementKind(context: PlacementContext, place: MapHex): Placeme
     }
     return context.discsLeft > 0 &&
         discs.length < context.siteCapacity(place.coords) &&
+        (place.industry === undefined || context.industryInDemand(place.industry)) &&
         !discs.includes(context.companyId)
         ? PlacementKind.Disc
         : undefined

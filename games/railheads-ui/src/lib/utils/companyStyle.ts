@@ -7,7 +7,12 @@ export const COMPANY_STYLE: Record<CompanyId, CompanyStyle> = {
     [CompanyId.GBSE]: { fill: '#b8232a', text: '#ffffff', edge: '#6e1216' },
     [CompanyId.KSSE]: { fill: '#3e8a2e', text: '#ffffff', edge: '#1f4a16' },
     [CompanyId.KWSE]: { fill: '#ecd02a', text: '#2b2405', edge: '#8a780c' },
-    [CompanyId.KBSB]: { fill: '#2c7fd3', text: '#ffffff', edge: '#164a80' }
+    [CompanyId.KBSB]: { fill: '#2c7fd3', text: '#ffffff', edge: '#164a80' },
+    [CompanyId.PRR]: { fill: '#b8232a', text: '#ffffff', edge: '#6e1216' },
+    [CompanyId.BO]: { fill: '#2c7fd3', text: '#ffffff', edge: '#164a80' },
+    [CompanyId.IC]: { fill: '#3e8a2e', text: '#ffffff', edge: '#1f4a16' },
+    [CompanyId.ERIE]: { fill: '#ecd02a', text: '#2b2405', edge: '#8a780c' },
+    [CompanyId.NYC]: { fill: '#1f1f1d', text: '#ffffff', edge: '#000000' }
 }
 
 export type IndustryStyle = { name: string; ring: string; mark: string; text: string }
@@ -25,6 +30,15 @@ export const HEX_FILL: Record<HexKind, string> = {
     [HexKind.Town]: '#e8ad66',
     [HexKind.Industry]: '#eee493'
 }
+
+export const MIDWEST_HEX_FILL: Record<HexKind, string> = {
+    ...HEX_FILL,
+    [HexKind.Countryside]: '#cdbd8e'
+}
+
+export const WATER_FILL = '#3d8bd0'
+
+export const DEMAND_FILL = '#8a5a1c'
 
 export function shareLabel(shortName: string): string {
     return shortName.replaceAll('.', '')
