@@ -31,6 +31,7 @@ import {
 import {
     createTileDrawing,
     DefaultCitySlotRadius,
+    TileRadius,
     type TileDrawing,
     type TileDrawnPath
 } from '../tiles/tileDrawing.js'
@@ -448,7 +449,7 @@ export function createMapDrawing(
             ? liftRevenue(printedDrawing, BadgeLift)
             : printedDrawing
         const geometry = calculateHexGeometry(
-            { orientation: map.definition.orientation, dimensions: { radius: 50 } },
+            { orientation: map.definition.orientation, dimensions: { radius: TileRadius } },
             relocation?.at ?? location.coordinates
         )
         const segment = (edge: TileEdge): HexSegment => {
@@ -557,7 +558,7 @@ export function createMapDrawing(
     const vertices = locations.flatMap(
         ({ location }) =>
             calculateHexGeometry(
-                { orientation: map.definition.orientation, dimensions: { radius: 50 } },
+                { orientation: map.definition.orientation, dimensions: { radius: TileRadius } },
                 location.coordinates
             ).vertices
     )
