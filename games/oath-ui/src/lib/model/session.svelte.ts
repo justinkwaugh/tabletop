@@ -104,7 +104,8 @@ import {
     ConsentDraft,
     RestDraft,
     SeatCardPeekDraft,
-    WakeDraft
+    WakeDraft,
+    cardsWithListedPower
 } from './phaseDrafts.js'
 import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
@@ -1527,6 +1528,35 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (type === ActionType.Campaign) this.campaign.begin()
         // R-7.4 — the action's free gains start in use; a tap puts one down.
         this.modifiers.seed()
+    }
+
+    /**
+     * R-6.2 — in this seat's Act Phase, the cards whose power Use a power lists, each wearing a
+     * "Use" badge where it lies: while Use a power is offered and nothing else is staged.
+     */
+    get powerBadgeCards(): string[] {
+        const playerId = this.liveTurnSeatId
+        const action = this.selection.action
+        if (
+            !playerId ||
+            this.gameState.machineState !== MachineState.ActPhase ||
+            !this.validActionTypes.includes(ActionType.UseActionPower) ||
+            (action !== undefined && action !== ActionType.UseActionPower)
+        ) {
+            return []
+        }
+        return cardsWithListedPower(this.gameState, playerId)
+    }
+
+    /**
+     * A card's "Use" badge: Use a power opened on that card's powers alone, with no picks; nothing
+     * is sent.
+     */
+    openCardPower(cardId: string): void {
+        if (!this.powerBadgeCards.includes(cardId)) return
+        if (this.selection.value('powerCard') !== cardId) this.clearActionDrafts()
+        this.chooseAction(ActionType.UseActionPower)
+        this.selection.set('powerCard', cardId)
     }
 
     /** R-7.4 — the cards behind "Use a power" that change an action's menu, or make it possible. */

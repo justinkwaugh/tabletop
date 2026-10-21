@@ -270,6 +270,9 @@ export type TableName =
     | 'wrestlersOnePlace'
     | 'warningSignals'
     | 'warningSignalsNothingToMove'
+    | 'useBadge'
+    | 'useBadgeNothingToPick'
+    | 'useBadgeTribunal'
     | PickerScene
     | PowerSitesScene
     | PickerTwoScene
@@ -3384,6 +3387,94 @@ function modifierTable(scene: ModifierScene): PlayedTable {
 }
 
 /**
+ * R-6.2 — the "Use" badge: the Trade menu's table (Oracle at the seat's site, 2 secrets to pay
+ * for it), with Alchemist in place of Master of Disguise and the Ivory Eye held. With
+ * `facedown` Ann, the Chancellor, holds a facedown adviser for the Ivory Eye to peek at;
+ * without, nothing is facedown and the Ivory Eye has nothing to pick.
+ */
+function useBadgeTable(facedown: boolean): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 3,
+                favor: 3,
+                secrets: 2,
+                warbandsOnBoard: { me: 3 },
+                relicIds: ['relic.ivory-eye'],
+                advisers: [
+                    faceup('denizen.beast.birdsong'),
+                    faceup('denizen.hearth.awaited-return'),
+                    faceup('denizen.arcane.alchemist')
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0),
+                advisers: facedown ? [{ cardId: 'denizen.arcane.tutor', faceUp: false }] : []
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: {
+                [home]: [
+                    'denizen.order.toll-roads',
+                    'denizen.order.forced-labor',
+                    'denizen.nomad.oracle'
+                ],
+                [mapSlotId(Region.Provinces, 0)]: ['denizen.beast.wolves']
+            },
+            discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
+ * R-6.2, R-2.8.3 — a site card's own "Action:" power: the seat stands at The Tribunal, which holds
+ * no card, so Ann's faceup Bandit Chief puts 3 bandits there.
+ */
+function useBadgeTribunalTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, favor: 3, secrets: 1 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0),
+                favor: 2,
+                advisers: [{ cardId: BANDIT_CHIEF, faceUp: true }]
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.the-tribunal' },
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
  * R-7.1.1-H2, R-7.4 — the Trade menu's cards for Small Friends' site and Master of Disguise's
  * borrowed advisers, in a game of this revision. `smallFriendsSites`: the seat, an Exile, stands
  * at the Great Slums (Toll Roads, Oracle, Map Library; the Inn at the other Cradle site) with
@@ -5335,6 +5426,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     wrestlersOnePlace: () => wrestlersDefends({ annBoard: 0, rhysBoard: 0 }),
     warningSignals: () => warningSignalsTable(),
     warningSignalsNothingToMove: () => warningSignalsTable(true),
+    useBadge: () => useBadgeTable(true),
+    useBadgeNothingToPick: () => useBadgeTable(false),
+    useBadgeTribunal: useBadgeTribunalTable,
     pickerWhistle: () => powerPickerTable('pickerWhistle'),
     pickerTerror: () => powerPickerTable('pickerTerror'),
     pickerPact: () => powerPickerTable('pickerPact'),

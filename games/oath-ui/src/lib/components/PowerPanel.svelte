@@ -42,8 +42,9 @@
         return draft.reasonCannotUse(p)
     }
 
-    // R-7.4 — the cards that change an action: found here, used in that action's menu.
-    let cards = $derived(gameSession.actionCards)
+    // R-7.4 — the cards that change an action: found here, used in that action's menu. Opened
+    // from a card's "Use" badge, the panel holds that card's powers alone.
+    let cards = $derived(draft.card === undefined ? gameSession.actionCards : [])
     let groups = $derived(
         [
             { heading: 'Makes an action possible', kind: 'makesPossible' },

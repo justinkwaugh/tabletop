@@ -11,6 +11,7 @@
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
     import ReliquaryPlacard from '$lib/components/ReliquaryPlacard.svelte'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
+    import UseBadge from '$lib/components/UseBadge.svelte'
     import { avatarImage, boardGround, titleImage } from '$lib/images/boardImages.js'
     import {
         bannerImage,
@@ -62,6 +63,9 @@
     }
 
     let hasHoldings = $derived(playerState.relicIds.length > 0 || facts.banners.length > 0)
+
+    // R-6.2 — in this seat's own Act Phase, a card whose power Use a power lists wears "Use".
+    let badged = $derived(isMe ? gameSession.powerBadgeCards : [])
 
     // R-6.5 — Move warbands offers its site -> board move in the panel; the counter wears the ring.
     let toBoard = $derived(
@@ -183,24 +187,29 @@
                         !playable}
                     class:thumb--pickable={playable}
                 >
-                    {#if playable && cardId}
-                        <!-- R-6.1 — offered in the panel; here it wears the ring and enlarges. -->
-                        <CardImage {cardId} width={50} label={cardName(cardId)} inspect />
-                    {:else if cardId}
-                        <CardImage
-                            {cardId}
-                            width={50}
-                            label={cardName(cardId) +
-                                (adviser.faceUp
-                                    ? ''
-                                    : adviser.shownToMe
-                                      ? ' — facedown; shown to you'
-                                      : ' — facedown; only you see it')}
-                            inspect
-                        />
-                    {:else}
-                        <CardImage back={adviser.back} width={50} label="A facedown adviser" />
-                    {/if}
+                    <span class="thumb__card">
+                        {#if playable && cardId}
+                            <!-- R-6.1 — offered in the panel; here it wears the ring and enlarges. -->
+                            <CardImage {cardId} width={50} label={cardName(cardId)} inspect />
+                        {:else if cardId}
+                            <CardImage
+                                {cardId}
+                                width={50}
+                                label={cardName(cardId) +
+                                    (adviser.faceUp
+                                        ? ''
+                                        : adviser.shownToMe
+                                          ? ' — facedown; shown to you'
+                                          : ' — facedown; only you see it')}
+                                inspect
+                            />
+                        {:else}
+                            <CardImage back={adviser.back} width={50} label="A facedown adviser" />
+                        {/if}
+                        {#if adviser.faceUp && cardId && badged.includes(cardId)}
+                            <UseBadge {cardId} />
+                        {/if}
+                    </span>
                     <figcaption>{adviser.faceUp ? '' : 'facedown'}</figcaption>
                 </figure>
             {/each}
@@ -246,6 +255,9 @@
                 <figure class="thumb thumb--relic">
                     <CardImage cardId={relicId} width={52} label={cardName(relicId)} inspect />
                     <span class="on-card"><CardWarbands cardId={relicId} size={12} /></span>
+                    {#if badged.includes(relicId)}
+                        <UseBadge cardId={relicId} />
+                    {/if}
                 </figure>
             {/each}
             {#each facts.banners as banner (banner)}
@@ -544,6 +556,10 @@
     .thumb {
         margin: 0;
         flex: none;
+    }
+    .thumb__card {
+        position: relative;
+        display: block;
     }
     .thumb figcaption {
         height: 12px;

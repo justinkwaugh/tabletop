@@ -495,6 +495,14 @@ export function listedActionPowers(state: HydratedOathGameState, playerId: strin
 }
 
 /**
+ * R-6.2 — the cards whose power Use a power lists, each once, in its order: in the seat's Act
+ * Phase each carries a "Use" badge where it lies.
+ */
+export function cardsWithListedPower(state: HydratedOathGameState, playerId: string): string[] {
+    return [...new Set(listedActionPowers(state, playerId).map((use) => use.cardId))]
+}
+
+/**
  * R-6.2, R-7.3.2 — the choices each "Action:" power's text opens. The draft keeps the picks after
  * each tap, so Undo takes back one pick at a time.
  */
@@ -509,10 +517,18 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
             : undefined
     }
 
+    /** The card whose "Use" badge opened the panel, which then lists its powers alone. */
+    get card(): string | undefined {
+        return this.playerId ? this.session.selection.value('powerCard') : undefined
+    }
+
     /** The powers the panel lists, each with the choices its card offers now. */
     get powers(): LegalPowerUse[] {
         const playerId = this.playerId
-        return playerId ? listedActionPowers(this.session.gameState, playerId) : []
+        if (!playerId) return []
+        const listed = listedActionPowers(this.session.gameState, playerId)
+        const card = this.card
+        return card === undefined ? listed : listed.filter((power) => power.cardId === card)
     }
 
     private storedOf(use: PowerUseKey): PowerChoicePicks {

@@ -29,6 +29,7 @@
     // power, at every width: a tap on a lit site picks it.
     let offers = $derived(gameSession.siteOffers)
     let dimmed = $derived(dimsTheMap(offers))
+    let badged = $derived(gameSession.powerBadgeCards)
 
     function pickOnMap(offer: SiteOffer | undefined): (() => void) | undefined {
         if (offer?.intent === 'start' && offer.pickable) {
@@ -149,6 +150,7 @@
                 offer?.intent === 'power') &&
                 offer.picked}
             previewSlotId={slotId}
+            useBadge={faceUp && cardId !== undefined && badged.includes(cardId)}
             {onpick}
             pickLabel={text.chip === undefined
                 ? restingLabel(slotId)
