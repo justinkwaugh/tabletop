@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GameSession } from '@tabletop/frontend-components'
 import { Color, assert, type Visibility } from '@tabletop/common'
-import { ActionType, Banner, HydratedOathGameState, LetPeekSubjectKind, MachineState, OathVisibility, PowerChoiceKind, SearchPlay, isLetPeek, isPlayFacedownAdviser, playMapChanges, type LegalChoice, type LetPeekSubject } from '@tabletop/oath'
+import { ActionType, Banner, HydratedOathGameState, IMPERIAL_WARBANDS, LetPeekSubjectKind, MachineState, OathRevision, OathVisibility, PlayerStatus, PowerChoiceKind, SearchPlay, isLetPeek, isPlayFacedownAdviser, playMapChanges, type LegalChoice, type LetPeekSubject } from '@tabletop/oath'
 import { FIXTURE_SITE_CAPACITY, openTurn, required, served, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, searchingTable, setupTable, tableOf } from '$lib/testing/sessionHarness.js'
 import { emptyPicks } from './powerChoices.js'
@@ -281,7 +281,7 @@ describe("R-6.1, R-5.1.4.I — Great Herd turned faceup to a site is not offered
         const me: Visibility.Perspective = { kind: 'player', playerId: 'me' }
         const own = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, me)), me)
         for (const view of [state, own]) {
-            const mapChanges = playMapChanges(view, GREAT_HERD, SearchPlay.Site, { discardFirstCardId: TENTS })
+            const mapChanges = playMapChanges(view, 'me', GREAT_HERD, SearchPlay.Site, { discardFirstCardId: TENTS })
             expect(mapChanges.leaving).toEqual([TENTS])
             expect(cardsOf(whenPlayedChoices(view, 'me', GREAT_HERD, SearchPlay.Site, true, mapChanges))).toEqual([ORACLE])
         }
@@ -596,5 +596,52 @@ describe('R-6.1, R-9.4 — the card the Show menu shows', () => {
         await session.undo()
         expect(session.letPeekOpen).toBe(false)
         expect(session.hasManualDraft).toBe(false)
+    })
+})
+
+describe('R-6.1, R-7.3.3 — Bewitch turned faceup to a site counts the secret Book of Records gains first', () => {
+    const BEWITCH = 'denizen.arcane.bewitch'
+    const BOOK = 'relic.book-of-records'
+
+    /** The seat, an Exile with 2 secrets, holds Bewitch facedown and Book of Records; the Chancellor holds 2. */
+    async function flippingBewitch(oathRevision: OathRevision) {
+        const state = testState(
+            [
+                testPlayer({ playerId: 'me', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', secrets: 2, relicIds: [BOOK], advisers: [{ cardId: BEWITCH, faceUp: false }] }),
+                testPlayer({ playerId: 'ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', secrets: 2, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } })
+            ],
+            {
+                machineState: MachineState.ActPhase,
+                oathRevision,
+                chancellorPlayerId: 'ann',
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [] }
+            }
+        )
+        openTurn(state, 'me')
+        const session = await openSessionOn(tableOf(state))
+        const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
+        session.selection.set('action', ActionType.PlayFacedownAdviser)
+        return { session, sent }
+    }
+
+    it('from revision 16, the play waits for the yes, which the engine accepts, and is sent with it', async () => {
+        const { session, sent } = await flippingBewitch(OathRevision.EngineFixes12)
+        await session.chooseAdviserPlay(BEWITCH, SearchPlay.Site)
+        expect(sent).not.toHaveBeenCalled()
+        expect(session.adviserPlayChoices.map((legal) => legal.options)).toEqual([[{ kind: PowerChoiceKind.Yes }]])
+        session.setAdviserPlayPicks({ ...emptyPicks(), option: { 0: 0 } })
+        expect(session.adviserPlayReason).toBeUndefined()
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the play is sent')
+        expect(action.choices).toEqual([{ kind: PowerChoiceKind.Yes }])
+    })
+
+    it('before revision 16, nothing is asked: the play is sent at once, with no choice', async () => {
+        const { session, sent } = await flippingBewitch(OathRevision.EngineFixes11)
+        await session.chooseAdviserPlay(BEWITCH, SearchPlay.Site)
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the play is sent')
+        expect(action.choices ?? []).toEqual([])
     })
 })

@@ -1,6 +1,6 @@
 import { bannerHolder } from '../util/oathkeeper.js'
 import { spendFavor, usableFavor } from '../util/favor.js'
-import { isLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
+import { isLockedFor, ownCardLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
@@ -219,6 +219,8 @@ const ENCHANTRESS = 'denizen.discord.enchantress'
 // R-7.2.1, R-7.2.2 — the adviser goes where Enchantress was. From revision 10, held as an adviser
 // it leaves out its holder's own advisers: swapped among one player's advisers, nothing moves.
 const faceupAdvisersOfAnyone: ChoiceDomain = (state, playerId) => {
+    // R-7.2.2 — from revision 16, it does not swap itself out of a site where it is locked for its user.
+    if (ownCardLockedFor(state, playerId, ENCHANTRESS)) return []
     const to = siteHolding(state, ENCHANTRESS) ? 'site' : 'advisers'
     const holderLeftOut =
         to === 'advisers' && isAtLeastOathRevision(state, OathRevision.EngineFixes6)

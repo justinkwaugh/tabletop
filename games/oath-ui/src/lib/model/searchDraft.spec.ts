@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, HydratedSearchResolve, MachineState, OathRevision, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf, type LegalChoice } from '@tabletop/oath'
+import { Banner, HydratedSearchResolve, IMPERIAL_WARBANDS, MachineState, OathRevision, PlayerStatus, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf, type LegalChoice } from '@tabletop/oath'
 import { FIXTURE_SITE_CAPACITY, openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     disposeSessions,
@@ -658,5 +658,183 @@ describe("R-5.1.4.I — Great Herd is not offered the card the People's Favor di
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(cardTargets(draft.whenPlayed)).toEqual([ORACLE])
         expect(draft.picks).toEqual(emptyPicks())
+    })
+})
+
+/** R-7.2.2 — Great Herd's lock is read at the site it is played to: a "may" with nothing to offer is not asked. */
+describe('R-7.2.2 — Great Herd played to a site an enemy rules with Ancient Bloodline asks no swap', () => {
+    const BLOODLINE = 'denizen.nomad.ancient-bloodline'
+    const herdTable = (bloodline: boolean) => ({
+        oathRevision: OathRevision.EngineFixes12,
+        players: [
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 2, handIds: [GREAT_HERD, TUTOR] }),
+            testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'c2', favor: 2, advisers: bloodline ? [{ cardId: BLOODLINE, faceUp: true }] : [] })
+        ],
+        denizensBySite: { c1: [], c2: [], p1: [], h1: [ORACLE] },
+        warbandsBySite: { c1: { rhys: 2 } }
+    })
+
+    it('the play goes straight on with no choices, and the engine accepts it', async () => {
+        const { session, draft, sent } = await searchingWith([GREAT_HERD, TUTOR], [], herdTable(true))
+        draft.keep(GREAT_HERD)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.needsWhenPlayed).toBe(false)
+        expect(sent).toHaveBeenCalledTimes(1)
+        expect(sent.mock.calls[0][0].choices ?? []).toEqual([])
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('without Ancient Bloodline the swap with the Oracle is offered (control)', async () => {
+        const { draft, sent } = await searchingWith([GREAT_HERD, TUTOR], [], herdTable(false))
+        draft.keep(GREAT_HERD)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.needsWhenPlayed).toBe(true)
+        expect(cardTargets(draft.whenPlayed)).toEqual([ORACLE])
+        expect(sent).not.toHaveBeenCalled()
+    })
+})
+
+describe("R-7.3.3 — Bewitch's yes is offered once the play's own secret counts", () => {
+    const BEWITCH = 'denizen.arcane.bewitch'
+
+    /** The seat, an Exile with 2 secrets, searches at Standing Stones (the Arcane Homeland: a secret); the Chancellor holds 2. */
+    async function bewitching(oathRevision: OathRevision) {
+        const state = testState(
+            [
+                testPlayer({ playerId: ME, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 2, secrets: 2, handIds: [BEWITCH, TUTOR] }),
+                testPlayer({ playerId: 'ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', secrets: 2, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } })
+            ],
+            {
+                machineState: MachineState.Searching,
+                oathRevision,
+                chancellorPlayerId: 'ann',
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
+                siteCards: { c1: 'site.standing-stones', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+            }
+        )
+        openTurn(state, ME)
+        const session = await openSessionOn(tableOf(state))
+        vi.spyOn(session, 'resolveSearch').mockResolvedValue()
+        return session.search
+    }
+
+    it('from revision 16, the site play asks the yes, and the engine accepts it', async () => {
+        const draft = await bewitching(OathRevision.EngineFixes12)
+        draft.keep(BEWITCH)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.whenPlayed.map((legal) => legal.options)).toEqual([[{ kind: PowerChoiceKind.Yes }]])
+        draft.setPicks({ ...emptyPicks(), option: { 0: 0 } })
+        expect(draft.whenPlayedReason).toBeUndefined()
+    })
+
+    it('before revision 16, 2 against 2 leaves nothing to ask', async () => {
+        const draft = await bewitching(OathRevision.EngineFixes11)
+        draft.keep(BEWITCH)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.whenPlayed).toEqual([])
+    })
+})
+
+describe("R-5.1.4.I — Salt the Earth's \"Play to:\" sites, as the engine judges a play to another site", () => {
+    const SALT = 'denizen.discord.salt-the-earth'
+    const FULL = ['denizen.beast.wolves', 'denizen.hearth.storyteller', 'denizen.beast.rangers']
+    const LOCKED = 'denizen.beast.vow-of-union'
+
+    /** The seat holds the People's Favor at c1; c2, in the same region, holds these cards. */
+    async function salting(oathRevision: OathRevision, c2: string[]) {
+        const { draft } = await searchingWith([SALT, TUTOR], [], {
+            oathRevision,
+            denizensBySite: { c1: [], c2, p1: [], h1: [] },
+            banners: {
+                [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: ME },
+                [Banner.DarkestSecret]: { value: 1, mobSide: false }
+            }
+        })
+        draft.keep(SALT)
+        return draft
+    }
+
+    it('from revision 16, a full site is offered and a site with a locked card is not', async () => {
+        expect(FULL).toHaveLength(FIXTURE_SITE_CAPACITY)
+        expect((await salting(OathRevision.EngineFixes12, FULL)).otherSites).toEqual(['c2'])
+        expect((await salting(OathRevision.EngineFixes12, [LOCKED])).otherSites).toEqual([])
+    })
+
+    it('before revision 16, the site with a locked card is offered', async () => {
+        expect((await salting(OathRevision.EngineFixes11, [LOCKED])).otherSites).toEqual(['c2'])
+    })
+})
+
+describe("R-5.1.4.I, R-11.10 — Salt the Earth's cards to discard first, as the engine judges them", () => {
+    const SALT = 'denizen.discord.salt-the-earth'
+    const WOLVES = 'denizen.beast.wolves'
+    const STORYTELLER = 'denizen.hearth.storyteller'
+
+    /** No People's Favor, Great Slum or Crop Rotation: a card at the seat's site and one at another site. */
+    async function salting(oathRevision: OathRevision) {
+        const { draft } = await searchingWith([SALT, TUTOR], [], {
+            oathRevision,
+            denizensBySite: { c1: [STORYTELLER], c2: [WOLVES], p1: [], h1: [] }
+        })
+        draft.keep(SALT)
+        return draft
+    }
+
+    it('from revision 16, none is offered', async () => {
+        const draft = await salting(OathRevision.EngineFixes12)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.discardFirstOptions).toEqual([])
+    })
+
+    it('before revision 16, every denizen on the map is, as the engine then accepted', async () => {
+        const draft = await salting(OathRevision.EngineFixes11)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.discardFirstOptions).toEqual([STORYTELLER, WOLVES])
+    })
+})
+
+describe("Land Warden's Q&A — the kept card sent to another site leaves the seat's own site to the second card", () => {
+    const WOLVES = 'denizen.beast.wolves'
+    const INN = 'denizen.hearth.wayside-inn'
+    const ONE_SPACE_LEFT = ['denizen.hearth.storyteller', 'denizen.beast.rangers']
+
+    /** The seat holds the People's Favor at c1, which has one space left; c2, in the same region, is empty. */
+    async function warden(oathRevision: OathRevision) {
+        const { session, draft, sent } = await searchingWith([WOLVES, INN, TUTOR], [], {
+            oathRevision,
+            denizensBySite: { c1: ONE_SPACE_LEFT, c2: [], p1: [], h1: [] },
+            banners: FAVOR_HELD,
+            ...WARDEN_CARRIED
+        })
+        draft.keep(WOLVES)
+        return { session, draft, sent }
+    }
+    const innToYourSite = (draft: Awaited<ReturnType<typeof warden>>['draft']) =>
+        draft.secondPlays.find((option) => option.cardId === INN && option.play === SearchPlay.Site)
+
+    const sitePlacements = (draft: Awaited<ReturnType<typeof warden>>['draft']) =>
+        draft.placements.filter((option) => option.play === SearchPlay.Site)
+
+    it('from revision 16, with the kept card to c2, the second card to the seat\'s site pairs with the site play, and the engine accepts it', async () => {
+        expect(ONE_SPACE_LEFT).toHaveLength(FIXTURE_SITE_CAPACITY - 1)
+        const { session, draft, sent } = await warden(OathRevision.EngineFixes12)
+        draft.setSecondPlay(innToYourSite(draft)?.key)
+        expect(draft.second?.cardId).toBe(INN)
+        expect(sitePlacements(draft)).toEqual([])
+        draft.setToSite('c2')
+        expect(sitePlacements(draft)).toHaveLength(1)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ keptCardId: WOLVES, toSiteId: 'c2', secondPlay: { cardId: INN, play: SearchPlay.Site } })
+        )
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('before revision 16, the site play does not pair with it, wherever the kept card goes', async () => {
+        const { draft } = await warden(OathRevision.EngineFixes11)
+        draft.setSecondPlay(innToYourSite(draft)?.key)
+        expect(draft.second?.cardId).toBe(INN)
+        draft.setToSite('c2')
+        expect(sitePlacements(draft)).toEqual([])
     })
 })

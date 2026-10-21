@@ -6,13 +6,21 @@ import { testPlayer, testState, testVaultWithRelics } from '../testing/fixture.j
 import { served } from '../testing/projection.js'
 import { MachineState } from './states.js'
 import { cardDefinition, cardIdsOfKind } from '../data/cardRegistry.js'
-import { cardPowers, PowerTiming } from '../data/cardPowers.js'
+import { BattlePlanSide, cardPowers, PowerTiming } from '../data/cardPowers.js'
 import { CardKind, PlayerStatus } from '../model/oathEnums.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { CURRENT_OATH_REVISION } from '../util/revision.js'
 import { hasEffect } from '../powers/registry.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { legalPowers } from '../util/powerDoorway.js'
+import { legalChoices, PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
+import { HydratedUseActionPower } from '../actions/useActionPower.js'
+import { Campaign, HydratedCampaign } from '../actions/campaign.js'
+import { HydratedCampaignDefend } from '../actions/campaignDefend.js'
+import { buildAction } from '../testing/actions.js'
+import { siteTarget } from '../testing/choices.js'
+import { OathVisibility } from './runtime.js'
+import { required } from '../testing/required.js'
 import '../powers/index.js'
 
 const SEATS = ['me', 'foe', 'chan']
@@ -94,5 +102,98 @@ describe("every Action and Rest power leaves each seat's offer the same on its o
                 }
             })
         }
+    }
+})
+
+// R-7.2.2 — a power that moves its own card reads that card's lock, here Ancient Bloodline held by another seat
+// who rules the site: the refusal must read the same on each seat's own view.
+describe("Roving Terror at a site another seat rules with Ancient Bloodline is refused the same on each seat's own view", () => {
+    const ROVING = 'denizen.beast.roving-terror'
+    const BLOODLINE = 'denizen.nomad.ancient-bloodline'
+    const WOLVES = 'denizen.beast.wolves'
+    const power = required(cardPowers(ROVING).find((p) => p.timing === PowerTiming.Action), 'Roving Terror Action')
+    const toWolves = [{ kind: PowerChoiceKind.Card as const, cardId: WOLVES }]
+
+    /** As the sweep's table with Roving Terror at c1, but the foe rules c1 and holds Ancient Bloodline faceup. */
+    function lockedTable() {
+        const d = table(MachineState.ActPhase, ROVING, 'site')
+        d.warbandsBySite = { ...d.warbandsBySite, c1: { me: 1, foe: 2 } }
+        d.players = d.players.map((p) =>
+            p.playerId === 'foe' ? { ...p, advisers: [...p.advisers, { cardId: BLOODLINE, faceUp: true }] } : p
+        )
+        return d
+    }
+
+    it("the server refuses me the move to Wolves at c2, and so does my own view; every seat's offer is the same", () => {
+        const state = lockedTable()
+        const server = new HydratedOathGameState(state)
+        const view: Visibility.Perspective = { kind: 'player', playerId: 'me' }
+        const own = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, view)), view)
+        const use = (s: HydratedOathGameState) =>
+            HydratedUseActionPower.reasonCannotUse(s, 'me', ROVING, power.powerIndex, toWolves)
+        expect(use(server)).toBeDefined()
+        expect(use(own)).toBe(use(server))
+        expect(legalChoices(own, 'me', power)).toEqual(legalChoices(server, 'me', power))
+        expect(legalChoices(server, 'me', power)[0].options).toEqual([])
+        for (const playerId of SEATS) {
+            const seat: Visibility.Perspective = { kind: 'player', playerId }
+            const serverTypes = engine.getValidActionTypesForPlayer(game, state, playerId)
+            const ownTypes = engine.getValidActionTypesForPlayer(game, served(state, seat), playerId, { perspective: seat })
+            expect(ownTypes, playerId).toEqual(serverTypes)
+        }
+    })
+
+    it('without the lock (I rule c1) the server allows the same move, so the refusal above is the lock', () => {
+        const state = new HydratedOathGameState(table(MachineState.ActPhase, ROVING, 'site'))
+        expect(HydratedUseActionPower.reasonCannotUse(state, 'me', ROVING, power.powerIndex, toWolves)).toBeUndefined()
+    })
+})
+
+const DEFENDER_PLANS = [...cardIdsOfKind(CardKind.Denizen), ...cardIdsOfKind(CardKind.Relic)].filter((cardId) =>
+    cardPowers(cardId).some(
+        (power) =>
+            hasEffect(power) &&
+            power.timing === PowerTiming.BattlePlan &&
+            (power.battlePlanSide === BattlePlanSide.Defender || power.battlePlanSide === BattlePlanSide.Either)
+    )
+)
+
+/** The sweep's table with the foe holding `cardId` faceup, and me campaigning against the foe at c1. */
+function defendingTable(cardId: string) {
+    const d = table(MachineState.ActPhase, 'denizen.hearth.storyteller', 'site')
+    d.players = d.players.map((p) => (p.playerId === 'foe' ? { ...p, advisers: [...p.advisers, { cardId, faceUp: true }] } : p))
+    const s = new HydratedOathGameState(d)
+    new HydratedCampaign(buildAction(Campaign, { playerId: 'me', defender: { kind: 'player', playerId: 'foe' }, targets: [siteTarget('c1')], attackDice: 1 })).apply(s)
+    return s.dehydrate()
+}
+
+// The defender judges each plan it ticks, and each move or pick a plan's editor offers, on its own view.
+describe("every battle plan the defender can tick is judged the same on the defender's own view as on the server", () => {
+    it('walks every built card with a defending plan, Warning Signals among them', () => {
+        expect(DEFENDER_PLANS.length).toBeGreaterThan(20)
+        expect(DEFENDER_PLANS).toContain('denizen.nomad.warning-signals')
+    })
+
+    for (const cardId of DEFENDER_PLANS) {
+        it(cardDefinition(cardId)?.name ?? cardId, () => {
+            const state = defendingTable(cardId)
+            const server = new HydratedOathGameState(state)
+            const view: Visibility.Perspective = { kind: 'player', playerId: 'foe' }
+            const own = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, view)), view)
+            expect(HydratedCampaignDefend.reasonCannotDefend(server, 'foe', []), 'the foe answers').toBeUndefined()
+            for (const power of cardPowers(cardId)) {
+                if (!hasEffect(power) || power.timing !== PowerTiming.BattlePlan) continue
+                const ticked = (choices: PowerChoice[]) => [{ cardId, powerIndex: power.powerIndex, choices }]
+                const first = legalChoices(server, 'foe', power).find((c) => c.options.length > 0)?.options[0]
+                const earlier = first ? [first] : []
+                expect(legalChoices(own, 'foe', power, earlier)).toEqual(legalChoices(server, 'foe', power, earlier))
+                for (const choices of [[], earlier]) {
+                    expect(HydratedCampaignDefend.reasonCannotDefend(own, 'foe', ticked(choices))).toBe(
+                        HydratedCampaignDefend.reasonCannotDefend(server, 'foe', ticked(choices))
+                    )
+                }
+            }
+            expect(HydratedCampaignDefend.usablePlans(own, 'foe')).toEqual(HydratedCampaignDefend.usablePlans(server, 'foe'))
+        })
     }
 })

@@ -10,12 +10,19 @@ import { ActionType } from '../definition/actions.js'
 import { Region } from '../model/oathEnums.js'
 import { ConspiracyPlay } from '../model/conspiracy.js'
 import { playShowsCard, SearchPlay } from './searchResolve.js'
-import { playCard, reasonCannotPlaceCard, reasonCannotPlayCard } from '../util/cardPlay.js'
+import {
+    FavorShort,
+    favorShortOf,
+    playCard,
+    playMapChanges,
+    reasonCannotPlaceCard,
+    reasonCannotPlayCard
+} from '../util/cardPlay.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
 import { regionOfPawn } from '../powers/vocabulary.js'
 import { cardPowers } from '../data/cardPowers.js'
-import { effectFor, type ModifierHooks } from '../powers/registry.js'
+import { effectFor, type ModifierHooks, type PlayMapChanges } from '../powers/registry.js'
 import {
     discardTargetOf,
     ModifierUse,
@@ -55,6 +62,8 @@ export const PlayFacedownAdviserMetadata = Type.Object({
     /** R-9.4 — only when the play shows it. */
     playedCardId: Type.Optional(Type.String()),
     favorGained: Type.Number(),
+    /** R-9.3 — the banks that could not give the favor a site play takes, the site's or a Homeland's. */
+    favorShort: Type.Optional(Type.Array(FavorShort)),
     /** Book of Records */
     secretsGained: Type.Optional(Type.Number()),
     /** R-7.4 — the cards whose Search modifiers applied to this play. */
@@ -166,6 +175,7 @@ export class HydratedPlayFacedownAdviser
         })
         const playedCardId = playShowsCard(this.play, true) ? this.cardId : undefined
         const after = runAfter(state, this.playerId, active, { playedCardId, playedTo: this.play })
+        const short = favorShortOf(played.favorTaken)
 
         this.metadata = {
             ...played.outcome,
@@ -176,6 +186,7 @@ export class HydratedPlayFacedownAdviser
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
             playedCardId,
             favorGained: played.favorGained,
+            favorShort: short.length > 0 ? short : undefined,
             secretsGained: played.secretsGained || undefined,
             modifiers: active.length > 0 ? active.map((m) => m.power.cardId) : undefined,
             modifierNotes: after.notes.length > 0 ? after.notes : undefined,
@@ -281,6 +292,38 @@ export class HydratedPlayFacedownAdviser
                 carried: active
             })
         )
+    }
+
+    /**
+     * R-6.1, R-7.3.3 — what the play does to the map and gains before its When Played power, as its check plans
+     * it: with the modifiers that act on the play (Book of Records) and the advisers it discards.
+     */
+    static playMapChanges(
+        state: HydratedOathGameState,
+        playerId: string,
+        choice: {
+            cardId: string
+            play: SearchPlay
+            discardedAdviserCardIds?: readonly string[]
+            toSiteId?: string
+            discardFirstCardId?: string
+            modifiers?: readonly ModifierUse[]
+        }
+    ): PlayMapChanges {
+        const { active } = HydratedPlayFacedownAdviser.playModifiers(
+            state,
+            playerId,
+            choice.play,
+            choice.modifiers
+        )
+        return playMapChanges(state, playerId, choice.cardId, choice.play, {
+            faceUp: true,
+            fromAdvisers: true,
+            discardedAdviserCardIds: choice.discardedAdviserCardIds,
+            toSiteId: choice.toSiteId,
+            discardFirstCardId: choice.discardFirstCardId,
+            carried: active
+        })
     }
 
     /**

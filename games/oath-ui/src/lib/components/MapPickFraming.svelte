@@ -5,11 +5,12 @@
     import type { MapPick } from '$lib/model/actionOffers.js'
     import { regionName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { openingRegion, regionCounts, type MapFrame } from '$lib/model/travelOnTheMap.js'
+    import { mapPickOpening, regionCounts, type MapFrame } from '$lib/model/travelOnTheMap.js'
 
     // A pick on the map on a phone (Travel, Setup's start site, the spoils' banish, a power's
-    // site): the map is the menu, so the step frames it. Upright, one region at a time, opening on
-    // the region of the seat's pawn (or the first with a lit site), with a chip per region naming
+    // site, a Travel question's): the map is the menu, so the step frames it. Upright, one region
+    // at a time, opening on the region of the pawn the pick moves (or the first with a lit site),
+    // with a chip per region naming
     // its count; a chip reframes and chooses nothing. Setup's one legal site (the Chancellor's) is framed with no
     // chips. Sideways, the lit map at once, with no chips.
     let {
@@ -35,19 +36,14 @@
         const name = regionName(region)
         if (pick.kind === 'travel') return `${name}: ${count} to travel to`
         if (pick.kind === 'banish') return `${name}: ${count} to banish to`
-        if (pick.kind === 'power') return `${name}: ${count} lit ${count === 1 ? 'site' : 'sites'}`
+        if (pick.kind === 'power' || pick.kind === 'ruler') {
+            return `${name}: ${count} lit ${count === 1 ? 'site' : 'sites'}`
+        }
         return `${name}: ${count} start ${count === 1 ? 'site' : 'sites'}`
     }
 
     function opening(): MapFrame | undefined {
-        if (!upright) return 'all'
-        // R-5.5.7.III — the banished pawn is the defender's.
-        const seatId =
-            pick.kind === 'banish'
-                ? gameState.campaign?.defenderPlayerId
-                : gameSession.liveTurnSeatId
-        const siteId = seatId ? gameState.getPlayerState(seatId).siteId : undefined
-        return openingRegion(siteId ? gameState.regionOf(siteId) : undefined, counts)
+        return upright ? mapPickOpening(pick, gameState) : 'all'
     }
 
     // Once, as the step opens; the view the step found comes back when it closes.

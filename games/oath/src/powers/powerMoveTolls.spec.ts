@@ -567,8 +567,8 @@ describe('Toll Roads on a Travel out of a Shrouded Wood: asked at the pick, befo
 
     it('with no favor the toll site is not offered to Rhys; the other sites are', () => {
         const { s } = leave({ dana: { favor: 0 } })
-        expect(payableWoodPicks(s, 'dana', false).map((p) => p.siteId)).not.toContain('c1')
-        expect(payableWoodPicks(s, 'dana', false).map((p) => p.siteId)).toContain('p1')
+        expect(payableWoodPicks(s, 'dana', { free: false }).map((p) => p.siteId)).not.toContain('c1')
+        expect(payableWoodPicks(s, 'dana', { free: false }).map((p) => p.siteId)).toContain('p1')
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'rhys', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c1' })).toBe('dana has no favor for the toll to travel to c1')
         expect(() => pick(s, 'c1')).toThrow(/no favor for the toll/)
         pick(s, 'p1')
@@ -606,7 +606,7 @@ describe('Toll Roads on a Travel out of a Shrouded Wood: asked at the pick, befo
             }
         )
         openTurn(s, 'dana')
-        expect(['c1', 'c2'].map((siteId) => woodPick(s, 'dana', siteId, false).cost)).toEqual([0, 0])
+        expect(['c1', 'c2'].map((siteId) => woodPick(s, 'dana', siteId, { free: false }).cost)).toEqual([0, 0])
         expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, 'dana', {})).toBe('rhys would pick where you go, and you can pay for no site: the cheapest is 2 Supply, you have 1')
         expect(HydratedTravel.canDoTravel(s, 'dana')).toBe(false)
         s.getPlayerState('dana').favor = 1

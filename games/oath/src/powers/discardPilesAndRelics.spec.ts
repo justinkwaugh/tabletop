@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildAction, machineContext } from '../testing/actions.js'
-import { Color, getPrng } from '@tabletop/common'
+import { Color, getPrng, type Visibility } from '@tabletop/common'
+import { HydratedOathGameState } from '../model/gameState.js'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { HydratedSearch, Search, SearchSource } from '../actions/search.js'
 import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/searchResolve.js'
@@ -29,6 +30,9 @@ const FAE = 'denizen.beast.fae-merchant'
 const BREAKER = 'denizen.hearth.relic-breaker'
 const MUSHROOMS = 'denizen.beast.mushrooms'
 const AUGURY = 'denizen.arcane.augury'
+const ERRAND_BOY = 'denizen.beast.errand-boy'
+const OBSERVATORY = 'denizen.arcane.observatory'
+const HARP = 'relic.truthful-harp'
 const SONGS = 'denizen.hearth.tavern-songs'
 const SCRYER = 'denizen.discord.scryer'
 const BRACKEN = 'denizen.beast.bracken'
@@ -204,6 +208,119 @@ describe('discard piles', () => {
                 for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
                 expect(replayed).toEqual(recorded.updatedState)
             }
+        })
+    })
+
+    describe('the Marshes take their one card off what Mushrooms sets (R-11.11-H1)', () => {
+        const atRevision = OathRevision.EngineFixes12
+        const before = OathRevision.EngineFixes11
+        const declared = (cardIds: string[]) => cardIds.map((cardId) => modifierUse(cardId))
+        const marshes = { c1: 'site.marshes', c2: 'site.river', p1: 'site.plains', h1: 'site.mountain' }
+        const table = (oathRevision: number, cards: string[], over: Record<string, Record<string, unknown>> = {}) =>
+            board({ c1: cards }, {}, over, { oathRevision, siteCards: marshes })
+        const draw = (s: ReturnType<typeof board>, cardIds: string[]) =>
+            HydratedSearch.drawCount(s, 'ruler', declared(cardIds), SearchSource.Discard)
+        const searchWith = (cardIds: string[]) =>
+            buildAction(Search, { playerId: 'ruler', drawFrom: SearchSource.Discard, revealsInfo: true, modifiers: declared(cardIds) })
+
+        it('Mushrooms with Augury at the Marshes draws one, the bottom card of the pile', () => {
+            const s = table(atRevision, [MUSHROOMS, AUGURY])
+            expect(draw(s, [MUSHROOMS, AUGURY])).toBe(1)
+            expect(draw(s, [AUGURY, MUSHROOMS])).toBe(1)
+            const vault = vaultFor()
+            expect(serverSearch(s, vault, declared([MUSHROOMS, AUGURY])).metadata?.draw.drawnCardIds).toEqual([PILE_C3])
+            expect(vault.discardPiles.cradle).toEqual([PILE_C1, PILE_C2])
+        })
+
+        it('Mushrooms alone at the Marshes would draw nothing, so that Search is refused and not offered', () => {
+            const s = table(atRevision, [MUSHROOMS])
+            expect(draw(s, [MUSHROOMS])).toBe(0)
+            expect(HydratedSearch.reasonCannotSearch(s, 'ruler', SearchSource.Discard, declared([MUSHROOMS]))).toBe(
+                'this Search would draw no card'
+            )
+            expect(HydratedSearch.legalSources(s, 'ruler', declared([MUSHROOMS]))).toEqual([])
+            // Without Mushrooms the Marshes' Search is offered as before.
+            expect(HydratedSearch.legalSources(s, 'ruler')).toEqual([SearchSource.WorldDeck, SearchSource.Discard])
+        })
+
+        it("the refusal reads only what the seat sees: the same on the ruler's own view, nothing copied", () => {
+            // The chancellor's facedown adviser is in the server's state and not in the ruler's view.
+            const s = table(atRevision, [MUSHROOMS], { chancellor: { advisers: [{ cardId: TENTS, faceUp: false }] } })
+            const ruler: Visibility.Perspective = { kind: 'player', playerId: 'ruler' }
+            const ownView = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, ruler)), ruler)
+            const server = JSON.stringify(s.dehydrate())
+            for (const state of [s, ownView]) {
+                expect(HydratedSearch.drawCount(state, 'ruler', declared([MUSHROOMS]), SearchSource.Discard)).toBe(0)
+                expect(HydratedSearch.reasonCannotSearch(state, 'ruler', SearchSource.Discard, declared([MUSHROOMS]))).toBe(
+                    'this Search would draw no card'
+                )
+                expect(HydratedSearch.legalSources(state, 'ruler', declared([MUSHROOMS]))).toEqual([])
+                expect(HydratedSearch.legalSources(state, 'ruler')).toEqual([SearchSource.WorldDeck, SearchSource.Discard])
+            }
+            expect(JSON.stringify(s.dehydrate())).toBe(server)
+        })
+
+        it('the engine refuses that Search, so the game never waits in Searching on an empty hand', () => {
+            const s = table(atRevision, [MUSHROOMS])
+            s.vault = vaultFor()
+            const start = s.dehydrate()
+            expect(() =>
+                engine.runNext(searchWith([MUSHROOMS]), structuredClone(start), testGame(['ruler', 'chancellor']))
+            ).toThrow(/this Search would draw no card/)
+        })
+
+        it('Mushrooms with Truthful Harp at the Marshes draws two', () => {
+            const s = table(atRevision, [MUSHROOMS], { ruler: { relicIds: [HARP] } })
+            expect(draw(s, [MUSHROOMS, HARP])).toBe(2)
+        })
+
+        it('Mushrooms drawing from another pile at the Marshes: an empty pile is refused as empty, a full one as drawing nothing', () => {
+            const s = table(atRevision, [MUSHROOMS], { ruler: { advisers: [{ cardId: ERRAND_BOY, faceUp: true }] } })
+            const errand = (to: Region) => [modifierUse(MUSHROOMS), modifierUse(ERRAND_BOY, [region(to)])]
+            expect(HydratedSearch.reasonCannotSearch(s, 'ruler', SearchSource.Discard, errand(Region.Hinterland))).toBe(
+                'the hinterland discard pile is empty'
+            )
+            expect(HydratedSearch.drawCount(s, 'ruler', errand(Region.Provinces), SearchSource.Discard)).toBe(0)
+            expect(HydratedSearch.reasonCannotSearch(s, 'ruler', SearchSource.Discard, errand(Region.Provinces))).toBe(
+                'this Search would draw no card'
+            )
+            const o = table(atRevision, [MUSHROOMS, OBSERVATORY])
+            const observe = [modifierUse(MUSHROOMS), modifierUse(OBSERVATORY, [region(Region.Provinces)])]
+            expect(HydratedSearch.reasonCannotSearch(o, 'ruler', SearchSource.Discard, observe)).toBe(
+                'this Search would draw no card'
+            )
+        })
+
+        it('without a card that sets the count, the Marshes draw as before: Augury 3, Truthful Harp 4, none 2', () => {
+            for (const revision of [before, atRevision]) {
+                const s = table(revision, [AUGURY], { ruler: { relicIds: [HARP] } })
+                expect(draw(s, [AUGURY])).toBe(3)
+                expect(draw(s, [HARP])).toBe(4)
+                expect(draw(s, [])).toBe(2)
+                expect(HydratedSearch.drawCount(s, 'ruler')).toBe(2)
+            }
+        })
+
+        it('Mushrooms away from the Marshes still draws one, two with Augury', () => {
+            const s = board({ c1: [MUSHROOMS, AUGURY] }, {}, {}, { oathRevision: atRevision })
+            expect(draw(s, [MUSHROOMS])).toBe(1)
+            expect(draw(s, [MUSHROOMS, AUGURY])).toBe(2)
+        })
+
+        it('R-X.4 — before revision 16 Mushrooms at the Marshes draws one, two with Augury, and replays unchanged', () => {
+            const s = table(before, [MUSHROOMS, AUGURY])
+            expect(draw(s, [MUSHROOMS])).toBe(1)
+            expect(draw(s, [MUSHROOMS, AUGURY])).toBe(2)
+            expect(HydratedSearch.reasonCannotSearch(s, 'ruler', SearchSource.Discard, declared([MUSHROOMS]))).toBeUndefined()
+            s.vault = vaultFor()
+            const start = s.dehydrate()
+            const game = testGame(['ruler', 'chancellor'])
+            const recorded = engine.runNext(searchWith([MUSHROOMS]), structuredClone(start), game)
+            expect(recorded.updatedState.machineState).toBe(MachineState.Searching)
+            expect(recorded.updatedState.players.find((p) => p.playerId === 'ruler')?.handIds).toHaveLength(1)
+            let replayed = structuredClone(start)
+            for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            expect(replayed).toEqual(recorded.updatedState)
         })
     })
 

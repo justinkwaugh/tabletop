@@ -118,7 +118,7 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules pays at the ruler’
     it('the Narrow Pass and The Hidden Place are picks like any other: a Decadent Chancellor with 1 Supply may leave for them at 0', () => {
         const s = table(atRevision, { supply: 1 })
         s.siteCards = { ...s.siteCards, c1: 'site.narrow-pass', c2: 'site.the-hidden-place' }
-        expect(payableWoodPicks(s, 'me', false).map((p) => [p.siteId, p.cost])).toEqual([['c1', 0], ['c2', 0]])
+        expect(payableWoodPicks(s, 'me', { free: false }).map((p) => [p.siteId, p.cost])).toEqual([['c1', 0], ['c2', 0]])
         expect(HydratedTravel.reasonCannotLeaveShroudedWood(s, 'me', {})).toBeUndefined()
         leaveAndPick(s, 'c2')
         expect(s.getPlayerState('me')).toMatchObject({ siteId: 'c2', supply: 1 })

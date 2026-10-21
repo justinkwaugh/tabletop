@@ -9,7 +9,7 @@ import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
 import { accessibleCardIds } from './access.js'
 import { boardWarbandGroups } from './force.js'
 import { describeWarbands } from './warbands.js'
-import { choiceSpecsFor, effectFor } from '../powers/registry.js'
+import { choiceSpecsFor, effectFor, type PlayMapChanges } from '../powers/registry.js'
 import { isAtLeastOathRevision, type OathRevision } from './revision.js'
 
 export { PowerChoice, PowerChoiceKind }
@@ -53,7 +53,11 @@ export interface ChoiceSpec {
      * Read only by `offeredChoices`: a choice sent is judged by the domain and the effect, as
      * without it.
      */
-    offered?: (state: HydratedOathGameState, playerId: string) => boolean
+    offered?: (
+        state: HydratedOathGameState,
+        playerId: string,
+        mapChanges?: PlayMapChanges
+    ) => boolean
     /**
      * FavorBank: each spec of the run names one favor; the run names `total` favor from
      * `sources`, as the effect's own check (R-7.1.3) reads it. Read only by `offeredChoices`.
@@ -236,16 +240,18 @@ export function legalChoices(
 /**
  * R-7.1.3 — the choices a menu offers: `legalChoices`, less a yes the card rules out now
  * (`ChoiceSpec.offered`) and a bank a favor run cannot name (`ChoiceSpec.favorTotal`, with the
- * run's total). It judges nothing: the doorway reads the domains alone.
+ * run's total). It judges nothing: the doorway reads the domains alone. For a When Played power, `mapChanges` is
+ * the play's (R-7.3.3): what it does to the map and gains before the power, which a card's condition may read.
  */
 export function offeredChoices(
     state: HydratedOathGameState,
     playerId: string,
-    power: CardPower
+    power: CardPower,
+    mapChanges?: PlayMapChanges
 ): LegalChoice[] {
     return legalChoices(state, playerId, power).map((legal) => {
         const { offered, favorTotal } = legal.spec
-        if (offered && !offered(state, playerId)) return { ...legal, options: [] }
+        if (offered && !offered(state, playerId, mapChanges)) return { ...legal, options: [] }
         if (!favorTotal) return legal
         const { sources, total } = favorTotal(state, playerId)
         return {

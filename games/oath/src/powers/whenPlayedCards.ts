@@ -1,13 +1,16 @@
-import { isLockedFor } from '../util/locked.js'
+import { isLockedFor, ownCardLockedFor } from '../util/locked.js'
+import { assert } from '@tabletop/common'
 import { Suit } from '../model/oathEnums.js'
+import type { HydratedOathGameState } from '../model/gameState.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply } from '../util/rest.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
-import { registerEffect, chosen } from './registry.js'
+import { registerEffect, chosen, type PlayMapChanges } from './registry.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import { persistentMatchingAdvisers } from '../util/persistent.js'
 import {
     burnSecretsFromDarkestSecret,
     denizensOnMap,
@@ -39,10 +42,16 @@ registerEffect(
             if (new Set(suits).size !== suits.length)
                 return 'the three favor banks must be different'
             if (!isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes4)) return undefined
+            // R-7.3.3 — judged on the banks the play leaves: its site favor and Homeland taken, the favor on a card
+            // it discards given back. Before revision 16, on the banks before the play.
+            const banks =
+                (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes12)
+                    ? ctx.mapChanges?.gains?.favorBank
+                    : undefined) ?? ctx.state.favorBank
             // R-7.1.3 — a favor from each of three banks that hold favor, or from every one that does.
-            const holding = Object.values(ctx.state.favorBank).filter((n) => n > 0).length
+            const holding = Object.values(banks).filter((n) => n > 0).length
             const required = Math.min(3, holding)
-            const obtainable = favorObtainableFromPicks(ctx.state, suits)
+            const obtainable = favorObtainableFromPicks(banks, suits)
             return obtainable < required
                 ? `Salad Days gains a favor from each of three banks: the banks named yield ${obtainable}, and ${required} can be had`
                 : undefined
@@ -69,11 +78,16 @@ registerEffect(
             // "(including Fabled Feast)": counted as one of the hearth cards you rule, an adviser or at a site
             // you rule. Before revision 10 it also counted itself at a site you do not rule.
             const ruled = ruledCardsOfSuit(ctx.state, ctx.playerId, Suit.Hearth)
-            const x =
+            const cards =
                 isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6) ||
                 ruled.includes('denizen.hearth.fabled-feast')
                     ? ruled.length
                     : ruled.length + 1
+            // R-2.2.2-H1 — from revision 16 Marriage, "two hearth advisers", is two hearth cards you
+            // rule, as Trade, the Conspiracy and Military Parade count it.
+            const x = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes12)
+                ? cards + persistentMatchingAdvisers(ctx.state, ctx.playerId, Suit.Hearth)
+                : cards
             const gained = gainFavorFromBank(ctx.state, ctx.playerId, bank.suit, x)
             return {
                 summary: `took ${gained} favor (of ${x} hearth cards ruled) from the ${bank.suit} bank`
@@ -190,42 +204,60 @@ registerEffect(
 )
 
 // "When Played, you may swap Great Herd with a [suit:nomad] card at any site."
+const GREAT_HERD = 'denizen.nomad.great-herd'
 const nomadCardsAtSites: ChoiceDomain = (state, playerId) =>
     denizensOnMap(state, Suit.Nomad)
-        .filter((id) => id !== 'denizen.nomad.great-herd' && !isLockedFor(state, playerId, id))
+        .filter((id) => id !== GREAT_HERD && !isLockedFor(state, playerId, id))
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 
-registerEffect(
-    'denizen.nomad.great-herd',
-    powerIndexOf('denizen.nomad.great-herd', PowerTiming.WhenPlayed),
-    {
-        choices: [
-            optional(PowerChoiceKind.Card, {
-                what: 'a Nomad card at a site to swap with',
-                domain: nomadCardsAtSites
-            })
-        ],
+/**
+ * R-7.2.2 — Great Herd's Q&A: "A locked card cannot be discarded, moved or swapped". It is still in hand when the play
+ * is judged, so its lock is read at the site it is played to (from revision 16).
+ */
+function herdLockedWherePlayed(
+    state: HydratedOathGameState,
+    playerId: string,
+    mapChanges: PlayMapChanges | undefined
+): string | undefined {
+    const siteId = mapChanges?.siteId
+    return siteId !== undefined && ownCardLockedFor(state, playerId, GREAT_HERD, siteId)
+        ? siteId
+        : undefined
+}
+
+registerEffect(GREAT_HERD, powerIndexOf(GREAT_HERD, PowerTiming.WhenPlayed), {
+    choices: [
+        optional(PowerChoiceKind.Card, {
+            what: 'a Nomad card at a site to swap with',
+            domain: nomadCardsAtSites,
+            offered: (state, playerId, mapChanges) =>
+                herdLockedWherePlayed(state, playerId, mapChanges) === undefined
+        })
+    ],
+    reasonCannotResolve: (ctx) => {
+        const [target] = chosen(ctx, PowerChoiceKind.Card)
+        if (!target) return undefined
         // R-5.1.4.I, R-11.10 — the domain reads the map before the play; a card the play discards first is no
         // longer at a site when Great Herd resolves.
-        reasonCannotResolve: (ctx) => {
-            const [target] = chosen(ctx, PowerChoiceKind.Card)
-            return target && ctx.mapChanges?.leaving.includes(target.cardId)
-                ? `${target.cardId} is discarded before Great Herd is played, so it is no longer at a site`
-                : undefined
-        },
-        resolve: (ctx) => {
-            const [target] = chosen(ctx, PowerChoiceKind.Card)
-            if (!target) return { summary: 'kept Great Herd where it was played' }
-            swapPlayedCardWithSiteCard(
-                ctx.state,
-                ctx.playerId,
-                'denizen.nomad.great-herd',
-                target.cardId
-            )
-            return { summary: `swapped Great Herd with ${target.cardId}` }
-        }
+        if (ctx.mapChanges?.leaving.includes(target.cardId))
+            return `${target.cardId} is discarded before Great Herd is played, so it is no longer at a site`
+        const lockedAt = herdLockedWherePlayed(ctx.state, ctx.playerId, ctx.mapChanges)
+        return lockedAt !== undefined
+            ? `Great Herd is locked at ${lockedAt} once played there, so it cannot be swapped`
+            : undefined
+    },
+    resolve: (ctx) => {
+        const [target] = chosen(ctx, PowerChoiceKind.Card)
+        if (!target) return { summary: 'kept Great Herd where it was played' }
+        // Where it now stands, its lock is exact; the check above refused the swap on the site it was played to.
+        assert(
+            !ownCardLockedFor(ctx.state, ctx.playerId, GREAT_HERD),
+            'Great Herd is locked where it was played, so it cannot be swapped'
+        )
+        swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, GREAT_HERD, target.cardId)
+        return { summary: `swapped Great Herd with ${target.cardId}` }
     }
-)
+})
 
 // "When played, gain one warband per site you rule, and put one warband from
 // your board on each site you rule."

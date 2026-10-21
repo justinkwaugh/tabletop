@@ -55,21 +55,33 @@ function backOf(cardId: string): CardKind {
     return isVision(cardId) ? CardKind.Vision : CardKind.Denizen
 }
 
+/** R-10.5 — what a card leaving play gives back: its favor to the bank of its suit, its secrets to the acting player. */
+export interface ReturnedTokens {
+    favor: number
+    /** The bank its favor goes to; set whenever it holds favor. */
+    suit?: Suit
+    secrets: number
+}
+
+export function tokensReturnedBy(state: HydratedOathGameState, cardId: string): ReturnedTokens {
+    const tokens = state.tokensOn(cardId)
+    if (tokens.favor === 0) return { favor: 0, secrets: tokens.secrets }
+    // R-5.2.1 and R-5.3.2 only put favor on suited cards.
+    const suit = suitOf(cardId)
+    assertExists(suit, `${cardId} has no suit, so it cannot hold favor`)
+    return { favor: tokens.favor, suit, secrets: tokens.secrets }
+}
+
 /** R-10.5 — favor to the matching bank, secrets facedown to the acting player's board (R-7.1.2.a). */
 export function returnTokensFrom(
     state: HydratedOathGameState,
     actingPlayerId: string,
     cardId: string
 ) {
-    const tokens = state.tokensOn(cardId)
-    if (tokens.favor > 0) {
-        // R-5.2.1 and R-5.3.2 only put favor on suited cards.
-        const suit = suitOf(cardId)
-        assertExists(suit, `${cardId} has no suit, so it cannot hold favor`)
-        state.favorBank[suit] += tokens.favor
-    }
-    if (tokens.secrets > 0) {
-        state.getPlayerState(actingPlayerId).secretsFacedown += tokens.secrets
+    const returned = tokensReturnedBy(state, cardId)
+    if (returned.suit) state.favorBank[returned.suit] += returned.favor
+    if (returned.secrets > 0) {
+        state.getPlayerState(actingPlayerId).secretsFacedown += returned.secrets
     }
     delete state.cardTokens[cardId]
 }
@@ -82,17 +94,25 @@ export function homelandLedgerKey(siteId: string, suit: Suit): string {
     return `${siteId}:${suit}`
 }
 
+/** R-11.2 — the ledger entry a discard of this card from its site writes; none for a card at no site. */
+export function siteDiscardLedgerKey(
+    state: HydratedOathGameState,
+    cardId: string
+): string | undefined {
+    const siteId = siteHolding(state, cardId)
+    const suit = suitOf(cardId)
+    return siteId === undefined || !suit ? undefined : homelandLedgerKey(siteId, suit)
+}
+
 /** R-11.2 — "you have not discarded a card here of this suit during this turn". */
 export function noteSiteDiscard(
     state: HydratedOathGameState,
     actingPlayerId: string,
     cardId: string
 ): void {
-    const siteId = siteHolding(state, cardId)
-    const suit = suitOf(cardId)
-    if (siteId === undefined || !suit) return
+    const key = siteDiscardLedgerKey(state, cardId)
+    if (key === undefined) return
     const ledger = state.getPlayerState(actingPlayerId).homelandUsedThisTurn
-    const key = homelandLedgerKey(siteId, suit)
     if (!ledger.includes(key)) ledger.push(key)
 }
 
