@@ -50,6 +50,8 @@ If a marker expires before its database operation settles, coherence is outside 
 
 Markers must not be evicted while their writers can still mutate the database. Use `noeviction` for the Redis instance supporting this contract, and treat allocation failures as failed write protection. The local instance was checked read-only: it currently has `maxmemory-policy=noeviction`, `save=20 1`, and `appendonly=no`. Production configuration was not inspected or changed.
 
+Production does not meet this requirement. Its Redis Cloud database has 250 MB with `maxmemory-policy=volatile-lru`, as reported by the user on 2026-10-21. Every marker and read token has a TTL, so all are eviction candidates. Sampled LRU makes evicting a marker written moments earlier unlikely, but not impossible, so the contract is not strictly guaranteed. Keys without a TTL cannot be evicted and can still exhaust memory and fail marker acquisition.
+
 Redis must not resume serving mutable cached values from an older persistence/replica image while Firestore remains current. Before admitting a restarted/restored/promoted instance:
 
 1. Stop/drain all cache-participating writers, including maintenance writers. If database outcomes are uncertain, allow the supported settlement window to elapse after the last possible submission.
