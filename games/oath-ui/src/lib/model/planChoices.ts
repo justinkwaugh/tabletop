@@ -7,6 +7,7 @@ import {
 } from '@tabletop/oath'
 import {
     emptyPicks,
+    picksCannotBeMade,
     picksComplete,
     powerChoicesFrom,
     type PowerChoicePicks
@@ -32,6 +33,18 @@ export function planChoices(
     return offeredChoices(state, playerId, power).filter(
         (legal) => !legal.spec.askedIfAny || legal.options.length > 0
     )
+}
+
+/**
+ * R-5.5.3 — the plans a list offers: each usable plan less one whose picks can never be made
+ * now (Warning Signals with no warband it can move), which could never be declared.
+ */
+export function listedPlans(
+    state: HydratedOathGameState,
+    playerId: string,
+    plans: readonly CardPower[]
+): CardPower[] {
+    return plans.filter((power) => !picksCannotBeMade(planChoices(state, playerId, power)))
 }
 
 /** Warning Signals' moves, one at a time as Messenger's are; undefined for a plan whose picks are not moves. */

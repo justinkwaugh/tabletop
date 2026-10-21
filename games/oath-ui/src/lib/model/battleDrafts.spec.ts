@@ -1106,4 +1106,15 @@ describe('Warning Signals’ moves in the defence draft', () => {
         expect(defence.plansComplete).toBe(true)
         expect(defence.usePlansRefusedBecause).toBeUndefined()
     })
+
+    it('with no warband it can move, Warning Signals has nothing to pick and is not listed; Mountain Giant still is', async () => {
+        // None on the board, and the one at c1 is the site's last.
+        const defence = (await warned({}, { c1: { [FOE]: 1 } }, true)).defence
+        expect(defence.usable.map((power) => power.cardId)).toEqual([GIANT])
+        expect(defence.isDeclared(WARNING_PLAN)).toBe(false)
+        expect(defence.noPlansRefusedBecause).toBeUndefined()
+        // One on the board to move to c1: it is listed again.
+        const one = (await warned({ [FOE]: 1 }, { c1: { [FOE]: 1 } }, true)).defence
+        expect(one.usable.map((power) => power.cardId)).toEqual([WARNING, GIANT])
+    })
 })

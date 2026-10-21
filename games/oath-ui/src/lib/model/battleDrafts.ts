@@ -32,7 +32,13 @@ import {
 } from '@tabletop/oath'
 import { cageCeilingAt, cageCountsAfterTap, cagePlacementOf } from './cagePlacement.js'
 import { samePowerUse } from './powerUse.js'
-import { declaredPlan, planChoices, planMoves, planPicksComplete } from './planChoices.js'
+import {
+    declaredPlan,
+    listedPlans,
+    planChoices,
+    planMoves,
+    planPicksComplete
+} from './planChoices.js'
 import { emptyPicks, type PowerChoicePicks } from './powerChoices.js'
 import type { MovePick, PowerMoves } from './powerMoves.js'
 import {
@@ -693,8 +699,10 @@ export class DefenceDraft extends PlanDeclarationDraft {
     }
 
     get usable(): CardPower[] {
-        return this.playerId
-            ? HydratedCampaignDefend.usablePlans(this.session.gameState, this.playerId)
+        const playerId = this.playerId
+        const state = this.session.gameState
+        return playerId
+            ? listedPlans(state, playerId, HydratedCampaignDefend.usablePlans(state, playerId))
             : []
     }
 
@@ -727,8 +735,10 @@ export class AttackPlansDraft extends PlanDeclarationDraft {
     }
 
     get usable(): CardPower[] {
-        return this.playerId
-            ? HydratedCampaignAttackPlans.usablePlans(this.session.gameState, this.playerId)
+        const playerId = this.playerId
+        const state = this.session.gameState
+        return playerId
+            ? listedPlans(state, playerId, HydratedCampaignAttackPlans.usablePlans(state, playerId))
             : []
     }
 

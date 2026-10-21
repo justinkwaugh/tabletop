@@ -15,7 +15,7 @@ import {
     noExchangePicks,
     type ExchangePicks
 } from './exchangeTerms.js'
-import type { MovePick } from './powerMoves.js'
+import { isPowerMoves, type MovePick } from './powerMoves.js'
 
 export type PowerChoicePicks = {
     option: Record<number, number>
@@ -285,6 +285,36 @@ export function offersNothing(choices: readonly LegalChoice[], index: number): b
 export function mayOf(choices: readonly LegalChoice[], index: number): number | undefined {
     for (let at = index - 1; at >= 0; at -= 1) if (isMay(choices[at])) return at
     return undefined
+}
+
+/** A choice with no option offered now; an "or" always offers its answers. */
+function offersNoOption(legal: LegalChoice): boolean {
+    return legal.options.length === 0 && !isOr(legal)
+}
+
+/**
+ * A power whose picks can never be made now, so its list leaves it out: a choice it needs offers
+ * nothing (Captains with no site that has a defender), or, for a power of moves, no From is
+ * offered, as "Use" waits for a whole move (Warning Signals with no warband it can move). A choice
+ * asked only while it has an option, or only with a "may" on, is not needed.
+ */
+export function picksCannotBeMade(choices: readonly LegalChoice[]): boolean {
+    if (isPowerMoves(choices)) return choices[0] !== undefined && offersNoOption(choices[0])
+    return choices.some(
+        (legal, index) =>
+            offersNoOption(legal) &&
+            legal.spec.min > 0 &&
+            !legal.spec.askedIfAny &&
+            mayOf(choices, index) === undefined
+    )
+}
+
+/**
+ * A power that asks for choices and offers nothing in any of them (Ivory Eye with nothing
+ * facedown): the one use left is with no picks, which the engine judges.
+ */
+export function offersNoPick(choices: readonly LegalChoice[]): boolean {
+    return choices.length > 0 && choices.every(offersNoOption)
 }
 
 function mayOn(choices: readonly LegalChoice[], index: number, picks: PowerChoicePicks): boolean {

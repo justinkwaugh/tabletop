@@ -56,6 +56,8 @@ import {
     emptyPicks,
     favorBankSuits,
     hasPicks,
+    offersNoPick,
+    picksCannotBeMade,
     picksComplete,
     powerChoicesFrom,
     type PowerChoicePicks
@@ -465,6 +467,34 @@ const PALANQUIN = 'denizen.order.palanquin'
 type PicksByPower = Record<string, PowerChoicePicks>
 
 /**
+ * R-6.2, R-7.3.2 — the "Action:" powers Use a power lists: each the engine allows, with the
+ * choices its card offers now (a bank the run cannot name is not one), less one with nothing it
+ * can pick. That is one whose picks can never be made, or one offering no pick whose use with
+ * none the engine refuses (Ivory Eye with nothing facedown): no use of it can be sent.
+ */
+export function listedActionPowers(state: HydratedOathGameState, playerId: string): LegalPowerUse[] {
+    return HydratedUseActionPower.legalActionPowers(state, playerId).flatMap((use) => {
+        const printed = cardPower(use.cardId, use.powerIndex)
+        assertExists(printed, `${use.cardId} prints no power ${use.powerIndex}`)
+        const choices = offeredChoices(state, playerId, printed)
+        if (picksCannotBeMade(choices)) return []
+        if (
+            offersNoPick(choices) &&
+            HydratedUseActionPower.reasonCannotUse(
+                state,
+                playerId,
+                use.cardId,
+                use.powerIndex,
+                powerChoicesFrom(choices, emptyPicks())
+            ) !== undefined
+        ) {
+            return []
+        }
+        return [{ ...use, choices }]
+    })
+}
+
+/**
  * R-6.2, R-7.3.2 — the choices each "Action:" power's text opens. The draft keeps the picks after
  * each tap, so Undo takes back one pick at a time.
  */
@@ -479,16 +509,10 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
             : undefined
     }
 
-    /** Each power with the choices its card offers now (a bank the run cannot name is not one). */
+    /** The powers the panel lists, each with the choices its card offers now. */
     get powers(): LegalPowerUse[] {
         const playerId = this.playerId
-        if (!playerId) return []
-        const state = this.session.gameState
-        return HydratedUseActionPower.legalActionPowers(state, playerId).map((use) => {
-            const printed = cardPower(use.cardId, use.powerIndex)
-            assertExists(printed, `${use.cardId} prints no power ${use.powerIndex}`)
-            return { ...use, choices: offeredChoices(state, playerId, printed) }
-        })
+        return playerId ? listedActionPowers(this.session.gameState, playerId) : []
     }
 
     private storedOf(use: PowerUseKey): PowerChoicePicks {

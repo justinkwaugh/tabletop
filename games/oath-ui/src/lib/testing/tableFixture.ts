@@ -3140,7 +3140,12 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
     return tableOf(state)
 }
 
-type PowerSitesScene = 'pickerSites' | 'pickerSitesOne' | 'pickerPalanquin'
+type PowerSitesScene =
+    | 'pickerSites'
+    | 'pickerSitesOne'
+    | 'pickerPalanquin'
+    | 'pickerSitesNoDefender'
+    | 'pickerCaptainsNoDefender'
 
 /**
  * A power's site picked on the lit map; Dana's turn, the Chancellor. She stands at the Drowned
@@ -3153,12 +3158,17 @@ type PowerSitesScene = 'pickerSites' | 'pickerSitesOne' | 'pickerPalanquin'
  *   listed and only Captains wants a site.
  * - `pickerPalanquin`: Palanquin in her advisers in place of Siege Engines, and Rhys and Ann stand
  *   with her at the Drowned City.
+ * - `pickerSitesNoDefender`: as `pickerSites` in a game made now, but Rhys and Ann stand at the
+ *   River, so no one defends a site she rules: Captains has nothing to pick and is not listed.
+ * - `pickerCaptainsNoDefender`: the same with no adviser: Captains is her one card power, and
+ *   with it left out there is no Use a power.
  */
 function powerSitesTable(scene: PowerSitesScene): PlayedTable {
     const [city, plains] = mapSlotsFor(Region.Cradle)
     const [slum, river, mountain] = mapSlotsFor(Region.Provinces)
     const [pass, wastes] = mapSlotsFor(Region.Hinterland)
     const palanquin = scene === 'pickerPalanquin'
+    const away = scene === 'pickerSitesNoDefender' || scene === 'pickerCaptainsNoDefender'
     const state = testState(
         [
             testPlayer({
@@ -3170,22 +3180,27 @@ function powerSitesTable(scene: PowerSitesScene): PlayedTable {
                 favor: 3,
                 secrets: 2,
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 13 },
-                advisers: [faceup(palanquin ? 'denizen.order.palanquin' : 'denizen.order.siege-engines')]
+                advisers:
+                    scene === 'pickerCaptainsNoDefender'
+                        ? []
+                        : [faceup(palanquin ? 'denizen.order.palanquin' : 'denizen.order.siege-engines')]
             }),
             testPlayer({
                 playerId: 'rhys',
                 color: Color.Red,
-                siteId: palanquin ? city : plains,
+                siteId: palanquin ? city : away ? river : plains,
                 warbandsInPersonalBank: { rhys: 8 }
             }),
             testPlayer({
                 playerId: 'ann',
                 color: Color.Blue,
-                siteId: palanquin ? city : slum,
+                siteId: palanquin ? city : away ? river : slum,
                 warbandsInPersonalBank: { ann: 9 }
             })
         ],
         {
+            // A game made now: Captains offers only a site with someone there to attack.
+            ...(away ? { oathRevision: CURRENT_OATH_REVISION } : {}),
             machineState: MachineState.ActPhase,
             chancellorPlayerId: 'dana',
             map: allMapSlots(),
@@ -5300,6 +5315,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     pickerSites: () => powerSitesTable('pickerSites'),
     pickerSitesOne: () => powerSitesTable('pickerSitesOne'),
     pickerPalanquin: () => powerSitesTable('pickerPalanquin'),
+    pickerSitesNoDefender: () => powerSitesTable('pickerSitesNoDefender'),
+    pickerCaptainsNoDefender: () => powerSitesTable('pickerCaptainsNoDefender'),
     pickerPiles: () => pickerTwoTable('pickerPiles'),
     pickerBanks: () => pickerTwoTable('pickerBanks'),
     pickerSalad: () => pickerTwoTable('pickerSalad'),

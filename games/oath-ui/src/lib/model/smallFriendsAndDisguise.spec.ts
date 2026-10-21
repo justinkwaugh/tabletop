@@ -117,6 +117,19 @@ function pickSite(session: OathGameSession, index: number) {
 }
 
 describe('Small Friends in the Trade menu: one picked Beast site', () => {
+    it('with no faceup site holding a Beast card it has nothing to pick: in neither the Trade menu nor Use a power', async () => {
+        const { session } = await sessionAt(friends({}, { p1: [], h1: [] }))
+        expect(session.actionCards.map((card) => card.cardId)).not.toContain(SMALL_FRIENDS)
+        session.chooseAction(ActionType.Trade)
+        expect(listed(session)).toContain(BIRDSONG)
+        expect(listed(session)).not.toContain(SMALL_FRIENDS)
+        // A Beast card at a site again: it is listed in both.
+        const back = (await sessionAt(friends())).session
+        expect(back.actionCards.map((card) => card.cardId)).toContain(SMALL_FRIENDS)
+        back.chooseAction(ActionType.Trade)
+        expect(listed(back)).toContain(SMALL_FRIENDS)
+    })
+
     it('without it in use there are no far rows; with it on, the rows wait for the site and Map Library goes', async () => {
         const { session } = await sessionAt(friends())
         session.chooseAction(ActionType.Trade)

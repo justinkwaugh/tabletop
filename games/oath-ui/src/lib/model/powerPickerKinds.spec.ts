@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
+import { Color, type Visibility } from '@tabletop/common'
 import {
     Banner,
+    HydratedOathGameState,
     HydratedUseActionPower,
     OathRevision,
+    OathVisibility,
     PlayerStatus,
     PowerChoiceKind,
     PowerTiming,
@@ -16,7 +18,7 @@ import {
     type LegalChoice,
     type OathProjectedState
 } from '@tabletop/oath'
-import { required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
+import { required, served, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     FIRST_BRANCH,
     NO_OPTION,
@@ -25,9 +27,11 @@ import {
     emptyPicks,
     isMay,
     isOr,
+    offersNoPick,
     offersNothing,
     openRunBanks,
     optionIndexOf,
+    picksCannotBeMade,
     picksComplete,
     powerChoicesFrom,
     runCeilingAt,
@@ -39,6 +43,7 @@ import {
     withRunToggled,
     type BankRun
 } from './powerChoices.js'
+import { listedActionPowers } from './phaseDrafts.js'
 import { whenPlayedChoices } from './whenPlayed.js'
 
 function powerOf(cardId: string, timing: PowerTiming): CardPower {
@@ -337,5 +342,93 @@ describe('a choice with nothing to pick', () => {
         const choices = offered(CAPTAINS, table({}, { warbandsBySite: {} }))
         expect(choices.map((legal) => [legal.spec.min, legal.options.length])).toEqual([[1, 0]])
         expect(drawn(choices)).toEqual([true])
+    })
+})
+
+/**
+ * Choices that can't be picked are hidden, and a power with nothing it can pick is left out of its
+ * list (Captains and Wild Allies: `powerSites.spec.ts`).
+ */
+describe('a power with nothing it can pick is left out of the list', () => {
+    const IVORY_EYE = powerOf('relic.ivory-eye', PowerTiming.Action)
+    const CAPTAINS = powerOf('denizen.order.captains', PowerTiming.Action)
+    const listed = (state: ReturnType<typeof table>) =>
+        listedActionPowers(state, 'rhys').map((use) => use.cardId)
+    const legal = (state: ReturnType<typeof table>) =>
+        HydratedUseActionPower.legalActionPowers(state, 'rhys').map((use) => use.cardId)
+    // Rhys holds Ivory Eye, and the fixture's own sites are all faceup with no relic at any.
+    const eye = () => table({ relicIds: [IVORY_EYE.cardId] }, { siteCards: undefined })
+
+    it('Ivory Eye with nothing facedown offers no pick, and the engine refuses it with none: not listed', () => {
+        const state = eye()
+        const choices = offered(IVORY_EYE, state)
+        expect(choices.map((choice) => choice.options.length)).toEqual([0, 0, 0])
+        expect(offersNoPick(choices)).toBe(true)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                state,
+                'rhys',
+                IVORY_EYE.cardId,
+                IVORY_EYE.powerIndex,
+                []
+            )
+        ).toMatch(/exactly one/)
+        expect(legal(state)).toContain(IVORY_EYE.cardId)
+        expect(listed(state)).not.toContain(IVORY_EYE.cardId)
+    })
+
+    it('Ivory Eye with a facedown adviser: listed, the adviser its one row drawn', () => {
+        const state = eye()
+        state
+            .getPlayerState('dana')
+            .advisers.push({ cardId: 'denizen.arcane.tutor', faceUp: false })
+        const choices = offered(IVORY_EYE, state)
+        expect([offersNoPick(choices), picksCannotBeMade(choices)]).toEqual([false, false])
+        expect(listed(state)).toContain(IVORY_EYE.cardId)
+        expect(choices.map((_, index) => !offersNothing(choices, index))).toEqual([
+            true,
+            false,
+            false
+        ])
+    })
+
+    it("the list reads the same on Rhys's own view as on the table, nothing hidden read", () => {
+        const me: Visibility.Perspective = { kind: 'player', playerId: 'rhys' }
+        const own = (state: HydratedOathGameState) =>
+            OathVisibility.state.guardForExecution(new HydratedOathGameState(served(state, me)), me)
+        const none = eye()
+        const adviser = eye()
+        adviser
+            .getPlayerState('dana')
+            .advisers.push({ cardId: 'denizen.arcane.tutor', faceUp: false })
+        for (const state of [none, adviser]) {
+            expect(listedActionPowers(own(state), 'rhys')).toEqual(
+                listedActionPowers(state, 'rhys')
+            )
+        }
+        expect(listedActionPowers(own(none), 'rhys').map((use) => use.cardId)).not.toContain(
+            IVORY_EYE.cardId
+        )
+    })
+
+    it('a needed choice with nothing offered: the picks can never be made (Captains with no site)', () => {
+        const choices = offered(CAPTAINS, table({}, { warbandsBySite: {} }))
+        expect(choices.map((choice) => choice.options.length)).toEqual([0])
+        expect(picksCannotBeMade(choices)).toBe(true)
+    })
+
+    it('an "or" with one answer, a power whose choices offer something, or one that asks nothing is listed', () => {
+        // Forgotten Vault at the last secret: no Burn, so Place starts picked and the engine takes it.
+        const state = table(
+            { advisers: [{ cardId: VAULT.cardId, faceUp: true }], favor: 1 },
+            { banners: testBanners({ [Banner.DarkestSecret]: 'dana' }, 1) }
+        )
+        const vault = offered(VAULT, state)
+        expect(vault[0]?.options).toEqual([])
+        expect([offersNoPick(vault), picksCannotBeMade(vault)]).toEqual([false, false])
+        expect(listed(state)).toContain(VAULT.cardId)
+        const alchemist = offered(ALCHEMIST)
+        expect([offersNoPick(alchemist), picksCannotBeMade(alchemist)]).toEqual([false, false])
+        expect([offersNoPick([]), picksCannotBeMade([])]).toEqual([false, false])
     })
 })

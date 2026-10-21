@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import {
     ActionType,
+    CURRENT_OATH_REVISION,
+    HydratedUseActionPower,
     IMPERIAL_WARBANDS,
     MachineState,
     OathRevision,
@@ -14,6 +16,7 @@ import {
 import { openTurn, required, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { emptyPicks } from './powerChoices.js'
+import { listedActionPowers } from './phaseDrafts.js'
 import type { OathGameSession } from './session.svelte.js'
 
 afterEach(() => {
@@ -386,5 +389,66 @@ describe('revision 8: Captains and Wild Allies light only the sites the engine o
             ['c1', 'Campaign'],
             ['p1', 'Campaign']
         ])
+    })
+})
+
+/** A power with nothing it can pick is left out of the Use a power list, and comes back when it has. */
+describe('Captains and Wild Allies with no site that has a defender are left out of the list', () => {
+    const listed = (session: OathGameSession) => session.actionPowers.powers.map((p) => p.cardId)
+    // A game made now, whose Captains and Wild Allies offer only a site with someone to attack.
+    const now = (
+        dana: Partial<OathPlayerState> = {},
+        over: Partial<OathProjectedState> = {},
+        pawns: { rhys?: string; ann?: string } = {}
+    ) => table(dana, { oathRevision: CURRENT_OATH_REVISION, ...over }, pawns)
+
+    it('Captains: no one defends a site Dana rules, so it is not listed; Siege Engines still is', async () => {
+        // Rhys's pawn leaves the Plains and Ann's the Great Slum.
+        const session = await usingPowers(now({}, {}, { rhys: 'p2', ann: 'p2' }))
+        expect(listed(session)).toEqual([SIEGE_ENGINES])
+        expect(lit(session).map(([slot]) => slot)).toEqual(['c1', 'c2'])
+    })
+
+    it('Captains comes back once a defender stands at a site Dana rules', async () => {
+        const session = await usingPowers(now({}, {}, { rhys: 'p2', ann: 'p1' }))
+        expect(listed(session)).toEqual([SIEGE_ENGINES, CAPTAINS])
+        expect(session.actionPowers.siteRow(powerOf(session, CAPTAINS), 0)?.sites).toEqual(['p1'])
+    })
+
+    it('Captains alone with nothing to pick: the list is empty, though the engine allows the power', async () => {
+        const state = now({ advisers: [] }, {}, { rhys: 'p2', ann: 'p2' })
+        const session = await usingPowers(state)
+        expect(listed(session)).toEqual([])
+        expect(listedActionPowers(state, 'dana')).toEqual([])
+        expect(
+            HydratedUseActionPower.legalActionPowers(state, 'dana').map((p) => p.cardId)
+        ).toEqual([CAPTAINS])
+        expect(session.actionCards).toEqual([])
+    })
+
+    it('Wild Allies: no Beast card at a site with a defender, so it is not listed; one where Ann stands brings it back', async () => {
+        const allies = (beastAt: string) =>
+            now(
+                { advisers: [{ cardId: WILD_ALLIES, faceUp: true }] },
+                {
+                    denizensBySite: {
+                        c1: [],
+                        c2: [],
+                        p1: [],
+                        p2: [],
+                        p3: [],
+                        h1: [],
+                        h2: [],
+                        [beastAt]: ['denizen.beast.wolves']
+                    }
+                },
+                { rhys: 'p2' }
+            )
+        // The Plains: Dana rules it, and no other pawn stands there (the bandits defend only a site no one rules).
+        const none = await usingPowers(allies('c2'))
+        expect(listed(none)).not.toContain(WILD_ALLIES)
+        // The Great Slum, which Dana rules, where Ann stands.
+        const one = await usingPowers(allies('p1'))
+        expect(listed(one)).toContain(WILD_ALLIES)
     })
 })
