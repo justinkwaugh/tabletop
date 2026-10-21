@@ -1,7 +1,7 @@
 import { installTitleScope } from '../runtime/titleScope.js'
 import { installManifestRefresh } from '../runtime/manifestRefresh.js'
 import RequestTimingsPlugin from './plugins/requestTimings.js'
-import { STATIC_ROOT } from '@tabletop/backend-services'
+import { STATIC_ROOT, type LibraryServiceOptions } from '@tabletop/backend-services'
 import { assertExists } from '@tabletop/common'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
@@ -41,7 +41,7 @@ let firebaseAppIndex = 0
 
 const SESSION_KEY = process.env['SESSION_KEY']
 
-export interface AppOptions {
+export interface AppOptions extends Pick<LibraryServiceOptions, 'whileLoadingTitle'> {
     prefix?: string
 }
 
@@ -162,7 +162,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(AuthorizationPlugin)
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin)
-    await fastify.register(ServicesPlugin)
+    await fastify.register(ServicesPlugin, { whileLoadingTitle: opts.whileLoadingTitle })
     installTitleScope(fastify)
 
     if (service !== 'local') installManifestRefresh(fastify, [API_PREFIX, TASKS_PREFIX])
