@@ -118,7 +118,17 @@
                 </pattern>
             {/if}
             {#if appearance.roughness}
-                <filter id={inkId} x="-10%" y="-10%" width="120%" height="120%">
+                <!-- The region is the hex (radius 50) with room for the track and displacement, in
+                     tile space: one taken from the bounding box is empty for a straight with no
+                     width, and browsers then draw nothing. -->
+                <filter
+                    id={inkId}
+                    filterUnits="userSpaceOnUse"
+                    x="-60"
+                    y="-60"
+                    width="120"
+                    height="120"
+                >
                     <!-- Low-frequency noise gives a gentle hand-inked waver rather than a jitter. -->
                     <feTurbulence
                         type="fractalNoise"
