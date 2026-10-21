@@ -3160,19 +3160,19 @@ type PowerSitesScene =
     | 'pickerCaptainsNoDefender'
 
 /**
- * A power's site picked on the lit map; Dana's turn, the Chancellor. She stands at the Drowned
- * City (Cradle), which Rhys rules with 2. She rules the Plains (Cradle) with 2, where Captains lies
+ * A power's site picked on the lit map; Dana's turn, the Chancellor. They stand at the Drowned
+ * City (Cradle), which Rhys rules with 2. They rule the Plains (Cradle) with 2, where Captains lies
  * and Rhys's pawn stands, and the Great Slum (Provinces) with 3, where Ann's pawn stands; the River
  * and the Mountain are empty; the Hinterland holds the Narrow Pass, the Wastes and a facedown site.
- * - `pickerSites`: Siege Engines is faceup in her advisers. Captains offers the Plains and the
+ * - `pickerSites`: Siege Engines is faceup in their advisers. Captains offers the Plains and the
  *   Great Slum, Siege Engines the Drowned City and the Plains; each costs 1 favor.
  * - `pickerSitesOne`: the same, after a use of Siege Engines: its favor is on it, so it is not
  *   listed and only Captains wants a site.
- * - `pickerPalanquin`: Palanquin in her advisers in place of Siege Engines, and Rhys and Ann stand
- *   with her at the Drowned City.
+ * - `pickerPalanquin`: Palanquin in their advisers in place of Siege Engines, and Rhys and Ann stand
+ *   with them at the Drowned City.
  * - `pickerSitesNoDefender`: as `pickerSites` in a game made now, but Rhys and Ann stand at the
- *   River, so no one defends a site she rules: Captains has nothing to pick and is not listed.
- * - `pickerCaptainsNoDefender`: the same with no adviser: Captains is her one card power, and
+ *   River, so no one defends a site they rule: Captains has nothing to pick and is not listed.
+ * - `pickerCaptainsNoDefender`: the same with no adviser: Captains is their one card power, and
  *   with it left out there is no Use a power.
  */
 function powerSitesTable(scene: PowerSitesScene): PlayedTable {
@@ -3486,7 +3486,7 @@ function travelTollTable(): PlayedTable {
 }
 
 /**
- * Hospitality on Dana's Travel from the River: she holds Hospitality (nomad), War Tortoise (beast)
+ * Hospitality on Dana's Travel from the River: they hold Hospitality (nomad), War Tortoise (beast)
  * and Crop Rotation (hearth). The Plains hold Wolves (one bank, beast); the Wastes Oracle and
  * Birdsong (two banks, beast and nomad); the Drowned City Forced Labor (no match); the Great Slum,
  * which Rhys rules, Toll Roads and Rowdy Pub (hearth, whose bank is empty but in the `toll`

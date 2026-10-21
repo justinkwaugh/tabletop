@@ -37,14 +37,14 @@ for (const viewport of [
             await expect(powerRow(page, CAPTAINS)).toHaveCount(0)
         })
 
-        test('with defenders at her sites, Captains is listed again', async ({ page }) => {
+        test('with defenders at their sites, Captains is listed again', async ({ page }) => {
             await openTable(page, 'pickerSites')
             await usePower(page).click()
             await expect(powerRow(page, SIEGE_ENGINES)).toBeVisible()
             await expect(powerRow(page, CAPTAINS)).toBeVisible()
         })
 
-        test('Captains her one card power, with nothing to pick: no Use a power', async ({
+        test('Captains their one card power, with nothing to pick: no Use a power', async ({
             page
         }) => {
             await openTable(page, 'pickerCaptainsNoDefender')

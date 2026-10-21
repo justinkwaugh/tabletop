@@ -207,7 +207,7 @@ describe('Small Friends acts at one picked Beast site (revision 19)', () => {
 })
 
 describe("a Small Friends at the pawn's site names another Beast site (revision 19)", () => {
-    // Dana stands at c1, where Small Friends lies beside Toll Roads and Map Library; she holds
+    // Dana stands at c1, where Small Friends lies beside Toll Roads and Map Library; they hold
     // only Birdsong. Small Friends is used from where the pawn stands (Law 7.4.1); the other cards
     // are judged as if the pawn were at the named site.
     const atPawn = (revision: OathRevision) =>
