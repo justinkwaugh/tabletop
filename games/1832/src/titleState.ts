@@ -20,14 +20,19 @@ export const RevenueToken = Type.Object(
 )
 export type RevenueToken = Type.Static<typeof RevenueToken>
 
-/** One company's shares a player sold, which its president may buy back at the sale price. */
+/**
+ * One company's shares a player sold, which its president may buy back at the sale price. Its
+ * marker stays at the space sold from until the president decides (§5.9).
+ */
 export const ProtectableSale = Type.Object(
     {
         companyId: Id,
         shares: Type.Integer({ minimum: 1 }),
         proceeds: Type.Integer({ minimum: 1 }),
         certificateIds: Type.Array(Id, { minItems: 1 }),
-        fromMarketSpaceId: Id
+        fromMarketSpaceId: Id,
+        /** Each sale's shares, in the order sold; unprotected, the marker falls sale by sale. */
+        blocks: Type.Array(Type.Integer({ minimum: 1 }), { minItems: 1 })
     },
     { additionalProperties: false }
 )
@@ -41,11 +46,15 @@ export const PriceProtection = Type.Object(
     {
         sellerPlayerId: Id,
         sales: Type.Array(ProtectableSale),
-        /** Each space sold from, its stack as it stood before the seller's first sale from it. */
-        stacks: Type.Array(
-            Type.Object(
-                { spaceId: Id, companyIds: Type.Array(Id) },
-                { additionalProperties: false }
+        // Stored games from before sales were held may hold it; never read.
+        stacks: Type.Optional(
+            Type.Unsafe<never>(
+                Type.Array(
+                    Type.Object(
+                        { spaceId: Id, companyIds: Type.Array(Id) },
+                        { additionalProperties: false }
+                    )
+                )
             )
         ),
         lastProtectorId: Type.Optional(Id),

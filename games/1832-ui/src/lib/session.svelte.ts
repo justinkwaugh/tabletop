@@ -25,6 +25,7 @@ import {
     RedeemShare,
     ReissueShares,
     protectionDecision,
+    declinedMarketSpaceId,
     redemptionChoices,
     reissueChoices,
     RevenueTokenPrivateIds,
@@ -414,7 +415,13 @@ export class EighteenThirtyTwoSession extends BaseSession {
             ...decision.sale,
             sellerPlayerId: record.sellerPlayerId,
             presidentPlayerId: decision.playerId,
-            restoredPrice: EighteenThirtyTwoMarket.space(decision.sale.fromMarketSpaceId).price
+            price: EighteenThirtyTwoMarket.companySpace(
+                this.gameState.stockMarket,
+                decision.sale.companyId
+            ).price,
+            declinedPrice: EighteenThirtyTwoMarket.space(
+                declinedMarketSpaceId(this.gameState, decision.sale)
+            ).price
         }
     })
     readonly canDecideProtection = $derived(

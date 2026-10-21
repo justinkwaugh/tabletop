@@ -18,7 +18,7 @@
     "ContributeTrainFunds": "85fd1b57cdfc74e0e0f0957a5e663792f1cb12ab188988ba50b44dd5dc613931",
     "DeclareBankruptcy": "2b5a3c50faae08d28f3f9d7541f05c9adee7730524288feb8f794106b60766c9",
     "DeclinePrivateTile": "c4982db809f4f024354b9e0731dd49c5dcdf66c07687110e8325a3de35e0c8c4",
-    "DeclineProtection": "9a8bcbc342acf15a0e76acc67fd989fa94fb226a699ddd0d1ec9bc302c79b6b3",
+    "DeclineProtection": "550b37ab73ef72675f940e94c9b912ff62b7ddb8819ec6029280fa69a280ebf1",
     "DiscardMergedTrain": "5521dbaac6facf528f6f10d956a5363bb120e31c617ff5c364ae745b1c4cce78",
     "DiscardTrain": "7e20783f11a11d64aff34626e2420dc355adbfce900d7f1cb01eb0b31c175961",
     "DistributeEarnings": "d1a60eb8722250aeb4f79f3fe6b30a59d3fd4b128636228368a0b7f8e6111dbc",
@@ -42,7 +42,7 @@
     "PlaceRevenueToken": "2329cbd76c82c07fad6e0f09e9d929991d6b014073acdeeab68146f07eae822b",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
     "ProposeMerger": "8e3242fa526a30ffff98a303afaec7ccc3c326716720dd2c5c00ed844616f653",
-    "ProtectShares": "e8078b7c429165eb0eb0386e239b6b4411fb964f56a0b065ec0dade6d0561874",
+    "ProtectShares": "7dc2b810063957d6b2cb8885ae036635dfc4f1d0c421e606a03fb3b661332ad0",
     "RaiseAuctionBid": "57f6e49b2afa7412f2013d16dc6a2d38e83627165798e3eed00cb1566354e055",
     "RecordMiamiRun": "07aaa4f3d0d3ab777d03bfda6a3bcbe96d574909d530f693112a0eea0e0a14cc",
     "RedeemShare": "eaaf81ce775d05cf773e5f22447c7bd4ff1a97851b6712314d31fed9bcb692b7",
@@ -64,7 +64,7 @@
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
-    "StartPriceProtection": "b9134e0f97e2621cfaf344acd2084bc5ce4f11e1a16b796b1f9009a68923f156",
+    "StartPriceProtection": "2b0b1270c4cbbca109a2334e5ca2ad55153f8226767c4f9180d567e61230f5ff",
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
     "StopStockInstruction": "87c259506cc5823cfddb21a08db1bdc0aad3115a34b83eb8cd7eb850262c0c8b",
     "TakeLondonShare": "68920266817f628d6be06a0d6f5899f030fbe4bc950d72e14b4960b866327ad8"
@@ -1913,6 +1913,14 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "blocks": {
+                  "items": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
                 "certificateIds": {
                   "items": {
                     "minLength": 1,
@@ -1939,6 +1947,7 @@
                 }
               },
               "required": [
+                "blocks",
                 "certificateIds",
                 "companyId",
                 "fromMarketSpaceId",
@@ -1980,8 +1989,7 @@
         },
         "required": [
           "sales",
-          "sellerPlayerId",
-          "stacks"
+          "sellerPlayerId"
         ],
         "type": "object"
       },

@@ -12,7 +12,7 @@ import { isClosingSpace, saleDescent, EighteenThirtyTwoMarket } from './stockMar
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { londonTradable } from './londonInvestment.js'
 import { OwnershipPercent, requiredSellDown, withHeldExcess } from './ownershipExcess.js'
-import { recordProtectableSale } from './priceProtection.js'
+import { holdsProtectableMove, recordProtectableSale, sellerLimitState } from './priceProtection.js'
 import { isReissuedShare, lockReissueProceeds } from './redemption.js'
 import { systemOf } from './systems.js'
 import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './state.js'
@@ -71,6 +71,7 @@ const HoldingLimits = marketZoneHoldingLimits({
     ownershipFreeColors: ['green', 'brown'],
     ownershipPercent: OwnershipPercent
 })
+const HeldExcessLimit = withHeldExcess(HoldingLimits.ownershipLimit)
 
 // Certificate limits by player count, for 10, 9, 8, 7 and at most 6 companies (Table 2).
 const CertificateLimits: Readonly<Record<number, readonly number[]>> = {
@@ -118,17 +119,24 @@ export const EighteenThirtyTwoStockRules: StockRules = {
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
     purchaseTerms: EighteenThirtyTwoShareTrading.purchaseTerms,
     saleTerms: EighteenThirtyTwoShareTrading.stockSaleTerms,
-    certificateLimit(state) {
+    // A seller's limits read their held sales' prices as fallen (§5.3.5).
+    certificateLimit(state, owner) {
         const limit =
             CertificateLimits[state.players.length]?.[
-                certificateLimitColumn(requireEighteenThirtyTwoState(state))
+                certificateLimitColumn(
+                    sellerLimitState(requireEighteenThirtyTwoState(state), owner)
+                )
             ]
         assertExists(limit, 'Unsupported 1832 player count')
         return limit
     },
-    ...HoldingLimits,
-    ownershipLimit: withHeldExcess(HoldingLimits.ownershipLimit),
+    charters: HoldingLimits.charters,
+    certificateWeight: (state, certificate) =>
+        HoldingLimits.certificateWeight(sellerLimitState(state, certificate.owner), certificate),
+    ownershipLimit: (state, companyId, owner) =>
+        HeldExcessLimit(sellerLimitState(state, owner), companyId, owner),
     afterSale: recordProtectableSale,
+    holdsMarketMove: holdsProtectableMove,
     afterSharePurchase: lockReissueProceeds,
     // A System's new president exchanges any vice-president's certificate (§5.5).
     presidencyExchangeLargestFirst: true,

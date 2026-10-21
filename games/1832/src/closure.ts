@@ -22,12 +22,11 @@ import type {
     EighteenThirtyTwoStateHandler,
     HydratedEighteenThirtyTwoState
 } from './state.js'
-import { protectable } from './priceProtection.js'
 import { isClosingSpace, EighteenThirtyTwoMarket } from './stockMarket.js'
 
 /**
- * The next company whose price has entered the black area, unless its president may yet protect
- * the sale that took it there (§5.1.1).
+ * The next company whose price has entered the black area (§5.1.1). A sale a president may
+ * protect leaves the price where it is until they decide.
  */
 export function companyAwaitingClosure(state: EighteenThirtyTwoState): string | undefined {
     return state.companies.find(
@@ -35,10 +34,7 @@ export function companyAwaitingClosure(state: EighteenThirtyTwoState): string | 
             company.kind !== 'private' &&
             company.started &&
             !company.closed &&
-            isClosingSpace(EighteenThirtyTwoMarket.companySpace(state.stockMarket, company.id)) &&
-            !state.priceProtection?.sales.some(
-                (sale) => sale.companyId === company.id && protectable(state, sale)
-            )
+            isClosingSpace(EighteenThirtyTwoMarket.companySpace(state.stockMarket, company.id))
     )?.id
 }
 
