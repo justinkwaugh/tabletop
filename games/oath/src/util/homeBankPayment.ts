@@ -5,6 +5,8 @@ import { assertExists } from '@tabletop/common'
 import { favorHomeBankOf, homeBankPayable, spendFavor, usableFavor } from './favor.js'
 import { askQuestion, turnOrderFrom } from './questions.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
+import { isInPlay } from './discard.js'
+import { suitOf } from '../data/cardRegistry.js'
 
 export type PayFromHomeBankQuestion = QuestionOf<PowerQuestionKind.PayFromHomeBank>
 
@@ -65,6 +67,22 @@ export function reasonCannotPayFromHomeBank(
     return undefined
 }
 
+/**
+ * Where the answer's favor goes: the power's bank, or its card. R-10.5 — a card discarded before
+ * the answer (Land Warden's second card can discard Dissent) has already sent its favor to the bank
+ * of its suit, so the payment goes there too.
+ */
+function payeeBankOf(
+    state: HydratedOathGameState,
+    question: PayFromHomeBankQuestion
+): Suit | undefined {
+    if (question.toBank !== undefined) return question.toBank
+    if (isInPlay(state, question.cardId)) return undefined
+    const suit = suitOf(question.cardId)
+    assertExists(suit, `${question.cardId} has no suit, so its favor has no bank`)
+    return suit
+}
+
 /** The answer: `favor` from the asked player's bank into the power's bank or onto its card. */
 export function payFromHomeBank(
     state: HydratedOathGameState,
@@ -75,10 +93,11 @@ export function payFromHomeBank(
     const bank = favorHomeBankOf(state, question.askedPlayerId)
     assertExists(bank, `${question.askedPlayerId} has no bank to pay from`)
     state.favorBank[bank] -= favor
-    if (question.toBank === undefined) {
+    const toBank = payeeBankOf(state, question)
+    if (toBank === undefined) {
         state.addTokensOn(question.cardId, { favor })
         return `paid ${favor} favor from the ${bank} bank onto it`
     }
-    state.favorBank[question.toBank] += favor
-    return `paid ${favor} favor from the ${bank} bank into the ${question.toBank} bank`
+    state.favorBank[toBank] += favor
+    return `paid ${favor} favor from the ${bank} bank into the ${toBank} bank`
 }

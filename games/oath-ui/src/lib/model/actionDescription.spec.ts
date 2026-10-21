@@ -1504,4 +1504,13 @@ describe('Vow of Kinship — what its holder paid from the Nomad bank, its own r
             'Dissent: paid 1 favor from the Nomad bank onto it'
         )
     })
+
+    it('Dissent discarded before the answer: the count from the Nomad bank into the Discord bank, as Plague Engines reads', () => {
+        const line = describeAction(paid(DISSENT, 2, 'paid 2 favor from the nomad bank into the discord bank'), nameOf, 'p1')
+        expect(line).toBe('Dissent: paid 2 favor from the Nomad bank into the Discord bank')
+        expect(tokenParts(line).filter((part) => part.kind === 'suit')).toEqual([
+            { kind: 'suit', suit: Suit.Nomad, bank: true },
+            { kind: 'suit', suit: Suit.Discord, bank: true }
+        ])
+    })
 })

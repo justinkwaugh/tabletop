@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
-import { HydratedOathGameState } from '../model/gameState.js'
+import { ActionSource, Color, assertExists, latestPlayerUndoTarget, type GameAction } from '@tabletop/common'
+import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { Banner, PlayerStatus, SearchPlay, Suit } from '../model/oathEnums.js'
 import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { MachineState } from '../definition/states.js'
@@ -8,22 +8,25 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedResolveWake, ResolveWake, requiredFavorSteps, type WakeFavorStep } from '../actions/resolveWake.js'
 import { HydratedAnswerQuestion, AnswerQuestion } from '../actions/answerQuestion.js'
 import { UseActionPower } from '../actions/useActionPower.js'
-import { SearchResolve } from '../actions/searchResolve.js'
+import { HydratedSearch, Search, SearchSource } from '../actions/search.js'
+import { HydratedSearchResolve, SearchResolve } from '../actions/searchResolve.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { availablePeoplesFavorOptions, forcedPeoplesFavorOptions, peoplesFavorStepIsOptional } from '../util/wake.js'
 import { currentQuestion } from '../util/questions.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
-import { OathRevision } from '../util/revision.js'
+import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
+import { isInPlay } from '../util/discard.js'
+import { returnFavorFromCards } from '../util/rest.js'
 import { testBanners, testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { rulerTable, adviser } from '../testing/tables.js'
-import { actionPowerUse } from '../testing/choices.js'
+import { actionPowerUse, modifierUse } from '../testing/choices.js'
 import { answerQuestion, playDrawnCard } from '../testing/steps.js'
 import { buildAction } from '../testing/actions.js'
 import { engine, OathTestEngine } from '../testing/engine.js'
 import { testGame } from '../testing/game.js'
 import { served } from '../testing/projection.js'
-import { expectFavorConserved } from '../testing/census.js'
+import { expectFavorConserved, favorCensus } from '../testing/census.js'
 import { OathRuntime } from '../definition/runtime.js'
 import { FILLER, TENTS } from '../testing/cards.js'
 import '../powers/index.js'
@@ -395,5 +398,178 @@ describe('Dissent with the Vow of Kinship (revision 18)', () => {
         expect(state.machineState).not.toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual(['ruler'])
         expect(state.favorBank[Suit.Nomad]).toBe(3)
+    })
+})
+
+describe('Dissent discarded by the second card of Land Warden before the Vow of Kinship holder pays (revision 18)', () => {
+    const LAND_WARDEN = 'denizen.hearth.land-warden'
+    const SALT = 'denizen.discord.salt-the-earth'
+    const RIOTS = 'denizen.discord.riots'
+    const RHYS = 'rhys'
+
+    /** Dana holds Land Warden and Searches; Rhys holds the Vow and Wolves (owes two suits) with `board` favor; Bea is Chancellor with the People's Favor. */
+    function landWardenTable(revision: OathRevision, { board = 0, second = SALT }: { board?: number; second?: string } = {}) {
+        const s = testState(
+            [
+                testPlayer({ playerId: DANA, color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, supply: 6, advisers: [adviser(LAND_WARDEN)] }),
+                testPlayer({ playerId: RHYS, color: Color.Blue, siteId: 'c2', favor: board, secrets: 1, advisers: [adviser(VOW), adviser(WOLVES)] }),
+                testPlayer({ playerId: BEA, color: Color.Purple, siteId: 'h3', status: PlayerStatus.Chancellor, warbandsInPersonalBank: {} })
+            ],
+            {
+                oathRevision: revision,
+                banners: testBanners({ [Banner.PeoplesFavor]: BEA }),
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
+                siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+            }
+        )
+        s.favorBank[Suit.Nomad] = 3
+        // Rhys's board favor comes from the Order bank, so the table still holds 40.
+        s.favorBank[Suit.Order] -= board
+        // Riots discards the most common suit on the map only from its Mob side.
+        if (second === RIOTS) s.banners[Banner.PeoplesFavor].mobSide = true
+        openTurn(s, DANA)
+        s.requireVault().worldDeck = [DISSENT, second, FILLER]
+        expectTableFavor(s)
+        return s
+    }
+    /** R-1.4 — the table holds 40 favor before and after every step. */
+    const expectTableFavor = (s: HydratedOathGameState) => expect(favorCensus(s)).toBe(40)
+    const search = () => buildAction(Search, { playerId: DANA, drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(LAND_WARDEN)] })
+    const resolveBody = (second = SALT) => ({
+        playerId: DANA,
+        keptCardId: DISSENT,
+        discardOrder: [FILLER],
+        play: SearchPlay.Site,
+        secondPlay: second === RIOTS ? { cardId: RIOTS, play: SearchPlay.Adviser, faceUp: true } : { cardId: SALT, play: SearchPlay.Site }
+    })
+    /** Both plays resolve in one Search: the second has discarded Dissent and the question is still open. */
+    function bothPlayed(revision: OathRevision, options: { board?: number; second?: string } = {}) {
+        const s = landWardenTable(revision, options)
+        new HydratedSearch(search()).apply(s)
+        const body = resolveBody(options.second)
+        expect(HydratedSearchResolve.reasonCannotResolve(s, DANA, body)).toBeUndefined()
+        new HydratedSearchResolve(buildAction(SearchResolve, body)).apply(s)
+        expect(isInPlay(s, DISSENT)).toBe(false)
+        return s
+    }
+
+    it.each([NOW, CURRENT_OATH_REVISION])(
+        "Salt the Earth second (revision %i): the holder's favor goes to the Discord bank, none on the discarded card (R-10.5)",
+        (revision) => {
+            const s = bothPlayed(revision)
+            expect(currentQuestion(s)).toEqual({ kind: PowerQuestionKind.PayFromHomeBank, cardId: DISSENT, askedPlayerId: RHYS, owed: 2 })
+            expect(s.denizensBySite['c1']).toEqual([SALT])
+            expect(s.tokensOn(DISSENT).favor).toBe(0)
+            const discord = s.favorBank[Suit.Discord]
+            const answered = answerQuestion(s, RHYS, pay(2))
+            expect(answered.metadata?.summary).toBe('paid 2 favor from the nomad bank into the discord bank')
+            expect(s.favorBank[Suit.Nomad]).toBe(1)
+            expect(s.favorBank[Suit.Discord]).toBe(discord + 2)
+            // Drawn and played again before the Rest, it arrives with no favor on it.
+            expect(s.cardTokens[DISSENT]).toBeUndefined()
+            expectTableFavor(s)
+            // The Rest has nothing left on Dissent to move: only the favor Land Warden's use put on it goes back.
+            expect(s.cardTokens).toEqual({ [LAND_WARDEN]: { favor: 1, secrets: 0 } })
+            expect(returnFavorFromCards(s)).toBe(1)
+            expect(s.favorBank[Suit.Discord]).toBe(discord + 2)
+        }
+    )
+
+    it('Riots second (Mob side): the same favor goes to the Discord bank, none on the discarded card', () => {
+        const s = bothPlayed(NOW, { second: RIOTS })
+        expect(s.denizensBySite['c1']).toEqual([])
+        expect(currentQuestion(s)).toMatchObject({ kind: PowerQuestionKind.PayFromHomeBank, cardId: DISSENT, askedPlayerId: RHYS, owed: 2 })
+        const discord = s.favorBank[Suit.Discord]
+        const answered = answerQuestion(s, RHYS, pay(2))
+        expect(answered.metadata?.summary).toBe('paid 2 favor from the nomad bank into the discord bank')
+        expect(s.tokensOn(DISSENT).favor).toBe(0)
+        expect(s.favorBank[Suit.Discord]).toBe(discord + 2)
+        expectTableFavor(s)
+    })
+
+    it("the board's favor went onto Dissent and left with the discard; only the bank's share is asked about", () => {
+        const none = bothPlayed(NOW)
+        const s = bothPlayed(NOW, { board: 1 })
+        expect(s.getPlayerState(RHYS).favor).toBe(0)
+        expect(currentQuestion(s)).toMatchObject({ askedPlayerId: RHYS, owed: 1 })
+        expect(s.tokensOn(DISSENT).favor).toBe(0)
+        expect(s.favorBank[Suit.Discord]).toBe(none.favorBank[Suit.Discord] + 1)
+        const discord = s.favorBank[Suit.Discord]
+        answerQuestion(s, RHYS, pay(1))
+        expect(s.favorBank[Suit.Discord]).toBe(discord + 1)
+        expect(s.cardTokens[DISSENT]).toBeUndefined()
+        expectTableFavor(s)
+    })
+
+    it('declining to pay from the Nomad bank moves nothing', () => {
+        const s = bothPlayed(NOW)
+        const banks = { ...s.favorBank }
+        const answered = answerQuestion(s, RHYS, pay(0))
+        expect(answered.metadata?.summary).toBe('paid no favor')
+        expect(s.favorBank).toEqual(banks)
+        expect(s.cardTokens[DISSENT]).toBeUndefined()
+        expectTableFavor(s)
+    })
+
+    const game = testGame([DANA, RHYS, BEA])
+    function searching(): OathProjectedState {
+        const h = landWardenTable(NOW)
+        new HydratedSearch(search()).apply(h)
+        const state = h.dehydrate()
+        state.machineState = MachineState.Searching
+        state.turnManager = { series: [{ type: 'turn', playerId: DANA, start: 0 }], turnOrder: [DANA, RHYS, BEA], turnCounts: { dana: 1, rhys: 0, bea: 0 } }
+        state.activePlayerIds = [DANA]
+        return state
+    }
+
+    it('through the engine: the question waits on the holder after both plays; the answer pays the Discord bank and gives the turn back', () => {
+        const testEngine = new OathTestEngine(OathRuntime)
+        let state = testEngine.runNext(buildAction(SearchResolve, resolveBody()), searching(), game).updatedState
+        expect(state.machineState).toBe(MachineState.PowerQuestion)
+        expect(state.activePlayerIds).toEqual([RHYS])
+        expect(state.denizensBySite['c1']).toEqual([SALT])
+        const discord = state.favorBank[Suit.Discord]
+
+        // Safe on a player's view: the question's domain on the holder's own served state matches the host's.
+        const own = new HydratedOathGameState(served(state, { kind: 'player', playerId: RHYS }))
+        const host = new HydratedOathGameState(state)
+        for (const favor of [0, 1, 2, 3]) {
+            expect(HydratedAnswerQuestion.reasonCannotAnswer(own, RHYS, pay(favor))).toEqual(HydratedAnswerQuestion.reasonCannotAnswer(host, RHYS, pay(favor)))
+        }
+
+        state = testEngine.runNext(buildAction(AnswerQuestion, { playerId: RHYS, answer: pay(2) }), state, game).updatedState
+        expect(state.machineState).toBe(MachineState.ActPhase)
+        expect(state.activePlayerIds).toEqual([DANA])
+        expect(state.favorBank[Suit.Discord]).toBe(discord + 2)
+        expect(state.cardTokens[DISSENT]).toBeUndefined()
+        expectTableFavor(new HydratedOathGameState(state))
+    })
+
+    it('Undo of the answer after the discard takes the favor back out of the Discord bank and reopens the question', () => {
+        let seq = 0
+        const run = (state: OathProjectedState, fields: { type: ActionType; playerId: string } & Record<string, unknown>) =>
+            engine.run({ id: `k-${(seq += 1)}`, gameId: 'game-1', source: ActionSource.User, index: state.actionCount, ...fields } as GameAction, state, game)
+        const history: GameAction[] = []
+        const resolved = run(searching(), { type: ActionType.SearchResolve, ...resolveBody() })
+        history.push(...resolved.processedActions)
+        const asked = resolved.updatedState
+        const answered = run(asked, { type: ActionType.AnswerQuestion, playerId: RHYS, answer: pay(2) })
+        history.push(...answered.processedActions)
+        expect(answered.updatedState.favorBank[Suit.Discord]).toBe(asked.favorBank[Suit.Discord] + 2)
+
+        const target = latestPlayerUndoTarget(history, RHYS)
+        assertExists(target, 'Undo is offered to Rhys')
+        expect(target.type).toBe(ActionType.AnswerQuestion)
+        let back = answered.updatedState
+        for (const action of history.slice(history.indexOf(target)).toReversed()) back = engine.undoProcessedAction({ state: back, action })
+        expect(back).toEqual(asked)
+    })
+
+    it('before revision 18 the Nomad bank pays unasked inside the play, so its favor reaches the Discord bank with the discard', () => {
+        const s = bothPlayed(BEFORE)
+        expect(s.pendingQuestions).toBeUndefined()
+        expect(s.favorBank[Suit.Nomad]).toBe(1)
+        expect(s.cardTokens[DISSENT]).toBeUndefined()
+        expectTableFavor(s)
     })
 })
