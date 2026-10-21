@@ -24,6 +24,7 @@ import {
     FirestoreSiteStatsStore,
     FirestoreUserStore,
     GameService,
+    ProjectedHistoryCache,
     LibraryService,
     TitleLibrary,
     LOCAL_WORKSPACE_ROOT,
@@ -147,7 +148,8 @@ export default fp(async (fastify: FastifyInstance) => {
         taskService,
         notificationService,
         redisCacheService,
-        availableTitles
+        availableTitles,
+        new ProjectedHistoryCache(redisService.client)
     )
 
     fastify.decorate(

@@ -1,6 +1,6 @@
-# Projected history cache (proposal)
+# Projected history cache
 
-Status: design agreed on 2026-10-21 (Redis, segmented entries); not built.
+Status: built on 2026-10-21 (`ProjectedHistoryCache` in `libs/backend-services/src/games/projectedHistoryCache.ts`); not released.
 
 ## Problem
 
@@ -38,72 +38,92 @@ Script: `/workspace/tmp/health-probes/prefix-check.mjs`.
 
 ## Storage
 
-One Redis list per Game, Perspective and title logic version, keyed in `gameCacheKeys.ts` alongside
-the existing Game keys:
+`ProjectedHistoryCache` (`libs/backend-services/src/games/projectedHistoryCache.ts`) keeps one
+Redis list per Game, Perspective, title logic version and record format, keyed in
+`gameCacheKeys.ts` beside the other Game keys:
 
 ```
-projected-history-<gameId>:<perspectiveKey>:<logicVersion>
+projected-history-<gameId>:<perspectiveKey>:<logicVersion>:<recordFormat>
 perspectiveKey = player:<playerId> | spectator
 ```
 
-Each list element is one gzipped segment:
+Each list element is a gzipped JSON array of projected `GameAction` records. A record carries its
+canonical `index` and `id`, which is what the read validates; `recordFormat` is a constant in the
+store, bumped when the backend changes the shape of a projected record, since the logic version
+only tracks the title. Decoding goes through `Value.Convert` and `Value.Assert` against the
+`GameAction` schema, which revives the dates; a segment that does not decode ends the usable
+prefix.
 
-```ts
-interface ProjectedHistorySegment {
-    startIndex: number // canonical index of the first record
-    actionIds: string[] // canonical Action ids, in order
-    actions: GameAction[] // projected records for those Actions
-}
-```
-
-Every list carries a 24-hour TTL, refreshed on each read and append. Production Redis is Redis
+Every list carries a 24-hour TTL, refreshed by every load and append. Production Redis is Redis
 Cloud, 250 MB, `volatile-lru`, so these keys are eviction candidates and, being large and idle,
 are the ones LRU drops first; an evicted list only costs one full projection. Measured size per
 Perspective for long games: Reef Encounter 324 KB JSON (28 KB gzipped), Sol 762 KB (68 KB), Fresh
 Fish 280 KB (23 KB). With five Perspectives per four-player Game, the 58 protected Games active on
-2026-10-21 come to about 15 MB, and all 148 started Games to about 40 MB.
+2026-10-21 come to about 15 MB, and all 148 started Games to about 40 MB. Decoding a cached Sol
+history costs about 3.5 ms locally against 380 ms to project it.
 
 Segments make an append independent of history length: after an Action, each Perspective gains one
-small segment with `RPUSH`, without reading, decompressing or recompressing the rest.
+small segment with `RPUSHX`, without reading, decompressing or recompressing the rest.
 
 The cache holds derived data only. It is validated against the consistent read on every use, so it
 takes no write markers and is outside the cache-coherence contract: a stale, reordered, partial or
-evicted list costs projection work and never produces a wrong history.
+evicted list costs projection work and never produces a wrong history. Only fully projected
+records are stored: a load whose projected tail contains a redacted record (an undo patch that
+could not be applied) stores nothing, so a later load after that Action is undone projects afresh
+instead of serving the redaction.
+
+Errors follow the other caches: a Redis transport failure on read is a miss and on write is
+logged; a protocol error on read propagates, since it signals a defect; writes never fail a load or
+a committed Action.
 
 ## Full load
 
 1. Read Game, State and Actions through `readGameData` exactly as today (the consistent read).
-2. `LRANGE` the Perspective's list and decompress it. Walk the segments in order, accepting records
-   while each segment starts at the next expected index and its ids equal the canonical Action ids
-   at those indices. Stop at the first mismatch. `P` is the number of records accepted.
+   Loads that do not project (Host View, hotseat, titles without visibility, `includeActions=false`
+   or an empty history) skip the cache entirely; `historyProjection` in `gameRepresentation.ts` is
+   the one guard for that, shared with the ETag and the representation.
+2. `LRANGE` the Perspective's list and decode it. Walk the segments in order, accepting records
+   while each record's `index` is the next expected one and its `id` equals the canonical Action
+   id at that index. Stop at the first mismatch or undecodable segment. `P` is the number of
+   records accepted.
 3. Project only `actions.slice(P)` with `startIndex: P`. The walk back covers `M - P` Actions, and
    the result includes the projected current State.
-4. Respond with the accepted records plus the tail.
-5. Repair the list after responding:
+4. Store, then respond with the accepted records plus the tail:
+    - all segments accepted and an empty tail: refresh the TTL only;
     - all segments accepted and a non-empty tail: `RPUSH` the tail as one segment;
-    - a mismatch (Undo, reordered or lost append) or more than 32 segments: replace the list with
-      one segment holding all `M` records (`MULTI`: `DEL`, `RPUSH`, `EXPIRE`).
+    - a mismatch (Undo, reordered or lost append), an undecodable segment or more than 32 segments:
+      replace the list with one segment holding all `M` records (`MULTI`: `DEL`, `RPUSH`,
+      `EXPIRE`);
+    - a tail with a redacted record: store nothing.
 
-A Redis transport failure in step 2 is a miss (`P = 0`); a failure in step 5 is logged and ignored.
-Neither fails the request.
+The store is awaited before the response so a following load sees it; its compression runs on the
+request either way, and it adds one Redis round trip. Counters `projection.history.cached` and
+`projection.history.projected` record how many records each load took from the cache and
+projected.
+
+One accepted difference from an uncached load: when the tail projection fails and redacts, an
+uncached load would also redact everything before the failing cascade, whereas the cached prefix
+keeps its patches. Those records were projected for this Perspective when they were cached, and the
+client stops its history at the redacted boundary either way.
 
 ## Action time
 
 After `publishActionResults` has projected and published the new transitions for a Perspective,
-`RPUSHX` one segment `{ startIndex: priorState.actionCount, actionIds, actions }` with the
-published records and refresh the TTL. `RPUSHX` only appends to an existing list, so the cache never
-holds a list that starts mid-history. The append runs after publication, and its failure is logged,
-never surfaced to the Action.
+`RPUSHX` one segment with the published records and refresh the TTL. `RPUSHX` only appends to an
+existing list, so the cache never holds a list that starts mid-history. The append runs after
+publication and never surfaces a failure to the Action.
 
 Concurrent Actions on one Game commit in order, but their appends can arrive out of order; the
 index check in step 2 rejects the misplaced segment and the next load rewrites the list.
 
-Undo appends nothing. The next load sees the removed Action ids no longer match and rewrites the
-list.
+Undo appends nothing. Redone Actions keep their ids but always take a lower index than before,
+because the undone Action ahead of them is removed, so the next load sees the removed Action ids no
+longer match and rewrites the list. The validation therefore assumes an id never reappears at the
+same index with different content.
 
 With both paths, a reload after ordinary play projects only the current State. A new Perspective
-(new spectator, replacement Player), an evicted or expired list, a logic release or an Undo costs
-one full projection on the next load.
+(new spectator, replacement Player), an evicted or expired list, a logic or record-format change,
+or an Undo costs one full projection on the next load.
 
 ## Other callers
 
@@ -130,8 +150,13 @@ short tails and stay as they are. Host View and hotseat Games do not project and
   history projection for each Perspective (Action-time path matches the load path).
 - Spec: prefix plus tail equals the full projection at every split, including across Undo and
   Undo-then-new-Actions (ids diverge).
-- Spec, real Redis: out-of-order appends, a list from another logic version, a mismatched id, an
-  evicted list and a Redis transport failure all fall back to correct output.
+- Spec, real Redis (`projectedHistoryCache.spec.ts`): out-of-order appends, an Undo, an
+  undecodable segment, compaction past 32 segments, an append to a missing list and a Redis
+  transport failure all fall back to correct output.
+- Spec, emulator and Redis (`projectedHistoryLoad.spec.ts`): cold, warm, partial, post-Undo,
+  other-logic-version and Redis-down loads equal the uncached projection, with the counters
+  showing what was cached; published moves for each Player and the spectator make the next load a
+  full hit.
 - Production: `projection.response.game` p50/p99 and readiness probe failures before and after;
   timing counters for full hits, partial hits with tail length, and misses; Redis `used_memory`
   after a day.

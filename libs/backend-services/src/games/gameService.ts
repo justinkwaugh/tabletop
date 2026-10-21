@@ -2,6 +2,7 @@ import { lookupTitle, lookupTitles, type TitleLookup } from './titleLookup.js'
 import { enqueueTournamentTask } from '../competitions/tournamentTasks.js'
 import { watchTournamentGame } from '../competitions/tournamentStalls.js'
 import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
+import type { ProjectedHistoryCache } from './projectedHistoryCache.js'
 import {
     GameCreationOptions,
     deriveGameSeeds,
@@ -114,6 +115,7 @@ import {
     createActionResultsRepresentation,
     createGameRepresentation,
     createGameRepresentationEtag,
+    historyProjection,
     createGameSyncRepresentation,
     createUndoResultsRepresentation,
     type ActionResultsRepresentation,
@@ -168,7 +170,8 @@ export class GameService {
         private readonly taskService: TaskService,
         private readonly notificationService: NotificationService,
         private readonly cacheService: RedisCacheService,
-        private readonly availableTitles: TitleLookup
+        private readonly availableTitles: TitleLookup,
+        private readonly projectedHistory?: ProjectedHistoryCache
     ) {}
 
     getTitle(titleId: string): GameDefinition | undefined {
@@ -527,7 +530,23 @@ export class GameService {
             game.state.actionChecksum = checksum
         }
 
-        return measureSync('projection.response.game', () =>
+        const projection = includeActions
+            ? historyProjection({ game, hostView, visibility: definition.runtime.visibility, user })
+            : undefined
+        const cached =
+            projection !== undefined && actions.length > 0
+                ? await this.projectedHistory?.read(
+                      {
+                          gameId,
+                          perspective: projection.perspective,
+                          logicVersion: definition.info.metadata.version
+                      },
+                      actions.map((action) => action.id)
+                  )
+                : undefined
+        const projectedPrefix = cached?.actions ?? []
+
+        const representation = measureSync('projection.response.game', () =>
             createGameRepresentation({
                 game,
                 actions: includeActions ? actions : [],
@@ -535,9 +554,17 @@ export class GameService {
                 hostView,
                 runtime: definition.runtime,
                 visibility: definition.runtime.visibility,
-                user
+                user,
+                projectedPrefix
             })
         )
+        if (projection !== undefined) {
+            countTiming('projection.history.cached', projectedPrefix.length)
+            countTiming('projection.history.projected', actions.length - projectedPrefix.length)
+        }
+        const projectedTail = representation.actions.slice(projectedPrefix.length)
+        if (!projectedTail.some(Visibility.isRedactedAction)) await cached?.save(projectedTail)
+        return representation
     }
 
     async userHasCachedActiveGames(user: User): Promise<boolean> {
@@ -1265,7 +1292,11 @@ export class GameService {
                 priorState,
                 runtime: definition.runtime,
                 visibility: definition.runtime.visibility,
-                notificationService: this.notificationService
+                notificationService: this.notificationService,
+                projectedHistory: this.projectedHistory && {
+                    cache: this.projectedHistory,
+                    logicVersion: definition.info.metadata.version
+                }
             })
         )
         await this.notifyGamePlayers(GameNotificationAction.Update, { game: representation.game })

@@ -34,6 +34,7 @@ vi.mock('@tabletop/backend-services', async () => {
                 'LeagueService',
                 'NullPubSubService',
                 'PreferenceService',
+                'ProjectedHistoryCache',
                 'PubSubTransport',
                 'RedisPublisher',
                 'SiteStatsService',

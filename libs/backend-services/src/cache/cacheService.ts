@@ -97,7 +97,7 @@ export class RedisCacheService {
                 this.guardPool
             )
         } catch (error) {
-            if (!(error instanceof WatchError) && !this.isCacheUnavailable(error)) throw error
+            if (!(error instanceof WatchError) && !isCacheUnavailable(error)) throw error
         }
         if (outcome === undefined) {
             countTiming('cache.consistentRead.fallbacks')
@@ -420,7 +420,7 @@ export class RedisCacheService {
         } catch (error) {
             if (error instanceof WatchError) {
                 console.log('Watched keys changed before read lock could be acquired', keys)
-            } else if (this.isCacheUnavailable(error)) {
+            } else if (isCacheUnavailable(error)) {
                 console.warn('Cache read protection unavailable; skipping cache fill', error)
             } else {
                 console.log('Error acquiring read lock for keys', keys, error)
@@ -579,42 +579,10 @@ export class RedisCacheService {
         try {
             return await read()
         } catch (error) {
-            if (!this.isCacheUnavailable(error)) throw error
+            if (!isCacheUnavailable(error)) throw error
             console.warn('Cache read unavailable; returning a miss', error)
             return miss
         }
-    }
-
-    private isCacheUnavailable(error: unknown): boolean {
-        if (
-            error instanceof ClientClosedError ||
-            error instanceof ClientOfflineError ||
-            error instanceof ConnectionTimeoutError ||
-            error instanceof DisconnectsClientError ||
-            error instanceof SocketClosedUnexpectedlyError ||
-            error instanceof SocketTimeoutError ||
-            error instanceof TimeoutError
-        ) {
-            return true
-        }
-        if (error instanceof ReconnectStrategyError) {
-            return this.isCacheUnavailable(error.socketError)
-        }
-        return (
-            error instanceof Error &&
-            'code' in error &&
-            typeof error.code === 'string' &&
-            [
-                'ECONNRESET',
-                'ECONNREFUSED',
-                'EPIPE',
-                'ETIMEDOUT',
-                'ENETUNREACH',
-                'EHOSTUNREACH',
-                'ENOTFOUND',
-                'EAI_AGAIN'
-            ].includes(error.code)
-        )
     }
 
     private valueForCache(value: unknown): string | undefined {
@@ -627,4 +595,36 @@ export class RedisCacheService {
     private isString(value: unknown): value is string {
         return typeof value === 'string'
     }
+}
+
+export function isCacheUnavailable(error: unknown): boolean {
+    if (
+        error instanceof ClientClosedError ||
+        error instanceof ClientOfflineError ||
+        error instanceof ConnectionTimeoutError ||
+        error instanceof DisconnectsClientError ||
+        error instanceof SocketClosedUnexpectedlyError ||
+        error instanceof SocketTimeoutError ||
+        error instanceof TimeoutError
+    ) {
+        return true
+    }
+    if (error instanceof ReconnectStrategyError) {
+        return isCacheUnavailable(error.socketError)
+    }
+    return (
+        error instanceof Error &&
+        'code' in error &&
+        typeof error.code === 'string' &&
+        [
+            'ECONNRESET',
+            'ECONNREFUSED',
+            'EPIPE',
+            'ETIMEDOUT',
+            'ENETUNREACH',
+            'EHOSTUNREACH',
+            'ENOTFOUND',
+            'EAI_AGAIN'
+        ].includes(error.code)
+    )
 }
