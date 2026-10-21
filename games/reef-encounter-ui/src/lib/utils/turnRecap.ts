@@ -29,7 +29,7 @@ const phrase = (parts: PhrasePart[], text?: string): Phrase => ({
             .join('')
 })
 
-// One line for a finished turn: the coral eaten if there was one, otherwise how the turn ended.
+// One line for a finished turn: the coral eaten if there was one, then how the turn ended.
 // The History tab tells the rest.
 export function turnSummary(
     actions: readonly GameAction[],
@@ -37,16 +37,28 @@ export function turnSummary(
     board: BoardName
 ): Phrase | undefined {
     const eaten = actions.find(isEatCoral)?.metadata
-    if (eaten) {
-        return phrase([
-            'fed ',
-            polyp(eaten.color, eaten.polyps),
-            ' to ',
-            { icon: 'parrotfish', label: `${own} parrotfish` }
-        ])
+    const ended = turnEnding(actions, own, board)
+    if (!eaten) return ended
+    const fed = phrase([
+        'fed ',
+        polyp(eaten.color, eaten.polyps),
+        ' to ',
+        { icon: 'parrotfish', label: `${own} parrotfish` }
+    ])
+    if (!ended) return fed
+    return {
+        parts: [...fed.parts, ', then ', ...ended.parts],
+        text: `${fed.text}, then ${ended.text}`
     }
+}
+
+function turnEnding(
+    actions: readonly GameAction[],
+    own: 'your' | 'their',
+    board: BoardName
+): Phrase | undefined {
     const ending = actions.findLast((action) => action.playerId !== undefined)
-    if (!ending) return undefined
+    if (!ending || isEatCoral(ending)) return undefined
     if (isTakeOpenSeaSpace(ending)) {
         const taken = ending.metadata?.polyps ?? []
         const took = `took the ${ending.larvaColor} larva cube`
