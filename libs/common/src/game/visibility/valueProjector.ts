@@ -143,10 +143,22 @@ function isBuiltInPolicy(name: string): boolean {
     )
 }
 
+const evaluatedIntersects = new WeakMap<Type.TIntersect, Type.TSchema>()
+
+// Type.Evaluate rebuilds the whole intersected schema; projection meets the same ones on every value.
+function evaluateIntersect(schema: Type.TIntersect): Type.TSchema {
+    let evaluated = evaluatedIntersects.get(schema)
+    if (evaluated === undefined) {
+        evaluated = Type.Evaluate(schema)
+        evaluatedIntersects.set(schema, evaluated)
+    }
+    return evaluated
+}
+
 function isPublicStateField(schema: Type.TSchema, field: string): boolean {
     if (getVisibilityMetadata(schema) !== undefined) return false
     if (Type.IsIntersect(schema)) {
-        const evaluated = Type.Evaluate(schema)
+        const evaluated = evaluateIntersect(schema)
         return !Type.IsIntersect(evaluated) && isPublicStateField(evaluated, field)
     }
     if (Type.IsUnion(schema))
@@ -541,7 +553,7 @@ function projectVisibleValue<Root>(
         return projectUnion(schema, value, context)
     }
     if (Type.IsIntersect(schema)) {
-        const evaluated = Type.Evaluate(schema)
+        const evaluated = evaluateIntersect(schema)
         if (Type.IsIntersect(evaluated)) {
             throw Error('Cannot evaluate intersected visibility schema')
         }
@@ -660,7 +672,7 @@ class ProjectedExecutionGuard {
             return { schema, context: scopedContext }
         }
         if (Type.IsIntersect(schema)) {
-            const evaluated = Type.Evaluate(schema)
+            const evaluated = evaluateIntersect(schema)
             if (Type.IsIntersect(evaluated)) {
                 throw new UnavailableProjectedValueError(scopedContext.path)
             }
@@ -802,7 +814,7 @@ class ProjectedExecutionGuard {
             )
         }
         if (Type.IsIntersect(schema)) {
-            const evaluated = Type.Evaluate(schema)
+            const evaluated = evaluateIntersect(schema)
             return Type.IsIntersect(evaluated) || this.canOmitMember(evaluated, context, ancestors)
         }
         if (Type.IsCyclic(schema)) {

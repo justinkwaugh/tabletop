@@ -82,19 +82,22 @@ export function projectActionCascade<State extends GameState, ProjectedState ext
     options: ActionCascadeProjectionOptions<State, ProjectedState>
 ): VisibleActionCascade {
     const context = projectionContext(options)
-    const before = options.visibility.state.project(
-        actionCascade.before,
-        options.perspective,
-        context
+    return projectCascade(actionCascade, options, (state) =>
+        options.visibility.state.project(state, options.perspective, context)
     )
+}
+
+function projectCascade<State extends GameState, ProjectedState extends GameState>(
+    actionCascade: CanonicalActionCascade<State>,
+    options: ActionCascadeProjectionOptions<State, ProjectedState>,
+    projectState: (state: State) => ProjectedState
+): VisibleActionCascade {
+    const context = projectionContext(options)
+    const before = projectState(actionCascade.before)
     const transitions: CanonicalActionTransition<ProjectedState>[] = []
     let previous = before
     for (const transition of actionCascade.transitions) {
-        const after = options.visibility.state.project(
-            transition.after,
-            options.perspective,
-            context
-        )
+        const after = projectState(transition.after)
         const action = options.visibility.actions.project(
             transition.action,
             options.perspective,
@@ -137,12 +140,20 @@ export function projectActionHistory<State extends GameState, ProjectedState ext
         expectedIndex += 1
     }
 
-    const currentState = options.visibility.state.project(
-        options.currentState,
-        options.perspective,
-        projectionContext(options)
-    )
+    // A cascade starts from the state the previous (earlier) cascade ends on, so each canonical
+    // state object is projected once and its projection reused.
+    const context = projectionContext(options)
+    const projectedStates = new WeakMap<State, ProjectedState>()
+    const projectState = (state: State) => {
+        let projected = projectedStates.get(state)
+        if (projected === undefined) {
+            projected = options.visibility.state.project(state, options.perspective, context)
+            projectedStates.set(state, projected)
+        }
+        return projected
+    }
     let before = structuredClone(options.currentState)
+    const currentState = projectState(before)
     const projectedCascades: (readonly GameAction[])[] = []
     let end = orderedActions.length
 
@@ -162,9 +173,10 @@ export function projectActionHistory<State extends GameState, ProjectedState ext
                 )
             }
             projectedCascades.push(
-                projectActionCascade(
+                projectCascade(
                     { before, transitions: reversedTransitions.toReversed() },
-                    options
+                    options,
+                    projectState
                 ).actions
             )
         } catch {
