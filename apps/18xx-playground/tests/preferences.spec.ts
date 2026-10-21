@@ -91,3 +91,28 @@ test('dark mode has no bright loading canvas on reload', async ({ page }) => {
     await expect.poll(() => page.locator('html').getAttribute('data-startup-frames')).not.toBeNull()
     await expect(page.locator('html')).not.toHaveAttribute('data-bright-startup-frame', 'true')
 })
+
+test('company card switches keep separate values in the paned and tabbed layouts', async ({
+    page
+}) => {
+    await page.goto('/table')
+    const companies = page.getByRole('tab', { name: 'Companies', exact: true })
+    const wrap = page.getByRole('switch', { name: 'Wrap', exact: true })
+    const wide = page.getByRole('switch', { name: 'Wide', exact: true })
+    await companies.click()
+    await wrap.click()
+    await wide.click()
+    await expect.poll(() => storedFamilyPreference(page, 'companyCardsWrap')).toBe(false)
+    await expect.poll(() => storedFamilyPreference(page, 'companyCardsWide')).toBe(true)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await companies.click()
+    await expect(wrap).toHaveAttribute('aria-checked', 'true')
+    await expect(wide).toHaveAttribute('aria-checked', 'false')
+    await wrap.click()
+    await expect.poll(() => storedFamilyPreference(page, 'companyCardsWrapTabbed')).toBe(false)
+    expect(await storedFamilyPreference(page, 'companyCardsWide')).toBe(true)
+    await page.setViewportSize({ width: 1280, height: 960 })
+    await companies.click()
+    await expect(wrap).toHaveAttribute('aria-checked', 'false')
+    await expect(wide).toHaveAttribute('aria-checked', 'true')
+})

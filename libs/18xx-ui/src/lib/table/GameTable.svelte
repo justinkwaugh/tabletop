@@ -185,14 +185,6 @@
     function toggleBoardAutoZoom() {
         session.preferences.set({ boardAutoZoom: !boardAutoZoom }, 'family')
     }
-    const companyCardsWrap = $derived(session.preferences.values.companyCardsWrap)
-    function toggleCompanyCardsWrap() {
-        session.preferences.set({ companyCardsWrap: !companyCardsWrap }, 'family')
-    }
-    const companyCardsWide = $derived(session.preferences.values.companyCardsWide)
-    function toggleCompanyCardsWide() {
-        session.preferences.set({ companyCardsWide: !companyCardsWide }, 'family')
-    }
     function autoZooms(wrapper: ScalingWrapper) {
         return boardAutoZoom || wrapper !== boardViewer()
     }
@@ -290,6 +282,20 @@
     const displayedScene = $derived(session.map.displayedScene)
     const paneLayout = new MediaQuery('(min-width: 64rem)')
     const phoneLayout = new MediaQuery('(width < 40rem)')
+    const companyCardsWrapKey = $derived(
+        paneLayout.current ? 'companyCardsWrap' : 'companyCardsWrapTabbed'
+    )
+    const companyCardsWideKey = $derived(
+        paneLayout.current ? 'companyCardsWide' : 'companyCardsWideTabbed'
+    )
+    const companyCardsWrap = $derived(session.preferences.values[companyCardsWrapKey])
+    function toggleCompanyCardsWrap() {
+        session.preferences.set({ [companyCardsWrapKey]: !companyCardsWrap }, 'family')
+    }
+    const companyCardsWide = $derived(session.preferences.values[companyCardsWideKey])
+    function toggleCompanyCardsWide() {
+        session.preferences.set({ [companyCardsWideKey]: !companyCardsWide }, 'family')
+    }
     let shownCompanyCardId: string | undefined = $derived.by(() => {
         paneLayout.current
         return undefined
