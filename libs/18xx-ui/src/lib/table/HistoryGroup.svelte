@@ -4,10 +4,9 @@
     import './historyCard.css'
     import HistoryHeaderJump from './HistoryHeaderJump.svelte'
     import './playerTint.css'
-    import { assertExists, type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
     import {
-        isAdvancePhase,
         isStartOperatingRound,
         isSellFundingShares,
         sameOwner,
@@ -15,7 +14,6 @@
         isFloatCompany,
         isFinishOperatingTurn
     } from '@tabletop/18xx'
-    import { TileColors } from '../tiles/tilePresentation.js'
     import type { HistoryGroup } from './historyGroups.js'
     import { afterPlayerName, type HistoryDescription } from './historyDescription.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
@@ -27,6 +25,7 @@
     import type { HistoryBankBreak } from './historyStates.js'
     import { isMapHistoryAction } from '../maps/historicalMap.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
+    import { historyPhaseChange, type PhaseChangePalette } from './historyPhaseChange.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let {
         money,
@@ -44,10 +43,7 @@
         describe,
         companyName,
         companyLabels,
-        phaseColors,
-        phaseTileColors,
-        tileColors = TileColors,
-        tileColorNames = {},
+        phasePalette,
         trainColors,
         trainName,
         orderChanges,
@@ -66,12 +62,7 @@
         stations: Readonly<Record<string, StationAppearance>>
         trainColors: Readonly<Record<string, string>>
         trainName: (id: string) => string
-        phaseColors: Readonly<Record<string, string>>
-        phaseTileColors: Readonly<Record<string, readonly string[]>>
-        /** Tile palette for phase changes that unlock a tile colour; follows the current tile appearance. */
-        tileColors?: Readonly<Record<string, string>>
-        /** Display names for tile colours, for titles that call a tier by another name. */
-        tileColorNames?: Readonly<Record<string, string>>
+        phasePalette: PhaseChangePalette
         /** Published certificate art for the shares an action traded; empty in the generic presentation. */
         shareCards?: (action: GameAction) => readonly ShareCard[]
         onJump: (index: number) => void
@@ -86,28 +77,6 @@
         companyName: (id: string) => string
         companyLabels: readonly string[]
     } = $props()
-    function phaseChange(action: GameAction) {
-        if (!isAdvancePhase(action)) return undefined
-        assertExists(action.metadata, 'Recorded phase change requires its event')
-        const { fromPhaseId, toPhaseId } = action.metadata.event
-        const previous = phaseColors[fromPhaseId]
-        const next = phaseColors[toPhaseId]
-        const previousTiles = phaseTileColors[fromPhaseId]
-        const nextTiles = phaseTileColors[toPhaseId]
-        assertExists(previousTiles, `Unknown tile phase: ${fromPhaseId}`)
-        assertExists(nextTiles, `Unknown tile phase: ${toPhaseId}`)
-        const unlocked = nextTiles.filter((color) => !previousTiles.includes(color))
-        if (previous === next && !unlocked.length) return undefined
-        const unlockedColor = unlocked.at(-1)
-        const color = unlockedColor ? tileColors[unlockedColor] : next
-        assertExists(color, `Unknown history phase color: ${toPhaseId}`)
-        return {
-            color,
-            label: unlocked.length
-                ? `${unlocked.map((color) => tileColorNames[color] ?? color).join(' and ')} tiles now available`
-                : undefined
-        }
-    }
     const startingCash = $derived(
         group.kind === 'operation' && group.companyId
             ? cash.get(group.actions[0].id)?.before.get(group.companyId)
@@ -139,7 +108,7 @@
                 ...description,
                 stockPlayerId,
                 routine: delta || bankBreaks.has(action.id) ? false : description.routine,
-                phase: phaseChange(action),
+                phase: historyPhaseChange(action, phasePalette),
                 order: orderChanges.get(action.id),
                 delta,
                 ledgerValue:

@@ -44,6 +44,7 @@ import { operatingHistory } from '../table/operatingHistory.js'
 import { wealthHistory } from '../table/wealthHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
 import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
+import type { PhaseChangePalette } from '../table/historyPhaseChange.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
 import { CashCrisisModule } from './cashCrisisModule.svelte.js'
 import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
@@ -407,6 +408,14 @@ export class EighteenXXSession<
             : undefined
         return published ?? MapStyleAppearances[this.map.style]
     })
+    readonly phaseChangePalette: PhaseChangePalette = $derived.by(() => ({
+        phaseColors: this.presentation.phaseColors,
+        phaseTileColors: Object.fromEntries(
+            this.phases.phases.map((phase) => [phase.id, phase.tileColors])
+        ),
+        tileColors: this.tileAppearance.colors,
+        tileColorNames: this.tileAppearance.colorNames ?? {}
+    }))
     /** The map view for the current presentation: published token art replaces the generic set when selected. */
     readonly mapView: MapViewDefinition = $derived.by(() => {
         const base = this.mapViewDefinition

@@ -1,22 +1,21 @@
 <script lang="ts">
-    import type { MoneyFormat } from '../presentation/money.js'
     import { assertExists } from '@tabletop/common'
     import type { RailwayMap, TileSet, TrackLayDetails } from '@tabletop/18xx'
     import Tile from '../tiles/Tile.svelte'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
 
     let {
-        money,
         details,
         map,
         tileSet,
-        appearance
+        appearance,
+        size = 64
     }: {
-        money: MoneyFormat
         details: TrackLayDetails
         map: RailwayMap
         tileSet: TileSet
         appearance?: TileAppearance
+        size?: number
     } = $props()
     function definition(id: string) {
         const tile = tileSet.definitions.find((tile) => tile.id === id)
@@ -32,7 +31,6 @@
 </script>
 
 <div class="track-result" aria-label="Recorded track lay">
-    <span>{upgraded ? 'Upgraded' : 'Laid'}</span>
     {#if upgraded}
         <Tile
             face={previousFace}
@@ -40,7 +38,7 @@
             rotation={details.previous?.rotation ?? 0}
             orientation={map.definition.orientation}
             {appearance}
-            size={64}
+            {size}
         />
         <span aria-label="to">→</span>
     {/if}
@@ -50,11 +48,8 @@
         rotation={details.rotation}
         orientation={map.definition.orientation}
         {appearance}
-        size={64}
+        {size}
     />
-    {#if details.cost > 0}
-        <span>for {money(details.cost)}</span>
-    {/if}
 </div>
 
 <style>
@@ -62,7 +57,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 4px;
         flex-wrap: wrap;
     }
 </style>

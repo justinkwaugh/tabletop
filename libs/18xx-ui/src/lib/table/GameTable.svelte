@@ -132,9 +132,6 @@
     )
     const operatingRules = $derived(session.operatingRules)
     const valuationRules = $derived(session.valuationRules)
-    const phaseTileColors = $derived(
-        Object.fromEntries(session.phases.phases.map((phase) => [phase.id, phase.tileColors]))
-    )
     const readOnlyPosition = $derived(
         session.isViewingHistory || !session.myPlayer || !session.isMyTurn
     )
@@ -818,10 +815,6 @@
         onPreviewMap={previewHistoryMap}
         {session}
         {trainColors}
-        {phaseColors}
-        {phaseTileColors}
-        tileColors={tileAppearance.colors}
-        tileColorNames={tileAppearance.colorNames}
         describeAction={historyDescription}
     />{/snippet}
 
