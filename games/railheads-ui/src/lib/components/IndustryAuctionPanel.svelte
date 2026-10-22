@@ -8,7 +8,9 @@
 
     const view = $derived(gameSession.industryAuctionView)
     const cash = $derived(
-        gameSession.myPlayerId ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash : 0
+        gameSession.myPlayerId
+            ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash
+            : 0
     )
 </script>
 
@@ -52,8 +54,10 @@
                     onbid={(amount) => gameSession.placeSealedBid(amount)}
                 />
                 {#if gameSession.mayBidZero}
-                    <button type="button" class="secondary" onclick={() => gameSession.placeSealedBid(0)}
-                        >Bid $0</button
+                    <button
+                        type="button"
+                        class="secondary"
+                        onclick={() => gameSession.placeSealedBid(0)}>Bid $0</button
                     >
                 {/if}
             </div>

@@ -112,7 +112,10 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     return entries
 }
 
-export function entryContaining(entries: readonly HistoryEntry[], actionIndex: number): HistoryEntry | undefined {
+export function entryContaining(
+    entries: readonly HistoryEntry[],
+    actionIndex: number
+): HistoryEntry | undefined {
     return entries.find((entry) =>
         entry.kind === 'turn'
             ? entry.firstIndex <= actionIndex && actionIndex <= entry.lastIndex

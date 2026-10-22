@@ -9,9 +9,10 @@ import { validSpringPlacements } from '../util/placement.js'
 // spring on any intersection - corners included. Only reached when the game's
 // "Randomize Spring Location" config option is off — otherwise the spring is placed
 // randomly during game initialization and play starts directly in TileReveal.
-export class SpringPlacementStateHandler
-    implements MachineStateHandler<HydratedPlaceSpring, HydratedSantiagoGameState>
-{
+export class SpringPlacementStateHandler implements MachineStateHandler<
+    HydratedPlaceSpring,
+    HydratedSantiagoGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedSantiagoGameState>

@@ -15,7 +15,7 @@ export const Concede = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.Concede),
             playerId: Type.String(),
-            metadata: Type.Optional(ConcedeMetadata),
+            metadata: Type.Optional(ConcedeMetadata)
         })
     ])
 )
@@ -50,6 +50,8 @@ export class HydratedConcede extends HydratableAction<typeof Concede> implements
     static canConcede(state: HydratedUrbinoGameState, playerId: string): boolean {
         const scores = computeDistrictScores(state.board, state.monumentsVariant)
         const myScore = scores.get(playerId) ?? 0
-        return state.players.some((p) => p.playerId !== playerId && (scores.get(p.playerId) ?? 0) > myScore)
+        return state.players.some(
+            (p) => p.playerId !== playerId && (scores.get(p.playerId) ?? 0) > myScore
+        )
     }
 }

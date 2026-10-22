@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildDecisionPlan, currentDecisionPlayer, isRoundDecided, rotateToStart } from './decisionPlan.js'
+import {
+    buildDecisionPlan,
+    currentDecisionPlayer,
+    isRoundDecided,
+    rotateToStart
+} from './decisionPlan.js'
 
 describe('buildDecisionPlan', () => {
     it('gives each of 4 players exactly 1 slot, in turn order', () => {

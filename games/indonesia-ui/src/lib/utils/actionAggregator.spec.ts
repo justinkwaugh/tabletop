@@ -63,7 +63,12 @@ function proposeMergerAction(
     } as unknown as GameAction
 }
 
-function placeMergerBidAction(id: string, playerId: string, amount: number, index?: number): GameAction {
+function placeMergerBidAction(
+    id: string,
+    playerId: string,
+    amount: number,
+    index?: number
+): GameAction {
     return {
         id,
         gameId: 'g1',
@@ -201,10 +206,7 @@ describe('aggregateActions', () => {
     })
 
     it('starts a new aggregate when player changes', () => {
-        const actions = [
-            expandAction('a1', 'p1', 'A01'),
-            expandAction('a2', 'p2', 'A02')
-        ]
+        const actions = [expandAction('a1', 'p1', 'A01'), expandAction('a2', 'p2', 'A02')]
 
         const aggregated = Array.from(aggregateActions(actions))
 

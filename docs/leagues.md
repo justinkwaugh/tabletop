@@ -7,9 +7,9 @@ Slice 12 of [the tournament roadmap](https://github.com/justinkwaugh/tabletop/is
 - A League plays one Game Title with one frozen game configuration. The title and configuration are recorded per Season, so a League could change title between Seasons later; mixed-title Seasons are not planned.
 - The reference format is 4-player Tables, Groups of 7 and 4 games per Entrant: the existing Mini Tournament preset, in which every Entrant sits in each Starting Position once and every pair meets twice.
 - The League Shape is chosen per League. Pyramid is the expected default.
-  - Ladder: one Group per Level; the top two are promoted and the bottom two relegated.
-  - Pyramid: each Level has twice the Groups of the Level above; each Group's winner is promoted and its bottom two relegated. Two winners from B replace the two relegated from A, four winners from C replace the four relegated from B, and so on.
-  - An unfilled Bottom Level promotes the top two of each Group, never more than the Level above relegates; the Level above relegates the same number, chosen by the cross-Group order. With one C under two Bs, C promotes two. With three Cs under two Bs, the Cs promote their three winners and the best runner-up.
+    - Ladder: one Group per Level; the top two are promoted and the bottom two relegated.
+    - Pyramid: each Level has twice the Groups of the Level above; each Group's winner is promoted and its bottom two relegated. Two winners from B replace the two relegated from A, four winners from C replace the four relegated from B, and so on.
+    - An unfilled Bottom Level promotes the top two of each Group, never more than the Level above relegates; the Level above relegates the same number, chosen by the cross-Group order. With one C under two Bs, C promotes two. With three Cs under two Bs, the Cs promote their three winners and the best runner-up.
 - A Group's standard size is the Mini Tournament roster for the League's table size: 5 for 2-player games, 7 for 3- and 4-player games, 11 for 5-player games. Groups above the Bottom Level have exactly that many Entrants. Bottom Level Groups range from 2 below the standard size to that number plus the standard size minus 1 (3–7, 5–11 and 9–19), the narrowest range that places every field without leftovers. Every Entrant plays the League's games per Entrant whatever the Group's size; a larger Group only has more Tables.
 - A League starts with a Seeding Season, Season 0. All Entrants play at one Level in randomly drawn Groups of about the standard size, within the Bottom Level range so nobody is left over. When it finishes, Entrants are ranked across all Groups by finishing place, then points, then Tiebreak Total, then a seeded draw, and that order fills Level A, then B, and so on, for the next Season.
 - Before every Season after the Seeding Season there is a Sign-up Window. Each Entrant from the last finished Season has a Held Place at the Level their movement earned and must confirm it during the window.
@@ -25,12 +25,12 @@ Slice 12 of [the tournament roadmap](https://github.com/justinkwaugh/tabletop/is
 - An administrator can cancel a Season only during its Sign-up Window. A cancelled Season starts no Groups and moves nobody. The administrator then opens the next Season: Held Places carry over from the last finished Season, and a cancelled Seeding Season is followed by another Seeding Season.
 - Each Group is a Tournament tagged with its League, Season and Group, with a roster fixed when it is created. Group Tournaments appear in their Entrants' Mine list, not in the public In progress or Completed lists.
 - Emails:
-  - **Sign-up open**: when a Season with Held Places opens, to every Entrant holding a place. A Seeding Season sends none.
-  - **Reminder**: two days before the Season's actual sign-up close, to Entrants who have not confirmed their Held Place. A window of two days or less has no reminder; moving the close schedules a new one.
-  - **Season start**: when the Groups start, to every Entrant placed, with their Group and opponents. It says when an Entrant moved above their Held Place (or a new Entrant above the Bottom Level) to fill a Vacancy, or moved down because a Level was added.
-  - **Season results**: when a Season finishes, to every Entrant placed, with their place, movement and Level for the next Season, and their Group's final table. Seasons after the Seeding Season name the League champion, the winner of Level A.
-  - Season results and the next Season's sign-up open are separate emails.
-  - There is no unsubscribe link yet.
+    - **Sign-up open**: when a Season with Held Places opens, to every Entrant holding a place. A Seeding Season sends none.
+    - **Reminder**: two days before the Season's actual sign-up close, to Entrants who have not confirmed their Held Place. A window of two days or less has no reminder; moving the close schedules a new one.
+    - **Season start**: when the Groups start, to every Entrant placed, with their Group and opponents. It says when an Entrant moved above their Held Place (or a new Entrant above the Bottom Level) to fill a Vacancy, or moved down because a Level was added.
+    - **Season results**: when a Season finishes, to every Entrant placed, with their place, movement and Level for the next Season, and their Group's final table. Seasons after the Seeding Season name the League champion, the winner of Level A.
+    - Season results and the next Season's sign-up open are separate emails.
+    - There is no unsubscribe link yet.
 - Dropouts, deadlines and stalled Tables are #65. Leagues are built first; #65 must land before any League launches, because a Season cannot finish while one Group has an abandoned Table.
 
 ## Implementation choices

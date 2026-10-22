@@ -1,10 +1,16 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext, GameResult } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext,
+    GameResult
+} from '@tabletop/common'
 import { HydratedSantiagoGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 
-export class EndOfGameStateHandler
-    implements MachineStateHandler<HydratedAction, HydratedSantiagoGameState>
-{
+export class EndOfGameStateHandler implements MachineStateHandler<
+    HydratedAction,
+    HydratedSantiagoGameState
+> {
     isValidAction(
         _action: HydratedAction,
         _context: MachineContext<HydratedSantiagoGameState>

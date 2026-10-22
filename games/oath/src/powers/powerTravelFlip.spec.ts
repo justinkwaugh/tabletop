@@ -48,20 +48,68 @@ type Over = Record<string, Record<string, unknown>>
  * Dana stands at The Hidden Place (c2) with the Whistle; Rhys, with two faceup secrets, stands
  * at p1. Ann, Rhys and Dana are exiles; Bea is the Chancellor.
  */
-function table(over: Over = {}, state: Record<string, unknown> = {}, oathRevision: number = atRevision) {
+function table(
+    over: Over = {},
+    state: Record<string, unknown> = {},
+    oathRevision: number = atRevision
+) {
     const s = testState(
         [
-            testPlayer({ playerId: 'dana', color: Color.Red, siteId: 'c2', favor: 4, secrets: 3, supply: 6, relicIds: [WHISTLE], warbandsOnBoard: { dana: 3 }, warbandsInPersonalBank: { dana: 6 }, ...over['dana'] }),
-            testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'p1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { rhys: 2 }, warbandsInPersonalBank: { rhys: 6 }, ...over['rhys'] }),
-            testPlayer({ playerId: 'ann', color: Color.Yellow, siteId: 'h1', favor: 2, secrets: 2, warbandsOnBoard: { ann: 2 }, warbandsInPersonalBank: { ann: 6 }, ...over['ann'] }),
-            testPlayer({ playerId: 'bea', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 2, secrets: 2, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }, ...over['bea'] })
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: 'c2',
+                favor: 4,
+                secrets: 3,
+                supply: 6,
+                relicIds: [WHISTLE],
+                warbandsOnBoard: { dana: 3 },
+                warbandsInPersonalBank: { dana: 6 },
+                ...over['dana']
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                siteId: 'p1',
+                favor: 3,
+                secrets: 2,
+                supply: 4,
+                warbandsOnBoard: { rhys: 2 },
+                warbandsInPersonalBank: { rhys: 6 },
+                ...over['rhys']
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Yellow,
+                siteId: 'h1',
+                favor: 2,
+                secrets: 2,
+                warbandsOnBoard: { ann: 2 },
+                warbandsInPersonalBank: { ann: 6 },
+                ...over['ann']
+            }),
+            testPlayer({
+                playerId: 'bea',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h1',
+                favor: 2,
+                secrets: 2,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 },
+                ...over['bea']
+            })
         ],
         {
             oathRevision,
             chancellorPlayerId: 'bea',
             denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
             warbandsBySite: { c2: { dana: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 } },
-            siteCards: { c1: 'site.plains', c2: HIDDEN_PLACE, p1: 'site.marshes', h1: 'site.river' },
+            siteCards: {
+                c1: 'site.plains',
+                c2: HIDDEN_PLACE,
+                p1: 'site.marshes',
+                h1: 'site.river'
+            },
             ...state
         }
     )
@@ -106,7 +154,9 @@ describe('R-11.13-H1 — the Whistle used from The Hidden Place asks the summone
         ])
         expect(s.pendingQuestions?.askingPlayerId).toBe('dana')
         expect(secretsOf(s, 'rhys')).toEqual({ siteId: 'p1', secrets: 2, secretsFacedown: 0 })
-        expect(used.metadata?.summary).toBe('Whistle: rhys is asked to flip a secret to travel to c2')
+        expect(used.metadata?.summary).toBe(
+            'Whistle: rhys is asked to flip a secret to travel to c2'
+        )
     })
 
     it("yes: a secret flipped facedown, Rhys at Dana's site, and the Whistle's secret given", () => {
@@ -115,7 +165,9 @@ describe('R-11.13-H1 — the Whistle used from The Hidden Place asks the summone
         const answer = flip(s, true)
         expect(secretsOf(s, 'rhys')).toEqual({ siteId: 'c2', secrets: 2, secretsFacedown: 1 })
         expect(s.tokensOn(WHISTLE).secrets).toBe(0)
-        expect(answer.metadata?.summary).toBe('flipped a secret facedown and travelled to c2, taking 1 secret from the Whistle')
+        expect(answer.metadata?.summary).toBe(
+            'flipped a secret facedown and travelled to c2, taking 1 secret from the Whistle'
+        )
         expect(queue(s)).toEqual([])
         // Nothing hidden came out, so the answer can be taken back.
         expect(answer.revealsInfo).toBe(false)
@@ -142,8 +194,18 @@ describe('R-11.13-H1 — the Whistle used from The Hidden Place asks the summone
         const s = table()
         whistle(s)
         s.getPlayerState('rhys').secrets = 0
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'rhys', { kind: PowerQuestionKind.FlipToTravel, flip: true })).toBe('you have no faceup secret to flip')
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'rhys', { kind: PowerQuestionKind.FlipToTravel, flip: false })).toBeUndefined()
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'rhys', {
+                kind: PowerQuestionKind.FlipToTravel,
+                flip: true
+            })
+        ).toBe('you have no faceup secret to flip')
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'rhys', {
+                kind: PowerQuestionKind.FlipToTravel,
+                flip: false
+            })
+        ).toBeUndefined()
     })
 
     it("Spell Breaker forbids its ruler's enemy the flip: Rhys is unable", () => {
@@ -154,7 +216,10 @@ describe('R-11.13-H1 — the Whistle used from The Hidden Place asks the summone
     })
 
     it('Vow of Union still holds Rhys at a site Rhys rules', () => {
-        const s = table({ rhys: { advisers: [{ cardId: VOW_OF_UNION, faceUp: true }] } }, { warbandsBySite: { c2: { dana: 2 }, p1: { rhys: 1 }, h1: { [IMPERIAL_WARBANDS]: 2 } } })
+        const s = table(
+            { rhys: { advisers: [{ cardId: VOW_OF_UNION, faceUp: true }] } },
+            { warbandsBySite: { c2: { dana: 2 }, p1: { rhys: 1 }, h1: { [IMPERIAL_WARBANDS]: 2 } } }
+        )
         expect(reasonCannotTravelByPower(s, 'rhys', 'c2')).toMatch(/Vow of Union/)
         whistle(s)
         expect(s.pendingQuestions).toBeUndefined()
@@ -165,7 +230,9 @@ describe('R-11.13-H1 — the Whistle used from The Hidden Place asks the summone
         whistle(s)
         expect(queue(s).map((q) => q.kind)).toEqual([PowerQuestionKind.FlipToTravel])
         flip(s, true)
-        expect(queue(s)).toEqual([{ kind: PowerQuestionKind.DragonskinDrum, cardId: DRUM, askedPlayerId: 'rhys' }])
+        expect(queue(s)).toEqual([
+            { kind: PowerQuestionKind.DragonskinDrum, cardId: DRUM, askedPlayerId: 'rhys' }
+        ])
 
         const stays = table({ rhys: { relicIds: [DRUM] } })
         whistle(stays)
@@ -189,12 +256,22 @@ describe('R-11.13-H1 — the flip, then Toll Roads: either refusal cancels the m
         flip(s, true)
         // The secret is flipped only once the move is certain.
         expect(secretsOf(s, 'rhys')).toEqual({ siteId: 'p1', secrets: 2, secretsFacedown: 0 })
-        expect(asked(s)).toMatchObject({ kind: PowerQuestionKind.PayTravelToll, askedPlayerId: 'rhys', payeeId: 'dana', move: PowerMoveKind.Whistle, siteId: 'c2', flipSecret: true })
+        expect(asked(s)).toMatchObject({
+            kind: PowerQuestionKind.PayTravelToll,
+            askedPlayerId: 'rhys',
+            payeeId: 'dana',
+            move: PowerMoveKind.Whistle,
+            siteId: 'c2',
+            flipSecret: true
+        })
         const paid = toll(s, true)
         expect(secretsOf(s, 'rhys')).toEqual({ siteId: 'c2', secrets: 2, secretsFacedown: 1 })
         expect(s.getPlayerState('rhys').favor).toBe(2)
         expect(s.getPlayerState('dana').favor).toBe(5)
-        expect(paid.metadata?.tollMove).toMatchObject({ outcome: PowerMoveTollOutcome.Paid, secretsTaken: 1 })
+        expect(paid.metadata?.tollMove).toMatchObject({
+            outcome: PowerMoveTollOutcome.Paid,
+            secretsTaken: 1
+        })
     })
 
     it('a refused toll after the flip leaves no secret flipped and nothing paid', () => {
@@ -224,19 +301,32 @@ describe('R-11.13-H1 — the flip, then Toll Roads: either refusal cancels the m
     })
 })
 
-describe("R-11.13-H1 — the Brass Horse keeps The Hidden Place among its sites, flipping on the answer", () => {
+describe('R-11.13-H1 — the Brass Horse keeps The Hidden Place among its sites, flipping on the answer', () => {
     /** Dana, at c1 with the Brass Horse, reveals a Beast; Beasts lie at The Hidden Place (c2) and at h1. */
     function horse(over: Over = {}, oathRevision: number = atRevision) {
-        const s = table({ dana: { siteId: 'c1', relicIds: [HORSE], ...over['dana'] } }, { denizensBySite: { c1: [], c2: [WOLVES], p1: [], h1: [MUSHROOMS] } }, oathRevision)
+        const s = table(
+            { dana: { siteId: 'c1', relicIds: [HORSE], ...over['dana'] } },
+            { denizensBySite: { c1: [], c2: [WOLVES], p1: [], h1: [MUSHROOMS] } },
+            oathRevision
+        )
         s.requireVault().discardPiles[Region.Cradle] = [RANGERS]
         s.discardPileCounts[Region.Cradle] = 1
         actionPowerUse('dana', HORSE).apply(s)
         return s
     }
-    const travel = (siteId: string, flipSecret?: boolean): QuestionAnswer => ({ kind: PowerQuestionKind.TravelFreeTo, siteId, flipSecret })
+    const travel = (siteId: string, flipSecret?: boolean): QuestionAnswer => ({
+        kind: PowerQuestionKind.TravelFreeTo,
+        siteId,
+        flipSecret
+    })
 
     it('offers The Hidden Place while Dana still has a faceup secret after the cost', () => {
-        expect(asked(horse())).toEqual({ kind: PowerQuestionKind.TravelFreeTo, cardId: HORSE, askedPlayerId: 'dana', siteIds: ['c2', 'h1'] })
+        expect(asked(horse())).toEqual({
+            kind: PowerQuestionKind.TravelFreeTo,
+            cardId: HORSE,
+            askedPlayerId: 'dana',
+            siteIds: ['c2', 'h1']
+        })
     })
 
     it('leaves it out when the cost took the last faceup secret', () => {
@@ -245,8 +335,12 @@ describe("R-11.13-H1 — the Brass Horse keeps The Hidden Place among its sites,
 
     it('refuses The Hidden Place without the flip, and a flip elsewhere', () => {
         const s = horse()
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'dana', travel('c2'))).toBe('travelling to c2 takes a faceup secret flipped facedown')
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'dana', travel('h1', true))).toBe('no site here asks for a secret to be flipped')
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'dana', travel('c2'))).toBe(
+            'travelling to c2 takes a faceup secret flipped facedown'
+        )
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'dana', travel('h1', true))).toBe(
+            'no site here asks for a secret to be flipped'
+        )
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'dana', travel('h1'))).toBeUndefined()
     })
 
@@ -255,7 +349,9 @@ describe("R-11.13-H1 — the Brass Horse keeps The Hidden Place among its sites,
         const answer = answerQuestion(s, 'dana', travel('c2', true))
         expect(secretsOf(s, 'dana')).toEqual({ siteId: 'c2', secrets: 1, secretsFacedown: 1 })
         expect(s.getPlayerState('dana').supply).toBe(6)
-        expect(answer.metadata?.summary).toBe('flipped a secret facedown and travelled to c2 for no Supply')
+        expect(answer.metadata?.summary).toBe(
+            'flipped a secret facedown and travelled to c2 for no Supply'
+        )
     })
 
     it('R-X.4 — before revision 15 The Hidden Place is not offered', () => {
@@ -265,21 +361,60 @@ describe("R-11.13-H1 — the Brass Horse keeps The Hidden Place among its sites,
 
 describe('R-11.13-H1 — Palanquin to The Hidden Place: the carried player is asked before either pawn moves', () => {
     /** Dana, with Palanquin, stands with Rhys at c1. */
-    function carry(over: Over = {}, state: Record<string, unknown> = {}, oathRevision: number = atRevision) {
-        return table({ dana: { siteId: 'c1', relicIds: [], advisers: [{ cardId: PALANQUIN, faceUp: true }], ...over['dana'] }, rhys: { siteId: 'c1', ...over['rhys'] } }, { warbandsBySite: { c1: { dana: 1 }, h1: { [IMPERIAL_WARBANDS]: 2 } }, ...state }, oathRevision)
+    function carry(
+        over: Over = {},
+        state: Record<string, unknown> = {},
+        oathRevision: number = atRevision
+    ) {
+        return table(
+            {
+                dana: {
+                    siteId: 'c1',
+                    relicIds: [],
+                    advisers: [{ cardId: PALANQUIN, faceUp: true }],
+                    ...over['dana']
+                },
+                rhys: { siteId: 'c1', ...over['rhys'] }
+            },
+            { warbandsBySite: { c1: { dana: 1 }, h1: { [IMPERIAL_WARBANDS]: 2 } }, ...state },
+            oathRevision
+        )
     }
-    const palanquin = (s: HydratedOathGameState) => actionPowerUse('dana', PALANQUIN, [player('rhys'), site('c2')]).apply(s)
+    const palanquin = (s: HydratedOathGameState) =>
+        actionPowerUse('dana', PALANQUIN, [player('rhys'), site('c2')]).apply(s)
     const index = powerIndexOf(PALANQUIN, PowerTiming.Action)
 
     it('offers The Hidden Place when Rhys could flip, and not when Rhys could not', () => {
-        expect(HydratedUseActionPower.reasonCannotUse(carry(), 'dana', PALANQUIN, index, [player('rhys'), site('c2')])).toBeUndefined()
-        expect(HydratedUseActionPower.reasonCannotUse(carry({ rhys: { secrets: 0 } }), 'dana', PALANQUIN, index, [player('rhys'), site('c2')])).toMatch(/The Hidden Place/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(carry(), 'dana', PALANQUIN, index, [
+                player('rhys'),
+                site('c2')
+            ])
+        ).toBeUndefined()
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                carry({ rhys: { secrets: 0 } }),
+                'dana',
+                PALANQUIN,
+                index,
+                [player('rhys'), site('c2')]
+            )
+        ).toMatch(/The Hidden Place/)
     })
 
     it('asks Rhys before anyone moves', () => {
         const s = carry()
         palanquin(s)
-        expect(asked(s)).toEqual({ kind: PowerQuestionKind.FlipToTravel, cardId: PALANQUIN, askedPlayerId: 'rhys', move: PowerMoveKind.Palanquin, powerCardId: PALANQUIN, moverPlayerId: 'dana', fromSiteId: 'c1', siteId: 'c2' })
+        expect(asked(s)).toEqual({
+            kind: PowerQuestionKind.FlipToTravel,
+            cardId: PALANQUIN,
+            askedPlayerId: 'rhys',
+            move: PowerMoveKind.Palanquin,
+            powerCardId: PALANQUIN,
+            moverPlayerId: 'dana',
+            fromSiteId: 'c1',
+            siteId: 'c2'
+        })
         expect(s.getPlayerState('dana').siteId).toBe('c1')
         expect(s.getPlayerState('rhys').siteId).toBe('c1')
     })
@@ -301,15 +436,33 @@ describe('R-11.13-H1 — Palanquin to The Hidden Place: the carried player is as
     })
 
     it('with Toll Roads there: a refused toll after the flip moves neither and flips nothing', () => {
-        const s = carry({}, { ...TOLL, warbandsBySite: { c1: { dana: 1 }, c2: { ann: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 } } })
+        const s = carry(
+            {},
+            {
+                ...TOLL,
+                warbandsBySite: { c1: { dana: 1 }, c2: { ann: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 } }
+            }
+        )
         palanquin(s)
         flip(s, true)
-        expect(asked(s)).toMatchObject({ kind: PowerQuestionKind.PayTravelToll, askedPlayerId: 'rhys', payeeId: 'ann', move: PowerMoveKind.Palanquin, flipSecret: true })
+        expect(asked(s)).toMatchObject({
+            kind: PowerQuestionKind.PayTravelToll,
+            askedPlayerId: 'rhys',
+            payeeId: 'ann',
+            move: PowerMoveKind.Palanquin,
+            flipSecret: true
+        })
         toll(s, false)
         expect(s.getPlayerState('dana').siteId).toBe('c1')
         expect(secretsOf(s, 'rhys')).toEqual({ siteId: 'c1', secrets: 2, secretsFacedown: 0 })
 
-        const paid = carry({}, { ...TOLL, warbandsBySite: { c1: { dana: 1 }, c2: { ann: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 } } })
+        const paid = carry(
+            {},
+            {
+                ...TOLL,
+                warbandsBySite: { c1: { dana: 1 }, c2: { ann: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 } }
+            }
+        )
         palanquin(paid)
         flip(paid, true)
         toll(paid, true)
@@ -318,42 +471,66 @@ describe('R-11.13-H1 — Palanquin to The Hidden Place: the carried player is as
     })
 
     it('R-X.4 — before revision 15 The Hidden Place is not offered', () => {
-        expect(HydratedUseActionPower.reasonCannotUse(carry({}, {}, before), 'dana', PALANQUIN, index, [player('rhys'), site('c2')])).toMatch(/The Hidden Place/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                carry({}, {}, before),
+                'dana',
+                PALANQUIN,
+                index,
+                [player('rhys'), site('c2')]
+            )
+        ).toMatch(/The Hidden Place/)
     })
 })
 
 describe('R-11.13-H1 — a banish to The Hidden Place asks the defender to flip', () => {
     /** Dana won against Rhys at p1, taking Rhys's pawn and favor. */
-    function won(over: Over = {}, state: Record<string, unknown> = {}, oathRevision: number = atRevision) {
-        return table({ dana: { siteId: 'p1', ...over['dana'] }, rhys: { favor: 6, ...over['rhys'] } }, {
-            campaign: {
-                attackerPlayerId: 'dana',
-                defenderPlayerId: 'rhys',
-                nonImperialPlayerIds: [],
-                allyPlayerIds: [],
-                targets: [siteTarget('p1'), { kind: CampaignTargetKind.PawnAndFavor }],
-                attackPool: 4,
-                defensePool: 1,
-                attackRoll: [],
-                defenseRoll: [],
-                defense: 2,
-                swords: 5,
-                defendingForce: [],
-                defendingBandits: 0,
-                ...campaignRecords(),
-                attackerVictorious: true
+    function won(
+        over: Over = {},
+        state: Record<string, unknown> = {},
+        oathRevision: number = atRevision
+    ) {
+        return table(
+            { dana: { siteId: 'p1', ...over['dana'] }, rhys: { favor: 6, ...over['rhys'] } },
+            {
+                campaign: {
+                    attackerPlayerId: 'dana',
+                    defenderPlayerId: 'rhys',
+                    nonImperialPlayerIds: [],
+                    allyPlayerIds: [],
+                    targets: [siteTarget('p1'), { kind: CampaignTargetKind.PawnAndFavor }],
+                    attackPool: 4,
+                    defensePool: 1,
+                    attackRoll: [],
+                    defenseRoll: [],
+                    defense: 2,
+                    swords: 5,
+                    defendingForce: [],
+                    defendingBandits: 0,
+                    ...campaignRecords(),
+                    attackerVictorious: true
+                },
+                ...state
             },
-            ...state
-        }, oathRevision)
+            oathRevision
+        )
     }
     const banish = (siteId: string, burnFavor = true) =>
-        new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'dana', placements: [], banishToSiteId: siteId, burnFavor }))
+        new HydratedCampaignResolveVictory(
+            buildAction(CampaignResolveVictory, {
+                playerId: 'dana',
+                placements: [],
+                banishToSiteId: siteId,
+                burnFavor
+            })
+        )
     const resolve = (s: HydratedOathGameState, siteId = 'c2', burnFavor = true) => {
         const action = banish(siteId, burnFavor)
         action.apply(s)
         return action
     }
-    const reason = (s: HydratedOathGameState, siteId: string) => HydratedCampaignResolveVictory.reasonCannotResolveVictory(s, 'dana', banish(siteId))
+    const reason = (s: HydratedOathGameState, siteId: string) =>
+        HydratedCampaignResolveVictory.reasonCannotResolveVictory(s, 'dana', banish(siteId))
 
     it('offers The Hidden Place when Rhys could flip, and not when Rhys could not', () => {
         expect(reason(won(), 'c2')).toBeUndefined()
@@ -363,7 +540,15 @@ describe('R-11.13-H1 — a banish to The Hidden Place asks the defender to flip'
     it('asks Rhys, and the burn and the end wait on the answer', () => {
         const s = won()
         const victory = resolve(s)
-        expect(asked(s)).toEqual({ kind: PowerQuestionKind.FlipToTravel, cardId: HIDDEN_PLACE, askedPlayerId: 'rhys', move: PowerMoveKind.Banish, moverPlayerId: 'dana', fromSiteId: 'p1', siteId: 'c2' })
+        expect(asked(s)).toEqual({
+            kind: PowerQuestionKind.FlipToTravel,
+            cardId: HIDDEN_PLACE,
+            askedPlayerId: 'rhys',
+            move: PowerMoveKind.Banish,
+            moverPlayerId: 'dana',
+            fromSiteId: 'p1',
+            siteId: 'c2'
+        })
         expect(s.campaign?.banishPending).toEqual({ burnFavor: true })
         expect(s.getPlayerState('rhys')).toMatchObject({ siteId: 'p1', favor: 6 })
         expect(victory.metadata).toMatchObject({ favorBurned: 0, banishedToSiteId: undefined })
@@ -389,10 +574,17 @@ describe('R-11.13-H1 — a banish to The Hidden Place asks the defender to flip'
     })
 
     it('with Toll Roads there: the flip, then the toll, then the burn; a refusal leaves Rhys and the secret', () => {
-        const s = won({}, { ...TOLL, warbandsBySite: { c2: { ann: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 } } })
+        const s = won(
+            {},
+            { ...TOLL, warbandsBySite: { c2: { ann: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 } } }
+        )
         resolve(s)
         flip(s, true)
-        expect(asked(s)).toMatchObject({ kind: PowerQuestionKind.PayTravelToll, move: PowerMoveKind.Banish, flipSecret: true })
+        expect(asked(s)).toMatchObject({
+            kind: PowerQuestionKind.PayTravelToll,
+            move: PowerMoveKind.Banish,
+            flipSecret: true
+        })
         expect(s.campaign?.banishPending).toEqual({ burnFavor: true })
         toll(s, false)
         expect(secretsOf(s, 'rhys')).toEqual({ siteId: 'p1', secrets: 2, secretsFacedown: 0 })
@@ -408,16 +600,34 @@ describe('R-11.13-H1 — a banish to The Hidden Place asks the defender to flip'
 describe("R-11.13-H1 — the Buried Giant's flip past the Narrow Pass on a power-made travel", () => {
     /** Rhys stands at the Buried Giant (c1); the Narrow Pass is p1; Dana is at p2 with the Whistle. */
     function giant(danaAt = 'p2', over: Over = {}) {
-        return table({ dana: { siteId: danaAt, ...over['dana'] }, rhys: { siteId: 'c1', ...over['rhys'] } }, {
-            warbandsBySite: { h1: { [IMPERIAL_WARBANDS]: 2 } },
-            siteCards: { c1: BURIED_GIANT, c2: 'site.plains', p1: 'site.narrow-pass', p2: 'site.mountain', h1: 'site.river' }
-        })
+        return table(
+            { dana: { siteId: danaAt, ...over['dana'] }, rhys: { siteId: 'c1', ...over['rhys'] } },
+            {
+                warbandsBySite: { h1: { [IMPERIAL_WARBANDS]: 2 } },
+                siteCards: {
+                    c1: BURIED_GIANT,
+                    c2: 'site.plains',
+                    p1: 'site.narrow-pass',
+                    p2: 'site.mountain',
+                    h1: 'site.river'
+                }
+            }
+        )
     }
 
     it('the Whistle from past the pass asks Rhys; yes brings Rhys, no keeps Rhys there', () => {
         const s = giant()
         whistle(s)
-        expect(asked(s)).toEqual({ kind: PowerQuestionKind.FlipToTravel, cardId: WHISTLE, askedPlayerId: 'rhys', move: PowerMoveKind.Whistle, powerCardId: WHISTLE, moverPlayerId: 'dana', fromSiteId: 'c1', siteId: 'p2' })
+        expect(asked(s)).toEqual({
+            kind: PowerQuestionKind.FlipToTravel,
+            cardId: WHISTLE,
+            askedPlayerId: 'rhys',
+            move: PowerMoveKind.Whistle,
+            powerCardId: WHISTLE,
+            moverPlayerId: 'dana',
+            fromSiteId: 'c1',
+            siteId: 'p2'
+        })
         flip(s, true)
         expect(secretsOf(s, 'rhys')).toEqual({ siteId: 'p2', secrets: 2, secretsFacedown: 1 })
 
@@ -455,8 +665,23 @@ describe("R-11.13-H1 — the Buried Giant's flip past the Narrow Pass on a power
             ...campaignRecords(),
             attackerVictorious: true
         }
-        new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'dana', placements: [], banishToSiteId: 'p2', burnFavor: false })).apply(s)
-        expect(asked(s)).toEqual({ kind: PowerQuestionKind.FlipToTravel, cardId: BURIED_GIANT, askedPlayerId: 'rhys', move: PowerMoveKind.Banish, moverPlayerId: 'dana', fromSiteId: 'c1', siteId: 'p2' })
+        new HydratedCampaignResolveVictory(
+            buildAction(CampaignResolveVictory, {
+                playerId: 'dana',
+                placements: [],
+                banishToSiteId: 'p2',
+                burnFavor: false
+            })
+        ).apply(s)
+        expect(asked(s)).toEqual({
+            kind: PowerQuestionKind.FlipToTravel,
+            cardId: BURIED_GIANT,
+            askedPlayerId: 'rhys',
+            move: PowerMoveKind.Banish,
+            moverPlayerId: 'dana',
+            fromSiteId: 'c1',
+            siteId: 'p2'
+        })
     })
 
     it('unable without a faceup secret', () => {
@@ -469,25 +694,41 @@ describe("R-11.13-H1 — the Buried Giant's flip past the Narrow Pass on a power
 
 describe("R-11.7 — leaving a Shrouded Wood ignores The Hidden Place: the ruler's pick asks no flip", () => {
     it("Rhys, in Ann's Wood, Whistled by Dana from The Hidden Place: Ann picks The Hidden Place and Rhys flips nothing", () => {
-        const s = table({ rhys: { siteId: 'h2' } }, {
-            warbandsBySite: { c2: { dana: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 }, h2: { ann: 2 } },
-            siteCards: { c1: 'site.plains', c2: HIDDEN_PLACE, p1: 'site.marshes', h1: 'site.river', h2: 'site.shrouded-wood' }
-        })
+        const s = table(
+            { rhys: { siteId: 'h2' } },
+            {
+                warbandsBySite: { c2: { dana: 2 }, h1: { [IMPERIAL_WARBANDS]: 2 }, h2: { ann: 2 } },
+                siteCards: {
+                    c1: 'site.plains',
+                    c2: HIDDEN_PLACE,
+                    p1: 'site.marshes',
+                    h1: 'site.river',
+                    h2: 'site.shrouded-wood'
+                }
+            }
+        )
         whistle(s)
-        expect(asked(s)).toMatchObject({ kind: PowerQuestionKind.ShroudedWoodDestination, askedPlayerId: 'ann' })
+        expect(asked(s)).toMatchObject({
+            kind: PowerQuestionKind.ShroudedWoodDestination,
+            askedPlayerId: 'ann'
+        })
         answerQuestion(s, 'ann', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'c2' })
         expect(secretsOf(s, 'rhys')).toEqual({ siteId: 'c2', secrets: 3, secretsFacedown: 0 })
         expect(queue(s)).toEqual([])
     })
 })
 
-describe('R-11.13-H1 on a player\'s own view', () => {
+describe("R-11.13-H1 on a player's own view", () => {
     const dana: Visibility.Perspective = { kind: 'player', playerId: 'dana' }
     const ownView = (s: HydratedOathGameState) =>
         OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, dana)), dana)
 
     /** The same answer on the server and on Dana's view, and neither changes the state or what Dana is served. */
-    function sameOnOwnView<T>(s: HydratedOathGameState, check: (state: HydratedOathGameState) => T, expected: T) {
+    function sameOnOwnView<T>(
+        s: HydratedOathGameState,
+        check: (state: HydratedOathGameState) => T,
+        expected: T
+    ) {
         const server = JSON.stringify(s.dehydrate())
         const seen = JSON.stringify(served(s, dana))
         expect(check(s)).toEqual(expected)
@@ -503,43 +744,95 @@ describe('R-11.13-H1 on a player\'s own view', () => {
         const s = table({ rhys: hidden })
         sameOnOwnView(s, (state) => reasonCannotTravelByPower(state, 'rhys', 'c2'), undefined)
         const none = table({ rhys: { ...hidden, secrets: 0 } })
-        sameOnOwnView(none, (state) => reasonCannotTravelByPower(state, 'rhys', 'c2'), 'The Hidden Place: you cannot travel here unless you flip a secret facedown')
+        sameOnOwnView(
+            none,
+            (state) => reasonCannotTravelByPower(state, 'rhys', 'c2'),
+            'The Hidden Place: you cannot travel here unless you flip a secret facedown'
+        )
 
-        const carried = table({ dana: { siteId: 'c1', relicIds: [], advisers: [{ cardId: PALANQUIN, faceUp: true }] }, rhys: { siteId: 'c1', ...hidden } }, { warbandsBySite: { c1: { dana: 1 }, h1: { [IMPERIAL_WARBANDS]: 2 } } })
-        sameOnOwnView(carried, (state) => HydratedUseActionPower.reasonCannotUse(state, 'dana', PALANQUIN, powerIndexOf(PALANQUIN, PowerTiming.Action), [player('rhys'), site('c2')]), undefined)
+        const carried = table(
+            {
+                dana: {
+                    siteId: 'c1',
+                    relicIds: [],
+                    advisers: [{ cardId: PALANQUIN, faceUp: true }]
+                },
+                rhys: { siteId: 'c1', ...hidden }
+            },
+            { warbandsBySite: { c1: { dana: 1 }, h1: { [IMPERIAL_WARBANDS]: 2 } } }
+        )
+        sameOnOwnView(
+            carried,
+            (state) =>
+                HydratedUseActionPower.reasonCannotUse(
+                    state,
+                    'dana',
+                    PALANQUIN,
+                    powerIndexOf(PALANQUIN, PowerTiming.Action),
+                    [player('rhys'), site('c2')]
+                ),
+            undefined
+        )
 
-        const won = table({ dana: { siteId: 'p1' }, rhys: { ...hidden, favor: 6 } }, {
-            campaign: {
-                attackerPlayerId: 'dana',
-                defenderPlayerId: 'rhys',
-                nonImperialPlayerIds: [],
-                allyPlayerIds: [],
-                targets: [siteTarget('p1'), { kind: CampaignTargetKind.PawnAndFavor }],
-                attackPool: 4,
-                defensePool: 1,
-                attackRoll: [],
-                defenseRoll: [],
-                defense: 2,
-                swords: 5,
-                defendingForce: [],
-                defendingBandits: 0,
-                ...campaignRecords(),
-                attackerVictorious: true
+        const won = table(
+            { dana: { siteId: 'p1' }, rhys: { ...hidden, favor: 6 } },
+            {
+                campaign: {
+                    attackerPlayerId: 'dana',
+                    defenderPlayerId: 'rhys',
+                    nonImperialPlayerIds: [],
+                    allyPlayerIds: [],
+                    targets: [siteTarget('p1'), { kind: CampaignTargetKind.PawnAndFavor }],
+                    attackPool: 4,
+                    defensePool: 1,
+                    attackRoll: [],
+                    defenseRoll: [],
+                    defense: 2,
+                    swords: 5,
+                    defendingForce: [],
+                    defendingBandits: 0,
+                    ...campaignRecords(),
+                    attackerVictorious: true
+                }
             }
-        })
-        const victory = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'dana', placements: [], banishToSiteId: 'c2', burnFavor: false }))
-        sameOnOwnView(won, (state) => HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, 'dana', victory), undefined)
+        )
+        const victory = new HydratedCampaignResolveVictory(
+            buildAction(CampaignResolveVictory, {
+                playerId: 'dana',
+                placements: [],
+                banishToSiteId: 'c2',
+                burnFavor: false
+            })
+        )
+        sameOnOwnView(
+            won,
+            (state) =>
+                HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, 'dana', victory),
+            undefined
+        )
     })
 })
 
 describe("R-11.13-H1 — the answers' checks on the asked player's own view", () => {
     const viewOf = (playerId: string): Visibility.Perspective => ({ kind: 'player', playerId })
-    function sameOnOwnView<T>(s: HydratedOathGameState, playerId: string, check: (state: HydratedOathGameState) => T, expected: T) {
+    function sameOnOwnView<T>(
+        s: HydratedOathGameState,
+        playerId: string,
+        check: (state: HydratedOathGameState) => T,
+        expected: T
+    ) {
         const perspective = viewOf(playerId)
         const server = JSON.stringify(s.dehydrate())
         const seen = JSON.stringify(served(s, perspective))
         expect(check(s)).toEqual(expected)
-        expect(check(OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, perspective)), perspective))).toEqual(expected)
+        expect(
+            check(
+                OathVisibility.state.guardForExecution(
+                    new HydratedOathGameState(served(s, perspective)),
+                    perspective
+                )
+            )
+        ).toEqual(expected)
         expect(JSON.stringify(s.dehydrate())).toBe(server)
         expect(JSON.stringify(served(s, perspective))).toBe(seen)
     }
@@ -549,14 +842,45 @@ describe("R-11.13-H1 — the answers' checks on the asked player's own view", ()
     it("Rhys's flip, and Dana's Brass Horse answer with and without the flip", () => {
         const s = table({ dana: hidden })
         whistle(s)
-        sameOnOwnView(s, 'rhys', (state) => HydratedAnswerQuestion.reasonCannotAnswer(state, 'rhys', { kind: PowerQuestionKind.FlipToTravel, flip: true }), undefined)
+        sameOnOwnView(
+            s,
+            'rhys',
+            (state) =>
+                HydratedAnswerQuestion.reasonCannotAnswer(state, 'rhys', {
+                    kind: PowerQuestionKind.FlipToTravel,
+                    flip: true
+                }),
+            undefined
+        )
 
-        const h = table({ dana: { siteId: 'c1', relicIds: [HORSE] }, rhys: hidden }, { denizensBySite: { c1: [], c2: [WOLVES], p1: [], h1: [MUSHROOMS] } })
+        const h = table(
+            { dana: { siteId: 'c1', relicIds: [HORSE] }, rhys: hidden },
+            { denizensBySite: { c1: [], c2: [WOLVES], p1: [], h1: [MUSHROOMS] } }
+        )
         h.requireVault().discardPiles[Region.Cradle] = [RANGERS]
         h.discardPileCounts[Region.Cradle] = 1
         actionPowerUse('dana', HORSE).apply(h)
-        sameOnOwnView(h, 'dana', (state) => HydratedAnswerQuestion.reasonCannotAnswer(state, 'dana', { kind: PowerQuestionKind.TravelFreeTo, siteId: 'c2', flipSecret: true }), undefined)
-        sameOnOwnView(h, 'dana', (state) => HydratedAnswerQuestion.reasonCannotAnswer(state, 'dana', { kind: PowerQuestionKind.TravelFreeTo, siteId: 'c2' }), 'travelling to c2 takes a faceup secret flipped facedown')
+        sameOnOwnView(
+            h,
+            'dana',
+            (state) =>
+                HydratedAnswerQuestion.reasonCannotAnswer(state, 'dana', {
+                    kind: PowerQuestionKind.TravelFreeTo,
+                    siteId: 'c2',
+                    flipSecret: true
+                }),
+            undefined
+        )
+        sameOnOwnView(
+            h,
+            'dana',
+            (state) =>
+                HydratedAnswerQuestion.reasonCannotAnswer(state, 'dana', {
+                    kind: PowerQuestionKind.TravelFreeTo,
+                    siteId: 'c2'
+                }),
+            'travelling to c2 takes a faceup secret flipped facedown'
+        )
     })
 })
 
@@ -565,18 +889,42 @@ describe('R-X.4 — the Whistle from The Hidden Place replays as it was recorded
         for (const revision of [before, atRevision]) {
             const start = table({}, {}, revision).dehydrate()
             const game = testGame(['dana', 'rhys', 'ann', 'bea'])
-            const used = engine.runNext(buildAction(UseActionPower, { playerId: 'dana', cardId: WHISTLE, powerIndex: powerIndexOf(WHISTLE, PowerTiming.Action), choices: [player('rhys')] }), structuredClone(start), game)
+            const used = engine.runNext(
+                buildAction(UseActionPower, {
+                    playerId: 'dana',
+                    cardId: WHISTLE,
+                    powerIndex: powerIndexOf(WHISTLE, PowerTiming.Action),
+                    choices: [player('rhys')]
+                }),
+                structuredClone(start),
+                game
+            )
             const actions = [...used.processedActions]
             let recorded = used.updatedState
             if (revision === atRevision) {
-                const answered = engine.runNext(buildAction(AnswerQuestion, { playerId: 'rhys', answer: { kind: PowerQuestionKind.FlipToTravel, flip: true } }), structuredClone(recorded), game)
+                const answered = engine.runNext(
+                    buildAction(AnswerQuestion, {
+                        playerId: 'rhys',
+                        answer: { kind: PowerQuestionKind.FlipToTravel, flip: true }
+                    }),
+                    structuredClone(recorded),
+                    game
+                )
                 actions.push(...answered.processedActions)
                 recorded = answered.updatedState
             }
-            expect(recorded.players.find((p) => p.playerId === 'rhys')).toMatchObject({ siteId: revision === atRevision ? 'c2' : 'p1' })
+            expect(recorded.players.find((p) => p.playerId === 'rhys')).toMatchObject({
+                siteId: revision === atRevision ? 'c2' : 'p1'
+            })
 
             let replayed = structuredClone(start)
-            for (const action of actions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            for (const action of actions)
+                replayed = engine.run(
+                    structuredClone(action),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(recorded)
         }
     })

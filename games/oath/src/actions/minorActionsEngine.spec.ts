@@ -21,34 +21,58 @@ const MINOR_ACTIONS = [
     {
         type: ActionType.PlayFacedownAdviser,
         hydrated: HydratedPlayFacedownAdviser,
-        action: buildAction(PlayFacedownAdviser, { playerId: 'p1', cardId: 'denizen.hearth.any', play: SearchPlay.Discard })
+        action: buildAction(PlayFacedownAdviser, {
+            playerId: 'p1',
+            cardId: 'denizen.hearth.any',
+            play: SearchPlay.Discard
+        })
     },
     {
         type: ActionType.UseActionPower,
         hydrated: HydratedUseActionPower,
-        action: buildAction(UseActionPower, { playerId: 'p1', cardId: 'denizen.hearth.any', powerIndex: 0 })
+        action: buildAction(UseActionPower, {
+            playerId: 'p1',
+            cardId: 'denizen.hearth.any',
+            powerIndex: 0
+        })
     },
     {
         type: ActionType.Peek,
         hydrated: HydratedPeek,
-        action: buildAction(Peek, { playerId: 'p1', target: { kind: PeekTargetKind.SiteRelic, slotId: 'slot-1' } })
+        action: buildAction(Peek, {
+            playerId: 'p1',
+            target: { kind: PeekTargetKind.SiteRelic, slotId: 'slot-1' }
+        })
     },
     {
         type: ActionType.MoveWarbands,
         hydrated: HydratedMoveWarbands,
-        action: buildAction(MoveWarbands, { playerId: 'p1', move: { kind: WarbandMoveKind.SiteToBoard }, owner: 'p1', count: 1 })
+        action: buildAction(MoveWarbands, {
+            playerId: 'p1',
+            move: { kind: WarbandMoveKind.SiteToBoard },
+            owner: 'p1',
+            count: 1
+        })
     },
     {
         type: ActionType.OfferCitizenship,
         hydrated: HydratedOfferCitizenship,
-        action: buildAction(OfferCitizenship, { playerId: 'p1', exilePlayerId: 'p2', reliquarySlotId: 'rel-1' })
+        action: buildAction(OfferCitizenship, {
+            playerId: 'p1',
+            exilePlayerId: 'p2',
+            reliquarySlotId: 'rel-1'
+        })
     },
     {
         type: ActionType.ExileCitizen,
         hydrated: HydratedExileCitizen,
         action: buildAction(ExileCitizen, { playerId: 'p1', citizenPlayerId: 'p2' })
     },
-    { type: ActionType.SelfExile, hydrated: HydratedSelfExile, action: buildAction(SelfExile, { playerId: 'p1' }) }
+    {
+        type: ActionType.SelfExile,
+        hydrated: HydratedSelfExile,
+        action: buildAction(SelfExile, { playerId: 'p1' })
+    }
 ] as const
 
 describe('minor action wiring (R-6.1–R-6.8)', () => {

@@ -290,7 +290,9 @@ registerEffect(RIOTS, powerIndexOf(RIOTS, PowerTiming.WhenPlayed), {
         // From revision 10 the pick is judged on this count, as the check judges it: one that is not among
         // the most common suits is not followed.
         const named =
-            pick && (most.includes(pick.suit) || !isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6))
+            pick &&
+            (most.includes(pick.suit) ||
+                !isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6))
                 ? pick.suit
                 : undefined
         const suit = named ?? most[0]
@@ -380,7 +382,8 @@ registerModifier(
                     ctx.state
                 )
                 return {
-                    summary: 'Knights Errant: the next action may be a Campaign that spends no Supply'
+                    summary:
+                        'Knights Errant: the next action may be a Campaign that spends no Supply'
                 }
             }
         }
@@ -403,7 +406,8 @@ registerModifier(
                     ctx.state
                 )
                 return {
-                    summary: 'Hunting Party: the next action may be a Campaign that spends no Supply'
+                    summary:
+                        'Hunting Party: the next action may be a Campaign that spends no Supply'
                 }
             }
         }

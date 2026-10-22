@@ -14,10 +14,7 @@ import {
     isIndonesiaNodeId,
     type IndonesiaNodeId
 } from '../utils/indonesiaNodes.js'
-import {
-    type HydratedIndonesiaGameState,
-    type MergerCompanySummary
-} from '../model/gameState.js'
+import { type HydratedIndonesiaGameState, type MergerCompanySummary } from '../model/gameState.js'
 
 const SHIPPING_NOMINAL_VALUE_PER_UNIT = 10
 const NOMINAL_VALUE_BY_GOOD: Record<Good, number> = {
@@ -77,7 +74,10 @@ function playerMaxCompanyCount(state: HydratedIndonesiaGameState, playerId: stri
     return 1 + playerState.research.slots
 }
 
-export function playerHasFreeCompanySlot(state: HydratedIndonesiaGameState, playerId: string): boolean {
+export function playerHasFreeCompanySlot(
+    state: HydratedIndonesiaGameState,
+    playerId: string
+): boolean {
     const playerState = state.getPlayerState(playerId)
     return playerState.ownedCompanies.length < playerMaxCompanyCount(state, playerId)
 }
@@ -510,7 +510,10 @@ export function isSiapSajiRemovalAreaValid(
         return false
     }
 
-    const componentCountBeforeRemoval = connectedCultivatedComponentCount(state, cultivatedAreaIdSet)
+    const componentCountBeforeRemoval = connectedCultivatedComponentCount(
+        state,
+        cultivatedAreaIdSet
+    )
     const remainingCultivatedAreaIds = new Set(cultivatedAreaIdSet)
     remainingCultivatedAreaIds.delete(areaId)
     const componentCountAfterRemoval = connectedCultivatedComponentCount(

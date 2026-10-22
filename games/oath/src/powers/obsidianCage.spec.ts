@@ -3,7 +3,10 @@ import { assertExists, Color, getPrng } from '@tabletop/common'
 import { HydratedCampaign, type CampaignDefender, Campaign } from '../actions/campaign.js'
 import { HydratedCampaignDefend, CampaignDefend } from '../actions/campaignDefend.js'
 import { HydratedCampaignSacrifice, CampaignSacrifice } from '../actions/campaignSacrifice.js'
-import { HydratedCampaignResolveVictory, CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
+import {
+    HydratedCampaignResolveVictory,
+    CampaignResolveVictory
+} from '../actions/campaignResolveVictory.js'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { CampaignTargetKind, type CampaignTarget, type WarbandGroup } from '../model/campaign.js'
 import { PlayerStatus } from '../model/oathEnums.js'
@@ -46,10 +49,56 @@ function board(
 ) {
     const s = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, relicIds: relics[ME] ?? [], warbandsOnBoard: { [ME]: 4 }, warbandsInPersonalBank: { [ME]: 6 }, ...over[ME] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', favor: 4, secrets: 2, supply: 6, relicIds: relics[FOE] ?? [], warbandsOnBoard: { [FOE]: 3 }, warbandsInPersonalBank: { [FOE]: 5 }, ...over[FOE] }),
-            testPlayer({ playerId: CHAN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 4, secrets: 2, supply: 6, relicIds: relics[CHAN] ?? [], warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }, ...over[CHAN] }),
-            testPlayer({ playerId: CIT, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p1', favor: 4, secrets: 2, supply: 6, relicIds: relics[CIT] ?? [], warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [CIT]: 14 }, ...over[CIT] })
+            testPlayer({
+                playerId: ME,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                relicIds: relics[ME] ?? [],
+                warbandsOnBoard: { [ME]: 4 },
+                warbandsInPersonalBank: { [ME]: 6 },
+                ...over[ME]
+            }),
+            testPlayer({
+                playerId: FOE,
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                relicIds: relics[FOE] ?? [],
+                warbandsOnBoard: { [FOE]: 3 },
+                warbandsInPersonalBank: { [FOE]: 5 },
+                ...over[FOE]
+            }),
+            testPlayer({
+                playerId: CHAN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                relicIds: relics[CHAN] ?? [],
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 },
+                ...over[CHAN]
+            }),
+            testPlayer({
+                playerId: CIT,
+                color: Color.Yellow,
+                status: PlayerStatus.Citizen,
+                siteId: 'p1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                relicIds: relics[CIT] ?? [],
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { [CIT]: 14 },
+                ...over[CIT]
+            })
         ],
         {
             chancellorPlayerId: CHAN,
@@ -64,14 +113,24 @@ function board(
 }
 type Board = ReturnType<typeof board>
 
-function campaign(s: Board, attackerId: string, defender: CampaignDefender, targets: CampaignTarget[], plans?: (typeof PLAN)[]) {
-    new HydratedCampaign(buildAction(Campaign, { playerId: attackerId, defender, targets, attackDice: 1, plans })).apply(s)
+function campaign(
+    s: Board,
+    attackerId: string,
+    defender: CampaignDefender,
+    targets: CampaignTarget[],
+    plans?: (typeof PLAN)[]
+) {
+    new HydratedCampaign(
+        buildAction(Campaign, { playerId: attackerId, defender, targets, attackDice: 1, plans })
+    ).apply(s)
 }
 function defend(s: Board, plansOf: Partial<Record<string, (typeof PLAN)[]>> = {}) {
     while (s.campaign?.pendingDefenderPlans) {
         const playerId = s.campaign.pendingDefenderPlans.queue[0]
         assertExists(playerId, 'the battle-plan step is open with nobody to answer it')
-        new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId, plans: plansOf[playerId] ?? [] })).apply(s)
+        new HydratedCampaignDefend(
+            buildAction(CampaignDefend, { playerId, plans: plansOf[playerId] ?? [] })
+        ).apply(s)
     }
 }
 /** Overwrites the dice so the named side wins with no sacrifice. */
@@ -80,13 +139,23 @@ function decide(s: Board, attackerWins: boolean, defeatKills?: WarbandGroup[]) {
     assertExists(c, 'no Campaign is under way')
     c.swords = attackerWins ? 9 : 0
     c.defense = attackerWins ? 0 : 9
-    const attackerKills = attackerWins ? [] : (defeatKills ?? HydratedCampaignSacrifice.attackerDefeatKills(s, 0))
-    const sacrifice = new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId: c.attackerPlayerId, sacrifice: 0, defeatKills: attackerKills }))
+    const attackerKills = attackerWins
+        ? []
+        : (defeatKills ?? HydratedCampaignSacrifice.attackerDefeatKills(s, 0))
+    const sacrifice = new HydratedCampaignSacrifice(
+        buildAction(CampaignSacrifice, {
+            playerId: c.attackerPlayerId,
+            sacrifice: 0,
+            defeatKills: attackerKills
+        })
+    )
     sacrifice.apply(s)
     return defendingSideChooses(s, defeatKills) ?? sacrifice
 }
 function useAction(s: Board, playerId: string, choices: PowerChoice[]) {
-    const action = new HydratedUseActionPower(buildAction(UseActionPower, { playerId, cardId: CAGE, powerIndex: ACTION_INDEX, choices }))
+    const action = new HydratedUseActionPower(
+        buildAction(UseActionPower, { playerId, cardId: CAGE, powerIndex: ACTION_INDEX, choices })
+    )
     action.apply(s)
     return action
 }
@@ -96,18 +165,25 @@ const caged = (over: Record<string, number>) => ({ warbandsOnCards: { [CAGE]: ov
 
 describe('Obsidian Cage — registered', () => {
     it('both powers on the one record have effects, and the plan is a held relic’s (R-7.1.1-H1)', () => {
-        const [plan, action] = [powersWithTiming(CAGE, PowerTiming.BattlePlan)[0], powersWithTiming(CAGE, PowerTiming.Action)[0]]
+        const [plan, action] = [
+            powersWithTiming(CAGE, PowerTiming.BattlePlan)[0],
+            powersWithTiming(CAGE, PowerTiming.Action)[0]
+        ]
         expect(hasEffect(plan)).toBe(true)
         expect(hasEffect(action)).toBe(true)
         const s = board({ [ME]: [CAGE] })
         for (const side of [BattlePlanSide.Attacker, BattlePlanSide.Defender]) {
-            expect(usableBattlePlans(s, ME, side, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)).toContain(CAGE)
-            expect(usableBattlePlans(s, FOE, side, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)).not.toContain(CAGE)
+            expect(
+                usableBattlePlans(s, ME, side, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)
+            ).toContain(CAGE)
+            expect(
+                usableBattlePlans(s, FOE, side, partiesSuspendingNobody(s, ME)).map((p) => p.cardId)
+            ).not.toContain(CAGE)
         }
     })
 })
 
-describe("Obsidian Cage — \"If you're victorious, move all unkilled warbands in your enemy's force to the Obsidian Cage\"", () => {
+describe('Obsidian Cage — "If you\'re victorious, move all unkilled warbands in your enemy\'s force to the Obsidian Cage"', () => {
     it('as the attacker: the defending force’s survivors, at the site and on the board alike, go to the Cage and not home', () => {
         const s = board({ [ME]: [CAGE] })
         let note: string[] | undefined
@@ -131,12 +207,20 @@ describe("Obsidian Cage — \"If you're victorious, move all unkilled warbands i
         expect(s.getPlayerState(FOE).warbandsInPersonalBank[FOE]).toBe(8)
         expect(s.getPlayerState(FOE).warbandsOnBoard[FOE]).toBe(0)
         expect(s.warbandsBySite['c1'][FOE]).toBe(0)
-        expect(note).toEqual([`Obsidian Cage: ${ME} moved the enemy's 3 unkilled warbands to the Cage`])
+        expect(note).toEqual([
+            `Obsidian Cage: ${ME} moved the enemy's 3 unkilled warbands to the Cage`
+        ])
         expect(s.getPlayerState(ME)).toMatchObject({ favor: 4, secrets: 2 })
         expect(s.getPlayerState(ME).warbandsOnBoard[ME]).toBe(ownForceAtTheSacrifice)
         expect(s.tokensOn(CAGE)).toEqual({ favor: 0, secrets: 0 })
         // R-5.5.7 still runs for the attacker.
-        new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: ME, placements: [{ siteId: 'c1', owner: ME, count: 1 }], burnFavor: false })).apply(s)
+        new HydratedCampaignResolveVictory(
+            buildAction(CampaignResolveVictory, {
+                playerId: ME,
+                placements: [{ siteId: 'c1', owner: ME, count: 1 }],
+                burnFavor: false
+            })
+        ).apply(s)
         expect(s.campaign).toBeUndefined()
         expect(rulesSite(s, ME, 'c1')).toBe(true)
     })
@@ -145,15 +229,22 @@ describe("Obsidian Cage — \"If you're victorious, move all unkilled warbands i
         const s = board({ [ME]: [CAGE] }, {}, {}, FOE)
         let attackingForce = 0
         expectWarbandsConserved(s, () => {
-            campaign(s, FOE, { kind: 'player', playerId: ME }, [{ kind: CampaignTargetKind.PawnAndFavor }])
+            campaign(s, FOE, { kind: 'player', playerId: ME }, [
+                { kind: CampaignTargetKind.PawnAndFavor }
+            ])
             defend(s, { [ME]: [PLAN] })
             // R-5.5.5 — a skull may already have cost the attacker a warband.
-            attackingForce = required(s.getPlayerState(FOE).warbandsOnBoard[FOE], 'the attacker’s blue warbands')
+            attackingForce = required(
+                s.getPlayerState(FOE).warbandsOnBoard[FOE],
+                'the attacker’s blue warbands'
+            )
             decide(s, false)
         })
         // R-5.5.6 — half, rounded down, die; the rest go to the Cage.
         expect(attackingForce).toBeGreaterThanOrEqual(2)
-        expect(s.warbandsOnCard(CAGE)).toEqual({ [FOE]: attackingForce - Math.floor(attackingForce / 2) })
+        expect(s.warbandsOnCard(CAGE)).toEqual({
+            [FOE]: attackingForce - Math.floor(attackingForce / 2)
+        })
         expect(s.getPlayerState(FOE).warbandsOnBoard[FOE]).toBe(0)
         // R-10.9 — foe's warbands at c1 are in no force and stay.
         expect(s.warbandsBySite['c1'][FOE]).toBe(3)
@@ -204,7 +295,9 @@ describe("Obsidian Cage — \"If you're victorious, move all unkilled warbands i
         defend(s, { [CHAN]: [PLAN] })
         const attackingForce = required(s.getPlayerState(ME).warbandsOnBoard[ME], 'my red warbands')
         decide(s, false)
-        expect(s.warbandsOnCard(CAGE)).toEqual({ [ME]: attackingForce - Math.floor(attackingForce / 2) })
+        expect(s.warbandsOnCard(CAGE)).toEqual({
+            [ME]: attackingForce - Math.floor(attackingForce / 2)
+        })
         expect(s.getPlayerState(ME).warbandsOnBoard[ME]).toBe(0)
     })
 
@@ -221,62 +314,118 @@ describe("Obsidian Cage — \"If you're victorious, move all unkilled warbands i
         const t = board({ [ME]: [CAGE] }, { [ME]: { siteId: 'h1' } })
         campaign(t, ME, { kind: 'bandits' }, [siteTarget('h1')], [PLAN])
         const notes = decide(t, true).metadata?.planNotes
-        expect(notes).toEqual([`Obsidian Cage: ${ME} moved the enemy's 0 unkilled warbands to the Cage`])
+        expect(notes).toEqual([
+            `Obsidian Cage: ${ME} moved the enemy's 0 unkilled warbands to the Cage`
+        ])
         expect(t.warbandsOnCard(CAGE)).toEqual({})
     })
 
     it('caged warbands are on no board and at no site: they rule nothing and join no force', () => {
-        const s = board({ [ME]: [CAGE] }, { [FOE]: { warbandsOnBoard: {} } }, { warbandsBySite: { c2: { [ME]: 1 } }, ...caged({ [FOE]: 6 }) })
+        const s = board(
+            { [ME]: [CAGE] },
+            { [FOE]: { warbandsOnBoard: {} } },
+            { warbandsBySite: { c2: { [ME]: 1 } }, ...caged({ [FOE]: 6 }) }
+        )
         expect(rulesSite(s, FOE, 'c1')).toBe(false)
         expect(warbandsOnBoardOf(s, FOE)).toBe(0)
-        campaign(s, ME, { kind: 'player', playerId: FOE }, [{ kind: CampaignTargetKind.PawnAndFavor }])
+        campaign(s, ME, { kind: 'player', playerId: FOE }, [
+            { kind: CampaignTargetKind.PawnAndFavor }
+        ])
         expect(s.campaign?.defendingForce ?? []).toEqual([])
     })
 })
 
 describe('Obsidian Cage — "Action: Move any number of warbands from Obsidian Cage to any board of the same color"', () => {
-    it('any board of the same color: an Exile\'s own board, and for the Empire\'s every Imperial board (R-6.6.3)', () => {
-        const s = board({ [ME]: [CAGE] }, {}, caged({ [FOE]: 3, [IMPERIAL_WARBANDS]: 4, [CIT]: 1, [ME]: 0 }))
+    it("any board of the same color: an Exile's own board, and for the Empire's every Imperial board (R-6.6.3)", () => {
+        const s = board(
+            { [ME]: [CAGE] },
+            {},
+            caged({ [FOE]: 3, [IMPERIAL_WARBANDS]: 4, [CIT]: 1, [ME]: 0 })
+        )
         const [{ options }] = legalChoices(s, ME, powersWithTiming(CAGE, PowerTiming.Action)[0])
-        expect(options).toEqual([boardWarbands(FOE, FOE, 3), boardWarbands(CHAN, IMPERIAL_WARBANDS, 4), boardWarbands(CIT, IMPERIAL_WARBANDS, 4), boardWarbands(CIT, CIT, 1)])
+        expect(options).toEqual([
+            boardWarbands(FOE, FOE, 3),
+            boardWarbands(CHAN, IMPERIAL_WARBANDS, 4),
+            boardWarbands(CIT, IMPERIAL_WARBANDS, 4),
+            boardWarbands(CIT, CIT, 1)
+        ])
     })
 
     it('moves them to the boards named, any number of each, for no cost', () => {
         const s = board({ [ME]: [CAGE] }, {}, caged({ [FOE]: 3, [IMPERIAL_WARBANDS]: 4 }))
         let summary: string | undefined
         expectWarbandsConserved(s, () => {
-            summary = useAction(s, ME, [boardWarbands(FOE, FOE, 2), boardWarbands(CHAN, IMPERIAL_WARBANDS, 3), boardWarbands(CIT, IMPERIAL_WARBANDS, 1)]).metadata?.summary
+            summary = useAction(s, ME, [
+                boardWarbands(FOE, FOE, 2),
+                boardWarbands(CHAN, IMPERIAL_WARBANDS, 3),
+                boardWarbands(CIT, IMPERIAL_WARBANDS, 1)
+            ]).metadata?.summary
         })
         expect(s.warbandsOnCard(CAGE)).toEqual({ [FOE]: 1, [IMPERIAL_WARBANDS]: 0 })
         expect(s.getPlayerState(FOE).warbandsOnBoard[FOE]).toBe(5)
         expect(s.getPlayerState(CHAN).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(6)
         expect(s.getPlayerState(CIT).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(3)
-        expect(summary).toBe("Obsidian Cage: moved 6 warbands from the Cage to their owners' boards")
+        expect(summary).toBe(
+            "Obsidian Cage: moved 6 warbands from the Cage to their owners' boards"
+        )
         expect(s.getPlayerState(ME)).toMatchObject({ favor: 4, secrets: 2, supply: 6 })
         expect(s.tokensOn(CAGE)).toEqual({ favor: 0, secrets: 0 })
     })
 
     it('a board of another owner is refused, and so is an owner the Cage does not hold', () => {
         const s = board({ [ME]: [CAGE] }, {}, caged({ [FOE]: 3 }))
-        expect(reasonCannotUse(s, ME, [boardWarbands(ME, FOE, 1)])).toMatch(/1 of foe's warbands is not among the options/)
-        expect(reasonCannotUse(s, ME, [boardWarbands(ME, ME, 1)])).toMatch(/1 of me's warbands is not among the options/)
-        expect(reasonCannotUse(s, ME, [{ kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'c2' }, owner: FOE, count: 1 } }])).toMatch(/not among the options/)
+        expect(reasonCannotUse(s, ME, [boardWarbands(ME, FOE, 1)])).toMatch(
+            /1 of foe's warbands is not among the options/
+        )
+        expect(reasonCannotUse(s, ME, [boardWarbands(ME, ME, 1)])).toMatch(
+            /1 of me's warbands is not among the options/
+        )
+        expect(
+            reasonCannotUse(s, ME, [
+                {
+                    kind: PowerChoiceKind.Warbands,
+                    group: { at: { kind: 'site', siteId: 'c2' }, owner: FOE, count: 1 }
+                }
+            ])
+        ).toMatch(/not among the options/)
     })
 
     it('no more than the Cage holds, whether to one board or split across the Imperial ones; and at least one', () => {
         const s = board({ [ME]: [CAGE] }, {}, caged({ [FOE]: 3, [IMPERIAL_WARBANDS]: 4 }))
-        expect(reasonCannotUse(s, ME, [boardWarbands(FOE, FOE, 4)])).toMatch(/4 of foe's warbands chosen .* but only 3 are there/)
-        expect(reasonCannotUse(s, ME, [boardWarbands(CHAN, IMPERIAL_WARBANDS, 3), boardWarbands(CIT, IMPERIAL_WARBANDS, 2)])).toBe('the Obsidian Cage holds 4 Imperial warbands, not 5')
-        expect(reasonCannotUse(s, ME, [boardWarbands(CHAN, IMPERIAL_WARBANDS, 3), boardWarbands(CIT, IMPERIAL_WARBANDS, 1)])).toBeUndefined()
-        expect(reasonCannotUse(s, ME, [boardWarbands(FOE, FOE, 0)])).toMatch(/at least one warband must be chosen/)
-        expect(reasonCannotUse(s, ME, [])).toMatch(/no choice was made for warbands on the Obsidian Cage/)
-        expect(reasonCannotUse(s, ME, [boardWarbands(FOE, FOE, 1), boardWarbands(FOE, FOE, 1)])).toMatch(/chosen twice/)
+        expect(reasonCannotUse(s, ME, [boardWarbands(FOE, FOE, 4)])).toMatch(
+            /4 of foe's warbands chosen .* but only 3 are there/
+        )
+        expect(
+            reasonCannotUse(s, ME, [
+                boardWarbands(CHAN, IMPERIAL_WARBANDS, 3),
+                boardWarbands(CIT, IMPERIAL_WARBANDS, 2)
+            ])
+        ).toBe('the Obsidian Cage holds 4 Imperial warbands, not 5')
+        expect(
+            reasonCannotUse(s, ME, [
+                boardWarbands(CHAN, IMPERIAL_WARBANDS, 3),
+                boardWarbands(CIT, IMPERIAL_WARBANDS, 1)
+            ])
+        ).toBeUndefined()
+        expect(reasonCannotUse(s, ME, [boardWarbands(FOE, FOE, 0)])).toMatch(
+            /at least one warband must be chosen/
+        )
+        expect(reasonCannotUse(s, ME, [])).toMatch(
+            /no choice was made for warbands on the Obsidian Cage/
+        )
+        expect(
+            reasonCannotUse(s, ME, [boardWarbands(FOE, FOE, 1), boardWarbands(FOE, FOE, 1)])
+        ).toMatch(/chosen twice/)
     })
 
     it('an empty Cage offers nothing to move', () => {
         const s = board({ [ME]: [CAGE] })
-        expect(legalChoices(s, ME, powersWithTiming(CAGE, PowerTiming.Action)[0])[0].options).toEqual([])
-        expect(reasonCannotUse(s, ME, [boardWarbands(FOE, FOE, 1)])).toMatch(/not among the options/)
+        expect(
+            legalChoices(s, ME, powersWithTiming(CAGE, PowerTiming.Action)[0])[0].options
+        ).toEqual([])
+        expect(reasonCannotUse(s, ME, [boardWarbands(FOE, FOE, 1)])).toMatch(
+            /not among the options/
+        )
     })
 
     it('when the relic changes hands the warbands stay on it, and the Action is its new holder’s', () => {
@@ -292,7 +441,11 @@ describe('Obsidian Cage — "Action: Move any number of warbands from Obsidian C
 
 describe("Obsidian Cage — a caged player who is now a Citizen gets the Empire's warbands back (its Q&A, R-6.6.2)", () => {
     const current = (over: Record<string, number>, chancellorBank = 8) =>
-        board({ [ME]: [CAGE] }, { [CHAN]: { warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: chancellorBank } } }, { ...caged(over), oathRevision: OathRevision.EngineFixes2 })
+        board(
+            { [ME]: [CAGE] },
+            { [CHAN]: { warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: chancellorBank } } },
+            { ...caged(over), oathRevision: OathRevision.EngineFixes2 }
+        )
 
     it("their own go back to their bank and as many Imperial warbands come from the Chancellor's bank", () => {
         const s = current({ [CIT]: 3 })
@@ -304,14 +457,21 @@ describe("Obsidian Cage — a caged player who is now a Citizen gets the Empire'
         expect(s.getPlayerState(CIT).warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 5 })
         expect(s.getPlayerState(CIT).warbandsInPersonalBank[CIT]).toBe(17)
         expect(s.getPlayerState(CHAN).warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(5)
-        expect(action?.metadata?.summary).toBe("Obsidian Cage: 3 of cit's warbands went back to cit's bank and 3 Imperial warbands came from the Chancellor's bank in their place")
+        expect(action?.metadata?.summary).toBe(
+            "Obsidian Cage: 3 of cit's warbands went back to cit's bank and 3 Imperial warbands came from the Chancellor's bank in their place"
+        )
         expect(action?.metadata?.warbandOwner).toBeUndefined()
     })
 
     it("as Muster does, a short Chancellor's bank gives as many as it holds (R-9.3); the warbands moved as they are are the summary's own", () => {
         const s = current({ [CIT]: 3, [FOE]: 2 }, 1)
-        const metadata = useAction(s, ME, [boardWarbands(CIT, CIT, 3), boardWarbands(FOE, FOE, 2)]).metadata
-        expect(metadata?.summary).toBe("Obsidian Cage: moved 2 of foe's warbands from the Cage to their owners' boards; 3 of cit's warbands went back to cit's bank and 1 Imperial warband came from the Chancellor's bank in their place")
+        const metadata = useAction(s, ME, [
+            boardWarbands(CIT, CIT, 3),
+            boardWarbands(FOE, FOE, 2)
+        ]).metadata
+        expect(metadata?.summary).toBe(
+            "Obsidian Cage: moved 2 of foe's warbands from the Cage to their owners' boards; 3 of cit's warbands went back to cit's bank and 1 Imperial warband came from the Chancellor's bank in their place"
+        )
         expect(metadata?.warbandOwner).toBe(FOE)
         expect(s.getPlayerState(CIT).warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 3 })
         expect(s.getPlayerState(CIT).warbandsInPersonalBank[CIT]).toBe(17)
@@ -320,8 +480,13 @@ describe("Obsidian Cage — a caged player who is now a Citizen gets the Empire'
 
     it("an Exile's and the Empire's caged warbands come back as before", () => {
         const s = current({ [FOE]: 2, [IMPERIAL_WARBANDS]: 1 })
-        const metadata = useAction(s, ME, [boardWarbands(FOE, FOE, 2), boardWarbands(CIT, IMPERIAL_WARBANDS, 1)]).metadata
-        expect(metadata?.summary).toBe("Obsidian Cage: moved 2 of foe's warbands and 1 Imperial warband from the Cage to their owners' boards")
+        const metadata = useAction(s, ME, [
+            boardWarbands(FOE, FOE, 2),
+            boardWarbands(CIT, IMPERIAL_WARBANDS, 1)
+        ]).metadata
+        expect(metadata?.summary).toBe(
+            "Obsidian Cage: moved 2 of foe's warbands and 1 Imperial warband from the Cage to their owners' boards"
+        )
         expect(s.getPlayerState(FOE).warbandsOnBoard[FOE]).toBe(5)
         expect(s.getPlayerState(CIT).warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 3 })
         expect(s.getPlayerState(CHAN).warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(8)
@@ -329,39 +494,75 @@ describe("Obsidian Cage — a caged player who is now a Citizen gets the Empire'
 
     it('R-10.13 — groups of several owners are counted by owner, so each draws in its own colour; the Empire’s on two boards once', () => {
         const s = current({ [FOE]: 3, [IMPERIAL_WARBANDS]: 4 })
-        const metadata = useAction(s, ME, [boardWarbands(FOE, FOE, 2), boardWarbands(CHAN, IMPERIAL_WARBANDS, 3), boardWarbands(CIT, IMPERIAL_WARBANDS, 1)]).metadata
-        expect(metadata?.summary).toBe("Obsidian Cage: moved 2 of foe's warbands and 4 Imperial warbands from the Cage to their owners' boards")
+        const metadata = useAction(s, ME, [
+            boardWarbands(FOE, FOE, 2),
+            boardWarbands(CHAN, IMPERIAL_WARBANDS, 3),
+            boardWarbands(CIT, IMPERIAL_WARBANDS, 1)
+        ]).metadata
+        expect(metadata?.summary).toBe(
+            "Obsidian Cage: moved 2 of foe's warbands and 4 Imperial warbands from the Cage to their owners' boards"
+        )
         expect(metadata?.warbandOwner).toBeUndefined()
     })
 
     it('one owner’s are named too', () => {
         const s = current({ [FOE]: 3 })
-        expect(useAction(s, ME, [boardWarbands(FOE, FOE, 1)]).metadata?.summary).toBe("Obsidian Cage: moved 1 of foe's warbands from the Cage to their owners' boards")
+        expect(useAction(s, ME, [boardWarbands(FOE, FOE, 1)]).metadata?.summary).toBe(
+            "Obsidian Cage: moved 1 of foe's warbands from the Cage to their owners' boards"
+        )
     })
 
-    it.each([undefined, OathRevision.TurnFlow, OathRevision.CostsAndFacedownModifiers, OathRevision.PlanCostsAndSearchPlays, OathRevision.CardFixes1])("in a game created at revision %s they come back in the player's own colour, as recorded", (oathRevision) => {
-        const s = board({ [ME]: [CAGE] }, {}, { ...caged({ [CIT]: 3 }), ...(oathRevision === undefined ? {} : { oathRevision }) })
-        const metadata = useAction(s, ME, [boardWarbands(CIT, CIT, 3)]).metadata
-        expect(metadata?.summary).toBe("Obsidian Cage: moved 3 warbands from the Cage to their owners' boards")
-        expect(metadata?.warbandOwner).toBe(CIT)
-        expect(s.getPlayerState(CIT).warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 2, [CIT]: 3 })
-        expect(s.getPlayerState(CIT).warbandsInPersonalBank[CIT]).toBe(14)
-        expect(s.getPlayerState(CHAN).warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(8)
-    })
+    it.each([
+        undefined,
+        OathRevision.TurnFlow,
+        OathRevision.CostsAndFacedownModifiers,
+        OathRevision.PlanCostsAndSearchPlays,
+        OathRevision.CardFixes1
+    ])(
+        "in a game created at revision %s they come back in the player's own colour, as recorded",
+        (oathRevision) => {
+            const s = board(
+                { [ME]: [CAGE] },
+                {},
+                { ...caged({ [CIT]: 3 }), ...(oathRevision === undefined ? {} : { oathRevision }) }
+            )
+            const metadata = useAction(s, ME, [boardWarbands(CIT, CIT, 3)]).metadata
+            expect(metadata?.summary).toBe(
+                "Obsidian Cage: moved 3 warbands from the Cage to their owners' boards"
+            )
+            expect(metadata?.warbandOwner).toBe(CIT)
+            expect(s.getPlayerState(CIT).warbandsOnBoard).toEqual({
+                [IMPERIAL_WARBANDS]: 2,
+                [CIT]: 3
+            })
+            expect(s.getPlayerState(CIT).warbandsInPersonalBank[CIT]).toBe(14)
+            expect(s.getPlayerState(CHAN).warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(8)
+        }
+    )
 })
 
 describe('Obsidian Cage — leaving play (R-10.13: a card cannot carry warbands out of play)', () => {
     const FAE = 'denizen.beast.fae-merchant'
     const DRUM = 'relic.dragonskin-drum'
     function sendCageDown(s: Board) {
-        s.vault = createOathVault({ discardPiles: { cradle: [], provinces: [], hinterland: [] }, composeWorldDeck: () => [] }, getPrng(1))
+        s.vault = createOathVault(
+            {
+                discardPiles: { cradle: [], provinces: [], hinterland: [] },
+                composeWorldDeck: () => []
+            },
+            getPrng(1)
+        )
         s.requireVault().relicDeck = [DRUM]
         actionPowerUse(ME, FAE).apply(s)
         answerQuestion(s, ME, { kind: PowerQuestionKind.BottomRelic, heldRelicCardId: CAGE })
     }
 
-    it('sent to the bottom of the relic deck by Fae Merchant, every caged warband returns to its bank: by owner, the Empire\'s to the Chancellor', () => {
-        const s = board({ [ME]: [CAGE] }, { [ME]: { advisers: [{ cardId: FAE, faceUp: true }] } }, caged({ [FOE]: 3, [IMPERIAL_WARBANDS]: 2, [CIT]: 1 }))
+    it("sent to the bottom of the relic deck by Fae Merchant, every caged warband returns to its bank: by owner, the Empire's to the Chancellor", () => {
+        const s = board(
+            { [ME]: [CAGE] },
+            { [ME]: { advisers: [{ cardId: FAE, faceUp: true }] } },
+            caged({ [FOE]: 3, [IMPERIAL_WARBANDS]: 2, [CIT]: 1 })
+        )
         expectWarbandsConserved(s, () => sendCageDown(s))
         expect(s.getPlayerState(ME).relicIds).toEqual([DRUM])
         expect(s.warbandsOnCard(CAGE)).toEqual({ [FOE]: 0, [IMPERIAL_WARBANDS]: 0, [CIT]: 0 })

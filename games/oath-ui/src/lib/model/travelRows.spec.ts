@@ -11,13 +11,31 @@ const WAY_STATION = 'denizen.nomad.way-station'
 function board(foe: Record<string, unknown> = {}, denizens: Record<string, string[]> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: 'ruler', color: Color.Red, siteId: 'c1', favor: 3, warbandsOnBoard: { ruler: 2 } }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, supply: 3, ...foe })
+            testPlayer({
+                playerId: 'ruler',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 3,
+                warbandsOnBoard: { ruler: 2 }
+            }),
+            testPlayer({
+                playerId: 'foe',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 3,
+                supply: 3,
+                ...foe
+            })
         ],
         {
             denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...denizens },
             warbandsBySite: { c1: { ruler: 1 }, c2: { ruler: 2 } },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            }
         }
     )
     openTurn(s, 'foe')
@@ -44,7 +62,14 @@ describe('the destinations a Travel can reach (R-5.6)', () => {
 
     it('offers each way to pay as its own choice: Way Station’s favor for no Supply', () => {
         const rows = travelRows(board({}, { c2: [WAY_STATION] }), 'foe', [])
-        expect(read(rows)[0]).toEqual(['c2', Region.Cradle, [[1, [], []], [0, [WAY_STATION], ['ruler']]]])
+        expect(read(rows)[0]).toEqual([
+            'c2',
+            Region.Cradle,
+            [
+                [1, [], []],
+                [0, [WAY_STATION], ['ruler']]
+            ]
+        ])
     })
 
     it('lists nothing the player cannot afford', () => {

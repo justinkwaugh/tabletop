@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { Color, type Visibility } from '@tabletop/common'
-import { HydratedSearchResolve, SearchPlay, SearchResolve, type SearchResolveChoice } from '../actions/searchResolve.js'
+import {
+    HydratedSearchResolve,
+    SearchPlay,
+    SearchResolve,
+    type SearchResolveChoice
+} from '../actions/searchResolve.js'
 import { HydratedPlayFacedownAdviser, PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
 import { HydratedUseActionPower } from '../actions/useActionPower.js'
 import { Banner } from '../model/oathEnums.js'
@@ -31,9 +36,18 @@ const WOLVES = 'denizen.beast.wolves'
 const SCOUTS = 'denizen.order.scouts'
 const LAND_WARDEN = 'denizen.hearth.land-warden'
 
-const herdPower = required(powersWithTiming(HERD, PowerTiming.WhenPlayed)[0], 'Great Herd When Played')
-const rovingPower = required(powersWithTiming(ROVING, PowerTiming.Action)[0], 'Roving Terror Action')
-const enchantressPower = required(powersWithTiming(ENCHANTRESS, PowerTiming.Action)[0], 'Enchantress Action')
+const herdPower = required(
+    powersWithTiming(HERD, PowerTiming.WhenPlayed)[0],
+    'Great Herd When Played'
+)
+const rovingPower = required(
+    powersWithTiming(ROVING, PowerTiming.Action)[0],
+    'Roving Terror Action'
+)
+const enchantressPower = required(
+    powersWithTiming(ENCHANTRESS, PowerTiming.Action)[0],
+    'Enchantress Action'
+)
 
 /**
  * Rhys rules c1 (two warbands) and, with `bloodline`, holds Ancient Bloodline faceup, so for Dana, an enemy, the
@@ -56,7 +70,16 @@ function board(
 ) {
     const s = testState(
         [
-            testPlayer({ playerId: 'dana', color: Color.Red, siteId: opts.danaAt ?? 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { dana: 2 }, ...opts.dana }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: opts.danaAt ?? 'c1',
+                favor: 4,
+                secrets: 3,
+                supply: 6,
+                warbandsOnBoard: { dana: 2 },
+                ...opts.dana
+            }),
             testPlayer({
                 playerId: 'rhys',
                 color: Color.Blue,
@@ -73,7 +96,13 @@ function board(
             oathRevision: opts.revision ?? OathRevision.EngineFixes12,
             denizensBySite: { c1: [], c2: [], p1: [], h1: [TENTS], ...opts.sites },
             warbandsBySite: { c1: { rhys: 2 } },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.wastes', ...opts.siteCards },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.wastes',
+                ...opts.siteCards
+            },
             ...opts.state
         }
     )
@@ -81,10 +110,25 @@ function board(
     return s
 }
 
-const favorHeld = (holder: string) => ({ banners: { [Banner.PeoplesFavor]: { value: 1, holderPlayerId: holder }, [Banner.DarkestSecret]: { value: 1 } } })
+const favorHeld = (holder: string) => ({
+    banners: {
+        [Banner.PeoplesFavor]: { value: 1, holderPlayerId: holder },
+        [Banner.DarkestSecret]: { value: 1 }
+    }
+})
 
-function herdPlay(playerId: string, extra: Partial<SearchResolveChoice> = {}): SearchResolveChoice & { playerId: string } {
-    return { playerId, keptCardId: HERD, discardOrder: [FILLER], play: SearchPlay.Site, choices: [], ...extra }
+function herdPlay(
+    playerId: string,
+    extra: Partial<SearchResolveChoice> = {}
+): SearchResolveChoice & { playerId: string } {
+    return {
+        playerId,
+        keptCardId: HERD,
+        discardOrder: [FILLER],
+        play: SearchPlay.Site,
+        choices: [],
+        ...extra
+    }
 }
 
 function resolve(s: HydratedOathGameState, choice: SearchResolveChoice & { playerId: string }) {
@@ -107,7 +151,8 @@ function refusalOf(s: HydratedOathGameState, choice: SearchResolveChoice & { pla
     return HydratedSearchResolve.reasonCannotResolve(s, choice.playerId, choice)
 }
 
-const herdLockedAt = (siteId: string) => `Great Herd is locked at ${siteId} once played there, so it cannot be swapped`
+const herdLockedAt = (siteId: string) =>
+    `Great Herd is locked at ${siteId} once played there, so it cannot be swapped`
 
 describe('Great Herd does not swap itself out of a site where it is locked for its player (R-7.2.2; Great Herd and Ancient Bloodline Q&A)', () => {
     it("played to c1, which Rhys rules with Ancient Bloodline, Dana's Great Herd is offered no swap", () => {
@@ -121,7 +166,9 @@ describe('Great Herd does not swap itself out of a site where it is locked for i
         const s = board()
         expect(refusalOf(s, herdPlay('dana', { choices: [card(TENTS)] }))).toBe(herdLockedAt('c1'))
         const before = JSON.stringify(s.dehydrate())
-        expect(() => resolve(s, herdPlay('dana', { choices: [card(TENTS)] }))).toThrow(/^Cannot resolve search: Great Herd is locked at c1/)
+        expect(() => resolve(s, herdPlay('dana', { choices: [card(TENTS)] }))).toThrow(
+            /^Cannot resolve search: Great Herd is locked at c1/
+        )
         expect(JSON.stringify(s.dehydrate())).toBe(before)
     })
 
@@ -162,7 +209,9 @@ describe('Great Herd does not swap itself out of a site where it is locked for i
         it('from c2 to c1, which Rhys rules: no swap is offered, and one sent is refused', () => {
             const s = board({ danaAt: 'c2', state: favorHeld('dana') })
             expect(herdOffer(s, 'dana', 'c1')).toEqual([])
-            expect(refusalOf(s, herdPlay('dana', { toSiteId: 'c1', choices: [card(TENTS)] }))).toBe(herdLockedAt('c1'))
+            expect(refusalOf(s, herdPlay('dana', { toSiteId: 'c1', choices: [card(TENTS)] }))).toBe(
+                herdLockedAt('c1')
+            )
             expect(refusalOf(s, herdPlay('dana', { toSiteId: 'c1' }))).toBeUndefined()
         })
 
@@ -178,19 +227,41 @@ describe('Great Herd does not swap itself out of a site where it is locked for i
     it('a facedown Great Herd turned faceup to c1 (R-6.1) is refused the swap the same way', () => {
         const s = board({ dana: { advisers: [{ cardId: HERD, faceUp: false }] } })
         const flip = (choices: ReturnType<typeof card>[]) =>
-            new HydratedPlayFacedownAdviser(buildAction(PlayFacedownAdviser, { playerId: 'dana', cardId: HERD, play: SearchPlay.Site, choices }))
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'dana', flip([card(TENTS)]))).toBe(herdLockedAt('c1'))
+            new HydratedPlayFacedownAdviser(
+                buildAction(PlayFacedownAdviser, {
+                    playerId: 'dana',
+                    cardId: HERD,
+                    play: SearchPlay.Site,
+                    choices
+                })
+            )
+        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'dana', flip([card(TENTS)]))).toBe(
+            herdLockedAt('c1')
+        )
         expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'dana', flip([]))).toBeUndefined()
     })
 
     it("as Land Warden's second card at c1 it is asked nothing and stays where it was played", () => {
         const s = board({
             dana: { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] },
-            state: { pendingSearchModifiers: [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }] }
+            state: {
+                pendingSearchModifiers: [
+                    {
+                        cardId: LAND_WARDEN,
+                        powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier)
+                    }
+                ]
+            }
         })
         s.getPlayerState('dana').handIds = [WOLVES, HERD, FILLER]
         const a = new HydratedSearchResolve(
-            buildAction(SearchResolve, { playerId: 'dana', keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, secondPlay: { cardId: HERD, play: SearchPlay.Site } })
+            buildAction(SearchResolve, {
+                playerId: 'dana',
+                keptCardId: WOLVES,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                secondPlay: { cardId: HERD, play: SearchPlay.Site }
+            })
         )
         a.apply(s)
         expect(s.denizensBySite['c1']).toEqual([WOLVES, HERD])
@@ -208,9 +279,20 @@ describe('Great Herd does not swap itself out of a site where it is locked for i
 })
 
 describe('Roving Terror does not move itself out of a site where it is locked for its user (R-7.2.2; Ancient Bloodline Q&A)', () => {
-    const atC1 = (extra: Parameters<typeof board>[0] = {}) => board({ sites: { c1: [ROVING], h1: [TENTS] }, ...extra })
-    const reasonCannotUse = (s: HydratedOathGameState, playerId: string, choices: ReturnType<typeof card>[]) =>
-        HydratedUseActionPower.reasonCannotUse(s, playerId, ROVING, powerIndexOf(ROVING, PowerTiming.Action), choices)
+    const atC1 = (extra: Parameters<typeof board>[0] = {}) =>
+        board({ sites: { c1: [ROVING], h1: [TENTS] }, ...extra })
+    const reasonCannotUse = (
+        s: HydratedOathGameState,
+        playerId: string,
+        choices: ReturnType<typeof card>[]
+    ) =>
+        HydratedUseActionPower.reasonCannotUse(
+            s,
+            playerId,
+            ROVING,
+            powerIndexOf(ROVING, PowerTiming.Action),
+            choices
+        )
 
     it('used by Dana at c1, which Rhys rules with Ancient Bloodline: nothing to pick, the use is refused and nothing is paid', () => {
         const s = atC1()
@@ -218,7 +300,9 @@ describe('Roving Terror does not move itself out of a site where it is locked fo
         expect(legalChoices(s, 'dana', rovingPower)[0].options).toEqual([])
         expect(reasonCannotUse(s, 'dana', [card(TENTS)])).toBeDefined()
         const before = JSON.stringify(s.dehydrate())
-        expect(() => actionPowerUse('dana', ROVING, [card(TENTS)]).apply(s)).toThrow(/not among the options/)
+        expect(() => actionPowerUse('dana', ROVING, [card(TENTS)]).apply(s)).toThrow(
+            /not among the options/
+        )
         expect(JSON.stringify(s.dehydrate())).toBe(before)
     })
 
@@ -238,11 +322,18 @@ describe('Roving Terror does not move itself out of a site where it is locked fo
     })
 
     it("with the Great Slum's second discard at the destination: refused for Dana, allowed for Rhys", () => {
-        const slum = { sites: { c1: [ROVING], h1: [TENTS, WOLVES] }, siteCards: { h1: 'site.great-slums' } }
+        const slum = {
+            sites: { c1: [ROVING], h1: [TENTS, WOLVES] },
+            siteCards: { h1: 'site.great-slums' }
+        }
         const s = board(slum)
-        expect(legalChoices(s, 'dana', rovingPower).map((legal) => legal.options.length)).toEqual([0, 2])
+        expect(legalChoices(s, 'dana', rovingPower).map((legal) => legal.options.length)).toEqual([
+            0, 2
+        ])
         const before = JSON.stringify(s.dehydrate())
-        expect(() => actionPowerUse('dana', ROVING, [card(TENTS), card(WOLVES)]).apply(s)).toThrow(/^Cannot use action power/)
+        expect(() => actionPowerUse('dana', ROVING, [card(TENTS), card(WOLVES)]).apply(s)).toThrow(
+            /^Cannot use action power/
+        )
         expect(JSON.stringify(s.dehydrate())).toBe(before)
         const ruler = board({ ...slum, rhysAt: 'c1', turn: 'rhys' })
         actionPowerUse('rhys', ROVING, [card(TENTS), card(WOLVES)]).apply(ruler)
@@ -261,12 +352,18 @@ describe('Enchantress at a site does not swap itself out where it is locked for 
     // An adviser-only card reaches no site in a legal game (every move of an adviser to a site refuses one); the
     // power's site branch is guarded all the same.
     const atC1 = (extra: Parameters<typeof board>[0] = {}) =>
-        board({ sites: { c1: [ENCHANTRESS], h1: [] }, dana: { advisers: [{ cardId: SCOUTS, faceUp: true }] }, ...extra })
+        board({
+            sites: { c1: [ENCHANTRESS], h1: [] },
+            dana: { advisers: [{ cardId: SCOUTS, faceUp: true }] },
+            ...extra
+        })
 
     it('Dana at c1, which Rhys rules with Ancient Bloodline: nothing to pick', () => {
         const s = atC1()
         expect(legalChoices(s, 'dana', enchantressPower)[0].options).toEqual([])
-        expect(() => actionPowerUse('dana', ENCHANTRESS, [card(SCOUTS)]).apply(s)).toThrow(/not among the options/)
+        expect(() => actionPowerUse('dana', ENCHANTRESS, [card(SCOUTS)]).apply(s)).toThrow(
+            /not among the options/
+        )
         expect(s.denizensBySite['c1']).toEqual([ENCHANTRESS])
     })
 
@@ -278,7 +375,16 @@ describe('Enchantress at a site does not swap itself out where it is locked for 
     })
 
     it('held as an adviser it is locked by nothing and swaps as before', () => {
-        const s = board({ sites: { c1: [] }, dana: { advisers: [{ cardId: ENCHANTRESS, faceUp: true }] }, rhys: { advisers: [{ cardId: BLOODLINE, faceUp: true }, { cardId: SCOUTS, faceUp: true }] } })
+        const s = board({
+            sites: { c1: [] },
+            dana: { advisers: [{ cardId: ENCHANTRESS, faceUp: true }] },
+            rhys: {
+                advisers: [
+                    { cardId: BLOODLINE, faceUp: true },
+                    { cardId: SCOUTS, faceUp: true }
+                ]
+            }
+        })
         actionPowerUse('dana', ENCHANTRESS, [card(SCOUTS)]).apply(s)
         expect(s.getPlayerState('dana').faceupAdviserIds()).toEqual([SCOUTS])
     })
@@ -293,27 +399,60 @@ describe('Enchantress at a site does not swap itself out where it is locked for 
 describe('the locks already honoured stay as they were (controls)', () => {
     it("Threatening Roar played to c1 under Rhys's Bloodline stays: its self-discard honours the lock", () => {
         const s = board()
-        resolve(s, { playerId: 'dana', keptCardId: ROAR, discardOrder: [FILLER], play: SearchPlay.Site, choices: [] })
+        resolve(s, {
+            playerId: 'dana',
+            keptCardId: ROAR,
+            discardOrder: [FILLER],
+            play: SearchPlay.Site,
+            choices: []
+        })
         expect(s.denizensBySite['c1']).toEqual([ROAR])
     })
 
     it('Great Herd never names a printed-locked card (Marriage) or one at a Bloodline-ruled site', () => {
-        const s = board({ bloodline: true, sites: { c1: [TENTS], c2: [], h1: [MARRIAGE] }, danaAt: 'c2' })
+        const s = board({
+            bloodline: true,
+            sites: { c1: [TENTS], c2: [], h1: [MARRIAGE] },
+            danaAt: 'c2'
+        })
         expect(herdOffer(s, 'dana')).toEqual([])
     })
 
     it('Salt the Earth is not played to c1 under Bloodline, as before', () => {
         const s = board({ sites: { c1: [WOLVES], h1: [] } })
-        expect(refusalOf(s, { playerId: 'dana', keptCardId: SALT, discardOrder: [FILLER], play: SearchPlay.Site, choices: [] })).toBe(
-            'Salt the Earth cannot be played to a site with any locked cards'
-        )
+        expect(
+            refusalOf(s, {
+                playerId: 'dana',
+                keptCardId: SALT,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                choices: []
+            })
+        ).toBe('Salt the Earth cannot be played to a site with any locked cards')
     })
 
     it("Horned Mask swaps none of the cards at c1 for Dana under Rhys's Bloodline, and Rhys's own swap works", () => {
-        const s = board({ sites: { c1: [WOLVES], h1: [] }, dana: { relicIds: [HORNED_MASK], advisers: [{ cardId: SCOUTS, faceUp: true }] } })
-        const mask = required(powersWithTiming(HORNED_MASK, PowerTiming.Action)[0], 'Horned Mask Action')
+        const s = board({
+            sites: { c1: [WOLVES], h1: [] },
+            dana: { relicIds: [HORNED_MASK], advisers: [{ cardId: SCOUTS, faceUp: true }] }
+        })
+        const mask = required(
+            powersWithTiming(HORNED_MASK, PowerTiming.Action)[0],
+            'Horned Mask Action'
+        )
         expect(legalChoices(s, 'dana', mask)[1].options).toEqual([])
-        const ruler = board({ sites: { c1: [WOLVES], h1: [] }, rhysAt: 'c1', turn: 'rhys', rhys: { relicIds: [HORNED_MASK], advisers: [{ cardId: BLOODLINE, faceUp: true }, { cardId: SCOUTS, faceUp: true }] } })
+        const ruler = board({
+            sites: { c1: [WOLVES], h1: [] },
+            rhysAt: 'c1',
+            turn: 'rhys',
+            rhys: {
+                relicIds: [HORNED_MASK],
+                advisers: [
+                    { cardId: BLOODLINE, faceUp: true },
+                    { cardId: SCOUTS, faceUp: true }
+                ]
+            }
+        })
         actionPowerUse('rhys', HORNED_MASK, [card(SCOUTS), card(WOLVES)]).apply(ruler)
         expect(ruler.denizensBySite['c1']).toEqual([SCOUTS])
     })
@@ -322,9 +461,17 @@ describe('the locks already honoured stay as they were (controls)', () => {
 describe("on the player's own view, where host-only values cannot be read", () => {
     const ownView = (s: HydratedOathGameState, playerId: string) => {
         const view: Visibility.Perspective = { kind: 'player', playerId }
-        return OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, view)), view)
+        return OathVisibility.state.guardForExecution(
+            new HydratedOathGameState(served(s, view)),
+            view
+        )
     }
-    function sameOnOwnView<T>(s: HydratedOathGameState, playerId: string, check: (state: HydratedOathGameState) => T, expected: T) {
+    function sameOnOwnView<T>(
+        s: HydratedOathGameState,
+        playerId: string,
+        check: (state: HydratedOathGameState) => T,
+        expected: T
+    ) {
         const server = JSON.stringify(s.dehydrate())
         expect(check(s)).toEqual(expected)
         expect(check(ownView(s, playerId))).toEqual(expected)
@@ -332,17 +479,46 @@ describe("on the player's own view, where host-only values cannot be read", () =
     }
 
     it("Great Herd's offer and check read the same on Dana's own view", () => {
-        const s = board({ dana: { handIds: [HERD, FILLER] }, rhys: { advisers: [{ cardId: BLOODLINE, faceUp: true }, { cardId: WOLVES, faceUp: false }] } })
+        const s = board({
+            dana: { handIds: [HERD, FILLER] },
+            rhys: {
+                advisers: [
+                    { cardId: BLOODLINE, faceUp: true },
+                    { cardId: WOLVES, faceUp: false }
+                ]
+            }
+        })
         sameOnOwnView(s, 'dana', (state) => herdOffer(state, 'dana'), [])
-        sameOnOwnView(s, 'dana', (state) => refusalOf(state, herdPlay('dana', { choices: [card(TENTS)] })), herdLockedAt('c1'))
+        sameOnOwnView(
+            s,
+            'dana',
+            (state) => refusalOf(state, herdPlay('dana', { choices: [card(TENTS)] })),
+            herdLockedAt('c1')
+        )
         const free = board({ state: favorHeld('dana') })
         sameOnOwnView(free, 'dana', (state) => herdOffer(state, 'dana', 'c2'), [card(TENTS)])
     })
 
     it("Roving Terror's and Enchantress's domains read the same on Dana's own view", () => {
-        const s = board({ sites: { c1: [ROVING], h1: [TENTS] }, rhys: { advisers: [{ cardId: BLOODLINE, faceUp: true }, { cardId: WOLVES, faceUp: false }] } })
+        const s = board({
+            sites: { c1: [ROVING], h1: [TENTS] },
+            rhys: {
+                advisers: [
+                    { cardId: BLOODLINE, faceUp: true },
+                    { cardId: WOLVES, faceUp: false }
+                ]
+            }
+        })
         sameOnOwnView(s, 'dana', (state) => legalChoices(state, 'dana', rovingPower)[0].options, [])
-        const enchantress = board({ sites: { c1: [ENCHANTRESS], h1: [] }, dana: { advisers: [{ cardId: SCOUTS, faceUp: true }] } })
-        sameOnOwnView(enchantress, 'dana', (state) => legalChoices(state, 'dana', enchantressPower)[0].options, [])
+        const enchantress = board({
+            sites: { c1: [ENCHANTRESS], h1: [] },
+            dana: { advisers: [{ cardId: SCOUTS, faceUp: true }] }
+        })
+        sameOnOwnView(
+            enchantress,
+            'dana',
+            (state) => legalChoices(state, 'dana', enchantressPower)[0].options,
+            []
+        )
     })
 })

@@ -46,7 +46,12 @@
                                     aria-hidden="true"
                                     class="shrink-0 select-none"
                                 >
-                                    <circle cx="12" cy="13" r="7.2" fill={playerUiColor} opacity="0.14"
+                                    <circle
+                                        cx="12"
+                                        cy="13"
+                                        r="7.2"
+                                        fill={playerUiColor}
+                                        opacity="0.14"
                                     ></circle>
                                     <circle
                                         cx="12"

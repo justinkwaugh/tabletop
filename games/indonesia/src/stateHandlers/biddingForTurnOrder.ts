@@ -8,19 +8,14 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSetTurnOrder, isSetTurnOrder, SetTurnOrder } from '../actions/setTurnOrder.js'
 import { HydratedPlaceTurnOrderBid, isPlaceTurnOrderBid } from '../actions/placeTurnOrderBid.js'
-import {
-    HydratedRemoveCompanyDeed,
-    isRemoveCompanyDeed
-} from '../actions/removeCompanyDeed.js'
+import { HydratedRemoveCompanyDeed, isRemoveCompanyDeed } from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { canAnyPlayerAnnounceMerger } from '../operations/mergers.js'
 import { resolvePostMergersState } from './operationsFlow.js'
 
 type BiddingForTurnOrderAction =
-    | HydratedPlaceTurnOrderBid
-    | HydratedSetTurnOrder
-    | HydratedRemoveCompanyDeed
+    HydratedPlaceTurnOrderBid | HydratedSetTurnOrder | HydratedRemoveCompanyDeed
 
 export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
     BiddingForTurnOrderAction,
@@ -113,9 +108,7 @@ export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
         }
     }
 
-    private hasPendingSetTurnOrder(
-        context: MachineContext<HydratedIndonesiaGameState>
-    ): boolean {
+    private hasPendingSetTurnOrder(context: MachineContext<HydratedIndonesiaGameState>): boolean {
         return context.getPendingActions().some((pendingAction) => isSetTurnOrder(pendingAction))
     }
 }

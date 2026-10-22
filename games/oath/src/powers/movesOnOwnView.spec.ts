@@ -42,7 +42,10 @@ function powerOf(cardId: string, timing: PowerTiming) {
 }
 
 function warbandsOf(s: HydratedOathGameState, playerId: string) {
-    return JSON.stringify({ board: s.getPlayerState(playerId).warbandsOnBoard, sites: s.warbandsBySite })
+    return JSON.stringify({
+        board: s.getPlayerState(playerId).warbandsOnBoard,
+        sites: s.warbandsBySite
+    })
 }
 
 /** Each seat's served view, so a check that changed anything shows. */
@@ -54,16 +57,48 @@ function servedViews(s: HydratedOathGameState, seats: readonly string[]): string
  * Dana campaigns against Bea at c1. Bea rules c1 (2), p1 (3) and h1 (1), holds 2 on their board and
  * Warning Signals faceup, with `advisers` beside it; Dana holds a facedown adviser Bea cannot see.
  */
-function defending(advisers: string[] = [], attackerPlans: string[] = [], denizensBySite: Record<string, string[]> = {}): HydratedOathGameState {
+function defending(
+    advisers: string[] = [],
+    attackerPlans: string[] = [],
+    denizensBySite: Record<string, string[]> = {}
+): HydratedOathGameState {
     const s = testState(
         [
-            testPlayer({ playerId: 'dana', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { dana: 3 }, advisers: [adviser(TENTS, false), ...attackerPlans.map((cardId) => adviser(cardId))] }),
-            testPlayer({ playerId: 'bea', color: Color.Blue, siteId: 'c1', favor: 4, secrets: 2, warbandsOnBoard: { bea: 2 }, advisers: [adviser(WARNING), ...advisers.map((cardId) => adviser(cardId))] })
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 3,
+                supply: 6,
+                warbandsOnBoard: { dana: 3 },
+                advisers: [adviser(TENTS, false), ...attackerPlans.map((cardId) => adviser(cardId))]
+            }),
+            testPlayer({
+                playerId: 'bea',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 2,
+                warbandsOnBoard: { bea: 2 },
+                advisers: [adviser(WARNING), ...advisers.map((cardId) => adviser(cardId))]
+            })
         ],
-        { denizensBySite, warbandsBySite: { c1: { bea: 2 }, p1: { bea: 3 }, h1: { bea: 1 }, c2: { dana: 2 } } }
+        {
+            denizensBySite,
+            warbandsBySite: { c1: { bea: 2 }, p1: { bea: 3 }, h1: { bea: 1 }, c2: { dana: 2 } }
+        }
     )
     openTurn(s, 'dana')
-    new HydratedCampaign(buildAction(Campaign, { playerId: 'dana', defender: { kind: 'player', playerId: 'bea' }, targets: [siteTarget('c1')], attackDice: 2, plans: attackerPlans.map(battlePlanUse) })).apply(s)
+    new HydratedCampaign(
+        buildAction(Campaign, {
+            playerId: 'dana',
+            defender: { kind: 'player', playerId: 'bea' },
+            targets: [siteTarget('c1')],
+            attackDice: 2,
+            plans: attackerPlans.map(battlePlanUse)
+        })
+    ).apply(s)
     return s
 }
 
@@ -77,8 +112,26 @@ const WARNING_MOVES = [siteWarbands('p1', 'bea', 2), boardWarbands('bea', 'bea',
 function messengerTable(): HydratedOathGameState {
     const s = testState(
         [
-            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, supply: 3, warbandsOnBoard: { rhys: 2 }, warbandsInPersonalBank: { rhys: 5 } }),
-            testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'c1', favor: 2, secrets: 2, warbandsOnBoard: { ann: 2 }, warbandsInPersonalBank: { ann: 5 }, advisers: [adviser(TENTS, false)] })
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                supply: 3,
+                warbandsOnBoard: { rhys: 2 },
+                warbandsInPersonalBank: { rhys: 5 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 2,
+                secrets: 2,
+                warbandsOnBoard: { ann: 2 },
+                warbandsInPersonalBank: { ann: 5 },
+                advisers: [adviser(TENTS, false)]
+            })
         ],
         {
             denizensBySite: { c1: [MESSENGER], c2: [], h1: [] },
@@ -90,27 +143,54 @@ function messengerTable(): HydratedOathGameState {
     return s
 }
 
-const MESSENGER_MOVES = [siteWarbands('c2', 'rhys', 2), boardWarbands('rhys', 'rhys', 2), site('c1')]
+const MESSENGER_MOVES = [
+    siteWarbands('c2', 'rhys', 2),
+    boardWarbands('rhys', 'rhys', 2),
+    site('c1')
+]
 
 function messengerUse(s: HydratedOathGameState, choices: PowerChoice[]) {
-    return HydratedUseActionPower.reasonCannotUse(s, 'rhys', MESSENGER, powerIndexOf(MESSENGER, PowerTiming.Action), choices)
+    return HydratedUseActionPower.reasonCannotUse(
+        s,
+        'rhys',
+        MESSENGER,
+        powerIndexOf(MESSENGER, PowerTiming.Action),
+        choices
+    )
 }
 
 describe("Warning Signals checks its moves on the defender's own view as on the server", () => {
     it('ticking the plan with no moves, and declaring it with moves, are allowed on both', () => {
         const s = defending()
         for (const choices of [[], WARNING_MOVES]) {
-            expect(HydratedCampaignDefend.reasonCannotDefend(s, 'bea', [warningPlan(choices)])).toBeUndefined()
-            expect(HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', [warningPlan(choices)])).toBeUndefined()
+            expect(
+                HydratedCampaignDefend.reasonCannotDefend(s, 'bea', [warningPlan(choices)])
+            ).toBeUndefined()
+            expect(
+                HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', [
+                    warningPlan(choices)
+                ])
+            ).toBeUndefined()
         }
     })
 
     it('a move the rules refuse is refused with the same reason on both', () => {
         const s = defending()
-        const lastWarband = [siteWarbands('p1', 'bea', 2), site('h1'), siteWarbands('h1', 'bea', 3), site('c1')]
-        const server = HydratedCampaignDefend.reasonCannotDefend(s, 'bea', [warningPlan(lastWarband)])
+        const lastWarband = [
+            siteWarbands('p1', 'bea', 2),
+            site('h1'),
+            siteWarbands('h1', 'bea', 3),
+            site('c1')
+        ]
+        const server = HydratedCampaignDefend.reasonCannotDefend(s, 'bea', [
+            warningPlan(lastWarband)
+        ])
         expect(server).toBe("3 of bea's warbands chosen for warbands to move, but only 2 are there")
-        expect(HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', [warningPlan(lastWarband)])).toBe(server)
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', [
+                warningPlan(lastWarband)
+            ])
+        ).toBe(server)
     })
 
     it('the move editor after one move offers the same on both, read on the state that move leaves', () => {
@@ -119,7 +199,9 @@ describe("Warning Signals checks its moves on the defender's own view as on the 
         const earlier = [siteWarbands('p1', 'bea', 2)]
         const server = legalChoices(s, 'bea', power, earlier).map((c) => c.options)
         expect(server).not.toEqual(legalChoices(s, 'bea', power).map((c) => c.options))
-        expect(legalChoices(ownView(s, 'bea'), 'bea', power, earlier).map((c) => c.options)).toEqual(server)
+        expect(
+            legalChoices(ownView(s, 'bea'), 'bea', power, earlier).map((c) => c.options)
+        ).toEqual(server)
     })
 
     it('the checks change nothing, on the server or the view, and every seat is served as before', () => {
@@ -142,9 +224,16 @@ describe("Messenger checks its moves on the user's own view as on the server", (
         const s = messengerTable()
         expect(messengerUse(s, MESSENGER_MOVES)).toBeUndefined()
         expect(messengerUse(ownView(s, 'rhys'), MESSENGER_MOVES)).toBeUndefined()
-        const tooMany = [siteWarbands('c2', 'rhys', 2), site('c1'), siteWarbands('c1', 'rhys', 3), site('c2')]
+        const tooMany = [
+            siteWarbands('c2', 'rhys', 2),
+            site('c1'),
+            siteWarbands('c1', 'rhys', 3),
+            site('c2')
+        ]
         const server = messengerUse(s, tooMany)
-        expect(server).toBe("3 of rhys's warbands chosen for more warbands to move, but only 2 are there")
+        expect(server).toBe(
+            "3 of rhys's warbands chosen for more warbands to move, but only 2 are there"
+        )
         expect(messengerUse(ownView(s, 'rhys'), tooMany)).toBe(server)
     })
 
@@ -154,7 +243,9 @@ describe("Messenger checks its moves on the user's own view as on the server", (
         const earlier = [siteWarbands('c2', 'rhys', 2)]
         const server = legalChoices(s, 'rhys', power, earlier).map((c) => c.options)
         expect(server).not.toEqual(legalChoices(s, 'rhys', power).map((c) => c.options))
-        expect(legalChoices(ownView(s, 'rhys'), 'rhys', power, earlier).map((c) => c.options)).toEqual(server)
+        expect(
+            legalChoices(ownView(s, 'rhys'), 'rhys', power, earlier).map((c) => c.options)
+        ).toEqual(server)
     })
 
     it('the checks change nothing, on the server or the view, and every seat is served as before', () => {
@@ -178,42 +269,67 @@ describe("Warning Signals beside other cards reads the same on the defender's ow
         const plans = [warningPlan(WARNING_MOVES), battlePlanUse(CODE_OF_HONOR)]
         const server = HydratedCampaignDefend.reasonCannotDefend(s, 'bea', plans)
         expect(server).toBe(`${CODE_OF_HONOR}: you cannot use other battle plans with it`)
-        expect(HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', plans)).toBe(server)
+        expect(HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', plans)).toBe(
+            server
+        )
     })
 
     it("the attacker's Specialist closes the defender's plan step alike, before any move is read", () => {
         const s = defending([], [SPECIALIST])
         expect(ongoingCampaign(s).defenderPlansLocked).toBe(true)
-        const server = HydratedCampaignDefend.reasonCannotDefend(s, 'bea', [warningPlan(WARNING_MOVES)])
+        const server = HydratedCampaignDefend.reasonCannotDefend(s, 'bea', [
+            warningPlan(WARNING_MOVES)
+        ])
         expect(server).toBe('the battle-plan step is not open')
-        expect(HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', [warningPlan(WARNING_MOVES)])).toBe(server)
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', [
+                warningPlan(WARNING_MOVES)
+            ])
+        ).toBe(server)
     })
 
     it('Ancient Bloodline and Vow of Union held beside it leave the moves allowed alike', () => {
         const s = defending([ANCIENT_BLOODLINE, VOW_OF_UNION])
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, 'bea', [warningPlan(WARNING_MOVES)])).toBeUndefined()
-        expect(HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', [warningPlan(WARNING_MOVES)])).toBeUndefined()
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(s, 'bea', [warningPlan(WARNING_MOVES)])
+        ).toBeUndefined()
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', [
+                warningPlan(WARNING_MOVES)
+            ])
+        ).toBeUndefined()
     })
 
     it('with Bear Traps the declaration is allowed alike, and the defence makes the moves and Bear Traps kills on the attacker board as it does alone', () => {
         const s = defending([BEAR_TRAPS])
         const plans = [warningPlan(WARNING_MOVES), battlePlanUse(BEAR_TRAPS)]
         expect(HydratedCampaignDefend.reasonCannotDefend(s, 'bea', plans)).toBeUndefined()
-        expect(HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', plans)).toBeUndefined()
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', plans)
+        ).toBeUndefined()
         new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'bea', plans })).apply(s)
         expect(s.getPlayerState('bea').warbandsOnBoard).toEqual({ bea: 0 })
         expect(s.warbandsBySite).toMatchObject({ c1: { bea: 2 }, p1: { bea: 1 }, h1: { bea: 5 } })
         const alone = defending([BEAR_TRAPS])
-        new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'bea', plans: [battlePlanUse(BEAR_TRAPS)] })).apply(alone)
+        new HydratedCampaignDefend(
+            buildAction(CampaignDefend, { playerId: 'bea', plans: [battlePlanUse(BEAR_TRAPS)] })
+        ).apply(alone)
         expect(alone.getPlayerState('dana').warbandsOnBoard).toEqual({ dana: 1 })
-        expect(s.getPlayerState('dana').warbandsOnBoard).toEqual(alone.getPlayerState('dana').warbandsOnBoard)
+        expect(s.getPlayerState('dana').warbandsOnBoard).toEqual(
+            alone.getPlayerState('dana').warbandsOnBoard
+        )
     })
 
     it('with Hospital at p1, which the moves leave one warband, the declaration is allowed alike and Hospital still holds kills there', () => {
         const s = defending([], [], { p1: [HOSPITAL] })
-        const plans = [warningPlan([siteWarbands('p1', 'bea', 2), site('h1')]), battlePlanUse(HOSPITAL)]
+        const plans = [
+            warningPlan([siteWarbands('p1', 'bea', 2), site('h1')]),
+            battlePlanUse(HOSPITAL)
+        ]
         expect(HydratedCampaignDefend.reasonCannotDefend(s, 'bea', plans)).toBeUndefined()
-        expect(HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', plans)).toBeUndefined()
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(ownView(s, 'bea'), 'bea', plans)
+        ).toBeUndefined()
         new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'bea', plans })).apply(s)
         expect(s.warbandsBySite).toMatchObject({ p1: { bea: 1 }, h1: { bea: 3 } })
         expect(ongoingCampaign(s).killRedirects).toEqual([{ playerId: 'bea', siteId: 'p1' }])

@@ -68,7 +68,11 @@ export class BuildingDropAnimator extends StateAnimator<
             { scale: 1, opacity: 1, duration: DROP_DURATION, ease: 'power2.in' },
             0
         )
-        timeline.to(node, { scale: LANDING_SQUASH_SCALE, duration: LANDING_DURATION / 2, ease: 'power1.out' }, DROP_DURATION)
+        timeline.to(
+            node,
+            { scale: LANDING_SQUASH_SCALE, duration: LANDING_DURATION / 2, ease: 'power1.out' },
+            DROP_DURATION
+        )
         timeline.to(
             node,
             { scale: 1, duration: LANDING_DURATION / 2, ease: 'power1.in' },

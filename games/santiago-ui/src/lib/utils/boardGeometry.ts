@@ -96,7 +96,12 @@ export function gridLine(cellIndex: number): number {
 // matching @tabletop/santiago's CanalSegment/Intersection indexing. Interior
 // intersections sit at the center of the ditch gap between two blocks; the outer ones
 // are simply the field's own edges.
-function intersections(starts: number[], cellSize: number, ditchGap: number, fieldSize: number): number[] {
+function intersections(
+    starts: number[],
+    cellSize: number,
+    ditchGap: number,
+    fieldSize: number
+): number[] {
     const result = [0]
     for (let i = 1; i < starts.length - 1; i += 2) {
         result.push(starts[i] + cellSize + ditchGap / 2)

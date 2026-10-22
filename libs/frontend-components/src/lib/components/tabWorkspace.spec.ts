@@ -1,27 +1,43 @@
 import { expect, it } from 'vitest'
-import { createWorkspace, activateTab, deletePane, moveTab, resizeSplit, splitPane, swapSplit, workspaceLayout, type WorkspaceNode } from './tabWorkspace.js'
-const initial = (): WorkspaceNode => ({ kind: 'pane', id: 'root', tabs: ['map', 'market', 'sheet', 'tiles'], active: 'map' })
+import {
+    createWorkspace,
+    activateTab,
+    deletePane,
+    moveTab,
+    resizeSplit,
+    splitPane,
+    swapSplit,
+    workspaceLayout,
+    type WorkspaceNode
+} from './tabWorkspace.js'
+const initial = (): WorkspaceNode => ({
+    kind: 'pane',
+    id: 'root',
+    tabs: ['map', 'market', 'sheet', 'tiles'],
+    active: 'map'
+})
 it('allows repeated directions, caps the workspace at eight panes, and frees capacity on deletion', () => {
     for (const axis of ['horizontal', 'vertical'] as const) {
         let root = initial()
         for (let i = 0; i < 7; i++) root = splitPane(root, 'root', axis)
         const layout = workspaceLayout(root)
         expect(layout.panes).toHaveLength(8)
-        expect(new Set(layout.panes.map(item => item.pane.id)).size).toBe(8)
-        expect(new Set(layout.dividers.map(item => item.split.id)).size).toBe(7)
+        expect(new Set(layout.panes.map((item) => item.pane.id)).size).toBe(8)
+        expect(new Set(layout.dividers.map((item) => item.split.id)).size).toBe(7)
         for (const item of layout.panes) {
             expect(item.available).toEqual([])
             expect(splitPane(root, item.pane.id, axis)).toEqual(root)
         }
         root = deletePane(root, layout.panes[1].pane.id)
-        expect(workspaceLayout(root).panes.every(item => item.available.length === 2)).toBe(true)
+        expect(workspaceLayout(root).panes.every((item) => item.available.length === 2)).toBe(true)
         root = splitPane(root, 'root', axis)
         expect(workspaceLayout(root).panes).toHaveLength(8)
     }
 })
 it('moves tabs without losing or duplicating them, allowing empty panes', () => {
     let root = splitPane(initial(), 'root', 'vertical')
-    for (const tab of ['map', 'market', 'sheet', 'tiles']) root = moveTab(root, tab, 'root-vertical')
+    for (const tab of ['map', 'market', 'sheet', 'tiles'])
+        root = moveTab(root, tab, 'root-vertical')
     const panes = workspaceLayout(root).panes
     expect(panes[0].pane.tabs).toEqual([])
     expect(panes[0].pane.active).toBeUndefined()
@@ -35,7 +51,7 @@ it('resizes only the chosen split and keeps panes within the workspace', () => {
     root = splitPane(root, 'root', 'horizontal')
     root = resizeSplit(root, 'root-split-horizontal', 99)
     const layout = workspaceLayout(root)
-    expect(layout.dividers.map(item => item.split.ratio)).toEqual([50, 95])
+    expect(layout.dividers.map((item) => item.split.ratio)).toEqual([50, 95])
     expect(layout.panes.reduce((area, pane) => area + pane.width * pane.height, 0)).toBe(10000)
 })
 it('reorders tabs within and between panes and appends drops on empty tab-bar space', () => {
@@ -47,7 +63,12 @@ it('reorders tabs within and between panes and appends drops on empty tab-bar sp
 })
 it('deletes panes and expands siblings without losing tabs', () => {
     let root = splitPane(initial(), 'root', 'vertical')
-    expect(workspaceLayout(deletePane(root, 'root')).panes[0].pane.tabs).toEqual(['map', 'market', 'sheet', 'tiles'])
+    expect(workspaceLayout(deletePane(root, 'root')).panes[0].pane.tabs).toEqual([
+        'map',
+        'market',
+        'sheet',
+        'tiles'
+    ])
     root = splitPane(root, 'root-vertical', 'horizontal')
     root = deletePane(root, 'root-vertical')
     expect(workspaceLayout(root).panes).toHaveLength(2)
@@ -61,7 +82,10 @@ it('merges populated panes into a surviving sibling subtree and cannot delete th
     root = splitPane(root, 'root', 'horizontal')
     root = moveTab(root, 'sheet', 'root-horizontal')
     root = deletePane(root, 'root-vertical')
-    expect(workspaceLayout(root).panes.map(item => item.pane.tabs)).toEqual([['map', 'tiles', 'market'], ['sheet']])
+    expect(workspaceLayout(root).panes.map((item) => item.pane.tabs)).toEqual([
+        ['map', 'tiles', 'market'],
+        ['sheet']
+    ])
     root = deletePane(root, 'root-horizontal')
     expect(workspaceLayout(root).panes[0].pane.tabs).toEqual(['map', 'tiles', 'market', 'sheet'])
     expect(deletePane(root, 'root')).toEqual(root)
@@ -69,10 +93,15 @@ it('merges populated panes into a surviving sibling subtree and cannot delete th
 
 it('initializes a half split with each tab in exactly one pane and selection preserved', () => {
     const tabs = ['map', 'market', 'sheet', 'tiles', 'actions']
-    const layout = workspaceLayout(createWorkspace(tabs, 'map', { axis: 'horizontal', first: ['actions'] }))
-    expect(layout.panes.map(item => item.pane.tabs)).toEqual([['actions'], ['map', 'market', 'sheet', 'tiles']])
-    expect(layout.panes.map(item => item.pane.active)).toEqual(['actions', 'map'])
-    expect(layout.panes.map(item => item.height)).toEqual([50, 50])
+    const layout = workspaceLayout(
+        createWorkspace(tabs, 'map', { axis: 'horizontal', first: ['actions'] })
+    )
+    expect(layout.panes.map((item) => item.pane.tabs)).toEqual([
+        ['actions'],
+        ['map', 'market', 'sheet', 'tiles']
+    ])
+    expect(layout.panes.map((item) => item.pane.active)).toEqual(['actions', 'map'])
+    expect(layout.panes.map((item) => item.height)).toEqual([50, 50])
     expect(workspaceLayout(createWorkspace(tabs, 'market')).panes[0].pane.active).toBe('market')
 })
 
@@ -82,6 +111,10 @@ it('swaps entire split branches while preserving each branch size', () => {
     root = splitPane(root, 'root', 'horizontal')
     const swapped = swapSplit(root, 'root-split-vertical')
     expect(swapped.kind === 'split' && swapped.ratio).toBe(65)
-    expect(workspaceLayout(swapped).panes.map(item => item.pane.id)).toEqual(['root-vertical', 'root', 'root-horizontal'])
+    expect(workspaceLayout(swapped).panes.map((item) => item.pane.id)).toEqual([
+        'root-vertical',
+        'root',
+        'root-horizontal'
+    ])
     expect(swapSplit(swapped, 'root-split-vertical')).toEqual(root)
 })

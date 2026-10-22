@@ -42,7 +42,8 @@ export class HydratedSubmitBid extends HydratableAction<typeof SubmitBid> implem
         assert(this.bidAmount >= 0, 'Bid must be non-negative')
 
         const currentTotal = auction.totalBids[this.playerId] ?? 0
-        const newTotal = auction.phase === 'tiebreak' ? currentTotal + this.bidAmount : this.bidAmount
+        const newTotal =
+            auction.phase === 'tiebreak' ? currentTotal + this.bidAmount : this.bidAmount
 
         const player = state.getPlayerState(this.playerId)
         assert(player.money >= newTotal, 'Not enough money to bid')
@@ -55,9 +56,7 @@ export class HydratedSubmitBid extends HydratableAction<typeof SubmitBid> implem
         if (!auction) {
             return false
         }
-        const participant = auction.round.participants.find(
-            (entry) => entry.playerId === playerId
-        )
+        const participant = auction.round.participants.find((entry) => entry.playerId === playerId)
         return participant !== undefined && participant.bid === undefined
     }
 }

@@ -35,7 +35,9 @@ function intersectRects(left: DOMRect, right: DOMRect): DOMRect | null {
 function clipsDescendants(element: HTMLElement): boolean {
     const style = getComputedStyle(element)
     const overflowValues = [style.overflow, style.overflowX, style.overflowY]
-    return overflowValues.some((value) => value === 'hidden' || value === 'scroll' || value === 'auto' || value === 'clip')
+    return overflowValues.some(
+        (value) => value === 'hidden' || value === 'scroll' || value === 'auto' || value === 'clip'
+    )
 }
 
 function clipRectForElement(sourceElement: HTMLElement): DOMRect | null {
@@ -197,7 +199,9 @@ export class CompanyMergerAnimator {
         if (clones.length === 0) {
             return
         }
-        const affectedPlayerIds = [...new Set([companyA.owner, companyB.owner, mergedCompany.owner])]
+        const affectedPlayerIds = [
+            ...new Set([companyA.owner, companyB.owner, mergedCompany.owner])
+        ]
         this.gameSession.rememberCompanyMergeAnimation(
             action.id,
             affectedPlayerIds.map((playerId) => ({

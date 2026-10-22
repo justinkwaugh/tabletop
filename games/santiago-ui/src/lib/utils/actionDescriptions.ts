@@ -29,7 +29,10 @@ export type DescriptionPart = string | { playerId: string }
 // callers that show a single inline line (History) join them with a dash separator;
 // callers that show them stacked (the banner above the board) render one per line instead,
 // per Justin's request not to run multi-part end-of-round summaries together with dashes.
-export function getDescriptionSegments(action: GameAction, ctx?: ActionDescriptionContext): DescriptionPart[][] {
+export function getDescriptionSegments(
+    action: GameAction,
+    ctx?: ActionDescriptionContext
+): DescriptionPart[][] {
     if (isRevealTiles(action)) {
         return [["revealed this round's fields"]]
     }
@@ -52,15 +55,16 @@ export function getDescriptionSegments(action: GameAction, ctx?: ActionDescripti
         if (ctx?.allActions && action.playerId) {
             const placeTime = action.createdAt?.getTime() ?? 0
             const lastRoundEndTime = ctx.allActions
-                .filter(a => isEndRoundEvent(a))
-                .map(a => a.createdAt?.getTime() ?? 0)
-                .filter(t => t < placeTime)
+                .filter((a) => isEndRoundEvent(a))
+                .map((a) => a.createdAt?.getTime() ?? 0)
+                .filter((t) => t < placeTime)
                 .reduce((max, t) => Math.max(max, t), 0)
-            const bid = ctx.allActions.find((a): a is PlaceBid =>
-                isPlaceBid(a) &&
-                a.playerId === action.playerId &&
-                (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
-                (a.createdAt?.getTime() ?? 0) < placeTime
+            const bid = ctx.allActions.find(
+                (a): a is PlaceBid =>
+                    isPlaceBid(a) &&
+                    a.playerId === action.playerId &&
+                    (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
+                    (a.createdAt?.getTime() ?? 0) < placeTime
             )
             if (bid?.amount === 0) return [['planted a field (−1 farmer penalty)']]
         }
@@ -153,14 +157,15 @@ function escudos(amount: number): string {
 }
 
 function humanizeActionType(type: string): string {
-    return type
-        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-        .toLowerCase()
+    return type.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase()
 }
 
 // Flattened, single-line form — segments joined with a dash separator — for callers that
 // render one inline line (History.svelte).
-export function getDescriptionForAction(action: GameAction, ctx?: ActionDescriptionContext): DescriptionPart[] {
+export function getDescriptionForAction(
+    action: GameAction,
+    ctx?: ActionDescriptionContext
+): DescriptionPart[] {
     const segments = getDescriptionSegments(action, ctx)
     const result: DescriptionPart[] = []
     segments.forEach((seg, i) => {
@@ -170,39 +175,52 @@ export function getDescriptionForAction(action: GameAction, ctx?: ActionDescript
     return result
 }
 
-function getPassPhase(action: GameAction, allActions: GameAction[]): 'canalBuilding' | 'extraIrrigation' {
+function getPassPhase(
+    action: GameAction,
+    allActions: GameAction[]
+): 'canalBuilding' | 'extraIrrigation' {
     const passTime = action.createdAt?.getTime() ?? 0
     const lastRoundEndTime = allActions
-        .filter(a => isEndRoundEvent(a))
-        .map(a => a.createdAt?.getTime() ?? 0)
-        .filter(t => t < passTime)
+        .filter((a) => isEndRoundEvent(a))
+        .map((a) => a.createdAt?.getTime() ?? 0)
+        .filter((t) => t < passTime)
         .reduce((max, t) => Math.max(max, t), 0)
-    const overseerDecidedBeforePass = allActions.some(a =>
-        isOverseerDecision(a) &&
-        (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
-        (a.createdAt?.getTime() ?? 0) < passTime
+    const overseerDecidedBeforePass = allActions.some(
+        (a) =>
+            isOverseerDecision(a) &&
+            (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
+            (a.createdAt?.getTime() ?? 0) < passTime
     )
     return overseerDecidedBeforePass ? 'extraIrrigation' : 'canalBuilding'
 }
 
-function getAllProposalsThisRound(decision: OverseerDecision, allActions: GameAction[]): ProposeCanal[] {
+function getAllProposalsThisRound(
+    decision: OverseerDecision,
+    allActions: GameAction[]
+): ProposeCanal[] {
     const decisionTime = decision.createdAt?.getTime() ?? 0
 
     // Only look at proposals from the same canal-building phase (after the last round end)
     const lastRoundEndTime = allActions
-        .filter(a => isEndRoundEvent(a))
-        .map(a => a.createdAt?.getTime() ?? 0)
-        .filter(t => t < decisionTime)
+        .filter((a) => isEndRoundEvent(a))
+        .map((a) => a.createdAt?.getTime() ?? 0)
+        .filter((t) => t < decisionTime)
         .reduce((max, t) => Math.max(max, t), 0)
 
     return allActions
         .filter(isProposeCanal)
-        .filter(a =>
-            (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
-            (a.createdAt?.getTime() ?? 0) < decisionTime
+        .filter(
+            (a) =>
+                (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
+                (a.createdAt?.getTime() ?? 0) < decisionTime
         )
 }
 
-function getProposalsForDecision(decision: OverseerDecision, allActions: GameAction[]): ProposeCanal[] {
-    return getAllProposalsThisRound(decision, allActions).filter(a => isSameSegment(a.segment, decision.segment))
+function getProposalsForDecision(
+    decision: OverseerDecision,
+    allActions: GameAction[]
+): ProposeCanal[] {
+    return getAllProposalsThisRound(decision, allActions).filter((a) =>
+        isSameSegment(a.segment, decision.segment)
+    )
 }

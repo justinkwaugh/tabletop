@@ -269,7 +269,12 @@ export function computeBusRouteRenderLayers(
 
     function anchorAtNode(nodeId: BusNodeId, otherId: BusNodeId, routeId: string): Vector {
         const edge = edgeKey(nodeId, otherId)
-        return anchorAtNodeWithOffsetAndRadius(nodeId, otherId, laneOffsetFor(edge, routeId), NODE_JOIN_RADIUS)
+        return anchorAtNodeWithOffsetAndRadius(
+            nodeId,
+            otherId,
+            laneOffsetFor(edge, routeId),
+            NODE_JOIN_RADIUS
+        )
     }
 
     function anchorAtNodeWithOffsetAndRadius(
@@ -326,12 +331,30 @@ export function computeBusRouteRenderLayers(
         const headBaseCenter = subtract(tip, scale(outward, TERMINAL_ARROW_HEAD_LENGTH))
         const neckCenter = subtract(headBaseCenter, scale(outward, TERMINAL_ARROW_NECK_SETBACK))
         const tailCenter = subtract(neckCenter, scale(outward, TERMINAL_ARROW_TAIL_LENGTH))
-        const headLeft = add(headBaseCenter, scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH))
-        const headRight = subtract(headBaseCenter, scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH))
-        const neckLeft = add(neckCenter, scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH))
-        const neckRight = subtract(neckCenter, scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH))
-        const tailLeft = add(tailCenter, scale(perpendicularOutward, TERMINAL_ARROW_TAIL_HALF_WIDTH))
-        const tailRight = subtract(tailCenter, scale(perpendicularOutward, TERMINAL_ARROW_TAIL_HALF_WIDTH))
+        const headLeft = add(
+            headBaseCenter,
+            scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH)
+        )
+        const headRight = subtract(
+            headBaseCenter,
+            scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH)
+        )
+        const neckLeft = add(
+            neckCenter,
+            scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH)
+        )
+        const neckRight = subtract(
+            neckCenter,
+            scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH)
+        )
+        const tailLeft = add(
+            tailCenter,
+            scale(perpendicularOutward, TERMINAL_ARROW_TAIL_HALF_WIDTH)
+        )
+        const tailRight = subtract(
+            tailCenter,
+            scale(perpendicularOutward, TERMINAL_ARROW_TAIL_HALF_WIDTH)
+        )
 
         return `M ${tip.x} ${tip.y} L ${headLeft.x} ${headLeft.y} L ${neckLeft.x} ${neckLeft.y} L ${tailLeft.x} ${tailLeft.y} L ${tailRight.x} ${tailRight.y} L ${neckRight.x} ${neckRight.y} L ${headRight.x} ${headRight.y} Z`
     }
@@ -407,4 +430,3 @@ export function computeBusRouteRenderLayers(
 
     return routeRenderLayers
 }
-

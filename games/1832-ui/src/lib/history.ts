@@ -37,9 +37,7 @@ import { redemptionHolderName } from './companyShareFacts.js'
 const TokenNames = { port: 'Port', cotton: 'Cotton', 'key-west': 'Key West' } as const
 
 /** 1832's revenue tokens, for their history rows' map previews. */
-export function eighteenThirtyTwoMapPlacement(
-    action: GameAction
-): HistoryMapPlacement | undefined {
+export function eighteenThirtyTwoMapPlacement(action: GameAction): HistoryMapPlacement | undefined {
     if (isPlaceRevenueToken(action))
         return {
             kind: `${TokenNames[action.kind]} token`,

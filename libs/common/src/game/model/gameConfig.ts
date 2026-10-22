@@ -77,7 +77,10 @@ export function listOptionDescription(
     value: GameConfig[string] | undefined
 ): string {
     const selected = value ?? option.default
-    return option.options.find((choice) => choice.value === selected)?.description ?? option.description
+    return (
+        option.options.find((choice) => choice.value === selected)?.description ??
+        option.description
+    )
 }
 
 export function isBooleanConfigOption(option: ConfigOption): option is BooleanConfigOption {

@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { Floater } from '@tabletop/frontend-components'
     import SuitMarker from '../SuitMarker.svelte'
     import { Effects, EffectType, Suit } from '@tabletop/sol'

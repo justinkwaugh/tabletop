@@ -8,7 +8,9 @@
 <div class="aid-card relative w-[262px] select-none rounded-[10px] text-[#2b1a0a]">
     <!-- A thin gilt ring just inside the dark outer edge - the double-frame look every
          card in the box has, without needing a border image. -->
-    <div class="pointer-events-none absolute inset-[3px] rounded-[7px] border border-[#a9843c]/45"></div>
+    <div
+        class="pointer-events-none absolute inset-[3px] rounded-[7px] border border-[#a9843c]/45"
+    ></div>
 
     <div class="aid-header rounded-t-[8px] px-3 py-[6px] text-center">
         <span class="aid-title text-[23px] leading-tight">{title}</span>

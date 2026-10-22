@@ -39,6 +39,8 @@ function linearChannel(value: number): number {
 }
 
 export function isDarkColor(hex: string): boolean {
-    const [red, green, blue] = [1, 3, 5].map((start) => linearChannel(parseInt(hex.slice(start, start + 2), 16) / 255))
+    const [red, green, blue] = [1, 3, 5].map((start) =>
+        linearChannel(parseInt(hex.slice(start, start + 2), 16) / 255)
+    )
     return 0.2126 * red + 0.7152 * green + 0.0722 * blue < DARK_LUMINANCE
 }

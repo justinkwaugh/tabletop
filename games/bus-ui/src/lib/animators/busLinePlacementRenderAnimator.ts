@@ -38,9 +38,7 @@ export class BusLinePlacementRenderAnimator extends StateAnimator<
         super(gameSession)
     }
 
-    private lineOverridesForState(
-        state: HydratedBusGameState
-    ): Map<string, BusNodeId[]> {
+    private lineOverridesForState(state: HydratedBusGameState): Map<string, BusNodeId[]> {
         const overrides = new Map<string, BusNodeId[]>()
         for (const playerState of state.players) {
             if (!playerState.busLine.every(isBusNodeId)) {
@@ -66,7 +64,9 @@ export class BusLinePlacementRenderAnimator extends StateAnimator<
             return
         }
 
-        const fromPlayerLineById = new Map(from.players.map((playerState) => [playerState.playerId, playerState.busLine]))
+        const fromPlayerLineById = new Map(
+            from.players.map((playerState) => [playerState.playerId, playerState.busLine])
+        )
         const lineChanged = to.players.some((playerState) => {
             const fromLine = fromPlayerLineById.get(playerState.playerId)
             if (!fromLine || fromLine.length !== playerState.busLine.length) {
@@ -93,7 +93,9 @@ export class BusLinePlacementRenderAnimator extends StateAnimator<
         const sourceNodeId = action.segment[0]
         const targetNodeId = action.segment[1]
         const priorLine = fromPlayerLineById.get(action.playerId)
-        const nextLine = to.players.find((playerState) => playerState.playerId === action.playerId)?.busLine
+        const nextLine = to.players.find(
+            (playerState) => playerState.playerId === action.playerId
+        )?.busLine
         if (!priorLine?.every(isBusNodeId) || !nextLine?.every(isBusNodeId)) {
             this.callbacks.onStart({ overrides: finalOverrides })
             return

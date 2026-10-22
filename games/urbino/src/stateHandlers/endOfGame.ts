@@ -11,9 +11,10 @@ import { computeDistrictScores } from '../logic/board.js'
 
 type EndOfGameAction = HydratedAction
 
-export class EndOfGameStateHandler
-    implements MachineStateHandler<EndOfGameAction, HydratedUrbinoGameState>
-{
+export class EndOfGameStateHandler implements MachineStateHandler<
+    EndOfGameAction,
+    HydratedUrbinoGameState
+> {
     isValidAction(
         _action: HydratedAction,
         _context: MachineContext<HydratedUrbinoGameState>

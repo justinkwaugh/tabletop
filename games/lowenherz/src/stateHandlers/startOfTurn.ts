@@ -8,14 +8,18 @@ import { awardHillPowerPoints } from '../util/hillPowerPoints.js'
 
 type StartOfTurnAction = HydratedDrawActionCard
 
-export class StartOfTurnStateHandler
-    implements MachineStateHandler<StartOfTurnAction, HydratedLowenherzGameState>
-{
+export class StartOfTurnStateHandler implements MachineStateHandler<
+    StartOfTurnAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedLowenherzGameState>
     ): action is StartOfTurnAction {
-        return action instanceof HydratedDrawActionCard && action.isValidDrawActionCard(context.gameState)
+        return (
+            action instanceof HydratedDrawActionCard &&
+            action.isValidDrawActionCard(context.gameState)
+        )
     }
 
     validActionsForPlayer(
@@ -42,7 +46,10 @@ export class StartOfTurnStateHandler
 
         switch (card?.type) {
             case ActionCardType.Mining: {
-                action.metadata = { ...action.metadata, hillScoring: awardHillPowerPoints(gameState) }
+                action.metadata = {
+                    ...action.metadata,
+                    hillScoring: awardHillPowerPoints(gameState)
+                }
                 gameState.discardedActionCard = gameState.currentActionCard
                 gameState.currentActionCard = undefined
                 // Unlike a standard card's multi-step resolution, Mining has nothing
@@ -52,7 +59,10 @@ export class StartOfTurnStateHandler
                 return MachineState.StartOfTurn
             }
             case ActionCardType.KingIsDead: {
-                action.metadata = { ...action.metadata, hillScoring: awardHillPowerPoints(gameState) }
+                action.metadata = {
+                    ...action.metadata,
+                    hillScoring: awardHillPowerPoints(gameState)
+                }
                 gameState.discardedActionCard = undefined
                 return MachineState.EndOfGame
             }

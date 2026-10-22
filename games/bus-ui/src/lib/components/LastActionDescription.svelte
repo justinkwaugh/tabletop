@@ -21,16 +21,20 @@
     })
 </script>
 
-    <div class={`bg-transparent ${textColor} flex w-full items-center justify-center px-4 py-1 text-center`}>
+<div
+    class={`bg-transparent ${textColor} flex w-full items-center justify-center px-4 py-1 text-center`}
+>
     {#if lastAction}
         <h1 class="inline-flex items-center text-[18px] tracking-[0.02em]">
             {#if lastAction.playerId}
-                <PlayerName
-                    playerId={lastAction.playerId}
-                    additionalClasses="tracking-[0.08em]"
-                />
+                <PlayerName playerId={lastAction.playerId} additionalClasses="tracking-[0.08em]" />
             {/if}
-            <ActionDescription action={lastAction} justify="center" history={true} fullWidth={false} />
+            <ActionDescription
+                action={lastAction}
+                justify="center"
+                history={true}
+                fullWidth={false}
+            />
         </h1>
     {:else if fallbackText}
         <span class="text-[18px] tracking-[0.02em]">{fallbackText}</span>

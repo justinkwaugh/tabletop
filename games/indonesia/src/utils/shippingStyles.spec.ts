@@ -10,7 +10,11 @@ import {
 import { describe, expect, it } from 'vitest'
 import { CompanyType } from '../definition/companyType.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
-import { chooseMergedShippingStyle, chooseNewShippingStyle, resolveShippingStyleByCompanyId } from './shippingStyles.js'
+import {
+    chooseMergedShippingStyle,
+    chooseNewShippingStyle,
+    resolveShippingStyleByCompanyId
+} from './shippingStyles.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -75,9 +79,11 @@ function addShippingCompany(
         ownerId,
         deedIndex,
         shipStyle
-    }: { companyId: string, ownerId: string, deedIndex: number, shipStyle?: 'a' | 'b' | 'c' }
+    }: { companyId: string; ownerId: string; deedIndex: number; shipStyle?: 'a' | 'b' | 'c' }
 ): void {
-    const deed = state.availableDeeds.filter((candidate) => candidate.type === CompanyType.Shipping)[deedIndex]
+    const deed = state.availableDeeds.filter(
+        (candidate) => candidate.type === CompanyType.Shipping
+    )[deedIndex]
     expect(deed).toBeDefined()
     if (!deed || deed.type !== CompanyType.Shipping) {
         return
@@ -124,7 +130,9 @@ describe('shipping style assignment', () => {
 
     it('prefers an unused style for a player and least globally-used style when starting a new company', () => {
         const state = createTestState()
-        const [playerOneId, playerTwoId, playerThreeId] = state.players.map((player) => player.playerId)
+        const [playerOneId, playerTwoId, playerThreeId] = state.players.map(
+            (player) => player.playerId
+        )
 
         addShippingCompany(state, {
             companyId: 'p1-shipping-a',
@@ -172,7 +180,9 @@ describe('shipping style assignment', () => {
 
     it('assigns a new winner-compatible style when the winner owned neither merged shipping company', () => {
         const state = createTestState()
-        const [winnerId, otherPlayerId, thirdPlayerId] = state.players.map((player) => player.playerId)
+        const [winnerId, otherPlayerId, thirdPlayerId] = state.players.map(
+            (player) => player.playerId
+        )
 
         addShippingCompany(state, {
             companyId: 'winner-existing',

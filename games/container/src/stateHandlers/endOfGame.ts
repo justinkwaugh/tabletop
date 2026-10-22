@@ -74,8 +74,7 @@ export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction
             }
 
             const harborValue = player.harborStore.length * 2
-            const investmentHarborValue =
-                (bank?.personalHarbors[player.playerId]?.length ?? 0) * 3
+            const investmentHarborValue = (bank?.personalHarbors[player.playerId]?.length ?? 0) * 3
             const shipValue = player.ship.cargo.length * 3
             const loanPenalty = player.loans * 11
 

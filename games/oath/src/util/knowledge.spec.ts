@@ -42,7 +42,12 @@ const FACEDOWN = 'denizen.arcane.inquisitor'
 
 function table() {
     const s = testState([
-        testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', advisers: [{ cardId: FACEDOWN, faceUp: false }] }),
+        testPlayer({
+            playerId: 'p1',
+            color: Color.Red,
+            siteId: 'c1',
+            advisers: [{ cardId: FACEDOWN, faceUp: false }]
+        }),
         testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c2' })
     ])
     const vault = createOathVault(
@@ -92,7 +97,9 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
 
     it('a card shown to the table is remembered by the table, and a hidden one by the player who put it there', () => {
         const s = table()
-        putOnDiscardPile(s, Region.Provinces, [WOLVES, ELDERS], false, { witnessOf: (cardId: string) => (cardId === WOLVES ? ['everyone'] : ['p1']) })
+        putOnDiscardPile(s, Region.Provinces, [WOLVES, ELDERS], false, {
+            witnessOf: (cardId: string) => (cardId === WOLVES ? ['everyone'] : ['p1'])
+        })
         expect(s.requireVault().discardPiles.provinces).toEqual([ELDERS, WOLVES, RANGERS])
         // R-9.4 — the table saw the hidden card's back go down.
         expect(s.seenDiscardPiles.provinces).toEqual([null, WOLVES, { back: CardKind.Denizen }])
@@ -100,7 +107,11 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
         expect(s.getPlayerState('p2').knownDiscardPiles?.provinces).toEqual([])
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
-        expect(OathVisibility.state.project(state, spectator).seenDiscardPiles.provinces).toEqual([null, WOLVES, { back: CardKind.Denizen }])
+        expect(OathVisibility.state.project(state, spectator).seenDiscardPiles.provinces).toEqual([
+            null,
+            WOLVES,
+            { back: CardKind.Denizen }
+        ])
         expect(JSON.stringify(OathVisibility.state.project(state, spectator))).not.toContain(ELDERS)
     })
 
@@ -118,13 +129,21 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
 
     it('Truthful Harp — the table knows which cards went down but not their order; their player knows both', () => {
         const s = table()
-        putOnDiscardPile(s, Region.Hinterland, [WOLVES, ELDERS], false, { witnessOf: () => ['p1'], setWitnessesOf: (cardId: string) => ([WOLVES, ELDERS].includes(cardId) ? ['everyone'] : []) })
+        putOnDiscardPile(s, Region.Hinterland, [WOLVES, ELDERS], false, {
+            witnessOf: () => ['p1'],
+            setWitnessesOf: (cardId: string) =>
+                [WOLVES, ELDERS].includes(cardId) ? ['everyone'] : []
+        })
         expect(s.getPlayerState('p1').knownDiscardPiles?.hinterland).toEqual([WOLVES, ELDERS])
         const set = { among: [WOLVES, ELDERS].toSorted(), back: CardKind.Denizen }
         expect(s.seenDiscardPiles.hinterland).toEqual([set, set])
         expect(s.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([])
         const other = table()
-        putOnDiscardPile(other, Region.Hinterland, [ELDERS, WOLVES], false, { witnessOf: () => ['p1'], setWitnessesOf: (cardId: string) => ([WOLVES, ELDERS].includes(cardId) ? ['everyone'] : []) })
+        putOnDiscardPile(other, Region.Hinterland, [ELDERS, WOLVES], false, {
+            witnessOf: () => ['p1'],
+            setWitnessesOf: (cardId: string) =>
+                [WOLVES, ELDERS].includes(cardId) ? ['everyone'] : []
+        })
         expect(other.seenDiscardPiles).toEqual(s.seenDiscardPiles)
     })
 
@@ -161,7 +180,15 @@ describe('the world deck’s bottom, as each player saw it (Cracked Horn)', () =
         const SCOUTS = 'denizen.order.scouts'
         putUnderWorldDeckKnown(s, [TENTS], { witnessOf: () => ['p1'] })
         putUnderWorldDeckKnown(s, [ELDERS, SCOUTS], { witnessOf: () => ['p2'] })
-        expect(s.requireVault().worldDeck).toEqual([INN, VISION, WOLVES, RANGERS, TENTS, ELDERS, SCOUTS])
+        expect(s.requireVault().worldDeck).toEqual([
+            INN,
+            VISION,
+            WOLVES,
+            RANGERS,
+            TENTS,
+            ELDERS,
+            SCOUTS
+        ])
         expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([null, null, TENTS])
         expect(s.getPlayerState('p2').knownWorldDeckBottom).toEqual([SCOUTS, ELDERS])
         // R-5.1.2 — the draw stops on the Vision, well above the cards under the deck.
@@ -188,17 +215,26 @@ describe('a known relic drawn back out of the relic deck', () => {
         expect(s.seenRelics).toEqual({ 'c2.relic.1': DRUM })
     })
 
-    it('into a relic question: whoever knew it sees the question\'s relic', () => {
+    it("into a relic question: whoever knew it sees the question's relic", () => {
         const s = table()
         s.pendingQuestions = {
-            queue: [{ kind: PowerQuestionKind.KeepOrBottomRelic, cardId: 'relic.dowsing-sticks', askedPlayerId: 'p1', seenBy: ['p2'], relicCardId: CUP }],
+            queue: [
+                {
+                    kind: PowerQuestionKind.KeepOrBottomRelic,
+                    cardId: 'relic.dowsing-sticks',
+                    askedPlayerId: 'p1',
+                    seenBy: ['p2'],
+                    relicCardId: CUP
+                }
+            ],
             askingPlayerId: 'p1',
             resumeMachineState: MachineState.ActPhase
         }
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
         const relicOf = (perspective: Visibility.Perspective) => {
-            const question = OathVisibility.state.project(state, perspective).pendingQuestions?.queue[0]
+            const question = OathVisibility.state.project(state, perspective).pendingQuestions
+                ?.queue[0]
             return question && 'relicCardId' in question ? question.relicCardId : undefined
         }
         expect(relicOf({ kind: 'player', playerId: 'p2' })).toBe(CUP)
@@ -207,11 +243,15 @@ describe('a known relic drawn back out of the relic deck', () => {
 })
 
 describe('Oracle and what lies under the world deck', () => {
-    it('moves no record but its drawer\'s while a Vision may lie above what the table saw go under', () => {
+    it("moves no record but its drawer's while a Vision may lie above what the table saw go under", () => {
         const s = table()
         s.requireVault().worldDeck = [INN, 'vision.people', WOLVES]
         s.worldDeckVisions = 1
-        putUnderWorldDeckKnown(s, [VISION, TENTS], { witnessOf: () => ['p1'], setWitnessesOf: (cardId: string) => ([VISION, TENTS].includes(cardId) ? ['everyone'] : []) })
+        putUnderWorldDeckKnown(s, [VISION, TENTS], {
+            witnessOf: () => ['p1'],
+            setWitnessesOf: (cardId: string) =>
+                [VISION, TENTS].includes(cardId) ? ['everyone'] : []
+        })
         const table_ = structuredClone(s.seenWorldDeckBottom)
         expect(drawWorldDeckVision(s, 'p1')).toBe('vision.people')
         expect(s.seenWorldDeckBottom).toEqual(table_)
@@ -221,11 +261,17 @@ describe('Oracle and what lies under the world deck', () => {
     it('when every Vision left lies under the deck, everyone knows which one it took', () => {
         const s = table()
         s.requireVault().worldDeck = [INN, WOLVES]
-        putUnderWorldDeckKnown(s, [VISION, TENTS], { witnessOf: () => ['p1'], setWitnessesOf: (cardId: string) => ([VISION, TENTS].includes(cardId) ? ['everyone'] : []) })
+        putUnderWorldDeckKnown(s, [VISION, TENTS], {
+            witnessOf: () => ['p1'],
+            setWitnessesOf: (cardId: string) =>
+                [VISION, TENTS].includes(cardId) ? ['everyone'] : []
+        })
         expect(s.worldDeckVisions).toBe(1)
         expect(drawWorldDeckVision(s, 'p1')).toBe(VISION)
         expect(s.requireVault().worldDeck).toEqual([INN, WOLVES, TENTS])
-        expect(s.seenWorldDeckBottom).toEqual([{ among: [TENTS, VISION].toSorted(), back: CardKind.Denizen }])
+        expect(s.seenWorldDeckBottom).toEqual([
+            { among: [TENTS, VISION].toSorted(), back: CardKind.Denizen }
+        ])
         expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([TENTS])
         expect(s.worldDeckVisions).toBe(0)
     })
@@ -248,7 +294,10 @@ describe('R-9.4 — the backs of held cards are public', () => {
         const p2 = s.getPlayerState('p2')
         p2.setHand([VISION, WOLVES])
         expect(p2.handVisions).toBe(1)
-        p2.setAdvisers([{ cardId: VISION, faceUp: false }, { cardId: TENTS, faceUp: false }])
+        p2.setAdvisers([
+            { cardId: VISION, faceUp: false },
+            { cardId: TENTS, faceUp: false }
+        ])
         expect(p2.advisers).toEqual([{ faceUp: false, vision: true }, { faceUp: false }])
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
@@ -262,7 +311,9 @@ describe('R-9.4 — the backs of held cards are public', () => {
 describe('HIDDEN-010 — a card someone knew in a stack, drawn into a hand', () => {
     it('stays known in that hand: to the table when the table knew it, to a player when they did', () => {
         const s = table()
-        putOnDiscardPile(s, Region.Hinterland, [WOLVES, ELDERS], false, { witnessOf: (cardId: string) => (cardId === WOLVES ? ['everyone'] : ['p1']) })
+        putOnDiscardPile(s, Region.Hinterland, [WOLVES, ELDERS], false, {
+            witnessOf: (cardId: string) => (cardId === WOLVES ? ['everyone'] : ['p1'])
+        })
         expect(drawDiscardPile(s, Region.Hinterland, 2, false, 'p2')).toEqual([ELDERS, WOLVES])
         expect(s.getPlayerState('p2').handSeen).toEqual([WOLVES])
         expect(s.getPlayerState('p1').knownHands).toEqual({ p2: [ELDERS] })
@@ -281,7 +332,10 @@ describe('HIDDEN-010 — a card someone knew in a stack, drawn into a hand', () 
             witnessOf: () => ['p1'],
             setWitnessesOf: (cardId: string) => witnesses.setsByCard.get(cardId) ?? []
         })
-        expect(s.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([{ among: [FACEDOWN] }, { among: [FACEDOWN] }])
+        expect(s.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([
+            { among: [FACEDOWN] },
+            { among: [FACEDOWN] }
+        ])
         expect(s.getPlayerState('p1').knownDiscardPiles?.hinterland).toEqual([FACEDOWN, WOLVES])
     })
 })
@@ -297,15 +351,23 @@ describe('HIDDEN-011 — a set a witness knew only part of', () => {
     }
 
     it('lies at every place of the deposit with its back, so the order stays the depositor’s', () => {
-        const [first, second] = [handKnown([WOLVES, ELDERS, VISION]), handKnown([ELDERS, WOLVES, VISION])]
+        const [first, second] = [
+            handKnown([WOLVES, ELDERS, VISION]),
+            handKnown([ELDERS, WOLVES, VISION])
+        ]
         expect(first.seenDiscardPiles.hinterland).toEqual([
             { among: [WOLVES], back: CardKind.Denizen },
             { among: [WOLVES], back: CardKind.Denizen },
             { back: CardKind.Vision }
         ])
         expect(second.seenDiscardPiles).toEqual(first.seenDiscardPiles)
-        expect(second.getPlayerState('p2').knownDiscardPiles).toEqual(first.getPlayerState('p2').knownDiscardPiles)
-        expect(first.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([{ among: [WOLVES] }, { among: [WOLVES] }])
+        expect(second.getPlayerState('p2').knownDiscardPiles).toEqual(
+            first.getPlayerState('p2').knownDiscardPiles
+        )
+        expect(first.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([
+            { among: [WOLVES] },
+            { among: [WOLVES] }
+        ])
     })
 })
 
@@ -337,12 +399,18 @@ describe('the relic deck’s bottom, as each player saw it', () => {
             ['relic.ring-of-devotion']
         ])
         expect(s.seenRelicDeckBottom).toEqual(['relic.ring-of-devotion'])
-        expect(drawRelicDeck(s, 3)).toEqual({ relicCardIds: [DRUM, MAP, CUP], seenBy: [[], [], ['p1']] })
+        expect(drawRelicDeck(s, 3)).toEqual({
+            relicCardIds: [DRUM, MAP, CUP],
+            seenBy: [[], [], ['p1']]
+        })
         expect(s.players.map((player) => player.knownRelicDeckBottom)).toEqual([
             ['relic.ring-of-devotion'],
             ['relic.ring-of-devotion']
         ])
-        expect(drawRelicDeck(s, 1)).toEqual({ relicCardIds: ['relic.ring-of-devotion'], seenBy: [['everyone']] })
+        expect(drawRelicDeck(s, 1)).toEqual({
+            relicCardIds: ['relic.ring-of-devotion'],
+            seenBy: [['everyone']]
+        })
         expect(s.seenRelicDeckBottom).toEqual([])
     })
 
@@ -363,8 +431,14 @@ describe('retained knowledge in projections', () => {
         s.getPlayerState('p1').recordSitePeek('h1', 'site.mountain')
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
-        const fields = ['peekedSites', 'knownWorldDeckTop', 'knownDiscardPiles', 'knownRelicDeckBottom']
-        const own = OathVisibility.state.project(state, { kind: 'player', playerId: 'p1' }).players[0]
+        const fields = [
+            'peekedSites',
+            'knownWorldDeckTop',
+            'knownDiscardPiles',
+            'knownRelicDeckBottom'
+        ]
+        const own = OathVisibility.state.project(state, { kind: 'player', playerId: 'p1' })
+            .players[0]
         expect(own).toMatchObject({
             peekedSites: { h1: 'site.mountain' },
             knownWorldDeckTop: [INN],
@@ -382,12 +456,17 @@ describe('retained knowledge in projections', () => {
 describe('R-9.4 — no facedown adviser is named by a public choice or discard order', () => {
     it('a discard in chosen order refuses a facedown adviser', () => {
         const s = table()
-        expect(() => discardFromPlayInChosenOrder(s, 'p1', [FACEDOWN, FILLER])).toThrow(/facedown adviser/)
+        expect(() => discardFromPlayInChosenOrder(s, 'p1', [FACEDOWN, FILLER])).toThrow(
+            /facedown adviser/
+        )
     })
 
     it('the default Card choice leaves out the actor’s facedown advisers', () => {
         const s = table()
-        const power = required(powersWithTiming(FACEDOWN, PowerTiming.Action)[0], 'the Inquisitor’s Action')
+        const power = required(
+            powersWithTiming(FACEDOWN, PowerTiming.Action)[0],
+            'the Inquisitor’s Action'
+        )
         const offered = defaultDomain(PowerChoiceKind.Card)(s, 'p1', power)
         expect(offered).not.toContainEqual({ kind: PowerChoiceKind.Card, cardId: FACEDOWN })
     })

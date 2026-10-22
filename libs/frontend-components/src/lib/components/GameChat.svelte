@@ -233,7 +233,9 @@
 {/snippet}
 
 <div
-    class="relative flex min-h-0 flex-col justify-end items-center w-full p-2 {framed ? 'rounded-lg border' : ''} {borderColor} gap-y-2 text-sm {bgColor} {height} overflow-hidden"
+    class="relative flex min-h-0 flex-col justify-end items-center w-full p-2 {framed
+        ? 'rounded-lg border'
+        : ''} {borderColor} gap-y-2 text-sm {bgColor} {height} overflow-hidden"
 >
     {#if gameSession.hasUnreadMessages && messagePanel && messagePanel.scrollTop !== 0}
         <div class="absolute top-4 left-0 w-full z-10 flex justify-center">
@@ -283,11 +285,7 @@
             ></textarea>
         </div>
 
-        <Button
-            onclick={() => sendMessage()}
-            size="sm"
-            class="px-2 w-[50px]"
-            disabled={!canCompose}
+        <Button onclick={() => sendMessage()} size="sm" class="px-2 w-[50px]" disabled={!canCompose}
             ><svg
                 class="w-6 h-6 text-gray-800 dark:text-white"
                 aria-hidden="true"

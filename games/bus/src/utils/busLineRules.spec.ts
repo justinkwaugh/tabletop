@@ -49,10 +49,7 @@ describe('busLineRules', () => {
         const ambiguousTargetSegments = segmentsByTarget.get('N06') ?? []
 
         expect(ambiguousTargetSegments).toEqual(
-            expect.arrayContaining([
-                ['N03', 'N06'] as const,
-                ['N07', 'N06'] as const
-            ])
+            expect.arrayContaining([['N03', 'N06'] as const, ['N07', 'N06'] as const])
         )
         expect(sourceCandidatesForTargetNode(line, 'N06').sort()).toEqual(['N03', 'N07'])
     })

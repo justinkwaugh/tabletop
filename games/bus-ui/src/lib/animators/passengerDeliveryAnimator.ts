@@ -63,7 +63,9 @@ export function findNodeToSitePassengerDeliveries(
     fromPassengers: readonly PassengerLike[],
     toPassengers: readonly PassengerLike[]
 ): PassengerDelivery[] {
-    const toPassengerById = new Map(toPassengers.map((passenger) => [passenger.id, passenger] as const))
+    const toPassengerById = new Map(
+        toPassengers.map((passenger) => [passenger.id, passenger] as const)
+    )
     const deliveries: PassengerDelivery[] = []
 
     for (const fromPassenger of fromPassengers) {
@@ -120,7 +122,11 @@ export class PassengerDeliveryAnimator extends StateAnimator<
         )
 
         if (action && isVroom(action)) {
-            const vroomDelivery = this.vroomDeliveryFromAction(action, from, settlementDeliveriesById)
+            const vroomDelivery = this.vroomDeliveryFromAction(
+                action,
+                from,
+                settlementDeliveriesById
+            )
             if (
                 vroomDelivery &&
                 this.animateVroomDelivery(vroomDelivery, from, action, animationContext)
@@ -364,9 +370,13 @@ export class PassengerDeliveryAnimator extends StateAnimator<
             pose: { ...delivery.pose }
         }))
 
-        animationContext.finalTimeline.call(() => {
-            this.callbacks.onStart(startPassengers)
-        }, undefined, 0)
+        animationContext.finalTimeline.call(
+            () => {
+                this.callbacks.onStart(startPassengers)
+            },
+            undefined,
+            0
+        )
 
         const duration = hasAction ? SETTLEMENT_DELIVERY_DURATION : FALLBACK_DELIVERY_DURATION
         for (const delivery of stagedDeliveries) {

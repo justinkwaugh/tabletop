@@ -6,7 +6,10 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceWall } from './placeWall.js'
 
-function blankBoard(): { squares: BoardSquare[][]; walls: { col: number; row: number; edge: WallEdge }[] } {
+function blankBoard(): {
+    squares: BoardSquare[][]
+    walls: { col: number; row: number; edge: WallEdge }[]
+} {
     return {
         squares: Array.from({ length: BOARD_ROWS }, () =>
             Array.from({ length: BOARD_COLS }, () => ({ type: SquareType.Blank }))
@@ -110,7 +113,9 @@ describe('HydratedPlaceWall', () => {
     })
 
     it('rejects a wall that already exists', () => {
-        const state = buildState({ board: { ...blankBoard(), walls: [{ col: 1, row: 0, edge: WallEdge.West }] } })
+        const state = buildState({
+            board: { ...blankBoard(), walls: [{ col: 1, row: 0, edge: WallEdge.West }] }
+        })
         expect(makePlaceWall('p1', 0, 0, 1, 0).isValidPlaceWall(state)).toBe(false)
     })
 

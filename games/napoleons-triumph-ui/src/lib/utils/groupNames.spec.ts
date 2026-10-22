@@ -19,10 +19,7 @@ describe('the name of the group a unit stands in', () => {
             'Detached, in reserve'
         )
         expect(
-            standingGroupName(
-                AUSTERLITZ,
-                unit({ position: { locale: 93, approach: approach.id } })
-            )
+            standingGroupName(AUSTERLITZ, unit({ position: { locale: 93, approach: approach.id } }))
         ).toBe('Detached, facing locale 94')
     })
 })

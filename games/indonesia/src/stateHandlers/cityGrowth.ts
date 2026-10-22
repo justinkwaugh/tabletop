@@ -10,17 +10,15 @@ import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
-import {
-    HydratedRemoveCompanyDeed,
-    isRemoveCompanyDeed
-} from '../actions/removeCompanyDeed.js'
+import { HydratedRemoveCompanyDeed, isRemoveCompanyDeed } from '../actions/removeCompanyDeed.js'
 import { resolvePostOperationsState } from './operationsFlow.js'
 
 type CityGrowthAction = HydratedGrowCity | HydratedRemoveCompanyDeed
 
-export class CityGrowthStateHandler
-    implements MachineStateHandler<CityGrowthAction, HydratedIndonesiaGameState>
-{
+export class CityGrowthStateHandler implements MachineStateHandler<
+    CityGrowthAction,
+    HydratedIndonesiaGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
@@ -73,7 +71,10 @@ export class CityGrowthStateHandler
         gameState.activePlayerIds = [growthDecisionPlayerId]
     }
 
-    onAction(action: CityGrowthAction, context: MachineContext<HydratedIndonesiaGameState>): MachineState {
+    onAction(
+        action: CityGrowthAction,
+        context: MachineContext<HydratedIndonesiaGameState>
+    ): MachineState {
         const state = context.gameState
         switch (true) {
             case isGrowCity(action): {
@@ -135,8 +136,8 @@ export class CityGrowthStateHandler
         context: MachineContext<HydratedIndonesiaGameState>,
         cityId: string
     ): boolean {
-        return context.getPendingActions().some(
-            (pendingAction) => isGrowCity(pendingAction) && pendingAction.cityId === cityId
-        )
+        return context
+            .getPendingActions()
+            .some((pendingAction) => isGrowCity(pendingAction) && pendingAction.cityId === cityId)
     }
 }

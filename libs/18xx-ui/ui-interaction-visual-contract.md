@@ -130,17 +130,17 @@ falls back to the company id as small text. Track into an offboard ends in a sho
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
 own. A marker whose art is a local line shows its label beside two linked circles while
 the hex has no tile, drawn above track with a halo in the hex's colour. It sits near
-the foot of the hex, or, when its art is ``above``, just over the hex's stops: above a
+the foot of the hex, or, when its art is `above`, just over the hex's stops: above a
 name curved over a city, below a straight name printed across the top, or above the
 terrain cost of a hex without stops. 1830 marks its private-blocked hexes this way,
 all above; 1889's Takamatsu marker is above.
 
-A map view may name each city of a hex (``cityNames``, 1830's OO and New York hexes):
+A map view may name each city of a hex (`cityNames`, 1830's OO and New York hexes):
 each name curves over its own city's drawn centre, turned off the hex's other cities
 and the names already placed, and replaces the hex's single name. A lone city's curved
 name follows the city's drawn centre, so an off-centre city (1830's Altoona) is wrapped
 by its name. A map view may instead curve a lone city's name under the city, reading
-along its foot (``namesBelow``), where track leaves over its top: TOP's Souris and
+along its foot (`namesBelow`), where track leaves over its top: TOP's Souris and
 Wellington, 1846's Huntington, 1832's New Orleans. Styles that print names straight
 across the top keep them there.
 

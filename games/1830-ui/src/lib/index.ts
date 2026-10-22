@@ -7,4 +7,3 @@ export const UiDefinition: GameUiDefinition<EighteenThirtyState, HydratedEightee
     info: { ...EighteenThirtyInfo, thumbnailUrl },
     runtime: async () => (await import('./runtime.js')).UiRuntime
 }
-

@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { detectNewRegions, repairDuplicateRegionIds } from './regionDetection.js'
-import { BOARD_COLS, BOARD_ROWS, BoardSquare, LowenherzBoard, SquareType, WallEdge } from '../model/board.js'
+import {
+    BOARD_COLS,
+    BOARD_ROWS,
+    BoardSquare,
+    LowenherzBoard,
+    SquareType,
+    WallEdge
+} from '../model/board.js'
 import { Region } from '../model/region.js'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
@@ -15,7 +22,12 @@ function blankBoard(): LowenherzBoard {
     }
 }
 
-function withCastle(board: LowenherzBoard, col: number, row: number, owner: string): LowenherzBoard {
+function withCastle(
+    board: LowenherzBoard,
+    col: number,
+    row: number,
+    owner: string
+): LowenherzBoard {
     board.squares[row][col] = { ...board.squares[row][col], castleOwner: owner }
     return board
 }
@@ -117,7 +129,9 @@ describe('detectNewRegions', () => {
 
         const newRegions = detectNewRegions(board, [])
         const neutralZone = newRegions.find(
-            (r) => new Set(r.squareKeys).size === 4 && [...r.squareKeys].every((k) => ['0,0', '1,0', '0,1', '1,1'].includes(k))
+            (r) =>
+                new Set(r.squareKeys).size === 4 &&
+                [...r.squareKeys].every((k) => ['0,0', '1,0', '0,1', '1,1'].includes(k))
         )
 
         expect(neutralZone).toBeDefined()
@@ -140,7 +154,9 @@ describe('detectNewRegions', () => {
         ]
 
         const newRegions = detectNewRegions(board, [])
-        const contestedPocket = newRegions.find((r) => r.squareKeys.includes('0,0') && r.squareKeys.includes('1,0'))
+        const contestedPocket = newRegions.find(
+            (r) => r.squareKeys.includes('0,0') && r.squareKeys.includes('1,0')
+        )
 
         expect(contestedPocket).toBeUndefined()
     })
@@ -215,7 +231,7 @@ describe('repairDuplicateRegionIds', () => {
         expect(regions.map((r) => r.id)).toEqual(['region-0', 'region-1'])
     })
 
-    it('re-mints later duplicates, keeping the first occurrence\'s id and skipping ids in use', () => {
+    it("re-mints later duplicates, keeping the first occurrence's id and skipping ids in use", () => {
         // Exactly the shape a game from before collision-free minting ends up in: the
         // setup pass hands out region-0..2, then a later wall placement restarts at 0.
         const regions = [

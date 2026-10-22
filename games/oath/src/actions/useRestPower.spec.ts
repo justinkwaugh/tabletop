@@ -5,7 +5,12 @@ import { HydratedUseActionPower, UseActionPower } from './useActionPower.js'
 import { Region } from '../model/oathEnums.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
-import { effectFor, registerEffect, type EffectDefinition, type EffectResult } from '../powers/registry.js'
+import {
+    effectFor,
+    registerEffect,
+    type EffectDefinition,
+    type EffectResult
+} from '../powers/registry.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
 import '../powers/index.js'
 import { buildAction } from '../testing/actions.js'
@@ -38,7 +43,17 @@ function probe(result: EffectResult): EffectDefinition {
 
 function board() {
     const s = testState([
-        testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, advisers: [{ cardId: INSOMNIA, faceUp: true }, { cardId: ELDERS, faceUp: true }] })
+        testPlayer({
+            playerId: ME,
+            color: Color.Red,
+            siteId: 'c1',
+            favor: 4,
+            secrets: 2,
+            advisers: [
+                { cardId: INSOMNIA, faceUp: true },
+                { cardId: ELDERS, faceUp: true }
+            ]
+        })
     ])
     openTurn(s, ME)
     const vault = s.requireVault()
@@ -49,13 +64,17 @@ function board() {
 }
 
 function rest(s: HydratedOathGameState) {
-    const a = new HydratedUseRestPower(buildAction(UseRestPower, { playerId: ME, cardId: INSOMNIA, powerIndex: REST.powerIndex }))
+    const a = new HydratedUseRestPower(
+        buildAction(UseRestPower, { playerId: ME, cardId: INSOMNIA, powerIndex: REST.powerIndex })
+    )
     a.apply(s)
     return a
 }
 
 function act(s: HydratedOathGameState) {
-    const a = new HydratedUseActionPower(buildAction(UseActionPower, { playerId: ME, cardId: ELDERS, powerIndex: ACTION.powerIndex }))
+    const a = new HydratedUseActionPower(
+        buildAction(UseActionPower, { playerId: ME, cardId: ELDERS, powerIndex: ACTION.powerIndex })
+    )
     a.apply(s)
     return a
 }
@@ -78,7 +97,14 @@ describe('UseRestPower carries what UseActionPower carries', () => {
         const r = rest(restState)
         const a = act(actionState)
 
-        expect(r.metadata).toEqual({ summary: 'probe', rolled: true, relicToDeckBottom: 'relic.cup', peeked: [INN], mergePiles: { from: Region.Hinterland, to: Region.Cradle }, pileDeposits: [{ region: Region.Provinces, cardIds: [WOLVES] }] })
+        expect(r.metadata).toEqual({
+            summary: 'probe',
+            rolled: true,
+            relicToDeckBottom: 'relic.cup',
+            peeked: [INN],
+            mergePiles: { from: Region.Hinterland, to: Region.Cradle },
+            pileDeposits: [{ region: Region.Provinces, cardIds: [WOLVES] }]
+        })
         expect(r.metadata).toEqual(a.metadata)
         expect(r.revealsInfo).toBe(true)
 
@@ -90,7 +116,14 @@ describe('UseRestPower carries what UseActionPower carries', () => {
     })
 
     it('a deposit alone makes it irreversible (R-X.3)', () => {
-        registerEffect(INSOMNIA, REST.powerIndex, probe({ summary: 'probe', pileDeposits: [{ region: Region.Provinces, cardIds: [WOLVES] }] }))
+        registerEffect(
+            INSOMNIA,
+            REST.powerIndex,
+            probe({
+                summary: 'probe',
+                pileDeposits: [{ region: Region.Provinces, cardIds: [WOLVES] }]
+            })
+        )
         const s = board()
         const r = rest(s)
         expect(r.revealsInfo).toBe(true)
@@ -101,7 +134,10 @@ describe('UseRestPower carries what UseActionPower carries', () => {
         registerEffect(INSOMNIA, REST.powerIndex, {
             choices: [],
             hidden: () => ({ kind: 'worldDeckPeek', count: 2 }),
-            resolve: (ctx) => ({ summary: 'probe', peeked: ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds : [] })
+            resolve: (ctx) => ({
+                summary: 'probe',
+                peeked: ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds : []
+            })
         })
         const s = board()
         s.requireVault().worldDeck = [WOLVES, INN, TENTS]
@@ -114,10 +150,17 @@ describe('UseRestPower carries what UseActionPower carries', () => {
     it('a reveal the client sends is never read, recorded or made an Undo barrier', () => {
         registerEffect(INSOMNIA, REST.powerIndex, {
             choices: [],
-            resolve: (ctx) => ({ summary: 'probe', peeked: ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds : undefined })
+            resolve: (ctx) => ({
+                summary: 'probe',
+                peeked: ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds : undefined
+            })
         })
         const s = board()
-        const sent = buildAction(UseRestPower, { playerId: ME, cardId: INSOMNIA, powerIndex: REST.powerIndex })
+        const sent = buildAction(UseRestPower, {
+            playerId: ME,
+            cardId: INSOMNIA,
+            powerIndex: REST.powerIndex
+        })
         const forged = { ...sent, reveal: { kind: 'peek', cardIds: [WOLVES] } }
         const r = new HydratedUseRestPower(forged)
         r.apply(s)

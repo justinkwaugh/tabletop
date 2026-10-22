@@ -36,13 +36,7 @@ const { wood, greatSlum, river, mountain, wastes } = WOOD_SLOTS
  *   Python (a Beast card): Dana picks the Plains or The Hidden Place, which flips their last one.
  */
 export type WoodPickScene =
-    | 'whistle'
-    | 'whistleAway'
-    | 'whistleToll'
-    | 'horseWood'
-    | 'palanquin'
-    | 'banish'
-    | 'horseOwn'
+    'whistle' | 'whistleAway' | 'whistleToll' | 'horseWood' | 'palanquin' | 'banish' | 'horseOwn'
 
 function sceneState(scene: WoodPickScene): HydratedOathGameState {
     const state = woodCardsState({ advisers: [] })
@@ -66,7 +60,8 @@ function sceneState(scene: WoodPickScene): HydratedOathGameState {
             return state
         case 'horseWood':
         case 'horseOwn': {
-            const top = scene === 'horseWood' ? 'denizen.order.council-seat' : 'denizen.beast.giant-python'
+            const top =
+                scene === 'horseWood' ? 'denizen.order.council-seat' : 'denizen.beast.giant-python'
             dana.relicIds = [BRASS_HORSE]
             dana.secrets = 2
             if (scene === 'horseOwn') {

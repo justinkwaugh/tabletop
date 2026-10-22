@@ -134,7 +134,9 @@
                     : company.good === Good.SiapSaji
                       ? SIAP_SAJI_HATCH_PATTERN_IDS[hatchVariant]
                       : HATCH_PATTERN_IDS[hatchVariant]
-            const baseGoodsPatternId = renderByGoods ? BASE_HATCH_PATTERN_ID_BY_GOOD[company.good] : null
+            const baseGoodsPatternId = renderByGoods
+                ? BASE_HATCH_PATTERN_ID_BY_GOOD[company.good]
+                : null
 
             entries.push({
                 key: area.id,
@@ -167,7 +169,9 @@
                     borderColor: renderByGoods
                         ? goodsStyle.stroke
                         : shadeHexColor(entry.ownerColor, 0.38),
-                    overlayPatternId: renderByGoods ? BASE_HATCH_PATTERN_ID_BY_GOOD[entry.good] : null
+                    overlayPatternId: renderByGoods
+                        ? BASE_HATCH_PATTERN_ID_BY_GOOD[entry.good]
+                        : null
                 }
             })
     })
@@ -191,26 +195,31 @@
                     borderColor: renderByGoods
                         ? goodsStyle.stroke
                         : shadeHexColor(entry.ownerColor, 0.38),
-                    overlayPatternId: renderByGoods ? BASE_HATCH_PATTERN_ID_BY_GOOD[entry.good] : null
+                    overlayPatternId: renderByGoods
+                        ? BASE_HATCH_PATTERN_ID_BY_GOOD[entry.good]
+                        : null
                 }
             })
     })
 
-    const mergedCultivatedEntries: (MergedCultivatedAreaEntry & CultivatedRenderEntry)[] = $derived.by(() => {
-        const renderByGoods = gameSession.productionZoneRenderStyle === 'goods'
-        return gameSession.visibleSiapSajiMergeAnimationEntries.map((entry) => {
-            const ownerColor = gameSession.colors.getPlayerUiColor(entry.ownerId)
-            const goodsStyle = GOODS_OVERLAY_STYLE_BY_GOOD[entry.good]
-            return {
-                ...entry,
-                fillColor: renderByGoods ? goodsStyle.fill : ownerColor,
-                borderColor: renderByGoods
-                    ? goodsStyle.stroke
-                    : shadeHexColor(ownerColor, 0.38),
-                overlayPatternId: renderByGoods ? BASE_HATCH_PATTERN_ID_BY_GOOD[entry.good] : null
-            }
+    const mergedCultivatedEntries: (MergedCultivatedAreaEntry & CultivatedRenderEntry)[] =
+        $derived.by(() => {
+            const renderByGoods = gameSession.productionZoneRenderStyle === 'goods'
+            return gameSession.visibleSiapSajiMergeAnimationEntries.map((entry) => {
+                const ownerColor = gameSession.colors.getPlayerUiColor(entry.ownerId)
+                const goodsStyle = GOODS_OVERLAY_STYLE_BY_GOOD[entry.good]
+                return {
+                    ...entry,
+                    fillColor: renderByGoods ? goodsStyle.fill : ownerColor,
+                    borderColor: renderByGoods
+                        ? goodsStyle.stroke
+                        : shadeHexColor(ownerColor, 0.38),
+                    overlayPatternId: renderByGoods
+                        ? BASE_HATCH_PATTERN_ID_BY_GOOD[entry.good]
+                        : null
+                }
+            })
         })
-    })
 
     const startedCultivatedAreaIdSet: ReadonlySet<string> = $derived.by(
         () => new Set(startedCultivatedEntries.map((entry) => entry.areaId))
@@ -281,7 +290,14 @@
             height="24"
             patternTransform="rotate(-25)"
         >
-            <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.3"></rect>
+            <rect
+                x="0"
+                y="0"
+                width="12"
+                height="24"
+                fill={SIAP_SAJI_PRIMARY_TINT}
+                fill-opacity="0.3"
+            ></rect>
         </pattern>
         <pattern
             id="cultivated-siapsaji-hatch-diag-1"
@@ -290,7 +306,14 @@
             height="24"
             patternTransform="rotate(25)"
         >
-            <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.3"></rect>
+            <rect
+                x="0"
+                y="0"
+                width="12"
+                height="24"
+                fill={SIAP_SAJI_PRIMARY_TINT}
+                fill-opacity="0.3"
+            ></rect>
         </pattern>
         <pattern
             id="cultivated-siapsaji-hatch-diag-2"
@@ -299,7 +322,14 @@
             height="24"
             patternTransform="rotate(35)"
         >
-            <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.26"></rect>
+            <rect
+                x="0"
+                y="0"
+                width="12"
+                height="24"
+                fill={SIAP_SAJI_PRIMARY_TINT}
+                fill-opacity="0.26"
+            ></rect>
         </pattern>
         <pattern
             id="cultivated-siapsaji-hatch-diag-3"
@@ -308,7 +338,14 @@
             height="24"
             patternTransform="rotate(-35)"
         >
-            <rect x="0" y="0" width="12" height="24" fill={SIAP_SAJI_PRIMARY_TINT} fill-opacity="0.26"></rect>
+            <rect
+                x="0"
+                y="0"
+                width="12"
+                height="24"
+                fill={SIAP_SAJI_PRIMARY_TINT}
+                fill-opacity="0.26"
+            ></rect>
         </pattern>
         <pattern
             id={RICE_BASE_HATCH_PATTERN_ID}
@@ -317,7 +354,8 @@
             height="24"
             patternTransform="rotate(-32)"
         >
-            <rect x="0" y="0" width="12" height="24" fill={RICE_PRIMARY_TINT} fill-opacity="0.14"></rect>
+            <rect x="0" y="0" width="12" height="24" fill={RICE_PRIMARY_TINT} fill-opacity="0.14"
+            ></rect>
         </pattern>
         <pattern
             id={RUBBER_BASE_HATCH_PATTERN_ID}
@@ -326,13 +364,7 @@
             height="24"
             patternTransform="rotate(-32)"
         >
-            <rect
-                x="0"
-                y="0"
-                width="12"
-                height="24"
-                fill={RUBBER_PRIMARY_TINT}
-                fill-opacity="0.12"
+            <rect x="0" y="0" width="12" height="24" fill={RUBBER_PRIMARY_TINT} fill-opacity="0.12"
             ></rect>
         </pattern>
         <pattern
@@ -342,7 +374,8 @@
             height="24"
             patternTransform="rotate(-32)"
         >
-            <rect x="0" y="0" width="12" height="24" fill={OIL_PRIMARY_TINT} fill-opacity="0.14"></rect>
+            <rect x="0" y="0" width="12" height="24" fill={OIL_PRIMARY_TINT} fill-opacity="0.14"
+            ></rect>
         </pattern>
         <pattern
             id={SIAP_SAJI_BASE_TINT_PATTERN_ID}
@@ -367,7 +400,8 @@
             height="24"
             patternTransform="rotate(-32)"
         >
-            <rect x="0" y="0" width="12" height="24" fill={SPICE_PRIMARY_TINT} fill-opacity="0.14"></rect>
+            <rect x="0" y="0" width="12" height="24" fill={SPICE_PRIMARY_TINT} fill-opacity="0.14"
+            ></rect>
         </pattern>
     </defs>
 

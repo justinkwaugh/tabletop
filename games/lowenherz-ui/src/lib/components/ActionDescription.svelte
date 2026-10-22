@@ -258,7 +258,9 @@
                     A neutral prince's region was completed ({region.spaceCount} space{region.spaceCount ===
                     1
                         ? ''
-                        : 's'}{townsPhrase(region.townCount)}){i === completed.length - 1 ? '.' : ''}
+                        : 's'}{townsPhrase(region.townCount)}){i === completed.length - 1
+                        ? '.'
+                        : ''}
                 {/if}
             {:else}
                 a neutral zone ({region.spaceCount} space{region.spaceCount === 1 ? '' : 's'}) was

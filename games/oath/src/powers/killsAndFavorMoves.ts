@@ -102,10 +102,12 @@ registerEffect(
                 : `Terror Spells kills two warbands: ${named} named, ${required} to kill`
         },
         resolve: (ctx) => {
-            const killed: WarbandGroup[] = chosen(ctx, PowerChoiceKind.Warbands).map(({ group }) => ({
-                ...group,
-                count: killWarbandGroup(ctx.state, group)
-            }))
+            const killed: WarbandGroup[] = chosen(ctx, PowerChoiceKind.Warbands).map(
+                ({ group }) => ({
+                    ...group,
+                    count: killWarbandGroup(ctx.state, group)
+                })
+            )
             const total = killed.reduce((n, group) => n + group.count, 0)
             return {
                 summary: `Terror Spells: killed ${total} warbands in ${ctx.playerId}'s region`,

@@ -70,6 +70,7 @@ These behaviors derive from displayed Game State, persisted configuration, and t
 - **Selected field tile** (the session, from a click; the tile strip and the board's planting targets): a manual staged selection that holds until the next state publishes.
 
 While either selection is set, the Undo button shows, and pressing it clears the selection, with any dialed bribe amount, instead of undoing an action; the next press undoes the last action as usual. See [user interactions](../../../docs/user-interactions.md).
+
 - **Bird ids** (bird director; bird layer): the current flock's presence, written when a flock spawns and cleared when it leaves, is startled away, the tab hides, or the layer unmounts; never written per frame.
 
 The land mood animator's ease is not shared state: it writes the light layers' and motes' styles directly. The Game Session owns Exploration availability; the shared exploration control consumes that value.

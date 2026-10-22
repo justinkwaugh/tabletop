@@ -90,7 +90,11 @@
      messages' face rather than the scan's blackletter. The count lines sit at the foot of the
      card and the letter centres in whatever room is left above them. -->
 {#snippet deckBack(back: CardBack, lines?: Snippet)}
-    <img src={backPlain} alt="Deck {back}" class="w-full h-full rounded-md shadow-md object-cover" />
+    <img
+        src={backPlain}
+        alt="Deck {back}"
+        class="w-full h-full rounded-md shadow-md object-cover"
+    />
     <div class="absolute inset-0 flex flex-col pb-[6%] text-black/80">
         <!-- IM Fell English's ascent (0.92em) and descent (0.36em) put a capital's ink - cap height
              0.695em - 0.0675em above the centre of a line-height-1 box ((asc - desc - cap) / 2), so

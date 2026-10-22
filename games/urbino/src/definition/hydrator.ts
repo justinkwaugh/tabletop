@@ -2,7 +2,10 @@ import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/co
 import { HydratedUrbinoGameState, UrbinoGameState } from '../model/gameState.js'
 import { HydratedPlaceArchitect, isPlaceArchitect } from '../actions/placeArchitect.js'
 import { HydratedChooseFirstPlayer, isChooseFirstPlayer } from '../actions/chooseFirstPlayer.js'
-import { HydratedRepositionArchitect, isRepositionArchitect } from '../actions/repositionArchitect.js'
+import {
+    HydratedRepositionArchitect,
+    isRepositionArchitect
+} from '../actions/repositionArchitect.js'
 import { HydratedPlaceBuilding, isPlaceBuilding } from '../actions/placeBuilding.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedConcede, isConcede } from '../actions/concede.js'

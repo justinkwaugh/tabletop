@@ -53,6 +53,10 @@ export class HydratedBidForLot extends HydratableAction<typeof BidForLot> implem
     }
     apply(state: HydratedGameState & SelectionAuctionState): void {
         assert(this.isValid(state), 'Invalid BidForLot action')
-        requireActiveSelectionAuction(state, this.#rules).bid(this.playerId, this.lotId, this.amount)
+        requireActiveSelectionAuction(state, this.#rules).bid(
+            this.playerId,
+            this.lotId,
+            this.amount
+        )
     }
 }

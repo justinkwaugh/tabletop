@@ -1,5 +1,10 @@
 import type { Point } from '@tabletop/common'
-import { BOARD_COLS, BOARD_ROWS, squareKey, type HydratedLowenherzGameState } from '@tabletop/lowenherz'
+import {
+    BOARD_COLS,
+    BOARD_ROWS,
+    squareKey,
+    type HydratedLowenherzGameState
+} from '@tabletop/lowenherz'
 import { CELL_SIZE, scaled } from '$lib/model/boardMetrics.js'
 
 export type AllianceWall = { col: number; row: number; edge: string }
@@ -75,7 +80,10 @@ export function heartSpan(wall: AllianceWall): HeartSpan {
         top,
         width: Math.max(...positions.map((position) => position.left)) - left + HEART_BOX,
         height: Math.max(...positions.map((position) => position.top)) - top + HEART_BOX,
-        hearts: positions.map((position) => ({ left: position.left - left, top: position.top - top }))
+        hearts: positions.map((position) => ({
+            left: position.left - left,
+            top: position.top - top
+        }))
     }
 }
 
@@ -204,7 +212,8 @@ function breakAlliancePillPlacement(walls: AllianceWall[], withDetail: boolean):
             const rect = pillRectAround(candidate.centre, withDetail)
             if (!withinBoard(rect) || hearts.some((heart) => intersects(rect, heart))) continue
             const score =
-                Math.hypot(candidate.centre.x - centre.x, candidate.centre.y - centre.y) + candidate.reach
+                Math.hypot(candidate.centre.x - centre.x, candidate.centre.y - centre.y) +
+                candidate.reach
             if (!best || score < best.score) {
                 best = { placement: { anchor: candidate.centre, fromWall: wall }, score }
             }

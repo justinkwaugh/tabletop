@@ -7,7 +7,14 @@ import {
     scoreRegion,
     scoreSpacesAndTowns
 } from './regionScoring.js'
-import { BOARD_COLS, BOARD_ROWS, BoardSquare, LowenherzBoard, SquareType, WallEdge } from '../model/board.js'
+import {
+    BOARD_COLS,
+    BOARD_ROWS,
+    BoardSquare,
+    LowenherzBoard,
+    SquareType,
+    WallEdge
+} from '../model/board.js'
 import { Region } from '../model/region.js'
 
 function blankBoard(): LowenherzBoard {
@@ -94,7 +101,7 @@ describe('removeInteriorWalls', () => {
 })
 
 describe('countKnights', () => {
-    it('counts only squares with a knight belonging to the region\'s own owner', () => {
+    it("counts only squares with a knight belonging to the region's own owner", () => {
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Blank, knightOwner: 'p1' }
         board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p2' } // wrong owner, not counted

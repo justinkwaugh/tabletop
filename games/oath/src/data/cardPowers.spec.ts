@@ -130,7 +130,10 @@ describe('R-7 — one record can print more than one power', () => {
 
     it('a multi-power record prints one line per power, in order', () => {
         for (const id of MULTI) {
-            const rec = required(ALL_RECORDS.find((r) => r.id === id), id)
+            const rec = required(
+                ALL_RECORDS.find((r) => r.id === id),
+                id
+            )
             const powers = cardPowers(id)
             const lines = rec.powerText.split('\n')
 
@@ -166,9 +169,7 @@ describe('R-7 — one record can print more than one power', () => {
 
 describe('R-7.1.2 — a printed cost reaches the power that charges it', () => {
     it('all 81 printed costs land on a power', () => {
-        const costedUnits = allUnits().filter((u) =>
-            cardPowers(u.id).some((p) => !isFree(p.cost))
-        )
+        const costedUnits = allUnits().filter((u) => cardPowers(u.id).some((p) => !isFree(p.cost)))
         expect(costedUnits).toHaveLength(81)
     })
 

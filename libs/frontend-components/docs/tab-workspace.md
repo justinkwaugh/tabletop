@@ -6,7 +6,11 @@ serialization. It has no game, Game Session, 18xx, or host dependency.
 
 ```svelte
 <script lang="ts">
-    import { TabWorkspace, type WorkspaceTab, type SavedWorkspace } from '@tabletop/frontend-components'
+    import {
+        TabWorkspace,
+        type WorkspaceTab,
+        type SavedWorkspace
+    } from '@tabletop/frontend-components'
 
     const tabs: WorkspaceTab[] = [
         { id: 'editor', label: 'Editor', closable: false },
@@ -17,7 +21,7 @@ serialization. It has no game, Game Session, 18xx, or host dependency.
 </script>
 
 <div style="height: 600px">
-    <TabWorkspace {tabs} savedLayout={saved} onLayoutChange={value => saved = value}>
+    <TabWorkspace {tabs} savedLayout={saved} onLayoutChange={(value) => (saved = value)}>
         {#snippet children(id, active)}
             <div>{id} {active ? 'visible' : 'hidden'}</div>
         {/snippet}

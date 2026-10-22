@@ -113,14 +113,14 @@
     }
 </script>
 
-<rect x="0" y="0" width={layout.width} height={layout.height} rx="10" fill="#33401a" />
+<rect x="0" y="0" width={layout.width} height={layout.height} rx="10" fill="#33401a"></rect>
 <rect
     x={TRACK_CELL}
     y={TRACK_CELL}
     width={layout.width - 2 * TRACK_CELL}
     height={layout.height - 2 * TRACK_CELL}
     fill="#e6e2c3"
-/>
+></rect>
 {#each cells as cell (cell.step)}
     {@const corner = layout.corners.has(cell.step)}
     <rect
@@ -130,7 +130,7 @@
         height={TRACK_CELL - 2}
         rx="3"
         fill={corner ? '#1f280c' : cell.step % 5 === 0 ? '#2a3512' : '#3e4d1f'}
-    />
+    ></rect>
     <text
         x={cell.x + TRACK_CELL / 2}
         y={cell.y + TRACK_CELL / 2 + 5}
@@ -142,11 +142,11 @@
 {/each}
 {#each bands as band (band.drop)}
     <g class="band-arrow">
-        <path d={band.shaft} />
-        <polygon points={band.head} />
+        <path d={band.shaft}></path>
+        <polygon points={band.head}></polygon>
     </g>
     <g class="band" transform="translate({band.x} {band.y})">
-        <rect x="-15" y="-9" width="30" height="18" rx="9" />
+        <rect x="-15" y="-9" width="30" height="18" rx="9"></rect>
         <text y="4.5">−{band.drop}</text>
     </g>
 {/each}

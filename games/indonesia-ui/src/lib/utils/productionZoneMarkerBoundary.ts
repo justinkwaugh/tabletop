@@ -246,8 +246,12 @@ export function resolveProductionZoneBoundaryTarget(
     const orderedAreaIds = [...zoneAreaIds].sort((leftAreaId, rightAreaId) => {
         const leftCenter = resolveLandMarkerPosition(leftAreaId)
         const rightCenter = resolveLandMarkerPosition(rightAreaId)
-        const leftDistance = leftCenter ? pointDistance(markerPoint, leftCenter) : Number.POSITIVE_INFINITY
-        const rightDistance = rightCenter ? pointDistance(markerPoint, rightCenter) : Number.POSITIVE_INFINITY
+        const leftDistance = leftCenter
+            ? pointDistance(markerPoint, leftCenter)
+            : Number.POSITIVE_INFINITY
+        const rightDistance = rightCenter
+            ? pointDistance(markerPoint, rightCenter)
+            : Number.POSITIVE_INFINITY
         if (leftDistance !== rightDistance) {
             return leftDistance - rightDistance
         }

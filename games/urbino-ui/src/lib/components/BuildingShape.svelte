@@ -19,11 +19,14 @@
 
     const half = $derived(footprint / 2)
     const roof = $derived.by(() => {
-        if (buildingType === BuildingType.House || buildingStyle === BuildingStyle.PointPips) return 'flat'
+        if (buildingType === BuildingType.House || buildingStyle === BuildingStyle.PointPips)
+            return 'flat'
         if (buildingType === BuildingType.Tower) return 'pyramid'
         return 'gable'
     })
-    const pipCount = $derived(buildingStyle === BuildingStyle.PointPips ? BUILDING_POINTS[buildingType] : 0)
+    const pipCount = $derived(
+        buildingStyle === BuildingStyle.PointPips ? BUILDING_POINTS[buildingType] : 0
+    )
 
     const lit = $derived(`color-mix(in oklab, ${color} 72%, #fff4e0)`)
     const shaded = $derived(`color-mix(in oklab, ${color} 74%, #2a1406)`)
@@ -57,19 +60,26 @@
         fill="#3b2410"
         opacity={shadow.blurred ? 0.32 : 0.22}
         filter={shadow.blurred ? 'url(#urbino-soft-shadow)' : undefined}
-    />
+    ></polygon>
 {/if}
 <g stroke={edge} stroke-opacity="0.45" stroke-width={footprint / 52} stroke-linejoin="round">
     {#if roof === 'flat'}
-        <rect x={-half} y={-half} width={footprint} height={footprint} rx={footprint / 21} style:fill={color} />
+        <rect
+            x={-half}
+            y={-half}
+            width={footprint}
+            height={footprint}
+            rx={footprint / 21}
+            style:fill={color}
+        ></rect>
     {:else if roof === 'gable'}
-        <rect x={-half} y={-half} width={half} height={footprint} style:fill={lit} />
-        <rect x="0" y={-half} width={half} height={footprint} style:fill={shaded} />
+        <rect x={-half} y={-half} width={half} height={footprint} style:fill={lit}></rect>
+        <rect x="0" y={-half} width={half} height={footprint} style:fill={shaded}></rect>
     {:else}
-        <polygon points="{-half},{-half} {half},{-half} 0,0" style:fill={color} />
-        <polygon points="{-half},{-half} 0,0 {-half},{half}" style:fill={lit} />
-        <polygon points="{half},{-half} {half},{half} 0,0" style:fill={shaded} />
-        <polygon points="{-half},{half} 0,0 {half},{half}" style:fill={lower} />
+        <polygon points="{-half},{-half} {half},{-half} 0,0" style:fill={color}></polygon>
+        <polygon points="{-half},{-half} 0,0 {-half},{half}" style:fill={lit}></polygon>
+        <polygon points="{half},{-half} {half},{half} 0,0" style:fill={shaded}></polygon>
+        <polygon points="{-half},{half} 0,0 {half},{half}" style:fill={lower}></polygon>
     {/if}
 </g>
 {#each { length: pipCount } as _, index (index)}
@@ -79,5 +89,5 @@
         r={footprint * 0.081}
         style:fill={pip}
         opacity="0.85"
-    />
+    ></circle>
 {/each}

@@ -36,7 +36,11 @@ const DEED_WRITER = 'denizen.hearth.deed-writer'
 const GATHERING = 'denizen.nomad.the-gathering'
 const CUP = 'relic.cup'
 
-const exchange = (withPlayerId: string, terms: ExchangeTerms): PowerChoice => ({ kind: PowerChoiceKind.Exchange, withPlayerId, terms })
+const exchange = (withPlayerId: string, terms: ExchangeTerms): PowerChoice => ({
+    kind: PowerChoiceKind.Exchange,
+    withPlayerId,
+    terms
+})
 
 const head = (s: ReturnType<typeof rulerTable>) => s.pendingQuestions?.queue[0]
 
@@ -47,32 +51,81 @@ describe('Revelation — a round of burns in turn order', () => {
     it('asks every player who has favor, from the player of the card round the table', () => {
         const s = rulerTable([])
         playDrawnCard(s, REVELATION, SearchPlay.Adviser)
-        expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual(['ruler', 'other', 'away'])
+        expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual([
+            'ruler',
+            'other',
+            'away'
+        ])
         expect(head(s)?.kind).toBe(PowerQuestionKind.BurnFavorForSecrets)
     })
 
     it('starts from the Chancellor, as its Q&A rules, whoever played it', () => {
-        const s = rulerTable([], [], { away: { status: PlayerStatus.Chancellor } }, { oathRevision: OathRevision.CardFixes1 })
+        const s = rulerTable(
+            [],
+            [],
+            { away: { status: PlayerStatus.Chancellor } },
+            { oathRevision: OathRevision.CardFixes1 }
+        )
         playDrawnCard(s, REVELATION, SearchPlay.Adviser)
-        expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual(['away', 'ruler', 'other'])
+        expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual([
+            'away',
+            'ruler',
+            'other'
+        ])
     })
 
     it('R-X.4 — in a game created before revision 4 it starts from the player of the card', () => {
-        const s = rulerTable([], [], { away: { status: PlayerStatus.Chancellor } }, { oathRevision: OathRevision.PlanCostsAndSearchPlays })
+        const s = rulerTable(
+            [],
+            [],
+            { away: { status: PlayerStatus.Chancellor } },
+            { oathRevision: OathRevision.PlanCostsAndSearchPlays }
+        )
         playDrawnCard(s, REVELATION, SearchPlay.Adviser)
-        expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual(['ruler', 'other', 'away'])
+        expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual([
+            'ruler',
+            'other',
+            'away'
+        ])
     })
 
     it('R-X.4 — each revision’s Revelation play replays unchanged', () => {
         const engine = new OathTestEngine(OathRuntime)
-        for (const [revision, first] of [[OathRevision.PlanCostsAndSearchPlays, 'ruler'], [OathRevision.CardFixes1, 'away']] as const) {
-            const start = rulerTable([], [], { ruler: { handIds: [REVELATION, FILLER] }, away: { status: PlayerStatus.Chancellor } }, { machineState: MachineState.Searching, oathRevision: revision }).dehydrate()
+        for (const [revision, first] of [
+            [OathRevision.PlanCostsAndSearchPlays, 'ruler'],
+            [OathRevision.CardFixes1, 'away']
+        ] as const) {
+            const start = rulerTable(
+                [],
+                [],
+                {
+                    ruler: { handIds: [REVELATION, FILLER] },
+                    away: { status: PlayerStatus.Chancellor }
+                },
+                { machineState: MachineState.Searching, oathRevision: revision }
+            ).dehydrate()
             const game = testGame(['ruler', 'other', 'away'])
-            const recorded = engine.runNext(buildAction(SearchResolve, { playerId: 'ruler', keptCardId: REVELATION, discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: true }), structuredClone(start), game)
+            const recorded = engine.runNext(
+                buildAction(SearchResolve, {
+                    playerId: 'ruler',
+                    keptCardId: REVELATION,
+                    discardOrder: [FILLER],
+                    play: SearchPlay.Adviser,
+                    faceUp: true
+                }),
+                structuredClone(start),
+                game
+            )
             expect(recorded.updatedState.pendingQuestions?.queue[0]?.askedPlayerId).toBe(first)
 
             let replayed = structuredClone(start)
-            for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            for (const action of recorded.processedActions)
+                replayed = engine.run(
+                    structuredClone(action),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(recorded.updatedState)
         }
     })
@@ -88,10 +141,19 @@ describe('Revelation — a round of burns in turn order', () => {
         const s = rulerTable([])
         playDrawnCard(s, REVELATION, SearchPlay.Adviser)
         const supply = s.favorSupply
-        expect(() => answerQuestion(s, 'ruler', { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 4 })).toThrow(/have 3 favor/)
-        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 1 })).toThrow(/ruler's to answer/)
-        expect(() => answerQuestion(s, 'ruler', { kind: PowerQuestionKind.JoinSite, join: true })).toThrow(/not joinSite/)
-        const a = answerQuestion(s, 'ruler', { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 2 })
+        expect(() =>
+            answerQuestion(s, 'ruler', { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 4 })
+        ).toThrow(/have 3 favor/)
+        expect(() =>
+            answerQuestion(s, 'other', { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 1 })
+        ).toThrow(/ruler's to answer/)
+        expect(() =>
+            answerQuestion(s, 'ruler', { kind: PowerQuestionKind.JoinSite, join: true })
+        ).toThrow(/not joinSite/)
+        const a = answerQuestion(s, 'ruler', {
+            kind: PowerQuestionKind.BurnFavorForSecrets,
+            favor: 2
+        })
         expect(s.getPlayerState('ruler').favor).toBe(1)
         expect(s.getPlayerState('ruler').secrets).toBe(5)
         expect(s.favorSupply).toBe(supply + 2)
@@ -108,7 +170,13 @@ describe('Blackmail — pay or lose the relic', () => {
     it('asks the holder when they can pay; paying keeps the relic and the favor changes hands', () => {
         const s = rulerTable([], [], { other: { relicIds: [CUP], favor: 3 } })
         playDrawnCard(s, BLACKMAIL, SearchPlay.Adviser, [card(CUP)])
-        expect(head(s)).toMatchObject({ kind: PowerQuestionKind.PayOrLoseRelic, askedPlayerId: 'other', takerPlayerId: 'ruler', relicCardId: CUP, price: 3 })
+        expect(head(s)).toMatchObject({
+            kind: PowerQuestionKind.PayOrLoseRelic,
+            askedPlayerId: 'other',
+            takerPlayerId: 'ruler',
+            relicCardId: CUP,
+            price: 3
+        })
         answerQuestion(s, 'other', { kind: PowerQuestionKind.PayOrLoseRelic, pay: true })
         expect(s.getPlayerState('other').favor).toBe(0)
         expect(s.getPlayerState('ruler').favor).toBe(6)
@@ -135,7 +203,9 @@ describe('Blackmail — pay or lose the relic', () => {
         const s = rulerTable([], [], { other: { relicIds: [CUP], favor: 3 } })
         expect(() => playDrawnCard(s, BLACKMAIL, SearchPlay.Adviser)).toThrow(/must choose a relic/)
         const far = rulerTable([], [], { away: { relicIds: [CUP], favor: 3 } })
-        expect(() => playDrawnCard(far, BLACKMAIL, SearchPlay.Adviser, [card(CUP)])).toThrow(/not among the options/)
+        expect(() => playDrawnCard(far, BLACKMAIL, SearchPlay.Adviser, [card(CUP)])).toThrow(
+            /not among the options/
+        )
         const none = rulerTable([])
         const a = playDrawnCard(none, BLACKMAIL, SearchPlay.Adviser)
         expect(a.metadata?.whenPlayed).toBe("Blackmail: nobody at ruler's site holds a relic")
@@ -149,8 +219,14 @@ describe('Herald and Book Binders — a bank pick for a player who is not acting
         expect(s.pendingQuestions).toBeUndefined()
         const notes = afterCampaignPersistent(s, 'ruler', 'other')
         expect(notes[0]).toBe('Herald: away may gain 1 favor from a bank of their choice')
-        expect(head(s)).toMatchObject({ kind: PowerQuestionKind.PickFavorBank, askedPlayerId: 'away', amount: 1 })
-        expect(() => answerQuestion(s, 'away', { kind: PowerQuestionKind.PickFavorBank, suit: Suit.Beast })).not.toThrow()
+        expect(head(s)).toMatchObject({
+            kind: PowerQuestionKind.PickFavorBank,
+            askedPlayerId: 'away',
+            amount: 1
+        })
+        expect(() =>
+            answerQuestion(s, 'away', { kind: PowerQuestionKind.PickFavorBank, suit: Suit.Beast })
+        ).not.toThrow()
         expect(s.getPlayerState('away').favor).toBe(2)
         expect(s.favorBank[Suit.Beast]).toBe(2)
     })
@@ -158,23 +234,65 @@ describe('Herald and Book Binders — a bank pick for a player who is not acting
     it("Herald's holder attacking is not 'another player'; one bank with favor is no choice", () => {
         const s = rulerTable([], [HERALD])
         expect(afterCampaignPersistent(s, 'ruler', 'other')).toEqual([])
-        const one = rulerTable([], [], { away: { advisers: [{ cardId: HERALD, faceUp: true }] } }, { favorBank: { [Suit.Order]: 2, [Suit.Hearth]: 0, [Suit.Beast]: 0, [Suit.Nomad]: 0, [Suit.Arcane]: 0, [Suit.Discord]: 0 } })
+        const one = rulerTable(
+            [],
+            [],
+            { away: { advisers: [{ cardId: HERALD, faceUp: true }] } },
+            {
+                favorBank: {
+                    [Suit.Order]: 2,
+                    [Suit.Hearth]: 0,
+                    [Suit.Beast]: 0,
+                    [Suit.Nomad]: 0,
+                    [Suit.Arcane]: 0,
+                    [Suit.Discord]: 0
+                }
+            }
+        )
         const notes = afterCampaignPersistent(one, 'ruler', 'other')
         expect(notes[0]).toMatch(/only one with favor/)
         expect(one.pendingQuestions).toBeUndefined()
         expect(one.getPlayerState('away').favor).toBe(2)
-        const empty = rulerTable([], [], { away: { advisers: [{ cardId: HERALD, faceUp: true }] } }, { favorBank: { [Suit.Order]: 0, [Suit.Hearth]: 0, [Suit.Beast]: 0, [Suit.Nomad]: 0, [Suit.Arcane]: 0, [Suit.Discord]: 0 } })
+        const empty = rulerTable(
+            [],
+            [],
+            { away: { advisers: [{ cardId: HERALD, faceUp: true }] } },
+            {
+                favorBank: {
+                    [Suit.Order]: 0,
+                    [Suit.Hearth]: 0,
+                    [Suit.Beast]: 0,
+                    [Suit.Nomad]: 0,
+                    [Suit.Arcane]: 0,
+                    [Suit.Discord]: 0
+                }
+            }
+        )
         expect(afterCampaignPersistent(empty, 'ruler', 'other')[0]).toMatch(/no favor bank has any/)
     })
 
     it('Book Binders asks after another player plays a Vision faceup, for two favor from one bank', () => {
         // A Vision runs no When Played power, so revision 4's earlier trigger changes nothing for it.
         for (const oathRevision of [undefined, OathRevision.CardFixes1]) {
-            const s = rulerTable([], [], { other: { advisers: [{ cardId: BOOK_BINDERS, faceUp: true }] } }, { oathRevision })
+            const s = rulerTable(
+                [],
+                [],
+                { other: { advisers: [{ cardId: BOOK_BINDERS, faceUp: true }] } },
+                { oathRevision }
+            )
             const a = playDrawnCard(s, 'vision.conquest', SearchPlay.RevealedVision)
             expect(a.metadata?.triggered?.[0]).toMatch(/Book Binders: other gains 2 favor/)
-            expect(head(s)).toMatchObject({ kind: PowerQuestionKind.PickFavorBank, askedPlayerId: 'other', amount: 2 })
-            expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.PickFavorBank, suit: Suit.Arcane })).not.toThrow()
+            expect(head(s)).toMatchObject({
+                kind: PowerQuestionKind.PickFavorBank,
+                askedPlayerId: 'other',
+                amount: 2
+            })
+            expect(() =>
+                answerQuestion(s, 'other', {
+                    kind: PowerQuestionKind.PickFavorBank,
+                    suit: Suit.Arcane
+                })
+            ).not.toThrow()
             expect(s.getPlayerState('other').favor).toBe(4)
             expect(s.favorBank[Suit.Arcane]).toBe(1)
         }
@@ -183,31 +301,81 @@ describe('Herald and Book Binders — a bank pick for a player who is not acting
 
 describe('R-11.9 — The Tribunal: favor and secrets with any player, by its ruler or whoever stands there', () => {
     it('is in reach at the site, not elsewhere, and asks the other side', () => {
-        const s = rulerTable([], [], {}, { siteCards: { c1: TRIBUNAL_ID, c2: 'site.river', p1: 'site.plains', h1: 'site.wastes' } })
-        expect(HydratedUseActionPower.legalActionPowers(s, 'ruler').map((p) => p.cardId)).toContain(TRIBUNAL_ID)
-        expect(HydratedUseActionPower.reasonCannotUse(s, 'ruler', TRIBUNAL_ID, 0, [exchange('other', { fromProposer: { relicCardIds: [CUP] } })])).toMatch(/cannot include relics/)
-        actionPowerUse('ruler', TRIBUNAL_ID, [exchange('other', { fromProposer: { favor: 1 }, fromCounterparty: { secrets: 1 } })]).apply(s)
-        expect(head(s)).toMatchObject({ kind: PowerQuestionKind.Exchange, askedPlayerId: 'other', proposerPlayerId: 'ruler' })
+        const s = rulerTable(
+            [],
+            [],
+            {},
+            {
+                siteCards: {
+                    c1: TRIBUNAL_ID,
+                    c2: 'site.river',
+                    p1: 'site.plains',
+                    h1: 'site.wastes'
+                }
+            }
+        )
+        expect(HydratedUseActionPower.legalActionPowers(s, 'ruler').map((p) => p.cardId)).toContain(
+            TRIBUNAL_ID
+        )
+        expect(
+            HydratedUseActionPower.reasonCannotUse(s, 'ruler', TRIBUNAL_ID, 0, [
+                exchange('other', { fromProposer: { relicCardIds: [CUP] } })
+            ])
+        ).toMatch(/cannot include relics/)
+        actionPowerUse('ruler', TRIBUNAL_ID, [
+            exchange('other', { fromProposer: { favor: 1 }, fromCounterparty: { secrets: 1 } })
+        ]).apply(s)
+        expect(head(s)).toMatchObject({
+            kind: PowerQuestionKind.Exchange,
+            askedPlayerId: 'other',
+            proposerPlayerId: 'ruler'
+        })
 
-        const away = rulerTable([], [], {}, { siteCards: { c1: 'site.plains', c2: 'site.river', p1: TRIBUNAL_ID, h1: 'site.wastes' } })
-        expect(HydratedUseActionPower.legalActionPowers(away, 'ruler').map((p) => p.cardId)).not.toContain(TRIBUNAL_ID)
+        const away = rulerTable(
+            [],
+            [],
+            {},
+            {
+                siteCards: {
+                    c1: 'site.plains',
+                    c2: 'site.river',
+                    p1: TRIBUNAL_ID,
+                    h1: 'site.wastes'
+                }
+            }
+        )
+        expect(
+            HydratedUseActionPower.legalActionPowers(away, 'ruler').map((p) => p.cardId)
+        ).not.toContain(TRIBUNAL_ID)
     })
 })
 
 describe("Tinker's Fair and Deed Writer — a binding exchange the other side must accept", () => {
     it('each declares the terms its card prints on its Exchange choice, for any caller to read', () => {
-        const specOf = (cardId: string) => choiceSpecsFor(cardPowers(cardId)[powerIndexOf(cardId, PowerTiming.Action)])[0]
+        const specOf = (cardId: string) =>
+            choiceSpecsFor(cardPowers(cardId)[powerIndexOf(cardId, PowerTiming.Action)])[0]
         expect(exchangeAllowanceOf(specOf(TINKERS_FAIR))).toEqual(TINKERS_FAIR_ALLOWS)
         expect(exchangeAllowanceOf(specOf(DEED_WRITER))).toEqual(DEED_WRITER_ALLOWS)
-        expect(() => exchangeAllowanceOf({ kind: PowerChoiceKind.Player, min: 1, max: 1 })).toThrow(/declares no exchange allowance/)
+        expect(() => exchangeAllowanceOf({ kind: PowerChoiceKind.Player, min: 1, max: 1 })).toThrow(
+            /declares no exchange allowance/
+        )
     })
 
     it("Tinker's Fair: favor, secrets and relics; the counterparty's yes moves both sides at once", () => {
         const s = rulerTable([TINKERS_FAIR], [], { ruler: { relicIds: [CUP] } })
-        const a = actionPowerUse('ruler', TINKERS_FAIR, [exchange('other', { fromProposer: { favor: 1, relicCardIds: [CUP] }, fromCounterparty: { secrets: 2 } })])
+        const a = actionPowerUse('ruler', TINKERS_FAIR, [
+            exchange('other', {
+                fromProposer: { favor: 1, relicCardIds: [CUP] },
+                fromCounterparty: { secrets: 2 }
+            })
+        ])
         a.apply(s)
         expect(a.metadata?.summary).toMatch(/proposed a binding exchange to other/)
-        expect(head(s)).toMatchObject({ kind: PowerQuestionKind.Exchange, askedPlayerId: 'other', proposerPlayerId: 'ruler' })
+        expect(head(s)).toMatchObject({
+            kind: PowerQuestionKind.Exchange,
+            askedPlayerId: 'other',
+            proposerPlayerId: 'ruler'
+        })
         expect(s.getPlayerState('ruler').relicIds).toEqual([CUP])
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(s.getPlayerState('ruler')).toMatchObject({ favor: 2, secrets: 5, relicIds: [] })
@@ -216,25 +384,68 @@ describe("Tinker's Fair and Deed Writer — a binding exchange the other side mu
 
     it('refusing moves nothing; terms outside the card or beyond the holdings are refused up front', () => {
         const s = rulerTable([TINKERS_FAIR])
-        actionPowerUse('ruler', TINKERS_FAIR, [exchange('other', { fromProposer: { favor: 1 } })]).apply(s)
+        actionPowerUse('ruler', TINKERS_FAIR, [
+            exchange('other', { fromProposer: { favor: 1 } })
+        ]).apply(s)
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: false })
         expect(s.getPlayerState('ruler').favor).toBe(3)
-        expect(HydratedUseActionPower.reasonCannotUse(rulerTable([TINKERS_FAIR]), 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })])).toMatch(/cannot include sites/)
-        expect(HydratedUseActionPower.reasonCannotUse(rulerTable([TINKERS_FAIR]), 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('other', { fromCounterparty: { favor: 5 } })])).toMatch(/promised 5 favor, with only 2 usable/)
-        expect(HydratedUseActionPower.reasonCannotUse(rulerTable([TINKERS_FAIR]), 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('other', {})])).toMatch(/exchange is empty/)
-        expect(HydratedUseActionPower.reasonCannotUse(rulerTable([TINKERS_FAIR]), 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('ruler', { fromProposer: { favor: 1 } })])).toMatch(/not among the options/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                rulerTable([TINKERS_FAIR]),
+                'ruler',
+                TINKERS_FAIR,
+                powerIndexOf(TINKERS_FAIR, PowerTiming.Action),
+                [exchange('other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })]
+            )
+        ).toMatch(/cannot include sites/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                rulerTable([TINKERS_FAIR]),
+                'ruler',
+                TINKERS_FAIR,
+                powerIndexOf(TINKERS_FAIR, PowerTiming.Action),
+                [exchange('other', { fromCounterparty: { favor: 5 } })]
+            )
+        ).toMatch(/promised 5 favor, with only 2 usable/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                rulerTable([TINKERS_FAIR]),
+                'ruler',
+                TINKERS_FAIR,
+                powerIndexOf(TINKERS_FAIR, PowerTiming.Action),
+                [exchange('other', {})]
+            )
+        ).toMatch(/exchange is empty/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                rulerTable([TINKERS_FAIR]),
+                'ruler',
+                TINKERS_FAIR,
+                powerIndexOf(TINKERS_FAIR, PowerTiming.Action),
+                [exchange('ruler', { fromProposer: { favor: 1 } })]
+            )
+        ).toMatch(/not among the options/)
     })
 
     it('an accepted exchange is re-checked at answer time against what the board now holds', () => {
         const s = rulerTable([TINKERS_FAIR])
-        actionPowerUse('ruler', TINKERS_FAIR, [exchange('other', { fromProposer: { favor: 3 } })]).apply(s)
+        actionPowerUse('ruler', TINKERS_FAIR, [
+            exchange('other', { fromProposer: { favor: 3 } })
+        ]).apply(s)
         s.getPlayerState('ruler').favor = 1
-        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })).toThrow('promised 3 favor, with only 1 usable')
+        expect(() =>
+            answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        ).toThrow('promised 3 favor, with only 1 usable')
     })
 
     it('Deed Writer: the old ruler pulls every warband off the site and the new ruler moves in their own count', () => {
         const s = rulerTable([DEED_WRITER])
-        actionPowerUse('ruler', DEED_WRITER, [exchange('other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] }, fromCounterparty: { favor: 1 } })]).apply(s)
+        actionPowerUse('ruler', DEED_WRITER, [
+            exchange('other', {
+                fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] },
+                fromCounterparty: { favor: 1 }
+            })
+        ]).apply(s)
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(warbandsAt(s, 'c2')['other']).toBe(1)
         expect(warbandsAt(s, 'c2')['ruler'] ?? 0).toBe(0)
@@ -244,29 +455,71 @@ describe("Tinker's Fair and Deed Writer — a binding exchange the other side mu
     })
 
     it('Deed Writer refuses a site the giver does not rule, a move of nothing, and more warbands than the board holds', () => {
-        const probe = (terms: ExchangeTerms) => HydratedUseActionPower.reasonCannotUse(rulerTable([DEED_WRITER]), 'ruler', DEED_WRITER, powerIndexOf(DEED_WRITER, PowerTiming.Action), [exchange('other', terms)])
-        expect(probe({ fromProposer: { sites: [{ siteId: 'p1', warbands: 1 }] } })).toBe('ruler promised p1 without ruling it')
-        expect(probe({ fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] } })).toMatch(/at least one warband/)
-        expect(probe({ fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] } })).toBe("other's board has fewer than 3 warbands to move to c2")
+        const probe = (terms: ExchangeTerms) =>
+            HydratedUseActionPower.reasonCannotUse(
+                rulerTable([DEED_WRITER]),
+                'ruler',
+                DEED_WRITER,
+                powerIndexOf(DEED_WRITER, PowerTiming.Action),
+                [exchange('other', terms)]
+            )
+        expect(probe({ fromProposer: { sites: [{ siteId: 'p1', warbands: 1 }] } })).toBe(
+            'ruler promised p1 without ruling it'
+        )
+        expect(probe({ fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] } })).toMatch(
+            /at least one warband/
+        )
+        expect(probe({ fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] } })).toBe(
+            "other's board has fewer than 3 warbands to move to c2"
+        )
         expect(probe({ fromProposer: { relicCardIds: [CUP] } })).toMatch(/cannot include relics/)
     })
 })
 
 describe('Deed Writer — one board pays for every site handed over (R-10.8)', () => {
-    const twoSites = (c1: number, c2: number): ExchangeTerms => ({ fromProposer: { sites: [{ siteId: 'c1', warbands: c1 }, { siteId: 'c2', warbands: c2 }] } })
+    const twoSites = (c1: number, c2: number): ExchangeTerms => ({
+        fromProposer: {
+            sites: [
+                { siteId: 'c1', warbands: c1 },
+                { siteId: 'c2', warbands: c2 }
+            ]
+        }
+    })
     /** 'ruler' rules c1 and c2; 'other' has `onBoard` warbands to move in. */
-    const table = (oathRevision: number, onBoard: Record<string, number> = { other: 4 }, over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) =>
-        rulerTable([DEED_WRITER], [], { ...over, other: { warbandsOnBoard: onBoard, ...over['other'] } }, { oathRevision, ...state })
+    const table = (
+        oathRevision: number,
+        onBoard: Record<string, number> = { other: 4 },
+        over: Record<string, Record<string, unknown>> = {},
+        state: Record<string, unknown> = {}
+    ) =>
+        rulerTable(
+            [DEED_WRITER],
+            [],
+            { ...over, other: { warbandsOnBoard: onBoard, ...over['other'] } },
+            { oathRevision, ...state }
+        )
     const probe = (s: ReturnType<typeof rulerTable>, terms: ExchangeTerms) =>
-        HydratedUseActionPower.reasonCannotUse(s, 'ruler', DEED_WRITER, powerIndexOf(DEED_WRITER, PowerTiming.Action), [exchange('other', terms)])
+        HydratedUseActionPower.reasonCannotUse(
+            s,
+            'ruler',
+            DEED_WRITER,
+            powerIndexOf(DEED_WRITER, PowerTiming.Action),
+            [exchange('other', terms)]
+        )
     const propose = (s: ReturnType<typeof rulerTable>, terms: ExchangeTerms) =>
         actionPowerUse('ruler', DEED_WRITER, [exchange('other', terms)]).apply(s)
 
     it('refuses three warbands to each of two sites from a board of four, which each site alone would pass', () => {
         const s = table(atRevision)
-        expect(probe(s, { fromProposer: { sites: [{ siteId: 'c1', warbands: 3 }] } })).toBeUndefined()
-        expect(probe(s, { fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] } })).toBeUndefined()
-        expect(probe(s, twoSites(3, 3))).toBe("other's board has fewer than 6 warbands to move to c1, c2")
+        expect(
+            probe(s, { fromProposer: { sites: [{ siteId: 'c1', warbands: 3 }] } })
+        ).toBeUndefined()
+        expect(
+            probe(s, { fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] } })
+        ).toBeUndefined()
+        expect(probe(s, twoSites(3, 3))).toBe(
+            "other's board has fewer than 6 warbands to move to c1, c2"
+        )
     })
 
     it('a board that covers every site moves them all in on acceptance', () => {
@@ -283,7 +536,9 @@ describe('Deed Writer — one board pays for every site handed over (R-10.8)', (
     it('a Bandit Crown holder may still name no warbands for a site (its Q&A, R-7.6.5): the sum counts it as nothing', () => {
         const s = table(atRevision, { other: 2 }, { other: { relicIds: [BANDIT_CROWN] } })
         expect(probe(s, twoSites(0, 2))).toBeUndefined()
-        expect(probe(s, twoSites(0, 3))).toBe("other's board has fewer than 3 warbands to move to c1, c2")
+        expect(probe(s, twoSites(0, 3))).toBe(
+            "other's board has fewer than 3 warbands to move to c1, c2"
+        )
         propose(s, twoSites(0, 2))
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(totalWarbandsAt(s, 'c1')).toBe(0)
@@ -294,8 +549,19 @@ describe('Deed Writer — one board pays for every site handed over (R-10.8)', (
 
     it('a Citizen holding the Bandit Crown takes two sites with no warbands, and from the revision the Empire rules them (its Q&A)', () => {
         const crowned = (oathRevision: number) =>
-            table(oathRevision, {}, { other: { status: PlayerStatus.Citizen, relicIds: [BANDIT_CROWN] }, away: { status: PlayerStatus.Chancellor } }, { chancellorPlayerId: 'away' })
-        for (const [revision, empireRules] of [[atRevision, true], [before, false]] as const) {
+            table(
+                oathRevision,
+                {},
+                {
+                    other: { status: PlayerStatus.Citizen, relicIds: [BANDIT_CROWN] },
+                    away: { status: PlayerStatus.Chancellor }
+                },
+                { chancellorPlayerId: 'away' }
+            )
+        for (const [revision, empireRules] of [
+            [atRevision, true],
+            [before, false]
+        ] as const) {
             const s = crowned(revision)
             expect(probe(s, twoSites(0, 0)), `revision ${revision}`).toBeUndefined()
             propose(s, twoSites(0, 0))
@@ -310,15 +576,27 @@ describe('Deed Writer — one board pays for every site handed over (R-10.8)', (
         const s = table(atRevision)
         propose(s, twoSites(3, 1))
         s.getPlayerState('other').warbandsOnBoard['other'] = 3
-        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })).toThrow("other's board has fewer than 4 warbands to move to c1, c2")
+        expect(() =>
+            answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        ).toThrow("other's board has fewer than 4 warbands to move to c1, c2")
         expect(warbandsAt(s, 'c1')).toEqual({ ruler: 1 })
         expect(warbandsAt(s, 'c2')).toEqual({ ruler: 2 })
     })
 
     it('counts each kind of warband on the board as the move takes them: whichever the board holds most of, site by site', () => {
         const citizen = (onBoard: Record<string, number>) =>
-            table(atRevision, onBoard, { other: { status: PlayerStatus.Citizen }, away: { status: PlayerStatus.Chancellor } }, { chancellorPlayerId: 'away' })
-        expect(probe(citizen({ other: 2, [IMPERIAL_WARBANDS]: 2 }), twoSites(3, 1))).toBe("other's board has fewer than 3 warbands to move to c1")
+            table(
+                atRevision,
+                onBoard,
+                {
+                    other: { status: PlayerStatus.Citizen },
+                    away: { status: PlayerStatus.Chancellor }
+                },
+                { chancellorPlayerId: 'away' }
+            )
+        expect(probe(citizen({ other: 2, [IMPERIAL_WARBANDS]: 2 }), twoSites(3, 1))).toBe(
+            "other's board has fewer than 3 warbands to move to c1"
+        )
         const s = citizen({ other: 2, [IMPERIAL_WARBANDS]: 2 })
         propose(s, twoSites(2, 2))
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
@@ -332,20 +610,57 @@ describe('Deed Writer — one board pays for every site handed over (R-10.8)', (
         const s = table(before)
         expect(probe(s, twoSites(3, 3))).toBeUndefined()
         propose(s, twoSites(3, 3))
-        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })).toThrow("other's board cannot fill every site promised")
+        expect(() =>
+            answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        ).toThrow("other's board cannot fill every site promised")
     })
 
     it("no other exchange can carry a site: Tinker's Fair, The Tribunal and The Gathering refuse one", () => {
         const fair = rulerTable([TINKERS_FAIR], [], {}, { oathRevision: atRevision })
-        expect(HydratedUseActionPower.reasonCannotUse(fair, 'ruler', TINKERS_FAIR, powerIndexOf(TINKERS_FAIR, PowerTiming.Action), [exchange('other', twoSites(1, 1))])).toBe('this exchange cannot include sites')
-        const tribunal = rulerTable([], [], {}, { oathRevision: atRevision, siteCards: { c1: TRIBUNAL_ID, c2: 'site.river', p1: 'site.plains', h1: 'site.wastes' } })
-        expect(HydratedUseActionPower.reasonCannotUse(tribunal, 'ruler', TRIBUNAL_ID, 0, [exchange('other', twoSites(1, 1))])).toBe('this exchange cannot include sites')
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                fair,
+                'ruler',
+                TINKERS_FAIR,
+                powerIndexOf(TINKERS_FAIR, PowerTiming.Action),
+                [exchange('other', twoSites(1, 1))]
+            )
+        ).toBe('this exchange cannot include sites')
+        const tribunal = rulerTable(
+            [],
+            [],
+            {},
+            {
+                oathRevision: atRevision,
+                siteCards: {
+                    c1: TRIBUNAL_ID,
+                    c2: 'site.river',
+                    p1: 'site.plains',
+                    h1: 'site.wastes'
+                }
+            }
+        )
+        expect(
+            HydratedUseActionPower.reasonCannotUse(tribunal, 'ruler', TRIBUNAL_ID, 0, [
+                exchange('other', twoSites(1, 1))
+            ])
+        ).toBe('this exchange cannot include sites')
         // The Gathering's rounds go from the Chancellor at this revision (its Q&A).
-        const gathering = rulerTable([], [], { away: { status: PlayerStatus.Chancellor } }, { oathRevision: atRevision })
+        const gathering = rulerTable(
+            [],
+            [],
+            { away: { status: PlayerStatus.Chancellor } },
+            { oathRevision: atRevision }
+        )
         playDrawnCard(gathering, GATHERING, SearchPlay.Site)
         answerQuestion(gathering, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
         settleQueue(gathering, {})
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(gathering, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: twoSites(1, 1) } })).toBe('this exchange cannot include sites')
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(gathering, 'ruler', {
+                kind: PowerQuestionKind.GatheringFloor,
+                proposal: { withPlayerId: 'other', terms: twoSites(1, 1) }
+            })
+        ).toBe('this exchange cannot include sites')
     })
 })
 
@@ -353,7 +668,9 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
     it('R-7.6.3-H2 — asks the absent players to come, then gives each present player one proposal in turn order', () => {
         const s = rulerTable([])
         playDrawnCard(s, GATHERING, SearchPlay.Site)
-        expect(s.pendingQuestions?.queue.map((q) => [q.kind, q.askedPlayerId])).toEqual([[PowerQuestionKind.JoinSite, 'away']])
+        expect(s.pendingQuestions?.queue.map((q) => [q.kind, q.askedPlayerId])).toEqual([
+            [PowerQuestionKind.JoinSite, 'away']
+        ])
         expect(s.pendingQuestions?.followUp?.siteId).toBe('c1')
         answerQuestion(s, 'away', { kind: PowerQuestionKind.JoinSite, join: true })
         expect(s.getPlayerState('away').siteId).toBe('c1')
@@ -363,8 +680,18 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
             [PowerQuestionKind.GatheringFloor, 'other'],
             [PowerQuestionKind.GatheringFloor, 'away']
         ])
-        answerQuestion(s, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'away', terms: { fromProposer: { favor: 1 }, fromCounterparty: { secrets: 1 } } } })
-        expect(head(s)).toMatchObject({ kind: PowerQuestionKind.Exchange, askedPlayerId: 'away', proposerPlayerId: 'ruler' })
+        answerQuestion(s, 'ruler', {
+            kind: PowerQuestionKind.GatheringFloor,
+            proposal: {
+                withPlayerId: 'away',
+                terms: { fromProposer: { favor: 1 }, fromCounterparty: { secrets: 1 } }
+            }
+        })
+        expect(head(s)).toMatchObject({
+            kind: PowerQuestionKind.Exchange,
+            askedPlayerId: 'away',
+            proposerPlayerId: 'ruler'
+        })
         answerQuestion(s, 'away', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(s.getPlayerState('away')).toMatchObject({ favor: 2, secrets: 0 })
         expect(head(s)?.askedPlayerId).toBe('other')
@@ -378,9 +705,28 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
         playDrawnCard(s, GATHERING, SearchPlay.Site)
         answerQuestion(s, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
         settleQueue(s, {})
-        expect(() => answerQuestion(s, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'away', terms: { fromProposer: { favor: 1 } } } })).toThrow(/not at c1/)
-        expect(() => answerQuestion(s, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } } } })).toThrow(/cannot include sites/)
-        answerQuestion(s, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: { fromCounterparty: { adviserRows: [0] }, fromProposer: { favor: 1 } } } })
+        expect(() =>
+            answerQuestion(s, 'ruler', {
+                kind: PowerQuestionKind.GatheringFloor,
+                proposal: { withPlayerId: 'away', terms: { fromProposer: { favor: 1 } } }
+            })
+        ).toThrow(/not at c1/)
+        expect(() =>
+            answerQuestion(s, 'ruler', {
+                kind: PowerQuestionKind.GatheringFloor,
+                proposal: {
+                    withPlayerId: 'other',
+                    terms: { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } }
+                }
+            })
+        ).toThrow(/cannot include sites/)
+        answerQuestion(s, 'ruler', {
+            kind: PowerQuestionKind.GatheringFloor,
+            proposal: {
+                withPlayerId: 'other',
+                terms: { fromCounterparty: { adviserRows: [0] }, fromProposer: { favor: 1 } }
+            }
+        })
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(s.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([TENTS])
         expect(s.getPlayerState('other').advisers).toEqual([])
@@ -409,7 +755,13 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
 
     it("a counterparty's facedown adviser is asked for by row, and the answer is the same whatever the card is (R-9.4)", () => {
         const wanted = (s: ReturnType<typeof rulerTable>, row: number) =>
-            HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: { fromCounterparty: { adviserRows: [row] }, fromProposer: { favor: 1 } } } })
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', {
+                kind: PowerQuestionKind.GatheringFloor,
+                proposal: {
+                    withPlayerId: 'other',
+                    terms: { fromCounterparty: { adviserRows: [row] }, fromProposer: { favor: 1 } }
+                }
+            })
         const withWolves = floorWithFacedown([], WOLVES)
         const withInn = floorWithFacedown([], INN)
         expect(wanted(withWolves, 0)).toBeUndefined()
@@ -420,16 +772,32 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
 
     it('a facedown adviser offered or taken is named in no public state or record, and its taker knows it only once accepted', () => {
         const s = floorWithFacedown([INN], WOLVES)
-        const proposal = answerQuestion(s, 'ruler', { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: { fromProposer: { adviserRows: [0] }, fromCounterparty: { adviserRows: [0] } } } })
+        const proposal = answerQuestion(s, 'ruler', {
+            kind: PowerQuestionKind.GatheringFloor,
+            proposal: {
+                withPlayerId: 'other',
+                terms: {
+                    fromProposer: { adviserRows: [0] },
+                    fromCounterparty: { adviserRows: [0] }
+                }
+            }
+        })
         expect(JSON.stringify(proposal)).not.toContain(INN)
         expect(publicView(s)).not.toContain(INN)
         expect(publicView(s)).not.toContain(WOLVES)
-        const accepted = answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        const accepted = answerQuestion(s, 'other', {
+            kind: PowerQuestionKind.Exchange,
+            accept: true
+        })
         expect(s.getPlayerState('ruler').knownAdviserIds()).toEqual([WOLVES])
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual([INN])
         // R-9.4 — each side saw its card go, and knows where it now lies.
-        expect(s.getPlayerState('ruler').advisers).toEqual([{ faceUp: false, shownTo: ['other'], shownCardId: WOLVES }])
-        expect(s.getPlayerState('other').advisers).toEqual([{ faceUp: false, shownTo: ['ruler'], shownCardId: INN }])
+        expect(s.getPlayerState('ruler').advisers).toEqual([
+            { faceUp: false, shownTo: ['other'], shownCardId: WOLVES }
+        ])
+        expect(s.getPlayerState('other').advisers).toEqual([
+            { faceUp: false, shownTo: ['ruler'], shownCardId: INN }
+        ])
         expect(publicView(s)).not.toContain(WOLVES)
         expect(JSON.stringify(accepted)).not.toContain(WOLVES)
         // R-X.3(c) — each side now knows a card it had not seen, so the answer cannot be undone.
@@ -449,22 +817,51 @@ describe('PowerQuestion — the turn is held and given back', () => {
     it('a proposal detours to PowerQuestion for the asked player alone, and the answer resumes the Act Phase', () => {
         const engine = new OathTestEngine(OathRuntime)
         const game = testGame(['ruler', 'other', 'away'])
-        const hydrated = rulerTable([TINKERS_FAIR], [], { away: { status: PlayerStatus.Chancellor } }, { machineState: MachineState.ActPhase })
+        const hydrated = rulerTable(
+            [TINKERS_FAIR],
+            [],
+            { away: { status: PlayerStatus.Chancellor } },
+            { machineState: MachineState.ActPhase }
+        )
         let state = hydrated.dehydrate()
-        state.turnManager = { series: [{ type: 'turn', playerId: 'ruler', start: 0 }], turnOrder: ['ruler', 'other', 'away'], turnCounts: { ruler: 1, other: 0, away: 0 } }
+        state.turnManager = {
+            series: [{ type: 'turn', playerId: 'ruler', start: 0 }],
+            turnOrder: ['ruler', 'other', 'away'],
+            turnCounts: { ruler: 1, other: 0, away: 0 }
+        }
         state.activePlayerIds = ['ruler']
 
-        state = engine.runNext(buildAction(UseActionPower, {
-            playerId: 'ruler', cardId: TINKERS_FAIR, powerIndex: powerIndexOf(TINKERS_FAIR, PowerTiming.Action),
-            choices: [exchange('other', { fromProposer: { favor: 1 }, fromCounterparty: { secrets: 1 } })]
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(UseActionPower, {
+                playerId: 'ruler',
+                cardId: TINKERS_FAIR,
+                powerIndex: powerIndexOf(TINKERS_FAIR, PowerTiming.Action),
+                choices: [
+                    exchange('other', {
+                        fromProposer: { favor: 1 },
+                        fromCounterparty: { secrets: 1 }
+                    })
+                ]
+            }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual(['other'])
         expect(state.pendingQuestions?.resumeMachineState).toBe(MachineState.ActPhase)
-        expect(engine.getValidActionTypesForPlayer(game, state, 'other')).toEqual([ActionType.AnswerQuestion])
+        expect(engine.getValidActionTypesForPlayer(game, state, 'other')).toEqual([
+            ActionType.AnswerQuestion
+        ])
         expect(engine.getValidActionTypesForPlayer(game, state, 'ruler')).toEqual([])
 
-        state = engine.runNext(buildAction(AnswerQuestion, { playerId: 'other', answer: { kind: PowerQuestionKind.Exchange, accept: true } }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(AnswerQuestion, {
+                playerId: 'other',
+                answer: { kind: PowerQuestionKind.Exchange, accept: true }
+            }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual(['ruler'])
         expect(state.pendingQuestions).toBeUndefined()
@@ -474,20 +871,60 @@ describe('PowerQuestion — the turn is held and given back', () => {
     it('a When Played round holds the machine for each player in turn, then resumes where the Search was going', () => {
         const engine = new OathTestEngine(OathRuntime)
         const game = testGame(['ruler', 'other', 'away'])
-        const hydrated = rulerTable([], [], { ruler: { handIds: [REVELATION, FILLER] }, away: { status: PlayerStatus.Chancellor } }, { machineState: MachineState.Searching })
+        const hydrated = rulerTable(
+            [],
+            [],
+            { ruler: { handIds: [REVELATION, FILLER] }, away: { status: PlayerStatus.Chancellor } },
+            { machineState: MachineState.Searching }
+        )
         let state = hydrated.dehydrate()
-        state.turnManager = { series: [{ type: 'turn', playerId: 'ruler', start: 0 }], turnOrder: ['ruler', 'other', 'away'], turnCounts: { ruler: 1, other: 0, away: 0 } }
+        state.turnManager = {
+            series: [{ type: 'turn', playerId: 'ruler', start: 0 }],
+            turnOrder: ['ruler', 'other', 'away'],
+            turnCounts: { ruler: 1, other: 0, away: 0 }
+        }
         state.activePlayerIds = ['ruler']
 
-        state = engine.runNext(buildAction(SearchResolve, { playerId: 'ruler', keptCardId: REVELATION, discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: true }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(SearchResolve, {
+                playerId: 'ruler',
+                keptCardId: REVELATION,
+                discardOrder: [FILLER],
+                play: SearchPlay.Adviser,
+                faceUp: true
+            }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual(['ruler'])
-        state = engine.runNext(buildAction(AnswerQuestion, { playerId: 'ruler', answer: { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 1 } }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(AnswerQuestion, {
+                playerId: 'ruler',
+                answer: { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 1 }
+            }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual(['other'])
-        state = engine.runNext(buildAction(AnswerQuestion, { playerId: 'other', answer: { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 0 } }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(AnswerQuestion, {
+                playerId: 'other',
+                answer: { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 0 }
+            }),
+            state,
+            game
+        ).updatedState
         expect(state.activePlayerIds).toEqual(['away'])
-        state = engine.runNext(buildAction(AnswerQuestion, { playerId: 'away', answer: { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 1 } }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(AnswerQuestion, {
+                playerId: 'away',
+                answer: { kind: PowerQuestionKind.BurnFavorForSecrets, favor: 1 }
+            }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual(['ruler'])
     })
@@ -497,10 +934,15 @@ const BANDIT_CROWN = 'relic.bandit-crown'
 const MARRIAGE = 'denizen.hearth.marriage'
 const VOW_OF_PEACE = 'denizen.hearth.vow-of-peace'
 
-const askedInOrder = (s: ReturnType<typeof rulerTable>) => s.pendingQuestions?.queue.map((q) => [q.kind, q.askedPlayerId])
+const askedInOrder = (s: ReturnType<typeof rulerTable>) =>
+    s.pendingQuestions?.queue.map((q) => [q.kind, q.askedPlayerId])
 
 function openTurnOnEngine(state: OathProjectedState): OathProjectedState {
-    state.turnManager = { series: [{ type: 'turn', playerId: 'ruler', start: 0 }], turnOrder: ['ruler', 'other', 'away'], turnCounts: { ruler: 1, other: 0, away: 0 } }
+    state.turnManager = {
+        series: [{ type: 'turn', playerId: 'ruler', start: 0 }],
+        turnOrder: ['ruler', 'other', 'away'],
+        turnCounts: { ruler: 1, other: 0, away: 0 }
+    }
     state.activePlayerIds = ['ruler']
     return state
 }
@@ -508,7 +950,12 @@ function openTurnOnEngine(state: OathProjectedState): OathProjectedState {
 describe('The Gathering — its rounds go from the Chancellor, and a locked adviser stays (revision 5)', () => {
     /** 'away' is the Chancellor; 'other' starts at p1, so both are asked to come. */
     function everyoneComes(oathRevision: OathRevision) {
-        const s = rulerTable([], [], { other: { siteId: 'p1' }, away: { status: PlayerStatus.Chancellor } }, { oathRevision })
+        const s = rulerTable(
+            [],
+            [],
+            { other: { siteId: 'p1' }, away: { status: PlayerStatus.Chancellor } },
+            { oathRevision }
+        )
         playDrawnCard(s, GATHERING, SearchPlay.Site)
         const joinOrder = askedInOrder(s)
         for (const playerId of s.pendingQuestions?.queue.map((q) => q.askedPlayerId) ?? []) {
@@ -520,64 +967,131 @@ describe('The Gathering — its rounds go from the Chancellor, and a locked advi
 
     it('its Q&A — the pawns are asked, then the proposals made, in turn order from the Chancellor', () => {
         expect(everyoneComes(OathRevision.EngineFixes2)).toEqual({
-            joinOrder: [[PowerQuestionKind.JoinSite, 'away'], [PowerQuestionKind.JoinSite, 'other']],
-            floorOrder: [[PowerQuestionKind.GatheringFloor, 'away'], [PowerQuestionKind.GatheringFloor, 'ruler'], [PowerQuestionKind.GatheringFloor, 'other']]
+            joinOrder: [
+                [PowerQuestionKind.JoinSite, 'away'],
+                [PowerQuestionKind.JoinSite, 'other']
+            ],
+            floorOrder: [
+                [PowerQuestionKind.GatheringFloor, 'away'],
+                [PowerQuestionKind.GatheringFloor, 'ruler'],
+                [PowerQuestionKind.GatheringFloor, 'other']
+            ]
         })
     })
 
     it('R-X.4 — in a game created before revision 5 both rounds start from the player of the card', () => {
         expect(everyoneComes(OathRevision.CardFixes1)).toEqual({
-            joinOrder: [[PowerQuestionKind.JoinSite, 'other'], [PowerQuestionKind.JoinSite, 'away']],
-            floorOrder: [[PowerQuestionKind.GatheringFloor, 'ruler'], [PowerQuestionKind.GatheringFloor, 'other'], [PowerQuestionKind.GatheringFloor, 'away']]
+            joinOrder: [
+                [PowerQuestionKind.JoinSite, 'other'],
+                [PowerQuestionKind.JoinSite, 'away']
+            ],
+            floorOrder: [
+                [PowerQuestionKind.GatheringFloor, 'ruler'],
+                [PowerQuestionKind.GatheringFloor, 'other'],
+                [PowerQuestionKind.GatheringFloor, 'away']
+            ]
         })
     })
 
     /** 'ruler' holds Marriage (locked); 'other' holds Tents and Vow of Peace (locked); the Chancellor stays away. */
     function lockedFloor(oathRevision: OathRevision, marriageFaceUp = true) {
-        const s = rulerTable([], [], {
-            ruler: { advisers: [adviser(MARRIAGE, marriageFaceUp)] },
-            other: { advisers: [adviser(TENTS), adviser(VOW_OF_PEACE)] },
-            away: { status: PlayerStatus.Chancellor }
-        }, { oathRevision })
+        const s = rulerTable(
+            [],
+            [],
+            {
+                ruler: { advisers: [adviser(MARRIAGE, marriageFaceUp)] },
+                other: { advisers: [adviser(TENTS), adviser(VOW_OF_PEACE)] },
+                away: { status: PlayerStatus.Chancellor }
+            },
+            { oathRevision }
+        )
         playDrawnCard(s, GATHERING, SearchPlay.Site)
         answerQuestion(s, 'away', { kind: PowerQuestionKind.JoinSite, join: false })
         settleQueue(s, {})
         return s
     }
-    const proposing = (terms: ExchangeTerms): QuestionAnswer => ({ kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms } })
+    const proposing = (terms: ExchangeTerms): QuestionAnswer => ({
+        kind: PowerQuestionKind.GatheringFloor,
+        proposal: { withPlayerId: 'other', terms }
+    })
 
     it('R-7.2.2 — a faceup locked adviser can be neither offered nor asked for; an unlocked one still can', () => {
         const s = lockedFloor(OathRevision.EngineFixes2)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', proposing({ fromCounterparty: { adviserRows: [1] }, fromProposer: { favor: 1 } }))).toBe(`${VOW_OF_PEACE} is locked`)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', proposing({ fromProposer: { adviserRows: [0] }, fromCounterparty: { favor: 1 } }))).toBe(`${MARRIAGE} is locked`)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', proposing({ fromCounterparty: { adviserRows: [0] }, fromProposer: { favor: 1 } }))).toBeUndefined()
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(
+                s,
+                'ruler',
+                proposing({ fromCounterparty: { adviserRows: [1] }, fromProposer: { favor: 1 } })
+            )
+        ).toBe(`${VOW_OF_PEACE} is locked`)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(
+                s,
+                'ruler',
+                proposing({ fromProposer: { adviserRows: [0] }, fromCounterparty: { favor: 1 } })
+            )
+        ).toBe(`${MARRIAGE} is locked`)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(
+                s,
+                'ruler',
+                proposing({ fromCounterparty: { adviserRows: [0] }, fromProposer: { favor: 1 } })
+            )
+        ).toBeUndefined()
     })
 
     it('R-7.2 — a facedown adviser shows no chain, so it may still change hands', () => {
         const s = lockedFloor(OathRevision.EngineFixes2, false)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', proposing({ fromProposer: { adviserRows: [0] }, fromCounterparty: { favor: 1 } }))).toBeUndefined()
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(
+                s,
+                'ruler',
+                proposing({ fromProposer: { adviserRows: [0] }, fromCounterparty: { favor: 1 } })
+            )
+        ).toBeUndefined()
     })
 
     it('R-X.4 — before revision 5 a locked adviser still changes hands', () => {
         const s = lockedFloor(OathRevision.CardFixes1)
-        answerQuestion(s, 'ruler', proposing({ fromCounterparty: { adviserRows: [1] }, fromProposer: { favor: 1 } }))
+        answerQuestion(
+            s,
+            'ruler',
+            proposing({ fromCounterparty: { adviserRows: [1] }, fromProposer: { favor: 1 } })
+        )
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
-        expect(s.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([MARRIAGE, VOW_OF_PEACE])
+        expect(s.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([
+            MARRIAGE,
+            VOW_OF_PEACE
+        ])
     })
 
     it('R-X.4 — each revision’s Gathering replays unchanged', () => {
         const engine = new OathTestEngine(OathRuntime)
         const game = testGame(['ruler', 'other', 'away'])
-        const answer = (playerId: string, given: QuestionAnswer) => buildAction(AnswerQuestion, { playerId, answer: given })
+        const answer = (playerId: string, given: QuestionAnswer) =>
+            buildAction(AnswerQuestion, { playerId, answer: given })
         const takeVowOfPeace = (playerId: string) =>
-            answer(playerId, { kind: PowerQuestionKind.GatheringFloor, proposal: { withPlayerId: 'other', terms: { fromCounterparty: { adviserRows: [0] }, fromProposer: { favor: 1 } } } })
+            answer(playerId, {
+                kind: PowerQuestionKind.GatheringFloor,
+                proposal: {
+                    withPlayerId: 'other',
+                    terms: { fromCounterparty: { adviserRows: [0] }, fromProposer: { favor: 1 } }
+                }
+            })
 
         for (const revision of [OathRevision.CardFixes1, OathRevision.EngineFixes2]) {
-            const start = openTurnOnEngine(rulerTable([], [], {
-                ruler: { handIds: [GATHERING, FILLER] },
-                other: { siteId: 'p1', advisers: [adviser(VOW_OF_PEACE)] },
-                away: { status: PlayerStatus.Chancellor }
-            }, { machineState: MachineState.Searching, oathRevision: revision }).dehydrate())
+            const start = openTurnOnEngine(
+                rulerTable(
+                    [],
+                    [],
+                    {
+                        ruler: { handIds: [GATHERING, FILLER] },
+                        other: { siteId: 'p1', advisers: [adviser(VOW_OF_PEACE)] },
+                        away: { status: PlayerStatus.Chancellor }
+                    },
+                    { machineState: MachineState.Searching, oathRevision: revision }
+                ).dehydrate()
+            )
 
             let state: OathProjectedState = structuredClone(start)
             const recorded: GameAction[] = []
@@ -589,63 +1103,133 @@ describe('The Gathering — its rounds go from the Chancellor, and a locked advi
                 firstAsked.push(state.pendingQuestions?.queue[0]?.askedPlayerId ?? 'nobody')
             }
 
-            step(buildAction(SearchResolve, { playerId: 'ruler', keptCardId: GATHERING, discardOrder: [FILLER], play: SearchPlay.Site }))
+            step(
+                buildAction(SearchResolve, {
+                    playerId: 'ruler',
+                    keptCardId: GATHERING,
+                    discardOrder: [FILLER],
+                    play: SearchPlay.Site
+                })
+            )
             if (revision === OathRevision.EngineFixes2) {
                 step(answer('away', { kind: PowerQuestionKind.JoinSite, join: true }))
                 step(answer('other', { kind: PowerQuestionKind.JoinSite, join: true }))
                 expect(firstAsked).toEqual(['away', 'other', 'away'])
-                expect(() => engine.runNext(takeVowOfPeace('away'), structuredClone(state), game)).toThrow(`${VOW_OF_PEACE} is locked`)
+                expect(() =>
+                    engine.runNext(takeVowOfPeace('away'), structuredClone(state), game)
+                ).toThrow(`${VOW_OF_PEACE} is locked`)
             } else {
                 step(answer('other', { kind: PowerQuestionKind.JoinSite, join: true }))
                 step(answer('away', { kind: PowerQuestionKind.JoinSite, join: true }))
                 expect(firstAsked).toEqual(['other', 'away', 'ruler'])
                 step(takeVowOfPeace('ruler'))
                 step(answer('other', { kind: PowerQuestionKind.Exchange, accept: true }))
-                expect(state.players.find((p) => p.playerId === 'ruler')?.advisers.map((a) => a.cardId)).toEqual([VOW_OF_PEACE])
+                expect(
+                    state.players.find((p) => p.playerId === 'ruler')?.advisers.map((a) => a.cardId)
+                ).toEqual([VOW_OF_PEACE])
             }
 
             let replayed = structuredClone(start)
-            for (const action of recorded) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            for (const action of recorded)
+                replayed = engine.run(
+                    structuredClone(action),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(state)
         }
     })
 })
 
 describe('Deed Writer — its two Q&As (revision 5 for the first)', () => {
-    const deed = (s: ReturnType<typeof rulerTable>, from: string, to: string, terms: ExchangeTerms) =>
-        HydratedUseActionPower.reasonCannotUse(s, from, DEED_WRITER, powerIndexOf(DEED_WRITER, PowerTiming.Action), [exchange(to, terms)])
+    const deed = (
+        s: ReturnType<typeof rulerTable>,
+        from: string,
+        to: string,
+        terms: ExchangeTerms
+    ) =>
+        HydratedUseActionPower.reasonCannotUse(
+            s,
+            from,
+            DEED_WRITER,
+            powerIndexOf(DEED_WRITER, PowerTiming.Action),
+            [exchange(to, terms)]
+        )
 
     /** 'ruler' is the Chancellor and 'other' a Citizen; every warband on the map is purple, so both rule c1, c2 and p1. */
     const imperial = (oathRevision: OathRevision) =>
-        rulerTable([DEED_WRITER], [], {
-            ruler: { status: PlayerStatus.Chancellor, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 } },
-            other: { status: PlayerStatus.Citizen, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } },
-            away: { warbandsOnBoard: { away: 2 } }
-        }, {
-            oathRevision,
-            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { [IMPERIAL_WARBANDS]: 2 }, p1: { [IMPERIAL_WARBANDS]: 3 } }
-        })
+        rulerTable(
+            [DEED_WRITER],
+            [],
+            {
+                ruler: {
+                    status: PlayerStatus.Chancellor,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 }
+                },
+                other: {
+                    status: PlayerStatus.Citizen,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
+                },
+                away: { warbandsOnBoard: { away: 2 } }
+            },
+            {
+                oathRevision,
+                warbandsBySite: {
+                    c1: { [IMPERIAL_WARBANDS]: 1 },
+                    c2: { [IMPERIAL_WARBANDS]: 2 },
+                    p1: { [IMPERIAL_WARBANDS]: 3 }
+                }
+            }
+        )
 
     it('"Can a Citizen and Chancellor exchange sites? No … since you both rule them already"', () => {
         const s = imperial(OathRevision.EngineFixes2)
-        expect(deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })).toBe('other already rules c2')
-        expect(deed(s, 'ruler', 'other', { fromCounterparty: { sites: [{ siteId: 'p1', warbands: 1 }] } })).toBe('ruler already rules p1')
-        expect(deed(s, 'ruler', 'away', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })).toBeUndefined()
+        expect(
+            deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })
+        ).toBe('other already rules c2')
+        expect(
+            deed(s, 'ruler', 'other', {
+                fromCounterparty: { sites: [{ siteId: 'p1', warbands: 1 }] }
+            })
+        ).toBe('ruler already rules p1')
+        expect(
+            deed(s, 'ruler', 'away', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })
+        ).toBeUndefined()
     })
 
     it('R-X.4 — before revision 5 the Chancellor may still hand a Citizen a site', () => {
         const s = imperial(OathRevision.CardFixes1)
-        expect(deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })).toBeUndefined()
+        expect(
+            deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })
+        ).toBeUndefined()
     })
 
     it('"not zero unless they have the Bandit Crown": its holder may take a site and move in no warbands', () => {
-        const s = rulerTable([DEED_WRITER], [], { other: { relicIds: [BANDIT_CROWN], warbandsOnBoard: {} } })
-        expect(deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] } })).toBeUndefined()
-        expect(deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: -1 }] } })).toBe('a promised amount cannot be negative')
-        expect(deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })).toBe("other's board has fewer than 1 warbands to move to c2")
-        expect(deed(rulerTable([DEED_WRITER]), 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] } })).toMatch(/at least one warband/)
+        const s = rulerTable([DEED_WRITER], [], {
+            other: { relicIds: [BANDIT_CROWN], warbandsOnBoard: {} }
+        })
+        expect(
+            deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] } })
+        ).toBeUndefined()
+        expect(
+            deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: -1 }] } })
+        ).toBe('a promised amount cannot be negative')
+        expect(
+            deed(s, 'ruler', 'other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] } })
+        ).toBe("other's board has fewer than 1 warbands to move to c2")
+        expect(
+            deed(rulerTable([DEED_WRITER]), 'ruler', 'other', {
+                fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] }
+            })
+        ).toMatch(/at least one warband/)
 
-        actionPowerUse('ruler', DEED_WRITER, [exchange('other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] }, fromCounterparty: { favor: 1 } })]).apply(s)
+        actionPowerUse('ruler', DEED_WRITER, [
+            exchange('other', {
+                fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] },
+                fromCounterparty: { favor: 1 }
+            })
+        ]).apply(s)
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(totalWarbandsAt(s, 'c2')).toBe(0)
         expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(6)
@@ -660,19 +1244,41 @@ describe('Deed Writer — its two Q&As (revision 5 for the first)', () => {
         for (const revision of [OathRevision.CardFixes1, OathRevision.EngineFixes2]) {
             const start = openTurnOnEngine(imperial(revision).dehydrate())
             const use = buildAction(UseActionPower, {
-                playerId: 'ruler', cardId: DEED_WRITER, powerIndex: powerIndexOf(DEED_WRITER, PowerTiming.Action),
-                choices: [exchange('other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] }, fromCounterparty: { favor: 1 } })]
+                playerId: 'ruler',
+                cardId: DEED_WRITER,
+                powerIndex: powerIndexOf(DEED_WRITER, PowerTiming.Action),
+                choices: [
+                    exchange('other', {
+                        fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] },
+                        fromCounterparty: { favor: 1 }
+                    })
+                ]
             })
             if (revision === OathRevision.EngineFixes2) {
-                expect(() => engine.runNext(use, structuredClone(start), game)).toThrow('other already rules c2')
+                expect(() => engine.runNext(use, structuredClone(start), game)).toThrow(
+                    'other already rules c2'
+                )
                 continue
             }
             const proposed = engine.runNext(use, structuredClone(start), game)
-            const accepted = engine.runNext(buildAction(AnswerQuestion, { playerId: 'other', answer: { kind: PowerQuestionKind.Exchange, accept: true } }), proposed.updatedState, game)
+            const accepted = engine.runNext(
+                buildAction(AnswerQuestion, {
+                    playerId: 'other',
+                    answer: { kind: PowerQuestionKind.Exchange, accept: true }
+                }),
+                proposed.updatedState,
+                game
+            )
             expect(accepted.updatedState.warbandsBySite['c2']?.[IMPERIAL_WARBANDS]).toBe(1)
 
             let replayed = structuredClone(start)
-            for (const action of [...proposed.processedActions, ...accepted.processedActions]) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            for (const action of [...proposed.processedActions, ...accepted.processedActions])
+                replayed = engine.run(
+                    structuredClone(action),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(accepted.updatedState)
         }
     })
@@ -680,34 +1286,63 @@ describe('Deed Writer — its two Q&As (revision 5 for the first)', () => {
 
 describe('Deed Writer — Ring of Devotion: "You cannot place warbands at sites" (revision 9)', () => {
     const RING = 'relic.ring-of-devotion'
-    const deed = (s: ReturnType<typeof rulerTable>, from: string, to: string, terms: ExchangeTerms) =>
-        HydratedUseActionPower.reasonCannotUse(s, from, DEED_WRITER, powerIndexOf(DEED_WRITER, PowerTiming.Action), [exchange(to, terms)])
-    const site = (warbands: number): ExchangeTerms => ({ fromProposer: { sites: [{ siteId: 'c2', warbands }] } })
+    const deed = (
+        s: ReturnType<typeof rulerTable>,
+        from: string,
+        to: string,
+        terms: ExchangeTerms
+    ) =>
+        HydratedUseActionPower.reasonCannotUse(
+            s,
+            from,
+            DEED_WRITER,
+            powerIndexOf(DEED_WRITER, PowerTiming.Action),
+            [exchange(to, terms)]
+        )
+    const site = (warbands: number): ExchangeTerms => ({
+        fromProposer: { sites: [{ siteId: 'c2', warbands }] }
+    })
     /** 'ruler' rules c1 and c2; 'other' holds `relicIds` with two warbands on their board. */
     const ringed = (oathRevision: OathRevision, relicIds: string[] = [RING]) =>
         rulerTable([DEED_WRITER], [], { other: { relicIds } }, { oathRevision })
 
     it('its holder cannot take a site, which they could rule only by placing warbands there (its Q&A: "All of them!")', () => {
         const s = ringed(OathRevision.EngineFixes5)
-        expect(deed(s, 'ruler', 'other', site(1))).toBe('other cannot place warbands at sites (Ring of Devotion)')
-        expect(deed(s, 'ruler', 'other', site(0))).toBe('other cannot place warbands at sites (Ring of Devotion)')
+        expect(deed(s, 'ruler', 'other', site(1))).toBe(
+            'other cannot place warbands at sites (Ring of Devotion)'
+        )
+        expect(deed(s, 'ruler', 'other', site(0))).toBe(
+            'other cannot place warbands at sites (Ring of Devotion)'
+        )
         // Giving a site away places nothing: the old ruler's warbands go to their own board.
-        expect(deed(s, 'ruler', 'other', { fromCounterparty: { sites: [{ siteId: 'p1', warbands: 1 }] } })).toBeUndefined()
+        expect(
+            deed(s, 'ruler', 'other', {
+                fromCounterparty: { sites: [{ siteId: 'p1', warbands: 1 }] }
+            })
+        ).toBeUndefined()
     })
 
     it('an accepted exchange is re-checked: a Ring held since the proposal refuses the site', () => {
         const s = ringed(OathRevision.EngineFixes5, [])
-        actionPowerUse('ruler', DEED_WRITER, [exchange('other', { ...site(1), fromCounterparty: { favor: 1 } })]).apply(s)
+        actionPowerUse('ruler', DEED_WRITER, [
+            exchange('other', { ...site(1), fromCounterparty: { favor: 1 } })
+        ]).apply(s)
         s.getPlayerState('other').relicIds = [RING]
-        expect(() => answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })).toThrow('other cannot place warbands at sites (Ring of Devotion)')
+        expect(() =>
+            answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
+        ).toThrow('other cannot place warbands at sites (Ring of Devotion)')
         expect(warbandsAt(s, 'c2')['other'] ?? 0).toBe(0)
     })
 
     it('with the Bandit Crown its holder may still take a site with no warbands, placing none (Deed Writer\'s Q&A: "not zero unless")', () => {
         const s = ringed(OathRevision.EngineFixes5, [RING, BANDIT_CROWN])
-        expect(deed(s, 'ruler', 'other', site(1))).toBe('other cannot place warbands at sites (Ring of Devotion)')
+        expect(deed(s, 'ruler', 'other', site(1))).toBe(
+            'other cannot place warbands at sites (Ring of Devotion)'
+        )
         expect(deed(s, 'ruler', 'other', site(0))).toBeUndefined()
-        actionPowerUse('ruler', DEED_WRITER, [exchange('other', { ...site(0), fromCounterparty: { favor: 1 } })]).apply(s)
+        actionPowerUse('ruler', DEED_WRITER, [
+            exchange('other', { ...site(0), fromCounterparty: { favor: 1 } })
+        ]).apply(s)
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(totalWarbandsAt(s, 'c2')).toBe(0)
         expect(s.getPlayerState('other').warbandsOnBoard['other']).toBe(2)
@@ -717,7 +1352,9 @@ describe('Deed Writer — Ring of Devotion: "You cannot place warbands at sites"
     it('R-X.4 — before revision 9 its holder still moves warbands onto a site they take', () => {
         const s = ringed(OathRevision.EngineFixes4)
         expect(deed(s, 'ruler', 'other', site(1))).toBeUndefined()
-        actionPowerUse('ruler', DEED_WRITER, [exchange('other', { ...site(1), fromCounterparty: { favor: 1 } })]).apply(s)
+        actionPowerUse('ruler', DEED_WRITER, [
+            exchange('other', { ...site(1), fromCounterparty: { favor: 1 } })
+        ]).apply(s)
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(warbandsAt(s, 'c2')['other']).toBe(1)
         expect(s.getPlayerState('other').warbandsOnBoard['other']).toBe(1)

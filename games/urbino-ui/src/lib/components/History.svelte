@@ -24,7 +24,9 @@
         replaying = { entryId: entry.id, entries: liveEntries }
         try {
             const [first, last] =
-                entry.kind === 'turn' ? [entry.firstIndex, entry.lastIndex] : [entry.actionIndex, entry.actionIndex]
+                entry.kind === 'turn'
+                    ? [entry.firstIndex, entry.lastIndex]
+                    : [entry.actionIndex, entry.actionIndex]
             await session.history.replayRange(first, last)
         } finally {
             replaying = undefined
@@ -32,7 +34,9 @@
     }
 </script>
 
-<div class="h-full min-h-[300px] w-full overflow-auto rounded-lg bg-(--slate-panel) p-2 shadow-[inset_0_0_0_1px_var(--slate-edge)]">
+<div
+    class="h-full min-h-[300px] w-full overflow-auto rounded-lg bg-(--slate-panel) p-2 shadow-[inset_0_0_0_1px_var(--slate-edge)]"
+>
     {#if session.gameState.result && !session.isViewingHistory}
         <div class="divider urbino-display">Game over</div>
     {/if}

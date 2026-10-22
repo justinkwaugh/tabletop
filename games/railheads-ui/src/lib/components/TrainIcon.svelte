@@ -8,8 +8,8 @@
         fill="#c42a22"
         stroke="#4a0f0b"
         stroke-width="1.2"
-    />
-    <circle cx="7" cy="17" r="3" fill="#4a0f0b" />
-    <circle cx="16" cy="17" r="3" fill="#4a0f0b" />
-    <circle cx="24" cy="17" r="3" fill="#4a0f0b" />
+    ></path>
+    <circle cx="7" cy="17" r="3" fill="#4a0f0b"></circle>
+    <circle cx="16" cy="17" r="3" fill="#4a0f0b"></circle>
+    <circle cx="24" cy="17" r="3" fill="#4a0f0b"></circle>
 </svg>

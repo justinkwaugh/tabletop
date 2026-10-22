@@ -1175,7 +1175,13 @@ function sinceLastTurnTable(long: boolean): PlayedTable {
     const hydrated = testState(
         [
             testPlayer({ playerId: 'ann', color: Color.Blue, siteId: slum, favor: 4, secrets: 2 }),
-            testPlayer({ playerId: 'bea', color: Color.Yellow, siteId: mountain, favor: 1, secrets: 1 }),
+            testPlayer({
+                playerId: 'bea',
+                color: Color.Yellow,
+                siteId: mountain,
+                favor: 1,
+                secrets: 1
+            }),
             testPlayer({
                 playerId: 'dana',
                 color: Color.Purple,
@@ -1217,7 +1223,8 @@ function sinceLastTurnTable(long: boolean): PlayedTable {
         table.machineState = MachineState.ActPhase
     }
     const peoplesFavor =
-        (holderPlayerId: string, value: number, mobSide: boolean) => (table: OathProjectedState) => {
+        (holderPlayerId: string, value: number, mobSide: boolean) =>
+        (table: OathProjectedState) => {
             table.banners[Banner.PeoplesFavor] = { holderPlayerId, value, mobSide }
         }
     const seize = (story: RecordedStory, playerId: string, from: string) =>
@@ -1418,7 +1425,12 @@ function recoverSeenTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const [first, second] = [`${home}.relic.0`, `${home}.relic.1`]
     return tradeSiteTable(
-        { favor: 6, secrets: 3, peekedRelicSlotIds: [second], peekedRelics: { [second]: 'relic.map' } },
+        {
+            favor: 6,
+            secrets: 3,
+            peekedRelicSlotIds: [second],
+            peekedRelics: { [second]: 'relic.map' }
+        },
         {
             siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.ancient-city' },
             relicsBySite: { [home]: [{ slotId: first }, { slotId: second }] },
@@ -2447,7 +2459,13 @@ function messengerTable(): PlayedTable {
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
                 advisers: [faceup('denizen.order.messenger')]
             }),
-            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: mountain, favor: 2, secrets: 1 })
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: mountain,
+                favor: 2,
+                secrets: 1
+            })
         ],
         {
             machineState: MachineState.ActPhase,
@@ -2865,7 +2883,11 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
                 [wastes]: []
             },
             warbandsBySite: may
-                ? { [plains]: { [IMPERIAL_WARBANDS]: 2 }, [mountain]: { ann: 2 }, [wastes]: { ann: 3 } }
+                ? {
+                      [plains]: { [IMPERIAL_WARBANDS]: 2 },
+                      [mountain]: { ann: 2 },
+                      [wastes]: { ann: 3 }
+                  }
                 : {},
             favorBank:
                 scene === 'pickerSaladShort'
@@ -2885,7 +2907,9 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
             },
             banners: testBanners(vault ? { [Banner.DarkestSecret]: 'rhys' } : {}),
             vault: testVaultWithRelics(
-                Object.fromEntries(RELIQUARY_RELICS.map((relic, index) => [reliquarySlotId(index), relic]))
+                Object.fromEntries(
+                    RELIQUARY_RELICS.map((relic, index) => [reliquarySlotId(index), relic])
+                )
             )
         }
     )
@@ -2925,7 +2949,9 @@ function powerSitesTable(scene: PowerSitesScene): PlayedTable {
                 favor: 3,
                 secrets: 2,
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 13 },
-                advisers: [faceup(palanquin ? 'denizen.order.palanquin' : 'denizen.order.siege-engines')]
+                advisers: [
+                    faceup(palanquin ? 'denizen.order.palanquin' : 'denizen.order.siege-engines')
+                ]
             }),
             testPlayer({
                 playerId: 'rhys',
@@ -3156,8 +3182,22 @@ function hospitalityTable(scene: 'plain' | 'toll' | 'hiddenPlace'): PlayedTable 
     const twoBanks = ['denizen.nomad.oracle', 'denizen.beast.birdsong']
     const state = testState(
         [
-            testPlayer({ playerId: 'dana', color: Color.Purple, siteId: river, supply: 7, favor: 3, secrets: 1, advisers }),
-            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: slum, favor: 3, warbandsOnBoard: { rhys: 3 } }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                siteId: river,
+                supply: 7,
+                favor: 3,
+                secrets: 1,
+                advisers
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: slum,
+                favor: 3,
+                warbandsOnBoard: { rhys: 3 }
+            }),
             testPlayer({
                 playerId: 'ann',
                 color: Color.Blue,
@@ -4092,8 +4132,7 @@ function banditCrownTable(scene: CrownScene): PlayedTable {
         ],
         {
             oathRevision: CURRENT_OATH_REVISION,
-            machineState:
-                scene === 'campaign' ? MachineState.CampaignPlans : MachineState.ActPhase,
+            machineState: scene === 'campaign' ? MachineState.CampaignPlans : MachineState.ActPhase,
             chancellorPlayerId: 'dana',
             map: allMapSlots(),
             siteCards: { ...fixtureSitesOnTheBoard(), [CROWN_SITE]: 'site.great-slums' },
@@ -4256,7 +4295,9 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
         ],
         {
             machineState:
-                step === 'skulls' ? MachineState.CampaignSkullLosses : MachineState.CampaignSacrifice,
+                step === 'skulls'
+                    ? MachineState.CampaignSkullLosses
+                    : MachineState.CampaignSacrifice,
             chancellorPlayerId: 'dana',
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
@@ -4278,7 +4319,9 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
                 ],
                 defense: 7,
                 swords: step === 'skulls' ? skulls * 2 + 1 : 5,
-                defendingForce: [{ at: { kind: 'board', playerId: 'rhys' }, owner: 'rhys', count: 4 }],
+                defendingForce: [
+                    { at: { kind: 'board', playerId: 'rhys' }, owner: 'rhys', count: 4 }
+                ],
                 defendingBandits: 0,
                 pendingSkullLosses: step === 'skulls' ? { skulls } : undefined,
                 ...campaignRecords(),
@@ -4341,7 +4384,11 @@ function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): 
                 askingPlayerId: 'rhys',
                 resumeMachineState: MachineState.ActPhase
             },
-            heldTurn: { queue: [], askingPlayerId: 'rhys', resumeMachineState: MachineState.ActPhase }
+            heldTurn: {
+                queue: [],
+                askingPlayerId: 'rhys',
+                resumeMachineState: MachineState.ActPhase
+            }
         }
     )
     state.oathRevision = OathRevision.EngineFixes3
@@ -5156,7 +5203,9 @@ export function standing(): {
     const state = current().gameState
     const pending = state.pendingConsent
     return {
-        statusOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.status])),
+        statusOf: Object.fromEntries(
+            state.players.map((player) => [player.playerId, player.status])
+        ),
         ...(pending
             ? { asked: { kind: pending.request.kind, askedPlayerId: pending.askedPlayerId } }
             : {})

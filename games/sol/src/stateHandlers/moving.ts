@@ -26,7 +26,10 @@ type MovingAction =
     | HydratedFuel
 
 export class MovingStateHandler implements MachineStateHandler<MovingAction, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is MovingAction {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedSolGameState>
+    ): action is MovingAction {
         if (!action.playerId) return false
         return (
             action.type === ActionType.Launch ||
@@ -38,7 +41,10 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction, Hyd
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         const gameState = context.gameState
 
         const validActions = [ActionType.Pass]

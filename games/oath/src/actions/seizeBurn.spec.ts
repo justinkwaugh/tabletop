@@ -71,7 +71,10 @@ function table(oathRevision: number) {
     return s
 }
 
-const conspiracy = { targetPlayerId: 'foe', take: { kind: 'banner' as const, banner: Banner.PeoplesFavor } }
+const conspiracy = {
+    targetPlayerId: 'foe',
+    take: { kind: 'banner' as const, banner: Banner.PeoplesFavor }
+}
 const seizeWithConspiracy = buildAction(PlayFacedownAdviser, {
     playerId: 'me',
     cardId: CONSPIRACY_ID,
@@ -90,7 +93,11 @@ describe("R-10.4-H1 — the People's Favor burns a Seize's favor itself, so Vow 
         const game = testGame(['me', 'foe', 'keeper', 'chancellor'])
         const after = engine.runNext(seizeWithConspiracy, s.dehydrate(), game).updatedState
 
-        expect(after.banners[Banner.PeoplesFavor]).toMatchObject({ value: 3, holderPlayerId: 'me', mobSide: true })
+        expect(after.banners[Banner.PeoplesFavor]).toMatchObject({
+            value: 3,
+            holderPlayerId: 'me',
+            mobSide: true
+        })
         expect(after.favorSupply).toBe(supply + 2)
         expect(favorOf(after, 'keeper')).toBe(2)
     })
@@ -120,7 +127,12 @@ describe("R-10.4-H1 — the People's Favor burns a Seize's favor itself, so Vow 
         const s = table(atRevision)
         const supply = s.favorSupply
         expectFavorConserved(s, () => {
-            payCostOnCard(s, 'me', CAPTAINS, { placeFavor: 0, burnFavor: 2, placeSecret: 0, burnSecret: 0 })
+            payCostOnCard(s, 'me', CAPTAINS, {
+                placeFavor: 0,
+                burnFavor: 2,
+                placeSecret: 0,
+                burnSecret: 0
+            })
         })
         expect(s.getPlayerState('me').favor).toBe(0)
         expect(s.getPlayerState('keeper').favor).toBe(4)
@@ -128,14 +140,23 @@ describe("R-10.4-H1 — the People's Favor burns a Seize's favor itself, so Vow 
     })
 
     it('R-X.4 — each revision’s Conspiracy Seize replays unchanged', () => {
-        for (const [revision, keeperFavor] of [[before, 4], [atRevision, 2]]) {
+        for (const [revision, keeperFavor] of [
+            [before, 4],
+            [atRevision, 2]
+        ]) {
             const start = table(revision).dehydrate()
             const game = testGame(['me', 'foe', 'keeper', 'chancellor'])
             const recorded = engine.runNext(seizeWithConspiracy, structuredClone(start), game)
             expect(favorOf(recorded.updatedState, 'keeper')).toBe(keeperFavor)
 
             let replayed = structuredClone(start)
-            for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            for (const action of recorded.processedActions)
+                replayed = engine.run(
+                    structuredClone(action),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(recorded.updatedState)
         }
     })

@@ -11,7 +11,12 @@ function waiting(round: number, citizenRelics: string[] = []) {
     const state = testState(
         [
             testPlayer({ playerId: 'ann', color: Color.Purple, status: PlayerStatus.Chancellor }),
-            testPlayer({ playerId: 'ben', color: Color.Red, status: PlayerStatus.Citizen, relicIds: citizenRelics }),
+            testPlayer({
+                playerId: 'ben',
+                color: Color.Red,
+                status: PlayerStatus.Citizen,
+                relicIds: citizenRelics
+            }),
             testPlayer({ playerId: 'dev', color: Color.Yellow, status: PlayerStatus.Exile })
         ],
         {
@@ -36,10 +41,19 @@ describe('what the end die decides (R-3.3, R-3.3.1)', () => {
     })
 
     it('names the Chancellor as the winner, or a Citizen meeting the Successor goal', () => {
-        expect(endDieStakes(waiting(6), 'dev')).toMatchObject({ winnerId: 'ann', as: 'as the Chancellor' })
+        expect(endDieStakes(waiting(6), 'dev')).toMatchObject({
+            winnerId: 'ann',
+            as: 'as the Chancellor'
+        })
         const successor = waiting(7, ['relic.grand-scepter'])
-        expect(endDieStakes(successor, 'ann')).toMatchObject({ winnerId: 'ben', as: 'as your Successor' })
-        expect(endDieStakes(successor, 'dev')).toMatchObject({ winnerId: 'ben', as: 'as the Successor' })
+        expect(endDieStakes(successor, 'ann')).toMatchObject({
+            winnerId: 'ben',
+            as: 'as your Successor'
+        })
+        expect(endDieStakes(successor, 'dev')).toMatchObject({
+            winnerId: 'ben',
+            as: 'as the Successor'
+        })
     })
 })
 
@@ -49,6 +63,8 @@ describe('the session’s roll', () => {
         state.machineState = MachineState.ActPhase
         openTurn(state, 'ann')
         const session = await openSessionOn(tableOf(state))
-        await expect(session.rollEndDie()).rejects.toThrow(/Only the Chancellor rolls the end die, between rounds/)
+        await expect(session.rollEndDie()).rejects.toThrow(
+            /Only the Chancellor rolls the end die, between rounds/
+        )
     })
 })

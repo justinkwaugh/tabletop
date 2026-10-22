@@ -429,9 +429,7 @@
                 <PlayerChips
                     label="With:"
                     playerIds={partners}
-                    picked={option?.kind === PowerChoiceKind.Exchange
-                        ? [option.withPlayerId]
-                        : []}
+                    picked={option?.kind === PowerChoiceKind.Exchange ? [option.withPlayerId] : []}
                     onpick={(playerId, wasPicked) =>
                         setOption(legal, i, wasPicked ? NO_OPTION : partners.indexOf(playerId))}
                     {busy}

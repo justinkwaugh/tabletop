@@ -24,7 +24,6 @@ import { CampaignDefeatKills } from './campaignDefeatKills.js'
 import { HydratedCampaignSacrifice } from './campaignSacrifice.js'
 import { OathRevision } from '../util/revision.js'
 
-
 const ATTACKER = 'p1'
 const DEFENDER = 'p2'
 const RELIC = 'relic.test.crown'
@@ -96,15 +95,15 @@ const FULL_CAMPAIGN = buildAction(Campaign, {
         { kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor },
         { kind: CampaignTargetKind.PawnAndFavor }
     ],
-    attackDice: 8,
+    attackDice: 8
 })
 
 /** Wins on swords alone, so R-9.5 permits no sacrifice. */
 function seedWhereSwordsAlreadyWin(): number {
     const game = buildGame()
     for (let seed = 1; seed < 5000; seed++) {
-        const campaign = engine.run(action(FULL_CAMPAIGN), buildState(seed), game)
-            .updatedState.campaign
+        const campaign = engine.run(action(FULL_CAMPAIGN), buildState(seed), game).updatedState
+            .campaign
         if (campaign && campaign.swords > campaign.defense) {
             return seed
         }
@@ -145,11 +144,13 @@ describe('a Campaign through the engine', () => {
         expect(defendingForce.reduce((n, g) => n + g.count, 0)).toBe(1)
 
         result = engine.run(
-            action(buildAction(CampaignSacrifice, {
-                playerId: ATTACKER,
-                sacrifice: 0,
-                defeatKills: []
-            })),
+            action(
+                buildAction(CampaignSacrifice, {
+                    playerId: ATTACKER,
+                    sacrifice: 0,
+                    defeatKills: []
+                })
+            ),
             state,
             game
         )
@@ -161,12 +162,14 @@ describe('a Campaign through the engine', () => {
         expect(state.warbandsBySite['c1'][DEFENDER]).toBe(0)
 
         result = engine.run(
-            action(buildAction(CampaignResolveVictory, {
-                playerId: ATTACKER,
-                placements: [{ siteId: 'c1', owner: ATTACKER, count: 2 }],
-                banishToSiteId: 'h3',
-                burnFavor: true
-            })),
+            action(
+                buildAction(CampaignResolveVictory, {
+                    playerId: ATTACKER,
+                    placements: [{ siteId: 'c1', owner: ATTACKER, count: 2 }],
+                    banishToSiteId: 'h3',
+                    burnFavor: true
+                })
+            ),
             state,
             game
         )
@@ -199,12 +202,14 @@ describe('a Campaign through the engine', () => {
         const game = buildGame()
         const run = () => {
             const result = engine.run(
-                action(buildAction(Campaign, {
-                    playerId: ATTACKER,
-                    defender: { kind: 'player', playerId: DEFENDER },
-                    targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
-                    attackDice: 8,
-                })),
+                action(
+                    buildAction(Campaign, {
+                        playerId: ATTACKER,
+                        defender: { kind: 'player', playerId: DEFENDER },
+                        targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
+                        attackDice: 8
+                    })
+                ),
                 buildState(),
                 game
             )
@@ -216,28 +221,31 @@ describe('a Campaign through the engine', () => {
     it('refuses a Campaign action while the machine is mid-Campaign (R-4.2)', () => {
         const game = buildGame()
         const first = engine.run(
-            action(buildAction(Campaign, {
-                playerId: ATTACKER,
-                defender: { kind: 'player', playerId: DEFENDER },
-                targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
-                attackDice: 4,
-            })),
+            action(
+                buildAction(Campaign, {
+                    playerId: ATTACKER,
+                    defender: { kind: 'player', playerId: DEFENDER },
+                    targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
+                    attackDice: 4
+                })
+            ),
             buildState(),
             game
         )
 
         expect(() =>
             engine.run(
-                action(buildAction(Travel, {
-                    playerId: ATTACKER,
-                    siteId: 'p1'
-                })),
+                action(
+                    buildAction(Travel, {
+                        playerId: ATTACKER,
+                        siteId: 'p1'
+                    })
+                ),
                 first.updatedState,
                 game
             )
         ).toThrow()
     })
-
 })
 
 describe('R-5.5.2.a — a Citizen joins the defence, through the engine', () => {
@@ -247,11 +255,38 @@ describe('R-5.5.2.a — a Citizen joins the defence, through the engine', () => 
     function empireAtC1(): OathProjectedState {
         const state = testState(
             [
-                testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 7, warbandsOnBoard: { [ATTACKER]: 5 }, warbandsInPersonalBank: { [ATTACKER]: 7 } }),
-                testPlayer({ playerId: CHANCELLOR, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 15 } }),
-                testPlayer({ playerId: CITIZEN, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 1 }, warbandsInPersonalBank: { [CITIZEN]: 14 } })
+                testPlayer({
+                    playerId: ATTACKER,
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c1',
+                    supply: 7,
+                    warbandsOnBoard: { [ATTACKER]: 5 },
+                    warbandsInPersonalBank: { [ATTACKER]: 7 }
+                }),
+                testPlayer({
+                    playerId: CHANCELLOR,
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'c1',
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 15 }
+                }),
+                testPlayer({
+                    playerId: CITIZEN,
+                    color: Color.Blue,
+                    status: PlayerStatus.Citizen,
+                    siteId: 'c1',
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 1 },
+                    warbandsInPersonalBank: { [CITIZEN]: 14 }
+                })
             ],
-            { machineState: MachineState.ActPhase, chancellorPlayerId: CHANCELLOR, warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 } }, prng: { seed: 1, invocations: 0 } }
+            {
+                machineState: MachineState.ActPhase,
+                chancellorPlayerId: CHANCELLOR,
+                warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 } },
+                prng: { seed: 1, invocations: 0 }
+            }
         ).dehydrate()
         state.turnManager = {
             series: [{ type: 'turn', playerId: ATTACKER, start: 0 }],
@@ -264,23 +299,37 @@ describe('R-5.5.2.a — a Citizen joins the defence, through the engine', () => 
 
     it('asks the Citizen, then the defender, each on the clock in turn, before anything is rolled', () => {
         const game = testGame([ATTACKER, CHANCELLOR, CITIZEN])
-        let state = engine.runNext(buildAction(Campaign, {
-            playerId: ATTACKER,
-            defender: { kind: 'player', playerId: CHANCELLOR },
-            targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
-            attackDice: 3
-        }), empireAtC1(), game).updatedState
+        let state = engine.runNext(
+            buildAction(Campaign, {
+                playerId: ATTACKER,
+                defender: { kind: 'player', playerId: CHANCELLOR },
+                targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
+                attackDice: 3
+            }),
+            empireAtC1(),
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.ConsentRequest)
         expect(state.activePlayerIds).toEqual([CITIZEN])
-        expect(engine.getValidActionTypesForPlayer(game, state, CITIZEN)).toEqual([ActionType.AnswerConsent])
+        expect(engine.getValidActionTypesForPlayer(game, state, CITIZEN)).toEqual([
+            ActionType.AnswerConsent
+        ])
         expect(engine.getValidActionTypesForPlayer(game, state, ATTACKER)).toEqual([])
         expect(state.prng.invocations).toBe(0)
 
-        state = engine.runNext(buildAction(AnswerConsent, { playerId: CITIZEN, granted: true }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(AnswerConsent, { playerId: CITIZEN, granted: true }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.ConsentRequest)
         expect(state.activePlayerIds).toEqual([CHANCELLOR])
 
-        state = engine.runNext(buildAction(AnswerConsent, { playerId: CHANCELLOR, granted: true }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(AnswerConsent, { playerId: CHANCELLOR, granted: true }),
+            state,
+            game
+        ).updatedState
         expect(state.campaign?.allyPlayerIds).toEqual([CITIZEN])
         expect(state.pendingCampaign).toBeUndefined()
         // Nobody holds a battle plan, so the muster rolls and the attacker is on the clock.
@@ -292,11 +341,17 @@ describe('R-5.5.2.a — a Citizen joins the defence, through the engine', () => 
 
 describe('R-2.11-H1 — from the turn-flow revision to revision 11, a title moved inside a Campaign is its own System Action there (R-X.4)', () => {
     const VOW_OF_UNION = 'denizen.beast.vow-of-union'
-    const processed = (actions: readonly GameAction[]) => actions.map((a) => `${a.type}/${a.source}`)
-    const transferIn = (actions: readonly GameAction[]) => actions.find((a) => a.type === ActionType.TransferOathkeeper)
+    const processed = (actions: readonly GameAction[]) =>
+        actions.map((a) => `${a.type}/${a.source}`)
+    const transferIn = (actions: readonly GameAction[]) =>
+        actions.find((a) => a.type === ActionType.TransferOathkeeper)
 
     // From revision 12 the title is judged once, after the Campaign; recorded games before it replay as here.
-    function supremacy(state: OathProjectedState, oathkeeperPlayerId: string, oathRevision: OathRevision = OathRevision.EngineFixes7): OathProjectedState {
+    function supremacy(
+        state: OathProjectedState,
+        oathkeeperPlayerId: string,
+        oathRevision: OathRevision = OathRevision.EngineFixes7
+    ): OathProjectedState {
         return { ...state, oathType: OathType.Supremacy, oathkeeperPlayerId, oathRevision }
     }
 
@@ -306,8 +361,15 @@ describe('R-2.11-H1 — from the turn-flow revision to revision 11, a title move
         state = engine.runNext(action(FULL_CAMPAIGN), state, game).updatedState
         expect(state.oathkeeperPlayerId).toBe(DEFENDER)
 
-        const sacrifice = engine.runNext(buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0 }), state, game)
-        expect(processed(sacrifice.processedActions)).toEqual([`${ActionType.CampaignSacrifice}/${ActionSource.User}`, `${ActionType.TransferOathkeeper}/${ActionSource.System}`])
+        const sacrifice = engine.runNext(
+            buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0 }),
+            state,
+            game
+        )
+        expect(processed(sacrifice.processedActions)).toEqual([
+            `${ActionType.CampaignSacrifice}/${ActionSource.User}`,
+            `${ActionType.TransferOathkeeper}/${ActionSource.System}`
+        ])
         expect(transferIn(sacrifice.processedActions)).toMatchObject({ fromPlayerId: DEFENDER })
         expect(transferIn(sacrifice.processedActions)).not.toHaveProperty('toPlayerId')
         state = sacrifice.updatedState
@@ -316,11 +378,19 @@ describe('R-2.11-H1 — from the turn-flow revision to revision 11, a title move
         expect(state.oathkeeperPlayerId).toBeUndefined()
 
         const spoils = engine.runNext(
-            buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [{ siteId: 'c1', owner: ATTACKER, count: 2 }], banishToSiteId: 'h3', burnFavor: true }),
+            buildAction(CampaignResolveVictory, {
+                playerId: ATTACKER,
+                placements: [{ siteId: 'c1', owner: ATTACKER, count: 2 }],
+                banishToSiteId: 'h3',
+                burnFavor: true
+            }),
             state,
             game
         )
-        expect(processed(spoils.processedActions)).toEqual([`${ActionType.CampaignResolveVictory}/${ActionSource.User}`, `${ActionType.TransferOathkeeper}/${ActionSource.System}`])
+        expect(processed(spoils.processedActions)).toEqual([
+            `${ActionType.CampaignResolveVictory}/${ActionSource.User}`,
+            `${ActionType.TransferOathkeeper}/${ActionSource.System}`
+        ])
         expect(transferIn(spoils.processedActions)).toMatchObject({ toPlayerId: ATTACKER })
         expect(spoils.updatedState.oathkeeperPlayerId).toBe(ATTACKER)
         expect(spoils.updatedState.machineState).toBe(MachineState.ActPhase)
@@ -337,11 +407,17 @@ describe('R-2.11-H1 — from the turn-flow revision to revision 11, a title move
             return state
         }
         const game = buildGame()
-        const declared = (seed: number) => engine.runNext(action(FULL_CAMPAIGN), forTable(seed), game).updatedState
+        const declared = (seed: number) =>
+            engine.runNext(action(FULL_CAMPAIGN), forTable(seed), game).updatedState
         let seed = 1
         while (seed < 5000) {
             const campaign = declared(seed).campaign
-            if (campaign && campaign.swords <= campaign.defense && HydratedCampaignSacrifice.sacrificeNeeded(campaign) === 1) break
+            if (
+                campaign &&
+                campaign.swords <= campaign.defense &&
+                HydratedCampaignSacrifice.sacrificeNeeded(campaign) === 1
+            )
+                break
             seed += 1
         }
         expect(seed).toBeLessThan(5000)
@@ -350,19 +426,32 @@ describe('R-2.11-H1 — from the turn-flow revision to revision 11, a title move
         expect(state.oathkeeperPlayerId).toBe(ATTACKER)
 
         const sacrifice = engine.runNext(
-            buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 1, sacrificeKills: [{ at: { kind: 'site', siteId: 'c2' }, owner: ATTACKER, count: 1 }] }),
+            buildAction(CampaignSacrifice, {
+                playerId: ATTACKER,
+                sacrifice: 1,
+                sacrificeKills: [{ at: { kind: 'site', siteId: 'c2' }, owner: ATTACKER, count: 1 }]
+            }),
             state,
             game
         )
-        expect(processed(sacrifice.processedActions)).toEqual([`${ActionType.CampaignSacrifice}/${ActionSource.User}`, `${ActionType.TransferOathkeeper}/${ActionSource.System}`])
-        expect(transferIn(sacrifice.processedActions)).toMatchObject({ fromPlayerId: ATTACKER, toPlayerId: DEFENDER })
+        expect(processed(sacrifice.processedActions)).toEqual([
+            `${ActionType.CampaignSacrifice}/${ActionSource.User}`,
+            `${ActionType.TransferOathkeeper}/${ActionSource.System}`
+        ])
+        expect(transferIn(sacrifice.processedActions)).toMatchObject({
+            fromPlayerId: ATTACKER,
+            toPlayerId: DEFENDER
+        })
         state = sacrifice.updatedState
         expect(state.machineState).toBe(MachineState.CampaignDefeat)
         expect(state.activePlayerIds).toEqual([DEFENDER])
         expect(state.oathkeeperPlayerId).toBe(DEFENDER)
 
         const losses = engine.runNext(
-            buildAction(CampaignDefeatKills, { playerId: DEFENDER, kills: [{ at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }] }),
+            buildAction(CampaignDefeatKills, {
+                playerId: DEFENDER,
+                kills: [{ at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }]
+            }),
             state,
             game
         )

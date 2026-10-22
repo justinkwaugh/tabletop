@@ -19,7 +19,10 @@ import { advisersOfSuit } from '../util/persistent.js'
 const SALAD_DAYS = 'denizen.hearth.salad-days'
 
 /** `away` stands at h1, in the Hinterland, a region apart from `ruler` and `other` at c1. */
-function board(over: Record<string, Record<string, unknown>> = {}, denizens: Record<string, string[]> = {}) {
+function board(
+    over: Record<string, Record<string, unknown>> = {},
+    denizens: Record<string, string[]> = {}
+) {
     const s = testState(
         [
             testPlayer({
@@ -33,8 +36,22 @@ function board(over: Record<string, Record<string, unknown>> = {}, denizens: Rec
                 warbandsInPersonalBank: { ruler: 6 },
                 ...over['ruler']
             }),
-            testPlayer({ playerId: 'other', color: Color.Blue, siteId: 'c1', favor: 2, secrets: 2, ...over['other'] }),
-            testPlayer({ playerId: 'away', color: Color.Yellow, siteId: 'h1', favor: 3, secrets: 1, ...over['away'] })
+            testPlayer({
+                playerId: 'other',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 2,
+                secrets: 2,
+                ...over['other']
+            }),
+            testPlayer({
+                playerId: 'away',
+                color: Color.Yellow,
+                siteId: 'h1',
+                favor: 3,
+                secrets: 1,
+                ...over['away']
+            })
         ],
         {
             denizensBySite: { c1: [], c2: [], h1: [], ...denizens },
@@ -49,7 +66,11 @@ function board(over: Record<string, Record<string, unknown>> = {}, denizens: Rec
 describe('Hearth', () => {
     it('Salad Days — one favor from each of three DIFFERENT banks', () => {
         const s = board()
-        const a = playDrawnCard(s, 'denizen.hearth.salad-days', SearchPlay.Site, [bank(Suit.Beast), bank(Suit.Nomad), bank(Suit.Order)])
+        const a = playDrawnCard(s, 'denizen.hearth.salad-days', SearchPlay.Site, [
+            bank(Suit.Beast),
+            bank(Suit.Nomad),
+            bank(Suit.Order)
+        ])
         // R-5.1.4.I — the site play's hearth favor comes first: 3 + 1 + 3.
         expect(s.getPlayerState('ruler').favor).toBe(7)
         expect(s.favorBank[Suit.Beast]).toBe(2)
@@ -59,7 +80,11 @@ describe('Hearth', () => {
     it('Salad Days — the same bank twice is refused by the cross-check, before anything moves', () => {
         const s = board()
         expect(() =>
-            playDrawnCard(s, 'denizen.hearth.salad-days', SearchPlay.Site, [bank(Suit.Beast), bank(Suit.Beast), bank(Suit.Order)])
+            playDrawnCard(s, 'denizen.hearth.salad-days', SearchPlay.Site, [
+                bank(Suit.Beast),
+                bank(Suit.Beast),
+                bank(Suit.Order)
+            ])
         ).toThrow(/three favor banks must be different/)
         expect(s.denizensBySite['c1']).toEqual([])
     })
@@ -72,7 +97,8 @@ describe('Hearth', () => {
             for (const suit of empty) s.favorBank[suit] = 0
             return s
         }
-        const play = (s: ReturnType<typeof table>, suits: Suit[]) => playDrawnCard(s, SALAD_DAYS, SearchPlay.Adviser, suits.map(bank))
+        const play = (s: ReturnType<typeof table>, suits: Suit[]) =>
+            playDrawnCard(s, SALAD_DAYS, SearchPlay.Adviser, suits.map(bank))
 
         it('from revision 8, an empty bank named while three banks hold favor is refused; before it, accepted for 2', () => {
             const picks = [Suit.Beast, Suit.Order, Suit.Nomad]
@@ -87,16 +113,30 @@ describe('Hearth', () => {
         })
 
         it('from revision 8, with two banks holding favor, both are named and an empty one makes the third', () => {
-            const two = () => table(OathRevision.EngineFixes4, [Suit.Discord, Suit.Hearth, Suit.Arcane, Suit.Nomad])
+            const two = () =>
+                table(OathRevision.EngineFixes4, [
+                    Suit.Discord,
+                    Suit.Hearth,
+                    Suit.Arcane,
+                    Suit.Nomad
+                ])
             const s = two()
             const a = play(s, [Suit.Beast, Suit.Order, Suit.Nomad])
             expect(s.getPlayerState('ruler').favor).toBe(5)
             expect(a.metadata?.whenPlayed).toMatch(/gained 2 favor/)
-            expect(() => play(two(), [Suit.Beast, Suit.Nomad, Suit.Arcane])).toThrow(/the banks named yield 1, and 2 can be had/)
+            expect(() => play(two(), [Suit.Beast, Suit.Nomad, Suit.Arcane])).toThrow(
+                /the banks named yield 1, and 2 can be had/
+            )
         })
 
         it('from revision 8, with one bank holding favor it gives 1, and with none the play gains nothing', () => {
-            const one = table(OathRevision.EngineFixes4, [Suit.Discord, Suit.Hearth, Suit.Arcane, Suit.Nomad, Suit.Order])
+            const one = table(OathRevision.EngineFixes4, [
+                Suit.Discord,
+                Suit.Hearth,
+                Suit.Arcane,
+                Suit.Nomad,
+                Suit.Order
+            ])
             play(one, [Suit.Beast, Suit.Nomad, Suit.Arcane])
             expect(one.getPlayerState('ruler').favor).toBe(4)
 
@@ -110,7 +150,9 @@ describe('Hearth', () => {
     it('Fabled Feast — X = hearth cards you rule, itself included when played to a site you rule', () => {
         const s = board({}, { c2: ['denizen.hearth.rowdy-pub'] })
         s.favorBank[Suit.Beast] = 5
-        const a = playDrawnCard(s, 'denizen.hearth.fabled-feast', SearchPlay.Site, [bank(Suit.Beast)])
+        const a = playDrawnCard(s, 'denizen.hearth.fabled-feast', SearchPlay.Site, [
+            bank(Suit.Beast)
+        ])
         expect(a.metadata?.whenPlayed).toMatch(/took 2 favor \(of 2 hearth cards ruled\)/)
         expect(s.favorBank[Suit.Beast]).toBe(3)
     })
@@ -118,7 +160,14 @@ describe('Hearth', () => {
 
 describe('Arcane', () => {
     it('Dazzle — discards every hearth and order card at sites in your region, locked ones excepted', () => {
-        const s = board({}, { c1: ['denizen.hearth.rowdy-pub'], c2: ['denizen.order.captains', 'denizen.beast.rangers'], h1: ['denizen.hearth.storyteller'] })
+        const s = board(
+            {},
+            {
+                c1: ['denizen.hearth.rowdy-pub'],
+                c2: ['denizen.order.captains', 'denizen.beast.rangers'],
+                h1: ['denizen.hearth.storyteller']
+            }
+        )
         const a = playDrawnCard(s, 'denizen.arcane.dazzle', SearchPlay.Adviser)
         discardInListedOrder(s)
         expect(s.denizensBySite['c1']).toEqual([])
@@ -158,9 +207,15 @@ describe('Discord', () => {
     it('Charlatan — burns the Darkest Secret down to one, and fires from the R-6.1 flip too', () => {
         const s = board()
         s.banners[Banner.DarkestSecret].value = 4
-        s.getPlayerState('ruler').setAdvisers([{ cardId: 'denizen.discord.charlatan', faceUp: false }])
+        s.getPlayerState('ruler').setAdvisers([
+            { cardId: 'denizen.discord.charlatan', faceUp: false }
+        ])
         const a = new HydratedPlayFacedownAdviser(
-            buildAction(PlayFacedownAdviser, { playerId: 'ruler', cardId: 'denizen.discord.charlatan', play: SearchPlay.Site })
+            buildAction(PlayFacedownAdviser, {
+                playerId: 'ruler',
+                cardId: 'denizen.discord.charlatan',
+                play: SearchPlay.Site
+            })
         )
         a.apply(s)
         expect(s.banners[Banner.DarkestSecret].value).toBe(1)
@@ -190,16 +245,22 @@ describe('Nomad', () => {
 
     it('Great Herd — a non-Nomad site card is not among the options', () => {
         const s = board({}, { h1: ['denizen.beast.rangers'] })
-        expect(() => playDrawnCard(s, 'denizen.nomad.great-herd', SearchPlay.Site, [card('denizen.beast.rangers')])).toThrow(
-            /not among the options/
-        )
+        expect(() =>
+            playDrawnCard(s, 'denizen.nomad.great-herd', SearchPlay.Site, [
+                card('denizen.beast.rangers')
+            ])
+        ).toThrow(/not among the options/)
     })
 
     describe('Great Herd and a Nomad card at its own site: two cards at one site swap to the same place (R-10.25)', () => {
         const HERD = 'denizen.nomad.great-herd'
         const TENTS = 'denizen.nomad.tents'
         const SACRED_GROUND = 'denizen.nomad.sacred-ground'
-        const at = (revision: OathRevision, denizens: Record<string, string[]>, over: Parameters<typeof board>[0] = {}) => {
+        const at = (
+            revision: OathRevision,
+            denizens: Record<string, string[]>,
+            over: Parameters<typeof board>[0] = {}
+        ) => {
             const s = board(over, denizens)
             s.oathRevision = revision
             return s
@@ -225,7 +286,9 @@ describe('Nomad', () => {
 
         it('a locked Nomad card at its own site is not among the options (its Q&A)', () => {
             const s = at(OathRevision.EngineFixes6, { c1: [SACRED_GROUND] })
-            expect(() => playDrawnCard(s, HERD, SearchPlay.Site, [card(SACRED_GROUND)])).toThrow(/not among the options/)
+            expect(() => playDrawnCard(s, HERD, SearchPlay.Site, [card(SACRED_GROUND)])).toThrow(
+                /not among the options/
+            )
         })
 
         it('the swap itself: same site changes nothing; different sites and an adviser trade places', () => {
@@ -239,7 +302,11 @@ describe('Nomad', () => {
             expect(apart.denizensBySite['h1']).toEqual([HERD])
 
             // Horned Mask's case: one of the user's faceup advisers and a card at a site.
-            const held = at(OathRevision.EngineFixes6, { c1: [TENTS] }, { ruler: { advisers: [{ cardId: HERD, faceUp: true }] } })
+            const held = at(
+                OathRevision.EngineFixes6,
+                { c1: [TENTS] },
+                { ruler: { advisers: [{ cardId: HERD, faceUp: true }] } }
+            )
             const before = placedDenizens(held)
             swapPlayedCardWithSiteCard(held, 'ruler', HERD, TENTS)
             expect(held.denizensBySite['c1']).toEqual([HERD])
@@ -288,7 +355,13 @@ describe('the trigger itself', () => {
         const down = board()
         down.getPlayerState('ruler').handIds = ['denizen.discord.a-small-favor', FILLER]
         new HydratedSearchResolve(
-            buildAction(SearchResolve, { playerId: 'ruler', keptCardId: 'denizen.discord.a-small-favor', discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: false })
+            buildAction(SearchResolve, {
+                playerId: 'ruler',
+                keptCardId: 'denizen.discord.a-small-favor',
+                discardOrder: [FILLER],
+                play: SearchPlay.Adviser,
+                faceUp: false
+            })
         ).apply(down)
         expect(down.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(2)
     })
@@ -297,16 +370,24 @@ describe('the trigger itself', () => {
         const s = board()
         const a = playDrawnCard(s, 'denizen.nomad.tents', SearchPlay.Adviser)
         expect(a.metadata?.whenPlayed).toBeUndefined()
-        expect(() => playDrawnCard(board(), 'denizen.nomad.tents', SearchPlay.Adviser, [{ kind: PowerChoiceKind.Yes }])).toThrow(
-            /takes no choices on this play/
-        )
+        expect(() =>
+            playDrawnCard(board(), 'denizen.nomad.tents', SearchPlay.Adviser, [
+                { kind: PowerChoiceKind.Yes }
+            ])
+        ).toThrow(/takes no choices on this play/)
     })
 
     it('choices survive the wire on both play actions', () => {
         const s = board()
         s.getPlayerState('ruler').handIds = ['denizen.hearth.fabled-feast', FILLER]
         const a = new HydratedSearchResolve(
-            buildAction(SearchResolve, { playerId: 'ruler', keptCardId: 'denizen.hearth.fabled-feast', discardOrder: [FILLER], play: SearchPlay.Site, choices: [bank(Suit.Beast)] })
+            buildAction(SearchResolve, {
+                playerId: 'ruler',
+                keptCardId: 'denizen.hearth.fabled-feast',
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                choices: [bank(Suit.Beast)]
+            })
         )
         expect(a.dehydrate().choices).toEqual([bank(Suit.Beast)])
     })
@@ -323,16 +404,43 @@ describe('from revision 10, Animal Host and Fabled Feast count themselves only w
         s.oathRevision = revision
         return s
     }
-    const now = (over: Parameters<typeof board>[0] = {}, denizens: Parameters<typeof board>[1] = {}) => at(OathRevision.EngineFixes6, board(over, denizens))
-    const before = (over: Parameters<typeof board>[0] = {}, denizens: Parameters<typeof board>[1] = {}) => at(OathRevision.EngineFixes5, board(over, denizens))
+    const now = (
+        over: Parameters<typeof board>[0] = {},
+        denizens: Parameters<typeof board>[1] = {}
+    ) => at(OathRevision.EngineFixes6, board(over, denizens))
+    const before = (
+        over: Parameters<typeof board>[0] = {},
+        denizens: Parameters<typeof board>[1] = {}
+    ) => at(OathRevision.EngineFixes5, board(over, denizens))
     const warbands = (s: Board) => s.getPlayerState('ruler').warbandsOnBoard['ruler']
 
     /** `cit`, a Citizen at c1, where only the Empire's warbands stand; the Chancellor's bank holds `imperial`. */
-    function citizenBoard(revision: OathRevision, denizens: Record<string, string[]> = {}, imperial = 10) {
+    function citizenBoard(
+        revision: OathRevision,
+        denizens: Record<string, string[]> = {},
+        imperial = 10
+    ) {
         const s = testState(
             [
-                testPlayer({ playerId: 'cit', color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'c1', favor: 3, secrets: 2, supply: 2, warbandsOnBoard: {}, warbandsInPersonalBank: { cit: 10 } }),
-                testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', warbandsOnBoard: {}, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: imperial } })
+                testPlayer({
+                    playerId: 'cit',
+                    color: Color.Yellow,
+                    status: PlayerStatus.Citizen,
+                    siteId: 'c1',
+                    favor: 3,
+                    secrets: 2,
+                    supply: 2,
+                    warbandsOnBoard: {},
+                    warbandsInPersonalBank: { cit: 10 }
+                }),
+                testPlayer({
+                    playerId: 'chan',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'h1',
+                    warbandsOnBoard: {},
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: imperial }
+                })
             ],
             {
                 oathRevision: revision,
@@ -373,9 +481,17 @@ describe('from revision 10, Animal Host and Fabled Feast count themselves only w
         it('turned faceup from the advisers (R-6.1) it is still not at a site', () => {
             const s = now({}, BEASTS)
             s.getPlayerState('ruler').setAdvisers([{ cardId: ANIMAL_HOST, faceUp: false }])
-            const a = new HydratedPlayFacedownAdviser(buildAction(PlayFacedownAdviser, { playerId: 'ruler', cardId: ANIMAL_HOST, play: SearchPlay.Adviser }))
+            const a = new HydratedPlayFacedownAdviser(
+                buildAction(PlayFacedownAdviser, {
+                    playerId: 'ruler',
+                    cardId: ANIMAL_HOST,
+                    play: SearchPlay.Adviser
+                })
+            )
             a.apply(s)
-            expect(s.getPlayerState('ruler').advisers).toEqual([{ cardId: ANIMAL_HOST, faceUp: true }])
+            expect(s.getPlayerState('ruler').advisers).toEqual([
+                { cardId: ANIMAL_HOST, faceUp: true }
+            ])
             expect(warbands(s)).toBe(4)
             expect(a.metadata?.whenPlayed).toBe('gained 2 warbands (2 beast cards at sites)')
         })
@@ -393,13 +509,17 @@ describe('from revision 10, Animal Host and Fabled Feast count themselves only w
             const a = playDrawnCard(s, ANIMAL_HOST, SearchPlay.Adviser, [], 'cit')
             expect(s.getPlayerState('cit').warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(2)
             expect(s.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(8)
-            expect(a.metadata?.whenPlayed).toBe('gained 2 Imperial warbands (2 beast cards at sites)')
+            expect(a.metadata?.whenPlayed).toBe(
+                'gained 2 Imperial warbands (2 beast cards at sites)'
+            )
 
             const short = citizenBoard(OathRevision.EngineFixes6, BEASTS, 1)
             const b = playDrawnCard(short, ANIMAL_HOST, SearchPlay.Adviser, [], 'cit')
             expect(short.getPlayerState('cit').warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(1)
             expect(short.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(0)
-            expect(b.metadata?.whenPlayed).toBe('gained 1 Imperial warband (2 beast cards at sites)')
+            expect(b.metadata?.whenPlayed).toBe(
+                'gained 1 Imperial warband (2 beast cards at sites)'
+            )
         })
 
         it('before revision 10 a game keeps the count it was recorded with: played to the advisers it counted itself', () => {
@@ -419,12 +539,15 @@ describe('from revision 10, Animal Host and Fabled Feast count themselves only w
     })
 
     describe('Fabled Feast — "the number of hearth cards you rule (including Fabled Feast)"', () => {
-        const feast = (s: Board, to: SearchPlay) => playDrawnCard(s, FABLED_FEAST, to, [bank(Suit.Beast)])
+        const feast = (s: Board, to: SearchPlay) =>
+            playDrawnCard(s, FABLED_FEAST, to, [bank(Suit.Beast)])
 
         it('as an adviser it is ruled, so it counts with the other ruled hearth cards', () => {
             const s = now({}, { c2: [ROWDY_PUB] })
             const a = feast(s, SearchPlay.Adviser)
-            expect(a.metadata?.whenPlayed).toBe('took 2 favor (of 2 hearth cards ruled) from the beast bank')
+            expect(a.metadata?.whenPlayed).toBe(
+                'took 2 favor (of 2 hearth cards ruled) from the beast bank'
+            )
             expect(s.favorBank[Suit.Beast]).toBe(1)
         })
 
@@ -432,7 +555,9 @@ describe('from revision 10, Animal Host and Fabled Feast count themselves only w
             const s = now({}, { c2: [ROWDY_PUB] })
             const a = feast(s, SearchPlay.Site)
             expect(s.denizensBySite['c1']).toEqual([FABLED_FEAST])
-            expect(a.metadata?.whenPlayed).toBe('took 2 favor (of 2 hearth cards ruled) from the beast bank')
+            expect(a.metadata?.whenPlayed).toBe(
+                'took 2 favor (of 2 hearth cards ruled) from the beast bank'
+            )
         })
 
         it('played to a site you do not rule it is not yours, so it does not count', () => {
@@ -440,26 +565,40 @@ describe('from revision 10, Animal Host and Fabled Feast count themselves only w
             s.warbandsBySite['c1'] = {}
             const a = feast(s, SearchPlay.Site)
             expect(s.denizensBySite['c1']).toEqual([FABLED_FEAST])
-            expect(a.metadata?.whenPlayed).toBe('took 1 favor (of 1 hearth cards ruled) from the beast bank')
+            expect(a.metadata?.whenPlayed).toBe(
+                'took 1 favor (of 1 hearth cards ruled) from the beast bank'
+            )
             expect(s.favorBank[Suit.Beast]).toBe(2)
         })
 
         it('a Citizen rules a site the Empire’s warbands hold (R-6.6.3), so played there it counts; at a site no one rules it does not', () => {
             const s = citizenBoard(OathRevision.EngineFixes6, { c1: [ROWDY_PUB] })
             const a = playDrawnCard(s, FABLED_FEAST, SearchPlay.Site, [bank(Suit.Beast)], 'cit')
-            expect(a.metadata?.whenPlayed).toBe('took 2 favor (of 2 hearth cards ruled) from the beast bank')
+            expect(a.metadata?.whenPlayed).toBe(
+                'took 2 favor (of 2 hearth cards ruled) from the beast bank'
+            )
 
             const unruled = citizenBoard(OathRevision.EngineFixes6, { c1: [ROWDY_PUB] })
             unruled.warbandsBySite['c1'] = {}
-            const b = playDrawnCard(unruled, FABLED_FEAST, SearchPlay.Site, [bank(Suit.Beast)], 'cit')
-            expect(b.metadata?.whenPlayed).toBe('took 0 favor (of 0 hearth cards ruled) from the beast bank')
+            const b = playDrawnCard(
+                unruled,
+                FABLED_FEAST,
+                SearchPlay.Site,
+                [bank(Suit.Beast)],
+                'cit'
+            )
+            expect(b.metadata?.whenPlayed).toBe(
+                'took 0 favor (of 0 hearth cards ruled) from the beast bank'
+            )
         })
 
         it('before revision 10 a game keeps the count it was recorded with: at a site you do not rule it counted itself', () => {
             const s = before({}, { c2: [ROWDY_PUB] })
             s.warbandsBySite['c1'] = {}
             const a = feast(s, SearchPlay.Site)
-            expect(a.metadata?.whenPlayed).toBe('took 2 favor (of 2 hearth cards ruled) from the beast bank')
+            expect(a.metadata?.whenPlayed).toBe(
+                'took 2 favor (of 2 hearth cards ruled) from the beast bank'
+            )
         })
     })
 })
@@ -469,7 +608,11 @@ describe('Fabled Feast with Marriage, "counts as two hearth advisers", counted a
     const MARRIAGE = 'denizen.hearth.marriage'
     const KINSHIP = 'denizen.nomad.vow-of-kinship'
     const marriage = (faceUp = true) => ({ advisers: [{ cardId: MARRIAGE, faceUp }] })
-    const table = (revision: OathRevision, over: Parameters<typeof board>[0] = {}, beastBank = 6) => {
+    const table = (
+        revision: OathRevision,
+        over: Parameters<typeof board>[0] = {},
+        beastBank = 6
+    ) => {
         const s = board(over)
         s.oathRevision = revision
         s.favorBank[Suit.Beast] = beastBank
@@ -482,7 +625,9 @@ describe('Fabled Feast with Marriage, "counts as two hearth advisers", counted a
     it('Marriage faceup and the Feast played as an adviser: X = 3, three favor taken', () => {
         const s = table(now, { ruler: marriage() })
         const a = feast(s, SearchPlay.Adviser)
-        expect(a.metadata?.whenPlayed).toBe('took 3 favor (of 3 hearth cards ruled) from the beast bank')
+        expect(a.metadata?.whenPlayed).toBe(
+            'took 3 favor (of 3 hearth cards ruled) from the beast bank'
+        )
         expect(s.getPlayerState('ruler').favor).toBe(6)
         expect(s.favorBank[Suit.Beast]).toBe(3)
         // Trade and the Conspiracy count the same three hearth advisers.
@@ -491,40 +636,62 @@ describe('Fabled Feast with Marriage, "counts as two hearth advisers", counted a
 
     it('the Feast played to a site its player rules counts with Marriage; at a site they do not rule only Marriage counts', () => {
         const ruled = table(now, { ruler: marriage() })
-        expect(feast(ruled, SearchPlay.Site).metadata?.whenPlayed).toBe('took 3 favor (of 3 hearth cards ruled) from the beast bank')
+        expect(feast(ruled, SearchPlay.Site).metadata?.whenPlayed).toBe(
+            'took 3 favor (of 3 hearth cards ruled) from the beast bank'
+        )
 
         const unruled = table(now, { ruler: marriage() })
         unruled.warbandsBySite['c1'] = {}
-        expect(feast(unruled, SearchPlay.Site).metadata?.whenPlayed).toBe('took 2 favor (of 2 hearth cards ruled) from the beast bank')
+        expect(feast(unruled, SearchPlay.Site).metadata?.whenPlayed).toBe(
+            'took 2 favor (of 2 hearth cards ruled) from the beast bank'
+        )
     })
 
     it('a facedown Marriage is not ruled faceup, so it counts for nothing', () => {
         const s = table(now, { ruler: marriage(false) })
-        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 1 favor (of 1 hearth cards ruled) from the beast bank')
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe(
+            'took 1 favor (of 1 hearth cards ruled) from the beast bank'
+        )
     })
 
     it("another player's Marriage counts for its holder only, not for the Feast's player", () => {
         const s = table(now, { other: marriage() })
-        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 1 favor (of 1 hearth cards ruled) from the beast bank')
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe(
+            'took 1 favor (of 1 hearth cards ruled) from the beast bank'
+        )
     })
 
     it('the bank gives what it holds (R-9.3)', () => {
         const s = table(now, { ruler: marriage() }, 2)
-        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 2 favor (of 3 hearth cards ruled) from the beast bank')
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe(
+            'took 2 favor (of 3 hearth cards ruled) from the beast bank'
+        )
         expect(s.favorBank[Suit.Beast]).toBe(0)
     })
 
     it('with Vow of Kinship the three favor go to the nomad bank', () => {
-        const s = table(now, { ruler: { favor: 0, advisers: [{ cardId: MARRIAGE, faceUp: true }, { cardId: KINSHIP, faceUp: true }] } })
+        const s = table(now, {
+            ruler: {
+                favor: 0,
+                advisers: [
+                    { cardId: MARRIAGE, faceUp: true },
+                    { cardId: KINSHIP, faceUp: true }
+                ]
+            }
+        })
         const nomad = s.favorBank[Suit.Nomad]
-        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 3 favor (of 3 hearth cards ruled) from the beast bank')
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe(
+            'took 3 favor (of 3 hearth cards ruled) from the beast bank'
+        )
         expect(s.favorBank[Suit.Nomad]).toBe(nomad + 3)
         expect(s.getPlayerState('ruler').favor).toBe(0)
     })
 
     it('R-X.4 — before revision 16 Marriage counts once: X = 2', () => {
         const s = table(OathRevision.EngineFixes11, { ruler: marriage() })
-        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe('took 2 favor (of 2 hearth cards ruled) from the beast bank')
+        expect(feast(s, SearchPlay.Adviser).metadata?.whenPlayed).toBe(
+            'took 2 favor (of 2 hearth cards ruled) from the beast bank'
+        )
         expect(s.favorBank[Suit.Beast]).toBe(4)
     })
 })

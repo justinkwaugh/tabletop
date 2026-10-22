@@ -85,7 +85,9 @@
                     <span class="number">No. {entryNumbers.get(entry.key)}</span>
                     {#if entry.kind === 'turn'}
                         <PlayerName playerId={entry.playerId} />
-                        <span class="box">{entry.space ? SPACE_NAMES[entry.space] : 'Consolidate'}</span>
+                        <span class="box"
+                            >{entry.space ? SPACE_NAMES[entry.space] : 'Consolidate'}</span
+                        >
                     {:else}
                         <span>Initial offering</span>
                         {#if entry.companyId}<CompanyBadge companyId={entry.companyId} />{/if}
@@ -98,10 +100,14 @@
                         <Description description={describeAction(action)} />
                     </div>
                     {#each withdrawnBidders(action) as playerId (playerId)}
-                        <div class="line sub"><PlayerName {playerId} /> cannot afford to bid on</div>
+                        <div class="line sub">
+                            <PlayerName {playerId} /> cannot afford to bid on
+                        </div>
                     {/each}
                     {#if sale}
-                        <div class="line result"><Description description={saleDescription(sale)} /></div>
+                        <div class="line result">
+                            <Description description={saleDescription(sale)} />
+                        </div>
                     {/if}
                     {#each revealedBids(action) as bid, index (index)}
                         <div class="line bid"><Description description={bid} /></div>

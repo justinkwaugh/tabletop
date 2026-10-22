@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { GameResult } from '@tabletop/common'
     import Header from './Header.svelte'
     import Ship from './Ship.svelte'

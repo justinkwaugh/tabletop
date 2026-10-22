@@ -10,11 +10,7 @@ import {
     type ShippingSizeEntry
 } from '$lib/utils/deeds.js'
 import type { CompanyCardType } from '$lib/types/companyCard.js'
-import {
-    type AnyDeed,
-    CompanyType,
-    type HydratedIndonesiaGameState
-} from '@tabletop/indonesia'
+import { type AnyDeed, CompanyType, type HydratedIndonesiaGameState } from '@tabletop/indonesia'
 import { getRegionName } from '$lib/definitions/regions.js'
 
 export type DeedCardEntry = {

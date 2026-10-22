@@ -380,7 +380,11 @@
                 <div class="header-brand flex justify-center items-center">
                     <NavBrand href={sessionUser ? '/library' : '/'} class="shrink-0 cursor-pointer">
                         <img src={darkLogo} alt="Board Together" class="full-logo h-8 w-auto" />
-                        <img src="/android-chrome-192x192.png" alt="Board Together" class="game-logo" />
+                        <img
+                            src="/android-chrome-192x192.png"
+                            alt="Board Together"
+                            class="game-logo"
+                        />
                     </NavBrand>
 
                     <div
@@ -465,7 +469,8 @@
                                 size="xs"
                                 color="blue"
                                 class="{showPwaRefresh || canInstallPwa ? 'me-1' : 'me-4'} h-[30px]"
-                                onclick={gotoDashboard}><span class="my-games-label">My&nbsp;</span>Games</Button
+                                onclick={gotoDashboard}
+                                ><span class="my-games-label">My&nbsp;</span>Games</Button
                             >
                             {#if showPwaRefresh}
                                 <button
@@ -501,22 +506,38 @@
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                 >
-                                    <path d="M8 21h8M12 17v4M7 4h10M17 4v8a5 5 0 0 1-10 0V4" />
-                                    <path d="M7 6.5H5a2.5 2.5 0 0 0 0 5h2.4M17 6.5h2a2.5 2.5 0 0 1 0 5h-2.4" />
+                                    <path d="M8 21h8M12 17v4M7 4h10M17 4v8a5 5 0 0 1-10 0V4"></path>
+                                    <path
+                                        d="M7 6.5H5a2.5 2.5 0 0 0 0 5h2.4M17 6.5h2a2.5 2.5 0 0 1 0 5h-2.4"
+                                    ></path>
                                 </svg>
                             </a>
                         {/if}
 
-                        <button id="user-drop" class="account-menu cursor-pointer text-gray-700 dark:text-gray-300" aria-label="Open account menu">
+                        <button
+                            id="user-drop"
+                            class="account-menu cursor-pointer text-gray-700 dark:text-gray-300"
+                            aria-label="Open account menu"
+                        >
                             <span class="account-avatar"><AccountAvatar user={sessionUser} /></span>
-                            <svg class="game-menu-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                                <path d="M4 6h16M4 12h16M4 18h16" />
+                            <svg
+                                class="game-menu-icon"
+                                width="28"
+                                height="28"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                aria-hidden="true"
+                            >
+                                <path d="M4 6h16M4 12h16M4 18h16"></path>
                             </svg>
                         </button>
                         <Dropdown
                             triggeredBy="#user-drop"
                             bind:isOpen={accountMenuOpen}
-                            onclick={() => accountMenuOpen = false}
+                            onclick={() => (accountMenuOpen = false)}
                         >
                             <DropdownGroup class="py-1">
                                 <DropdownHeader class="py-2">
@@ -530,11 +551,14 @@
                                         href={`/game/${nextGame.id}`}
                                         class="w-full bg-blue-50 text-left hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50"
                                     >
-                                        <span class="inline-flex items-center gap-2 whitespace-nowrap">
+                                        <span
+                                            class="inline-flex items-center gap-2 whitespace-nowrap"
+                                        >
                                             Next turn
                                             <span
                                                 class="inline-flex min-w-5 items-center justify-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                            >{otherTurnCount}</span>
+                                                >{otherTurnCount}</span
+                                            >
                                         </span>
                                     </DropdownItem>
                                     <DropdownDivider class="mt-0" />
@@ -621,7 +645,9 @@
                     {/if}
                 </div>
             </div>
-            <div class="mobile-game-title flex justify-center sm:hidden w-full overflow-hidden text-ellipsis">
+            <div
+                class="mobile-game-title flex justify-center sm:hidden w-full overflow-hidden text-ellipsis"
+            >
                 {@render gameName()}
             </div>
         </div>
@@ -722,32 +748,90 @@
 {/if}
 {@render children()}
 
-
 <style>
     .game-logo,
-    .game-menu-icon { display: none; }
-    .account-menu { display: grid; place-items: center; border-radius: 4px; }
-    .account-menu:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+    .game-menu-icon {
+        display: none;
+    }
+    .account-menu {
+        display: grid;
+        place-items: center;
+        border-radius: 4px;
+    }
+    .account-menu:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 3px;
+    }
     .pwa-refresh,
-    .pwa-install { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 4px; }
+    .pwa-install {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
+    }
     .pwa-refresh:focus-visible,
-    .pwa-install:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+    .pwa-install:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+    }
     @media (width < 640px) {
-        .mobile-game-header :global(.site-navbar) { padding-block: 4px; }
-        .mobile-game-header .header-brand { flex: 1; min-width: 0; justify-content: flex-start; padding-left: 8px; }
-        .mobile-game-header .header-actions { flex-shrink: 0; margin-left: 8px; }
-        .mobile-game-header .header-title { display: block; flex: 1; min-width: 0; margin-left: 12px; padding: 0; }
-        .mobile-game-header .header-title :global(h4) { margin: 0; max-width: none; font-size: 14px; line-height: 20px; text-align: left; }
+        .mobile-game-header :global(.site-navbar) {
+            padding-block: 4px;
+        }
+        .mobile-game-header .header-brand {
+            flex: 1;
+            min-width: 0;
+            justify-content: flex-start;
+            padding-left: 8px;
+        }
+        .mobile-game-header .header-actions {
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+        .mobile-game-header .header-title {
+            display: block;
+            flex: 1;
+            min-width: 0;
+            margin-left: 12px;
+            padding: 0;
+        }
+        .mobile-game-header .header-title :global(h4) {
+            margin: 0;
+            max-width: none;
+            font-size: 14px;
+            line-height: 20px;
+            text-align: left;
+        }
         .mobile-game-header .mobile-game-title,
         .mobile-game-header .my-games-label,
         .mobile-game-header .full-logo,
-        .mobile-game-header .account-avatar { display: none; }
-        .game-session-header .header-links { margin-right: 4px; }
+        .mobile-game-header .account-avatar {
+            display: none;
+        }
+        .game-session-header .header-links {
+            margin-right: 4px;
+        }
         .game-session-header .community-link,
-        .game-session-header .competitions-link { display: none; }
-        .mobile-game-header .bug-report-button { justify-content: center; width: 40px; height: 40px; }
-        .mobile-game-header .game-logo { display: block; width: 28px; height: 28px; }
-        .mobile-game-header .game-menu-icon { display: block; }
-        .mobile-game-header .account-menu { width: 40px; height: 40px; }
+        .game-session-header .competitions-link {
+            display: none;
+        }
+        .mobile-game-header .bug-report-button {
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+        .mobile-game-header .game-logo {
+            display: block;
+            width: 28px;
+            height: 28px;
+        }
+        .mobile-game-header .game-menu-icon {
+            display: block;
+        }
+        .mobile-game-header .account-menu {
+            width: 40px;
+            height: 40px;
+        }
     }
 </style>

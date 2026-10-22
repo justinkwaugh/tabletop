@@ -52,7 +52,7 @@
     const isMyPlantTurn = $derived(isPlantTurn(state, session.myPlayer?.id))
     const isNeutralPlacementMode = $derived(isNeutralPlacementStage(state))
     const revealedTiles = $derived(
-        preview.tiles ?? ((isBidding || isPlanting) ? state.revealedTiles : [])
+        preview.tiles ?? (isBidding || isPlanting ? state.revealedTiles : [])
     )
 
     const displayTiles = $derived(
@@ -61,12 +61,18 @@
 
     function phaseName(ms: MachineState): string {
         switch (ms) {
-            case MachineState.Bidding:          return 'Bidding'
-            case MachineState.PlantingPhase:    return 'Planting'
-            case MachineState.CanalBuilding:    return 'Canal Building'
-            case MachineState.ExtraIrrigation:  return 'Extra Irrigation'
-            case MachineState.EndOfGame:        return 'Game Over'
-            default:                            return ms
+            case MachineState.Bidding:
+                return 'Bidding'
+            case MachineState.PlantingPhase:
+                return 'Planting'
+            case MachineState.CanalBuilding:
+                return 'Canal Building'
+            case MachineState.ExtraIrrigation:
+                return 'Extra Irrigation'
+            case MachineState.EndOfGame:
+                return 'Game Over'
+            default:
+                return ms
         }
     }
 
@@ -75,43 +81,17 @@
     let boardEl: HTMLDivElement | undefined
 </script>
 
-<style>
-.tile-selected {
-    border: 3px solid white;
-    transform: scale(1.1);
-    transition: transform 0.15s ease-out;
-}
-
-/* Lora as Santiago's default body font, set on this game's own root and inherited by its
-   subtree, rather than overriding Tailwind's shared --font-sans token, which would leak into
-   the host page and harness chrome around it. */
-/* Short screens, such as a phone held sideways: the board keeps a usable height, and the game
-   column scrolls to reach it rather than squeezing it to nothing. */
-@media (max-height: 500px) {
-    .board-area {
-        min-height: 260px;
-    }
-}
-
-/* Phones: everything above the board, text and controls alike, at a smaller scale. */
-@media (max-width: 639px), (max-height: 500px) {
-    .above-board {
-        --above-board-zoom: 0.85;
-        zoom: var(--above-board-zoom);
-    }
-}
-
-.santiago-root {
-    font-family: 'Lora', ui-serif, Georgia, serif;
-}
-</style>
-
 {#snippet drawPile()}
-    <img src={desertUrl} alt="tiles remaining"
-         class="w-full h-full object-cover"
-         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-    <span class="absolute inset-0 flex items-center justify-center text-white font-black text-[36px]"
-          style="text-shadow: 0 1px 3px rgba(0,0,0,0.9)">
+    <img
+        src={desertUrl}
+        alt="tiles remaining"
+        class="w-full h-full object-cover"
+        style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))"
+    />
+    <span
+        class="absolute inset-0 flex items-center justify-center text-white font-black text-[36px]"
+        style="text-shadow: 0 1px 3px rgba(0,0,0,0.9)"
+    >
         {state.getRemainingTileCount()}
     </span>
 {/snippet}
@@ -130,7 +110,7 @@
         {/snippet}
 
         {#snippet sideContent()}
-<div class="max-sm:hidden shrink-0">
+            <div class="max-sm:hidden shrink-0">
                 <HistoryControls
                     borderClass="rounded-lg border-2 border-amber-800"
                     enabledColor="text-amber-300"
@@ -195,7 +175,10 @@
                                      already-reserved height. Each slot is a flex box, so a
                                      tile that becomes a button doesn't gain the descender
                                      space an inline box reserves below it. -->
-                                <div class="flex flex-col gap-2 shrink-0 mt-5" style="perspective: 900px">
+                                <div
+                                    class="flex flex-col gap-2 shrink-0 mt-5"
+                                    style="perspective: 900px"
+                                >
                                     {#each displayTiles as { tile, isSelected }, i (i)}
                                         <div
                                             class="flex shrink-0"
@@ -207,25 +190,43 @@
                                                      over once the pile has come to rest on it. The
                                                      deal's styles live on this card, so they go
                                                      with it when the deal ends. -->
-                                                <div class="relative" style="width:{CELL_W}px; height:{CELL_H}px; transform-style: preserve-3d"
-                                                     {@attach (el: HTMLElement) => {
-                                                         deal.setTileNode(i, el)
-                                                         return () => deal.setTileNode(i, undefined)
-                                                     }}>
-                                                    <img src={desertUrl} alt=""
-                                                         class="absolute inset-0 w-full h-full rounded-md object-cover"
-                                                         style="backface-visibility: hidden" />
-                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                         alt={tile.crop}
-                                                         class="absolute inset-0 w-full h-full rounded-md object-cover"
-                                                         style="backface-visibility: hidden; transform: rotateY(180deg); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                <div
+                                                    class="relative"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px; transform-style: preserve-3d"
+                                                    {@attach (el: HTMLElement) => {
+                                                        deal.setTileNode(i, el)
+                                                        return () => deal.setTileNode(i, undefined)
+                                                    }}
+                                                >
+                                                    <img
+                                                        src={desertUrl}
+                                                        alt=""
+                                                        class="absolute inset-0 w-full h-full rounded-md object-cover"
+                                                        style="backface-visibility: hidden"
+                                                    />
+                                                    <img
+                                                        src={fieldImageUrl(
+                                                            tile.crop,
+                                                            tile.farmerCapacity
+                                                        )}
+                                                        alt={tile.crop}
+                                                        class="absolute inset-0 w-full h-full rounded-md object-cover"
+                                                        style="backface-visibility: hidden; transform: rotateY(180deg); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))"
+                                                    />
                                                 </div>
                                             {:else if isSelected}
-                                                <div class="rounded-md overflow-hidden tile-selected shrink-0"
-                                                     style="width:{CELL_W}px; height:{CELL_H}px">
-                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                         alt={tile.crop}
-                                                         class="w-full h-full object-cover" />
+                                                <div
+                                                    class="rounded-md overflow-hidden tile-selected shrink-0"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px"
+                                                >
+                                                    <img
+                                                        src={fieldImageUrl(
+                                                            tile.crop,
+                                                            tile.farmerCapacity
+                                                        )}
+                                                        alt={tile.crop}
+                                                        class="w-full h-full object-cover"
+                                                    />
                                                 </div>
                                             {:else if isMyPlantTurn}
                                                 <button
@@ -233,10 +234,15 @@
                                                     class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
                                                     style="width:{CELL_W}px; height:{CELL_H}px"
                                                 >
-                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                         alt={tile.crop}
-                                                         class="w-full h-full object-cover"
-                                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                    <img
+                                                        src={fieldImageUrl(
+                                                            tile.crop,
+                                                            tile.farmerCapacity
+                                                        )}
+                                                        alt={tile.crop}
+                                                        class="w-full h-full object-cover"
+                                                        style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))"
+                                                    />
                                                 </button>
                                             {:else if isNeutralPlacementMode}
                                                 <button
@@ -244,16 +250,26 @@
                                                     class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
                                                     style="width:{CELL_W}px; height:{CELL_H}px"
                                                 >
-                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                         alt={tile.crop}
-                                                         class="w-full h-full object-cover"
-                                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
+                                                    <img
+                                                        src={fieldImageUrl(
+                                                            tile.crop,
+                                                            tile.farmerCapacity
+                                                        )}
+                                                        alt={tile.crop}
+                                                        class="w-full h-full object-cover"
+                                                        style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)"
+                                                    />
                                                 </button>
                                             {:else}
-                                                <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                     alt={tile.crop}
-                                                     class="rounded-md object-cover"
-                                                     style="width:{CELL_W}px; height:{CELL_H}px; filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                <img
+                                                    src={fieldImageUrl(
+                                                        tile.crop,
+                                                        tile.farmerCapacity
+                                                    )}
+                                                    alt={tile.crop}
+                                                    class="rounded-md object-cover"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px; filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))"
+                                                />
                                             {/if}
                                         </div>
                                     {/each}
@@ -275,14 +291,19 @@
                                                     {@render drawPile()}
                                                 </button>
                                             {:else}
-                                                <div class="relative rounded-md overflow-hidden" style="width:{CELL_W}px; height:{CELL_H}px">
+                                                <div
+                                                    class="relative rounded-md overflow-hidden"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px"
+                                                >
                                                     {@render drawPile()}
                                                 </div>
                                             {/if}
                                         </div>
                                     {:else}
-                                        <div class="rounded-md border-2 border-dashed border-amber-900/50"
-                                             style="width:{CELL_W}px; height:{CELL_H}px"></div>
+                                        <div
+                                            class="rounded-md border-2 border-dashed border-amber-900/50"
+                                            style="width:{CELL_W}px; height:{CELL_H}px"
+                                        ></div>
                                     {/if}
                                 </div>
                                 <div bind:this={boardEl}>
@@ -296,3 +317,34 @@
         {/snippet}
     </DefaultTableLayout>
 </div>
+
+<style>
+    .tile-selected {
+        border: 3px solid white;
+        transform: scale(1.1);
+        transition: transform 0.15s ease-out;
+    }
+
+    /* Lora as Santiago's default body font, set on this game's own root and inherited by its
+   subtree, rather than overriding Tailwind's shared --font-sans token, which would leak into
+   the host page and harness chrome around it. */
+    /* Short screens, such as a phone held sideways: the board keeps a usable height, and the game
+   column scrolls to reach it rather than squeezing it to nothing. */
+    @media (max-height: 500px) {
+        .board-area {
+            min-height: 260px;
+        }
+    }
+
+    /* Phones: everything above the board, text and controls alike, at a smaller scale. */
+    @media (max-width: 639px), (max-height: 500px) {
+        .above-board {
+            --above-board-zoom: 0.85;
+            zoom: var(--above-board-zoom);
+        }
+    }
+
+    .santiago-root {
+        font-family: 'Lora', ui-serif, Georgia, serif;
+    }
+</style>
