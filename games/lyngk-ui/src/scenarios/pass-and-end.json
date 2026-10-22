@@ -1,0 +1,391 @@
+{
+    "game": {
+        "id": "scenario-pass-and-end",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "lyngk",
+        "deleted": false,
+        "name": "Pass and end",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "variant": "Standard"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 1990433736,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-10-22T06:18:26.996Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-10-22T06:18:26.997Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "_Zy9fCkHqf8dFrAn-5Fwg",
+        "gameId": "scenario-pass-and-end",
+        "seed": 1990433736,
+        "prng": {
+            "seed": 1990433736,
+            "invocations": 43
+        },
+        "protectedPrng": {
+            "seed": 1611516579,
+            "invocations": 0
+        },
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "purple",
+                "claimed": ["red", "green"],
+                "scored": []
+            },
+            {
+                "playerId": "player-2",
+                "color": "orange",
+                "claimed": ["black", "blue"],
+                "scored": []
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "variant": "Standard",
+        "board": {
+            "points": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    },
+                    "stack": ["ivory"]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -2
+                    },
+                    "stack": ["green"]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -3
+                    },
+                    "stack": ["red"]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 4,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 4
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -4,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -4
+                    },
+                    "stack": []
+                }
+            ]
+        },
+        "claimedThisTurn": false
+    },
+    "actions": []
+}
