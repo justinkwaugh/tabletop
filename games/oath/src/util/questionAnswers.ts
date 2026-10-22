@@ -13,6 +13,7 @@ import {
     type WarbandGain
 } from '../model/question.js'
 import type { PileDeposit } from '../model/hidden.js'
+import type { HeldForHospital } from '../model/campaign.js'
 import type { PowerMoveToll } from '../model/powerMoveToll.js'
 import type { MachineState } from '../definition/states.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
@@ -58,6 +59,8 @@ export interface AnswerOutcome {
     tollMove?: PowerMoveToll
     /** R-5.5.8 — a waiting banish settled: its burn, the "if you're victorious" plans and the end. */
     triggered?: string[]
+    /** Hospital — the warbands placed on its site when a waiting banish ended the Campaign. */
+    hospitalPlaced?: HeldForHospital[]
     /** Where the turn resumes once a waiting banish has ended the Campaign. */
     resumeMachineState?: MachineState
     /** Dragonskin Drum on a power's move. */

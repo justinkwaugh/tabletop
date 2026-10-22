@@ -638,15 +638,24 @@ function banditsSpareEndDiscards(
     return { spared, instead }
 }
 
+/** R-5.5.8, R-9.4 — the Campaign's end: what Hospital placed, and the discards. */
+export interface CampaignEnd {
+    pileDeposits: PileDeposit[]
+    /** Hospital — the warbands placed on its site, one entry per Hospital and owner. */
+    hospitalPlaced: HeldForHospital[]
+}
+
 /** R-5.5.8, R-9.4 — each plan is discarded from its own region. */
-export function endCampaign(state: HydratedOathGameState): PileDeposit[] {
+export function endCampaign(state: HydratedOathGameState): CampaignEnd {
     const campaign = state.campaign
     assertExists(campaign, 'only a Campaign in progress can end')
     // Hospital — "if you still rule it"; otherwise the warbands are killed after all (R-10.13).
     const keeps = hospitalKeeps(state, campaign)
+    const hospitalPlaced: HeldForHospital[] = []
     for (const held of campaign.heldForHospital ?? []) {
         if (keeps(held)) {
             addWarbandsToSite(state, held.siteId, held.owner, held.count)
+            recordPlaced(hospitalPlaced, held)
         } else {
             killWarbands(state, held.owner, held.count)
         }
@@ -661,7 +670,19 @@ export function endCampaign(state: HydratedOathGameState): PileDeposit[] {
         ...bandits.instead
     ]
     // Law Glossary "Discard" — the attacker orders the cards leaving for one pile.
-    const deposits = discardFromPlayInChosenOrder(state, campaign.attackerPlayerId, going)
+    const pileDeposits = discardFromPlayInChosenOrder(state, campaign.attackerPlayerId, going)
     state.campaign = undefined
-    return deposits
+    return { pileDeposits, hospitalPlaced }
+}
+
+/** Hospital — the kills it held one by one, placed together: one entry per Hospital and owner. */
+function recordPlaced(placed: HeldForHospital[], held: HeldForHospital): void {
+    const same = placed.find(
+        (entry) =>
+            entry.playerId === held.playerId &&
+            entry.siteId === held.siteId &&
+            entry.owner === held.owner
+    )
+    if (same) same.count += held.count
+    else placed.push({ ...held })
 }

@@ -374,3 +374,80 @@ describe('Hospital beside the other plans', () => {
         expect(() => campaign({ attackDice: 0, plans: [battlePlanUse(CODE_OF_HONOR), battlePlanUse(HOSPITAL)] }).apply(s)).toThrow(/cannot use other battle plans/)
     })
 })
+
+describe("Hospital's placements are recorded on the step that ends the Campaign", () => {
+    const placed = (playerId: string, siteId: string, count: number) => [{ playerId, siteId, owner: playerId, count }]
+
+    /** The defender uses Hospital at `hospitalAt` and loses; R-5.5.6 kills half their force, c1's two first. */
+    function defenderLoses(revision: number, hospitalAt: 'c1' | 'p1' | undefined, toll = false) {
+        const s = table({
+            revision,
+            denizens: { ...(hospitalAt ? { [hospitalAt]: [HOSPITAL] } : {}), ...(toll ? { c2: [TOLL_ROADS] } : {}) }
+        })
+        campaign({ attackDice: 0, ...(toll ? { targets: [siteTarget('c1'), { kind: CampaignTargetKind.PawnAndFavor }] } : {}) }).apply(s)
+        if (hospitalAt) defend([battlePlanUse(HOSPITAL)]).apply(s)
+        ongoingCampaign(s).swords = 9
+        ongoingCampaign(s).defense = 0
+        const sacrifice = new HydratedCampaignSacrifice(
+            buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })
+        )
+        sacrifice.apply(s)
+        defendingSideChooses(s)
+        const victory = new HydratedCampaignResolveVictory(
+            buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false, ...(toll ? { banishToSiteId: 'c2' } : {}) })
+        )
+        victory.apply(s)
+        return { s, sacrifice, victory, killed: sacrifice.metadata?.defeatKilled ?? 0 }
+    }
+
+    it("a defeated attacker's Hospital: the sacrifice that ends the Campaign records the warbands placed on its site, one entry per Hospital", () => {
+        const s = table({ revision: atRevision, denizens: { c1: [BEAR_TRAPS], c2: [HOSPITAL] } })
+        campaign({ attackDice: 0, plans: [battlePlanUse(HOSPITAL)] }).apply(s)
+        defend([battlePlanUse(BEAR_TRAPS)]).apply(s)
+        const sacrifice = finishCampaign(s)
+        expect(s.campaign).toBeUndefined()
+        const killed = sacrifice.metadata?.defeatKilled ?? 0
+        expect(killed).toBeGreaterThan(0)
+        // Bear Traps' one and R-5.5.6's, held apart, placed together.
+        expect(sacrifice.metadata?.hospitalPlaced).toEqual(placed(ATTACKER, 'c2', 1 + killed))
+        expect(atSite(s, 'c2', ATTACKER)).toBe(1 + 1 + killed)
+    })
+
+    it("a won Campaign: the spoils step that ends it records the defender's warbands placed on Hospital's site", () => {
+        const { s, sacrifice, victory, killed } = defenderLoses(atRevision, 'p1')
+        expect(s.campaign).toBeUndefined()
+        expect(killed).toBe(2)
+        expect(sacrifice.metadata?.hospitalPlaced).toBeUndefined()
+        expect(victory.metadata?.hospitalPlaced).toEqual(placed(DEFENDER, 'p1', 2))
+        expect(atSite(s, 'p1', DEFENDER)).toBe(3 + 2)
+    })
+
+    it('a Hospital whose site is lost places nothing, so nothing is recorded: the held warbands die', () => {
+        const { s, victory } = defenderLoses(atRevision, 'c1')
+        expect(s.campaign).toBeUndefined()
+        expect(victory.metadata?.hospitalPlaced).toBeUndefined()
+        expect(bankOf(s, DEFENDER)).toBe(DEFENDER_BANK + 2)
+    })
+
+    it('control: with no Hospital nothing is recorded', () => {
+        const { victory } = defenderLoses(atRevision, undefined)
+        expect(victory.metadata?.hospitalPlaced).toBeUndefined()
+    })
+
+    it("a banish through Toll Roads: the answer that ends the Campaign records Hospital's placement", () => {
+        const { s, victory } = defenderLoses(atRevision, 'p1', true)
+        expect(s.campaign).toBeDefined()
+        expect(victory.metadata?.hospitalPlaced).toBeUndefined()
+        const answer = answerQuestion(s, DEFENDER, { kind: PowerQuestionKind.PayTravelToll, pay: true })
+        expect(s.campaign).toBeUndefined()
+        expect(answer.metadata?.hospitalPlaced).toEqual(placed(DEFENDER, 'p1', 2))
+    })
+
+    it('no gate: a record of what was placed, on the action alone; the state carries nothing new at any revision', () => {
+        for (const revision of [before, atRevision, OathRevision.EngineFixes23]) {
+            const { s, victory } = defenderLoses(revision, 'p1')
+            expect(victory.metadata?.hospitalPlaced).toEqual(placed(DEFENDER, 'p1', 2))
+            expect(JSON.stringify(s.dehydrate())).not.toContain('hospitalPlaced')
+        }
+    })
+})

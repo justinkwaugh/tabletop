@@ -119,6 +119,10 @@ export const HeldForHospital = Type.Object({
     count: Type.Integer({ minimum: 1 })
 })
 
+/** Hospital — the warbands placed on its site when the Campaign ended, recorded by the step that ended it. */
+export type HospitalPlaced = Type.Static<typeof HospitalPlaced>
+export const HospitalPlaced = Type.Array(HeldForHospital, { minItems: 1, maxItems: 32 })
+
 /** R-5.5 */
 export type CampaignState = Type.Static<typeof CampaignState>
 export const CampaignState = Type.Object({

@@ -12,6 +12,7 @@ import {
     WarbandGain
 } from '../model/question.js'
 import { Region } from '../model/oathEnums.js'
+import { HospitalPlaced } from '../model/campaign.js'
 import { RelicToDeckBottom } from '../model/powerOutcome.js'
 import { PileDeposit } from '../model/hidden.js'
 import { PowerMoveToll } from '../model/powerMoveToll.js'
@@ -59,6 +60,8 @@ export const AnswerQuestionMetadata = Type.Object({
     tollMove: Type.Optional(PowerMoveToll),
     /** R-5.5.8 — a banish's answer: its burn, the "if you're victorious" plans and the end. */
     triggered: Type.Optional(Type.Array(Type.String())),
+    /** Hospital — the warbands placed on its site when this answer ended the Campaign. */
+    hospitalPlaced: Type.Optional(HospitalPlaced),
     // Dragonskin Drum on a power's move
     warbandGain: Type.Optional(WarbandGain),
     /** R-2.11-H1 — a binding exchange, or the answer that landed a Relic Thief take. */
@@ -132,6 +135,7 @@ export class HydratedAnswerQuestion
             woodStay: outcome.woodStay,
             tollMove: outcome.tollMove,
             triggered: outcome.triggered,
+            hospitalPlaced: outcome.hospitalPlaced,
             warbandGain: outcome.warbandGain,
             titleMoment: outcome.titleMoment
         }
