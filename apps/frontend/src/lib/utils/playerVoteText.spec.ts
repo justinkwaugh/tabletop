@@ -11,12 +11,8 @@ const preview = {
 
 describe('playerVoteText', () => {
     it('summarises what going back undoes', () => {
-        expect(undoneSummary(preview)).toBe(
-            'Undoes moves by 2 players.'
-        )
-        expect(undoneDetail(preview)).toBe(
-            'moves by 2 players'
-        )
+        expect(undoneSummary(preview)).toBe('Undoes moves by 2 players.')
+        expect(undoneDetail(preview)).toBe('moves by 2 players')
     })
 
     it('shows the server’s reason for a refused vote', () => {

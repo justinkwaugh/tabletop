@@ -48,20 +48,60 @@ interface Scene {
 function table(scene: Scene): OathProjectedState {
     const advisers = (playerId: string) =>
         scene.jinx === playerId ? [{ cardId: JINX, faceUp: true }] : []
-    const seat = (player: Partial<OathPlayerState>) => testPlayer({ supply: 6, favor: 4, secrets: 3, advisers: advisers(player.playerId ?? ''), ...player })
+    const seat = (player: Partial<OathPlayerState>) =>
+        testPlayer({
+            supply: 6,
+            favor: 4,
+            secrets: 3,
+            advisers: advisers(player.playerId ?? ''),
+            ...player
+        })
     const s = testState(
         [
-            seat({ playerId: DANA, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', warbandsOnBoard: { [DANA]: 8 }, warbandsInPersonalBank: { [DANA]: 6 } }),
-            seat({ playerId: BEA, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: {} }),
-            seat({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 } }),
-            seat({ playerId: RHYS, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'h2', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: {} })
+            seat({
+                playerId: DANA,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                warbandsOnBoard: { [DANA]: 8 },
+                warbandsInPersonalBank: { [DANA]: 6 }
+            }),
+            seat({
+                playerId: BEA,
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: 'c1',
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: {}
+            }),
+            seat({
+                playerId: ANN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1',
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 }
+            }),
+            seat({
+                playerId: RHYS,
+                color: Color.Yellow,
+                status: PlayerStatus.Citizen,
+                siteId: 'h2',
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: {}
+            })
         ],
         {
             oathRevision: scene.revision,
             chancellorPlayerId: ANN,
             denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
             warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } },
-            siteCards: { ...Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => [slotId, slotId])), ...scene.siteCards },
+            siteCards: {
+                ...Object.fromEntries(
+                    [...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => [slotId, slotId])
+                ),
+                ...scene.siteCards
+            },
             prng: { seed: scene.seed ?? 1, invocations: 0 }
         }
     )
@@ -75,24 +115,47 @@ const game = testGame([DANA, BEA, ANN, RHYS])
 
 const pawnAndFavor: CampaignTarget = { kind: CampaignTargetKind.PawnAndFavor }
 
-function declare(state: OathProjectedState, targets: CampaignTarget[] = [siteTarget('c1'), pawnAndFavor]) {
-    return engine.runNext(buildAction(Campaign, { playerId: DANA, defender: { kind: 'player', playerId: BEA }, targets, attackDice: 4 }), state, game)
+function declare(
+    state: OathProjectedState,
+    targets: CampaignTarget[] = [siteTarget('c1'), pawnAndFavor]
+) {
+    return engine.runNext(
+        buildAction(Campaign, {
+            playerId: DANA,
+            defender: { kind: 'player', playerId: BEA },
+            targets,
+            attackDice: 4
+        }),
+        state,
+        game
+    )
 }
 
 function answer(state: OathProjectedState, playerId: string, reroll: boolean) {
-    return engine.runNext(buildAction(AnswerQuestion, { playerId, answer: { kind: PowerQuestionKind.RerollDice, reroll } }), state, game)
+    return engine.runNext(
+        buildAction(AnswerQuestion, {
+            playerId,
+            answer: { kind: PowerQuestionKind.RerollDice, reroll }
+        }),
+        state,
+        game
+    )
 }
 
 /** Who is asked to reroll which roll, in the order asked. */
 const asked = (state: OathProjectedState) =>
     (state.pendingQuestions?.queue ?? []).map((question) =>
-        question.kind === PowerQuestionKind.RerollDice ? `${question.askedPlayerId}:${question.roll.kind === 'campaign' ? question.roll.side : question.roll.kind}` : question.kind
+        question.kind === PowerQuestionKind.RerollDice
+            ? `${question.askedPlayerId}:${question.roll.kind === 'campaign' ? question.roll.side : question.roll.kind}`
+            : question.kind
     )
 
 /** The protected stream as it stands in this state, without moving it. */
-const streamOf = (state: OathProjectedState): Prng => new HydratedOathGameState(structuredClone(state)).getProtectedPrng()
+const streamOf = (state: OathProjectedState): Prng =>
+    new HydratedOathGameState(structuredClone(state)).getProtectedPrng()
 
-const skullsOf = (state: OathProjectedState) => ongoingCampaign(state).attackRoll.reduce((n, face) => n + face.skulls, 0)
+const skullsOf = (state: OathProjectedState) =>
+    ongoingCampaign(state).attackRoll.reduce((n, face) => n + face.skulls, 0)
 const danaBoard = (state: OathProjectedState) => state.players[0].warbandsOnBoard[DANA] ?? 0
 
 describe('R-5.5.4-H1 — the defender’s reroll is settled before the attack is rolled', () => {
@@ -112,7 +175,10 @@ describe('R-5.5.4-H1 — the defender’s reroll is settled before the attack is
     it('Bea keeps the roll: the attack is rolled from the stream after the defense, then the skulls kill', () => {
         const atQuestion = declare(table({ revision: atRevision, jinx: BEA })).updatedState
         const defenseRoll = ongoingCampaign(atQuestion).defenseRoll
-        const expectedAttack = rollAttackDice(streamOf(atQuestion), ongoingCampaign(atQuestion).attackPool)
+        const expectedAttack = rollAttackDice(
+            streamOf(atQuestion),
+            ongoingCampaign(atQuestion).attackPool
+        )
         const result = answer(atQuestion, BEA, false)
         const state = result.updatedState
         const campaign = ongoingCampaign(state)

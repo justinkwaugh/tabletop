@@ -32,7 +32,9 @@
     ></div>
 {/snippet}
 
-<div class="santiago-history paper-texture rounded-lg border border-stone-700 bg-stone-900/80 p-3 min-w-52">
+<div
+    class="santiago-history paper-texture rounded-lg border border-stone-700 bg-stone-900/80 p-3 min-w-52"
+>
     <p class="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">History</p>
     <Timeline class="ms-2 text-left border-stone-500 dark:border-stone-500">
         {#if session.game?.finishedAt}
@@ -63,7 +65,7 @@
                         {#if action.playerId}
                             <PlayerNameChip playerId={action.playerId} />
                         {/if}
-                        {#each getDescriptionForAction(action, { allActions: session.actions }) as part, i (i)}
+                        {#each getDescriptionForAction( action, { allActions: session.actions } ) as part, i (i)}
                             {#if typeof part === 'string'}
                                 {part}
                             {:else}

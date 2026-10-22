@@ -83,9 +83,7 @@ export default {
     packageId: 'sol',
     state: './state.json',
     actions: './actions.json',
-    config: {
-        /* original Game configuration */
-    }
+    config: {/* original Game configuration */}
 }
 ```
 

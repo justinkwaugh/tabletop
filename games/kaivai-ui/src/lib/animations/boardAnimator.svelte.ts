@@ -53,9 +53,7 @@ export class BoardAnimator {
     constructor(private readonly session: KaivaiGameSession) {}
 
     boatsAt(coords: AxialCoordinates): BoatPlacement[] {
-        return this.displayedPlacements.filter((boat) =>
-            sameCoordinates(boat.coords, coords)
-        )
+        return this.displayedPlacements.filter((boat) => sameCoordinates(boat.coords, coords))
     }
 
     isAboveMask(id: string): boolean {

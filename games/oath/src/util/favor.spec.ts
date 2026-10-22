@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { gainFavorFromBank, giveFavor, removeFavorFromBoard, settleBoardFavor, spendFavor, takeFavorFromPlayer, usableFavor } from './favor.js'
+import {
+    gainFavorFromBank,
+    giveFavor,
+    removeFavorFromBoard,
+    settleBoardFavor,
+    spendFavor,
+    takeFavorFromPlayer,
+    usableFavor
+} from './favor.js'
 import { expectFavorConserved, expectFullFavorComplement, favorCensus } from '../testing/census.js'
 import { Banner, Suit, TOTAL_FAVOR } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
@@ -30,7 +38,7 @@ describe('the favor census (R-1.4, R-9.3)', () => {
         expect(() => expectFullFavorComplement(fullComplement())).not.toThrow()
     })
 
-    it('counts favor stacked on the People\'s Favor (R-2.5.2)', () => {
+    it("counts favor stacked on the People's Favor (R-2.5.2)", () => {
         const state = fullComplement()
         const before = favorCensus(state)
         state.banners[Banner.PeoplesFavor].value += 3

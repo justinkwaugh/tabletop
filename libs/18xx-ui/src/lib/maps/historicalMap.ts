@@ -1,23 +1,57 @@
 import type { MapSession } from '../session/mapModule.svelte.js'
-import { isLayTile, isPrivateTileLay, isRunTrains, type EighteenXXState } from '@tabletop/18xx'
 import {
-    assert,
-    assertExists,
-    RecordedHistory,
-    type GameAction,
-    type GameState
-} from '@tabletop/common'
+    isChooseHomeStation,
+    isLayTile,
+    isPlacePrivateMarker,
+    isPlacePrivateStation,
+    isPlaceStation,
+    isPrivateTileLay,
+    isRunTrains,
+    type EighteenXXState
+} from '@tabletop/18xx'
+import { assertExists, RecordedHistory, type GameAction, type GameState } from '@tabletop/common'
 import { routeColor } from '../routes/routePresentation.js'
-import {
-    createMapDrawing,
-    routeLocationIds,
-    type MapRoute,
-    type MapSelection
-} from './mapDrawing.js'
+import { createMapDrawing, routeLocationIds, type MapRoute } from './mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from './stationPresentation.js'
+import type { TitlePresentation } from '../session/titlePresentation.js'
 
-export function isMapHistoryAction(action: GameAction) {
-    return isLayTile(action) || isPrivateTileLay(action) || isRunTrains(action)
+/** Where an action changed the map, for the map preview its history row opens. */
+export type HistoryMapPlacement = {
+    /** What the preview's heading calls it, such as "station" or "Port token". */
+    kind: string
+    /** The company the preview's heading names. */
+    companyId: string
+    locationIds: readonly string[]
+}
+
+function familyMapPlacement(action: GameAction): HistoryMapPlacement | undefined {
+    if (isLayTile(action) || isPrivateTileLay(action))
+        return { kind: 'track lay', companyId: action.companyId, locationIds: [action.locationId] }
+    if (isPlaceStation(action))
+        return {
+            kind: 'station',
+            companyId: action.companyId,
+            locationIds: [action.position.locationId]
+        }
+    if (isPlacePrivateStation(action))
+        return {
+            kind: 'station',
+            companyId: action.metadata?.companyId ?? action.privateCompanyId,
+            locationIds: [action.position.locationId]
+        }
+    if (isChooseHomeStation(action))
+        return {
+            kind: 'home station',
+            companyId: action.companyId,
+            locationIds: [action.locationId]
+        }
+    if (isPlacePrivateMarker(action))
+        return {
+            kind: 'marker',
+            companyId: action.privateCompanyId,
+            locationIds: [action.locationId]
+        }
+    return undefined
 }
 
 export type HistoricalMapState = MapSession['state'] & Pick<EighteenXXState, 'operatingSet'>
@@ -35,8 +69,19 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
         /** The reservations that still hold a space, as the title's station rules judge them. */
         private readonly openReservations: (
             state: HistoricalMapState
-        ) => HistoricalMapState['stationReservations'] = (state) => state.stationReservations
+        ) => HistoricalMapState['stationReservations'] = (state) => state.stationReservations,
+        private readonly titlePlacement: TitlePresentation['historyMapPlacement'] = undefined
     ) {}
+
+    previews(action: GameAction): boolean {
+        return !!this.subject(action)
+    }
+
+    private subject(action: GameAction): HistoryMapPlacement | undefined {
+        if (isRunTrains(action))
+            return { kind: 'run', companyId: action.companyId, locationIds: [] }
+        return familyMapPlacement(action) ?? this.titlePlacement?.(action)
+    }
 
     preview(state: State, actions: readonly GameAction[], action: GameAction) {
         const view = this.currentView()
@@ -52,31 +97,24 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
             this.cache.set(action.id, cached)
             return cached
         }
+        const subject = this.subject(action)
+        assertExists(subject, 'Historical map requires a map action')
         const snapshot = this.read(new RecordedHistory(state, actions).after(action.id))
-        assert(
-            isLayTile(action) || isPrivateTileLay(action) || isRunTrains(action),
-            'Historical map requires a company action'
-        )
-        const company = snapshot.companies.find((company) => company.id === action.companyId)
+        const company = snapshot.companies.find((company) => company.id === subject.companyId)
         assertExists(company, 'Historical map requires its operating company')
         const set = snapshot.operatingSet
-        const routes = isRunTrains(action)
-            ? action.routes.map((route, index) => ({
-                  id: route.trainId,
-                  color: routeColor(index),
-                  segments: route.paths
-              }))
-            : []
-        const locationId =
-            isLayTile(action) || isPrivateTileLay(action) ? action.locationId : undefined
-        const selection: MapSelection | undefined = locationId
-            ? { kind: 'hex', locationId }
-            : undefined
+        const run = isRunTrains(action) ? action : undefined
+        const routes =
+            run?.routes.map((route, index) => ({
+                id: route.trainId,
+                color: routeColor(index),
+                segments: route.paths
+            })) ?? []
         const preview: HistoricalMap = {
             actionId: action.id,
             label: `${this.companyName(company.id)}${set ? ` · OR ${set.number}.${set.roundNumber}` : ''}`,
-            kind: isRunTrains(action) ? 'run' : 'track lay',
-            revenue: isRunTrains(action) ? action.metadata?.revenue : undefined,
+            kind: subject.kind,
+            revenue: run?.metadata?.revenue,
             scene: createMapDrawing(
                 view.map,
                 {
@@ -90,8 +128,8 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
             reservations: this.openReservations(snapshot),
             stationAppearances: view.stations,
             routes,
-            selection,
-            locations: locationId ? [locationId] : routeLocationIds(routes, view)
+            outlinedLocationIds: subject.locationIds,
+            locations: run ? routeLocationIds(routes, view) : [...subject.locationIds]
         }
         this.cache.set(action.id, preview)
         if (this.cache.size > 3) this.cache.delete(this.cache.keys().next().value!)
@@ -102,13 +140,14 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
 export type HistoricalMap = {
     actionId: string
     label: string
-    kind: 'run' | 'track lay'
+    kind: string
     revenue?: number
     scene: ReturnType<typeof createMapDrawing>
     tokens: ReturnType<typeof stationMapTokens>
     reservations: EighteenXXState['stationReservations']
     stationAppearances: MapViewDefinition['stations']
     routes: MapRoute[]
-    selection?: MapSelection
+    /** The hexes the action placed on. */
+    outlinedLocationIds: readonly string[]
     locations: string[]
 }

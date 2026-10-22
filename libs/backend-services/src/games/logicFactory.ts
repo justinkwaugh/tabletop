@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import type { GameDefinition } from '@tabletop/common'
 import { evaluateLogicFactory } from '@tabletop/common/node/collectible-factory'
@@ -17,8 +16,8 @@ function hasDefinition(value: unknown): value is { Definition: GameDefinition } 
 
 // Evaluates a logic artifact's CommonJS factory outside Node's module cache, so the Definition
 // it returns can be collected once nothing refers to it.
-export async function loadLogicFactory(filename: string): Promise<GameDefinition> {
-    const loaded = evaluateLogicFactory(await readFile(filename, 'utf8'), filename)
+export function evaluateLogicDefinition(source: string, filename: string): GameDefinition {
+    const loaded = evaluateLogicFactory(source, filename)
     if (!hasDefinition(loaded)) throw new Error(`Logic artifact ${filename} has no Definition`)
     return loaded.Definition
 }

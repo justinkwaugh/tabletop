@@ -21,8 +21,8 @@
         const playersAndStatesById = new Map(
             allPlayersAndStates.map((item) => [item.playerState.playerId, item])
         )
-        const turnOrderSorted = gameSession.gameState.turnManager.turnOrder.map(
-            (playerId) => playersAndStatesById.get(playerId)!
+        const turnOrderSorted = gameSession.gameState.turnManager.turnOrder.map((playerId) =>
+            playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
 
         return turnOrderSorted

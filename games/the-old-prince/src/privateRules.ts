@@ -2,11 +2,7 @@ import { TheOldPrinceNames } from './names.js'
 import { theOldPrinceRole } from './companies.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { assert, assertExists } from '@tabletop/common'
-import {
-    type PrivateRules,
-    type PrivateEffect,
-    type FinancialState
-} from '@tabletop/18xx'
+import { type PrivateRules, type PrivateEffect, type FinancialState } from '@tabletop/18xx'
 import { TheOldPrincePhases } from './trains.js'
 import { TheOldPrincePrivateCatalog } from './privates.js'
 const ShortlineExchanges: Record<string, number> = { MC: 6, SB: 7, VR: 8 }

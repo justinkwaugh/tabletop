@@ -55,6 +55,7 @@
 
     const characters = $derived(String(value).split(''))
 </script>
+
 <!-- The whole number is wrapped in ONE element so it is a single child of whatever
      contains it. Emitting the digits as separate top-level nodes (a bare text node here,
      a styled span there) breaks inside a flex container: every child becomes a flex item,

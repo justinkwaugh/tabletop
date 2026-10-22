@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { HydratedSearch, Search, SearchSource } from '../actions/search.js'
 import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/searchResolve.js'
-import {
-    HydratedPlayFacedownAdviser,
-    PlayFacedownAdviser
-} from '../actions/playFacedownAdviser.js'
+import { HydratedPlayFacedownAdviser, PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
 import { ActionSource } from '@tabletop/common'
 import { AnswerQuestion, HydratedAnswerQuestion } from '../actions/answerQuestion.js'
 import { type UseActionPower } from '../actions/useActionPower.js'
@@ -61,9 +58,9 @@ describe('Pied Piper counts toward the adviser limit once held (revision 11)', (
     })
 
     it('a Search play to the advisers must discard to keep a fourth (its Q&A)', () => {
-        expect(() => playDrawnCard(table([PIPER, WOLVES, INN]), SCOUTS, SearchPlay.Adviser)).toThrow(
-            /already at the adviser limit of 3/
-        )
+        expect(() =>
+            playDrawnCard(table([PIPER, WOLVES, INN]), SCOUTS, SearchPlay.Adviser)
+        ).toThrow(/already at the adviser limit of 3/)
         const s = table([PIPER, WOLVES, INN])
         s.getPlayerState('ruler').handIds = [SCOUTS, FILLER]
         new HydratedSearchResolve(
@@ -99,20 +96,32 @@ describe('Pied Piper counts toward the adviser limit once held (revision 11)', (
 
     it('a facedown Pied Piper turned faceup is played, so it prompts no discard', () => {
         const s = table([], OathRevision.EngineFixes7, {
-            ruler: { advisers: [adviser(WOLVES), adviser(INN), adviser(SCOUTS), adviser(PIPER, false)] }
+            ruler: {
+                advisers: [adviser(WOLVES), adviser(INN), adviser(SCOUTS), adviser(PIPER, false)]
+            }
         })
-        expect(adviserDiscardsNeeded(s, 'ruler', PIPER, { faceUp: true, fromAdvisers: true })).toBe(0)
+        expect(adviserDiscardsNeeded(s, 'ruler', PIPER, { faceUp: true, fromAdvisers: true })).toBe(
+            0
+        )
     })
 
     it('a facedown adviser turned faceup beside Pied Piper keeps the count it had', () => {
         const s = table([], OathRevision.EngineFixes7, {
             ruler: { advisers: [adviser(PIPER), adviser(WOLVES, false), adviser(INN)] }
         })
-        expect(adviserDiscardsNeeded(s, 'ruler', WOLVES, { faceUp: true, fromAdvisers: true })).toBe(0)
+        expect(
+            adviserDiscardsNeeded(s, 'ruler', WOLVES, { faceUp: true, fromAdvisers: true })
+        ).toBe(0)
         new HydratedPlayFacedownAdviser(
-            buildAction(PlayFacedownAdviser, { playerId: 'ruler', cardId: WOLVES, play: SearchPlay.Adviser })
+            buildAction(PlayFacedownAdviser, {
+                playerId: 'ruler',
+                cardId: WOLVES,
+                play: SearchPlay.Adviser
+            })
         ).apply(s)
-        expect([...s.getPlayerState('ruler').faceupAdviserIds()].sort()).toEqual([INN, PIPER, WOLVES].sort())
+        expect([...s.getPlayerState('ruler').faceupAdviserIds()].sort()).toEqual(
+            [INN, PIPER, WOLVES].sort()
+        )
     })
 
     it("Pied Piper's Action moves it to a player with three advisers: no discard there, and their next adviser play discards down to the limit", () => {
@@ -152,7 +161,9 @@ describe('Pied Piper counts toward the adviser limit once held (revision 11)', (
         // Held, it is a second non-Nomad: the next non-Nomad play discards down to one.
         expect(adviserDiscardsNeeded(s, 'ruler', SCOUTS, { faceUp: true })).toBe(2)
         // A Nomad still ignores the limit.
-        expect(adviserDiscardsNeeded(s, 'ruler', 'denizen.nomad.a-fast-steed', { faceUp: true })).toBe(1)
+        expect(
+            adviserDiscardsNeeded(s, 'ruler', 'denizen.nomad.a-fast-steed', { faceUp: true })
+        ).toBe(1)
     })
 
     it("Land Warden's second card to the advisers is refused over Pied Piper and two others, as over any three", () => {
@@ -173,7 +184,9 @@ describe('Pied Piper counts toward the adviser limit once held (revision 11)', (
             play: SearchPlay.Site,
             secondPlay: { cardId: SCOUTS, play: SearchPlay.Adviser, faceUp: true }
         }
-        expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', choice)).toMatch(/adviser limit/)
+        expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', choice)).toMatch(
+            /adviser limit/
+        )
     })
 
     it('The Gathering: a holder of Pied Piper and two advisers keeps a fourth only by a discard (its Q&A)', () => {
@@ -181,7 +194,9 @@ describe('Pied Piper counts toward the adviser limit once held (revision 11)', (
             other: { advisers: [adviser(PIPER), adviser(WOLVES), adviser(INN)] }
         })
         // The exchange is accepted and asks the discard: `exchangeAdviserLimit.spec.ts`.
-        expect(reasonExchangeInvalid(s, 'ruler', 'other', { fromProposer: { adviserRows: [0] } })).toBeUndefined()
+        expect(
+            reasonExchangeInvalid(s, 'ruler', 'other', { fromProposer: { adviserRows: [0] } })
+        ).toBeUndefined()
         expect(advisersTowardLimit(s, 'other')).toBe(3)
     })
 
@@ -189,7 +204,9 @@ describe('Pied Piper counts toward the adviser limit once held (revision 11)', (
         const s = table([PIPER], OathRevision.EngineFixes7, {
             other: { advisers: [adviser(TENTS), adviser(WOLVES), adviser(INN)] }
         })
-        expect(reasonExchangeInvalid(s, 'ruler', 'other', { fromProposer: { adviserRows: [0] } })).toBeUndefined()
+        expect(
+            reasonExchangeInvalid(s, 'ruler', 'other', { fromProposer: { adviserRows: [0] } })
+        ).toBeUndefined()
     })
 
     it("the count and the discards needed read the same on the player's own view as on the server", () => {
@@ -221,14 +238,23 @@ describe('Pied Piper counts toward the adviser limit once held (revision 11)', (
 // A fourth adviser kept over Pied Piper and two others before revision 11: `powers/cardAndPawnMoves.spec.ts`.
 describe('before revision 11 a game keeps the count it was recorded with', () => {
     it('Family Wagon played after Pied Piper kept both', () => {
-        expect(adviserDiscardsNeeded(table([PIPER, WOLVES], OathRevision.EngineFixes6), 'ruler', WAGON, { faceUp: true })).toBe(0)
+        expect(
+            adviserDiscardsNeeded(
+                table([PIPER, WOLVES], OathRevision.EngineFixes6),
+                'ruler',
+                WAGON,
+                { faceUp: true }
+            )
+        ).toBe(0)
     })
 
     it('The Gathering gave a holder of Pied Piper and two advisers a fourth', () => {
         const s = table([SCOUTS], OathRevision.EngineFixes6, {
             other: { advisers: [adviser(PIPER), adviser(WOLVES), adviser(INN)] }
         })
-        expect(reasonExchangeInvalid(s, 'ruler', 'other', { fromProposer: { adviserRows: [0] } })).toBeUndefined()
+        expect(
+            reasonExchangeInvalid(s, 'ruler', 'other', { fromProposer: { adviserRows: [0] } })
+        ).toBeUndefined()
     })
 })
 
@@ -251,7 +277,9 @@ function pileTotal(s: HydratedOathGameState): number {
 describe('a swap that leaves a player over the adviser limit asks them to discard down (revision 11)', () => {
     it('Enchantress swapped for Pied Piper: its holder discards one, never the Enchantress', () => {
         const s = table([ENCHANTRESS], OathRevision.EngineFixes7, {
-            other: { advisers: [adviser(WOLVES), adviser(INN), adviser(FALSE_PROPHET), adviser(PIPER)] }
+            other: {
+                advisers: [adviser(WOLVES), adviser(INN), adviser(FALSE_PROPHET), adviser(PIPER)]
+            }
         })
         actionPowerUse('ruler', ENCHANTRESS, [card(PIPER)]).apply(s)
         expect(s.getPlayerState('ruler').knownAdviserIds()).toEqual([PIPER])
@@ -266,15 +294,29 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
                 receivedFacedownCardIds: []
             }
         ])
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(ENCHANTRESS))).toMatch(/just received/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(FALSE_PROPHET))).toMatch(/locked/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards())).toMatch(/still over the adviser limit/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(WOLVES, INN))).toMatch(/only 1 adviser/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(PIPER))).toMatch(/other's to answer/)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(ENCHANTRESS))
+        ).toMatch(/just received/)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(FALSE_PROPHET))
+        ).toMatch(/locked/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards())).toMatch(
+            /still over the adviser limit/
+        )
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(WOLVES, INN))
+        ).toMatch(/only 1 adviser/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(PIPER))).toMatch(
+            /other's to answer/
+        )
         expect(adviserLimitDiscards(s, 'other')).toEqual([WOLVES, INN])
         const before = pileTotal(s)
         const answered = answerQuestion(s, 'other', discards(WOLVES))
-        expect(s.getPlayerState('other').knownAdviserIds()).toEqual([INN, FALSE_PROPHET, ENCHANTRESS])
+        expect(s.getPlayerState('other').knownAdviserIds()).toEqual([
+            INN,
+            FALSE_PROPHET,
+            ENCHANTRESS
+        ])
         expect(pileTotal(s)).toBe(before + 1)
         expect(answered.metadata?.summary).toBe(`discarded ${WOLVES} to meet the adviser limit`)
         expect(s.pendingQuestions?.queue).toEqual([])
@@ -284,7 +326,12 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
         const engine = new OathTestEngine(OathRuntime)
         const game = testGame(['ruler', 'other', 'away'])
         let seq = 0
-        const stamp = (index: number) => ({ id: `settle-${(seq += 1)}`, gameId: 'game-1', source: ActionSource.User, index })
+        const stamp = (index: number) => ({
+            id: `settle-${(seq += 1)}`,
+            gameId: 'game-1',
+            source: ActionSource.User,
+            index
+        })
         let state = table([ENCHANTRESS], OathRevision.EngineFixes7, {
             other: { advisers: [adviser(WOLVES), adviser(INN), adviser(SCOUTS), adviser(PIPER)] },
             away: { status: PlayerStatus.Chancellor }
@@ -300,9 +347,18 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
         state = engine.run(use, state, game).updatedState
         expect(state.machineState).toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual(['other'])
-        expect(engine.getValidActionTypesForPlayer(game, state, 'other')).toContain(ActionType.AnswerQuestion)
-        expect(engine.getValidActionTypesForPlayer(game, state, 'ruler')).not.toContain(ActionType.AnswerQuestion)
-        const reply: AnswerQuestion = { ...stamp(state.actionCount), type: ActionType.AnswerQuestion, playerId: 'other', answer: discards(INN) }
+        expect(engine.getValidActionTypesForPlayer(game, state, 'other')).toContain(
+            ActionType.AnswerQuestion
+        )
+        expect(engine.getValidActionTypesForPlayer(game, state, 'ruler')).not.toContain(
+            ActionType.AnswerQuestion
+        )
+        const reply: AnswerQuestion = {
+            ...stamp(state.actionCount),
+            type: ActionType.AnswerQuestion,
+            playerId: 'other',
+            answer: discards(INN)
+        }
         state = engine.run(reply, state, game).updatedState
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual(['ruler'])
@@ -311,12 +367,16 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
 
     it('a facedown adviser may go, and the record does not name it', () => {
         const s = table([ENCHANTRESS], OathRevision.EngineFixes7, {
-            other: { advisers: [adviser(WOLVES, false), adviser(INN), adviser(SCOUTS), adviser(PIPER)] }
+            other: {
+                advisers: [adviser(WOLVES, false), adviser(INN), adviser(SCOUTS), adviser(PIPER)]
+            }
         })
         actionPowerUse('ruler', ENCHANTRESS, [card(PIPER)]).apply(s)
         expect(adviserLimitDiscards(s, 'other')).toEqual([WOLVES, INN, SCOUTS])
         const answered = answerQuestion(s, 'other', discards(WOLVES))
-        expect(answered.metadata?.summary).toBe('discarded 1 facedown adviser to meet the adviser limit')
+        expect(answered.metadata?.summary).toBe(
+            'discarded 1 facedown adviser to meet the adviser limit'
+        )
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual([INN, SCOUTS, ENCHANTRESS])
     })
 
@@ -326,10 +386,14 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
         })
         actionPowerUse('ruler', ENCHANTRESS, [card(WAGON)]).apply(s)
         expect(s.pendingQuestions?.queue.map((q) => q.askedPlayerId)).toEqual(['ruler', 'other'])
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(WAGON))).toMatch(/just received/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(WAGON))).toMatch(
+            /just received/
+        )
         answerQuestion(s, 'ruler', discards(WOLVES))
         expect(s.getPlayerState('ruler').knownAdviserIds()).toEqual([WAGON, INN])
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(ENCHANTRESS))).toMatch(/just received/)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', discards(ENCHANTRESS))
+        ).toMatch(/just received/)
         answerQuestion(s, 'other', discards(TENTS))
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual([ENCHANTRESS, ELDERS, SCOUTS])
         expect(s.pendingQuestions?.queue).toEqual([])
@@ -342,12 +406,16 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
         s.denizensBySite = { ...s.denizensBySite, c1: [ENCHANTRESS] }
         actionPowerUse('ruler', ENCHANTRESS, [card(TENTS)]).apply(s)
         expect(s.denizensAt('c1')).toEqual([TENTS])
-        expect(s.pendingQuestions?.queue).toMatchObject([{ askedPlayerId: 'other', count: 1, receivedCardIds: [ENCHANTRESS] }])
+        expect(s.pendingQuestions?.queue).toMatchObject([
+            { askedPlayerId: 'other', count: 1, receivedCardIds: [ENCHANTRESS] }
+        ])
         expect(adviserLimitDiscards(s, 'other')).toEqual([WAGON, SCOUTS])
     })
 
     it("Twin Brother swapped for another player's Family Wagon: its player discards a non-Nomad, not the Wagon", () => {
-        const s = table([INN, SCOUTS], OathRevision.EngineFixes7, { other: { advisers: [adviser(WAGON)] } })
+        const s = table([INN, SCOUTS], OathRevision.EngineFixes7, {
+            other: { advisers: [adviser(WAGON)] }
+        })
         playDrawnCard(s, TWIN, SearchPlay.Adviser, [card(WAGON)])
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual([TWIN])
         expect(s.pendingQuestions?.queue).toEqual([
@@ -361,28 +429,41 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
                 receivedFacedownCardIds: []
             }
         ])
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(WAGON))).toMatch(/just received/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(WAGON))).toMatch(
+            /just received/
+        )
         answerQuestion(s, 'ruler', discards(INN))
         expect(s.getPlayerState('ruler').knownAdviserIds()).toEqual([SCOUTS, WAGON])
     })
 
     it('Horned Mask swapping a Nomad adviser for a non-Nomad under Family Wagon: a discard that meets the limit is asked', () => {
         const s = table([], OathRevision.EngineFixes7, {
-            ruler: { relicIds: [HORNED], advisers: [adviser(WAGON), adviser(WOLVES), adviser(TENTS), adviser(ELDERS)] }
+            ruler: {
+                relicIds: [HORNED],
+                advisers: [adviser(WAGON), adviser(WOLVES), adviser(TENTS), adviser(ELDERS)]
+            }
         })
         s.denizensBySite = { ...s.denizensBySite, c1: [SCOUTS] }
         actionPowerUse('ruler', HORNED, [card(TENTS), card(SCOUTS)]).apply(s)
-        expect(s.pendingQuestions?.queue).toMatchObject([{ askedPlayerId: 'ruler', count: 1, receivedCardIds: [SCOUTS] }])
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(SCOUTS))).toMatch(/just received/)
+        expect(s.pendingQuestions?.queue).toMatchObject([
+            { askedPlayerId: 'ruler', count: 1, receivedCardIds: [SCOUTS] }
+        ])
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(SCOUTS))).toMatch(
+            /just received/
+        )
         // A Nomad ignores the limit under the Wagon, so discarding one leaves the player over it.
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(ELDERS))).toMatch(/still over the adviser limit/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(ELDERS))).toMatch(
+            /still over the adviser limit/
+        )
         expect(adviserLimitDiscards(s, 'ruler')).toEqual([WAGON, WOLVES])
         // Discarding the Wagon itself lifts the limit to three.
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(WAGON))).toBeUndefined()
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(WAGON))
+        ).toBeUndefined()
         // A Nomad that goes before the card that meets the limit is no step toward it.
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(ELDERS, WOLVES))).toMatch(
-            new RegExp(`${ELDERS} does not bring you nearer the adviser limit`)
-        )
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', discards(ELDERS, WOLVES))
+        ).toMatch(new RegExp(`${ELDERS} does not bring you nearer the adviser limit`))
         answerQuestion(s, 'ruler', discards(WOLVES))
         expect(s.getPlayerState('ruler').knownAdviserIds()).toEqual([WAGON, SCOUTS, ELDERS])
     })
@@ -391,23 +472,38 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
         const s = table([], OathRevision.EngineFixes7, {
             ruler: {
                 relicIds: [HORNED],
-                advisers: [adviser(WAGON), adviser(FALSE_PROPHET), adviser(ELDERS), adviser(STEED), adviser(TENTS)]
+                advisers: [
+                    adviser(WAGON),
+                    adviser(FALSE_PROPHET),
+                    adviser(ELDERS),
+                    adviser(STEED),
+                    adviser(TENTS)
+                ]
             }
         })
         s.denizensBySite = { ...s.denizensBySite, c1: [SCOUTS] }
         actionPowerUse('ruler', HORNED, [card(TENTS), card(SCOUTS)]).apply(s)
         // False Prophet and Scouts stand over the Wagon's limit of one; neither may go.
-        expect(s.pendingQuestions?.queue).toMatchObject([{ askedPlayerId: 'ruler', count: 2, receivedCardIds: [SCOUTS] }])
+        expect(s.pendingQuestions?.queue).toMatchObject([
+            { askedPlayerId: 'ruler', count: 2, receivedCardIds: [SCOUTS] }
+        ])
         expect(adviserLimitDiscards(s, 'ruler')).toEqual([WAGON])
         expect(adviserLimitDiscards(s, 'ruler', [WAGON])).toEqual([ELDERS, STEED])
         expect(adviserLimitDiscardCount(s, 'ruler')).toBe(2)
         expect(adviserLimitDiscardCount(s, 'ruler', [WAGON])).toBe(2)
-        const answers = [discards(WAGON, ELDERS), discards(ELDERS, WAGON), discards(WAGON), discards(ELDERS)]
+        const answers = [
+            discards(WAGON, ELDERS),
+            discards(ELDERS, WAGON),
+            discards(WAGON),
+            discards(ELDERS)
+        ]
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', answers[0])).toBeUndefined()
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', answers[1])).toMatch(
             new RegExp(`${ELDERS} does not bring you nearer the adviser limit`)
         )
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', answers[2])).toMatch(/still over the adviser limit/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'ruler', answers[2])).toMatch(
+            /still over the adviser limit/
+        )
         const own = ownView(s, 'ruler')
         expect(adviserLimitDiscards(own, 'ruler')).toEqual([WAGON])
         expect(adviserLimitDiscards(own, 'ruler', [WAGON])).toEqual([ELDERS, STEED])
@@ -423,7 +519,10 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
 
     it('Pied Piper received by a swap is not counted on its arrival', () => {
         const s = table([], OathRevision.EngineFixes7, {
-            ruler: { relicIds: [HORNED], advisers: [adviser(WAGON), adviser(WOLVES), adviser(TENTS)] }
+            ruler: {
+                relicIds: [HORNED],
+                advisers: [adviser(WAGON), adviser(WOLVES), adviser(TENTS)]
+            }
         })
         s.denizensBySite = { ...s.denizensBySite, c1: [PIPER] }
         actionPowerUse('ruler', HORNED, [card(TENTS), card(PIPER)]).apply(s)
@@ -444,19 +543,35 @@ describe('a swap that leaves a player over the adviser limit asks them to discar
 
     it("the discards offered and the answer read the same on the asked player's own view as on the server", () => {
         const s = table([ENCHANTRESS], OathRevision.EngineFixes7, {
-            other: { advisers: [adviser(WOLVES, false), adviser(INN), adviser(FALSE_PROPHET), adviser(PIPER)] }
+            other: {
+                advisers: [
+                    adviser(WOLVES, false),
+                    adviser(INN),
+                    adviser(FALSE_PROPHET),
+                    adviser(PIPER)
+                ]
+            }
         })
         actionPowerUse('ruler', ENCHANTRESS, [card(PIPER)]).apply(s)
         const own = ownView(s, 'other')
         expect(adviserLimitDiscards(own, 'other')).toEqual(adviserLimitDiscards(s, 'other'))
-        for (const answer of [discards(), discards(WOLVES), discards(INN), discards(ENCHANTRESS), discards(FALSE_PROPHET), discards(WOLVES, INN)]) {
+        for (const answer of [
+            discards(),
+            discards(WOLVES),
+            discards(INN),
+            discards(ENCHANTRESS),
+            discards(FALSE_PROPHET),
+            discards(WOLVES, INN)
+        ]) {
             expect(HydratedAnswerQuestion.reasonCannotAnswer(own, 'other', answer)).toEqual(
                 HydratedAnswerQuestion.reasonCannotAnswer(s, 'other', answer)
             )
         }
         // Another player, who cannot see the facedown card, counts the same excess.
         const theirs = ownView(s, 'ruler')
-        expect(advisersOverLimit(theirs, 'other', [ENCHANTRESS])).toBe(advisersOverLimit(s, 'other', [ENCHANTRESS]))
+        expect(advisersOverLimit(theirs, 'other', [ENCHANTRESS])).toBe(
+            advisersOverLimit(s, 'other', [ENCHANTRESS])
+        )
     })
 })
 
@@ -467,11 +582,18 @@ describe('before revision 11 a swap asked no discard', () => {
         })
         actionPowerUse('ruler', ENCHANTRESS, [card(PIPER)]).apply(s)
         expect(s.pendingQuestions).toBeUndefined()
-        expect(s.getPlayerState('other').knownAdviserIds()).toEqual([WOLVES, INN, SCOUTS, ENCHANTRESS])
+        expect(s.getPlayerState('other').knownAdviserIds()).toEqual([
+            WOLVES,
+            INN,
+            SCOUTS,
+            ENCHANTRESS
+        ])
     })
 
     it('Twin Brother swapped for Family Wagon left its player over the limit', () => {
-        const s = table([INN, SCOUTS], OathRevision.EngineFixes6, { other: { advisers: [adviser(WAGON)] } })
+        const s = table([INN, SCOUTS], OathRevision.EngineFixes6, {
+            other: { advisers: [adviser(WAGON)] }
+        })
         playDrawnCard(s, TWIN, SearchPlay.Adviser, [card(WAGON)])
         expect(s.pendingQuestions).toBeUndefined()
     })

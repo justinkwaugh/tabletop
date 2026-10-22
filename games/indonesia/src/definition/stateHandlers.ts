@@ -27,5 +27,5 @@ export const IndonesiaStateHandlers: Record<
     [MachineState.Operations]: new OperationsStateHandler(),
     [MachineState.CityGrowth]: new CityGrowthStateHandler(),
     [MachineState.ShippingOperations]: new ShippingOperationsStateHandler(),
-    [MachineState.ProductionOperations]: new ProductionOperationsStateHandler(),
+    [MachineState.ProductionOperations]: new ProductionOperationsStateHandler()
 }

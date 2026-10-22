@@ -1,4 +1,10 @@
-import { BOARD_SIZE, getLineOfSight, posToRowCol, rowColToPos, type BoardSquare } from '@tabletop/urbino'
+import {
+    BOARD_SIZE,
+    getLineOfSight,
+    posToRowCol,
+    rowColToPos,
+    type BoardSquare
+} from '@tabletop/urbino'
 
 export type Sightline = { from: number; to: number }
 

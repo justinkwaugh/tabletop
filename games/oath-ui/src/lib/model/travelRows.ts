@@ -120,8 +120,7 @@ function banksAfterPayments(
         const taker = burnedFavorTaker(state)
         if (taker) into(favorHomeBankOf(state, taker), count)
     }
-    const paid =
-        costs.reduce((n, cost) => n + cost.placeFavor + cost.burnFavor, 0) + tolls.length
+    const paid = costs.reduce((n, cost) => n + cost.placeFavor + cost.burnFavor, 0) + tolls.length
     const fromBank = Math.max(0, paid - state.getPlayerState(playerId).favor)
     into(favorHomeBankOf(state, playerId), -fromBank)
     const outOfTurn = !holdsTheTurn(state, playerId)
@@ -194,9 +193,7 @@ export function travelRows(
         const ways = terms.flatMap((way): TravelChoice[] => {
             const choice = {
                 ...way,
-                favorTo: way.tolls.map(
-                    (cardId) => tolls.find((t) => t.cardId === cardId)?.payeeId
-                ),
+                favorTo: way.tolls.map((cardId) => tolls.find((t) => t.cardId === cardId)?.payeeId),
                 modifiers
             }
             if (!hospitality) return [choice]

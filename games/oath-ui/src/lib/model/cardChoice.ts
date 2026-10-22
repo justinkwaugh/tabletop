@@ -6,8 +6,7 @@ import { cardName, reliquaryLabel } from './names.js'
  * (R-9.4). `key` is what the panel's draft stores.
  */
 export type CardChoice = { key: string; label: string; caption?: string } & (
-    | { cardId: string; back?: undefined }
-    | { cardId?: undefined; back: CardKind }
+    { cardId: string; back?: undefined } | { cardId?: undefined; back: CardKind }
 )
 
 /** Cards named by id, each its own key. */

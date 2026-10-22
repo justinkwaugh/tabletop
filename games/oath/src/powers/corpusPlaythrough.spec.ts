@@ -25,18 +25,68 @@ const FILLER2 = 'denizen.hearth.wayside-inn'
 function table(machineState: MachineState, me: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 6, secrets: 6, supply: 6, warbandsOnBoard: { me: 3 }, warbandsInPersonalBank: { me: 6 }, relicIds: ['relic.cup-of-plenty'], ...me }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 3, supply: 4, warbandsOnBoard: { foe: 2 }, warbandsInPersonalBank: { foe: 5 }, advisers: [{ cardId: 'denizen.nomad.tents', faceUp: false }], relicIds: ['relic.map'] }),
-            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 3, secrets: 3, supply: 4, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } })
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 6,
+                secrets: 6,
+                supply: 6,
+                warbandsOnBoard: { me: 3 },
+                warbandsInPersonalBank: { me: 6 },
+                relicIds: ['relic.cup-of-plenty'],
+                ...me
+            }),
+            testPlayer({
+                playerId: 'foe',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 3,
+                supply: 4,
+                warbandsOnBoard: { foe: 2 },
+                warbandsInPersonalBank: { foe: 5 },
+                advisers: [{ cardId: 'denizen.nomad.tents', faceUp: false }],
+                relicIds: ['relic.map']
+            }),
+            testPlayer({
+                playerId: 'chan',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1',
+                favor: 3,
+                secrets: 3,
+                supply: 4,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }
+            })
         ],
         {
             machineState,
             chancellorPlayerId: 'chan',
-            denizensBySite: { c1: ['denizen.beast.wolves', 'denizen.hearth.storyteller'], c2: ['denizen.nomad.elders'], p1: ['denizen.arcane.tutor'], h1: [] },
-            warbandsBySite: { c1: { me: 1, foe: 1 }, c2: { me: 2 }, p1: { [IMPERIAL_WARBANDS]: 2 } },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
+            denizensBySite: {
+                c1: ['denizen.beast.wolves', 'denizen.hearth.storyteller'],
+                c2: ['denizen.nomad.elders'],
+                p1: ['denizen.arcane.tutor'],
+                h1: []
+            },
+            warbandsBySite: {
+                c1: { me: 1, foe: 1 },
+                c2: { me: 2 },
+                p1: { [IMPERIAL_WARBANDS]: 2 }
+            },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            },
             relicsBySite: { c1: [{ slotId: 'c1-r1' }] },
-            reliquary: [{ slotId: 'reliquary.0' }, { slotId: 'reliquary.1' }, { slotId: 'reliquary.2' }, { slotId: 'reliquary.3' }],
+            reliquary: [
+                { slotId: 'reliquary.0' },
+                { slotId: 'reliquary.1' },
+                { slotId: 'reliquary.2' },
+                { slotId: 'reliquary.3' }
+            ],
             vault: testVaultWithRelics({
                 'c1-r1': 'relic.bandit-crown',
                 'reliquary.0': 'relic.book-of-records',
@@ -47,11 +97,19 @@ function table(machineState: MachineState, me: Record<string, unknown> = {}) {
         }
     )
     const d = s.dehydrate()
-    d.turnManager = { series: [{ type: 'turn', playerId: 'me', start: 0 }], turnOrder: ['me', 'foe', 'chan'], turnCounts: { me: 1, foe: 0, chan: 0 } }
+    d.turnManager = {
+        series: [{ type: 'turn', playerId: 'me', start: 0 }],
+        turnOrder: ['me', 'foe', 'chan'],
+        turnCounts: { me: 1, foe: 0, chan: 0 }
+    }
     d.activePlayerIds = ['me']
     return { hydrated: s, state: d }
 }
-function defaultChoices(hydrated: ReturnType<typeof table>['hydrated'], power: CardPower, fillOptional = false): PowerChoice[] | undefined {
+function defaultChoices(
+    hydrated: ReturnType<typeof table>['hydrated'],
+    power: CardPower,
+    fillOptional = false
+): PowerChoice[] | undefined {
     const out: PowerChoice[] = []
     const used = new Map<string, number>()
     for (const l of legalChoices(hydrated, 'me', power)) {
@@ -67,10 +125,13 @@ function defaultChoices(hydrated: ReturnType<typeof table>['hydrated'], power: C
     return out
 }
 
-const CARDS = [...cardIdsOfKind(CardKind.Denizen), ...cardIdsOfKind(CardKind.Relic)].filter((id) => !PLAYTEST_DECK.includes(id) && cardPowers(id).some((p) => hasEffect(p)))
+const CARDS = [...cardIdsOfKind(CardKind.Denizen), ...cardIdsOfKind(CardKind.Relic)].filter(
+    (id) => !PLAYTEST_DECK.includes(id) && cardPowers(id).some((p) => hasEffect(p))
+)
 const NO_LEGAL_OPTION = 'a required choice has no legal option here'
 const REFUSED_HERE: Record<string, string> = {
-    'denizen.arcane.blood-pact#0': 'Cannot use action power: sacrifice an even number of warbands, not 3',
+    'denizen.arcane.blood-pact#0':
+        'Cannot use action power: sacrifice an even number of warbands, not 3',
     'denizen.arcane.dream-thief#0': 'Cannot use action power: choose two different advisers',
     'denizen.arcane.terror-spells#0': 'Cannot use action power: you do not hold the Darkest Secret',
     'denizen.arcane.witchs-bargain#0': 'Cannot use action power: name at least one exchange',
@@ -85,36 +146,75 @@ const REFUSED_HERE: Record<string, string> = {
     'relic.horned-mask#0': NO_LEGAL_OPTION,
     'relic.ivory-eye#0': 'Cannot use action power: Ivory Eye: choose exactly one thing to peek at',
     'relic.obsidian-cage#1': NO_LEGAL_OPTION,
-    'relic.skeleton-key#0': 'Cannot use action power: Skeleton Key: the Chancellor does not rule your site'
+    'relic.skeleton-key#0':
+        'Cannot use action power: Skeleton Key: the Chancellor does not rule your site'
 }
 
 describe('every built card beyond the deck fires through the engine, or says why not', () => {
     for (const cardId of CARDS) {
         const name = cardDefinition(cardId)?.name ?? cardId
         for (const power of cardPowers(cardId)) {
-            if (!hasEffect(power) || ![PowerTiming.WhenPlayed, PowerTiming.Rest, PowerTiming.Action].includes(power.timing)) continue
+            if (
+                !hasEffect(power) ||
+                ![PowerTiming.WhenPlayed, PowerTiming.Rest, PowerTiming.Action].includes(
+                    power.timing
+                )
+            )
+                continue
             it(`${name} (${power.timing})`, () => {
                 const engine = new OathTestEngine(OathRuntime)
                 const game = testGame(['me', 'foe', 'chan'])
                 const attempts: Array<() => ActionResult<OathProjectedState> | undefined> = []
                 if (power.timing === PowerTiming.WhenPlayed) {
-                    const { hydrated, state } = table(MachineState.Searching, { handIds: [cardId, FILLER, FILLER2] })
-                    const play = cardDefinition(cardId)?.placement === 'adviser' ? SearchPlay.Adviser : SearchPlay.Site
-                    for (const fill of [false, true]) attempts.push(() => {
-                        const choices = defaultChoices(hydrated, power, fill)
-                        if (choices === undefined) return undefined
-                        return engine.runNext(buildAction(SearchResolve, { playerId: 'me', keptCardId: cardId, discardOrder: [FILLER, FILLER2], play, faceUp: play === SearchPlay.Adviser ? true : undefined, choices }), state, game)
+                    const { hydrated, state } = table(MachineState.Searching, {
+                        handIds: [cardId, FILLER, FILLER2]
                     })
+                    const play =
+                        cardDefinition(cardId)?.placement === 'adviser'
+                            ? SearchPlay.Adviser
+                            : SearchPlay.Site
+                    for (const fill of [false, true])
+                        attempts.push(() => {
+                            const choices = defaultChoices(hydrated, power, fill)
+                            if (choices === undefined) return undefined
+                            return engine.runNext(
+                                buildAction(SearchResolve, {
+                                    playerId: 'me',
+                                    keptCardId: cardId,
+                                    discardOrder: [FILLER, FILLER2],
+                                    play,
+                                    faceUp: play === SearchPlay.Adviser ? true : undefined,
+                                    choices
+                                }),
+                                state,
+                                game
+                            )
+                        })
                 } else {
-                    const phase = power.timing === PowerTiming.Rest ? MachineState.RestPhase : MachineState.ActPhase
-                    const held = cardId.startsWith('relic.') ? { relicIds: [cardId] } : { advisers: [{ cardId, faceUp: true }] }
+                    const phase =
+                        power.timing === PowerTiming.Rest
+                            ? MachineState.RestPhase
+                            : MachineState.ActPhase
+                    const held = cardId.startsWith('relic.')
+                        ? { relicIds: [cardId] }
+                        : { advisers: [{ cardId, faceUp: true }] }
                     const { hydrated, state } = table(phase, held)
                     const schema = power.timing === PowerTiming.Rest ? UseRestPower : UseActionPower
-                    for (const fill of [false, true]) attempts.push(() => {
-                        const choices = defaultChoices(hydrated, power, fill)
-                        if (choices === undefined) return undefined
-                        return engine.runNext(buildAction(schema, { playerId: 'me', cardId, powerIndex: power.powerIndex, choices }), state, game)
-                    })
+                    for (const fill of [false, true])
+                        attempts.push(() => {
+                            const choices = defaultChoices(hydrated, power, fill)
+                            if (choices === undefined) return undefined
+                            return engine.runNext(
+                                buildAction(schema, {
+                                    playerId: 'me',
+                                    cardId,
+                                    powerIndex: power.powerIndex,
+                                    choices
+                                }),
+                                state,
+                                game
+                            )
+                        })
                 }
                 const expectedRefusal = REFUSED_HERE[`${cardId}#${power.powerIndex}`]
                 let lastError = NO_LEGAL_OPTION
@@ -124,10 +224,23 @@ describe('every built card beyond the deck fires through the engine, or says why
                         if (next) {
                             const summary =
                                 power.timing === PowerTiming.WhenPlayed
-                                    ? required(next.processedActions.find(isSearchResolve)?.metadata?.whenPlayed, `${name}'s When Played summary`)
-                                    : required((next.processedActions.find(isUseActionPower) ?? next.processedActions.find(isUseRestPower))?.metadata, `${name}'s outcome`).summary
+                                    ? required(
+                                          next.processedActions.find(isSearchResolve)?.metadata
+                                              ?.whenPlayed,
+                                          `${name}'s When Played summary`
+                                      )
+                                    : required(
+                                          (
+                                              next.processedActions.find(isUseActionPower) ??
+                                              next.processedActions.find(isUseRestPower)
+                                          )?.metadata,
+                                          `${name}'s outcome`
+                                      ).summary
                             expect(summary).not.toMatch(/not implemented/)
-                            expect(expectedRefusal, `${name} fired, so its REFUSED_HERE entry is stale`).toBeUndefined()
+                            expect(
+                                expectedRefusal,
+                                `${name} fired, so its REFUSED_HERE entry is stale`
+                            ).toBeUndefined()
                             return
                         }
                     } catch (e) {

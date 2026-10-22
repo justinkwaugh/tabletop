@@ -22,7 +22,13 @@ import {
 } from '@tabletop/oath'
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { NO_OPTION, emptyPicks, warbandGrids, withGridCount } from './powerChoices.js'
-import { bargainRows, shownBargainPicks, withBargainCount, withBargainPlayer, type BargainPick } from './bargainPicks.js'
+import {
+    bargainRows,
+    shownBargainPicks,
+    withBargainCount,
+    withBargainPlayer,
+    type BargainPick
+} from './bargainPicks.js'
 import { withCount, withFrom, withTo, type MovePick } from './powerMoves.js'
 import { restBankChoice, restRows } from './restRows.js'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
@@ -147,7 +153,10 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
     })
 
     it('Return with banks tied for the least favor waits for the bank’s tap, which acts', async () => {
-        const { wake, sent } = await waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
+        const { wake, sent } = await waking(
+            { value: 3, mobSide: false },
+            { favorBank: { ...BANKS, order: 1 } }
+        )
         await wake.chooseKind('return')
         expect(sent).not.toHaveBeenCalled()
         expect(wake.question).toEqual({
@@ -157,7 +166,10 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
             counts: { ...BANKS, order: 1 }
         })
         await wake.chooseBank(Suit.Order)
-        expect(sent).toHaveBeenCalledExactlyOnceWith([{ kind: 'return', toSuit: Suit.Order }], undefined)
+        expect(sent).toHaveBeenCalledExactlyOnceWith(
+            [{ kind: 'return', toSuit: Suit.Order }],
+            undefined
+        )
     })
 
     it("R-4.1.1-H1 — the second return's tied banks follow the first return", async () => {
@@ -197,14 +209,17 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
             expect(question.banks.map((suit) => question.counts[suit])).toEqual(
                 question.banks.map(() => least)
             )
-            expect(FAVOR_BANK_ORDER.filter((suit) => question.counts[suit] === least).sort()).toEqual(
-                [...question.banks].sort()
-            )
+            expect(
+                FAVOR_BANK_ORDER.filter((suit) => question.counts[suit] === least).sort()
+            ).toEqual([...question.banks].sort())
         }
         const AFTER_ORDER = { arcane: 1, beast: 2, discord: 1, hearth: 3, nomad: 2, order: 0 }
 
         it('Return twice: step 2 counts the bank step 1 returned to', async () => {
-            const { wake, sent } = await waking({ value: 3, mobSide: true }, { favorBank: AFTER_ORDER })
+            const { wake, sent } = await waking(
+                { value: 3, mobSide: true },
+                { favorBank: AFTER_ORDER }
+            )
             await wake.chooseKind('return')
             expect(wake.answeredLines).toEqual(['Returned 1 favor to the Order bank.'])
             await wake.chooseKind('return')
@@ -224,7 +239,10 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
         })
 
         it('one step: the banks asked are counted as the table shows them', async () => {
-            const { wake } = await waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
+            const { wake } = await waking(
+                { value: 3, mobSide: false },
+                { favorBank: { ...BANKS, order: 1 } }
+            )
             await wake.chooseKind('return')
             const asked = banksAsked(wake)
             expect(asked.counts).toEqual({ ...BANKS, order: 1 })
@@ -232,7 +250,10 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
         })
 
         it('Place, then Return: a favor placed from the board leaves the banks as they are', async () => {
-            const { wake } = await waking({ value: 3, mobSide: true }, { favorBank: { ...BANKS, order: 1 } })
+            const { wake } = await waking(
+                { value: 3, mobSide: true },
+                { favorBank: { ...BANKS, order: 1 } }
+            )
             await wake.chooseKind('place')
             await wake.chooseKind('return')
             const asked = banksAsked(wake)
@@ -248,7 +269,11 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
                 { favorBank: banks },
                 { favor: 0, advisers: [{ cardId: 'denizen.nomad.vow-of-kinship', faceUp: true }] }
             )
-            expect(wake.question).toEqual({ kind: 'favorStep', index: 0, options: ['place', 'return'] })
+            expect(wake.question).toEqual({
+                kind: 'favorStep',
+                index: 0,
+                options: ['place', 'return']
+            })
             await wake.chooseKind('place')
             await wake.chooseKind('return')
             const asked = banksAsked(wake)
@@ -263,9 +288,16 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
         })
 
         it('Return, then Place: step 2 asks no bank, and the Wake sends both', async () => {
-            const { wake, sent } = await waking({ value: 3, mobSide: true }, { favorBank: AFTER_ORDER })
+            const { wake, sent } = await waking(
+                { value: 3, mobSide: true },
+                { favorBank: AFTER_ORDER }
+            )
             await wake.chooseKind('return')
-            expect(wake.question).toEqual({ kind: 'favorStep', index: 1, options: ['place', 'return'] })
+            expect(wake.question).toEqual({
+                kind: 'favorStep',
+                index: 1,
+                options: ['place', 'return']
+            })
             await wake.chooseKind('place')
             expect(sent).toHaveBeenCalledExactlyOnceWith(
                 [{ kind: 'return', toSuit: Suit.Order }, { kind: 'place' }],
@@ -337,14 +369,20 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
     })
 
     it('Undo after Return takes back the Return before its bank', async () => {
-        const { session, wake } = await waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
+        const { session, wake } = await waking(
+            { value: 3, mobSide: false },
+            { favorBank: { ...BANKS, order: 1 } }
+        )
         await wake.chooseKind('return')
         await session.undo()
         expect(wake.question).toEqual({ kind: 'favorStep', index: 0, options: ['place', 'return'] })
     })
 
     it('while a bank is asked, a bank not tied for the least and a kind are never picked', async () => {
-        const { wake, sent } = await waking({ value: 3, mobSide: false }, { favorBank: { ...BANKS, order: 1 } })
+        const { wake, sent } = await waking(
+            { value: 3, mobSide: false },
+            { favorBank: { ...BANKS, order: 1 } }
+        )
         await wake.chooseKind('return')
         const asked = {
             kind: 'returnBank',
@@ -366,16 +404,21 @@ describe('the Wake draft (docs/user-interactions.md)', () => {
 /** R-4.3.5 — each Rest power's bank, one entry for all of them. */
 describe('the Rest draft (docs/user-interactions.md)', () => {
     const resting = async () =>
-        (await opened(
-            table(MachineState.RestPhase, {
-                advisers: [
-                    { cardId: OBEDIENCE, faceUp: true },
-                    { cardId: SILVER_TONGUE, faceUp: true }
-                ]
-            })
-        )).rest
+        (
+            await opened(
+                table(MachineState.RestPhase, {
+                    advisers: [
+                        { cardId: OBEDIENCE, faceUp: true },
+                        { cardId: SILVER_TONGUE, faceUp: true }
+                    ]
+                })
+            )
+        ).rest
     const power = (draft: Awaited<ReturnType<typeof resting>>, cardId: string) =>
-        required(draft.powers.find((p) => p.cardId === cardId), `${cardId} offered at Rest`)
+        required(
+            draft.powers.find((p) => p.cardId === cardId),
+            `${cardId} offered at Rest`
+        )
 
     it('a bank for one power keeps the bank chosen for the other', async () => {
         const rest = await resting()
@@ -417,18 +460,24 @@ describe('the Rest draft (docs/user-interactions.md)', () => {
 
     it('lists only the powers the engine accepts: Vow of Poverty is left out while its holder has favor', async () => {
         const withPoverty = async (favor: number) =>
-            (await opened(
-                table(MachineState.RestPhase, {
-                    favor,
-                    advisers: [
-                        { cardId: OBEDIENCE, faceUp: true },
-                        { cardId: POVERTY, faceUp: true }
-                    ]
-                })
-            )).rest
-        expect((await withPoverty(3)).powers.map((p) => p.cardId).sort()).toEqual([OBEDIENCE, POVERTY].sort())
+            (
+                await opened(
+                    table(MachineState.RestPhase, {
+                        favor,
+                        advisers: [
+                            { cardId: OBEDIENCE, faceUp: true },
+                            { cardId: POVERTY, faceUp: true }
+                        ]
+                    })
+                )
+            ).rest
+        expect((await withPoverty(3)).powers.map((p) => p.cardId).sort()).toEqual(
+            [OBEDIENCE, POVERTY].sort()
+        )
         expect((await withPoverty(3)).usablePowers.map((p) => p.cardId)).toEqual([OBEDIENCE])
-        expect((await withPoverty(0)).usablePowers.map((p) => p.cardId).sort()).toEqual([OBEDIENCE, POVERTY].sort())
+        expect((await withPoverty(0)).usablePowers.map((p) => p.cardId).sort()).toEqual(
+            [OBEDIENCE, POVERTY].sort()
+        )
     })
 })
 
@@ -437,9 +486,11 @@ describe('a Rest power whose choice the panel does not offer', () => {
     const NOT_OFFERED = 'this power asks a choice this panel does not offer'
 
     it('is refused with that reason, while a bank-only power is not', async () => {
-        const rest = (await opened(
-            table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }] })
-        )).rest
+        const rest = (
+            await opened(
+                table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }] })
+            )
+        ).rest
         const offered = required(
             rest.powers.find((p) => p.cardId === OBEDIENCE),
             'Vow of Obedience offered at Rest'
@@ -473,7 +524,13 @@ describe('a Rest power whose choice the panel does not offer', () => {
 /** R-6.2 — each Action power's picks, one entry for all of them. */
 describe('the Action powers draft (docs/user-interactions.md)', () => {
     const usingIn = async () => {
-        const session = await opened(table(MachineState.ActPhase, {}, { denizensBySite: { c1: [INN, SNARE], c2: [], h1: [] } }))
+        const session = await opened(
+            table(
+                MachineState.ActPhase,
+                {},
+                { denizensBySite: { c1: [INN, SNARE], c2: [], h1: [] } }
+            )
+        )
         session.chooseAction(ActionType.UseActionPower)
         return session
     }
@@ -539,18 +596,34 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
         expect(draft.hasManualSelection()).toBe(false)
     })
 
-    it("a refusal names the other seat, not their id, and the reader reads “you”", async () => {
+    it('a refusal names the other seat, not their id, and the reader reads “you”', async () => {
         const STEVE = 'Qx7_pL2mWb9-Rk4tYc1nZ'
         const BARGAIN = { cardId: WITCHS_BARGAIN, powerIndex: 0 }
         const session = await opened(
-            table(MachineState.ActPhase, {}, { denizensBySite: { c1: [WITCHS_BARGAIN], c2: [], h1: [] } }, [
-                testPlayer({ playerId: STEVE, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', favor: 0 })
-            ])
+            table(
+                MachineState.ActPhase,
+                {},
+                { denizensBySite: { c1: [WITCHS_BARGAIN], c2: [], h1: [] } },
+                [
+                    testPlayer({
+                        playerId: STEVE,
+                        color: Color.Blue,
+                        status: PlayerStatus.Citizen,
+                        siteId: 'c1',
+                        favor: 0
+                    })
+                ]
+            )
         )
-        vi.spyOn(session, 'getPlayerName').mockImplementation((id) => (id === STEVE ? 'Steve' : 'Alice'))
+        vi.spyOn(session, 'getPlayerName').mockImplementation((id) =>
+            id === STEVE ? 'Steve' : 'Alice'
+        )
         session.chooseAction(ActionType.UseActionPower)
         session.actionPowers.setPicks(BARGAIN, { ...emptyPicks(), count: { 1: 1, 2: 0 } })
-        const power = required(session.actionPowers.powers.find((p) => p.cardId === WITCHS_BARGAIN), 'Witch\'s Bargain is offered')
+        const power = required(
+            session.actionPowers.powers.find((p) => p.cardId === WITCHS_BARGAIN),
+            "Witch's Bargain is offered"
+        )
         expect(session.humanizeReason(session.actionPowers.reasonCannotUse(power))).toBe(
             'Steve has 0 favor, not the 2 you would take'
         )
@@ -558,7 +631,10 @@ describe('the Action powers draft (docs/user-interactions.md)', () => {
 
     it('a power’s choice of several banks starts with none picked; "Use" waits for the pick', async () => {
         const draft = await using()
-        const snare = required(draft.powers.find((p) => p.cardId === SNARE), 'Spirit Snare is offered')
+        const snare = required(
+            draft.powers.find((p) => p.cardId === SNARE),
+            'Spirit Snare is offered'
+        )
         expect(draft.picksComplete(snare)).toBe(false)
         expect(draft.choicesFor(snare)).toEqual([])
         draft.setPicks(SNARE_USE, { ...emptyPicks(), option: { 0: 2 } })
@@ -585,18 +661,43 @@ describe("Witch's Bargain's picks (revision 7)", () => {
         const session = await opened(
             table(
                 MachineState.ActPhase,
-                { favor: 5, secrets: 3, advisers: advisers.map((cardId) => ({ cardId, faceUp: true })) },
-                { denizensBySite: { c1: [WITCHS_BARGAIN], c2: [], h1: [] }, oathRevision: OathRevision.EngineFixes3 },
+                {
+                    favor: 5,
+                    secrets: 3,
+                    advisers: advisers.map((cardId) => ({ cardId, faceUp: true }))
+                },
+                {
+                    denizensBySite: { c1: [WITCHS_BARGAIN], c2: [], h1: [] },
+                    oathRevision: OathRevision.EngineFixes3
+                },
                 [
-                    testPlayer({ playerId: 'rhys', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 2 }),
-                    testPlayer({ playerId: 'ann', color: Color.Yellow, status: PlayerStatus.Exile, siteId: annSite, favor: 1, secrets: 1 })
+                    testPlayer({
+                        playerId: 'rhys',
+                        color: Color.Blue,
+                        status: PlayerStatus.Exile,
+                        siteId: 'c1',
+                        favor: 4,
+                        secrets: 2
+                    }),
+                    testPlayer({
+                        playerId: 'ann',
+                        color: Color.Yellow,
+                        status: PlayerStatus.Exile,
+                        siteId: annSite,
+                        favor: 1,
+                        secrets: 1
+                    })
                 ]
             )
         )
         session.chooseAction(ActionType.UseActionPower)
         const draft = session.actionPowers
-        const power = required(draft.powers.find((p) => p.cardId === WITCHS_BARGAIN), "Witch's Bargain is offered")
-        const pick = (bargain: BargainPick[]) => draft.setPicks(BARGAIN, { ...emptyPicks(), bargain: { 0: bargain } })
+        const power = required(
+            draft.powers.find((p) => p.cardId === WITCHS_BARGAIN),
+            "Witch's Bargain is offered"
+        )
+        const pick = (bargain: BargainPick[]) =>
+            draft.setPicks(BARGAIN, { ...emptyPicks(), bargain: { 0: bargain } })
         const picked = () => draft.picksOf(BARGAIN).bargain[0] ?? []
         const legal = power.choices[0]
         return { session, draft, power, pick, picked, legal }
@@ -605,7 +706,11 @@ describe("Witch's Bargain's picks (revision 7)", () => {
     it('offers the players at your site; the rows wait for a pick, and Use for a count', async () => {
         const { session, draft, power, pick, picked, legal } = await bargaining()
         expect(power.choices.map((c) => c.spec.kind)).toEqual([PowerChoiceKind.Bargain])
-        expect(power.choices[0].options.map((o) => (o.kind === PowerChoiceKind.Bargain ? o.playerId : o.kind))).toEqual(['rhys', 'ann'])
+        expect(
+            power.choices[0].options.map((o) =>
+                o.kind === PowerChoiceKind.Bargain ? o.playerId : o.kind
+            )
+        ).toEqual(['rhys', 'ann'])
         expect(draft.picksComplete(power)).toBe(false)
         pick(withBargainPlayer(legal, picked(), 'rhys'))
         expect(draft.picksComplete(power)).toBe(false)
@@ -621,7 +726,9 @@ describe("Witch's Bargain's picks (revision 7)", () => {
         })
         pick(withBargainCount(legal, picked(), 'rhys', 'secretsGiven', 1))
         expect(draft.picksComplete(power)).toBe(true)
-        expect(draft.choicesFor(power)).toEqual([{ kind: PowerChoiceKind.Bargain, playerId: 'rhys', secretsGiven: 1, pairsGiven: 0 }])
+        expect(draft.choicesFor(power)).toEqual([
+            { kind: PowerChoiceKind.Bargain, playerId: 'rhys', secretsGiven: 1, pairsGiven: 0 }
+        ])
         expect(draft.reasonCannotUse(power)).toBeUndefined()
     })
 
@@ -669,11 +776,17 @@ describe("Witch's Bargain's picks (revision 7)", () => {
 
     it('one other player at your site starts picked, their rows open; a tap on the chip keeps them; Use waits for a count', async () => {
         const { session, draft, power, pick, picked, legal } = await bargaining([], 'c2')
-        expect(legal.options.map((o) => (o.kind === PowerChoiceKind.Bargain ? o.playerId : o.kind))).toEqual(['rhys'])
+        expect(
+            legal.options.map((o) => (o.kind === PowerChoiceKind.Bargain ? o.playerId : o.kind))
+        ).toEqual(['rhys'])
         // Shown picked, never stored: nothing for Undo to take back.
         expect(picked()).toEqual([])
-        expect(shownBargainPicks(legal, picked())).toEqual([{ playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }])
-        expect(bargainRows(session.gameState, ME, shownBargainPicks(legal, picked()), 'rhys')).toEqual({
+        expect(shownBargainPicks(legal, picked())).toEqual([
+            { playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }
+        ])
+        expect(
+            bargainRows(session.gameState, ME, shownBargainPicks(legal, picked()), 'rhys')
+        ).toEqual({
             secrets: { held: 3, addable: 2, picked: 0 },
             pairs: { held: 5, addable: 2, picked: 0 }
         })
@@ -681,35 +794,63 @@ describe("Witch's Bargain's picks (revision 7)", () => {
         // The pick is required: a tap on the one chip changes nothing.
         pick(withBargainPlayer(legal, picked(), 'rhys'))
         expect(picked()).toEqual([])
-        expect(shownBargainPicks(legal, picked())).toEqual([{ playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }])
+        expect(shownBargainPicks(legal, picked())).toEqual([
+            { playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }
+        ])
         expect(draft.picksComplete(power)).toBe(false)
         pick(withBargainCount(legal, picked(), 'rhys', 'pairsGiven', 1))
         expect(picked()).toEqual([{ playerId: 'rhys', secretsGiven: 0, pairsGiven: 1 }])
         expect(draft.picksComplete(power)).toBe(true)
-        expect(draft.choicesFor(power)).toEqual([{ kind: PowerChoiceKind.Bargain, playerId: 'rhys', secretsGiven: 0, pairsGiven: 1 }])
+        expect(draft.choicesFor(power)).toEqual([
+            { kind: PowerChoiceKind.Bargain, playerId: 'rhys', secretsGiven: 0, pairsGiven: 1 }
+        ])
         pick(withBargainPlayer(legal, picked(), 'rhys'))
         expect(picked()).toEqual([{ playerId: 'rhys', secretsGiven: 0, pairsGiven: 1 }])
         // Undo takes back the pair; Rhys stays shown picked.
         expect(draft.back()).toBe(true)
         expect(picked()).toEqual([])
-        expect(shownBargainPicks(legal, picked())).toEqual([{ playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }])
+        expect(shownBargainPicks(legal, picked())).toEqual([
+            { playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }
+        ])
         expect(draft.picksComplete(power)).toBe(false)
     })
 
     it('Vow of Silence draws no secrets row; the favor row stays', async () => {
         const { session } = await bargaining([SILENCE])
-        expect(bargainRows(session.gameState, ME, [], 'rhys')).toEqual({ pairs: { held: 5, addable: 2, picked: 0 } })
+        expect(bargainRows(session.gameState, ME, [], 'rhys')).toEqual({
+            pairs: { held: 5, addable: 2, picked: 0 }
+        })
     })
 
     it('in a game created before revision 7 the power keeps its player and two counts', async () => {
         const session = await opened(
-            table(MachineState.ActPhase, {}, { denizensBySite: { c1: [WITCHS_BARGAIN], c2: [], h1: [] }, oathRevision: OathRevision.UiBatch1 }, [
-                testPlayer({ playerId: 'rhys', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c1' })
-            ])
+            table(
+                MachineState.ActPhase,
+                {},
+                {
+                    denizensBySite: { c1: [WITCHS_BARGAIN], c2: [], h1: [] },
+                    oathRevision: OathRevision.UiBatch1
+                },
+                [
+                    testPlayer({
+                        playerId: 'rhys',
+                        color: Color.Blue,
+                        status: PlayerStatus.Exile,
+                        siteId: 'c1'
+                    })
+                ]
+            )
         )
         session.chooseAction(ActionType.UseActionPower)
-        const power = required(session.actionPowers.powers.find((p) => p.cardId === WITCHS_BARGAIN), "Witch's Bargain is offered")
-        expect(power.choices.map((c) => c.spec.kind)).toEqual([PowerChoiceKind.Player, PowerChoiceKind.Count, PowerChoiceKind.Count])
+        const power = required(
+            session.actionPowers.powers.find((p) => p.cardId === WITCHS_BARGAIN),
+            "Witch's Bargain is offered"
+        )
+        expect(power.choices.map((c) => c.spec.kind)).toEqual([
+            PowerChoiceKind.Player,
+            PowerChoiceKind.Count,
+            PowerChoiceKind.Count
+        ])
     })
 })
 
@@ -728,10 +869,14 @@ describe('a power’s count tapped back to none', () => {
         )
         session.chooseAction(ActionType.UseActionPower)
         const draft = session.actionPowers
-        const power = required(draft.powers.find((p) => p.cardId === BLOOD_PACT), 'Blood Pact is offered')
+        const power = required(
+            draft.powers.find((p) => p.cardId === BLOOD_PACT),
+            'Blood Pact is offered'
+        )
         const [grid] = warbandGrids(power.choices)
         const pact = required(grid, 'Blood Pact’s board is a row of pieces')
-        const tap = (count: number) => draft.setPicks(USE, withGridCount(draft.picksOf(USE), pact, 0, count))
+        const tap = (count: number) =>
+            draft.setPicks(USE, withGridCount(draft.picksOf(USE), pact, 0, count))
         tap(2)
         tap(0)
         tap(4)
@@ -753,7 +898,11 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
 
     // The sheet's scene: four at the first site, two at the second, one at the third; the board empty.
     async function using(
-        warbandsBySite: Record<string, Record<string, number>> = { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } },
+        warbandsBySite: Record<string, Record<string, number>> = {
+            c1: { [ME]: 4 },
+            c2: { [ME]: 2 },
+            h1: { [ME]: 1 }
+        },
         warbandsOnBoard: Record<string, number> = {}
     ) {
         const session = await opened(
@@ -765,7 +914,10 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
         )
         session.chooseAction(ActionType.UseActionPower)
         const draft = session.actionPowers
-        const power = required(draft.powers.find((p) => p.cardId === MESSENGER), 'Messenger is offered')
+        const power = required(
+            draft.powers.find((p) => p.cardId === MESSENGER),
+            'Messenger is offered'
+        )
         const moves = () => required(draft.movesOf(power), 'Messenger’s choices are moves')
         return { draft, power, moves }
     }
@@ -788,14 +940,19 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
             { ...at('c2'), count: 1 }
         ])
         expect(draft.picksComplete(power)).toBe(true)
-        expect(draft.choicesFor(power)).toEqual([{ kind: PowerChoiceKind.Warbands, group: { ...at('c1'), count: 2 } }])
+        expect(draft.choicesFor(power)).toEqual([
+            { kind: PowerChoiceKind.Warbands, group: { ...at('c1'), count: 2 } }
+        ])
     })
 
     it('from the board To lists only ruled sites; from a site, the board and the other ruled sites', async () => {
         const { draft, moves } = await using()
         draft.setMoves(USE, [{ from: at('c1'), count: 1 }])
         expect(moves().open?.destinations).toEqual([toBoard, toSite('c2'), toSite('h1')])
-        draft.setMoves(USE, [{ from: at('c1'), count: 2, to: toBoard }, { from: board, count: 1 }])
+        draft.setMoves(USE, [
+            { from: at('c1'), count: 2, to: toBoard },
+            { from: board, count: 1 }
+        ])
         expect(moves().open?.destinations).toEqual([toSite('c1'), toSite('c2'), toSite('h1')])
     })
 
@@ -830,15 +987,22 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
     it('Undo takes back one pick (To, then How many, then From), then the move before', async () => {
         const { draft, moves } = await using()
         // Each part is its own tap, as the panel sends it.
-        const tap = (pick: (picks: MovePick[]) => MovePick[]) => draft.setMoves(USE, pick(draft.picksOf(USE).moves))
+        const tap = (pick: (picks: MovePick[]) => MovePick[]) =>
+            draft.setMoves(USE, pick(draft.picksOf(USE).moves))
         tap((picks) => withFrom(picks, 0, at('c1')))
         tap((picks) => withCount(picks, 0, moves().open?.count, 2))
         tap((picks) => withTo(picks, 0, toBoard))
         tap((picks) => withFrom(picks, 1, board))
         tap((picks) => withCount(picks, 1, moves().open?.count, 2))
-        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }, { from: board, count: 2 }])
+        expect(draft.picksOf(USE).moves).toEqual([
+            { from: at('c1'), count: 2, to: toBoard },
+            { from: board, count: 2 }
+        ])
         expect(draft.back()).toBe(true)
-        expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }, { from: board }])
+        expect(draft.picksOf(USE).moves).toEqual([
+            { from: at('c1'), count: 2, to: toBoard },
+            { from: board }
+        ])
         expect(moves().open?.count).toBeUndefined()
         expect(draft.back()).toBe(true)
         expect(draft.picksOf(USE).moves).toEqual([{ from: at('c1'), count: 2, to: toBoard }])
@@ -908,16 +1072,29 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
         const session = await opened(
             table(
                 MachineState.ActPhase,
-                { warbandsOnBoard: {}, relicIds: [WHISTLE.cardId], advisers: [{ cardId: MESSENGER, faceUp: true }] },
-                { denizensBySite: { c1: [], c2: [], h1: [] }, warbandsBySite: { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } } }
+                {
+                    warbandsOnBoard: {},
+                    relicIds: [WHISTLE.cardId],
+                    advisers: [{ cardId: MESSENGER, faceUp: true }]
+                },
+                {
+                    denizensBySite: { c1: [], c2: [], h1: [] },
+                    warbandsBySite: { c1: { [ME]: 4 }, c2: { [ME]: 2 }, h1: { [ME]: 1 } }
+                }
             )
         )
         session.chooseAction(ActionType.UseActionPower)
         const draft = session.actionPowers
-        const messenger = required(draft.powers.find((p) => p.cardId === MESSENGER), 'Messenger is offered')
+        const messenger = required(
+            draft.powers.find((p) => p.cardId === MESSENGER),
+            'Messenger is offered'
+        )
         expect(draft.powers.some((p) => p.cardId === WHISTLE.cardId)).toBe(true)
         const count = (n: number) =>
-            draft.setMoves(USE, withCount(draft.picksOf(USE).moves, 0, draft.movesOf(messenger)?.open?.count, n))
+            draft.setMoves(
+                USE,
+                withCount(draft.picksOf(USE).moves, 0, draft.movesOf(messenger)?.open?.count, n)
+            )
         const whistled = { ...emptyPicks(), option: { 0: 0 } }
 
         draft.setMoves(USE, withFrom(draft.picksOf(USE).moves, 0, at('c1')))
@@ -943,12 +1120,25 @@ describe('Messenger’s moves (docs/user-interactions.md)', () => {
 /** R-6.6.1 — the Exile, then the relic space, then the terms. */
 describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
     const offeringIn = async (prepare?: (state: HydratedOathGameState) => void) => {
-        const state = table(MachineState.ActPhase, { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] }, {}, [
-            testPlayer({ playerId: 'exile2', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c2' })
-        ])
+        const state = table(
+            MachineState.ActPhase,
+            { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] },
+            {},
+            [
+                testPlayer({
+                    playerId: 'exile2',
+                    color: Color.Blue,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c2'
+                })
+            ]
+        )
         state.getPlayerState(CHANCELLOR).status = PlayerStatus.Exile
         state.chancellorPlayerId = ME
-        state.reliquary = state.reliquary.map((slot, index) => ({ ...slot, cardId: `relic.fixture-${index}` }))
+        state.reliquary = state.reliquary.map((slot, index) => ({
+            ...slot,
+            cardId: `relic.fixture-${index}`
+        }))
         state.getPlayerState(CHANCELLOR).relicIds = ['relic.cup-of-plenty']
         state.banners[Banner.DarkestSecret] = { value: 1, holderPlayerId: ME }
         prepare?.(state)
@@ -962,14 +1152,20 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
     it('a refusal of the terms names the Exile, and the offerer reads “you”', async () => {
         const session = await offeringIn()
         const offer = session.citizenship
-        vi.spyOn(session, 'getPlayerName').mockImplementation((id) => (id === 'exile2' ? 'Bob' : 'Alice'))
+        vi.spyOn(session, 'getPlayerName').mockImplementation((id) =>
+            id === 'exile2' ? 'Bob' : 'Alice'
+        )
         offer.chooseExile('exile2')
         offer.chooseReliquarySlot(SLOT_A)
         offer.setTerm('givenFavor', 9)
-        expect(session.humanizeReason(offer.blockedBecause)).toBe('you promised 9 favor, with only 3 usable')
+        expect(session.humanizeReason(offer.blockedBecause)).toBe(
+            'you promised 9 favor, with only 3 usable'
+        )
         offer.setTerm('givenFavor', 0)
         offer.setTerm('askedSecrets', 5)
-        expect(session.humanizeReason(offer.blockedBecause)).toBe('Bob promised 5 secrets, holding only 0')
+        expect(session.humanizeReason(offer.blockedBecause)).toBe(
+            'Bob promised 5 secrets, holding only 0'
+        )
     })
 
     it('choosing the Exile clears the relic space and terms chosen for the last one', async () => {
@@ -1010,9 +1206,15 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
         offer.setTerm('givenFavor', 1)
 
         expect(offer.back()).toBe(true)
-        expect(offer.offerTerms).toMatchObject({ givenFavor: 2, givenBanners: [Banner.DarkestSecret] })
+        expect(offer.offerTerms).toMatchObject({
+            givenFavor: 2,
+            givenBanners: [Banner.DarkestSecret]
+        })
         expect(offer.back()).toBe(true)
-        expect(offer.offerTerms).toMatchObject({ givenFavor: 0, givenBanners: [Banner.DarkestSecret] })
+        expect(offer.offerTerms).toMatchObject({
+            givenFavor: 0,
+            givenBanners: [Banner.DarkestSecret]
+        })
         expect(offer.back()).toBe(true)
         expect(offer.offerTerms).toEqual((await offering()).offerTerms)
         expect(offer.reliquarySlotId).toBe(SLOT_A)
@@ -1035,9 +1237,19 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
 
     // A pick with one legal option is not a choice: it starts made, and Undo has nothing of it to take.
     const offeringTheOnlyExile = async (relics: number) => {
-        const state = table(MachineState.ActPhase, { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] }, {}, [
-            testPlayer({ playerId: 'exile2', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c2' })
-        ])
+        const state = table(
+            MachineState.ActPhase,
+            { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] },
+            {},
+            [
+                testPlayer({
+                    playerId: 'exile2',
+                    color: Color.Blue,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c2'
+                })
+            ]
+        )
         state.getPlayerState(CHANCELLOR).status = PlayerStatus.Citizen
         state.chancellorPlayerId = ME
         state.reliquary = state.reliquary
@@ -1161,7 +1373,10 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
 
     it('R-6.6.1 — an Exile offering himself gets no terms: the offer is the relic alone', async () => {
         const state = table(MachineState.ActPhase, { relicIds: ['relic.grand-scepter'] })
-        state.reliquary = state.reliquary.map((slot, index) => ({ ...slot, cardId: `relic.fixture-${index}` }))
+        state.reliquary = state.reliquary.map((slot, index) => ({
+            ...slot,
+            cardId: `relic.fixture-${index}`
+        }))
         state.banners[Banner.DarkestSecret] = { value: 1, holderPlayerId: ME }
         const session = await opened(state)
         session.chooseAction(ActionType.OfferCitizenship)
@@ -1195,7 +1410,11 @@ describe('the Citizenship answer draft (docs/user-interactions.md)', () => {
         )
         state.getPlayerState(CHANCELLOR).warbandsInPersonalBank = { [IMPERIAL_WARBANDS]: imperial }
         state.pendingConsent = {
-            request: { kind: ConsentRequestKind.CitizenshipOffer, exilePlayerId: ME, reliquarySlotId: 'reliquary.0' },
+            request: {
+                kind: ConsentRequestKind.CitizenshipOffer,
+                exilePlayerId: ME,
+                reliquarySlotId: 'reliquary.0'
+            },
             askingPlayerId: CHANCELLOR,
             askedPlayerId: ME
         }
@@ -1313,19 +1532,35 @@ describe('the Rest panel’s rows (turn-flow revision)', () => {
                 },
                 {
                     oathRevision: OathRevision.TurnFlow,
-                    favorBank: { arcane: 3, beast: 2, discord: 0, hearth: 4, nomad: 1, order: 3, ...favorBank }
+                    favorBank: {
+                        arcane: 3,
+                        beast: 2,
+                        discord: 0,
+                        hearth: 4,
+                        nomad: 1,
+                        order: 3,
+                        ...favorBank
+                    }
                 }
             )
         )
     const row = (session: Awaited<ReturnType<typeof resting>>, cardId: string) =>
-        required(session.rest.rows.find((r) => r.cardId === cardId), `${cardId} has a row`)
+        required(
+            session.rest.rows.find((r) => r.cardId === cardId),
+            `${cardId} has a row`
+        )
 
     it('lists every bank a power can name in the board’s order, an empty one tappable with its 0 (R-9.3)', async () => {
         const session = await resting()
         expect(session.rest.turnFlow).toBe(true)
         const banks = required(row(session, OBEDIENCE).banks, 'Vow of Obedience names banks')
         expect(banks.map((bank) => bank.suit)).toEqual([...FAVOR_BANK_ORDER])
-        expect(banks.find((bank) => bank.suit === Suit.Discord)).toEqual({ suit: Suit.Discord, inBank: 0, takes: 0, enabled: true })
+        expect(banks.find((bank) => bank.suit === Suit.Discord)).toEqual({
+            suit: Suit.Discord,
+            inBank: 0,
+            takes: 0,
+            enabled: true
+        })
         expect(banks.filter((bank) => bank.enabled)).toHaveLength(6)
     })
 
@@ -1334,8 +1569,20 @@ describe('the Rest panel’s rows (turn-flow revision)', () => {
         const obedience = row(session, OBEDIENCE)
         const sent = vi.spyOn(session, 'useRestPower').mockResolvedValue()
         await session.rest.useWithBank(obedience, Suit.Discord)
-        expect(sent).toHaveBeenCalledWith(OBEDIENCE, obedience.powerIndex, restBankChoice(Suit.Discord))
-        expect(HydratedUseRestPower.reasonCannotUse(session.gameState, ME, OBEDIENCE, obedience.powerIndex, restBankChoice(Suit.Discord))).toBeUndefined()
+        expect(sent).toHaveBeenCalledWith(
+            OBEDIENCE,
+            obedience.powerIndex,
+            restBankChoice(Suit.Discord)
+        )
+        expect(
+            HydratedUseRestPower.reasonCannotUse(
+                session.gameState,
+                ME,
+                OBEDIENCE,
+                obedience.powerIndex,
+                restBankChoice(Suit.Discord)
+            )
+        ).toBeUndefined()
     })
 
     it('a row is the card and its buttons: it carries no description of the power', async () => {
@@ -1345,14 +1592,26 @@ describe('the Rest panel’s rows (turn-flow revision)', () => {
     })
 
     it('names no more favor on a bank’s button than the bank holds (Vow of Poverty)', async () => {
-        const session = await opened(table(MachineState.RestPhase, { favor: 0, advisers: [{ cardId: POVERTY, faceUp: true }] }, { oathRevision: OathRevision.TurnFlow, favorBank: { arcane: 3, beast: 2, discord: 0, hearth: 4, nomad: 1, order: 3 } }))
+        const session = await opened(
+            table(
+                MachineState.RestPhase,
+                { favor: 0, advisers: [{ cardId: POVERTY, faceUp: true }] },
+                {
+                    oathRevision: OathRevision.TurnFlow,
+                    favorBank: { arcane: 3, beast: 2, discord: 0, hearth: 4, nomad: 1, order: 3 }
+                }
+            )
+        )
         const banks = required(row(session, POVERTY).banks, 'Vow of Poverty names banks')
         expect(banks.find((bank) => bank.suit === Suit.Nomad)?.takes).toBe(1)
         expect(banks.find((bank) => bank.suit === Suit.Hearth)?.takes).toBe(2)
     })
 
     it('lists only the banks matching a card at the site for Silver Tongue', async () => {
-        const banks = required(row(await resting(), SILVER_TONGUE).banks, 'Silver Tongue names banks')
+        const banks = required(
+            row(await resting(), SILVER_TONGUE).banks,
+            'Silver Tongue names banks'
+        )
         expect(banks.map((bank) => bank.suit).sort()).toEqual([Suit.Beast, Suit.Hearth].sort())
     })
 
@@ -1360,17 +1619,32 @@ describe('the Rest panel’s rows (turn-flow revision)', () => {
         const session = await resting()
         const sent = vi.spyOn(session, 'useRestPower').mockResolvedValue()
         await session.rest.useWithBank(row(session, OBEDIENCE), Suit.Hearth)
-        expect(sent).toHaveBeenCalledWith(OBEDIENCE, row(session, OBEDIENCE).powerIndex, [{ kind: PowerChoiceKind.FavorBank, suit: Suit.Hearth }])
+        expect(sent).toHaveBeenCalledWith(OBEDIENCE, row(session, OBEDIENCE).powerIndex, [
+            { kind: PowerChoiceKind.FavorBank, suit: Suit.Hearth }
+        ])
     })
 
     it('R-4.3.5 — a power used this turn is not listed: the History says what it did', () => {
-        const state = table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }, { cardId: INSOMNIA, faceUp: true }] }, { oathRevision: OathRevision.TurnFlow })
-        state.getPlayerState(ME).restPowersUsedThisTurn = [powerKey(INSOMNIA, powerIndexOf(INSOMNIA, PowerTiming.Rest))]
+        const state = table(
+            MachineState.RestPhase,
+            {
+                advisers: [
+                    { cardId: OBEDIENCE, faceUp: true },
+                    { cardId: INSOMNIA, faceUp: true }
+                ]
+            },
+            { oathRevision: OathRevision.TurnFlow }
+        )
+        state.getPlayerState(ME).restPowersUsedThisTurn = [
+            powerKey(INSOMNIA, powerIndexOf(INSOMNIA, PowerTiming.Rest))
+        ]
         expect(restRows(state, ME).map((r) => r.cardId)).toEqual([OBEDIENCE])
     })
 
     it('keeps today’s panel in a game created before the revision', async () => {
-        const session = await opened(table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }] }))
+        const session = await opened(
+            table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }] })
+        )
         expect(session.rest.turnFlow).toBe(false)
     })
 })
@@ -1423,7 +1697,10 @@ describe('the Wake draft with the Vow of Kinship', () => {
                 { favor: 0, advisers: [{ cardId: VOW, faceUp: true }] },
                 {
                     oathRevision: revision,
-                    banners: { ...testBanners(), [Banner.PeoplesFavor]: { value, mobSide, holderPlayerId: ME } }
+                    banners: {
+                        ...testBanners(),
+                        [Banner.PeoplesFavor]: { value, mobSide, holderPlayerId: ME }
+                    }
                 }
             )
         )
@@ -1460,7 +1737,10 @@ describe('the Wake draft with the Vow of Kinship', () => {
         await wake.chooseBank(Suit.Discord)
         expect(wake.question).toEqual({ kind: 'favorStep', index: 1, options: ['place', 'none'] })
         await wake.chooseKind('none')
-        expect(sent).toHaveBeenCalledExactlyOnceWith([{ kind: 'return', toSuit: Suit.Discord }], undefined)
+        expect(sent).toHaveBeenCalledExactlyOnceWith(
+            [{ kind: 'return', toSuit: Suit.Discord }],
+            undefined
+        )
     })
 
     it('before revision 18 the place is forced and taken with no tap, as recorded', async () => {

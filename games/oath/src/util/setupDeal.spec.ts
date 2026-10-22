@@ -60,7 +60,11 @@ describe('R-1.19–R-1.22 — the initial state is dealt', () => {
 
     it('R-9.4 — the top card’s back type is published and the deck is not exhausted', () => {
         const state = setUpState(3)
-        expect(state.topCardBackType).toBe(state.requireVault().worldDeck[0].startsWith('vision.') ? CardKind.Vision : CardKind.Denizen)
+        expect(state.topCardBackType).toBe(
+            state.requireVault().worldDeck[0].startsWith('vision.')
+                ? CardKind.Vision
+                : CardKind.Denizen
+        )
         expect(state.worldDeckExhausted).toBe(false)
     })
 
@@ -98,7 +102,7 @@ function orderedDeck(size = 40): string[] {
 }
 
 function vaultWith(deck: string[]): OathVault {
-    return createOathVault({ worldDeck: deck, composeWorldDeck: () => [...deck]}, getPrng(1))
+    return createOathVault({ worldDeck: deck, composeWorldDeck: () => [...deck] }, getPrng(1))
 }
 
 describe('R-1.19, R-1.20 — setup draws from the bottom', () => {
@@ -107,8 +111,16 @@ describe('R-1.19, R-1.20 — setup draws from the bottom', () => {
         const fromBottom = drawFromBottomOfWorldDeck(vaultWith(deck), 3)
         const fromTop = drawFromWorldDeck(vaultWith(deck), 3).drawn
 
-        expect(fromBottom).toEqual(['denizen.order.card-9', 'denizen.order.card-8', 'denizen.order.card-7'])
-        expect(fromTop).toEqual(['denizen.order.card-0', 'denizen.order.card-1', 'denizen.order.card-2'])
+        expect(fromBottom).toEqual([
+            'denizen.order.card-9',
+            'denizen.order.card-8',
+            'denizen.order.card-7'
+        ])
+        expect(fromTop).toEqual([
+            'denizen.order.card-0',
+            'denizen.order.card-1',
+            'denizen.order.card-2'
+        ])
         expect(fromBottom).not.toEqual(fromTop)
     })
 
@@ -119,11 +131,7 @@ describe('R-1.19, R-1.20 — setup draws from the bottom', () => {
         for (const region of Object.values(Region)) {
             expect(vault.discardPiles[region]).toHaveLength(1)
         }
-        expect(
-            Object.values(vault.discardPiles)
-                .flat()
-                .sort()
-        ).toEqual(
+        expect(Object.values(vault.discardPiles).flat().sort()).toEqual(
             ['denizen.order.card-39', 'denizen.order.card-38', 'denizen.order.card-37'].sort()
         )
     })
@@ -205,10 +213,7 @@ describe('R-1.19, R-1.20 — setup draws from the bottom', () => {
 
 describe('R-1.19–R-1.22 applied to public state', () => {
     function state() {
-        return testState([
-            testPlayer({ playerId: 'p1' }),
-            testPlayer({ playerId: 'p2' })
-        ])
+        return testState([testPlayer({ playerId: 'p1' }), testPlayer({ playerId: 'p2' })])
     }
 
     it('R-1.19, R-9.4 — public state learns the counts and nothing else', () => {

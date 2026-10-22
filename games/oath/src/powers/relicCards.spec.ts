@@ -10,7 +10,10 @@ import { HydratedSearch, SearchSource, Search } from '../actions/search.js'
 import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { HydratedCampaign, Campaign } from '../actions/campaign.js'
 import { HydratedCampaignSacrifice, CampaignSacrifice } from '../actions/campaignSacrifice.js'
-import { HydratedCampaignResolveVictory, CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
+import {
+    HydratedCampaignResolveVictory,
+    CampaignResolveVictory
+} from '../actions/campaignResolveVictory.js'
 import { HydratedRecover, RecoverTargetKind } from '../actions/recover.js'
 import { HydratedAnswerQuestion, AnswerQuestion } from '../actions/answerQuestion.js'
 import { Banner, PlayerStatus, Suit } from '../model/oathEnums.js'
@@ -32,7 +35,16 @@ import { CONSPIRACY_ID } from '../data/visions.js'
 import { OathVisibility } from '../definition/runtime.js'
 import { buildAction, defendingSideChooses } from '../testing/actions.js'
 import { ongoingCampaign, required } from '../testing/required.js'
-import { card, facedown, player, site, slot, actionPowerUse, battlePlanUse, modifierUse } from '../testing/choices.js'
+import {
+    card,
+    facedown,
+    player,
+    site,
+    slot,
+    actionPowerUse,
+    battlePlanUse,
+    modifierUse
+} from '../testing/choices.js'
 import { INN, FILLER } from '../testing/cards.js'
 import { placedDenizens } from '../testing/census.js'
 import { OathRevision } from '../util/revision.js'
@@ -47,7 +59,12 @@ const CUP = 'relic.cup-of-plenty'
 const RING = 'relic.ring-of-devotion'
 const RETURN = 'denizen.hearth.awaited-return'
 
-function board(relics: string[], cards: string[] = [], advisers: string[] = [], over: Record<string, unknown> = {}) {
+function board(
+    relics: string[],
+    cards: string[] = [],
+    advisers: string[] = [],
+    over: Record<string, unknown> = {}
+) {
     const s = testState(
         [
             testPlayer({
@@ -129,9 +146,13 @@ describe('Cup of Plenty (Trade modifier)', () => {
         expect(s.getPlayerState('ruler').supply).toBe(2)
 
         expect(
-            HydratedTrade.reasonCannotTrade(board([CUP], [INN]), 'ruler', INN, TradeOption.ForFavor, [
-                modifierUse(CUP)
-            ])
+            HydratedTrade.reasonCannotTrade(
+                board([CUP], [INN]),
+                'ruler',
+                INN,
+                TradeOption.ForFavor,
+                [modifierUse(CUP)]
+            )
         ).toMatch(/matches none of your advisers/)
     })
 })
@@ -149,10 +170,18 @@ describe('Ring of Devotion (continuous)', () => {
     it('forbids moving warbands from the board to a site, but not the reverse', () => {
         const s = board([RING])
         expect(
-            HydratedMoveWarbands.reasonCannotMove(s, 'ruler', { move: { kind: WarbandMoveKind.BoardToSite }, owner: 'ruler', count: 1 })
+            HydratedMoveWarbands.reasonCannotMove(s, 'ruler', {
+                move: { kind: WarbandMoveKind.BoardToSite },
+                owner: 'ruler',
+                count: 1
+            })
         ).toMatch(/Ring of Devotion/)
         expect(
-            HydratedMoveWarbands.reasonCannotMove(board([]), 'ruler', { move: { kind: WarbandMoveKind.BoardToSite }, owner: 'ruler', count: 1 })
+            HydratedMoveWarbands.reasonCannotMove(board([]), 'ruler', {
+                move: { kind: WarbandMoveKind.BoardToSite },
+                owner: 'ruler',
+                count: 1
+            })
         ).toBeUndefined()
     })
 })
@@ -171,19 +200,67 @@ const CIRCLET = 'relic.circlet-of-command'
 const TENTS = 'denizen.nomad.tents'
 const WOLVES = 'denizen.beast.wolves'
 
-function relicBoard(relics: string[], over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
+function relicBoard(
+    relics: string[],
+    over: Record<string, Record<string, unknown>> = {},
+    state: Record<string, unknown> = {}
+) {
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, relicIds: relics, warbandsOnBoard: { me: 4 }, warbandsInPersonalBank: { me: 6 }, advisers: [{ cardId: INN, faceUp: true }], ...over['me'] }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { foe: 2 }, warbandsInPersonalBank: { foe: 5 }, advisers: [{ cardId: TENTS, faceUp: false }], ...over['foe'] }),
-            testPlayer({ playerId: 'far', color: Color.Yellow, siteId: 'h1', favor: 2, secrets: 2, ...over['far'] }),
-            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 2, secrets: 2, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }, ...over['chan'] })
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 3,
+                supply: 6,
+                relicIds: relics,
+                warbandsOnBoard: { me: 4 },
+                warbandsInPersonalBank: { me: 6 },
+                advisers: [{ cardId: INN, faceUp: true }],
+                ...over['me']
+            }),
+            testPlayer({
+                playerId: 'foe',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                supply: 4,
+                warbandsOnBoard: { foe: 2 },
+                warbandsInPersonalBank: { foe: 5 },
+                advisers: [{ cardId: TENTS, faceUp: false }],
+                ...over['foe']
+            }),
+            testPlayer({
+                playerId: 'far',
+                color: Color.Yellow,
+                siteId: 'h1',
+                favor: 2,
+                secrets: 2,
+                ...over['far']
+            }),
+            testPlayer({
+                playerId: 'chan',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1',
+                favor: 2,
+                secrets: 2,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 },
+                ...over['chan']
+            })
         ],
         {
             chancellorPlayerId: 'chan',
             denizensBySite: { c1: [WOLVES], c2: [], p1: [], h1: [] },
             warbandsBySite: { c1: { foe: 2 }, c2: { me: 2 }, p1: { [IMPERIAL_WARBANDS]: 2 } },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            },
             reliquary: [{ slotId: 'reliquary.0' }, { slotId: 'reliquary.1' }],
             ...state
         }
@@ -191,7 +268,12 @@ function relicBoard(relics: string[], over: Record<string, Record<string, unknow
     openTurn(s, 'me')
     return s
 }
-function use(s: ReturnType<typeof relicBoard>, cardId: string, choices?: PowerChoice[], seed?: (vault: OathVault) => void) {
+function use(
+    s: ReturnType<typeof relicBoard>,
+    cardId: string,
+    choices?: PowerChoice[],
+    seed?: (vault: OathVault) => void
+) {
     seed?.(s.requireVault())
     const a = actionPowerUse('me', cardId, choices)
     a.apply(s)
@@ -201,26 +283,63 @@ function use(s: ReturnType<typeof relicBoard>, cardId: string, choices?: PowerCh
 describe('the peeking and taking relics', () => {
     it('Dowsing Sticks draws and asks; Oracular Pig peeks at three', () => {
         const s = relicBoard([DOWSING, PIG])
-        const a = use(s, DOWSING, undefined, (vault) => { vault.relicDeck = ['relic.cup'] })
+        const a = use(s, DOWSING, undefined, (vault) => {
+            vault.relicDeck = ['relic.cup']
+        })
         expect(a.metadata?.peeked).toEqual(['relic.cup'])
-        expect(s.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.KeepOrBottomRelic, askedPlayerId: 'me', relicCardId: 'relic.cup' })
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.KeepOrBottomRelic,
+            askedPlayerId: 'me',
+            relicCardId: 'relic.cup'
+        })
         expect(s.getPlayerState('me')).toMatchObject({ favor: 2, secrets: 2 })
         s.pendingQuestions = undefined
-        const b = use(s, PIG, undefined, (vault) => { vault.worldDeck = [INN, TENTS, WOLVES] })
+        const b = use(s, PIG, undefined, (vault) => {
+            vault.worldDeck = [INN, TENTS, WOLVES]
+        })
         expect(b.metadata?.peeked).toEqual([INN, TENTS, WOLVES])
         expect(s.getPlayerState('me').knownWorldDeckTop).toEqual([INN, TENTS, WOLVES])
         expect(s.getPlayerState('foe').knownWorldDeckTop).toEqual([])
     })
 
-    it("Skeleton Key: with the Chancellor ruling your site, a Reliquary relic is seen and may be taken — uncovering the space", () => {
-        const s = relicBoard([KEY], {}, { warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1, foe: 2 }, c2: { me: 2 }, p1: { [IMPERIAL_WARBANDS]: 2 } } })
-        expect(HydratedUseActionPower.reasonCannotUse(relicBoard([KEY]), 'me', KEY, powerIndexOf(KEY, PowerTiming.Action), [slot('reliquary.0')])).toMatch(/Chancellor does not rule/)
-        const a = use(s, KEY, [slot('reliquary.0')], (vault) => { vault.relicFacedown['reliquary.0'] = 'relic.cup' })
+    it('Skeleton Key: with the Chancellor ruling your site, a Reliquary relic is seen and may be taken — uncovering the space', () => {
+        const s = relicBoard(
+            [KEY],
+            {},
+            {
+                warbandsBySite: {
+                    c1: { [IMPERIAL_WARBANDS]: 1, foe: 2 },
+                    c2: { me: 2 },
+                    p1: { [IMPERIAL_WARBANDS]: 2 }
+                }
+            }
+        )
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                relicBoard([KEY]),
+                'me',
+                KEY,
+                powerIndexOf(KEY, PowerTiming.Action),
+                [slot('reliquary.0')]
+            )
+        ).toMatch(/Chancellor does not rule/)
+        const a = use(s, KEY, [slot('reliquary.0')], (vault) => {
+            vault.relicFacedown['reliquary.0'] = 'relic.cup'
+        })
         expect(a.metadata?.peeked).toEqual(['relic.cup'])
         expect(s.reliquarySlots()[0]).toEqual({ slotId: 'reliquary.0' })
         expect(s.getPlayerState('me').peekedRelics).toEqual({ 'reliquary.0': 'relic.cup' })
-        expect(s.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.TakeOrLeaveRelic, slotId: 'reliquary.0', relicCardId: 'relic.cup' })
-        const take = new HydratedAnswerQuestion(buildAction(AnswerQuestion, { playerId: 'me', answer: { kind: PowerQuestionKind.TakeOrLeaveRelic, take: true } }))
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.TakeOrLeaveRelic,
+            slotId: 'reliquary.0',
+            relicCardId: 'relic.cup'
+        })
+        const take = new HydratedAnswerQuestion(
+            buildAction(AnswerQuestion, {
+                playerId: 'me',
+                answer: { kind: PowerQuestionKind.TakeOrLeaveRelic, take: true }
+            })
+        )
         take.apply(s)
         expect(s.getPlayerState('me').relicIds).toContain('relic.cup')
         expect(s.reliquarySlots().map((r) => r.slotId)).toEqual(['reliquary.1'])
@@ -230,24 +349,59 @@ describe('the peeking and taking relics', () => {
 
     it('Ivory Eye peeks at one of three kinds of thing; a facedown site comes through the vault and stays facedown', () => {
         const s = relicBoard([EYE], {}, { relicsBySite: { c2: [{ slotId: 'c2-r1' }] } })
-        expect(HydratedUseActionPower.reasonCannotUse(s, 'me', EYE, powerIndexOf(EYE, PowerTiming.Action), [])).toMatch(/exactly one/)
-        expect(HydratedUseActionPower.reasonCannotUse(s, 'me', EYE, powerIndexOf(EYE, PowerTiming.Action), [facedown('foe', 0), slot('c2-r1')])).toMatch(/exactly one/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                s,
+                'me',
+                EYE,
+                powerIndexOf(EYE, PowerTiming.Action),
+                []
+            )
+        ).toMatch(/exactly one/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                s,
+                'me',
+                EYE,
+                powerIndexOf(EYE, PowerTiming.Action),
+                [facedown('foe', 0), slot('c2-r1')]
+            )
+        ).toMatch(/exactly one/)
         const eye = use(s, EYE, [facedown('foe', 0)])
         expect(eye.metadata?.peeked).toEqual([TENTS])
-        expect(s.getPlayerState('foe').advisers).toEqual([{ faceUp: false, shownTo: ['me'], shownCardId: TENTS }])
+        expect(s.getPlayerState('foe').advisers).toEqual([
+            { faceUp: false, shownTo: ['me'], shownCardId: TENTS }
+        ])
         // R-9.4 — the peeker alone is served the card, in state and in the record.
-        expect(served(s, { kind: 'player', playerId: 'me' }).players[1].advisers).toEqual([{ faceUp: false, shownTo: ['me'], shownCardId: TENTS }])
+        expect(served(s, { kind: 'player', playerId: 'me' }).players[1].advisers).toEqual([
+            { faceUp: false, shownTo: ['me'], shownCardId: TENTS }
+        ])
         for (const perspective of [{ kind: 'player', playerId: 'far' } as const, spectator]) {
-            expect(served(s, perspective).players[1].advisers).toEqual([{ faceUp: false, shownTo: ['me'] }])
-            expect(JSON.stringify(OathVisibility.actions.project(eye.dehydrate(), perspective))).not.toContain(TENTS)
+            expect(served(s, perspective).players[1].advisers).toEqual([
+                { faceUp: false, shownTo: ['me'] }
+            ])
+            expect(
+                JSON.stringify(OathVisibility.actions.project(eye.dehydrate(), perspective))
+            ).not.toContain(TENTS)
         }
         const t = relicBoard([EYE], {}, { relicsBySite: { c2: [{ slotId: 'c2-r1' }] } })
-        use(t, EYE, [slot('c2-r1')], (vault) => { vault.relicFacedown['c2-r1'] = 'relic.cup' })
+        use(t, EYE, [slot('c2-r1')], (vault) => {
+            vault.relicFacedown['c2-r1'] = 'relic.cup'
+        })
         expect(t.relicSlotsAt('c2')[0]).toEqual({ slotId: 'c2-r1' })
         expect(t.getPlayerState('me').peekedRelics).toEqual({ 'c2-r1': 'relic.cup' })
-        const u = relicBoard([EYE], {}, { siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes' } })
+        const u = relicBoard(
+            [EYE],
+            {},
+            { siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes' } }
+        )
         const vault = createOathVault({ siteFacedown: { h1: 'site.mountain' } }, getPrng(1))
-        const action = buildAction(UseActionPower, { playerId: 'me', cardId: EYE, powerIndex: powerIndexOf(EYE, PowerTiming.Action), choices: [site('h1')] })
+        const action = buildAction(UseActionPower, {
+            playerId: 'me',
+            cardId: EYE,
+            powerIndex: powerIndexOf(EYE, PowerTiming.Action),
+            choices: [site('h1')]
+        })
         u.vault = vault
         const a = new HydratedUseActionPower(action)
         a.apply(u)
@@ -262,8 +416,18 @@ describe('the peeking and taking relics', () => {
 describe('the moving relics', () => {
     it('Horned Mask swaps an adviser with a card at your site; Whistle summons a pawn and gives them the secret', () => {
         const horned = (adviser: string, atSite: string) => {
-            const t = relicBoard([HORNED], { me: { advisers: [{ cardId: adviser, faceUp: true }] } }, { denizensBySite: { c1: [atSite], c2: [], p1: [], h1: [] } })
-            return HydratedUseActionPower.reasonCannotUse(t, 'me', HORNED, powerIndexOf(HORNED, PowerTiming.Action), [card(adviser), card(atSite)])
+            const t = relicBoard(
+                [HORNED],
+                { me: { advisers: [{ cardId: adviser, faceUp: true }] } },
+                { denizensBySite: { c1: [atSite], c2: [], p1: [], h1: [] } }
+            )
+            return HydratedUseActionPower.reasonCannotUse(
+                t,
+                'me',
+                HORNED,
+                powerIndexOf(HORNED, PowerTiming.Action),
+                [card(adviser), card(atSite)]
+            )
         }
         // R-7.2.2 — a locked adviser stays; R-7.2.1 — an adviser-only card never goes to a site, a site-only card never to the advisers.
         expect(horned('denizen.nomad.faithful-friend', WOLVES)).toMatch(/not among the options/)
@@ -274,7 +438,15 @@ describe('the moving relics', () => {
         use(s, HORNED, [card(INN), card(WOLVES)])
         expect(s.denizensBySite['c1']).toEqual([INN])
         expect(s.getPlayerState('me').advisers.map((a) => a.cardId)).toEqual([WOLVES])
-        expect(HydratedUseActionPower.reasonCannotUse(s, 'me', WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), [player('foe')])).toMatch(/not among the options/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                s,
+                'me',
+                WHISTLE,
+                powerIndexOf(WHISTLE, PowerTiming.Action),
+                [player('foe')]
+            )
+        ).toMatch(/not among the options/)
         use(s, WHISTLE, [player('far')])
         expect(s.getPlayerState('far').siteId).toBe('c1')
         expect(s.getPlayerState('far').secrets).toBe(3)
@@ -283,7 +455,14 @@ describe('the moving relics', () => {
 
     it('Horned Mask from revision 10 still trades an adviser for a card at your site, every card kept (R-10.25)', () => {
         const SCOUTS = 'denizen.order.scouts'
-        const s = relicBoard([HORNED], {}, { oathRevision: OathRevision.EngineFixes6, denizensBySite: { c1: [WOLVES, SCOUTS], c2: [], p1: [], h1: [] } })
+        const s = relicBoard(
+            [HORNED],
+            {},
+            {
+                oathRevision: OathRevision.EngineFixes6,
+                denizensBySite: { c1: [WOLVES, SCOUTS], c2: [], p1: [], h1: [] }
+            }
+        )
         const before = placedDenizens(s)
         use(s, HORNED, [card(INN), card(SCOUTS)])
         expect(s.denizensBySite['c1']).toEqual([WOLVES, INN])
@@ -297,11 +476,24 @@ describe('the Search relics', () => {
         const s = relicBoard([HARP, BOOK])
         expect(HydratedSearch.drawCount(s, 'me', [modifierUse(HARP)])).toBe(5)
         s.requireVault().worldDeck = [TENTS, FILLER]
-        const search = new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true }))
+        const search = new HydratedSearch(
+            buildAction(Search, {
+                playerId: 'me',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true
+            })
+        )
         search.apply(s)
         expect(s.pendingSearchModifiers?.map((m) => m.cardId)).toContain(BOOK)
         const favor = s.getPlayerState('me').favor
-        const play = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'me', keptCardId: TENTS, discardOrder: [FILLER], play: SearchPlay.Site }))
+        const play = new HydratedSearchResolve(
+            buildAction(SearchResolve, {
+                playerId: 'me',
+                keptCardId: TENTS,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site
+            })
+        )
         play.apply(s)
         expect(s.getPlayerState('me').favor).toBe(favor)
         expect(s.getPlayerState('me').secrets).toBe(4)
@@ -315,38 +507,90 @@ describe('Truthful Harp — "you must reveal every card you draw and the card yo
     it('the draw and the kept card are public on the records, and the keep cannot be undone', () => {
         const s = relicBoard([HARP])
         s.requireVault().worldDeck = [TENTS, FILLER, WOLVES]
-        const search = new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: harp }))
+        const search = new HydratedSearch(
+            buildAction(Search, {
+                playerId: 'me',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                modifiers: harp
+            })
+        )
         search.apply(s)
         expect(search.metadata?.revealedDraw).toEqual([TENTS, FILLER, WOLVES])
-        expect(OathVisibility.actions.project(search.dehydrate(), spectator)).toHaveProperty('metadata.revealedDraw', [TENTS, FILLER, WOLVES])
-        const keep = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'me', keptCardId: TENTS, discardOrder: [FILLER, WOLVES], play: SearchPlay.Adviser, faceUp: false }))
+        expect(OathVisibility.actions.project(search.dehydrate(), spectator)).toHaveProperty(
+            'metadata.revealedDraw',
+            [TENTS, FILLER, WOLVES]
+        )
+        const keep = new HydratedSearchResolve(
+            buildAction(SearchResolve, {
+                playerId: 'me',
+                keptCardId: TENTS,
+                discardOrder: [FILLER, WOLVES],
+                play: SearchPlay.Adviser,
+                faceUp: false
+            })
+        )
         keep.apply(s)
         expect(keep.metadata?.revealedKeptCardId).toBe(TENTS)
-        expect(OathVisibility.actions.project(keep.dehydrate(), spectator)).toHaveProperty('metadata.revealedKeptCardId', TENTS)
+        expect(OathVisibility.actions.project(keep.dehydrate(), spectator)).toHaveProperty(
+            'metadata.revealedKeptCardId',
+            TENTS
+        )
         expect(keep.revealsInfo).toBe(true)
     })
 
     it('a Search without the Harp shows nothing', () => {
         const s = relicBoard([HARP])
         s.requireVault().worldDeck = [TENTS, FILLER, WOLVES]
-        const search = new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true }))
+        const search = new HydratedSearch(
+            buildAction(Search, {
+                playerId: 'me',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true
+            })
+        )
         search.apply(s)
         expect(search.metadata?.revealedDraw).toBeUndefined()
-        expect(JSON.stringify(OathVisibility.actions.project(search.dehydrate(), spectator))).not.toContain(TENTS)
+        expect(
+            JSON.stringify(OathVisibility.actions.project(search.dehydrate(), spectator))
+        ).not.toContain(TENTS)
     })
 })
 
 describe('the Campaign relics', () => {
-    const attack = (s: ReturnType<typeof relicBoard>, plans?: { cardId: string; powerIndex: number }[]) =>
-        new HydratedCampaign(buildAction(Campaign, { playerId: 'me', defender: { kind: 'player', playerId: 'foe' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }], attackDice: 4, plans })).apply(s)
+    const attack = (
+        s: ReturnType<typeof relicBoard>,
+        plans?: { cardId: string; powerIndex: number }[]
+    ) =>
+        new HydratedCampaign(
+            buildAction(Campaign, {
+                playerId: 'me',
+                defender: { kind: 'player', playerId: 'foe' },
+                targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
+                attackDice: 4,
+                plans
+            })
+        ).apply(s)
     const finish = (s: ReturnType<typeof relicBoard>) => {
         ongoingCampaign(s).swords = 9
         ongoingCampaign(s).defense = 0
-        const sac = new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId: 'me', sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) }))
+        const sac = new HydratedCampaignSacrifice(
+            buildAction(CampaignSacrifice, {
+                playerId: 'me',
+                sacrifice: 0,
+                defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0)
+            })
+        )
         sac.apply(s)
         const losses = defendingSideChooses(s)
         if (s.campaign) {
-            victory = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'me', placements: [], burnFavor: false }))
+            victory = new HydratedCampaignResolveVictory(
+                buildAction(CampaignResolveVictory, {
+                    playerId: 'me',
+                    placements: [],
+                    burnFavor: false
+                })
+            )
             victory.apply(s)
         }
         return losses ?? sac
@@ -376,22 +620,103 @@ describe('the Campaign relics', () => {
     })
 
     it("Circlet of Command: nobody targets or takes the holder's banners or relics, and their pawn adds one more die", () => {
-        const s = relicBoard([], { foe: { relicIds: [CIRCLET, 'relic.cup'] } }, { banners: { [Banner.PeoplesFavor]: { value: 1, holderPlayerId: 'foe' }, [Banner.DarkestSecret]: { value: 1 } } })
-        const choice = (targets: CampaignTarget[]) => ({ defender: { kind: 'player' as const, playerId: 'foe' }, targets: targets, attackDice: 2 })
-        expect(HydratedCampaign.reasonCannotCampaign(s, 'me', choice([{ kind: CampaignTargetKind.Site, siteId: 'c1' }, { kind: CampaignTargetKind.Relic, cardId: 'relic.cup' }]))).toMatch(/Circlet of Command/)
-        expect(HydratedCampaign.reasonCannotCampaign(s, 'me', choice([{ kind: CampaignTargetKind.Site, siteId: 'c1' }, { kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor }]))).toMatch(/Circlet of Command/)
-        expect(HydratedRecover.reasonCannotRecover(s, 'me', { target: { kind: RecoverTargetKind.Banner as const, banner: Banner.PeoplesFavor }, amountPaid: 2, redistributeFrom: Suit.Discord })).toMatch(/Circlet of Command/)
-        const parties = HydratedCampaign.partiesFor(s, 'me', choice([{ kind: CampaignTargetKind.PawnAndFavor }]))
+        const s = relicBoard(
+            [],
+            { foe: { relicIds: [CIRCLET, 'relic.cup'] } },
+            {
+                banners: {
+                    [Banner.PeoplesFavor]: { value: 1, holderPlayerId: 'foe' },
+                    [Banner.DarkestSecret]: { value: 1 }
+                }
+            }
+        )
+        const choice = (targets: CampaignTarget[]) => ({
+            defender: { kind: 'player' as const, playerId: 'foe' },
+            targets: targets,
+            attackDice: 2
+        })
+        expect(
+            HydratedCampaign.reasonCannotCampaign(
+                s,
+                'me',
+                choice([
+                    { kind: CampaignTargetKind.Site, siteId: 'c1' },
+                    { kind: CampaignTargetKind.Relic, cardId: 'relic.cup' }
+                ])
+            )
+        ).toMatch(/Circlet of Command/)
+        expect(
+            HydratedCampaign.reasonCannotCampaign(
+                s,
+                'me',
+                choice([
+                    { kind: CampaignTargetKind.Site, siteId: 'c1' },
+                    { kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor }
+                ])
+            )
+        ).toMatch(/Circlet of Command/)
+        expect(
+            HydratedRecover.reasonCannotRecover(s, 'me', {
+                target: { kind: RecoverTargetKind.Banner as const, banner: Banner.PeoplesFavor },
+                amountPaid: 2,
+                redistributeFrom: Suit.Discord
+            })
+        ).toMatch(/Circlet of Command/)
+        const parties = HydratedCampaign.partiesFor(
+            s,
+            'me',
+            choice([{ kind: CampaignTargetKind.PawnAndFavor }])
+        )
         expect(collectDefensePool(s, parties)).toBe(3)
-        expect(HydratedRecover.reasonCannotRecover(relicBoard([], { foe: { relicIds: [CIRCLET] } }), 'foe', { target: { kind: RecoverTargetKind.Banner as const, banner: Banner.PeoplesFavor }, amountPaid: 2, redistributeFrom: Suit.Discord })).toBeUndefined()
+        expect(
+            HydratedRecover.reasonCannotRecover(
+                relicBoard([], { foe: { relicIds: [CIRCLET] } }),
+                'foe',
+                {
+                    target: {
+                        kind: RecoverTargetKind.Banner as const,
+                        banner: Banner.PeoplesFavor
+                    },
+                    amountPaid: 2,
+                    redistributeFrom: Suit.Discord
+                }
+            )
+        ).toBeUndefined()
     })
 
     it('Whistle — "if able": the Travel rules bind the pulled pawn, and its after-travel powers fire', () => {
-        const lake = relicBoard([WHISTLE], { far: { warbandsOnBoard: { far: 3 } } }, { denizensBySite: { c1: [WOLVES, 'denizen.discord.boiling-lake'], c2: [], p1: [], h1: [] } })
+        const lake = relicBoard(
+            [WHISTLE],
+            { far: { warbandsOnBoard: { far: 3 } } },
+            {
+                denizensBySite: {
+                    c1: [WOLVES, 'denizen.discord.boiling-lake'],
+                    c2: [],
+                    p1: [],
+                    h1: []
+                }
+            }
+        )
         use(lake, WHISTLE, [player('far')])
         expect(lake.getPlayerState('far').siteId).toBe('c1')
         expect(lake.getPlayerState('far').warbandsOnBoard['far']).toBe(1)
-        const vowed = relicBoard([WHISTLE], { far: { warbandsOnBoard: { far: 3 }, advisers: [{ cardId: 'denizen.beast.vow-of-union', faceUp: true }] } }, { warbandsBySite: { c1: { foe: 2 }, c2: { me: 2 }, p1: { [IMPERIAL_WARBANDS]: 2 }, h1: { far: 1 } } })
+        const vowed = relicBoard(
+            [WHISTLE],
+            {
+                far: {
+                    warbandsOnBoard: { far: 3 },
+                    advisers: [{ cardId: 'denizen.beast.vow-of-union', faceUp: true }]
+                }
+            },
+            {
+                warbandsBySite: {
+                    c1: { foe: 2 },
+                    c2: { me: 2 },
+                    p1: { [IMPERIAL_WARBANDS]: 2 },
+                    h1: { far: 1 }
+                }
+            }
+        )
         const a = use(vowed, WHISTLE, [player('far')])
         expect(vowed.getPlayerState('far').siteId).toBe('h1')
         expect(vowed.getPlayerState('far').secrets).toBe(2)
@@ -399,19 +724,55 @@ describe('the Campaign relics', () => {
     })
 
     it('Circlet of Command guards "your other relics" against every take, and not itself', () => {
-        const s = relicBoard([], { foe: { relicIds: [CIRCLET, 'relic.cup'], advisers: [{ cardId: 'denizen.hearth.storyteller', faceUp: true }, { cardId: 'denizen.beast.rangers', faceUp: true }] }, me: { advisers: [{ cardId: INN, faceUp: true }, { cardId: 'denizen.beast.bracken', faceUp: true }] } })
-        const targets: CampaignTarget[] = [{ kind: CampaignTargetKind.Site, siteId: 'c1' }, { kind: CampaignTargetKind.Relic, cardId: CIRCLET }]
-        const circletTarget = { defender: { kind: 'player' as const, playerId: 'foe' }, targets, attackDice: 2 }
-        expect(HydratedCampaign.reasonCannotCampaign(s, 'me', circletTarget) ?? '').not.toMatch(/Circlet/)
+        const s = relicBoard([], {
+            foe: {
+                relicIds: [CIRCLET, 'relic.cup'],
+                advisers: [
+                    { cardId: 'denizen.hearth.storyteller', faceUp: true },
+                    { cardId: 'denizen.beast.rangers', faceUp: true }
+                ]
+            },
+            me: {
+                advisers: [
+                    { cardId: INN, faceUp: true },
+                    { cardId: 'denizen.beast.bracken', faceUp: true }
+                ]
+            }
+        })
+        const targets: CampaignTarget[] = [
+            { kind: CampaignTargetKind.Site, siteId: 'c1' },
+            { kind: CampaignTargetKind.Relic, cardId: CIRCLET }
+        ]
+        const circletTarget = {
+            defender: { kind: 'player' as const, playerId: 'foe' },
+            targets,
+            attackDice: 2
+        }
+        expect(HydratedCampaign.reasonCannotCampaign(s, 'me', circletTarget) ?? '').not.toMatch(
+            /Circlet/
+        )
         // Blackmail may name only the Circlet itself.
         const blackmail = required(cardPowers('denizen.discord.blackmail')[0], 'Blackmail')
-        expect(legalChoices(s, 'me', blackmail)[0].options).toEqual([{ kind: PowerChoiceKind.Card, cardId: CIRCLET }])
+        expect(legalChoices(s, 'me', blackmail)[0].options).toEqual([
+            { kind: PowerChoiceKind.Card, cardId: CIRCLET }
+        ])
         // Relic Thief is not asked.
-        const refused = askQuestion(s, 'me', { kind: PowerQuestionKind.RelicThiefRoll, cardId: 'denizen.discord.relic-thief', askedPlayerId: 'me', powerIndex: 0, takerPlayerId: 'foe', relicCardIds: ['relic.cup'] })
+        const refused = askQuestion(s, 'me', {
+            kind: PowerQuestionKind.RelicThiefRoll,
+            cardId: 'denizen.discord.relic-thief',
+            askedPlayerId: 'me',
+            powerIndex: 0,
+            takerPlayerId: 'foe',
+            relicCardIds: ['relic.cup']
+        })
         expect(refused).toMatch(/Circlet of Command/)
         expect(s.pendingQuestions).toBeUndefined()
         // The Conspiracy's take.
-        const conspiracy = (cardId: string) => reasonCannotPlayConspiracy(s, 'me', { keptCardId: CONSPIRACY_ID, conspiracy: { targetPlayerId: 'foe', take: { kind: 'relic', cardId } } })
+        const conspiracy = (cardId: string) =>
+            reasonCannotPlayConspiracy(s, 'me', {
+                keptCardId: CONSPIRACY_ID,
+                conspiracy: { targetPlayerId: 'foe', take: { kind: 'relic', cardId } }
+            })
         expect(conspiracy('relic.cup')).toMatch(/Circlet of Command/)
         expect(conspiracy(CIRCLET)).toBeUndefined()
     })

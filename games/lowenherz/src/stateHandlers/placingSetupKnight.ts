@@ -12,9 +12,10 @@ function planFor(state: HydratedLowenherzGameState) {
     return buildPlacementPlan(state.turnOrder, state.neutralColor !== undefined)
 }
 
-export class PlacingSetupKnightStateHandler
-    implements MachineStateHandler<PlacingSetupKnightAction, HydratedLowenherzGameState>
-{
+export class PlacingSetupKnightStateHandler implements MachineStateHandler<
+    PlacingSetupKnightAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedLowenherzGameState>

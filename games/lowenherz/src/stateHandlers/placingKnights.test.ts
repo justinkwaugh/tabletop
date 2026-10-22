@@ -375,7 +375,9 @@ describe('PlacingKnightsStateHandler', () => {
         const noAlliance = buildState({ activePlayerIds: ['p1'] })
         const context = new MachineContext({ gameConfig: {}, gameState: noAlliance })
         const handler = new PlacingKnightsStateHandler()
-        expect(handler.validActionsForPlayer('p1', context)).not.toContain(ActionType.CancelAlliance)
+        expect(handler.validActionsForPlayer('p1', context)).not.toContain(
+            ActionType.CancelAlliance
+        )
 
         const brokeState = buildState({
             regions: [
@@ -387,6 +389,8 @@ describe('PlacingKnightsStateHandler', () => {
         })
         brokeState.getPlayerState('p1').money = 9
         const brokeContext = new MachineContext({ gameConfig: {}, gameState: brokeState })
-        expect(handler.validActionsForPlayer('p1', brokeContext)).not.toContain(ActionType.CancelAlliance)
+        expect(handler.validActionsForPlayer('p1', brokeContext)).not.toContain(
+            ActionType.CancelAlliance
+        )
     })
 })

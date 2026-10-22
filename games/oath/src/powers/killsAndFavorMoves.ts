@@ -42,27 +42,23 @@ import type { WarbandGroup } from '../model/campaign.js'
 // "Action: Each player (even you) places one favor per site they rule into
 // the arcane bank." (R-7.1.3: as much as each has.)
 const PLAGUE_ENGINES = 'denizen.arcane.plague-engines'
-registerEffect(
-    PLAGUE_ENGINES,
-    powerIndexOf(PLAGUE_ENGINES, PowerTiming.Action),
-    {
-        choices: [],
-        resolve: (ctx) => {
-            let placed = 0
-            const unpaid = new Map<string, number>()
-            for (const p of ctx.state.players) {
-                const owed = sitesRuledBy(ctx.state, p.playerId).length
-                const paid = payOwedFavor(ctx.state, p.playerId, owed)
-                ctx.state.favorBank[Suit.Arcane] += paid
-                placed += paid
-                unpaid.set(p.playerId, owed - paid)
-            }
-            // Vow of Kinship — the rest from its bank only as its holder chooses (R-10.10-H1).
-            askRestFromHomeBanks(ctx.state, ctx.playerId, PLAGUE_ENGINES, unpaid, Suit.Arcane)
-            return { summary: `Plague Engines: ${placed} favor placed into the arcane bank` }
+registerEffect(PLAGUE_ENGINES, powerIndexOf(PLAGUE_ENGINES, PowerTiming.Action), {
+    choices: [],
+    resolve: (ctx) => {
+        let placed = 0
+        const unpaid = new Map<string, number>()
+        for (const p of ctx.state.players) {
+            const owed = sitesRuledBy(ctx.state, p.playerId).length
+            const paid = payOwedFavor(ctx.state, p.playerId, owed)
+            ctx.state.favorBank[Suit.Arcane] += paid
+            placed += paid
+            unpaid.set(p.playerId, owed - paid)
         }
+        // Vow of Kinship — the rest from its bank only as its holder chooses (R-10.10-H1).
+        askRestFromHomeBanks(ctx.state, ctx.playerId, PLAGUE_ENGINES, unpaid, Suit.Arcane)
+        return { summary: `Plague Engines: ${placed} favor placed into the arcane bank` }
     }
-)
+})
 
 // "Action: Kill any two warbands in your region (at sites or on boards, even
 // yours) if you hold the Darkest Secret."
@@ -106,10 +102,12 @@ registerEffect(
                 : `Terror Spells kills two warbands: ${named} named, ${required} to kill`
         },
         resolve: (ctx) => {
-            const killed: WarbandGroup[] = chosen(ctx, PowerChoiceKind.Warbands).map(({ group }) => ({
-                ...group,
-                count: killWarbandGroup(ctx.state, group)
-            }))
+            const killed: WarbandGroup[] = chosen(ctx, PowerChoiceKind.Warbands).map(
+                ({ group }) => ({
+                    ...group,
+                    count: killWarbandGroup(ctx.state, group)
+                })
+            )
             const total = killed.reduce((n, group) => n + group.count, 0)
             return {
                 summary: `Terror Spells: killed ${total} warbands in ${ctx.playerId}'s region`,

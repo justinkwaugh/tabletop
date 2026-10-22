@@ -95,6 +95,14 @@ describe('PrivateActionsModule', () => {
         expect(decisions.choice.hasManual()).toBe(false)
     })
 
+    it("opens purchases on the player's own privates, as a manual choice Undo closes", () => {
+        const { module } = privateActions([])
+        module.openPurchases()
+        expect(module.purchaseSource).toBe('mine')
+        expect(module.undo()).toBe(true)
+        expect(module.purchaseSource).toBeUndefined()
+    })
+
     it('selects a lone power automatically once powers are opened, without making it undoable', () => {
         const { module } = privateActions([Alpha])
         expect(module.trackPowerSelection).toBeUndefined()

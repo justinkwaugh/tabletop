@@ -35,9 +35,11 @@ async function layoutSize(locator: Locator) {
 
 const WRESTLERS = 'denizen.order.wrestlers'
 const panel = (page: Page) => page.locator('.panel')
-const card = (page: Page) => panel(page).locator(`[data-card-row="${WRESTLERS}"] button[aria-pressed]`)
+const card = (page: Page) =>
+    panel(page).locator(`[data-card-row="${WRESTLERS}"] button[aria-pressed]`)
 const picks = (page: Page) => panel(page).locator(`[data-plan-picks="${WRESTLERS}"]`)
-const places = (page: Page) => picks(page).getByRole('group', { name: 'the warband you sacrifice:' }).getByRole('button')
+const places = (page: Page) =>
+    picks(page).getByRole('group', { name: 'the warband you sacrifice:' }).getByRole('button')
 const place = (page: Page, name: string) => picks(page).getByRole('button', { name, exact: true })
 const usePlans = (page: Page) => panel(page).getByRole('button', { name: 'Use plans', exact: true })
 const undo = (page: Page) => page.getByRole('button', { name: 'Undo', exact: true })
@@ -54,7 +56,9 @@ const SIZES = [
 
 async function shot(page: Page, name: string, phone: boolean) {
     await page.mouse.move(2, 2)
-    await panel(page).screenshot({ path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`) })
+    await panel(page).screenshot({
+        path: test.info().outputPath(`${name}-${phone ? 'phone' : 'desktop'}.png`)
+    })
 }
 
 for (const { name, viewport, phone } of SIZES) {
@@ -65,7 +69,9 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Wrestlers' sacrifice, on a ${name}`, () => {
         test.use({ viewport, hasTouch: phone })
 
-        test('turning it on asks "the warband you sacrifice:" with one label-sized button per place, none picked', async ({ page }) => {
+        test('turning it on asks "the warband you sacrifice:" with one label-sized button per place, none picked', async ({
+            page
+        }) => {
             await openTable(page, 'wrestlersPick')
             await expect(picks(page)).toHaveCount(0)
             await card(page).click()
@@ -73,16 +79,23 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(picks(page)).toContainText('Wrestlers:')
             await expect(picks(page)).toContainText('the warband you sacrifice:')
             await expect(places(page)).toHaveCount(PLACES.length)
-            expect(await places(page).evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))).toEqual(PLACES)
+            expect(
+                await places(page).evaluateAll((buttons) =>
+                    buttons.map((button) => button.getAttribute('aria-label'))
+                )
+            ).toEqual(PLACES)
             await expect(place(page, "on Rhys's board")).toContainText('Rhys')
-            for (const label of PLACES) await expect(place(page, label)).toHaveAttribute('aria-pressed', 'false')
+            for (const label of PLACES)
+                await expect(place(page, label)).toHaveAttribute('aria-pressed', 'false')
             await expect(usePlans(page)).toHaveCount(0)
 
             // Read from the layout: a tall step's panel is scaled to fit a phone.
             const sizes = []
             for (const label of PLACES) {
                 const button = place(page, label)
-                const overflow = await button.evaluate((element) => element.scrollWidth - element.clientWidth)
+                const overflow = await button.evaluate(
+                    (element) => element.scrollWidth - element.clientWidth
+                )
                 expect(overflow).toBeLessThanOrEqual(0)
                 sizes.push(await layoutSize(button))
             }
@@ -93,7 +106,9 @@ for (const { name, viewport, phone } of SIZES) {
                 expect(size.width).toBeLessThan(panelWidth / 2)
                 if (phone) expect(size.height).toBeGreaterThanOrEqual(44)
             }
-            const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+            const pageOverflow = await page.evaluate(
+                () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+            )
             expect(pageOverflow).toBeLessThanOrEqual(0)
 
             await place(page, 'on your board').click()
@@ -102,7 +117,9 @@ for (const { name, viewport, phone } of SIZES) {
             await shot(page, 'wrestlers-pick', phone)
         })
 
-        test('a second tap on another place moves the pick; "Use plans" sacrifices the one picked', async ({ page }) => {
+        test('a second tap on another place moves the pick; "Use plans" sacrifices the one picked', async ({
+            page
+        }) => {
             await openTable(page, 'wrestlersPick')
             await card(page).click()
             await place(page, 'on your board').click()
@@ -115,7 +132,9 @@ for (const { name, viewport, phone } of SIZES) {
             expect(await imperialOn(page, 'Ann')).toBe(3)
         })
 
-        test('a single place is picked already, and "Use plans" shows at once', async ({ page }) => {
+        test('a single place is picked already, and "Use plans" shows at once', async ({
+            page
+        }) => {
             await openTable(page, 'wrestlersOnePlace')
             await card(page).click()
             await expect(places(page)).toHaveCount(1)
@@ -140,7 +159,7 @@ for (const { name, viewport, phone } of SIZES) {
 }
 
 test.describe('the History of a Wrestlers sacrifice, on a desktop at 1280', () => {
-    test('the defender\'s row names the place', async ({ page }) => {
+    test("the defender's row names the place", async ({ page }) => {
         await openTable(page, 'wrestlersPick')
         await card(page).click()
         await place(page, "on Rhys's board").click()
@@ -149,7 +168,9 @@ test.describe('the History of a Wrestlers sacrifice, on a desktop at 1280', () =
         await page.getByRole('tab', { name: 'History' }).click()
         // The History draws "a warband" as one piece, as every row does.
         const row = history(page).getByRole('listitem').filter({ hasText: 'used Wrestlers' })
-        await expect(row).toContainText(/used Wrestlers; 5 swords against 7 defense; sacrificed 1\s*on\s*Rhys's\s*board\s*\(Wrestlers\)/)
+        await expect(row).toContainText(
+            /used Wrestlers; 5 swords against 7 defense; sacrificed 1\s*on\s*Rhys's\s*board\s*\(Wrestlers\)/
+        )
         await expect(row.getByRole('img', { name: 'warband' })).toHaveCount(1)
     })
 })

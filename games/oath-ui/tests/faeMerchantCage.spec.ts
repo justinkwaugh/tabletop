@@ -37,8 +37,12 @@ const cageCard = (page: Page) =>
         .locator('button[aria-pressed]')
         .filter({ has: page.getByRole('img', { name: 'Obsidian Cage', exact: true }) })
 const piece = (page: Page, count: number, seat: string) =>
-    panel(page).getByRole('button', { name: `${count} of the warbands to ${seat}'s board`, exact: true })
-const returnThem = (page: Page) => panel(page).getByRole('button', { name: 'Return them', exact: true })
+    panel(page).getByRole('button', {
+        name: `${count} of the warbands to ${seat}'s board`,
+        exact: true
+    })
+const returnThem = (page: Page) =>
+    panel(page).getByRole('button', { name: 'Return them', exact: true })
 const history = (page: Page) => page.locator('.history')
 
 const SIZES = [
@@ -54,7 +58,9 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Fae Merchant sends the Obsidian Cage down, on a ${name}`, () => {
         test.use({ viewport })
 
-        test('the Cage opens the second step: a row per Imperial board, none placed, "Return them" disabled', async ({ page }) => {
+        test('the Cage opens the second step: a row per Imperial board, none placed, "Return them" disabled', async ({
+            page
+        }) => {
             await openTable(page, 'askFaeMerchantCage')
             await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('dana')
             await expect(line(page)).toHaveText('Which relic goes to the bottom?')
@@ -72,7 +78,9 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(cageCard(page)).toHaveCount(0)
         })
 
-        test('1 on Ann’s row fills Rhys’s with the other 1; "Return them" sends them to both boards', async ({ page }) => {
+        test('1 on Ann’s row fills Rhys’s with the other 1; "Return them" sends them to both boards', async ({
+            page
+        }) => {
             await openTable(page, 'askFaeMerchantCage')
             await cageCard(page).click()
             await piece(page, 1, 'ann').click()
@@ -82,17 +90,24 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(piece(page, 2, 'rhys')).toHaveAttribute('aria-pressed', 'false')
             const button = returnThem(page)
             await expect(button).toBeEnabled()
-            const [box, form] = [await boxOf(page, button), await boxOf(page, panel(page).locator('.question-form'))]
+            const [box, form] = [
+                await boxOf(page, button),
+                await boxOf(page, panel(page).locator('.question-form'))
+            ]
             if (phone) expect(box.height).toBeGreaterThanOrEqual(44)
             // Label-sized: the button fits its words, at every width.
             expect(box.width).toBeLessThan(form.width / 2)
             await button.click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.ann).toEqual({ imperial: 3 })
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).boardOf.ann)
+                .toEqual({ imperial: 3 })
             const facts = await call(page, 'tableFacts')
             expect(facts.boardOf.rhys).toEqual({ imperial: 1 })
             if (!phone) {
                 await page.getByRole('tab', { name: 'History' }).click()
-                await expect(history(page)).toContainText(/put Obsidian Cage on the bottom of the relic deck; its warbands went back: 1 to\s*ann's\s*board, 1 to\s*rhys's\s*board/i)
+                await expect(history(page)).toContainText(
+                    /put Obsidian Cage on the bottom of the relic deck; its warbands went back: 1 to\s*ann's\s*board, 1 to\s*rhys's\s*board/i
+                )
             }
         })
 
@@ -103,11 +118,15 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(piece(page, 1, 'ann')).toHaveAttribute('aria-pressed', 'false')
             await expect(piece(page, 2, 'rhys')).toHaveAttribute('aria-pressed', 'true')
             await returnThem(page).click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.rhys).toEqual({ imperial: 2 })
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).boardOf.rhys)
+                .toEqual({ imperial: 2 })
             expect((await call(page, 'tableFacts')).boardOf.ann).toEqual({ imperial: 2 })
         })
 
-        test('three Imperial boards: no row fills another, and "Return them" waits until both are placed', async ({ page }) => {
+        test('three Imperial boards: no row fills another, and "Return them" waits until both are placed', async ({
+            page
+        }) => {
             await openTable(page, 'askFaeMerchantCageThree')
             await cageCard(page).click()
             await expect(panel(page)).toContainText(/to\s*bea's\s*board/i)
@@ -119,7 +138,9 @@ for (const { name, viewport, phone } of SIZES) {
             await piece(page, 1, 'bea').click()
             await expect(returnThem(page)).toBeEnabled()
             await returnThem(page).click()
-            await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.bea).toEqual({ imperial: 1 })
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).boardOf.bea)
+                .toEqual({ imperial: 1 })
             expect((await call(page, 'tableFacts')).boardOf.ann).toEqual({ imperial: 3 })
         })
     })

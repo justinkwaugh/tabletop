@@ -28,14 +28,35 @@ const FILLER = 'denizen.order.wrestlers'
 const LAND_WARDEN = 'denizen.hearth.land-warden'
 const FEAST = 'denizen.hearth.fabled-feast'
 
-const names = { player: (playerId: string) => ({ rhys: 'Rhys', dana: 'Dana' })[playerId] ?? playerId, site: slotLabel, seats: ['rhys', 'dana'] }
+const names = {
+    player: (playerId: string) => ({ rhys: 'Rhys', dana: 'Dana' })[playerId] ?? playerId,
+    site: slotLabel,
+    seats: ['rhys', 'dana']
+}
 
 /** Rhys, an Exile, searching at c1 (the River unless a site is named); Dana the Chancellor. */
-function table(banks: Partial<Record<Suit, number>>, site = 'site.river', rhys: Partial<Parameters<typeof testPlayer>[0]> = {}, over: Record<string, unknown> = {}) {
+function table(
+    banks: Partial<Record<Suit, number>>,
+    site = 'site.river',
+    rhys: Partial<Parameters<typeof testPlayer>[0]> = {},
+    over: Record<string, unknown> = {}
+) {
     const state = testState(
         [
-            testPlayer({ playerId: 'rhys', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 2, ...rhys }),
-            testPlayer({ playerId: 'dana', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c2' })
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                favor: 2,
+                ...rhys
+            }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c2'
+            })
         ],
         {
             machineState: MachineState.Searching,
@@ -52,10 +73,21 @@ function table(banks: Partial<Record<Suit, number>>, site = 'site.river', rhys: 
 }
 
 /** The History row of the Search's play, as the table reads it. */
-function searchRow(state: HydratedOathGameState, cardId: string, extra: Partial<SearchResolve> = {}, hand: string[] = [cardId, FILLER]) {
+function searchRow(
+    state: HydratedOathGameState,
+    cardId: string,
+    extra: Partial<SearchResolve> = {},
+    hand: string[] = [cardId, FILLER]
+) {
     state.getPlayerState('rhys').handIds = hand
     const played = new HydratedSearchResolve(
-        buildAction(SearchResolve, { playerId: 'rhys', keptCardId: cardId, discardOrder: [FILLER], play: SearchPlay.Site, ...extra })
+        buildAction(SearchResolve, {
+            playerId: 'rhys',
+            keptCardId: cardId,
+            discardOrder: [FILLER],
+            play: SearchPlay.Site,
+            ...extra
+        })
     )
     played.apply(state)
     return describeAction(played.dehydrate(), names)
@@ -75,7 +107,9 @@ describe('the History of a site play names a missing or short favor (R-9.3)', ()
     })
 
     it("a full gain keeps today's words", () => {
-        expect(searchRow(table({ [Suit.Beast]: 2 }), WOLVES)).toBe('kept Wolves and played it to their site, gaining 1 favor; 1 card went to the provinces discard pile')
+        expect(searchRow(table({ [Suit.Beast]: 2 }), WOLVES)).toBe(
+            'kept Wolves and played it to their site, gaining 1 favor; 1 card went to the provinces discard pile'
+        )
         expect(searchRow(table({ [Suit.Hearth]: 3 }, 'site.fertile-valley'), INN)).toBe(
             'kept Wayside Inn and played it to their site, gaining 1 favor; gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the provinces discard pile'
         )
@@ -85,28 +119,73 @@ describe('the History of a site play names a missing or short favor (R-9.3)', ()
         const state = table({ [Suit.Hearth]: 3 })
         state.getPlayerState('rhys').handIds = [WOLVES, FILLER]
         const played = new HydratedSearchResolve(
-            buildAction(SearchResolve, { playerId: 'rhys', keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site })
+            buildAction(SearchResolve, {
+                playerId: 'rhys',
+                keptCardId: WOLVES,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site
+            })
         )
         played.apply(state)
         expect(played.metadata?.favorShort).toBeDefined()
         const metadata = played.metadata ? { ...played.metadata, favorShort: undefined } : undefined
-        const record = buildAction(SearchResolve, { playerId: 'rhys', keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, metadata })
-        expect(describeAction(record, names)).toBe('kept Wolves and played it to their site; 1 card went to the provinces discard pile')
+        const record = buildAction(SearchResolve, {
+            playerId: 'rhys',
+            keptCardId: WOLVES,
+            discardOrder: [FILLER],
+            play: SearchPlay.Site,
+            metadata
+        })
+        expect(describeAction(record, names)).toBe(
+            'kept Wolves and played it to their site; 1 card went to the provinces discard pile'
+        )
     })
 
     it("Land Warden: the second card's empty bank beside the kept card's favor", () => {
-        const pending = { pendingSearchModifiers: [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }] }
-        const state = table({ [Suit.Hearth]: 3 }, 'site.river', { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] }, pending)
-        expect(searchRow(state, INN, { secondPlay: { cardId: WOLVES, play: SearchPlay.Site } }, [INN, WOLVES, FILLER])).toMatch(
+        const pending = {
+            pendingSearchModifiers: [
+                { cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }
+            ]
+        }
+        const state = table(
+            { [Suit.Hearth]: 3 },
+            'site.river',
+            { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] },
+            pending
+        )
+        expect(
+            searchRow(state, INN, { secondPlay: { cardId: WOLVES, play: SearchPlay.Site } }, [
+                INN,
+                WOLVES,
+                FILLER
+            ])
+        ).toMatch(
             /^kept Wayside Inn and played it to their site, gaining 1 favor: the Beast bank was empty; /
         )
     })
 
-    describe("Land Warden: Fabled Feast kept as an adviser takes 2 Beast favor, then Wolves goes to the site", () => {
+    describe('Land Warden: Fabled Feast kept as an adviser takes 2 Beast favor, then Wolves goes to the site', () => {
         const feastThenWolves = (beast: number) => {
-            const pending = { pendingSearchModifiers: [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }] }
-            const state = table({ [Suit.Hearth]: 3, [Suit.Beast]: beast }, 'site.river', { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] }, pending)
-            const extra: Partial<SearchResolve> = { play: SearchPlay.Adviser, faceUp: true, choices: [{ kind: PowerChoiceKind.FavorBank, suit: Suit.Beast }], secondPlay: { cardId: WOLVES, play: SearchPlay.Site } }
+            const pending = {
+                pendingSearchModifiers: [
+                    {
+                        cardId: LAND_WARDEN,
+                        powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier)
+                    }
+                ]
+            }
+            const state = table(
+                { [Suit.Hearth]: 3, [Suit.Beast]: beast },
+                'site.river',
+                { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] },
+                pending
+            )
+            const extra: Partial<SearchResolve> = {
+                play: SearchPlay.Adviser,
+                faceUp: true,
+                choices: [{ kind: PowerChoiceKind.FavorBank, suit: Suit.Beast }],
+                secondPlay: { cardId: WOLVES, play: SearchPlay.Site }
+            }
             return searchRow(state, FEAST, extra, [FEAST, WOLVES, FILLER])
         }
 
@@ -117,14 +196,29 @@ describe('the History of a site play names a missing or short favor (R-9.3)', ()
         })
 
         it('the Beast bank still holds favor: "gaining 1 favor"', () => {
-            expect(feastThenWolves(3)).toMatch(/^kept Fabled Feast and played it as an adviser, gaining 1 favor: took 2 favor \(of 2 hearth cards ruled\) from the Beast bank; /)
+            expect(feastThenWolves(3)).toMatch(
+                /^kept Fabled Feast and played it as an adviser, gaining 1 favor: took 2 favor \(of 2 hearth cards ruled\) from the Beast bank; /
+            )
         })
     })
 
     it('a facedown adviser played faceup to the site with its bank empty (R-6.1)', () => {
-        const state = table({}, 'site.river', { advisers: [{ cardId: WOLVES, faceUp: false }] }, { machineState: MachineState.ActPhase })
-        const played = new HydratedPlayFacedownAdviser(buildAction(PlayFacedownAdviser, { playerId: 'rhys', cardId: WOLVES, play: SearchPlay.Site }))
+        const state = table(
+            {},
+            'site.river',
+            { advisers: [{ cardId: WOLVES, faceUp: false }] },
+            { machineState: MachineState.ActPhase }
+        )
+        const played = new HydratedPlayFacedownAdviser(
+            buildAction(PlayFacedownAdviser, {
+                playerId: 'rhys',
+                cardId: WOLVES,
+                play: SearchPlay.Site
+            })
+        )
         played.apply(state)
-        expect(describeAction(played.dehydrate(), names)).toBe('played Wolves to their site, gaining no favor: the Beast bank was empty')
+        expect(describeAction(played.dehydrate(), names)).toBe(
+            'played Wolves to their site, gaining no favor: the Beast bank was empty'
+        )
     })
 })

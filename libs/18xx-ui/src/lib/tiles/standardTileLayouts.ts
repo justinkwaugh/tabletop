@@ -64,3 +64,10 @@ export const StandardTileLayouts: Readonly<Record<string, TileLayout>> = {
     }),
     '18xx:68': cities(towardTileEdge(0, 26), towardTileEdge(4, 26))
 }
+
+export function placedTileLayout(
+    layouts: Readonly<Record<string, TileLayout>> | undefined,
+    definitionId: string
+): TileLayout | undefined {
+    return layouts?.[definitionId] ?? StandardTileLayouts[definitionId]
+}

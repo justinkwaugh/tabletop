@@ -51,9 +51,9 @@ export class SelectionAuctionHandler<
             ]
         return [
             ...(model.canPass(playerId) ? ['PassSelectionAuction'] : []),
-            ...(model.rules.nominationLotIds(state).some((lotId) =>
-                model.canNominate(playerId, lotId, model.minimumBid(lotId))
-            )
+            ...(model.rules
+                .nominationLotIds(state)
+                .some((lotId) => model.canNominate(playerId, lotId, model.minimumBid(lotId)))
                 ? ['NominateLot']
                 : [])
         ]

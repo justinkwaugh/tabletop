@@ -157,7 +157,8 @@ short tails and stay as they are. Host View and hotseat Games do not project and
   other-logic-version and Redis-down loads equal the uncached projection, with the counters
   showing what was cached; published moves for each Player and the spectator make the next load a
   full hit.
-- Production: `projection.response.game` p50/p99 and readiness probe failures before and after;
+- Production: `projection.response.game` p50/p99 and worker stalls before and after (readiness
+  probe failures until the backend relaxed readiness, `worker_stall` log lines since);
   timing counters for full hits, partial hits with tail length, and misses; Redis `used_memory`
   after a day.
 

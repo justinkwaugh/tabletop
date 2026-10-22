@@ -5,10 +5,8 @@
         isOfferAuctionLot,
         isBidOnAuctionLot,
         isPassAuction,
-        isRunTrains,
         isBuyTrain,
         isBuyPrivateTrain,
-        isPlaceStation,
         isDistributeEarnings,
         isLayTile,
         isPrivateTileLay,
@@ -17,22 +15,30 @@
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
+        companyLabels,
         historyDescription,
+        joinDetails,
         type HistoryDescription,
         type TitleActionDescription
     } from './historyDescription.js'
-    import { isHistoryBookkeeping, purchaseWithFlotation } from './historyNavigation.js'
+    import { isHistoryBookkeeping } from './historyNavigation.js'
+    import {
+        companyActedFor,
+        creditedSentence,
+        lastActionCredit,
+        lastActionPrice,
+        lastNotableStep,
+        payoutRecipients
+    } from './lastAction.js'
     import { auctionLotName } from './auctionHistory.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
-    import TrainRunTable from '../routes/TrainRunTable.svelte'
-    import EarningsCard from '../earnings/EarningsCard.svelte'
     import TrackLayResult from './TrackLayResult.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import GameEnding from '../ending/GameEnding.svelte'
-    import AuctionLotCard from '../auctions/AuctionLotCard.svelte'
-    import { auctionLotDetail } from '../auctions/auctionLotDetails.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
     import TurnHeading from './TurnHeading.svelte'
+    import { historyPhaseChange } from './historyPhaseChange.js'
+    import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import TrainCardStrip from '../trains/TrainCardStrip.svelte'
     import { shareSign } from './shareCards.js'
 
@@ -114,10 +120,10 @@
             const lot = session.auctionLotsFor(gameState).find((lot) => lot.id === action.lotId)
             assert(lot, 'Recorded auction requires its lot')
             return isOfferAuctionLot(action)
-                ? { text: `offered ${session.lotName(lot)} for auction at ${money(lot.price)}` }
-                : { text: `bid ${money(action.amount)} for ${session.lotName(lot)}` }
+                ? { text: `Offered ${session.lotName(lot)} for auction at ${money(lot.price)}` }
+                : { text: `Bid ${money(action.amount)} for ${session.lotName(lot)}` }
         }
-        if (isPassAuction(action)) return { text: 'passed' }
+        if (isPassAuction(action)) return { text: 'Passed' }
         const shared = () =>
             historyDescription(
                 action,
@@ -133,80 +139,91 @@
             )
         return describeAction?.(action, companyName, shared) ?? shared()
     }
+    const labels = $derived(
+        companyLabels(gameState.companies, (id) => session.companyInitials(id), companyName)
+    )
+    const step = $derived(lastNotableStep(actions, (action) => !!describe(action).routine))
+    function trainCardsFor(action: GameAction, description: HistoryDescription) {
+        return (description.trainDefinitionIds ?? []).flatMap((id) => {
+            const imageUrl = session.publishedTrainImage(id)
+            if (!imageUrl) return []
+            const definition = session.trainDepot.trainDefinition(id)
+            const paid =
+                isBuyTrain(action) || isBuyPrivateTrain(action) ? action.expectedPrice : undefined
+            return [
+                {
+                    id,
+                    name: definition.name,
+                    imageUrl,
+                    price: paid !== undefined && paid !== definition.price ? paid : undefined
+                }
+            ]
+        })
+    }
+    function auctionLotPassedOn(action: GameAction) {
+        if (!isPassAuction(action)) return undefined
+        // A pass belongs to the bidding opened by the most recent offer or bid before it.
+        const lotAction = actions
+            .slice(0, actions.indexOf(action))
+            .findLast((item) => !isPassAuction(item) && !isHistoryBookkeeping(item))
+        return lotAction && (isOfferAuctionLot(lotAction) || isBidOnAuctionLot(lotAction))
+            ? session.auctionLotsFor(gameState).find((lot) => lot.id === lotAction.lotId)
+            : undefined
+    }
     const latest = $derived.by(() => {
-        const paired = purchaseWithFlotation(actions)
-        // The last action a player would care about: routine steps, such as a turn starting,
-        // leave the action before them showing.
-        const action =
-            paired?.flotation ??
-            actions.findLast((item) => !isHistoryBookkeeping(item) && !describe(item).routine)
+        const [action, ...consequences] = step
         if (!action) return
         const description = describe(action)
-        const purchase = paired?.purchase
-        const actor = description.omitActor
-            ? undefined
-            : 'companyId' in action && typeof action.companyId === 'string'
-              ? action.companyId === company?.id
-                  ? undefined
-                  : companyName(action.companyId)
-              : action.playerId
-                ? session.getPlayerName(action.playerId)
-                : undefined
-        const track =
-            isLayTile(action) || isPrivateTileLay(action)
-                ? action.metadata
-                : isRespondToTrackConsent(action) && action.metadata?.accepted
-                  ? action.metadata.request.details
+        const credit = lastActionCredit(actions, action, description)
+        const trainCards = trainCardsFor(action, description)
+        const lot = auctionLotPassedOn(action)
+        const text = lot
+            ? `Passed on ${session.lotName(lot)}`
+            : trainCards.length
+              ? `${description.text} ${trainCards.map((card) => card.name).join(', ')}`
+              : (description.afterActorText ?? description.text)
+        const actor =
+            credit?.kind === 'company'
+                ? companyName(credit.companyId)
+                : credit
+                  ? session.getPlayerName(credit.playerId)
                   : undefined
-        // A pass belongs to the bidding opened by the most recent offer or bid before it.
-        const lotAction = isPassAuction(action)
-            ? actions
-                  .slice(0, actions.indexOf(action))
-                  .findLast((item) => !isPassAuction(item) && !isHistoryBookkeeping(item))
-            : action
-        const lot =
-            lotAction && (isOfferAuctionLot(lotAction) || isBidOnAuctionLot(lotAction))
-                ? session.auctionLotsFor(gameState).find((lot) => lot.id === lotAction.lotId)
-                : undefined
+        const creditedCompanyId = credit?.kind === 'company' ? credit.companyId : undefined
         return {
-            station: isPlaceStation(action) ? action : undefined,
-            track,
-            description,
-            actor,
-            shareCards: session.shareCards(action),
-            // Published train cards for a purchase; the price is shown only when it differs from the card.
-            trainCards: (description.trainDefinitionIds ?? []).flatMap((id) => {
-                const imageUrl = session.publishedTrainImage(id)
-                if (!imageUrl) return []
-                const definition = session.trainDepot.trainDefinition(id)
-                const paid =
-                    isBuyTrain(action) || isBuyPrivateTrain(action)
-                        ? action.expectedPrice
-                        : undefined
-                return [
-                    {
-                        id,
-                        name: definition.name,
-                        imageUrl,
-                        price: paid !== undefined && paid !== definition.price ? paid : undefined
-                    }
-                ]
-            }),
-            shareSign: shareSign(action),
-            lot: lot ? auctionLotDetail(session, lot, gameState) : undefined,
-            purchase: purchase
-                ? {
-                      description: describe(purchase),
-                      actor: purchase.playerId
-                          ? session.getPlayerName(purchase.playerId)
-                          : undefined
-                  }
+            credit,
+            sentence: creditedSentence(text, actor, labels),
+            price: lastActionPrice(action, description),
+            payments: isDistributeEarnings(action)
+                ? payoutRecipients(action, (owner) => session.ownerName(owner), money)
                 : undefined,
-            isRun: isRunTrains(action),
-            payout: isDistributeEarnings(action) ? action : undefined
+            detail: joinDetails(
+                historyPhaseChange(action, session.phaseChangePalette)?.label,
+                description.detail
+            ),
+            trainDefinitionIds: trainCards.length ? [] : (description.trainDefinitionIds ?? []),
+            track:
+                isLayTile(action) || isPrivateTileLay(action)
+                    ? action.metadata
+                    : isRespondToTrackConsent(action) && action.metadata?.accepted
+                      ? action.metadata.request.details
+                      : undefined,
+            shareCards: session.shareCards(action),
+            shareSign: shareSign(action),
+            trainCards,
+            consequences: consequences.map((consequence) => {
+                const consequenceDescription = describe(consequence)
+                const phase = historyPhaseChange(consequence, session.phaseChangePalette)
+                const companyId = companyActedFor(consequence)
+                return {
+                    id: consequence.id,
+                    description: consequenceDescription,
+                    phase,
+                    detail: joinDetails(phase?.label, consequenceDescription.detail),
+                    companyId: companyId === creditedCompanyId ? undefined : companyId
+                }
+            })
         }
     })
-    const result = $derived(gameState.routeStep?.result)
     const turnPlayerId = $derived(session.turnPlayerId(gameState))
 </script>
 
@@ -222,110 +239,89 @@
         {:else if session.isViewingHistory && status}<header>
                 <strong>{status}</strong>
             </header>{/if}
-        {#if latest?.isRun && result && result.routes.length}
-            <div class="run-table">
-                <TrainRunTable
-                    {money}
-                    {result}
-                    {trainColors}
-                    label="Recorded train runs"
-                    trains={gameState.trainInventory.trains.filter((train) =>
-                        result.routes.some((route) => route.trainId === train.id)
-                    )}
-                    trainName={(id) => session.trainDepot.trainDefinition(id).name}
-                />
-            </div>
-        {/if}
-        {#if latest?.station}
-            <div class="station-result">
-                <span>Placed</span>
-                <CompanyToken
-                    appearance={session.mapView.stations[latest.station.companyId]}
-                    size={28}
-                />
-                <span>for {money(latest.station.expectedCost)}</span>
-            </div>
-        {/if}
-        {#if latest?.track}
-            <TrackLayResult
-                {money}
-                details={latest.track}
-                map={session.mapView.map}
-                tileSet={session.mapView.tileSet}
-                appearance={session.tileAppearance}
-            />
-        {/if}
-        {#if latest?.payout}
-            <div class="payout-card">
-                <EarningsCard
-                    {money}
-                    choice={latest.payout.choice}
-                    details={latest.payout.metadata}
-                    label={latest.description.text}
-                    companyId={latest.payout.companyId}
-                    chart={session.stockMarketChart}
-                    ownerName={(owner) =>
-                        owner.kind === 'player'
-                            ? session.getPlayerName(owner.playerId)
-                            : owner.kind === 'bank'
-                              ? 'Bank'
-                              : companyName(owner.companyId)}
-                />
-            </div>
-        {/if}
-        {#if latest && !latest.station && !latest.track && !latest.payout && !(latest.isRun && result?.routes.length)}
-            <div class="event">
-                {#if latest.purchase}
-                    <p>
-                        {#if latest.purchase.actor}<strong class="actor"
-                                >{latest.purchase.actor}</strong
-                            >
-                        {/if}{latest.purchase.description.text}
+        {#if latest}
+            <div class="last-action-entry" aria-label="Recorded action">
+                <div class="lines">
+                    <span class="mark"
+                        >{#if latest.credit?.kind === 'company' && session.mapView.stations[latest.credit.companyId]}<CompanyToken
+                                appearance={session.mapView.stations[latest.credit.companyId]}
+                                size={18}
+                            />{:else if latest.credit?.kind === 'player'}<span
+                                class="player-dot"
+                                style:background={session.colors.getPlayerBgColorValue(
+                                    latest.credit.playerId
+                                )}
+                            ></span>{/if}</span
+                    >
+                    <p class="headline">
+                        {#if latest.sentence.actor}<strong>{latest.sentence.actor}</strong
+                            >{' '}{/if}{latest.sentence
+                            .text}{#if latest.trainDefinitionIds.length}{' '}<span class="trains"
+                                >{#each latest.trainDefinitionIds as id, i (i)}<TrainBadge
+                                        name={session.trainDepot.trainDefinition(id).name}
+                                        color={trainColors[id]}
+                                    />{/each}</span
+                            >{/if}{#if latest.price}{latest.price.connective === '·'
+                                ? ' · '
+                                : ' '}<span class="price"
+                                >{latest.price.connective === 'for' ? 'for ' : ''}<strong
+                                    >{latest.price.amount}</strong
+                                ></span
+                            >{/if}
                     </p>
-                    {#if latest.purchase.description.detail}<p class="detail">
-                            {latest.purchase.description.detail}
-                        </p>{/if}
-                {/if}
-                <p>
-                    {#if latest.actor && !latest.purchase}<strong class="actor"
-                            >{latest.actor}</strong
+                    {#if latest.payments}<p class="detail">{latest.payments}</p>{/if}
+                    {#if latest.detail}<p class="detail">{latest.detail}</p>{/if}
+                    {#each latest.consequences as consequence (consequence.id)}
+                        {@const appearance = consequence.companyId
+                            ? session.mapView.stations[consequence.companyId]
+                            : undefined}
+                        <span class="mark"
+                            >{#if appearance}<CompanyToken {appearance} size={16} />{/if}</span
                         >
-                    {/if}{latest.description
-                        .text}{#if !latest.isRun && latest.description.trainDefinitionIds?.length && !latest.trainCards.length}
-                        <span class="trains"
-                            >{#each latest.description.trainDefinitionIds as id, i (i)}<TrainBadge
-                                    name={session.trainDepot.trainDefinition(id).name}
-                                    color={trainColors[id]}
-                                />{/each}</span
+                        <p
+                            class="consequence"
+                            class:phase-change={!!consequence.phase}
+                            style:--phase-color={consequence.phase?.color}
+                            style:--phase-ink={consequence.phase
+                                ? contrastingTextColor(consequence.phase.color)
+                                : undefined}
                         >
-                    {/if}{#if latest.description.value && !latest.trainCards.length}
-                        · {latest.description.value}{/if}
-                </p>
-                {#if latest.trainCards.length}
-                    <TrainCardStrip cards={latest.trainCards} {money} />
+                            <strong>{consequence.description.text}</strong
+                            >{#if consequence.description.trainDefinitionIds?.length}{' '}<span
+                                    class="trains"
+                                    >{#each consequence.description.trainDefinitionIds as id, i (i)}<TrainBadge
+                                            name={session.trainDepot.trainDefinition(id).name}
+                                            color={trainColors[id]}
+                                        />{/each}</span
+                                >{/if}{#if consequence.description.value}{` ${consequence.description.value}`}{/if}{#if consequence.detail}{` · ${consequence.detail}`}{/if}
+                        </p>
+                    {/each}
+                </div>
+                {#if latest.track || latest.shareCards.length || latest.trainCards.length}
+                    <div class="thumb">
+                        {#if latest.track}
+                            <TrackLayResult
+                                details={latest.track}
+                                map={session.mapView.map}
+                                tileSet={session.mapView.tileSet}
+                                layouts={session.mapView.layouts}
+                                appearance={session.tileAppearance}
+                                size={40}
+                            />
+                        {/if}
+                        {#if latest.shareCards.length}
+                            <ShareCardStrip
+                                cards={latest.shareCards}
+                                stacked
+                                sign={latest.shareSign}
+                            />
+                        {/if}
+                        {#if latest.trainCards.length}
+                            <TrainCardStrip cards={latest.trainCards} {money} />
+                        {/if}
+                    </div>
                 {/if}
-                {#if latest.description.detail}<p class="detail">
-                        {latest.description.detail}
-                    </p>{/if}
             </div>
-            {#if latest.shareCards.length}
-                <div class="share-strip">
-                    <ShareCardStrip cards={latest.shareCards} stacked sign={latest.shareSign} />
-                </div>
-            {/if}
-            {#if latest.lot}
-                <div class="lot-card">
-                    <AuctionLotCard
-                        {session}
-                        id={latest.lot.id}
-                        name={latest.lot.name}
-                        price={latest.lot.price}
-                        income={latest.lot.company?.revenue}
-                        description={latest.lot.company?.description ?? ''}
-                        token={latest.lot.token}
-                    />
-                </div>
-            {/if}
         {/if}
     </section>
 {/if}
@@ -344,11 +340,7 @@
         gap: 8px;
     }
     .last-action {
-        margin-bottom: 2px;
-    }
-    .last-action + .event,
-    .last-action + .run-table {
-        margin-top: 0;
+        margin-bottom: 4px;
     }
     header strong {
         font-size: 11px;
@@ -356,73 +348,88 @@
         letter-spacing: 0.06em;
         font-weight: 500;
     }
+    .last-action-entry {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: fit-content;
+        max-width: min(360px, 100%);
+        margin: 0 auto;
+        font-variant-numeric: tabular-nums;
+    }
+    .lines {
+        display: grid;
+        grid-template-columns: 18px auto;
+        column-gap: 6px;
+        row-gap: 1px;
+        min-width: 0;
+    }
+    .lines > p:not(.headline):not(.consequence) {
+        grid-column: 2;
+    }
+    .mark {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 18px;
+    }
+    .mark :global(svg) {
+        display: block;
+    }
+    .thumb {
+        flex-shrink: 0;
+        --share-card-height: 64px;
+        --train-card-width: 72px;
+    }
+    .thumb :global(.share-cards) {
+        position: relative;
+    }
+    p {
+        margin: 0;
+    }
+    .headline {
+        line-height: 18px;
+    }
+    .headline strong {
+        font-weight: 600;
+    }
+    .price {
+        white-space: nowrap;
+    }
+    .player-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
     .trains {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        margin-left: 4px;
+        gap: 3px;
         vertical-align: middle;
     }
-    .event {
-        text-align: center;
-        margin-top: 8px;
-    }
-    .share-strip {
-        display: flex;
-        justify-content: center;
-        margin-top: 6px;
-        --share-card-height: 150px;
-    }
-    .share-strip :global(.share-cards) {
-        position: relative;
-        justify-content: center;
-    }
-    /* The sign hangs to the left of the centred cards rather than shifting them. */
-    .share-strip :global(.share-cards .sign) {
-        position: absolute;
-        right: 100%;
-        top: 50%;
-        transform: translateY(-50%);
-        margin-right: 10px;
-    }
-    .lot-card {
-        display: flex;
-        justify-content: center;
-        margin-top: 12px;
-        width: 300px;
-        max-width: 100%;
-        margin-inline: auto;
-        text-align: left;
-    }
-    .lot-card :global(.private-card:not(.image)) {
-        width: 100%;
-    }
-    p {
-        margin: 2px 0;
-    }
-    .actor {
-        margin-right: 4px;
-    }
-    .detail {
+    .detail,
+    .consequence {
         font-size: 12px;
-        color: var(--rail-text, #786550);
+        line-height: 16px;
+        color: var(--rail-muted, #786550);
     }
-    .station-result {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
+    .consequence {
+        margin-top: 1px;
     }
-    .payout-card {
-        display: flex;
-        justify-content: center;
-        padding: 4px 0;
-        font-size: 12px;
+    .consequence strong {
+        font-weight: 600;
+        color: var(--rail-text, #514536);
     }
-    .run-table {
-        display: flex;
-        justify-content: center;
-        margin-top: 8px;
-        color: var(--rail-text, #463e35);
+    .phase-change {
+        --rail-text: light-dark(#302c27, var(--phase-ink));
+        --rail-muted: light-dark(#817565, var(--phase-ink));
+        padding: 1px 6px;
+        border-left: 3px solid var(--phase-color);
+        border-radius: 2px;
+        background: color-mix(
+            in srgb,
+            var(--phase-color) var(--rail-phase-tint, 32%),
+            var(--rail-surface, #f7f5f0)
+        );
     }
 </style>

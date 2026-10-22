@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color, assert } from '@tabletop/common'
-import { ActionType, MachineState, PowerTiming, SearchSource, isTravel, powerIndexOf } from '@tabletop/oath'
+import {
+    ActionType,
+    MachineState,
+    PowerTiming,
+    SearchSource,
+    isTravel,
+    powerIndexOf
+} from '@tabletop/oath'
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 
@@ -54,15 +61,32 @@ describe('Travel offers the choices a Travel carries (R-7.1.4, R-11.12, R-X.1)',
     it('R-7.4 — a declared modifier lights the destination it makes affordable (Tents at 0 Supply)', async () => {
         const { session } = await travelling({ supply: 0 }, { c1: [TENTS], c2: [] })
         expect(session.selectableSites).not.toContain('c2')
-        session.modifiers.declare({ cardId: TENTS, powerIndex: powerIndexOf(TENTS, PowerTiming.Modifier) }, true)
+        session.modifiers.declare(
+            { cardId: TENTS, powerIndex: powerIndexOf(TENTS, PowerTiming.Modifier) },
+            true
+        )
         expect(session.selectableSites).toContain('c2')
     })
 })
 
 describe('R-7.4 — a declared modifier lights the Muster and Search targets it makes affordable', () => {
-    async function actingAt0Supply(me: Record<string, unknown>, denizensBySite: Record<string, string[]>, action: ActionType) {
+    async function actingAt0Supply(
+        me: Record<string, unknown>,
+        denizensBySite: Record<string, string[]>,
+        action: ActionType
+    ) {
         const state = testState(
-            [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', supply: 0, favor: 3, secrets: 2, ...me })],
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    supply: 0,
+                    favor: 3,
+                    secrets: 2,
+                    ...me
+                })
+            ],
             {
                 machineState: MachineState.ActPhase,
                 denizensBySite,
@@ -79,8 +103,15 @@ describe('R-7.4 — a declared modifier lights the Muster and Search targets it 
     it('Animal Playmates lights a beast card to muster on at 0 Supply: a free gain, it starts in use and stays', async () => {
         const PLAYMATES = 'denizen.beast.animal-playmates'
         const WOLVES = 'denizen.beast.wolves'
-        const playmates = { cardId: PLAYMATES, powerIndex: powerIndexOf(PLAYMATES, PowerTiming.Modifier) }
-        const session = await actingAt0Supply({ advisers: [{ cardId: PLAYMATES, faceUp: true }] }, { c1: [WOLVES] }, ActionType.Muster)
+        const playmates = {
+            cardId: PLAYMATES,
+            powerIndex: powerIndexOf(PLAYMATES, PowerTiming.Modifier)
+        }
+        const session = await actingAt0Supply(
+            { advisers: [{ cardId: PLAYMATES, faceUp: true }] },
+            { c1: [WOLVES] },
+            ActionType.Muster
+        )
         expect(session.selectableCards).toContain(WOLVES)
         // The Muster is possible only with it, so a tap does not put it down (R-7.4).
         session.modifiers.declare(playmates, false)
@@ -92,7 +123,10 @@ describe('R-7.4 — a declared modifier lights the Muster and Search targets it 
         const MUSHROOMS = 'denizen.beast.mushrooms'
         const session = await actingAt0Supply({}, { c1: [MUSHROOMS] }, ActionType.Search)
         expect(session.searchRows.map((row) => row.source)).not.toContain(SearchSource.Discard)
-        session.modifiers.declare({ cardId: MUSHROOMS, powerIndex: powerIndexOf(MUSHROOMS, PowerTiming.Modifier) }, true)
+        session.modifiers.declare(
+            { cardId: MUSHROOMS, powerIndex: powerIndexOf(MUSHROOMS, PowerTiming.Modifier) },
+            true
+        )
         expect(session.searchRows.map((row) => row.source)).toContain(SearchSource.Discard)
     })
 })
@@ -101,7 +135,13 @@ describe('R-11.12 — the Buried Giant offers a flipped secret beside the Supply
     it('offers both ways to a destination, and the flip picked is sent', async () => {
         const state = testState(
             [
-                testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', supply: 3, secrets: 1 }),
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    supply: 3,
+                    secrets: 1
+                }),
                 testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'h1' })
             ],
             {
@@ -180,9 +220,14 @@ describe('Travel picked on the map, as a phone does (Choose a Travel destination
         await session.pickTravelSite('c2')
         expect(sent).not.toHaveBeenCalled()
         expect(session.travelWaysOpen?.slotId).toBe('c2')
-        expect(session.travelWaysOpen?.ways.map((w) => w.discountTolls)).toEqual([[], [WAY_STATION]])
+        expect(session.travelWaysOpen?.ways.map((w) => w.discountTolls)).toEqual([
+            [],
+            [WAY_STATION]
+        ])
         expect(session.selectableSites).toEqual(lit)
-        const picked = session.siteOffers.filter((offer) => offer.intent === 'travel' && offer.picked)
+        const picked = session.siteOffers.filter(
+            (offer) => offer.intent === 'travel' && offer.picked
+        )
         expect(picked.map((offer) => offer.slotId)).toEqual(['c2'])
         expect(session.travelRows.map((row) => row.slotId)).toEqual(lit)
 

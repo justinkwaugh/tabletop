@@ -8,13 +8,22 @@ import { isPass } from '../actions/pass.js'
 // Transition from Moving(Move) -> Moving | TakingActions
 //                 Moving(Pass) -> TakingActions
 
-export class MovingStateHandler implements MachineStateHandler<HydratedMove, HydratedKaivaiGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedKaivaiGameState>): action is HydratedMove {
+export class MovingStateHandler implements MachineStateHandler<
+    HydratedMove,
+    HydratedKaivaiGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedKaivaiGameState>
+    ): action is HydratedMove {
         if (!action.playerId) return false
         return action.type === ActionType.Move || action.type === ActionType.Pass
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): ActionType[] {
         const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 

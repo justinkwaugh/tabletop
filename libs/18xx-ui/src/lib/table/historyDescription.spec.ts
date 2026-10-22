@@ -8,7 +8,8 @@ import type {
     ResolveAuction,
     RouteBonus,
     RunTrains,
-    StartCompany
+    StartCompany,
+    StartStockRound
 } from '@tabletop/18xx'
 import { afterPlayerName, historyDescription } from './historyDescription.js'
 import { historyStateFixture } from './history.fixture.js'
@@ -190,4 +191,17 @@ it('keeps a leading company name as written after the player name', () => {
         'Boston and Albany took a loan'
     )
     expect(afterPlayerName('Contributed $40', labels)).toBe('contributed $40')
+})
+
+it('treats the stock round opening after an operating set as routine', () => {
+    const start: StartStockRound = {
+        id: 'start',
+        gameId: 'history',
+        source: ActionSource.System,
+        type: 'StartStockRound'
+    }
+    expect(historyDescription(start, historyStateFixture(), TestMarket)).toEqual({
+        text: 'Started stock round',
+        routine: true
+    })
 })

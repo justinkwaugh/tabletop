@@ -29,7 +29,14 @@ import { buildAction } from '../testing/actions.js'
 import { facedown, actionPowerUse, modifierUse, site } from '../testing/choices.js'
 import { INN, FILLER } from '../testing/cards.js'
 
-registerCards([{ id: 'site.test-cheap2', name: 'Cheap', kind: CardKind.Site, recoverCost: { kind: 'burnFavor', amount: 1 } }])
+registerCards([
+    {
+        id: 'site.test-cheap2',
+        name: 'Cheap',
+        kind: CardKind.Site,
+        recoverCost: { kind: 'burnFavor', amount: 1 }
+    }
+])
 
 const INQUISITOR = 'denizen.arcane.inquisitor'
 const BLOODLINE = 'denizen.nomad.ancient-bloodline'
@@ -38,16 +45,45 @@ const NEW_GROWTH = 'denizen.beast.new-growth'
 const WOLVES = 'denizen.beast.wolves'
 const TENTS = 'denizen.nomad.tents'
 
-function board(cards: string[] = [], over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
+function board(
+    cards: string[] = [],
+    over: Record<string, Record<string, unknown>> = {},
+    state: Record<string, unknown> = {}
+) {
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { me: 3 }, advisers: [{ cardId: INN, faceUp: true }], ...over['me'] }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { foe: 2 }, advisers: [{ cardId: TENTS, faceUp: false }], ...over['foe'] })
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 3,
+                supply: 6,
+                warbandsOnBoard: { me: 3 },
+                advisers: [{ cardId: INN, faceUp: true }],
+                ...over['me']
+            }),
+            testPlayer({
+                playerId: 'foe',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                supply: 4,
+                warbandsOnBoard: { foe: 2 },
+                advisers: [{ cardId: TENTS, faceUp: false }],
+                ...over['foe']
+            })
         ],
         {
             denizensBySite: { c1: cards, c2: [WOLVES], p1: [], h1: [] },
             warbandsBySite: { c1: { foe: 2 }, c2: { me: 2 }, p1: { foe: 3 } },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            },
             ...state
         }
     )
@@ -61,23 +97,43 @@ describe('Inquisitor — a peek, and the Conspiracy found there', () => {
         const a = actionPowerUse('me', INQUISITOR, [facedown('foe', 0)])
         a.apply(s)
         expect(a.metadata?.peeked).toEqual([TENTS])
-        expect(s.getPlayerState('foe').advisers).toEqual([{ faceUp: false, shownTo: ['me'], shownCardId: TENTS, notConspiracy: true }])
+        expect(s.getPlayerState('foe').advisers).toEqual([
+            { faceUp: false, shownTo: ['me'], shownCardId: TENTS, notConspiracy: true }
+        ])
         expect(s.getPlayerState('foe').favor).toBe(4)
         expect(s.cardTokens[INQUISITOR]).toEqual({ favor: 0, secrets: 0 })
         expect(s.pendingQuestions).toBeUndefined()
     })
 
     it('the Conspiracy: its finder plays it (to the box) or discards it, through the vault', () => {
-        const s = board([INQUISITOR], { foe: { advisers: [{ cardId: CONSPIRACY_ID, faceUp: false }] } })
+        const s = board([INQUISITOR], {
+            foe: { advisers: [{ cardId: CONSPIRACY_ID, faceUp: false }] }
+        })
         actionPowerUse('me', INQUISITOR, [facedown('foe', 0)]).apply(s)
-        expect(s.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, askedPlayerId: 'me', holderPlayerId: 'foe' })
-        const play = new HydratedAnswerQuestion(buildAction(AnswerQuestion, { playerId: 'me', answer: { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: true } }))
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+            askedPlayerId: 'me',
+            holderPlayerId: 'foe'
+        })
+        const play = new HydratedAnswerQuestion(
+            buildAction(AnswerQuestion, {
+                playerId: 'me',
+                answer: { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: true }
+            })
+        )
         play.apply(s)
         expect(s.getPlayerState('foe').knownAdvisers()).toEqual([])
         expect(s.boxIds).toContain(CONSPIRACY_ID)
-        const t = board([INQUISITOR], { foe: { advisers: [{ cardId: CONSPIRACY_ID, faceUp: false }] } })
+        const t = board([INQUISITOR], {
+            foe: { advisers: [{ cardId: CONSPIRACY_ID, faceUp: false }] }
+        })
         actionPowerUse('me', INQUISITOR, [facedown('foe', 0)]).apply(t)
-        const discard = new HydratedAnswerQuestion(buildAction(AnswerQuestion, { playerId: 'me', answer: { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: false } }))
+        const discard = new HydratedAnswerQuestion(
+            buildAction(AnswerQuestion, {
+                playerId: 'me',
+                answer: { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: false }
+            })
+        )
         discard.apply(t)
         expect(t.getPlayerState('foe').advisers).toEqual([])
         expect(discard.metadata?.discardedCardIds).toEqual([CONSPIRACY_ID])
@@ -86,10 +142,38 @@ describe('Inquisitor — a peek, and the Conspiracy found there', () => {
     })
 
     // R-5.1.4-H1 — the card's Q&A: "If I find the Conspiracy, can I play it facedown to my advisers?" "Yes!"
-    const facedownAnswer = (fields: { play?: boolean; conspiracy?: ConspiracyPlay; discardedAdviserCardId?: string } = {}): QuestionAnswer => ({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: true, facedown: true, ...fields })
-    const answering = (answer: QuestionAnswer) => new HydratedAnswerQuestion(buildAction(AnswerQuestion, { playerId: 'me', answer }))
-    function found(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
-        const s = board([INQUISITOR], { ...over, foe: { advisers: [{ cardId: CONSPIRACY_ID, faceUp: false }, { cardId: TENTS, faceUp: false }], ...over['foe'] } }, state)
+    const facedownAnswer = (
+        fields: {
+            play?: boolean
+            conspiracy?: ConspiracyPlay
+            discardedAdviserCardId?: string
+        } = {}
+    ): QuestionAnswer => ({
+        kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+        play: true,
+        facedown: true,
+        ...fields
+    })
+    const answering = (answer: QuestionAnswer) =>
+        new HydratedAnswerQuestion(buildAction(AnswerQuestion, { playerId: 'me', answer }))
+    function found(
+        over: Record<string, Record<string, unknown>> = {},
+        state: Record<string, unknown> = {}
+    ) {
+        const s = board(
+            [INQUISITOR],
+            {
+                ...over,
+                foe: {
+                    advisers: [
+                        { cardId: CONSPIRACY_ID, faceUp: false },
+                        { cardId: TENTS, faceUp: false }
+                    ],
+                    ...over['foe']
+                }
+            },
+            state
+        )
         actionPowerUse('me', INQUISITOR, [facedown('foe', 0)]).apply(s)
         return s
     }
@@ -99,8 +183,16 @@ describe('Inquisitor — a peek, and the Conspiracy found there', () => {
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer())).toBeUndefined()
         const reply = answering(facedownAnswer())
         reply.apply(s)
-        expect(s.getPlayerState('me').knownAdvisers()).toEqual([{ cardId: INN, faceUp: true }, { cardId: CONSPIRACY_ID, faceUp: false, seen: true }])
-        expect(s.getPlayerState('me').advisers[1]).toEqual({ faceUp: false, vision: true, seen: true, shownCardId: CONSPIRACY_ID })
+        expect(s.getPlayerState('me').knownAdvisers()).toEqual([
+            { cardId: INN, faceUp: true },
+            { cardId: CONSPIRACY_ID, faceUp: false, seen: true }
+        ])
+        expect(s.getPlayerState('me').advisers[1]).toEqual({
+            faceUp: false,
+            vision: true,
+            seen: true,
+            shownCardId: CONSPIRACY_ID
+        })
         expect(s.getPlayerState('foe').knownAdviserIds()).toEqual([TENTS])
         expect(s.boxIds).not.toContain(CONSPIRACY_ID)
         expect(s.getPlayerState('me').secrets).toBe(3)
@@ -112,33 +204,95 @@ describe('Inquisitor — a peek, and the Conspiracy found there', () => {
 
     it('at the adviser limit it goes down only over a discarded adviser, which goes to the pile (R-5.1.4.II)', () => {
         const PROPHET = 'denizen.discord.false-prophet'
-        const s = found({ me: { advisers: [{ cardId: INN, faceUp: true }, { cardId: FILLER, faceUp: false }, { cardId: PROPHET, faceUp: true }] } })
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer())).toMatch(/already at the adviser limit of 3/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ discardedAdviserCardId: PROPHET }))).toMatch(/is locked and cannot be discarded/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ discardedAdviserCardId: TENTS }))).toMatch(/is not one of your other advisers/)
+        const s = found({
+            me: {
+                advisers: [
+                    { cardId: INN, faceUp: true },
+                    { cardId: FILLER, faceUp: false },
+                    { cardId: PROPHET, faceUp: true }
+                ]
+            }
+        })
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer())).toMatch(
+            /already at the adviser limit of 3/
+        )
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(
+                s,
+                'me',
+                facedownAnswer({ discardedAdviserCardId: PROPHET })
+            )
+        ).toMatch(/is locked and cannot be discarded/)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(
+                s,
+                'me',
+                facedownAnswer({ discardedAdviserCardId: TENTS })
+            )
+        ).toMatch(/is not one of your other advisers/)
         const reply = answering(facedownAnswer({ discardedAdviserCardId: FILLER }))
         reply.apply(s)
         expect(s.getPlayerState('me').knownAdviserIds()).toEqual([INN, PROPHET, CONSPIRACY_ID])
-        expect(reply.metadata).toMatchObject({ summary: 'played the Conspiracy as an adviser, facedown', discardedCardIds: [FILLER], discardPileRegion: Region.Provinces })
+        expect(reply.metadata).toMatchObject({
+            summary: 'played the Conspiracy as an adviser, facedown',
+            discardedCardIds: [FILLER],
+            discardPileRegion: Region.Provinces
+        })
         expect(s.discardPileCounts[Region.Provinces]).toBe(1)
         // Under the limit there is nothing to discard.
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(found(), 'me', facedownAnswer({ discardedAdviserCardId: INN }))).toBe('cannot discard an adviser without being at the limit')
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(
+                found(),
+                'me',
+                facedownAnswer({ discardedAdviserCardId: INN })
+            )
+        ).toBe('cannot discard an adviser without being at the limit')
     })
 
     it("Gossip refuses it to its ruler's enemies, as any facedown adviser play (R-7.1.4)", () => {
         // h1 holds no warbands, so the bandits rule Gossip there, and they are enemies to all (R-10.7).
-        const s = found({}, { denizensBySite: { c1: [INQUISITOR], c2: [WOLVES], p1: [], h1: ['denizen.discord.gossip'] } })
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer())).toMatch(/Gossip/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: false })).toBeUndefined()
+        const s = found(
+            {},
+            {
+                denizensBySite: {
+                    c1: [INQUISITOR],
+                    c2: [WOLVES],
+                    p1: [],
+                    h1: ['denizen.discord.gossip']
+                }
+            }
+        )
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer())).toMatch(
+            /Gossip/
+        )
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', {
+                kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+                play: false
+            })
+        ).toBeUndefined()
     })
 
     it('a facedown answer is a play with no take; an adviser is discarded only with it', () => {
         const s = found({ foe: { relicIds: ['relic.ring-of-devotion'] } })
-        const take: ConspiracyPlay = { targetPlayerId: 'foe', take: { kind: 'relic', cardId: 'relic.ring-of-devotion' } }
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ conspiracy: take }))).toBe('the take comes only with the Conspiracy played faceup (R-5.1.4.IV)')
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ play: false }))).toBe('played facedown, the Conspiracy is played, not discarded')
+        const take: ConspiracyPlay = {
+            targetPlayerId: 'foe',
+            take: { kind: 'relic', cardId: 'relic.ring-of-devotion' }
+        }
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ conspiracy: take }))
+        ).toBe('the take comes only with the Conspiracy played faceup (R-5.1.4.IV)')
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', facedownAnswer({ play: false }))
+        ).toBe('played facedown, the Conspiracy is played, not discarded')
         for (const play of [true, false])
-            expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', { kind: PowerQuestionKind.PlayOrDiscardConspiracy, play, discardedAdviserCardId: INN })).toBe('an adviser is discarded only to play the Conspiracy facedown')
+            expect(
+                HydratedAnswerQuestion.reasonCannotAnswer(s, 'me', {
+                    kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+                    play,
+                    discardedAdviserCardId: INN
+                })
+            ).toBe('an adviser is discarded only to play the Conspiracy facedown')
     })
 
     it('a stored answer without facedown resolves as it always has: faceup to the box, or discarded', () => {
@@ -149,9 +303,15 @@ describe('Inquisitor — a peek, and the Conspiracy found there', () => {
         expect(s.boxIds).toContain(CONSPIRACY_ID)
         expect(s.getPlayerState('me').knownAdviserIds()).toEqual([INN])
         const t = found()
-        const discarded = answering({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, play: false })
+        const discarded = answering({
+            kind: PowerQuestionKind.PlayOrDiscardConspiracy,
+            play: false
+        })
         discarded.apply(t)
-        expect(discarded.metadata).toMatchObject({ summary: 'discarded the Conspiracy', discardedCardIds: [CONSPIRACY_ID] })
+        expect(discarded.metadata).toMatchObject({
+            summary: 'discarded the Conspiracy',
+            discardedCardIds: [CONSPIRACY_ID]
+        })
         expect(t.boxIds).not.toContain(CONSPIRACY_ID)
         expect(t.getPlayerState('me').knownAdviserIds()).toEqual([INN])
     })
@@ -159,22 +319,72 @@ describe('Inquisitor — a peek, and the Conspiracy found there', () => {
 
 describe('Ancient Bloodline — locked, for enemies, at the sites you rule', () => {
     it("the ruler's enemies see the cards and relics there as locked; the ruler and friends do not", () => {
-        const s = board([], { me: { advisers: [{ cardId: BLOODLINE, faceUp: true }] } }, { relicsBySite: { c2: [{ slotId: 'c2-r1' }] }, siteCards: { c1: 'site.plains', c2: 'site.test-cheap2', p1: 'site.marshes', h1: 'site.mountain' } })
+        const s = board(
+            [],
+            { me: { advisers: [{ cardId: BLOODLINE, faceUp: true }] } },
+            {
+                relicsBySite: { c2: [{ slotId: 'c2-r1' }] },
+                siteCards: {
+                    c1: 'site.plains',
+                    c2: 'site.test-cheap2',
+                    p1: 'site.marshes',
+                    h1: 'site.mountain'
+                }
+            }
+        )
         expect(isLockedFor(s, 'foe', WOLVES)).toBe(true)
         expect(isLockedFor(s, 'me', WOLVES)).toBe(false)
         expect(isLockedFor(s, 'foe', TENTS)).toBe(false)
         s.getPlayerState('foe').siteId = 'c2'
-        expect(HydratedRecover.reasonCannotRecover(s, 'foe', { target: { kind: RecoverTargetKind.Relic as const, slotId: 'c2-r1' } })).toMatch(/locked for you/)
+        expect(
+            HydratedRecover.reasonCannotRecover(s, 'foe', {
+                target: { kind: RecoverTargetKind.Relic as const, slotId: 'c2-r1' }
+            })
+        ).toMatch(/locked for you/)
     })
 
     it("its relics are locked to every take: Relic Breaker, a Homeland relic, Relic Hunter's targets", () => {
         const BREAKER = 'denizen.hearth.relic-breaker'
-        const s = board([], { me: { advisers: [{ cardId: BLOODLINE, faceUp: true }] }, foe: { siteId: 'c2', advisers: [{ cardId: BREAKER, faceUp: true }] } }, { relicsBySite: { c2: [{ slotId: 'c2-r1' }] }, siteCards: { c1: 'site.plains', c2: 'site.deep-woods', p1: 'site.marshes', h1: 'site.mountain' } })
-        expect(HydratedUseActionPower.reasonCannotUse(s, 'foe', BREAKER, powerIndexOf(BREAKER, PowerTiming.Action), [slot('c2-r1')])).toMatch(/not among the options/)
+        const s = board(
+            [],
+            {
+                me: { advisers: [{ cardId: BLOODLINE, faceUp: true }] },
+                foe: { siteId: 'c2', advisers: [{ cardId: BREAKER, faceUp: true }] }
+            },
+            {
+                relicsBySite: { c2: [{ slotId: 'c2-r1' }] },
+                siteCards: {
+                    c1: 'site.plains',
+                    c2: 'site.deep-woods',
+                    p1: 'site.marshes',
+                    h1: 'site.mountain'
+                }
+            }
+        )
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                s,
+                'foe',
+                BREAKER,
+                powerIndexOf(BREAKER, PowerTiming.Action),
+                [slot('c2-r1')]
+            )
+        ).toMatch(/not among the options/)
         expect(homelandRelicSlot(s, 'foe', WOLVES, 'c2')).toBeUndefined()
         s.getPlayerState('me').siteId = 'c2'
         expect(homelandRelicSlot(s, 'me', WOLVES, 'c2')).toBe('c2-r1')
-        const parties: CampaignParties = { attackerPlayerId: 'foe', defenderPlayerId: 'me', allyPlayerIds: [], nonImperialPlayerIds: [], targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }, { kind: CampaignTargetKind.SiteRelic, slotId: 'c2-r1' }], attackerSiteId: 'c2', forceSiteIds: [] }
+        const parties: CampaignParties = {
+            attackerPlayerId: 'foe',
+            defenderPlayerId: 'me',
+            allyPlayerIds: [],
+            nonImperialPlayerIds: [],
+            targets: [
+                { kind: CampaignTargetKind.Site, siteId: 'c2' },
+                { kind: CampaignTargetKind.SiteRelic, slotId: 'c2-r1' }
+            ],
+            attackerSiteId: 'c2',
+            forceSiteIds: []
+        }
         expect(reasonCannotDeclareTargets(s, parties)).toMatch(/Ancient Bloodline/)
     })
 })
@@ -182,11 +392,26 @@ describe('Ancient Bloodline — locked, for enemies, at the sites you rule', () 
 describe('Cracked Horn and New Growth — where discards and plays may go', () => {
     it('Cracked Horn sends the discards under the world deck, and the vault replays them there', () => {
         const s = board([], { me: { relicIds: [HORN] } })
-        const search = new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(HORN)] }))
+        const search = new HydratedSearch(
+            buildAction(Search, {
+                playerId: 'me',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                modifiers: [modifierUse(HORN)]
+            })
+        )
         s.requireVault().worldDeck = [TENTS, FILLER]
         search.apply(s)
         const piles = { ...s.discardPileCounts }
-        const a = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'me', keptCardId: TENTS, discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: true }))
+        const a = new HydratedSearchResolve(
+            buildAction(SearchResolve, {
+                playerId: 'me',
+                keptCardId: TENTS,
+                discardOrder: [FILLER],
+                play: SearchPlay.Adviser,
+                faceUp: true
+            })
+        )
         const vault = createOathVault({ worldDeck: [INN] }, getPrng(1))
         s.vault = vault
         a.apply(s)
@@ -198,12 +423,27 @@ describe('Cracked Horn and New Growth — where discards and plays may go', () =
 
     it('Cracked Horn under an exhausted deck makes the first discard its public top back (R-9.4)', () => {
         const s = board([], { me: { relicIds: [HORN] } })
-        const search = new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(HORN)] }))
+        const search = new HydratedSearch(
+            buildAction(Search, {
+                playerId: 'me',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                modifiers: [modifierUse(HORN)]
+            })
+        )
         s.requireVault().worldDeck = [TENTS, FILLER]
         search.apply(s)
         expect(s.worldDeckExhausted).toBe(true)
         expect(s.topCardBackType).toBeUndefined()
-        new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'me', keptCardId: TENTS, discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: true })).apply(s)
+        new HydratedSearchResolve(
+            buildAction(SearchResolve, {
+                playerId: 'me',
+                keptCardId: TENTS,
+                discardOrder: [FILLER],
+                play: SearchPlay.Adviser,
+                faceUp: true
+            })
+        ).apply(s)
         expect(s.worldDeckExhausted).toBe(false)
         expect(s.topCardBackType).toBe(CardKind.Denizen)
     })
@@ -211,34 +451,102 @@ describe('Cracked Horn and New Growth — where discards and plays may go', () =
     it('New Growth: a beast or hearth card may be played to another site with room, and gains its favor there', () => {
         const s = board([], {}, { denizensBySite: { c1: [], c2: [], p1: [], h1: [] } })
         s.requireVault().worldDeck = [WOLVES, TENTS]
-        const search = new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(NEW_GROWTH)] }))
+        const search = new HydratedSearch(
+            buildAction(Search, {
+                playerId: 'me',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                modifiers: [modifierUse(NEW_GROWTH)]
+            })
+        )
         s.getPlayerState('me').addAdviser(NEW_GROWTH, true)
         search.apply(s)
-        expect(HydratedSearchResolve.reasonCannotResolve(s, 'me', { keptCardId: TENTS, discardOrder: [WOLVES], play: SearchPlay.Site, toSiteId: 'p1' })).toMatch(/only be played to your own site/)
-        expect(HydratedSearchResolve.reasonCannotResolve(s, 'me', { keptCardId: WOLVES, discardOrder: [TENTS], play: SearchPlay.Site, toSiteId: 'p1' })).toBeUndefined()
-        const a = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'me', keptCardId: WOLVES, discardOrder: [TENTS], play: SearchPlay.Site, toSiteId: 'p1' }))
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(s, 'me', {
+                keptCardId: TENTS,
+                discardOrder: [WOLVES],
+                play: SearchPlay.Site,
+                toSiteId: 'p1'
+            })
+        ).toMatch(/only be played to your own site/)
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(s, 'me', {
+                keptCardId: WOLVES,
+                discardOrder: [TENTS],
+                play: SearchPlay.Site,
+                toSiteId: 'p1'
+            })
+        ).toBeUndefined()
+        const a = new HydratedSearchResolve(
+            buildAction(SearchResolve, {
+                playerId: 'me',
+                keptCardId: WOLVES,
+                discardOrder: [TENTS],
+                play: SearchPlay.Site,
+                toSiteId: 'p1'
+            })
+        )
         a.apply(s)
         expect(s.denizensBySite['p1']).toEqual([WOLVES])
         expect(s.denizensBySite['c1']).toEqual([])
         expect(a.metadata?.favorGained).toBe(1)
         const t = board([], {}, { denizensBySite: { c1: [], c2: [], p1: [], h1: [] } })
         t.getPlayerState('me').handIds = [WOLVES, TENTS]
-        expect(HydratedSearchResolve.reasonCannotResolve(t, 'me', { keptCardId: WOLVES, discardOrder: [TENTS], play: SearchPlay.Site, toSiteId: 'p1' })).toMatch(/only be played to your own site/)
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(t, 'me', {
+                keptCardId: WOLVES,
+                discardOrder: [TENTS],
+                play: SearchPlay.Site,
+                toSiteId: 'p1'
+            })
+        ).toMatch(/only be played to your own site/)
     })
 
     it('New Growth to a remote site: a card is discarded first only at a Great Slum played to, and never a locked one (R-11.10, R-7.2.2)', () => {
         const growing = (siteCards: Record<string, string>, atP1: string[]) => {
-            const s = board([], {}, { denizensBySite: { c1: [INN], c2: [], p1: atP1, h1: [] }, siteCards: { c1: 'site.great-slums', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain', ...siteCards } })
+            const s = board(
+                [],
+                {},
+                {
+                    denizensBySite: { c1: [INN], c2: [], p1: atP1, h1: [] },
+                    siteCards: {
+                        c1: 'site.great-slums',
+                        c2: 'site.river',
+                        p1: 'site.marshes',
+                        h1: 'site.mountain',
+                        ...siteCards
+                    }
+                }
+            )
             s.requireVault().worldDeck = [WOLVES, TENTS]
             s.getPlayerState('me').addAdviser(NEW_GROWTH, true)
-            new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(NEW_GROWTH)] })).apply(s)
+            new HydratedSearch(
+                buildAction(Search, {
+                    playerId: 'me',
+                    drawFrom: SearchSource.WorldDeck,
+                    revealsInfo: true,
+                    modifiers: [modifierUse(NEW_GROWTH)]
+                })
+            ).apply(s)
             return s
         }
-        const play = (s: ReturnType<typeof board>, first: string) => HydratedSearchResolve.reasonCannotResolve(s, 'me', { keptCardId: WOLVES, discardOrder: [TENTS], play: SearchPlay.Site, toSiteId: 'p1', discardFirstCardId: first })
+        const play = (s: ReturnType<typeof board>, first: string) =>
+            HydratedSearchResolve.reasonCannotResolve(s, 'me', {
+                keptCardId: WOLVES,
+                discardOrder: [TENTS],
+                play: SearchPlay.Site,
+                toSiteId: 'p1',
+                discardFirstCardId: first
+            })
         // The Great Slum is where the pawn stands, not where the card goes.
-        expect(play(growing({}, ['denizen.order.scouts']), 'denizen.order.scouts')).toMatch(/only the Great Slum/)
+        expect(play(growing({}, ['denizen.order.scouts']), 'denizen.order.scouts')).toMatch(
+            /only the Great Slum/
+        )
         expect(play(growing({}, ['denizen.order.scouts']), INN)).toMatch(/only the Great Slum/)
-        const slum = growing({ p1: 'site.great-slums' }, ['denizen.order.scouts', 'denizen.beast.forest-council'])
+        const slum = growing({ p1: 'site.great-slums' }, [
+            'denizen.order.scouts',
+            'denizen.beast.forest-council'
+        ])
         expect(play(slum, 'denizen.order.scouts')).toBeUndefined()
         expect(play(slum, 'denizen.beast.forest-council')).toMatch(/locked/)
     })
@@ -247,14 +555,55 @@ describe('Cracked Horn and New Growth — where discards and plays may go', () =
 describe('Land Warden and Warning Signals', () => {
     it('Land Warden: two of the drawn cards are played when one goes to a site; the rest are discarded', () => {
         const LAND_WARDEN = 'denizen.hearth.land-warden'
-        const s = board([], { me: { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] } }, { denizensBySite: { c1: [], c2: [], p1: [], h1: [] } })
+        const s = board(
+            [],
+            { me: { advisers: [{ cardId: LAND_WARDEN, faceUp: true }] } },
+            { denizensBySite: { c1: [], c2: [], p1: [], h1: [] } }
+        )
         s.requireVault().worldDeck = [WOLVES, TENTS, FILLER]
-        new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(LAND_WARDEN)] })).apply(s)
+        new HydratedSearch(
+            buildAction(Search, {
+                playerId: 'me',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                modifiers: [modifierUse(LAND_WARDEN)]
+            })
+        ).apply(s)
         const second = { cardId: TENTS, play: SearchPlay.Adviser, faceUp: true }
-        expect(HydratedSearchResolve.reasonCannotResolve(s, 'me', { keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: true, secondPlay: second })).toMatch(/at least one .* to a site/)
-        expect(HydratedSearchResolve.reasonCannotResolve(s, 'me', { keptCardId: WOLVES, discardOrder: [FILLER, TENTS], play: SearchPlay.Site, secondPlay: second })).toMatch(/must discard exactly/)
-        expect(HydratedSearchResolve.reasonCannotResolve(s, 'me', { keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, secondPlay: second })).toBeUndefined()
-        const a = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'me', keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, secondPlay: second }))
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(s, 'me', {
+                keptCardId: WOLVES,
+                discardOrder: [FILLER],
+                play: SearchPlay.Adviser,
+                faceUp: true,
+                secondPlay: second
+            })
+        ).toMatch(/at least one .* to a site/)
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(s, 'me', {
+                keptCardId: WOLVES,
+                discardOrder: [FILLER, TENTS],
+                play: SearchPlay.Site,
+                secondPlay: second
+            })
+        ).toMatch(/must discard exactly/)
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(s, 'me', {
+                keptCardId: WOLVES,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                secondPlay: second
+            })
+        ).toBeUndefined()
+        const a = new HydratedSearchResolve(
+            buildAction(SearchResolve, {
+                playerId: 'me',
+                keptCardId: WOLVES,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                secondPlay: second
+            })
+        )
         a.apply(s)
         expect(s.denizensBySite['c1']).toEqual([WOLVES])
         expect(s.getPlayerState('me').advisers.map((x) => x.cardId)).toContain(TENTS)
@@ -262,42 +611,113 @@ describe('Land Warden and Warning Signals', () => {
         expect(a.metadata?.secondPlayedCardId).toBe(TENTS)
         const t = board([], {}, { denizensBySite: { c1: [], c2: [], p1: [], h1: [] } })
         t.getPlayerState('me').handIds = [WOLVES, TENTS, FILLER]
-        expect(HydratedSearchResolve.reasonCannotResolve(t, 'me', { keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, secondPlay: second })).toMatch(/only one drawn card/)
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(t, 'me', {
+                keptCardId: WOLVES,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                secondPlay: second
+            })
+        ).toMatch(/only one drawn card/)
     })
 
     it('Warning Signals: the defender moves warbands off a ruled site (never the last) and onto one from the board, then discards it', () => {
         const WARNING = 'denizen.nomad.warning-signals'
         // foe starts with 2 blue at c1, 3 at p1 and 2 on the board.
         const s = board([WARNING])
-        new HydratedCampaign(buildAction(Campaign, { playerId: 'me', defender: { kind: 'player', playerId: 'foe' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }], attackDice: 2 })).apply(s)
+        new HydratedCampaign(
+            buildAction(Campaign, {
+                playerId: 'me',
+                defender: { kind: 'player', playerId: 'foe' },
+                targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
+                attackDice: 2
+            })
+        ).apply(s)
         expect(s.campaign?.pendingDefenderPlans).toBeDefined()
-        const d = new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'foe', plans: [{ cardId: WARNING, powerIndex: powerIndexOf(WARNING, PowerTiming.BattlePlan), choices: [
-            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'p1' }, owner: 'foe', count: 2 } },
-            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'foe' }, owner: 'foe', count: 1 } },
-            site('c1')
-        ] }] }))
+        const d = new HydratedCampaignDefend(
+            buildAction(CampaignDefend, {
+                playerId: 'foe',
+                plans: [
+                    {
+                        cardId: WARNING,
+                        powerIndex: powerIndexOf(WARNING, PowerTiming.BattlePlan),
+                        choices: [
+                            {
+                                kind: PowerChoiceKind.Warbands,
+                                group: {
+                                    at: { kind: 'site', siteId: 'p1' },
+                                    owner: 'foe',
+                                    count: 2
+                                }
+                            },
+                            {
+                                kind: PowerChoiceKind.Warbands,
+                                group: {
+                                    at: { kind: 'board', playerId: 'foe' },
+                                    owner: 'foe',
+                                    count: 1
+                                }
+                            },
+                            site('c1')
+                        ]
+                    }
+                ]
+            })
+        )
         d.apply(s)
         expect(warbandsAt(s, 'p1')['foe']).toBe(1)
         expect(warbandsAt(s, 'c1')['foe']).toBe(3)
         expect(s.getPlayerState('foe').warbandsOnBoard['foe']).toBe(3)
         expect(s.campaign?.discardAtEnd).toContain(WARNING)
-        expect(d.metadata?.planNotes?.[0]).toBe('Warning Signals: foe moved 2 from p1 to the board; 1 from the board to c1')
+        expect(d.metadata?.planNotes?.[0]).toBe(
+            'Warning Signals: foe moved 2 from p1 to the board; 1 from the board to c1'
+        )
     })
 
     it('Warning Signals: "any warbands" — a board-to-site move alone, and moves off several sites', () => {
         const WARNING = 'denizen.nomad.warning-signals'
         const defendWith = (choices: PowerChoice[]) => {
             const s = board([WARNING])
-            new HydratedCampaign(buildAction(Campaign, { playerId: 'me', defender: { kind: 'player', playerId: 'foe' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }], attackDice: 2 })).apply(s)
-            new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'foe', plans: [{ cardId: WARNING, powerIndex: powerIndexOf(WARNING, PowerTiming.BattlePlan), choices }] })).apply(s)
+            new HydratedCampaign(
+                buildAction(Campaign, {
+                    playerId: 'me',
+                    defender: { kind: 'player', playerId: 'foe' },
+                    targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
+                    attackDice: 2
+                })
+            ).apply(s)
+            new HydratedCampaignDefend(
+                buildAction(CampaignDefend, {
+                    playerId: 'foe',
+                    plans: [
+                        {
+                            cardId: WARNING,
+                            powerIndex: powerIndexOf(WARNING, PowerTiming.BattlePlan),
+                            choices
+                        }
+                    ]
+                })
+            ).apply(s)
             return s
         }
-        const alone = defendWith([{ kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'foe' }, owner: 'foe', count: 2 } }, site('c1')])
+        const alone = defendWith([
+            {
+                kind: PowerChoiceKind.Warbands,
+                group: { at: { kind: 'board', playerId: 'foe' }, owner: 'foe', count: 2 }
+            },
+            site('c1')
+        ])
         expect(warbandsAt(alone, 'c1')['foe']).toBe(4)
         expect(alone.getPlayerState('foe').warbandsOnBoard['foe']).toBe(0)
         const both = defendWith([
-            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'c1' }, owner: 'foe', count: 1 } },
-            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'p1' }, owner: 'foe', count: 2 } }
+            {
+                kind: PowerChoiceKind.Warbands,
+                group: { at: { kind: 'site', siteId: 'c1' }, owner: 'foe', count: 1 }
+            },
+            {
+                kind: PowerChoiceKind.Warbands,
+                group: { at: { kind: 'site', siteId: 'p1' }, owner: 'foe', count: 2 }
+            }
         ])
         expect(warbandsAt(both, 'c1')['foe']).toBe(1)
         expect(warbandsAt(both, 'p1')['foe']).toBe(1)

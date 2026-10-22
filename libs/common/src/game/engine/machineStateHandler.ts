@@ -12,9 +12,10 @@ export interface MachineStateHandler<
     onAction(action: Action, context: MachineContext<State>): string
 }
 
-export class TerminalStateHandler
-    implements MachineStateHandler<HydratedAction, HydratedGameState>
-{
+export class TerminalStateHandler implements MachineStateHandler<
+    HydratedAction,
+    HydratedGameState
+> {
     isValidAction(_action: HydratedAction, _context: MachineContext): boolean {
         return false
     }

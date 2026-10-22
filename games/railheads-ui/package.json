@@ -1,8 +1,9 @@
 {
     "name": "@tabletop/railheads-ui",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "private": true,
     "type": "module",
+    "prettier": "@tabletop/prettier-config",
     "svelte": "./dist/index.js",
     "types": "./dist/index.ts",
     "scripts": {
@@ -47,6 +48,7 @@
         "@sveltejs/package": "^2.5.7",
         "@sveltejs/vite-plugin-svelte": "^6.2.4",
         "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/prettier-config": "workspace:*",
         "@tabletop/rollup-config": "workspace:*",
         "@tabletop/vitest-config": "workspace:*",
         "@tailwindcss/postcss": "^4.1.18",

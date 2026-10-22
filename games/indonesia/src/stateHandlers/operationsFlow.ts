@@ -7,7 +7,9 @@ import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { HydratedStartCompany } from '../actions/startCompany.js'
 import { queueRemovalForUnstartableAvailableDeeds } from '../operations/deedAvailability.js'
 
-function shouldStartNewEraAfterRemovingUnstartableDeeds(state: HydratedIndonesiaGameState): boolean {
+function shouldStartNewEraAfterRemovingUnstartableDeeds(
+    state: HydratedIndonesiaGameState
+): boolean {
     const startableDeeds = state.availableDeeds.filter((deed) =>
         HydratedStartCompany.canDeedBeStarted(state, deed.id)
     )

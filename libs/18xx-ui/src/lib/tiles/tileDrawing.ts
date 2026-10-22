@@ -73,6 +73,8 @@ export type TileDrawingStyle = {
     revenueStageLabels?: Readonly<Record<string, string>>
     /** Curves a lone one-station city's name over the top of the city. */
     cityNameArcs?: boolean
+    /** Draws every town as a dot, never a bar across its track. */
+    townDots?: boolean
 }
 
 export type TileDrawing = {
@@ -277,7 +279,9 @@ export function createTileDrawing(
         ).length
         // A town on through track, or ending a single track, is a bar across that track.
         const townAngle =
-            node.kind === 'town' && (automaticTownPaths.has(node.id) || tracks === 1)
+            !style.townDots &&
+            node.kind === 'town' &&
+            (automaticTownPaths.has(node.id) || tracks === 1)
                 ? townMarkerAngle(center, paths)
                 : undefined
         const dotRadius = townAngle !== undefined ? 4.2 : tracks >= 3 ? 9 : 6.3

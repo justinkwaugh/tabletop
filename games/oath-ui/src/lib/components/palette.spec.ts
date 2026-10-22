@@ -13,7 +13,8 @@ const RAW_COLOUR_CLASS =
     /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border(?:-[trblxy])?|ring|outline|divide|from|via|to|fill|stroke|decoration|shadow)-(?:stone|amber|rose|gray|slate|zinc|neutral|sky)-\d{2,3}(?:\/\d+)?(?![\w-])/g
 const ARBITRARY_COLOUR_CLASS =
     /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|outline|fill|stroke)-\[(?:#|rgb|hsl|oklch)[^\]]*\]/g
-const TOKEN_CLASS = /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|outline)-(oath-[a-z-]+?)(?:\/\d+)?(?![\w-])/g
+const TOKEN_CLASS =
+    /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|outline)-(oath-[a-z-]+?)(?:\/\d+)?(?![\w-])/g
 
 const declaredTokens = new Set(
     [...appCss.matchAll(/^\s*--(oath-[a-z-]+):/gm)].map((match) => match[1])

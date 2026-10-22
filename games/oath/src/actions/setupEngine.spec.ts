@@ -29,7 +29,10 @@ const PLAYERS = ['p1', 'p2', 'p3']
 /** Starts through the engine rather than the initializer, so the first state's `enter()` runs. */
 function startGame() {
     // Pinned to the random deck because MASTER_SEED's deal depends on the deck variant.
-    const game = testGame(PLAYERS, { status: GameStatus.WaitingToStart, config: { setupVariant: SetupVariant.Randomized } })
+    const game = testGame(PLAYERS, {
+        status: GameStatus.WaitingToStart,
+        config: { setupVariant: SetupVariant.Randomized }
+    })
     const { startedGame, initialState } = engine.startGame(game, { masterSeed: MASTER_SEED })
 
     const vault = vaultOf(initialState)
@@ -66,13 +69,17 @@ function walkSetup({
     for (const playerId of current.turnManager.turnOrder) {
         const hydrated = new HydratedOathGameState(current)
         const hand = hydrated.getPlayerState(playerId).knownHand()
-        current = engine.runNext(buildAction(SetupChoice, {
-            playerId,
-            // R-1.23.1 — only the Chancellor is bound to the top Cradle site.
-            siteId: playerId === chancellorId ? TOP_CRADLE_SLOT : hydrated.faceupSiteIds()[1],
-            adviserCardId: hand[0],
-            discardOrder: [hand[1], hand[2]]
-        }), current, game).updatedState
+        current = engine.runNext(
+            buildAction(SetupChoice, {
+                playerId,
+                // R-1.23.1 — only the Chancellor is bound to the top Cradle site.
+                siteId: playerId === chancellorId ? TOP_CRADLE_SLOT : hydrated.faceupSiteIds()[1],
+                adviserCardId: hand[0],
+                discardOrder: [hand[1], hand[2]]
+            }),
+            current,
+            game
+        ).updatedState
     }
 
     return { game, state: current, vault, chancellorId }
@@ -177,12 +184,16 @@ describe('setup through GameEngine.run() (R-1.19–R-1.23.3)', () => {
         expect(state.machineState).toBe(MachineState.ActPhase)
 
         const deckBefore = vaultOf(state).worldDeck.length
-        const result = engine.runNext(buildAction(Search, {
-            playerId: chancellorId,
-            drawFrom: SearchSource.WorldDeck,
-            // R-X.3 — a world deck draw takes cards out of the vault.
-            revealsInfo: true
-        }), state, game)
+        const result = engine.runNext(
+            buildAction(Search, {
+                playerId: chancellorId,
+                drawFrom: SearchSource.WorldDeck,
+                // R-X.3 — a world deck draw takes cards out of the vault.
+                revealsInfo: true
+            }),
+            state,
+            game
+        )
         const after = new HydratedOathGameState(result.updatedState)
 
         expect(vaultOf(result.updatedState).worldDeck.length).toBeLessThan(deckBefore)
@@ -260,33 +271,49 @@ function playFullGame(seed: number) {
 
             // R-4.2 — one real Search, so the game is played rather than passed.
             if (!searched && playerId === chancellorId) {
-                state = engine.runNext(buildAction(Search, {
-                    playerId,
-                    drawFrom: SearchSource.WorldDeck,
-                    revealsInfo: true
-                }), state, game).updatedState
+                state = engine.runNext(
+                    buildAction(Search, {
+                        playerId,
+                        drawFrom: SearchSource.WorldDeck,
+                        revealsInfo: true
+                    }),
+                    state,
+                    game
+                ).updatedState
                 const hand = new HydratedOathGameState(state).getPlayerState(playerId).knownHand()
                 expect(hand.length).toBeGreaterThan(0)
-                state = engine.runNext(buildAction(SearchResolve, {
-                    playerId,
-                    keptCardId: hand[0],
-                    discardOrder: hand.slice(1),
-                    play: SearchPlay.Discard,
-                    index: state.actionCount
-                }), state, game).updatedState
+                state = engine.runNext(
+                    buildAction(SearchResolve, {
+                        playerId,
+                        keptCardId: hand[0],
+                        discardOrder: hand.slice(1),
+                        play: SearchPlay.Discard,
+                        index: state.actionCount
+                    }),
+                    state,
+                    game
+                ).updatedState
                 searched = true
             }
 
             // R-4.2 allows a turn of zero actions, then R-4.3's Rest.
-            state = engine.runNext(buildAction(EndActPhase, {
-                playerId
-            }), state, game).updatedState
+            state = engine.runNext(
+                buildAction(EndActPhase, {
+                    playerId
+                }),
+                state,
+                game
+            ).updatedState
             // R-4.3.5 — the Rest waits on the seat only for a Rest power, none of which is held here.
             expect(state.machineState).not.toBe(MachineState.RestPhase)
             // R-3.3 — the round's last Rest leaves the end die to the Chancellor.
             if (state.machineState === MachineState.EndOfRound) {
                 expect(state.activePlayerIds).toEqual([chancellorId])
-                state = engine.runNext(buildAction(RollEndDie, { playerId: chancellorId }), state, game).updatedState
+                state = engine.runNext(
+                    buildAction(RollEndDie, { playerId: chancellorId }),
+                    state,
+                    game
+                ).updatedState
             }
         }
     }

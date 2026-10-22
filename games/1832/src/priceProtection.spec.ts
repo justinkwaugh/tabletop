@@ -290,6 +290,33 @@ describe('share price protection', () => {
         expect(play.state.machineState).toBe('LayingTrack')
     })
 
+    it('holds the operating turn’s earnings while presidents decide', () => {
+        const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3, (state) => {
+            setPlayerCash(state, 'alex', 300)
+            const companyId = state.trainPurchaseStep?.companyId
+            assertExists(companyId, 'The company is buying trains')
+            state.routeStep = { companyId, result: { companyId, routes: [], revenue: 0 } }
+            state.earningsDistribution = {
+                companyId,
+                choice: 'withhold',
+                revenue: 0,
+                retained: 0,
+                dividendPerShare: 0,
+                bonusPerShare: 0,
+                bankAdjustment: 0,
+                payments: []
+            }
+        })
+        fundCheapestTrain(play)
+        sellToFund(play, 'ACL', 1)
+        completeFunding(play)
+        expect(play.state.machineState).toBe('ProtectingPrice')
+        play.act('ProtectShares', { companyId: 'ACL' }, 'alex')
+        expect(play.state.priceProtection).toBeUndefined()
+        expect(play.state.earningsDistribution).toBeUndefined()
+        expect(play.state.operatingSet?.completedCompanyIds).toContain('CG')
+    })
+
     it('sells a seller’s later forced sales of one company at the unmoved price', () => {
         const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3, (state) => {
             giveOfferingShares(state, 'ACL', 'blair', 1)

@@ -14,7 +14,10 @@
             0,
             gameSession.gameState.numAllowedActions() - gameSession.gameState.actionsTaken
         )
-        const maxPassengers = Math.min(maxPassengersByActions, gameSession.gameState.passengers.length)
+        const maxPassengers = Math.min(
+            maxPassengersByActions,
+            gameSession.gameState.passengers.length
+        )
         return Array.from({ length: maxPassengers }, (_, index) => index + 1)
     })
 

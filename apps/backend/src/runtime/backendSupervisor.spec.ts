@@ -34,12 +34,23 @@ describe('supervised backend worker', () => {
         vi.unstubAllEnvs()
         await rm(directory, { recursive: true, force: true })
     })
-    async function start(http2Enabled = false, drainTimeoutMs = 2_000, fixture = 'backend.mjs') {
+    async function start({
+        http2Enabled = false,
+        drainTimeoutMs = 2_000,
+        fixture = 'backend.mjs',
+        titleLoadGraceMs
+    }: {
+        http2Enabled?: boolean
+        drainTimeoutMs?: number
+        fixture?: string
+        titleLoadGraceMs?: number
+    } = {}) {
         supervisor = new BackendSupervisor({
             entry: new URL(`./fixtures/${fixture}`, import.meta.url),
             startupTimeoutMs: 1_000,
             drainTimeoutMs,
-            retryDelayMs: 100
+            retryDelayMs: 100,
+            titleLoadGraceMs
         })
         await supervisor.start()
         gateway = createBackendGateway(http2Enabled, supervisor)
@@ -104,6 +115,49 @@ describe('supervised backend worker', () => {
         expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(200)
     })
 
+    it('logs how long a stalled worker took to answer its health check', async () => {
+        await start()
+        const child = await get()
+        const log = vi.spyOn(console, 'log')
+        process.kill(child.pid, 'SIGSTOP')
+        try {
+            expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(503)
+            await new Promise((resolve) => setTimeout(resolve, 300))
+        } finally {
+            process.kill(child.pid, 'SIGCONT')
+        }
+        await vi.waitFor(() => {
+            const stall = log.mock.calls
+                .map(([line]) => (typeof line === 'string' ? line : ''))
+                .find((line) => line.includes('"event":"worker_stall"'))
+            expect(stall && JSON.parse(stall)).toMatchObject({
+                severity: 'WARNING',
+                answered: true,
+                waitedMs: expect.any(Number)
+            })
+            expect(JSON.parse(stall ?? '{}').waitedMs).toBeGreaterThanOrEqual(1_300)
+        })
+        log.mockRestore()
+    })
+
+    it('stays ready while the worker is blocked by a title load it announced', async () => {
+        await start()
+        const load = fetch(origin + '/load-title?ms=1500')
+        await vi.waitFor(() => expect(supervisor.vouchingForTitleLoad()).toBe(true))
+        expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(200)
+        expect((await load).status).toBe(200)
+        await vi.waitFor(() => expect(supervisor.vouchingForTitleLoad()).toBe(false))
+    })
+
+    it('fails readiness once an announced title load outlasts the grace', async () => {
+        await start({ titleLoadGraceMs: 200 })
+        const load = fetch(origin + '/load-title?ms=2500')
+        await vi.waitFor(() => expect(supervisor.vouchingForTitleLoad()).toBe(true))
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(503)
+        expect((await load).status).toBe(200)
+    })
+
     it('bounds the recovery queue and releases canceled waiters', async () => {
         supervisor = new BackendSupervisor({
             entry: new URL('./fixtures/backend.mjs', import.meta.url)
@@ -123,7 +177,7 @@ describe('supervised backend worker', () => {
     })
 
     it('serves static assets without prematurely sending the response or crashing the child', async () => {
-        await start(false, 2_000, 'fastifyBackend.mjs')
+        await start({ fixture: 'fastifyBackend.mjs' })
         const old = await get()
         const response = await fetch(origin + '/assets/asset.js')
         expect(response.status).toBe(200)
@@ -166,7 +220,7 @@ describe('supervised backend worker', () => {
     it.each([false, true])(
         'finishes a disconnected mutation during shutdown (throws=%s)',
         async (fail) => {
-            await start(false, 2_000, 'fastifyBackend.mjs')
+            await start({ fixture: 'fastifyBackend.mjs' })
             const old = await get()
             const controller = new AbortController()
             const request = fetch(origin + `/mutation?fail=${fail ? 'yes' : ''}`, {
@@ -193,7 +247,7 @@ describe('supervised backend worker', () => {
     )
 
     it('waits for handler work after an early response before exiting', async () => {
-        await start(false, 2_000, 'fastifyBackend.mjs')
+        await start({ fixture: 'fastifyBackend.mjs' })
         const old = await get()
         await fetch(origin + '/mutation?early=yes', { method: 'POST' })
         await supervisor.close()
@@ -202,7 +256,7 @@ describe('supervised backend worker', () => {
     })
 
     it('still enforces the deadline on unfinished handler work', async () => {
-        await start(false, 100, 'fastifyBackend.mjs')
+        await start({ drainTimeoutMs: 100, fixture: 'fastifyBackend.mjs' })
         const old = await get()
         await fetch(origin + '/mutation?early=yes&ms=5000', { method: 'POST' })
         await supervisor.close()
@@ -260,7 +314,7 @@ describe('supervised backend worker', () => {
     })
 
     it('bounds draining for an open event stream', async () => {
-        await start(false, 150)
+        await start({ drainTimeoutMs: 150 })
         const response = await fetch(origin + '/stream')
         const reader = response.body?.getReader()
         expect((await reader?.read())?.done).toBe(false)
@@ -276,7 +330,7 @@ describe('supervised backend worker', () => {
     })
 
     it('forwards HTTP/2 bodies, headers, cookies and reuses the public session after recovery', async () => {
-        await start(true)
+        await start({ http2Enabled: true })
         const client = http2.connect(origin)
         try {
             const request = client.request({

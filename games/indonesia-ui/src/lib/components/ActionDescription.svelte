@@ -455,7 +455,10 @@
             current.shipCount += delivery.seaAreaIds.length
             current.amount +=
                 delivery.metadata?.shippingCost ??
-                delivery.metadata?.shippingPayments?.reduce((sum, payment) => sum + payment.amount, 0) ??
+                delivery.metadata?.shippingPayments?.reduce(
+                    (sum, payment) => sum + payment.amount,
+                    0
+                ) ??
                 0
             payoutsByOwnerPlayerId.set(ownerPlayerId, current)
         }
@@ -505,7 +508,8 @@
         const chooseAction = aggregatedChooseOperatingCompanyAction(action)
         const firstDelivery = deliveries[0]
 
-        let resolvedGood: Good | undefined = firstDelivery?.metadata?.good ?? chooseAction?.metadata?.good
+        let resolvedGood: Good | undefined =
+            firstDelivery?.metadata?.good ?? chooseAction?.metadata?.good
         if (!resolvedGood && firstDelivery) {
             const firstDeliveryPosition = gameSession.actions.findIndex(
                 (candidate) => candidate.id === firstDelivery.id
@@ -575,14 +579,18 @@
         }
 
         const currentCultivatedCount = Object.values(gameSession.gameState.board.areas).filter(
-            (area) => area.type === 'Cultivated' && 'companyId' in area && area.companyId === company.id
+            (area) =>
+                area.type === 'Cultivated' && 'companyId' in area && area.companyId === company.id
         ).length
 
         if (currentCultivatedCount === 0) {
             return null
         }
 
-        return Math.max(action.count, currentCultivatedCount - aggregatedExpandActions(action).length)
+        return Math.max(
+            action.count,
+            currentCultivatedCount - aggregatedExpandActions(action).length
+        )
     }
 
     function aggregatedSoldAllGoods(action: GameAction): boolean {
@@ -702,11 +710,13 @@
             return []
         }
 
-        return summarizeConsecutiveTurnOrderBids(gameSession.actions, action.index).map((entry) => ({
-            id: entry.id,
-            playerId: entry.playerId,
-            description: turnOrderBidDescription(entry.bidAction)
-        }))
+        return summarizeConsecutiveTurnOrderBids(gameSession.actions, action.index).map(
+            (entry) => ({
+                id: entry.id,
+                playerId: entry.playerId,
+                description: turnOrderBidDescription(entry.bidAction)
+            })
+        )
     }
 
     function turnOrderBidEntriesForAction(action: GameAction): Array<{
@@ -720,30 +730,29 @@
             return []
         }
 
-        if (
-            !(
-                (isAggregatedIndonesiaAction(action) &&
-                    action.aggregatedType === ActionType.PlaceTurnOrderBid) ||
-                isPlaceTurnOrderBid(action) ||
-                isSetTurnOrder(action)
-            )
-        ) {
+        if (!(
+            (isAggregatedIndonesiaAction(action) &&
+                action.aggregatedType === ActionType.PlaceTurnOrderBid) ||
+            isPlaceTurnOrderBid(action) ||
+            isSetTurnOrder(action)
+        )) {
             return []
         }
 
-        const summarizedEntries = summarizeConsecutiveTurnOrderBids(gameSession.actions, action.index).map(
-            (entry) => {
-                const bidDisplay = turnOrderBidDisplay(entry.bidAction)
+        const summarizedEntries = summarizeConsecutiveTurnOrderBids(
+            gameSession.actions,
+            action.index
+        ).map((entry) => {
+            const bidDisplay = turnOrderBidDisplay(entry.bidAction)
 
-                return {
-                    id: entry.id,
-                    playerId: entry.playerId,
-                    bid: entry.bidAction.amount,
-                    multiplier: bidDisplay?.multiplier ?? 1,
-                    total: bidDisplay?.total ?? entry.total
-                }
+            return {
+                id: entry.id,
+                playerId: entry.playerId,
+                bid: entry.bidAction.amount,
+                multiplier: bidDisplay?.multiplier ?? 1,
+                total: bidDisplay?.total ?? entry.total
             }
-        )
+        })
 
         const summarizedPlayerIds = new Set(summarizedEntries.map((entry) => entry.playerId))
         const remainingEntries = gameSession.gameState.turnManager.turnOrder
@@ -753,8 +762,9 @@
                 playerId,
                 bid: null,
                 multiplier:
-                    BID_RESEARCH_MULTIPLIERS[gameSession.gameState.getPlayerState(playerId).research.bid] ??
-                    1,
+                    BID_RESEARCH_MULTIPLIERS[
+                        gameSession.gameState.getPlayerState(playerId).research.bid
+                    ] ?? 1,
                 total: null
             }))
 
@@ -777,11 +787,20 @@
         }>
     } {
         if (typeof action.index !== 'number') {
-            return { resolved: false, winnerId: null, winningBid: null, mergeAction: null, entries: [] }
+            return {
+                resolved: false,
+                winnerId: null,
+                winningBid: null,
+                mergeAction: null,
+                entries: []
+            }
         }
 
         let lastActionPosition = -1
-        if (isAggregatedIndonesiaAction(action) && action.aggregatedType === ActionType.PlaceMergerBid) {
+        if (
+            isAggregatedIndonesiaAction(action) &&
+            action.aggregatedType === ActionType.PlaceMergerBid
+        ) {
             lastActionPosition = gameSession.actions.findLastIndex((candidate) => {
                 if (candidate.index !== action.index) {
                     return false
@@ -793,11 +812,19 @@
                 )
             })
         } else if (isMergeCompanies(action)) {
-            lastActionPosition = gameSession.actions.findLastIndex((candidate) => candidate.id === action.id)
+            lastActionPosition = gameSession.actions.findLastIndex(
+                (candidate) => candidate.id === action.id
+            )
         }
 
         if (lastActionPosition === -1) {
-            return { resolved: false, winnerId: null, winningBid: null, mergeAction: null, entries: [] }
+            return {
+                resolved: false,
+                winnerId: null,
+                winningBid: null,
+                mergeAction: null,
+                entries: []
+            }
         }
 
         type PlayerAuctionSummary = {
@@ -830,7 +857,10 @@
                 continue
             }
 
-            if ((!isPlaceMergerBid(candidate) && !isPassMergerBid(candidate)) || !candidate.playerId) {
+            if (
+                (!isPlaceMergerBid(candidate) && !isPassMergerBid(candidate)) ||
+                !candidate.playerId
+            ) {
                 break
             }
 
@@ -838,7 +868,10 @@
             if (existing) {
                 if (isPlaceMergerBid(candidate)) {
                     existing.everBid = true
-                    existing.highestBid = Math.max(existing.highestBid ?? candidate.amount, candidate.amount)
+                    existing.highestBid = Math.max(
+                        existing.highestBid ?? candidate.amount,
+                        candidate.amount
+                    )
                 }
                 existing.firstIndex = candidate.index ?? existing.firstIndex
                 continue
@@ -898,7 +931,9 @@
     const operationSummaryAlignClass = $derived(
         justify === 'center' ? 'items-center text-center' : 'items-start text-left'
     )
-    const operationSummaryCardAlignClass = $derived(justify === 'center' ? 'self-center' : 'self-start')
+    const operationSummaryCardAlignClass = $derived(
+        justify === 'center' ? 'self-center' : 'self-start'
+    )
 </script>
 
 <span class={`${containerClass} ${casingClass}`}>
@@ -906,8 +941,8 @@
         <span class="whitespace-nowrap"
             ><PlayerName playerId={action.playerId} additionalClasses="px-1.5" /><span
                 class="inline-block w-[2px]"
-            ></span
-        ></span>
+            ></span></span
+        >
     {/if}
     {#if isAggregatedIndonesiaAction(action)}
         {#if action.aggregatedType === ActionType.ChooseOperatingCompany}
@@ -921,11 +956,17 @@
             {@const noValidActions = operationSummaryHadNoValidActions(action)}
             {@const shippingCouldNotExpand = shippingOperationCouldNotExpand(action)}
             {@const shippingChoseNotToExpand = shippingOperationChoseNotToExpand(action)}
-            <span class={`inline-flex flex-col gap-1 text-left align-top ${operationSummaryAlignClass}`}>
+            <span
+                class={`inline-flex flex-col gap-1 text-left align-top ${operationSummaryAlignClass}`}
+            >
                 {#if chooseAction?.metadata?.companyType === CompanyType.Shipping}
                     <span>
                         {#if showActor && action.playerId}
-                            <PlayerName playerId={action.playerId} possessive={true} additionalClasses="px-1.5" />
+                            <PlayerName
+                                playerId={action.playerId}
+                                possessive={true}
+                                additionalClasses="px-1.5"
+                            />
                         {/if}
                         shipping company
                         {#if action.count > 0}
@@ -943,7 +984,11 @@
                 {:else if action.count === 0}
                     <span>
                         {#if showActor && action.playerId}
-                            <PlayerName playerId={action.playerId} possessive={true} additionalClasses="px-1.5" />
+                            <PlayerName
+                                playerId={action.playerId}
+                                possessive={true}
+                                additionalClasses="px-1.5"
+                            />
                         {/if}
                         {profitSummary.good ? `${goodLabels[profitSummary.good]} ` : ''}company
                         {#if operationInProgress}
@@ -953,8 +998,11 @@
                         {:else}
                             operated
                             {#if expansionSummary}
-                                and expanded into {expansionSummary.count} {expansionSummary.count === 1 ? 'area' : 'areas'}
-                                {expansionSummary.isFree ? 'for free' : `for ${expansionSummary.totalCost}`}
+                                and expanded into {expansionSummary.count}
+                                {expansionSummary.count === 1 ? 'area' : 'areas'}
+                                {expansionSummary.isFree
+                                    ? 'for free'
+                                    : `for ${expansionSummary.totalCost}`}
                             {:else if productionOperationSkippedExpansion(action)}
                                 but chose not to expand
                             {:else if productionOperationHadNoEffect(action)}
@@ -965,7 +1013,11 @@
                 {:else}
                     <span>
                         {#if showActor && action.playerId}
-                            <PlayerName playerId={action.playerId} possessive={true} additionalClasses="px-1.5" />
+                            <PlayerName
+                                playerId={action.playerId}
+                                possessive={true}
+                                additionalClasses="px-1.5"
+                            />
                         {/if}
                         {profitSummary.good ? `${goodLabels[profitSummary.good]} ` : ''}company
                         {#if aggregatedSoldAllGoods(action)}
@@ -975,8 +1027,11 @@
                         {/if}
                         {action.count === 1 ? ' good ' : ' goods '}for {profitSummary.profit ?? '?'} profit
                         {#if expansionSummary}
-                            and expanded into {expansionSummary.count} {expansionSummary.count === 1 ? 'area' : 'areas'}
-                            {expansionSummary.isFree ? 'for free' : `for ${expansionSummary.totalCost}`}
+                            and expanded into {expansionSummary.count}
+                            {expansionSummary.count === 1 ? 'area' : 'areas'}
+                            {expansionSummary.isFree
+                                ? 'for free'
+                                : `for ${expansionSummary.totalCost}`}
                         {:else if skippedExpansion || !operationInProgress}
                             but did not expand
                         {/if}
@@ -986,20 +1041,35 @@
                     <span
                         class={`mt-2.5 flex w-full max-w-[25rem] flex-col items-start gap-1 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${operationSummaryCardAlignClass}`}
                     >
-                        <span class="mt-1 mb-[0.1875rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Sale Details</span>
-                        <span class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
-                            <span class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3 justify-items-center">
+                        <span
+                            class="mt-1 mb-[0.1875rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]"
+                            >Sale Details</span
+                        >
+                        <span
+                            class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5"
+                        >
+                            <span
+                                class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3 justify-items-center"
+                            >
                                 <span class="flex items-center justify-center">
                                     {#if simpleGoodIconSrc(profitSummary.good)}
                                         <img
                                             src={simpleGoodIconSrc(profitSummary.good) ?? undefined}
-                                            alt={profitSummary.good ? goodLabels[profitSummary.good] : 'goods'}
+                                            alt={profitSummary.good
+                                                ? goodLabels[profitSummary.good]
+                                                : 'goods'}
                                             class="h-[16px] w-[16px] object-contain"
                                         />
                                     {/if}
                                 </span>
-                                <span class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Price</span>
-                                <span class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Income</span>
+                                <span
+                                    class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]"
+                                    >Price</span
+                                >
+                                <span
+                                    class="text-center text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]"
+                                    >Income</span
+                                >
                             </span>
                             <span class="flex items-center justify-center">
                                 <img
@@ -1008,9 +1078,16 @@
                                     class="h-[16px] w-[16px] object-contain"
                                 />
                             </span>
-                            <span class="justify-self-end text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Profit</span>
-                            <span class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3">
-                                <span class="text-center tabular-nums text-[#5e3f27]">{action.count}</span>
+                            <span
+                                class="justify-self-end text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]"
+                                >Profit</span
+                            >
+                            <span
+                                class="grid min-w-0 grid-cols-[40px_40px_56px] items-center gap-x-3"
+                            >
+                                <span class="text-center tabular-nums text-[#5e3f27]"
+                                    >{action.count}</span
+                                >
                                 <span class="text-center tabular-nums text-[#5e3f27]">
                                     {profitSummary.unitPrice ?? '?'}
                                 </span>
@@ -1026,8 +1103,13 @@
                             </span>
                         </span>
                         {#if shippingPayouts.length > 0}
-                            <span class="mt-3 mb-[-0.125rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">Shipping Details</span>
-                            <span class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5">
+                            <span
+                                class="mt-3 mb-[-0.125rem] text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]"
+                                >Shipping Details</span
+                            >
+                            <span
+                                class="grid w-full grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-x-3 gap-y-0.5"
+                            >
                                 <span></span>
                                 <span class="flex items-center justify-center">
                                     <img
@@ -1036,13 +1118,20 @@
                                         class="h-[16px] w-[16px] object-contain"
                                     />
                                 </span>
-                                <span class="justify-self-end text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Cost</span>
+                                <span
+                                    class="justify-self-end text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]"
+                                    >Cost</span
+                                >
                                 {#each shippingPayouts as payout (payout.ownerPlayerId)}
                                     <span class="min-w-0 flex items-center">
                                         <PlayerName playerId={payout.ownerPlayerId} />
                                     </span>
-                                    <span class="text-center tabular-nums text-[#5e3f27]">{payout.shipCount}</span>
-                                    <span class="text-right tabular-nums text-[#5e3f27]">{payout.amount}</span>
+                                    <span class="text-center tabular-nums text-[#5e3f27]"
+                                        >{payout.shipCount}</span
+                                    >
+                                    <span class="text-right tabular-nums text-[#5e3f27]"
+                                        >{payout.amount}</span
+                                    >
                                 {/each}
                                 <span class="col-span-3 mt-0.5 h-px bg-[#ad9c80]/40"></span>
                                 <span></span>
@@ -1085,12 +1174,19 @@
                 {#if auctionSummary.resolved && auctionSummary.winnerId}
                     <span class={`inline-flex flex-col gap-1 ${summaryAlignClass}`}>
                         <span>
-                            <PlayerName playerId={auctionSummary.winnerId} additionalClasses="pr-1" />
+                            <PlayerName
+                                playerId={auctionSummary.winnerId}
+                                additionalClasses="pr-1"
+                            />
                             won with a bid of {auctionSummary.winningBid ?? '?'}
                         </span>
                         {#if mergeAction && isMergeCompanies(mergeAction) && mergeAction.metadata?.ownerPayments}
-                            <span class={`mt-1 inline-grid w-fit grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryCardAlignClass} ${summaryCardContentAlignClass}`}>
-                                <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">
+                            <span
+                                class={`mt-1 inline-grid w-fit grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryCardAlignClass} ${summaryCardContentAlignClass}`}
+                            >
+                                <span
+                                    class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]"
+                                >
                                     Paid To
                                 </span>
                                 <span class="flex items-center justify-center">
@@ -1102,7 +1198,10 @@
                                         />
                                     {/if}
                                 </span>
-                                <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Amount</span>
+                                <span
+                                    class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]"
+                                    >Amount</span
+                                >
                                 {#each mergeAction.metadata.ownerPayments as payout, i (i)}
                                     <span class="flex items-center">
                                         <PlayerName playerId={payout.ownerId} />
@@ -1110,7 +1209,9 @@
                                     <span class="text-center tabular-nums text-[#5e3f27]">
                                         {payout.unitCount}
                                     </span>
-                                    <span class="text-right tabular-nums text-[#5e3f27]">{payout.payout}</span>
+                                    <span class="text-right tabular-nums text-[#5e3f27]"
+                                        >{payout.payout}</span
+                                    >
                                 {/each}
                             </span>
                         {/if}
@@ -1162,15 +1263,15 @@
                         <span class="bid-value-cell">
                             <span class="bid-value-text">
                                 <span class="bid-eq-number">
-                                {entry.bid ?? ''}
+                                    {entry.bid ?? ''}
                                 </span>
                                 <span class="bid-eq-token">x</span>
                                 <span class="bid-eq-number">
-                                {entry.multiplier}
+                                    {entry.multiplier}
                                 </span>
                                 <span class="bid-eq-token">=</span>
                                 <span class="bid-eq-total">
-                                {entry.total ?? ''}
+                                    {entry.total ?? ''}
                                 </span>
                             </span>
                         </span>
@@ -1238,7 +1339,9 @@
         <span class={`inline-flex flex-col gap-0.5 ${summaryAlignClass}`}>
             <span>New turn order</span>
             {#if action.metadata?.newOrder?.length}
-                <span class={`mt-1 inline-flex flex-col gap-0.5 leading-tight ${summaryAlignClass}`}>
+                <span
+                    class={`mt-1 inline-flex flex-col gap-0.5 leading-tight ${summaryAlignClass}`}
+                >
                     {#each action.metadata.newOrder as playerId (playerId)}
                         <span><PlayerName {playerId} /></span>
                     {/each}
@@ -1276,14 +1379,18 @@
         <span class={`inline-flex flex-col gap-3 ${summaryAlignClass}`}>
             <span>
                 {#if action.metadata?.auctionResult.winnerId}
-                    <PlayerName playerId={action.metadata.auctionResult.winnerId} /> won the {mergeProposalLabel(action)} merger
+                    <PlayerName playerId={action.metadata.auctionResult.winnerId} /> won the {mergeProposalLabel(
+                        action
+                    )} merger
                 {:else}
                     <span>Unknown player won the {mergeProposalLabel(action)} merger</span>
                 {/if}
                 with a bid of {action.metadata?.auctionResult.highBid ?? '?'}
             </span>
             {#if action.metadata?.ownerPayments}
-                <span class={`inline-grid w-fit grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryCardAlignClass} ${summaryCardContentAlignClass}`}>
+                <span
+                    class={`inline-grid w-fit grid-cols-[max-content_24px_max-content] items-center gap-x-3 gap-y-0.5 rounded-xl border border-[#ad9c80]/40 bg-[#ede2dc] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryCardAlignClass} ${summaryCardContentAlignClass}`}
+                >
                     <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">
                         Paid To
                     </span>
@@ -1296,18 +1403,24 @@
                             />
                         {/if}
                     </span>
-                    <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Amount</span>
+                    <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]"
+                        >Amount</span
+                    >
                     {#each action.metadata.ownerPayments as payout, i (i)}
                         <span class="flex items-center">
                             <PlayerName playerId={payout.ownerId} />
                         </span>
-                        <span class="text-center tabular-nums text-[#5e3f27]">{payout.unitCount}</span>
+                        <span class="text-center tabular-nums text-[#5e3f27]"
+                            >{payout.unitCount}</span
+                        >
                         <span class="text-right tabular-nums text-[#5e3f27]">{payout.payout}</span>
                     {/each}
                 </span>
             {/if}
             {#if auctionSummary.entries.length > 0}
-                <span class={`inline-flex flex-col gap-0.5 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryCardContentAlignClass} ${summaryCardAlignClass}`}>
+                <span
+                    class={`inline-flex flex-col gap-0.5 rounded-xl border border-[#ad9c80]/35 bg-[#f4ede8] px-3 py-2 text-[0.88em] leading-tight text-[#5e3f27] ${summaryCardContentAlignClass} ${summaryCardAlignClass}`}
+                >
                     <span class="mb-1 text-[0.76em] uppercase tracking-[0.08em] text-[#7a5d3f]">
                         Bidding Summary
                     </span>
@@ -1345,7 +1458,8 @@
             for <PlayerName playerId={action.targetPlayerId} />
         {/if}
     {:else if isDeliverGood(action)}
-        delivered {action.metadata?.good ? goodLabels[action.metadata.good] : 'goods'} using {action.seaAreaIds.length}
+        delivered {action.metadata?.good ? goodLabels[action.metadata.good] : 'goods'} using {action
+            .seaAreaIds.length}
         {action.seaAreaIds.length === 1 ? 'ship' : 'ships'}
     {:else if isChooseOperatingCompany(action)}
         operated a
@@ -1363,7 +1477,8 @@
             expanded for free
         {/if}
     {:else if isGrowCity(action)}
-        The city in {cityRegionName ?? 'unknown region'} grew to size {action.metadata?.newSize ?? '?'}
+        The city in {cityRegionName ?? 'unknown region'} grew to size {action.metadata?.newSize ??
+            '?'}
     {:else if isRemoveCompanyDeed(action)}
         Removed {removedDeedLabel(action)} deed from {removedDeedRegionName(action)}
     {:else if action.type === ActionType.RemoveCompanyDeed}

@@ -159,7 +159,8 @@ export function reasonFlipInvalid(
     if (flips > offered) return 'one secret at most is flipped here'
     const faceup = state.getPlayerState(playerId).secrets - secretsPaid
     if (faceup < 1) return 'you have no faceup secret to flip'
-    if (faceup < flips) return `flipping ${flips} secrets takes ${flips} faceup secrets: you have ${faceup}`
+    if (faceup < flips)
+        return `flipping ${flips} secrets takes ${flips} faceup secrets: you have ${faceup}`
     // Spell Breaker — its Q&A names the secrets flipped to travel or to target, so it bars every flip.
     return reasonPersistentForbidsSecretCost(state, playerId, parties)
 }
@@ -241,7 +242,11 @@ export function reasonSitesForbidTargets(
 }
 
 /** R-11.12, R-11.13 — `count` faceup secrets, each its own (R-11.13-H2). */
-export function flipSecretFacedown(state: HydratedOathGameState, playerId: string, count = 1): void {
+export function flipSecretFacedown(
+    state: HydratedOathGameState,
+    playerId: string,
+    count = 1
+): void {
     const player = state.getPlayerState(playerId)
     player.secrets -= count
     player.secretsFacedown += count

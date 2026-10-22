@@ -94,7 +94,12 @@ function setupLegalRiceMerger(state: ReturnType<typeof createTestState>): {
         (deed) => deed.type === CompanyType.Production && deed.good === Good.Rice
     )
     const [deedA, deedB] = riceDeeds
-    if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+    if (
+        !deedA ||
+        !deedB ||
+        deedA.type !== CompanyType.Production ||
+        deedB.type !== CompanyType.Production
+    ) {
         return null
     }
 

@@ -570,7 +570,7 @@ test('with approach symbols off, the marks an arrow covers are shown beside it u
     await expect(tags).toHaveCount(0)
 })
 
-test('a unit chosen on its own is offered to the other commanders standing with it, beside the command', async ({
+test('a unit chosen on its own may be attached to the other commanders standing with it, as a choice of command', async ({
     page
 }) => {
     await createGame(page)
@@ -581,16 +581,22 @@ test('a unit chosen on its own is offered to the other commanders standing with 
         if (!murat?.position) throw new Error('Expected Murat on the map')
         moveCorps(state, 'vandamme', murat.position)
     })
+    const command = page.getByRole('group', { name: 'Command' })
+    const attachChoice = command.getByRole('button', { name: 'Attach', exact: true })
     const attach = page.getByRole('button', { name: 'Attach to Vandamme' })
     const strip = page.getByRole('group', { name: 'Murat’s corps' })
     await pickUp(page, 'murat')
     await expect(strip).toBeVisible()
-    await expect(page.getByRole('button', { name: /^Attach to/ })).toHaveCount(0)
+    await expect(attachChoice).toHaveCount(0)
     await strip.getByRole('button', { name: 'Include this unit in the command' }).first().click()
-    await expect(attach).toHaveCount(1)
+    await expect(attachChoice).toHaveCount(1)
+    await expect(attach).toHaveCount(0)
     await strip.getByRole('button', { name: 'Include this unit in the command' }).nth(1).click()
-    await expect(page.getByRole('button', { name: /^Attach to/ })).toHaveCount(0)
+    await expect(attachChoice).toHaveCount(0)
     await strip.getByRole('button', { name: 'Include this unit in the command' }).nth(1).click()
+    await attachChoice.click()
+    await expect(attachChoice).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('.nt-target-locale')).toHaveCount(0)
     await attach.click()
     await expect(page.locator('[data-commander="vandamme"] > g')).toHaveCount(
         FRENCH_ARMY.vandamme.length + 1

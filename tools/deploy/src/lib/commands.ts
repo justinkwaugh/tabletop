@@ -680,13 +680,22 @@ const envVarArgs = (envVars?: Record<string, string>) =>
           ]
         : []
 
-const backendHealthProbeArgs = [
+const healthCheck = 'httpGet.path=/__health/ready,httpGet.port=8081,timeoutSeconds=2'
+
+// Cloud Run answers an unready backend by starting another instance, a 20-30 s cold start for
+// whoever is routed to it, so readiness waits out stalls of about 15 s; the supervisor logs each
+// stall a probe meets as `worker_stall`. Tasks runs one instance, so readiness cannot redirect its
+// traffic, and every probe bills 100 ms on an otherwise idle instance.
+const readinessPeriodSeconds = (config: DeployConfig, service: string | undefined) =>
+    service === (config.backend?.tasksService ?? 'tasks') ? 30 : 5
+
+const backendHealthProbeArgs = (config: DeployConfig, service: string | undefined) => [
     '--startup-probe',
-    'httpGet.path=/__health/ready,httpGet.port=8081,periodSeconds=2,timeoutSeconds=2,failureThreshold=120',
+    `${healthCheck},periodSeconds=2,failureThreshold=120`,
     '--readiness-probe',
-    'httpGet.path=/__health/ready,httpGet.port=8081,periodSeconds=2,timeoutSeconds=2,failureThreshold=1,successThreshold=1',
+    `${healthCheck},periodSeconds=${readinessPeriodSeconds(config, service)},failureThreshold=3,successThreshold=1`,
     '--liveness-probe',
-    'httpGet.path=/__health/ready,httpGet.port=8081,periodSeconds=10,timeoutSeconds=2,failureThreshold=12',
+    `${healthCheck},periodSeconds=10,failureThreshold=12`,
     '--no-session-affinity'
 ]
 
@@ -701,7 +710,8 @@ export const deployBackendCommand = (
         const command = backend.deployCommand[0]
         const args = backend.deployCommand.slice(1)
         const serviceOverride = options?.service
-        if (command === 'gcloud') args.push(...backendHealthProbeArgs)
+        if (command === 'gcloud')
+            args.push(...backendHealthProbeArgs(config, serviceOverride ?? backend.service))
 
         if (
             !allowTraffic &&
@@ -753,7 +763,7 @@ export const deployBackendCommand = (
             '--project',
             backend.project,
             '--quiet',
-            ...backendHealthProbeArgs,
+            ...backendHealthProbeArgs(config, service),
             ...envVarArgs(options?.envVars),
             ...(options?.revisionSuffix ? ['--revision-suffix', options.revisionSuffix] : [])
         ]
@@ -782,7 +792,7 @@ export const deployBackendCommand = (
         backend.region,
         '--project',
         backend.project,
-        ...backendHealthProbeArgs
+        ...backendHealthProbeArgs(config, service)
     ]
 
     if (!allowTraffic) {

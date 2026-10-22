@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, Color, assert, assertExists, latestPlayerUndoTarget, type GameAction, type Visibility } from '@tabletop/common'
+import {
+    ActionSource,
+    Color,
+    assert,
+    assertExists,
+    latestPlayerUndoTarget,
+    type GameAction,
+    type Visibility
+} from '@tabletop/common'
 import { AnswerQuestion, HydratedAnswerQuestion } from '../actions/answerQuestion.js'
 import { UseActionPower } from '../actions/useActionPower.js'
 import { ActionType } from '../definition/actions.js'
@@ -58,7 +66,13 @@ interface Scene {
 }
 
 /** Dana rules Gambling Hall at c1 and is on turn; Ann (the Chancellor) holds a facedown adviser, so no view holds everything. */
-function table({ revision = atRevision, seed = 1, advisers = [], favor = 4, banks = BANKS }: Scene = {}) {
+function table({
+    revision = atRevision,
+    seed = 1,
+    advisers = [],
+    favor = 4,
+    banks = BANKS
+}: Scene = {}) {
     const s = testState(
         [
             testPlayer({
@@ -72,7 +86,14 @@ function table({ revision = atRevision, seed = 1, advisers = [], favor = 4, bank
                 warbandsInPersonalBank: { [DANA]: 5 },
                 advisers: advisers.map((cardId) => ({ cardId, faceUp: true }))
             }),
-            testPlayer({ playerId: RHYS, color: Color.Blue, siteId: 'c1', favor: 2, secrets: 2, warbandsOnBoard: { [RHYS]: 2 } }),
+            testPlayer({
+                playerId: RHYS,
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 2,
+                secrets: 2,
+                warbandsOnBoard: { [RHYS]: 2 }
+            }),
             testPlayer({
                 playerId: ANN,
                 color: Color.Purple,
@@ -115,9 +136,15 @@ const shieldsOf = (faces: RolledDefenseFace[]) => faces.reduce((sum, face) => su
 const doubled = (faces: RolledDefenseFace[]) => faces.some((face) => face.doubling)
 /** Shield, two shields, blank and a doubling, in any order: (1 + 2) × 2 = 6. */
 const rollsSix = (faces: RolledDefenseFace[]) =>
-    doubled(faces) && faces.filter((face) => face.doubling).length === 1 && shieldsOf(faces) === 3 && faces.some((face) => face.shields === 2)
+    doubled(faces) &&
+    faces.filter((face) => face.doubling).length === 1 &&
+    shieldsOf(faces) === 3 &&
+    faces.some((face) => face.shields === 2)
 
-const bankAnswer = (suit: Suit): QuestionAnswer => ({ kind: PowerQuestionKind.GamblingHallBank, suit })
+const bankAnswer = (suit: Suit): QuestionAnswer => ({
+    kind: PowerQuestionKind.GamblingHallBank,
+    suit
+})
 const keep: QuestionAnswer = { kind: PowerQuestionKind.RerollDice, reroll: false }
 const reroll: QuestionAnswer = { kind: PowerQuestionKind.RerollDice, reroll: true }
 
@@ -144,13 +171,22 @@ const AFTER_COST = 2
 describe('R-7.1.3-H2 — Gambling Hall rolls first, then Dana chooses the bank', () => {
     it('the use names no bank: one naming a bank is refused, and the roll asks the question', () => {
         const { s, faces, shields } = tableRolling(rollsSix)
-        expect(() => actionPowerUse(DANA, GAMBLING_HALL, [bank(Suit.Order)]).apply(table())).toThrow(/takes no choices/)
+        expect(() =>
+            actionPowerUse(DANA, GAMBLING_HALL, [bank(Suit.Order)]).apply(table())
+        ).toThrow(/takes no choices/)
         const action = use(s)
         expect(action.revealsInfo).toBe(true)
         expect(action.metadata?.summary).toBe('rolled 6 shields')
         expect(shields).toBe(6)
         expect(queue(s)).toEqual([
-            { kind: PowerQuestionKind.GamblingHallBank, cardId: GAMBLING_HALL, askedPlayerId: DANA, shields: 6, faces, banks: LISTED }
+            {
+                kind: PowerQuestionKind.GamblingHallBank,
+                cardId: GAMBLING_HALL,
+                askedPlayerId: DANA,
+                shields: 6,
+                faces,
+                banks: LISTED
+            }
         ])
         expect(favorOf(s)).toBe(AFTER_COST)
         expect(s.favorBank).toMatchObject(BANKS)
@@ -161,7 +197,11 @@ describe('R-7.1.3-H2 — Gambling Hall rolls first, then Dana chooses the bank',
         use(s)
         const doublings = faces.filter((face) => face.doubling).length
         expect(shields).toBe(shieldsOf(faces) * 2 ** doublings)
-        expect(queue(s)[0]).toMatchObject({ kind: PowerQuestionKind.GamblingHallBank, shields, faces })
+        expect(queue(s)[0]).toMatchObject({
+            kind: PowerQuestionKind.GamblingHallBank,
+            shields,
+            faces
+        })
     })
 
     it('each listed bank gives min(6, what it holds): +3, +2, +4, +1, +3 (Law 9.3)', () => {
@@ -172,7 +212,11 @@ describe('R-7.1.3-H2 — Gambling Hall rolls first, then Dana chooses the bank',
             const expected = Math.min(6, BANKS[suit])
             expect(favorOf(s), suit).toBe(AFTER_COST + expected)
             expect(s.favorBank[suit], suit).toBe(BANKS[suit] - expected)
-            expect(gained.metadata, suit).toMatchObject({ kind: PowerQuestionKind.GamblingHallBank, cardId: GAMBLING_HALL, summary: `gained ${expected} favor from the ${suit} bank` })
+            expect(gained.metadata, suit).toMatchObject({
+                kind: PowerQuestionKind.GamblingHallBank,
+                cardId: GAMBLING_HALL,
+                summary: `gained ${expected} favor from the ${suit} bank`
+            })
             expect(gained.revealsInfo, suit).toBe(false)
             expect(queue(s), suit).toEqual([])
             expect(s.machineState, suit).toBe(MachineState.ActPhase)
@@ -182,8 +226,12 @@ describe('R-7.1.3-H2 — Gambling Hall rolls first, then Dana chooses the bank',
     it('a bank not listed (the empty Beast bank) is refused, and only Dana answers', () => {
         const { s } = tableRolling(rollsSix)
         use(s)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, DANA, bankAnswer(Suit.Beast))).toMatch(/beast/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, RHYS, bankAnswer(Suit.Order))).toMatch(/dana/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, DANA, bankAnswer(Suit.Beast))).toMatch(
+            /beast/
+        )
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, RHYS, bankAnswer(Suit.Order))).toMatch(
+            /dana/
+        )
     })
 
     it('no shields rolled: nothing gained and nothing asked', () => {
@@ -198,7 +246,9 @@ describe('R-7.1.3-H2 — Gambling Hall rolls first, then Dana chooses the bank',
     it('no bank holds favor: nothing gained and nothing asked', () => {
         const { s, shields } = tableRolling((f) => defenseShieldsFromFaces(f) > 0, { banks: {} })
         const action = use(s)
-        expect(action.metadata?.summary).toBe(`rolled ${shields} shield${shields === 1 ? '' : 's'}; gained nothing`)
+        expect(action.metadata?.summary).toBe(
+            `rolled ${shields} shield${shields === 1 ? '' : 's'}; gained nothing`
+        )
         expect(queue(s)).toEqual([])
         expect(favorOf(s)).toBe(AFTER_COST)
     })
@@ -206,7 +256,9 @@ describe('R-7.1.3-H2 — Gambling Hall rolls first, then Dana chooses the bank',
     it('one bank holds favor: taken with no question, in the History’s words', () => {
         const { s } = tableRolling(rollsSix, { banks: { [Suit.Order]: 4 } })
         const action = use(s)
-        expect(action.metadata?.summary).toBe('rolled 6 shields; gained 4 favor from the order bank')
+        expect(action.metadata?.summary).toBe(
+            'rolled 6 shields; gained 4 favor from the order bank'
+        )
         expect(queue(s)).toEqual([])
         expect(favorOf(s)).toBe(AFTER_COST + 4)
         expect(s.favorBank[Suit.Order]).toBe(0)
@@ -231,7 +283,14 @@ describe('R-7.1.3-H2 — Jinx comes first, then the bank', () => {
         expect(kept.metadata?.summary).toBe('kept the roll; rolled 6 shields')
         expect(kept.revealsInfo).toBe(false)
         expect(queue(s)).toEqual([
-            { kind: PowerQuestionKind.GamblingHallBank, cardId: GAMBLING_HALL, askedPlayerId: DANA, shields: 6, faces, banks: LISTED }
+            {
+                kind: PowerQuestionKind.GamblingHallBank,
+                cardId: GAMBLING_HALL,
+                askedPlayerId: DANA,
+                shields: 6,
+                faces,
+                banks: LISTED
+            }
         ])
         answered(s, bankAnswer(Suit.Order))
         expect(favorOf(s)).toBe(AFTER_COST + 4)
@@ -246,12 +305,21 @@ describe('R-7.1.3-H2 — Jinx comes first, then the bank', () => {
         expect(rerolled.revealsInfo).toBe(true)
         expect(s.tokensOn(JINX).secrets).toBe(1)
         if (total === 0) {
-            expect(rerolled.metadata?.summary).toBe('Jinx: rerolled — rolled 0 shields; gained nothing')
+            expect(rerolled.metadata?.summary).toBe(
+                'Jinx: rerolled — rolled 0 shields; gained nothing'
+            )
             expect(queue(s)).toEqual([])
             return
         }
         expect(queue(s)).toEqual([
-            { kind: PowerQuestionKind.GamblingHallBank, cardId: GAMBLING_HALL, askedPlayerId: DANA, shields: total, faces: rerolledFaces, banks: LISTED }
+            {
+                kind: PowerQuestionKind.GamblingHallBank,
+                cardId: GAMBLING_HALL,
+                askedPlayerId: DANA,
+                shields: total,
+                faces: rerolledFaces,
+                banks: LISTED
+            }
         ])
     })
 
@@ -264,7 +332,11 @@ describe('R-7.1.3-H2 — Jinx comes first, then the bank', () => {
             const total = defenseShieldsFromFaces(second)
             if (first === total || total === 0) continue
             answered(s, reroll)
-            expect(queue(s)[0]).toMatchObject({ kind: PowerQuestionKind.GamblingHallBank, shields: total, faces: second })
+            expect(queue(s)[0]).toMatchObject({
+                kind: PowerQuestionKind.GamblingHallBank,
+                shields: total,
+                faces: second
+            })
             answered(s, bankAnswer(Suit.Order))
             expect(favorOf(s)).toBe(AFTER_COST + Math.min(total, 4))
             return
@@ -278,7 +350,14 @@ describe('R-7.1.3-H2 — Jinx comes first, then the bank', () => {
         const action = use(s)
         expect(action.metadata?.summary).toBe('rolled 6 shields')
         expect(queue(s)).toEqual([
-            { kind: PowerQuestionKind.GamblingHallBank, cardId: GAMBLING_HALL, askedPlayerId: DANA, shields: 6, faces, banks: LISTED }
+            {
+                kind: PowerQuestionKind.GamblingHallBank,
+                cardId: GAMBLING_HALL,
+                askedPlayerId: DANA,
+                shields: 6,
+                faces,
+                banks: LISTED
+            }
         ])
     })
 })
@@ -308,7 +387,10 @@ describe('R-7.1.3-H2 — the bank with other cards', () => {
 describe('R-7.1.3-H2 — views, Undo and replay', () => {
     const view = (playerId: string): Visibility.Perspective => ({ kind: 'player', playerId })
     const ownView = (s: HydratedOathGameState, playerId: string) =>
-        OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, view(playerId))), view(playerId))
+        OathVisibility.state.guardForExecution(
+            new HydratedOathGameState(served(s, view(playerId))),
+            view(playerId)
+        )
 
     it('Dana answers on their own projected view, as the host does; Rhys sees the same question and cannot answer it', () => {
         const { s } = tableRolling(rollsSix)
@@ -317,8 +399,14 @@ describe('R-7.1.3-H2 — views, Undo and replay', () => {
         const own = ownView(s, DANA)
         expect(queue(own)).toEqual(queue(s))
         expect(HydratedAnswerQuestion.canAnswer(own, DANA)).toBe(true)
-        for (const suit of LISTED) expect(HydratedAnswerQuestion.reasonCannotAnswer(own, DANA, bankAnswer(suit)), suit).toBeUndefined()
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(own, DANA, bankAnswer(Suit.Beast))).toMatch(/beast/)
+        for (const suit of LISTED)
+            expect(
+                HydratedAnswerQuestion.reasonCannotAnswer(own, DANA, bankAnswer(suit)),
+                suit
+            ).toBeUndefined()
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(own, DANA, bankAnswer(Suit.Beast))
+        ).toMatch(/beast/)
         const rhys = ownView(s, RHYS)
         expect(queue(rhys)).toEqual(queue(s))
         expect(HydratedAnswerQuestion.canAnswer(rhys, RHYS)).toBe(false)
@@ -328,19 +416,33 @@ describe('R-7.1.3-H2 — views, Undo and replay', () => {
     const game = testGame([DANA, RHYS, ANN])
     let seq = 0
     function run(state: OathProjectedState, fields: Fields) {
-        const action: GameAction = { id: `g-${(seq += 1)}`, gameId: 'game-1', source: ActionSource.User, index: state.actionCount, ...fields }
+        const action: GameAction = {
+            id: `g-${(seq += 1)}`,
+            gameId: 'game-1',
+            source: ActionSource.User,
+            index: state.actionCount,
+            ...fields
+        }
         return engine.run(action, state, game)
     }
-    const useBody = { playerId: DANA, cardId: GAMBLING_HALL, powerIndex: powerIndexOf(GAMBLING_HALL, PowerTiming.Action) }
+    const useBody = {
+        playerId: DANA,
+        cardId: GAMBLING_HALL,
+        powerIndex: powerIndexOf(GAMBLING_HALL, PowerTiming.Action)
+    }
     const answerBody = (answer: QuestionAnswer) => ({ playerId: DANA, answer })
     const useFields: Fields = { type: ActionType.UseActionPower, ...useBody }
-    const answerFields = (answer: QuestionAnswer): Fields => ({ type: ActionType.AnswerQuestion, ...answerBody(answer) })
+    const answerFields = (answer: QuestionAnswer): Fields => ({
+        type: ActionType.AnswerQuestion,
+        ...answerBody(answer)
+    })
 
     function undone(state: OathProjectedState, history: GameAction[]) {
         const target = latestPlayerUndoTarget(history, DANA)
         assertExists(target, 'Undo is offered to Dana')
         let back = state
-        for (const action of history.slice(history.indexOf(target)).toReversed()) back = engine.undoProcessedAction({ state: back, action })
+        for (const action of history.slice(history.indexOf(target)).toReversed())
+            back = engine.undoProcessedAction({ state: back, action })
         return { target, back }
     }
 
@@ -371,19 +473,42 @@ describe('R-7.1.3-H2 — views, Undo and replay', () => {
         const { s } = tableRolling(rollsSix, { advisers: [JINX] })
         const used = run(s.dehydrate(), useFields)
         const rerolled = run(used.updatedState, answerFields(reroll))
-        expect(latestPlayerUndoTarget([...used.processedActions, ...rerolled.processedActions], DANA)).toBeUndefined()
+        expect(
+            latestPlayerUndoTarget([...used.processedActions, ...rerolled.processedActions], DANA)
+        ).toBeUndefined()
     })
 
     it('the use, the Jinx answer and the bank answer replay exactly', () => {
         const { s } = tableRolling(rollsSix, { advisers: [JINX] })
         const start = s.dehydrate()
-        const used = engine.runNext(buildAction(UseActionPower, useBody), structuredClone(start), game)
-        const kept = engine.runNext(buildAction(AnswerQuestion, answerBody(keep)), used.updatedState, game)
-        const gained = engine.runNext(buildAction(AnswerQuestion, answerBody(bankAnswer(Suit.Arcane))), kept.updatedState, game)
+        const used = engine.runNext(
+            buildAction(UseActionPower, useBody),
+            structuredClone(start),
+            game
+        )
+        const kept = engine.runNext(
+            buildAction(AnswerQuestion, answerBody(keep)),
+            used.updatedState,
+            game
+        )
+        const gained = engine.runNext(
+            buildAction(AnswerQuestion, answerBody(bankAnswer(Suit.Arcane))),
+            kept.updatedState,
+            game
+        )
         expect(gained.updatedState.machineState).toBe(MachineState.ActPhase)
         let replayed = structuredClone(start)
-        for (const action of [...used.processedActions, ...kept.processedActions, ...gained.processedActions]) {
-            replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        for (const action of [
+            ...used.processedActions,
+            ...kept.processedActions,
+            ...gained.processedActions
+        ]) {
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         }
         expect(replayed).toEqual(gained.updatedState)
     })
@@ -392,10 +517,14 @@ describe('R-7.1.3-H2 — views, Undo and replay', () => {
 describe('R-X.4 — before revision 21 the bank is named at the use, as recorded', () => {
     it('the named bank pays at once; a use naming none is refused', () => {
         const { s, shields } = tableRolling(rollsSix, { revision: before })
-        expect(() => actionPowerUse(DANA, GAMBLING_HALL).apply(table({ revision: before }))).toThrow(/no choice was made for a favor bank/)
+        expect(() =>
+            actionPowerUse(DANA, GAMBLING_HALL).apply(table({ revision: before }))
+        ).toThrow(/no choice was made for a favor bank/)
         const action = actionPowerUse(DANA, GAMBLING_HALL, [bank(Suit.Order)])
         action.apply(s)
-        expect(action.metadata?.summary).toBe(`rolled ${shields} shields and took 4 favor from the order bank`)
+        expect(action.metadata?.summary).toBe(
+            `rolled ${shields} shields and took 4 favor from the order bank`
+        )
         expect(queue(s)).toEqual([])
         expect(favorOf(s)).toBe(AFTER_COST + 4)
     })
@@ -405,9 +534,15 @@ describe('R-X.4 — before revision 21 the bank is named at the use, as recorded
         actionPowerUse(DANA, GAMBLING_HALL, [bank(Suit.Order)]).apply(s)
         const question = queue(s)[0]
         assert(question?.kind === PowerQuestionKind.RerollDice, 'Jinx is asked')
-        expect(question.roll).toEqual({ kind: RerolledRollKind.GamblingHall, bank: Suit.Order, shields: 6 })
+        expect(question.roll).toEqual({
+            kind: RerolledRollKind.GamblingHall,
+            bank: Suit.Order,
+            shields: 6
+        })
         const kept = answered(s, keep)
-        expect(kept.metadata?.summary).toBe('kept the roll; rolled 6 shields and took 4 favor from the order bank')
+        expect(kept.metadata?.summary).toBe(
+            'kept the roll; rolled 6 shields and took 4 favor from the order bank'
+        )
         expect(queue(s)).toEqual([])
     })
 })

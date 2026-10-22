@@ -62,12 +62,10 @@ const Stations: MapViewDefinition['stations'] = {
     NS: { label: 'NS', color: '#5a5a5a', imageUrl: NSLogo }
 }
 
-// A placed Port, Cotton or Key West token outlines its hex and badges it with the placing
-// company's token and the token's own icon.
 const PlacedTokens = {
-    port: { name: 'Port', color: '#2f9bd6', imageUrl: PortToken },
-    cotton: { name: 'Cotton', color: '#f2ecd6', imageUrl: CottonToken },
-    'key-west': { name: 'Key West', color: '#1f8f6a', imageUrl: KeyWestToken }
+    port: { name: 'Port', art: { imageUrl: PortToken, place: { covers: 'port' } } },
+    cotton: { name: 'Cotton', art: { imageUrl: CottonToken, place: 'corner' } },
+    'key-west': { name: 'Key West', art: { imageUrl: KeyWestToken, place: 'centre' } }
 } as const
 const placedTokenKinds = Object.keys(Stations).flatMap((companyId) =>
     Object.entries(PlacedTokens).map(([kind, token]) => ({
@@ -109,11 +107,6 @@ export const EighteenThirtyTwoMapView: MapViewDefinition = {
     markerArt: {
         port: { revenueSymbol: 'port' },
         'medium-city': { townRing: true },
-        ...Object.fromEntries(
-            placedTokenKinds.map(({ id, companyId, token }) => [
-                id,
-                { placed: { color: token.color, companyId, icon: { imageUrl: token.imageUrl } } }
-            ])
-        )
+        ...Object.fromEntries(placedTokenKinds.map(({ id, token }) => [id, { token: token.art }]))
     }
 }

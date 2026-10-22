@@ -21,9 +21,7 @@ export const BuyContainersForHarbor = Type.Evaluate(
 
 export const BuyContainersForHarborValidator = Compile(BuyContainersForHarbor)
 
-export function isBuyContainersForHarbor(
-    action: GameAction
-): action is BuyContainersForHarbor {
+export function isBuyContainersForHarbor(action: GameAction): action is BuyContainersForHarbor {
     return action.type === ActionType.BuyContainersForHarbor
 }
 

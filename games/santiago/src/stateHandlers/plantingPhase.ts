@@ -17,9 +17,10 @@ type PlantingAction = HydratedPlaceField | HydratedPlaceNeutralTile | HydratedPa
 // The highest bidder (plantersOrder[0]) must place this as a neutral plantation:
 //   - Adjacent to an irrigated plantation, or dried if none available.
 //   - No farmers, no owner. It counts toward plantation size but scores nothing itself.
-export class PlantingPhaseStateHandler
-    implements MachineStateHandler<PlantingAction, HydratedSantiagoGameState>
-{
+export class PlantingPhaseStateHandler implements MachineStateHandler<
+    PlantingAction,
+    HydratedSantiagoGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedSantiagoGameState>
@@ -40,7 +41,10 @@ export class PlantingPhaseStateHandler
         if (action.playerId !== currentPlanter) return false
 
         if (isPass(action)) {
-            return state.revealedTiles.length === 0 || !this.hasAnyValidPlacement(action.playerId, state)
+            return (
+                state.revealedTiles.length === 0 ||
+                !this.hasAnyValidPlacement(action.playerId, state)
+            )
         }
         if (isPlaceField(action)) {
             if (action.tileIndex < 0 || action.tileIndex >= state.revealedTiles.length) return false
@@ -95,7 +99,7 @@ export class PlantingPhaseStateHandler
         if (state.planterIndex >= state.plantersOrder.length) {
             // All planters done. In 3-player games, one tile remains for neutral placement.
             if (state.players.length === 3 && state.revealedTiles.length > 0) {
-                return MachineState.PlantingPhase  // re-enter for neutral placement
+                return MachineState.PlantingPhase // re-enter for neutral placement
             }
             state.revealedTiles = []
             return MachineState.CanalBuilding
@@ -123,11 +127,7 @@ export class PlantingPhaseStateHandler
         }
     }
 
-    private isValidPlacement(
-        col: number,
-        row: number,
-        state: HydratedSantiagoGameState
-    ): boolean {
+    private isValidPlacement(col: number, row: number, state: HydratedSantiagoGameState): boolean {
         const square = state.board.squares[col]?.[row]
         return square?.type === SquareType.Empty
     }

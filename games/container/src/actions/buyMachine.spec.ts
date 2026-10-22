@@ -9,8 +9,7 @@ describe('BuyMachine', () => {
         const state = createTestGameState({ useInvestmentBank: false })
         const player = state.players[0]
         const color = CONTAINER_COLORS.find(
-            (entry) =>
-                !player.machines.includes(entry) && state.supply.machines[entry] > 0
+            (entry) => !player.machines.includes(entry) && state.supply.machines[entry] > 0
         )
         expect(color).toBeDefined()
         if (!color) {

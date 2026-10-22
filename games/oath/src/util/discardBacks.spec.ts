@@ -66,7 +66,9 @@ describe('R-9.4 — the back showing on a discard pile', () => {
 
         applySetupDeal(state, result)
 
-        const seeded = Object.values(Region).filter((region) => state.discardPileCountIn(region) > 0)
+        const seeded = Object.values(Region).filter(
+            (region) => state.discardPileCountIn(region) > 0
+        )
         expect(seeded.length).toBeGreaterThan(0)
         for (const region of seeded) {
             expect(state.discardTopBackIn(region)).toBeDefined()

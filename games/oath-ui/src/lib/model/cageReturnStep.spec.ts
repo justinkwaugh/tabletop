@@ -34,13 +34,44 @@ type Scene = {
  * Dana, an Exile, holds the Obsidian Cage and Ring of Devotion and is asked Fae Merchant's question,
  * the Cup of Plenty drawn; Ann is the Chancellor, Rhys a Citizen.
  */
-async function faeMerchant({ bea = false, rhysExile = false, caged = { [IMPERIAL_WARBANDS]: 2 }, oathRevision = CURRENT_OATH_REVISION }: Scene = {}) {
+async function faeMerchant({
+    bea = false,
+    rhysExile = false,
+    caged = { [IMPERIAL_WARBANDS]: 2 },
+    oathRevision = CURRENT_OATH_REVISION
+}: Scene = {}) {
     const state = testState(
         [
-            testPlayer({ playerId: 'dana', color: Color.Red, siteId: 'c1', relicIds: [CAGE, RING], warbandsOnBoard: { dana: 3 } }),
-            testPlayer({ playerId: 'ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } }),
-            testPlayer({ playerId: 'rhys', color: Color.Blue, status: rhysExile ? PlayerStatus.Exile : PlayerStatus.Citizen, siteId: 'c1' }),
-            ...(bea ? [testPlayer({ playerId: 'bea', color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'c1' })] : [])
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: 'c1',
+                relicIds: [CAGE, RING],
+                warbandsOnBoard: { dana: 3 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1',
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                status: rhysExile ? PlayerStatus.Exile : PlayerStatus.Citizen,
+                siteId: 'c1'
+            }),
+            ...(bea
+                ? [
+                      testPlayer({
+                          playerId: 'bea',
+                          color: Color.Yellow,
+                          status: PlayerStatus.Citizen,
+                          siteId: 'c1'
+                      })
+                  ]
+                : [])
         ],
         {
             machineState: MachineState.PowerQuestion,
@@ -48,7 +79,14 @@ async function faeMerchant({ bea = false, rhysExile = false, caged = { [IMPERIAL
             oathRevision,
             warbandsOnCards: { [CAGE]: caged },
             pendingQuestions: {
-                queue: [{ kind: PowerQuestionKind.BottomRelic, cardId: 'denizen.beast.fae-merchant', askedPlayerId: 'dana', relicCardId: CUP }],
+                queue: [
+                    {
+                        kind: PowerQuestionKind.BottomRelic,
+                        cardId: 'denizen.beast.fae-merchant',
+                        askedPlayerId: 'dana',
+                        relicCardId: CUP
+                    }
+                ],
                 askingPlayerId: 'dana',
                 resumeMachineState: MachineState.ActPhase
             }
@@ -80,11 +118,22 @@ describe('Fae Merchant sends the Obsidian Cage down: the step that places its Im
         expect(draft.cageCounts).toEqual([1, 1])
         expect(draft.cageReturnReady).toBe(true)
         await draft.returnCage()
-        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BottomRelic, heldRelicCardId: CAGE, cagePlacement: [{ playerId: 'ann', count: 1 }, { playerId: 'rhys', count: 1 }] })
+        expect(sent).toHaveBeenLastCalledWith({
+            kind: PowerQuestionKind.BottomRelic,
+            heldRelicCardId: CAGE,
+            cagePlacement: [
+                { playerId: 'ann', count: 1 },
+                { playerId: 'rhys', count: 1 }
+            ]
+        })
         draft.setCageCount(1, 2)
         expect(draft.cageCounts).toEqual([0, 2])
         await draft.returnCage()
-        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BottomRelic, heldRelicCardId: CAGE, cagePlacement: [{ playerId: 'rhys', count: 2 }] })
+        expect(sent).toHaveBeenLastCalledWith({
+            kind: PowerQuestionKind.BottomRelic,
+            heldRelicCardId: CAGE,
+            cagePlacement: [{ playerId: 'rhys', count: 2 }]
+        })
         expect([draft.cageCeilingAt(0), draft.cageCeilingAt(1)]).toEqual([2, 2])
         // A tap on the piece at the count sets the row to 0: the other takes them all.
         draft.setCageCount(1, 0)
@@ -98,12 +147,21 @@ describe('Fae Merchant sends the Obsidian Cage down: the step that places its Im
         draft.setCageCount(0, 1)
         expect(draft.cageCounts).toEqual([1, 0, 0])
         expect(draft.cageReturnReady).toBe(false)
-        expect([draft.cageCeilingAt(0), draft.cageCeilingAt(1), draft.cageCeilingAt(2)]).toEqual([2, 1, 1])
+        expect([draft.cageCeilingAt(0), draft.cageCeilingAt(1), draft.cageCeilingAt(2)]).toEqual([
+            2, 1, 1
+        ])
         draft.setCageCount(2, 2)
         expect(draft.cageCounts).toEqual([1, 0, 1])
         expect(draft.cageReturnReady).toBe(true)
         await draft.returnCage()
-        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BottomRelic, heldRelicCardId: CAGE, cagePlacement: [{ playerId: 'ann', count: 1 }, { playerId: 'bea', count: 1 }] })
+        expect(sent).toHaveBeenLastCalledWith({
+            kind: PowerQuestionKind.BottomRelic,
+            heldRelicCardId: CAGE,
+            cagePlacement: [
+                { playerId: 'ann', count: 1 },
+                { playerId: 'bea', count: 1 }
+            ]
+        })
     })
 
     it('back unwinds the rows, then the step', async () => {
@@ -121,18 +179,27 @@ describe('Fae Merchant sends the Obsidian Cage down: the step that places its Im
         ['the Chancellor’s is the only Imperial board', { rhysExile: true }],
         ['the Cage holds no Imperial warbands', { caged: { rhys: 2 } }],
         ['the game was created before revision 17', { oathRevision: OathRevision.EngineFixes12 }]
-    ])('no step when nobody chooses: %s, so a tap on the Cage sends it', async (_, scene: Scene) => {
-        const { draft, sent } = await faeMerchant(scene)
-        await draft.putOnBottom(CAGE)
-        expect(draft.cageBoards).toEqual([])
-        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BottomRelic, heldRelicCardId: CAGE })
-    })
+    ])(
+        'no step when nobody chooses: %s, so a tap on the Cage sends it',
+        async (_, scene: Scene) => {
+            const { draft, sent } = await faeMerchant(scene)
+            await draft.putOnBottom(CAGE)
+            expect(draft.cageBoards).toEqual([])
+            expect(sent).toHaveBeenLastCalledWith({
+                kind: PowerQuestionKind.BottomRelic,
+                heldRelicCardId: CAGE
+            })
+        }
+    )
 
     it('another relic sent down never opens the step', async () => {
         const { draft, sent } = await faeMerchant()
         await draft.putOnBottom(RING)
         expect(draft.cageBoards).toEqual([])
-        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BottomRelic, heldRelicCardId: RING })
+        expect(sent).toHaveBeenLastCalledWith({
+            kind: PowerQuestionKind.BottomRelic,
+            heldRelicCardId: RING
+        })
     })
 })
 
@@ -144,6 +211,9 @@ describe('the rows’ counts', () => {
         expect(cageCountsAfterTap([0, 2, 0], 0, 3, 3)).toEqual([1, 2, 0])
         expect(cageCeilingAt([0, 2, 0], 2, 3)).toBe(1)
         expect(cageCeilingAt([3, 0], 1, 3)).toBe(3)
-        expect(cagePlacementOf(['ann', 'rhys', 'bea'], [0, 2, 1])).toEqual([{ playerId: 'rhys', count: 2 }, { playerId: 'bea', count: 1 }])
+        expect(cagePlacementOf(['ann', 'rhys', 'bea'], [0, 2, 1])).toEqual([
+            { playerId: 'rhys', count: 2 },
+            { playerId: 'bea', count: 1 }
+        ])
     })
 })

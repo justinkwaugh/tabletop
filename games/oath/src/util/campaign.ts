@@ -161,7 +161,10 @@ export function reasonNoCampaignAgainst(
 }
 
 /** R-5.5.1, R-5.5.2 — the other players, and the bandits, a Campaign from the attacker's site may declare. */
-export function defendersOpenTo(state: HydratedOathGameState, attackerId: string): CampaignDefender[] {
+export function defendersOpenTo(
+    state: HydratedOathGameState,
+    attackerId: string
+): CampaignDefender[] {
     return defendersOpenFrom(state, attackerId)
 }
 

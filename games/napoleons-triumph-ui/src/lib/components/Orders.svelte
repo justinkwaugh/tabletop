@@ -19,6 +19,7 @@
     const group = $derived(gameSession.selectedGroup)
     const picked = $derived(gameSession.pickedUnitIds)
     const options = $derived(gameSession.commandOptions)
+    const choices = $derived(gameSession.commandChoices)
     const kind = $derived(gameSession.commandKind)
     const reinforcements = $derived(gameSession.reinforcements)
 
@@ -26,12 +27,8 @@
     const rideChoice = $derived(gameSession.rideChoice)
     const stepsOfTheWay = $derived(gameSession.stepsOfTheWay)
     const together = $derived(gameSession.wholeCorpsChosen)
-    const unitAlone = $derived(
-        !together && picked.length === 1
-            ? group?.units.find((unit) => unit.id === picked[0])
-            : undefined
-    )
-    const attachTo = $derived(unitAlone ? gameSession.attachOptions(unitAlone) : [])
+    const unitAlone = $derived(gameSession.unitAlone)
+    const attaching = $derived(gameSession.attaching)
     const aimedLocale = $derived(gameSession.aimedLocale)
     const threatBeingDeclared = $derived(gameSession.threatBeingDeclared)
     const threatSentence = $derived.by(() => {
@@ -61,6 +58,9 @@
     )
 
     const problem = $derived.by(() => {
+        if (attaching) {
+            return undefined
+        }
         if (options.length === 0 && !ridingOn) {
             return 'No command can move these units now.'
         }
@@ -219,21 +219,23 @@
                         onchoose={(ride) => gameSession.chooseRide(ride)}
                     />
                 {/if}
-                {#if options.length > 0}
+                {#if choices.length > 0}
                     <span class="nt-orders-faint">Command</span>
                 {/if}
                 <CommandSwitch
-                    {options}
-                    chosen={gameSession.order?.kind}
-                    onchoose={(command) => gameSession.chooseCommand(command)}
+                    options={choices}
+                    chosen={gameSession.commandInForce}
+                    onchoose={(choice) => gameSession.chooseCommand(choice)}
                 />
-                {#if unitAlone}
-                    {#each attachTo as commander (commander.id)}
+                {#if attaching && unitAlone}
+                    {#each gameSession.attachTo as commander (commander.id)}
+                        {@const name = commanderDefinition(commander.id).name}
                         <button
                             type="button"
-                            class="nt-plain-button nt-orders-small"
+                            class="nt-plain-button"
+                            aria-label="Attach to {name}"
                             onclick={() => gameSession.attach(commander.id, unitAlone.id)}
-                            >Attach to {commanderDefinition(commander.id).name}</button
+                            >to {name}</button
                         >
                     {/each}
                 {/if}

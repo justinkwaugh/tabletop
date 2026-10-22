@@ -31,7 +31,6 @@ export interface BlockMarkContext {
 
 function carriesMovedMark(unit: ProjectedUnit, context: BlockMarkContext): boolean {
     return (
-        !context.fighting &&
         !context.viewingHistory &&
         unit.playerId === context.viewerId &&
         unit.movesThisTurn !== undefined
@@ -67,7 +66,8 @@ export function blockMarkOf(
         role,
         roleMark: lettered === undefined ? undefined : roleMarkOf(lettered),
         dimmed: leftOut || (context.fighting && !eligible && role === undefined),
-        moved: !defendedEarlier && carriesMovedMark(unit, context)
+        // A letter on the block takes the place of the moved dot, which stands at the same end.
+        moved: lettered === undefined && carriesMovedMark(unit, context)
     }
 }
 

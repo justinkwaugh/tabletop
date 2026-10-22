@@ -1,90 +1,90 @@
 [
-  {
-    "gameId": "bridges",
-    "packageId": "bridges-of-shangri-la"
-  },
-  {
-    "gameId": "estates",
-    "packageId": "estates"
-  },
-  {
-    "gameId": "freshfish",
-    "packageId": "fresh-fish"
-  },
-  {
-    "gameId": "kaivai",
-    "packageId": "kaivai"
-  },
-  {
-    "gameId": "sol",
-    "packageId": "sol"
-  },
-  {
-    "gameId": "bus",
-    "packageId": "bus"
-  },
-  {
-    "gameId": "indonesia",
-    "packageId": "indonesia"
-  },
-  {
-    "gameId": "urbino",
-    "packageId": "urbino"
-  },
-  {
-    "gameId": "santiago",
-    "packageId": "santiago"
-  },
-  {
-    "gameId": "lowenherz",
-    "packageId": "lowenherz"
-  },
-  {
-    "gameId": "oath",
-    "packageId": "oath"
-  },
-  {
-    "gameId": "the-old-prince",
-    "packageId": "the-old-prince"
-  },
-  {
-    "gameId": "magna-grecia",
-    "packageId": "magna-grecia"
-  },
-  {
-    "gameId": "marracash",
-    "packageId": "marracash"
-  },
-  {
-    "gameId": "hill-country-grocers",
-    "packageId": "hill-country-grocers"
-  },
-  {
-    "gameId": "napoleons-triumph",
-    "packageId": "napoleons-triumph"
-  },
-  {
-    "gameId": "reef-encounter",
-    "packageId": "reef-encounter"
-  },
-  {
-    "gameId": "railheads",
-    "packageId": "railheads"
-  },
-  {
-    "gameId": "1830",
-    "packageId": "1830"
-  },
-  {
-    "gameId": "shikoku-1889",
-    "packageId": "shikoku-1889"
-  },
-  {
-    "gameId": "1846",
-    "packageId": "1846"
-  },
-  {
-    "gameId": "1832",
-    "packageId": "1832"
-  }
+    {
+        "gameId": "bridges",
+        "packageId": "bridges-of-shangri-la"
+    },
+    {
+        "gameId": "estates",
+        "packageId": "estates"
+    },
+    {
+        "gameId": "freshfish",
+        "packageId": "fresh-fish"
+    },
+    {
+        "gameId": "kaivai",
+        "packageId": "kaivai"
+    },
+    {
+        "gameId": "sol",
+        "packageId": "sol"
+    },
+    {
+        "gameId": "bus",
+        "packageId": "bus"
+    },
+    {
+        "gameId": "indonesia",
+        "packageId": "indonesia"
+    },
+    {
+        "gameId": "urbino",
+        "packageId": "urbino"
+    },
+    {
+        "gameId": "santiago",
+        "packageId": "santiago"
+    },
+    {
+        "gameId": "lowenherz",
+        "packageId": "lowenherz"
+    },
+    {
+        "gameId": "oath",
+        "packageId": "oath"
+    },
+    {
+        "gameId": "the-old-prince",
+        "packageId": "the-old-prince"
+    },
+    {
+        "gameId": "magna-grecia",
+        "packageId": "magna-grecia"
+    },
+    {
+        "gameId": "marracash",
+        "packageId": "marracash"
+    },
+    {
+        "gameId": "hill-country-grocers",
+        "packageId": "hill-country-grocers"
+    },
+    {
+        "gameId": "napoleons-triumph",
+        "packageId": "napoleons-triumph"
+    },
+    {
+        "gameId": "reef-encounter",
+        "packageId": "reef-encounter"
+    },
+    {
+        "gameId": "railheads",
+        "packageId": "railheads"
+    },
+    {
+        "gameId": "1830",
+        "packageId": "1830"
+    },
+    {
+        "gameId": "shikoku-1889",
+        "packageId": "shikoku-1889"
+    },
+    {
+        "gameId": "1846",
+        "packageId": "1846"
+    },
+    {
+        "gameId": "1832",
+        "packageId": "1832"
+    }
 ]

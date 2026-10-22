@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { Color, type Game } from '@tabletop/common'
 import { buildAction, defendingSideChooses, machineContext } from '../testing/actions.js'
-import { openTurn, testBanners, testPlayer, testState, testVaultWithRelics } from '../testing/fixture.js'
+import {
+    openTurn,
+    testBanners,
+    testPlayer,
+    testState,
+    testVaultWithRelics
+} from '../testing/fixture.js'
 import { slot, yes } from '../testing/choices.js'
 import { playDrawnCard } from '../testing/steps.js'
 import { ongoingCampaign } from '../testing/required.js'
@@ -19,7 +25,10 @@ import { SearchPlay } from '../actions/searchResolve.js'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { HydratedCampaign, Campaign } from '../actions/campaign.js'
 import { HydratedCampaignSacrifice, CampaignSacrifice } from '../actions/campaignSacrifice.js'
-import { HydratedCampaignResolveVictory, CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
+import {
+    HydratedCampaignResolveVictory,
+    CampaignResolveVictory
+} from '../actions/campaignResolveVictory.js'
 import { OfferCitizenship } from '../actions/offerCitizenship.js'
 import { ResolveCitizenshipOffer } from '../actions/resolveCitizenshipOffer.js'
 import { SelfExile } from '../actions/selfExile.js'
@@ -105,8 +114,18 @@ function scene({ revision, dana, ann, rhys, state }: Scene): HydratedOathGameSta
             oathRevision: revision,
             chancellorPlayerId: 'ann',
             denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
-            warbandsBySite: { c1: { dana: 1 }, c2: { dana: 2 }, p1: {}, h1: { [IMPERIAL_WARBANDS]: 2 } },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
+            warbandsBySite: {
+                c1: { dana: 1 },
+                c2: { dana: 2 },
+                p1: {},
+                h1: { [IMPERIAL_WARBANDS]: 2 }
+            },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            },
             ...state
         }
     )
@@ -180,7 +199,11 @@ function martialCulture(revision: number) {
         const s = scene({
             revision,
             // The Campaign spends the last 2 of the 7 (R-5.5.1).
-            dana: { supply: 2, supplySpentThisTurn: 5, advisers: [{ cardId: MARTIAL, faceUp: true }] },
+            dana: {
+                supply: 2,
+                supplySpentThisTurn: 5,
+                advisers: [{ cardId: MARTIAL, faceUp: true }]
+            },
             state: { prng: { seed, invocations: 0 } }
         })
         new HydratedCampaign(
@@ -189,7 +212,9 @@ function martialCulture(revision: number) {
                 defender: { kind: 'player', playerId: 'rhys' },
                 targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
                 attackDice: 4,
-                plans: [{ cardId: MARTIAL, powerIndex: powerIndexOf(MARTIAL, PowerTiming.BattlePlan) }]
+                plans: [
+                    { cardId: MARTIAL, powerIndex: powerIndexOf(MARTIAL, PowerTiming.BattlePlan) }
+                ]
             })
         ).apply(s)
         expect(s.getPlayerState('dana').supply).toBe(0)
@@ -203,7 +228,11 @@ function martialCulture(revision: number) {
         ).apply(s)
         defendingSideChooses(s)
         const victory = new HydratedCampaignResolveVictory(
-            buildAction(CampaignResolveVictory, { playerId: 'dana', placements: [], burnFavor: false })
+            buildAction(CampaignResolveVictory, {
+                playerId: 'dana',
+                placements: [],
+                burnFavor: false
+            })
         )
         victory.apply(s)
         expect(victory.metadata?.endsActPhase).toBe(true)
@@ -241,16 +270,19 @@ describe('R-4.3.4 — a refresh to full on your own turn is saved at the Rest (r
 })
 
 describe('R-4.3.4 — a Supply gain then a spend saves the marker left, at both revisions', () => {
-    it.each([AT, BEFORE])('Faithful Friend’s 4, 3 of them spent: 4 + 1 (revision %i)', (revision) => {
-        // R-4.3.3 — 2 banked warbands give an Exile 4 Supply.
-        const s = scene({ revision, dana: { warbandsInPersonalBank: { dana: 2 } } })
-        playDrawnCard(s, FRIEND, SearchPlay.Adviser, undefined, 'dana')
-        const dana = s.getPlayerState('dana')
-        // From 0: the When Played gain moved the marker.
-        expect(dana.supply).toBe(4)
-        dana.spendSupply(3)
-        expect(rest(s)).toBe(4 + 1)
-    })
+    it.each([AT, BEFORE])(
+        'Faithful Friend’s 4, 3 of them spent: 4 + 1 (revision %i)',
+        (revision) => {
+            // R-4.3.3 — 2 banked warbands give an Exile 4 Supply.
+            const s = scene({ revision, dana: { warbandsInPersonalBank: { dana: 2 } } })
+            playDrawnCard(s, FRIEND, SearchPlay.Adviser, undefined, 'dana')
+            const dana = s.getPlayerState('dana')
+            // From 0: the When Played gain moved the marker.
+            expect(dana.supply).toBe(4)
+            dana.spendSupply(3)
+            expect(rest(s)).toBe(4 + 1)
+        }
+    )
 })
 
 describe('before revision 24 the saving is the turn’s Supply less what it spent (R-X.4)', () => {
@@ -269,7 +301,9 @@ describe('before revision 24 the saving is the turn’s Supply less what it spen
             return Object.keys(s.dehydrate().players[0]).sort()
         }
         expect(keys(AT)).toEqual(keys(BEFORE))
-        expect(keys(AT)).toEqual(expect.arrayContaining(['supplyAtTurnStart', 'supplySpentThisTurn']))
+        expect(keys(AT)).toEqual(
+            expect.arrayContaining(['supplyAtTurnStart', 'supplySpentThisTurn'])
+        )
     })
 })
 
@@ -374,7 +408,10 @@ describe('R-4.3.4 through the engine: Citizenship and exile on your own turn', (
 
     it('… and on the Exile band’s 5 before it', () => {
         const state = selfExile(BEFORE)
-        const bank = Object.values(state.players[0].warbandsInPersonalBank).reduce((n, c) => n + c, 0)
+        const bank = Object.values(state.players[0].warbandsInPersonalBank).reduce(
+            (n, c) => n + c,
+            0
+        )
         expect(bank).toBe(6)
         expect(supplyOf(state, 'dana')).toBe(5)
     })
@@ -410,11 +447,19 @@ describe('R-4.3.4 through the engine: Citizenship and exile on your own turn', (
             expect(supplyOf(state, 'dana')).toBe(MAX_SUPPLY)
 
             // Ann's Rest, then Dana's Wake, resolve themselves (R-4.3-H1, R-4.1).
-            state = engine.runNext(buildAction(EndActPhase, { playerId: 'ann' }), state, GAME).updatedState
+            state = engine.runNext(
+                buildAction(EndActPhase, { playerId: 'ann' }),
+                state,
+                GAME
+            ).updatedState
             expect(state.machineState).toBe(MachineState.ActPhase)
             expect(state.activePlayerIds).toEqual(['dana'])
 
-            state = engine.runNext(buildAction(EndActPhase, { playerId: 'dana' }), state, GAME).updatedState
+            state = engine.runNext(
+                buildAction(EndActPhase, { playerId: 'dana' }),
+                state,
+                GAME
+            ).updatedState
             expect(state.activePlayerIds).toEqual(['rhys'])
             expect(supplyOf(state, 'dana')).toBe(MAX_SUPPLY)
         }

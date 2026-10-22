@@ -320,8 +320,18 @@ export function withOfferedPicks(
     picks: ExchangePicks
 ): ExchangePicks {
     const sides = [
-        { side: 'fromProposer', giver: proposerId, receiver: counterpartyId, back: 'fromCounterparty' },
-        { side: 'fromCounterparty', giver: counterpartyId, receiver: proposerId, back: 'fromProposer' }
+        {
+            side: 'fromProposer',
+            giver: proposerId,
+            receiver: counterpartyId,
+            back: 'fromCounterparty'
+        },
+        {
+            side: 'fromCounterparty',
+            giver: counterpartyId,
+            receiver: proposerId,
+            back: 'fromProposer'
+        }
     ] as const
     // Each pass drops a pick or clears a count and never adds one, so it ends.
     let kept = picks
@@ -366,7 +376,10 @@ export function withOfferedPicks(
             if (unchanged) continue
             dropped = true
             kept = {
-                terms: Object.keys(patch).length === 0 ? kept.terms : withTransfer(kept.terms, side, patch),
+                terms:
+                    Object.keys(patch).length === 0
+                        ? kept.terms
+                        : withTransfer(kept.terms, side, patch),
                 uncountedSiteIds
             }
         }

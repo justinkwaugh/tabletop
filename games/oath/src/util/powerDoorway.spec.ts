@@ -33,7 +33,12 @@ describe('the doorway offers no card power it cannot resolve', () => {
     it('the Grand Scepter’s holder is never offered them, and a use named by hand is refused in plain words', () => {
         const state = testState(
             [
-                testPlayer({ playerId: 'holder', color: Color.Purple, siteId: 'c1', relicIds: [GRAND_SCEPTER_ID] }),
+                testPlayer({
+                    playerId: 'holder',
+                    color: Color.Purple,
+                    siteId: 'c1',
+                    relicIds: [GRAND_SCEPTER_ID]
+                }),
                 testPlayer({ playerId: 'other', color: Color.Red, siteId: 'c2' })
             ],
             { chancellorPlayerId: 'holder' }
@@ -46,7 +51,13 @@ describe('the doorway offers no card power it cannot resolve', () => {
         }
         for (const powerIndex of [1, 2]) {
             expect(
-                reasonCannotUsePower(state, 'holder', GRAND_SCEPTER_ID, powerIndex, PowerTiming.Action)
+                reasonCannotUsePower(
+                    state,
+                    'holder',
+                    GRAND_SCEPTER_ID,
+                    powerIndex,
+                    PowerTiming.Action
+                )
             ).toBe(`${GRAND_SCEPTER_ID}'s power ${powerIndex} cannot be used as an "Action:" power`)
         }
     })

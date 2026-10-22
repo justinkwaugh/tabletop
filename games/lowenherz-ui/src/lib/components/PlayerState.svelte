@@ -286,7 +286,9 @@
             class="w-[64px] shrink-0 flex items-center justify-end gap-1 text-gray-800 text-[19px] font-semibold"
             title={showMoney ? 'Ducats' : 'Ducats (hidden)'}
         >
-            {#if showMoney && playerState.money !== undefined}<Numeral value={playerState.money} />{:else}?{/if}
+            {#if showMoney && playerState.money !== undefined}<Numeral
+                    value={playerState.money}
+                />{:else}?{/if}
             <span class="relative w-[28px] h-[28px] shrink-0">
                 {@render tintedIcon(iconMoneybagFill, iconMoneybagLines, player.id, 2, 0)}
             </span>

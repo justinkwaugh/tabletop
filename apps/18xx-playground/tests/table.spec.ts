@@ -600,3 +600,33 @@ test('narrow OR strips give private actions a row of their own', async ({ page }
     await expect(menuButton).toBeVisible()
     await expect(buy).toBeHidden()
 })
+
+test("Buy privates opens on the player's own privates, empty once they are sold", async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 1100, height: 900 })
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1889')
+    await page.getByLabel('Position', { exact: true }).selectOption({ label: 'Buy privates' })
+    const strip = page.getByRole('navigation', { name: 'Operating steps' })
+    const purchases = page.getByRole('region', { name: 'Buy privates' })
+    const mine = purchases.getByRole('button', { name: 'Mine', exact: true })
+    const cards = purchases.locator('button.private')
+    const entry = strip.getByRole('button', { name: 'Buy privates', exact: true })
+    await expect(entry).not.toHaveClass(/quiet/)
+    for (let bought = 0; ; bought++) {
+        expect(bought).toBeLessThan(4)
+        await entry.click()
+        await expect(mine).toHaveAttribute('aria-pressed', 'true')
+        if (!(await cards.count())) break
+        await expect(cards.locator('.seller')).toHaveCount(0)
+        await cards.first().click()
+        await purchases.getByRole('button', { name: 'Buy', exact: true }).click()
+        await expect(mine).toBeHidden()
+    }
+    await expect(purchases.getByText('You have no privates to sell')).toBeVisible()
+    await expect(entry).toHaveClass(/quiet/)
+    await purchases.getByRole('button', { name: 'Other players’', exact: true }).click()
+    await expect(cards.first()).toBeVisible()
+    await expect(cards.first().locator('.seller')).toContainText('owned by')
+})

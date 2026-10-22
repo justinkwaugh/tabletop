@@ -29,7 +29,8 @@
     const tableHeightDesktopClass = 'sm:h-[calc(100dvh-var(--app-shell-height))]'
     const tableInnerHeightMobileClass =
         'max-sm:h-[calc(100dvh-8px-var(--table-top-padding)-44px-var(--app-shell-height))]'
-    const tableInnerHeightDesktopClass = 'sm:h-[calc(100dvh-8px-var(--table-top-padding)-var(--app-shell-height))]'
+    const tableInnerHeightDesktopClass =
+        'sm:h-[calc(100dvh-8px-var(--table-top-padding)-var(--app-shell-height))]'
 </script>
 
 <div
@@ -45,14 +46,18 @@
             {/if}
         </div>
         <div {@attach scrollToRight} class="table-scroller w-full overflow-auto">
-            <div class="p-2 w-full h-full flex flex-row justify-between items-start" style:padding-top={topPadding + 'px'} style:padding-inline={horizontalPadding + 'px'}>
+            <div
+                class="p-2 w-full h-full flex flex-row justify-between items-start"
+                style:padding-top={topPadding + 'px'}
+                style:padding-inline={horizontalPadding + 'px'}
+            >
                 {#if showSidebar}<div
-                    class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass}"
-                >
-                    {#if sideContent}
-                        {@render sideContent()}
-                    {/if}
-                </div>{/if}
+                        class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass}"
+                    >
+                        {#if sideContent}
+                            {@render sideContent()}
+                        {/if}
+                    </div>{/if}
                 <div
                     class:ms-2={showSidebar}
                     class="game-column shrink grow sm:min-w-[320px] min-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass} flex flex-col overflow-auto"

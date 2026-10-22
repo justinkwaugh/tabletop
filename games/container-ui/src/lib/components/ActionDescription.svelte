@@ -8,7 +8,6 @@
         justify = 'start',
         history = true
     }: { action: GameAction; justify?: 'start' | 'center' | 'end'; history?: boolean } = $props()
-
 </script>
 
 Action Description

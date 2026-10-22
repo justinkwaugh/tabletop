@@ -22,30 +22,87 @@ import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const FILLER2 = 'denizen.hearth.wayside-inn'
 
-function table(machineState: MachineState, me: Record<string, unknown> = {}, stateOverride: Record<string, unknown> = {}) {
+function table(
+    machineState: MachineState,
+    me: Record<string, unknown> = {},
+    stateOverride: Record<string, unknown> = {}
+) {
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 6, secrets: 6, supply: 6, warbandsOnBoard: { me: 3 }, warbandsInPersonalBank: { me: 6 }, relicIds: ['relic.cup-of-plenty'], ...me }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 3, supply: 4, warbandsOnBoard: { foe: 2 }, warbandsInPersonalBank: { foe: 5 }, advisers: [{ cardId: 'denizen.nomad.tents', faceUp: true }], relicIds: ['relic.map'] }),
-            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 3, secrets: 3, supply: 4, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } })
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 6,
+                secrets: 6,
+                supply: 6,
+                warbandsOnBoard: { me: 3 },
+                warbandsInPersonalBank: { me: 6 },
+                relicIds: ['relic.cup-of-plenty'],
+                ...me
+            }),
+            testPlayer({
+                playerId: 'foe',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 3,
+                supply: 4,
+                warbandsOnBoard: { foe: 2 },
+                warbandsInPersonalBank: { foe: 5 },
+                advisers: [{ cardId: 'denizen.nomad.tents', faceUp: true }],
+                relicIds: ['relic.map']
+            }),
+            testPlayer({
+                playerId: 'chan',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1',
+                favor: 3,
+                secrets: 3,
+                supply: 4,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }
+            })
         ],
         {
             machineState,
             chancellorPlayerId: 'chan',
-            denizensBySite: { c1: ['denizen.beast.wolves', 'denizen.hearth.storyteller'], c2: ['denizen.nomad.elders'], p1: ['denizen.arcane.tutor'], h1: [] },
-            warbandsBySite: { c1: { me: 1, foe: 1 }, c2: { me: 2 }, p1: { [IMPERIAL_WARBANDS]: 2 } },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
+            denizensBySite: {
+                c1: ['denizen.beast.wolves', 'denizen.hearth.storyteller'],
+                c2: ['denizen.nomad.elders'],
+                p1: ['denizen.arcane.tutor'],
+                h1: []
+            },
+            warbandsBySite: {
+                c1: { me: 1, foe: 1 },
+                c2: { me: 2 },
+                p1: { [IMPERIAL_WARBANDS]: 2 }
+            },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            },
             relicsBySite: { c1: [{ slotId: 'c1-r1' }] },
             ...stateOverride
         }
     )
     const d = s.dehydrate()
-    d.turnManager = { series: [{ type: 'turn', playerId: 'me', start: 0 }], turnOrder: ['me', 'foe', 'chan'], turnCounts: { me: 1, foe: 0, chan: 0 } }
+    d.turnManager = {
+        series: [{ type: 'turn', playerId: 'me', start: 0 }],
+        turnOrder: ['me', 'foe', 'chan'],
+        turnCounts: { me: 1, foe: 0, chan: 0 }
+    }
     d.activePlayerIds = ['me']
     return { hydrated: s, state: d }
 }
 
-function defaultChoices(hydrated: ReturnType<typeof table>['hydrated'], power: CardPower, fillOptional = false): PowerChoice[] | undefined {
+function defaultChoices(
+    hydrated: ReturnType<typeof table>['hydrated'],
+    power: CardPower,
+    fillOptional = false
+): PowerChoice[] | undefined {
     const legal = legalChoices(hydrated, 'me', power)
     const out: PowerChoice[] = []
     const usedByKind = new Map<string, number>()
@@ -70,7 +127,13 @@ const FIXTURE: Record<string, { me?: Record<string, unknown>; state?: Record<str
 }
 /** Choices whose shape the defaults cannot guess: named outright. */
 const CHOICES: Record<string, PowerChoice[]> = {
-    'denizen.order.messenger': [{ kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'me' }, owner: 'me', count: 1 } }, { kind: PowerChoiceKind.Site, siteId: 'c2' }],
+    'denizen.order.messenger': [
+        {
+            kind: PowerChoiceKind.Warbands,
+            group: { at: { kind: 'board', playerId: 'me' }, owner: 'me', count: 1 }
+        },
+        { kind: PowerChoiceKind.Site, siteId: 'c2' }
+    ],
     'denizen.beast.memory-of-nature': [{ kind: PowerChoiceKind.FavorBank, suit: Suit.Hearth }]
 }
 
@@ -80,41 +143,107 @@ describe('the playtest deck fires through the engine', () => {
     for (const cardId of PLAYTEST_DECK) {
         const name = cardDefinition(cardId)?.name ?? cardId
         for (const power of cardPowers(cardId)) {
-            if (![PowerTiming.WhenPlayed, PowerTiming.Rest, PowerTiming.Action].includes(power.timing)) continue
+            if (
+                ![PowerTiming.WhenPlayed, PowerTiming.Rest, PowerTiming.Action].includes(
+                    power.timing
+                )
+            )
+                continue
             it(`${name} (${power.timing})`, () => {
                 const engine = new OathTestEngine(OathRuntime)
                 const game = testGame(['me', 'foe', 'chan'])
                 if (power.timing === PowerTiming.WhenPlayed) {
                     const fx = FIXTURE[cardId] ?? {}
-                    const { hydrated, state } = table(MachineState.Searching, { handIds: [cardId, FILLER, FILLER2], ...fx.me }, fx.state)
-                    const play = cardDefinition(cardId)?.placement === 'adviser' ? SearchPlay.Adviser : SearchPlay.Site
-                    const choices = required(CHOICES[cardId] ?? defaultChoices(hydrated, power), `${name}: ${NO_LEGAL_OPTION}`)
-                    const result = engine.runNext(buildAction(SearchResolve, { playerId: 'me', keptCardId: cardId, discardOrder: [FILLER, FILLER2], play, faceUp: play === SearchPlay.Adviser ? true : undefined, choices }), state, game)
+                    const { hydrated, state } = table(
+                        MachineState.Searching,
+                        { handIds: [cardId, FILLER, FILLER2], ...fx.me },
+                        fx.state
+                    )
+                    const play =
+                        cardDefinition(cardId)?.placement === 'adviser'
+                            ? SearchPlay.Adviser
+                            : SearchPlay.Site
+                    const choices = required(
+                        CHOICES[cardId] ?? defaultChoices(hydrated, power),
+                        `${name}: ${NO_LEGAL_OPTION}`
+                    )
+                    const result = engine.runNext(
+                        buildAction(SearchResolve, {
+                            playerId: 'me',
+                            keptCardId: cardId,
+                            discardOrder: [FILLER, FILLER2],
+                            play,
+                            faceUp: play === SearchPlay.Adviser ? true : undefined,
+                            choices
+                        }),
+                        state,
+                        game
+                    )
                     const next = result.updatedState
-                    const last = required(result.processedActions.find(isSearchResolve), 'the Search resolution')
-                    expect([MachineState.ActPhase, MachineState.RestPhase, MachineState.PowerQuestion, MachineState.OathkeeperChoice]).toContain(next.machineState)
-                    expect(required(next.players.find((p) => p.playerId === 'me'), 'the seat me').handIds).toEqual([])
-                    expect(required(last.metadata?.whenPlayed, `${name}'s When Played summary`)).not.toMatch(/not implemented/)
+                    const last = required(
+                        result.processedActions.find(isSearchResolve),
+                        'the Search resolution'
+                    )
+                    expect([
+                        MachineState.ActPhase,
+                        MachineState.RestPhase,
+                        MachineState.PowerQuestion,
+                        MachineState.OathkeeperChoice
+                    ]).toContain(next.machineState)
+                    expect(
+                        required(
+                            next.players.find((p) => p.playerId === 'me'),
+                            'the seat me'
+                        ).handIds
+                    ).toEqual([])
+                    expect(
+                        required(last.metadata?.whenPlayed, `${name}'s When Played summary`)
+                    ).not.toMatch(/not implemented/)
                     return
                 }
-                const phase = power.timing === PowerTiming.Rest ? MachineState.RestPhase : MachineState.ActPhase
+                const phase =
+                    power.timing === PowerTiming.Rest
+                        ? MachineState.RestPhase
+                        : MachineState.ActPhase
                 const fx = FIXTURE[cardId] ?? {}
-                const { hydrated, state } = table(phase, { advisers: [{ cardId, faceUp: true }], ...fx.me }, fx.state)
+                const { hydrated, state } = table(
+                    phase,
+                    { advisers: [{ cardId, faceUp: true }], ...fx.me },
+                    fx.state
+                )
                 const schema = power.timing === PowerTiming.Rest ? UseRestPower : UseActionPower
                 let next: ActionResult<OathProjectedState> | undefined
                 let lastError = NO_LEGAL_OPTION
-                for (const choices of [CHOICES[cardId] ?? defaultChoices(hydrated, power), defaultChoices(hydrated, power, true)]) {
+                for (const choices of [
+                    CHOICES[cardId] ?? defaultChoices(hydrated, power),
+                    defaultChoices(hydrated, power, true)
+                ]) {
                     if (choices === undefined) continue
                     try {
-                        next = engine.runNext(buildAction(schema, { playerId: 'me', cardId, powerIndex: power.powerIndex, choices }), state, game)
+                        next = engine.runNext(
+                            buildAction(schema, {
+                                playerId: 'me',
+                                cardId,
+                                powerIndex: power.powerIndex,
+                                choices
+                            }),
+                            state,
+                            game
+                        )
                         break
                     } catch (e) {
                         lastError = thrownMessage(e)
                     }
                 }
                 const fired = required(next, `${name}: ${lastError}`)
-                const last = required(fired.processedActions.find(isUseActionPower) ?? fired.processedActions.find(isUseRestPower), 'the power use')
-                expect(required(last.metadata, `${name}'s outcome`).summary).not.toMatch(/not implemented/)
+                const last = required(
+                    fired.processedActions.find(isUseActionPower) ??
+                        fired.processedActions.find(isUseRestPower),
+                    'the power use'
+                )
+                expect(required(last.metadata, `${name}'s outcome`).summary).not.toMatch(
+                    /not implemented/
+                )
             })
         }
     }

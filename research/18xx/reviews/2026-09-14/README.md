@@ -24,14 +24,14 @@ The original evidence and coverage are retained unchanged for traceability.
 
 Correctness and architecture/integration findings remain separate. The two stale-test findings have independent file scopes and total **17 failing tests across seven files**; they do not represent 17 gameplay defects.
 
-| Area | ID | Priority | Finding |
-|---|---|---|---|
-| Financial correctness | F1 | P2 | Final PEIR closure leaves its trains owned by the closed company. |
-| Financial test readiness | R1 | P2 | Fourteen existing tests retain old manual-progression or multi-company-sale assumptions. |
-| Operating test readiness | O1 | P2 | Three phase tests retain old train-step completion assumptions. |
-| History integration | H1 | P2 | End-of-stock-round sold-out market movements are missing from history. |
-| History integration | H2 | P2 | Automatic exchanges, presidency changes and private lifecycle effects are missing from history. |
-| Architecture documentation | A1 | P3 | Public title/UI/harness READMEs describe obsolete inspection-only functionality. |
+| Area                       | ID  | Priority | Finding                                                                                         |
+| -------------------------- | --- | -------- | ----------------------------------------------------------------------------------------------- |
+| Financial correctness      | F1  | P2       | Final PEIR closure leaves its trains owned by the closed company.                               |
+| Financial test readiness   | R1  | P2       | Fourteen existing tests retain old manual-progression or multi-company-sale assumptions.        |
+| Operating test readiness   | O1  | P2       | Three phase tests retain old train-step completion assumptions.                                 |
+| History integration        | H1  | P2       | End-of-stock-round sold-out market movements are missing from history.                          |
+| History integration        | H2  | P2       | Automatic exchanges, presidency changes and private lifecycle effects are missing from history. |
+| Architecture documentation | A1  | P3       | Public title/UI/harness READMEs describe obsolete inspection-only functionality.                |
 
 Detailed evidence, exact locations, reproduction conditions and recommended corrections:
 

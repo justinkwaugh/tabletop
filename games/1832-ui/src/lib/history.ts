@@ -26,10 +26,26 @@ import {
 } from '@tabletop/1832'
 import type { StockMarketMove } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
-import type { HistoryDescription, HistoryNames, MoneyFormat } from '@tabletop/18xx-ui'
+import type {
+    HistoryDescription,
+    HistoryMapPlacement,
+    HistoryNames,
+    MoneyFormat
+} from '@tabletop/18xx-ui'
 import { redemptionHolderName } from './companyShareFacts.js'
 
 const TokenNames = { port: 'Port', cotton: 'Cotton', 'key-west': 'Key West' } as const
+
+/** 1832's revenue tokens, for their history rows' map previews. */
+export function eighteenThirtyTwoMapPlacement(action: GameAction): HistoryMapPlacement | undefined {
+    if (isPlaceRevenueToken(action))
+        return {
+            kind: `${TokenNames[action.kind]} token`,
+            companyId: action.companyId,
+            locationIds: [action.locationId]
+        }
+    return undefined
+}
 
 /** 1832's own actions, as history rows. */
 const placeName = (locationId: string) =>

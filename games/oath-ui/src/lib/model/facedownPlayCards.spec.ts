@@ -41,7 +41,8 @@ const use = (cardId: string) => ({ cardId, powerIndex: powerIndexOf(cardId, Powe
 
 const names: HistoryNames = {
     player: (playerId) => ({ dana: 'Dana', rhys: 'Rhys' })[playerId] ?? playerId,
-    site: (siteId) => ({ c1: 'Great Slum', c2: 'Hidden Place', p1: 'Plains', h1: 'Mine' })[siteId] ?? siteId,
+    site: (siteId) =>
+        ({ c1: 'Great Slum', c2: 'Hidden Place', p1: 'Plains', h1: 'Mine' })[siteId] ?? siteId,
     seats: ['dana', 'rhys']
 }
 
@@ -52,7 +53,11 @@ const names: HistoryNames = {
 function table(
     facedown: string,
     faceup: string[] = [],
-    { relics = [], here = [], revision = CURRENT_OATH_REVISION }: { relics?: string[]; here?: string[]; revision?: number } = {}
+    {
+        relics = [],
+        here = [],
+        revision = CURRENT_OATH_REVISION
+    }: { relics?: string[]; here?: string[]; revision?: number } = {}
 ) {
     const state = testState(
         [
@@ -64,7 +69,10 @@ function table(
                 favor: 2,
                 secrets: 2,
                 relicIds: relics,
-                advisers: [{ cardId: facedown, faceUp: false }, ...faceup.map((cardId) => ({ cardId, faceUp: true }))]
+                advisers: [
+                    { cardId: facedown, faceUp: false },
+                    ...faceup.map((cardId) => ({ cardId, faceUp: true }))
+                ]
             }),
             testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'p1' })
         ],
@@ -108,7 +116,9 @@ describe('R-6.1, R-7.4.1 — a card the engine applies by itself is never a row'
         expect(rows(session)).toEqual([])
         const action = lastSent()
         expect(declared(action)).toEqual([])
-        expect(historyOf(state, action)).toBe('played Wayside Inn to their site, gaining 1 secret (Book of Records)')
+        expect(historyOf(state, action)).toBe(
+            'played Wayside Inn to their site, gaining 1 secret (Book of Records)'
+        )
     })
 })
 
@@ -124,7 +134,9 @@ describe('R-6.1, R-7.4 — Wild Cry: a row above the confirm, in use from the st
         await session.confirmAdviserPlay()
         const action = lastSent()
         expect(declared(action)).toEqual([WILD_CRY])
-        expect(historyOf(state, action)).toBe('played Wolves to their site, gaining 1 favor; gained 1 Supply and 2 warbands (Wild Cry)')
+        expect(historyOf(state, action)).toBe(
+            'played Wolves to their site, gaining 1 favor; gained 1 Supply and 2 warbands (Wild Cry)'
+        )
     })
 
     it('a tap puts it down and the send leaves it out; Undo brings it back', async () => {
@@ -176,13 +188,23 @@ describe('R-6.1, R-7.4 — Crop Rotation: its cards join "Discard first", and pi
         const action = lastSent()
         expect(action.discardFirstCardId).toBe(INN)
         expect(declared(action)).toEqual([CROP_ROTATION])
-        expect(historyOf(state, action)).toBe('played Tents to their site, discarding Wayside Inn first (Crop Rotation), gaining 1 favor')
+        expect(historyOf(state, action)).toBe(
+            'played Tents to their site, discarding Wayside Inn first (Crop Rotation), gaining 1 favor'
+        )
     })
 
     it('at a full site the site play is offered, "Play" waits for a card to go first, and that card carries Crop Rotation', async () => {
-        const full = [INN, ...Array.from({ length: FIXTURE_SITE_CAPACITY - 1 }, (_, i) => `denizen.order.filler-${i}`)]
+        const full = [
+            INN,
+            ...Array.from(
+                { length: FIXTURE_SITE_CAPACITY - 1 },
+                (_, i) => `denizen.order.filler-${i}`
+            )
+        ]
         const { session, lastSent } = await playing(table(TENTS, [CROP_ROTATION], { here: full }))
-        expect(session.facedownAdviserOptions[0]?.placements.map((p) => p.play)).toContain(SearchPlay.Site)
+        expect(session.facedownAdviserOptions[0]?.placements.map((p) => p.play)).toContain(
+            SearchPlay.Site
+        )
         await session.chooseAdviserPlay(TENTS, SearchPlay.Site)
         expect(session.adviserDiscardFirstOptions).toEqual(full)
         // The site has no room until a card goes: "Play" waits for the pick, and no red line shows.
@@ -211,7 +233,9 @@ describe('R-6.1, R-7.4 — New Growth: its sites join "Play to:", and picking on
         const action = lastSent()
         expect(action.toSiteId).toBe('p1')
         expect(declared(action)).toEqual([NEW_GROWTH])
-        expect(historyOf(state, action)).toBe('played Wolves to Plains (New Growth), gaining 1 favor')
+        expect(historyOf(state, action)).toBe(
+            'played Wolves to Plains (New Growth), gaining 1 favor'
+        )
     })
 
     it('is not offered for a card it cannot move (not a beast or hearth card): the site play is sent at once', async () => {
@@ -239,7 +263,9 @@ describe('R-6.1, R-7.4 — the Cracked Horn: a second place under "Discard"', ()
         await session.confirmAdviserPlay()
         const action = lastSent()
         expect(declared(action)).toEqual([HORN])
-        expect(historyOf(state, action)).toBe('discarded a card under the world deck (Cracked Horn)')
+        expect(historyOf(state, action)).toBe(
+            'discarded a card under the world deck (Cracked Horn)'
+        )
     })
 
     it('is offered under Discard only', async () => {
@@ -255,7 +281,11 @@ describe('R-6.1, Bracken — its piles and their side under "To", nothing picked
         await session.chooseAdviserPlay(WOLVES, SearchPlay.Discard)
         expect(sent).not.toHaveBeenCalled()
         expect(session.adviserDiscardPileCard?.cardId).toBe(BRACKEN)
-        expect(session.adviserDiscardPiles).toEqual([Region.Cradle, Region.Provinces, Region.Hinterland])
+        expect(session.adviserDiscardPiles).toEqual([
+            Region.Cradle,
+            Region.Provinces,
+            Region.Hinterland
+        ])
         expect(session.adviserDiscardPlace).toEqual({})
         expect(session.adviserPlayComplete).toBe(false)
         session.setAdviserDiscardPile(Region.Hinterland)
@@ -284,7 +314,13 @@ describe('R-6.1, Bracken — its piles and their side under "To", nothing picked
         await session.confirmAdviserPlay()
         const action = lastSent()
         expect(action.modifiers).toEqual([
-            { ...use(BRACKEN), choices: [{ kind: PowerChoiceKind.Region, region: Region.Hinterland }, { kind: PowerChoiceKind.Yes }] }
+            {
+                ...use(BRACKEN),
+                choices: [
+                    { kind: PowerChoiceKind.Region, region: Region.Hinterland },
+                    { kind: PowerChoiceKind.Yes }
+                ]
+            }
         ])
         const applied = new HydratedPlayFacedownAdviser(action)
         applied.apply(state)
@@ -325,16 +361,30 @@ describe('R-6.1, Bracken — its piles and their side under "To", nothing picked
 describe('R-X.4 — a game created before the facedown play took modifiers offers no card', () => {
     it('the same cards are no row, no site, no discard first and no place; each play is sent at once with none', async () => {
         const cards = { relics: [HORN], here: [INN, NEW_GROWTH] }
-        const old = () => table(WAR_TORTOISE, [WILD_CRY, CROP_ROTATION], { ...cards, revision: OathRevision.TurnFlow })
+        const old = () =>
+            table(WAR_TORTOISE, [WILD_CRY, CROP_ROTATION], {
+                ...cards,
+                revision: OathRevision.TurnFlow
+            })
         // The same table in a game of today offers every one of them.
-        const today = (await playing(table(WAR_TORTOISE, [WILD_CRY, CROP_ROTATION], cards))).session.facedownAdviserOptions[0]?.placements
+        const today = (await playing(table(WAR_TORTOISE, [WILD_CRY, CROP_ROTATION], cards))).session
+            .facedownAdviserOptions[0]?.placements
         const offered = (play: SearchPlay) => today?.find((p) => p.play === play)?.cards
         expect(offered(SearchPlay.Site)?.rows.map((r) => r.cardId)).toEqual([WILD_CRY])
-        expect(offered(SearchPlay.Site)?.placing.map((r) => r.cardId).sort()).toEqual([NEW_GROWTH, CROP_ROTATION])
+        expect(
+            offered(SearchPlay.Site)
+                ?.placing.map((r) => r.cardId)
+                .sort()
+        ).toEqual([NEW_GROWTH, CROP_ROTATION])
         expect(offered(SearchPlay.Discard)?.places.map((r) => r.cardId)).toEqual([HORN])
         for (const play of [SearchPlay.Site, SearchPlay.Adviser, SearchPlay.Discard]) {
             const { session, lastSent } = await playing(old())
-            expect(session.facedownAdviserOptions[0]?.placements.every((p) => p.cards.rows.length + p.cards.places.length + p.cards.placing.length === 0)).toBe(true)
+            expect(
+                session.facedownAdviserOptions[0]?.placements.every(
+                    (p) =>
+                        p.cards.rows.length + p.cards.places.length + p.cards.placing.length === 0
+                )
+            ).toBe(true)
             await session.chooseAdviserPlay(WAR_TORTOISE, play)
             expect(declared(lastSent())).toEqual([])
         }

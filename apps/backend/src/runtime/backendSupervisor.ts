@@ -12,6 +12,8 @@ export interface SupervisorOptions {
     // How long close() lets the worker finish the requests it holds before killing it.
     drainTimeoutMs?: number
     retryDelayMs?: number
+    // How long readiness vouches for a worker that announced it is loading game logic.
+    titleLoadGraceMs?: number
 }
 
 // Starts the backend worker and starts another when it exits. Game logic changes are activated
@@ -33,8 +35,19 @@ export class BackendSupervisor {
     }
 
     acquire(): BackendTarget | undefined {
+        const serving = this.serving()
+        if (!serving) return undefined
+        return { port: serving.port, release: serving.child.retain() }
+    }
+
+    vouchingForTitleLoad(): boolean {
+        const elapsed = this.serving()?.child.titleLoadElapsedMs()
+        return elapsed !== undefined && elapsed < (this.options.titleLoadGraceMs ?? 30_000)
+    }
+
+    private serving(): { child: BackendChild; port: number } | undefined {
         if (!this.active || !this.activePort || this.stopping) return undefined
-        return { port: this.activePort, release: this.active.retain() }
+        return { child: this.active, port: this.activePort }
     }
 
     async acquireWhenReady(signal: AbortSignal): Promise<BackendTarget> {

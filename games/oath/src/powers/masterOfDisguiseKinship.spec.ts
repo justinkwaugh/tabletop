@@ -53,7 +53,14 @@ interface Scene {
  * board; every bank holds 3. Ann holds Secret Signal faceup and a facedown adviser; Bea holds no
  * faceup adviser and rules c1. Wolves are at p1.
  */
-function scene({ dana, ann, careless = false, curfew = false, orderBank = 3, revision = AT }: Scene = {}) {
+function scene({
+    dana,
+    ann,
+    careless = false,
+    curfew = false,
+    orderBank = 3,
+    revision = AT
+}: Scene = {}) {
     const s = testState(
         [
             testPlayer({
@@ -79,13 +86,26 @@ function scene({ dana, ann, careless = false, curfew = false, orderBank = 3, rev
                 advisers: [adviser(SIGNAL), adviser(TENTS, false)],
                 ...ann
             }),
-            testPlayer({ playerId: 'bea', color: Color.Yellow, siteId: 'h2', favor: 1, warbandsOnBoard: { bea: 2 } })
+            testPlayer({
+                playerId: 'bea',
+                color: Color.Yellow,
+                siteId: 'h2',
+                favor: 1,
+                warbandsOnBoard: { bea: 2 }
+            })
         ],
         {
             oathRevision: revision,
             chancellorPlayerId: careless ? 'dana' : 'ann',
-            ...(careless ? { reliquary: [0, 1, 3].map((i) => ({ slotId: reliquarySlotId(i) })) } : {}),
-            denizensBySite: { c1: curfew ? [TOLL_ROADS, CURFEW] : [TOLL_ROADS], c2: [], p1: [WOLVES], h1: [] },
+            ...(careless
+                ? { reliquary: [0, 1, 3].map((i) => ({ slotId: reliquarySlotId(i) })) }
+                : {}),
+            denizensBySite: {
+                c1: curfew ? [TOLL_ROADS, CURFEW] : [TOLL_ROADS],
+                c2: [],
+                p1: [WOLVES],
+                h1: []
+            },
             warbandsBySite: { c1: { bea: 1 } }
         }
     )
@@ -96,7 +116,10 @@ function scene({ dana, ann, careless = false, curfew = false, orderBank = 3, rev
 }
 type Board = ReturnType<typeof scene>
 
-const disguisedAs = (playerId: string, ...more: ModifierUse[]) => [modifierUse(MASTER, [player(playerId)]), ...more]
+const disguisedAs = (playerId: string, ...more: ModifierUse[]) => [
+    modifierUse(MASTER, [player(playerId)]),
+    ...more
+]
 
 function trade(
     s: Board,
@@ -104,13 +127,19 @@ function trade(
     modifiers: ModifierUse[] = disguisedAs('ann'),
     { tolls, cardId = TOLL_ROADS }: { tolls?: string[]; cardId?: string } = {}
 ) {
-    const action = new HydratedTrade(buildAction(Trade, { playerId: 'dana', cardId, option, modifiers, tolls }))
+    const action = new HydratedTrade(
+        buildAction(Trade, { playerId: 'dana', cardId, option, modifiers, tolls })
+    )
     expectFavorConserved(s, () => action.apply(s))
     return action
 }
 
-const reason = (s: Board, option: TradeOption, modifiers: ModifierUse[] = disguisedAs('ann'), tolls?: string[]) =>
-    HydratedTrade.reasonCannotTrade(s, 'dana', TOLL_ROADS, option, modifiers, tolls)
+const reason = (
+    s: Board,
+    option: TradeOption,
+    modifiers: ModifierUse[] = disguisedAs('ann'),
+    tolls?: string[]
+) => HydratedTrade.reasonCannotTrade(s, 'dana', TOLL_ROADS, option, modifiers, tolls)
 
 const nomad = (s: Board) => s.favorBank[Suit.Nomad]
 const onBoard = (s: Board, playerId = 'dana') => s.getPlayerState(playerId).favor
@@ -132,9 +161,21 @@ describe('Master of Disguise around the borrower’s own Vow of Kinship (its Q&A
         const modifiers = disguisedAs('ann', modifierUse(SIGNAL))
         const plan = HydratedTrade.plan(s, 'dana', TOLL_ROADS, TradeOption.ForSecrets, modifiers)
         expect(plan.reason).toBeUndefined()
-        expect(HydratedTrade.sideFavor(s, 'dana', TOLL_ROADS, TradeOption.ForSecrets, plan.active, modifiers)).toBe(2)
+        expect(
+            HydratedTrade.sideFavor(
+                s,
+                'dana',
+                TOLL_ROADS,
+                TradeOption.ForSecrets,
+                plan.active,
+                modifiers
+            )
+        ).toBe(2)
         const a = trade(s, TradeOption.ForSecrets, modifiers)
-        expect(a.metadata?.modifierNotes).toEqual(['Careless: gained 1 favor', 'Secret Signal: gained 1 more favor'])
+        expect(a.metadata?.modifierNotes).toEqual([
+            'Careless: gained 1 favor',
+            'Secret Signal: gained 1 more favor'
+        ])
         // The two placed came off the board; the two gained came back to it.
         expect(s.tokensOn(TOLL_ROADS).favor).toBe(2)
         expect(s.favorBank[Suit.Order]).toBe(1)
@@ -145,7 +186,9 @@ describe('Master of Disguise around the borrower’s own Vow of Kinship (its Q&A
     it('a Trade for secrets pays from the board alone: refused with the two favor only in the Nomad bank', () => {
         const poor = scene({ dana: { favor: 0 } })
         expect(nomad(poor)).toBe(3)
-        expect(reason(poor, TradeOption.ForSecrets)).toMatch(/trading for secrets requires two favor to place/)
+        expect(reason(poor, TradeOption.ForSecrets)).toMatch(
+            /trading for secrets requires two favor to place/
+        )
         // Undisguised, the Vow binds the Trade and the bank pays.
         expect(reason(poor, TradeOption.ForSecrets, [])).toBeUndefined()
 
@@ -158,7 +201,9 @@ describe('Master of Disguise around the borrower’s own Vow of Kinship (its Q&A
 
     it('a toll paid in the same Trade comes off the board too: Curfew’s favor is totalled with the two placed', () => {
         const short = scene({ curfew: true })
-        expect(reason(short, TradeOption.ForSecrets, disguisedAs('ann'), [CURFEW])).toMatch(/costs 3 favor in all, you hold 2/)
+        expect(reason(short, TradeOption.ForSecrets, disguisedAs('ann'), [CURFEW])).toMatch(
+            /costs 3 favor in all, you hold 2/
+        )
 
         const s = scene({ curfew: true, dana: { favor: 3 } })
         const a = trade(s, TradeOption.ForSecrets, disguisedAs('ann'), { tolls: [CURFEW] })
@@ -185,7 +230,12 @@ describe('Master of Disguise around the borrower’s own Vow of Kinship (its Q&A
 
     it('a borrowed Small Friends acts at its site, and the favor still lands on the board', () => {
         const s = scene({ ann: { advisers: [adviser(SMALL_FRIENDS)] } })
-        const a = trade(s, TradeOption.ForFavor, disguisedAs('ann', modifierUse(SMALL_FRIENDS, [site('p1')])), { cardId: WOLVES })
+        const a = trade(
+            s,
+            TradeOption.ForFavor,
+            disguisedAs('ann', modifierUse(SMALL_FRIENDS, [site('p1')])),
+            { cardId: WOLVES }
+        )
         // Small Friends is Ann's one Beast adviser: 1 + 1 favor.
         expect(a.metadata?.favorGained).toBe(2)
         expect(s.favorBank[Suit.Beast]).toBe(1)
@@ -215,7 +265,11 @@ describe('Master of Disguise around the borrower’s own Vow of Kinship (its Q&A
 
 describe('Master of Disguise borrowing a lender’s Vow of Kinship', () => {
     const lent = (over: Scene = {}) =>
-        scene({ ...over, dana: { favor: 0, advisers: [adviser(MASTER)], ...over.dana }, ann: { advisers: [adviser(VOW)], ...over.ann } })
+        scene({
+            ...over,
+            dana: { favor: 0, advisers: [adviser(MASTER)], ...over.dana },
+            ann: { advisers: [adviser(VOW)], ...over.ann }
+        })
 
     it('the Trade’s favor goes to the Nomad bank', () => {
         const s = lent()
@@ -226,7 +280,9 @@ describe('Master of Disguise borrowing a lender’s Vow of Kinship', () => {
 
     it('a Trade for secrets may pay from the Nomad bank, and its toll too', () => {
         const s = lent()
-        expect(reason(s, TradeOption.ForSecrets, [])).toMatch(/trading for secrets requires two favor to place/)
+        expect(reason(s, TradeOption.ForSecrets, [])).toMatch(
+            /trading for secrets requires two favor to place/
+        )
         trade(s, TradeOption.ForSecrets)
         expect(s.tokensOn(TOLL_ROADS).favor).toBe(2)
         expect(nomad(s)).toBe(1)
@@ -242,7 +298,9 @@ describe('Master of Disguise borrowing a lender’s Vow of Kinship', () => {
         const s = lent({ careless: true, ann: { advisers: [adviser(POVERTY), adviser(VOW)] } })
         expect(reason(s, TradeOption.ForFavor)).toMatch(/Vow of Poverty/)
         const a = trade(s, TradeOption.ForSecrets)
-        expect(a.metadata?.modifierNotes).toEqual(['Careless: you cannot gain favor from Trade (Vow of Poverty)'])
+        expect(a.metadata?.modifierNotes).toEqual([
+            'Careless: you cannot gain favor from Trade (Vow of Poverty)'
+        ])
         expect(nomad(s)).toBe(1)
         expect(onBoard(s)).toBe(0)
         expect(s.favorBank[Suit.Order]).toBe(3)
@@ -259,8 +317,13 @@ describe('a Trade modifier’s favor cost follows the lent Vow too', () => {
     }
 
     it('judged and paid from the Nomad bank under the lender’s Vow, and from the board alone under the borrower’s own', () => {
-        const lent = scene({ dana: { favor: 0, advisers: [adviser(MASTER)] }, ann: { advisers: [adviser(VOW)] } })
-        expect(reasonCannotPayPowerCost(lent, 'dana', elders())).toMatch(/costs 2 favor, player has 0/)
+        const lent = scene({
+            dana: { favor: 0, advisers: [adviser(MASTER)] },
+            ann: { advisers: [adviser(VOW)] }
+        })
+        expect(reasonCannotPayPowerCost(lent, 'dana', elders())).toMatch(
+            /costs 2 favor, player has 0/
+        )
         expect(reasonCannotPayPowerCost(lent, 'dana', elders(), undefined, 'ann')).toBeUndefined()
         expectFavorConserved(lent, () => payPowerCost(lent, 'dana', elders(), 'ann'))
         expect(lent.tokensOn(ELDERS).favor).toBe(2)
@@ -268,12 +331,20 @@ describe('a Trade modifier’s favor cost follows the lent Vow too', () => {
 
         const own = scene({ dana: { favor: 0 } })
         expect(reasonCannotPayPowerCost(own, 'dana', elders())).toBeUndefined()
-        expect(reasonCannotPayPowerCost(own, 'dana', elders(), undefined, 'ann')).toMatch(/costs 2 favor, player has 0/)
+        expect(reasonCannotPayPowerCost(own, 'dana', elders(), undefined, 'ann')).toMatch(
+            /costs 2 favor, player has 0/
+        )
     })
 
     it('before revision 23 the lent set does not change it', () => {
-        const lent = scene({ revision: BEFORE, dana: { favor: 0, advisers: [adviser(MASTER)] }, ann: { advisers: [adviser(VOW)] } })
-        expect(reasonCannotPayPowerCost(lent, 'dana', elders(), undefined, 'ann')).toMatch(/costs 2 favor, player has 0/)
+        const lent = scene({
+            revision: BEFORE,
+            dana: { favor: 0, advisers: [adviser(MASTER)] },
+            ann: { advisers: [adviser(VOW)] }
+        })
+        expect(reasonCannotPayPowerCost(lent, 'dana', elders(), undefined, 'ann')).toMatch(
+            /costs 2 favor, player has 0/
+        )
         const own = scene({ revision: BEFORE, dana: { favor: 0 } })
         expect(reasonCannotPayPowerCost(own, 'dana', elders(), undefined, 'ann')).toBeUndefined()
     })
@@ -292,8 +363,14 @@ describe('R-X.4 — before revision 23 the borrower’s own Vow binds the borrow
     })
 
     it('a lender’s Vow does not bind it', () => {
-        const s = scene({ revision: BEFORE, dana: { favor: 0, advisers: [adviser(MASTER)] }, ann: { advisers: [adviser(VOW)] } })
-        expect(reason(s, TradeOption.ForSecrets)).toMatch(/trading for secrets requires two favor to place/)
+        const s = scene({
+            revision: BEFORE,
+            dana: { favor: 0, advisers: [adviser(MASTER)] },
+            ann: { advisers: [adviser(VOW)] }
+        })
+        expect(reason(s, TradeOption.ForSecrets)).toMatch(
+            /trading for secrets requires two favor to place/
+        )
         trade(s, TradeOption.ForFavor)
         expect(onBoard(s)).toBe(1)
         expect(nomad(s)).toBe(3)
@@ -306,14 +383,26 @@ describe('R-X.4 — before revision 23 the borrower’s own Vow binds the borrow
         ]) {
             const before = scene({ revision }).dehydrate()
             const game = testGame(['dana', 'ann', 'bea'])
-            const action = buildAction(Trade, { playerId: 'dana', cardId: TOLL_ROADS, option: TradeOption.ForFavor, modifiers: disguisedAs('ann') })
+            const action = buildAction(Trade, {
+                playerId: 'dana',
+                cardId: TOLL_ROADS,
+                option: TradeOption.ForFavor,
+                modifiers: disguisedAs('ann')
+            })
             const recorded = engine.runNext(action, structuredClone(before), game)
-            expect(recorded.updatedState.players.find((p) => p.playerId === 'dana')?.favor).toBe(board)
+            expect(recorded.updatedState.players.find((p) => p.playerId === 'dana')?.favor).toBe(
+                board
+            )
             expect(recorded.updatedState.favorBank[Suit.Nomad]).toBe(bank)
 
             let replayed = structuredClone(before)
             for (const processed of recorded.processedActions)
-                replayed = engine.run(structuredClone(processed), replayed, game, RunMode.Single).updatedState
+                replayed = engine.run(
+                    structuredClone(processed),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(recorded.updatedState)
         }
     })
@@ -325,19 +414,46 @@ describe('Master of Disguise and Vow of Kinship on the borrower’s own view', (
         const scenes = [
             scene({ careless: true }),
             scene({ dana: { favor: 0 } }),
-            scene({ careless: true, dana: { favor: 0, advisers: [adviser(MASTER)] }, ann: { advisers: [adviser(VOW), adviser(SIGNAL), adviser(TENTS, false)] } })
+            scene({
+                careless: true,
+                dana: { favor: 0, advisers: [adviser(MASTER)] },
+                ann: { advisers: [adviser(VOW), adviser(SIGNAL), adviser(TENTS, false)] }
+            })
         ]
         for (const s of scenes) {
-            const own = OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, view)), view)
+            const own = OathVisibility.state.guardForExecution(
+                new HydratedOathGameState(served(s, view)),
+                view
+            )
             for (const option of [TradeOption.ForFavor, TradeOption.ForSecrets]) {
-                for (const modifiers of [disguisedAs('ann'), disguisedAs('ann', modifierUse(SIGNAL)), []]) {
+                for (const modifiers of [
+                    disguisedAs('ann'),
+                    disguisedAs('ann', modifierUse(SIGNAL)),
+                    []
+                ]) {
                     const whole = HydratedTrade.plan(s, 'dana', TOLL_ROADS, option, modifiers)
                     const seen = HydratedTrade.plan(own, 'dana', TOLL_ROADS, option, modifiers)
                     expect(seen.reason).toEqual(whole.reason)
                     expect(seen.cost).toEqual(whole.cost)
                     if (whole.reason) continue
-                    expect(HydratedTrade.sideFavor(own, 'dana', TOLL_ROADS, option, seen.active, modifiers)).toBe(
-                        HydratedTrade.sideFavor(s, 'dana', TOLL_ROADS, option, whole.active, modifiers)
+                    expect(
+                        HydratedTrade.sideFavor(
+                            own,
+                            'dana',
+                            TOLL_ROADS,
+                            option,
+                            seen.active,
+                            modifiers
+                        )
+                    ).toBe(
+                        HydratedTrade.sideFavor(
+                            s,
+                            'dana',
+                            TOLL_ROADS,
+                            option,
+                            whole.active,
+                            modifiers
+                        )
                     )
                 }
             }

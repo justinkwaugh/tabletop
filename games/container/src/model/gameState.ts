@@ -19,10 +19,7 @@ import {
     MAX_LOANS,
     SHIP_CAPACITY
 } from '../definition/constants.js'
-import {
-    ContainerPlayerState,
-    HydratedContainerPlayerState
-} from './playerState.js'
+import { ContainerPlayerState, HydratedContainerPlayerState } from './playerState.js'
 import {
     ForeignIslandAuction,
     HydratedForeignIslandAuction

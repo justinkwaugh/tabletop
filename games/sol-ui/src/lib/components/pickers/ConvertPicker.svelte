@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { HydratedConvert } from '@tabletop/sol'
     import Gate from '$lib/images/gate.svelte'
     import Tower from '$lib/images/tower.svelte'

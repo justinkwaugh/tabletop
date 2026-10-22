@@ -93,6 +93,8 @@ export function gamblingHallUsed(
             cardId: GAMBLING_HALL,
             powerIndex: powerIndexOf(GAMBLING_HALL, PowerTiming.Action)
         }),
-        ...answers.map((answer) => createAction(AnswerQuestion, { ...envelope, playerId: 'Dana', answer }))
+        ...answers.map((answer) =>
+            createAction(AnswerQuestion, { ...envelope, playerId: 'Dana', answer })
+        )
     ])
 }

@@ -7,7 +7,10 @@ export function createDistrictTooltip(session: UrbinoGameSession, pos: number): 
     const info = getDistrictInfo(state.board, pos, state.monumentsVariant)
     const district = getDistrictFrom(state.board, pos)
 
-    let minTop = Infinity, minLeft = Infinity, maxRight = -Infinity, maxBottom = -Infinity
+    let minTop = Infinity,
+        minLeft = Infinity,
+        maxRight = -Infinity,
+        maxBottom = -Infinity
     for (const dPos of district) {
         const el = document.querySelector(`[data-board-pos="${dPos}"]`)
         if (!el) continue
@@ -19,10 +22,11 @@ export function createDistrictTooltip(session: UrbinoGameSession, pos: number): 
     }
     const centerX = isFinite(minLeft) ? (minLeft + maxRight) / 2 : 0
     const districtCenterY = isFinite(minTop) ? (minTop + maxBottom) / 2 : 0
-    const boardTop = document.querySelector('[data-board-pos="0"]')?.getBoundingClientRect().top ?? 0
+    const boardTop =
+        document.querySelector('[data-board-pos="0"]')?.getBoundingClientRect().top ?? 0
     const boardBottom =
-        document.querySelector(`[data-board-pos="${BOARD_SQUARES - 1}"]`)?.getBoundingClientRect().bottom ??
-        window.innerHeight
+        document.querySelector(`[data-board-pos="${BOARD_SQUARES - 1}"]`)?.getBoundingClientRect()
+            .bottom ?? window.innerHeight
     const aboveDistrict = districtCenterY > (boardTop + boardBottom) / 2
 
     const container = document.createElement('div')
@@ -51,11 +55,18 @@ export function createDistrictTooltip(session: UrbinoGameSession, pos: number): 
     for (const [pid, stats] of sorted) {
         const isWinner = pid === info.winner
         const row = document.createElement('div')
-        Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '6px', fontWeight: isWinner ? '600' : '400' })
+        Object.assign(row.style, {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontWeight: isWinner ? '600' : '400'
+        })
 
         const dot = document.createElement('div')
         Object.assign(dot.style, {
-            width: '10px', height: '10px', borderRadius: '2px',
+            width: '10px',
+            height: '10px',
+            borderRadius: '2px',
             border: '1px solid #8a6a48',
             background: session.colors.getPlayerUiColor(pid),
             flexShrink: '0'
@@ -64,7 +75,7 @@ export function createDistrictTooltip(session: UrbinoGameSession, pos: number): 
         const label = document.createElement('span')
         label.style.color = '#2c1810'
         const name = pid === session.myPlayer?.id ? 'You' : (session.getPlayerName(pid) ?? 'Player')
-        const suffix = isWinner ? ' ★' : (info.contested ? '' : ' (no points)')
+        const suffix = isWinner ? ' ★' : info.contested ? '' : ' (no points)'
         label.textContent = `${name}: ${stats.total} pt${stats.total !== 1 ? 's' : ''}${suffix}`
 
         row.appendChild(dot)

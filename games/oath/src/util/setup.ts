@@ -189,10 +189,9 @@ export function buildInitialPublicState(
     placeSiteRevealRelicSlots(state)
 
     // R-1.17, R-9.4 — the identities are dealt by `buildSetupVault`.
-    state.reliquary = Array.from(
-        { length: RELIQUARY_SIZE },
-        (_, i): RelicSlot => ({ slotId: reliquarySlotId(i) })
-    )
+    state.reliquary = Array.from({ length: RELIQUARY_SIZE }, (_, i): RelicSlot => ({
+        slotId: reliquarySlotId(i)
+    }))
 
     // R-1.18, R-1.21 — the decks live in the vault; public state carries only what R-9.4 permits.
     state.worldDeckExhausted = false

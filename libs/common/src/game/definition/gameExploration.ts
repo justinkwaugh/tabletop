@@ -15,4 +15,5 @@ export interface ExplorationPopulation<T extends GameState> {
 export interface GameExploration<T extends GameState = GameState> {
     createFromCanonicalState(state: T): T
     createFromProjectedState?(input: ExplorationPopulation<T>): T
+    keepsSourceDeclaration?(action: GameAction): boolean
 }

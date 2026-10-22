@@ -30,7 +30,7 @@ const urbinoPlayerColorPalette: PlayerColorPalette = {
     [Color.Purple]: { fill: '#6e385c', text: '#ffffff', contrast: '#ffffff' },
     [Color.Pink]: { fill: '#ec4899', text: '#ffffff', contrast: '#ffffff' },
     [Color.Gray]: { fill: '#aaaaaa', text: '#ffffff', contrast: '#ffffff' },
-    [Color.Black]: { fill: '#444444', text: '#ffffff', contrast: '#ffffff' },
+    [Color.Black]: { fill: '#444444', text: '#ffffff', contrast: '#ffffff' }
 }
 
 export const UrbinoUiRuntime: GameUIRuntime<UrbinoGameState, HydratedUrbinoGameState> = {

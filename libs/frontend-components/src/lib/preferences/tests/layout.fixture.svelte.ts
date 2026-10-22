@@ -13,18 +13,37 @@ export function start() {
     account = 'alice'
     stored = null
     cleanup = $effect.root(() => {
-        controller = new DebouncedLayout(() => ({ ready: true, key: `layout-test:${account}`, value: stored }), async value => {
-            writes.push(value)
-            if (fail) return false
-            stored = value
-            return true
-        })
+        controller = new DebouncedLayout(
+            () => ({ ready: true, key: `layout-test:${account}`, value: stored }),
+            async (value) => {
+                writes.push(value)
+                if (fail) return false
+                stored = value
+                return true
+            }
+        )
     })
     flushSync()
 }
-export function edit(value: unknown) { controller?.change(value); flushSync() }
-export function failWrites(value: boolean) { fail = value }
-export async function save() { await controller?.save(); flushSync() }
-export function switchAccount() { account = 'bob'; flushSync() }
-export function snapshot() { flushSync(); return { writes, status: controller?.status, value: controller?.value } }
-export function dispose() { cleanup?.() }
+export function edit(value: unknown) {
+    controller?.change(value)
+    flushSync()
+}
+export function failWrites(value: boolean) {
+    fail = value
+}
+export async function save() {
+    await controller?.save()
+    flushSync()
+}
+export function switchAccount() {
+    account = 'bob'
+    flushSync()
+}
+export function snapshot() {
+    flushSync()
+    return { writes, status: controller?.status, value: controller?.value }
+}
+export function dispose() {
+    cleanup?.()
+}

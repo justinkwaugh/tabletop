@@ -35,7 +35,9 @@ import {
     isIssueTreasuryShares,
     isFloatCompany,
     isEndGame,
+    isScheduleGameEnd,
     isStartOperatingSet,
+    isStartStockRound,
     isStartOperatingRound,
     isStartOperatingTurn,
     sameOwner,
@@ -62,6 +64,7 @@ import {
     isGoBankrupt,
     isDiscardTrain,
     isRustTrains,
+    isPlaceHomeStations,
     type DeparturePayment,
     type Owner,
     type PresidencyChange,
@@ -73,6 +76,7 @@ import { assertExists, type GameAction } from '@tabletop/common'
 
 export type HistoryDescription = {
     text: string
+    afterActorText?: string
     omitActor?: boolean
     trainDefinitionIds?: string[]
     beforeText?: string
@@ -114,12 +118,29 @@ export function ownerName(owner: Owner, names: HistoryNames): string {
           : names.companyName(owner.companyId)
 }
 
-/** A player's row after their name: a leading verb in lower case, a leading company name as written. */
-export function afterPlayerName(text: string, companyLabels: readonly string[]): string {
-    const startsWithCompany = companyLabels.some(
+function shareCount(shares: number): string {
+    return `${shares} ${shares === 1 ? 'share' : 'shares'}`
+}
+
+export function companyLabels(
+    companies: readonly { id: string }[],
+    initials: (id: string) => string,
+    name: (id: string) => string
+): string[] {
+    return companies.flatMap((company) => [initials(company.id), name(company.id)])
+}
+
+export function startsWithCompanyLabel(text: string, labels: readonly string[]): boolean {
+    return labels.some(
         (label) => text.startsWith(label) && !/\p{L}/u.test(text.charAt(label.length))
     )
-    return startsWithCompany ? text : text.charAt(0).toLowerCase() + text.slice(1)
+}
+
+/** A player's row after their name: a leading verb in lower case, a leading company name as written. */
+export function afterPlayerName(text: string, companyLabels: readonly string[]): string {
+    return startsWithCompanyLabel(text, companyLabels)
+        ? text
+        : text.charAt(0).toLowerCase() + text.slice(1)
 }
 
 /** Joins a row's details, leaving out those it lacks. */
@@ -273,10 +294,37 @@ function describeShared(
         }
     if (isPlacePrivateMarker(action))
         return { text: `Marked ${action.locationId} with ${companyName(action.privateCompanyId)}` }
-    if (isChooseHomeStation(action)) return { text: `Home station at ${action.locationId}` }
+    if (isChooseHomeStation(action))
+        return {
+            text: `Home station at ${action.locationId}`,
+            afterActorText: `Chose its home station at ${action.locationId}`
+        }
+    if (isPlaceHomeStations(action)) {
+        assertExists(action.metadata, 'Recorded home stations require their placements')
+        return {
+            text: 'Placed home stations',
+            detail: joinDetails(
+                ...action.metadata.map(
+                    (placement) =>
+                        `${companyName(placement.companyId)} at ${placement.position.locationId}`
+                )
+            )
+        }
+    }
+    if (isRustTrains(action)) {
+        assertExists(action.metadata, 'Recorded rusting requires its trains')
+        const count = action.metadata.trainIds.length
+        return {
+            text: `${companyName(action.companyId)}’s obsolete trains rusted`,
+            omitActor: true,
+            detail: `${count} ${count === 1 ? 'train' : 'trains'} removed`,
+            important: true
+        }
+    }
     if (isPlacePrivateStation(action))
         return {
             text: `Station at ${action.position.locationId} with ${companyName(action.privateCompanyId)}`,
+            afterActorText: `Placed a station at ${action.position.locationId} with ${companyName(action.privateCompanyId)}`,
             value: 'Free'
         }
     if (isDeclinePrivateStation(action))
@@ -284,6 +332,7 @@ function describeShared(
     if (isPlaceStation(action))
         return {
             text: `Station at ${action.position.locationId}`,
+            afterActorText: `Placed a station at ${action.position.locationId}`,
             value: action.expectedCost ? money(action.expectedCost) : 'Free'
         }
     if (isRunTrains(action)) {
@@ -424,6 +473,7 @@ function describeShared(
         assertExists(action.metadata, 'Recorded share sale requires its settlement')
         const multipleCompanies =
             new Set(action.metadata.sales.map((sale) => sale.companyId)).size > 1
+        const issued = action.metadata.sales.reduce((total, sale) => total + sale.shares, 0)
         return {
             beforeText:
                 isSellFundingShares(action) && action.metadata.requiredContribution
@@ -431,6 +481,9 @@ function describeShared(
                     : undefined,
             ledgerText: isIssueTreasuryShares(action)
                 ? `Issued ${action.metadata.sales.map((sale) => `${sale.shares} ${companyName(sale.companyId)}`).join(', ')}`
+                : undefined,
+            afterActorText: isIssueTreasuryShares(action)
+                ? `Issued ${shareCount(issued)} for ${money(action.metadata.proceeds)}`
                 : undefined,
             text: `${isIssueTreasuryShares(action) ? 'Issued' : 'Sold'} ${action.metadata.sales.map((sale) => `${sale.shares} ${companyName(sale.companyId)}`).join(', ')} for ${money(action.metadata.proceeds)}`,
             detail:
@@ -621,6 +674,7 @@ function describeShared(
         }
     }
     if (isStartOperatingSet(action)) return { text: 'Started operating set', routine: true }
+    if (isStartStockRound(action)) return { text: 'Started stock round', routine: true }
     if (isStartOperatingTurn(action))
         return { text: `Started ${companyName(action.companyId)}’s turn`, routine: true }
     if (isStartOperatingRound(action)) {
@@ -639,6 +693,20 @@ function describeShared(
                       .join(' · ')
               }
             : { text: 'Operating order', important: true }
+    }
+    if (isScheduleGameEnd(action)) {
+        assertExists(action.metadata, 'Recorded game end requires its ending')
+        const { reason, finalOperatingSet } = action.metadata
+        return {
+            text: 'Game end triggered',
+            detail: joinDetails(
+                reason,
+                finalOperatingSet !== undefined
+                    ? `Ends after operating set ${finalOperatingSet}`
+                    : undefined
+            ),
+            important: true
+        }
     }
     if (isEndGame(action)) return { text: 'Game ended', important: true }
     if (isOfferPurchase(action) || isRespondToPurchaseOffer(action)) {

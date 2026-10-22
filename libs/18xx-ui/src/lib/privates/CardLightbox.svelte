@@ -21,10 +21,10 @@
 <style>
     .card-image {
         display: block;
-        /* Portrait cards (about 3:5): fill the shorter viewport dimension with a margin. */
-        width: min(92vw, calc((100dvh - 48px) * 0.6));
-        max-height: calc(100dvh - 48px);
+        width: auto;
         height: auto;
+        max-width: 92vw;
+        max-height: min(100dvh - 48px, 560px);
         border-radius: 14px;
         box-shadow: 0 18px 48px rgb(0 0 0 / 0.5);
     }

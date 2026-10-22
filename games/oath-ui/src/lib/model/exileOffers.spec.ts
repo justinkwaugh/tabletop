@@ -3,11 +3,7 @@ import { Color } from '@tabletop/common'
 import { ActionType, Banner, IMPERIAL_WARBANDS, PlayerStatus } from '@tabletop/oath'
 import { testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { exileCitizenOffers, selfExileOffer } from './exileOffers.js'
-import {
-    MINOR_TARGETED_ACTIONS,
-    UNTARGETED_ACTIONS,
-    actionName
-} from './actionCatalogue.js'
+import { MINOR_TARGETED_ACTIONS, UNTARGETED_ACTIONS, actionName } from './actionCatalogue.js'
 
 const CHANCELLOR = 'chan'
 

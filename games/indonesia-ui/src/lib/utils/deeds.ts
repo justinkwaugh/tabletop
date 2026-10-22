@@ -45,7 +45,9 @@ export function shippingSizeEntriesFromDeed(deed: AnyDeed): readonly ShippingSiz
     return shippingSizeEntriesFromRecord(deed.sizes)
 }
 
-export function shippingSizeTotalsFromDeeds(deeds: readonly AnyDeed[]): readonly ShippingSizeEntry[] {
+export function shippingSizeTotalsFromDeeds(
+    deeds: readonly AnyDeed[]
+): readonly ShippingSizeEntry[] {
     const totals: Record<ShippingEra, number> = {
         [Era.A]: 0,
         [Era.B]: 0,

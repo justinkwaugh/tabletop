@@ -239,10 +239,7 @@ describe('R-4.3.3 / R-4.3.4 — refresh and save Supply', () => {
     })
 
     it('cannot refresh past the leftmost space (R-4.3.4)', () => {
-        const state = table(
-            {},
-            { [EXILE]: { supply: 5, warbandsInPersonalBank: { [EXILE]: 14 } } }
-        )
+        const state = table({}, { [EXILE]: { supply: 5, warbandsInPersonalBank: { [EXILE]: 14 } } })
         expect(refreshSupply(state, EXILE)).toBe(MAX_SUPPLY)
     })
 

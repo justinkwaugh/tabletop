@@ -4,7 +4,12 @@ import { engine } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
 import { testGame } from '../testing/game.js'
 import { OathRuntime, OathVisibility } from './runtime.js'
-import { OathGameStateValidator, HydratedOathGameState, type OathGameState, type OathProjectedState } from '../model/gameState.js'
+import {
+    OathGameStateValidator,
+    HydratedOathGameState,
+    type OathGameState,
+    type OathProjectedState
+} from '../model/gameState.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { SetupChoice } from '../actions/setupChoice.js'
 import { Search, SearchSource } from '../actions/search.js'
@@ -12,7 +17,10 @@ import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const PLAYERS = ['p1', 'p2', 'p3']
-const perspectives = [...PLAYERS.map((playerId) => ({ kind: 'player', playerId }) as const), { kind: 'spectator' } as const]
+const perspectives = [
+    ...PLAYERS.map((playerId) => ({ kind: 'player', playerId }) as const),
+    { kind: 'spectator' } as const
+]
 
 function canonical(state: OathProjectedState): OathGameState {
     assert(OathGameStateValidator.Check(state), 'the engine holds canonical state')
@@ -30,12 +38,38 @@ function walk(): OathGameState[] {
     for (const playerId of current.turnManager.turnOrder) {
         const hydrated = new HydratedOathGameState(current)
         const hand = hydrated.getPlayerState(playerId).knownHand()
-        play(buildAction(SetupChoice, { playerId, siteId: playerId === current.chancellorPlayerId ? TOP_CRADLE_SLOT : hydrated.faceupSiteIds()[1], adviserCardId: hand[0], discardOrder: hand.slice(1) }))
+        play(
+            buildAction(SetupChoice, {
+                playerId,
+                siteId:
+                    playerId === current.chancellorPlayerId
+                        ? TOP_CRADLE_SLOT
+                        : hydrated.faceupSiteIds()[1],
+                adviserCardId: hand[0],
+                discardOrder: hand.slice(1)
+            })
+        )
     }
     const chancellor = current.chancellorPlayerId
-    play(buildAction(Search, { playerId: chancellor, drawFrom: SearchSource.WorldDeck, revealsInfo: true }))
-    const [kept, ...rest] = new HydratedOathGameState(current).getPlayerState(chancellor).knownHand()
-    play(buildAction(SearchResolve, { playerId: chancellor, keptCardId: kept, discardOrder: rest, play: SearchPlay.Adviser, faceUp: false }))
+    play(
+        buildAction(Search, {
+            playerId: chancellor,
+            drawFrom: SearchSource.WorldDeck,
+            revealsInfo: true
+        })
+    )
+    const [kept, ...rest] = new HydratedOathGameState(current)
+        .getPlayerState(chancellor)
+        .knownHand()
+    play(
+        buildAction(SearchResolve, {
+            playerId: chancellor,
+            keptCardId: kept,
+            discardOrder: rest,
+            play: SearchPlay.Adviser,
+            faceUp: false
+        })
+    )
     return states
 }
 

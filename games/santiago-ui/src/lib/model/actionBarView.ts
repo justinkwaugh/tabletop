@@ -19,7 +19,13 @@ export type ActionBarView =
     | { kind: 'placeSpring' }
     // A closed table shows the round's final bids; the bidder's controls keep their place, hidden, so
     // the table does not move.
-    | { kind: 'bidding'; canBid: boolean; closed: boolean; rows: BidRow[]; overseerId: string | undefined }
+    | {
+          kind: 'bidding'
+          canBid: boolean
+          closed: boolean
+          rows: BidRow[]
+          overseerId: string | undefined
+      }
     | { kind: 'revealTiles' }
     | { kind: 'plant' }
     | { kind: 'placeNeutral' }
@@ -37,7 +43,10 @@ export type ActionBarViewer = Viewer & { isViewingHistory: boolean; bribeSpotCho
 
 const NONE: ActionBarView = { kind: 'none' }
 
-export function actionBarView(state: HydratedSantiagoGameState, viewer: ActionBarViewer): ActionBarView {
+export function actionBarView(
+    state: HydratedSantiagoGameState,
+    viewer: ActionBarViewer
+): ActionBarView {
     if (viewer.isViewingHistory) return NONE
     const { playerId, isMyTurn } = viewer
     if (isSpringPlacementTurn(state, playerId)) return { kind: 'placeSpring' }
@@ -47,7 +56,8 @@ export function actionBarView(state: HydratedSantiagoGameState, viewer: ActionBa
     if (isNeutralPlacementTurn(state, playerId)) return { kind: 'placeNeutral' }
     if (state.machineState === MachineState.CanalBuilding) return canalBuildingView(state, viewer)
     if (state.machineState === MachineState.ExtraIrrigation && isMyTurn) {
-        const hasPersonalCanal = state.players.find((p) => p.playerId === playerId)?.hasPersonalCanal ?? false
+        const hasPersonalCanal =
+            state.players.find((p) => p.playerId === playerId)?.hasPersonalCanal ?? false
         return { kind: 'extraIrrigation', hasPersonalCanal }
     }
     return NONE
@@ -62,8 +72,15 @@ function biddingView(state: HydratedSantiagoGameState, canBid: boolean): ActionB
     return { kind: 'bidding', canBid, closed: false, rows, overseerId: projectedOverseerId(state) }
 }
 
-function canalBuildingView(state: HydratedSantiagoGameState, viewer: ActionBarViewer): ActionBarView {
-    const role: CanalRole = !viewer.isMyTurn ? 'observer' : isOverseerDecisionPhase(state) ? 'overseer' : 'proposer'
+function canalBuildingView(
+    state: HydratedSantiagoGameState,
+    viewer: ActionBarViewer
+): ActionBarView {
+    const role: CanalRole = !viewer.isMyTurn
+        ? 'observer'
+        : isOverseerDecisionPhase(state)
+          ? 'overseer'
+          : 'proposer'
     const rows = state.canalProposalOrder.map((id, i) => ({
         playerId: id,
         hasActed: i < state.canalProposalIndex,
@@ -98,7 +115,8 @@ export function sameActionBarView(a: ActionBarView, b: ActionBarView): boolean {
             sameRows(
                 a.rows,
                 b.rows,
-                (x, y) => x.playerId === y.playerId && x.hasActed === y.hasActed && x.amount === y.amount
+                (x, y) =>
+                    x.playerId === y.playerId && x.hasActed === y.hasActed && x.amount === y.amount
             )
         )
     }
@@ -120,6 +138,8 @@ export function closingBidsView(
     overseerId: string | undefined
 ): ActionBarView | undefined {
     if (shown.kind !== 'bidding') return undefined
-    const rows = shown.rows.map((row) => (row.playerId === bid.playerId ? { playerId: row.playerId, bid: bid.amount } : row))
+    const rows = shown.rows.map((row) =>
+        row.playerId === bid.playerId ? { playerId: row.playerId, bid: bid.amount } : row
+    )
     return { ...shown, closed: true, rows, overseerId }
 }

@@ -19,9 +19,21 @@
     const PIECE_SIZE = 19
 
     const MONUMENTS = [
-        { name: 'Town Wall', sequence: [BuildingType.House, BuildingType.House, BuildingType.House], pts: 6 },
-        { name: 'Ducal Palace', sequence: [BuildingType.Palace, BuildingType.House, BuildingType.Palace], pts: 10 },
-        { name: 'Cathedral', sequence: [BuildingType.Tower, BuildingType.Palace, BuildingType.Tower], pts: 16 }
+        {
+            name: 'Town Wall',
+            sequence: [BuildingType.House, BuildingType.House, BuildingType.House],
+            pts: 6
+        },
+        {
+            name: 'Ducal Palace',
+            sequence: [BuildingType.Palace, BuildingType.House, BuildingType.Palace],
+            pts: 10
+        },
+        {
+            name: 'Cathedral',
+            sequence: [BuildingType.Tower, BuildingType.Palace, BuildingType.Tower],
+            pts: 16
+        }
     ]
 
     function remaining(player: (typeof state.players)[number], type: BuildingType): number {
@@ -47,10 +59,15 @@
                     additionalClasses="!p-0 urbino-display !text-[23px] leading-tight tracking-[0.04em]"
                 />
                 {#if active}
-                    <span class="urbino-display rounded-full bg-black/15 px-2 text-[10px] tracking-[0.16em]">BUILDING</span>
+                    <span
+                        class="urbino-display rounded-full bg-black/15 px-2 text-[10px] tracking-[0.16em]"
+                        >BUILDING</span
+                    >
                 {/if}
                 <span class="ml-auto flex items-baseline gap-1">
-                    <span class="urbino-display text-[26px] leading-none">{liveScores.get(player.playerId) ?? 0}</span>
+                    <span class="urbino-display text-[26px] leading-none"
+                        >{liveScores.get(player.playerId) ?? 0}</span
+                    >
                     <span class="text-[13px] opacity-75">pts</span>
                 </span>
             </div>
@@ -60,7 +77,10 @@
             >
                 {#each SUPPLY as supply (supply.type)}
                     {@const left = remaining(player, supply.type)}
-                    <div class="grid gap-[2px]" style:grid-template-columns="repeat({supply.columns}, {PIECE_SIZE}px)">
+                    <div
+                        class="grid gap-[2px]"
+                        style:grid-template-columns="repeat({supply.columns}, {PIECE_SIZE}px)"
+                    >
                         {#each { length: supply.start } as _, slot (slot)}
                             {#if slot < left}
                                 <PieceIcon
@@ -70,13 +90,22 @@
                                     size={PIECE_SIZE}
                                 />
                             {:else}
-                                <span class="spent" style:width="{PIECE_SIZE}px" style:height="{PIECE_SIZE}px"></span>
+                                <span
+                                    class="spent"
+                                    style:width="{PIECE_SIZE}px"
+                                    style:height="{PIECE_SIZE}px"
+                                ></span>
                             {/if}
                         {/each}
                     </div>
                     <div class="flex w-[4.4rem] flex-col items-center gap-[3px]">
-                        <span class="supply-count urbino-display text-[18px] leading-none text-(--cream)">{left}</span>
-                        <span class="supply-label urbino-display text-[9.5px] leading-none tracking-[0.12em] text-(--cream-quiet) uppercase">
+                        <span
+                            class="supply-count urbino-display text-[18px] leading-none text-(--cream)"
+                            >{left}</span
+                        >
+                        <span
+                            class="supply-label urbino-display text-[9.5px] leading-none tracking-[0.12em] text-(--cream-quiet) uppercase"
+                        >
                             {left === 1 ? supply.singular : supply.plural}
                         </span>
                     </div>
@@ -86,7 +115,9 @@
     {/each}
 
     {#if state.monumentsVariant}
-        <div class="urbino-plank rounded-lg border-2 border-(--maple-edge) p-3 shadow-[0_3px_8px_rgb(0_0_0/0.35)]">
+        <div
+            class="urbino-plank rounded-lg border-2 border-(--maple-edge) p-3 shadow-[0_3px_8px_rgb(0_0_0/0.35)]"
+        >
             <div class="urbino-display mb-2 text-[14px] tracking-[0.16em]">MONUMENTS</div>
             <div class="flex flex-col gap-1.5">
                 {#each MONUMENTS as monument (monument.name)}

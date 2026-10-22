@@ -18,6 +18,7 @@
         type BoardArtwork,
         printedMapReservations,
         mapBorderCosts,
+        terrainRowWidths,
         type MapDrawing,
         type MapSelection,
         type MapToken,
@@ -28,6 +29,7 @@
         scene,
         legalLocationIds = [],
         highlightedLocationIds = legalLocationIds,
+        outlinedLocationIds = [],
         maskUnavailableLocations = false,
         previewLocationId,
         translucentLocationId,
@@ -47,6 +49,8 @@
         scene: MapDrawing
         legalLocationIds?: readonly string[]
         highlightedLocationIds?: readonly string[]
+        /** Hexes outlined as a selected hex is, without selecting them. */
+        outlinedLocationIds?: readonly string[]
         maskUnavailableLocations?: boolean
         previewLocationId?: string
         translucentLocationId?: string
@@ -354,9 +358,10 @@
                     >
                         {#if !entry.placed && entry.location.terrain}
                             {@const terrain = entry.location.terrain}
-                            {@const iconWidth = terrain.kinds.length * 19}
                             {@const cost = `${scene.terrainCostPrefix}${terrainCost(terrain)}`}
-                            {@const labelWidth = cost.length * 6.5}
+                            {@const widths = terrainRowWidths(terrain.kinds.length, cost)}
+                            {@const iconWidth = widths.icons}
+                            {@const labelWidth = widths.cost}
                             <g
                                 data-map-terrain
                                 transform={`translate(${-(iconWidth + labelWidth) / 2} ${entry.terrainY})`}
@@ -476,6 +481,16 @@
                                         fill={appearance.paper}>{annotation.label}</text
                                     >
                                 </g>
+                            {:else if annotation.kind === 'token'}
+                                <image
+                                    data-map-placed-token={annotation.markerId}
+                                    href={annotation.imageUrl}
+                                    x={annotation.x - annotation.radius}
+                                    y={annotation.y - annotation.radius}
+                                    width={annotation.radius * 2}
+                                    height={annotation.radius * 2}
+                                    ><title>{annotation.label}</title></image
+                                >
                             {:else}
                                 <g
                                     data-map-revenue-symbol={annotation.markerId}
@@ -852,7 +867,7 @@
         pointer-events="none"
         aria-hidden="true"
     >
-        {#each entries.filter((entry) => entry.location.id === selection?.locationId || entry.location.id === focusedLocationId || entry.location.id === previewLocationId || (maskUnavailableLocations && entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))) as entry (entry.location.id)}
+        {#each entries.filter((entry) => entry.location.id === selection?.locationId || outlinedLocationIds.includes(entry.location.id) || entry.location.id === focusedLocationId || entry.location.id === previewLocationId || (maskUnavailableLocations && entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))) as entry (entry.location.id)}
             <polygon
                 data-map-highlight={entry.location.id}
                 data-track-preview={entry.location.id === previewLocationId

@@ -26,7 +26,8 @@ export class TrackNetwork extends ConnectedTrack {
             mapState,
             origins,
             (locationId, node) =>
-                cityIsBlocked(state, companyId, locationId, node) || closedStop(locationId, node.id),
+                cityIsBlocked(state, companyId, locationId, node) ||
+                closedStop(locationId, node.id),
             replacement
         )
     }

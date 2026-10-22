@@ -26,6 +26,7 @@ import {
     GameService,
     ProjectedHistoryCache,
     LibraryService,
+    type LibraryServiceOptions,
     TitleLibrary,
     LOCAL_WORKSPACE_ROOT,
     LocalTaskService,
@@ -93,7 +94,9 @@ const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
 
-export default fp(async (fastify: FastifyInstance) => {
+type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle'>
+
+export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => {
     const secretsService = new EnvSecretsService()
     const emailService = await ResendEmailService.createEmailService(secretsService)
     const redisService = await RedisService.createRedisService(secretsService)
@@ -107,7 +110,8 @@ export default fp(async (fastify: FastifyInstance) => {
         fallbackManifest: EnvService.isLocal()
             ? () => createLocalManifest(LOCAL_WORKSPACE_ROOT)
             : undefined,
-        useCache: !EnvService.isLocal()
+        useCache: !EnvService.isLocal(),
+        whileLoadingTitle: options.whileLoadingTitle
     })
     await libraryService.getTitlesMap()
     const availableTitles = new TitleLibrary(

@@ -96,7 +96,6 @@ packaging/check/lint pass. Native preview automation timed out repeatedly;
 interactive browser verification remains outstanding, as recorded in the visual
 contract. No production publication or commit is part of this slice.
 
-
 Review fix: both independent home stations now exist from setup for every player
 count. A reservation alone does not block track connectivity. Regression coverage
 checks initial occupancy without activating the companies, station preservation on

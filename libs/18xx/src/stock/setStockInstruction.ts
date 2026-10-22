@@ -39,14 +39,17 @@ export function isSetStockInstruction(action: GameAction): action is SetStockIns
 
 export function stockInstructionProblem(
     state: StockState,
-    request: Pick<SetStockInstruction, 'playerId' | 'instruction'>
+    request: Pick<SetStockInstruction, 'playerId' | 'instruction' | 'supersedesActionId'>
 ): string | undefined {
     if (state.stockRound.completed) return 'The stock round has completed'
     if (!state.players.some((player) => player.playerId === request.playerId))
         return 'Only a seated player can hold a standing instruction'
     const { instruction } = request
+    // A clear that names the instruction it replaces withdraws it: replaying without that
+    // instruction leaves nothing to clear.
     if (!instruction)
-        return standingStockInstructionFor(state, request.playerId)
+        return request.supersedesActionId !== undefined ||
+            standingStockInstructionFor(state, request.playerId)
             ? undefined
             : 'There is no standing instruction to clear'
     if (instruction.kind === 'pass') return undefined
