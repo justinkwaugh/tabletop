@@ -3,6 +3,7 @@
     "version": "2.10.0",
     "private": true,
     "type": "module",
+    "prettier": "@tabletop/prettier-config",
     "svelte": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
@@ -62,6 +63,7 @@
         "@tabletop/rollup-config": "workspace:*",
         "rollup": "4.55.2",
         "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/prettier-config": "workspace:*",
         "@tabletop/vitest-config": "workspace:*"
     }
 }

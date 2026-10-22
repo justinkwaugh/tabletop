@@ -123,6 +123,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -132,9 +135,6 @@ importers:
       '@types/node':
         specifier: ^25.0.9
         version: 25.9.9
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -347,6 +347,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -380,9 +383,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -445,6 +445,15 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+
+  config/config-prettier:
+    dependencies:
+      prettier:
+        specifier: ^3.8.0
+        version: 3.9.10
+      prettier-plugin-svelte:
+        specifier: ^3.4.1
+        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
 
   config/config-rollup:
     dependencies:
@@ -564,6 +573,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -579,9 +591,6 @@ importers:
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -674,6 +683,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -689,9 +701,6 @@ importers:
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -790,6 +799,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -900,6 +912,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1001,6 +1016,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1028,9 +1046,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -1114,6 +1129,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1141,9 +1159,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -1227,6 +1242,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1254,9 +1272,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -1358,6 +1373,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1388,9 +1406,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -1483,6 +1498,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1510,9 +1528,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -1599,6 +1614,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1712,6 +1730,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1739,9 +1760,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -1828,6 +1846,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1855,9 +1876,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -1941,6 +1959,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -1968,9 +1989,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -2057,6 +2075,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2084,9 +2105,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -2173,6 +2191,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2200,9 +2221,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -2289,6 +2307,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2316,9 +2337,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -2405,6 +2423,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2432,9 +2453,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -2521,6 +2539,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2631,6 +2652,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2658,9 +2682,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -2781,6 +2802,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2808,9 +2832,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -2906,6 +2927,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2921,9 +2945,6 @@ importers:
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -3013,6 +3034,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -3040,9 +3064,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rollup:
         specifier: 4.55.2
         version: 4.55.2
@@ -3138,6 +3159,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -3153,9 +3177,6 @@ importers:
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -3242,6 +3263,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -3389,12 +3413,12 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
@@ -3654,6 +3678,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
+      '@tabletop/prettier-config':
+        specifier: workspace:*
+        version: link:../../config/config-prettier
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3687,9 +3714,6 @@ importers:
       prettier:
         specifier: ^3.8.0
         version: 3.9.10
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.2(prettier@3.9.10)(svelte@5.49.0)
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
