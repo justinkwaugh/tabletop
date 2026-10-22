@@ -56,6 +56,9 @@ const row = (page: Page, name: string | RegExp) =>
 const undo = (page: Page) => page.getByRole('button', { name: 'Undo', exact: true })
 const pool = (page: Page) =>
     panel(page).getByRole('button', { name: /^Attack die \d, in the pool$/ })
+/** Every die of the attack row, in the pool or not ("Attack die 1, in the pool", "Add attack die 4"). */
+const attackDice = (page: Page) =>
+    panel(page).getByRole('button', { name: /^(Attack die|Add attack die) \d/ })
 const targetedSites = (page: Page) => page.locator('.site.targeted')
 /** A lit site's pick on the map, named by the site and its chip ("Plains, target?"). */
 const sitePick = (page: Page, name: string) =>
@@ -272,16 +275,9 @@ for (const { name, viewport, phone } of SIZES) {
                 (await drawnSize(pool(page).first())).height,
                 0
             )
-            await expectTappable(
-                [
-                    ...(await panel(page)
-                        .getByRole('button', { name: /attack die \d/ })
-                        .all()),
-                    button(page, 'Next')
-                ],
-                phone,
-                'drawn'
-            )
+            const dice = await attackDice(page).all()
+            expect(dice).toHaveLength(4)
+            await expectTappable([...dice, button(page, 'Next')], phone, 'drawn')
             await shot(page, 'campaign-step2', phone)
             await button(page, 'Next').click()
 
@@ -513,16 +509,9 @@ test.describe('more than six defense dice, on a phone', () => {
         await expect(pool(page)).toHaveCount(7)
         await expectDefense(page, 7, 'and 6 warbands.')
         await expectDefenseOnOneRow(page, 7, 40)
-        await expectTappable(
-            [
-                ...(await panel(page)
-                    .getByRole('button', { name: /attack die \d/ })
-                    .all()),
-                button(page, 'Next')
-            ],
-            true,
-            'drawn'
-        )
+        const dice = await attackDice(page).all()
+        expect(dice).toHaveLength(7)
+        await expectTappable([...dice, button(page, 'Next')], true, 'drawn')
         await expectNoPageOverflow(page)
         await shot(page, 'campaign-step2-seven-dice', true)
     })
