@@ -290,6 +290,7 @@ export type TableName =
     | 'historyAct'
     | 'historyCampaign'
     | 'historySecondWind'
+    | 'historyFreeGranted'
     | 'historyDeals'
 
 const PROPHET_ADVISERS = [
@@ -4916,8 +4917,11 @@ function drumTable(scene: DrumScene): PlayedTable {
     ])
 }
 
+// The top of the Cradle's discard pile: a Beast, and no site holds a Beast card.
+const BRASS_HORSE_REVEALED = 'denizen.beast.wolves'
+
 /** The History's rows for each scene, oldest first, as their records hold them. */
-type HistoryScene = 'act' | 'campaign' | 'secondWind' | 'deals'
+type HistoryScene = 'act' | 'campaign' | 'secondWind' | 'freeGranted' | 'deals'
 
 /**
  * The History's words, read from records alone: Ann (blue, on the clock) reads the rows of Dana
@@ -5099,8 +5103,8 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
                 }
             }
         ],
-        // R-5.5.8 — Dana's Sneak Attack on Rhys, with Second Wind: the victory, the spoils that
-        // record the grant, then the free Travel.
+        // R-5.5.8 — Dana's Sneak Attack on Rhys, with Second Wind (marked a Sneak Attack, as from
+        // revision 27): the victory, the spoils that record the grant, then the free Travel.
         secondWind: [
             {
                 type: ActionType.Campaign,
@@ -5116,6 +5120,7 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
                 ],
                 metadata: {
                     supplySpent: 0,
+                    sneakAttack: true,
                     battle: { ...sneakBattle, defense: 0, swords: 0, awaitingDefender: true }
                 }
             },
@@ -5152,6 +5157,26 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
                 playerId: 'dana',
                 siteId: mine,
                 metadata: { supplySpent: 0, supplyRemaining: 4, freeActionOf: SECOND_WIND }
+            }
+        ],
+        // R-10.2 — Dana uses the Brass Horse: the revealed suit is at no site, so the next Travel
+        // is free (revision 27 records the card), and the Travel names it.
+        freeGranted: [
+            {
+                type: ActionType.UseActionPower,
+                playerId: 'dana',
+                cardId: BRASS_HORSE,
+                powerIndex: powerIndexOf(BRASS_HORSE, PowerTiming.Action),
+                choices: [],
+                metadata: {
+                    summary: `Brass Horse: revealed ${BRASS_HORSE_REVEALED}; no site holds that suit, so the next Travel costs no Supply`
+                }
+            },
+            {
+                type: ActionType.Travel,
+                playerId: 'dana',
+                siteId: plains,
+                metadata: { supplySpent: 0, supplyRemaining: 6, freeActionOf: BRASS_HORSE }
             }
         ],
         deals: [
@@ -5475,6 +5500,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     historyAct: () => historyWordsTable('act'),
     historyCampaign: () => historyWordsTable('campaign'),
     historySecondWind: () => historyWordsTable('secondWind'),
+    historyFreeGranted: () => historyWordsTable('freeGranted'),
     historyDeals: () => historyWordsTable('deals')
 }
 

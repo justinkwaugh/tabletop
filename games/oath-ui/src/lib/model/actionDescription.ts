@@ -636,9 +636,14 @@ function supply(spent: number | undefined): string {
     return spent !== undefined && spent > 0 ? `, spending ${spent} Supply` : ''
 }
 
-/** Second Wind out of turn — the card whose free action this was, in brackets. */
+/** R-10.2 — the card whose free action this was, in brackets: Second Wind out of turn, any grant from revision 27. */
 function freeActionClause(cardId: string | undefined): string {
     return cardId ? ` (free, ${cardName(cardId)})` : ''
+}
+
+/** Sneak Attack (revision 27) — a Campaign out of turn for no Supply, after its plans. */
+function sneakAttackClause(sneakAttack: boolean | undefined): string {
+    return sneakAttack ? ` (${cardName(SNEAK_ATTACK)}, free)` : ''
 }
 
 /** R-11.12, R-11.13 — each secret a Travel flipped: "; flipped 1 secret", "; flipped 2 secrets". */
@@ -814,7 +819,8 @@ function describeActionCited(
             `campaigned against ${against}${targets ? ` for ${targets}` : ''}` +
             freeActionClause(meta?.freeActionOf) +
             supply(meta?.supplySpent) +
-            (plans.length > 0 ? `, using ${listed(plans.map(planName))}` : '')
+            (plans.length > 0 ? `, using ${listed(plans.map(planName))}` : '') +
+            sneakAttackClause(meta?.sneakAttack)
         // R-5.5.2.a — nothing is rolled until the Citizens asked have answered.
         if (meta?.awaitingAllies) return `${declared}; Citizens may join the defense`
         return meta?.battle ? `${declared}; ${describeBattle(meta.battle, true)}` : declared
@@ -1060,6 +1066,7 @@ const TRUTHFUL_HARP = 'relic.truthful-harp'
 const NEW_GROWTH = 'denizen.beast.new-growth'
 const CROP_ROTATION = 'denizen.hearth.crop-rotation'
 const CRACKED_HORN = 'relic.cracked-horn'
+const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
 // False Prophet's answer names the Vision it played or discarded.
 const PROPHESIED = /\bvision\.[a-z0-9-]+/
 

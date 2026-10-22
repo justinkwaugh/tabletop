@@ -728,6 +728,61 @@ describe('the history tab describes every action', () => {
         expect(campaigned).toMatch(/^campaigned against Bob for .+ \(free, Second Wind\); Citizens may join the defense$/)
     })
 
+    describe('R-10.2 — a free action names the card that granted it, as Second Wind’s does', () => {
+        const travel = (metadata: Record<string, unknown>) =>
+            describeAction(
+                action({
+                    type: ActionType.Travel,
+                    playerId: 'p1',
+                    siteId: 'slot.provinces.1',
+                    metadata: { supplySpent: 0, supplyRemaining: 4, ...metadata }
+                }),
+                nameOf
+            )
+        const campaign = (metadata: Record<string, unknown>, plans: { cardId: string; powerIndex: number }[] = []) =>
+            describeAction(
+                action({
+                    type: ActionType.Campaign,
+                    playerId: 'p1',
+                    defender: { kind: 'player', playerId: 'p2' },
+                    targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                    attackDice: 3,
+                    plans,
+                    metadata: { supplySpent: 0, ...metadata }
+                }),
+                nameOf
+            )
+
+        it('a free Travel: "traveled to Provinces 2 (free, Brass Horse)"', () => {
+            expect(travel({ freeActionOf: 'relic.brass-horse' })).toBe('traveled to Provinces 2 (free, Brass Horse)')
+        })
+
+        it.each([
+            ['denizen.order.knights-errant', 'Knights Errant'],
+            ['denizen.order.hunting-party', 'Hunting Party'],
+            ['denizen.order.captains', 'Captains'],
+            ['denizen.beast.wild-allies', 'Wild Allies'],
+            ['denizen.discord.second-wind', 'Second Wind']
+        ])('a free Campaign granted by %s ends "(free, %s)"', (cardId, name) => {
+            expect(campaign({ freeActionOf: cardId })).toBe(`campaigned against Bob for their pawn and favor (free, ${name})`)
+        })
+
+        it('a Sneak Attack reads "(Sneak Attack, free)" after its plans: "…, using Second Wind (Sneak Attack, free)"', () => {
+            const SECOND_WIND = 'denizen.discord.second-wind'
+            expect(campaign({ sneakAttack: true })).toBe('campaigned against Bob for their pawn and favor (Sneak Attack, free)')
+            expect(
+                campaign({ sneakAttack: true }, [
+                    { cardId: SECOND_WIND, powerIndex: powerIndexOf(SECOND_WIND, PowerTiming.BattlePlan) }
+                ])
+            ).toBe('campaigned against Bob for their pawn and favor, using Second Wind (Sneak Attack, free)')
+        })
+
+        it('a game from before the record (no card, no Sneak Attack mark) reads as it always has', () => {
+            expect(travel({})).toBe('traveled to Provinces 2')
+            expect(campaign({})).toBe('campaigned against Bob for their pawn and favor')
+        })
+    })
+
     describe('R-7.1.4 — a Travel names each toll it paid and a secret it flipped', () => {
         const travel = (metadata: Record<string, unknown>) =>
             describeAction(
