@@ -17,6 +17,8 @@
     import CardMagnifier from './CardMagnifier.svelte'
     import PoliticsCardFace from './PoliticsCard.svelte'
     import FlagBorder from './FlagBorder.svelte'
+    import DeckShade from './DeckShade.svelte'
+    import { deckDescription } from '$lib/model/deckShade.js'
 
     let gameSession = getGameSession()
 
@@ -26,6 +28,8 @@
     let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(player.id))
     let headerColor = $derived(gameSession.colors.getPlayerUiColor(player.id))
     let isMe = $derived(gameSession.myPlayer?.id === player.id)
+    const cardDeck = (card: PoliticsCard | undefined, index: number) =>
+        gameSession.politicsCardSource(player.id, card, index, shouldRevealFace(card))
 
     let showMoney = $derived(gameSession.canShowMoney(playerState.playerId))
 
@@ -34,7 +38,7 @@
     // with a known, consistent per-card width.
     const CARD_H = 103
     const CARD_W = 66 // CARD_H * 534/832, rounded
-    const CARD_GAP = 4 // gap between cards when there's room to lay them out flat, unoverlapped
+    const CARD_GAP = 6 // gap between cards when there's room to lay them out flat, unoverlapped
     const MIN_SLIVER = 6 // narrowest an overlapped card is ever allowed to peek out, once cards no longer fit unoverlapped
     const CARD_EDGE_BUFFER = 6 // px - headroom so a rotated frontmost card doesn't clip against this panel's own rounded/overflow-hidden edge
 
@@ -332,6 +336,8 @@
                         {@const isTop = i === overlapCount - 1}
                         {@const revealFace = shouldRevealFace(card)}
                         {@const jitter = jitterFor(String(i))}
+                        {@const deck = cardDeck(card, i)}
+                        {@const deckHint = !isMe && deck ? deckDescription(deck) : undefined}
                         <!-- Every card gets a resting drop shadow, so it sits ON the panel
                              rather than looking printed onto it. PoliticsCard's own shadow-md
                              is far too faint to read at this size against the parchment, and
@@ -352,7 +358,11 @@
                                 : '0 2px 4px rgba(0, 0, 0, 0.4)'};
                                 transform: translate({jitter.dx}px, {jitter.dy}px) rotate({jitter.rotate}deg);
                             "
+                            title={deckHint}
                         >
+                            {#if deck}
+                                <DeckShade {deck} />
+                            {/if}
                             {#if !isMe && isOverlapping && isTop}
                                 <!-- The one visible face of an opponent's overlapped stack -
                                      the count tooltip stands in for the cards hidden behind
@@ -362,12 +372,12 @@
                                     class="relative w-full h-full"
                                     title="{overlapCount} politics card{overlapCount === 1
                                         ? ''
-                                        : 's'}"
+                                        : 's'}{deckHint ? `; the top one ${deckHint.toLowerCase()}` : ''}"
                                 >
                                     <PoliticsCardView {card} faceDown />
                                 </div>
                             {:else if revealFace && card}
-                                <CardMagnifier {card} />
+                                <CardMagnifier {card} {deck} />
                             {:else}
                                 <PoliticsCardView {card} faceDown />
                             {/if}
@@ -406,6 +416,7 @@
                                     card,
                                     group.cards.length - 1 - i
                                 )}
+                                {@const deck = cardDeck(card, 0)}
                                 <div
                                     class="absolute top-0 rounded-md"
                                     style="
@@ -417,12 +428,15 @@
                                         : '0 2px 4px rgba(0, 0, 0, 0.4)'};
                                     "
                                 >
+                                    {#if deck}
+                                        <DeckShade {deck} />
+                                    {/if}
                                     <!-- No magnifier while the card is ACTIVE: the enlarged copy
                                          hid the stripe, which is the way to take the card back. -->
                                     {#if active}
                                         <PoliticsCardFace {card} />
                                     {:else}
-                                        <CardMagnifier {card} />
+                                        <CardMagnifier {card} {deck} />
                                     {/if}
                                     {#if active}
                                         <!-- border border-transparent: same 1px the APPLY pill's own

@@ -16,8 +16,9 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { HOVER_INTENT_MS } from '$lib/model/hoverIntent.js'
     import PoliticsCard from './PoliticsCard.svelte'
+    import type { PoliticsCardSource } from '$lib/model/politicsCardPiles.js'
 
-    let { card }: { card: PoliticsCardModel } = $props()
+    let { card, deck }: { card: PoliticsCardModel; deck?: PoliticsCardSource } = $props()
 
     const gameSession = getGameSession()
 
@@ -157,7 +158,7 @@
             }}
             class="drop-shadow-2xl"
         >
-            <PoliticsCard {card} />
+            <PoliticsCard {card} {deck} />
         </div>
     </div>
 {/if}

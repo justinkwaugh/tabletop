@@ -1,12 +1,18 @@
 <script lang="ts">
     import { type PoliticsCard, PoliticsCardType } from '@tabletop/lowenherz'
     import { politicsCardFaceImage, cardBackImg } from '$lib/model/politicsCardImages'
+    import type { PoliticsCardSource } from '$lib/model/politicsCardPiles.js'
+    import { deckDescription } from '$lib/model/deckShade.js'
 
     // faceDown shows the shared card back instead of this specific card's face - used
     // for the pile you didn't look through, and other players' hands, which are kept
     // hidden by UI convention (see LowenherzProjectedPlayerState.politicsCards' comment on why
     // this isn't enforced server-side).
-    let { card, faceDown = false }: { card?: PoliticsCard; faceDown?: boolean } = $props()
+    let {
+        card,
+        faceDown = false,
+        deck
+    }: { card?: PoliticsCard; faceDown?: boolean; deck?: PoliticsCardSource } = $props()
 
     const faceImage = $derived(card ? politicsCardFaceImage(card) : undefined)
     const faceAlt = $derived.by(() => {
@@ -36,5 +42,12 @@
              card, one image per value, so a value with no art (see politicsCardFaceImage) shows
              blank rather than the wrong card. -->
         <img src={faceImage} alt={faceAlt} class="w-full h-full object-cover" />
+        {#if deck}
+            <!-- Only the magnified copy is given a deck, so the line never crowds a card in the hand. -->
+            <span
+                class="absolute inset-x-0 bottom-0 border-t border-[rgba(184,146,52,0.9)] bg-[#efe2bf]/90 py-[0.5cqw] text-center text-[5cqw] leading-[6cqw] font-semibold text-[#4a2f12]"
+                >{deckDescription(deck)}</span
+            >
+        {/if}
     {/if}
 </div>

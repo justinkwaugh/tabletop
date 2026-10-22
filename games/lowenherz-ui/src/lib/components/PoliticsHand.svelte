@@ -3,6 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { PoliticsCard as PoliticsCardData } from '@tabletop/lowenherz'
     import CardMagnifier from './CardMagnifier.svelte'
+    import DeckShade from './DeckShade.svelte'
 
     const gameSession = getGameSession()
 
@@ -161,8 +162,14 @@
             onclick={(e) => e.stopPropagation()}
         >
             {#each cards as card, dealIndex (dealIndex)}
+                {@const deck = gameSession.myPlayer
+                    ? gameSession.politicsCardSource(gameSession.myPlayer.id, card, dealIndex, true)
+                    : undefined}
                 <div {@attach dealIn(dealIndex)} class="relative opacity-90" style={cardWidthStyle}>
-                    <CardMagnifier {card} />
+                    {#if deck}
+                        <DeckShade {deck} />
+                    {/if}
+                    <CardMagnifier {card} {deck} />
                     {#if gameSession.canApplyPoliticsCard(card)}
                         <!-- Border/background/text match the board's own village-name pill (see
                              RealBoard.svelte) rather than a plain UI button - same "labeled thing

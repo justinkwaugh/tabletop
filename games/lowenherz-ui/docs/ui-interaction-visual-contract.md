@@ -97,3 +97,37 @@ While the player may place a wall, the legal edge nearest the pointer is ghosted
 A "+N" pill pops over the square a scoring wall completed, or over the second space of a two-space expansion with both spaces' points. The expansion total is read from the action log (the run of `ExpandRegion` actions through the closing one), never remembered by the animator. The pill (about 0.9 s) plays on the scoring action's own shared timeline, so system actions applied after it in the same batch - the `AdvanceResolution` that follows a phase-ending wall - wait for it, and full-action replay shows it too. Because the session publishes state only after the whole batch, the board draws walls and region tints from the scoring action's resulting state (`scoredBoard`) from the moment the pill mounts, and keeps following later actions of the batch until the session publishes; it is display only, and interaction reads the published state. The pill is removed when its action's timeline finishes, on a silent restoration (reported through `onSilentRestore`), and when the board unmounts; actionless transitions (Undo, state-only navigation) show none.
 
 The session's `restoredSilently` is true when the published state came from a silent-swap restoration, which runs no state-change listener. The player panel's `animate:flip` reorder is suppressed then. The history feed suppresses its row `animate:flip` while viewing History, which covers every silent swap the History controls make. The politics hand in a player panel snaps to its new spacing.
+
+# End-of-game score chart
+
+Once the King is dead the end-of-game panel shows a line chart of every player's power points beside the final standings: one point after each round ends, then a last point, labelled Final, that adds the hill points scored when the King dies and the Parchment revealed at the end, so the step into Final shows what the game's last moment and the hidden cards were worth. One line per player in their colour, with a legend. Power points are public, so every Perspective sees the chart, private money included.
+
+The points are not kept in the Game State. The Game Session works them out once, after the game ends and the complete Action History has loaded, reading the power points after each round-ending `AdvanceResolution` with Common's `RecordedHistory`. Until the history has loaded the panel shows only the standings. If any part of the history has been redacted, or cannot be stepped back through, before a round end, there is no chart.
+
+Pointing at the chart picks the nearest point: a dashed line marks it and a dot sits on each player's line. At a round, the standings become that round's ranking, headed "After Round N" with one points column, the rows sliding to their new places over 0.2 seconds and the round's leaders in bold. At Final, or once the pointer leaves the chart, the full final table returns with Earned, Parchment and Total and the winners in bold. On a touch screen a round shows only while a finger is on the chart. The final table stays laid out, hidden, while a round is shown, so the chart beside it never moves. Below the panel's wrap width the chart sits under the table.
+
+## Shared visual state
+
+The hovered point is owned by the end-of-game panel and bound into its chart. It is cleared when the pointer leaves the chart and ends when the panel unmounts, which happens whenever the displayed state has no result. A round view needs the chart's history, so without one the panel shows the final table.
+
+## Render ownership
+
+The end-of-game panel owns the standings, the round ranking and the hovered point; the chart owns its marker and dots and reports the hovered point to the panel.
+
+## Verification scenarios
+
+1. Finish a game and point along the chart: the heading follows the round, the rows re-rank with the round's leaders in bold, and the chart does not shift; at Final and off the chart the final table and winners return. Manual browser verification at 1440x900 and 390x844 with the harness's Game over scenario; the history itself is covered by `scoreHistory.test.ts` and the chart's geometry by `scoreHistoryPlot.test.ts`.
+2. While pointing at a round, step back through History, then return to the current state: stepping back removes the panel with its chart, and returning shows the final table with no round heading, marker or dots left over. Manual browser verification.
+
+# Politics deck colours
+
+Each politics deck has a colour, green for the left and blue for the right (not red, which the player colours' pink-red would blur), so a game played over days still shows who took from which deck. The colour is a soft drop shadow, like the cards' own resting shadow: it sits under the two pile counts in the summary strip, both decks in the pile chooser, the chosen deck, the fading deck and every dealt card while a pile opens, and every card you are choosing from; the opened deck's empty spot takes it as its dashed outline.
+
+Every politics card in a hand casts a shadow in the colour of the deck it was taken from, face up or face down, yours or another player's. Your own cards are matched exactly. Another player's cards are matched by count, because the card in their take is hidden from you: each deck is certain for as many cards as it gave more than they have spent, and any card that could be from either deck casts green to its left and blue to its right. With nothing spent, their hand still holds every take in take order, so every card is certain. Once their faces are revealed at game end, a face casts one deck's colour only when it can be matched; otherwise it casts both. Hovering another player's face-down card says which deck it came from, or "Taken from the left or right deck"; on an opponent's overlapped stack the top card's count tooltip adds it. A magnified card, yours or a revealed face, carries the same words in a slim parchment band along its bottom edge; cards at their normal size carry no band, and an applied card, which does not magnify, shows none.
+
+The decks are not kept in the Game State. The Game Session reads every `TakePoliticsCard` action once the complete Action History has loaded. A hand gains each card at its end and spends the first matching copy, so the copies of a card you still hold are always that card's latest takes, in order; a spent copy takes its deck with it and the copies left keep theirs. Until the history has loaded, or when any of it has been redacted, no card casts a colour. Your own cards are matched exactly only while every one of your takes shows its card; exploring as another player, whose takes hide their cards from you, their hand is shaded by count like anyone else's.
+
+## Verification scenarios
+
+1. In the harness's Politics cards from both piles scenario, the left pile count has a green shadow and the right a blue one; Bruno's Alliances cast green and his Parchment blue, and the other players' face-down cards cast green with "Taken from the left deck" on hover. Hovering Bruno's Alliance magnifies it with "Taken from the left deck" along its bottom. Manual browser verification; the matching, including cards that could be from either deck after a spend, is covered by `politicsCardPiles.test.ts`.
+2. Win Crown and Scepter: the chooser's decks cast green and blue shadows, and opening one gives every dealt card its colour and outlines its empty spot. Manual browser verification.
