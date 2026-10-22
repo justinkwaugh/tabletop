@@ -430,7 +430,7 @@ describe('Land Warden — the second play is picked on the cards', () => {
     })
 })
 
-const FULL =Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
+const FULL = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
 const FABLED_FEAST = 'denizen.hearth.fabled-feast'
 const SLUM_SITES = { c1: 'site.great-slums', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
 const FAVOR_HELD = {
