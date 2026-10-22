@@ -15,6 +15,7 @@ import {
 } from '@tabletop/oath'
 import { campaignRecords, required, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
+import { battleLossTable } from '$lib/testing/battleLossTable.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 import { emptyPicks } from './powerChoices.js'
 import { withCount, withFrom, withTo, type MovePick } from './powerMoves.js'
@@ -895,6 +896,39 @@ describe('the losses draft (docs/user-interactions.md)', () => {
         expect([defeat.ceilingAt(0), defeat.ceilingAt(1)]).toEqual([2, 1])
         defeat.setPicked(1, 1)
         expect(defeat.picked).toEqual([1, 1])
+    })
+})
+
+/**
+ * R-5.5.6.a — Ann, the Chancellor, chooses 3 of a defence at the Plains, on Ann's board and on
+ * Rhys's (a Citizen ally): one row per place, each by its player; Hospital's line when Ann used it.
+ */
+describe('the losses draft, row by row with its player', () => {
+    const lost = async (hospital: boolean) =>
+        (await openSessionOn(battleLossTable({ hospital }))).defeat
+
+    it('names each row’s player: a board’s own player, and the defender for a site', async () => {
+        const defeat = await lost(false)
+        expect(defeat.required).toBe(3)
+        expect(defeat.groups.map((group) => defeat.playerOf(group))).toEqual(['Ann', 'Ann', 'Rhys'])
+    })
+
+    it('keeps each player’s rows together, a board’s before a site’s', async () => {
+        const defeat = await lost(false)
+        expect(defeat.groups.map((group) => group.at)).toEqual([
+            { kind: 'site', siteId: expect.any(String) },
+            { kind: 'board', playerId: 'Ann' },
+            { kind: 'board', playerId: 'Rhys' }
+        ])
+        expect(defeat.rowOrder).toEqual([1, 0, 2])
+    })
+
+    it('no Hospital, no Hospital line', async () => {
+        expect((await lost(false)).hospitalHolders).toEqual([])
+    })
+
+    it('names the one player whose Hospital holds warbands picked here, once', async () => {
+        expect((await lost(true)).hospitalHolders).toEqual(['Ann'])
     })
 })
 

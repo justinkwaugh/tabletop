@@ -95,6 +95,7 @@ import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
 import { campaignLedgerTable } from './campaignLedgerTable.js'
+import { battleLossTable } from './battleLossTable.js'
 import {
     FOREST_PATHS,
     HOSPITALITY,
@@ -129,6 +130,8 @@ export type TableName =
     | 'joinDefenceAsked'
     | 'exileDefeated'
     | 'imperialDefeated'
+    | 'battleLossRows'
+    | 'battleLossHospital'
     | 'visionBacks'
     | 'restBanks'
     | 'restRefused'
@@ -5382,6 +5385,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     joinDefenceAsked: joinDefenceAskedTable,
     exileDefeated: () => defeatedTable('exile'),
     imperialDefeated: () => defeatedTable('imperial'),
+    battleLossRows: () => battleLossTable(),
+    battleLossHospital: () => battleLossTable({ hospital: true }),
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
     restRefused: restRefusedTable,

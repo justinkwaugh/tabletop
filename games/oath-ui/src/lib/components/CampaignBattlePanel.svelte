@@ -95,13 +95,25 @@
             <WaitingOn />
         {:else}
             <p class="text-sm mb-2">Pick {defeat.required} to kill.</p>
+            <!-- R-5.5.6.a — one row per place, never merged, each starting with its player's chip;
+                 R-10.28 — under them, whose Hospital will hold the warbands picked there. -->
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                {@render countRows(
-                    defeat.groups,
-                    defeat.picked,
-                    (index) => defeat.ceilingAt(index),
-                    (index, n) => defeat.setPicked(index, n)
-                )}
+                <WarbandGroupRows
+                    groups={defeat.groups}
+                    order={defeat.rowOrder}
+                    counts={defeat.picked}
+                    ceilingAt={(index) => defeat.ceilingAt(index)}
+                    onpick={(index, n) => defeat.setPicked(index, n)}
+                    playerOf={(group) => defeat.playerOf(group)}
+                    tone="rose"
+                />
+                {#each defeat.hospitalHolders as holderId (holderId)}
+                    {@const owner = gameSession.getPlayerName(holderId)}
+                    <p class="my-1.5">
+                        {owner}'s warbands chosen here are set aside at <strong>Hospital</strong>
+                        and go to its site at the Campaign's end.
+                    </p>
+                {/each}
                 <div class="text-oath-text-muted">
                     Chosen {defeat.pickedTotal} of {defeat.required}
                 </div>
