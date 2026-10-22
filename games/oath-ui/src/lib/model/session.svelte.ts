@@ -948,11 +948,16 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return others.length > 0 ? { here, others, picked: this.adviserToSite } : undefined
     }
 
-    /** A tap on a row or a lit site: the seat's own site takes back any other picked. */
+    /**
+     * A tap on a row or a lit site: the seat's own site takes back any other picked. A tap on the
+     * site already picked changes nothing, so the picks after it (a card to discard first, the
+     * discard place, a card's row) stay.
+     */
     pickPlayToSite(siteId: string): void {
         const playTo = this.playTo
         assertExists(playTo, 'A site is picked for an open site play')
         const other = siteId === playTo.here ? undefined : siteId
+        if (other === playTo.picked) return
         if (this.searchPlayToOpen) this.search.setToSite(other)
         else this.setAdviserToSite(other)
     }

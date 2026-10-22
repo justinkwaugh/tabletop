@@ -25,6 +25,9 @@ afterEach(() => {
 const WOLVES = 'denizen.beast.wolves'
 const TUTOR = 'denizen.arcane.tutor'
 const NEW_GROWTH = 'denizen.beast.new-growth'
+const CROP_ROTATION = 'denizen.hearth.crop-rotation'
+const INN = 'denizen.hearth.wayside-inn'
+const TENTS = 'denizen.nomad.tents'
 
 /** Each site the map lights for the play, and the one ringed. */
 const lit = (session: OathGameSession) =>
@@ -110,7 +113,11 @@ describe("R-5.1.4.I — Search with the People's Favor: the kept card's sites on
 })
 
 describe('R-6.1, R-7.4 — the facedown play with New Growth: every site with space on the map', () => {
-    async function playing() {
+    /** Dana on turn at c1 with Wolves facedown beside `faceup`; `denizens` at their sites. */
+    async function playing(
+        faceup: string[] = [NEW_GROWTH],
+        denizens: Record<string, string[]> = {}
+    ) {
         const state = testState(
             [
                 testPlayer({
@@ -120,7 +127,7 @@ describe('R-6.1, R-7.4 — the facedown play with New Growth: every site with sp
                     supply: 3,
                     advisers: [
                         { cardId: WOLVES, faceUp: false },
-                        { cardId: NEW_GROWTH, faceUp: true }
+                        ...faceup.map((cardId) => ({ cardId, faceUp: true }))
                     ]
                 }),
                 testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'p1' })
@@ -128,7 +135,7 @@ describe('R-6.1, R-7.4 — the facedown play with New Growth: every site with sp
             {
                 machineState: MachineState.ActPhase,
                 oathRevision: CURRENT_OATH_REVISION,
-                denizensBySite: { c1: [], c2: [], p1: [], h1: [] }
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...denizens }
             }
         )
         openTurn(state, 'dana')
@@ -157,5 +164,23 @@ describe('R-6.1, R-7.4 — the facedown play with New Growth: every site with sp
         session.pickPlayToSite('c1')
         expect(session.adviserToSite).toBeUndefined()
         expect(ringed(session)).toEqual(['c1'])
+    })
+
+    it('a tap on the site already picked keeps the card to discard first; only a change of site clears it', async () => {
+        const session = await playing([NEW_GROWTH, CROP_ROTATION], { c1: [INN], h1: [TENTS] })
+        await session.chooseAdviserPlay(WOLVES, SearchPlay.Site)
+        session.setAdviserDiscardFirst(INN)
+        session.pickPlayToSite('c1')
+        expect(session.adviserDiscardFirst).toBe(INN)
+        session.pickPlayToSite('h1')
+        expect(session.selection.value('discardFirst')).toBeUndefined()
+
+        session.setAdviserDiscardFirst(TENTS)
+        session.pickPlayToSite('h1')
+        expect(session.adviserToSite).toBe('h1')
+        expect(session.adviserDiscardFirst).toBe(TENTS)
+        session.pickPlayToSite('c1')
+        expect(session.adviserToSite).toBeUndefined()
+        expect(session.selection.value('discardFirst')).toBeUndefined()
     })
 })
