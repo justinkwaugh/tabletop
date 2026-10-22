@@ -3,7 +3,7 @@
 Extracted from the publisher print files with `tools/art-extraction/extract_top.py`. The tokens
 (`mapView.ts`, `publishedStations`), the private cards and the second-variant PEIR certificates
 (`presentation.ts`, `publishedCardImages`) and the train cards (`publishedTrainImages`) are shown while the published artwork toggle is on, the
-cards as a viewport-sized lightbox when clicked and inside the auction bidding panel;
+cards as a lightbox when clicked and inside the auction bidding panel;
 the tile style (`tileAppearance.ts`, `publishedTileAppearance`, with `tiles/paper-grain.png` as
 the grain overlay) draws laid tiles in the punch-tile look, and the second-variant share and
 president certificates (`presentation.ts`, `publishedShareImages`) appear beside share purchases

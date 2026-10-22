@@ -80,7 +80,7 @@
     article {
         display: flex;
         justify-content: center;
-        align-items: center;
+        align-items: safe center;
         padding: 4px 0;
         container: auction-card / inline-size;
     }
@@ -97,6 +97,7 @@
     }
     .lot.image {
         width: auto;
+        min-width: 0;
     }
     /* Size containment ignores content height, so fill only a pane whose height is fixed. */
     @container action-pane (min-height: 196px) {
@@ -108,7 +109,7 @@
             container-type: size;
         }
         .lot.image {
-            --auction-card-height: clamp(180px, 100cqh - 16px, 360px);
+            --auction-card-height: clamp(180px, 100cqh - 16px, 280px);
         }
     }
     .bid-summary {
@@ -122,19 +123,32 @@
         color: var(--rail-text, #786550);
     }
     .turn {
+        flex: none;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
     }
     @container auction-card (max-width: 479px) {
-        .layout {
+        .layout:not(:has(.lot.image)) {
             flex-direction: column;
         }
-        .turn,
-        .bid-summary {
+        .layout:not(:has(.lot.image)) :is(.turn, .bid-summary) {
             align-items: center;
             text-align: center;
+        }
+    }
+    /* Card art is narrow enough to keep the bid beside it, shrinking with the pane; stacked, it drops to its default height. */
+    @container auction-card (max-width: 299px) {
+        .layout:has(.lot.image) {
+            flex-direction: column;
+        }
+        .layout:has(.lot.image) :is(.turn, .bid-summary) {
+            align-items: center;
+            text-align: center;
+        }
+        .lot.image {
+            --auction-card-height: initial;
         }
     }
 </style>

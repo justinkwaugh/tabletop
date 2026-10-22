@@ -73,8 +73,10 @@
         outline-offset: 3px;
     }
     /* Published card art takes its height from the host; the host sets --auction-card-height. */
-    .card-button :global(.private-card img) {
+    .card-button :global(.private-card.image img) {
         width: auto;
-        height: var(--auction-card-height, 180px);
+        height: auto;
+        max-width: 100%;
+        max-height: var(--auction-card-height, 180px);
     }
 </style>
