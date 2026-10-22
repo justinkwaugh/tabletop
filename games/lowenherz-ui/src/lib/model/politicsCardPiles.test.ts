@@ -42,25 +42,39 @@ describe('politicsCardPiles', () => {
 
 describe('otherPlayerCardDecks', () => {
     it('gives every take its deck, in take order, while nothing has been spent', () => {
-        expect(otherPlayerCardDecks(3, ['A', 'B', 'A'], false)).toEqual(['A', 'B', 'A'])
-        expect(otherPlayerCardDecks(3, ['A', 'B', 'A'], true)).toEqual(['A', 'B', 'A'])
+        expect(otherPlayerCardDecks(3, ['A', 'B', 'A'], false, true)).toEqual(['A', 'B', 'A'])
+        expect(otherPlayerCardDecks(3, ['A', 'B', 'A'], true, true)).toEqual(['A', 'B', 'A'])
     })
 
     it('keeps what is certain after a spend and marks the rest as either deck', () => {
-        expect(otherPlayerCardDecks(2, ['A', 'A', 'B'], false)).toEqual(['A', 'either'])
-        expect(otherPlayerCardDecks(3, ['A', 'A', 'B', 'B'], false)).toEqual(['A', 'B', 'either'])
+        expect(otherPlayerCardDecks(2, ['A', 'A', 'B'], false, true)).toEqual(['A', 'either'])
+        expect(otherPlayerCardDecks(3, ['A', 'A', 'B', 'B'], false, true)).toEqual([
+            'A',
+            'B',
+            'either'
+        ])
     })
 
     it('stays certain when every card left must come from one deck', () => {
-        expect(otherPlayerCardDecks(2, ['A', 'A', 'A'], true)).toEqual(['A', 'A'])
+        expect(otherPlayerCardDecks(2, ['A', 'A', 'A'], true, true)).toEqual(['A', 'A'])
     })
 
     it('does not pin a deck to a visible face it cannot be matched to', () => {
-        expect(otherPlayerCardDecks(2, ['A', 'A', 'B'], true)).toEqual(['either', 'either'])
+        expect(otherPlayerCardDecks(2, ['A', 'A', 'B'], true, true)).toEqual(['either', 'either'])
+    })
+
+    it('does not pin visible faces by take order when the hand was shuffled, as in Exploration', () => {
+        expect(otherPlayerCardDecks(3, ['A', 'B', 'A'], true, false)).toEqual([
+            'either',
+            'either',
+            'either'
+        ])
+        expect(otherPlayerCardDecks(2, ['B', 'B'], true, false)).toEqual(['B', 'B'])
+        expect(otherPlayerCardDecks(3, ['A', 'B', 'A'], false, false)).toEqual(['A', 'B', 'A'])
     })
 
     it('has nothing to say when takes are missing from the history', () => {
-        expect(otherPlayerCardDecks(2, ['A'], false)).toBeUndefined()
+        expect(otherPlayerCardDecks(2, ['A'], false, true)).toBeUndefined()
     })
 })
 

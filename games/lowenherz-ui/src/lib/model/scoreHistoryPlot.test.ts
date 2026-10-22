@@ -12,7 +12,11 @@ describe('niceScoreTicks', () => {
         [61, [0, 20, 40, 60, 80]],
         [130, [0, 50, 100, 150]]
     ])('covers a maximum of %i with round steps', (max, ticks) => {
-        expect(niceScoreTicks(max)).toEqual(ticks)
+        expect(niceScoreTicks(0, max)).toEqual(ticks)
+    })
+
+    it('extends below zero to cover a negative score', () => {
+        expect(niceScoreTicks(-3, 30)).toEqual([-10, 0, 10, 20, 30])
     })
 })
 
@@ -75,6 +79,15 @@ describe('plotScoreHistory', () => {
         const plot = plotScoreHistory([{ playerId: 'a', scores: [0, 1, 2] }], frame)
         expect([-20, 49, 51, 160, 260].map((x) => plot.nearestRoundIndex(x))).toEqual([
             0, 0, 1, 2, 2
+        ])
+    })
+
+    it('keeps a negative score inside the plot', () => {
+        const plot = plotScoreHistory([{ playerId: 'a', scores: [-10, 30] }], frame)
+        expect(plot.scoreTicks.map((tick) => tick.score)).toEqual([-10, 0, 10, 20, 30])
+        expect(plot.lines[0].points).toEqual([
+            { x: 0, y: 100 },
+            { x: 200, y: 0 }
         ])
     })
 })

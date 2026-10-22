@@ -1708,7 +1708,7 @@ export class LowenherzGameSession extends GameSession<
         const takePiles = this.politicsTakes
             .filter((take) => take.playerId === playerId)
             .map((take) => take.pile)
-        return otherPlayerCardDecks(handCount, takePiles, faceVisible)?.[index]
+        return otherPlayerCardDecks(handCount, takePiles, faceVisible, !this.isExploring)?.[index]
     }
 
     get myPoliticsCards(): PoliticsCard[] {

@@ -23,13 +23,15 @@ export type ScoreHistoryPlot = {
 const TARGET_TICK_COUNT = 4
 const NICE_STEP_FACTORS = [1, 2, 5, 10]
 
-export function niceScoreTicks(maxScore: number): number[] {
-    const roughStep = Math.max(maxScore, 1) / TARGET_TICK_COUNT
+export function niceScoreTicks(minScore: number, maxScore: number): number[] {
+    const low = Math.min(0, minScore)
+    const roughStep = Math.max(maxScore - low, 1) / TARGET_TICK_COUNT
     const magnitude = 10 ** Math.floor(Math.log10(roughStep))
     const factor = NICE_STEP_FACTORS.find((candidate) => candidate * magnitude >= roughStep) ?? 10
     const step = Math.max(1, factor * magnitude)
-    const top = Math.max(step, Math.ceil(maxScore / step) * step)
-    return Array.from({ length: top / step + 1 }, (_, index) => index * step)
+    const bottom = Math.floor(low / step) * step
+    const top = Math.max(bottom + step, Math.ceil(maxScore / step) * step)
+    return Array.from({ length: (top - bottom) / step + 1 }, (_, index) => bottom + index * step)
 }
 
 export function plotScoreHistory(
@@ -41,11 +43,14 @@ export function plotScoreHistory(
     const plotHeight = height - inset.top - inset.bottom
     const roundSpacing = plotWidth / (roundCount - 1)
 
-    const ticks = niceScoreTicks(Math.max(...series.flatMap((entry) => entry.scores)))
+    const allScores = series.flatMap((entry) => entry.scores)
+    const ticks = niceScoreTicks(Math.min(...allScores), Math.max(...allScores))
+    const bottomScore = ticks[0]
     const topScore = ticks[ticks.length - 1]
 
     const xForRound = (index: number) => inset.left + index * roundSpacing
-    const yForScore = (score: number) => inset.top + plotHeight * (1 - score / topScore)
+    const yForScore = (score: number) =>
+        inset.top + plotHeight * (1 - (score - bottomScore) / (topScore - bottomScore))
 
     return {
         rounds: Array.from({ length: roundCount }, (_, index) => ({

@@ -53,15 +53,18 @@ export type PoliticsCardSource = PoliticsPile | 'either'
 // What another player's hand shows of its decks, from the decks of their takes alone: the cards
 // they took are hidden from you, so once they have spent a card you cannot tell which take it
 // was. A deck is certain for as many cards as it gave more than they have spent, and the rest
-// could be from either. With nothing spent the hand still holds every take, in take order.
+// could be from either. With nothing spent a real hand still holds every take in take order,
+// but a hand sampled for Exploration is shuffled, so visible faces there are pinned only when
+// every card must come from one deck.
 export function otherPlayerCardDecks(
     handCount: number,
     takePiles: readonly PoliticsPile[],
-    facesVisible: boolean
+    facesVisible: boolean,
+    handInTakeOrder: boolean
 ): PoliticsCardSource[] | undefined {
     const spent = takePiles.length - handCount
     if (spent < 0) return undefined
-    if (spent === 0) return [...takePiles]
+    if (spent === 0 && (handInTakeOrder || !facesVisible)) return [...takePiles]
     const certain = (pile: PoliticsPile) =>
         Math.max(0, takePiles.filter((taken) => taken === pile).length - spent)
     const left = certain('A')
