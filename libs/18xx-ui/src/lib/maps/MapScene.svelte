@@ -18,6 +18,7 @@
         type BoardArtwork,
         printedMapReservations,
         mapBorderCosts,
+        terrainRowWidths,
         type MapDrawing,
         type MapSelection,
         type MapToken,
@@ -354,9 +355,10 @@
                     >
                         {#if !entry.placed && entry.location.terrain}
                             {@const terrain = entry.location.terrain}
-                            {@const iconWidth = terrain.kinds.length * 19}
                             {@const cost = `${scene.terrainCostPrefix}${terrainCost(terrain)}`}
-                            {@const labelWidth = cost.length * 6.5}
+                            {@const widths = terrainRowWidths(terrain.kinds.length, cost)}
+                            {@const iconWidth = widths.icons}
+                            {@const labelWidth = widths.cost}
                             <g
                                 data-map-terrain
                                 transform={`translate(${-(iconWidth + labelWidth) / 2} ${entry.terrainY})`}
@@ -476,6 +478,16 @@
                                         fill={appearance.paper}>{annotation.label}</text
                                     >
                                 </g>
+                            {:else if annotation.kind === 'token'}
+                                <image
+                                    data-map-placed-token={annotation.markerId}
+                                    href={annotation.imageUrl}
+                                    x={annotation.x - annotation.radius}
+                                    y={annotation.y - annotation.radius}
+                                    width={annotation.radius * 2}
+                                    height={annotation.radius * 2}
+                                    ><title>{annotation.label}</title></image
+                                >
                             {:else}
                                 <g
                                     data-map-revenue-symbol={annotation.markerId}
