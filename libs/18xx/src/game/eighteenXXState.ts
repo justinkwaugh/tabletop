@@ -223,20 +223,30 @@ export const validateRailwayComponents: StateValidation<EighteenXXState> = (
     validateFinances(state, playerIds)
 }
 
-export const validateRailwayState: StateValidation<EighteenXXState> = (state, components) => {
-    validateStockRound(state)
-    validateOperatingSet(state)
-    validateTrackStep(state)
-    validateStationStep(state)
-    validateTrainFunding(state)
-    validateFinalResults(state)
-    validateCompanyDecisions(state)
-    validateRouteStep(state)
-    validatePhaseChange(state)
-    validateEarningsDistribution(state)
-    validateTrainPurchaseStep(state)
-    validateRailwayComponents(state, components)
+/**
+ * The railway state checks. `operatingInterruptions` names a title's states that pause an
+ * operating turn after its run, such as another president's decision, keeping the turn's
+ * earnings until play resumes.
+ */
+export function railwayStateValidation({
+    operatingInterruptions = []
+}: { operatingInterruptions?: readonly string[] } = {}): StateValidation<EighteenXXState> {
+    return (state, components) => {
+        validateStockRound(state)
+        validateOperatingSet(state)
+        validateTrackStep(state)
+        validateStationStep(state)
+        validateTrainFunding(state)
+        validateFinalResults(state)
+        validateCompanyDecisions(state)
+        validateRouteStep(state)
+        validatePhaseChange(state)
+        validateEarningsDistribution(state, operatingInterruptions)
+        validateTrainPurchaseStep(state)
+        validateRailwayComponents(state, components)
+    }
 }
+export const validateRailwayState = railwayStateValidation()
 
 export function inKnownPhase<State extends HydratedEighteenXXState>(
     state: State,
