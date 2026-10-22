@@ -551,7 +551,7 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
         const game = { ...testGame([DANA, RHYS, ANN]), hotseat: false, protectedInformation: true as const }
         const dana = { kind: 'player', playerId: DANA } as const
 
-        /** Dana's own view as her table executes on it: projected, then guarded. */
+        /** Dana's own view as their table executes on it: projected, then guarded. */
         const ownView = (s: HydratedOathGameState) =>
             OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, dana)), dana)
 
@@ -573,7 +573,7 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
             return own
         }
 
-        it('Wild Allies at her own site: the beast sites with a defender, and Use a power and End turn', () => {
+        it('Wild Allies at their own site: the beast sites with a defender, and Use a power and End turn', () => {
             expect(expectSameOnOwnView(exiles({ atC1: [WILD_ALLIES] }), WILD_ALLIES, ['p1', 'h2'])).toContain(ActionType.UseActionPower)
         })
 
@@ -581,13 +581,13 @@ describe('Captains and Wild Allies name only a site with a defender (R-5.5.1; re
             expectSameOnOwnView(exiles({ atC1: [WILD_ALLIES], danaAdvisers: [PEACE] }), WILD_ALLIES, [])
         })
 
-        it('Wild Allies at her own site, The Hidden Place asking for the secret its cost takes: that site is left out', () => {
+        it('Wild Allies at their own site, The Hidden Place asking for the secret its cost takes: that site is left out', () => {
             const s = exiles({ atC1: [WILD_ALLIES] })
             s.siteCards = { ...s.siteCards, p1: HIDDEN_PLACE }
             expect(expectSameOnOwnView(s, WILD_ALLIES, ['h2'])).toContain(ActionType.UseActionPower)
         })
 
-        it('Captains at her own site: the ruled site with a defender, and Use a power and End turn', () => {
+        it('Captains at their own site: the ruled site with a defender, and Use a power and End turn', () => {
             expect(expectSameOnOwnView(exiles(), CAPTAINS, ['p2'])).toContain(ActionType.UseActionPower)
         })
 

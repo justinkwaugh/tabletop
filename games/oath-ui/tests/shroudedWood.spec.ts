@@ -194,7 +194,7 @@ test.describe('the Shrouded Wood ruler’s pick on a desktop at 1280', () => {
         await expect(siteAt(page, 'slot.provinces.2').locator('.travel-cost')).toHaveText('2 Supply')
 
         await siteAt(page, 'slot.provinces.1').locator('.board-card').click()
-        // The table passes to the traveller, asked before anything is paid or moved; her map lights nothing.
+        // The table passes to the traveller, asked before anything is paid or moved; their map lights nothing.
         await expect(panel(page).getByRole('heading', { name: 'Toll Roads' })).toBeVisible()
         const facts = await call(page, 'tableFacts')
         expect(facts.seatId).toBe('Dana')

@@ -46,8 +46,8 @@ const names: HistoryNames = {
 }
 
 /**
- * Dana on turn at c1 with `facedown` as her one facedown adviser beside `faceup`, holding `relics`;
- * `here` at her site. Rhys sits at the Plains.
+ * Dana on turn at c1 with `facedown` as their one facedown adviser beside `faceup`, holding `relics`;
+ * `here` at their site. Rhys sits at the Plains.
  */
 function table(
     facedown: string,

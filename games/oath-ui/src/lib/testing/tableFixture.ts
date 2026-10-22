@@ -1310,9 +1310,9 @@ function majorEventsTable(): PlayedTable {
 }
 
 /**
- * Ann's turn opens after her last closed in round 4: Bea, an Exile, Searched the world deck and
+ * Ann's turn opens after their last closed in round 4: Bea, an Exile, Searched the world deck and
  * stopped on a Vision (R-5.1.2); in round 5 Dana, the Chancellor holding the Grand Scepter, offered
- * Bea Citizenship and she accepted (R-6.6.1); Rhys seized the People's Favor from Dana in a
+ * Bea Citizenship and Bea accepted (R-6.6.1); Rhys seized the People's Favor from Dana in a
  * Campaign (R-5.5.2, R-2.5.3) and with it the title (R-2.11). Long: the Favor then went back and
  * forth once more, more rows than a phone's board holds.
  */
@@ -2291,7 +2291,7 @@ function relicsTable(): PlayedTable {
     return tableOf(state)
 }
 
-/** R-7.1.4: Forced Labor at the seat's site, which the Chancellor rules, so a Search gives her 1 favor. */
+/** R-7.1.4: Forced Labor at the seat's site, which the Chancellor rules, so a Search gives them 1 favor. */
 function searchTollTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -2595,10 +2595,10 @@ type ExchangeScene =
 const VOW_OF_SILENCE = 'denizen.arcane.vow-of-silence'
 
 /**
- * R-10.8 — Dana, the Chancellor, at Plains with Deed Writer or Tinker's Fair; he rules Plains and
+ * R-10.8 — Dana, the Chancellor, at Plains with Deed Writer or Tinker's Fair; they rule Plains and
  * Great Slum (Imperial warbands) and holds the Grand Scepter and the Cup of Plenty. Rhys, an
- * Exile, rules the Mountain and holds the Bandit Crown with 2 warbands on his board; Ann is a
- * Citizen. `exchangeDeedEmptyBoard`: Rhys holds no Crown and his board is empty.
+ * Exile, rules the Mountain and holds the Bandit Crown with 2 warbands on their board; Ann is a
+ * Citizen. `exchangeDeedEmptyBoard`: Rhys holds no Crown and their board is empty.
  * `exchangeDeedSwap`: the same, in a game at the current revision, where the Mountain's warband
  * comes home before Rhys moves in.
  * `exchangeTinkers`: Rhys holds Vow of Silence. `exchangeGathering`: The Gathering's round asks
@@ -2697,7 +2697,7 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
 
 /**
  * Messenger: Dana, the Chancellor, stands at the Ancient City (4 Imperial warbands) and rules
- * the Steppe (2) and the Marshes (1); his board is empty. Rhys, an Exile, is at the Mountain.
+ * the Steppe (2) and the Marshes (1); their board is empty. Rhys, an Exile, is at the Mountain.
  */
 function messengerTable(): PlayedTable {
     const [city, steppe] = mapSlotsFor(Region.Cradle)
@@ -2743,7 +2743,7 @@ function messengerTable(): PlayedTable {
 
 /**
  * A game from before revision 5, where a Citizen could hold their own warbands beside Imperial
- * ones: Ann, a Citizen with Messenger, has 2 of hers and 1 Imperial on her board, and 3 of each
+ * ones: Ann, a Citizen with Messenger, has 2 of their own and 1 Imperial on their board, and 3 of each
  * at the Steppe. Dana is the Chancellor.
  */
 function messengerTwoOwnersTable(): PlayedTable {
@@ -2873,9 +2873,9 @@ type PickerScene = 'pickerWhistle' | 'pickerTerror' | 'pickerPact' | 'pickerCage
  *   still a list); Rhys stands at the Mountain and Ann, the Chancellor, at the Marshes, both at
  *   another site.
  * - `pickerTerror`: Dana, an Exile at the Mountain (Provinces), holds the Darkest Secret and Terror
- *   Spells. Rhys rules the Mountain with 3 and stands at the Marshes with 2 on his board; Dana has 2
- *   at the Marshes and 3 on her board; Ann's pawn is at the Ancient City (Cradle), 2 on her board.
- * - `pickerPact`: Dana, an Exile, holds Blood Pact with 5 warbands on her board.
+ *   Spells. Rhys rules the Mountain with 3 and stands at the Marshes with 2 on their board; Dana has 2
+ *   at the Marshes and 3 on their board; Ann's pawn is at the Ancient City (Cradle), 2 on their board.
+ * - `pickerPact`: Dana, an Exile, holds Blood Pact with 5 warbands on their board.
  * - `pickerCage`: Dana, the Chancellor, holds the Obsidian Cage, which holds 3 of Rhys's warbands
  *   and 2 Imperial; Ann is a Citizen, so the Imperial ones may go to Dana's board or Ann's.
  */
@@ -2992,7 +2992,7 @@ const SALAD_SITE_BANKS: Record<Suit, number> = {
  * The rest of the power pickers: discard piles, repeated banks, the "may" and the "or". Seats
  * Dana (purple), Rhys (red), Ann (blue) and Bea (yellow); Dana is the Chancellor.
  * - `pickerPiles`: Dana's turn at the Great Slum (Provinces), with Scryer, Errand Boy and Bracken
- *   faceup and Convoys at her site. Piles: Cradle 5, Provinces 3, Hinterland 8, a Vision on top.
+ *   faceup and Convoys at their site. Piles: Cradle 5, Provinces 3, Hinterland 8, a Vision on top.
  * - `pickerBanks`: Rhys's turn, an Exile with Alchemist and Memory of Nature and 3 secrets. The
  *   banks hold Discord 2, Arcane 2, Order 4, Hearth 3, Beast 1, Nomad 0; three Beast cards are
  *   at sites, so X is 3.
@@ -3896,7 +3896,7 @@ function freeTravelTable(): PlayedTable {
     return tableOf(state)
 }
 
-/** R-7.1.4: Rhys rules this seat's site with Forced Labor, so a Search gives him a favor. */
+/** R-7.1.4: Rhys rules this seat's site with Forced Labor, so a Search gives them a favor. */
 function searchTollByRhysTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -4145,7 +4145,7 @@ const RELIQUARY_KNOWN = { peekedRelicSlotIds: Object.keys(RELIQUARY), peekedReli
 /**
  * R-6.6.1 — the Grand Scepter's holder, holding both banners, in their Act Phase with every
  * Reliquary relic known to them (R-6.4-H1). `two`: Rhys and Ann are Exiles; `one`: Rhys alone;
- * `silenced`: both, Rhys with Vow of Silence, so he may give no secrets; `self`: the holder is the
+ * `silenced`: both, Rhys with Vow of Silence, so they may give no secrets; `self`: the holder is the
  * one Exile, Rhys a Citizen and Ann the Chancellor.
  */
 function offerCitizenshipTable(exiles: 'two' | 'one' | 'silenced' | 'self'): PlayedTable {
@@ -4204,7 +4204,7 @@ function offerCitizenshipTable(exiles: 'two' | 'one' | 'silenced' | 'self'): Pla
 
 /**
  * R-6 — the Grand Scepter's holder offered every minor the rules allow together: a facedown
- * adviser to play or show, Tents' power on Travel, a relic here not yet seen, warbands at a site he
+ * adviser to play or show, Tents' power on Travel, a relic here not yet seen, warbands at a site they
  * rules, Rhys an Exile and Ann a Citizen.
  */
 function everyMinorTable(): PlayedTable {
@@ -4365,7 +4365,7 @@ function exileCitizensTable(): PlayedTable {
     return tableOf(state)
 }
 
-/** R-6.8 — Rhys, a Citizen with one secret and two warbands on his board, may exile himself for 3 favor. */
+/** R-6.8 — Rhys, a Citizen with one secret and two warbands on their board, may exile themself for 3 favor. */
 function selfExileTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -4493,7 +4493,7 @@ type CrownScene = 'citizen' | 'chancellor' | 'exile' | 'campaign' | 'five' | 'ch
  * R-7.6.5 with R-6.6.3 — the Bandit Crown in a new game: Dana the Chancellor, Ann a Citizen,
  * Rhys an Exile and the Exile Bea on the clock. The Empire's warbands hold the top Provinces
  * site and Rhys's the top Cradle site; every other site is empty. 'campaign': Ann, holding the
- * Crown, has declared against Dana (R-5.5.1.a suspends her). 'five': Bea, Dov and Wes are
+ * Crown, has declared against Dana (R-5.5.1.a suspends Ann). 'five': Bea, Dov and Wes are
  * Citizens too, and Rhys is on the clock. 'chief': as 'citizen', with Dana's faceup Bandit Chief
  * putting 3 bandits on each empty site (R-2.8.3).
  */
@@ -4683,8 +4683,8 @@ const SKULL_FACE = { swords: 2, hollowSwords: 0, skulls: 1 }
 const SWORD_FACE = { swords: 1, hollowSwords: 0, skulls: 0 }
 
 /**
- * R-5.5.5, revision 7 — dana (the Chancellor) campaigns against rhys, his force on his board and at
- * the sites it reaches (Captains: one; Vow of Union: two); the skulls rolled wait for his pick, or,
+ * R-5.5.5, revision 7 — dana (the Chancellor) campaigns against rhys, their force on their board and at
+ * the sites it reaches (Captains: one; Vow of Union: two); the skulls rolled wait for their pick, or,
  * at `sacrifice`, a battle that needs 3 sacrificed, so the defeat would be the default half.
  */
 function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedTable {
@@ -4754,7 +4754,7 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
 
 /**
  * Second Wind out of turn, revision 7 — ann won a Sneak Attack during rhys's turn with Second Wind,
- * and is asked "Travel now?" (then, at `campaign`, "Campaign now?" at dana's site, which he rules).
+ * and is asked "Travel now?" (then, at `campaign`, "Campaign now?" at dana's site, which they rule).
  */
 function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): PlayedTable {
     const [tribunal] = mapSlotsFor(Region.Provinces)
@@ -4821,7 +4821,7 @@ type DrumScene = 'whistle' | 'citizen' | 'toll' | 'horse'
 /**
  * Dragonskin Drum on a power's move (revision 7): Dana holds the Drum at the River; Rhys, with the
  * Whistle, rules the Great Slum (with Toll Roads there in 'toll'); Ann is the Chancellor, and in
- * 'citizen' Dana is her Citizen. In 'horse' Dana has used Brass Horse and picks where to go.
+ * 'citizen' Dana is Ann's Citizen. In 'horse' Dana has used Brass Horse and picks where to go.
  */
 function drumState(scene: DrumScene) {
     const citizen = scene === 'citizen'

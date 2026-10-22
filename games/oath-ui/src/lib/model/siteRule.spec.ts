@@ -112,7 +112,7 @@ describe('siteRuleOf: the Bandit Crown held by an Imperial player', () => {
     const AT_REVISION = OathRevision.EngineFixes2
     const BEFORE = OathRevision.CardFixes1
 
-    it('a Citizen holder: every Imperial player rules the empty site, and the bandits serve her as Imperial warbands', () => {
+    it('a Citizen holder: every Imperial player rules the empty site, and the bandits serve them as Imperial warbands', () => {
         expect(siteRuleOf(crowned(CIT, AT_REVISION), 'c2')).toEqual({
             rulerIds: [CHAN, CIT],
             banditsRule: false,
@@ -130,7 +130,7 @@ describe('siteRuleOf: the Bandit Crown held by an Imperial player', () => {
         })
     })
 
-    it('R-X.4 — a game created before the revision keeps the holder alone, in her own colour', () => {
+    it('R-X.4 — a game created before the revision keeps the holder alone, in their own colour', () => {
         for (const holderId of [CIT, CHAN]) {
             expect(siteRuleOf(crowned(holderId, BEFORE), 'c2'), holderId).toEqual({
                 rulerIds: [holderId],
@@ -141,7 +141,7 @@ describe('siteRuleOf: the Bandit Crown held by an Imperial player', () => {
         }
     })
 
-    it('R-5.5.1.a — while her Campaign against the Chancellor suspends the Citizen holder, the empty site is hers alone, not Imperial', () => {
+    it('R-5.5.1.a — while their Campaign against the Chancellor suspends the Citizen holder, the empty site is theirs alone, not Imperial', () => {
         const state = campaigning(crowned(CIT, AT_REVISION), CIT, CHAN)
         expect(siteRuleOf(state, 'c2')).toEqual({
             rulerIds: [CIT],
@@ -157,7 +157,7 @@ describe('siteRuleOf: the Bandit Crown held by an Imperial player', () => {
         expect(siteRuleOf(state, 'c2').rulerIds).toEqual([CHAN, CIT])
     })
 
-    it('R-5.5.1.a — the Chancellor attacking the Citizen holder reverts her too', () => {
+    it('R-5.5.1.a — the Chancellor attacking the Citizen holder reverts them too', () => {
         const state = campaigning(crowned(CIT, AT_REVISION), CHAN, CIT)
         expect(siteRuleOf(state, 'c2')).toEqual({
             rulerIds: [CIT],
@@ -167,7 +167,7 @@ describe('siteRuleOf: the Bandit Crown held by an Imperial player', () => {
         })
     })
 
-    it('an Exile holder is unchanged at the revision: her colour, hers alone', () => {
+    it('an Exile holder is unchanged at the revision: their colour, theirs alone', () => {
         expect(siteRuleOf(crowned(ME, AT_REVISION), 'c2')).toEqual({
             rulerIds: [ME],
             banditsRule: false,

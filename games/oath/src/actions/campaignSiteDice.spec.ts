@@ -238,7 +238,7 @@ describe('R-X.4: a game created before revision 13 adds the site dice after the 
 
 describe('the Step 2 pools with other targets, sites and plans', () => {
     it('a Mountain and a Plains fold in target order, both before the plans', () => {
-        // Rhys rules both; his People's Favor (1) is the third target. Mountain first: its die from the
+        // Rhys rules both; their People's Favor (1) is the third target. Mountain first: its die from the
         // empty pool adds a defense die (4), and Rangers sees it. Plains first: no defense die is added.
         const banner = { banners: { [Banner.PeoplesFavor]: { value: 1, holderPlayerId: RHYS }, [Banner.DarkestSecret]: { value: 1 } } }
         const scene = { revision: atRevision, warbands: { c1: { [RHYS]: 1 } }, dana: { advisers: [{ cardId: RANGERS, faceUp: true }] }, state: banner }
@@ -263,8 +263,8 @@ describe('the Step 2 pools with other targets, sites and plans', () => {
     // Nobody's warbands hold the Mountain, so Rhys's pawn there is the only thing targeted at it.
     const pawnOnly = { revision: atRevision, warbands: { h1: {} }, dana: { advisers: [{ cardId: RANGERS, faceUp: true }] } }
     const onlyTargets: [string, CampaignTarget, Partial<Scene>][] = [
-        ['his relic', { kind: CampaignTargetKind.Relic, cardId: MAP }, { rhys: { relicIds: [MAP] } }],
-        ['his banner', PEOPLES_FAVOR, { state: { banners: { [Banner.PeoplesFavor]: { value: 3, holderPlayerId: RHYS }, [Banner.DarkestSecret]: { value: 1 } } } }]
+        ['their relic', { kind: CampaignTargetKind.Relic, cardId: MAP }, { rhys: { relicIds: [MAP] } }],
+        ['their banner', PEOPLES_FAVOR, { state: { banners: { [Banner.PeoplesFavor]: { value: 3, holderPlayerId: RHYS }, [Banner.DarkestSecret]: { value: 1 } } } }]
     ]
     for (const [name, target, extra] of onlyTargets) {
         it(`the Mountain counts through Rhys's pawn there when only ${name} is targeted`, () => {
@@ -275,7 +275,7 @@ describe('the Step 2 pools with other targets, sites and plans', () => {
         })
     }
 
-    it('the Mountain counts through his pawn and favor too', () => {
+    it('the Mountain counts through their pawn and favor too', () => {
         const s = table(pawnOnly)
         campaign(s, { targets: [PAWN_AND_FAVOR], plans: [battlePlanUse(RANGERS)] })
         expect(ongoingCampaign(s).attackPool).toBe(0)
@@ -301,7 +301,7 @@ describe('the Step 2 pools with other targets, sites and plans', () => {
         expect(ongoingCampaign(s).attackPool).toBe(2)
     })
 
-    it('Captains: Dana acts from the Plains she names, so her pawn on the Mountain takes nothing', () => {
+    it('Captains: Dana acts from the Plains they name, so their pawn on the Mountain takes nothing', () => {
         for (const revision of [atRevision, before]) {
             const s = table({ revision, denizens: { h1: [CAPTAINS] }, warbands: { c1: { [DANA]: 2, [RHYS]: 1 } } })
             actionPowerUse(DANA, CAPTAINS, [site('c1')]).apply(s)
@@ -426,7 +426,7 @@ describe("Peace Envoy declared once the Citizens asked to join have answered", (
 
 describe("Peace Envoy's check on the attacker's own view, where hidden values cannot be read", () => {
     const dana = { kind: 'player', playerId: DANA } as const
-    /** Dana's own view as her table judges on it: projected, then guarded. */
+    /** Dana's own view as their table judges on it: projected, then guarded. */
     const ownView = (s: HydratedOathGameState) =>
         OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, dana)), dana)
 

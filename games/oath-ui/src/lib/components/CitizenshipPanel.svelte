@@ -140,7 +140,7 @@
         <p class="text-sm mb-2">To <PlayerName playerId={exilePlayerId} /></p>
 
         <!-- The deal: the two sides side by side on a desktop, stacked on a phone; the Exile's
-             answer reads it from the other side. An Exile offering himself gets no terms. -->
+             answer reads it from the other side. An Exile offering themself gets no terms. -->
         <div
             class="mb-2.5 grid border-t border-oath-divider pt-2 {offer.offersSelf
                 ? ''

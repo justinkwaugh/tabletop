@@ -157,7 +157,7 @@
         onpick={(row, count) => spoils.setCageCount(row, count)}
     />
 {:else if spoils.step === 'pawn' && defenderId !== undefined}
-    <!-- R-5.5.7.III — the sites she may be sent to are lit on the map; R-11.7, or the Wood's ruler picks. -->
+    <!-- R-5.5.7.III — the sites they may be sent to are lit on the map; R-11.7, or the Wood's ruler picks. -->
     {#if spoils.woodRuler === undefined}
         <p class="mb-1.5 text-sm">
             Tap a lit site to banish <PlayerName playerId={defenderId} possessive /> pawn there.

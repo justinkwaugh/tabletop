@@ -614,7 +614,7 @@ describe("Witch's Bargain's picks (revision 7)", () => {
             secrets: { held: 3, addable: 2, picked: 0 },
             pairs: { held: 5, addable: 2, picked: 0 }
         })
-        // Ann's one favor buys none of your secrets; her last secret can be taken.
+        // Ann's one favor buys none of your secrets; their last secret can be taken.
         expect(bargainRows(session.gameState, ME, picked(), 'ann')).toEqual({
             secrets: { held: 3, addable: 0, picked: 0 },
             pairs: { held: 5, addable: 1, picked: 0 }
@@ -1159,7 +1159,7 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
         expect(offer.reliquarySlotId).toBeUndefined()
     })
 
-    it('R-6.6.1 — an Exile offering himself gets no terms: the offer is the relic alone', async () => {
+    it('R-6.6.1 — an Exile offering themself gets no terms: the offer is the relic alone', async () => {
         const state = table(MachineState.ActPhase, { relicIds: ['relic.grand-scepter'] })
         state.reliquary = state.reliquary.map((slot, index) => ({ ...slot, cardId: `relic.fixture-${index}` }))
         state.banners[Banner.DarkestSecret] = { value: 1, holderPlayerId: ME }

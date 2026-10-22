@@ -1045,7 +1045,7 @@ const FAVOR_TOKENS = (who: 'you' | 'they', count: number) =>
 /**
  * The offer's terms (R-6.6.1): the promised relic is the one large card, each side's relics and
  * banners small tiles ringed once added, favor and secrets token rows; the sides side by side on
- * a desktop and stacked on a phone; no summary line; an Exile offering himself gets no terms.
+ * a desktop and stacked on a phone; no summary line; an Exile offering themself gets no terms.
  */
 test.describe('the Citizenship offer’s terms', () => {
     test('the promised relic is the 56 px card, not a button; the Scepter and banners are 40 px tiles, unringed until tapped', async ({
@@ -1137,7 +1137,7 @@ test.describe('the Citizenship offer’s terms', () => {
         await expect(answer(page, 'Offer')).toBeEnabled()
     })
 
-    test('an Exile offering himself gets no terms: the promised relic and “Offer”', async ({ page }) => {
+    test('an Exile offering themself gets no terms: the promised relic and “Offer”', async ({ page }) => {
         await openTable(page, 'offerCitizenshipSelf')
         await minor(page, 'Offer Citizenship').click()
         await expect(grid(page)).not.toContainText('To:')
@@ -3798,7 +3798,7 @@ test.describe('the exchange editor', () => {
             await expect(answer(page, 'Use')).toHaveCount(0)
             await expect(red(page)).toHaveCount(0)
 
-            // The Mountain's one warband comes home to Rhys first, so he can move it into Plains.
+            // The Mountain's one warband comes home to Rhys first, so they can move it into Plains.
             await site(page, 'Mountain').click()
             await grid(page).getByRole('button', { name: 'dana moves 1 in from their board', exact: true }).click()
             await expect(pieces(page, 'rhys')).toHaveCount(1)
@@ -4601,7 +4601,7 @@ for (const viewport of [{ width: 402, height: 874 }, { width: 375, height: 812 }
             expect(await onScreen(page, siteCard(page, TOP_CRADLE))).toBe(true)
         })
 
-        test('the Chancellor: the map opens framed on the Cradle with no chips, his site ringed with "start here"', async ({ page }) => {
+        test('the Chancellor: the map opens framed on the Cradle with no chips, their site ringed with "start here"', async ({ page }) => {
             await openTable(page, 'setup')
             await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
             await expect.poll(() => onScreen(page, siteCard(page, TOP_CRADLE))).toBe(true)
@@ -7402,7 +7402,7 @@ test.describe('scenario 13: the Bandit Crown’s bandits on the map and the enla
         expect(await chipsIn(previewRuledBy(page)).allTextContents()).toEqual(['dana', 'ann'])
     })
 
-    test('an Exile holder is unchanged: her colour, hers alone, named as her chip', async ({ page }) => {
+    test('an Exile holder is unchanged: their colour, theirs alone, named as their chip', async ({ page }) => {
         await openTable(page, 'banditCrownExile')
         const red = decodeURIComponent((await boardBandits(page).first().locator('img').getAttribute('src')) ?? '')
         for (const figure of await boardBandits(page).all()) {
@@ -7415,7 +7415,7 @@ test.describe('scenario 13: the Bandit Crown’s bandits on the map and the enla
         expect(await chipsIn(previewRuledBy(page)).allTextContents()).toEqual(['rhys'])
     })
 
-    test('while her Campaign against the Chancellor suspends the Citizen holder, the bandits are hers alone, in her colour', async ({
+    test('while their Campaign against the Chancellor suspends the Citizen holder, the bandits are theirs alone, in their colour', async ({
         page
     }) => {
         await openTable(page, 'banditCrownCampaign')
@@ -7851,7 +7851,7 @@ const bargainUse = (page: Page) => bargainEntry(page).getByRole('button', { name
 
 /**
  * Witch's Bargain, revision 7 (its Q&A: several players in one use). Dana (5 favor, 3 secrets),
- * Rhys (4, 2) and Ann (1, 1) share his site: "With:" and their chips, then two rows of his pieces
+ * Rhys (4, 2) and Ann (1, 1) share one site: "With:" and their chips, then two rows of their pieces
  * for each picked player.
  */
 test.describe('Witch’s Bargain: the players at your site, then your pieces for each', () => {
@@ -7906,7 +7906,7 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
         await expect(bargainEntry(page).locator('[data-bargain-with]')).toHaveCount(0)
     })
 
-    test('two players in one use: each their own rows, Ann’s held to her one favor and one secret; Use sends both', async ({
+    test('two players in one use: each their own rows, Ann’s held to their one favor and one secret; Use sends both', async ({
         page
     }) => {
         await openTable(page, 'witchsBargain')
@@ -7914,7 +7914,7 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
         await bargainChip(page, 'rhys').click()
         await bargainChip(page, 'ann').click()
         await expect(bargainEntry(page).locator('[data-bargain-with]')).toHaveCount(2)
-        // One favor buys none of Dana's secrets; her last secret can be taken for a pair.
+        // One favor buys none of Dana's secrets; their last secret can be taken for a pair.
         for (const piece of await secretPieces(page, 'ann').all()) await expect(piece).toBeDisabled()
         const annPairs = await favorPairs(page, 'ann').all()
         await expect(annPairs[0]).toBeEnabled()

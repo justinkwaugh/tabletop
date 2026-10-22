@@ -42,7 +42,7 @@ const before = OathRevision.EngineFixes2
 
 type Over = Record<string, Record<string, unknown>>
 
-/** Rhys rules c1, which holds Toll Roads; Dana, his enemy, stands at c2. */
+/** Rhys rules c1, which holds Toll Roads; Dana, their enemy, stands at c2. */
 function table(over: Over = {}, state: Record<string, unknown> = {}, oathRevision: number = atRevision) {
     const s = testState(
         withChancellor([
@@ -207,7 +207,7 @@ describe('Toll Roads on Palanquin — refusing moves neither pawn', () => {
 })
 
 describe('Toll Roads on a banish — the toll first, then the burn (R-5.5.7.III)', () => {
-    /** Rhys won against Dana at c2, taking his pawn and favor; Rhys rules c1, which holds Toll Roads. */
+    /** Rhys won against Dana at c2, taking their pawn and favor; Rhys rules c1, which holds Toll Roads. */
     function won(over: Over = {}, oathRevision: number = atRevision) {
         return table({ rhys: { siteId: 'c2', ...over['rhys'] }, dana: { favor: 7, ...over['dana'] } }, {
             campaign: {
@@ -310,7 +310,7 @@ describe('Toll Roads on a banish — the toll first, then the burn (R-5.5.7.III)
             return s
         }
 
-        it('Slander waits on Dana: the Campaign is open, and nothing of hers is burned yet', () => {
+        it('Slander waits on Dana: the Campaign is open, and nothing of theirs is burned yet', () => {
             const s = slandered()
             const victory = resolve(s, true)
             expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'c2', favor: 7 })
@@ -319,7 +319,7 @@ describe('Toll Roads on a banish — the toll first, then the burn (R-5.5.7.III)
             expect(HydratedCampaignResolveVictory.reasonCannotResolveVictory(s, 'rhys', { placements: [], burnFavor: false })).toBe('the banish waits on an answer')
         })
 
-        it('paid: she goes, half of what is left burns, then Slander burns the rest, and the Campaign ends', () => {
+        it('paid: they go, half of what is left burns, then Slander burns the rest, and the Campaign ends', () => {
             const s = slandered()
             resolve(s, true)
             const answer = payToll(s, true)
@@ -330,7 +330,7 @@ describe('Toll Roads on a banish — the toll first, then the burn (R-5.5.7.III)
             expect(s.campaign).toBeUndefined()
         })
 
-        it('refused: she stays, half burns, then Slander', () => {
+        it('refused: they stay, half burns, then Slander', () => {
             const s = slandered()
             resolve(s, true)
             const answer = payToll(s, false)
@@ -370,7 +370,7 @@ describe('Toll Roads on a banish — the toll first, then the burn (R-5.5.7.III)
             }
             expect(recorded.campaign).toBeUndefined()
             expect(recorded.pendingQuestions).toBeUndefined()
-            // Martial Culture: Rhys's Act Phase ends, and his Rest, with no choice in it, follows.
+            // Martial Culture: Rhys's Act Phase ends, and their Rest, with no choice in it, follows.
             expect(actions.map((action) => action.type).slice(0, 3)).toEqual([ActionType.CampaignResolveVictory, ActionType.AnswerQuestion, ActionType.CompleteRest])
             expect(recorded.players.find((p) => p.playerId === 'dana')).toMatchObject({ siteId: 'c1', favor: 0 })
 
@@ -521,7 +521,7 @@ const WOOD = {
 const TYRANT = 'denizen.order.tyrant'
 
 describe('Toll Roads on a Travel out of a Shrouded Wood: asked at the pick, before any Supply (R-11.7, R-X.4)', () => {
-    /** Dana's own Travel out of Rhys's Wood; Rhys is asked where he goes. */
+    /** Dana's own Travel out of Rhys's Wood; Rhys is asked where they go. */
     function leave(over: Over = {}, state: Record<string, unknown> = WOOD, oathRevision: number = atRevision) {
         const s = table({ dana: { ...over['dana'] } }, state, oathRevision)
         openTurn(s, 'dana')
@@ -588,7 +588,7 @@ describe('Toll Roads on a Travel out of a Shrouded Wood: asked at the pick, befo
         expect(HydratedTravel.canDoTravel(s, 'dana')).toBe(true)
     })
 
-    it('the cheapest Supply named is over the sites whose toll Dana can pay: a Cradle site at 0 he has no favor for is out of reach', () => {
+    it('the cheapest Supply named is over the sites whose toll Dana can pay: a Cradle site at 0 they have no favor for is out of reach', () => {
         // Dana is the Chancellor with Decadent uncovered (R-6.6.2.a): 0 Supply into the Cradle, 2 into the Provinces.
         // Rhys rules the Wood and both Cradle sites, Toll Roads among them; Dana has no favor and 1 Supply.
         const s = testState(
@@ -651,7 +651,7 @@ describe('Toll Roads on a Travel out of a Shrouded Wood: asked at the pick, befo
 })
 
 describe("A banish from a Shrouded Wood: the ruler's pick, any toll and the burn, then R-5.5.8 and the end (R-5.5.7.III, R-11.7, R-X.4)", () => {
-    /** Rhys won against Dana, who stands in his Shrouded Wood at c2, taking her pawn and favor; he used Slander. */
+    /** Rhys won against Dana, who stands in Rhys's Shrouded Wood at c2, taking their pawn and favor; Rhys used Slander. */
     function wood(oathRevision: number = atRevision) {
         return table({ rhys: { siteId: 'p1' }, dana: { favor: 7 } }, {
             ...WOOD,
@@ -692,7 +692,7 @@ describe("A banish from a Shrouded Wood: the ruler's pick, any toll and the burn
         expect(s.campaign?.banishPending).toEqual({ burnFavor: true })
     })
 
-    it('a site with no toll: she goes, half burns, then Slander, and the Campaign ends', () => {
+    it('a site with no toll: they go, half burns, then Slander, and the Campaign ends', () => {
         const s = wood()
         banish(s)
         const picked = pick(s, 'p1')
@@ -701,7 +701,7 @@ describe("A banish from a Shrouded Wood: the ruler's pick, any toll and the burn
         expect(s.campaign).toBeUndefined()
     })
 
-    it('a Toll Roads site: Dana is asked with all her favor; paid, she goes, then the burn and Slander', () => {
+    it('a Toll Roads site: Dana is asked with all their favor; paid, they go, then the burn and Slander', () => {
         const s = wood()
         banish(s)
         pick(s, 'c1')

@@ -55,7 +55,7 @@ describe('a legal defender needs a legal declaration of targets (R-5.5.1, R-5.5.
         expect(HydratedCampaign.legalDefenders(twoSites, ATT)).toEqual([{ kind: 'player', playerId: DEF }])
     })
 
-    it('R-5.5.1.a: the Chancellor may choose a Citizen who rules his site through Imperial warbands, but suspended the Citizen rules nothing there', () => {
+    it('R-5.5.1.a: the Chancellor may choose a Citizen who rules their site through Imperial warbands, but suspended the Citizen rules nothing there', () => {
         const s = board({ [DEF]: { siteId: 'h3' } }, { warbandsBySite: { c2: { [IMPERIAL_WARBANDS]: 1 } } })
         expect(reasonNoCampaignAgainst(s, CHAN, CIT)).toBe(`no targets can be declared against ${CIT}`)
         expect(HydratedCampaign.legalDefenders(s, CHAN)).toEqual([])

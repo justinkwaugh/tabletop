@@ -43,7 +43,7 @@ const faceup = (cardId: string): AdviserRow => ({ cardId, faceUp: true })
 
 /**
  * 'dana' is the Chancellor and rules c1 and c2 (Imperial warbands); 'rhys' is an Exile;
- * 'ann' is a Citizen with Imperial warbands on her board.
+ * 'ann' is a Citizen with Imperial warbands on their board.
  */
 function table(
     seats: { dana?: Partial<OathPlayerState>; rhys?: Partial<OathPlayerState>; ann?: Partial<OathPlayerState> } = {},
@@ -279,7 +279,7 @@ describe('a pick the other side no longer allows leaves the terms with it', () =
         s.warbandsBySite = { ...s.warbandsBySite, p1: { rhys: 2 } }
         return s
     }
-    /** 'dana' proposes; she gives c1, 'rhys' gives p1 and the warbands it sends home fill c1. */
+    /** 'dana' proposes; they give c1, 'rhys' gives p1 and the warbands it sends home fill c1. */
     const keep = (state: ReturnType<typeof table>, picks: ExchangePicks, allows = DEED_WRITER_ALLOWS) =>
         withOfferedPicks(state, 'dana', 'rhys', allows, 'dana', picks)
     const swap = (state: ReturnType<typeof table>) => {
@@ -378,7 +378,7 @@ const views = [
 // R-10.8 — a site's count is one its row's pieces offer; a count the other side's change took
 // away is cleared, not clamped, so the player picks again and the terms wait for it.
 describe('a count no longer among its row’s counts is cleared', () => {
-    /** 'rhys' has one warband on his board and rules p1 with three; 'dana' gives c1. */
+    /** 'rhys' has one warband on their board and rules p1 with three; 'dana' gives c1. */
     function staleTable() {
         const s = table({ dana: { warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } }, rhys: { warbandsOnBoard: { rhys: 1 } } }, OathRevision.EngineFixes7)
         s.warbandsBySite = { ...s.warbandsBySite, p1: { rhys: 3 } }
