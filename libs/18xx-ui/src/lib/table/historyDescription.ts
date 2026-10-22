@@ -37,6 +37,7 @@ import {
     isEndGame,
     isScheduleGameEnd,
     isStartOperatingSet,
+    isStartStockRound,
     isStartOperatingRound,
     isStartOperatingTurn,
     sameOwner,
@@ -673,6 +674,7 @@ function describeShared(
         }
     }
     if (isStartOperatingSet(action)) return { text: 'Started operating set', routine: true }
+    if (isStartStockRound(action)) return { text: 'Started stock round', routine: true }
     if (isStartOperatingTurn(action))
         return { text: `Started ${companyName(action.companyId)}’s turn`, routine: true }
     if (isStartOperatingRound(action)) {
