@@ -14,6 +14,8 @@ type CommandSelectionValues = {
     units: string[]
     ride: RideChoice
     command: CommandKind
+    /** Rule 9: Attach, chosen in the command switch instead of a move. */
+    attach: true
     destination: string
     way: string[]
     threat: number
@@ -28,6 +30,7 @@ const commandSelection = stagedSelection<CommandSelectionValues>()([
     'units',
     'ride',
     'command',
+    'attach',
     'destination',
     'way',
     'threat',
@@ -39,7 +42,10 @@ function withoutDestination(selection: CommandSelection): CommandSelection {
 }
 
 function withoutRideOrDestination(selection: CommandSelection): CommandSelection {
-    return commandSelection.withdraw(withoutDestination(selection), 'ride')
+    return commandSelection.withdraw(
+        commandSelection.withdraw(withoutDestination(selection), 'attach'),
+        'ride'
+    )
 }
 
 export function noCommandSelection(): CommandSelection {
@@ -147,7 +153,16 @@ export function rideOf(selection: CommandSelection): RideChoice {
 }
 
 export function setCommand(selection: CommandSelection, kind: CommandKind): CommandSelection {
-    return withoutDestination(commandSelection.revise(selection, 'command', kind, 'manual'))
+    const revised = commandSelection.revise(selection, 'command', kind, 'manual')
+    return withoutDestination(commandSelection.withdraw(revised, 'attach'))
+}
+
+export function setAttach(selection: CommandSelection): CommandSelection {
+    return commandSelection.set(selection, 'attach', true, 'manual')
+}
+
+export function attachChosenOf(selection: CommandSelection): boolean {
+    return commandSelection.value(selection, 'attach') === true
 }
 
 export function setDestination(selection: CommandSelection, targetKey: string): CommandSelection {

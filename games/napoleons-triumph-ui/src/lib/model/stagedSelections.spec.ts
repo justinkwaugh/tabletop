@@ -28,6 +28,8 @@ import {
 } from './battleSelection.js'
 import {
     addWayStep,
+    attachChosenOf,
+    setAttach,
     aimOf,
     chooseCorpsUnit,
     chooseDetachedUnit,
@@ -106,6 +108,16 @@ describe('command selection', () => {
         const one = chooseDetachedUnit(corpsPickedUp(), 'F01', [])
         expect(chosenUnitsOf(chooseDetachedUnit(one, 'F02', ['F01']))).toEqual(['F02'])
         expect(chooseDetachedUnit(one, 'F01', ['F01'])).toEqual(noCommandSelection())
+    })
+
+    it('chooses Attach in place of a move, which choosing a move, other units or Undo takes back', () => {
+        const unit = chooseDetachedUnit(corpsPickedUp(), 'F01', [])
+        const attaching = setAttach(setCommand(unit, CommandKind.Unit))
+        expect(attachChosenOf(attaching)).toBe(true)
+        expect(attachChosenOf(setCommand(attaching, CommandKind.Unit))).toBe(false)
+        expect(attachChosenOf(chooseDetachedUnit(attaching, 'F02', ['F01']))).toBe(false)
+        expect(attachChosenOf(undoCommandSelection(attaching))).toBe(false)
+        expect(chosenUnitsOf(undoCommandSelection(attaching))).toEqual(['F01'])
     })
 
     it('leaves Undo to the last action when nothing has been chosen', () => {

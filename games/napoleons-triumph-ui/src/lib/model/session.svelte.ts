@@ -156,6 +156,8 @@ import {
     noCommandSelection,
     pickedUpOf,
     rideOf,
+    attachChosenOf,
+    setAttach,
     setCommand,
     setDestination,
     setRide,
@@ -856,7 +858,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )
     )
 
-    targets: MoveTarget[] = $derived(this.threatBeingDeclared ? [] : this.placesOnOffer)
+    /** Rule 9: Attach is chosen in the command switch; it moves nothing, so the board offers no move. */
+    attachChosen = $derived(attachChosenOf(this.selection))
+
+    targets: MoveTarget[] = $derived(
+        this.threatBeingDeclared || this.attachChosen ? [] : this.placesOnOffer
+    )
 
     private blockMarkContext: BlockMarkContext = $derived({
         viewerId: this.myPlayerId,
@@ -873,6 +880,15 @@ export class NapoleonsTriumphGameSession extends GameSession<
     armyColors(playerId: string): ArmyColors {
         const block = this.colors.getPlayerUiColor(playerId)
         return { block, shade: shadeOf(block), ink: this.colors.getPlayerTextColorValue(playerId) }
+    }
+
+    /** Ids as the game holds the units, so the order they were tapped in, which may follow their strength, tells the enemy nothing. */
+    private inGameOrder(unitIds: readonly string[]): string[] {
+        return this.gameState.units.flatMap((unit) => (unitIds.includes(unit.id) ? [unit.id] : []))
+    }
+
+    private ordersInGameOrder(orders: readonly MoveOrder[]): MoveOrder[] {
+        return orders.map((order) => ({ ...order, unitIds: this.inGameOrder(order.unitIds) }))
     }
 
     /** The viewer's own units are listed in reading order; anyone else's as the game holds them, so their order tells nothing. */
@@ -1054,8 +1070,17 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
+    chooseAttach() {
+        if (!this.attachChosen) {
+            this.stageCommand(setAttach(this.selection))
+        }
+    }
+
     chooseCommand(kind: CommandKind) {
-        if (kind !== this.commandKind && this.commandOptions.includes(kind)) {
+        if (
+            (this.attachChosen || kind !== this.commandKind) &&
+            this.commandOptions.includes(kind)
+        ) {
             this.stageCommand(setCommand(this.selection, kind))
         }
     }
@@ -1305,7 +1330,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stage = this.battleStage
         if (stage?.kind === StageKind.Defence && stage.defenders.length > 0 && !stage.problem) {
             await this.applyAction(
-                this.createPlayerAction(DeclareDefense, { unitIds: stage.defenders })
+                this.createPlayerAction(DeclareDefense, {
+                    unitIds: this.inGameOrder(stage.defenders)
+                })
             )
         }
     }
@@ -1337,7 +1364,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stage = this.battleStage
         if (stage?.kind === StageKind.Feint && stage.orders && stage.ends.includes(end)) {
             await this.applyAction(
-                this.createPlayerAction(DeclareFeint, { orders: stage.orders, end })
+                this.createPlayerAction(DeclareFeint, {
+                    orders: this.ordersInGameOrder(stage.orders),
+                    end
+                })
             )
         }
     }
@@ -1360,7 +1390,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (stage?.kind === StageKind.Declaration && stage.orders && !stage.problem) {
             await this.applyAction(
                 this.createPlayerAction(DeclareAttack, {
-                    orders: stage.orders,
+                    orders: this.ordersInGameOrder(stage.orders),
                     wide: stage.wide,
                     leaderIds: stage.leaders,
                     targetLeaderId: stage.target
@@ -1396,7 +1426,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stage = this.battleStage
         if (stage?.kind === StageKind.Counter && !stage.problem) {
             await this.applyAction(
-                this.createPlayerAction(CounterAttack, { unitIds: stage.counterAttackers })
+                this.createPlayerAction(CounterAttack, {
+                    unitIds: this.inGameOrder(stage.counterAttackers)
+                })
             )
         }
     }
@@ -1532,7 +1564,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     private hasCommanded(group: PieceGroup): boolean {
         return (
-            this.isCommanding &&
+            !this.isViewingHistory &&
             group.playerId === this.myPlayerId &&
             group.commander?.commandsThisTurn !== undefined
         )

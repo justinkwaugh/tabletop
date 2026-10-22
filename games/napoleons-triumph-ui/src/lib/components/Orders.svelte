@@ -32,6 +32,7 @@
             : undefined
     )
     const attachTo = $derived(unitAlone ? gameSession.attachOptions(unitAlone) : [])
+    const attaching = $derived(gameSession.attachChosen && attachTo.length > 0)
     const aimedLocale = $derived(gameSession.aimedLocale)
     const threatBeingDeclared = $derived(gameSession.threatBeingDeclared)
     const threatSentence = $derived.by(() => {
@@ -63,6 +64,9 @@
     const problem = $derived.by(() => {
         if (options.length === 0 && !ridingOn) {
             return 'No command can move these units now.'
+        }
+        if (attaching) {
+            return undefined
         }
         return gameSession.targets.length === 0 ? 'These units have nowhere to go.' : undefined
     })
@@ -219,21 +223,26 @@
                         onchoose={(ride) => gameSession.chooseRide(ride)}
                     />
                 {/if}
-                {#if options.length > 0}
+                {#if options.length > 0 || attachTo.length > 0}
                     <span class="nt-orders-faint">Command</span>
                 {/if}
                 <CommandSwitch
                     {options}
                     chosen={gameSession.order?.kind}
                     onchoose={(command) => gameSession.chooseCommand(command)}
+                    attach={attachTo.length > 0
+                        ? { chosen: attaching, onchoose: () => gameSession.chooseAttach() }
+                        : undefined}
                 />
-                {#if unitAlone}
+                {#if attaching && unitAlone}
                     {#each attachTo as commander (commander.id)}
+                        {@const name = commanderDefinition(commander.id).name}
                         <button
                             type="button"
-                            class="nt-plain-button nt-orders-small"
+                            class="nt-plain-button"
+                            aria-label="Attach to {name}"
                             onclick={() => gameSession.attach(commander.id, unitAlone.id)}
-                            >Attach to {commanderDefinition(commander.id).name}</button
+                            >to {name}</button
                         >
                     {/each}
                 {/if}
