@@ -102,6 +102,7 @@ function scenario(config: GameConfig = { legacyEnabled: true }) {
         },
         exploration: {
             createFromCanonicalState: (state) => state,
+            keepsSourceDeclaration: (action) => action.type !== 'advance',
             createFromProjectedState(input) {
                 observe('exploration', input.game.config)
                 return input.state
@@ -216,6 +217,7 @@ describe('normalized runtime configuration', () => {
         const populate = runtime.exploration?.createFromProjectedState
         assertExists(visibility)
         assertExists(populate)
+        expect(runtime.exploration?.keepsSourceDeclaration?.(action)).toBe(false)
         const perspective = { kind: 'spectator' } as const
         const populated = populate({ game, state, actions: [], perspective, random: () => 0.5 })
         const context = { config: game.config }
