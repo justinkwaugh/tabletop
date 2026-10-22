@@ -29,6 +29,7 @@
         scene,
         legalLocationIds = [],
         highlightedLocationIds = legalLocationIds,
+        outlinedLocationIds = [],
         maskUnavailableLocations = false,
         previewLocationId,
         translucentLocationId,
@@ -48,6 +49,8 @@
         scene: MapDrawing
         legalLocationIds?: readonly string[]
         highlightedLocationIds?: readonly string[]
+        /** Hexes outlined as a selected hex is, without selecting them. */
+        outlinedLocationIds?: readonly string[]
         maskUnavailableLocations?: boolean
         previewLocationId?: string
         translucentLocationId?: string
@@ -864,7 +867,7 @@
         pointer-events="none"
         aria-hidden="true"
     >
-        {#each entries.filter((entry) => entry.location.id === selection?.locationId || entry.location.id === focusedLocationId || entry.location.id === previewLocationId || (maskUnavailableLocations && entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))) as entry (entry.location.id)}
+        {#each entries.filter((entry) => entry.location.id === selection?.locationId || outlinedLocationIds.includes(entry.location.id) || entry.location.id === focusedLocationId || entry.location.id === previewLocationId || (maskUnavailableLocations && entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))) as entry (entry.location.id)}
             <polygon
                 data-map-highlight={entry.location.id}
                 data-track-preview={entry.location.id === previewLocationId

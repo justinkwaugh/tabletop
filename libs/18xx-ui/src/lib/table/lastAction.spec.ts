@@ -1,6 +1,12 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { lastActionCredit, lastNotableStep, operatingTurnCompany } from './lastAction.js'
+import type { DistributeEarnings, PlaceStation, RunTrains } from '@tabletop/18xx'
+import {
+    lastActionCredit,
+    lastNotableStep,
+    operatingTurnCompany,
+    pricedValue
+} from './lastAction.js'
 
 function recorded(id: string, type: string, source: ActionSource, companyId?: string) {
     const action: GameAction = { id, gameId: 'g', type, source, playerId: 'alex' }
@@ -42,4 +48,27 @@ it('credits the operating company only for its own actions in its turn', () => {
         kind: 'player',
         playerId: 'alex'
     })
+})
+
+it('reads a run’s revenue and a free station as what they were for, and a payout as it is', () => {
+    const fields = { gameId: 'g', source: ActionSource.User, playerId: 'alex', companyId: 'R' }
+    const run: RunTrains = { ...fields, id: 'run', type: 'RunTrains', routes: [] }
+    const station: PlaceStation = {
+        ...fields,
+        id: 'station',
+        type: 'PlaceStation',
+        stationId: 'R-2',
+        position: { locationId: 'A1', nodeId: 'city', slot: 0 },
+        expectedCost: 0
+    }
+    const payout: DistributeEarnings = {
+        ...fields,
+        id: 'payout',
+        type: 'DistributeEarnings',
+        choice: 'pay'
+    }
+    expect(pricedValue(run, { text: 'Ran', value: '$250' })).toBe('for $250')
+    expect(pricedValue(station, { text: 'Station at A1', value: 'Free' })).toBe('for free')
+    expect(pricedValue(payout, { text: 'Paid out', value: '$41/share' })).toBe('$41/share')
+    expect(pricedValue(run, { text: 'Did not run trains' })).toBeUndefined()
 })

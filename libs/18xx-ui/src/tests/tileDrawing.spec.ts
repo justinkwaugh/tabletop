@@ -72,6 +72,17 @@ describe('tile drawing geometry', () => {
         expect(first.revenuePosition.x).toBeCloseTo(second.revenuePosition.x)
         expect(first.revenuePosition.y).toBeCloseTo(-second.revenuePosition.y)
     })
+    it('draws a town on through track as a bar, or as a dot when the style asks', () => {
+        const tile = StandardTileCatalog.get('18xx:4')
+        const [bar] = createTileDrawing(tile.face, HexOrientation.Flat, 0).nodes
+        expect(bar.townAngle).toBeDefined()
+        const [dot] = createTileDrawing(tile.face, HexOrientation.Flat, 0, undefined, {
+            townDots: true
+        }).nodes
+        expect(dot.townAngle).toBeUndefined()
+        expect(dot.dotRadius).toBeGreaterThan(bar.dotRadius)
+    })
+
     it('draws a continuous curve through a town with matching tangents', () => {
         const drawing = createTileDrawing(StandardTileCatalog.get('18xx:3').face)
         const [a, b] = drawing.paths

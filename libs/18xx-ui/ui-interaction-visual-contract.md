@@ -67,7 +67,9 @@ rotation to keep each value associated with its city. Labels yield to revenues.
 Ordinary edge-to-edge tracks are circular arcs, or straight lines for opposite
 edges. Towns split the same geometry at their stop without changing its curvature.
 Through-town positions can move along that curve, as on #56. Central junction
-towns use larger round dots; Classic through-towns use bars. Independent two-town
+towns use larger round dots; Classic through-towns use bars. A town on a hex whose
+marker art rings its towns (1832's medium cities) stays a round dot inside the ring on
+every tile laid there, as the printed map shows it. Independent two-town
 tiles preserve distinct node/path identities.
 All track borders render beneath all track strokes, so borders cannot cut through
 the black track at junctions or crossings. Where two tracks cross without sharing an
@@ -1407,9 +1409,9 @@ its history controls and turn header share a 44px border-box height and aligned
 bottom borders. The action panel no longer adds a second top border. Other
 DefaultTableLayout consumers retain the default 8px top inset.
 
-History train-run entries show train badges and total revenue without listing route stops.
+History train-run entries show train badges and total revenue without listing route stops. In a company's cash ledger, an amount that is a price or revenue rather than a cash change reads "for $N" after the action (“Ran 7 for $250”, “Station at V12 for free”); payouts keep their per-share amount without "for".
 
-History action rows and group headers do not move the history cursor. Track-lay and train-run labels can open a separate historical map preview. Navigation remains in the history controls.
+History action rows and group headers do not move the history cursor. Rows for actions that changed the map — track lays, train runs, station and token placements, and a title's own placements such as 1832's Port token — open a separate historical map preview. Navigation remains in the history controls.
 
 Round interstitials are prominent, full-width headings in normal document flow. Each sticks at the chronological beginning edge while its round is visible, and never combines into a stack.
 
@@ -1418,14 +1420,19 @@ System-action history groups omit an actor heading; their events appear directly
 Each OR starts with one “Operating order” entry showing the entire ordered token list, even when unchanged, with 6px between its label and tokens. The set-start bookkeeping action is hidden. This order entry has no bottom divider or movement arrows; later order changes retain their movement diagrams.
 
 Historical map inspection is an explicit, session-owned manual preview, independent of
-the history cursor. Only track-lay and train-run labels are buttons; other history
-text stays read-only. Clicking one shows the map immediately after that action,
-including its tiles, stations and reservations, with recorded routes for train runs.
+the history cursor. Only rows for map actions open it: track lays, train runs,
+stations (including private and home stations), private markers, and the placements
+a title declares through `historyMapPlacement`. The whole row, including its amount
+and detail line, is the click target and highlights on hover; other history text
+stays read-only. Clicking one shows the map immediately after that action,
+including its tiles, stations and reservations, with recorded routes for train runs
+and every hex the action placed on outlined.
 A separate native dialog owns its map renderer and ScalingWrapper. It occupies
 90% of viewport width and height, centered with subtly rounded corners and a
 translucent dark backdrop. At widths up to 760px or heights up to 560px it fills
 the viewport with square corners.
-Its header identifies Historical run (or track lay), company, OR and recorded run
+Its header identifies the kind of action (Historical run, track lay, station, or the
+title's name for a placement such as Port token), company, OR and recorded run
 revenue. History runs and the expanded company card's Last run share this viewer.
 Close, F and Escape dismiss it; zoom/pan controls remain but no expansion control
 is shown. The dialog blocks live-map interactions. Opening and closing do not

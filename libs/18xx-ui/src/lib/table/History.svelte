@@ -144,6 +144,7 @@
                             onJump={jumpToHistory}
                             {jumpDisabled}
                             {onPreviewMap}
+                            previewsMap={(action) => session.previewsHistoryMap(action)}
                             previewActionId={session.historicalMap?.actionId}
                             appearance={entry.companyId
                                 ? session.mapView.stations[entry.companyId]

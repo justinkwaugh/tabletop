@@ -87,7 +87,7 @@ export type MapMarkerArt =
     | { localLine: true; above?: true }
     /** The marker's label, large in the centre of an unbuilt hex. */
     | { centeredLabel: true }
-    /** A ring around the hex's towns, as a medium city is printed. */
+    /** A ring around the hex's towns, drawn as dots, as a medium city is printed. */
     | { townRing: true }
     /**
      * The marker's label as a badge beneath the hex's revenue, such as a route bonus; arrows
@@ -369,6 +369,12 @@ export function createMapDrawing(
             !!location.name
         const nameBaseline = namePositions[location.id] ?? { x: 0, y: -35 }
         const nameRows = nameLines[location.id] ?? splitName(location.name ?? '')
+        const townRing = (location.markers ?? []).some((marker) => {
+            const art = markerArt[marker.id]
+            return !!art && 'townRing' in art
+        })
+        // A ringed town stays the printed dot on the tiles laid over it.
+        const locationStyle = townRing ? { ...drawingStyle, townDots: true } : drawingStyle
         let unannotatedDrawing: TileDrawing | undefined
         const stopDrawing = () =>
             (unannotatedDrawing ??= createTileDrawing(
@@ -376,7 +382,7 @@ export function createMapDrawing(
                 map.definition.orientation,
                 rotation,
                 tileLayout,
-                drawingStyle
+                locationStyle
             ))
         const terrainRowOf = (tileDrawing: TileDrawing) =>
             terrainHeights[location.id] ?? terrainY(tileDrawing, face, map.definition.orientation)
@@ -448,7 +454,7 @@ export function createMapDrawing(
                         : [])
                 ]
             },
-            { ...drawingStyle, revenueStageLabels }
+            { ...locationStyle, revenueStageLabels }
         )
         const markers = location.markers ?? []
         const lifted = markers.some((marker) => {
@@ -500,10 +506,7 @@ export function createMapDrawing(
             hidden: !!relocation?.hidden,
             drawing,
             markerArt,
-            townRing: markers.some((marker) => {
-                const art = markerArt[marker.id]
-                return !!art && 'townRing' in art
-            }),
+            townRing,
             borders,
             outline: TileEdges.filter((edge) => !joined.includes(edge) && !divides(edge)).map(
                 segment

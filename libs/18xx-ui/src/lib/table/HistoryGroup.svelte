@@ -5,6 +5,7 @@
     import HistoryHeaderJump from './HistoryHeaderJump.svelte'
     import './playerTint.css'
     import type { GameAction } from '@tabletop/common'
+    import type { Snippet } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         isStartOperatingRound,
@@ -23,7 +24,7 @@
     import type { HistoryCash } from './historyCash.js'
     import type { HistoryOperatingOrder } from './historyOperatingOrder.js'
     import type { HistoryBankBreak } from './historyStates.js'
-    import { isMapHistoryAction } from '../maps/historicalMap.js'
+    import { pricedValue } from './lastAction.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import { historyPhaseChange, type PhaseChangePalette } from './historyPhaseChange.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -35,6 +36,7 @@
         onReturn,
         jumpDisabled = false,
         onPreviewMap,
+        previewsMap,
         previewActionId,
         appearance,
         playerName,
@@ -55,6 +57,7 @@
         money: MoneyFormat
         newestFirst?: boolean
         onPreviewMap: (action: GameAction) => void
+        previewsMap: (action: GameAction) => boolean
         previewActionId?: string
         cash: ReadonlyMap<string, HistoryCash>
         bankBreaks?: ReadonlyMap<string, HistoryBankBreak>
@@ -115,7 +118,7 @@
                     startingCash !== undefined &&
                     description.value &&
                     (!delta || isDistributeEarnings(action))
-                        ? description.value
+                        ? pricedValue(action, description)
                         : undefined
             }
         })
@@ -124,6 +127,16 @@
         rows.filter((row) => !row.routine && (row.text || row.detail || row.order))
     )
 </script>
+
+<!-- The button stretches over its whole row, so the row is the click target. -->
+{#snippet mapLink(action: GameAction, text: string, summary: Snippet)}
+    {#if previewsMap(action)}<button
+            class="map-history-link"
+            aria-label={`Preview historical map: ${text}`}
+            aria-pressed={previewActionId === action.id}
+            onclick={() => onPreviewMap(action)}>{@render summary()}</button
+        >{:else}{@render summary()}{/if}
+{/snippet}
 
 {#snippet bankBroken(actionId: string)}
     {@const bankBreak = bankBreaks.get(actionId)}
@@ -164,6 +177,7 @@
             <div class="stock-row">
                 <div
                     class="history-entry stock-action"
+                    class:previews-map={previewsMap(row.action)}
                     class:phase-change={!!row.phase}
                     class:flotation={isFloatCompany(row.action)}
                     style:--phase-color={row.phase?.color}
@@ -184,12 +198,17 @@
                             additionalClasses="stock-player-name"
                         />{' '}{/if}
                     <span
-                        >{row.stockPlayerId
-                            ? afterPlayerName(row.text, companyLabels)
-                            : row.text}{#if row.phase}<span class="phase-colors"
-                                >{row.phase.label}</span
-                            >{/if}{#if row.value}{' '}for
-                            <span class="stock-value">{row.value}</span>{/if}</span
+                        >{#snippet stockSummary()}{row.stockPlayerId
+                                ? afterPlayerName(row.text, companyLabels)
+                                : row.text}{#if row.phase}<span class="phase-colors"
+                                    >{row.phase.label}</span
+                                >{/if}{#if row.value}{' '}for
+                                <span class="stock-value">{row.value}</span
+                                >{/if}{/snippet}{@render mapLink(
+                            row.action,
+                            row.text,
+                            stockSummary
+                        )}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
                     <ShareCardStrip cards={shareCards(row.action)} sign={shareSign(row.action)} />
@@ -250,6 +269,7 @@
                 {/if}
                 <div
                     class="history-entry"
+                    class:previews-map={previewsMap(row.action)}
                     class:phase-change={!!row.phase}
                     style:--phase-color={row.phase?.color}
                     style:--phase-ink={row.phase
@@ -270,18 +290,15 @@
                                             name={trainName(id)}
                                             color={trainColors[id]}
                                         />{/each}</span
-                                >{/if}{/snippet}
-                        {#if isMapHistoryAction(row.action)}<button
-                                class="map-history-link"
-                                aria-label={`Preview historical map: ${row.text}`}
-                                aria-pressed={previewActionId === row.action.id}
-                                onclick={() => onPreviewMap(row.action)}
-                                >{@render actionSummary()}</button
-                            >{:else}{@render actionSummary()}{/if}{#if row.phase}<span
-                                class="phase-colors">{row.phase.label}</span
-                            >{/if}{#if row.ledgerValue}<span class="ledger-note"
-                                >{row.ledgerValue}</span
-                            >{/if}</span
+                                >{/if}{#if row.phase}<span class="phase-colors"
+                                    >{row.phase.label}</span
+                                >{/if}{#if row.ledgerValue}<span class="ledger-note"
+                                    >{row.ledgerValue}</span
+                                >{/if}{/snippet}{@render mapLink(
+                            row.action,
+                            row.text,
+                            actionSummary
+                        )}</span
                     ><strong class:debit={row.delta < 0} class:credit={row.delta > 0}
                         >{startingCash !== undefined
                             ? row.delta
@@ -473,6 +490,18 @@
         font-weight: 500;
         text-transform: none;
     }
+    .previews-map {
+        position: relative;
+        border-radius: 4px;
+    }
+    .previews-map:has(.map-history-link:hover),
+    .previews-map:has(.map-history-link[aria-pressed='true']) {
+        background: var(--rail-hover, #ffffff66);
+    }
+    .previews-map:has(.map-history-link:focus-visible) {
+        outline: 2px solid #865320;
+        outline-offset: 2px;
+    }
     .map-history-link {
         border: 0;
         padding: 0;
@@ -481,15 +510,15 @@
         font: inherit;
         text-align: left;
         cursor: pointer;
+    }
+    .map-history-link::after {
+        content: '';
+        position: absolute;
+        inset: 0;
         border-radius: 4px;
     }
-    .map-history-link:hover,
-    .map-history-link[aria-pressed='true'] {
-        background: var(--rail-hover, #ffffff66);
-    }
     .map-history-link:focus-visible {
-        outline: 2px solid #865320;
-        outline-offset: 2px;
+        outline: none;
     }
     .run-trains {
         --train-badge-font: 1em;

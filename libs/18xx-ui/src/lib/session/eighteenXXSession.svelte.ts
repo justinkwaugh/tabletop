@@ -473,7 +473,8 @@ export class EighteenXXSession<
             (companyId) => this.companyName(companyId),
             (state) =>
                 this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
-            (state) => this.stations.openReservations(state)
+            (state) => this.stations.openReservations(state),
+            (action) => this.presentationDefinition.historyMapPlacement?.(action)
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
@@ -655,6 +656,9 @@ export class EighteenXXSession<
             ? this.historicalMapPreview.map
             : undefined
     )
+    previewsHistoryMap(action: GameAction) {
+        return this.historicalMaps.previews(action)
+    }
     previewHistoryMap(action: GameAction) {
         if (this.busy || this.updatingVisibleState) return
         if (this.historicalMap?.actionId === action.id) {

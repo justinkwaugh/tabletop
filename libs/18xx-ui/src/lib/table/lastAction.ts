@@ -129,6 +129,15 @@ export function lastActionPrice(
     return { connective: isDistributeEarnings(action) ? '' : '·', amount: description.value }
 }
 
+/** An action's amount after its text: "for $N" for a price or revenue, otherwise as described. */
+export function pricedValue(
+    action: GameAction,
+    description: HistoryDescription
+): string | undefined {
+    const price = lastActionPrice(action, description)
+    return price?.connective === 'for' ? `for ${price.amount}` : description.value
+}
+
 export function payoutRecipients(
     payout: DistributeEarnings,
     ownerName: (owner: Owner) => string,

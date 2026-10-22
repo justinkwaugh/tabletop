@@ -11,6 +11,7 @@ import {
 import { createPhaseChart, moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import type { GameAction } from '@tabletop/common'
 import { CompanyNames1846 } from './companyPresentation.js'
+import { mapPlacement1846 } from './history.js'
 import BoomtownToken from './images/tokens/boomtown.svg'
 import MailToken from './images/tokens/mail.svg'
 import MeatPackingToken from './images/tokens/meat-packing.svg'
@@ -31,6 +32,7 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
     money: moneyFormat('$'),
     companyNames: CompanyNames1846,
     marketPoolId: 'open-market',
+    historyMapPlacement: mapPlacement1846,
     privateTokens: {
         SC: { tileSymbol: 'port' },
         MAIL: { imageUrl: MailToken },

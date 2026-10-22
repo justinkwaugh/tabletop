@@ -16,6 +16,7 @@ import type {
 } from '../table/companyPresentation.js'
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
 import type { TerrainIconName } from '../maps/terrainIcons.js'
+import type { HistoryMapPlacement } from '../maps/historicalMap.js'
 
 export type PrivateTokenPresentation =
     | { companyId: string }
@@ -137,6 +138,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * as a private's mountain discount; the map shows the costs it would pay.
      */
     terrainDiscounts?(state: State, companyId: string): Readonly<Record<string, number>>
+    /** Where a title's own actions place on the map, beyond the family's tile lays and stations. */
+    historyMapPlacement?(action: GameAction): HistoryMapPlacement | undefined
     marketCell?: MarketCellDimensions
     marketZones?: readonly MarketZone[]
     marketLedge?: MarketLedge
