@@ -1,5 +1,6 @@
 import { ActionSource, Color, createAction } from '@tabletop/common'
 import {
+    AnswerQuestion,
     Campaign,
     CampaignDefeatKills,
     CampaignDefend,
@@ -10,6 +11,7 @@ import {
     IMPERIAL_WARBANDS,
     MachineState,
     PlayerStatus,
+    PowerQuestionKind,
     PowerTiming,
     Region,
     allMapSlots,
@@ -23,6 +25,8 @@ import { played, tableOf, type PlayedTable } from './sessionHarness.js'
 export const FIELD_PROMOTION = 'denizen.order.field-promotion'
 export const BEAR_TRAPS = 'denizen.order.bear-traps'
 export const CUP_OF_PLENTY = 'relic.cup-of-plenty'
+export const HOSPITAL = 'denizen.hearth.hospital'
+export const TOLL_ROADS = 'denizen.order.toll-roads'
 
 const [GREAT_SLUM, FERTILE_VALLEY] = mapSlotsFor(Region.Cradle)
 const [PLAINS, RIVER, STEPPE] = mapSlotsFor(Region.Provinces)
@@ -40,6 +44,10 @@ export interface CampaignLedgerScene {
     revision?: number
     /** Dana's sacrifice: 1 wins 10 to 9; none loses the tie (R-5.5.5.b). */
     sacrifice?: number
+    /** Who also uses Hospital as a plan, at a site they rule: Dana's at the Mine, Rhys's at the Steppe. */
+    hospital?: 'Dana' | 'Rhys'
+    /** Dana rules the River (1 warband) with Toll Roads there: the banish waits on Rhys paying. */
+    toll?: boolean
 }
 
 /**
@@ -50,12 +58,18 @@ export interface CampaignLedgerScene {
  * through the engine from seed 2: 9 dice (Bear Traps −1) roll 9 swords and 2 skulls against 3
  * shields doubled to 6 and 3 warbands; Dana sacrifices 1 to win 10 to 9, Rhys loses their warband
  * at the Plains, and Dana takes the spoils, banishing Rhys to the River. With no sacrifice, the
- * tie is Rhys's and the Campaign ends there.
+ * tie is Rhys's and the Campaign ends there. With `hospital`, that seat rules one more site, where
+ * Hospital is, with 1 warband there, and uses it: their warbands killed are set aside, and placed
+ * on that site when the Campaign ends. With `toll`, the banish to the River waits on Rhys's answer to
+ * Dana's Toll Roads, and that answer ends the Campaign.
  */
 export function campaignLedgerTable({
     revision = CURRENT_OATH_REVISION,
-    sacrifice = 1
+    sacrifice = 1,
+    hospital,
+    toll = false
 }: CampaignLedgerScene = {}): PlayedTable {
+    const hospitalSite = hospital === 'Dana' ? MINE : STEPPE
     const state = testState(
         [
             testPlayer({
@@ -108,7 +122,16 @@ export function campaignLedgerTable({
                 [SALT_FLATS]: 'site.salt-flats',
                 [MOUNTAIN]: 'site.mountain'
             },
-            warbandsBySite: { [PLAINS]: { Rhys: 1 }, [GREAT_SLUM]: { [IMPERIAL_WARBANDS]: 2 } },
+            warbandsBySite: {
+                [PLAINS]: { Rhys: 1 },
+                [GREAT_SLUM]: { [IMPERIAL_WARBANDS]: 2 },
+                ...(hospital ? { [hospitalSite]: { [hospital]: 1 } } : {}),
+                ...(toll ? { [RIVER]: { Dana: 1 } } : {})
+            },
+            denizensBySite: {
+                ...(hospital ? { [hospitalSite]: [HOSPITAL] } : {}),
+                ...(toll ? { [RIVER]: [TOLL_ROADS] } : {})
+            },
             prng: { seed: 2, invocations: 0 }
         }
     )
@@ -128,9 +151,13 @@ export function campaignLedgerTable({
                 { kind: CampaignTargetKind.PawnAndFavor }
             ],
             attackDice: 9,
-            plans: [plan(FIELD_PROMOTION)]
+            plans: [plan(FIELD_PROMOTION), ...(hospital === 'Dana' ? [plan(HOSPITAL)] : [])]
         }),
-        createAction(CampaignDefend, { ...envelope, playerId: 'Rhys', plans: [plan(BEAR_TRAPS)] }),
+        createAction(CampaignDefend, {
+            ...envelope,
+            playerId: 'Rhys',
+            plans: [plan(BEAR_TRAPS), ...(hospital === 'Rhys' ? [plan(HOSPITAL)] : [])]
+        }),
         createAction(CampaignSacrifice, {
             ...envelope,
             playerId: 'Dana',
@@ -153,13 +180,21 @@ export function campaignLedgerTable({
               })
           ])
         : sacrificed
-    return played(picked, [
+    const won = played(picked, [
         createAction(CampaignResolveVictory, {
             ...envelope,
             playerId: 'Dana',
             placements: [{ siteId: PLAINS, owner: 'Dana', count: 2 }],
             banishToSiteId: RIVER,
             burnFavor: true
+        })
+    ])
+    if (!toll) return won
+    return played(won, [
+        createAction(AnswerQuestion, {
+            ...envelope,
+            playerId: 'Rhys',
+            answer: { kind: PowerQuestionKind.PayTravelToll, pay: true }
         })
     ])
 }

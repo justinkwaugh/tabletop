@@ -1,5 +1,7 @@
 import { ActionSource, Color, createAction, range } from '@tabletop/common'
 import {
+    CampaignDefeatKills,
+    CampaignResolveVictory,
     CampaignSacrifice,
     CampaignTargetKind,
     CURRENT_OATH_REVISION,
@@ -23,9 +25,13 @@ const [HOME, PLAINS] = mapSlotsFor(Region.Cradle)
  * the Plains, 2 on Ann's board, 2 on Rhys's board). Dana won, so half the defence, 3, die, and as
  * the Chancellor Ann chooses which. With `hospital`, Ann rules the Drowned City, where Hospital is,
  * and used it as a battle plan: the warbands it would hold are Ann's, at the Plains and on Ann's
- * board (R-10.28-H2), not Rhys's.
+ * board (R-10.28-H2), not Rhys's. With `ended`, Ann picks the 2 at the Plains and 1 on Rhys's board,
+ * and Dana takes the spoils: the Campaign ends.
  */
-export function battleLossTable({ hospital = false }: { hospital?: boolean } = {}): PlayedTable {
+export function battleLossTable({
+    hospital = false,
+    ended = false
+}: { hospital?: boolean; ended?: boolean } = {}): PlayedTable {
     const defendingForce: WarbandGroup[] = [
         { at: { kind: 'site', siteId: PLAINS }, owner: IMPERIAL_WARBANDS, count: 2 },
         { at: { kind: 'board', playerId: 'Ann' }, owner: IMPERIAL_WARBANDS, count: 2 },
@@ -98,12 +104,22 @@ export function battleLossTable({ hospital = false }: { hospital?: boolean } = {
     openTurn(state, 'Dana')
     state.activePlayerIds = ['Dana']
     const table = tableOf(state)
-    return played(table, [
-        createAction(CampaignSacrifice, {
-            gameId: table.state.gameId,
-            source: ActionSource.User,
+    const envelope = { gameId: table.state.gameId, source: ActionSource.User }
+    const sacrificed = played(table, [
+        createAction(CampaignSacrifice, { ...envelope, playerId: 'Dana', sacrifice: 4 })
+    ])
+    if (!ended) return sacrificed
+    return played(sacrificed, [
+        createAction(CampaignDefeatKills, {
+            ...envelope,
+            playerId: 'Ann',
+            kills: [defendingForce[0], { ...defendingForce[2], count: 1 }]
+        }),
+        createAction(CampaignResolveVictory, {
+            ...envelope,
             playerId: 'Dana',
-            sacrifice: 4
+            placements: [],
+            burnFavor: false
         })
     ])
 }

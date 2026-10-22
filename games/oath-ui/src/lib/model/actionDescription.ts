@@ -74,6 +74,7 @@ import {
     type UseRestPower,
     type WarbandMove,
     type WarbandOwner,
+    type HeldForHospital,
     secretsFlipped
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
@@ -280,12 +281,40 @@ export function describeAction(
         return clause ? [clause] : []
     })
     const named = new Set(notes.flatMap((clause) => (clause.card ? [clause.card] : [])))
+    const placed = hospitalPlacedWords(recordedHospitalPlaced(action))
     return historyText(
         describeActionCited(action, names, viewerId, named, campaign) +
             secondWhenPlayedClause(action) +
             notes.map((clause) => `; ${namedNote(clause.text, actorId, names, viewerId)}`).join('') +
+            placed.map((words) => `; ${namedNote(words, actorId, names, viewerId)}`).join('') +
             outcomeClauses(action, viewerId),
         names
+    )
+}
+
+const HOSPITAL = 'denizen.hearth.hospital'
+
+/** Hospital — the warbands it placed on its site, recorded by the step that ended the Campaign. */
+export function recordedHospitalPlaced(action: GameAction): readonly HeldForHospital[] {
+    if (isCampaignSacrifice(action) || isCampaignResolveVictory(action) || isAnswerQuestion(action)) {
+        return action.metadata?.hospitalPlaced ?? []
+    }
+    return []
+}
+
+/**
+ * Hospital — where the warbands it saved went, one clause per Hospital, naming its user by id:
+ * "2 of Ann's warbands went to Hospital's site (Hospital)".
+ */
+export function hospitalPlacedWords(placed: readonly HeldForHospital[]): string[] {
+    const byHolder = new Map<string, number>()
+    for (const entry of placed) {
+        byHolder.set(entry.playerId, (byHolder.get(entry.playerId) ?? 0) + entry.count)
+    }
+    const hospital = cardName(HOSPITAL)
+    return [...byHolder].map(
+        ([holderId, count]) =>
+            `${count} of ${holderId}'s warbands went to ${hospital}'s site (${hospital})`
     )
 }
 

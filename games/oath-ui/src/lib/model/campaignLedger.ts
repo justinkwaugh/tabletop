@@ -1,6 +1,8 @@
 import {
+    BattlePlanSide,
     CampaignTargetKind,
     forceTotal,
+    hospitalHolderOf,
     isAnswerConsent,
     isAnswerQuestion,
     isCampaign,
@@ -12,10 +14,14 @@ import {
     isCampaignSkullLosses,
     relicDefenseDice,
     takeFromGroups,
+    type CampaignKillPath,
     type CampaignPlacement,
     type CampaignResolveVictory,
     type CampaignRollRecord,
     type CampaignTarget,
+    type HeldForHospital,
+    type HydratedOathGameState,
+    type LossSource,
     type RolledAttackFace,
     type RolledDefenseFace,
     type WarbandGroup,
@@ -25,9 +31,11 @@ import { assertExists, type GameAction } from '@tabletop/common'
 import {
     cardNote,
     historyText,
+    hospitalPlacedWords,
     namedNote,
     namedWarbandOwner,
     planName,
+    recordedHospitalPlaced,
     recordedNotes,
     warbandPlaces,
     type HistoryNames,
@@ -78,19 +86,40 @@ const KILLED_ON_BOARD = /^killed (a|an|one|\d+) warbands? on (.+?)['’]s board$
 const SACRIFICED = /^sacrificed (a|an|one|\d+) warbands? /
 const GAINED = /^(\S+) gained (.+)$/
 
-/** The steps of the Campaign a closing step ends: from its declaration to that step. */
+/**
+ * The steps of the Campaign a closing step ends: from its declaration to that step; and, when a
+ * banish waited on an answer (R-5.5.7.III), the answer that ended it, for what Hospital placed then.
+ */
 export function campaignStepsTo(actions: readonly GameAction[], closingIndex: number): GameAction[] {
     let declared = closingIndex
     while (declared > 0 && !isCampaign(actions[declared])) declared -= 1
-    return actions.slice(declared, closingIndex + 1)
+    const steps = actions.slice(declared, closingIndex + 1)
+    if (!isCampaignResolveVictory(actions[closingIndex])) return steps
+    const later = actions.slice(closingIndex + 1)
+    const next = later.findIndex(isCampaign)
+    const ending = (next < 0 ? later : later.slice(0, next)).find(
+        (action) => isAnswerQuestion(action) && action.metadata?.hospitalPlaced !== undefined
+    )
+    return ending ? [...steps, ending] : steps
 }
 
 /**
  * R-5.5 — the Campaign's ledger from its own records: the result, then each side's dice, plans,
  * losses and gains. From revision 25 the closing sacrifice records the dice as rolled and the
- * defense's makeup; before it, the ledger has neither.
+ * defense's makeup; before it, the ledger has neither. Warbands Hospital set aside and placed on its
+ * site are not lost: the Lost line says where they went, in the History row's words. `state` is the
+ * game (the reader's view), for whose Hospital held which warbands (R-10.28-H2).
  */
-export function campaignLedger(steps: readonly GameAction[], names: HistoryNames): CampaignLedger {
+export function campaignLedger(
+    campaignSteps: readonly GameAction[],
+    names: HistoryNames,
+    state?: HydratedOathGameState
+): CampaignLedger {
+    // The battle to its closing step; an answer that ended it later adds only Hospital's placement.
+    const closedAt = campaignSteps.findLastIndex(
+        (step) => isCampaignSacrifice(step) || isCampaignResolveVictory(step)
+    )
+    const steps = campaignSteps.slice(0, closedAt + 1)
     const declaration = steps.find(isCampaign)
     assertExists(declaration, 'a Campaign’s steps start with its declaration')
     const sacrifice = steps.find(isCampaignSacrifice)
@@ -146,10 +175,30 @@ export function campaignLedger(steps: readonly GameAction[], names: HistoryNames
     const roll = closing.roll
     const later = laterPlans.map(planName)
 
-    const defenseLoss = won ? defeatLosses(steps, names) : []
+    // Hospital, R-10.13 — set aside, then placed on its site: not lost.
+    const placed = campaignSteps.flatMap(recordedHospitalPlaced)
+    const saves = new HospitalSaves(state, attackerId, defenderId, placed)
+    const savedBy = (seats: readonly string[]) =>
+        hospitalPlacedWords(placed.filter((entry) => seats.includes(entry.playerId)))
+
+    const attacking = BattlePlanSide.Attacker
+    const skullLoss = saves.count(
+        attacking,
+        steps.reduce((sum, step) => sum + skullsKilledIn(step), 0)
+    )
+    const attackerPlanLoss = planLosses(notes, attackerSeats, attackerPlans, saves, attacking)
+    const sacrificed = saves.count(attacking, closing.sacrificed)
+    const defenderPlanLoss = planLosses(
+        notes,
+        defenderSeats,
+        defenderPlans,
+        saves,
+        BattlePlanSide.Defender
+    )
+    const defenseLoss = won ? defeatLosses(steps, names, saves) : []
     const attackLoss = won
         ? []
-        : placedLosses(sacrifice?.defeatKills ?? [], closing.defeatKilled ?? 0, names)
+        : savedLosses(saves, attacking, sacrifice?.defeatKills ?? [], closing.defeatKilled ?? 0, names)
 
     const attacker: CampaignLedgerSide = {
         seatId: attackerId,
@@ -164,11 +213,14 @@ export function campaignLedger(steps: readonly GameAction[], names: HistoryNames
         ),
         attackFaces: roll?.attackFaces,
         plan: planLine(attackerPlans, notes, attackerSeats, names),
-        lost: warbandLoss([
-            { count: steps.reduce((sum, step) => sum + skullsKilledIn(step), 0), reason: 'to skulls' },
-            ...planLosses(notes, attackerSeats, attackerPlans),
-            { count: closing.sacrificed, reason: 'sacrificed' },
-            ...attackLoss
+        lost: lostLine([
+            warbandLoss([
+                { count: skullLoss, reason: 'to skulls' },
+                ...attackerPlanLoss,
+                { count: sacrificed, reason: 'sacrificed' },
+                ...attackLoss
+            ]),
+            ...savedBy(attackerSeats)
         ]),
         gained: listedOrNone([
             ...(won && spoils
@@ -203,7 +255,8 @@ export function campaignLedger(steps: readonly GameAction[], names: HistoryNames
         // R-5.5.6 — the bandits are never killed, and lose nothing to a ledger.
         lost: defenderId
             ? defenderLost(
-                  warbandLoss([...planLosses(notes, defenderSeats, defenderPlans), ...defenseLoss]),
+                  warbandLoss([...defenderPlanLoss, ...defenseLoss]),
+                  savedBy(defenderSeats),
                   won ? spoils : undefined,
                   declaration.targets,
                   names
@@ -374,11 +427,16 @@ function sideWords(text: string, seats: readonly string[], names: HistoryNames):
     return historyText(namedNote(rest, subject ?? seats[0], names, undefined), names)
 }
 
-/** R-5.5.3 — a side's warbands its own plans sacrificed, or a plan killed on its seats' boards. */
+/**
+ * R-5.5.3 — a side's warbands its own plans sacrificed, less those Hospital saved, or a plan killed
+ * on its seats' boards (a kill Hospital held says so in its note, and is no loss).
+ */
 function planLosses(
     notes: readonly PlanNote[],
     seats: readonly string[],
-    plans: readonly string[]
+    plans: readonly string[],
+    saves: HospitalSaves,
+    side: BattlePlanSide
 ): Loss[] {
     const own = new Set(plans.map(planName))
     return notes.flatMap((note) => {
@@ -388,7 +446,7 @@ function planLosses(
         }
         const sacrificed = SACRIFICED.exec(note.text)
         if (sacrificed && own.has(note.card)) {
-            return [{ count: countOf(sacrificed[1]), reason: `to ${note.card}` }]
+            return [{ count: saves.count(side, countOf(sacrificed[1])), reason: `to ${note.card}` }]
         }
         return []
     })
@@ -410,15 +468,37 @@ function planGains(
 /**
  * R-5.5.6 — the defending force's losses: where they were picked; else, with no pick asked
  * (R-5.5.6.a), the engine's default, taken from the force as rolled in its order (revision 25 records
- * it); else how many were killed.
+ * it); else how many were killed. Each less those Hospital saved.
  */
-function defeatLosses(steps: readonly GameAction[], names: HistoryNames): Loss[] {
+function defeatLosses(
+    steps: readonly GameAction[],
+    names: HistoryNames,
+    saves: HospitalSaves
+): Loss[] {
+    const side = BattlePlanSide.Defender
     const picked = steps.find(isCampaignDefeatKills)
-    if (picked) return placedLosses(picked.kills, picked.metadata?.defeatKilled ?? 0, names)
+    if (picked) {
+        return savedLosses(saves, side, picked.kills, picked.metadata?.defeatKilled ?? 0, names)
+    }
     const closing = steps.find(isCampaignSacrifice)?.metadata
     const killed = closing?.defeatKilled ?? 0
     const force = closing?.roll?.defendingForce
-    return force ? placedLosses(takeFromGroups(force, killed), killed, names) : [{ count: killed, reason: 'killed' }]
+    return savedLosses(saves, side, force ? takeFromGroups(force, killed) : [], killed, names)
+}
+
+/** R-5.5.6 — losses at the places the record names, less those Hospital saved; else the count. */
+function savedLosses(
+    saves: HospitalSaves,
+    side: BattlePlanSide,
+    groups: readonly WarbandGroup[],
+    killed: number,
+    names: HistoryNames
+): Loss[] {
+    if (groups.length === 0 || forceTotal(groups) !== killed) {
+        return [{ count: saves.count(side, killed), reason: 'killed' }]
+    }
+    const kept = saves.groups(side, groups)
+    return placedLosses(kept, forceTotal(kept), names)
 }
 
 /** Losses at the places the record names when they account for every one killed ("killed at Plains"); else the count. */
@@ -426,6 +506,12 @@ function placedLosses(groups: readonly WarbandGroup[], killed: number, names: Hi
     const placed = warbandPlaces(groups, undefined, names)
     if (placed.length === 0 || forceTotal(groups) !== killed) return [{ count: killed, reason: 'killed' }]
     return placed.map((group) => ({ count: group.count, reason: `killed ${group.place}` }))
+}
+
+/** A Lost line's parts: the warbands killed, then where Hospital placed those it saved. */
+function lostLine(parts: readonly (string | undefined)[]): string | undefined {
+    const said = parts.filter((part) => part !== undefined)
+    return said.length > 0 ? said.join('; ') : undefined
 }
 
 /** "4 warbands: 2 to skulls, 1 to Bear Traps, 1 sacrificed"; one reason alone, "1 warband killed at Plains". */
@@ -454,10 +540,12 @@ function placedAt(
 
 /**
  * R-5.5.6, R-5.5.7 — what the defender lost: their warbands, then the targets a victory took (the
- * sites, relics and banners), the favor burned, and where they were banished.
+ * sites, relics and banners), the favor burned; where Hospital placed the warbands it saved; and
+ * where they were banished.
  */
 function defenderLost(
     warbands: string | undefined,
+    saved: readonly string[],
     spoils: CampaignResolveVictory | undefined,
     targets: readonly CampaignTarget[],
     names: HistoryNames
@@ -480,7 +568,63 @@ function defenderLost(
     const banished = taken?.banishedToSiteId
     const parts = [
         ...(items.length > 0 ? [items.join(', ')] : []),
+        ...saved,
         ...(banished ? [`banished to ${names.site(banished)}`] : [])
     ]
     return parts.length > 0 ? parts.join('; ') : undefined
+}
+
+/**
+ * Hospital, R-10.28-H2 — takes from a side's losses the warbands a Hospital set aside and then placed
+ * on its site: those of the places its user holds, up to what it placed. A loss whose record names
+ * no place is the side's own seat's, as every place of a force is from revision 13.
+ */
+class HospitalSaves {
+    private readonly left = new Map<string, number>()
+    private readonly kills: CampaignKillPath
+
+    constructor(
+        private readonly state: HydratedOathGameState | undefined,
+        private readonly attackerId: string,
+        private readonly defenderId: string | undefined,
+        placed: readonly HeldForHospital[]
+    ) {
+        const sites = new Map<string, string>()
+        for (const entry of placed) {
+            this.left.set(entry.playerId, (this.left.get(entry.playerId) ?? 0) + entry.count)
+            sites.set(entry.playerId, entry.siteId)
+        }
+        this.kills = {
+            attackerPlayerId: attackerId,
+            defenderPlayerId: defenderId,
+            killRedirects: [...sites].map(([playerId, siteId]) => ({ playerId, siteId }))
+        }
+    }
+
+    /** The groups as they were picked, less the warbands saved. */
+    groups(side: BattlePlanSide, groups: readonly WarbandGroup[]): WarbandGroup[] {
+        return groups.flatMap((group) => {
+            const kept = group.count - this.take(side, group, group.count)
+            return kept > 0 ? [{ ...group, count: kept }] : []
+        })
+    }
+
+    /** `count` of the side's warbands, where the record does not say, less those saved. */
+    count(side: BattlePlanSide, count: number): number {
+        const seatId = side === BattlePlanSide.Attacker ? this.attackerId : this.defenderId
+        if (seatId === undefined) return count
+        const board: LossSource = { at: { kind: 'board', playerId: seatId }, owner: seatId }
+        return count - this.take(side, board, count)
+    }
+
+    private take(side: BattlePlanSide, source: LossSource, count: number): number {
+        if (this.left.size === 0 || count <= 0) return 0
+        assertExists(this.state, 'Whose Hospital held a loss is read from the game')
+        const holder = hospitalHolderOf(this.state, this.kills, side, source)
+        if (holder === undefined) return 0
+        const left = this.left.get(holder) ?? 0
+        const taken = Math.min(left, count)
+        this.left.set(holder, left - taken)
+        return taken
+    }
 }

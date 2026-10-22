@@ -17,7 +17,9 @@
 
     let gameSession = getGameSession()
 
-    let ledger = $derived(campaignLedger(steps, seatsById(gameSession.historyNames)))
+    let ledger = $derived(
+        campaignLedger(steps, seatsById(gameSession.historyNames), gameSession.gameState)
+    )
     let seats = $derived({ names: gameSession.historyNames, viewerId: gameSession.myPlayer?.id })
     const SHIELD = { shields: 1, doubling: false }
 </script>

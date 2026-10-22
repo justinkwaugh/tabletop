@@ -132,6 +132,7 @@ export type TableName =
     | 'imperialDefeated'
     | 'battleLossRows'
     | 'battleLossHospital'
+    | 'battleLossHospitalPlaced'
     | 'visionBacks'
     | 'restBanks'
     | 'restRefused'
@@ -170,6 +171,8 @@ export type TableName =
     | 'campaignLedger'
     | 'campaignLedgerPicked'
     | 'campaignLedgerLost'
+    | 'campaignLedgerHospital'
+    | 'campaignLedgerHospitalLost'
     | 'observatory'
     | 'cardOpensSearch'
     | 'cardChangesSearch'
@@ -5387,6 +5390,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     imperialDefeated: () => defeatedTable('imperial'),
     battleLossRows: () => battleLossTable(),
     battleLossHospital: () => battleLossTable({ hospital: true }),
+    battleLossHospitalPlaced: () => battleLossTable({ hospital: true, ended: true }),
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
     restRefused: restRefusedTable,
@@ -5427,6 +5431,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     campaignLedger: () => campaignLedgerTable(),
     campaignLedgerPicked: () => campaignLedgerTable({ revision: 0 }),
     campaignLedgerLost: () => campaignLedgerTable({ sacrifice: 0 }),
+    campaignLedgerHospital: () => campaignLedgerTable({ hospital: 'Rhys' }),
+    campaignLedgerHospitalLost: () => campaignLedgerTable({ sacrifice: 0, hospital: 'Dana' }),
     observatory: observatoryTable,
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),
