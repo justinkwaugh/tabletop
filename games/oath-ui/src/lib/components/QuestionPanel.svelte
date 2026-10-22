@@ -56,6 +56,16 @@
         assertExists(campaign, 'A Campaign reroll is offered only mid-Campaign')
         return roll.side === 'attack' ? `${campaign.swords} swords` : `${campaign.defense} defense`
     }
+
+    // A seat named in plain words, capitalized as its chip on the line above capitalizes it.
+    function seatName(playerId: string): string {
+        return gameSession
+            .getPlayerName(playerId)
+            .replace(
+                /(^|\s)(\S)/g,
+                (_, space: string, letter: string) => space + letter.toUpperCase()
+            )
+    }
 </script>
 
 <div>
@@ -117,7 +127,11 @@
                 <TokenText text="{mine.price} favor" /> to keep {cardName(
                     mine.relicCardId
                 )}?{/snippet}
-            <QuestionYesNo yes="Pay" no="Refuse" />
+            <QuestionYesNo
+                yes="Pay"
+                no="Refuse"
+                noConsequence="{seatName(mine.takerPlayerId)} takes it"
+            />
         </QuestionForm>
     {:else if mine.kind === PowerQuestionKind.PickFavorBank}
         <QuestionForm cardId={mine.cardId}>

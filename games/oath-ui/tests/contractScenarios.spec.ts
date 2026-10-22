@@ -6560,7 +6560,7 @@ test.describe('power questions', () => {
         await expect(line(page).locator('img[alt="favor"]')).toHaveCount(1)
         await expect(smallCard(page, 'Ring of Devotion')).toBeVisible()
         await expect(answer(page, 'Pay')).toBeVisible()
-        await expect(answer(page, 'Refuse')).toBeVisible()
+        await expect(answer(page, 'Refuse, Ann takes it')).toBeVisible()
         await expect(grid(page)).not.toContainText('You have')
         await answer(page, 'Pay').click()
         await expect.poll(() => asked(page)).toBe(false)
@@ -6869,7 +6869,7 @@ test.describe('power questions', () => {
         })
 
         for (const [table, names] of [
-            ['askBlackmail', ['Pay', 'Refuse']],
+            ['askBlackmail', ['Pay', 'Refuse, Ann takes it']],
             ['askHeirloom', ['Take', 'To the bottom']],
             ['askJinx', ['Reroll, paying 1 secret', 'Keep']],
             ['askRelicThief', ['Roll, paying 1 favor + 1 secret', 'Pass']],
@@ -7528,7 +7528,7 @@ for (const { name, viewport } of [
 test.describe('Toll Roads when a power moves another player', () => {
     const answers = (page: Page) => ({
         pay: grid(page).getByRole('button', { name: 'Pay', exact: true }),
-        refuse: grid(page).getByRole('button', { name: 'Refuse', exact: true })
+        refuse: grid(page).getByRole('button', { name: 'Refuse, you stay', exact: true })
     })
 
     test('the moved player is asked; Pay sends them, and the History tells the whole story', async ({ page }) => {
@@ -7537,9 +7537,9 @@ test.describe('Toll Roads when a power moves another player', () => {
         await expect(grid(page)).toContainText('Pay Rhys 1?')
         const { pay, refuse } = answers(page)
         const [payBox, refuseBox] = [await pay.boundingBox(), await refuse.boundingBox()]
-        // Desktop: the two answers share the wider label's width, and nothing stretches.
+        // Desktop: the two answers share the wider label's width ("Refuse · you stay"), and nothing stretches.
         expect(payBox?.width).toBeCloseTo(refuseBox?.width ?? 0, 0)
-        expect(payBox?.width ?? 999).toBeLessThan(120)
+        expect(payBox?.width ?? 999).toBeLessThan(200)
 
         await pay.click()
         await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.1')
@@ -7580,15 +7580,16 @@ test.describe('Toll Roads when a power moves another player', () => {
     test.describe('on a phone', () => {
         test.use({ viewport: { width: 375, height: 812 } })
 
-        test('Pay and Refuse are a standard size: one width, side by side, 44 px tall, never stretched', async ({ page }) => {
+        test('Pay and "Refuse · you stay" are a standard size: one width, one per line as the two do not fit, 44 px tall, never stretched', async ({ page }) => {
             await openTable(page, 'tollAsked')
             const { pay, refuse } = answers(page)
             await expect(pay).toBeVisible()
             const [payBox, refuseBox, panelBox] = [await pay.boundingBox(), await refuse.boundingBox(), await grid(page).boundingBox()]
             expect(payBox?.width).toBeCloseTo(refuseBox?.width ?? 0, 0)
-            expect(payBox?.y).toBeCloseTo(refuseBox?.y ?? 0, 0)
+            expect(refuseBox?.y ?? 0).toBeGreaterThanOrEqual((payBox?.y ?? 999) + (payBox?.height ?? 999))
             expect(payBox?.height ?? 0).toBeGreaterThanOrEqual(44)
-            expect((payBox?.width ?? 999) + (refuseBox?.width ?? 999)).toBeLessThan((panelBox?.width ?? 0) * 0.6)
+            expect(refuseBox?.height ?? 0).toBeGreaterThanOrEqual(44)
+            expect(payBox?.width ?? 999).toBeLessThan((panelBox?.width ?? 0) * 0.6)
         })
     })
 })
@@ -8077,7 +8078,7 @@ test.describe('Dragonskin Drum when a power moves its holder', () => {
         await expect(answers(page).gain).toBeVisible()
 
         await openTable(page, 'drumAfterToll')
-        await grid(page).getByRole('button', { name: 'Refuse', exact: true }).click()
+        await grid(page).getByRole('button', { name: 'Refuse, you stay', exact: true }).click()
         await expect.poll(async () => await call(page, 'openQuestionKind')).toBeUndefined()
         expect((await call(page, 'tableFacts')).siteOf.Dana).toBe('slot.provinces.2')
     })
