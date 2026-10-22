@@ -194,7 +194,6 @@
                     {#if p.choices.length > 0}
                         <div class="mt-1">
                             <PowerChoicePicker
-                                tallOnPhone
                                 choices={p.choices}
                                 bind:picks={
                                     () => draft.picksOf(p), (picks) => draft.setPicks(p, picks)

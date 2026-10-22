@@ -85,7 +85,6 @@
     let {
         choices,
         picks = $bindable(emptyPicks()),
-        tallOnPhone = false,
         tollAt = () => false,
         words = { tone: 'gold' },
         siteOnMap = () => undefined,
@@ -93,8 +92,6 @@
     }: {
         choices: LegalChoice[]
         picks?: PowerChoicePicks
-        /** Its list is 44 px tall on a phone, as Use a power draws its pick beside its buttons. */
-        tallOnPhone?: boolean
         tollAt?: (siteId: string) => boolean
         /** The power's own few words for its picks, and the ring its warbands take. */
         words?: PickerWords
@@ -545,6 +542,8 @@
             {:else if isMay(legal)}
                 {@render mayRow(legal, i)}
             {:else}
+                <!-- A card, a relic, a facedown adviser or warbands at a site, as a card: every other
+                     kind a power asks has its picker above (powerPickerReach.spec.ts). -->
                 {@const cards = powerChoiceCards(legal.options, resolve)}
                 {@const underMay = mayOf(choices, i) !== undefined}
                 {#if cards}
@@ -560,30 +559,6 @@
                         {busy}
                         height={underMay ? 56 : 80}
                     />
-                {:else}
-                    <label class="flex items-center gap-2">
-                        <span class="text-oath-text-muted"
-                            >{legal.spec.what ?? legal.spec.kind}:</span
-                        >
-                        <select
-                            disabled={busy}
-                            class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs w-fit max-w-full {tallOnPhone
-                                ? 'max-sm:min-h-11'
-                                : ''}"
-                            value={pick}
-                            onchange={(event) =>
-                                setOption(legal, i, Number(event.currentTarget.value))}
-                        >
-                            {#if legal.spec.min === 0}
-                                <option value={NO_OPTION}>none</option>
-                            {:else if pick === NO_OPTION}
-                                <option value={NO_OPTION} disabled></option>
-                            {/if}
-                            {#each legal.options as choice, j (j)}
-                                <option value={j}>{label(choice)}</option>
-                            {/each}
-                        </select>
-                    </label>
                 {/if}
             {/if}
             {#if !onMap && legal.options.length === 0 && legal.spec.min > 0}
