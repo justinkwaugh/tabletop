@@ -46,7 +46,7 @@ const ALTERNATIVES = [
     String.raw`(?<!people['’]s )\b(?:(?<favorCount>\d+|an?|one) )?favor\b`,
     String.raw`(?<!darkest )\b(?:(?<secretCount>\d+|an?|one) )?secrets?\b`
 ]
-const WARBANDS = String.raw`(?<=(?:\b(?<loser>[^\s,;:—]+) lost )?)\b(?<warbandCount>\d+|an?|one) (?<warbandWhose>(?<imperial>Imperial )|(?<viewer>of your (?:own )?)|(?<actor>of their own )|of (?<seat>[^,;:—]+?)['’]s )?(?<warbandNoun>warbands?)\b(?=(?: on (?<board>your|[^\s,;:—]+?['’]s) board)?)`
+const WARBANDS = String.raw`(?<=(?:(?<![\w-])(?<loser>[^\s,;:—]+) lost )?)\b(?<warbandCount>\d+|an?|one) (?<warbandWhose>(?<imperial>Imperial )|(?<viewer>of your (?:own )?)|(?<actor>of their own )|of (?<seat>[^,;:—]+?)['’]s )?(?<warbandNoun>warbands?)\b(?=(?: on (?<board>your|[^\s,;:—]+?['’]s) board)?)`
 
 const SKULLS = String.raw`\b(?<skull>skulls?)\b`
 

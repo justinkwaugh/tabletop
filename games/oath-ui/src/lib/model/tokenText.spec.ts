@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Suit } from '@tabletop/oath'
 import { tokenParts } from './tokenText.js'
+import { namedWarbandOwner } from './actionDescription.js'
 
 const text = (t: string) => ({ kind: 'text', text: t })
 
@@ -99,6 +100,23 @@ describe('History text, which draws warbands too', () => {
             { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' },
             text(' to skulls')
         ])
+    })
+
+    it('R-10.13 — a seat id that begins with "-" or "_" is the whole loser', () => {
+        for (const id of ['-aB3xQ', '_aB3xQ']) {
+            expect(history(`9 swords against 9 defense; ${id} lost 2 warbands to skulls`)).toEqual([
+                text(`9 swords against 9 defense; ${id} lost `),
+                { kind: 'warband', count: 2, whose: { kind: 'held', name: id }, words: 'warbands' },
+                text(' to skulls')
+            ])
+        }
+    })
+
+    it('R-10.13 — a loser whose seat id begins with "-" holds that seat’s own warbands', () => {
+        const [, lost] = history('9 swords against 9 defense; -aB3xQ lost 2 warbands to skulls')
+        const reader = { names: { player: (id: string) => id, seats: ['p1', '-aB3xQ'] }, viewerId: undefined }
+        const ownWarbandsOf = (id: string) => (id === '-aB3xQ' ? 'imperial' : id)
+        expect(lost.kind === 'warband' && namedWarbandOwner(lost.whose, 'p1', reader, ownWarbandsOf)).toBe('imperial')
     })
 
     it('marks the Empire’s warbands, and swallows a named owner into the token', () => {
