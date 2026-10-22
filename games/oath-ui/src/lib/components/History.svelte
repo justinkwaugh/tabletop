@@ -3,6 +3,7 @@
     import { assertExists, type GameAction } from '@tabletop/common'
     import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
+    import CampaignLedger from './CampaignLedger.svelte'
     import MajorEventRow from './MajorEventRow.svelte'
     import TokenText from './TokenText.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -70,30 +71,46 @@
             {/if}
             {#each rows as row (row.action.id)}
                 {@const actorId = rowActorOf(row.action)}
-                <div>
-                    {#if row.event}{@render ringedDot(
-                            row.event.tone === 'danger'
-                        )}{:else}{@render dot()}{/if}
-                    <TimelineItem
-                        timeClass="text-oath-text-muted dark:text-oath-text-muted"
-                        title=""
-                        class="timeline-item text-left mb-5"
-                        date={whenOf(row.action)}
-                    >
-                        {#if row.event}
-                            <MajorEventRow event={row.event} {actorId}>
-                                <ActionDescription action={row.action} />
-                            </MajorEventRow>
-                        {:else}
+                {#if row.event}
+                    <div>
+                        {@render ringedDot(row.event.tone === 'danger')}
+                        <TimelineItem
+                            timeClass="text-oath-text-muted dark:text-oath-text-muted"
+                            title=""
+                            class="timeline-item text-left mb-5"
+                            date={whenOf(row.action)}
+                        >
+                            {#if row.campaignSteps}
+                                <MajorEventRow event={row.event}>
+                                    <CampaignLedger steps={row.campaignSteps} />
+                                </MajorEventRow>
+                            {:else}
+                                <MajorEventRow event={row.event} {actorId}>
+                                    <ActionDescription action={row.action} campaign={row.campaign} />
+                                </MajorEventRow>
+                            {/if}
+                        </TimelineItem>
+                    </div>
+                {/if}
+                <!-- R-5.5 — the step that closes a Campaign stays a row below its card, as every step does. -->
+                {#if !row.event || row.campaignSteps}
+                    <div>
+                        {@render dot()}
+                        <TimelineItem
+                            timeClass="text-oath-text-muted dark:text-oath-text-muted"
+                            title=""
+                            class="timeline-item text-left mb-5"
+                            date={whenOf(row.action)}
+                        >
                             <p class="mt-1 text-left text-sm text-base font-normal text-oath-text">
                                 {#if actorId}
                                     <PlayerName playerId={actorId} />
                                 {/if}
-                                <ActionDescription action={row.action} />
+                                <ActionDescription action={row.action} campaign={row.campaign} />
                             </p>
-                        {/if}
-                    </TimelineItem>
-                </div>
+                        </TimelineItem>
+                    </div>
+                {/if}
             {/each}
             {@render dot()}
             <TimelineItem

@@ -3,13 +3,15 @@ import { escapeRegExp, nameSeats, seatParts, type SeatPart, type Seats } from '$
 
 /**
  * R-10.13 — whose warbands a counted phrase names: "Imperial", a seat by name, the viewer's
- * ("your"), the actor's ("their own"), or no one, which leaves them the row's.
+ * ("your"), the actor's ("their own"), those a seat holds as its own (on its board, or lost by
+ * it), or no one, which leaves them the row's.
  */
 export type WarbandWhose =
     | { kind: 'imperial' }
     | { kind: 'seat'; name: string }
     | { kind: 'viewer' }
     | { kind: 'actor' }
+    | { kind: 'held'; name: string }
     | { kind: 'row' }
 
 /**
@@ -44,7 +46,7 @@ const ALTERNATIVES = [
     String.raw`(?<!people['’]s )\b(?:(?<favorCount>\d+|an?|one) )?favor\b`,
     String.raw`(?<!darkest )\b(?:(?<secretCount>\d+|an?|one) )?secrets?\b`
 ]
-const WARBANDS = String.raw`\b(?<warbandCount>\d+|an?|one) (?<warbandWhose>(?<imperial>Imperial )|(?<viewer>of your (?:own )?)|(?<actor>of their own )|of (?<seat>[^,;:—]+?)['’]s )?(?<warbandNoun>warbands?)\b`
+const WARBANDS = String.raw`(?<=(?:\b(?<loser>[^\s,;:—]+) lost )?)\b(?<warbandCount>\d+|an?|one) (?<warbandWhose>(?<imperial>Imperial )|(?<viewer>of your (?:own )?)|(?<actor>of their own )|of (?<seat>[^,;:—]+?)['’]s )?(?<warbandNoun>warbands?)\b(?=(?: on (?<board>your|[^\s,;:—]+?['’]s) board)?)`
 
 const SKULLS = String.raw`\b(?<skull>skulls?)\b`
 
@@ -108,6 +110,8 @@ function warbandWhose(groups: Record<string, string | undefined>): WarbandWhose 
     if (groups.viewer) return { kind: 'viewer' }
     if (groups.actor) return { kind: 'actor' }
     if (groups.seat) return { kind: 'seat', name: groups.seat }
+    const holder = groups.board?.replace(/['’]s$/, '') ?? groups.loser
+    if (holder) return { kind: 'held', name: holder }
     return { kind: 'row' }
 }
 

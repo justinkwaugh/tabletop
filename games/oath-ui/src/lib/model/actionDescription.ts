@@ -56,6 +56,7 @@ import {
     type ExchangeTerms,
     type ExchangeTransfer,
     type FavorShort,
+    type Campaign,
     type CampaignBattleMetadata,
     type HeldAttackRoll,
     type CampaignPlacement,
@@ -191,7 +192,29 @@ export function rowWarbandOwner(
 export function phraseWarbandOwner(
     whose: WarbandWhose,
     action: GameAction,
-    reader: { names: Seats; viewerId: string | undefined },
+    reader: WarbandReader,
+    ownWarbandsOf: (playerId: string) => WarbandOwner
+): WarbandOwner | undefined {
+    // A seat's board holds what the record says it held; the seat's own only when it says nothing.
+    const recorded = whose.kind === 'held' ? recordedWarbandOwner(action) : undefined
+    return (
+        recorded ??
+        namedWarbandOwner(whose, action.playerId, reader, ownWarbandsOf) ??
+        rowWarbandOwner(action, ownWarbandsOf)
+    )
+}
+
+/** Who reads a phrase: the seats it may name, and the viewer its "your" names. */
+export type WarbandReader = { names: Seats; viewerId: string | undefined }
+
+/**
+ * R-10.13 — the owner a counted phrase's own words name, if they name one this reader knows: the
+ * Empire, the viewer, the actor, a seat, or the warbands a seat holds as its own.
+ */
+export function namedWarbandOwner(
+    whose: WarbandWhose,
+    actorId: string | undefined,
+    reader: WarbandReader,
     ownWarbandsOf: (playerId: string) => WarbandOwner
 ): WarbandOwner | undefined {
     switch (whose.kind) {
@@ -201,17 +224,25 @@ export function phraseWarbandOwner(
             assertExists(reader.viewerId, 'only a seated viewer reads "your" in a History row')
             return reader.viewerId
         case 'actor':
-            assertExists(action.playerId, 'only an actor’s row reads "their own"')
-            return action.playerId
+            assertExists(actorId, 'only an actor’s row reads "their own"')
+            return actorId
         case 'seat':
-            return (
-                reader.names.seats.find(
-                    (playerId) => reader.names.player(playerId) === whose.name
-                ) ?? rowWarbandOwner(action, ownWarbandsOf)
-            )
+            return seatNamed(whose.name, reader)
+        case 'held': {
+            const holder = seatNamed(whose.name, reader)
+            return holder === undefined ? undefined : ownWarbandsOf(holder)
+        }
         case 'row':
-            return rowWarbandOwner(action, ownWarbandsOf)
+            return undefined
     }
+}
+
+/** A seat as text names it: by name, by id (a row drawn with chips), or the viewer's "you". */
+function seatNamed(name: string, reader: WarbandReader): string | undefined {
+    if (/^your?$/i.test(name)) return reader.viewerId
+    return reader.names.seats.find(
+        (playerId) => playerId === name || reader.names.player(playerId) === name
+    )
 }
 
 function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
@@ -236,7 +267,12 @@ function drumText(cardId: string, gain: WarbandGain | undefined): string {
         : `skipped the ${cardName(cardId)}`
 }
 
-export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {
+export function describeAction(
+    action: GameAction,
+    names: HistoryNames,
+    viewerId?: string,
+    campaign?: Campaign
+): string {
     // The row starts with this seat's chip, so a note about them needs no subject.
     const actorId = rowActorOf(action)
     const notes = recordedNotes(action).flatMap((note) => {
@@ -244,19 +280,18 @@ export function describeAction(action: GameAction, names: HistoryNames, viewerId
         return clause ? [clause] : []
     })
     const named = new Set(notes.flatMap((clause) => (clause.card ? [clause.card] : [])))
-    return historyWords(
-        nameIds(
-            stripRules(
-                describeActionCited(action, names, viewerId, named) +
-                    secondWhenPlayedClause(action) +
-                    notes
-                        .map((clause) => `; ${namedNote(clause.text, actorId, names, viewerId)}`)
-                        .join('') +
-                    outcomeClauses(action, viewerId)
-            ),
-            names.site
-        )
+    return historyText(
+        describeActionCited(action, names, viewerId, named, campaign) +
+            secondWhenPlayedClause(action) +
+            notes.map((clause) => `; ${namedNote(clause.text, actorId, names, viewerId)}`).join('') +
+            outcomeClauses(action, viewerId),
+        names
     )
+}
+
+/** Engine words as History says them: rules unquoted, ids named, the Law's spelling. */
+export function historyText(text: string, names: HistoryNames): string {
+    return historyWords(nameIds(stripRules(text), names.site))
 }
 
 // "1 warbands" and "the top 1 cards" in engine summaries; the Law's spelling.
@@ -338,33 +373,48 @@ const SAYS_YOU = /\byour?\b/i
  * what it always means; an older note that says "you" is not shown.
  */
 function noteClause(note: string, actorId: string | undefined): NoteClause | undefined {
+    const deed = cardDeed(note, actorId)
+    if (!deed) return undefined
+    return deed.card ? { text: `${deed.did} (${deed.card})`, card: deed.card } : { text: deed.did }
+}
+
+/**
+ * R-5.5.8 — a recorded note as the card that wrote it and what it did, worded as the rows word it;
+ * a note that names no card, or is not shown, is not one.
+ */
+export function cardNote(note: string): { card: string; text: string } | undefined {
+    const deed = cardDeed(note, undefined)
+    return deed?.card === undefined ? undefined : { card: deed.card, text: deed.did }
+}
+
+/** What a note says was done, and the card that did it when it names one. */
+function cardDeed(
+    note: string,
+    actorId: string | undefined
+): { did: string; card?: string } | undefined {
     // R-4.2 — Special Envoy's end of the Act Phase is named after the Travel's cost.
     if (SPECIAL_ENVOY.test(note)) return undefined
     // Tyrant kills one warband at the destination, the site the note names.
     const tyrant = TYRANT.exec(note)
-    if (tyrant) return { text: `killed 1 warband at ${tyrant[1]} (Tyrant)`, card: 'Tyrant' }
+    if (tyrant) return { did: `killed 1 warband at ${tyrant[1]}`, card: 'Tyrant' }
     // Awaited Return sacrifices from the trader's own board.
-    if (AWAITED_RETURN.test(note)) {
-        return { text: 'sacrificed 1 warband (Awaited Return)', card: 'Awaited Return' }
-    }
+    if (AWAITED_RETURN.test(note)) return { did: 'sacrificed 1 warband', card: 'Awaited Return' }
     // Careless gains one favor or, from an empty bank or under Vow of Poverty, none.
     const careless = CARELESS.exec(note)
     if (careless) {
         const gained = careless[1] === 'gained 1 favor' ? 1 : 0
-        return { text: `gained ${gained} favor (Careless)`, card: 'Careless' }
+        return { did: `gained ${gained} favor`, card: 'Careless' }
     }
     // R-5.5.8 — Second Wind's grant, on the spoils row (or the banish's answer) that recorded it.
-    if (note === SECOND_WIND) {
-        return { text: 'free Travel and Campaign next (Second Wind)', card: 'Second Wind' }
-    }
+    if (note === SECOND_WIND) return { did: 'free Travel and Campaign next', card: 'Second Wind' }
     if (SAYS_YOU.test(note)) return undefined
     const carded = CARD_NOTE.exec(note)
     const card = carded ? noteCard(carded[1]) : undefined
-    if (!carded || card === undefined) return { text: note }
+    if (!carded || card === undefined) return { did: note }
     const subject = actorId === undefined ? undefined : `${actorId} `
     const rest =
         subject && carded[2].startsWith(subject) ? carded[2].slice(subject.length) : carded[2]
-    return { text: `${rest} (${card})`, card }
+    return { did: rest, card }
 }
 
 /** A note's prefix as the card it names: a card, a Reliquary trait, or a site's Homeland. */
@@ -448,19 +498,7 @@ function sacrificePlaces(
     actorId: string,
     names: HistoryNames
 ): string | undefined {
-    const counted: { place: string; owner: WarbandOwner; count: number }[] = []
-    for (const group of [...kills].sort((a, b) => placeOrder(a) - placeOrder(b))) {
-        if (group.count <= 0) continue
-        const place =
-            group.at.kind === 'site'
-                ? `at ${names.site(group.at.siteId)}`
-                : group.at.playerId === actorId
-                  ? 'on their board'
-                  : `on ${names.player(group.at.playerId)}'s board`
-        const same = counted.find((c) => c.place === place && c.owner === group.owner)
-        if (same) same.count += group.count
-        else counted.push({ place, owner: group.owner, count: group.count })
-    }
+    const counted = warbandPlaces(kills, actorId, names)
     const named = new Set(counted.map((c) => c.place)).size > 1
     if (new Set(counted.map((c) => c.owner)).size > 1) {
         return counted
@@ -481,6 +519,65 @@ function sacrificePlaces(
 
 function placeOrder(group: WarbandGroup): number {
     return group.at.kind === 'board' ? 0 : 1
+}
+
+/** One owner's warbands at one place, counted together. */
+export interface PlacedWarbands {
+    place: string
+    owner: WarbandOwner
+    count: number
+}
+
+/**
+ * R-10.22 — a force's groups by place and owner, a board's first: "at Plains", "on their board"
+ * for the actor's own, "on Rhys's board" for another seat's (any seat's, with no actor).
+ */
+export function warbandPlaces(
+    groups: readonly WarbandGroup[],
+    actorId: string | undefined,
+    names: HistoryNames
+): PlacedWarbands[] {
+    const counted: PlacedWarbands[] = []
+    for (const group of [...groups].sort((a, b) => placeOrder(a) - placeOrder(b))) {
+        if (group.count <= 0) continue
+        const place =
+            group.at.kind === 'site'
+                ? `at ${names.site(group.at.siteId)}`
+                : group.at.playerId === actorId
+                  ? 'on their board'
+                  : `on ${names.player(group.at.playerId)}'s board`
+        const same = counted.find((c) => c.place === place && c.owner === group.owner)
+        if (same) same.count += group.count
+        else counted.push({ place, owner: group.owner, count: group.count })
+    }
+    return counted
+}
+
+/**
+ * R-5.5.6.a — the defense's losses as picked: where each was killed, every owner in their own
+ * words when the force held more than one. Picks that do not add up to the killed count (a loss a
+ * card held back) say only how many were killed.
+ */
+function killedPlaces(
+    kills: readonly WarbandGroup[],
+    killed: number,
+    actorId: string,
+    names: HistoryNames
+): string {
+    const counted = warbandPlaces(kills, actorId, names)
+    const [only] = counted
+    if (only === undefined || counted.reduce((sum, c) => sum + c.count, 0) !== killed) {
+        return `${plural(killed, 'warband')} killed`
+    }
+    if (new Set(counted.map((c) => c.owner)).size > 1) {
+        const each = counted.map(
+            ({ place, owner, count }) =>
+                `${warbandsOf(count, owner, names.player, actorId)} ${place}`
+        )
+        return `killed ${each.join(' and ')}`
+    }
+    if (counted.length === 1) return `${plural(killed, 'warband')} killed ${only.place}`
+    return `${plural(killed, 'warband')} killed: ${counted.map(({ place, count }) => `${count} ${place}`).join(' and ')}`
 }
 
 /** R-5.5.7.I — each placement names its owner, so its piece takes that owner's colour. */
@@ -579,7 +676,7 @@ function usedPlans(planIds: readonly string[]): string {
 }
 
 // A record names a plan by its id; an older one by its name.
-function planName(plan: string): string {
+export function planName(plan: string): string {
     return cardDefinition(plan) ? cardName(plan) : plan
 }
 
@@ -587,7 +684,8 @@ function describeActionCited(
     action: GameAction,
     names: HistoryNames,
     viewerId: string | undefined,
-    named: ReadonlySet<string>
+    named: ReadonlySet<string>,
+    campaign: Campaign | undefined
 ): string {
     const nameOf = names.player
     if (isSetupChoice(action)) {
@@ -741,7 +839,8 @@ function describeActionCited(
                 ? `${meta.attackPool} attack dice against ${meta.defensePool} defense dice`
                 : meta.heldAttackDice !== undefined
                   ? `${meta.heldAttackDice} attack dice against ${meta.defense} defense`
-                  : `${meta.swords} swords against ${meta.defense} defense`
+                  : `${meta.swords} swords against ${meta.defense} defense` +
+                    skullsLostClause(meta.skullsKilled, campaign?.playerId)
         return `${usedPlans(meta.plansUsed)}; ${pools}`
     }
     if (isCampaignSacrifice(action)) {
@@ -757,7 +856,7 @@ function describeActionCited(
         return describeSkullLosses(action.metadata?.killed ?? action.kills, names.site)
     }
     if (isCampaignDefeatKills(action)) {
-        return `picked the defense's losses: ${plural(action.metadata?.defeatKilled ?? 0, 'warband')} killed`
+        return `picked the defense's losses: ${killedPlaces(action.kills, action.metadata?.defeatKilled ?? 0, action.playerId, names)}`
     }
     if (isCampaignResolveVictory(action)) {
         return describeSpoils(action, names, viewerId)
@@ -1208,7 +1307,7 @@ function namedSummary(
     return namedNote(withoutCardName(summary, cardId), actorId, names, viewerId)
 }
 
-function namedNote(
+export function namedNote(
     note: string,
     actorId: string | undefined,
     names: HistoryNames,
@@ -1314,13 +1413,23 @@ function describeBattle(battle: CampaignBattleMetadata, attackersRow: boolean): 
         return `${battle.heldAttackDice} attack dice against ${battle.defense} defense`
     }
     const skulls = battle.skullsKilled
-    const lost =
-        skulls <= 0
-            ? ''
-            : attackersRow
-              ? `; lost ${plural(skulls, 'warband')} to skulls`
-              : `; the attacker lost ${skulls} to skulls`
+    const lost = attackersRow
+        ? skulls > 0
+            ? `; lost ${plural(skulls, 'warband')} to skulls`
+            : ''
+        : skullsLostClause(skulls, undefined)
     return `${battle.swords} swords against ${battle.defense} defense${lost}`
+}
+
+/**
+ * R-5.5.5 — the attacker's warbands the skulls killed, on another seat's row: the attacker by id
+ * for the row to name, their warbands held as theirs; a row that cannot name them says "the attacker".
+ */
+function skullsLostClause(skulls: number, attackerId: string | undefined): string {
+    if (!(skulls > 0)) return ''
+    return attackerId
+        ? `; ${attackerId} lost ${plural(skulls, 'warband')} to skulls`
+        : `; the attacker lost ${skulls} to skulls`
 }
 
 /**

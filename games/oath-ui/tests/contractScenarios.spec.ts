@@ -5806,7 +5806,7 @@ test.describe('scenario 65: the History’s words', () => {
         await expect(history(page)).not.toContainText(/travelled|defence| — /)
     })
 
-    test('a Campaign: its cost, plans and dice; the defense’s losses picked by a chip; the spoils step by step; "against <chip>"', async ({ page }) => {
+    test('a Campaign: its cost, plans and dice; the defense’s losses picked by a chip; the spoils step by step; the ledger’s "against <chip>"', async ({ page }) => {
         await openTable(page, 'historyCampaign')
         await page.getByRole('tab', { name: 'History' }).click()
         await expect(history(page)).toContainText('spending 2 Supply, using Field Promotion; 6 attack dice against 4 defense dice')
@@ -5815,9 +5815,9 @@ test.describe('scenario 65: the History’s words', () => {
         await expect(history(page)).toContainText("picked the defense's losses: 2 killed")
         await expect(history(page)).toContainText('took the spoils: placed 2 at Plains; seized the People’s Favor, burning 2 from it; banished rhys to Salt Flats; burned 3 from rhys; gained 3 (Field Promotion)')
         expect(await rowChips(page, 'took the spoils')).toEqual(['Dana', 'Rhys', 'Rhys'])
-        const won = page.locator('[data-major-event="campaignWon"]')
+        const won = page.locator('[data-major-event="campaignWon"] [data-campaign-ledger] p').first()
         await expect(won).toContainText('against rhys')
-        await expect(won.locator('.text-xs span[style*="background-color"]').first()).toHaveText(/rhys/i)
+        await expect(won.locator('span[style*="background-color"]').nth(1)).toHaveText(/rhys/i)
     })
 
     test('deals and the rest: the offer’s terms on its row, the Wood’s pick as the traveller’s Travel, False Prophet, a short bank', async ({ page }) => {

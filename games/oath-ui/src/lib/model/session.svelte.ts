@@ -113,6 +113,7 @@ import { GoalsView } from './goalsView.svelte.js'
 import { TurnNotice } from './turnNotice.svelte.js'
 import { humanizeReason, reasonParts, siteName, type ReasonPart } from './names.js'
 import { phraseWarbandOwner, type HistoryNames } from './actionDescription.js'
+import { sideWarbandOwner } from './campaignLedger.js'
 import type { WarbandWhose } from './tokenText.js'
 import {
     endingRule,
@@ -1498,7 +1499,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return gameEndEvent(state, winnerId, rule, this.majorEventContext)
     }
 
-    private get majorEventContext(): Omit<MajorEventContext, 'campaign'> {
+    private get majorEventContext(): MajorEventContext {
         return {
             viewerId: this.myPlayer?.id,
             nameOf: (playerId) => this.getPlayerName(playerId),
@@ -1513,6 +1514,17 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const reader = { names: this.historyNames, viewerId: this.myPlayer?.id }
         return (whose) => {
             const owner = phraseWarbandOwner(whose, action, reader, (playerId) =>
+                ownWarbandOwner(this.gameState, playerId)
+            )
+            return this.warbandColor(owner ?? IMPERIAL_WARBANDS)
+        }
+    }
+
+    /** R-10.13 — a Campaign ledger line's warbands: those its words name, else the side's own. */
+    ledgerWarbandColor(seatId: string | undefined): (whose: WarbandWhose) => Color {
+        const reader = { names: this.historyNames, viewerId: this.myPlayer?.id }
+        return (whose) => {
+            const owner = sideWarbandOwner(whose, seatId, reader, (playerId) =>
                 ownWarbandOwner(this.gameState, playerId)
             )
             return this.warbandColor(owner ?? IMPERIAL_WARBANDS)

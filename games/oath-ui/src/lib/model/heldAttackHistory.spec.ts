@@ -88,7 +88,7 @@ describe('R-5.5.4-H1 — History while the attack waits on the defender’s Jinx
             expect(parts.slice(-5), viewer).toEqual([
                 { kind: 'seat', playerId: 'Dana', possessive: false },
                 { kind: 'text', text: ' lost ' },
-                { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+                { kind: 'warband', count: 1, whose: { kind: 'held', name: 'Dana' }, words: 'warband' },
                 { kind: 'text', text: ' to a ' },
                 { kind: 'skull', words: 'skull' }
             ])
@@ -112,7 +112,7 @@ describe('R-5.5.4-H1 — History while the attack waits on the defender’s Jinx
         const text = describeAction(action, names, 'Ann')
         expect(text).toBe('Jinx: kept the roll. 3 swords against 5 defense; Rhys lost 2 warbands to skulls')
         expect(tokenParts(text, { warbands: true, skulls: true }).slice(-3)).toEqual([
-            { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' },
+            { kind: 'warband', count: 2, whose: { kind: 'held', name: 'Rhys' }, words: 'warbands' },
             { kind: 'text', text: ' to ' },
             { kind: 'skull', words: 'skulls' }
         ])

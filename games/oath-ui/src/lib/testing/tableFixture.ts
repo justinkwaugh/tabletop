@@ -94,6 +94,7 @@ import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
+import { campaignLedgerTable } from './campaignLedgerTable.js'
 import {
     FOREST_PATHS,
     HOSPITALITY,
@@ -163,6 +164,9 @@ export type TableName =
     | 'campaignStepsRelicHunter'
     | 'campaignStepsOathkeeper'
     | 'campaignStepsOathkeeperSevenWarbands'
+    | 'campaignLedger'
+    | 'campaignLedgerPicked'
+    | 'campaignLedgerLost'
     | 'observatory'
     | 'cardOpensSearch'
     | 'cardChangesSearch'
@@ -5346,6 +5350,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     campaignStepsOathkeeper: () => campaignSteps({ oathkeeper: true }),
     campaignStepsOathkeeperSevenWarbands: () =>
         campaignSteps({ oathkeeper: true, danaWarbands: 7 }),
+    campaignLedger: () => campaignLedgerTable(),
+    campaignLedgerPicked: () => campaignLedgerTable({ revision: 0 }),
+    campaignLedgerLost: () => campaignLedgerTable({ sacrifice: 0 }),
     observatory: observatoryTable,
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),

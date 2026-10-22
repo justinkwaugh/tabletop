@@ -71,10 +71,33 @@ describe('History text, which draws warbands too', () => {
     const history = (t: string) => tokenParts(t, { warbands: true })
 
     it('draws a counted warband as its token, keeping the words for its alt', () => {
-        expect(history('killed a warband on your board')).toEqual([
+        expect(history('killed a warband at the Plains')).toEqual([
             text('killed '),
             { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+            text(' at the Plains')
+        ])
+    })
+
+    it('R-10.13 — warbands on a seat’s board, or lost by a seat, are held as that seat’s own', () => {
+        expect(history('killed a warband on your board')).toEqual([
+            text('killed '),
+            { kind: 'warband', count: 1, whose: { kind: 'held', name: 'your' }, words: 'warband' },
             text(' on your board')
+        ])
+        expect(history("killed 1 warband on Dana's board (Bear Traps)")).toEqual([
+            text('killed '),
+            { kind: 'warband', count: 1, whose: { kind: 'held', name: 'Dana' }, words: 'warband' },
+            text(" on Dana's board (Bear Traps)")
+        ])
+        expect(history('9 swords against 9 defense; Dana lost 2 warbands to skulls')).toEqual([
+            text('9 swords against 9 defense; Dana lost '),
+            { kind: 'warband', count: 2, whose: { kind: 'held', name: 'Dana' }, words: 'warbands' },
+            text(' to skulls')
+        ])
+        expect(history('lost 2 warbands to skulls')).toEqual([
+            text('lost '),
+            { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' },
+            text(' to skulls')
         ])
     })
 
@@ -144,7 +167,7 @@ describe('the skull as its symbol, in the rows that ask for it', () => {
     it('draws "skull" and "skulls" as the skull, the word its alt; the count stays words', () => {
         expect(tokenParts('Dana lost 1 warband to a skull', { warbands: true, skulls: true })).toEqual([
             text('Dana lost '),
-            { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
+            { kind: 'warband', count: 1, whose: { kind: 'held', name: 'Dana' }, words: 'warband' },
             text(' to a '),
             { kind: 'skull', words: 'skull' }
         ])

@@ -147,9 +147,9 @@ test.describe('the History of a Wrestlers sacrifice, on a desktop at 1280', () =
         await usePlans(page).click()
         await expect.poll(async () => imperialOn(page, 'Rhys')).toBe(1)
         await page.getByRole('tab', { name: 'History' }).click()
-        // The History draws "a warband" as one piece, as every row does.
+        // The History draws "a warband" as one piece, as every row does: the skulls' loss and the sacrifice.
         const row = history(page).getByRole('listitem').filter({ hasText: 'used Wrestlers' })
-        await expect(row).toContainText(/used Wrestlers; 5 swords against 7 defense; sacrificed 1\s*on\s*Rhys's\s*board\s*\(Wrestlers\)/)
-        await expect(row.getByRole('img', { name: 'warband' })).toHaveCount(1)
+        await expect(row).toContainText(/used Wrestlers; 5 swords against 7 defense;\s*you\s*lost 1\s*to skulls; sacrificed 1\s*on\s*Rhys's\s*board\s*\(Wrestlers\)/)
+        await expect(row.getByRole('img', { name: 'warband' })).toHaveCount(2)
     })
 })
