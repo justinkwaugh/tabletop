@@ -65,6 +65,7 @@ export type {
     TitleActionDescription
 } from './table/historyDescription.js'
 export { departurePaymentsDetail, joinDetails, ownerName } from './table/historyDescription.js'
+export { trainCount, type AwaitedDecision } from './table/awaitedDecision.js'
 export type {
     CompanyColumn,
     MarketLedge,

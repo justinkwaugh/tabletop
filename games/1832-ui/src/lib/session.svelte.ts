@@ -6,7 +6,6 @@ import {
     PassMerger,
     ProposeMerger,
     SellTakeoverShares,
-    mergedTrainDiscards,
     mergerDecision,
     mergerOptions,
     mergerTerms,
@@ -21,11 +20,8 @@ import {
     EighteenThirtyTwoTitleRules,
     PlaceRevenueToken,
     ProtectShares,
-    ProtectingPriceState,
     RedeemShare,
     ReissueShares,
-    protectionDecision,
-    declinedMarketSpaceId,
     redemptionChoices,
     reissueChoices,
     RevenueTokenPrivateIds,
@@ -37,8 +33,7 @@ import {
     type HydratedEighteenThirtyTwoState,
     type RedemptionChoice,
     type ReissueChoice,
-    type RevenueTokenChoice,
-    EighteenThirtyTwoMarket
+    type RevenueTokenChoice
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
 import { undoableStagedSelection } from '@tabletop/frontend-components'
@@ -49,6 +44,7 @@ import {
     type TitlePrivatePower
 } from '@tabletop/18xx-ui'
 import { mapState1832 } from './mapState.js'
+import { awaitedDecision1832, mergedDiscardTerms, protectionTerms } from './awaitedDecision.js'
 import { EighteenThirtyTwoMapView } from './mapView.js'
 import { EighteenThirtyTwoPresentation } from './presentation.js'
 import { PrivateOperatingPowers } from './privatePowers.js'
@@ -316,13 +312,12 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly mergedTrainDiscards = $derived.by(() => {
         const discards =
             this.myMergerDecision?.kind === 'discard'
-                ? mergedTrainDiscards(this.gameState, this.myMergerDecision.playerId)
+                ? mergedDiscardTerms(this.gameState, this.myMergerDecision.playerId)
                 : undefined
         if (!discards) return undefined
         const definitionIds = [...new Set(discards.trains.map((train) => train.definitionId))]
         return {
             ...discards,
-            limit: discards.trains.length - discards.excess,
             // Trains of one kind are interchangeable, so each kind is one choice.
             kinds: definitionIds.map((definitionId) => ({
                 definitionId,
@@ -382,6 +377,14 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly keyWestChoice = $derived(
         this.revenueTokenChoices.find((choice) => choice.kind === 'key-west')
     )
+    protected override titleAwaitedDecision(state: HydratedEighteenThirtyTwoState) {
+        return awaitedDecision1832(state, {
+            companyName: (companyId) => this.companyName(companyId),
+            companyInitials: (companyId) => this.companyInitials(companyId),
+            playerName: (playerId) => this.getPlayerName(playerId),
+            money: this.presentation.money
+        })
+    }
     // The FEC places its Key West token in Miami instead of a station (§7.5).
     override get titleStationActions() {
         const choice = this.keyWestChoice
@@ -404,26 +407,7 @@ export class EighteenThirtyTwoSession extends BaseSession {
             : []
     )
     /** The sale whose president is deciding whether to protect its price, and its terms. */
-    readonly protectionPrompt = $derived.by(() => {
-        const record = this.gameState.priceProtection
-        const decision =
-            this.gameState.machineState === ProtectingPriceState
-                ? protectionDecision(this.gameState)
-                : undefined
-        if (!record || !decision) return undefined
-        return {
-            ...decision.sale,
-            sellerPlayerId: record.sellerPlayerId,
-            presidentPlayerId: decision.playerId,
-            price: EighteenThirtyTwoMarket.companySpace(
-                this.gameState.stockMarket,
-                decision.sale.companyId
-            ).price,
-            declinedPrice: EighteenThirtyTwoMarket.space(
-                declinedMarketSpaceId(this.gameState, decision.sale)
-            ).price
-        }
-    })
+    readonly protectionPrompt = $derived(protectionTerms(this.gameState))
     readonly canDecideProtection = $derived(
         this.canChooseAction && this.validActionTypes.includes('ProtectShares')
     )

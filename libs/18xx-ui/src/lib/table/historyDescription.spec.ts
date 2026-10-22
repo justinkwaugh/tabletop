@@ -3,6 +3,7 @@ import { ActionSource } from '@tabletop/common'
 import type {
     AuctionAwardDetails,
     BuyAuctionLot,
+    DiscardTrain,
     FundTrain,
     PresidencyChange,
     ResolveAuction,
@@ -203,5 +204,22 @@ it('treats the stock round opening after an operating set as routine', () => {
     expect(historyDescription(start, historyStateFixture(), TestMarket)).toEqual({
         text: 'Started stock round',
         routine: true
+    })
+})
+
+it('names the company that discarded a train and where the train went', () => {
+    const discard: DiscardTrain = {
+        id: 'discard',
+        gameId: 'history',
+        source: ActionSource.User,
+        playerId: 'alex',
+        type: 'DiscardTrain',
+        companyId: 'R',
+        trainId: 't1',
+        metadata: { destination: 'market', nextState: 'BuyingTrains' }
+    }
+    expect(historyDescription(discard, historyStateFixture(), TestMarket)).toEqual({
+        text: 'R discarded a train',
+        detail: 'To the open market'
     })
 })

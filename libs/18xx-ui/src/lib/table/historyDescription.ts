@@ -443,6 +443,16 @@ function describeShared(
             important: true
         }
     }
+    if (isDiscardTrain(action)) {
+        assertExists(action.metadata, 'Recorded discard requires its destination')
+        return {
+            text: `${companyName(action.companyId)} discarded a train`,
+            detail:
+                action.metadata.destination === 'removed'
+                    ? 'Removed from play'
+                    : 'To the open market'
+        }
+    }
     if (isExportTrains(action)) {
         assertExists(action.metadata, 'Recorded export requires its trains')
         const definitionIds = action.metadata.trains.map((train) => train.definitionId)

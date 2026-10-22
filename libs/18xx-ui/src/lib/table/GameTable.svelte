@@ -1157,7 +1157,7 @@
                             {:else}
                                 {#if auctionTurnPlayerId}<TurnHeading
                                         {session}
-                                        playerId={auctionTurnPlayerId}
+                                        playerIds={[auctionTurnPlayerId]}
                                     />{/if}
                                 {@render actions(focusLocation, focusRoute)}
                             {/if}

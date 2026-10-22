@@ -18,6 +18,7 @@ import {
     type EighteenXXTitleRules,
     type HydratedEighteenXXState,
     type Owner,
+    type PendingPurchaseOffer,
     type Portfolio,
     type TileRotation
 } from '@tabletop/18xx'
@@ -40,6 +41,12 @@ import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
+import {
+    awaitedDecision,
+    purchaseOfferText,
+    type AwaitedDecision,
+    type AwaitedDecisionNames
+} from '../table/awaitedDecision.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { wealthHistory } from '../table/wealthHistory.js'
@@ -522,6 +529,31 @@ export class EighteenXXSession<
     /** Private powers whose rules the title applies itself, offered under Use privates. */
     protected get titlePrivatePowers(): readonly TitlePrivatePower[] {
         return []
+    }
+    awaitedDecision(state: State): AwaitedDecision | undefined {
+        return (
+            this.titleAwaitedDecision(state) ??
+            awaitedDecision(state, this.decisionNames(state), this.rules.trainRules)
+        )
+    }
+    purchaseOfferText(offer: PendingPurchaseOffer): string {
+        return purchaseOfferText(offer, this.decisionNames(this.gameState))
+    }
+    protected titleAwaitedDecision(_state: State): AwaitedDecision | undefined {
+        return undefined
+    }
+    private decisionNames(state: State): AwaitedDecisionNames {
+        return {
+            companyName: (companyId) => this.companyName(companyId),
+            ownerName: (owner) => this.ownerName(owner),
+            trainName: (trainId) => this.trainName(state, trainId),
+            money: this.presentation.money
+        }
+    }
+    private trainName(state: State, trainId: string) {
+        const train = state.trainInventory.trains.find((train) => train.id === trainId)
+        assertExists(train, `Train ${trainId} requires its inventory record`)
+        return this.trainDepot.trainDefinition(train.definitionId).name
     }
     /** A title's own placements in the station step, offered as buttons beside its stations. */
     get titleStationActions(): readonly TitleStationAction[] {
