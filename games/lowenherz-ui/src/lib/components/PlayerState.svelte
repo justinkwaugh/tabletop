@@ -374,7 +374,9 @@
                                     class="relative w-full h-full"
                                     title="{overlapCount} politics card{overlapCount === 1
                                         ? ''
-                                        : 's'}{deckHint ? `; the top one ${deckHint.toLowerCase()}` : ''}"
+                                        : 's'}{deckHint
+                                        ? `; the top one ${deckHint.toLowerCase()}`
+                                        : ''}"
                                 >
                                     <PoliticsCardView {card} faceDown />
                                 </div>
