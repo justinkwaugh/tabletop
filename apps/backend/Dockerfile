@@ -1,7 +1,7 @@
 # Run the container with `docker run -p 3000:3000 -t backend`.
 
 # Build/deps stage.
-FROM docker.io/node:22-bookworm AS builder
+FROM docker.io/node:24-trixie AS builder
 
 ENV HOST=0.0.0.0
 
@@ -30,7 +30,7 @@ COPY apps/backend/.env.prod /app/apps/backend/.env
 COPY apps/backend/dist /app/apps/backend/dist
 
 # Runtime stage.
-FROM docker.io/node:22-bookworm-slim
+FROM docker.io/node:24-trixie-slim
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0

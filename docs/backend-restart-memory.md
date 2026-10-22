@@ -41,26 +41,26 @@ validation, change schemas, or change generated JavaScript.
 The Old Prince's 63 eagerly compiled validators have identical source lengths
 and SHA-256 hashes before and after this change. Its actual logic bundle's steady
 retained heap per additional artifact URL fell from **8.65 to 5.91 MiB (32%)** on
-Node 22.23.3, matching production's Node major version, and from **6.62 to 3.86 MiB
-(42%)** on Node 24.21.0. The patch is independent of title rules and applies to every title
+Node 22.23.3 and from **6.62 to 3.86 MiB (42%)** on Node 24.21.0, production's Node
+major version. The patch is independent of title rules and applies to every title
 using this TypeBox version. Keep the patch version-pinned and recheck behavior and
 memory when upgrading TypeBox. The pruned backend Docker build context includes
 the patch before dependency installation.
 
-Reproduce the bundle measurement from the repository root with Node 22:
+Reproduce the bundle measurement from the repository root with Node 24:
 
 ```sh
 pnpm --filter @tabletop/the-old-prince run bundle
 node --expose-gc tools/deploy/scripts/measure-game-memory.mjs \
-  games/the-old-prince/bundle/index.js --max-retained-mib=7
+  games/the-old-prince/bundle/index.js --max-retained-mib=5
 ```
 
 The benchmark copies the self-contained artifact to six distinct module URLs,
 imports them without keeping caller references, and forces GC between samples.
 It excludes the first three imports from the per-version calculation to reduce
 warmup effects. It reports raw heap, external, array-buffer and RSS measurements.
-The optional 7 MiB threshold fails on the old artifact and passes on the patched
-one under Node 22. Use 5 MiB for the equivalent Node 24 check; absolute heap
+The optional 5 MiB threshold fails on the old artifact and passes on the patched
+one under Node 24. Use 7 MiB for the equivalent Node 22 check; absolute heap
 measurements are engine-version-dependent.
 RSS includes allocator reservations and must not be treated as retained heap.
 

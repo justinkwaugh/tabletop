@@ -93,7 +93,7 @@ Fresh Fish Logic 4 / UI 6, Sol Logic 6 / UI 7, and Löwenherz Logic 3 / UI 3 ado
 
 Old v1/v2 and existing numeric v3 saves keep their stored generators and remain playable with the updated runtimes. A lobby created before adoption has no private seed document; starting it generates a fresh master seed and persists its derived public seed. It has no gameplay state to migrate. Forks bypass initialization and preserve their saved cursors. Older Logic Artifacts cannot read new ChaCha20 saves, so rollback after new games start requires a forward-compatible fix, not selecting an old artifact.
 
-The crypto dependencies require Node 20.19 or newer; the production Node 22 image satisfies that floor. Deployment and mixed-publication rollout verification remain release work.
+The crypto dependencies require Node 20.19 or newer; the production Node 24 image satisfies that floor. Deployment and mixed-publication rollout verification remain release work.
 
 ## Backend-only deployment and older runtime interfaces (2026-09-06)
 
