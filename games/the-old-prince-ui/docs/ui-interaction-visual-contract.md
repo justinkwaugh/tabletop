@@ -193,11 +193,14 @@ publication and History View, and cleared before each new visible state.
 | Tranches | Companies started across tranches | Start a company, then Undo | Slots fill and closed tranches lock | Undo empties the slot | Manual |
 | Tranche keys | Opening stock round, Board view and strip | Operate the Mainline, then sell out the Shortline; later fill a tranche and step back through history | The Board chart leads with Main and Short; keys mark both until each operates or sells out, then the next tranche opens; the strip shows keys only on tranches it lists; keys follow the displayed history state | Undo restores the keys | Automated, engine (`companyTranches.spec.ts`); manual in browser |
 
-A sole Split option in the stock action bar opens automatically, excluding Pass
-from the count. Its menu stage is auto-sourced; selecting a parent starts manual
-progress. Undo skips the automatic menu and undoes committed history when no
-manual split choice remains. Split counts alongside the shared stock menus, so
-multiple legal menu options require an explicit choice.
+Split in the stock action bar opens only when pressed, even when it is the sole
+option. Pressing it starts manual progress, which Undo walks back before undoing
+committed history.
+
+Buy Hunslet is muted in the operating strip unless the player owns the Hunslet, and
+opens on Mine. A player who does not own the Hunslet sees "You don’t
+own the Hunslet" under Mine and reaches another player's Hunslet through Other
+players’.
 
 Ice Boats shows one exchange row per eligible company, not one row per ordinary
 certificate. It retains the started-company restriction, excluding Mainline,

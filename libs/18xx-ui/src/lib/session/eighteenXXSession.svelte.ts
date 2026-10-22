@@ -330,8 +330,7 @@ export class EighteenXXSession<
             this.companyAuction.clearOpening()
             this.onStockSelectionCancelled()
         },
-        () => this.privates.exchangeOffers.length > 0,
-        () => this.additionalStockMenuCount
+        () => this.privates.exchangeOffers.length > 0
     )
     #titleStockPanels?: TitleStockPanels<string>
     /** The title's panels beside Buy and Sell, registered for Undo and the stock menu. */
@@ -343,9 +342,6 @@ export class EighteenXXSession<
         this.localSelections.register(model, 'first')
         this.#titleStockPanels = model
         return model
-    }
-    get additionalStockMenuCount() {
-        return this.#titleStockPanels?.count ?? 0
     }
     readonly instructions = new StockInstructionModule(this.moduleSession)
     readonly earnings = new EarningsModule(this.moduleSession)

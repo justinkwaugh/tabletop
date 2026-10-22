@@ -74,21 +74,17 @@ export class TheOldPrinceSession extends BaseSession {
             !this.gameState.stockRound.turn.bought &&
             this.validActionTypes.includes('SplitCompany')
     )
-    override get additionalStockMenuCount() {
-        return this.canPreviewSplit &&
-            this.myPlayer &&
-            this.splitModel.branches().length &&
+    get splitMenuAvailable() {
+        return (
+            this.canPreviewSplit &&
+            !!this.myPlayer &&
+            this.splitModel.branches().length > 0 &&
             this.splitModel.parents(this.myPlayer.id).some((parent) => !parent.reason)
-            ? 1
-            : 0
+        )
     }
-    splitSelection = $derived.by((): BranchSplitSelection => {
-        if (!this.canPreviewSplit) return {}
-        if (this.splitStages.action) return this.splitStages
-        return this.additionalStockMenuCount === 1 && !this.stock.availableMenus.length
-            ? { action: { value: true, source: 'auto' as const } }
-            : {}
-    })
+    splitSelection = $derived.by((): BranchSplitSelection =>
+        this.canPreviewSplit ? this.splitStages : {}
+    )
     splitInProgress = $derived(!!this.splitSelection.action)
     splitPreview = $derived.by(() => {
         const request = this.myPlayer

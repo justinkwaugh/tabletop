@@ -58,7 +58,7 @@
 </script>
 
 <GameTable
-    additionalStockActions={session.additionalStockMenuCount
+    additionalStockActions={session.splitMenuAvailable
         ? [
               {
                   label: 'Split',

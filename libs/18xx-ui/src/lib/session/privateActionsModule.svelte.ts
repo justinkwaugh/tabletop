@@ -165,6 +165,10 @@ export class PrivateActionsModule implements LocalSelection {
     choosePowers() {
         this.chooseSource('powers')
     }
+    // Buying from another player is rare, so purchases open on the player's own privates.
+    openPurchases() {
+        this.chooseSource('mine')
+    }
     choosePurchaseSource(source: 'mine' | 'other') {
         this.chooseSource(source)
     }

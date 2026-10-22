@@ -1650,9 +1650,13 @@ the existing Players/History/Chat tab controls, preserving their normal behavior
 Modified shortcuts, repeated keys, and typing within inputs, editors, or dialogs
 are ignored.
 
-Private purchases open from Buy privates into a staged source choice. Your privates
-is the default when eligible; Other players is available only with eligible offers.
-Cards show private income and the legal purchase range. Selecting one opens price
+Private purchases open from Buy privates into a staged source choice. When only
+other players' privates are eligible, the Buy privates entry is muted (text only, in
+the later-step colour) but stays enabled; it turns solid while open. They always
+open on Mine, because buying from another player is rare; the Mine / Other playersâ€™
+toggle appears whenever another player has an eligible private. With none of the
+player's own privates eligible, Mine stays selected over a dashed empty box (title
+text through `privatePurchaseEmpty`, default "You have no privates to sell"). Cards show private income and the legal purchase range. Selecting one opens price
 entry and Buy (same controller) or Offer (seller approval). Sidebar/header Undo
 clears the asset selection first, then the source stage; canonical purchases retain
 ordinary undo. During the picker, unrelated operating prompts and private powers
@@ -2310,20 +2314,17 @@ a 140px dark strip on the right, with a left border spanning the action contentâ
 height beneath the persistent action strip. The controls center in the remaining
 space. Narrower panes and non-paned layouts retain the summary below the controls.
 
-When exactly one legal stock action menu is available apart from Pass/End turn,
-it opens automatically. The count includes private exchanges and title-specific
-menus such as TOP Split. This is an auto-sourced transient choice: it commits
-nothing, preserves Pass, and Undo proceeds to committed history unless a manual
-selection remains. Manual menus take precedence; hidden selections and unavailable
-interaction suppress automatic menus. Clearing selections recomputes the sole
-choice from current legality without an effect.
+Stock action menus open only when the player chooses one, even when a single legal
+menu is available apart from Pass/End turn: a lone option is rarely what the player
+wants. After a buy or sale, the same menu reopens as an auto-sourced continuation
+while it still has legal choices; Undo skips it.
 
 This uses the variation catalog's stock-trading distinctions: title-owned buyer,
 start, exchange, and split legality remain authoritative. It imposes no stock
 sequence on titles without ordinary stock rounds. TOP and 1889 adopt this through
 UI-only publication; Logic and the host bridge are unchanged, so mixed host/UI
-versions remain compatible. Automated module coverage checks sole-option opening,
-title-option counting, manual precedence, disabled interaction, Pass, and Undo.
+versions remain compatible. Automated module coverage checks that a sole menu stays
+closed, manual choice, Pass, and Undo.
 
 Private exchange lists group equivalent certificates into one option per target
 company, retaining a legal certificate identity for the submitted action. Different
