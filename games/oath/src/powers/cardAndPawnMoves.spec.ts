@@ -569,6 +569,38 @@ describe('Order', () => {
         expect(HydratedCampaign.supplyCostFor(s, 'ruler')).toBe(0)
     })
 
+    it('Knights Errant, Hunting Party — from revision 27 the free Campaign names the card that granted it', () => {
+        const contested = { warbandsBySite: { c1: { other: 1 }, p1: { other: 3 } }, oathRevision: OathRevision.EngineFixes23 }
+        const s = rulerTable([KNIGHTS, INN], [], {}, contested)
+        new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN, modifiers: [modifierUse(KNIGHTS)] })).apply(s)
+        expect(s.getPlayerState('ruler')).toMatchObject({ freeCampaignAtAction: 1, freeCampaignGrantedBy: KNIGHTS })
+        s.actionCount = 1
+        expect(campaign(s).metadata).toMatchObject({ supplySpent: 0, freeActionOf: KNIGHTS })
+        expect(s.getPlayerState('ruler').freeCampaignGrantedBy).toBeUndefined()
+
+        const h = rulerTable([HUNTING], [], {}, { ...contested, discardPileCounts: { cradle: 2, provinces: 2, hinterland: 2 } })
+        h.requireVault().worldDeck = [INN, FILLER]
+        new HydratedSearch(
+            buildAction(Search, { playerId: 'ruler', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(HUNTING)] })
+        ).apply(h)
+        h.actionCount = 1
+        new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'ruler', keptCardId: INN, discardOrder: [FILLER], play: SearchPlay.Site })).apply(h)
+        expect(h.getPlayerState('ruler')).toMatchObject({ freeCampaignAtAction: 2, freeCampaignGrantedBy: HUNTING })
+        h.actionCount = 2
+        expect(campaign(h).metadata).toMatchObject({ supplySpent: 0, freeActionOf: HUNTING })
+    })
+
+    it('Knights Errant — before revision 27 the grant names no card and the Campaign records none, as stored games have it', () => {
+        const s = rulerTable([KNIGHTS, INN], [], {}, { warbandsBySite: { c1: { other: 1 }, p1: { other: 3 } }, oathRevision: OathRevision.EngineFixes22 })
+        new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN, modifiers: [modifierUse(KNIGHTS)] })).apply(s)
+        expect(s.getPlayerState('ruler').freeCampaignAtAction).toBe(1)
+        expect(s.getPlayerState('ruler')).not.toHaveProperty('freeCampaignGrantedBy')
+        s.actionCount = 1
+        const a = campaign(s)
+        expect(a.metadata?.supplySpent).toBe(0)
+        expect(a.metadata?.freeActionOf).toBeUndefined()
+    })
+
     it('Palanquin — carries you and a player at your site to a faceup site, free', () => {
         const s = rulerTable([PALANQUIN])
         actionPowerUse('ruler', PALANQUIN, [player('other'), site('p1')]).apply(s)

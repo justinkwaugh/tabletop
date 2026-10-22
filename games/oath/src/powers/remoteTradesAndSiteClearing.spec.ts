@@ -92,6 +92,38 @@ describe('Second Wind — a free Travel, then a free Campaign', () => {
     })
 })
 
+describe('Second Wind — from revision 27 its free Travel and Campaign name it', () => {
+    it('in its own turn, the Travel and the Campaign after it each record Second Wind', () => {
+        const s = board([], [SECOND_WIND], { ruler: { favor: 4, secrets: 3 }, other: { siteId: 'c2' } }, { oathRevision: OathRevision.EngineFixes23, warbandsBySite: { c1: { other: 1 }, c2: { ruler: 2 }, p1: { other: 3 } } })
+        new HydratedCampaign(buildAction(Campaign, {
+            playerId: 'ruler', defender: { kind: 'player', playerId: 'other' },
+            targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }], attackDice: 4,
+            plans: [battlePlanUse(SECOND_WIND)]
+        })).apply(s)
+        ongoingCampaign(s).swords = 5
+        ongoingCampaign(s).defense = 0
+        new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId: 'ruler', sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })).apply(s)
+        defendingSideChooses(s)
+        new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'ruler', placements: [], burnFavor: false })).apply(s)
+        const me = s.getPlayerState('ruler')
+        expect(me).toMatchObject({ freeTravelGrantedBy: SECOND_WIND, freeCampaignGrantedBy: SECOND_WIND })
+        s.actionCount += 1
+        const travel = new HydratedTravel(buildAction(Travel, { playerId: 'ruler', siteId: 'c2' }))
+        travel.apply(s)
+        expect(travel.metadata).toMatchObject({ supplySpent: 0, freeActionOf: SECOND_WIND })
+        expect(me.freeTravelGrantedBy).toBeUndefined()
+        expect(me.freeCampaignGrantedBy).toBe(SECOND_WIND)
+        s.actionCount += 1
+        const campaign = new HydratedCampaign(buildAction(Campaign, {
+            playerId: 'ruler', defender: { kind: 'player', playerId: 'other' },
+            targets: [{ kind: CampaignTargetKind.PawnAndFavor }], attackDice: 2
+        }))
+        campaign.apply(s)
+        expect(campaign.metadata).toMatchObject({ supplySpent: 0, freeActionOf: SECOND_WIND })
+        expect(me.freeCampaignGrantedBy).toBeUndefined()
+    })
+})
+
 describe('Dream Thief — two facedown advisers change boards', () => {
     it('swaps across boards, refuses the same card twice, and a faceup adviser is no option', () => {
         const s = board([DREAM_THIEF], [])

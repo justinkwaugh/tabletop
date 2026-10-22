@@ -157,6 +157,21 @@ describe('Wild Allies and Captains — a Campaign from another site', () => {
         expect(attackingSiteOf(s, 'att')).toBe('c1')
     })
 
+    it('from revision 27 the Campaign names the card that granted it: Captains, Wild Allies', () => {
+        const atRevision = { oathRevision: OathRevision.EngineFixes23 }
+        const s = board([CAPTAINS], {}, { ...atRevision, warbandsBySite: { c1: { att: 1, def: 2 }, c2: { att: 2, def: 1 }, p1: { def: 3 } } })
+        actionPowerUse('att', CAPTAINS, [site('c2')]).apply(s)
+        expect(s.getPlayerState('att').freeCampaignGrantedBy).toBe(CAPTAINS)
+        s.actionCount += 1
+        expect(campaign(s, { targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }], attackDice: 6 }).metadata).toMatchObject({ supplySpent: 0, freeActionOf: CAPTAINS })
+        expect(s.getPlayerState('att').freeCampaignGrantedBy).toBeUndefined()
+
+        const w = board([WILD_ALLIES], {}, atRevision)
+        actionPowerUse('att', WILD_ALLIES, [site('p1')]).apply(w)
+        w.actionCount += 1
+        expect(campaign(w, { targets: [{ kind: CampaignTargetKind.Site, siteId: 'p1' }] }).metadata).toMatchObject({ supplySpent: 0, freeActionOf: WILD_ALLIES })
+    })
+
     it("R-5.5.5 — a loss order naming another player's warbands at the Wild Allies site is refused", () => {
         const s = board([WILD_ALLIES])
         actionPowerUse('att', WILD_ALLIES, [site('p1')]).apply(s)

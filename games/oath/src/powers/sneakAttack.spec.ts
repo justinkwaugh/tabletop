@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { machineContext, buildAction } from '../testing/actions.js'
 import { assertExists, ActionSource, Color, type GameAction } from '@tabletop/common'
-import { HydratedCampaign, Campaign } from '../actions/campaign.js'
+import { HydratedCampaign, Campaign, isCampaign } from '../actions/campaign.js'
 import { HydratedCampaignSacrifice, isCampaignSacrifice, CampaignSacrifice } from '../actions/campaignSacrifice.js'
 import { HydratedCampaignResolveVictory, CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
 import { HydratedAnswerQuestion } from '../actions/answerQuestion.js'
@@ -203,6 +203,18 @@ describe('Sneak Attack — "spending no Supply"', () => {
         expect(t.state.campaign?.attackerPlayerId).toBe(Y)
         expect(t.player(Y)).toMatchObject({ supply: 0, supplySpentThisTurn: 0 })
         expect(t.player(X)).toMatchObject({ supply: before.supply, supplySpentThisTurn: before.supplySpentThisTurn })
+    })
+
+    it('from revision 27 the Sneak Attack’s Campaign is recorded as one; before it, nothing is', () => {
+        const t = new Table(board({}, { oathRevision: OathRevision.EngineFixes23 })).xLosesToY()
+        t.campaign(Y, X, [PAWN], 0)
+        const sneak = t.processed.find(isCampaign)
+        expect(sneak?.metadata).toMatchObject({ supplySpent: 0, sneakAttack: true })
+        expect(sneak?.metadata?.freeActionOf).toBeUndefined()
+
+        const before = new Table(board({}, { oathRevision: OathRevision.EngineFixes22 })).xLosesToY()
+        before.campaign(Y, X, [PAWN], 0)
+        expect(before.processed.find(isCampaign)?.metadata).not.toHaveProperty('sneakAttack')
     })
 
     it('only the Sneak Attack is free: the same player’s ordinary Campaign still costs R-5.5.1’s two', () => {

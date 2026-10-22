@@ -10,7 +10,7 @@ import {
 } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
 import { knownDraw } from '../util/knowledge.js'
-import { SECOND_WIND_ID, nextActionIndex } from '../util/freeActions.js'
+import { SECOND_WIND_ID, grantFreeCampaign, grantFreeTravel } from '../util/freeActions.js'
 import {
     registerBattlePlan,
     registerEffect,
@@ -40,10 +40,9 @@ registerBattlePlan(SECOND_WIND, powerIndexOf(SECOND_WIND, PowerTiming.BattlePlan
     hooks: {
         onOutcome: (ctx, victorious) => {
             if (!victorious) return undefined
-            const me = ctx.state.getPlayerState(ctx.playerId)
             // A free Travel taken at that action moves the Campaign's along by one.
-            me.freeTravelAtAction = nextActionIndex(ctx.state)
-            me.freeCampaignAtAction = nextActionIndex(ctx.state)
+            grantFreeTravel(ctx.state, ctx.playerId, SECOND_WIND)
+            grantFreeCampaign(ctx.state, ctx.playerId, SECOND_WIND)
             return 'Second Wind: the next Travel, and then a Campaign, cost no Supply'
         }
     }
