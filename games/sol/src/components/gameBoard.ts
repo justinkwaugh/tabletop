@@ -770,24 +770,30 @@ export class HydratedSolGameBoard
         return false
     }
 
-    // Outward neighbours of a tower's first cell that hold the player's sundivers and have an
-    // outward neighbour of their own holding a third
     public transmitTowerSecondCells(
+        playerId: string,
+        firstCoords: OffsetCoordinates
+    ): OffsetCoordinates[] {
+        return this.outwardCellsWithSundivers(playerId, firstCoords).filter(
+            (secondCoords) => this.transmitTowerThirdCells(playerId, secondCoords).length > 0
+        )
+    }
+
+    public transmitTowerThirdCells(
+        playerId: string,
+        secondCoords: OffsetCoordinates
+    ): OffsetCoordinates[] {
+        return this.outwardCellsWithSundivers(playerId, secondCoords)
+    }
+
+    private outwardCellsWithSundivers(
         playerId: string,
         coords: OffsetCoordinates
     ): OffsetCoordinates[] {
         return this.graph
             .neighborsAt(coords, Direction.Out)
             .map((neighbor) => neighbor.coords)
-            .filter(
-                (secondCoords) =>
-                    this.sundiversForPlayerAt(playerId, secondCoords).length > 0 &&
-                    this.graph
-                        .neighborsAt(secondCoords, Direction.Out)
-                        .some(
-                            (third) => this.sundiversForPlayerAt(playerId, third.coords).length > 0
-                        )
-            )
+            .filter((outward) => this.sundiversForPlayerAt(playerId, outward).length > 0)
     }
 
     hasStationInRing(playerId: string, ring: Ring): boolean {

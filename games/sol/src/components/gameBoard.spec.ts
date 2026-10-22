@@ -1,5 +1,6 @@
 import { Direction, Ring } from '../utils/solGraph.js'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
 import { SolarGate } from './solarGate.js'
 import { StationType } from './stations.js'
@@ -280,7 +281,8 @@ describe('Sol Game Board Tests', () => {
                     !board
                         .neighborsAt(deadEnd, Direction.Out)
                         .some((cell) => cell.coords.col === coords.col)
-            )!
+            )
+        assertExists(third, 'Expected an outward cell beyond only the complete second cell')
 
         let nextId = 0
         for (const coords of [source, deadEnd, complete, third]) {
