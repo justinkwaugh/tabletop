@@ -20,6 +20,7 @@ import {
 } from './registry.js'
 import { giveFavor, takeFavorFromPlayer, usableFavor } from '../util/favor.js'
 import {
+    denizensToDiscardAtSites,
     discardDenizensAtSites,
     faceupSitesInYourRegion,
     siteOfPlayedCard,
@@ -307,6 +308,18 @@ registerModifier(CROP_ROTATION, powerIndexOf(CROP_ROTATION, PowerTiming.Modifier
 //  capacity. Discard all other denizens at this site. This site's capacity is now 1." Site, locked.
 registerEffect(SALT_THE_EARTH, powerIndexOf(SALT_THE_EARTH, PowerTiming.WhenPlayed), {
     choices: [],
+    // Before its play the card is at no site: the play names the one it goes to.
+    mapLeaving: (ctx) => {
+        const siteId = ctx.mapChanges?.siteId
+        assertExists(siteId, 'Salt the Earth is only played to a site')
+        return denizensToDiscardAtSites(
+            ctx.state,
+            ctx.playerId,
+            [siteId],
+            (id) => id !== SALT_THE_EARTH,
+            ctx.mapChanges
+        )
+    },
     resolve: (ctx) => {
         // "This site": where it was played, which the People's Favor or New Growth may make another site.
         const siteId = siteOfPlayedCard(ctx.state, ctx.playerId, SALT_THE_EARTH)

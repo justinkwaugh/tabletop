@@ -405,6 +405,28 @@ describe('Land Warden — the second play is picked on the cards', () => {
             expect(sent).toHaveBeenCalledWith(expect.objectContaining({ play: SearchPlay.Site, secondPlay: { cardId: RIOTS, play: SearchPlay.Site } }))
             expect(engineRefusal(session, sent)).toBeUndefined()
         })
+
+        it("from revision 26 a kept Dazzle's discards break the tie, faceup or at the site, so those placements pair with Riots and facedown does not", async () => {
+            const DAZZLE = 'denizen.arcane.dazzle'
+            // Hearth 2 against Discord 2 with Riots; Dazzle discards the Wayside Inn in the Cradle when it is played faceup.
+            const { session, draft, sent } = await searchingWith(
+                [DAZZLE, RIOTS, HELD[0]],
+                [],
+                { ...onTheMob({ c2: [HELD[1]], p1: [MERCENARIES], h1: [STORYTELLER] }), oathRevision: OathRevision.EngineFixes22 }
+            )
+            draft.keep(DAZZLE)
+            draft.setSecondPlay(riotsSecond(draft)?.key)
+            expect(draft.second?.cardId).toBe(RIOTS)
+            expect(draft.placements.map(({ play, faceUp }) => ({ play, faceUp }))).toEqual([
+                { play: SearchPlay.Site, faceUp: undefined },
+                { play: SearchPlay.Adviser, faceUp: true }
+            ])
+            await draft.choosePlacement({ play: SearchPlay.Adviser, faceUp: true })
+            expect(sent).toHaveBeenCalledWith(
+                expect.objectContaining({ play: SearchPlay.Adviser, faceUp: true, secondPlay: { cardId: RIOTS, play: SearchPlay.Site } })
+            )
+            expect(engineRefusal(session, sent)).toBeUndefined()
+        })
     })
 })
 

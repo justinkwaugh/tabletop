@@ -126,7 +126,7 @@ export class SearchDraft implements PanelDraft {
         if (!cardId || !playerId) return []
         const options = PLACEMENTS.flatMap((option) => {
             const { blockedBecause, ...placed } = this.placementOption(playerId, cardId, option)
-            const refused = blockedBecause ?? this.reasonSecondCannotPair(playerId, option.play)
+            const refused = blockedBecause ?? this.reasonSecondCannotPair(playerId, option)
             return refused === undefined ? [placed] : []
         })
         assert(options.length > 0, 'R-5.1.4 — a kept card can always be discarded')
@@ -622,34 +622,36 @@ export class SearchDraft implements PanelDraft {
         return PLACEMENTS.some(
             (option) =>
                 this.placementOption(playerId, kept, option).blockedBecause === undefined &&
-                this.reasonSecondCannotFollow(playerId, kept, option.play, second) === undefined
+                this.reasonSecondCannotFollow(playerId, kept, option, second) === undefined
         )
     }
 
-    private reasonSecondCannotPair(playerId: string, firstPlay: SearchPlay): string | undefined {
+    private reasonSecondCannotPair(playerId: string, first: SearchPlacement): string | undefined {
         const second = this.second
         const kept = this.kept
         return second && kept
-            ? this.reasonSecondCannotFollow(playerId, kept, firstPlay, second)
+            ? this.reasonSecondCannotFollow(playerId, kept, first, second)
             : undefined
     }
 
     // Land Warden — the second card as the engine judges it after the kept card's play: its When Played
-    // power counts the map that play leaves (Riots).
+    // power counts the map that play leaves (Riots), and the kept card's own When Played power when it is
+    // played faceup.
     private reasonSecondCannotFollow(
         playerId: string,
         kept: string,
-        firstPlay: SearchPlay,
+        first: SearchPlacement,
         second: SearchSecondPlay
     ): string | undefined {
         const state = this.session.gameState
         // R-5.1.4.I — the kept card may go to another site, which leaves your site's room to the second card.
-        const keptTo = firstPlay === SearchPlay.Site ? this.toSite : undefined
+        const keptTo = first.play === SearchPlay.Site ? this.toSite : undefined
         return (
-            reasonCannotPairSecondPlay(state, playerId, firstPlay, second, keptTo) ??
+            reasonCannotPairSecondPlay(state, playerId, first.play, second, keptTo) ??
             reasonCannotPlaySecondCard(state, playerId, kept, second, {
-                play: firstPlay,
-                discardFirstCardId: firstPlay === SearchPlay.Site ? this.discardFirst : undefined,
+                play: first.play,
+                faceUp: first.faceUp,
+                discardFirstCardId: first.play === SearchPlay.Site ? this.discardFirst : undefined,
                 toSiteId: keptTo
             })
         )

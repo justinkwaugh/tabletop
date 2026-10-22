@@ -341,6 +341,131 @@ describe('Discord', () => {
                 })
             })
 
+            // Riots' Q&A counts the cards at all sites when it resolves; played second it resolves after the kept card's
+            // own When Played power, which may discard or move cards off the map. The second card names no suit
+            // (docs/known-deviations.md), so a tie on that map refuses it and a lead on that map lets it go.
+            describe("Land Warden from revision 26: Riots played second counts the map after the kept card's When Played power", () => {
+                const DAZZLE = 'denizen.arcane.dazzle'
+                const ROAR = 'denizen.beast.threatening-roar'
+                const SALT = 'denizen.discord.salt-the-earth'
+                const PILGRIMAGE = 'denizen.nomad.pilgrimage'
+                const before = OathRevision.EngineFixes21
+                const fixed = OathRevision.EngineFixes22
+                const keptThenRiots = (kept: string, keptPlay: Record<string, unknown> = {}, riotsPlay: Record<string, unknown> = {}) => ({
+                    keptCardId: kept,
+                    discardOrder: [FILLER],
+                    play: SearchPlay.Site,
+                    ...keptPlay,
+                    secondPlay: { cardId: RIOTS, play: SearchPlay.Site, ...riotsPlay }
+                })
+                /** The ruler holds Land Warden and has searched with it, drawing the kept card, Riots and a filler. */
+                const warden = (revision: OathRevision, kept: string, denizens: Record<string, string[]>) => {
+                    const s = rulerTable([], [LAND_WARDEN], {}, { ...mob, oathRevision: revision, denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...denizens } })
+                    s.getPlayerState('ruler').handIds = []
+                    s.requireVault().worldDeck = [kept, RIOTS, FILLER]
+                    new HydratedSearch(buildAction(Search, { playerId: 'ruler', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(LAND_WARDEN)] })).apply(s)
+                    s.requireVault().dispossessed = [SCRYER]
+                    s.dispossessedCount = 1
+                    return s
+                }
+                const checkOf = (s: HydratedOathGameState, choice: ReturnType<typeof keptThenRiots>) =>
+                    HydratedSearchResolve.reasonCannotResolve(s, 'ruler', choice)
+                const resolveOf = (s: HydratedOathGameState, choice: ReturnType<typeof keptThenRiots>) => {
+                    const a = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'ruler', ...choice }))
+                    a.apply(s)
+                    return a
+                }
+                const tiedSecond = /second card: the most common suit is tied \(.+\); name one/
+                /** Hearth 3 against Discord 2 with Riots; Dazzle at c1 discards the Inn in the Cradle, which ties them 2–2. */
+                const dazzleTies = (revision: OathRevision) =>
+                    warden(revision, DAZZLE, { c2: [INN], p1: [MERCENARIES], h1: [STORYTELLER, HOMESTEADERS] })
+                /** Hearth 2 against Discord 2 with Riots; Dazzle discards the Inn in the Cradle, which leaves Discord leading. */
+                const dazzleBreaks = (revision: OathRevision) =>
+                    warden(revision, DAZZLE, { c2: [INN], p1: [MERCENARIES], h1: [STORYTELLER] })
+                const dazzleThenRiots = keptThenRiots(DAZZLE)
+
+                it('Dazzle makes a tie: the check sees it and refuses Riots second, which names no suit, so no suit is picked for the player', () => {
+                    expect(checkOf(dazzleTies(fixed), dazzleThenRiots)).toMatch(tiedSecond)
+                    expect(() => resolveOf(dazzleTies(fixed), dazzleThenRiots)).toThrow(tiedSecond)
+                })
+
+                it('Dazzle breaks a tie: the check accepts Riots second, and Riots discards the Discord cards that lead', () => {
+                    const s = dazzleBreaks(fixed)
+                    expect(checkOf(s, dazzleThenRiots)).toBeUndefined()
+                    const a = resolveOf(s, dazzleThenRiots)
+                    expect(s.denizensBySite).toEqual({ c1: [DAZZLE, RIOTS], c2: [], p1: [], h1: [STORYTELLER] })
+                    expect(a.metadata?.secondWhenPlayed).toBe('Riots: discarded 1 discord cards from the map')
+                })
+
+                it('Dazzle played as a faceup adviser discards as it does at a site; played facedown it has no When Played power', () => {
+                    const faceup = keptThenRiots(DAZZLE, { play: SearchPlay.Adviser, faceUp: true })
+                    const s = dazzleBreaks(fixed)
+                    expect(checkOf(s, faceup)).toBeUndefined()
+                    resolveOf(s, faceup)
+                    expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [], h1: [STORYTELLER] })
+                    const facedown = keptThenRiots(DAZZLE, { play: SearchPlay.Adviser, faceUp: false })
+                    expect(checkOf(dazzleBreaks(fixed), facedown)).toMatch(tiedSecond)
+                })
+
+                it('Threatening Roar discards itself with the Beast cards in the region, so neither is counted', () => {
+                    const roarThenRiots = keptThenRiots(ROAR)
+                    // Beast 2 with Roar against Discord 2 with Riots, and none of the Beast cards left once Roar resolves.
+                    const s = warden(fixed, ROAR, { c2: [WOLVES], p1: [MERCENARIES] })
+                    expect(checkOf(s, roarThenRiots)).toBeUndefined()
+                    resolveOf(s, roarThenRiots)
+                    expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [], h1: [] })
+                    // Beast 3 with Roar against Discord 2: Pied Piper, outside the region, is the one Beast card left.
+                    const t = warden(fixed, ROAR, { c2: [WOLVES], p1: [MERCENARIES], h1: [PIPER] })
+                    expect(checkOf(t, roarThenRiots)).toBeUndefined()
+                    resolveOf(t, roarThenRiots)
+                    expect(t.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [], h1: [PIPER] })
+                })
+
+                it('Salt the Earth discards the other denizens at its site; Riots, a faceup adviser, then finds Discord leading', () => {
+                    const saltThenRiots = keptThenRiots(SALT, {}, { play: SearchPlay.Adviser, faceUp: true })
+                    // Hearth 2 against Discord 2 with Salt the Earth; the Inn at c1 is discarded by Salt.
+                    const s = warden(fixed, SALT, { c1: [INN], p1: [MERCENARIES], h1: [STORYTELLER] })
+                    expect(checkOf(s, saltThenRiots)).toBeUndefined()
+                    resolveOf(s, saltThenRiots)
+                    expect(s.denizensBySite).toEqual({ c1: [SALT], c2: [], p1: [], h1: [STORYTELLER] })
+                    expect(s.getPlayerState('ruler').advisers.map((a) => a.cardId)).toContain(RIOTS)
+                })
+
+                it('Pilgrimage moves the denizens at your site to the Dispossessed before Riots counts', () => {
+                    const pilgrimageThenRiots = keptThenRiots(PILGRIMAGE, { play: SearchPlay.Adviser, faceUp: true })
+                    // Hearth 2 against Discord 2 with Riots; the Inn at c1 goes to the Dispossessed.
+                    const s = warden(fixed, PILGRIMAGE, { c1: [INN], p1: [MERCENARIES], h1: [STORYTELLER] })
+                    expect(checkOf(s, pilgrimageThenRiots)).toBeUndefined()
+                    resolveOf(s, pilgrimageThenRiots)
+                    expect(s.denizensBySite).toEqual({ c1: [RIOTS], c2: [], p1: [], h1: [STORYTELLER] })
+                })
+
+                it("the table judges the pair on the player's own view as the server does", () => {
+                    const own = (s: HydratedOathGameState) => new HydratedOathGameState(served(s, { kind: 'player', playerId: 'ruler' }))
+                    const scenes: [string, () => HydratedOathGameState, ReturnType<typeof keptThenRiots>][] = [
+                        ['dazzle ties', () => dazzleTies(fixed), dazzleThenRiots],
+                        ['dazzle breaks', () => dazzleBreaks(fixed), dazzleThenRiots],
+                        ['dazzle adviser', () => dazzleBreaks(fixed), keptThenRiots(DAZZLE, { play: SearchPlay.Adviser, faceUp: true })],
+                        ['roar', () => warden(fixed, ROAR, { c2: [WOLVES], p1: [MERCENARIES] }), keptThenRiots(ROAR)],
+                        ['salt', () => warden(fixed, SALT, { c1: [INN], p1: [MERCENARIES], h1: [STORYTELLER] }), keptThenRiots(SALT, {}, { play: SearchPlay.Adviser, faceUp: true })],
+                        ['pilgrimage', () => warden(fixed, PILGRIMAGE, { c1: [INN], p1: [MERCENARIES], h1: [STORYTELLER] }), keptThenRiots(PILGRIMAGE, { play: SearchPlay.Adviser, faceUp: true })]
+                    ]
+                    for (const [name, scene, choice] of scenes) {
+                        const s = scene()
+                        expect(checkOf(own(s), choice), name).toEqual(checkOf(s, choice))
+                    }
+                })
+
+                it('before revision 26 a game keeps the check it was recorded with: the map before the kept card resolves', () => {
+                    expect(checkOf(dazzleBreaks(before), dazzleThenRiots)).toMatch(tiedSecond)
+                    const s = dazzleTies(before)
+                    expect(checkOf(s, dazzleThenRiots)).toBeUndefined()
+                    const a = resolveOf(s, dazzleThenRiots)
+                    expect(s.denizensBySite).toEqual({ c1: [DAZZLE, RIOTS], c2: [], p1: [], h1: [STORYTELLER, HOMESTEADERS] })
+                    expect(a.metadata?.secondWhenPlayed).toBe('Riots: discarded 1 discord cards from the map')
+                })
+            })
+
             it('before revision 10 a game keeps the count it was recorded with: the card discarded first was counted', () => {
                 expect(check(innFirstLeavesDiscord(OathRevision.EngineFixes5), { ...innFirst, choices: [bank(Suit.Hearth)] })).toBeUndefined()
                 const s = innFirstLeavesDiscord(OathRevision.EngineFixes5)
