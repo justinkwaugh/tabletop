@@ -8558,20 +8558,23 @@ test.describe('the facedown play: the card beside its plays, each card in the st
         await expect(history(page)).toContainText('discarding Captains first (Crop Rotation)')
     })
 
-    test('New Growth: its sites join "Play to:", and the site picked uses it; the step grows under the card', async ({ page }) => {
+    test('New Growth: its sites lit on the map for "To which site", and the site tapped uses it; the card keeps its size', async ({ page }) => {
         await choose(page, 'facedownNewGrowth', 'To your site')
-        const playTo = grid(page).getByRole('combobox')
-        const sites = await playTo.locator('option').allTextContents()
-        expect(sites.length).toBeGreaterThan(2)
-        const card = await boxOf(playCard(page))
-        const steps = await boxOf(column(page))
-        expect(steps.y + steps.height, 'the column taller than the card').toBeGreaterThan(card.y + card.height)
+        const line = grid(page).locator('[data-play-to-line]')
+        await expect(line).toHaveText(/^To which site:\s*tap a lit site\.$/)
+        const lit = page.locator('.site').filter({ has: page.locator('.board-card.offered') })
+        expect(await lit.count()).toBeGreaterThan(4)
+        // Eight rows here drew the 280 px card at about 145 px; the line keeps the panel at its size.
+        expect(Math.abs((await cardHeight(page)) - 280)).toBeLessThanOrEqual(1)
+        expect((await boxOf(playCard(page))).height, 'drawn over 200 px').toBeGreaterThan(200)
         // The last site is in the Hinterland, which the People's Favor does not reach and New Growth does.
-        const far = sites.at(-1) ?? ''
-        await playTo.selectOption({ label: far })
+        const far = page.locator('.site[data-slot="slot.hinterland.2"]').getByRole('button').first()
+        const name = ((await far.getAttribute('aria-label')) ?? '').replace(/, play here$/, '')
+        await far.click()
+        await expect(line).toHaveText(new RegExp(`^To which site:\\s*${name}$`))
         await confirm(page, 'Play').click()
         await page.getByRole('tab', { name: 'History' }).click()
-        await expect(history(page)).toContainText(`played War Tortoise to ${far} (New Growth)`)
+        await expect(history(page)).toContainText(`played War Tortoise to ${name} (New Growth)`)
     })
 
     test('Great Herd: Tents picked to go first is no longer offered to swap with, and the Oracle is', async ({ page }) => {

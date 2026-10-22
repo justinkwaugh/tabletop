@@ -217,7 +217,7 @@ export class SearchDraft implements PanelDraft {
 
     /**
      * R-5.1.4.I, R-11.2, R-7.4 — what "To your site" gains the kept card's player, as the engine plans the play on
-     * the banks as they stand, with the card picked to go first; none while "Play to:" names another site.
+     * the banks as they stand, with the card picked to go first; none while "To which site" names another.
      */
     get siteGain(): SitePlayGain | undefined {
         const cardId = this.kept

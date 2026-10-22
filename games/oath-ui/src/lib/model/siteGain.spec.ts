@@ -145,7 +145,7 @@ describe('"To your site" shows the favor the Search\'s site play gains (R-5.1.4.
         expect(await searchLine(state, SALAD, (draft) => draft.setDiscardFirst(STORYTELLER))).toEqual(favor(1))
     })
 
-    it('"Play to:" another site (the People\'s Favor): no line', async () => {
+    it('"To which site": another site (the People\'s Favor): no line', async () => {
         const state = table({ over: { banners: testBanners({ [Banner.PeoplesFavor]: 'rhys' }) } })
         let otherSites: string[] = []
         const gain = await searchLine(state, SALAD, (draft) => {

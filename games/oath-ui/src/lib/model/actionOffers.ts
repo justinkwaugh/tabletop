@@ -32,9 +32,10 @@ export type BoardPick = {
 export type MapPick = {
     /**
      * Setup's start site, a Travel destination, where the spoils banish the defeated pawn, a site
-     * for the powers in Use a power, or the Shrouded Wood ruler's pick for another player's pawn.
+     * for the powers in Use a power, the Shrouded Wood ruler's pick for another player's pawn, or
+     * where a site play goes (`playTo`).
      */
-    kind: 'start' | 'travel' | 'banish' | 'power' | 'ruler'
+    kind: 'start' | 'travel' | 'banish' | 'power' | 'ruler' | 'playTo'
     sites: string[]
     /** More than one site to choose among; Setup's one legal site is shown, not chosen. */
     choosing: boolean
@@ -110,6 +111,11 @@ export type SiteOffer =
      * fills, and whether the panel's one ring is on it.
      */
     | { slotId: string; intent: 'power'; rows: string[]; picked: boolean }
+    /**
+     * R-5.1.4.I the People's Favor, New Growth — a site an open site play may go to: a tap there
+     * picks it, and the ring is on the site the play goes to (the seat's own until another).
+     */
+    | { slotId: string; intent: 'playTo'; picked: boolean }
 
 /** Choosing among sites dims the rest of the map: Setup only while its start site is open to a pick. */
 export function dimsTheMap(offers: readonly SiteOffer[]): boolean {

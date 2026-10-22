@@ -8,19 +8,15 @@ const components = import.meta.glob<string>('./*.svelte', {
 
 const DROPDOWN = /<select\b/g
 
-/** The dropdowns still drawn: "Play to:" in Search and the facedown play, to become site rows. */
-const DROPDOWNS_LEFT = ['./FacedownAdviserPlay.svelte', './SearchPanel.svelte']
-
 /**
- * Taps, never dropdowns: every pick is a row, a chip or a card. A power's choice has no generic
- * dropdown to fall back on; each kind it can ask has its own picker (`powerPickerReach.spec.ts`).
+ * Taps, never dropdowns: every pick is a row, a chip, a card or a lit site. A power's choice has
+ * no generic dropdown to fall back on; each kind it can ask has its own picker
+ * (`powerPickerReach.spec.ts`). "To which site" is rows or the lit map (`PlayToSites.svelte`).
  */
 describe('dropdowns', () => {
-    it('no component draws one but those listed', () => {
+    it('no component draws one', () => {
         const offending = Object.entries(components).flatMap(([path, source]) =>
-            DROPDOWNS_LEFT.includes(path)
-                ? []
-                : [...source.matchAll(DROPDOWN)].map((match) => `${path}: ${match[0]}`)
+            [...source.matchAll(DROPDOWN)].map((match) => `${path}: ${match[0]}`)
         )
         expect(offending).toEqual([])
     })

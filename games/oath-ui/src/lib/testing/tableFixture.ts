@@ -192,6 +192,7 @@ export type TableName =
     | 'searchTollByRhys'
     | 'searchConspiracy'
     | 'searchConspiracyNoTake'
+    | 'searchPlayTo'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
     | 'heldAttack'
@@ -4138,6 +4139,49 @@ function searchConspiracyTable(): PlayedTable {
     return tableOf(state)
 }
 
+/**
+ * R-5.1.4.I — a Search's kept card may go to another site: this seat holds the People's Favor at
+ * the top Cradle site, full with three cards, and the other Cradle site holds one. It drew Wolves
+ * and Tutor.
+ */
+function searchPlayToTable(): PlayedTable {
+    const [home, next] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                handIds: ['denizen.beast.wolves', 'denizen.arcane.tutor']
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.Searching,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            banners: testBanners({ [Banner.PeoplesFavor]: 'me' }),
+            denizensBySite: {
+                [home]: [
+                    'denizen.hearth.book-binders',
+                    'denizen.hearth.fabled-feast',
+                    'denizen.order.captains'
+                ],
+                [next]: ['denizen.nomad.elders']
+            }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-2.3 — the Reliquary's relics are held facedown in the vault; the Scepter's holder knows each (R-6.4-H1). */
 const RELIQUARY: Record<string, string> = {
     'reliquary.0': 'relic.ring-of-devotion',
@@ -5403,6 +5447,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     searchTollByRhys: searchTollByRhysTable,
     searchConspiracy: searchConspiracyTable,
     searchConspiracyNoTake: searchConspiracyNoTakeTable,
+    searchPlayTo: searchPlayToTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
     heldAttack: () => heldAttackTable(),
@@ -5699,6 +5744,7 @@ export function tableFacts(): {
     discardPiles: Record<Region, number>
     darkestSecret: number
     relicsOf: Record<string, string[]>
+    denizensAt: Record<string, string[]>
 } {
     const table = current()
     const state = table.gameState
@@ -5707,6 +5753,7 @@ export function tableFacts(): {
         machineState: state.machineState,
         siteOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.siteId])),
         warbandsAt: state.warbandsBySite,
+        denizensAt: state.denizensBySite,
         boardOf: Object.fromEntries(
             state.players.map((player) => [player.playerId, player.warbandsOnBoard])
         ),

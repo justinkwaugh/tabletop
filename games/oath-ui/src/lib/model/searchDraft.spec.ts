@@ -757,7 +757,7 @@ describe("R-7.3.3 — Bewitch's yes is offered once the play's own secret counts
     })
 })
 
-describe("R-5.1.4.I — Salt the Earth's \"Play to:\" sites, as the engine judges a play to another site", () => {
+describe("R-5.1.4.I — Salt the Earth's \"To which site\" rows, as the engine judges a play to another site", () => {
     const SALT = 'denizen.discord.salt-the-earth'
     const FULL = ['denizen.beast.wolves', 'denizen.hearth.storyteller', 'denizen.beast.rangers']
     const LOCKED = 'denizen.beast.vow-of-union'

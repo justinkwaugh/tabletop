@@ -86,6 +86,7 @@ import {
 import { warbandOwnerName } from './names.js'
 import { OathSelection } from './oathSelection.svelte.js'
 import { SearchDraft } from './searchDraft.js'
+import type { PlayToPick } from './playToSites.js'
 import { QuestionDraft } from './questionDraft.js'
 import { woodRegions, woodTravelCards, type WoodRegion } from './woodTravel.js'
 import { refusalWords, woodTravelRefusal } from './actionAvailability.js'
@@ -933,6 +934,40 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     /**
+     * R-5.1.4.I the People's Favor, New Growth — the open site play's "To which site": Search's
+     * kept card before its play is picked, or a facedown adviser's site play, when another site
+     * is open to it. Rows on a desktop for a few sites; otherwise the lit map (`playToOnMap`).
+     */
+    get playTo(): PlayToPick | undefined {
+        const here = this.myPlayerState?.siteId
+        if (here === undefined) return undefined
+        if (this.searchPlayToOpen) {
+            return { here, others: this.search.otherSites, picked: this.search.toSite }
+        }
+        const others = this.adviserOtherSites
+        return others.length > 0 ? { here, others, picked: this.adviserToSite } : undefined
+    }
+
+    /** A tap on a row or a lit site: the seat's own site takes back any other picked. */
+    pickPlayToSite(siteId: string): void {
+        const playTo = this.playTo
+        assertExists(playTo, 'A site is picked for an open site play')
+        const other = siteId === playTo.here ? undefined : siteId
+        if (this.searchPlayToOpen) this.search.setToSite(other)
+        else this.setAdviserToSite(other)
+    }
+
+    // R-5.1.4.I — Search's kept card may go to another site until its play is picked.
+    private get searchPlayToOpen(): boolean {
+        const search = this.search
+        return (
+            search.kept !== undefined &&
+            search.placement === undefined &&
+            search.otherSites.length > 0
+        )
+    }
+
+    /**
      * R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a denizen discarded
      * before the site play.
      */
@@ -1215,6 +1250,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 pickable: pick.pickable && slotId !== pick.picked
             }))
         }
+        const playTo = this.playTo
+        if (playTo) {
+            const ringed = playTo.picked ?? playTo.here
+            return [playTo.here, ...playTo.others].map((slotId) => ({
+                slotId,
+                intent: 'playTo',
+                picked: slotId === ringed
+            }))
+        }
         switch (this.selection.action) {
             case ActionType.Campaign:
                 return sites.map((slotId) => ({
@@ -1268,8 +1312,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
      * A choice made by tapping the map, which a phone frames while its step is open: Setup's start
      * sites, all of them until the send, so the frame and its chips hold while the discards are
      * ordered; Travel's destinations; where the spoils banish the defeated pawn; a Travel
-     * question's sites (the Shrouded Wood ruler's pick, the Brass Horse user's own); or the sites
-     * the powers in Use a power can take. Each names the pawn it moves, whose region it opens on.
+     * question's sites (the Shrouded Wood ruler's pick, the Brass Horse user's own); the sites
+     * the powers in Use a power can take; or where a site play goes. Each names the pawn it moves
+     * (a site play's, the seat's own), whose region it opens on.
      */
     get mapPick(): MapPick | undefined {
         const moverId = this.liveTurnSeatId
@@ -1301,8 +1346,14 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const powerSites = this.siteOffers.flatMap((offer) =>
             offer.intent === 'power' ? [offer.slotId] : []
         )
-        return powerSites.length > 0
-            ? { kind: 'power', sites: powerSites, choosing: true, moverId }
+        if (powerSites.length > 0) {
+            return { kind: 'power', sites: powerSites, choosing: true, moverId }
+        }
+        const playToSites = this.siteOffers.flatMap((offer) =>
+            offer.intent === 'playTo' ? [offer.slotId] : []
+        )
+        return playToSites.length > 0
+            ? { kind: 'playTo', sites: playToSites, choosing: true, moverId }
             : undefined
     }
 

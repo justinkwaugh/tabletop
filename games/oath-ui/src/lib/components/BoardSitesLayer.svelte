@@ -8,6 +8,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { dimsTheMap, type SiteOffer } from '$lib/model/actionOffers.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import { playToOnMap } from '$lib/model/playToSites.js'
     import {
         chipWords,
         pickChip,
@@ -30,13 +31,22 @@
     // power, at every width: a tap on a lit site picks it. On a phone held upright it is also the
     // Campaign's Sites menu, which `CampaignPanel` leaves out there: the map lights the sites its
     // rows would list, and a tap targets one or drops it. Elsewhere the panel's rows pick, and the
-    // map lights every site the Campaign can target.
+    // map lights every site the Campaign can target. A site play's "To which site" is lit here
+    // where `PlayToSites` draws no rows: on a phone, and past four sites.
     const layout = new PhoneLayout()
     let sitesOnMap = $derived(layout.upright)
+    let playToLit = $derived(
+        playToOnMap(
+            gameSession.siteOffers.filter((offer) => offer.intent === 'playTo').length,
+            layout.phone
+        )
+    )
     let offers = $derived(
-        sitesOnMap
-            ? gameSession.siteOffers.filter((offer) => offer.intent !== 'target' || offer.pickable)
-            : gameSession.siteOffers
+        gameSession.siteOffers.filter((offer) => {
+            if (offer.intent === 'target') return !sitesOnMap || offer.pickable
+            if (offer.intent === 'playTo') return playToLit
+            return true
+        })
     )
     let dimmed = $derived(dimsTheMap(offers))
     let badged = $derived(gameSession.powerBadgeCards)
@@ -59,6 +69,9 @@
         }
         if (offer?.intent === 'power') {
             return () => gameSession.actionPowers.pickSite(offer.slotId)
+        }
+        if (offer?.intent === 'playTo') {
+            return () => gameSession.pickPlayToSite(offer.slotId)
         }
         return undefined
     }
@@ -94,6 +107,8 @@
             case 'power':
                 // What a tap there does: the words of every row it fills.
                 return { chip: { words: offer.rows.join(' · ') }, note: '' }
+            case 'playTo':
+                return { chip: { words: 'play here' }, note: '' }
             case 'question':
                 // R-11.7 — what the traveller pays there; the card that changed it is named after it.
                 // A free move draws only what it still costs (R-7.1.4, R-11.13-H1).
@@ -139,7 +154,8 @@
         offer?.intent === 'start' ||
         offer?.intent === 'banish' ||
         offer?.intent === 'question' ||
-        offer?.intent === 'power'}
+        offer?.intent === 'power' ||
+        offer?.intent === 'playTo'}
 
     <div
         class="site"
@@ -160,7 +176,8 @@
             pointed={menuPointer.is({ kind: 'site', slotId })}
             picked={(offer?.intent === 'travel' ||
                 offer?.intent === 'start' ||
-                offer?.intent === 'power') &&
+                offer?.intent === 'power' ||
+                offer?.intent === 'playTo') &&
                 offer.picked}
             previewSlotId={slotId}
             useBadge={faceUp && cardId !== undefined && badged.includes(cardId)}
