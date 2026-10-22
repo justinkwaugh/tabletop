@@ -333,13 +333,47 @@ export function escapeRegExp(value: string): string {
 
 /** Names in a sentence: "A", "A and B", "A, B and C". */
 export function listed(names: readonly string[]): string {
-    return names.length > 1
-        ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
-        : names.join('')
+    return names.map((name, index) => `${listSeparator(index, names.length)}${name}`).join('')
+}
+
+/** What comes before the `index`th of `length` items in a sentence: "A, B and C". */
+function listSeparator(index: number, length: number): string {
+    if (index === 0) return ''
+    return index === length - 1 ? ' and ' : ', '
 }
 
 export function plural(count: number, noun: string): string {
-    return `${count} ${noun}${count === 1 ? '' : 's'}`
+    return `${count} ${pluralNoun(count, noun)}`
+}
+
+/** The noun as `count` takes it, for a count drawn apart from its noun. */
+function pluralNoun(count: number, noun: string): string {
+    return `${noun}${count === 1 ? '' : 's'}`
+}
+
+/** One count the Defense so far line words after its dice. R-10.3 — bandits are not warbands. */
+export interface DefenseCount {
+    count: number
+    noun: 'warband' | 'bandit'
+}
+
+export interface DefenseWords {
+    /** The comma that follows the dice when more than one count does: "[dice], 3 warbands and 1 bandit". */
+    comma: boolean
+    /** Each count with the words joining it to what comes before. */
+    counts: { joiner: string; count: number; noun: string }[]
+}
+
+/** R-5.5.2 — "[dice] and 6 warbands."; with the bandits named apart, "[dice], 3 warbands and 1 bandit." */
+export function defenseWords(counts: readonly DefenseCount[]): DefenseWords {
+    return {
+        comma: counts.length > 1,
+        counts: counts.map(({ count, noun }, index) => ({
+            joiner: counts.length === 1 ? 'and ' : listSeparator(index, counts.length),
+            count,
+            noun: pluralNoun(count, noun)
+        }))
+    }
 }
 
 /** R-2.8.3 — the bandits at a site, counted, with the verb agreeing: "1 bandit rules", "3 bandits rule". */

@@ -7,7 +7,11 @@ import {
     attackingForceSources,
     isAtLeastOathRevision,
     campaignTargetOptions,
+    collectDefendingBandits,
+    collectDefendingForce,
+    collectDefensePool,
     forceSitesOf,
+    forceTotal,
     reasonCannotDeclareTargets,
     targetsNeedFlip,
     usableBattlePlans,
@@ -23,6 +27,7 @@ import {
     sameLossSource
 } from '@tabletop/oath'
 import { campaignDraftOpens } from './campaignTurn.js'
+import type { DefenseCount } from './names.js'
 import { samePowerUse } from './powerUse.js'
 import { declaredPlan, listedPlans, planChoices } from './planChoices.js'
 import { emptyPicks, picksComplete, type PowerChoicePicks } from './powerChoices.js'
@@ -101,6 +106,41 @@ export function campaignNeedsFlip(
     targets: CampaignTarget[]
 ): boolean {
     return targetsNeedFlip(state, partiesOf(state, playerId, defender, targets))
+}
+
+/** The defense dice the targets give, and what defends with them, counted in words. */
+export interface DefenseSoFar {
+    dice: number
+    counts: DefenseCount[]
+}
+
+/**
+ * R-5.5.2, R-5.5.4 — the defense the declaration gives so far, as the battle will count it: the
+ * targets' dice and the defending force. The allies who answer, the defender's battle plans and a
+ * targeted Mountain's die come later. R-10.3 — bandits are not warbands: against the bandits only
+ * they are named; beside a defending player's warbands, only when some serve them (R-7.6.5).
+ */
+export function defenseSoFar(
+    state: HydratedOathGameState,
+    playerId: string,
+    defender: CampaignDefender,
+    targets: CampaignTarget[]
+): DefenseSoFar {
+    const parties = partiesOf(state, playerId, defender, targets)
+    const bandits: DefenseCount = { count: collectDefendingBandits(state, parties), noun: 'bandit' }
+    const warbands: DefenseCount = {
+        count: forceTotal(collectDefendingForce(state, parties)),
+        noun: 'warband'
+    }
+    return {
+        dice: collectDefensePool(state, parties),
+        counts:
+            defender.kind === 'bandits'
+                ? [bandits]
+                : bandits.count > 0
+                  ? [warbands, bandits]
+                  : [warbands]
+    }
 }
 
 /** A declared plan and the picks its text asks for. */
@@ -373,6 +413,14 @@ export class CampaignDraft implements PanelDraft {
         return (this.flow.value('targets') ?? []).filter((t) =>
             options.some((o) => sameTarget(o, t))
         )
+    }
+
+    /** On every step, from the targets picked; nothing before the defender is chosen. */
+    get defenseSoFar(): DefenseSoFar | undefined {
+        const playerId = this.playerId
+        const defender = this.defender
+        if (!playerId || !defender) return undefined
+        return defenseSoFar(this.session.gameState, playerId, defender, this.targets)
     }
 
     hasTarget(target: CampaignTarget): boolean {

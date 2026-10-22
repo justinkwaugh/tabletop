@@ -15,6 +15,7 @@
     import { pawnImage } from '$lib/images/pieceImages.js'
     import { bannerImage } from '$lib/images/tileImages.js'
     import AttackDiceRow from '$lib/components/AttackDiceRow.svelte'
+    import DefenseSoFar from '$lib/components/DefenseSoFar.svelte'
     import PlanRows from '$lib/components/PlanRows.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import type { CampaignStep } from '$lib/model/campaignDraft.js'
@@ -137,7 +138,17 @@
     }
     let step = $derived(draft.step)
     let refusedBecause = $derived(draft.stoppedBecause)
+    // R-5.5.2 — the defense so far, on every step. On an upright phone's Targets, whose sites are
+    // tapped on the map, it sits under the step heading; everywhere else just above Next.
+    let soFar = $derived(draft.defenseSoFar)
+    let soFarUnderHeading = $derived(layout.upright && step === 'targets')
 </script>
+
+{#snippet defenseLine()}
+    {#if soFar}
+        <div class="mb-2"><DefenseSoFar {soFar} /></div>
+    {/if}
+{/snippet}
 
 {#snippet confirm(label: string, onclick: () => void)}
     <button
@@ -191,6 +202,9 @@
                 steps={draft.steps.length}
                 level="h4"
             />
+        {/if}
+        {#if soFarUnderHeading}
+            {@render defenseLine()}
         {/if}
 
         {#if step === 'targets'}
@@ -301,6 +315,9 @@
                     {/if}
                 {/each}
             </div>
+        {/if}
+        {#if !soFarUnderHeading}
+            {@render defenseLine()}
         {/if}
 
         <!-- Next, or Declare on the last step, waits for the step's picks; the reason they are

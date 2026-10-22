@@ -14,12 +14,21 @@ import {
     PlayerStatus,
     PowerChoiceKind,
     PowerTiming,
+    Region,
     cardPowers,
+    mapSlotsFor,
     type CampaignTarget
 } from '@tabletop/oath'
-import { required, testPlayer, testState, withChancellor } from '@tabletop/oath/testing'
-import { canToggleTarget, campaignNeedsFlip, toggledTargets } from './campaignDraft.js'
+import { required, served, testPlayer, testState, withChancellor } from '@tabletop/oath/testing'
+import {
+    canToggleTarget,
+    campaignNeedsFlip,
+    defenseSoFar,
+    toggledTargets
+} from './campaignDraft.js'
 import { emptyPicks } from './powerChoices.js'
+import { powerUseKey } from './powerUse.js'
+import { campaignSteps } from '$lib/testing/campaignStepsTable.js'
 import {
     disposeSessions,
     openSessionOn,
@@ -712,5 +721,131 @@ describe('R-5.5.1.a — a Citizen attacking the Chancellor is offered nothing th
         const draft = await citizenAttacks(OathRevision.CardFixes1)
         expect(draft.planOptions.map((p) => p.cardId)).toContain(HORSE_ARCHERS)
         expect(draft.maxDice).toBe(7)
+    })
+})
+
+/**
+ * R-5.5.2, R-5.5.4 — the defense the declaration gives so far: one die per targeted site, a relic's
+ * printed dice, a banner's tokens and two for the pawn; the defender's warbands at the targeted
+ * sites, and on their board when their pawn is in the battle. Allies and the defender's own plans
+ * come later, hence "so far".
+ */
+describe('the defense so far', () => {
+    const [PLAINS, RIVER] = mapSlotsFor(Region.Provinces)
+    const ANN = { kind: 'player', playerId: 'Ann' } as const
+    const site = (siteId: string): CampaignTarget => ({ kind: CampaignTargetKind.Site, siteId })
+    const CUP: CampaignTarget = { kind: CampaignTargetKind.Relic, cardId: 'relic.cup-of-plenty' }
+    const PAWN: CampaignTarget = { kind: CampaignTargetKind.PawnAndFavor }
+    const warbands = (count: number) => ({ count, noun: 'warband' })
+    const bandits = (count: number) => ({ count, noun: 'bandit' })
+
+    /** The sheet's scene: Dana campaigns from the Plains against Ann, whose pawn is there too. */
+    async function againstAnn() {
+        const session = await openSessionOn(campaignSteps())
+        session.chooseAction(ActionType.Campaign)
+        const draft = session.campaign
+        expect(draft.defender).toEqual(ANN)
+        return { session, draft }
+    }
+
+    it('is counted from the first step and recounted as targets are added and dropped', async () => {
+        const { draft } = await againstAnn()
+        // Ann's pawn stands at Dana's site, so the three warbands on Ann's board defend already.
+        expect(draft.defenseSoFar).toEqual({ dice: 0, counts: [warbands(3)] })
+
+        draft.toggleTarget(site(PLAINS))
+        expect(draft.defenseSoFar).toEqual({ dice: 1, counts: [warbands(5)] })
+        draft.toggleTarget(site(RIVER))
+        expect(draft.defenseSoFar).toEqual({ dice: 2, counts: [warbands(6)] })
+        draft.toggleTarget(CUP)
+        expect(draft.defenseSoFar).toEqual({ dice: 4, counts: [warbands(6)] })
+        draft.toggleTarget(PAWN)
+        expect(draft.defenseSoFar).toEqual({ dice: 6, counts: [warbands(6)] })
+
+        draft.toggleTarget(site(RIVER))
+        expect(draft.defenseSoFar).toEqual({ dice: 5, counts: [warbands(5)] })
+        draft.toggleTarget(site(RIVER))
+        expect(draft.defenseSoFar).toEqual({ dice: 6, counts: [warbands(6)] })
+    })
+
+    it('holds through the dice and the battle plans, and Undo back to the targets recounts', async () => {
+        const { session, draft } = await againstAnn()
+        for (const target of [site(PLAINS), site(RIVER), CUP, PAWN]) draft.toggleTarget(target)
+        const sixAndSix = { dice: 6, counts: [warbands(6)] }
+
+        next(draft)
+        expect(draft.step).toBe('dice')
+        expect(draft.defenseSoFar).toEqual(sixAndSix)
+        draft.setAttackDice(3)
+        next(draft)
+        expect(draft.step).toBe('plans')
+        expect(draft.defenseSoFar).toEqual(sixAndSix)
+        // An attacker's plan only adds attack dice; the defender's plans come after the declaration.
+        expect(draft.planOptions).toHaveLength(2)
+        for (const power of draft.planOptions) {
+            draft.declarePlan(powerUseKey(power), true)
+            expect(draft.isPlanDeclared(powerUseKey(power))).toBe(true)
+            expect(draft.defenseSoFar).toEqual(sixAndSix)
+        }
+
+        for (let undone = 0; undone < 6 && draft.step !== 'targets'; undone++) {
+            await session.undo()
+        }
+        expect(draft.step).toBe('targets')
+        expect(draft.targets).toHaveLength(4)
+        expect(draft.defenseSoFar).toEqual(sixAndSix)
+        draft.toggleTarget(PAWN)
+        expect(draft.defenseSoFar).toEqual({ dice: 4, counts: [warbands(6)] })
+    })
+
+    it('against the bandits, they are named and warbands are not: bandits are not warbands (R-10.3)', async () => {
+        const draft = (await campaigning()).campaign
+        draft.chooseDefender(BANDITS)
+        expect(draft.defenseSoFar).toEqual({ dice: 0, counts: [bandits(0)] })
+        draft.toggleTarget(site('c1'))
+        expect(draft.targets).toEqual([site('c1')])
+        expect(draft.defenseSoFar).toEqual({ dice: 1, counts: [bandits(1)] })
+    })
+
+    it('bandits serving a defending player are named after their warbands (R-7.6.5)', async () => {
+        const state = board()
+        // Bandit Crown: the foe rules the empty sites, the attacker's c1 among them.
+        state.getPlayerState(FOE).relicIds = ['relic.map', 'relic.bandit-crown']
+        const session = await openSessionOn(tableOf(state))
+        session.chooseAction(ActionType.Campaign)
+        const draft = session.campaign
+        expect(draft.defender).toEqual(FOE_DEFENDS)
+        expect(draft.defenseSoFar).toEqual({ dice: 0, counts: [warbands(0)] })
+
+        draft.toggleTarget(site('c1'))
+        expect(draft.targets).toEqual([site('c1')])
+        expect(draft.defenseSoFar).toEqual({ dice: 1, counts: [warbands(0), bandits(1)] })
+    })
+
+    it('is nothing before the defender is chosen', async () => {
+        const draft = (await campaigning()).campaign
+        expect(draft.defender).toBeUndefined()
+        expect(draft.defenseSoFar).toBeUndefined()
+    })
+
+    it('reads the same on the attacker’s own view as on the server’s: a facedown adviser is not counted', () => {
+        const SEALING_WARD = 'denizen.arcane.sealing-ward'
+        const targets = [site(PLAINS), site(RIVER), CUP, PAWN]
+        const withWard = (faceUp: boolean) => {
+            const host = new HydratedOathGameState(campaignSteps().state)
+            host.getPlayerState('Ann').setAdvisers([{ cardId: SEALING_WARD, faceUp }])
+            const view = new HydratedOathGameState(
+                served(host, { kind: 'player', playerId: 'Dana' })
+            )
+            return [host, view].map((state) => defenseSoFar(state, 'Dana', ANN, targets))
+        }
+
+        // Sealing Ward: "Your relics add one more defense die when targeted", once it is faceup.
+        const [hiddenOnHost, hiddenInView] = withWard(false)
+        expect(hiddenInView).toEqual(hiddenOnHost)
+        expect(hiddenInView).toEqual({ dice: 6, counts: [warbands(6)] })
+        const [shownOnHost, shownInView] = withWard(true)
+        expect(shownInView).toEqual(shownOnHost)
+        expect(shownInView).toEqual({ dice: 7, counts: [warbands(6)] })
     })
 })

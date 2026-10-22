@@ -65,6 +65,63 @@ const siteChip = (page: Page, name: string) =>
     page.locator('.site', { has: sitePick(page, name) }).locator('.travel-cost')
 const siteChips = (page: Page, words: string) =>
     page.locator('.site .travel-cost').filter({ hasText: words })
+/** "Defense so far:", one unrolled blue die per defense die, then the warbands in words. */
+const defense = (page: Page) => panel(page).locator('[data-defense-so-far]')
+const defenseDice = (page: Page) => defense(page).locator('img')
+const confirmButton = (page: Page) => panel(page).getByRole('button', { name: /^(Next|Declare)$/ })
+
+async function expectDefense(page: Page, dice: number, words: string) {
+    await expect(defense(page)).toHaveCount(1)
+    await expect(defenseDice(page)).toHaveCount(dice)
+    await expect(defense(page)).toHaveText(
+        new RegExp(`^Defense so far:\\s*${dice === 0 ? 'no dice\\s+' : ''}${words}$`)
+    )
+}
+
+/** Each die is the unrolled blue die, at the attack dice's size: 32 px, 44 on a phone. */
+async function expectDefenseDiceSized(page: Page, phone: boolean) {
+    // The rolled blank face's picture, as the battle panel prints it.
+    const blank = await page.evaluate(async () => {
+        const dice = await import(new URL('/src/lib/images/diceImages.ts', location.href).href)
+        return new URL(dice.defenseFaceImage({ shields: 0, doubling: false }), location.href).href
+    })
+    const sources = await defenseDice(page).evaluateAll((images) =>
+        images.map((image) => (image instanceof HTMLImageElement ? image.src : ''))
+    )
+    expect(sources.length).toBeGreaterThan(0)
+    for (const src of sources) expect(src).toBe(blank)
+    const side = phone ? 44 : 32
+    for (const die of await defenseDice(page).all()) {
+        expect(await layoutSize(die)).toEqual({ width: side, height: side })
+    }
+}
+
+/**
+ * Where the line sits, as each drawing has it: under the step heading on an upright phone's
+ * Targets, whose sites are on the map; above Next or Declare everywhere else.
+ */
+async function expectDefensePlaced(page: Page, underHeading: boolean) {
+    const line = await drawnSize(defense(page))
+    expect(line.top).toBeGreaterThan((await drawnSize(header(page))).top)
+    expect(line.top).toBeLessThan((await drawnSize(confirmButton(page))).top)
+    if (underHeading) {
+        const firstGroup = panel(page).locator('h4', { hasText: 'Relics and banners' })
+        expect(line.top).toBeLessThan((await drawnSize(firstGroup)).top)
+    } else {
+        // Every row of the step's content comes before it.
+        const bottoms = await panel(page)
+            .locator('button[aria-pressed], button[aria-label*="ttack die"]')
+            .evaluateAll((buttons) => buttons.map((b) => b.getBoundingClientRect().bottom))
+        expect(bottoms.length).toBeGreaterThan(0)
+        for (const bottom of bottoms) expect(bottom).toBeLessThanOrEqual(line.top)
+    }
+}
+
+/** On a phone a site is picked on the map; on a desktop, in the Sites rows. */
+async function toggleSite(page: Page, name: string, phone: boolean) {
+    if (phone) await tapSite(page, name)
+    else await row(page, new RegExp(name)).click()
+}
 
 const SIZES = [
     { name: 'desktop', viewport: { width: 1280, height: 900 }, phone: false },
@@ -137,8 +194,14 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(header(page)).toContainText('1 of 3')
             await expect(header(page).locator('.rounded-full')).toHaveCount(3)
             await expect(button(page, 'Next')).toHaveCount(0)
+            // Ann's pawn is at Dana's site, so the warbands on Ann's board defend before any target.
+            await expectDefense(page, 0, 'and 3 warbands.')
 
             await pickTargets(page, phone)
+            // R-5.5.2 — 1 + 1 + 2 + 2 dice; 2 at the Plains, 1 at the River and Ann's 3.
+            await expectDefense(page, 6, 'and 6 warbands.')
+            await expectDefenseDiceSized(page, phone)
+            await expectDefensePlaced(page, phone)
             // On a phone the Sites rows are left out: the map lights the six and a tap picks one.
             await expect(panel(page).locator('h4', { hasText: 'Sites' })).toHaveCount(phone ? 0 : 1)
             await expect(rows(page, 'Sites')).toHaveCount(phone ? 0 : 6)
@@ -201,6 +264,14 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(panel(page)).toContainText('3 of 4')
             await expect(button(page, 'Next')).toBeVisible()
             await expect(button(page, 'Declare')).toHaveCount(0)
+            await expectDefense(page, 6, 'and 6 warbands.')
+            await expectDefenseDiceSized(page, phone)
+            await expectDefensePlaced(page, false)
+            // Drawn at the attack dice's size: the phone's fit leaves this step whole.
+            expect((await drawnSize(defenseDice(page).first())).height).toBeCloseTo(
+                (await drawnSize(pool(page).first())).height,
+                0
+            )
             await expectTappable(
                 [
                     ...(await panel(page)
@@ -227,6 +298,20 @@ for (const { name, viewport, phone } of SIZES) {
             expect((await layoutSize(declare)).width).toBeLessThan(
                 (await layoutSize(panel(page))).width / 4
             )
+            await expectDefense(page, 6, 'and 6 warbands.')
+            await expectDefenseDiceSized(page, phone)
+            await expectDefensePlaced(page, false)
+            // An attacker's plan adds attack dice only: toggling one leaves the defense as it was.
+            await panel(page).locator('[data-plan-rows] button[aria-pressed]').first().click()
+            await expect(
+                panel(page).locator('[data-plan-rows] button[aria-pressed="true"]')
+            ).toHaveCount(1)
+            await expectDefense(page, 6, 'and 6 warbands.')
+            await panel(page).locator('[data-plan-rows] button[aria-pressed]').first().click()
+            await expect(
+                panel(page).locator('[data-plan-rows] button[aria-pressed="true"]')
+            ).toHaveCount(0)
+            await expectDefense(page, 6, 'and 6 warbands.')
             await expectTappable(
                 [
                     ...(await panel(page).locator('[data-plan-rows] button[aria-pressed]').all()),
@@ -265,6 +350,7 @@ for (const { name, viewport, phone } of SIZES) {
                 phone ? 2 : 4
             )
             await expect(targetedSites(page)).toHaveCount(2)
+            await expectDefense(page, 6, 'and 6 warbands.')
 
             await undo(page).click()
             await expect(row(page, /Ann/)).toHaveAttribute('aria-pressed', 'false')
@@ -272,6 +358,25 @@ for (const { name, viewport, phone } of SIZES) {
                 phone ? 1 : 3
             )
             await expect(targetedSites(page)).toHaveCount(2)
+            // Ann's pawn no longer targeted: two dice fewer, and Ann's board still in the battle.
+            await expectDefense(page, 4, 'and 6 warbands.')
+        })
+
+        test('Defense so far is recounted as targets are added and dropped', async ({ page }) => {
+            await openTable(page, 'campaignSteps')
+            await campaignTile(page).click()
+            await expectDefense(page, 0, 'and 3 warbands.')
+
+            await toggleSite(page, 'Plains', phone)
+            await expectDefense(page, 1, 'and 5 warbands.')
+            await toggleSite(page, 'River', phone)
+            await expectDefense(page, 2, 'and 6 warbands.')
+            await row(page, /Cup of Plenty/).click()
+            await expectDefense(page, 4, 'and 6 warbands.')
+            await toggleSite(page, 'River', phone)
+            await expectDefense(page, 3, 'and 5 warbands.')
+            await row(page, /Cup of Plenty/).click()
+            await expectDefense(page, 1, 'and 5 warbands.')
         })
 
         test('with no battle plan to declare, the header counts two steps and Declare follows the dice', async ({

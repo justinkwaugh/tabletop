@@ -1,5 +1,56 @@
 import { describe, expect, it } from 'vitest'
-import { humanizeReason, listed, nameSeats, reasonParts, type Seats } from './names.js'
+import {
+    defenseWords,
+    humanizeReason,
+    listed,
+    nameSeats,
+    reasonParts,
+    type Seats
+} from './names.js'
+
+/** The line as read: the dice drawn as `[N dice]`, the counts as their words. */
+function readDefense(dice: number, counts: Parameters<typeof defenseWords>[0]): string {
+    const words = defenseWords(counts)
+    const tail = words.counts.map((part) => `${part.joiner}${part.count} ${part.noun}`).join('')
+    const drawn = dice === 0 ? 'no dice' : `[blue × ${dice}]`
+    return `Defense so far: ${drawn}${words.comma ? ',' : ''} ${tail}.`
+}
+
+/** R-5.5.2, R-10.3 — the Defense so far line's words after its dice. */
+describe('defenseWords — the defense so far in words', () => {
+    it('names the warbands after the dice with "and", as drawn', () => {
+        expect(readDefense(6, [{ count: 6, noun: 'warband' }])).toBe(
+            'Defense so far: [blue × 6] and 6 warbands.'
+        )
+        expect(readDefense(1, [{ count: 1, noun: 'warband' }])).toBe(
+            'Defense so far: [blue × 1] and 1 warband.'
+        )
+    })
+
+    it('says "no dice" in words when there are none', () => {
+        expect(readDefense(0, [{ count: 3, noun: 'warband' }])).toBe(
+            'Defense so far: no dice and 3 warbands.'
+        )
+    })
+
+    it('names the bandits, never as warbands (R-10.3)', () => {
+        expect(readDefense(2, [{ count: 2, noun: 'bandit' }])).toBe(
+            'Defense so far: [blue × 2] and 2 bandits.'
+        )
+        expect(
+            readDefense(3, [
+                { count: 3, noun: 'warband' },
+                { count: 1, noun: 'bandit' }
+            ])
+        ).toBe('Defense so far: [blue × 3], 3 warbands and 1 bandit.')
+        expect(
+            readDefense(0, [
+                { count: 0, noun: 'warband' },
+                { count: 3, noun: 'bandit' }
+            ])
+        ).toBe('Defense so far: no dice, 0 warbands and 3 bandits.')
+    })
+})
 
 const ALICE = 'p1'
 const BOB = 'Qx7_pL2mWb9-Rk4tYc1nZ'
