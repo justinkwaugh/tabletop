@@ -387,10 +387,15 @@ export class CampaignDraft implements PanelDraft {
         return canToggleTarget(this.session.gameState, playerId, defender, this.targets, target)
     }
 
+    /** R-5.5.2 — a target the rules refuse with what is chosen is not offered until it can be. */
+    isOffered(target: CampaignTarget): boolean {
+        return this.hasTarget(target) || this.canToggleTarget(target)
+    }
+
     // The board's site layer toggles targets too, so a tap off the Targets step is refused here.
     toggleTarget(target: CampaignTarget): void {
         if (this.step !== 'targets') return
-        if (!this.hasTarget(target) && !this.canToggleTarget(target)) return
+        if (!this.isOffered(target)) return
         this.flow.set('targets', toggledTargets(this.targets, target))
     }
 
@@ -404,6 +409,16 @@ export class CampaignDraft implements PanelDraft {
 
     isTargetedSite(siteId: string): boolean {
         return this.hasTarget({ kind: CampaignTargetKind.Site, siteId })
+    }
+
+    /** A lit site the Sites rows would list now: on a phone the map is those rows. */
+    isOfferedSite(siteId: string): boolean {
+        return this.isOffered({ kind: CampaignTargetKind.Site, siteId })
+    }
+
+    /** A tap on a lit site, where the map stands in for the Sites rows. */
+    toggleSite(siteId: string): void {
+        this.toggleTarget({ kind: CampaignTargetKind.Site, siteId })
     }
 
     // R-5.5.2 — one attack die per warband in the force.

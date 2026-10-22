@@ -8,8 +8,9 @@
 
     // Rule 1 — a card on the board is for looking: a press enlarges it and never chooses it,
     // except a lit site where the map is the menu (`onpick`): Setup's start site, a Travel
-    // destination, the spoils' banish, and on a desktop the Shrouded Wood ruler's pick. That
-    // pick is a button laid over the card, so the keyboard reaches it and Enter or Space picks.
+    // destination, the spoils' banish, on a phone a Campaign's site target, and on a desktop the
+    // Shrouded Wood ruler's pick. That pick is a button laid over the card, so the keyboard
+    // reaches it and Enter or Space picks.
     // A card whose power Use a power lists wears the "Use" badge, its own button at the foot.
     let {
         cardId,

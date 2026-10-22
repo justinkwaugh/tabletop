@@ -93,7 +93,7 @@ import {
 import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
-import { campaignSteps } from './campaignStepsTable.js'
+import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
 import {
     FOREST_PATHS,
     HOSPITALITY,
@@ -159,6 +159,8 @@ export type TableName =
     | 'campaign'
     | 'campaignSteps'
     | 'campaignStepsNoPlans'
+    | 'campaignStepsSitesOnly'
+    | 'campaignStepsRelicHunter'
     | 'observatory'
     | 'cardOpensSearch'
     | 'cardChangesSearch'
@@ -5336,6 +5338,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     campaign: campaignTable,
     campaignSteps: () => campaignSteps(),
     campaignStepsNoPlans: () => campaignSteps({ advisers: [] }),
+    campaignStepsSitesOnly: () => campaignSteps({ relicIds: [], annAtRiver: true }),
+    campaignStepsRelicHunter: () =>
+        campaignSteps({ advisers: [RELIC_HUNTER], relicIds: [], relicAtRiver: true }),
     observatory: observatoryTable,
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),

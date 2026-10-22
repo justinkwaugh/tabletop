@@ -95,7 +95,11 @@ export type SiteOffer =
           /** Its ways to pay are open in the panel, as a map pick opens them. */
           picked: boolean
       }
-    | { slotId: string; intent: 'target'; targeted: boolean }
+    /**
+     * R-5.5.2 — a site the Campaign can target; `pickable` while its Sites row is listed, that is
+     * targeted or allowed with the targets chosen.
+     */
+    | { slotId: string; intent: 'target'; targeted: boolean; pickable: boolean }
     | { slotId: string; intent: 'moveWarbands' }
     /** R-5.5.7.III — a tap on the map banishes the defeated pawn there. */
     | { slotId: string; intent: 'banish' }

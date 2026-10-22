@@ -1219,7 +1219,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                 return sites.map((slotId) => ({
                     slotId,
                     intent: 'target',
-                    targeted: this.campaign.isTargetedSite(slotId)
+                    targeted: this.campaign.isTargetedSite(slotId),
+                    pickable: this.campaign.isOfferedSite(slotId)
                 }))
             case ActionType.MoveWarbands:
                 return sites.map((slotId) => ({ slotId, intent: 'moveWarbands' }))

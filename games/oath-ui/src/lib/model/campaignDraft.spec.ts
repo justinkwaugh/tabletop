@@ -171,6 +171,33 @@ describe('the Campaign declared in three steps', () => {
         expect(draft.plans).toEqual([HUNTER_PLAN])
     })
 
+    it('a site on the map is pickable while its row would be listed, and a tap there toggles it (R-5.5.2)', async () => {
+        const session = await campaigning(3)
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        // The foe's c2 is not the attacker's site, so it waits for a target there.
+        expect(session.siteOffers).toEqual([
+            { slotId: 'c2', intent: 'target', targeted: false, pickable: false }
+        ])
+        draft.toggleSite('c2')
+        expect(draft.targets).toEqual([])
+
+        draft.toggleTarget(FOES_RELIC)
+        expect(draft.isOfferedSite('c2')).toBe(true)
+        draft.toggleSite('c2')
+        expect(draft.targets).toEqual([FOES_RELIC, SITE_C2])
+        expect(session.siteOffers).toEqual([
+            { slotId: 'c2', intent: 'target', targeted: true, pickable: true }
+        ])
+        draft.toggleSite('c2')
+        expect(draft.targets).toEqual([FOES_RELIC])
+
+        draft.toggleSite('c2')
+        next(draft)
+        draft.toggleSite('c2')
+        expect(draft.targets).toEqual([FOES_RELIC, SITE_C2])
+    })
+
     it('Undo goes back one step with that step’s picks still marked; on Targets it takes the last target', async () => {
         const session = await campaigning(3)
         const draft = session.campaign

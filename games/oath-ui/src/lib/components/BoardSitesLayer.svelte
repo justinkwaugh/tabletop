@@ -7,6 +7,7 @@
     import { cardName, siteName, slotLabel, suitName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { dimsTheMap, type SiteOffer } from '$lib/model/actionOffers.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import {
         chipWords,
         pickChip,
@@ -26,12 +27,24 @@
 
     // The lit map is Setup's start-site menu, the spoils' banish, Travel's, a Travel question's
     // (the Shrouded Wood ruler's pick, the Brass Horse's own) and the site of a power in Use a
-    // power, at every width: a tap on a lit site picks it.
-    let offers = $derived(gameSession.siteOffers)
+    // power, at every width: a tap on a lit site picks it. On a phone held upright it is also the
+    // Campaign's Sites menu, which `CampaignPanel` leaves out there: the map lights the sites its
+    // rows would list, and a tap targets one or drops it. Elsewhere the panel's rows pick, and the
+    // map lights every site the Campaign can target.
+    const layout = new PhoneLayout()
+    let sitesOnMap = $derived(layout.upright)
+    let offers = $derived(
+        sitesOnMap
+            ? gameSession.siteOffers.filter((offer) => offer.intent !== 'target' || offer.pickable)
+            : gameSession.siteOffers
+    )
     let dimmed = $derived(dimsTheMap(offers))
     let badged = $derived(gameSession.powerBadgeCards)
 
     function pickOnMap(offer: SiteOffer | undefined): (() => void) | undefined {
+        if (offer?.intent === 'target' && sitesOnMap) {
+            return () => gameSession.campaign.toggleSite(offer.slotId)
+        }
         if (offer?.intent === 'start' && offer.pickable) {
             return () => gameSession.setup.chooseSite(offer.slotId)
         }

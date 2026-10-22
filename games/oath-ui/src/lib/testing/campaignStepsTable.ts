@@ -13,6 +13,7 @@ import { tableOf, type PlayedTable } from './sessionHarness.js'
 
 export const OUTRIDERS = 'denizen.order.outriders'
 export const SCOUTS = 'denizen.order.scouts'
+export const RELIC_HUNTER = 'denizen.order.relic-hunter'
 
 const [PLAINS, RIVER] = mapSlotsFor(Region.Provinces)
 const [FERTILE_VALLEY, LUSH_COAST] = mapSlotsFor(Region.Cradle)
@@ -21,6 +22,12 @@ const [MOUNTAIN, MINE] = mapSlotsFor(Region.Hinterland)
 export interface CampaignStepsScene {
     /** Dana's advisers, whose battle plans the third step lists. */
     advisers?: string[]
+    /** Ann's relics, the Relics and banners rows. */
+    relicIds?: string[]
+    /** Where Ann stands: at the Plains with Dana, or at the River. */
+    annAtRiver?: boolean
+    /** A facedown relic at the River, which Relic Hunter's plan can target with the site. */
+    relicAtRiver?: boolean
 }
 
 /**
@@ -30,7 +37,10 @@ export interface CampaignStepsScene {
  * Plenty and the Dragonskin Drum. Dana rules Outriders and Scouts, two battle plans.
  */
 export function campaignSteps({
-    advisers = [OUTRIDERS, SCOUTS]
+    advisers = [OUTRIDERS, SCOUTS],
+    relicIds = ['relic.cup-of-plenty', 'relic.dragonskin-drum'],
+    annAtRiver = false,
+    relicAtRiver = false
 }: CampaignStepsScene = {}): PlayedTable {
     const empire = (count: number) => ({ [IMPERIAL_WARBANDS]: count })
     const state = testState(
@@ -51,12 +61,12 @@ export function campaignSteps({
                 playerId: 'Ann',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
-                siteId: PLAINS,
+                siteId: annAtRiver ? RIVER : PLAINS,
                 favor: 3,
                 secrets: 1,
                 warbandsOnBoard: empire(3),
                 warbandsInPersonalBank: empire(6),
-                relicIds: ['relic.cup-of-plenty', 'relic.dragonskin-drum']
+                relicIds
             })
         ],
         {
@@ -78,6 +88,7 @@ export function campaignSteps({
                     []
                 ])
             ),
+            relicsBySite: relicAtRiver ? { [RIVER]: [{ slotId: `${RIVER}-r1` }] } : {},
             warbandsBySite: {
                 [PLAINS]: empire(2),
                 [RIVER]: empire(1),

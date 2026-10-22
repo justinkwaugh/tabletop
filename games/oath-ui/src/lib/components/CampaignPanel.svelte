@@ -19,6 +19,7 @@
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import type { CampaignStep } from '$lib/model/campaignDraft.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { powerUseKey } from '$lib/model/powerUse.js'
     import {
@@ -92,15 +93,18 @@
     }
 
     // R-5.5.2 — a target the rules refuse with what is chosen is not listed until it can be.
-    let shownTargets = $derived(
-        draft.targetOptions.filter(
-            (target) => draft.hasTarget(target) || draft.canToggleTarget(target)
-        )
-    )
+    let shownTargets = $derived(draft.targetOptions.filter((target) => draft.isOffered(target)))
     // The headings name the kinds; the line above them names the defender. A group's rows share
-    // its widest row's width and wrap across the panel.
+    // its widest row's width and wrap across the panel. On a phone held upright the Sites rows
+    // are left out: the map lights the same sites and a tap there targets one (`BoardSitesLayer`).
+    const layout = new PhoneLayout()
     const TARGET_GROUPS = [
-        { heading: 'Sites', kinds: [CampaignTargetKind.Site], width: new ChoiceWidth() },
+        {
+            heading: 'Sites',
+            kinds: [CampaignTargetKind.Site],
+            width: new ChoiceWidth(),
+            onMapUpright: true
+        },
         {
             heading: 'Relics and banners',
             kinds: [
@@ -117,10 +121,12 @@
         }
     ]
     let targetGroups = $derived(
-        TARGET_GROUPS.map((group) => ({
-            ...group,
-            targets: shownTargets.filter((t) => group.kinds.includes(t.kind))
-        })).filter((group) => group.targets.length > 0)
+        TARGET_GROUPS.filter((group) => !(layout.upright && group.onMapUpright))
+            .map((group) => ({
+                ...group,
+                targets: shownTargets.filter((t) => group.kinds.includes(t.kind))
+            }))
+            .filter((group) => group.targets.length > 0)
     )
 
     // R-5.5.2 then R-5.5.3 — the declaration one step at a time; Undo goes back a step.
