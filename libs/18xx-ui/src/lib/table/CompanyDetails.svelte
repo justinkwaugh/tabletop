@@ -352,12 +352,15 @@
                 {:else if lastRun && onPreviewMap}
                     <button
                         class="last-run"
+                        class:withheld={lastRun.withheld}
                         disabled={session.busy || session.updatingVisibleState}
-                        aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}`}
-                        onclick={() => onPreviewMap?.(lastRun!)}
+                        aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}${lastRun.withheld ? ', withheld' : ''}`}
+                        onclick={() => onPreviewMap?.(lastRun!.run)}
                         >{money(company.lastRunRevenue)}</button
                     >
-                {:else}<strong>{money(company.lastRunRevenue)}</strong>{/if}
+                {:else}<strong class:withheld={lastRun?.withheld}
+                        >{money(company.lastRunRevenue)}</strong
+                    >{/if}
             </div>
         {/if}
     </div>
@@ -657,6 +660,9 @@
     }
     .last-run:disabled {
         cursor: default;
+    }
+    .withheld {
+        color: var(--rail-negative, #b33a32);
     }
     .prices strong {
         line-height: 16px;

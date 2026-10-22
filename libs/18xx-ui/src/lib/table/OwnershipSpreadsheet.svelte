@@ -636,13 +636,16 @@
     {cashText(money, cash)}
 {/snippet}
 
-{#snippet lastRunCell(company: Company, run: ReturnType<typeof companyLastRun>)}
+{#snippet lastRunCell(row: CompanyRow)}
+    {@const company = row.company}
     {#if company.lastRunRevenue === undefined}<span class="empty">—</span>
-    {:else if run}
+    {:else if row.lastRun}
+        {@const { run, withheld } = row.lastRun}
         <button
             class="last-run"
+            class:withheld
             disabled={session.busy || session.updatingVisibleState}
-            aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}`}
+            aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}${withheld ? ', withheld' : ''}`}
             onclick={() => onPreviewMap(run)}>{money(company.lastRunRevenue)}</button
         >
     {:else}<span class="last-run-revenue">{money(company.lastRunRevenue)}</span>{/if}
@@ -939,7 +942,7 @@
                                             ).length}/{row.stations.length}</td
                                         >
                                         <td class="company-stat-start"
-                                            >{@render lastRunCell(row.company, row.lastRun)}</td
+                                            >{@render lastRunCell(row)}</td
                                         >
                                         {#each titleColumns as column (column.id)}<td
                                                 class="company-stat-start bright-cell"
@@ -1105,8 +1108,7 @@
                                     {@render companySortHeader('row', 'Last run', 'lastRun')}
                                     {#each rows as row (row.company.id)}<td
                                             class:operating-column={row.company.id ===
-                                                operatingCompanyId}
-                                            >{@render lastRunCell(row.company, row.lastRun)}</td
+                                                operatingCompanyId}>{@render lastRunCell(row)}</td
                                         >{/each}
                                     {#each ownerStatisticKeys as _, index (index)}<td
                                             class:stat-start={index === 0}
@@ -1516,6 +1518,9 @@
     }
     .last-run:disabled {
         cursor: default;
+    }
+    .withheld {
+        color: var(--rail-negative, #b33a32);
     }
 
     thead th,
