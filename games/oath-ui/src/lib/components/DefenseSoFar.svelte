@@ -5,7 +5,7 @@
     import { defenseWords } from '$lib/model/names.js'
 
     // R-5.5.2 — "Defense so far:", one unrolled blue die per defense die, then what defends with
-    // them in words. The dice wrap at their own size rather than shrink.
+    // them in words. On a phone the dice keep to one row, shrinking when 44 px would not fit.
     let { soFar }: { soFar: DefenseSoFar } = $props()
 
     let words = $derived(defenseWords(soFar.counts))
@@ -19,6 +19,8 @@
             class="dice"
             role="img"
             aria-label="{soFar.dice} defense {soFar.dice === 1 ? 'die' : 'dice'}"
+            style:--dice={soFar.dice}
+            style:--comma-room={comma ? '0.5em' : '0px'}
         >
             {#each range(0, soFar.dice) as index (index)}
                 <!-- The comma keeps to the last die, so a wrap never leaves it alone. -->
@@ -66,10 +68,22 @@
         border-radius: 6px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
     }
+    /* On a phone the dice stay on one row: 44 px while they fit the line, and when they would not,
+       just small enough to fill it (the comma's room kept). They are not tappable, so they may go
+       under 44 px, and a second row would push the step's buttons past the panel's fit. 100cqw is
+       the width of FitBox's unscaled box and 26px the action panel's padding and border (as
+       `ActionGrid`'s ruler): the line's width at full size, so fitting never changes the dice. */
     @media (max-width: 639px) {
+        .dice {
+            flex-wrap: nowrap;
+        }
         .die {
-            width: 44px;
-            height: 44px;
+            --side: min(
+                44px,
+                (100cqw - 26px - 4px * (var(--dice) - 1) - var(--comma-room)) / var(--dice)
+            );
+            width: var(--side);
+            height: var(--side);
         }
     }
 </style>

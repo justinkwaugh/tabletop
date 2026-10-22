@@ -28,6 +28,10 @@ export interface CampaignStepsScene {
     annAtRiver?: boolean
     /** A facedown relic at the River, which Relic Hunter's plan can target with the site. */
     relicAtRiver?: boolean
+    /** Ann holds the Oathkeeper title (Law 1.14), which adds a defense die (Law 2.11). */
+    oathkeeper?: boolean
+    /** The warbands on Dana's board, which bound the attack dice (R-5.5.2). */
+    danaWarbands?: number
 }
 
 /**
@@ -40,7 +44,9 @@ export function campaignSteps({
     advisers = [OUTRIDERS, SCOUTS],
     relicIds = ['relic.cup-of-plenty', 'relic.dragonskin-drum'],
     annAtRiver = false,
-    relicAtRiver = false
+    relicAtRiver = false,
+    oathkeeper = false,
+    danaWarbands = 4
 }: CampaignStepsScene = {}): PlayedTable {
     const empire = (count: number) => ({ [IMPERIAL_WARBANDS]: count })
     const state = testState(
@@ -53,7 +59,7 @@ export function campaignSteps({
                 supply: 6,
                 favor: 4,
                 secrets: 2,
-                warbandsOnBoard: { Dana: 4 },
+                warbandsOnBoard: { Dana: danaWarbands },
                 warbandsInPersonalBank: { Dana: 6 },
                 advisers: advisers.map((cardId) => ({ cardId, faceUp: true }))
             }),
@@ -72,6 +78,7 @@ export function campaignSteps({
         {
             machineState: MachineState.ActPhase,
             chancellorPlayerId: 'Ann',
+            ...(oathkeeper ? { oathkeeperPlayerId: 'Ann' } : {}),
             oathRevision: CURRENT_OATH_REVISION,
             map: allMapSlots(),
             siteCards: {

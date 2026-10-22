@@ -161,6 +161,8 @@ export type TableName =
     | 'campaignStepsNoPlans'
     | 'campaignStepsSitesOnly'
     | 'campaignStepsRelicHunter'
+    | 'campaignStepsOathkeeper'
+    | 'campaignStepsOathkeeperSevenWarbands'
     | 'observatory'
     | 'cardOpensSearch'
     | 'cardChangesSearch'
@@ -5341,6 +5343,9 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     campaignStepsSitesOnly: () => campaignSteps({ relicIds: [], annAtRiver: true }),
     campaignStepsRelicHunter: () =>
         campaignSteps({ advisers: [RELIC_HUNTER], relicIds: [], relicAtRiver: true }),
+    campaignStepsOathkeeper: () => campaignSteps({ oathkeeper: true }),
+    campaignStepsOathkeeperSevenWarbands: () =>
+        campaignSteps({ oathkeeper: true, danaWarbands: 7 }),
     observatory: observatoryTable,
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),

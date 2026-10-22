@@ -401,6 +401,145 @@ for (const { name, viewport, phone } of SIZES) {
     })
 }
 
+/** Each defense die as laid out (unscaled), and where its row sits. */
+async function defenseDiceLaidOut(page: Page) {
+    return defenseDice(page).evaluateAll((images) =>
+        images.map((image) => {
+            const box = image.getBoundingClientRect()
+            const style = getComputedStyle(image)
+            return {
+                width: parseFloat(style.width),
+                height: parseFloat(style.height),
+                top: Math.round(box.top),
+                right: box.right
+            }
+        })
+    )
+}
+
+/**
+ * `count` square dice, each within a pixel of `side`, all on one row inside the line. Soft, so a
+ * test goes on to check what is tappable after it.
+ */
+async function expectDefenseOnOneRow(page: Page, count: number, side: number) {
+    await expect(defenseDice(page)).toHaveCount(count)
+    const dice = await defenseDiceLaidOut(page)
+    expect.soft(new Set(dice.map((die) => die.top)).size, `${count} dice on one row`).toBe(1)
+    const sizes = dice.map((die) => `${die.width.toFixed(2)} × ${die.height.toFixed(2)}`)
+    expect
+        .soft(
+            dice.map((die) => die.width === die.height && Math.abs(die.width - side) < 1),
+            `each of ${count} dice about ${side} px: ${sizes.join(', ')}`
+        )
+        .toEqual(dice.map(() => true))
+    const lineRight = await defense(page).evaluate((line) => line.getBoundingClientRect().right)
+    expect
+        .soft(Math.max(...dice.map((die) => die.right)), 'the row inside the line')
+        .toBeLessThanOrEqual(lineRight + 0.5)
+}
+
+/** From the Targets step to Battle plans: the scene's four targets, then more `sites` and `rows`. */
+async function toBattlePlans(
+    page: Page,
+    phone: boolean,
+    { sites = [], rows = [] }: { sites?: string[]; rows?: RegExp[] } = {}
+) {
+    await campaignTile(page).click()
+    await pickTargets(page, phone)
+    for (const name of sites) await toggleSite(page, name, phone)
+    for (const name of rows) {
+        await row(page, name).click()
+        await expect(row(page, name)).toHaveAttribute('aria-pressed', 'true')
+    }
+    await button(page, 'Next').click()
+    await panel(page).getByRole('button', { name: 'Add attack die 3' }).click()
+    await button(page, 'Next').click()
+    await expect(stepHeading(page)).toHaveText('Battle plans')
+}
+
+const planRows = (page: Page) => panel(page).locator('[data-plan-rows] button[aria-pressed]')
+
+/**
+ * R-5.5.2, Law 2.11 — Ann holds the Oathkeeper title, which adds a defense die: seven blue dice.
+ * On a phone, when the dice at 44 px would not fit the line, each shrinks so all stay on one row
+ * (they are not tappable); everything tappable keeps 44 px, and the step is drawn at full size.
+ */
+test.describe('more than six defense dice, on a phone', () => {
+    test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
+
+    test('Battle plans with 7 dice: one row of dice about 40 px; Declare and the plan rows drawn 44 px', async ({
+        page
+    }) => {
+        await openTable(page, 'campaignStepsOathkeeper')
+        await toBattlePlans(page, true)
+        await expectDefense(page, 7, 'and 6 warbands.')
+        await expectDefenseOnOneRow(page, 7, 40)
+        await expectTappable(
+            [...(await planRows(page).all()), button(page, 'Declare')],
+            true,
+            'drawn'
+        )
+        await expectNoPageOverflow(page)
+        await shot(page, 'campaign-step3-seven-dice', true)
+    })
+
+    test('8 dice are about 34 px and 10 dice about 26 px, still on one row', async ({ page }) => {
+        await openTable(page, 'campaignStepsOathkeeper')
+        // The Mine adds a die and its warband.
+        await toBattlePlans(page, true, { sites: ['Mine'] })
+        await expectDefense(page, 8, 'and 7 warbands.')
+        await expectDefenseOnOneRow(page, 8, 34)
+
+        // The Dragonskin Drum adds two more.
+        await openTable(page, 'campaignStepsOathkeeper')
+        await toBattlePlans(page, true, { sites: ['Mine'], rows: [/Dragonskin Drum/] })
+        await expectDefense(page, 10, 'and 7 warbands.')
+        await expectDefenseOnOneRow(page, 10, 26)
+        await expectTappable(
+            [...(await planRows(page).all()), button(page, 'Declare')],
+            true,
+            'drawn'
+        )
+    })
+
+    test('Attack dice with 7 of 7 attack dice (7 warbands on Dana’s board): the attack dice and Next drawn 44 px', async ({
+        page
+    }) => {
+        await openTable(page, 'campaignStepsOathkeeperSevenWarbands')
+        await campaignTile(page).click()
+        await pickTargets(page, true)
+        await button(page, 'Next').click()
+        await panel(page).getByRole('button', { name: 'Add attack die 7' }).click()
+        await expect(pool(page)).toHaveCount(7)
+        await expectDefense(page, 7, 'and 6 warbands.')
+        await expectDefenseOnOneRow(page, 7, 40)
+        await expectTappable(
+            [
+                ...(await panel(page)
+                    .getByRole('button', { name: /attack die \d/ })
+                    .all()),
+                button(page, 'Next')
+            ],
+            true,
+            'drawn'
+        )
+        await expectNoPageOverflow(page)
+        await shot(page, 'campaign-step2-seven-dice', true)
+    })
+})
+
+test.describe('more than six defense dice, on a desktop', () => {
+    test.use({ viewport: { width: 1280, height: 900 } })
+
+    test('Battle plans with 7 dice: seven 32 px dice on one line, as before', async ({ page }) => {
+        await openTable(page, 'campaignStepsOathkeeper')
+        await toBattlePlans(page, false)
+        await expectDefense(page, 7, 'and 6 warbands.')
+        await expectDefenseOnOneRow(page, 7, 32)
+        await shot(page, 'campaign-step3-seven-dice', false)
+    })
+})
+
 /**
  * R-5.5.2 — on a phone the Targets step leaves the sites to the map: the map lights each site the
  * Campaign can target ("target?"), a tap targets it ("✓ target") and a second tap drops it. Off
