@@ -764,22 +764,30 @@ export class HydratedSolGameBoard
                 return false
             }
 
-            const outwardNeighbors = this.graph.neighborsAt(coords, Direction.Out)
-            for (const neighbor of outwardNeighbors) {
-                if (this.sundiversForPlayerAt(playerId, neighbor.coords).length === 0) {
-                    continue
-                }
-                const thirdOuterNeighbors = this.graph.neighborsAt(neighbor.coords, Direction.Out)
-                for (const thirdNeighbor of thirdOuterNeighbors) {
-                    if (this.sundiversForPlayerAt(playerId, thirdNeighbor.coords).length > 0) {
-                        return true
-                    }
-                }
-            }
-            return false
+            return this.transmitTowerSecondCells(playerId, coords).length > 0
         }
 
         return false
+    }
+
+    // Outward neighbours of a tower's first cell that hold the player's sundivers and have an
+    // outward neighbour of their own holding a third
+    public transmitTowerSecondCells(
+        playerId: string,
+        coords: OffsetCoordinates
+    ): OffsetCoordinates[] {
+        return this.graph
+            .neighborsAt(coords, Direction.Out)
+            .map((neighbor) => neighbor.coords)
+            .filter(
+                (secondCoords) =>
+                    this.sundiversForPlayerAt(playerId, secondCoords).length > 0 &&
+                    this.graph
+                        .neighborsAt(secondCoords, Direction.Out)
+                        .some(
+                            (third) => this.sundiversForPlayerAt(playerId, third.coords).length > 0
+                        )
+            )
     }
 
     hasStationInRing(playerId: string, ring: Ring): boolean {

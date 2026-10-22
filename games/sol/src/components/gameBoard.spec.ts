@@ -1,7 +1,8 @@
-import { Ring } from '../utils/solGraph.js'
+import { Direction, Ring } from '../utils/solGraph.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { HydratedSolGameBoard } from '../components/gameBoard.js'
 import { SolarGate } from './solarGate.js'
+import { StationType } from './stations.js'
 
 interface LocalTestContext {
     board: HydratedSolGameBoard
@@ -262,5 +263,34 @@ describe('Sol Game Board Tests', () => {
 
         expect(finalChoiceData.gates.length).toEqual(1)
         expect(finalChoiceData.gates[0]).toEqual(gate5)
+    })
+
+    it<LocalTestContext>('offers only second tower cells that have a third sundiver further out', ({
+        board
+    }) => {
+        const source = { row: Ring.Radiative, col: 6 }
+        const [deadEnd, complete] = board
+            .neighborsAt(source, Direction.Out)
+            .map((cell) => cell.coords)
+        const third = board
+            .neighborsAt(complete, Direction.Out)
+            .map((cell) => cell.coords)
+            .find(
+                (coords) =>
+                    !board
+                        .neighborsAt(deadEnd, Direction.Out)
+                        .some((cell) => cell.coords.col === coords.col)
+            )!
+
+        let nextId = 0
+        for (const coords of [source, deadEnd, complete, third]) {
+            board.addSundiversToCell(
+                [{ id: `diver${nextId++}`, playerId: 'p1', reserve: false }],
+                coords
+            )
+        }
+
+        expect(board.canConvertStationAt('p1', StationType.TransmitTower, source)).toBe(true)
+        expect(board.transmitTowerSecondCells('p1', source)).toEqual([complete])
     })
 })
