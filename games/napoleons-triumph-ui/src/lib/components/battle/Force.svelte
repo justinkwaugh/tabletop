@@ -27,7 +27,6 @@
         markers?: Record<string, string>
         /** A role is told by the letter on the block alone, with no word under it. */
         lettersOnly?: boolean
-        /** Each corps under its commander's flag as a heading, the detached units after them. */
         byCorps?: boolean
         /** What is printed on a unit that has no role to show: the steps it is to lose. */
         marks?: Record<string, RoleMark | undefined>
@@ -44,7 +43,7 @@
             : []
     )
     const gap = $derived(onpick ? 'gap-x-1' : 'gap-x-0')
-    // A phone has room for two tiles side by side; a corps laid out in columns is no wider than its units, nor is its rule.
+    // Two tiles fit side by side on a phone; a wrapped row would stretch the corps, and its rule, across the panel.
     const PHONE_COLUMNS = 2
 </script>
 
@@ -112,10 +111,9 @@
     .nt-force-cluster {
         display: flex;
         flex-direction: column;
-        min-width: 130px;
     }
 
-    /* The flag heads its units, ruled off from them; as tall as a flag, so the detached units' rule lines up with the commanders'. */
+    /* Held to CommanderChip's height (a 26px flag in a 2px border) with this padding and rule, so the detached units' rule lines up with the commanders'. */
     .nt-force-head {
         display: flex;
         align-items: flex-end;

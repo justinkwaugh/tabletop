@@ -1,49 +1,41 @@
-<script lang="ts">
+<script lang="ts" generics="Choice extends CommandChoice">
     import { CommandKind } from '@tabletop/napoleons-triumph'
+    import { ATTACH, type CommandChoice } from '$lib/model/moveCommands.js'
     import SlidingSwitch from './SlidingSwitch.svelte'
-
-    const ATTACH = 'attach' as const
 
     let {
         options,
         chosen,
-        onchoose,
-        attach
+        onchoose
     }: {
-        options: readonly CommandKind[]
-        chosen?: CommandKind
-        onchoose: (kind: CommandKind) => void
-        /** Rule 9: Attach, a Corps Command that moves nothing, offered beside the moves when the unit may be attached. */
-        attach?: { chosen: boolean; onchoose: () => void }
+        options: readonly Choice[]
+        chosen?: Choice
+        onchoose: (choice: Choice) => void
     } = $props()
 
-    // Rule 9 names the commands that move pieces; they are listed in its order.
-    const COMMANDS = [
+    // Rule 9 names the commands that move pieces; they are listed in its order, then Attach, which moves nothing, when it is offered.
+    const COMMANDS: { value: CommandChoice; name: string }[] = [
         { value: CommandKind.Corps, name: 'Corps Move' },
         { value: CommandKind.Detach, name: 'Detach Move' },
-        { value: CommandKind.Unit, name: 'Unit Move' }
+        { value: CommandKind.Unit, name: 'Unit Move' },
+        { value: ATTACH, name: 'Attach' }
     ]
 
-    const choices = $derived([
-        ...COMMANDS.map((command) => ({
+    const choices = $derived(
+        COMMANDS.filter(
+            (command) => command.value !== ATTACH || options.some((option) => option === ATTACH)
+        ).map((command) => ({
             ...command,
-            unavailable: !options.includes(command.value)
-        })),
-        ...(attach ? [{ value: ATTACH, name: 'Attach' }] : [])
-    ])
+            unavailable: !options.some((option) => option === command.value)
+        }))
+    )
 
-    function choose(choice: CommandKind | typeof ATTACH) {
-        if (choice === ATTACH) {
-            attach?.onchoose()
-        } else {
-            onchoose(choice)
+    function choose(value: CommandChoice) {
+        const offered = options.find((option) => option === value)
+        if (offered !== undefined) {
+            onchoose(offered)
         }
     }
 </script>
 
-<SlidingSwitch
-    label="Command"
-    {choices}
-    chosen={attach?.chosen ? ATTACH : chosen}
-    onchoose={choose}
-/>
+<SlidingSwitch label="Command" {choices} {chosen} onchoose={choose} />

@@ -1,6 +1,5 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
-import type { CommandKind } from '@tabletop/napoleons-triumph'
-import { RideChoice } from './moveCommands.js'
+import { RideChoice, type CommandChoice } from './moveCommands.js'
 import { stagedSelection } from './stagedSelection.js'
 
 export interface PickedUp {
@@ -13,9 +12,7 @@ type CommandSelectionValues = {
     group: PickedUp
     units: string[]
     ride: RideChoice
-    command: CommandKind
-    /** Rule 9: Attach, chosen in the command switch instead of a move. */
-    attach: true
+    command: CommandChoice
     destination: string
     way: string[]
     threat: number
@@ -30,7 +27,6 @@ const commandSelection = stagedSelection<CommandSelectionValues>()([
     'units',
     'ride',
     'command',
-    'attach',
     'destination',
     'way',
     'threat',
@@ -42,10 +38,7 @@ function withoutDestination(selection: CommandSelection): CommandSelection {
 }
 
 function withoutRideOrDestination(selection: CommandSelection): CommandSelection {
-    return commandSelection.withdraw(
-        commandSelection.withdraw(withoutDestination(selection), 'attach'),
-        'ride'
-    )
+    return commandSelection.withdraw(withoutDestination(selection), 'ride')
 }
 
 export function noCommandSelection(): CommandSelection {
@@ -72,7 +65,7 @@ export function chosenUnitsOf(selection: CommandSelection): string[] | undefined
     return commandSelection.value(selection, 'units')
 }
 
-export function chosenCommandOf(selection: CommandSelection): CommandKind | undefined {
+export function chosenCommandOf(selection: CommandSelection): CommandChoice | undefined {
     return commandSelection.value(selection, 'command')
 }
 
@@ -152,17 +145,8 @@ export function rideOf(selection: CommandSelection): RideChoice {
     return commandSelection.value(selection, 'ride') ?? RideChoice.RidingOn
 }
 
-export function setCommand(selection: CommandSelection, kind: CommandKind): CommandSelection {
-    const revised = commandSelection.revise(selection, 'command', kind, 'manual')
-    return withoutDestination(commandSelection.withdraw(revised, 'attach'))
-}
-
-export function setAttach(selection: CommandSelection): CommandSelection {
-    return commandSelection.set(selection, 'attach', true, 'manual')
-}
-
-export function attachChosenOf(selection: CommandSelection): boolean {
-    return commandSelection.value(selection, 'attach') === true
+export function setCommand(selection: CommandSelection, choice: CommandChoice): CommandSelection {
+    return withoutDestination(commandSelection.revise(selection, 'command', choice, 'manual'))
 }
 
 export function setDestination(selection: CommandSelection, targetKey: string): CommandSelection {

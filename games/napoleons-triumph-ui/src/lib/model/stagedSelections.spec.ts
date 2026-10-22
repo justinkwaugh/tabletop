@@ -28,8 +28,6 @@ import {
 } from './battleSelection.js'
 import {
     addWayStep,
-    attachChosenOf,
-    setAttach,
     aimOf,
     chooseCorpsUnit,
     chooseDetachedUnit,
@@ -54,7 +52,7 @@ import {
     wayStepsOf,
     type CommandSelection
 } from './commandSelection.js'
-import { RideChoice } from './moveCommands.js'
+import { ATTACH, RideChoice } from './moveCommands.js'
 import type { ArmySetup } from './armySetup.js'
 import {
     DestinationKind,
@@ -110,13 +108,12 @@ describe('command selection', () => {
         expect(chooseDetachedUnit(one, 'F01', ['F01'])).toEqual(noCommandSelection())
     })
 
-    it('chooses Attach in place of a move, which choosing a move, other units or Undo takes back', () => {
-        const unit = chooseDetachedUnit(corpsPickedUp(), 'F01', [])
-        const attaching = setAttach(setCommand(unit, CommandKind.Unit))
-        expect(attachChosenOf(attaching)).toBe(true)
-        expect(attachChosenOf(setCommand(attaching, CommandKind.Unit))).toBe(false)
-        expect(attachChosenOf(chooseDetachedUnit(attaching, 'F02', ['F01']))).toBe(false)
-        expect(attachChosenOf(undoCommandSelection(attaching))).toBe(false)
+    it('chooses Attach as a command, in place of a move, which Undo takes back', () => {
+        const unit = setCommand(chooseDetachedUnit(corpsPickedUp(), 'F01', []), CommandKind.Unit)
+        const attaching = setCommand(unit, ATTACH)
+        expect(chosenCommandOf(attaching)).toBe(ATTACH)
+        expect(chosenCommandOf(setCommand(attaching, CommandKind.Unit))).toBe(CommandKind.Unit)
+        expect(chosenCommandOf(undoCommandSelection(attaching))).toBeUndefined()
         expect(chosenUnitsOf(undoCommandSelection(attaching))).toEqual(['F01'])
     })
 

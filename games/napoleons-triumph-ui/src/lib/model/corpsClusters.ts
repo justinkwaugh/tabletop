@@ -1,29 +1,23 @@
 import type { ProjectedUnit } from '@tabletop/napoleons-triumph'
+import { byCommander } from '$lib/utils/groupOrder.js'
 
-/** Units of one corps, or the detached units (no commander), as a battle panel lists them. */
 export interface CorpsCluster {
     commanderId?: string
     units: ProjectedUnit[]
 }
 
-/**
- * The units by corps, in the order the map stacks its groups: corps by commander, detached units
- * last. Within each, `asRead` orders the units, so the enemy's are never put in an order that tells something.
- */
+/** In the order the map stacks the groups; `asRead` orders the units within, so the enemy's tell nothing by their order. */
 export function corpsClusters(
     units: readonly ProjectedUnit[],
     asRead: (units: readonly ProjectedUnit[]) => ProjectedUnit[]
 ): CorpsCluster[] {
-    const byCommander = new Map<string | undefined, ProjectedUnit[]>()
+    const unitsByCommander = new Map<string | undefined, ProjectedUnit[]>()
     for (const unit of units) {
-        byCommander.set(unit.commanderId, [...(byCommander.get(unit.commanderId) ?? []), unit])
+        const corps = unitsByCommander.get(unit.commanderId) ?? []
+        unitsByCommander.set(unit.commanderId, [...corps, unit])
     }
-    return [...byCommander.keys()]
-        .toSorted((a, b) => {
-            if ((a === undefined) !== (b === undefined)) {
-                return a === undefined ? 1 : -1
-            }
-            return (a ?? '').localeCompare(b ?? '')
-        })
-        .map((commanderId) => ({ commanderId, units: asRead(byCommander.get(commanderId) ?? []) }))
+    return [...unitsByCommander.keys()].toSorted(byCommander).map((commanderId) => ({
+        commanderId,
+        units: asRead(unitsByCommander.get(commanderId) ?? [])
+    }))
 }
