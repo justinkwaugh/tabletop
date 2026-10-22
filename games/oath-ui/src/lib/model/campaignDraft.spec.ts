@@ -95,60 +95,238 @@ describe('choosing targets', () => {
 
 afterEach(disposeSessions)
 
-async function campaigning(warbands = 4, oathRevision?: OathRevision) {
+async function campaigning(warbands = 4, oathRevision?: OathRevision, advisers = [HUNTER]) {
     const state = board()
     if (oathRevision !== undefined) state.oathRevision = oathRevision
     state.players[0].warbandsOnBoard = { [ME]: warbands }
-    state.players[0].advisers = [{ cardId: HUNTER, faceUp: true }]
-    state.players[0].adviserIds = [HUNTER]
+    state.players[0].advisers = advisers.map((cardId) => ({ cardId, faceUp: true }))
+    state.players[0].adviserIds = advisers
     const session = await openSessionOn(tableOf(state))
     session.chooseAction(ActionType.Campaign)
     return session
+}
+
+/** Taps Next, which a test reaches only once the step's picks allow it. */
+function next(draft: { nextShown: boolean; next(): void }) {
+    expect(draft.nextShown).toBe(true)
+    draft.next()
 }
 
 const BANDITS = { kind: 'bandits' } as const
 // R-5.5.2 — a Campaign must target something at the attacker's own site first.
 const FOES_RELIC: CampaignTarget = { kind: CampaignTargetKind.Relic, cardId: 'relic.map' }
 
+/** The declaration one step at a time: Targets, Attack dice, Battle plans, then Declare. */
+describe('the Campaign declared in three steps', () => {
+    it('Next is offered once a target is picked, then once the dice are; Declare only on the last step', async () => {
+        const draft = (await campaigning(3)).campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        expect(draft.steps).toEqual(['targets', 'dice', 'plans'])
+        expect(draft.step).toBe('targets')
+        expect(draft.stepNumber).toBe(1)
+        expect(draft.nextShown).toBe(false)
+        expect(draft.declareShown).toBe(false)
+
+        draft.toggleTarget(FOES_RELIC)
+        expect(draft.nextShown).toBe(true)
+        expect(draft.declareShown).toBe(false)
+        draft.next()
+        expect(draft.step).toBe('dice')
+        expect(draft.stepNumber).toBe(2)
+        expect(draft.nextShown).toBe(false)
+
+        draft.setAttackDice(2)
+        expect(draft.nextShown).toBe(true)
+        expect(draft.declareShown).toBe(false)
+        draft.next()
+        expect(draft.step).toBe('plans')
+        expect(draft.stepNumber).toBe(3)
+        expect(draft.nextShown).toBe(false)
+        expect(draft.declareShown).toBe(true)
+    })
+
+    it('each step takes only its own picks, and the map offers targets only on the first', async () => {
+        const draft = (await campaigning(3)).campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        draft.setAttackDice(2)
+        draft.declarePlan(HUNTER_PLAN, true)
+        expect(draft.attackDice).toBeUndefined()
+        expect(draft.plans).toEqual([])
+        expect(draft.targetableSites).toEqual(['c2'])
+
+        draft.toggleTarget(FOES_RELIC)
+        next(draft)
+        expect(draft.targetableSites).toEqual([])
+        draft.toggleTarget(SITE_C2)
+        expect(draft.targets).toEqual([FOES_RELIC])
+        draft.declarePlan(HUNTER_PLAN, true)
+        expect(draft.plans).toEqual([])
+
+        draft.setAttackDice(2)
+        next(draft)
+        expect(draft.targetableSites).toEqual([])
+        draft.setAttackDice(1)
+        expect(draft.attackDice).toBe(2)
+        draft.declarePlan(HUNTER_PLAN, true)
+        expect(draft.plans).toEqual([HUNTER_PLAN])
+    })
+
+    it('Undo goes back one step with that step’s picks still marked; on Targets it takes the last target', async () => {
+        const session = await campaigning(3)
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        draft.toggleTarget(FOES_RELIC)
+        draft.toggleTarget(SITE_C2)
+        next(draft)
+        draft.setAttackDice(2)
+        next(draft)
+        draft.declarePlan(HUNTER_PLAN, true)
+
+        await session.undo()
+        expect(draft.step).toBe('dice')
+        expect(draft.attackDice).toBe(2)
+        expect(draft.plans).toEqual([])
+        await session.undo()
+        expect(draft.step).toBe('targets')
+        expect(draft.targets).toEqual([FOES_RELIC, SITE_C2])
+        expect(draft.attackDice).toBeUndefined()
+        await session.undo()
+        expect(draft.targets).toEqual([FOES_RELIC])
+        await session.undo()
+        expect(draft.targets).toEqual([])
+        expect(draft.defender).toEqual(FOE_DEFENDS)
+        await session.undo()
+        expect(draft.defender).toBeUndefined()
+        expect(session.selection.action).toBe(ActionType.Campaign)
+    })
+
+    it('a step with nothing to pick is skipped and not counted: no plans, Declare after the dice', async () => {
+        const session = await campaigning(3, undefined, [])
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        expect(draft.planOptions).toEqual([])
+        expect(draft.steps).toEqual(['targets', 'dice'])
+        draft.toggleTarget(FOES_RELIC)
+        next(draft)
+        expect(draft.step).toBe('dice')
+        expect(draft.stepNumber).toBe(2)
+        draft.setAttackDice(2)
+        expect(draft.nextShown).toBe(false)
+        expect(draft.declareShown).toBe(true)
+
+        await session.undo()
+        expect(draft.step).toBe('targets')
+        expect(draft.targets).toEqual([FOES_RELIC])
+    })
+
+    it('with no warband to roll and no plan, Declare comes on the Targets step', async () => {
+        const draft = (await campaigning(0, undefined, [])).campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        expect(draft.steps).toEqual(['targets'])
+        draft.toggleTarget(FOES_RELIC)
+        expect(draft.nextShown).toBe(false)
+        expect(draft.attackDice).toBe(0)
+        expect(draft.declareShown).toBe(true)
+    })
+
+    it('with no dice to choose, the plans follow the targets, and Undo goes back to the targets', async () => {
+        const session = await campaigning(0)
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        expect(draft.steps).toEqual(['targets', 'plans'])
+        draft.toggleTarget(FOES_RELIC)
+        next(draft)
+        expect(draft.step).toBe('plans')
+        expect(draft.stepNumber).toBe(2)
+        expect(draft.declareShown).toBe(true)
+        await session.undo()
+        expect(draft.step).toBe('targets')
+        expect(draft.targets).toEqual([FOES_RELIC])
+    })
+
+    it('Declare sends exactly the three steps’ picks', async () => {
+        const session = await campaigning(3)
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        draft.toggleTarget(FOES_RELIC)
+        draft.toggleTarget(SITE_C2)
+        next(draft)
+        draft.setAttackDice(2)
+        next(draft)
+        draft.declarePlan(HUNTER_PLAN, true)
+        const sent = vi.spyOn(session, 'declareCampaign').mockResolvedValue()
+        await draft.declare()
+        expect(sent).toHaveBeenCalledTimes(1)
+        expect(sent.mock.calls[0][0]).toEqual({
+            defender: FOE_DEFENDS,
+            targets: [FOES_RELIC, SITE_C2],
+            attackDice: 2,
+            plans: [HUNTER_PLAN],
+            flipSecret: false,
+            skullLossOrder: undefined
+        })
+    })
+
+    it('Declare sends nothing before the last step', async () => {
+        const session = await campaigning(3)
+        const draft = session.campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        draft.toggleTarget(FOES_RELIC)
+        next(draft)
+        draft.setAttackDice(2)
+        const sent = vi.spyOn(session, 'declareCampaign').mockResolvedValue()
+        await draft.declare()
+        expect(sent).not.toHaveBeenCalled()
+    })
+
+    it('Relic Hunter’s relic at a targeted site is a target before the plan is declared, and is refused without it', async () => {
+        const draft = (await campaigning(3)).campaign
+        draft.chooseDefender(FOE_DEFENDS)
+        draft.toggleTarget(FOES_RELIC)
+        draft.toggleTarget(SITE_C2)
+        expect(draft.targetOptions).toContainEqual(RELIC_AT_C2)
+        draft.toggleTarget(RELIC_AT_C2)
+        expect(draft.targets).toEqual([FOES_RELIC, SITE_C2, RELIC_AT_C2])
+        next(draft)
+        draft.setAttackDice(2)
+        // The plan is a step later, so the dice step reads no refusal and offers Next.
+        expect(draft.stoppedBecause).toBeUndefined()
+        next(draft)
+        expect(draft.stoppedBecause).toBe(draft.refusedBecause)
+        expect(draft.refusedBecause).toBe(
+            'a facedown relic at a site can be targeted only with Relic Hunter declared'
+        )
+        expect(draft.declareShown).toBe(false)
+
+        draft.declarePlan(HUNTER_PLAN, true)
+        expect(draft.targets).toEqual([FOES_RELIC, SITE_C2, RELIC_AT_C2])
+        expect(draft.refusedBecause).toBeUndefined()
+        expect(draft.declareShown).toBe(true)
+        draft.declarePlan(HUNTER_PLAN, false)
+        expect(draft.targets).toEqual([FOES_RELIC, SITE_C2, RELIC_AT_C2])
+        expect(draft.declareShown).toBe(false)
+    })
+})
+
 /** The five cases `docs/user-interactions.md` requires of each staged flow, for the Campaign draft. */
 describe('the Campaign draft (docs/user-interactions.md)', () => {
     it('choosing the defender clears the plans, targets and dice chosen under the last one', async () => {
         const draft = (await campaigning()).campaign
         draft.chooseDefender(FOE_DEFENDS)
-        draft.declarePlan(HUNTER_PLAN, true)
         draft.toggleTarget(FOES_RELIC)
+        next(draft)
         draft.setAttackDice(3)
+        next(draft)
+        draft.declarePlan(HUNTER_PLAN, true)
         expect(draft.targets).toEqual([FOES_RELIC])
+        expect(draft.attackDice).toBe(3)
+        expect(draft.plans).toEqual([HUNTER_PLAN])
 
         draft.chooseDefender(BANDITS)
         expect(draft.defender).toEqual(BANDITS)
         expect(draft.plans).toEqual([])
         expect(draft.targets).toEqual([])
         expect(draft.attackDice).toBeUndefined()
-    })
-
-    it('Undo takes the last target, then the plan, then the defender', async () => {
-        const session = await campaigning()
-        const draft = session.campaign
-        draft.chooseDefender(FOE_DEFENDS)
-        draft.declarePlan(HUNTER_PLAN, true)
-        draft.toggleTarget(FOES_RELIC)
-        draft.toggleTarget(SITE_C2)
-        draft.toggleTarget(RELIC_AT_C2)
-        expect(draft.targets).toEqual([FOES_RELIC, SITE_C2, RELIC_AT_C2])
-
-        await session.undo()
-        expect(draft.targets).toEqual([FOES_RELIC, SITE_C2])
-        await session.undo()
-        await session.undo()
-        expect(draft.targets).toEqual([])
-        expect(draft.plans).toEqual([HUNTER_PLAN])
-        await session.undo()
-        expect(draft.plans).toEqual([])
-        expect(draft.defender).toEqual(FOE_DEFENDS)
-        await session.undo()
-        expect(draft.defender).toBeUndefined()
-        expect(session.selection.action).toBe(ActionType.Campaign)
     })
 
     it('a pool of one die is taken for the player and is not a pick Undo returns to', async () => {
@@ -198,6 +376,7 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         draft.chooseDefender(FOE_DEFENDS)
         expect(draft.complete).toBe(false)
         draft.toggleTarget(FOES_RELIC)
+        next(draft)
         expect(draft.complete).toBe(false)
         expect(draft.refusedBecause).toBeUndefined()
         draft.setAttackDice(2)
@@ -214,6 +393,13 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
         expect(draft.maxDice).toBe(6)
+        draft.toggleTarget(
+            required(
+                draft.targetOptions.find((t) => draft.canToggleTarget(t)),
+                'a target'
+            )
+        )
+        next(draft)
         draft.setAttackDice(6)
         expect(draft.attackDice).toBe(6)
     })
@@ -221,27 +407,18 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
     it('R-5.5.2 — an empty pool may be chosen, even when one die was taken for the player', async () => {
         const draft = (await campaigning(3)).campaign
         draft.chooseDefender(FOE_DEFENDS)
+        draft.toggleTarget(FOES_RELIC)
+        next(draft)
         draft.setAttackDice(0)
         expect(draft.attackDice).toBe(0)
 
         const single = (await campaigning(1)).campaign
         single.chooseDefender(FOE_DEFENDS)
+        single.toggleTarget(FOES_RELIC)
+        next(single)
+        expect(single.attackDice).toBe(1)
         single.setAttackDice(0)
         expect(single.attackDice).toBe(0)
-    })
-
-    it('dropping the plan drops the relics it offered and keeps the chosen dice', async () => {
-        const draft = (await campaigning()).campaign
-        draft.chooseDefender(FOE_DEFENDS)
-        draft.declarePlan(HUNTER_PLAN, true)
-        draft.toggleTarget(FOES_RELIC)
-        draft.toggleTarget(SITE_C2)
-        draft.toggleTarget(RELIC_AT_C2)
-        draft.setAttackDice(2)
-
-        draft.declarePlan(HUNTER_PLAN, false)
-        expect(draft.targets).toEqual([FOES_RELIC, SITE_C2])
-        expect(draft.attackDice).toBe(2)
     })
 
     it('leaving the Campaign ends its draft', async () => {
@@ -326,12 +503,15 @@ describe('the skull-loss order', () => {
             { at: board, owner: ME },
             { at: board, owner: IMPERIAL_WARBANDS }
         ])
+        draft.toggleTarget(FOES_RELIC)
+        next(draft)
+        // The loss order is asked on the Attack dice step, with the dice.
         draft.moveLossSourceUp(1)
         draft.setAttackDice(2)
         expect(draft.lossOrder.map((s) => s.owner)).toEqual([IMPERIAL_WARBANDS, ME])
+        next(draft)
 
         const sent = vi.spyOn(session, 'declareCampaign').mockResolvedValue()
-        draft.toggleTarget(FOES_RELIC)
         await draft.declare()
         expect(sent).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -349,8 +529,10 @@ describe('the skull-loss order', () => {
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
         expect(draft.lossSources).toEqual([])
-        draft.setAttackDice(2)
         draft.toggleTarget(FOES_RELIC)
+        next(draft)
+        draft.setAttackDice(2)
+        next(draft)
         const sent = vi.spyOn(session, 'declareCampaign').mockResolvedValue()
         await draft.declare()
         expect(sent).toHaveBeenCalledWith(expect.objectContaining({ skullLossOrder: undefined }))
@@ -368,6 +550,10 @@ describe('a battle plan whose text asks a choice (R-5.5.3)', () => {
         session.chooseAction(ActionType.Campaign)
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
+        draft.toggleTarget(FOES_RELIC)
+        next(draft)
+        draft.setAttackDice(2)
+        next(draft)
         const giant = required(draft.planOptions.find((p) => p.cardId === GIANT), 'Mountain Giant’s plan')
         draft.declarePlan(giant, true)
         expect(draft.planChoicesOf(giant)).toHaveLength(1)
@@ -401,7 +587,9 @@ describe('R-7.1.2 — the declared battle plans are judged together, as the engi
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
         draft.toggleTarget(FOES_RELIC)
+        next(draft)
         draft.setAttackDice(2)
+        next(draft)
         return draft
     }
 
@@ -427,14 +615,17 @@ describe('R-7.1.2 — the declared battle plans are judged together, as the engi
         session.chooseAction(ActionType.Campaign)
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
-        draft.declarePlan(planOf(ZEALOTS), true)
-        draft.declarePlan(planOf(SLANDER), true)
         draft.toggleTarget(FOES_RELIC)
+        next(draft)
         expect(draft.complete).toBe(false)
         expect(draft.refusedBecause).toBeUndefined()
 
         draft.setAttackDice(2)
+        next(draft)
+        draft.declarePlan(planOf(ZEALOTS), true)
+        draft.declarePlan(planOf(SLANDER), true)
         expect(draft.refusedBecause).toBe('your battle plans cost 2 favor in all, you hold 1')
+        expect(draft.declareShown).toBe(false)
     })
 
     it('R-X.4 — before revision 3 each plan is judged alone, so both may be declared', async () => {

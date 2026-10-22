@@ -106,18 +106,38 @@ export function campaignNeedsFlip(
 /** A declared plan and the picks its text asks for. */
 type StagedPlan = PowerUseKey & { picks?: PowerChoicePicks }
 
+/**
+ * The steps' picks in the steps' order, each step closed by its Next (`targetsTaken`, `diceTaken`),
+ * so Undo returns to a step with its picks still marked, and a step's picks clear the later ones.
+ */
 type CampaignValueByStage = {
     defender: CampaignDefender
-    plans: StagedPlan[]
     targets: CampaignTarget[]
+    targetsTaken: true
     dice: number
     lossOrder: LossSource[]
+    diceTaken: true
+    plans: StagedPlan[]
 }
 
-const CAMPAIGN_STAGE_ORDER = ['defender', 'plans', 'targets', 'dice', 'lossOrder'] as const
+const CAMPAIGN_STAGE_ORDER = [
+    'defender',
+    'targets',
+    'targetsTaken',
+    'dice',
+    'lossOrder',
+    'diceTaken',
+    'plans'
+] as const
 const _campaignStagesAreCovered: StagesCover<CampaignValueByStage, typeof CAMPAIGN_STAGE_ORDER> =
     true
 void _campaignStagesAreCovered
+
+/** The declaration's steps, in the order they are shown; one with nothing to pick is left out. */
+export type CampaignStep = 'targets' | 'dice' | 'plans'
+
+// The stage a step's Next sets; the last step shown has Declare instead.
+const STEP_TAKEN = { targets: 'targetsTaken', dice: 'diceTaken' } as const
 
 export type CampaignDeclaration = {
     defender: CampaignDefender
@@ -128,7 +148,10 @@ export type CampaignDeclaration = {
     skullLossOrder: LossSource[] | undefined
 }
 
-/** R-5.5.1 to R-5.5.3 — the attacker's declaration, staged: defender, battle plans, targets, attack dice. */
+/**
+ * R-5.5.1 to R-5.5.3 — the attacker's declaration: the defender, then one step at a time the
+ * targets, the attack dice and the battle plans, then Declare.
+ */
 export class CampaignDraft implements PanelDraft {
     private flow = new StagedFlow<CampaignValueByStage>(CAMPAIGN_STAGE_ORDER)
 
@@ -160,7 +183,6 @@ export class CampaignDraft implements PanelDraft {
         } else if (lone !== undefined && others.length === 0) {
             this.flow.autoSelect('defender', lone)
         }
-        this.autoSelectDice()
     }
 
     get supplyCost(): number {
@@ -185,7 +207,79 @@ export class CampaignDraft implements PanelDraft {
             return
         }
         this.flow.set('defender', defender)
-        this.autoSelectDice()
+    }
+
+    /** The steps shown: the targets always; the dice with a warband to roll; the plans with one to declare. */
+    get steps(): CampaignStep[] {
+        if (!this.defender) return []
+        const steps: CampaignStep[] = ['targets']
+        if (this.maxDice > 0) steps.push('dice')
+        if (this.planOptions.length > 0) steps.push('plans')
+        return steps
+    }
+
+    /** The first step whose Next is not taken; the last one shown has Declare instead. */
+    get step(): CampaignStep | undefined {
+        const steps = this.steps
+        return (
+            steps.find((step) => step === 'plans' || !this.flow.value(STEP_TAKEN[step])) ??
+            steps.at(-1)
+        )
+    }
+
+    /** From 1; 0 before the defender is chosen. */
+    get stepNumber(): number {
+        const step = this.step
+        return step === undefined ? 0 : this.steps.indexOf(step) + 1
+    }
+
+    private get onLastStep(): boolean {
+        const step = this.step
+        return step !== undefined && step === this.steps.at(-1)
+    }
+
+    /** Next, once the step's picks are what the single panel checked before Declare. */
+    get nextShown(): boolean {
+        if (this.onLastStep) return false
+        switch (this.step) {
+            case 'targets':
+                return this.targets.length > 0 && this.targetsRefusedBecause === undefined
+            case 'dice':
+                return this.attackDice !== undefined
+            default:
+                return false
+        }
+    }
+
+    /**
+     * The reason that takes the confirm's place: on the last step, why the engine refuses the
+     * declaration; before it, on the Targets step, why the targets cannot be declared. A later
+     * step can still answer a refusal (Relic Hunter's relic waits for its plan), so none is read
+     * on the steps between.
+     */
+    get stoppedBecause(): string | undefined {
+        return this.onLastStep ? this.refusedBecause : this.targetsRefusedBecause
+    }
+
+    private get targetsRefusedBecause(): string | undefined {
+        const playerId = this.playerId
+        const defender = this.defender
+        const targets = this.targets
+        if (!playerId || !defender || targets.length === 0 || this.step !== 'targets') {
+            return undefined
+        }
+        return reasonCampaignTargetsInvalid(this.session.gameState, playerId, defender, targets)
+    }
+
+    next(): void {
+        const step = this.step
+        if (!this.nextShown || step === undefined || step === 'plans') return
+        this.flow.set(STEP_TAKEN[step], true)
+    }
+
+    /** Declare, on the last step, once the declaration is complete and the engine would take it. */
+    get declareShown(): boolean {
+        return this.onLastStep && this.complete && this.refusedBecause === undefined
     }
 
     /** R-5.5.2.a then R-5.5.3 — with Citizens to ask, the plans are declared after their answers. */
@@ -237,61 +331,39 @@ export class CampaignDraft implements PanelDraft {
     }
 
     setPlanPicks(use: PowerUseKey, picks: PowerChoicePicks): void {
-        if (!this.isPlanDeclared(use)) return
+        if (this.step !== 'plans' || !this.isPlanDeclared(use)) return
         const staged = (this.flow.value('plans') ?? []).map((p) =>
             samePowerUse(p, use) ? { cardId: p.cardId, powerIndex: p.powerIndex, picks } : p
         )
-        const targets = this.flow.value('targets')
-        const source = this.flow.sourceOf('targets')
-        this.keepingDice(() => {
-            this.flow.set('plans', staged)
-            if (targets !== undefined && source !== undefined) {
-                this.flow.set('targets', targets, source)
-            }
-        })
+        this.flow.set('plans', staged)
     }
 
     isPlanDeclared(use: PowerUseKey): boolean {
         return this.plans.some((p) => samePowerUse(p, use))
     }
 
-    // A plan change keeps the targets it still allows and drops the rest (Relic Hunter's relics).
     declarePlan(use: PowerUseKey, on: boolean): void {
         const offered = this.planOptions.some((p) => samePowerUse(p, use))
-        if (!offered) return
+        if (this.step !== 'plans' || !offered) return
         const staged = (this.flow.value('plans') ?? []).filter(
             (p) => !samePowerUse(p, use) && this.planOptions.some((o) => samePowerUse(o, p))
         )
-        const plans: StagedPlan[] = on
-            ? [...staged, { cardId: use.cardId, powerIndex: use.powerIndex }]
-            : staged
-        const defender = this.defender
-        const kept = defender
-            ? this.targets.filter((target) =>
-                  campaignTargetOptions(this.session.gameState, defender, plans, this.targets).some(
-                      (o) => sameTarget(o, target)
-                  )
-              )
-            : []
-        this.keepingDice(() => {
-            this.flow.set('plans', plans)
-            if (kept.length > 0) this.flow.set('targets', kept)
-        })
+        this.flow.set(
+            'plans',
+            on ? [...staged, { cardId: use.cardId, powerIndex: use.powerIndex }] : staged
+        )
     }
 
     get targetOptions(): CampaignTarget[] {
         const defender = this.defender
-        if (!defender) return []
-        // Relic Hunter's target is declared now even when the plan itself waits for the allies.
         const playerId = this.playerId
-        const plans =
-            playerId && this.plansWaitForAllies
-                ? attackerPlans(this.session.gameState, playerId, defender)
-                : this.plans
+        if (!defender || !playerId) return []
+        // Relic Hunter's target is picked before its plan, which comes a step later or after the
+        // allies answer; the engine refuses the relic if the plan is not declared with it.
         return campaignTargetOptions(
             this.session.gameState,
             defender,
-            plans,
+            attackerPlans(this.session.gameState, playerId, defender),
             this.flow.value('targets') ?? []
         )
     }
@@ -315,12 +387,16 @@ export class CampaignDraft implements PanelDraft {
         return canToggleTarget(this.session.gameState, playerId, defender, this.targets, target)
     }
 
+    // The board's site layer toggles targets too, so a tap off the Targets step is refused here.
     toggleTarget(target: CampaignTarget): void {
+        if (this.step !== 'targets') return
         if (!this.hasTarget(target) && !this.canToggleTarget(target)) return
-        this.keepingDice(() => this.flow.set('targets', toggledTargets(this.targets, target)))
+        this.flow.set('targets', toggledTargets(this.targets, target))
     }
 
+    // Lit on the map only on the Targets step.
     get targetableSites(): string[] {
+        if (this.step !== 'targets') return []
         return this.targetOptions.flatMap((target) =>
             target.kind === CampaignTargetKind.Site ? [target.siteId] : []
         )
@@ -339,13 +415,15 @@ export class CampaignDraft implements PanelDraft {
         return HydratedCampaign.maxAttackDice(state, partiesOf(state, playerId, defender, []))
     }
 
+    // One possible pool (none or one die) is taken for the player; any other waits for their tap.
     get attackDice(): number | undefined {
         const chosen = this.flow.value('dice')
-        return chosen === undefined ? undefined : this.clampDice(chosen)
+        if (chosen !== undefined) return this.clampDice(chosen)
+        return this.defender !== undefined && this.maxDice <= 1 ? this.maxDice : undefined
     }
 
     setAttackDice(count: number): void {
-        if (!this.defender) return
+        if (this.step !== 'dice') return
         this.keepingLossOrder(() => this.flow.set('dice', this.clampDice(count)))
     }
 
@@ -380,7 +458,7 @@ export class CampaignDraft implements PanelDraft {
 
     moveLossSourceUp(index: number): void {
         const order = this.lossOrder
-        if (index <= 0 || index >= order.length) return
+        if (this.step !== 'dice' || index <= 0 || index >= order.length) return
         const moved = [...order]
         ;[moved[index - 1], moved[index]] = [moved[index], moved[index - 1]]
         this.flow.set('lossOrder', moved)
@@ -431,7 +509,7 @@ export class CampaignDraft implements PanelDraft {
 
     async declare(): Promise<void> {
         const declaration = this.declaration
-        if (!declaration || !this.complete || this.refusedBecause !== undefined) return
+        if (!declaration || !this.declareShown) return
         await this.session.declareCampaign(declaration)
     }
 
@@ -439,15 +517,19 @@ export class CampaignDraft implements PanelDraft {
         return this.flow.hasManualSelection()
     }
 
-    // Undo takes one target or one plan at a time, the last one chosen first.
+    // Undo goes back a step, whose picks are still marked; on the Targets step it takes one target
+    // at a time, the last one chosen first, then the defender.
     back(): boolean {
-        const top = this.flow.highestManualStage()
-        if (top === 'targets' && this.targets.length > 1) {
-            this.flow.set('targets', this.targets.slice(0, -1))
+        const steps = this.steps
+        const step = this.step
+        const index = step === undefined ? -1 : steps.indexOf(step)
+        const before = index > 0 ? steps[index - 1] : undefined
+        if (before !== undefined && before !== 'plans') {
+            this.flow.clearFrom(STEP_TAKEN[before])
             return true
         }
-        if (top === 'plans' && this.plans.length > 1) {
-            this.flow.set('plans', this.plans.slice(0, -1))
+        if (this.flow.highestManualStage() === 'targets' && this.targets.length > 1) {
+            this.flow.set('targets', this.targets.slice(0, -1))
             return true
         }
         return this.flow.back() !== undefined
@@ -457,29 +539,13 @@ export class CampaignDraft implements PanelDraft {
         this.flow.reset()
     }
 
-    // One possible pool is taken for the player; any other waits for their tap.
-    private autoSelectDice(): void {
-        if (this.defender !== undefined && this.maxDice <= 1) {
-            this.flow.autoSelect('dice', this.maxDice)
-        }
-    }
-
     // R-5.5.2 — "up to", so an empty pool is a choice.
     private clampDice(count: number): number {
         return Math.max(0, Math.min(count, this.maxDice))
     }
 
-    // The dice do not depend on the plans or the targets, so a change to those keeps them.
-    private keepingDice(change: () => void): void {
-        const dice = this.flow.value('dice')
-        const source = this.flow.sourceOf('dice')
-        this.keepingLossOrder(change)
-        if (dice !== undefined && source !== undefined) {
-            this.keepingLossOrder(() => this.flow.set('dice', dice, source))
-        }
-    }
-
-    // Nor does the loss order, which is read back only while it names the force's sources.
+    // The loss order does not depend on the dice, so a change to those keeps it; it is read back
+    // only while it names the force's sources.
     private keepingLossOrder(change: () => void): void {
         const order = this.flow.value('lossOrder')
         const source = this.flow.sourceOf('lossOrder')

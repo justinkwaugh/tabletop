@@ -1452,10 +1452,11 @@ test.describe('scenario 62: the Campaign’s words', () => {
         expect(await widthOf(bandits)).toBe(await widthOf(ann))
         await ann.click()
 
-        await expect(grid(page)).toContainText(/Against ann\. Tap targets\./i)
+        await expect(grid(page)).toContainText(/Against ann\./i)
+        await expect(grid(page)).not.toContainText('Tap targets')
         await expect(grid(page)).not.toContainText('Tap a target to add it')
-        // The site is held by nobody, so the defender rules no site here.
-        await expect(grid(page).locator('h4')).toContainText(['Pawn and favor', 'Attack dice'])
+        // The site is held by nobody, so the defender rules no site here; the dice are a step later.
+        await expect(grid(page).locator('h4')).toHaveText(['Targets', 'Pawn and favor'])
         await expect(grid(page)).not.toContainText('Attack dice — tap')
         const pawn = grid(page)
             .locator('button[aria-pressed]')
@@ -1466,6 +1467,8 @@ test.describe('scenario 62: the Campaign’s words', () => {
         const declare = answer(page, 'Declare')
         await expect(declare).toHaveCount(0)
         await grid(page).locator('button[aria-pressed]').first().click()
+        await expect(declare).toHaveCount(0)
+        await answer(page, 'Next').click()
         await expect(declare).toHaveCount(0)
         await grid(page).getByRole('button', { name: /^Add attack die 2/ }).click()
         await expect(declare).toBeVisible()
@@ -1862,6 +1865,7 @@ async function completeCampaignStep(page: Page, name: (typeof CAMPAIGN_STEPS)[nu
             expect(await clippedLabels(page)).toEqual([])
             await grid(page).getByRole('button', { name: /^ann$/i }).click()
             await grid(page).locator('button[aria-pressed]').first().click()
+            await answer(page, 'Next').click()
             await grid(page).getByRole('button', { name: /^Add attack die 2/ }).click()
             await expect(answer(page, 'Declare')).toBeVisible()
             return
@@ -4259,9 +4263,10 @@ test('scenario 5: a Campaign target is a row with its picture, a tap adds it and
     await openTable(page, 'campaign')
     await tile(page, 'Campaign').click()
     // The Chancellor is the one defender the rules allow, so the panel opens on the targets.
-    await expect(grid(page)).toContainText(/Against ann\. Tap targets\./i)
+    await expect(grid(page)).toContainText(/Against ann\./i)
     await expect(grid(page)).not.toContainText('Attack who?')
-    await expect(grid(page).locator('h4').first()).toHaveText('Sites')
+    await expect(grid(page).locator('h4').first()).toHaveText('Targets')
+    await expect(grid(page).locator('h4').nth(1)).toHaveText('Sites')
     const site = grid(page).locator('button[aria-pressed]').first()
     await expect(site).toHaveAttribute('aria-pressed', 'false')
     await site.click()
@@ -7710,6 +7715,8 @@ test.describe('the declare’s dice and loss order', () => {
     test('before revision 7 the loss order’s ↑ sits beside its row, not at the panel’s edge', async ({ page }) => {
         await openTable(page, 'campaignLossOrder')
         await tile(page, 'Campaign').click()
+        await grid(page).locator('button[aria-pressed]').first().click()
+        await answer(page, 'Next').click()
         await expect(grid(page)).toContainText('Skull losses, in order:')
         const up = grid(page).getByRole('button', { name: /^Lose .+ sooner$/ })
         await expect(up).toHaveCount(1)
@@ -7722,6 +7729,8 @@ test.describe('the declare’s dice and loss order', () => {
             await page.setViewportSize(viewport)
             await openTable(page, 'campaignLossOrder')
             await tile(page, 'Campaign').last().click()
+            await grid(page).locator('button[aria-pressed]').first().click()
+            await answer(page, 'Next').click()
             const dice = grid(page).getByRole('button', { name: /attack die \d/ })
             await expect(dice).toHaveCount(4)
             for (const die of await dice.all()) {
@@ -8179,6 +8188,8 @@ test.describe('no hover titles in Oath’s own areas', () => {
     test('a Campaign: the attack dice, the plans, the unrolled and the rolled dice, the spoils', async ({ page }) => {
         await openTable(page, 'campaign')
         await tile(page, 'Campaign').click()
+        await grid(page).locator('button[aria-pressed]').first().click()
+        await answer(page, 'Next').click()
         await expect(grid(page).getByRole('button', { name: /^Add attack die 2/ })).toBeVisible()
         await expectNoHoverTitles(page, 'the attack dice')
 

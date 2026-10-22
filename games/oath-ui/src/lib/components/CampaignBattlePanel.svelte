@@ -1,8 +1,9 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
-    import { assertExists, range } from '@tabletop/common'
+    import { assertExists } from '@tabletop/common'
     import { MachineState, type WarbandGroup } from '@tabletop/oath'
     import SpoilsSteps from '$lib/components/SpoilsSteps.svelte'
+    import StepHeading from '$lib/components/StepHeading.svelte'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
     import WarbandGroupRows from '$lib/components/WarbandGroupRows.svelte'
@@ -87,23 +88,7 @@
 {/snippet}
 
 <div>
-    <div class="mb-2 flex items-center gap-2.5">
-        <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger">{heading}</h3>
-        {#if spoilsSteps > 1}
-            <span class="flex items-center gap-1" aria-hidden="true">
-                {#each range(1, spoilsSteps) as n (n)}
-                    <span
-                        class="rounded-full {n === spoils.stepNumber
-                            ? 'h-2.5 w-2.5 bg-oath-accent ring-2 ring-oath-accent-soft'
-                            : n < spoils.stepNumber
-                              ? 'h-1.5 w-1.5 bg-oath-accent'
-                              : 'h-1.5 w-1.5 bg-oath-text-muted/50'}"
-                    ></span>
-                {/each}
-            </span>
-            <span class="text-xs text-oath-text-muted">{spoils.stepNumber} of {spoilsSteps}</span>
-        {/if}
-    </div>
+    <StepHeading {heading} step={spoils.stepNumber} steps={spoilsSteps} />
 
     {#if gameState.machineState === MachineState.CampaignDefeat}
         {#if !iChooseLosses}

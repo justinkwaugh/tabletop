@@ -93,6 +93,7 @@ import {
 import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
+import { campaignSteps } from './campaignStepsTable.js'
 import {
     FOREST_PATHS,
     HOSPITALITY,
@@ -156,6 +157,8 @@ export type TableName =
     | 'advisers'
     | 'moves'
     | 'campaign'
+    | 'campaignSteps'
+    | 'campaignStepsNoPlans'
     | 'observatory'
     | 'cardOpensSearch'
     | 'cardChangesSearch'
@@ -5331,6 +5334,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     advisers: advisersTable,
     moves: movesTable,
     campaign: campaignTable,
+    campaignSteps: () => campaignSteps(),
+    campaignStepsNoPlans: () => campaignSteps({ advisers: [] }),
     observatory: observatoryTable,
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),

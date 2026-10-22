@@ -9,6 +9,7 @@
         powerKey
     } from '@tabletop/oath'
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
+    import StepHeading from '$lib/components/StepHeading.svelte'
     import type { MenuPointerTarget } from '$lib/model/menuPointer.svelte.js'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import { pawnImage } from '$lib/images/pieceImages.js'
@@ -16,6 +17,8 @@
     import AttackDiceRow from '$lib/components/AttackDiceRow.svelte'
     import PlanRows from '$lib/components/PlanRows.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
+    import type { CampaignStep } from '$lib/model/campaignDraft.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { powerUseKey } from '$lib/model/powerUse.js'
     import {
@@ -94,28 +97,53 @@
             (target) => draft.hasTarget(target) || draft.canToggleTarget(target)
         )
     )
-    // The headings name the kinds; the line above them names the defender.
-    let targetGroups = $derived.by(() => {
-        const groups = [
-            { heading: 'Sites', kinds: [CampaignTargetKind.Site] },
-            {
-                heading: 'Relics and banners',
-                kinds: [
-                    CampaignTargetKind.Relic,
-                    CampaignTargetKind.Banner,
-                    CampaignTargetKind.SiteRelic
-                ]
-            },
-            { heading: 'Pawn and favor', kinds: [CampaignTargetKind.PawnAndFavor] }
-        ]
-        return groups
-            .map((group) => ({
-                heading: group.heading,
-                targets: shownTargets.filter((t) => group.kinds.includes(t.kind))
-            }))
-            .filter((group) => group.targets.length > 0)
-    })
+    // The headings name the kinds; the line above them names the defender. A group's rows share
+    // its widest row's width and wrap across the panel.
+    const TARGET_GROUPS = [
+        { heading: 'Sites', kinds: [CampaignTargetKind.Site], width: new ChoiceWidth() },
+        {
+            heading: 'Relics and banners',
+            kinds: [
+                CampaignTargetKind.Relic,
+                CampaignTargetKind.Banner,
+                CampaignTargetKind.SiteRelic
+            ],
+            width: new ChoiceWidth()
+        },
+        {
+            heading: 'Pawn and favor',
+            kinds: [CampaignTargetKind.PawnAndFavor],
+            width: new ChoiceWidth()
+        }
+    ]
+    let targetGroups = $derived(
+        TARGET_GROUPS.map((group) => ({
+            ...group,
+            targets: shownTargets.filter((t) => group.kinds.includes(t.kind))
+        })).filter((group) => group.targets.length > 0)
+    )
+
+    // R-5.5.2 then R-5.5.3 — the declaration one step at a time; Undo goes back a step.
+    const STEP_HEADINGS: Record<CampaignStep, string> = {
+        targets: 'Targets',
+        dice: 'Attack dice',
+        plans: 'Battle plans'
+    }
+    let step = $derived(draft.step)
+    let refusedBecause = $derived(draft.stoppedBecause)
 </script>
+
+{#snippet confirm(label: string, onclick: () => void)}
+    <button
+        type="button"
+        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+               border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+        disabled={busy}
+        {onclick}
+    >
+        {label}
+    </button>
+{/snippet}
 
 <div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
@@ -148,91 +176,97 @@
         <p class="text-sm mb-1">
             Against {#if defender.kind === 'player'}<PlayerName
                     playerId={defender.playerId}
-                />{:else}the bandits{/if}. Tap targets.
+                />{:else}the bandits{/if}.
         </p>
-        <!-- The target rows share the widest row's width. -->
-        <div class="mb-2 grid w-max max-w-full gap-1.5">
-            {#each targetGroups as group (group.heading)}
-                <h4
-                    class="mt-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading"
-                >
-                    {group.heading}
-                </h4>
-                {#each group.targets as target (JSON.stringify(target))}
-                    {#if target.kind === CampaignTargetKind.PawnAndFavor && defender.kind === 'player'}
-                        {@const defenderId = defender.playerId}
-                        <MenuToggleRow
-                            image={targetImage(target)}
-                            tag="target"
-                            shape="piece"
-                            on={draft.hasTarget(target)}
-                            disabled={busy}
-                            onclick={() => draft.toggleTarget(target)}
-                        >
-                            {#snippet name()}<PlayerName playerId={defenderId} />{/snippet}
-                        </MenuToggleRow>
-                    {:else}
-                        <MenuToggleRow
-                            image={targetImage(target)}
-                            name={targetLabel(target)}
-                            detail={targetDetail(target)}
-                            tag="target"
-                            shape={target.kind === CampaignTargetKind.Site ||
-                            target.kind === CampaignTargetKind.Banner
-                                ? 'wide'
-                                : 'relic'}
-                            on={draft.hasTarget(target)}
-                            points={targetPoints(target)}
-                            disabled={busy}
-                            onclick={() => draft.toggleTarget(target)}
-                        />
-                    {/if}
-                {/each}
-            {/each}
-        </div>
-
-        <h4 class="mb-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading">
-            Attack dice
-        </h4>
-        <div class="mb-2 text-sm">
-            <AttackDiceRow />
-        </div>
-
-        {#if draft.lossSources.length > 1}
-            <!-- R-5.5.5, R-10.22 — the attacker chooses where the skulls' kills come from. -->
-            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                <div class="mb-1 text-oath-text-muted">Skull losses, in order:</div>
-                <!-- One width for the rows; the first keeps the ↑'s place so the rows line up. -->
-                <div
-                    class="grid w-max max-w-full grid-cols-[minmax(0,auto)_auto] items-center gap-x-2 gap-y-0.5"
-                >
-                    {#each draft.lossOrder as source, index (JSON.stringify(source))}
-                        {@const where = ownForcePlaceName(
-                            gameState,
-                            source,
-                            draft.lossOrder,
-                            (owner) => gameSession.warbandOwnerName(owner)
-                        )}
-                        <span>{where}</span>
-                        <button
-                            type="button"
-                            class="rounded bg-oath-control hover:bg-oath-control-hover px-2 py-0.5 max-sm:h-11 max-sm:w-11"
-                            class:invisible={index === 0}
-                            aria-label="Lose {where} sooner"
-                            disabled={busy || index === 0}
-                            onclick={() => draft.moveLossSourceUp(index)}
-                        >
-                            ↑
-                        </button>
-                    {/each}
-                </div>
-            </div>
+        {#if step}
+            <StepHeading
+                heading={STEP_HEADINGS[step]}
+                step={draft.stepNumber}
+                steps={draft.steps.length}
+                level="h4"
+            />
         {/if}
 
-        {#if draft.planOptions.length > 0}
-            <h4 class="mb-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading">
-                Battle plans
-            </h4>
+        {#if step === 'targets'}
+            <div class="mb-2 flex flex-col gap-1.5">
+                {#each targetGroups as group (group.heading)}
+                    <h4
+                        class="mt-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading"
+                    >
+                        {group.heading}
+                    </h4>
+                    <div class="flex flex-wrap gap-1.5">
+                        {#each group.targets as target (JSON.stringify(target))}
+                            {#if target.kind === CampaignTargetKind.PawnAndFavor && defender.kind === 'player'}
+                                {@const defenderId = defender.playerId}
+                                <MenuToggleRow
+                                    image={targetImage(target)}
+                                    tag="target"
+                                    shape="piece"
+                                    width={group.width}
+                                    on={draft.hasTarget(target)}
+                                    disabled={busy}
+                                    onclick={() => draft.toggleTarget(target)}
+                                >
+                                    {#snippet name()}<PlayerName playerId={defenderId} />{/snippet}
+                                </MenuToggleRow>
+                            {:else}
+                                <MenuToggleRow
+                                    image={targetImage(target)}
+                                    name={targetLabel(target)}
+                                    detail={targetDetail(target)}
+                                    tag="target"
+                                    shape={target.kind === CampaignTargetKind.Site ||
+                                    target.kind === CampaignTargetKind.Banner
+                                        ? 'wide'
+                                        : 'relic'}
+                                    width={group.width}
+                                    on={draft.hasTarget(target)}
+                                    points={targetPoints(target)}
+                                    disabled={busy}
+                                    onclick={() => draft.toggleTarget(target)}
+                                />
+                            {/if}
+                        {/each}
+                    </div>
+                {/each}
+            </div>
+        {:else if step === 'dice'}
+            <div class="mb-2 text-sm">
+                <AttackDiceRow />
+            </div>
+
+            {#if draft.lossSources.length > 1}
+                <!-- R-5.5.5, R-10.22 — the attacker chooses where the skulls' kills come from. -->
+                <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
+                    <div class="mb-1 text-oath-text-muted">Skull losses, in order:</div>
+                    <!-- One width for the rows; the first keeps the ↑'s place so the rows line up. -->
+                    <div
+                        class="grid w-max max-w-full grid-cols-[minmax(0,auto)_auto] items-center gap-x-2 gap-y-0.5"
+                    >
+                        {#each draft.lossOrder as source, index (JSON.stringify(source))}
+                            {@const where = ownForcePlaceName(
+                                gameState,
+                                source,
+                                draft.lossOrder,
+                                (owner) => gameSession.warbandOwnerName(owner)
+                            )}
+                            <span>{where}</span>
+                            <button
+                                type="button"
+                                class="rounded bg-oath-control hover:bg-oath-control-hover px-2 py-0.5 max-sm:h-11 max-sm:w-11"
+                                class:invisible={index === 0}
+                                aria-label="Lose {where} sooner"
+                                disabled={busy || index === 0}
+                                onclick={() => draft.moveLossSourceUp(index)}
+                            >
+                                ↑
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+            {/if}
+        {:else if step === 'plans'}
             <div class="mb-2 text-xs">
                 <PlanRows
                     plans={draft.planOptions}
@@ -263,21 +297,17 @@
             </div>
         {/if}
 
-        <!-- Declare waits for the picks; the reason a complete declaration is refused takes its place. -->
+        <!-- Next, or Declare on the last step, waits for the step's picks; the reason they are
+             refused takes its place. -->
         <div class="flex flex-wrap items-center gap-2">
-            {#if draft.refusedBecause}
+            {#if refusedBecause}
                 <p class="text-[11px] text-oath-danger">
-                    <TokenText text={gameSession.humanizeReason(draft.refusedBecause) ?? ''} />
+                    <TokenText text={gameSession.humanizeReason(refusedBecause) ?? ''} />
                 </p>
-            {:else if draft.complete}
-                <button
-                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
-                    disabled={busy}
-                    onclick={() => draft.declare()}
-                >
-                    Declare
-                </button>
+            {:else if draft.nextShown}
+                {@render confirm('Next', () => draft.next())}
+            {:else if draft.declareShown}
+                {@render confirm('Declare', () => draft.declare())}
             {/if}
         </div>
     {/if}
