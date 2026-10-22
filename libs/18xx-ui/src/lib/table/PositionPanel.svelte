@@ -304,6 +304,7 @@
                                 details={latest.track}
                                 map={session.mapView.map}
                                 tileSet={session.mapView.tileSet}
+                                layouts={session.mapView.layouts}
                                 appearance={session.tileAppearance}
                                 size={40}
                             />

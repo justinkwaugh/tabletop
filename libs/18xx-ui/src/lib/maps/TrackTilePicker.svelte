@@ -2,7 +2,7 @@
     import { tick, onDestroy } from 'svelte'
     import { fade } from 'svelte/transition'
     import { prefersReducedMotion } from 'svelte/motion'
-    import { StandardTileLayouts } from '../tiles/standardTileLayouts.js'
+    import { placedTileLayout } from '../tiles/standardTileLayouts.js'
     import type { Point } from '@tabletop/common'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import Tile from '../tiles/Tile.svelte'
@@ -266,8 +266,7 @@
                             printedNumber={tile.printedNumber}
                             {appearance}
                             {size}
-                            layout={session.mapView.layouts?.[tile.id] ??
-                                StandardTileLayouts[tile.id]}
+                            layout={placedTileLayout(session.mapView.layouts, tile.id)}
                             orientation={session.mapView.map.definition.orientation}
                             rotation={chosen
                                 ? session.track.preview?.rotation

@@ -1372,7 +1372,10 @@ when the preview disappears. Empty route sets do not move the camera. Returning
 to RunningTrains through Undo recalculates and focuses the new preview.
 
 The turn header pairs the current operating company's name with its title-owned
-token. The header does not show the phase; the game-information strip of phase,
+token. The header, its player tint and the game-information strip read the session's
+published game state, as PositionPanel does, so for every viewer they change with the
+rest of the table once state-change animations complete, and never name a different
+turn from the action area. The header does not show the phase; the game-information strip of phase,
 train limit and depot is a single button opening a native modal phase chart with a
 full-screen backdrop, and hovering anywhere on it highlights the whole strip. The
 chart's independent phase and train tables use canonical title data and

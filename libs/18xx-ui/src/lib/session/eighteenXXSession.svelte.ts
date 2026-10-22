@@ -36,6 +36,7 @@ import {
     type TokenTiles
 } from '../maps/stationPresentation.js'
 import { createTileDrawing } from '../tiles/tileDrawing.js'
+import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
@@ -147,7 +148,7 @@ export class EighteenXXSession<
                         definition.face,
                         orientation,
                         rotation,
-                        this.mapView.layouts?.[definitionId],
+                        placedTileLayout(this.mapView.layouts, definitionId),
                         tileDrawingStyle(this.tileAppearance)
                     )
                 }

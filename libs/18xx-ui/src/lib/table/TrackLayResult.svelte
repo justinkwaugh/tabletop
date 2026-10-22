@@ -3,17 +3,21 @@
     import type { RailwayMap, TileSet, TrackLayDetails } from '@tabletop/18xx'
     import Tile from '../tiles/Tile.svelte'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
+    import type { TileLayout } from '../tiles/tileDrawing.js'
+    import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 
     let {
         details,
         map,
         tileSet,
+        layouts,
         appearance,
         size = 64
     }: {
         details: TrackLayDetails
         map: RailwayMap
         tileSet: TileSet
+        layouts: Readonly<Record<string, TileLayout>> | undefined
         appearance?: TileAppearance
         size?: number
     } = $props()
@@ -27,6 +31,9 @@
         details.previous ? definition(details.previous.definitionId) : undefined
     )
     const previousFace = $derived(previous?.face ?? map.location(details.locationId).preprintedTile)
+    const previousLayout = $derived(
+        previous ? placedTileLayout(layouts, previous.id) : layouts?.[details.locationId]
+    )
     const upgraded = $derived(!!previous || previousFace.color !== 'white')
 </script>
 
@@ -37,6 +44,7 @@
             printedNumber={previous?.printedNumber}
             rotation={details.previous?.rotation ?? 0}
             orientation={map.definition.orientation}
+            layout={previousLayout}
             {appearance}
             {size}
         />
@@ -47,6 +55,7 @@
         printedNumber={placed.printedNumber}
         rotation={details.rotation}
         orientation={map.definition.orientation}
+        layout={placedTileLayout(layouts, placed.id)}
         {appearance}
         {size}
     />

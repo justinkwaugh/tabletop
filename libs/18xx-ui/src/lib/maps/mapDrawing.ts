@@ -35,7 +35,7 @@ import {
     type TileDrawing,
     type TileDrawnPath
 } from '../tiles/tileDrawing.js'
-import { StandardTileLayouts } from '../tiles/standardTileLayouts.js'
+import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
 import { tilePathPoint } from '../tiles/tileTrackGeometry.js'
 
@@ -335,7 +335,7 @@ export function createMapDrawing(
             : (tile?.face ?? location.preprintedTile)
         const rotation = tile?.rotation ?? 0
         const layout = placement
-            ? (layouts[placement.definitionId] ?? StandardTileLayouts[placement.definitionId])
+            ? placedTileLayout(layouts, placement.definitionId)
             : layouts[location.id]
         const separatedTowns =
             face.nodes.length > 1 &&

@@ -4,7 +4,6 @@
         DefaultCompanyPricePresentation,
         type CompanyPricePresentation
     } from './companyPresentation.js'
-    import { tableHeaderState } from './tableHeaderState.js'
     import {
         defaultTableView,
         initialTableLayout,
@@ -632,7 +631,6 @@
     }
 
     const gameState = $derived(session.gameState)
-    const headerState = $derived(tableHeaderState(session))
     const wealthPlayers = $derived(
         seatOrderFrom(
             session.gameState.players.map((player) => player.playerId),
@@ -644,7 +642,7 @@
         }))
     )
     const headerPlayerId = $derived(
-        headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined
+        gameState.activePlayerIds.length === 1 ? gameState.activePlayerIds[0] : undefined
     )
     const operating = $derived(gameState.stockRound.completed && !!gameState.operatingSet)
     const operatedCompanyIds = $derived(
@@ -1176,7 +1174,7 @@
                                 {money}
                                 {depotState}
                                 chart={phaseChart}
-                                currentPhaseId={headerState.phaseId}
+                                currentPhaseId={gameState.phaseId}
                                 {trainColors}
                                 {phaseColors}
                                 tileColors={tileAppearance.colors}
