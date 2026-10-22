@@ -7729,7 +7729,9 @@ test.describe('the declare’s dice and loss order', () => {
             await page.setViewportSize(viewport)
             await openTable(page, 'campaignLossOrder')
             await tile(page, 'Campaign').last().click()
-            await grid(page).locator('button[aria-pressed]').first().click()
+            // On a phone held upright the site is targeted on the map, not in the panel.
+            await siteCard(page, 'slot.provinces.0').click()
+            await expect(siteAt(page, 'slot.provinces.0')).toHaveClass(/\btargeted\b/)
             await answer(page, 'Next').click()
             const dice = grid(page).getByRole('button', { name: /attack die \d/ })
             await expect(dice).toHaveCount(4)
