@@ -17,3 +17,10 @@ yarn.lock
 
 # Recorded games and replays; formatting them only adds diff noise
 **/fixtures/**/*.json
+**/rehearsals/**/*.json
+**/recorded-*.json
+
+# Written by tools in their own format
+*-lock.json
+.agents/skills/
+**/scenarios/*.json
