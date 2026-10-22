@@ -4,6 +4,7 @@ import type { HeldAttackRoll } from '../actions/answerQuestion.js'
 import type { PileDeposit } from '../model/hidden.js'
 import {
     type CampaignKillPath,
+    type CampaignRollRecord,
     type CampaignState,
     type HeldForHospital,
     type KillRedirect,
@@ -13,12 +14,7 @@ import {
     type WarbandGroup,
     type WarbandLocation
 } from '../model/campaign.js'
-import {
-    attackFromFaces,
-    defenseShieldsFromFaces,
-    rollAttackDice,
-    rollDefenseDice
-} from '../data/dice.js'
+import { attackFromFaces, defenseFromFaces, rollAttackDice, rollDefenseDice } from '../data/dice.js'
 import { askQuestion } from './questions.js'
 import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { offerReroll } from './reroll.js'
@@ -151,19 +147,28 @@ function rollAttack(
 
 /** R-5.5.4 */
 export function applyDefenseRoll(campaign: CampaignState, defenseRoll: RolledDefenseFace[]): void {
-    const rules = campaign.rollRules
     campaign.defenseRoll = defenseRoll
-    // Rain Boots, War Tortoise — an ignored face stays on record as rolled.
-    const countedDefense = defenseRoll.map((face) =>
-        (rules.ignoreSingleShields && face.shields === 1 && !face.doubling) ||
-        (rules.ignoreTwoShieldFaces && face.shields === 2)
-            ? { shields: 0, doubling: false }
-            : face
-    )
     campaign.defense =
-        defenseShieldsFromFaces(countedDefense) +
+        countedDefense(campaign, defenseRoll).shields +
         forceTotal(campaign.defendingForce) +
         campaign.defendingBandits
+}
+
+/** R-5.5.4 — the roll as it counts: Rain Boots, War Tortoise. */
+function countedDefense(
+    campaign: CampaignState,
+    defenseRoll: readonly RolledDefenseFace[]
+): { shields: number; doublings: number } {
+    const rules = campaign.rollRules
+    // Rain Boots, War Tortoise — an ignored face stays on record as rolled.
+    return defenseFromFaces(
+        defenseRoll.map((face) =>
+            (rules.ignoreSingleShields && face.shields === 1 && !face.doubling) ||
+            (rules.ignoreTwoShieldFaces && face.shields === 2)
+                ? { shields: 0, doubling: false }
+                : face
+        )
+    )
 }
 
 /** R-5.5.5 — the roll as it counts: Rusting Ray, War Tortoise, Lancers. */
@@ -190,6 +195,32 @@ export function applyAttackRoll(campaign: CampaignState, attackRoll: RolledAttac
     campaign.attackRoll = attackRoll
     campaign.swords = swords
     return skulls
+}
+
+/**
+ * R-5.5.4, R-5.5.5 — from revision 25, what the closing step records of the roll: the faces as last
+ * rolled, after any reroll, and the counts the battle was decided on. A Campaign a plan decided rolled
+ * nothing, so there is nothing to record.
+ */
+export function campaignRollRecord(
+    state: HydratedOathGameState,
+    campaign: CampaignState
+): CampaignRollRecord | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes21)) return undefined
+    if (campaign.decidedVictor) return undefined
+    const { skulls } = countedAttack(campaign, campaign.attackRoll)
+    const { shields, doublings } = countedDefense(campaign, campaign.defenseRoll)
+    return {
+        attackFaces: campaign.attackRoll.map((face) => ({ ...face })),
+        defenseFaces: campaign.defenseRoll.map((face) => ({ ...face })),
+        swords: campaign.swords,
+        skulls,
+        shields,
+        doubled: doublings > 0,
+        defendingForce: campaign.defendingForce.map((group) => ({ ...group, at: { ...group.at } })),
+        defendingBandits: campaign.defendingBandits,
+        defense: campaign.defense
+    }
 }
 
 /** Jinx — "after you roll": the attacker rolls the attack, the defender the defense (R-5.5.4). */

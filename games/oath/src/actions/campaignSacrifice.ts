@@ -7,6 +7,7 @@ import { commitHiddenOutputs, showTakenSiteRelics } from '../util/hiddenInputs.j
 import { tableWitnesses } from '../util/knowledge.js'
 import {
     banditPlanContext,
+    campaignRollRecord,
     hospitalHolderOf,
     killOrRedirect,
     partiesOf,
@@ -26,7 +27,7 @@ import {
 } from '../util/battlePlans.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
 import { ActionType } from '../definition/actions.js'
-import { WarbandGroup, type CampaignState } from '../model/campaign.js'
+import { CampaignRollRecord, WarbandGroup, type CampaignState } from '../model/campaign.js'
 import {
     forceTotal,
     takeFromGroups,
@@ -59,7 +60,9 @@ export const CampaignSacrificeMetadata = Type.Object({
     /** Sneak Attack — where the interrupted turn resumes. */
     resumeMachineState: Type.Optional(Type.Enum(MachineState)),
     /** R-5.5.8, R-9.4 */
-    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 }))
+    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
+    /** R-5.5.4, R-5.5.5 — from revision 25, the dice as rolled and how the defense was made up. */
+    roll: Type.Optional(CampaignRollRecord)
 })
 
 export type CampaignSacrifice = Type.Static<typeof CampaignSacrifice>
@@ -111,6 +114,8 @@ export class HydratedCampaignSacrifice
 
         const campaign = state.campaign
         assertExists(campaign, 'A sacrifice requires a Campaign in progress')
+        // Taken before the sacrifice and the defeat change the board; the faces are final here.
+        const roll = campaignRollRecord(state, campaign)
 
         // R-5.5.5
         const sacrificedOwner = soleOwner(this.killSacrifice(state, campaign))
@@ -134,7 +139,8 @@ export class HydratedCampaignSacrifice
                 attackerVictorious,
                 sacrificed: this.sacrifice,
                 sacrificedOwner,
-                awaitingLossesOf: chooserId
+                awaitingLossesOf: chooserId,
+                ...(roll ? { roll } : {})
             }
             return
         }
@@ -150,7 +156,8 @@ export class HydratedCampaignSacrifice
             attackerVictorious,
             sacrificed: this.sacrifice,
             sacrificedOwner,
-            ...finished
+            ...finished,
+            ...(roll ? { roll } : {})
         }
 
         // R-X.3(b): a discard is replayed into the vault, which is never rolled back.
