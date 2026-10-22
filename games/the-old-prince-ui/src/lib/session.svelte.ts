@@ -1,5 +1,5 @@
 import { getCompany } from '@tabletop/18xx'
-import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
+import { createEighteenXXSessionClass, type MapLocationChoice } from '@tabletop/18xx-ui'
 import { type GameSession } from '@tabletop/frontend-components'
 import type { HydratedTheOldPrinceState, TheOldPrinceState } from '@tabletop/the-old-prince'
 import { TheOldPrinceTitleRules, theOldPrinceRole } from '@tabletop/the-old-prince'
@@ -100,6 +100,40 @@ export class TheOldPrinceSession extends BaseSession {
             : undefined
     })
     latestSplit = $derived(this.actions.filter(isSplitCompany).at(-1))
+    /** The parent's stations that can move between parent and branch. */
+    splitMovableStations = $derived(
+        this.splitSelection.allocation
+            ? (this.splitPreview?.details?.stations ?? [])
+                  .filter((entry) => !entry.protectedHome)
+                  .map((entry) => entry.station)
+            : []
+    )
+    override get mapLocationChoice(): MapLocationChoice | undefined {
+        const stations = this.splitMovableStations
+        if (!stations.length) return super.mapLocationChoice
+        return {
+            locationIds: stations.map((station) => station.position.locationId),
+            choose: (locationId) => {
+                const station = stations.find(
+                    (candidate) => candidate.position.locationId === locationId
+                )
+                assert(station, 'Choose a transferable station')
+                this.transferSplitStation(station.id)
+            }
+        }
+    }
+    protected override get mapDisplayState() {
+        const state = super.mapDisplayState
+        const branchId = this.splitPreview?.details?.request.branchId
+        const stationIds = this.splitSelection.allocation?.value.stationIds
+        if (!branchId || !stationIds?.length) return state
+        return {
+            ...state,
+            stations: state.stations.map((station) =>
+                stationIds.includes(station.id) ? { ...station, companyId: branchId } : station
+            )
+        }
+    }
     setSplitAllocation(allocation: BranchSplitAllocation) {
         assert(this.canPreviewSplit && this.splitSelection.allocation, 'Choose a split price first')
         this.splitStages = chooseSplitAllocation(this.splitStages, allocation)

@@ -44,8 +44,12 @@ closes any open stock menu. The split panel then replaces the operating content.
   together with the allocation of stations, branch home, trains, cash, and Hunslet.
   The allocation starts from an empty default rather than requiring a button press.
   Selecting a single available station does not choose the branch home.
-- Station entries can focus their location on the map. The map stays canonical and
-  shows no branch stations until the split is committed.
+- Station entries can focus their location on the map. During the allocation the map
+  masks every hex except the parent's movable stations and frames them; choosing one
+  moves that station between parent and branch, and a line above the allocation says
+  so. The protected home is not offered. Stations allocated to the branch show the
+  branch's token on the map. This is a local preview: the canonical map returns when
+  the selection clears, and the split happens only when it is committed.
 - Confirm split is enabled only when the title model that validates the action
   accepts the complete allocation. It sends one action through the session. No
   intermediate authoritative split exists.
@@ -123,6 +127,9 @@ These change shared presentation without adding interaction:
   available, and only Undo changes the position.
 - **Map focus from a lot or a split station and the shared map focus rules.** These
   use the shared focus operation and follow its precedence. They create no action.
+- **Split station choice and map inspection.** While the allocation offers stations on
+  the map, choosing an offered hex moves its station instead of inspecting it; other
+  hexes inspect as usual.
 
 ## Shared visual state
 
@@ -132,10 +139,12 @@ These change shared presentation without adding interaction:
   the parent, the branch, the starting price, and the allocation.
 - **Producer and consumers.** The title session produces it. The table decides
   whether to show the split panel from it, the split preview and allocation panels
-  render it, and the stock action strip marks Split as selected from it.
+  render it, the stock action strip marks Split as selected from it, and the map
+  offers the movable stations and draws the allocated stations with the branch token.
 - **Allowed effects.** It may show the split panel, mark the strip's Split segment,
-  and enable Confirm split. It must not change the map, portfolios, market, or any
-  canonical value.
+  enable Confirm split, and preview the allocation on the map: mask and frame the
+  movable stations and draw allocated stations with the branch token. It must not
+  change portfolios, market, or any canonical value.
 - **Stage sources.** The action, parent, branch, and price stages are manual. The
   allocation is created automatically with an empty default when a price is chosen,
   and becomes manual once the player edits it.
