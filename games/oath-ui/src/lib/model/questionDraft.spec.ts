@@ -35,8 +35,21 @@ async function asked(
 ) {
     const state = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, relicIds, ...seats.me }),
-            testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'c1', favor: 2, ...seats.ann }),
+            testPlayer({
+                playerId: ME,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                relicIds,
+                ...seats.me
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 2,
+                ...seats.ann
+            }),
             testPlayer({ playerId: 'bo', color: Color.Yellow, siteId: 'c1', favor: 2 })
         ],
         {
@@ -131,7 +144,10 @@ describe('the question draft builds each answer', () => {
         draft.tapStack(DRAWN[0])
         expect(draft.stackComplete).toBe(true)
         await draft.stack()
-        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.OrderDrawnCards, order: [2, 0, 1] })
+        expect(sent).toHaveBeenCalledWith({
+            kind: PowerQuestionKind.OrderDrawnCards,
+            order: [2, 0, 1]
+        })
     })
 
     it('a proposal carries the partner and the terms; passing carries neither', async () => {
@@ -169,9 +185,15 @@ describe('the question draft builds each answer', () => {
         draft.setBurn(2)
         expect(draft.acceptComplete).toBe(true)
         await draft.accept()
-        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BurnFavorForSecrets, favor: 2 })
+        expect(sent).toHaveBeenLastCalledWith({
+            kind: PowerQuestionKind.BurnFavorForSecrets,
+            favor: 2
+        })
         await draft.decline()
-        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BurnFavorForSecrets, favor: 0 })
+        expect(sent).toHaveBeenLastCalledWith({
+            kind: PowerQuestionKind.BurnFavorForSecrets,
+            favor: 0
+        })
     })
 
     it('burning: a count of 0 (a tap on the favor at the count) picks none again, and "Burn" waits', async () => {
@@ -189,12 +211,26 @@ describe('the question draft builds each answer', () => {
 
     it('Fae Merchant — offers every held relic but the Grand Scepter, and the drawn one unnamed', async () => {
         const CUP = 'relic.cup-of-plenty'
-        const { draft, sent } = await asked({ kind: PowerQuestionKind.BottomRelic, cardId: 'denizen.beast.fae-merchant', askedPlayerId: ME, relicCardId: 'relic.map' }, [CUP, 'relic.grand-scepter'])
+        const { draft, sent } = await asked(
+            {
+                kind: PowerQuestionKind.BottomRelic,
+                cardId: 'denizen.beast.fae-merchant',
+                askedPlayerId: ME,
+                relicCardId: 'relic.map'
+            },
+            [CUP, 'relic.grand-scepter']
+        )
         expect(draft.heldRelicsToBottom).toEqual([CUP])
         await draft.putOnBottom(CUP)
-        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BottomRelic, heldRelicCardId: CUP })
+        expect(sent).toHaveBeenLastCalledWith({
+            kind: PowerQuestionKind.BottomRelic,
+            heldRelicCardId: CUP
+        })
         await draft.putOnBottom()
-        expect(sent).toHaveBeenLastCalledWith({ kind: PowerQuestionKind.BottomRelic, heldRelicCardId: undefined })
+        expect(sent).toHaveBeenLastCalledWith({
+            kind: PowerQuestionKind.BottomRelic,
+            heldRelicCardId: undefined
+        })
     })
 })
 
@@ -231,7 +267,8 @@ describe('a yes answer waits for its picks, and is refused only once complete', 
         expect(draft.visionDiscards).toEqual(HELD)
         expect(draft.visionPlays).not.toContain(SearchPlay.Adviser)
         expect(draft.visionPlays).toContain(SearchPlay.Discard)
-        for (const play of draft.visionPlays) expect(draft.visionBlockedBecause(play)).toBeUndefined()
+        for (const play of draft.visionPlays)
+            expect(draft.visionBlockedBecause(play)).toBeUndefined()
 
         draft.chooseVisionDiscard(HELD[1])
         expect(draft.visionPlays).toContain(SearchPlay.Adviser)
@@ -283,17 +320,32 @@ describe('Inquisitor — the Conspiracy: three answers, each pick after the answ
         holderPlayerId: 'ann',
         index: 0
     }
-    const answer = (fields: { play: boolean; facedown?: true; discardedAdviserCardId?: string; conspiracy?: ConspiracyPlay }): QuestionAnswer => ({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, ...fields })
+    const answer = (fields: {
+        play: boolean
+        facedown?: true
+        discardedAdviserCardId?: string
+        conspiracy?: ConspiracyPlay
+    }): QuestionAnswer => ({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, ...fields })
     async function found(advisers: string[], ann: Seat = {}) {
         return await asked(inquisitor, [], {
             me: { secrets: 2, advisers: advisers.map(faceup) },
-            ann: { advisers: [{ cardId: 'vision.conspiracy', faceUp: false }, faceup('denizen.arcane.alchemist')], ...ann }
+            ann: {
+                advisers: [
+                    { cardId: 'vision.conspiracy', faceUp: false },
+                    faceup('denizen.arcane.alchemist')
+                ],
+                ...ann
+            }
         })
     }
 
     it('offers "Adviser, facedown", "Play it" and "Discard", in the Search\'s order; "Discard" sends at once', async () => {
         const { draft, sent } = await found(ARCANE)
-        expect(draft.conspiracyPlays).toEqual([SearchPlay.Adviser, SearchPlay.Conspiracy, SearchPlay.Discard])
+        expect(draft.conspiracyPlays).toEqual([
+            SearchPlay.Adviser,
+            SearchPlay.Conspiracy,
+            SearchPlay.Discard
+        ])
         expect(draft.conspiracyStep).toBeUndefined()
         await draft.chooseConspiracyPlay(SearchPlay.Discard)
         expect(sent).toHaveBeenLastCalledWith(answer({ play: false }))
@@ -358,7 +410,12 @@ describe('Inquisitor — the Conspiracy: three answers, each pick after the answ
         expect(draft.conspiracyStepComplete).toBe(true)
         expect(draft.conspiracyRefusedBecause).toBeUndefined()
         await draft.playConspiracy()
-        expect(sent).toHaveBeenLastCalledWith(answer({ play: true, conspiracy: { targetPlayerId: 'ann', take: { kind: 'relic', cardId: RING } } }))
+        expect(sent).toHaveBeenLastCalledWith(
+            answer({
+                play: true,
+                conspiracy: { targetPlayerId: 'ann', take: { kind: 'relic', cardId: RING } }
+            })
+        )
 
         await session.undo()
         await session.undo()
@@ -380,7 +437,9 @@ describe('Inquisitor — the Conspiracy: three answers, each pick after the answ
         expect(draft.conspiracyStepComplete).toBe(true)
         expect(draft.conspiracyRefusedBecause).toBeUndefined()
         await draft.playConspiracy()
-        expect(sent).toHaveBeenLastCalledWith(answer({ play: true, facedown: true, discardedAdviserCardId: FULL[1] }))
+        expect(sent).toHaveBeenLastCalledWith(
+            answer({ play: true, facedown: true, discardedAdviserCardId: FULL[1] })
+        )
 
         await session.undo()
         expect(draft.conspiracyDiscard).toBeUndefined()
@@ -392,7 +451,12 @@ describe('Inquisitor — the Conspiracy: three answers, each pick after the answ
     it('a play the engine refuses is not offered: Gossip hides "Adviser, facedown"', async () => {
         const { draft } = await asked(inquisitor, [], {
             me: { advisers: ARCANE.map(faceup) },
-            ann: { advisers: [{ cardId: 'vision.conspiracy', faceUp: false }, faceup('denizen.discord.gossip')] }
+            ann: {
+                advisers: [
+                    { cardId: 'vision.conspiracy', faceUp: false },
+                    faceup('denizen.discord.gossip')
+                ]
+            }
         })
         expect(draft.conspiracyPlays).toEqual([SearchPlay.Conspiracy, SearchPlay.Discard])
     })
@@ -411,7 +475,10 @@ describe('Law Glossary "Discard" — ordering cards that leave play for one pile
         draft.tapStack(DRAWN[2])
         draft.tapStack(DRAWN[0])
         await draft.stack()
-        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.OrderDiscards, order: [2, 0, 1] })
+        expect(sent).toHaveBeenCalledWith({
+            kind: PowerQuestionKind.OrderDiscards,
+            order: [2, 0, 1]
+        })
     })
 })
 
@@ -448,7 +515,10 @@ describe('discarding down to the adviser limit after a swap', () => {
         expect(draft.adviserDiscards).toEqual([DRAWN[2]])
         expect(draft.adviserDiscardsComplete).toBe(true)
         await draft.discardAdvisers()
-        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.DiscardAdvisers, discardedAdviserCardIds: [DRAWN[2]] })
+        expect(sent).toHaveBeenCalledWith({
+            kind: PowerQuestionKind.DiscardAdvisers,
+            discardedAdviserCardIds: [DRAWN[2]]
+        })
     })
 
     it('a tap on the pick takes it back, and Undo has nothing more to take', async () => {
@@ -472,7 +542,9 @@ describe('discarding down to the adviser limit after a swap', () => {
         const ELDERS = 'denizen.nomad.elders'
         const STEED = 'denizen.nomad.a-fast-steed'
         const SCOUTS = 'denizen.order.scouts'
-        const { draft, sent } = await over([WAGON, FALSE_PROPHET, ELDERS, STEED, SCOUTS], 2, [SCOUTS])
+        const { draft, sent } = await over([WAGON, FALSE_PROPHET, ELDERS, STEED, SCOUTS], 2, [
+            SCOUTS
+        ])
         expect(draft.adviserDiscardCount).toBe(2)
         expect(draft.adviserDiscardChoices).toEqual([WAGON])
         draft.toggleAdviserDiscard(ELDERS)
@@ -490,7 +562,10 @@ describe('discarding down to the adviser limit after a swap', () => {
         draft.toggleAdviserDiscard(WAGON)
         draft.toggleAdviserDiscard(STEED)
         await draft.discardAdvisers()
-        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.DiscardAdvisers, discardedAdviserCardIds: [WAGON, STEED] })
+        expect(sent).toHaveBeenCalledWith({
+            kind: PowerQuestionKind.DiscardAdvisers,
+            discardedAdviserCardIds: [WAGON, STEED]
+        })
     })
 })
 
@@ -506,7 +581,9 @@ describe('a free action out of turn', () => {
     })
 
     it('the yes opens the Travel menu for the holder; Undo goes back to the question; Skip sends the skip', async () => {
-        const { session, draft, sent } = await asked(freeAction(ActionType.Travel), [], { me: { supply: 7 } })
+        const { session, draft, sent } = await asked(freeAction(ActionType.Travel), [], {
+            me: { supply: 7 }
+        })
         expect(draft.acceptComplete).toBe(true)
         expect(draft.acceptRefusedBecause).toBeUndefined()
         await draft.accept()
@@ -518,11 +595,16 @@ describe('a free action out of turn', () => {
         await session.undo()
         expect(session.travelOutOfTurnOpen).toBe(false)
         await draft.decline()
-        expect(sent).toHaveBeenCalledWith({ kind: PowerQuestionKind.FreeActionOutOfTurn, take: false })
+        expect(sent).toHaveBeenCalledWith({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            take: false
+        })
     })
 
     it('the yes opens the declare for the holder', async () => {
-        const { session, draft } = await asked(freeAction(ActionType.Campaign), [], { me: { supply: 7 } })
+        const { session, draft } = await asked(freeAction(ActionType.Campaign), [], {
+            me: { supply: 7 }
+        })
         await draft.accept()
         expect(session.selection.action).toBe(ActionType.Campaign)
         expect(session.campaign.open).toBe(true)
@@ -532,7 +614,13 @@ describe('a free action out of turn', () => {
         const { draft } = await asked(
             freeAction(ActionType.Travel),
             [],
-            { me: { supply: 7, advisers: [{ cardId: VOW_OF_UNION, faceUp: true }], warbandsOnBoard: { [ME]: 2 } } },
+            {
+                me: {
+                    supply: 7,
+                    advisers: [{ cardId: VOW_OF_UNION, faceUp: true }],
+                    warbandsOnBoard: { [ME]: 2 }
+                }
+            },
             { c1: { [ME]: 1 } }
         )
         expect(draft.acceptComplete).toBe(false)

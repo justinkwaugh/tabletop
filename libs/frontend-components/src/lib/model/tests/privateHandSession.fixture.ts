@@ -187,7 +187,9 @@ function client(
     const chatService = new HarnessChatService()
     class Notifications extends DummyNotificationService {
         readonly synchronizesOnSubscribe = options.modernNotifications ?? false
-        isUserChannelReady() { return false }
+        isUserChannelReady() {
+            return false
+        }
     }
     const notifications = new Notifications()
     const api = new Remote(host, perspective)
@@ -1019,10 +1021,18 @@ export async function runDeferredHistory(
 
 export async function mountHistoryControls() {
     const { mount } = await import('svelte')
-    const { default: Fixture } = await import('../../components/tests/HistoryControls.fixture.svelte')
+    const { default: Fixture } =
+        await import('../../components/tests/HistoryControls.fixture.svelte')
     const pending = Promise.withResolvers<void>()
     const host = new PrivateHandHost()
-    host.apply({ id: "history-controls-draw", gameId: host.game.id, source: ActionSource.User, playerId: "p1", type: "draw", revealsInfo: true })
+    host.apply({
+        id: 'history-controls-draw',
+        gameId: host.game.id,
+        source: ActionSource.User,
+        playerId: 'p1',
+        type: 'draw',
+        revealsInfo: true
+    })
     const c = client(host, p1, undefined, {
         historyComplete: false,
         pendingHistory: pending.promise
@@ -1033,18 +1043,41 @@ export async function mountHistoryControls() {
     })
 }
 
+export async function mountTableLayout() {
+    const { mount } = await import('svelte')
+    await import('../../components/tests/tableLayout.fixture.css')
+    const { default: Fixture } = await import('../../components/tests/TableLayout.fixture.svelte')
+    mount(Fixture, {
+        target: document.body,
+        props: { session: client(new PrivateHandHost(), p1).session }
+    })
+}
+
 export async function verifyHistoryDuringSynchronization() {
     const host = new PrivateHandHost()
-    host.apply({ id: 'history-sync-draw', gameId: host.game.id, source: ActionSource.User, playerId: 'p1', type: 'draw', revealsInfo: true })
+    host.apply({
+        id: 'history-sync-draw',
+        gameId: host.game.id,
+        source: ActionSource.User,
+        playerId: 'p1',
+        type: 'draw',
+        revealsInfo: true
+    })
     const c = client(host)
     try {
         await settle(c.session)
         for (let index = 0; index < 2; index++) {
             const pending = Promise.withResolvers<void>()
             c.api.pendingSync = pending.promise
-            const sync = c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+            const sync = c.notifications.emit({
+                eventType: NotificationEventType.Discontinuity,
+                channel: NotificationChannel.User
+            })
             await tick()
-            assert(!c.session.history.isDisabled(), 'A read-only sync check disabled history navigation')
+            assert(
+                !c.session.history.isDisabled(),
+                'A read-only sync check disabled history navigation'
+            )
             await c.session.history.goToBeginning()
             await settle(c.session)
             assert(c.session.isViewingHistory, 'History navigation was blocked during a sync check')
@@ -1058,7 +1091,10 @@ export async function verifyHistoryDuringSynchronization() {
         const replacement = Promise.withResolvers<void>()
         c.api.pendingHistory = replacement.promise
         c.api.failSync = true
-        const recovering = c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+        const recovering = c.notifications.emit({
+            eventType: NotificationEventType.Discontinuity,
+            channel: NotificationChannel.User
+        })
         await settle(c.session)
         assert(c.session.history.isDisabled(), 'History stayed enabled during state replacement')
         replacement.resolve()
@@ -1079,10 +1115,19 @@ export async function verifySubscribedStartup() {
         await new Promise((resolve) => setTimeout(resolve, 20))
         assert(c.api.syncChecks === 0, 'Startup checked sync before subscription')
         for (let count = 1; count <= 2; count++) {
-            await c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
-            await c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.GameInstance })
+            await c.notifications.emit({
+                eventType: NotificationEventType.Discontinuity,
+                channel: NotificationChannel.User
+            })
+            await c.notifications.emit({
+                eventType: NotificationEventType.Discontinuity,
+                channel: NotificationChannel.GameInstance
+            })
             await settle(c.session)
-            assert(Number(c.api.syncChecks) === count, 'Subscription performed duplicate sync checks')
+            assert(
+                Number(c.api.syncChecks) === count,
+                'Subscription performed duplicate sync checks'
+            )
         }
         return true
     } finally {
@@ -1092,21 +1137,43 @@ export async function verifySubscribedStartup() {
 
 export async function verifyHistoryArrivingDuringResumedSynchronization() {
     const host = new PrivateHandHost()
-    host.apply({ id: 'resumed-sync-draw', gameId: host.game.id, source: ActionSource.User, playerId: 'p1', type: 'draw', revealsInfo: true })
+    host.apply({
+        id: 'resumed-sync-draw',
+        gameId: host.game.id,
+        source: ActionSource.User,
+        playerId: 'p1',
+        type: 'draw',
+        revealsInfo: true
+    })
     const history = Promise.withResolvers<void>()
-    const c = client(host, p1, undefined, { historyComplete: false, pendingHistory: history.promise })
+    const c = client(host, p1, undefined, {
+        historyComplete: false,
+        pendingHistory: history.promise
+    })
     try {
         await settle(c.session)
         assert(!c.session.hasCompleteHistory, 'History was complete before loading')
         const animation = Promise.withResolvers<void>()
         c.session.animationHold = animation.promise
-        const delivered = c.notify(host.apply({ id: 'resumed-sync-second-draw', gameId: host.game.id, source: ActionSource.User, playerId: 'p2', type: 'draw', revealsInfo: true }))
+        const delivered = c.notify(
+            host.apply({
+                id: 'resumed-sync-second-draw',
+                gameId: host.game.id,
+                source: ActionSource.User,
+                playerId: 'p2',
+                type: 'draw',
+                revealsInfo: true
+            })
+        )
         await tick()
         assert(c.session.busy, 'The delivered action did not keep the session busy')
         const sync = Promise.withResolvers<void>()
         c.api.pendingSync = sync.promise
         const checksBefore = c.api.syncChecks
-        const queued = c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+        const queued = c.notifications.emit({
+            eventType: NotificationEventType.Discontinuity,
+            channel: NotificationChannel.User
+        })
         await tick()
         assert(c.api.syncChecks === checksBefore, 'The sync check ran while the session was busy')
         animation.resolve()
@@ -1119,13 +1186,15 @@ export async function verifyHistoryArrivingDuringResumedSynchronization() {
         sync.resolve()
         await queued
         await settle(c.session)
-        assert(c.session.hasCompleteHistory, 'History loaded during a resumed sync check was never applied')
+        assert(
+            c.session.hasCompleteHistory,
+            'History loaded during a resumed sync check was never applied'
+        )
         return true
     } finally {
         c.dispose()
     }
 }
-
 
 function holdAnimation(session: PrivateHandSession) {
     let release!: () => void
@@ -1152,7 +1221,11 @@ export async function runCorrectionDuringAnimation() {
             const response = await apply(game, action)
             const accepted = response.actions.at(-1)
             assertExists(accepted?.forwardPatch, 'Expected authoritative forward patch')
-            accepted.forwardPatch.push({ op: 'replace', path: '/table/0/rank', value: correctedRank })
+            accepted.forwardPatch.push({
+                op: 'replace',
+                path: '/table/0/rank',
+                value: correctedRank
+            })
             c.session.animationHold = undefined
             return response
         }

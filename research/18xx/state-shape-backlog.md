@@ -83,6 +83,8 @@ mechanism below, plus the six implemented titles.
 1. **1846 uses shared state composition.** Replace its hand-written schema and hydrated
    class with `composeEighteenXXState` and `defineEighteenXXState`, keeping its own
    runtime, handlers and visibility projector, and add its runtime-contract snapshot.
+   (Superseded on 2026-10-19: 1846 now runs on the shared runtime; see
+   [title-owned state](title-state-design.md).)
    Later changes then land once for all titles. The family validation splits into
    `validateRailwayComponents` (map stations, depot, stations, market, finances), which
    every title runs, and the operating-sequence checks of `validateRailwayState`. 1846
@@ -97,7 +99,7 @@ mechanism below, plus the six implemented titles.
    `StockMarketChart` (its spaces, colours and move graph), carried on `StockRules.market`
    and in `TitleComponents`, so hydration validates the stacks against it. Chart methods
    read spaces, moves, company positions and market order and validate a placement;
-   `placeStockMarker` and `restoreStockMarker` stay chart-free for recorded moves whose
+   `placeStockMarker` stays chart-free for recorded moves whose
    spaces the chart already produced. Family helpers that need prices or order take the
    chart; the UI reads it from the session (`stockMarketChart`), title UIs from their
    title. Movement remains the chart's graph, which title rules may bypass (1832's sale
@@ -206,7 +208,7 @@ worth their cost for now:
 The 2026-10-10 audit of all six titles' States also found these, left for now:
 
 - **Finished opening-auction records** (`offerAuction`, `openingAuction`,
-  `selectionAuction`; 1846's `draft` and `purchases`), 0.4–0.9 KB kept for the rest of
+  `selectionAuction`; 1846's `draft` and `purchases`, since removed, see below), 0.4–0.9 KB kept for the rest of
   the game. Deleting the record at completion is the right model, but `completed` is
   read in about sixty places, and the history panel reads TOP's awards and tells an offer
   auction apart from the finished record in current State. It needs `completed` removed
@@ -221,8 +223,8 @@ The 2026-10-10 audit of all six titles' States also found these, left for now:
   without piece ids** (1.2–3.3 KB), and **zero cash rows**. Each changes a shared
   component's interface for a small saving.
 - **TOP's ownership-limit exemptions that no longer apply** (0.6 KB), and stale setup
-  records: `companyStarts`, 1817's `seedMoney`, 1846's `independentAcquisitions` and
-  `removedCorporationIds` (the UI reads the last to draw the removed corporations'
+  records: `companyStarts`, 1817's `seedMoney`, 1846's `independentAcquisitions` (since made
+  turn-scoped, see below) and `removedCorporationIds` (the UI reads the last to draw the removed corporations'
   blocking tokens).
 - **Step records kept after their step** (`routeStep.result` mid-turn,
   `earningsDistribution`): history and the UI read the latest result from State.
@@ -281,6 +283,60 @@ board, which is right for TOP. `shareCount`, `privateRevenue` and `depotId` stay
 fields: an old TOP State's stored values equal its charters and depot, so they read as
 play-recorded values with the same meaning. States written by this logic lack fields the
 previous TOP logic requires, so a TOP release of it is a Logic major.
+
+## 1846 before its first release (2026-10-20)
+
+The readiness review of 1846 reported these; 1846 has no stored games, so its own shapes
+change freely.
+
+- **The finished opening leaves State.** The hidden draft and the two-player opening delete
+  `draft` and `purchases` when they end; the reveal's `RevealDraft` metadata and the
+  two-player purchases' metadata already record what was bought. The finished public stage
+  `complete` is gone: an absent draft means the opening is over.
+- **The acquired independent's train bar is turn-scoped.** `independentAcquisitions` kept
+  every purchase with its set and round for the rest of the game. It is now
+  `acquiredTrainIds`, the trains bought with an independent in the current turn (§6.93: they
+  cannot run in the round of purchase, and the buyer does not operate again that round),
+  cleared when the next operating turn, operating round or stock round starts.
+- **A funding sale record is strict.** `trainFunding.sales[]` rejects unknown fields; every
+  stored record holds only declared ones.
+
+## 1832 before its first release (2026-10-20)
+
+The readiness review of 1832 reported these; 1832 has no stored games, so its own shapes
+change freely.
+
+- **Merger proposers take turns through the turn manager.** `mergerPhase.playerIds` and
+  `index` copied the turn order and counted through it by position. Each proposer now has a
+  turn in the series, in priority order; a partner's answer falls within the proposer's
+  turn, which ends when they pass or have nothing left to propose.
+- **Price protection keeps only what it reads.** It returns to its machine state and
+  re-derives who acts (the stock round's turn, the merger phase's next decision or the
+  operating company's operators) instead of storing a copy of `activePlayerIds`, records
+  only `lastProtectorId`, and a protectable sale drops its unread `fromStackIndex`.
+- **Turn and round records clear when they end.** The WVCF purchase (`coalTokenBought`)
+  and the Key West placement (`keyWestPlaced`) clear as the next operating turn or round
+  starts, as 1846's acquired-train bar does. Redemption refusals clear as the stock turn
+  finishes; `redemptions` and `lockedProceeds` hold counts and amounts for the current stock
+  round and clear as it completes; `mergerPhaseHeld` clears as the operating set begins; a
+  returned station leaves `returnedStationIds` once placed again. Revenue tokens no longer
+  record the round they were placed in.
+- **Expired tokens and private records leave at the phase change.** 1832's
+  `PhaseRules.changes` removes the Port and Cotton tokens at phase 6 and the Key West token
+  at 8, recording them in the phase Action, and clears `londonCompanyId` and `miamiRun` at
+  phase 5, when the privates close and Miami pays in full.
+- **`mergers` is replaced by what the rules read**: `takeoverBuyerIds` (a company bought in
+  a takeover closes, so only buyers can be barred from another) and `keyWestCompanyId`, the
+  holder of the FEC's Key West right once the FEC has merged away. History reads the merger
+  Actions' outcomes.
+- **The 60% excess is derived.** 1832's ownership limit for a player is the larger of the
+  zone's limit and what they hold, so a protected or merged excess is kept until they sell
+  but cannot grow; 1832 no longer composes `ownershipLimitExemptions`.
+
+Still open, for the owner: **`companies[].president`** repeats the president certificate's
+owner. Receivership deletes it while the certificate is in the market, and presidency
+changes write both. Deriving it from the certificate touches every reader across the family
+and changes stored TOP, 1889 and 1830 States; keeping it needs a recorded reason here.
 
 ## Not a change
 

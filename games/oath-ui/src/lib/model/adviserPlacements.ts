@@ -11,12 +11,14 @@ import {
     offeredChoices,
     playShowsCard,
     runAfter,
+    sitePlayGain,
     usableModifiers,
     type ActiveModifier,
     type CardPower,
     type LegalChoice,
     type ModifierUse,
-    type Region
+    type Region,
+    type SitePlayGain
 } from '@tabletop/oath'
 import { adviserRoom, type AdviserRoom } from './adviserDiscards.js'
 import {
@@ -72,6 +74,8 @@ export type AdviserPlacement = {
     /** R-7.6.4 — a limiter turned faceup may put its holder over the limit. */
     room: AdviserRoom
     cards: FacedownPlayCards
+    /** R-5.1.4.I, R-11.2 — "To your site" only: what the play gains there, as the engine plans it. */
+    gain?: SitePlayGain
 }
 
 /** The card's own part of the play, without the mandatory modifiers the engine adds by itself. */
@@ -358,6 +362,17 @@ export function adviserPlacements(
                     cards.placing,
                     carried
                 ).length > 0)
-        return refused === undefined || openElsewhere ? [{ ...option, room, cards }] : []
+        if (refused !== undefined && !openElsewhere) return []
+        const gain =
+            option.play === SearchPlay.Site
+                ? sitePlayGain(
+                      HydratedPlayFacedownAdviser.playMapChanges(state, playerId, {
+                          cardId,
+                          play: option.play,
+                          modifiers: carried
+                      })
+                  )
+                : undefined
+        return [{ ...option, room, cards, ...(gain ? { gain } : {}) }]
     })
 }

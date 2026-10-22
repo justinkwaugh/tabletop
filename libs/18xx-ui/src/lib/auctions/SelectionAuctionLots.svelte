@@ -34,7 +34,7 @@
 
 {#snippet slotContent(lot: (typeof lots)[number], open: boolean)}
     <span class="slot-heading"
-        ><span class="slot-name">{lot.name}</span>
+        ><span class="slot-name">{session.lotName(lot)}</span>
         <span class="slot-value">{money(lot.price)}</span></span
     >
     {#if open && lot.company.description}<span class="power slot-power"
@@ -53,14 +53,14 @@
                                 <button
                                     class="slot"
                                     class:selected={selected?.id === lot.id}
-                                    aria-label={`Auction ${lot.name}`}
+                                    aria-label={`Auction ${session.lotName(lot)}`}
                                     aria-pressed={selected?.id === lot.id}
                                     title={lot.company.description}
                                     disabled={!auction.canNominate(
                                         lot.id,
                                         model.minimumBid(lot.id)
                                     )}
-                                    onclick={() => auction.select(lot.id)}
+                                    onclick={() => auction.toggle(lot.id)}
                                 >
                                     {@render slotContent(lot, tier.open)}
                                 </button>
@@ -94,21 +94,20 @@
                             {#if auction.ownTurn}<td class="action">
                                     <button
                                         data-description-exclude
-                                        aria-label={`Auction ${lot.name}`}
+                                        aria-label={`Auction ${session.lotName(lot)}`}
                                         aria-pressed={selected?.id === lot.id}
                                         disabled={!auction.canNominate(
                                             lot.id,
                                             model.minimumBid(lot.id)
                                         )}
-                                        onclick={() => auction.select(lot.id)}>Auction</button
+                                        onclick={() => auction.toggle(lot.id)}>Auction</button
                                     >
                                 </td>{/if}
                             <th scope="row"
                                 ><div class="identity">
                                     {#if lot.token}<CompanyToken appearance={lot.token} size={26} />
                                     {:else}<span class="private-icon" aria-hidden="true"
-                                            >{session.presentation.companyNames?.[lot.id]
-                                                ?.initials ?? lot.id}</span
+                                            >{session.lotInitials(lot)}</span
                                         >{/if}
                                     <span class="lot-name">
                                         <PrivateDescription
@@ -116,7 +115,8 @@
                                             phaseColors={session.presentation.phaseColors}
                                             token={lot.token}
                                             imageUrl={session.publishedCardImage(lot.id)}
-                                            name={lot.name}
+                                            shortName={session.lotName(lot)}
+                                            fullName={lot.name}
                                             description={lot.company.description}
                                             value={lot.price}
                                             income={lot.company.revenue}
@@ -144,7 +144,7 @@
                 </div>
                 {#if selected && auction.selection}
                     <div class="summary">
-                        <span>Auction <strong>{selected.name}</strong></span>
+                        <span>Auction <strong>{session.lotName(selected)}</strong></span>
                         {#if tiers && selected.company.description}<span class="power full"
                                 >{selected.company.description}</span
                             >{/if}
@@ -162,11 +162,8 @@
                             selected.id,
                             auction.selection.amount + model.rules.increment
                         )}
-                        canPass={auction.canAct}
-                        passLabel="Back"
                         onChange={(amount) => auction.setBid(amount)}
                         onBid={() => auction.nominate()}
-                        onPass={() => auction.choice.clear()}
                     />
                 {:else if auction.ownTurn && auction.passOffered}
                     <button

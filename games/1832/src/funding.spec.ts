@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { EmergencyTrainFunding, cashOwnedBy, type FundingChoice } from '@tabletop/18xx'
+import { assert, assertExists } from '@tabletop/common'
+import {
+    EmergencyTrainFunding,
+    cashOwnedBy,
+    getCompany,
+    isFundTrain,
+    trainsOwnedBy,
+    type FundingChoice
+} from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     EighteenThirtyTwoPhases,
     EighteenThirtyTwoStockRules,
+    EighteenThirtyTwoTrainDepot,
     EighteenThirtyTwoTrainFundingRules,
-    EighteenThirtyTwoTrainRules
+    EighteenThirtyTwoTrainRules,
+    formSystem
 } from './index.js'
 import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
 
@@ -68,6 +78,8 @@ describe('compulsory train purchases', () => {
             kind: 'player',
             playerId: 'blair'
         })
+        // Compulsory funding records nothing, as before voluntary funding existed.
+        expect(play.processed.find(isFundTrain)?.metadata).toBeUndefined()
     })
 
     it('ends the game at once when the president cannot raise the price', () => {
@@ -75,6 +87,109 @@ describe('compulsory train purchases', () => {
         expect(play.state.bankruptcy).toBeDefined()
         expect(play.state.machineState).toBe('GameOver')
         expect(play.state.result).toBeDefined()
+    })
+})
+
+describe('voluntary System train purchases', () => {
+    const amtk = { kind: 'company' as const, companyId: 'AMTK' }
+
+    // AMTK buys trains in phase 4, where a shell holds three, from the last two 4-trains.
+    function systemBuyingTrains(trains: number, treasury: number, presidentCash: number) {
+        const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3)
+        const state = structuredClone(play.state)
+        state.phaseId = '4'
+        formSystem(state, ['ACL', 'CG'], 'blair')
+        const president = getCompany(state, 'AMTK').president
+        assertExists(president, 'AMTK has a president')
+        assertExists(state.operatingSet, 'The example is operating')
+        state.operatingSet.companyOrder = ['AMTK']
+        state.trainPurchaseStep = { companyId: 'AMTK', purchasedTrainIds: [] }
+        for (let count = 0; count < trains; count++) {
+            const train = EighteenThirtyTwoTrainDepot.nextTrain(state.trainInventory, '4')
+            assertExists(train, 'The example requires a 4-train')
+            EighteenThirtyTwoTrainDepot.purchase(state.trainInventory, train.id, '4', amtk)
+        }
+        for (const cash of state.cash) {
+            if (cash.owner.kind === 'company' && cash.owner.companyId === 'AMTK')
+                cash.amount = treasury
+            if (president.kind === 'player' && cash.owner.kind === 'player')
+                cash.amount = cash.owner.playerId === president.playerId ? presidentCash : 0
+        }
+        state.activePlayerIds = [president.kind === 'player' ? president.playerId : '']
+        play.replaceState(state)
+        return play
+    }
+
+    function fund(play: ExamplePlay) {
+        const purchase = funding(play).purchases()[0]
+        assertExists(purchase, 'The president may help')
+        play.act('FundTrain', {
+            companyId: purchase.companyId,
+            trainId: purchase.trainId,
+            definitionId: purchase.definitionId,
+            expectedPrice: purchase.price
+        })
+        for (let step = 0; play.state.trainFunding && step < 5; step++)
+            act(play, funding(play).next())
+    }
+
+    it('lets the president add cash for the cheapest train, with the whole treasury spent', () => {
+        const play = systemBuyingTrains(1, 100, 600)
+        const president = getCompany(play.state, 'AMTK').president!
+        assert(president.kind === 'player')
+        expect(play.valid(president.playerId)).toEqual(
+            expect.arrayContaining(['FundTrain', 'FinishOperatingTurn'])
+        )
+        expect(
+            funding(play)
+                .purchases()
+                .map((purchase) => purchase.price)
+        ).toEqual([300])
+        fund(play)
+        expect(play.state.machineState).toBe('BuyingTrains')
+        expect(trainsOwnedBy(play.state, amtk)).toHaveLength(2)
+        expect(cashOwnedBy(play.state, amtk)).toBe(0)
+        expect(cashOwnedBy(play.state, president)).toBe(400)
+        expect(play.processed.find(isFundTrain)?.metadata).toEqual({
+            voluntary: true
+        })
+    })
+
+    it('helps again while the System holds no more than one shell’s limit', () => {
+        const play = systemBuyingTrains(2, 100, 600)
+        fund(play)
+        expect(trainsOwnedBy(play.state, amtk)).toHaveLength(3)
+        fund(play)
+        expect(trainsOwnedBy(play.state, amtk)).toHaveLength(4)
+        expect(cashOwnedBy(play.state, getCompany(play.state, 'AMTK').president!)).toBe(100)
+    })
+
+    it('offers no help beyond one shell’s limit', () => {
+        expect(funding(systemBuyingTrains(4, 0, 1000)).purchases()).toEqual([])
+    })
+
+    it('offers no help when the System can pay alone', () => {
+        expect(funding(systemBuyingTrains(1, 300, 1000)).purchases()).toEqual([])
+    })
+
+    it('offers no help when the president’s cash falls short, as no shares may be sold', () => {
+        const play = systemBuyingTrains(1, 100, 199)
+        expect(funding(play).purchases()).toEqual([])
+        expect(play.valid(play.state.activePlayerIds[0])).not.toContain('FundTrain')
+    })
+
+    it('offers no help to a company that is not a System', () => {
+        const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3)
+        const state = structuredClone(play.state)
+        const train = EighteenThirtyTwoTrainDepot.nextTrain(state.trainInventory, '4')
+        assertExists(train, 'The example requires a 4-train')
+        EighteenThirtyTwoTrainDepot.purchase(state.trainInventory, train.id, '4', {
+            kind: 'company',
+            companyId: 'CG'
+        })
+        for (const cash of state.cash) if (cash.owner.kind === 'player') cash.amount = 1000
+        play.replaceState(state)
+        expect(funding(play).purchases()).toEqual([])
     })
 })
 

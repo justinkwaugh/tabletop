@@ -85,7 +85,8 @@
         tallOnPhone = false,
         tollAt = () => false,
         words = { tone: 'gold' },
-        siteOnMap = () => undefined
+        siteOnMap = () => undefined,
+        banks
     }: {
         choices: LegalChoice[]
         picks?: PowerChoicePicks
@@ -96,11 +97,16 @@
         words?: PickerWords
         /** A site spec picked on the lit map (Use a power): its row, read from the panel's draft. */
         siteOnMap?: (spec: number) => PowerSiteRow | undefined
+        /**
+         * R-7.3.3 — each favor bank as the picks are judged on it, when that is not the table's: a When Played
+         * power's, after the play's own gains. The map keeps the table's until the play is made.
+         */
+        banks?: Readonly<Record<Suit, number>>
     } = $props()
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
-    let favorBank = $derived(gameSession.gameState.favorBank)
+    let favorBank = $derived(banks ?? gameSession.gameState.favorBank)
 
     let countCeiling = $derived(openCountCeiling(gameSession.gameState, gameSession.myPlayer?.id))
     let grids = $derived(warbandGrids(choices))
@@ -244,6 +250,7 @@
             suits={offered}
             picked={suits}
             open={(suit) => open.includes(suit)}
+            counts={favorBank}
             onpick={(suit) => tapRunBank(run, suit)}
             {busy}
         />
@@ -422,9 +429,7 @@
                 <PlayerChips
                     label="With:"
                     playerIds={partners}
-                    picked={option?.kind === PowerChoiceKind.Exchange
-                        ? [option.withPlayerId]
-                        : []}
+                    picked={option?.kind === PowerChoiceKind.Exchange ? [option.withPlayerId] : []}
                     onpick={(playerId, wasPicked) =>
                         setOption(legal, i, wasPicked ? NO_OPTION : partners.indexOf(playerId))}
                     {busy}

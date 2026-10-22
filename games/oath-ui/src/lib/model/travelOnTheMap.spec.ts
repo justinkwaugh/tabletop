@@ -58,11 +58,19 @@ describe('the cost chip on a lit site (Choose a Travel destination)', () => {
     it('reads in words for a lit site’s accessible name: each way its Supply and tokens, "or" between two', () => {
         const words = (chip: ReturnType<typeof travelChip>) => (chip ? chipWords(chip) : undefined)
         expect(words(travelChip([way(2)]))).toBe('2 Supply')
-        expect(words(travelChip([way(2, { tolls: ['denizen.order.toll-roads'] })]))).toBe('2 Supply + 1 favor')
+        expect(words(travelChip([way(2, { tolls: ['denizen.order.toll-roads'] })]))).toBe(
+            '2 Supply + 1 favor'
+        )
         expect(
-            words(travelChip([way(2, { tolls: ['denizen.order.toll-roads', 'denizen.order.toll-roads'] })]))
+            words(
+                travelChip([
+                    way(2, { tolls: ['denizen.order.toll-roads', 'denizen.order.toll-roads'] })
+                ])
+            )
         ).toBe('2 Supply + 2 favor')
-        expect(words(travelChip([way(2), way(0, { flipSecret: true })]))).toBe('2 Supply or 0 Supply + 1 secret')
+        expect(words(travelChip([way(2), way(0, { flipSecret: true })]))).toBe(
+            '2 Supply or 0 Supply + 1 secret'
+        )
         expect(chipWords(woodChip(2, true))).toBe('2 Supply + 1 favor')
         expect(chipWords({ words: 'banish' })).toBe('banish')
     })
@@ -70,7 +78,11 @@ describe('the cost chip on a lit site (Choose a Travel destination)', () => {
 
 describe('the region a Travel on a phone opens on', () => {
     const regionOf = (slotId: string) =>
-        slotId.startsWith('c') ? Region.Cradle : slotId.startsWith('p') ? Region.Provinces : Region.Hinterland
+        slotId.startsWith('c')
+            ? Region.Cradle
+            : slotId.startsWith('p')
+              ? Region.Provinces
+              : Region.Hinterland
 
     it('counts the lit sites by region, in the board’s order, an empty region at 0', () => {
         expect(regionCounts(['p1', 'h2', 'p3'], regionOf)).toEqual([
@@ -87,8 +99,12 @@ describe('the region a Travel on a phone opens on', () => {
     })
 
     it('else on the first region in the board’s order that has one', () => {
-        expect(openingRegion(Region.Cradle, regionCounts(['h1', 'p1'], regionOf))).toBe(Region.Provinces)
-        expect(openingRegion(Region.Provinces, regionCounts(['h1'], regionOf))).toBe(Region.Hinterland)
+        expect(openingRegion(Region.Cradle, regionCounts(['h1', 'p1'], regionOf))).toBe(
+            Region.Provinces
+        )
+        expect(openingRegion(Region.Provinces, regionCounts(['h1'], regionOf))).toBe(
+            Region.Hinterland
+        )
         expect(openingRegion(undefined, regionCounts(['h1', 'c2'], regionOf))).toBe(Region.Cradle)
     })
 

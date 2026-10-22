@@ -6,7 +6,6 @@ import {
     HydratableAction,
     PlayerAction,
     assert,
-    assertExists,
     type HydratedAction
 } from '@tabletop/common'
 import {
@@ -15,14 +14,12 @@ import {
     nextOperatingCompany,
     privateOwningCompany,
     type MapStateData,
-    type OperatingSet,
     type RevenueCenter,
     type RouteRules,
     type StationPlacementState,
     type TrainRunningState,
     stepAction
 } from '@tabletop/18xx'
-import { successorOf } from './systems.js'
 import type { TitleStepAction } from './titleActions.js'
 import { EighteenThirtyTwoMap, PortLocationIds } from './map.js'
 import {
@@ -43,9 +40,9 @@ import { EighteenThirtyTwoPhases } from './trains.js'
 export const MiamiLocationId = 'AA28'
 export const KeyWestCompanyId = 'FEC'
 
-// The FEC's Key West token passes to whatever company the FEC merges into (§11.6.5, §11.7.1).
-function holdsKeyWest(state: EighteenThirtyTwoTitleState, companyId: string) {
-    return successorOf(state, KeyWestCompanyId) === companyId
+/** The company holding the Key West token right: the FEC, or what it merged into (§11.6.5, §11.7.1). */
+export function keyWestHolder(state: Pick<EighteenThirtyTwoTitleState, 'keyWestCompanyId'>) {
+    return state.keyWestCompanyId ?? KeyWestCompanyId
 }
 /** The private whose token each kind is (§16.2 P2–P3). */
 export const RevenueTokenPrivateIds = { port: 'P3', cotton: 'P2' } as const
@@ -61,15 +58,9 @@ export function revenueTokenUnplaced(
     )
 }
 
-/** Port and Cotton tokens leave at phase 6, the Key West token at phase 8 (§4.2.5, §4.2.6). */
-export function activeRevenueTokens(
-    state: EighteenThirtyTwoTitleState & { phaseId: string }
-): RevenueToken[] {
-    return state.revenueTokens.filter((token) =>
-        token.kind === 'key-west'
-            ? !EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '8')
-            : !EighteenThirtyTwoPhases.isAtLeast(state.phaseId, '6')
-    )
+/** Whether a token leaves as the phase begins: Port and Cotton at 6, Key West at 8 (§4.2.5–4.2.6). */
+export function revenueTokenExpires(token: RevenueToken, phaseId: string): boolean {
+    return EighteenThirtyTwoPhases.isAtLeast(phaseId, token.kind === 'key-west' ? '8' : '6')
 }
 
 /** What a revenue token's bonus is called, by the token's kind. */
@@ -89,7 +80,7 @@ export function stopBonuses(
     companyId: string,
     center: RevenueCenter
 ): StopBonus[] {
-    return activeRevenueTokens(state).flatMap((token): StopBonus[] => {
+    return state.revenueTokens.flatMap((token): StopBonus[] => {
         if (token.kind === 'key-west')
             return token.companyId === companyId && center.locationId === MiamiLocationId
                 ? [{ amount: 50, sourceId: 'key-west' }]
@@ -128,27 +119,11 @@ export const revenueTokenRoutes: Pick<
     ]
 }
 
-function currentTurn(set: OperatingSet | undefined) {
-    assertExists(set, 'Tokens are placed during an operating round')
-    return { set: set.number, round: set.roundNumber }
-}
-
-function inOperatingSet<State extends object>(
-    state: State
-): state is State & { operatingSet: OperatingSet } {
-    return 'operatingSet' in state && !!state.operatingSet
-}
-
 /** Placing the Key West token is the FEC's token placement for that operating turn (§7.5). */
 export function keyWestPlacedThisTurn(state: StationPlacementState, companyId: string): boolean {
-    if (!holdsKeyWest(requireEighteenThirtyTwoState(state), companyId) || !inOperatingSet(state))
-        return false
-    const turn = currentTurn(state.operatingSet)
-    return requireEighteenThirtyTwoState(state).revenueTokens.some(
-        (token) =>
-            token.kind === 'key-west' &&
-            token.placed.set === turn.set &&
-            token.placed.round === turn.round
+    return (
+        !!requireEighteenThirtyTwoState(state).keyWestPlaced &&
+        state.stationStep?.companyId === companyId
     )
 }
 
@@ -199,7 +174,7 @@ export function revenueTokenChoices(
     }
     const [miami] = revenueNodes(state, MiamiLocationId, ['offboard'])
     if (
-        holdsKeyWest(state, companyId) &&
+        keyWestHolder(state) === companyId &&
         miami &&
         !placed('key-west') &&
         step.placedStationIds.length === 0 &&
@@ -266,9 +241,13 @@ export class HydratedPlaceRevenueToken
             kind: this.kind,
             companyId: this.companyId,
             locationId: this.locationId,
-            nodeId: this.nodeId,
-            placed: currentTurn(state.operatingSet)
+            nodeId: this.nodeId
         })
+        // The token now carries its holder, and its placement uses this turn's station.
+        if (this.kind === 'key-west') {
+            state.keyWestPlaced = true
+            delete state.keyWestCompanyId
+        }
     }
 }
 

@@ -4647,14 +4647,6 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:286",
-   "gameId": "1817-16281",
-   "source": "user",
-   "playerId": "289",
-   "type": "FinishTrack",
-   "companyId": "PSNR"
-  },
-  {
    "id": "recorded:287",
    "gameId": "1817-16281",
    "source": "user",

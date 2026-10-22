@@ -10,7 +10,7 @@ import { BackendSupervisor } from './backendSupervisor.js'
 import { createBackendGateway } from './backendGateway.js'
 import { createBackendHealthServer } from './backendHealth.js'
 
-describe('supervised backend handoff', () => {
+describe('supervised backend worker', () => {
     let directory: string
     let config: string
     let supervisor: BackendSupervisor
@@ -21,7 +21,7 @@ describe('supervised backend handoff', () => {
 
     beforeEach(async () => {
         health = undefined
-        directory = await mkdtemp(join(tmpdir(), 'backend-handoff-'))
+        directory = await mkdtemp(join(tmpdir(), 'backend-worker-'))
         config = join(directory, 'config.json')
         await writeFile(config, '{}')
         await writeFile(join(directory, 'asset.js'), 'console.log("loaded")')
@@ -34,12 +34,23 @@ describe('supervised backend handoff', () => {
         vi.unstubAllEnvs()
         await rm(directory, { recursive: true, force: true })
     })
-    async function start(http2Enabled = false, drainTimeoutMs = 2_000, fixture = 'backend.mjs') {
+    async function start({
+        http2Enabled = false,
+        drainTimeoutMs = 2_000,
+        fixture = 'backend.mjs',
+        titleLoadGraceMs
+    }: {
+        http2Enabled?: boolean
+        drainTimeoutMs?: number
+        fixture?: string
+        titleLoadGraceMs?: number
+    } = {}) {
         supervisor = new BackendSupervisor({
             entry: new URL(`./fixtures/${fixture}`, import.meta.url),
             startupTimeoutMs: 1_000,
             drainTimeoutMs,
-            retryDelayMs: 100
+            retryDelayMs: 100,
+            titleLoadGraceMs
         })
         await supervisor.start()
         gateway = createBackendGateway(http2Enabled, supervisor)
@@ -104,6 +115,49 @@ describe('supervised backend handoff', () => {
         expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(200)
     })
 
+    it('logs how long a stalled worker took to answer its health check', async () => {
+        await start()
+        const child = await get()
+        const log = vi.spyOn(console, 'log')
+        process.kill(child.pid, 'SIGSTOP')
+        try {
+            expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(503)
+            await new Promise((resolve) => setTimeout(resolve, 300))
+        } finally {
+            process.kill(child.pid, 'SIGCONT')
+        }
+        await vi.waitFor(() => {
+            const stall = log.mock.calls
+                .map(([line]) => (typeof line === 'string' ? line : ''))
+                .find((line) => line.includes('"event":"worker_stall"'))
+            expect(stall && JSON.parse(stall)).toMatchObject({
+                severity: 'WARNING',
+                answered: true,
+                waitedMs: expect.any(Number)
+            })
+            expect(JSON.parse(stall ?? '{}').waitedMs).toBeGreaterThanOrEqual(1_300)
+        })
+        log.mockRestore()
+    })
+
+    it('stays ready while the worker is blocked by a title load it announced', async () => {
+        await start()
+        const load = fetch(origin + '/load-title?ms=1500')
+        await vi.waitFor(() => expect(supervisor.vouchingForTitleLoad()).toBe(true))
+        expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(200)
+        expect((await load).status).toBe(200)
+        await vi.waitFor(() => expect(supervisor.vouchingForTitleLoad()).toBe(false))
+    })
+
+    it('fails readiness once an announced title load outlasts the grace', async () => {
+        await start({ titleLoadGraceMs: 200 })
+        const load = fetch(origin + '/load-title?ms=2500')
+        await vi.waitFor(() => expect(supervisor.vouchingForTitleLoad()).toBe(true))
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(503)
+        expect((await load).status).toBe(200)
+    })
+
     it('bounds the recovery queue and releases canceled waiters', async () => {
         supervisor = new BackendSupervisor({
             entry: new URL('./fixtures/backend.mjs', import.meta.url)
@@ -123,18 +177,13 @@ describe('supervised backend handoff', () => {
     })
 
     it('serves static assets without prematurely sending the response or crashing the child', async () => {
-        await start(false, 2_000, 'fastifyBackend.mjs')
+        await start({ fixture: 'fastifyBackend.mjs' })
         const old = await get()
         const response = await fetch(origin + '/assets/asset.js')
         expect(response.status).toBe(200)
         expect(await response.text()).toBe('console.log("loaded")')
         expect(response.headers.get('cache-control')).toBe('public,max-age=300')
         expect((await get()).pid).toBe(old.pid)
-        await get('/reload')
-        await vi.waitFor(async () => expect((await get()).pid).not.toBe(old.pid))
-        expect(await (await fetch(origin + '/assets/asset.js')).text()).toBe(
-            'console.log("loaded")'
-        )
     })
 
     it('rejects a missing Host header without losing the public listener', async () => {
@@ -169,9 +218,9 @@ describe('supervised backend handoff', () => {
     })
 
     it.each([false, true])(
-        'finishes a disconnected mutation during handoff (throws=%s)',
+        'finishes a disconnected mutation during shutdown (throws=%s)',
         async (fail) => {
-            await start(false, 2_000, 'fastifyBackend.mjs')
+            await start({ fixture: 'fastifyBackend.mjs' })
             const old = await get()
             const controller = new AbortController()
             const request = fetch(origin + `/mutation?fail=${fail ? 'yes' : ''}`, {
@@ -183,7 +232,7 @@ describe('supervised backend handoff', () => {
             )
             controller.abort()
             await request
-            await get('/reload')
+            await supervisor.close()
             await expectExited(old.pid)
             const history = await events()
             const completed = history.findIndex(
@@ -194,76 +243,32 @@ describe('supervised backend handoff', () => {
             )
             expect(completed).toBeGreaterThan(-1)
             expect(completed).toBeLessThan(exited)
-            expect((await get()).pid).not.toBe(old.pid)
         }
     )
 
     it('waits for handler work after an early response before exiting', async () => {
-        await start(false, 2_000, 'fastifyBackend.mjs')
+        await start({ fixture: 'fastifyBackend.mjs' })
         const old = await get()
         await fetch(origin + '/mutation?early=yes', { method: 'POST' })
-        await get('/reload')
+        await supervisor.close()
         await expectExited(old.pid)
         expect(await events()).toContainEqual({ event: 'mutation-completed', pid: old.pid })
     })
 
     it('still enforces the deadline on unfinished handler work', async () => {
-        await start(false, 100, 'fastifyBackend.mjs')
+        await start({ drainTimeoutMs: 100, fixture: 'fastifyBackend.mjs' })
         const old = await get()
         await fetch(origin + '/mutation?early=yes&ms=5000', { method: 'POST' })
-        await get('/reload')
+        await supervisor.close()
         await expectExited(old.pid)
         expect(await events()).not.toContainEqual({ event: 'mutation-completed', pid: old.pid })
     })
 
-    it('keeps serving during startup and finishes old requests after switching new ones', async () => {
-        await start()
-        const old = await get()
-        const delayed = get('/delay?ms=600')
-        await vi.waitFor(async () =>
-            expect(await events()).toContainEqual({ event: 'request-started', pid: old.pid })
-        )
-        await writeFile(config, JSON.stringify({ startupDelay: 200 }))
-        expect((await get('/reload')).pid).toBe(old.pid)
-        expect((await get()).pid).toBe(old.pid)
-        await vi.waitFor(async () => expect((await get()).pid).not.toBe(old.pid))
-        expect((await delayed).pid).toBe(old.pid)
-        await expectExited(old.pid)
-    })
-
-    it('drains an upload assigned before the switch without truncating its body', async () => {
-        await start()
-        const old = await get()
-        const request = http.request(origin + '/upload', { method: 'POST' })
-        const responsePromise = new Promise<string>((resolve, reject) => {
-            request.on('error', reject)
-            request.on('response', (response) => {
-                let body = ''
-                response.setEncoding('utf8')
-                response.on('data', (chunk) => {
-                    body += chunk
-                })
-                response.on('end', () => resolve(body))
-                response.on('error', reject)
-            })
-        })
-        request.write('first-')
-        await new Promise((resolve) => setTimeout(resolve, 30))
-        await get('/reload')
-        await vi.waitFor(async () => expect((await get()).pid).not.toBe(old.pid))
-        request.end('last')
-        expect(JSON.parse(await responsePromise)).toMatchObject({
-            pid: old.pid,
-            body: 'first-last'
-        })
-        await expectExited(old.pid)
-    })
-
-    it('closes both processes when shutdown occurs during replacement startup', async () => {
+    it('closes a child that is still starting when shutdown happens during recovery', async () => {
         await start()
         const old = await get()
         await writeFile(config, JSON.stringify({ startupDelay: 200 }))
-        await get('/reload')
+        expect((await fetch(origin + '/crash')).status).toBe(502)
         await vi.waitFor(async () =>
             expect((await events()).filter((event) => event.event === 'started')).toHaveLength(2)
         )
@@ -276,88 +281,44 @@ describe('supervised backend handoff', () => {
         expect(pids).toContain(old.pid)
     })
 
-    it('retains the healthy child on startup failure and retries successfully', async () => {
+    it('retries a failed start until a worker comes up', async () => {
         await start()
         const old = await get()
         await writeFile(config, JSON.stringify({ fail: true }))
-        await get('/reload')
+        expect((await fetch(origin + '/crash')).status).toBe(502)
         await vi.waitFor(async () =>
             expect(
                 (await events()).filter((event) => event.event === 'exited').length
-            ).toBeGreaterThan(0)
+            ).toBeGreaterThan(1)
         )
-        expect((await get()).pid).toBe(old.pid)
         await writeFile(config, '{}')
         await vi.waitFor(async () => expect((await get()).pid).not.toBe(old.pid), {
             timeout: 3_000
         })
-        await expectExited(old.pid)
     })
 
-    it('tells the old child it is superseded once its replacement is serving', async () => {
-        await start()
-        const old = await get()
-        const answer = await get('/reload-and-wait')
-        expect(answer).toEqual({ pid: old.pid, outcome: 'superseded' })
-        expect((await get()).pid).not.toBe(old.pid)
-        await expectExited(old.pid)
-    })
-
-    it('tells the serving child when its replacement fails', async () => {
-        await start()
-        const old = await get()
-        await writeFile(config, JSON.stringify({ fail: true }))
-        const answer = await get('/reload-and-wait')
-        expect(answer).toEqual({ pid: old.pid, outcome: 'replacement-failed' })
-        expect((await get()).pid).toBe(old.pid)
-    })
-
-    it('bounds a stalled startup and leaves the existing backend serving', async () => {
+    it('bounds a stalled start and keeps retrying', async () => {
         await start()
         const old = await get()
         await writeFile(config, JSON.stringify({ hang: true }))
-        await get('/reload')
+        expect((await fetch(origin + '/crash')).status).toBe(502)
         await vi.waitFor(async () =>
             expect((await events()).filter((event) => event.event === 'started')).toHaveLength(2)
         )
         const candidate = (await events()).filter((event) => event.event === 'started')[1]
         await expectExited(candidate.pid)
-        expect((await get()).pid).toBe(old.pid)
         await writeFile(config, '{}')
         await vi.waitFor(async () => expect((await get()).pid).not.toBe(old.pid), {
             timeout: 3_000
         })
     })
 
-    it('serializes bursts of reloads and reclaims every retired process', async () => {
-        await start()
-        for (let index = 0; index < 4; index++) {
-            const old = await get()
-            await Promise.all(Array.from({ length: 8 }, () => get('/reload')))
-            await vi.waitFor(async () => expect((await get()).pid).not.toBe(old.pid))
-            await expectExited(old.pid)
-        }
-        await supervisor.close()
-        let live = 0
-        let peak = 0
-        for (const event of await events()) {
-            if (event.event === 'started') live++
-            if (event.event === 'exited') live--
-            peak = Math.max(peak, live)
-        }
-        expect(peak).toBe(2)
-        expect(live).toBe(0)
-    })
-
     it('bounds draining for an open event stream', async () => {
-        await start(false, 150)
-        const old = await get()
+        await start({ drainTimeoutMs: 150 })
         const response = await fetch(origin + '/stream')
         const reader = response.body?.getReader()
         expect((await reader?.read())?.done).toBe(false)
-        await get('/reload')
-        await vi.waitFor(async () => expect((await get()).pid).not.toBe(old.pid))
-        await expectExited(old.pid)
+        await supervisor.close()
         await expect(reader?.read()).rejects.toThrow()
     })
 
@@ -368,8 +329,8 @@ describe('supervised backend handoff', () => {
         await vi.waitFor(async () => expect((await get()).pid).not.toBe(old.pid))
     })
 
-    it('forwards HTTP/2 bodies, headers, cookies and reuses the public session after handoff', async () => {
-        await start(true)
+    it('forwards HTTP/2 bodies, headers, cookies and reuses the public session after recovery', async () => {
+        await start({ http2Enabled: true })
         const client = http2.connect(origin)
         try {
             const request = client.request({
@@ -397,10 +358,10 @@ describe('supervised backend handoff', () => {
             expect(result.headers['x-forwarded-for']).toBe('127.0.0.1')
             expect(responseHeaders['set-cookie']).toEqual(['one=1', 'two=2'])
             const oldPort = supervisor.port
-            const reload = client.request({ ':path': '/reload' })
-            reload.resume()
-            reload.end()
-            await once(reload, 'end')
+            const crash = client.request({ ':path': '/crash' })
+            crash.resume()
+            crash.end()
+            await once(crash, 'end')
             await vi.waitFor(() => expect(supervisor.port).not.toBe(oldPort))
             const next = client.request({ ':path': '/' })
             let nextBody = ''

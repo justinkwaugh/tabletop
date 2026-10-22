@@ -1,7 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import { StartOfTurnStateHandler } from '../stateHandlers/startOfTurn.js'
 import { MovingStateHandler } from '../stateHandlers/moving.js'

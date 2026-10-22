@@ -101,10 +101,7 @@ export function deriveBoardSpotlightState<TMarker>(
         }
     }
 
-    if (
-        previewSource === 'available-deed' &&
-        input.availableDeedOverlayAreaIds.length > 0
-    ) {
+    if (previewSource === 'available-deed' && input.availableDeedOverlayAreaIds.length > 0) {
         return {
             previewSource,
             source: 'general',

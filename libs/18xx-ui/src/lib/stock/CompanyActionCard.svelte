@@ -9,6 +9,7 @@
 </script>
 
 <script lang="ts">
+    import type { Snippet } from 'svelte'
     import { getCompany } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { TitleFact } from '../session/titlePresentation.js'
@@ -20,7 +21,8 @@
         title,
         value,
         facts = [],
-        actions = []
+        actions = [],
+        children
     }: {
         session: EighteenXXSessionView
         companyId: string
@@ -29,6 +31,8 @@
         value?: string
         facts?: readonly TitleFact[]
         actions?: readonly CardAction[]
+        /** A title's own section, between the facts and the actions. */
+        children?: Snippet
     } = $props()
     const name = $derived(session.companyName(companyId))
 </script>
@@ -47,6 +51,7 @@
                 </div>{/each}
         </dl>
     {/if}
+    {@render children?.()}
     {#if actions.length}
         <div class="actions">
             {#each actions as action (action.label)}

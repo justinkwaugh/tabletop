@@ -56,7 +56,10 @@ function markerPointsForLayoutCount(layout: SeaShipLayout, count: SeaShipLayoutC
     return layout[count]
 }
 
-export function markerPointsForSeaAreaShipList(seaAreaId: string, ships: readonly string[]): Point[] {
+export function markerPointsForSeaAreaShipList(
+    seaAreaId: string,
+    ships: readonly string[]
+): Point[] {
     if (ships.length === 0) {
         return []
     }

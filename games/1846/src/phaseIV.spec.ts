@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ReceivershipRules1846 } from './receivership.js'
 import { ActionSource, assert, assertExists } from '@tabletop/common'
 import {
     isRustTrains,
@@ -19,15 +20,16 @@ import {
     buyTrain,
     discardTrain,
     start,
-    setCompanyInReceivership
-} from './testSupport.js'
+    setCompanyInReceivership,
+    fundablePurchases,
+    fundTrain,
+    resolveFunding
+} from '../test/testSupport.js'
 import { TrainDepot1846, TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 import { isAdvancePhase1846 } from './phases.js'
 import { AdditionalReservations } from './map.js'
 import { StationRules1846 } from './stations.js'
 import { RouteRules1846 } from './routes.js'
-import { emergencyTrainChoices } from './emergencyTrain.js'
-import { receiverTrainPurchase } from './receiverOperations.js'
 
 function phaseIVReady() {
     const table = phaseIIIReadyGame()
@@ -95,7 +97,7 @@ describe('1846 Phase IV trains and lifecycle', () => {
             assertExists(phase)
             expect(phase.event.rustedTrains).toHaveLength(5)
             expect(phase.event.pendingRustTrainIds).toHaveLength(2)
-            expect(phase.removedRevenueMarkers).toEqual(before.revenueMarkers)
+            expect(phase.changes?.removedRevenueMarkers).toEqual(before.revenueMarkers)
             expect(table.state.revenueMarkers).toEqual([])
             expect(getCompany(table.state, 'MAIL').closed).not.toBe(true)
             const special = (reservation: (typeof before.stationReservations)[number]) =>
@@ -104,7 +106,9 @@ describe('1846 Phase IV trains and lifecycle', () => {
                         additional.companyId === reservation.companyId &&
                         additional.locationId === reservation.locationId
                 )
-            expect(phase.removedReservations).toEqual(before.stationReservations.filter(special))
+            expect(phase.changes?.removedReservations).toEqual(
+                before.stationReservations.filter(special)
+            )
             expect(table.state.stationReservations).toEqual(
                 before.stationReservations.filter((r) => !special(r))
             )
@@ -152,10 +156,12 @@ describe('1846 Phase IV trains and lifecycle', () => {
             ['5', 500],
             ['4/6', 450]
         ])
-        buyTrain(table, '4/6', train.id)
+        const result = buyTrain(table, '4/6', train.id)
         expect(table.state.phaseId).toBe('IV')
         expect(table.state.phaseEvents).toHaveLength(2)
-        expect(trainBuyingChoices1846(table.hydrated)?.offers).toEqual([])
+        expect(result.processedActions).toContainEqual(
+            expect.objectContaining({ type: 'FinishOperatingTurn', source: ActionSource.System })
+        )
         const inventory = TrainDepot1846.createInventory()
         const first = TrainDepot1846.nextTrain(inventory, '6')
         assertExists(first)
@@ -192,7 +198,7 @@ describe('1846 Phase IV trains and lifecycle', () => {
             if (receiver) {
                 setCompanyInReceivership(table, 'IC')
             }
-            table.state.machineState = receiver ? 'RunningReceiver' : 'RunningTrains'
+            table.state.machineState = 'RunningTrains'
             table.state.routeStep = { companyId: 'IC' }
             delete table.state.trainPurchaseStep
             delete table.state.earningsDistribution
@@ -271,10 +277,11 @@ describe('1846 Phase IV trains and lifecycle', () => {
         )
         assertExists(cash)
         cash.amount = 750
-        const plan = emergencyTrainChoices(table.hydrated).find((p) => p.definitionId === '6')
+        const plan = fundablePurchases(table).find((p) => p.definitionId === '6')
         assertExists(plan)
         expect(plan.price).toBe(800)
-        table.act('EmergencyBuyTrain', plan)
+        fundTrain(table, '6')
+        resolveFunding(table)
         expect(table.state.phaseId).toBe('IV')
         discardTrain(table)
         const owned = trainsOwnedBy(table.state, { kind: 'company', companyId: 'IC' })
@@ -291,9 +298,11 @@ describe('1846 Phase IV trains and lifecycle', () => {
         table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
             (train) => train.status !== 'market'
         )
-        expect(receiverTrainPurchase(table.hydrated)).toMatchObject({
+        expect(
+            ReceivershipRules1846.trainPurchase(table.hydrated, 'IC', TrainRules1846)
+        ).toMatchObject({
             definitionId: '6',
-            price: 800
+            expectedPrice: 800
         })
     })
     it('resumes a receiver after its final-train purchase interrupts for another company’s discard', () => {
@@ -308,17 +317,22 @@ describe('1846 Phase IV trains and lifecycle', () => {
                 )
         )
         setCompanyInReceivership(table, 'IC')
-        table.state.machineState = 'BuyingReceiverTrain'
+        table.state.machineState = 'BuyingTrains'
+        table.state.trainPurchaseStep = { companyId: 'IC', purchasedTrainIds: [] }
+        table.state.activePlayerIds = [...table.state.turnManager.turnOrder]
         const before = structuredClone(table.state)
-        const result = table.act('BuyReceiverTrain', {
-            companyId: 'IC',
-            source: ActionSource.System
-        })
+        const purchase = ReceivershipRules1846.trainPurchase(table.hydrated, 'IC', TrainRules1846)
+        assertExists(purchase)
+        const result = table.act('BuyTrain', { ...purchase, source: ActionSource.System })
         expect(table.state.phaseId).toBe('IV')
-        expect(table.state.phaseChange?.continuation.machineState).toBe('FinishingReceiverTurn')
+        expect(table.state.phaseChange?.continuation.machineState).toBe('BuyingTrains')
         const { result: discarded } = discardTrain(table)
-        expect(discarded.processedActions.map((action) => action.type)).toContain(
-            'FinishReceiverTurn'
+        expect(discarded.processedActions).toContainEqual(
+            expect.objectContaining({
+                type: 'FinishOperatingTurn',
+                source: ActionSource.System,
+                companyId: 'IC'
+            })
         )
         expect(table.state.machineState).toBe('LayingTrack')
         const actions = [...result.processedActions, ...discarded.processedActions]

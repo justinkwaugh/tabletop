@@ -24,7 +24,10 @@ import {
     FirestoreSiteStatsStore,
     FirestoreUserStore,
     GameService,
+    ProjectedHistoryCache,
     LibraryService,
+    type LibraryServiceOptions,
+    TitleLibrary,
     LOCAL_WORKSPACE_ROOT,
     LocalTaskService,
     NotificationService,
@@ -50,7 +53,7 @@ import {
     UserService,
     WebPushTransport
 } from '@tabletop/backend-services'
-import type { GameDefinition } from '@tabletop/common'
+import { TitleValidation } from '../../runtime/titleValidation.js'
 
 import { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -71,6 +74,7 @@ declare module 'fastify' {
         chatService: ChatService
         cacheService: RedisCacheService
         libraryService: LibraryService
+        titleValidation: TitleValidation
         catalogService: CatalogService
         tournamentService: TournamentService
         tournamentStallAlerts: TournamentStallAlerts
@@ -90,7 +94,9 @@ const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
 
-export default fp(async (fastify: FastifyInstance) => {
+type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle'>
+
+export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => {
     const secretsService = new EnvSecretsService()
     const emailService = await ResendEmailService.createEmailService(secretsService)
     const redisService = await RedisService.createRedisService(secretsService)
@@ -98,20 +104,21 @@ export default fp(async (fastify: FastifyInstance) => {
     const redisCacheService = new RedisCacheService(redisService)
     fastify.addHook('onClose', async () => redisCacheService.destroy())
 
+    const titleValidation = new TitleValidation()
     const libraryService = new LibraryService(redisCacheService, {
         manifestPath: SITE_MANIFEST_PATH,
         fallbackManifest: EnvService.isLocal()
             ? () => createLocalManifest(LOCAL_WORKSPACE_ROOT)
             : undefined,
-        useCache: !EnvService.isLocal()
+        useCache: !EnvService.isLocal(),
+        whileLoadingTitle: options.whileLoadingTitle
     })
-
-    let availableTitles: Record<string, GameDefinition> = {}
-    try {
-        availableTitles = await libraryService.getTitlesMap()
-    } catch (error) {
-        console.warn('Unable to load game definitions from manifest', error)
-    }
+    await libraryService.getTitlesMap()
+    const availableTitles = new TitleLibrary(
+        (id) => libraryService.getGeneration(id)?.definition,
+        () => libraryService.currentTitles()
+    )
+    fastify.decorate('titleValidation', titleValidation)
 
     const taskService: TaskService = EnvService.isLocal()
         ? new LocalTaskService(TASKS_HOST)
@@ -145,7 +152,8 @@ export default fp(async (fastify: FastifyInstance) => {
         taskService,
         notificationService,
         redisCacheService,
-        availableTitles
+        availableTitles,
+        new ProjectedHistoryCache(redisService.client)
     )
 
     fastify.decorate(

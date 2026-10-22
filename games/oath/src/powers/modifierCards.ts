@@ -86,7 +86,12 @@ registerModifier(
                     : `you are travelling neither to nor from ${here}, where Portal sits`
             },
             spendsNoSupply: spendNoSupply,
-            ignoresSitePowers: true
+            ignoresSitePowers: true,
+            // R-11.7-H4 — travelling from its own site: the Shrouded Wood there picks nothing.
+            ignoresOriginShroudedWood: (ctx) => {
+                const here = siteHolding(ctx.state, 'denizen.arcane.portal')
+                return here !== undefined && here === player(ctx).siteId
+            }
         }
     }
 )
@@ -314,6 +319,7 @@ function playedCardIds(ctx: EffectContext): string[] {
 // R-5.1 — this and Wild Cry apply at the play, a Search's or a facedown adviser's (R-6.1).
 // "If you play a denizen card that was not a facedown adviser, gain favor from
 // the hearth bank." A Search plays from the hand, so every played denizen qualifies.
+const WELCOMING_PARTY_BANK = Suit.Hearth
 registerModifier(
     'denizen.hearth.welcoming-party',
     powerIndexOf('denizen.hearth.welcoming-party', PowerTiming.Modifier),
@@ -324,10 +330,11 @@ registerModifier(
                 ctx.particulars?.facedownAdviserPlay === true
                     ? 'the card played is a facedown adviser'
                     : undefined,
+            playFavorFrom: WELCOMING_PARTY_BANK,
             after: (ctx) => {
                 if (!playedCardIds(ctx).some((id) => kindOf(id) === CardKind.Denizen))
                     return undefined
-                const gained = gainFavorFromBank(ctx.state, ctx.playerId, Suit.Hearth, 1)
+                const gained = gainFavorFromBank(ctx.state, ctx.playerId, WELCOMING_PARTY_BANK, 1)
                 return { summary: `Welcoming Party: gained ${gained} favor from the hearth bank` }
             }
         }

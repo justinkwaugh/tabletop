@@ -4,18 +4,22 @@
     flex-direction: column;
     color: var(--rail-text, #514536);
     font-size: 13px;
-    padding: 8px 12px;
 }
-.midwest-actions section {
+.midwest-actions .midwest-content {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+}
+.midwest-actions
+    :where(section.draft, section.steamboat, section.corporate-finance, section.receivership) {
     padding: 8px 0;
 }
-.midwest-actions h2,
-.midwest-actions h3 {
+.midwest-actions :where(.midwest-panel) :where(h2, h3) {
     font-size: 14px;
     font-weight: 650;
     margin: 6px 0;
 }
-.midwest-actions p {
+.midwest-actions :where(.midwest-panel) :where(p) {
     margin: 6px 0 10px;
 }
 .midwest-actions .choices {
@@ -55,7 +59,7 @@
 .midwest-actions .operating-mode button:disabled {
     opacity: 0.35;
 }
-.midwest-actions button {
+.midwest-actions :where(.midwest-panel) :where(button) {
     font: inherit;
     padding: 8px 12px;
     border: 1px solid var(--rail-border, #c7b8a6);
@@ -64,15 +68,15 @@
     color: var(--rail-text, #514536);
     cursor: pointer;
 }
-.midwest-actions button:hover:not(:disabled),
-.midwest-actions button[aria-pressed='true'] {
+.midwest-actions :where(.midwest-panel) :where(button):hover:not(:disabled),
+.midwest-actions :where(.midwest-panel) :where(button[aria-pressed='true']) {
     background: var(--rail-surface-selected, #ded0c2);
 }
-.midwest-actions button:focus-visible {
+.midwest-actions :where(.midwest-panel) :where(button):focus-visible {
     outline: 2px solid #a87948;
     outline-offset: 2px;
 }
-.midwest-actions button:disabled {
+.midwest-actions :where(.midwest-panel) :where(button):disabled {
     opacity: 0.45;
     cursor: default;
 }

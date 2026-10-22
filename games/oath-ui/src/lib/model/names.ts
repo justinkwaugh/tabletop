@@ -239,8 +239,7 @@ export function nameSeats(
 
 /** A run of text naming seats: words, or a seat for its `PlayerName` chip. */
 export type SeatPart =
-    | { kind: 'text'; text: string }
-    | { kind: 'seat'; playerId: string; possessive: boolean }
+    { kind: 'text'; text: string } | { kind: 'seat'; playerId: string; possessive: boolean }
 
 /** Text naming seats by id (`seatsById`), each seat apart for its chip; a verb after the viewer's agrees with "you". */
 export function seatParts(

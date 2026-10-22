@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { finiteCashOwnedBy, getCompany, placeStockMarker, sharesOwned } from '@tabletop/18xx'
-import { stockGame } from './testSupport.js'
+import {
+    finiteCashOwnedBy,
+    getCompany,
+    placeStockMarker,
+    sharesOwned,
+    treasuryPoolId
+} from '@tabletop/18xx'
+import { finishTurn, setInstruction } from '@tabletop/18xx/testing'
+import { stockGame } from '../test/testSupport.js'
 import { StockRules1846, Market1846 } from './stock.js'
 
 describe('1846 first stock round', () => {
@@ -41,6 +48,44 @@ describe('1846 first stock round', () => {
         expect(
             table.choices().sells.filter((choice) => choice.sales[0].companyId === 'IC')
         ).toEqual([])
+    })
+    it('lets a standing Autobuy take shares from a corporation treasury', () => {
+        const table = stockGame()
+        const launcher = table.state.activePlayerIds[0]
+        table.launch()
+        const next = table.state.activePlayerIds[0]
+        const waiting = table.state.players
+            .map((player) => player.playerId)
+            .find((playerId) => playerId !== launcher && playerId !== next)
+        assertExists(waiting)
+        const buyer = { kind: 'player', playerId: waiting } as const
+        const { game, engine } = table
+        const declared = engine.executeCanonicalAction({
+            game,
+            state: table.state,
+            action: setInstruction(game.id, waiting, {
+                kind: 'buy',
+                companyId: 'IC',
+                preferredPoolId: treasuryPoolId('IC'),
+                until: { kind: 'shares', count: 1 },
+                thenPass: false
+            })
+        })
+        const finished = engine.executeCanonicalAction({
+            game,
+            state: declared.updatedState,
+            action: finishTurn(game.id, next)
+        })
+        expect(
+            finished.processedActions.map(
+                (action) => `${action.source}:${action.type}:${action.playerId}`
+            )
+        ).toEqual([
+            `user:FinishStockTurn:${next}`,
+            `system:BuyShares:${waiting}`,
+            `system:FinishStockTurn:${waiting}`
+        ])
+        expect(sharesOwned(finished.updatedState, 'IC', buyer)).toBe(1)
     })
     it('sells a president’s block at its original price, moves once, and prohibits rebuying', () => {
         const table = stockGame()
@@ -181,8 +226,10 @@ describe('1846 first stock round', () => {
                     certificate.companyId === 'IC' &&
                     !certificate.president
             )
-            .slice(0, 2))
+            .slice(0, 2)) {
             certificate.owner = { kind: 'player', playerId: successor }
+            delete certificate.poolId
+        }
         table.finishTurn()
         table.finishTurn()
         const sale = table

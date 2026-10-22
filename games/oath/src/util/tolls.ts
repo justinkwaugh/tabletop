@@ -150,11 +150,20 @@ export function wayStationRuled(
     actorId: string,
     toSiteId: string
 ): boolean {
+    return wayStationRuledAt(state, actorId, toSiteId) !== undefined
+}
+
+/** The Way Station at `toSiteId` that `actorId` rules, which makes their travel there free. */
+export function wayStationRuledAt(
+    state: HydratedOathGameState,
+    actorId: string,
+    toSiteId: string
+): string | undefined {
     for (const { ctx, hooks } of persistentsInPlay(state)) {
         if (!hooks.travelFreeForToll || ctx.siteId !== toSiteId) continue
-        if (ctx.ownerIds.includes(actorId)) return true
+        if (ctx.ownerIds.includes(actorId)) return ctx.cardId
     }
-    return false
+    return undefined
 }
 
 export function travelFreeByToll(

@@ -13,6 +13,20 @@
     } = $props()
     const step = $derived(session.gameState.stationStep)
     const selection = $derived(session.stations.selection)
+    const titlePlacements = $derived([
+        ...session.privateActions.titlePowers.flatMap((power) =>
+            power.kind === 'location' && power.stationStepLabel
+                ? [
+                      {
+                          id: power.privateCompanyId,
+                          label: power.stationStepLabel,
+                          run: () => session.privateActions.startTitlePower(power)
+                      }
+                  ]
+                : []
+        ),
+        ...session.titleStationActions
+    ])
 </script>
 
 {#if step}
@@ -33,8 +47,8 @@
                 >{/if}
         </header>
         {#if step.completed}<p>Station placement complete.</p>
-        {:else if !session.isViewingHistory && !selection.stationId}
-            {#if session.stations.requiresTokenChoice}
+        {:else if !session.isViewingHistory}
+            {#if session.stations.requiresTokenChoice && !selection.stationId}
                 <div class="choices">
                     {#each session.stations.available as station, index (station.id)}
                         <button
@@ -48,7 +62,19 @@
                     {/each}
                 </div>
             {/if}
-            {#if session.stations.canPlace && !session.validActionTypes.includes('PlaceStation')}<p>
+            <!-- Offered whether or not a station token is chosen, as the station is placed on the map. -->
+            {#if titlePlacements.length}
+                {#if !selection.placement}
+                    <div class="choices">
+                        {#each titlePlacements as { id, label, run } (id)}
+                            <button disabled={!session.stations.canPlace} onclick={() => void run()}
+                                >{label}</button
+                            >
+                        {/each}
+                    </div>
+                {/if}
+            {:else if session.stations.canPlace && !session.validActionTypes.includes('PlaceStation')}<p
+                >
                     No legal station placement is available.
                 </p>{/if}
         {/if}
@@ -60,6 +86,9 @@
         padding: 4px 0;
         color: var(--rail-text, #514536);
         font-size: 13px;
+    }
+    p {
+        text-align: center;
     }
     header,
     .choices {

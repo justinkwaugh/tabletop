@@ -1,23 +1,33 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedRepositionArchitect, isRepositionArchitect } from '../actions/repositionArchitect.js'
+import {
+    HydratedRepositionArchitect,
+    isRepositionArchitect
+} from '../actions/repositionArchitect.js'
 import { HydratedPlaceBuilding, isPlaceBuilding } from '../actions/placeBuilding.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedConcede, isConcede } from '../actions/concede.js'
 import { HydratedUrbinoGameState } from '../model/gameState.js'
 import { hasAnyValidPlacement, hasAnyValidPlacementAfterReposition } from '../logic/board.js'
 
-type TakingTurnAction = HydratedRepositionArchitect | HydratedPlaceBuilding | HydratedPass | HydratedConcede
+type TakingTurnAction =
+    HydratedRepositionArchitect | HydratedPlaceBuilding | HydratedPass | HydratedConcede
 
-export class TakingTurnStateHandler
-    implements MachineStateHandler<TakingTurnAction, HydratedUrbinoGameState>
-{
+export class TakingTurnStateHandler implements MachineStateHandler<
+    TakingTurnAction,
+    HydratedUrbinoGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedUrbinoGameState>
     ): action is TakingTurnAction {
-        return isRepositionArchitect(action) || isPlaceBuilding(action) || isPass(action) || isConcede(action)
+        return (
+            isRepositionArchitect(action) ||
+            isPlaceBuilding(action) ||
+            isPass(action) ||
+            isConcede(action)
+        )
     }
 
     validActionsForPlayer(

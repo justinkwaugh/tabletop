@@ -21,9 +21,9 @@ There should be one authoritative height budget.
 1. The active app shell owns the viewport.
 2. The app shell spends the top safe area.
 3. The app shell spends the actual rendered shell chrome:
-   - shell navbar
-   - hotseat banner, if present
-   - exploration banner, if present
+    - shell navbar
+    - hotseat banner, if present
+    - exploration banner, if present
 4. `DefaultTableLayout` receives only the remaining height.
 5. `DefaultTableLayout` spends only its own internal padding and local controls.
 6. Game-specific panels fill the remaining solved column height.
@@ -49,8 +49,8 @@ Used by standalone game UI packages such as:
 
 Files:
 
-- [apps/frontend/src/routes/(app)/+layout.svelte](/Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/+layout.svelte)
-- [apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte](/Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte)
+- [apps/frontend/src/routes/(app)/+layout.svelte](</Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/+layout.svelte>)
+- [apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte](</Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte>)
 
 This is the production website path and is the authoritative path for real-user layout behavior.
 
@@ -118,28 +118,28 @@ So the contract is shared, but the shell measurement source is environment-speci
 ### Current Chain: Standalone Harness
 
 - [games/indonesia-ui/src/routes/+page.svelte](/Users/justin.w/dev/tabletop/games/indonesia-ui/src/routes/+page.svelte)
-  - renders `Harness`
+    - renders `Harness`
 - [Harness.svelte](/Users/justin.w/dev/tabletop/libs/frontend-components/src/lib/components/Harness.svelte)
-  - renders the top navbar and `HarnessGame`
+    - renders the top navbar and `HarnessGame`
 - [HarnessGame.svelte](/Users/justin.w/dev/tabletop/libs/frontend-components/src/lib/components/HarnessGame.svelte)
-  - optionally renders `HotseatPanel` or `ExplorationPanel`
-  - renders game UI
+    - optionally renders `HotseatPanel` or `ExplorationPanel`
+    - renders game UI
 - [GameTable.svelte](/Users/justin.w/dev/tabletop/games/indonesia-ui/src/lib/components/GameTable.svelte)
-  - renders `DefaultTableLayout`
+    - renders `DefaultTableLayout`
 - [DefaultTableLayout.svelte](/Users/justin.w/dev/tabletop/libs/frontend-components/src/lib/components/DefaultTableLayout.svelte)
-  - computes the table area and the left/center/right columns
+    - computes the table area and the left/center/right columns
 
 ### Current Chain: Real Frontend App
 
-- [apps/frontend/src/routes/(app)/+layout.svelte](/Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/+layout.svelte)
-  - renders the real site navbar and app chrome
-- [apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte](/Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte)
-  - optionally renders `AdminPanel` / `ExplorationPanel` / `HotseatPanel`
-  - renders `GameUI`
+- [apps/frontend/src/routes/(app)/+layout.svelte](</Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/+layout.svelte>)
+    - renders the real site navbar and app chrome
+- [apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte](</Users/justin.w/dev/tabletop/apps/frontend/src/routes/(app)/(authed)/game/[id]/+page.svelte>)
+    - optionally renders `AdminPanel` / `ExplorationPanel` / `HotseatPanel`
+    - renders `GameUI`
 - [GameUI.svelte](/Users/justin.w/dev/tabletop/libs/frontend-components/src/lib/components/GameUI.svelte)
-  - attaches the game UI component
+    - attaches the game UI component
 - [GameTable.svelte](/Users/justin.w/dev/tabletop/games/indonesia-ui/src/lib/components/GameTable.svelte)
-  - renders `DefaultTableLayout`
+    - renders `DefaultTableLayout`
 
 ### What Currently Matches the Contract
 
@@ -152,53 +152,53 @@ So the contract is shared, but the shell measurement source is environment-speci
 
 1. `DefaultTableLayout` still uses hardcoded shell heights.
 
-   File:
-   - `libs/frontend-components/src/lib/components/DefaultTableLayout.svelte`
+    File:
+    - `libs/frontend-components/src/lib/components/DefaultTableLayout.svelte`
 
-   Current assumptions:
-   - navbar = `68px`
-   - hotseat/exploration banner = `44px`
-   - mobile “game title banner” = `32px`
+    Current assumptions:
+    - navbar = `68px`
+    - hotseat/exploration banner = `44px`
+    - mobile “game title banner” = `32px`
 
-   Problem:
-   - the rendered shell height differs between harness and frontend
-   - the navbar is rendered by Flowbite and can change with breakpoint/content
-   - on the real frontend site, the small-viewport title row is part of the responsive navbar layout, not a separate measured shell component
-   - this means the table math is still based on guessed chrome, not measured chrome
+    Problem:
+    - the rendered shell height differs between harness and frontend
+    - the navbar is rendered by Flowbite and can change with breakpoint/content
+    - on the real frontend site, the small-viewport title row is part of the responsive navbar layout, not a separate measured shell component
+    - this means the table math is still based on guessed chrome, not measured chrome
 
 2. The real frontend app does not yet advertise the same safe-area viewport contract as the standalone game package.
 
-   Files:
-   - [apps/frontend/src/app.html](/Users/justin.w/dev/tabletop/apps/frontend/src/app.html)
-   - [games/indonesia-ui/src/app.html](/Users/justin.w/dev/tabletop/games/indonesia-ui/src/app.html)
+    Files:
+    - [apps/frontend/src/app.html](/Users/justin.w/dev/tabletop/apps/frontend/src/app.html)
+    - [games/indonesia-ui/src/app.html](/Users/justin.w/dev/tabletop/games/indonesia-ui/src/app.html)
 
-   Problem:
-   - the standalone game package currently has `viewport-fit=cover`
-   - the real frontend app currently does not
-   - so safe-area behavior cannot yet be identical between the two environments
+    Problem:
+    - the standalone game package currently has `viewport-fit=cover`
+    - the real frontend app currently does not
+    - so safe-area behavior cannot yet be identical between the two environments
 
 3. `GameChat` still uses its own viewport math.
 
-   File:
-   - `libs/frontend-components/src/lib/components/GameChat.svelte`
+    File:
+    - `libs/frontend-components/src/lib/components/GameChat.svelte`
 
-   Current default:
-   - `100vh`-based formula with multiple hardcoded subtractions
+    Current default:
+    - `100vh`-based formula with multiple hardcoded subtractions
 
-   Problem:
-   - this bypasses the solved table height
-   - it can disagree with `DefaultTableLayout` even if outer shell math is correct
-   - it uses `100vh`, not `100dvh`, and does not derive from the current safe-area-adjusted table box
+    Problem:
+    - this bypasses the solved table height
+    - it can disagree with `DefaultTableLayout` even if outer shell math is correct
+    - it uses `100vh`, not `100dvh`, and does not derive from the current safe-area-adjusted table box
 
 4. The layout still mixes shell-owned height math and content-owned height math.
 
-   Examples:
-   - `DefaultTableLayout` computes shell offsets
-   - `GameChat` computes another viewport budget
-   - `GameTable` uses a local `min-h-[50dvh]` constraint for the board region
+    Examples:
+    - `DefaultTableLayout` computes shell offsets
+    - `GameChat` computes another viewport budget
+    - `GameTable` uses a local `min-h-[50dvh]` constraint for the board region
 
-   Problem:
-   - multiple independent height models make exact bottom alignment brittle
+    Problem:
+    - multiple independent height models make exact bottom alignment brittle
 
 ## Recommended Changes
 
@@ -211,9 +211,9 @@ Recommended shape:
 - `Harness` measures the rendered height of its shell chrome
 - frontend `(app)` layout measures the rendered height of its shell chrome
 - It exposes a CSS custom property or context value such as:
-  - `--app-shell-height`
+    - `--app-shell-height`
 - `DefaultTableLayout` uses:
-  - `height: calc(100dvh - var(--app-shell-height) - var(--safe-area-top))`
+    - `height: calc(100dvh - var(--app-shell-height) - var(--safe-area-top))`
 
 This removes the need for guessed navbar height and makes breakpoint changes correct automatically.
 
@@ -254,6 +254,21 @@ The contracted game layout should have exactly one chain of vertical truth:
 
 No child component should re-derive the viewport independently.
 
+## Horizontal table scroller
+
+On small screens the sidebar and game column scroll sideways inside `DefaultTableLayout`'s table
+scroller. The scroller is positioned, so absolutely positioned descendants without a nearer
+positioned ancestor, such as visually hidden labels, stay inside its clip. Without that, such a
+label keeps its unscrolled position against the page and widens the document, letting the whole
+page, site header included, scroll sideways into blank space. `tests/tableLayout.spec.ts` in
+`libs/frontend-components` checks the page stays at the screen width.
+
+This is bundled rendering with no host-bridge change. Every Game UI Artifact bundles
+`DefaultTableLayout`, the 18xx titles through `@tabletop/18xx-ui`, so each title keeps the wide
+page until it is republished. The 18xx phone body (`GameTable` in `@tabletop/18xx-ui`) and
+Napoleon's Triumph's body stop overscroll only vertically, so sideways swipes over them reach the
+table scroller.
+
 ## Published artifact CSS compatibility
 
 Older Game UI artifacts retain the layout utility classes they were built with.
@@ -272,13 +287,13 @@ error.
 The target behavior is:
 
 - desktop/PWA:
-  - app exactly fills viewport
-  - no page scroll
-  - columns land exactly on the inner `p-2` bottom padding
+    - app exactly fills viewport
+    - no page scroll
+    - columns land exactly on the inner `p-2` bottom padding
 - mobile browser:
-  - app exactly fits the safe area
-  - no page scroll
-  - same bottom alignment rule
+    - app exactly fits the safe area
+    - no page scroll
+    - same bottom alignment rule
 
 The current code is closer than before, but it is still not mathematically exact because:
 

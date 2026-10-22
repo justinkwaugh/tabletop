@@ -20,7 +20,7 @@ function externalSchemas(schemas: Record<string, unknown>): ExternalSchemas {
 const buildFromPool = AjvCompiler()
 
 // Fastify compiles every route's validator before the server starts listening, which is
-// most of a replacement child's startup; compile each one on its route's first request.
+// most of the worker's startup; compile each one on its route's first request.
 export function lazyValidatorCompiler(
     getSchemas: () => Record<string, unknown>,
     ajvOptions: AjvCompilerOptions

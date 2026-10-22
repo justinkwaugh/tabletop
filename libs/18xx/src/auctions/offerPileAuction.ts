@@ -51,9 +51,7 @@ export interface OfferPileAuctionRules {
     firstStockOrder(state: OfferAuctionState): string[]
 }
 export type OfferAuctionResolution =
-    | { kind: 'award'; award: AuctionAward }
-    | { kind: 'income' }
-    | { kind: 'complete' }
+    { kind: 'award'; award: AuctionAward } | { kind: 'income' } | { kind: 'complete' }
 export class OfferAuction {
     constructor(
         private readonly state: OfferAuctionState,

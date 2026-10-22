@@ -31,12 +31,7 @@ import {
     StationType
 } from '@tabletop/sol'
 import { StateAnimator } from './stateAnimator.js'
-import {
-    GameAction,
-    OffsetCoordinates,
-    samePoint,
-    type Point
-} from '@tabletop/common'
+import { GameAction, OffsetCoordinates, samePoint, type Point } from '@tabletop/common'
 import {
     getCirclePoint,
     dimensionsForSpace,
@@ -50,11 +45,7 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { fadeOut, move, scale, path, fadeIn, rotate } from '$lib/utils/animations.js'
 import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import {
-    getFlightDuration,
-    getFlightPaths,
-    TELEPORT_TIMINGS
-} from '$lib/utils/flight.js'
+import { getFlightDuration, getFlightPaths, TELEPORT_TIMINGS } from '$lib/utils/flight.js'
 import { tick } from 'svelte'
 import {
     CHAIN_MOMENTUM_MOVE_DURATION,
@@ -175,7 +166,10 @@ export class SundiverAnimator extends StateAnimator<
         return map
     }
 
-    private collectActionSundiverIds(action: GameAction, fromState?: HydratedSolGameState): string[] {
+    private collectActionSundiverIds(
+        action: GameAction,
+        fromState?: HydratedSolGameState
+    ): string[] {
         const ids: string[] = []
 
         if (isLaunch(action)) {
@@ -442,14 +436,7 @@ export class SundiverAnimator extends StateAnimator<
                 element
             )
         } else if (isDrawCards(action)) {
-            this.animateDrawCardsAction(
-                action,
-                timeline,
-                toState,
-                fromState,
-                sundiverId,
-                element
-            )
+            this.animateDrawCardsAction(action, timeline, toState, fromState, sundiverId, element)
         } else if (isHatch(action)) {
             this.animateHatchAction(action, timeline, toState, fromState, sundiverId, element)
         } else if (isBlight(action)) {
@@ -557,19 +544,13 @@ export class SundiverAnimator extends StateAnimator<
             }
 
             const gatePosition = getGatePosition(this.gameSession.numPlayers, gateInner, gateOuter)
-            const gateLocation = getCirclePoint(
-                gatePosition.radius,
-                toRadians(gatePosition.angle)
-            )
+            const gateLocation = getCirclePoint(gatePosition.radius, toRadians(gatePosition.angle))
             const movingInward = fly.start.row > fly.destination.row
             const startDimensions = dimensionsForSpace(this.gameSession.numPlayers, fly.start)
             const thickness = startDimensions.outerRadius - startDimensions.innerRadius
             const approachFactor = movingInward ? 0.9 : 0.1
             const approachRadius = startDimensions.innerRadius + thickness * approachFactor
-            const approachPoint = getCirclePoint(
-                approachRadius,
-                toRadians(gatePosition.angle)
-            )
+            const approachPoint = getCirclePoint(approachRadius, toRadians(gatePosition.angle))
             const finalGateLocation = gateLocation
             const startCell = fromState.board.cellAt(fly.start)
             const diverLocation =
@@ -1152,20 +1133,20 @@ export class SundiverAnimator extends StateAnimator<
         const isCreatedSundiver = createdIds.includes(sundiverId)
 
         if (isCreatedSundiver || isActivatingSundiver) {
-        this.animateCreatedSundivers(
-            createdIds,
-            activate.coords,
-            activate.playerId,
-            timeline,
-            toState,
-            fromState,
-            sundiverId,
-            element,
-            returnCount + createdCount,
-            -createdCount,
-            1,
-            0.2
-        )
+            this.animateCreatedSundivers(
+                createdIds,
+                activate.coords,
+                activate.playerId,
+                timeline,
+                toState,
+                fromState,
+                sundiverId,
+                element,
+                returnCount + createdCount,
+                -createdCount,
+                1,
+                0.2
+            )
         }
 
         if (!isActivatingSundiver) {
@@ -1679,7 +1660,8 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         const invadedStation = action.metadata.invadedStation
-        const stationType = invadedStation?.type ?? fromState.board.cellAt(action.coords).station?.type
+        const stationType =
+            invadedStation?.type ?? fromState.board.cellAt(action.coords).station?.type
         if (!stationType) {
             return
         }

@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+    import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import Village from '$lib/components/Village.svelte'
     import Bridge from '$lib/components/Bridge.svelte'
     import boardImg from '$lib/images/board.jpg'

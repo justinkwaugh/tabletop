@@ -9,7 +9,7 @@ import {
     validateStations,
     evaluateSharePurchase
 } from '@tabletop/18xx'
-import { openingGame, installTile, layTrack, buyTrain } from './testSupport.js'
+import { openingGame, installTile, layTrack, buyTrain } from '../test/testSupport.js'
 import { openingPurchaseChoices } from './publicDistribution.js'
 import { StockRules1846 } from './stock.js'
 import {
@@ -160,7 +160,10 @@ describe('1846 complete two-player rules', () => {
                 certificate.kind === 'share' &&
                 !certificate.president
         )
-        for (const certificate of ordinary.slice(0, 4)) certificate.owner = owner
+        for (const certificate of ordinary.slice(0, 4)) {
+            certificate.owner = owner
+            delete certificate.poolId
+        }
         expect(sharesOwned(table.state, 'IC', owner)).toBe(6)
         table.finishTurn()
         table.buy('IC')

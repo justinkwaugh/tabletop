@@ -173,7 +173,7 @@ describe('a bankrupt president’s companies', () => {
         expect(EighteenSeventeenMarket.order(state.stockMarket).indexOf('BA')).toBeLessThan(
             EighteenSeventeenMarket.order(state.stockMarket).indexOf('PLE')
         )
-        const record = EighteenSeventeenCashCrisisRules.bankrupt(state, 'blair')
+        const record = EighteenSeventeenCashCrisisRules.elimination.eliminate(state, 'blair')
         expect(record.liquidatedCompanyIds).toEqual(['BA', 'PLE'])
         expect(getCompany(state, 'BA').president).toBeUndefined()
         expect(state.turnManager.turnOrder).toEqual(['alex', 'blair', 'casey'])

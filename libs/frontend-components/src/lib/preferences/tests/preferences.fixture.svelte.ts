@@ -22,7 +22,13 @@ export async function verifySameAccountPreferenceLoads() {
         }
     }
     const api = new Api()
-    const preferences = new TitlePreferences(definition, 'title', api, () => sessionUser.current.id, () => {})
+    const preferences = new TitlePreferences(
+        definition,
+        'title',
+        api,
+        () => sessionUser.current.id,
+        () => {}
+    )
     try {
         flushSync()
         await new Promise((resolve) => setTimeout(resolve, 0))
@@ -188,11 +194,19 @@ export async function verifyPreferenceReadiness(mode: 'saved' | 'failed' | 'olde
     class Api extends DummyRemoteApiService {
         getTitlePreferences = () => {
             if (mode === 'failed') return Promise.reject(new Error('Load failed'))
-            return new Promise<PreferenceResponse>((resolve) => { finish = resolve })
+            return new Promise<PreferenceResponse>((resolve) => {
+                finish = resolve
+            })
         }
     }
     const api = mode === 'older' ? new DummyRemoteApiService() : new Api()
-    const preferences = new TitlePreferences(definition, 'title', api, () => 'alice', () => {})
+    const preferences = new TitlePreferences(
+        definition,
+        'title',
+        api,
+        () => 'alice',
+        () => {}
+    )
     flushSync()
     const before = preferences.ready
     finish?.(response({ compact: true }))

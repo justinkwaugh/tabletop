@@ -13,6 +13,7 @@
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
     import AnswerButton from '$lib/components/AnswerButton.svelte'
     import PileRows from '$lib/components/PileRows.svelte'
+    import SiteGain from '$lib/components/SiteGain.svelte'
     import { cardBack } from '$lib/images/cardImages.js'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
@@ -24,6 +25,7 @@
     import { actionCardLine, answerCostText } from '$lib/model/actionCards.js'
     import type { AdviserPlacement } from '$lib/model/adviserPlacements.js'
     import { PILE_SIDES, pickerWords } from '$lib/model/powerPickerWords.js'
+    import { withSiteGain } from '$lib/model/siteGain.js'
 
     // R-6.1 — the chosen facedown adviser large on the left, ringed, with its magnifier; its plays,
     // then every later step of the play, in one column beside it. R-7.4 — each Search card the play
@@ -144,12 +146,16 @@
                 <div class="flex flex-col gap-1.5">
                     {#each placements as option (option.label)}
                         <MenuChoice
-                            label="{option.label}: {name}"
+                            label={withSiteGain(`${option.label}: ${name}`, option.gain)}
                             disabled={busy}
                             width={playWidth}
                             onclick={() => gameSession.chooseAdviserPlay(cardId, option.play)}
                         >
-                            {option.label}
+                            <span class="inline-flex items-center gap-3"
+                                >{option.label}{#if option.gain}<SiteGain
+                                        gain={option.gain}
+                                    />{/if}</span
+                            >
                         </MenuChoice>
                     {/each}
                 </div>
@@ -229,6 +235,7 @@
                             (picks) => gameSession.setAdviserPlayPicks(picks)
                         }
                         words={pickerWords(cardId)}
+                        banks={gameSession.adviserPlayBanks}
                     />
                 {/if}
                 {#if piles.length > 0}

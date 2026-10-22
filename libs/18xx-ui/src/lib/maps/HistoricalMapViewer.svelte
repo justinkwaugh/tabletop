@@ -72,7 +72,7 @@
                 reservations={preview.reservations}
                 stationAppearances={preview.stationAppearances}
                 routes={preview.routes}
-                selection={preview.selection}
+                outlinedLocationIds={preview.outlinedLocationIds}
                 maskUnavailableLocations={preview.kind === 'run'}
                 highlightedLocationIds={preview.locations}
                 {appearance}

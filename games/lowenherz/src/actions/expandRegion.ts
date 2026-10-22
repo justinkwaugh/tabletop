@@ -133,7 +133,10 @@ export class HydratedExpandRegion
         // Per invaded region id: the squares pulled out of it this turn, and how many
         // were towns - tallied here, then turned into direct losses (and checked for
         // disconnection) once the space has been claimed.
-        const invasions = new Map<string, { victimRegion: Region; spacesLost: string[]; townsLost: number }>()
+        const invasions = new Map<
+            string,
+            { victimRegion: Region; spacesLost: string[]; townsLost: number }
+        >()
 
         const space = this.space
         const key = squareKey(space.col, space.row)
@@ -142,12 +145,18 @@ export class HydratedExpandRegion
         // region, pull it out of that region - it's being absorbed/conquered, not
         // destroyed. (A region can never lose its castle square this way - that
         // square is always "occupied" and thus rejected as a target already.)
-        const owningRegion = state.regions.find((r) => r.id !== region.id && r.squareKeys.includes(key))
+        const owningRegion = state.regions.find(
+            (r) => r.id !== region.id && r.squareKeys.includes(key)
+        )
         if (owningRegion) {
             owningRegion.squareKeys = owningRegion.squareKeys.filter((k) => k !== key)
 
             if (owningRegion.owner) {
-                invasions.set(owningRegion.id, { victimRegion: owningRegion, spacesLost: [], townsLost: 0 })
+                invasions.set(owningRegion.id, {
+                    victimRegion: owningRegion,
+                    spacesLost: [],
+                    townsLost: 0
+                })
                 const invasion = invasions.get(owningRegion.id)!
                 invasion.spacesLost.push(key)
                 if (getSquare(state.board, space.col, space.row)?.type === SquareType.Village) {
@@ -214,7 +223,9 @@ export class HydratedExpandRegion
             }
 
             const components = findConnectedComponents(victimRegion.squareKeys)
-            const castleComponent = components.find((c) => c.includes(victimRegion.castleSquareKey!))
+            const castleComponent = components.find((c) =>
+                c.includes(victimRegion.castleSquareKey!)
+            )
             const strandedComponents = components.filter((c) => c !== castleComponent)
             victimRegion.squareKeys = castleComponent ?? []
 
@@ -351,7 +362,7 @@ export class HydratedExpandRegion
         } else if (state.expansionUsed) {
             // "Using this action to expand twice is not allowed" - even if the action's
             // other sword is still unspent, it can only go to a knight now.
-            return "This action can only expand a region once - place a knight instead."
+            return 'This action can only expand a region once - place a knight instead.'
         } else if (!state.knightsRemaining || state.knightsRemaining <= 0) {
             return "You've already used this action."
         }
@@ -404,7 +415,9 @@ export class HydratedExpandRegion
         // the newly-added space becomes interior once absorbed (see
         // removeInteriorWalls above), which is the correct way to model "the
         // boundary just moved."
-        const isAdjacent = neighbors(space.col, space.row).some((n) => region.squareKeys.includes(squareKey(n.col, n.row)))
+        const isAdjacent = neighbors(space.col, space.row).some((n) =>
+            region.squareKeys.includes(squareKey(n.col, n.row))
+        )
         if (!isAdjacent) {
             return isContinuation
                 ? 'That space must be adjacent to the region as extended by the first space.'

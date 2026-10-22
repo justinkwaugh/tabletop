@@ -28,9 +28,6 @@ export class TitleStockPanels<Panel extends string> implements LocalSelection {
         if (held) return held.id
         return this.panels.find((panel) => panel.id === this.#chosen && panel.available())?.id
     })
-    get count(): number {
-        return this.panels.filter((panel) => panel.available()).length
-    }
     /** The stock menu entries for the panels with something to offer. */
     get menuOptions(): StockMenuOption[] {
         return this.panels

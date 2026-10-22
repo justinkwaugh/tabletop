@@ -4,7 +4,6 @@
         DefaultCompanyPricePresentation,
         type CompanyPricePresentation
     } from './companyPresentation.js'
-    import { tableHeaderState } from './tableHeaderState.js'
     import {
         defaultTableView,
         initialTableLayout,
@@ -71,7 +70,7 @@
     import BoardFocus from './BoardFocus.svelte'
     import BoardAutoZoom from './BoardAutoZoom.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
@@ -83,6 +82,8 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import PhaseChart from '../phases/PhaseChart.svelte'
     import PhaseChartContent from '../phases/PhaseChartContent.svelte'
+    import WealthChart from './WealthChart.svelte'
+    import { seatOrderFrom } from './spreadsheetSort.js'
     import type { PhaseChartData } from '../phases/phaseChart.js'
     let {
         session,
@@ -113,7 +114,6 @@
         marketPoolId,
         ipoPoolId,
         exchangePoolId,
-        companyNames,
         companyPricePresentation = DefaultCompanyPricePresentation,
         includedCompanyIds = [],
         numberedShareNames,
@@ -131,9 +131,6 @@
     )
     const operatingRules = $derived(session.operatingRules)
     const valuationRules = $derived(session.valuationRules)
-    const phaseTileColors = $derived(
-        Object.fromEntries(session.phases.phases.map((phase) => [phase.id, phase.tileColors]))
-    )
     const readOnlyPosition = $derived(
         session.isViewingHistory || !session.myPlayer || !session.isMyTurn
     )
@@ -156,19 +153,18 @@
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
     const tileAppearance = $derived(session.tileAppearance)
-    function paintBodyBackground(_table: HTMLElement, initialColor: string | undefined) {
-        const original = document.body.style.backgroundColor
-        function paint(color: string | undefined) {
-            document.body.style.backgroundColor = color ?? original
+    // The saved preference can also change from another window or a rejected save, so
+    // the fit follows the value rather than the click.
+    function framePresentation(_table: HTMLElement, initial: boolean) {
+        let current = initial
+        return {
+            update(next: boolean) {
+                if (next === current) return
+                current = next
+                restoreRouteView = undefined
+                void tick().then(() => fitMaps())
+            }
         }
-        paint(initialColor)
-        return { update: paint, destroy: () => paint(undefined) }
-    }
-    async function toggleArtwork() {
-        session.toggleArtwork()
-        restoreRouteView = undefined
-        await tick()
-        fitMaps()
     }
 
     let mapWrapper = $state<ScalingWrapper>()
@@ -185,10 +181,6 @@
     const boardAutoZoom = $derived(session.preferences.values.boardAutoZoom)
     function toggleBoardAutoZoom() {
         session.preferences.set({ boardAutoZoom: !boardAutoZoom }, 'family')
-    }
-    const companyCardsWrap = $derived(session.preferences.values.companyCardsWrap)
-    function toggleCompanyCardsWrap() {
-        session.preferences.set({ companyCardsWrap: !companyCardsWrap }, 'family')
     }
     function autoZooms(wrapper: ScalingWrapper) {
         return boardAutoZoom || wrapper !== boardViewer()
@@ -287,6 +279,20 @@
     const displayedScene = $derived(session.map.displayedScene)
     const paneLayout = new MediaQuery('(min-width: 64rem)')
     const phoneLayout = new MediaQuery('(width < 40rem)')
+    const companyCardsWrapKey = $derived(
+        paneLayout.current ? 'companyCardsWrap' : 'companyCardsWrapTabbed'
+    )
+    const companyCardsWideKey = $derived(
+        paneLayout.current ? 'companyCardsWide' : 'companyCardsWideTabbed'
+    )
+    const companyCardsWrap = $derived(session.preferences.values[companyCardsWrapKey])
+    function toggleCompanyCardsWrap() {
+        session.preferences.set({ [companyCardsWrapKey]: !companyCardsWrap }, 'family')
+    }
+    const companyCardsWide = $derived(session.preferences.values[companyCardsWideKey])
+    function toggleCompanyCardsWide() {
+        session.preferences.set({ [companyCardsWideKey]: !companyCardsWide }, 'family')
+    }
     let shownCompanyCardId: string | undefined = $derived.by(() => {
         paneLayout.current
         return undefined
@@ -297,7 +303,17 @@
     // Below the pane layout, drags may bring the map's edge 30% into the view; focusing a hex
     // still brings it to the centre.
     const MapGestureOverpanReach = 0.3
-    let orderChipsShown = $state(false)
+    // The tabbed layout saves whether the chips are shown; the paned layout starts without them.
+    let orderChipsShownPaned = $state(false)
+    const orderChipsShown = $derived(
+        paneLayout.current
+            ? orderChipsShownPaned
+            : session.preferences.values.operatingOrderChipsTabbed
+    )
+    function toggleOrderChips() {
+        if (paneLayout.current) orderChipsShownPaned = !orderChipsShownPaned
+        else session.preferences.set({ operatingOrderChipsTabbed: !orderChipsShown }, 'family')
+    }
     let orderOverflowing = $state(false)
     let orderFirstVisible = $state(-1)
     let orderLastVisible = $state(-1)
@@ -573,7 +589,10 @@
             | undefined => {
             if (session.isViewingHistory)
                 return mapRoutes.length
-                    ? { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+                    ? {
+                          legalLocationIds: [],
+                          highlightedLocationIds: routeLocationIds(mapRoutes, session.mapView)
+                      }
                     : undefined
             if (maskPlacementLocations)
                 return {
@@ -581,7 +600,10 @@
                     highlightedLocationIds: highlightedPlacementLocationIds
                 }
             if (routePreview && !session.routes.editor.trainId && mapRoutes.length)
-                return { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+                return {
+                    legalLocationIds: [],
+                    highlightedLocationIds: routeLocationIds(mapRoutes, session.mapView)
+                }
             return undefined
         }
     )
@@ -609,9 +631,18 @@
     }
 
     const gameState = $derived(session.gameState)
-    const headerState = $derived(tableHeaderState(session))
+    const wealthPlayers = $derived(
+        seatOrderFrom(
+            session.gameState.players.map((player) => player.playerId),
+            session.myPrimaryPlayer?.id
+        ).map((playerId) => ({
+            playerId,
+            name: session.getPlayerName(playerId),
+            color: session.colors.getPlayerBgColorValue(playerId)
+        }))
+    )
     const headerPlayerId = $derived(
-        headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined
+        gameState.activePlayerIds.length === 1 ? gameState.activePlayerIds[0] : undefined
     )
     const operating = $derived(gameState.stockRound.completed && !!gameState.operatingSet)
     const operatedCompanyIds = $derived(
@@ -677,6 +708,7 @@
         ...workspaceTabs,
         { id: 'Depot', label: 'Depot', optional: true },
         { id: 'Operating Order', label: 'Operating Order', optional: true },
+        { id: 'Stats', label: 'Stats', optional: true },
         ...(boardAvailable ? [{ id: 'Board', label: 'Board', optional: true }] : []),
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
@@ -731,7 +763,6 @@
 <svelte:window onkeydown={navigateByShortcut} />
 
 {#snippet playerCards()}<PlayersPanel
-        {companyNames}
         {session}
         {valuationRules}
         {auctionLotDescription}
@@ -746,10 +777,12 @@
         {portfolioCompanyIds}
     />{/snippet}
 
-{#snippet companyCard(company: Company)}<CompanyDetails
+{#snippet companyCard(
+    company: Company,
+    layout: 'wide-fill' | 'vertical' = 'vertical'
+)}<CompanyDetails
         pricePresentation={companyPricePresentation}
-        vertical
-        displayName={companyNames?.[company.id]?.card}
+        {layout}
         {company}
         {session}
         {trainColors}
@@ -780,11 +813,6 @@
         onPreviewMap={previewHistoryMap}
         {session}
         {trainColors}
-        {phaseColors}
-        {phaseTileColors}
-        tileColors={tileAppearance.colors}
-        tileColorNames={tileAppearance.colorNames}
-        {companyNames}
         describeAction={historyDescription}
     />{/snippet}
 
@@ -795,11 +823,7 @@
         artwork={boardArtwork}
         tokens={session.map.displayedTokens}
         stationAppearances={session.mapView.stations}
-        reservations={[
-            ...(session.track.displayedStations?.stationReservations ??
-                session.stations.displayState.stationReservations),
-            ...powerReservations
-        ]}
+        reservations={[...session.map.displayedReservations, ...powerReservations]}
         routes={mapRoutes}
         selection={session.isViewingHistory
             ? historyMapSettled
@@ -944,7 +968,7 @@
         {#each session.presentation.gameFacts?.(session.gameState) ?? [] as fact (fact.label)}
             <span class="game-information-item">
                 <span class="information-label">{fact.label}</span>
-                <span>{fact.value}</span>
+                <span class="information-value">{fact.value}</span>
             </span>
         {/each}
     </button>
@@ -984,11 +1008,11 @@
 <div
     class="railway-table"
     class:published-artwork={publishedArtwork}
-    use:paintBodyBackground={boardArtwork?.backgroundColor}
     use:framePlacement={activePlacementFocusKey}
     use:frameRoutes={{ runningCompanyId, preview: routePreview }}
     use:frameStartCompany={session.stock.selectedStartCompany}
     use:frameHistory={settledHistoricalFocus}
+    use:framePresentation={publishedArtwork}
     style:--rail-table-background={boardArtwork?.backgroundColor}
     data-theme="dark"
     aria-label="Game table"
@@ -1024,9 +1048,8 @@
                         <TableHeader
                             artworkAvailable={session.publishedArtworkAvailable}
                             {publishedArtwork}
-                            onToggleArtwork={toggleArtwork}
+                            onToggleArtwork={() => session.toggleArtwork()}
                             {session}
-                            {companyNames}
                             bordered={!paneLayout.current}
                             centered={paneLayout.current}
                         />
@@ -1057,7 +1080,7 @@
                                     class="order-overview-toggle"
                                     aria-label="Operating order chips"
                                     aria-expanded={orderChipsShown}
-                                    onclick={() => (orderChipsShown = !orderChipsShown)}
+                                    onclick={toggleOrderChips}
                                 >
                                     <CompanyOrderOverview
                                         companies={companyOrder}
@@ -1134,7 +1157,7 @@
                             {:else}
                                 {#if auctionTurnPlayerId}<TurnHeading
                                         {session}
-                                        playerId={auctionTurnPlayerId}
+                                        playerIds={[auctionTurnPlayerId]}
                                     />{/if}
                                 {@render actions(focusLocation, focusRoute)}
                             {/if}
@@ -1151,7 +1174,7 @@
                                 {money}
                                 {depotState}
                                 chart={phaseChart}
-                                currentPhaseId={headerState.phaseId}
+                                currentPhaseId={gameState.phaseId}
                                 {trainColors}
                                 {phaseColors}
                                 tileColors={tileAppearance.colors}
@@ -1170,6 +1193,13 @@
                                 tileColors={tileAppearance.colors}
                                 tileColorNames={tileAppearance.colorNames}
                             />
+                        </div>
+                    {:else if id === 'Stats'}<div class="workspace-view">
+                            {#if active}<WealthChart
+                                    {money}
+                                    points={session.playerWealthHistory()}
+                                    players={wealthPlayers}
+                                />{/if}
                         </div>
                     {:else if id === 'Players'}<div class="workspace-view players-pane">
                             {@render playerCards()}
@@ -1302,7 +1332,6 @@
                                 {trainColors}
                                 {valuationRules}
                                 {session}
-                                {companyNames}
                                 {numberedShareNames}
                                 {includedCompanyIds}
                                 {marketPoolId}
@@ -1314,9 +1343,14 @@
                             <CompanyCardLayout
                                 wrap={companyCardsWrap}
                                 onToggleWrap={toggleCompanyCardsWrap}
+                                wide={companyCardsWide}
+                                onToggleWide={toggleCompanyCardsWide}
                             >
                                 {#each startedCompanies as company (company.id)}
-                                    {@render companyCard(company)}
+                                    {@render companyCard(
+                                        company,
+                                        companyCardsWide ? 'wide-fill' : 'vertical'
+                                    )}
                                 {:else}<p class="widget-empty">No companies have started.</p>{/each}
                             </CompanyCardLayout>
                         </div>{:else if id === 'Tiles'}<div class="workspace-view">
@@ -1444,7 +1478,7 @@
         flex: 1;
         min-height: 0;
         overflow: auto;
-        overscroll-behavior: none;
+        overscroll-behavior-y: none;
     }
     .workspace-heading {
         padding-inline: 8px;
@@ -1648,7 +1682,8 @@
         text-align: center;
         line-height: 10px;
     }
-    .train-limit-value {
+    .train-limit-value,
+    .information-value {
         font-size: 16px;
         font-weight: 700;
         line-height: 20px;

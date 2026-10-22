@@ -19,11 +19,12 @@ import {
     finiteCashOwnedBy,
     isTakeLoan,
     recordStockAction,
-    settleCashPayments
+    settleCashPayments,
+    treasuryPoolId
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
-import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { EighteenSeventeenStockRoundRules, MarketPoolId } from './roundRules.js'
 import { EighteenSeventeenStockRules } from './stockRules.js'
 
 export function buyBackCertificateIds(state: EighteenSeventeenState, companyId: string): string[] {

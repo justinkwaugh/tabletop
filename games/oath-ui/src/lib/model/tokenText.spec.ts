@@ -86,7 +86,12 @@ describe('History text, which draws warbands too', () => {
         ])
         expect(history("moved 3 of Bob's warbands to the Plains")).toEqual([
             text('moved '),
-            { kind: 'warband', count: 3, whose: { kind: 'seat', name: 'Bob' }, words: "of Bob's warbands" },
+            {
+                kind: 'warband',
+                count: 3,
+                whose: { kind: 'seat', name: 'Bob' },
+                words: "of Bob's warbands"
+            },
             text(' to the Plains')
         ])
     })
@@ -107,13 +112,25 @@ describe('History text, which draws warbands too', () => {
     })
 
     it('R-10.13 — a row with several owners gives each phrase its own', () => {
-        expect(history("moved 2 of Cass's warbands and 2 Imperial warbands from the Cage")).toEqual([
-            text('moved '),
-            { kind: 'warband', count: 2, whose: { kind: 'seat', name: 'Cass' }, words: "of Cass's warbands" },
-            text(' and '),
-            { kind: 'warband', count: 2, whose: { kind: 'imperial' }, words: 'Imperial warbands' },
-            text(' from the Cage')
-        ])
+        expect(history("moved 2 of Cass's warbands and 2 Imperial warbands from the Cage")).toEqual(
+            [
+                text('moved '),
+                {
+                    kind: 'warband',
+                    count: 2,
+                    whose: { kind: 'seat', name: 'Cass' },
+                    words: "of Cass's warbands"
+                },
+                text(' and '),
+                {
+                    kind: 'warband',
+                    count: 2,
+                    whose: { kind: 'imperial' },
+                    words: 'Imperial warbands'
+                },
+                text(' from the Cage')
+            ]
+        )
     })
 
     it('leaves an uncounted mention as words', () => {
@@ -129,7 +146,9 @@ describe('History text, which draws warbands too', () => {
             { kind: 'favor', count: 1 },
             text(' on it')
         ])
-        expect(tokenParts('mustered at Secret Police, gaining 2 warbands', { warbands: true })).toEqual([
+        expect(
+            tokenParts('mustered at Secret Police, gaining 2 warbands', { warbands: true })
+        ).toEqual([
             text('mustered at Secret Police, gaining '),
             { kind: 'warband', count: 2, whose: { kind: 'row' }, words: 'warbands' }
         ])
@@ -142,7 +161,9 @@ describe('History text, which draws warbands too', () => {
 
 describe('the skull as its symbol, in the rows that ask for it', () => {
     it('draws "skull" and "skulls" as the skull, the word its alt; the count stays words', () => {
-        expect(tokenParts('Dana lost 1 warband to a skull', { warbands: true, skulls: true })).toEqual([
+        expect(
+            tokenParts('Dana lost 1 warband to a skull', { warbands: true, skulls: true })
+        ).toEqual([
             text('Dana lost '),
             { kind: 'warband', count: 1, whose: { kind: 'row' }, words: 'warband' },
             text(' to a '),

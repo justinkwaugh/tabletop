@@ -67,6 +67,16 @@ export class FreshFishGameSession extends GameSession<
     previewExpropriateCoords: OffsetTupleCoordinates[] = $state([])
     highlightedCoords: OffsetTupleCoordinates | undefined = $state()
 
+    // While viewing history the board marks the square where the shown action placed a piece,
+    // instead of any history entry being hovered.
+    boardHighlightCoords: OffsetTupleCoordinates | undefined = $derived.by(() => {
+        if (!this.isViewingHistory) {
+            return this.highlightedCoords
+        }
+        const action = this.history.currentAction
+        return action ? coordsPlacedBy(action) : undefined
+    })
+
     // A player's own disc replaces the preview they clicked, so only it skips the grow-in.
     newDiscsGrowIn = $state(true)
 
@@ -124,26 +134,12 @@ export class FreshFishGameSession extends GameSession<
     }
 
     setHighlightedCoordsForAction(action: GameAction) {
-        switch (true) {
-            case isPlaceDisk(action) || isPlaceMarket(action) || isPlaceStall(action):
-                this.highlightCoords((action as PlaceDisk).coords)
-                break
-            default:
-                this.clearHighlightedCoords()
-        }
-    }
-
-    // Should change this to just look at last action
-    override onHistoryAction(action?: GameAction) {
-        if (!action) {
+        const coords = coordsPlacedBy(action)
+        if (coords) {
+            this.highlightCoords(coords)
+        } else {
             this.clearHighlightedCoords()
-            return
         }
-        this.setHighlightedCoordsForAction(action)
-    }
-
-    override onHistoryExit() {
-        this.clearHighlightedCoords()
     }
 
     highlightCoords(coords: OffsetTupleCoordinates) {
@@ -184,4 +180,11 @@ export class FreshFishGameSession extends GameSession<
     createPlaceMarketAction(coords: OffsetTupleCoordinates): PlaceMarket {
         return this.createPlayerAction(PlaceMarket, { coords })
     }
+}
+
+function coordsPlacedBy(action: GameAction): OffsetTupleCoordinates | undefined {
+    if (isPlaceDisk(action) || isPlaceMarket(action) || isPlaceStall(action)) {
+        return action.coords
+    }
+    return undefined
 }

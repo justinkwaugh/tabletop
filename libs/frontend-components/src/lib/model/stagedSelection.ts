@@ -5,15 +5,11 @@ export type StagedSelectionEntry<TValue> = {
     source: StagedSelectionSource
 }
 
-type StageKey<TValueByStage extends Record<string, unknown>> = Extract<
-    keyof TValueByStage,
-    string
->
+type StageKey<TValueByStage extends Record<string, unknown>> = Extract<keyof TValueByStage, string>
 
-export type StagedSelectionState<TValueByStage extends Record<string, unknown>> =
-    Partial<{
-        [TCurrentStage in StageKey<TValueByStage>]: StagedSelectionEntry<TValueByStage[TCurrentStage]>
-    }>
+export type StagedSelectionState<TValueByStage extends Record<string, unknown>> = Partial<{
+    [TCurrentStage in StageKey<TValueByStage>]: StagedSelectionEntry<TValueByStage[TCurrentStage]>
+}>
 
 function stageIndex<TValueByStage extends Record<string, unknown>>(
     stageOrder: readonly StageKey<TValueByStage>[],
@@ -92,9 +88,7 @@ export function getStagedSelectionValue<
     return getStagedSelectionEntry(state, stage)?.value
 }
 
-export function getHighestManualStagedSelectionStage<
-    TValueByStage extends Record<string, unknown>
->(
+export function getHighestManualStagedSelectionStage<TValueByStage extends Record<string, unknown>>(
     state: StagedSelectionState<TValueByStage>,
     stageOrder: readonly StageKey<TValueByStage>[]
 ): StageKey<TValueByStage> | undefined {
@@ -108,18 +102,17 @@ export function getHighestManualStagedSelectionStage<
     return undefined
 }
 
-export function hasManualStagedSelection<
-    TValueByStage extends Record<string, unknown>
->(
+export function hasManualStagedSelection<TValueByStage extends Record<string, unknown>>(
     state: StagedSelectionState<TValueByStage>,
     stageOrder: readonly StageKey<TValueByStage>[]
 ): boolean {
     return getHighestManualStagedSelectionStage(state, stageOrder) !== undefined
 }
 
-export function popHighestManualStagedSelection<
-    TValueByStage extends Record<string, unknown>
->(state: StagedSelectionState<TValueByStage>, stageOrder: readonly StageKey<TValueByStage>[]): {
+export function popHighestManualStagedSelection<TValueByStage extends Record<string, unknown>>(
+    state: StagedSelectionState<TValueByStage>,
+    stageOrder: readonly StageKey<TValueByStage>[]
+): {
     nextState: StagedSelectionState<TValueByStage>
     poppedStage?: StageKey<TValueByStage>
 } {
@@ -131,5 +124,26 @@ export function popHighestManualStagedSelection<
     return {
         nextState: clearStagedSelectionAtOrAfter(state, stageOrder, poppedStage),
         poppedStage
+    }
+}
+
+/**
+ * A staged selection as a session's contextual Undo sees it: Undo pops its highest manual stage
+ * and reports nothing to pop, so the session can undo the last action instead.
+ */
+export function undoableStagedSelection<TValueByStage extends Record<string, unknown>>(
+    stageOrder: readonly StageKey<TValueByStage>[],
+    read: () => StagedSelectionState<TValueByStage>,
+    write: (state: StagedSelectionState<TValueByStage>) => void
+): { hasManual: () => boolean; undo: () => boolean; clear: () => void } {
+    return {
+        hasManual: () => hasManualStagedSelection(read(), stageOrder),
+        undo: () => {
+            const { nextState, poppedStage } = popHighestManualStagedSelection(read(), stageOrder)
+            if (!poppedStage) return false
+            write(nextState)
+            return true
+        },
+        clear: () => write({})
     }
 }

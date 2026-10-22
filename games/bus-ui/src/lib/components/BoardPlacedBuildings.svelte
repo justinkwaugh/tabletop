@@ -39,7 +39,10 @@
         {@const point = BUS_BUILDING_SITE_POINTS[building.site]}
         <g
             transform={`translate(${point.x} ${point.y})`}
-            use:animatePlacedBuilding={{ animator: buildingPlacementAnimator, siteId: building.site }}
+            use:animatePlacedBuilding={{
+                animator: buildingPlacementAnimator,
+                siteId: building.site
+            }}
         >
             <PlacedBuilding buildingType={building.type} />
         </g>

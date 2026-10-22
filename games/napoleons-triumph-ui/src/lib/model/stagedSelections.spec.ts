@@ -52,7 +52,7 @@ import {
     wayStepsOf,
     type CommandSelection
 } from './commandSelection.js'
-import { RideChoice } from './moveCommands.js'
+import { ATTACH, RideChoice } from './moveCommands.js'
 import type { ArmySetup } from './armySetup.js'
 import {
     DestinationKind,
@@ -106,6 +106,15 @@ describe('command selection', () => {
         const one = chooseDetachedUnit(corpsPickedUp(), 'F01', [])
         expect(chosenUnitsOf(chooseDetachedUnit(one, 'F02', ['F01']))).toEqual(['F02'])
         expect(chooseDetachedUnit(one, 'F01', ['F01'])).toEqual(noCommandSelection())
+    })
+
+    it('chooses Attach as a command, in place of a move, which Undo takes back', () => {
+        const unit = setCommand(chooseDetachedUnit(corpsPickedUp(), 'F01', []), CommandKind.Unit)
+        const attaching = setCommand(unit, ATTACH)
+        expect(chosenCommandOf(attaching)).toBe(ATTACH)
+        expect(chosenCommandOf(setCommand(attaching, CommandKind.Unit))).toBe(CommandKind.Unit)
+        expect(chosenCommandOf(undoCommandSelection(attaching))).toBeUndefined()
+        expect(chosenUnitsOf(undoCommandSelection(attaching))).toEqual(['F01'])
     })
 
     it('leaves Undo to the last action when nothing has been chosen', () => {

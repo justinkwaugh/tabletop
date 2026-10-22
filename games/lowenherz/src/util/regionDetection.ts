@@ -94,7 +94,9 @@ export function detectNewRegions(board: LowenherzBoard, existingRegions: Region[
             const componentKeySet = new Set(componentKeys)
 
             const alreadyTracked = existingSquareKeySets.some(
-                (set) => set.size === componentKeySet.size && [...set].every((k) => componentKeySet.has(k))
+                (set) =>
+                    set.size === componentKeySet.size &&
+                    [...set].every((k) => componentKeySet.has(k))
             )
             if (alreadyTracked) continue
 

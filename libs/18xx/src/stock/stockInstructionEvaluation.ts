@@ -89,9 +89,10 @@ export function evaluateStockInstruction(
     if (preferred) return 'reason' in preferred ? stop(preferred.reason) : purchase(preferred)
     const fallback = evaluated
         .flatMap((offer) => ('reason' in offer ? [] : [offer]))
-        .reduce<
-            PurchaseOffer | undefined
-        >((best, offer) => (best && best.price <= offer.price ? best : offer), undefined)
+        .reduce<PurchaseOffer | undefined>(
+            (best, offer) => (best && best.price <= offer.price ? best : offer),
+            undefined
+        )
     if (fallback) return purchase(fallback)
     const failure = evaluated[0]
     return stop('reason' in failure ? failure.reason : { code: 'no-shares', companyId: company.id })

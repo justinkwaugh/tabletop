@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import fishtoken from '$lib/images/fishtoken.png'
     import { isDeliveryCell } from '@tabletop/kaivai'
     import { sameCoordinates } from '@tabletop/common'

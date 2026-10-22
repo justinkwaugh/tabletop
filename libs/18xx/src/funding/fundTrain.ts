@@ -18,7 +18,13 @@ export const FundTrain = Type.Object(
         ...PlayerAction.properties,
         ...TrainPurchaseRequest.properties,
         type: Type.Literal('FundTrain'),
-        expectedPrice: Type.Integer({ minimum: 1 })
+        expectedPrice: Type.Integer({ minimum: 1 }),
+        // Recorded only when the company already owned a train, so chose to be helped. Absent
+        // for compulsory funding, so titles without voluntary funding record what earlier
+        // logic accepts.
+        metadata: Type.Optional(
+            Type.Object({ voluntary: Type.Literal(true) }, { additionalProperties: false })
+        )
     },
     { additionalProperties: false }
 )
@@ -38,6 +44,7 @@ export class HydratedFundTrain extends HydratableAction<typeof FundTrain> implem
     declare definitionId: string
     declare exchangeTrainId?: string
     declare expectedPrice: number
+    declare metadata?: { voluntary: true }
     readonly #rules: TrainFundingRules
     readonly #stocks: StockRules
     readonly #trains: TrainRules
@@ -73,8 +80,16 @@ export class HydratedFundTrain extends HydratableAction<typeof FundTrain> implem
     apply(state: HydratedGameState & FundingState): void {
         assert(this.isValid(state), 'Invalid FundTrain action')
         const funding = new EmergencyTrainFunding(state, this.#rules, this.#stocks, this.#trains)
-        const purchase = funding.purchases().find((purchase) => purchase.trainId === this.trainId)
+        const purchase = funding
+            .purchases()
+            .find(
+                (purchase) =>
+                    purchase.trainId === this.trainId &&
+                    purchase.definitionId === this.definitionId &&
+                    purchase.price === this.expectedPrice
+            )
         assert(purchase, 'Funding requires an eligible purchase')
+        if (funding.voluntary(this.companyId)) this.metadata = { voluntary: true }
         state.trainFunding = funding.begin(purchase)
     }
 }

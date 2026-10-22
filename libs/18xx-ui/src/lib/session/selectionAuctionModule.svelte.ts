@@ -72,6 +72,10 @@ export class SelectionAuctionModule {
         assert(this.canAct && this.model, 'Auction selection is unavailable')
         this.choice.choose('choice', { lotId, amount: this.model.minimumBid(lotId) })
     }
+    toggle(lotId: string) {
+        if (this.selection?.lotId === lotId) this.choice.clear()
+        else this.select(lotId)
+    }
     setBid(amount: number) {
         const choice = this.choice.value('choice')
         assert(this.canAct && choice, 'Select a lot first')

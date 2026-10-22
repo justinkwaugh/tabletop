@@ -9,9 +9,7 @@ import {
     isSetStockInstruction,
     isStopStockInstruction,
     isSetPrivatePowerRequest,
-    isDropPrivatePowerRequest,
-    type BuyShares,
-    type FloatCompany
+    isDropPrivatePowerRequest
 } from '@tabletop/18xx'
 
 export function isHistoryBookkeeping(action: GameAction): boolean {
@@ -43,21 +41,4 @@ export function shouldContinueHistoryStep(action: GameAction, next?: GameAction)
     if (next && isFloatCompany(action))
         return next.source === ActionSource.System && !isFinishStockTurn(next)
     return isHistoryBookkeeping(action) || isGeneratedConsequence(action)
-}
-
-export function purchaseWithFlotation(
-    actions: readonly GameAction[]
-): { purchase: BuyShares; flotation: FloatCompany } | undefined {
-    let flotation: FloatCompany | undefined
-    for (let index = actions.length - 1; index >= 0; index--) {
-        const action = actions[index]
-        if (isFloatCompany(action)) flotation = action
-        if (isGeneratedConsequence(action) || isHistoryBookkeeping(action)) continue
-        return flotation &&
-            isBuyShares(action) &&
-            action.metadata?.companyId === flotation.companyId
-            ? { purchase: action, flotation }
-            : undefined
-    }
-    return undefined
 }

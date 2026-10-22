@@ -1,7 +1,8 @@
+import * as Type from 'typebox'
 import { bannerHolder } from './oathkeeper.js'
 import { siteHolding } from './access.js'
-import { gainFavorFromBank, settleBoardFavor } from './favor.js'
-import { Banner, SearchPlay, CardKind, PlayerStatus, Region } from '../model/oathEnums.js'
+import { favorHomeBankOf, favorTakenFrom, gainFavorFromBank, settleBoardFavor } from './favor.js'
+import { Banner, SearchPlay, CardKind, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import { ConspiracyPlay, type ConspiracyTake } from '../model/conspiracy.js'
 import { isLockedFor } from './locked.js'
 import { assertExists } from '@tabletop/common'
@@ -10,11 +11,24 @@ import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { cardDefinition, CONSPIRACY_ID, kindOf, suitOf } from '../data/cardRegistry.js'
 import { effectiveSiteCapacity, SALT_THE_EARTH } from './capacity.js'
-import { detachFromPlay, discardCards, noteSiteDiscard, type DiscardTarget } from './discard.js'
+import {
+    detachFromPlay,
+    discardCards,
+    noteSiteDiscard,
+    siteDiscardLedgerKey,
+    tokensReturnedBy,
+    type DiscardTarget
+} from './discard.js'
 import { discardRevealedVision } from './revealedVision.js'
 import { seizeBanner } from './seize.js'
 import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
-import { effectFor, type EffectContext, type PlayMapChanges } from '../powers/registry.js'
+import {
+    effectFor,
+    type EffectContext,
+    type FavorTake,
+    type PlayGains,
+    type PlayMapChanges
+} from '../powers/registry.js'
 import { pawnSiteId } from './pawn.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
@@ -38,7 +52,7 @@ import {
     persistentRefusesRelicTake,
     persistentRefusesSecretCost
 } from './persistent.js'
-import { categoryAt, homelandPayout } from './sitePowers.js'
+import { categoryAt, homelandPayout, homelandPowerFor } from './sitePowers.js'
 import { takeRelicsFrom } from './relics.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
@@ -241,22 +255,149 @@ function cardDiscardedFirst(
     return first && at && state.isMusterableCard(at, first) ? first : undefined
 }
 
+/** R-5.1.4.I — the site a site play puts the card at: the pawn's, or the one the People's Favor or New Growth names. */
+function sitePlayedTo(
+    state: HydratedOathGameState,
+    playerId: string,
+    options: CardPlayOptions
+): string {
+    return options.toSiteId ?? pawnSiteId(state, playerId)
+}
+
+/** Book of Records — "you must gain a secret instead of favor" from a site play. */
+function sitePlayGainsSecret(options: CardPlayOptions): boolean {
+    return (options.carried ?? []).some((m) => m.hooks.sitePlayGainsSecret)
+}
+
 /**
  * R-5.1.4 — what a play does to the map before its When Played power resolves, read from the state before the
- * play: the check and the resolve both judge the power on the map these leave.
+ * play: the check and the resolve both judge the power on the map these leave. With it, the site played to and
+ * what the play gains first (R-7.3.3), which only a check adds to the state it reads.
  */
 export function playMapChanges(
     state: HydratedOathGameState,
+    playerId: string,
     cardId: string,
     play: SearchPlay,
     options: CardPlayOptions = {}
 ): PlayMapChanges {
     const first = cardDiscardedFirst(state, play, options)
     const earlier = options.earlierMapChanges
+    const siteId = play === SearchPlay.Site ? sitePlayedTo(state, playerId, options) : undefined
     return {
         leaving: [...(earlier?.leaving ?? []), ...(first ? [first] : [])],
-        arriving: [...(earlier?.arriving ?? []), ...(play === SearchPlay.Site ? [cardId] : [])]
+        arriving: [...(earlier?.arriving ?? []), ...(play === SearchPlay.Site ? [cardId] : [])],
+        ...(siteId !== undefined ? { siteId } : {}),
+        gains: playGains(state, playerId, cardId, play, siteId, first, options)
     }
+}
+
+/**
+ * R-7.3.3 — the play's own gains, planned from the steps `playCard` takes and in its order, on the state before
+ * the play: the card discarded first gives its tokens back (R-10.5) and writes the Homeland ledger (R-11.2), the
+ * site gives its favor (Book of Records: a secret instead), then the Homeland pays. An adviser play gives back the
+ * tokens of the advisers it discards. Land Warden's second card starts from the kept card's gains. The relic a
+ * Homeland gives is not planned: no check reads it, and its identity is the vault's.
+ */
+function playGains(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    siteId: string | undefined,
+    first: string | undefined,
+    options: CardPlayOptions
+): PlayGains {
+    const earlier = options.earlierMapChanges
+    const favorBank: Record<Suit, number> = { ...(earlier?.gains?.favorBank ?? state.favorBank) }
+    const returning = [...(earlier?.gains?.returning ?? [])]
+    let secrets = earlier?.gains?.secrets ?? 0
+    const giveBack = (id: string) => {
+        returning.push(id)
+        const back = tokensReturnedBy(state, id)
+        if (back.suit) favorBank[back.suit] += back.favor
+    }
+    // R-10.10, R-9.3 — as `gainFavorFromBank` takes it; Vow of Kinship keeps it in a bank.
+    const homeBank = favorHomeBankOf(state, playerId)
+    const favorTaken: FavorTake[] = []
+    const gainOneFavor = (suit: Suit) => {
+        const gained = favorTakenFrom(favorBank[suit], 1)
+        favorBank[suit] -= gained
+        if (homeBank) favorBank[homeBank] += gained
+        favorTaken.push({ suit, gained })
+    }
+
+    if (siteId !== undefined) {
+        if (first) giveBack(first)
+        const suit = suitOf(cardId)
+        if (suit) {
+            if (sitePlayGainsSecret(options)) secrets += 1
+            else gainOneFavor(suit)
+            const discardedFirst = [...(earlier?.leaving ?? []), ...(first ? [first] : [])].flatMap(
+                (id) => siteDiscardLedgerKey(state, id) ?? []
+            )
+            const homeland = homelandPowerFor(state, playerId, siteId, cardId, discardedFirst)
+            if (homeland && !homeland.barred) {
+                if (homeland.reward === 'favor') gainOneFavor(suit)
+                if (homeland.reward === 'secret') secrets += 1
+            }
+        }
+    } else if (play === SearchPlay.Adviser) {
+        for (const id of options.discardedAdviserCardIds ?? []) giveBack(id)
+    }
+    const favorAfter =
+        siteId !== undefined && !earlier && kindOf(cardId) === CardKind.Denizen
+            ? favorGainedAfterPlay(favorBank, homeBank, options.carried ?? [])
+            : 0
+    return { secrets, returning, favorBank, favorTaken, favorAfter }
+}
+
+/** R-7.4 — Welcoming Party's favor once the play is made, each carried card's bank in turn, from the banks given. */
+function favorGainedAfterPlay(
+    banks: Readonly<Record<Suit, number>>,
+    homeBank: Suit | undefined,
+    carried: readonly ActiveModifier[]
+): number {
+    const favorBank = { ...banks }
+    let gained = 0
+    for (const suit of carried.flatMap((m) => m.hooks.playFavorFrom ?? [])) {
+        const taken = favorTakenFrom(favorBank[suit], 1)
+        favorBank[suit] -= taken
+        if (homeBank) favorBank[homeBank] += taken
+        gained += taken
+    }
+    return gained
+}
+
+/** R-5.1.4.I — what a site play gains you, the banks as they stand. */
+export interface SitePlayGain {
+    favor: number
+    secrets: number
+}
+
+/**
+ * R-5.1.4.I, R-11.2, R-7.4 — all a site play gains you, from its plan on the banks as they stand: the site's favor
+ * (Book of Records: a secret instead), a Homeland's favor or secret, and a carried card's favor once the play is
+ * made (Welcoming Party). Not what its When Played power gains. Undefined for a play that goes to no site.
+ */
+export function sitePlayGain(changes: PlayMapChanges): SitePlayGain | undefined {
+    const gains = changes.gains
+    if (changes.siteId === undefined || !gains) return undefined
+    const taken = gains.favorTaken.reduce((sum, take) => sum + take.gained, 0)
+    return { favor: taken + gains.favorAfter, secrets: gains.secrets }
+}
+
+/** R-9.3 — a bank that could not give a favor the play took: empty from the start, or run out by the play. */
+export type FavorShort = Type.Static<typeof FavorShort>
+export const FavorShort = Type.Object({ suit: Type.Enum(Suit), ranOut: Type.Boolean() })
+
+/** R-9.3 — the banks that came up short of the favor the play took (`PlayGains.favorTaken`), each once. */
+export function favorShortOf(taken: readonly FavorTake[]): FavorShort[] {
+    const suits = [...new Set(taken.filter((take) => take.gained === 0).map((take) => take.suit))]
+    return suits.map((suit) => ({
+        suit,
+        ranOut: taken.some((take) => take.suit === suit && take.gained > 0)
+    }))
 }
 
 /** R-5.1.4.I */
@@ -264,6 +405,8 @@ export interface CardPlayResult {
     favorGained: number
     /** Book of Records */
     secretsGained: number
+    /** R-9.3 — each favor the play took before its power, the site's and a Homeland's, as its banks gave it. */
+    favorTaken: readonly FavorTake[]
     discarded: string[]
     /** R-7.3.3 */
     whenPlayed?: string
@@ -293,14 +436,17 @@ export function playCard(
     }
     let favorGained = 0
     let secretsGained = 0
+    // R-9.3 — as the banks gave it when this card was played: Land Warden's second card is played after the kept
+    // card's power, which its plan cannot know.
+    const favorTaken: FavorTake[] = []
     let sitePower: string | undefined
     // Read before the play changes the map, as the check reads it.
-    const mapChanges = playMapChanges(state, cardId, play, options)
+    const mapChanges = playMapChanges(state, playerId, cardId, play, options)
 
     switch (play) {
         case SearchPlay.Site: {
             // R-5.1.4.I — New Growth may name another site.
-            const siteId = options.toSiteId ?? pawnSiteId(state, playerId)
+            const siteId = sitePlayedTo(state, playerId, options)
             // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — a denizen discarded first.
             const first = cardDiscardedFirst(state, play, options)
             if (first) {
@@ -312,17 +458,18 @@ export function playCard(
 
             const suit = suitOf(cardId)
             assertExists(suit, `${cardId} has no suit`)
-            if ((options.carried ?? []).some((m) => m.hooks.sitePlayGainsSecret)) {
+            if (sitePlayGainsSecret(options)) {
                 // Book of Records — "you must gain a secret instead of favor".
                 secretsGained = 1
                 player.secrets += secretsGained
             } else {
                 // R-9.3 — component-limited; take as much as the bank holds.
                 favorGained = gainFavorFromBank(state, playerId, suit, 1)
+                favorTaken.push({ suit, gained: favorGained })
             }
 
             // R-11.2
-            sitePower = homelandPayout(state, playerId, siteId, cardId, options.reveal)
+            sitePower = homelandPayout(state, playerId, siteId, cardId, options.reveal, favorTaken)
             break
         }
 
@@ -401,6 +548,7 @@ export function playCard(
     return {
         favorGained,
         secretsGained,
+        favorTaken,
         discarded,
         whenPlayed,
         sitePower,
@@ -464,7 +612,7 @@ export function reasonWhenPlayedChoicesInvalid(
         playerId,
         power,
         choices: options.choices ?? [],
-        mapChanges: playMapChanges(state, cardId, play, options)
+        mapChanges: playMapChanges(state, playerId, cardId, play, options)
     })
 }
 
@@ -563,10 +711,10 @@ export function reasonCannotPlaceCard(
             if (definition?.placement === 'adviser') {
                 return `${cardId} can only be played to your advisers`
             }
+            const target = options.toSiteId ?? here
             // R-5.1.4.I — the People's Favor's holder may play to any site in their region;
             // New Growth to another site when a carried modifier allows it for this card.
-            if (options.toSiteId !== undefined && options.toSiteId !== here) {
-                const target = options.toSiteId
+            if (target !== here) {
                 const byFavor =
                     holdsPeoplesFavor(state, playerId) && sameRegion(state, target, here)
                 const allowed =
@@ -579,52 +727,41 @@ export function reasonCannotPlaceCard(
                     )
                 if (!allowed) return `${cardId} can only be played to your own site`
                 if (!state.isSiteFaceup(target)) return `${target} is not a faceup site`
-                const first = options.discardFirstCardId
-                if (first !== undefined) {
-                    const firstReason = reasonDiscardFirstInvalid(
-                        state,
-                        playerId,
-                        here,
-                        target,
-                        first,
-                        options.carried ?? []
-                    )
-                    if (firstReason) return firstReason
+            }
+            // Salt the Earth — "cannot play to a site with any locked cards"; and, when played, "ignore this
+            // site's capacity": the site it is played to. Before revision 16 (R-X.4), a play to another site was
+            // judged as any other card's.
+            const saltTheEarth =
+                cardId === SALT_THE_EARTH &&
+                (target === here || isAtLeastOathRevision(state, OathRevision.EngineFixes12))
+            // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — every site play's card
+            // discarded first; Salt the Earth's own "Discard all other denizens at this site" is none. Before
+            // revision 16 (R-X.4), Salt the Earth's play to its player's own site left it unchecked.
+            const first = options.discardFirstCardId
+            if (
+                first !== undefined &&
+                (!saltTheEarth || isAtLeastOathRevision(state, OathRevision.EngineFixes12))
+            ) {
+                const firstReason = reasonDiscardFirstInvalid(
+                    state,
+                    playerId,
+                    here,
+                    target,
+                    first,
+                    options.carried ?? []
+                )
+                if (firstReason) return firstReason
+            }
+            if (saltTheEarth) {
+                if (state.denizensAt(target).some((id) => isLockedFor(state, playerId, id))) {
+                    return 'Salt the Earth cannot be played to a site with any locked cards'
                 }
+            } else {
                 const freed =
                     first !== undefined && state.denizensAt(target).includes(first) ? 1 : 0
                 const capacity = effectiveSiteCapacity(state, target)
                 if (state.denizensAt(target).length - freed >= capacity) {
                     return `site ${target} is at its capacity of ${capacity}`
-                }
-                return suitOf(cardId)
-                    ? undefined
-                    : `${cardId} has no suit, so no favor bank matches it`
-            }
-            // Salt the Earth — "cannot play to a site with any locked cards";
-            // and, when played, "ignore this site's capacity".
-            if (cardId === SALT_THE_EARTH) {
-                if (state.denizensAt(here).some((id) => isLockedFor(state, playerId, id))) {
-                    return 'Salt the Earth cannot be played to a site with any locked cards'
-                }
-            } else {
-                const first = options.discardFirstCardId
-                if (first !== undefined) {
-                    const firstReason = reasonDiscardFirstInvalid(
-                        state,
-                        playerId,
-                        here,
-                        here,
-                        first,
-                        options.carried ?? []
-                    )
-                    if (firstReason) return firstReason
-                }
-                const capacity = effectiveSiteCapacity(state, here)
-                const freed = first !== undefined && state.denizensAt(here).includes(first) ? 1 : 0
-                const atSite = state.denizensAt(here).length - freed
-                if (atSite >= capacity) {
-                    return `site ${here} is at its capacity of ${capacity}`
                 }
             }
             if (!suitOf(cardId)) {

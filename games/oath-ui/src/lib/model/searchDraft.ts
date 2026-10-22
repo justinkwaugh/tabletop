@@ -8,9 +8,13 @@ import {
     reasonCannotPlayCard,
     reasonCannotPlaySecondCard,
     searchPlayModifiers,
+    sitePlayGain,
     type LegalChoice,
+    type PlayMapChanges,
     type PowerChoice,
-    type SearchSecondPlay
+    type SearchSecondPlay,
+    type SitePlayGain,
+    type Suit
 } from '@tabletop/oath'
 import { FACEDOWN_ADVISER_LABEL, PLAY_LABELS } from './adviserPlacements.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
@@ -21,7 +25,7 @@ import {
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { whenPlayedChoices } from './whenPlayed.js'
+import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
 import { adviserRoom, toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
@@ -176,21 +180,57 @@ export class SearchDraft implements PanelDraft {
         return this.displaced.length < this.room.needed
     }
 
+    // R-5.1.4.I, R-11.10 — the card picked beside the site play goes first; R-7.3.3 — the play's gains
+    // come before the power, as the engine plans them.
+    private get playChanges(): PlayMapChanges | undefined {
+        const cardId = this.kept
+        const playerId = this.playerId
+        const placement = this.placement
+        if (!cardId || !playerId || !placement) return undefined
+        return playMapChanges(this.session.gameState, playerId, cardId, placement.play, {
+            faceUp: placement.faceUp,
+            discardedAdviserCardIds: this.displaced,
+            ...this.playExtras(placement.play)
+        })
+    }
+
     /** R-7.3.3 */
     get whenPlayed(): LegalChoice[] {
         const cardId = this.kept
         const playerId = this.playerId
         const placement = this.placement
         if (!cardId || !playerId || !placement) return []
-        const state = this.session.gameState
         return whenPlayedChoices(
-            state,
+            this.session.gameState,
             playerId,
             cardId,
             placement.play,
             placement.faceUp,
-            // R-5.1.4.I, R-11.10 — the card picked beside the site play goes first.
-            playMapChanges(state, cardId, placement.play, { discardFirstCardId: this.discardFirst })
+            this.playChanges
+        )
+    }
+
+    /** R-7.3.3 — the favor banks the When Played picks are judged on (Salad Days'). */
+    get whenPlayedBanks(): Readonly<Record<Suit, number>> {
+        return whenPlayedBanks(this.session.gameState, this.playChanges)
+    }
+
+    /**
+     * R-5.1.4.I, R-11.2, R-7.4 — what "To your site" gains the kept card's player, as the engine plans the play on
+     * the banks as they stand, with the card picked to go first; none while "Play to:" names another site.
+     */
+    get siteGain(): SitePlayGain | undefined {
+        const cardId = this.kept
+        const playerId = this.playerId
+        if (!cardId || !playerId || this.toSite !== undefined) return undefined
+        return sitePlayGain(
+            playMapChanges(
+                this.session.gameState,
+                playerId,
+                cardId,
+                SearchPlay.Site,
+                this.playExtras(SearchPlay.Site)
+            )
         )
     }
 
@@ -603,11 +643,14 @@ export class SearchDraft implements PanelDraft {
         second: SearchSecondPlay
     ): string | undefined {
         const state = this.session.gameState
+        // R-5.1.4.I — the kept card may go to another site, which leaves your site's room to the second card.
+        const keptTo = firstPlay === SearchPlay.Site ? this.toSite : undefined
         return (
-            reasonCannotPairSecondPlay(state, playerId, firstPlay, second) ??
+            reasonCannotPairSecondPlay(state, playerId, firstPlay, second, keptTo) ??
             reasonCannotPlaySecondCard(state, playerId, kept, second, {
                 play: firstPlay,
-                discardFirstCardId: firstPlay === SearchPlay.Site ? this.discardFirst : undefined
+                discardFirstCardId: firstPlay === SearchPlay.Site ? this.discardFirst : undefined,
+                toSiteId: keptTo
             })
         )
     }

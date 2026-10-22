@@ -79,8 +79,6 @@
     "machineState": "RevealingDraft",
     "phaseId": "I",
     "phaseEvents": [],
-    "bankruptPlayerIds": [],
-    "independentAcquisitions": [],
     "revenueMarkers": [],
     "usedPrivatePowerIds": [],
     "tileInventory": {
@@ -126,8 +124,7 @@
       "C&O",
       "PRR"
     ],
-    "bank": {
-    },
+    "bank": {},
     "companies": [
       {
         "id": "PRR",
@@ -201,6 +198,41 @@
         "id": "open-market",
         "owner": {
           "kind": "bank"
+        }
+      },
+      {
+        "id": "treasury:NYC",
+        "owner": {
+          "kind": "company",
+          "companyId": "NYC"
+        }
+      },
+      {
+        "id": "treasury:B&O",
+        "owner": {
+          "kind": "company",
+          "companyId": "B&O"
+        }
+      },
+      {
+        "id": "treasury:ERIE",
+        "owner": {
+          "kind": "company",
+          "companyId": "ERIE"
+        }
+      },
+      {
+        "id": "treasury:GT",
+        "owner": {
+          "kind": "company",
+          "companyId": "GT"
+        }
+      },
+      {
+        "id": "treasury:IC",
+        "owner": {
+          "kind": "company",
+          "companyId": "IC"
         }
       }
     ],
@@ -292,7 +324,8 @@
         "owner": {
           "kind": "company",
           "companyId": "NYC"
-        }
+        },
+        "poolId": "treasury:NYC"
       },
       {
         "id": "NYC:share:1",
@@ -302,7 +335,8 @@
         "owner": {
           "kind": "company",
           "companyId": "NYC"
-        }
+        },
+        "poolId": "treasury:NYC"
       },
       {
         "id": "NYC:share:2",
@@ -312,7 +346,8 @@
         "owner": {
           "kind": "company",
           "companyId": "NYC"
-        }
+        },
+        "poolId": "treasury:NYC"
       },
       {
         "id": "NYC:share:3",
@@ -322,7 +357,8 @@
         "owner": {
           "kind": "company",
           "companyId": "NYC"
-        }
+        },
+        "poolId": "treasury:NYC"
       },
       {
         "id": "NYC:share:4",
@@ -332,7 +368,8 @@
         "owner": {
           "kind": "company",
           "companyId": "NYC"
-        }
+        },
+        "poolId": "treasury:NYC"
       },
       {
         "id": "NYC:share:5",
@@ -342,7 +379,8 @@
         "owner": {
           "kind": "company",
           "companyId": "NYC"
-        }
+        },
+        "poolId": "treasury:NYC"
       },
       {
         "id": "NYC:share:6",
@@ -352,7 +390,8 @@
         "owner": {
           "kind": "company",
           "companyId": "NYC"
-        }
+        },
+        "poolId": "treasury:NYC"
       },
       {
         "id": "NYC:share:7",
@@ -362,7 +401,8 @@
         "owner": {
           "kind": "company",
           "companyId": "NYC"
-        }
+        },
+        "poolId": "treasury:NYC"
       },
       {
         "id": "NYC:share:8",
@@ -372,7 +412,8 @@
         "owner": {
           "kind": "company",
           "companyId": "NYC"
-        }
+        },
+        "poolId": "treasury:NYC"
       },
       {
         "id": "B&O:president",
@@ -383,7 +424,8 @@
         "owner": {
           "kind": "company",
           "companyId": "B&O"
-        }
+        },
+        "poolId": "treasury:B&O"
       },
       {
         "id": "B&O:share:1",
@@ -393,7 +435,8 @@
         "owner": {
           "kind": "company",
           "companyId": "B&O"
-        }
+        },
+        "poolId": "treasury:B&O"
       },
       {
         "id": "B&O:share:2",
@@ -403,7 +446,8 @@
         "owner": {
           "kind": "company",
           "companyId": "B&O"
-        }
+        },
+        "poolId": "treasury:B&O"
       },
       {
         "id": "B&O:share:3",
@@ -413,7 +457,8 @@
         "owner": {
           "kind": "company",
           "companyId": "B&O"
-        }
+        },
+        "poolId": "treasury:B&O"
       },
       {
         "id": "B&O:share:4",
@@ -423,7 +468,8 @@
         "owner": {
           "kind": "company",
           "companyId": "B&O"
-        }
+        },
+        "poolId": "treasury:B&O"
       },
       {
         "id": "B&O:share:5",
@@ -433,7 +479,8 @@
         "owner": {
           "kind": "company",
           "companyId": "B&O"
-        }
+        },
+        "poolId": "treasury:B&O"
       },
       {
         "id": "B&O:share:6",
@@ -443,7 +490,8 @@
         "owner": {
           "kind": "company",
           "companyId": "B&O"
-        }
+        },
+        "poolId": "treasury:B&O"
       },
       {
         "id": "B&O:share:7",
@@ -453,7 +501,8 @@
         "owner": {
           "kind": "company",
           "companyId": "B&O"
-        }
+        },
+        "poolId": "treasury:B&O"
       },
       {
         "id": "B&O:share:8",
@@ -463,7 +512,8 @@
         "owner": {
           "kind": "company",
           "companyId": "B&O"
-        }
+        },
+        "poolId": "treasury:B&O"
       },
       {
         "id": "ERIE:president",
@@ -474,7 +524,8 @@
         "owner": {
           "kind": "company",
           "companyId": "ERIE"
-        }
+        },
+        "poolId": "treasury:ERIE"
       },
       {
         "id": "ERIE:share:1",
@@ -484,7 +535,8 @@
         "owner": {
           "kind": "company",
           "companyId": "ERIE"
-        }
+        },
+        "poolId": "treasury:ERIE"
       },
       {
         "id": "ERIE:share:2",
@@ -494,7 +546,8 @@
         "owner": {
           "kind": "company",
           "companyId": "ERIE"
-        }
+        },
+        "poolId": "treasury:ERIE"
       },
       {
         "id": "ERIE:share:3",
@@ -504,7 +557,8 @@
         "owner": {
           "kind": "company",
           "companyId": "ERIE"
-        }
+        },
+        "poolId": "treasury:ERIE"
       },
       {
         "id": "ERIE:share:4",
@@ -514,7 +568,8 @@
         "owner": {
           "kind": "company",
           "companyId": "ERIE"
-        }
+        },
+        "poolId": "treasury:ERIE"
       },
       {
         "id": "ERIE:share:5",
@@ -524,7 +579,8 @@
         "owner": {
           "kind": "company",
           "companyId": "ERIE"
-        }
+        },
+        "poolId": "treasury:ERIE"
       },
       {
         "id": "ERIE:share:6",
@@ -534,7 +590,8 @@
         "owner": {
           "kind": "company",
           "companyId": "ERIE"
-        }
+        },
+        "poolId": "treasury:ERIE"
       },
       {
         "id": "ERIE:share:7",
@@ -544,7 +601,8 @@
         "owner": {
           "kind": "company",
           "companyId": "ERIE"
-        }
+        },
+        "poolId": "treasury:ERIE"
       },
       {
         "id": "ERIE:share:8",
@@ -554,7 +612,8 @@
         "owner": {
           "kind": "company",
           "companyId": "ERIE"
-        }
+        },
+        "poolId": "treasury:ERIE"
       },
       {
         "id": "GT:president",
@@ -565,7 +624,8 @@
         "owner": {
           "kind": "company",
           "companyId": "GT"
-        }
+        },
+        "poolId": "treasury:GT"
       },
       {
         "id": "GT:share:1",
@@ -575,7 +635,8 @@
         "owner": {
           "kind": "company",
           "companyId": "GT"
-        }
+        },
+        "poolId": "treasury:GT"
       },
       {
         "id": "GT:share:2",
@@ -585,7 +646,8 @@
         "owner": {
           "kind": "company",
           "companyId": "GT"
-        }
+        },
+        "poolId": "treasury:GT"
       },
       {
         "id": "GT:share:3",
@@ -595,7 +657,8 @@
         "owner": {
           "kind": "company",
           "companyId": "GT"
-        }
+        },
+        "poolId": "treasury:GT"
       },
       {
         "id": "GT:share:4",
@@ -605,7 +668,8 @@
         "owner": {
           "kind": "company",
           "companyId": "GT"
-        }
+        },
+        "poolId": "treasury:GT"
       },
       {
         "id": "GT:share:5",
@@ -615,7 +679,8 @@
         "owner": {
           "kind": "company",
           "companyId": "GT"
-        }
+        },
+        "poolId": "treasury:GT"
       },
       {
         "id": "GT:share:6",
@@ -625,7 +690,8 @@
         "owner": {
           "kind": "company",
           "companyId": "GT"
-        }
+        },
+        "poolId": "treasury:GT"
       },
       {
         "id": "GT:share:7",
@@ -635,7 +701,8 @@
         "owner": {
           "kind": "company",
           "companyId": "GT"
-        }
+        },
+        "poolId": "treasury:GT"
       },
       {
         "id": "GT:share:8",
@@ -645,7 +712,8 @@
         "owner": {
           "kind": "company",
           "companyId": "GT"
-        }
+        },
+        "poolId": "treasury:GT"
       },
       {
         "id": "IC:president",
@@ -656,7 +724,8 @@
         "owner": {
           "kind": "company",
           "companyId": "IC"
-        }
+        },
+        "poolId": "treasury:IC"
       },
       {
         "id": "IC:share:1",
@@ -666,7 +735,8 @@
         "owner": {
           "kind": "company",
           "companyId": "IC"
-        }
+        },
+        "poolId": "treasury:IC"
       },
       {
         "id": "IC:share:2",
@@ -676,7 +746,8 @@
         "owner": {
           "kind": "company",
           "companyId": "IC"
-        }
+        },
+        "poolId": "treasury:IC"
       },
       {
         "id": "IC:share:3",
@@ -686,7 +757,8 @@
         "owner": {
           "kind": "company",
           "companyId": "IC"
-        }
+        },
+        "poolId": "treasury:IC"
       },
       {
         "id": "IC:share:4",
@@ -696,7 +768,8 @@
         "owner": {
           "kind": "company",
           "companyId": "IC"
-        }
+        },
+        "poolId": "treasury:IC"
       },
       {
         "id": "IC:share:5",
@@ -706,7 +779,8 @@
         "owner": {
           "kind": "company",
           "companyId": "IC"
-        }
+        },
+        "poolId": "treasury:IC"
       },
       {
         "id": "IC:share:6",
@@ -716,7 +790,8 @@
         "owner": {
           "kind": "company",
           "companyId": "IC"
-        }
+        },
+        "poolId": "treasury:IC"
       },
       {
         "id": "IC:share:7",
@@ -726,7 +801,8 @@
         "owner": {
           "kind": "company",
           "companyId": "IC"
-        }
+        },
+        "poolId": "treasury:IC"
       },
       {
         "id": "IC:share:8",
@@ -736,7 +812,8 @@
         "owner": {
           "kind": "company",
           "companyId": "IC"
-        }
+        },
+        "poolId": "treasury:IC"
       },
       {
         "id": "MS:charter",
@@ -1002,8 +1079,6 @@
           "definitionId": "2",
           "status": "depot"
         },
-        
-        
         {
           "id": "1846/4/8",
           "definitionId": "4",
@@ -1024,8 +1099,6 @@
           "definitionId": "4",
           "status": "depot"
         },
-        
-        
         {
           "id": "1846/5/14",
           "definitionId": "5",
@@ -1515,14 +1588,6 @@
       "companyId": "B&O"
     },
     {
-      "id": "recorded:47",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "MS"
-    },
-    {
       "id": "recorded:48",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -1893,14 +1958,6 @@
       "type": "FinishStockTurn",
       "source": "user",
       "playerId": "hoolaking"
-    },
-    {
-      "id": "recorded:79",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "MS"
     },
     {
       "id": "recorded:80",
@@ -2674,18 +2731,34 @@
       "companyId": "IC"
     },
     {
-      "id": "recorded:129",
-      "gameId": "1846-12666",
-      "type": "EmergencyBuyTrain",
-      "source": "user",
-      "playerId": "hoolaking",
+      "type": "FundTrain",
       "companyId": "IC",
       "trainId": "1846/4/9",
       "definitionId": "3/5",
-      "price": 160,
-      "issuedShares": 1,
-      "proceeds": 40,
-      "contribution": 0
+      "expectedPrice": 160,
+      "id": "recorded:129.1",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
+    },
+    {
+      "type": "IssueTreasuryShares",
+      "expectedProceeds": 40,
+      "id": "recorded:129.2",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
+    },
+    {
+      "type": "BuyTrain",
+      "companyId": "IC",
+      "trainId": "1846/4/9",
+      "definitionId": "3/5",
+      "expectedPrice": 160,
+      "id": "recorded:129.3",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
     },
     {
       "id": "recorded:130",
@@ -4658,26 +4731,46 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:280",
-      "gameId": "1846-12666",
-      "type": "EmergencyBuyTrain",
-      "source": "user",
-      "playerId": "hoolaking",
+      "type": "FundTrain",
       "companyId": "NYC",
       "trainId": "1846/5/15",
       "definitionId": "4/6",
-      "price": 450,
-      "issuedShares": 5,
-      "proceeds": 150,
-      "contribution": 23
+      "expectedPrice": 450,
+      "id": "recorded:280.1",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
     },
     {
-      "id": "recorded:281",
+      "type": "IssueTreasuryShares",
+      "expectedProceeds": 150,
+      "id": "recorded:280.2",
       "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
       "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC"
+      "playerId": "hoolaking"
+    },
+    {
+      "type": "ContributeTrainFunds",
+      "owner": {
+        "kind": "player",
+        "playerId": "hoolaking"
+      },
+      "amount": 23,
+      "id": "recorded:280.3",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
+    },
+    {
+      "type": "BuyTrain",
+      "companyId": "NYC",
+      "trainId": "1846/5/15",
+      "definitionId": "4/6",
+      "expectedPrice": 450,
+      "id": "recorded:280.4",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
     },
     {
       "id": "recorded:283",
@@ -5586,14 +5679,6 @@
       "companyId": "IC"
     },
     {
-      "id": "recorded:322",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC"
-    },
-    {
       "id": "recorded:323",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -6049,14 +6134,6 @@
       "price": 600
     },
     {
-      "id": "recorded:350",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O"
-    },
-    {
       "id": "recorded:352",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -6185,14 +6262,6 @@
       "expectedPrice": 900
     },
     {
-      "id": "recorded:357",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE"
-    },
-    {
       "id": "recorded:359",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -6310,44 +6379,60 @@
       "choice": "withhold"
     },
     {
-      "id": "recorded:363",
-      "gameId": "1846-12666",
-      "type": "StartEmergencyFunding",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC"
-    },
-    {
-      "id": "recorded:364",
-      "gameId": "1846-12666",
-      "type": "SellEmergencyShares",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "GT",
-      "shares": 1,
-      "expectedProceeds": 195
-    },
-    {
-      "id": "recorded:365",
-      "gameId": "1846-12666",
-      "type": "EmergencyBuyTrain",
-      "source": "user",
-      "playerId": "hoolaking",
+      "type": "FundTrain",
       "companyId": "IC",
       "trainId": "1846/6/20",
       "definitionId": "6",
-      "price": 800,
-      "issuedShares": 0,
-      "proceeds": 0,
-      "contribution": 249
+      "expectedPrice": 800,
+      "id": "recorded:363.1",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
     },
     {
-      "id": "recorded:366",
+      "type": "IssueTreasuryShares",
+      "expectedProceeds": 40,
+      "id": "recorded:363.2",
       "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
       "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC"
+      "playerId": "hoolaking"
+    },
+    {
+      "type": "SellFundingShares",
+      "seller": {
+        "kind": "player",
+        "playerId": "hoolaking"
+      },
+      "companyId": "GT",
+      "shares": 1,
+      "expectedProceeds": 195,
+      "id": "recorded:364.1",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
+    },
+    {
+      "type": "ContributeTrainFunds",
+      "owner": {
+        "kind": "player",
+        "playerId": "hoolaking"
+      },
+      "amount": 249,
+      "id": "recorded:365.1",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
+    },
+    {
+      "type": "BuyTrain",
+      "companyId": "IC",
+      "trainId": "1846/6/20",
+      "definitionId": "6",
+      "expectedPrice": 800,
+      "id": "recorded:365.2",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "hoolaking"
     },
     {
       "id": "recorded:368",
@@ -6548,26 +6633,46 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:377",
-      "gameId": "1846-12666",
-      "type": "EmergencyBuyTrain",
-      "source": "user",
-      "playerId": "gragatrim",
+      "type": "FundTrain",
       "companyId": "GT",
       "trainId": "1846/6/21",
       "definitionId": "7/8",
-      "price": 900,
-      "issuedShares": 1,
-      "proceeds": 180,
-      "contribution": 149
+      "expectedPrice": 900,
+      "id": "recorded:377.1",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "gragatrim"
     },
     {
-      "id": "recorded:378",
+      "type": "IssueTreasuryShares",
+      "expectedProceeds": 180,
+      "id": "recorded:377.2",
       "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
       "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT"
+      "playerId": "gragatrim"
+    },
+    {
+      "type": "ContributeTrainFunds",
+      "owner": {
+        "kind": "player",
+        "playerId": "gragatrim"
+      },
+      "amount": 149,
+      "id": "recorded:377.3",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "gragatrim"
+    },
+    {
+      "type": "BuyTrain",
+      "companyId": "GT",
+      "trainId": "1846/6/21",
+      "definitionId": "7/8",
+      "expectedPrice": 900,
+      "id": "recorded:377.4",
+      "gameId": "1846-12666",
+      "source": "user",
+      "playerId": "gragatrim"
     },
     {
       "id": "recorded:380",
@@ -6800,14 +6905,6 @@
       "price": 616
     },
     {
-      "id": "recorded:385",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O"
-    },
-    {
       "id": "recorded:387",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -6953,14 +7050,6 @@
       "expectedPrice": 900
     },
     {
-      "id": "recorded:393",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE"
-    },
-    {
       "id": "recorded:395",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -7067,14 +7156,6 @@
       "source": "user",
       "playerId": "hoolaking",
       "companyId": "NYC"
-    },
-    {
-      "id": "recorded:400",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "IC"
     },
     {
       "id": "recorded:401",
@@ -7338,14 +7419,6 @@
       "playerId": "the_seaward"
     },
     {
-      "id": "recorded:426",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT"
-    },
-    {
       "id": "recorded:427",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -7424,14 +7497,6 @@
       "playerId": "gragatrim",
       "companyId": "GT",
       "choice": "pay"
-    },
-    {
-      "id": "recorded:429",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT"
     },
     {
       "id": "recorded:431",
@@ -7623,14 +7688,6 @@
       "playerId": "the_seaward",
       "companyId": "B&O",
       "choice": "pay"
-    },
-    {
-      "id": "recorded:435",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O"
     },
     {
       "id": "recorded:437",
@@ -7849,14 +7906,6 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:441",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE"
-    },
-    {
       "id": "recorded:443",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -8065,14 +8114,6 @@
       "companyId": "NYC"
     },
     {
-      "id": "recorded:453",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT"
-    },
-    {
       "id": "recorded:454",
       "gameId": "1846-12666",
       "type": "RunTrains",
@@ -8151,22 +8192,6 @@
       "playerId": "gragatrim",
       "companyId": "GT",
       "choice": "pay"
-    },
-    {
-      "id": "recorded:456",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "gragatrim",
-      "companyId": "GT"
-    },
-    {
-      "id": "recorded:458",
-      "gameId": "1846-12666",
-      "type": "FinishTrack",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O"
     },
     {
       "id": "recorded:459",
@@ -8300,14 +8325,6 @@
       "playerId": "the_seaward",
       "companyId": "B&O",
       "choice": "pay"
-    },
-    {
-      "id": "recorded:461",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "B&O"
     },
     {
       "id": "recorded:463",
@@ -8524,14 +8541,6 @@
       "choice": "pay"
     },
     {
-      "id": "recorded:467",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "the_seaward",
-      "companyId": "ERIE"
-    },
-    {
       "id": "recorded:469",
       "gameId": "1846-12666",
       "type": "FinishTrack",
@@ -8741,14 +8750,6 @@
       "trainId": "1846/6/23",
       "definitionId": "6",
       "expectedPrice": 800
-    },
-    {
-      "id": "recorded:478",
-      "gameId": "1846-12666",
-      "type": "FinishOperatingTurn",
-      "source": "user",
-      "playerId": "hoolaking",
-      "companyId": "NYC"
     }
   ],
   "finalWealth": {

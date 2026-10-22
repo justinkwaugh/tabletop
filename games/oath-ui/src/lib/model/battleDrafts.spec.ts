@@ -32,10 +32,19 @@ const MOUNTS_PLAN = required(
     'Wild Mounts’ battle plan'
 ).powerIndex
 
-async function battle(machineState: MachineState, campaign: Partial<CampaignState>, onClock: string) {
+async function battle(
+    machineState: MachineState,
+    campaign: Partial<CampaignState>,
+    onClock: string
+) {
     const state = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [ME]: 4 } }),
+            testPlayer({
+                playerId: ME,
+                color: Color.Red,
+                siteId: 'c1',
+                warbandsOnBoard: { [ME]: 4 }
+            }),
             testPlayer({
                 playerId: FOE,
                 color: Color.Blue,
@@ -78,7 +87,13 @@ const SITES = [
 /** R-5.5.7.I — the warbands step holds its counts as one entry, over a default of one per site. */
 describe('the spoils draft (docs/user-interactions.md)', () => {
     const won = async () =>
-        (await battle(MachineState.CampaignVictory, { attackerVictorious: true, targets: [...SITES] }, ME)).victory
+        (
+            await battle(
+                MachineState.CampaignVictory,
+                { attackerVictorious: true, targets: [...SITES] },
+                ME
+            )
+        ).victory
 
     it('a count on one site keeps the counts on the others', async () => {
         const spoils = await won()
@@ -142,8 +157,15 @@ describe('the spoils draft (docs/user-interactions.md)', () => {
  */
 describe('the spoils one step at a time', () => {
     const RELIC_SLOT = 'c1.relic.0'
-    const won = async (targets: CampaignState['targets'], board: Record<string, number> = { [ME]: 4 }) => {
-        const session = await battle(MachineState.CampaignVictory, { attackerVictorious: true, targets }, ME)
+    const won = async (
+        targets: CampaignState['targets'],
+        board: Record<string, number> = { [ME]: 4 }
+    ) => {
+        const session = await battle(
+            MachineState.CampaignVictory,
+            { attackerVictorious: true, targets },
+            ME
+        )
         session.gameState.getPlayerState(ME).warbandsOnBoard = board
         session.gameState.relicsBySite = { c1: [{ slotId: RELIC_SLOT }] }
         return session
@@ -156,7 +178,8 @@ describe('the spoils one step at a time', () => {
         expect((await won([RELIC, SITES[0]])).victory.steps).toEqual(['warbands', 'relics'])
         expect((await won([SITES[0]], {})).victory.steps).toEqual([])
         expect(
-            (await won([{ kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor }])).victory.steps
+            (await won([{ kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor }])).victory
+                .steps
         ).toEqual([])
         const spoils = (await won([PAWN, ...SITES])).victory
         expect(spoils.step).toBe('warbands')
@@ -325,7 +348,8 @@ describe('the spoils one step at a time', () => {
         expect(session.mapPick).toEqual({
             kind: 'banish',
             sites: session.victory.mapSites,
-            choosing: true
+            choosing: true,
+            moverId: FOE
         })
         session.victory.leavePawn()
         expect(session.siteOffers).toEqual([])
@@ -339,14 +363,29 @@ describe('R-5.5.2.a then R-5.5.3 — the attacker declares plans after the Citiz
         const ARCHERS = 'denizen.nomad.horse-archers'
         const state = testState(
             [
-                testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [ME]: 4 }, advisers: [{ cardId: ARCHERS, faceUp: true }] }),
+                testPlayer({
+                    playerId: ME,
+                    color: Color.Red,
+                    siteId: 'c1',
+                    warbandsOnBoard: { [ME]: 4 },
+                    advisers: [{ cardId: ARCHERS, faceUp: true }]
+                }),
                 testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1' })
             ],
             {
                 machineState: MachineState.CampaignPlans,
                 activePlayerIds: [ME],
                 pendingCampaign: {
-                    declaration: { attackerPlayerId: ME, defenderPlayerId: FOE, targets: [{ kind: CampaignTargetKind.PawnAndFavor }], attackDice: 2, plans: [], forceSiteIds: [], allyPlayerIds: [], attackerSiteId: 'c1' },
+                    declaration: {
+                        attackerPlayerId: ME,
+                        defenderPlayerId: FOE,
+                        targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                        attackDice: 2,
+                        plans: [],
+                        forceSiteIds: [],
+                        allyPlayerIds: [],
+                        attackerSiteId: 'c1'
+                    },
                     toAsk: [FOE],
                     awaitingAttackerPlans: true
                 }
@@ -362,7 +401,7 @@ describe('R-5.5.2.a then R-5.5.3 — the attacker declares plans after the Citiz
         expect(draft.usePlansRefusedBecause).toBeUndefined()
         await draft.declare(true)
         const action = sent.mock.calls[0][0]
-        assert(isCampaignAttackPlans(action), 'the attacker\'s plans are sent')
+        assert(isCampaignAttackPlans(action), "the attacker's plans are sent")
         expect(action.plans?.map((p) => p.cardId)).toEqual([ARCHERS])
 
         draft.setPlan(draft.usable[0], true)
@@ -375,7 +414,11 @@ describe('R-5.5.2.a then R-5.5.3 — the attacker declares plans after the Citiz
 
 describe('R-5.5.7.III, R-11.7 — banishing from a Shrouded Wood', () => {
     it('lights no site: "Let <ruler> choose" moves on, and the banish is sent for them to answer', async () => {
-        const session = await battle(MachineState.CampaignVictory, { attackerVictorious: true, targets: [{ kind: CampaignTargetKind.PawnAndFavor }] }, ME)
+        const session = await battle(
+            MachineState.CampaignVictory,
+            { attackerVictorious: true, targets: [{ kind: CampaignTargetKind.PawnAndFavor }] },
+            ME
+        )
         session.gameState.siteCards = { ...session.gameState.siteCards, c1: 'site.shrouded-wood' }
         session.gameState.warbandsBySite = { ...session.gameState.warbandsBySite, c1: { [ME]: 1 } }
         const sent = vi.spyOn(session, 'resolveCampaignVictory').mockResolvedValue()
@@ -394,7 +437,11 @@ describe('R-5.5.7.III, R-11.7 — banishing from a Shrouded Wood', () => {
 
 describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', () => {
     async function sacrificing() {
-        const session = await battle(MachineState.CampaignSacrifice, { swords: 1, defense: 2, sacrificeWorth: 1 }, ME)
+        const session = await battle(
+            MachineState.CampaignSacrifice,
+            { swords: 1, defense: 2, sacrificeWorth: 1 },
+            ME
+        )
         session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 4, [IMPERIAL_WARBANDS]: 1 }
         const sent = vi.spyOn(session, 'resolveCampaignSacrifice').mockResolvedValue()
         return { losses: session.attackerLosses, sent }
@@ -600,18 +647,28 @@ describe('the sacrifice from a force in two places', () => {
 
     it('no place gives more than the number needed leaves it; lowering one opens the others again', async () => {
         const { losses } = await split(3, 2)
-        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([2, 3])
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([
+            2, 3
+        ])
         losses.setSacrificed(1, 2)
-        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([1, 3])
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([
+            1, 3
+        ])
         losses.setSacrificed(0, 2)
         expect(losses.sacrificed).toEqual([1, 2])
         expect(losses.winComplete).toBe(true)
-        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([1, 2])
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([
+            1, 2
+        ])
         losses.setSacrificed(1, 0)
-        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([2, 2])
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([
+            2, 2
+        ])
         expect(losses.winComplete).toBe(false)
         losses.setSacrificed(0, 0)
-        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([2, 3])
+        expect([losses.ceilingAt('sacrificed', 0), losses.ceilingAt('sacrificed', 1)]).toEqual([
+            2, 3
+        ])
     })
 
     it('a win is sent with the warbands picked at each place', async () => {
@@ -651,7 +708,10 @@ describe('the sacrifice from a force in two places', () => {
         session.gameState.getPlayerState(ME).status = PlayerStatus.Citizen
         // Every survivor of a defeated attacker ends on their own board (R-5.5.6-H2).
         session.gameState.oathRevision = OathRevision.EngineFixes3
-        expect(losses.force.map((group) => group.owner)).toEqual([IMPERIAL_WARBANDS, IMPERIAL_WARBANDS])
+        expect(losses.force.map((group) => group.owner)).toEqual([
+            IMPERIAL_WARBANDS,
+            IMPERIAL_WARBANDS
+        ])
         expect(losses.choosesSacrifice).toBe(true)
         expect(losses.choosesDefeat).toBe(false)
     })
@@ -694,23 +754,39 @@ describe('R-5.5.5 — a battle that needs no sacrifice', () => {
     })
 
     it('follows a battle plan that decided it (Hearts and Minds, Peace Envoy)', async () => {
-        const lost = await battle(MachineState.CampaignSacrifice, { swords: 0, defense: 5, decidedVictor: 'defender' }, ME)
+        const lost = await battle(
+            MachineState.CampaignSacrifice,
+            { swords: 0, defense: 5, decidedVictor: 'defender' },
+            ME
+        )
         expect(lost.attackerLosses.needed).toBe(0)
         expect(lost.attackerLosses.wonWithoutSacrifice).toBe(false)
-        const won = await battle(MachineState.CampaignSacrifice, { swords: 0, defense: 5, decidedVictor: 'attacker' }, ME)
+        const won = await battle(
+            MachineState.CampaignSacrifice,
+            { swords: 0, defense: 5, decidedVictor: 'attacker' },
+            ME
+        )
         expect(won.attackerLosses.wonWithoutSacrifice).toBe(true)
     })
 
     it('is not settled while a sacrifice could still win it', async () => {
-        const session = await battle(MachineState.CampaignSacrifice, { swords: 1, defense: 2, sacrificeWorth: 1 }, ME)
+        const session = await battle(
+            MachineState.CampaignSacrifice,
+            { swords: 1, defense: 2, sacrificeWorth: 1 },
+            ME
+        )
         expect(session.attackerLosses.needed).toBe(2)
         expect(session.attackerLosses.wonWithoutSacrifice).toBe(false)
     })
 })
 
-describe('R-5.5.7.I — spoils from a board holding two owners\' warbands (R-6.6.2)', () => {
+describe("R-5.5.7.I — spoils from a board holding two owners' warbands (R-6.6.2)", () => {
     it('offers each owner on each taken site, held to what the board carries of theirs', async () => {
-        const session = await battle(MachineState.CampaignVictory, { attackerVictorious: true, targets: [...SITES] }, ME)
+        const session = await battle(
+            MachineState.CampaignVictory,
+            { attackerVictorious: true, targets: [...SITES] },
+            ME
+        )
         session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 2, [IMPERIAL_WARBANDS]: 1 }
         const spoils = session.victory
         expect(spoils.forceOwners).toEqual([ME, IMPERIAL_WARBANDS])
@@ -727,7 +803,15 @@ describe('R-5.5.7.I — spoils from a board holding two owners\' warbands (R-6.6
 
 describe('R-5.5.7.III — banishing the defeated pawn', () => {
     it('is offered only when the pawn and favor were targeted, and is sent with the spoils', async () => {
-        expect((await battle(MachineState.CampaignVictory, { attackerVictorious: true, targets: [...SITES] }, ME)).victory.banishSites).toEqual([])
+        expect(
+            (
+                await battle(
+                    MachineState.CampaignVictory,
+                    { attackerVictorious: true, targets: [...SITES] },
+                    ME
+                )
+            ).victory.banishSites
+        ).toEqual([])
 
         const session = await battle(
             MachineState.CampaignVictory,
@@ -750,11 +834,16 @@ describe('R-5.5.7.III — banishing the defeated pawn', () => {
 
 describe('the defence draft (docs/user-interactions.md)', () => {
     const defending = async () =>
-        (await battle(
-            MachineState.CampaignPlans,
-            { targets: [{ kind: CampaignTargetKind.PawnAndFavor }], pendingDefenderPlans: { queue: [FOE] } },
-            FOE
-        )).defence
+        (
+            await battle(
+                MachineState.CampaignPlans,
+                {
+                    targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                    pendingDefenderPlans: { queue: [FOE] }
+                },
+                FOE
+            )
+        ).defence
 
     it('declaring the plan, then taking it back, leaves nothing declared', async () => {
         const defence = await defending()
@@ -787,7 +876,10 @@ describe('the defence draft (docs/user-interactions.md)', () => {
     it('Use plans waits for a ringed plan; No plans sends none, whatever is ringed', async () => {
         const session = await battle(
             MachineState.CampaignPlans,
-            { targets: [{ kind: CampaignTargetKind.PawnAndFavor }], pendingDefenderPlans: { queue: [FOE] } },
+            {
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                pendingDefenderPlans: { queue: [FOE] }
+            },
             FOE
         )
         const sent = vi.spyOn(session, 'defendCampaign').mockResolvedValue()
@@ -808,7 +900,10 @@ describe('the defence draft (docs/user-interactions.md)', () => {
     it('the attacker sees no plans of the defender’s to declare', async () => {
         const session = await battle(
             MachineState.CampaignPlans,
-            { targets: [{ kind: CampaignTargetKind.PawnAndFavor }], pendingDefenderPlans: { queue: [FOE] } },
+            {
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                pendingDefenderPlans: { queue: [FOE] }
+            },
             ME
         )
         expect(session.defence.usable).toEqual([])
@@ -822,16 +917,18 @@ describe('the losses draft (docs/user-interactions.md)', () => {
         { at: { kind: 'site', siteId: 'c2' }, owner: FOE, count: 2 }
     ] as const
     const defeated = async () =>
-        (await battle(
-            MachineState.CampaignDefeat,
-            {
-                attackerVictorious: true,
-                targets: [...SITES],
-                defendingForce: FORCE.map((group) => ({ ...group, at: { ...group.at } })),
-                pendingDefeatKills: { chooserPlayerId: FOE }
-            },
-            FOE
-        )).defeat
+        (
+            await battle(
+                MachineState.CampaignDefeat,
+                {
+                    attackerVictorious: true,
+                    targets: [...SITES],
+                    defendingForce: FORCE.map((group) => ({ ...group, at: { ...group.at } })),
+                    pendingDefeatKills: { chooserPlayerId: FOE }
+                },
+                FOE
+            )
+        ).defeat
 
     it('a count on one group keeps the counts on the others', async () => {
         const defeat = await defeated()
@@ -932,7 +1029,12 @@ describe('Warning Signals’ moves in the defence draft', () => {
     ) {
         const state = testState(
             [
-                testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [ME]: 4 } }),
+                testPlayer({
+                    playerId: ME,
+                    color: Color.Red,
+                    siteId: 'c1',
+                    warbandsOnBoard: { [ME]: 4 }
+                }),
                 testPlayer({
                     playerId: FOE,
                     color: Color.Blue,
@@ -1097,10 +1199,15 @@ describe('Warning Signals’ moves in the defence draft', () => {
     it('a lone From starts made; after the 16th whole move no From opens', async () => {
         const defence = (await warned({ [FOE]: 16 }, { c1: { [FOE]: 1 } })).defence
         expect(defence.movesOf(WARNING_PLAN)?.open?.from).toEqual(onBoard)
-        defence.setMoves(WARNING_PLAN, Array.from({ length: 16 }, () => ({ from: onBoard, count: 1 })))
+        defence.setMoves(
+            WARNING_PLAN,
+            Array.from({ length: 16 }, () => ({ from: onBoard, count: 1 }))
+        )
         const moves = required(defence.movesOf(WARNING_PLAN), 'Warning Signals’ moves')
         expect(moves.whole).toHaveLength(16)
-        expect(moves.whole.every((move) => move.to.kind === 'site' && move.to.siteId === 'c1')).toBe(true)
+        expect(
+            moves.whole.every((move) => move.to.kind === 'site' && move.to.siteId === 'c1')
+        ).toBe(true)
         expect(moves.open).toBeUndefined()
         expect(defence.plansComplete).toBe(true)
         expect(defence.usePlansRefusedBecause).toBeUndefined()

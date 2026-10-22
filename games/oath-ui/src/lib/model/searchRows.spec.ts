@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import {
     Banner,
+    HydratedOathGameState,
+    OathRevision,
     PowerChoiceKind,
     PowerTiming,
     Region,
@@ -10,7 +12,14 @@ import {
     powerIndexOf,
     type ModifierUse
 } from '@tabletop/oath'
-import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
+import {
+    openTurn,
+    required,
+    served,
+    testBanners,
+    testPlayer,
+    testState
+} from '@tabletop/oath/testing'
 import { searchRows } from './searchRows.js'
 
 const OBSERVATORY = 'denizen.arcane.observatory'
@@ -25,7 +34,12 @@ function board(
         [testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', favor: 2, supply: 5 })],
         {
             denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...cards },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            },
             discardPileCounts: { cradle: 4, provinces: 0, hinterland: 0, ...piles },
             ...over
         }
@@ -70,9 +84,25 @@ describe('the sources a Search can draw from (R-5.1.1)', () => {
 
     it('prices the world deck at 2 for the Darkest Secret’s holder where the track says 3', () => {
         const track = board({}, {}, { visionsDrawn: 1 })
-        const holder = board({}, {}, { visionsDrawn: 1, banners: testBanners({ [Banner.DarkestSecret]: 'p1' }) })
-        expect(read(searchRows(track, 'p1', [], []))[0]).toEqual([SearchSource.WorldDeck, undefined, 3, 3, undefined])
-        expect(read(searchRows(holder, 'p1', [], []))[0]).toEqual([SearchSource.WorldDeck, undefined, 2, 3, undefined])
+        const holder = board(
+            {},
+            {},
+            { visionsDrawn: 1, banners: testBanners({ [Banner.DarkestSecret]: 'p1' }) }
+        )
+        expect(read(searchRows(track, 'p1', [], []))[0]).toEqual([
+            SearchSource.WorldDeck,
+            undefined,
+            3,
+            3,
+            undefined
+        ])
+        expect(read(searchRows(holder, 'p1', [], []))[0]).toEqual([
+            SearchSource.WorldDeck,
+            undefined,
+            2,
+            3,
+            undefined
+        ])
     })
 
     it('leaves out an empty pile', () => {
@@ -96,10 +126,24 @@ describe('the sources a Search can draw from (R-5.1.1)', () => {
 
     it('keeps the seat’s own pile with Errand Boy in use, sent without it; each other pile carries its cost', () => {
         const s = testState(
-            [testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', favor: 2, supply: 5, advisers: [{ cardId: ERRAND_BOY, faceUp: true }] })],
+            [
+                testPlayer({
+                    playerId: 'p1',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 2,
+                    supply: 5,
+                    advisers: [{ cardId: ERRAND_BOY, faceUp: true }]
+                })
+            ],
             {
                 denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
-                siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
+                siteCards: {
+                    c1: 'site.plains',
+                    c2: 'site.river',
+                    p1: 'site.marshes',
+                    h1: 'site.mountain'
+                },
                 discardPileCounts: { cradle: 4, provinces: 3, hinterland: 2 }
             }
         )
@@ -119,5 +163,74 @@ describe('the sources a Search can draw from (R-5.1.1)', () => {
             [errandBoyAt(Region.Hinterland)]
         ])
         expect(rows.map((row) => row.cardCost?.placeFavor)).toEqual([undefined, undefined, 1, 1])
+    })
+})
+
+describe('the Marshes with Mushrooms (R-11.11-H1)', () => {
+    const MUSHROOMS = 'denizen.beast.mushrooms'
+    const mushrooms: ModifierUse = {
+        cardId: MUSHROOMS,
+        powerIndex: powerIndexOf(MUSHROOMS, PowerTiming.Modifier)
+    }
+    const table = (oathRevision: number) => {
+        const s = testState(
+            [
+                testPlayer({
+                    playerId: 'p1',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 2,
+                    secrets: 2,
+                    supply: 5,
+                    advisers: [{ cardId: MUSHROOMS, faceUp: true }]
+                }),
+                // A facedown adviser, so the seat's own view lacks something the server holds.
+                testPlayer({
+                    playerId: 'p2',
+                    color: Color.Blue,
+                    siteId: 'c2',
+                    favor: 2,
+                    secrets: 2,
+                    advisers: [{ cardId: ERRAND_BOY, faceUp: false }]
+                })
+            ],
+            {
+                oathRevision,
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
+                siteCards: {
+                    c1: 'site.marshes',
+                    c2: 'site.river',
+                    p1: 'site.plains',
+                    h1: 'site.mountain'
+                },
+                discardPileCounts: { cradle: 4, provinces: 0, hinterland: 0 }
+            }
+        )
+        openTurn(s, 'p1')
+        return s
+    }
+    const ownView = (s: HydratedOathGameState) =>
+        new HydratedOathGameState(served(s, { kind: 'player', playerId: 'p1' }))
+
+    it('drops the pile row Mushrooms alone would draw nothing from, the same on the seat’s own view', () => {
+        const s = table(OathRevision.EngineFixes12)
+        const expected = [[SearchSource.WorldDeck, undefined, 2, 2, undefined]]
+        expect(read(searchRows(s, 'p1', [mushrooms], []))).toEqual(expected)
+        expect(read(searchRows(ownView(s), 'p1', [mushrooms], []))).toEqual(expected)
+        // Without Mushrooms the pile row stays, one card fewer.
+        expect(read(searchRows(ownView(s), 'p1', [], []))).toEqual([
+            [SearchSource.WorldDeck, undefined, 2, 2, undefined],
+            [SearchSource.Discard, Region.Cradle, 2, 2, undefined]
+        ])
+    })
+
+    it('R-X.4 — before revision 16 the pile row draws one', () => {
+        const s = table(OathRevision.EngineFixes11)
+        const expected = [
+            [SearchSource.WorldDeck, undefined, 2, 2, undefined],
+            [SearchSource.Discard, Region.Cradle, 0, 1, undefined]
+        ]
+        expect(read(searchRows(s, 'p1', [mushrooms], []))).toEqual(expected)
+        expect(read(searchRows(ownView(s), 'p1', [mushrooms], []))).toEqual(expected)
     })
 })

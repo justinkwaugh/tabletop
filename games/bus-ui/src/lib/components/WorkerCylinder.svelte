@@ -48,7 +48,11 @@
         const blend = (from: number, to: number) => clamp255(from + (to - from) * t)
         return (
             '#' +
-            [blend(parsedA[0], parsedB[0]), blend(parsedA[1], parsedB[1]), blend(parsedA[2], parsedB[2])]
+            [
+                blend(parsedA[0], parsedB[0]),
+                blend(parsedA[1], parsedB[1]),
+                blend(parsedA[2], parsedB[2])
+            ]
                 .map((channel) => channel.toString(16).padStart(2, '0'))
                 .join('')
         )
@@ -76,20 +80,14 @@
 
 <g
     transform={`translate(${x} ${y}) scale(${scale})`}
-    opacity={opacity}
+    {opacity}
     class="pointer-events-none select-none"
     aria-hidden="true"
 >
-    <ellipse cx="0" cy={bottomY} rx={baseCoverRx} ry={baseCoverRy} fill={color} />
-    <rect
-        x={-rx}
-        y={topY}
-        width={width}
-        height={bodyHeight}
-        fill={color}
-    />
-    <path d={sideAndBottomOutlinePath} fill="none" stroke={stroke} stroke-width={rimStrokeWidth} />
-    <ellipse cx="0" cy={topY} rx={rx} ry={topRy} fill={color} />
-    <path d={topOutlinePath} fill="none" stroke={stroke} stroke-width={rimStrokeWidth} />
-    <ellipse cx="0" cy={topY} rx={topInnerRx} ry={topInnerRy} fill={topColor} />
+    <ellipse cx="0" cy={bottomY} rx={baseCoverRx} ry={baseCoverRy} fill={color}></ellipse>
+    <rect x={-rx} y={topY} {width} height={bodyHeight} fill={color}></rect>
+    <path d={sideAndBottomOutlinePath} fill="none" {stroke} stroke-width={rimStrokeWidth}></path>
+    <ellipse cx="0" cy={topY} {rx} ry={topRy} fill={color}></ellipse>
+    <path d={topOutlinePath} fill="none" {stroke} stroke-width={rimStrokeWidth}></path>
+    <ellipse cx="0" cy={topY} rx={topInnerRx} ry={topInnerRy} fill={topColor}></ellipse>
 </g>

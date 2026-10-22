@@ -18,13 +18,19 @@
 
     function phaseName(ms: MachineState): string {
         switch (ms) {
-            case MachineState.SpringPlacement: return 'Spring placement'
+            case MachineState.SpringPlacement:
+                return 'Spring placement'
             case MachineState.TileReveal:
-            case MachineState.Bidding:         return 'Bidding phase'
-            case MachineState.PlantingPhase:   return 'Planting phase'
-            case MachineState.CanalBuilding:   return 'Canal building phase'
-            case MachineState.ExtraIrrigation: return 'Extra irrigation phase'
-            default:                           return ''
+            case MachineState.Bidding:
+                return 'Bidding phase'
+            case MachineState.PlantingPhase:
+                return 'Planting phase'
+            case MachineState.CanalBuilding:
+                return 'Canal building phase'
+            case MachineState.ExtraIrrigation:
+                return 'Extra irrigation phase'
+            default:
+                return ''
         }
     }
 
@@ -34,23 +40,30 @@
     function phaseIcon(ms: MachineState) {
         switch (ms) {
             case MachineState.TileReveal:
-            case MachineState.Bidding:         return CoinIcon
-            case MachineState.PlantingPhase:   return SproutIcon
+            case MachineState.Bidding:
+                return CoinIcon
+            case MachineState.PlantingPhase:
+                return SproutIcon
             case MachineState.CanalBuilding:
-            case MachineState.ExtraIrrigation: return DropIcon
-            default:                           return undefined
+            case MachineState.ExtraIrrigation:
+                return DropIcon
+            default:
+                return undefined
         }
     }
-
 </script>
 
 <!-- Status bar -->
-<div class="status-bar font-ui paper-texture shrink-0 px-3 h-[44px] bg-amber-950/40 border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider">
+<div
+    class="status-bar font-ui paper-texture shrink-0 px-3 h-[44px] bg-amber-950/40 border-2 border-amber-800 rounded-lg flex items-center gap-2 text-base uppercase tracking-wider"
+>
     {#if ms === MachineState.EndOfGame}
         <span class="text-sm text-amber-300 uppercase tracking-wider">Game over</span>
     {:else if activePlayerId}
         {@const Icon = phaseIcon(ms)}
-        <span class="font-bold text-amber-300"><PlayerName playerId={activePlayerId} possessive capitalization="uppercase" /> turn</span>
+        <span class="font-bold text-amber-300"
+            ><PlayerName playerId={activePlayerId} possessive capitalization="uppercase" /> turn</span
+        >
         {#if Icon}
             <Icon class="phase-icon w-4 h-4 shrink-0" />
         {:else}
@@ -67,8 +80,10 @@
         {/if}
     {/if}
     {#if canUndo}
-        <button class="undo ml-auto px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-amber-300 font-semibold transition-colors shrink-0"
-            onclick={() => session.undo()}>
+        <button
+            class="undo ml-auto px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-amber-300 font-semibold transition-colors shrink-0"
+            onclick={() => session.undo()}
+        >
             Undo
         </button>
     {/if}

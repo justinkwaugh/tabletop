@@ -77,10 +77,15 @@ describe('the Chancellor splits a short bank at setup', () => {
         expect(setup.adviserCardId).toBe(keep)
         expect(setup.ordering).toBe(true)
         await setup.tapDiscard(first)
-        expect(sent).toHaveBeenCalledWith(TOP_CRADLE_SLOT, keep, [first, last], [
-            { siteCardId: 'site.fertile-valley', favor: 2 },
-            { siteCardId: 'site.plains', favor: 1 }
-        ])
+        expect(sent).toHaveBeenCalledWith(
+            TOP_CRADLE_SLOT,
+            keep,
+            [first, last],
+            [
+                { siteCardId: 'site.fertile-valley', favor: 2 },
+                { siteCardId: 'site.plains', favor: 1 }
+            ]
+        )
     })
 
     it('Undo pops a card kept while short before the split under it', async () => {
@@ -135,10 +140,15 @@ describe('the Chancellor on a six-seat deal whose bank runs short', () => {
         setup.setSiteFavor('site.mine', 3)
         expect(setup.ordering).toBe(true)
         await setup.tapDiscard(first)
-        expect(sent).toHaveBeenCalledWith(TOP_CRADLE_SLOT, keep, [first, last], [
-            { siteCardId: 'site.salt-flats', favor: 1 },
-            { siteCardId: 'site.mine', favor: 3 }
-        ])
+        expect(sent).toHaveBeenCalledWith(
+            TOP_CRADLE_SLOT,
+            keep,
+            [first, last],
+            [
+                { siteCardId: 'site.salt-flats', favor: 1 },
+                { siteCardId: 'site.mine', favor: 3 }
+            ]
+        )
     })
 
     // R-1.16, R-2.8.2 — a site's row offers no more than it prints and no more than the bank leaves.
@@ -255,12 +265,22 @@ describe('the start sites on the map', () => {
         const { session, setup } = await exileOnTheClock()
         const sites = setup.sites
         expect(sites).toHaveLength(3)
-        expect(setup.boardPick).toEqual({ sites, label: 'start here', picked: undefined, pickable: true })
+        expect(setup.boardPick).toEqual({
+            sites,
+            label: 'start here',
+            picked: undefined,
+            pickable: true
+        })
         expect(startOffers(session)).toEqual(
             sites.map((slotId) => ({ slotId, picked: false, pickable: true }))
         )
         expect(session.mapDimmed).toBe(true)
-        expect(session.mapPick).toEqual({ kind: 'start', sites, choosing: true })
+        expect(session.mapPick).toEqual({
+            kind: 'start',
+            sites,
+            choosing: true,
+            moverId: session.myPlayer?.id
+        })
     })
 
     it('a picked site stays lit with the others, marked and no longer pickable; a tap on another moves the pick', async () => {
@@ -304,7 +324,12 @@ describe('the start sites on the map', () => {
         expect(startOffers(session)).toEqual([{ slotId: site, picked: true, pickable: false }])
         expect(session.mapDimmed).toBe(false)
         // The frame and its region chips stay on every start site until the send.
-        expect(session.mapPick).toEqual({ kind: 'start', sites, choosing: true })
+        expect(session.mapPick).toEqual({
+            kind: 'start',
+            sites,
+            choosing: true,
+            moverId: session.myPlayer?.id
+        })
     })
 
     it('the Chancellor’s one legal site is shown picked and not pickable, with nothing dimmed', async () => {
@@ -319,6 +344,11 @@ describe('the start sites on the map', () => {
             { slotId: TOP_CRADLE_SLOT, picked: true, pickable: false }
         ])
         expect(session.mapDimmed).toBe(false)
-        expect(session.mapPick).toEqual({ kind: 'start', sites: [TOP_CRADLE_SLOT], choosing: false })
+        expect(session.mapPick).toEqual({
+            kind: 'start',
+            sites: [TOP_CRADLE_SLOT],
+            choosing: false,
+            moverId: session.myPlayer?.id
+        })
     })
 })

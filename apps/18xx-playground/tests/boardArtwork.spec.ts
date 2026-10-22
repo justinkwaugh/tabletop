@@ -96,20 +96,23 @@ test('published artwork swaps token art and private cards', async ({ page }) => 
     await expect(cardImages.first()).toHaveAttribute('src', /published\/peirs\/v2\//)
     await page.keyboard.press('Escape')
     await expect(cardImages).toHaveCount(0)
-    await offers.getByRole('button', { name: 'Offer Merchants and Co.', exact: true }).click()
+    const privateOffer = offers.getByRole('button', { name: /^Offer (?!PEIR )/ }).first()
+    const privateName = (await privateOffer.getAttribute('aria-label'))?.replace(/^Offer /, '')
+    if (!privateName) throw new Error('The opening offers a private company')
+    await privateOffer.click()
     const bidding = page.getByRole('article', { name: 'Current auction' })
     await expect(bidding.locator('[data-card-image] img')).toHaveAttribute(
         'src',
         /published\/privates\//
     )
-    await bidding.getByRole('button', { name: 'Show Merchants and Co. card', exact: true }).click()
-    await expect(page.getByRole('dialog', { name: 'Merchants and Co.' })).toBeVisible()
+    await bidding.getByRole('button', { name: `Show ${privateName} card`, exact: true }).click()
+    await expect(page.getByRole('dialog', { name: privateName })).toBeVisible()
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog', { name: 'Merchants and Co.' })).toHaveCount(0)
+    await expect(page.getByRole('dialog', { name: privateName })).toHaveCount(0)
     await page.getByRole('button', { name: 'Bid', exact: true }).click()
     await page.getByRole('button', { name: 'step backwards', exact: true }).click()
     const summary = page.getByRole('region', { name: 'Position summary' })
-    await expect(summary).toContainText('offered Merchants and Co.')
+    await expect(summary).toContainText(`offered ${privateName}`)
     await expect(summary.locator('[data-card-image] img')).toHaveAttribute(
         'src',
         /published\/privates\//
@@ -117,6 +120,6 @@ test('published artwork swaps token art and private cards', async ({ page }) => 
     await page.getByRole('button', { name: 'go to current', exact: true }).click()
     await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
     await expect(cardImages).toHaveCount(0)
-    await expect(bidding.locator('.private-card h3')).toHaveText('Merchants and Co.')
+    await expect(bidding.locator('.private-card h3')).toHaveText(privateName)
     expect(errors).toEqual([])
 })

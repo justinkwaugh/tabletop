@@ -160,8 +160,7 @@ categories, persistent selection, and switching from Split into ordinary trading
 
 Flotation progress is optional title policy on CompanyRules, rather than a universal percentage in the UI. TOP counts non-reserved bank shares against its 60% threshold; 1889 counts IPO shares against 50%. Their payment eligibility reuses that count. Titles with non-share flotation conditions can omit this numeric projection; no generic threshold is inferred. Buy choices display it only for un-floated companies.
 
-Stock sale block extensions are an opt-in action-entry policy, enabled for TOP and
-1889. The logical block remains one seller/company/stock turn: first-sale price,
+Stock sale block extensions are an opt-in action-entry policy, enabled for TOP and 1889. The logical block remains one seller/company/stock turn: first-sale price,
 cumulative shares and cumulative nominal market steps are recorded in optional
 StockTurn.saleBlocks. Later actions pay that price and apply only the difference
 between the title's cumulative movement and steps already assessed. TOP's movement

@@ -100,6 +100,14 @@ export class CompanyDecisionsModule {
     companyPurchasesAvailable = $derived.by(() =>
         this.availablePurchaseOptions.some((option) => option.request.asset.kind !== 'train')
     )
+    ownCompanyPurchasesAvailable = $derived.by(() =>
+        this.availablePurchaseOptions.some(
+            ({ request }) =>
+                request.asset.kind !== 'train' &&
+                request.seller.kind === 'player' &&
+                request.seller.playerId === this.session.playerId
+        )
+    )
     players = $derived.by(() => {
         if (!this.canResolve) return []
         const { state, rules } = this.session
@@ -203,13 +211,13 @@ export class CompanyDecisionsModule {
             'Purchasing is unavailable'
         )
         let price = request.price
-        if (request.asset.kind === 'private') {
+        if (request.asset.kind !== 'train') {
             const range = this.session.rules.transferRules.priceRange(
                 this.session.state,
                 request.companyId,
                 request.asset
             )
-            assertExists(range, 'Private purchase requires a price range')
+            assertExists(range, 'A private or company purchase requires a price range')
             const cash = cashOwnedBy(this.session.state, {
                 kind: 'company',
                 companyId: request.companyId

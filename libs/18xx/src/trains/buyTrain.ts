@@ -1,4 +1,5 @@
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
+import { inReceivership } from '../finance/receivership.js'
 import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -69,7 +70,8 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
     apply(state: HydratedGameState & TrainPurchaseState & PhaseState): void {
         const purchase = new TrainPurchase(state, this.#rules)
         assert(
-            this.source === ActionSource.User &&
+            (this.source === ActionSource.User ||
+                (this.source === ActionSource.System && inReceivership(state, this.companyId))) &&
                 state.activePlayerIds.includes(this.playerId) &&
                 purchase.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may buy trains'

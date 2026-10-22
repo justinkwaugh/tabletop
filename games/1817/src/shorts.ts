@@ -29,6 +29,7 @@ import {
     recordStockAction,
     settleCashPayments,
     sharesOwned,
+    treasuryPoolId,
     type FinancialState,
     type OpenShare,
     SystemActionFirstHandler,
@@ -36,7 +37,7 @@ import {
     recordStockRoundSale
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
-import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { EighteenSeventeenStockRoundRules, MarketPoolId } from './roundRules.js'
 import { eighteenSeventeenOptions } from './state.js'
 
 const NoShortsPhase = '8'

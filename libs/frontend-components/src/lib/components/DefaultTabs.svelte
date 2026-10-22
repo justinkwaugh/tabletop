@@ -42,9 +42,7 @@
     let gameSession = getGameSession()
 
     let chatActive: boolean = $state(false)
-    let showNewMessageIndicator: boolean = $derived(
-        gameSession.hasUnreadMessages && !chatActive
-    )
+    let showNewMessageIndicator: boolean = $derived(gameSession.hasUnreadMessages && !chatActive)
 
     let activeTabClasses = $derived(
         `relative box-border ${activeTabClass ?? 'py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900'}`

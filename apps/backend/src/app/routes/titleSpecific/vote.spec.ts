@@ -23,7 +23,7 @@ async function createServer() {
         withdrawVote: vi.fn(async () => game)
     }
     Reflect.set(server, 'gameService', gameService)
-    await server.register(voteRoutes.bind(undefined, definition))
+    await server.register(voteRoutes.bind(undefined, () => definition))
     return { server, gameService }
 }
 

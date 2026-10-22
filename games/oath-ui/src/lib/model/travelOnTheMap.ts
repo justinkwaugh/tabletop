@@ -1,5 +1,5 @@
-import { Region, type Suit } from '@tabletop/oath'
-import type { TravelWay } from './actionOffers.js'
+import { Region, type HydratedOathGameState, type Suit } from '@tabletop/oath'
+import type { MapPick, TravelPickSite, TravelWay } from './actionOffers.js'
 import { suitName } from './names.js'
 import { hospitalityBanksOf, waysToPay } from './travelRows.js'
 
@@ -10,9 +10,13 @@ export type ChipWay = { cost: number; favor: number; secret: boolean }
  * A lit site's cost chip. One way paid in Supply alone reads its words ("2 Supply"); a way with a
  * token is a number and symbols ("2+[favor]"), with "or" between two ways (R-11.12, R-7.1.4).
  * Where Hospitality gains, the costs are numbers and the chip ends with the gain and each bank's
- * suit ("2 | +1 [favor] [Beast] or [Nomad]").
+ * suit ("2 | +1 [favor] [Beast] or [Nomad]"). On a move that spends no Supply only what it still
+ * costs is drawn: Toll Roads' "toll 1 [favor]", The Hidden Place's "+[secret]".
  */
-export type TravelChip = { words: string } | { ways: ChipWay[]; banks?: Suit[] }
+export type TravelChip =
+    | { words: string }
+    | { ways: ChipWay[]; banks?: Suit[] }
+    | { free: { toll: boolean; secret: boolean } }
 
 export function travelChip(
     ways: readonly (TravelWay & { hospitality?: Suit })[]
@@ -40,6 +44,11 @@ export function travelChip(
  */
 export function chipWords(chip: TravelChip): string {
     if ('words' in chip) return chip.words
+    if ('free' in chip) {
+        return [chip.free.toll ? 'toll 1 favor' : '', chip.free.secret ? 'flip 1 secret' : '']
+            .filter((words) => words !== '')
+            .join(', ')
+    }
     const costs = chip.ways
         .map(
             (way) =>
@@ -60,6 +69,17 @@ export function chipWords(chip: TravelChip): string {
  */
 export function woodChip(cost: number, toll: boolean): TravelChip {
     return toll ? { ways: [{ cost, favor: 1, secret: false }] } : { words: `${cost} Supply` }
+}
+
+/**
+ * R-11.7, R-11.13-H1 — a site a Travel question offers on the map: its price, as the Shrouded
+ * Wood's ruler sees it for the traveller's own Travel; on a move that spends no Supply, no chip but
+ * a toll Toll Roads will ask or the secret The Hidden Place flips.
+ */
+export function pickChip(site: Omit<TravelPickSite, 'siteId'>): TravelChip | undefined {
+    if (site.cost !== undefined) return woodChip(site.cost, site.toll)
+    if (!site.toll && !site.flip) return undefined
+    return { free: { toll: site.toll, secret: site.flip } }
 }
 
 export type RegionCount = { region: Region; count: number }
@@ -90,4 +110,18 @@ export function openingRegion(
         return pawnRegion
     }
     return lit[0]
+}
+
+/**
+ * The region a phone's upright pick on the map opens on: that of the pawn the pick moves (the
+ * seat's own, a banished defender's, a pawn the Shrouded Wood's ruler sends), else the first
+ * region with a lit site.
+ */
+export function mapPickOpening(
+    pick: MapPick,
+    state: Pick<HydratedOathGameState, 'regionOf' | 'getPlayerState'>
+): Region | undefined {
+    const siteId = pick.moverId ? state.getPlayerState(pick.moverId).siteId : undefined
+    const counts = regionCounts(pick.sites, (slotId) => state.regionOf(slotId))
+    return openingRegion(siteId ? state.regionOf(siteId) : undefined, counts)
 }

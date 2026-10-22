@@ -71,7 +71,6 @@ requests, face prices/affordability, exact cash/ownership, retained 2-trains/pri
 one System phase event, rejection at the boundary, replay/Undo, counted-station
 selection, bonus selection and full visited-stop distance.
 
-
 Validation completed: 802 shared-engine/title tests passed, followed by the focused
 22-test route/phase suite including two additional affordability/distance cases.
 All four existing title packages still type-check; title logic/UI checks, lint,

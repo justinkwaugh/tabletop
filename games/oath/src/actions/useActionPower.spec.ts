@@ -7,11 +7,7 @@ import { testPlayer, testState } from '../testing/fixture.js'
 import { Color } from '@tabletop/common'
 import { hasAccessToCard, hasReliquaryPowerAccess, rulesCard } from '../util/access.js'
 import { afterEach } from 'vitest'
-import {
-    one,
-    PowerChoiceKind,
-    type PowerChoice
-} from '../util/powerChoice.js'
+import { one, PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { buildAction } from '../testing/actions.js'
 import { bank, site } from '../testing/choices.js'
 import '../powers/index.js'
@@ -245,14 +241,16 @@ describe('choices ride the action, checked after the cost and before the effect'
 
     it('a stray choice on a power that asks none is refused', () => {
         const state = boardWith([], { relicIds: [SCEPTER] })
-        expect(() => usePower('ruler', SCEPTER, 1, [{ kind: PowerChoiceKind.Yes }]).apply(state)).toThrow(
-            /takes no choices, but 1 were given/
-        )
+        expect(() =>
+            usePower('ruler', SCEPTER, 1, [{ kind: PowerChoiceKind.Yes }]).apply(state)
+        ).toThrow(/takes no choices, but 1 were given/)
     })
 
     it('the cost is refused BEFORE a missing choice is mentioned', () => {
         const state = boardWith([CAPTAINS], { favor: 0 })
-        expect(() => usePower('ruler', CAPTAINS).apply(state)).toThrow(/costs 1 favor, player has 0/)
+        expect(() => usePower('ruler', CAPTAINS).apply(state)).toThrow(
+            /costs 1 favor, player has 0/
+        )
     })
 
     it('a missing or bad choice is refused BEFORE the effect refusal', () => {
@@ -261,17 +259,17 @@ describe('choices ride the action, checked after the cost and before the effect'
         expect(() => usePower('ruler', SCEPTER, 1).apply(state)).toThrow(
             /no choice was made for a favor bank/
         )
-        expect(() =>
-            usePower('ruler', SCEPTER, 1, [site('c1')]).apply(state)
-        ).toThrow(/no choice was made for a favor bank/)
+        expect(() => usePower('ruler', SCEPTER, 1, [site('c1')]).apply(state)).toThrow(
+            /no choice was made for a favor bank/
+        )
     })
 
     it('sound choices walk the whole doorway and reach the effect refusal last', () => {
         declareChoices(SCEPTER, 1, [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })])
         const state = boardWith([], { relicIds: [SCEPTER] })
-        expect(() =>
-            usePower('ruler', SCEPTER, 1, [bank(Suit.Beast)]).apply(state)
-        ).toThrow(/card power effects are not implemented yet/)
+        expect(() => usePower('ruler', SCEPTER, 1, [bank(Suit.Beast)]).apply(state)).toThrow(
+            /card power effects are not implemented yet/
+        )
     })
 
     it('choices survive the wire — dehydrate keeps them', () => {

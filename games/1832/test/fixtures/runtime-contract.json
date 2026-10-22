@@ -1,6 +1,6 @@
 {
   "actionSchemaDigests": {
-    "AdvancePhase": "455ea5fcecfff534b4b1ca9ddb8a834c6c3a4575df84a596bdffefa2ae77b3ec",
+    "AdvancePhase": "12a257b1b22207c83ef2121de86eea5757ba889002911b4fc7ef4845c97fa65c",
     "AnswerMerger": "f29591ad4fe818080e006ec685bfd28138f48483dfcc74c6fb5ddf5d5671cdbd",
     "AnswerRedemption": "df0e4766d17c3c52766a9a63c7619c60de9a6f2b76fe331909c03775de1f4ee8",
     "BuyAuctionLot": "155a50b51bc0f77c28377ff93ddb5839ed0bb8f60e8178de847119ab9d4640dc",
@@ -9,16 +9,16 @@
     "BuyShares": "7176945db6b51c301ad282380b561466466903e9080c0e11f76a9919f6827049",
     "BuyTrain": "3e7d28d5ea1a5efb9c08327644b787b728ffb709da1418a9b335b76183df62f2",
     "CapitalizeCompany": "4cfdd493c127d35dff8a8c0693c078f4fa0e38080a5ed59a2a87a01f240723d3",
-    "CloseCompany": "c64c31a65647d66d6182ccf4d2f8d4be1242ad0ddd57a147c5406369bdaad48e",
-    "CompleteMergerPhase": "90719edc29b2ebebd58530194f971ec9c7c7b6fdec498c19c4525948d5446376",
+    "CloseCompany": "73bddaca75eef3d06574577cb768a65316073b9548786a96851a5313286805f0",
+    "CompleteMergerPhase": "6f641f15bda39cd112826a283a451e2f5613f5d30753c6de1bea2886aa23b321",
     "CompletePriceProtection": "13f3089e9789141cc1a2f2ab3bbf7ec0d12e0b9db76e8c504a9164fd0636a1a1",
-    "CompleteStockRound": "7f7e57359cd8d0691ee16a31e9801a1eb157cc7e320d298447358e6951372882",
+    "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
     "CompleteTakeover": "95a2ba62354462adab7c0dba45b5cf6f81c7e29b55e13fc79f5a6975621924ef",
     "ContinueOperatingRound": "9739c28a94fcb60ac7e05435f2d25ccba70f5534d4a28a43ac2107ec3f896637",
     "ContributeTrainFunds": "85fd1b57cdfc74e0e0f0957a5e663792f1cb12ab188988ba50b44dd5dc613931",
-    "DeclareBankruptcy": "5ca00ef2afae7da19d8382234c57cd00091c69f2ad589e3567a9fa05be5509ed",
+    "DeclareBankruptcy": "2b5a3c50faae08d28f3f9d7541f05c9adee7730524288feb8f794106b60766c9",
     "DeclinePrivateTile": "c4982db809f4f024354b9e0731dd49c5dcdf66c07687110e8325a3de35e0c8c4",
-    "DeclineProtection": "9a8bcbc342acf15a0e76acc67fd989fa94fb226a699ddd0d1ec9bc302c79b6b3",
+    "DeclineProtection": "550b37ab73ef72675f940e94c9b912ff62b7ddb8819ec6029280fa69a280ebf1",
     "DiscardMergedTrain": "5521dbaac6facf528f6f10d956a5363bb120e31c617ff5c364ae745b1c4cce78",
     "DiscardTrain": "7e20783f11a11d64aff34626e2420dc355adbfce900d7f1cb01eb0b31c175961",
     "DistributeEarnings": "d1a60eb8722250aeb4f79f3fe6b30a59d3fd4b128636228368a0b7f8e6111dbc",
@@ -29,7 +29,7 @@
     "FinishStockTurn": "79fc138318816a4f6d12247426c0b62f68decdbb963f468023074a96a65c1d3c",
     "FinishTrack": "cd10af7fe118f100f381b5a3d178c285c0206a87e0e44e6672dcb2002d9171af",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
-    "FundTrain": "5c7f49d1dd2ddceaa51ef5898e96eadd7d79642915f997edc5fdd7fb5b0bccb0",
+    "FundTrain": "479815ad37224bf42a24deacb873771789c70d04ea887d0341139ffd63701e01",
     "IssueTreasuryShares": "5b34043d5d2d293a9a9cb475aef421125913722a7e1d72ccb706aa23cfb428bd",
     "LayPrivateTile": "4fac8ef2d632fc8411ba570c3ffc6cf77d09d5e79a66693d2c61cf478132ac5c",
     "LayTile": "7be8e600597ab53b7ceea6acd275d1fb827fcd4590de5d72e71c470e115f03ca",
@@ -42,14 +42,14 @@
     "PlaceRevenueToken": "2329cbd76c82c07fad6e0f09e9d929991d6b014073acdeeab68146f07eae822b",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
     "ProposeMerger": "8e3242fa526a30ffff98a303afaec7ccc3c326716720dd2c5c00ed844616f653",
-    "ProtectShares": "e8078b7c429165eb0eb0386e239b6b4411fb964f56a0b065ec0dade6d0561874",
+    "ProtectShares": "4d3671d572bd6ebdb92fc7741bbc472a9b98ba17e687cf597bf3ff8f7970c300",
     "RaiseAuctionBid": "57f6e49b2afa7412f2013d16dc6a2d38e83627165798e3eed00cb1566354e055",
     "RecordMiamiRun": "07aaa4f3d0d3ab777d03bfda6a3bcbe96d574909d530f693112a0eea0e0a14cc",
     "RedeemShare": "eaaf81ce775d05cf773e5f22447c7bd4ff1a97851b6712314d31fed9bcb692b7",
     "ReissueShares": "308c463e61f19bcda4cda39c074f35c9ecc7135469b8b09c081893f157ef08be",
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
     "ReserveBid": "765c6c89338935d58ea9f04b174a317b1aa1f94865477e20c971dd2dbe35800e",
-    "ResolveAuction": "cda20486395def21f8016c871ae29af489eca8e1c6abb1f195feae213ca9a8ca",
+    "ResolveAuction": "17f217f0d6d8ccb679367f808f25537025483cd896b49ebd30ec593a10eed7d9",
     "RespondToPurchaseOffer": "2a80cb1220166e3653cf3d2c16cd62120b8d23a728e0359199e93db0c1afcc27",
     "RespondToTrackConsent": "d444e2f54cdc5a40ef5bb8a6da767fb3c2b30cc1fa54469a8fc04b6cfde5601c",
     "RunTrains": "76d57af755fe72d5d7b936e18324f0adfd17350de4fc41b209c674073956fbc6",
@@ -64,7 +64,7 @@
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
-    "StartPriceProtection": "b9134e0f97e2621cfaf344acd2084bc5ce4f11e1a16b796b1f9009a68923f156",
+    "StartPriceProtection": "2b0b1270c4cbbca109a2334e5ca2ad55153f8226767c4f9180d567e61230f5ff",
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
     "StopStockInstruction": "87c259506cc5823cfddb21a08db1bdc0aad3115a34b83eb8cd7eb850262c0c8b",
     "TakeLondonShare": "68920266817f628d6be06a0d6f5899f030fbe4bc950d72e14b4960b866327ad8"
@@ -456,38 +456,6 @@
         },
         "type": "array"
       },
-      "coalPurchase": {
-        "additionalProperties": false,
-        "properties": {
-          "companyId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "turn": {
-            "additionalProperties": false,
-            "properties": {
-              "round": {
-                "minimum": 1,
-                "type": "integer"
-              },
-              "set": {
-                "minimum": 1,
-                "type": "integer"
-              }
-            },
-            "required": [
-              "round",
-              "set"
-            ],
-            "type": "object"
-          }
-        },
-        "required": [
-          "companyId",
-          "turn"
-        ],
-        "type": "object"
-      },
       "coalRights": {
         "items": {
           "minLength": 1,
@@ -495,6 +463,10 @@
         },
         "type": "array",
         "uniqueItems": true
+      },
+      "coalTokenBought": {
+        "const": true,
+        "type": "boolean"
       },
       "companies": {
         "items": {
@@ -1317,27 +1289,21 @@
         },
         "type": "array"
       },
+      "keyWestCompanyId": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "keyWestPlaced": {
+        "const": true,
+        "type": "boolean"
+      },
       "lockedProceeds": {
-        "additionalProperties": false,
-        "properties": {
-          "amounts": {
-            "patternProperties": {
-              "^.*$": {
-                "minimum": 1,
-                "type": "integer"
-              }
-            },
-            "type": "object"
-          },
-          "stockRound": {
+        "patternProperties": {
+          "^.*$": {
             "minimum": 1,
             "type": "integer"
           }
         },
-        "required": [
-          "amounts",
-          "stockRound"
-        ],
         "type": "object"
       },
       "londonCompanyId": {
@@ -1434,10 +1400,6 @@
           }
         }
       },
-      "mergedAfterStockRound": {
-        "minimum": 1,
-        "type": "integer"
-      },
       "mergerPhase": {
         "additionalProperties": false,
         "properties": {
@@ -1470,17 +1432,6 @@
               "targetId"
             ],
             "type": "object"
-          },
-          "index": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "playerIds": {
-            "items": {
-              "minLength": 1,
-              "type": "string"
-            },
-            "type": "array"
           },
           "proposal": {
             "additionalProperties": false,
@@ -1563,50 +1514,13 @@
         },
         "required": [
           "final",
-          "index",
-          "playerIds",
           "refused"
         ],
         "type": "object"
       },
-      "mergers": {
-        "items": {
-          "additionalProperties": false,
-          "properties": {
-            "companyIds": {
-              "items": {
-                "minLength": 1,
-                "type": "string"
-              },
-              "maxItems": 2,
-              "minItems": 2,
-              "type": "array"
-            },
-            "kind": {
-              "anyOf": [
-                {
-                  "const": "system",
-                  "type": "string"
-                },
-                {
-                  "const": "takeover",
-                  "type": "string"
-                }
-              ]
-            },
-            "survivorId": {
-              "minLength": 1,
-              "type": "string"
-            }
-          },
-          "required": [
-            "companyIds",
-            "kind",
-            "survivorId"
-          ],
-          "type": "object"
-        },
-        "type": "array"
+      "mergerPhaseHeld": {
+        "const": true,
+        "type": "boolean"
       },
       "mergersEnded": {
         "const": true,
@@ -1819,84 +1733,6 @@
         ],
         "type": "object"
       },
-      "ownershipLimitExemptions": {
-        "items": {
-          "additionalProperties": false,
-          "properties": {
-            "companyId": {
-              "type": "string"
-            },
-            "maximumShares": {
-              "minimum": 1,
-              "type": "integer"
-            },
-            "owner": {
-              "anyOf": [
-                {
-                  "anyOf": [
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "player",
-                          "type": "string"
-                        },
-                        "playerId": {
-                          "minLength": 1,
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "kind",
-                        "playerId"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "companyId": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "kind": {
-                          "const": "company",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "companyId",
-                        "kind"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                },
-                {
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "bank",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "kind"
-                  ],
-                  "type": "object"
-                }
-              ]
-            }
-          },
-          "required": [
-            "companyId",
-            "maximumShares",
-            "owner"
-          ],
-          "type": "object"
-        },
-        "type": "array"
-      },
       "pendingPar": {
         "additionalProperties": false,
         "properties": {
@@ -2056,30 +1892,19 @@
       "priceProtection": {
         "additionalProperties": false,
         "properties": {
-          "protectorIds": {
-            "items": {
-              "minLength": 1,
-              "type": "string"
-            },
-            "type": "array"
+          "lastProtectorId": {
+            "minLength": 1,
+            "type": "string"
           },
           "resume": {
             "additionalProperties": false,
             "properties": {
-              "activePlayerIds": {
-                "items": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "type": "array"
-              },
               "machineState": {
                 "minLength": 1,
                 "type": "string"
               }
             },
             "required": [
-              "activePlayerIds",
               "machineState"
             ],
             "type": "object"
@@ -2088,6 +1913,14 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "blocks": {
+                  "items": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
                 "certificateIds": {
                   "items": {
                     "minLength": 1,
@@ -2104,10 +1937,6 @@
                   "minLength": 1,
                   "type": "string"
                 },
-                "fromStackIndex": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
                 "proceeds": {
                   "minimum": 1,
                   "type": "integer"
@@ -2121,7 +1950,6 @@
                 "certificateIds",
                 "companyId",
                 "fromMarketSpaceId",
-                "fromStackIndex",
                 "proceeds",
                 "shares"
               ],
@@ -2159,10 +1987,8 @@
           }
         },
         "required": [
-          "protectorIds",
           "sales",
-          "sellerPlayerId",
-          "stacks"
+          "sellerPlayerId"
         ],
         "type": "object"
       },
@@ -2525,39 +2351,25 @@
         ]
       },
       "redemptionRefusals": {
-        "additionalProperties": false,
-        "properties": {
-          "refusals": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "companyId": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "playerId": {
-                  "minLength": 1,
-                  "type": "string"
-                }
-              },
-              "required": [
-                "companyId",
-                "playerId"
-              ],
-              "type": "object"
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "companyId": {
+              "minLength": 1,
+              "type": "string"
             },
-            "type": "array"
+            "playerId": {
+              "minLength": 1,
+              "type": "string"
+            }
           },
-          "turnStart": {
-            "minimum": 0,
-            "type": "integer"
-          }
+          "required": [
+            "companyId",
+            "playerId"
+          ],
+          "type": "object"
         },
-        "required": [
-          "refusals",
-          "turnStart"
-        ],
-        "type": "object"
+        "type": "array"
       },
       "redemptionRequest": {
         "additionalProperties": false,
@@ -2595,22 +2407,8 @@
       "redemptions": {
         "patternProperties": {
           "^.*$": {
-            "additionalProperties": false,
-            "properties": {
-              "count": {
-                "minimum": 1,
-                "type": "integer"
-              },
-              "stockRound": {
-                "minimum": 1,
-                "type": "integer"
-              }
-            },
-            "required": [
-              "count",
-              "stockRound"
-            ],
-            "type": "object"
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "type": "object"
@@ -2636,7 +2434,9 @@
           "minLength": 1,
           "type": "string"
         },
-        "type": "array"
+        "minItems": 1,
+        "type": "array",
+        "uniqueItems": true
       },
       "revenueTokens": {
         "items": {
@@ -2669,32 +2469,13 @@
             "nodeId": {
               "minLength": 1,
               "type": "string"
-            },
-            "placed": {
-              "additionalProperties": false,
-              "properties": {
-                "round": {
-                  "minimum": 1,
-                  "type": "integer"
-                },
-                "set": {
-                  "minimum": 1,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "round",
-                "set"
-              ],
-              "type": "object"
             }
           },
           "required": [
             "companyId",
             "kind",
             "locationId",
-            "nodeId",
-            "placed"
+            "nodeId"
           ],
           "type": "object"
         },
@@ -3557,6 +3338,14 @@
       "systemVersion": {
         "type": "number"
       },
+      "takeoverBuyerIds": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
       "tileInventory": {
         "additionalProperties": false,
         "properties": {
@@ -3773,6 +3562,7 @@
           },
           "sales": {
             "items": {
+              "additionalProperties": false,
               "properties": {
                 "companyId": {
                   "type": "string"
@@ -4130,8 +3920,6 @@
       "gameId",
       "id",
       "machineState",
-      "mergers",
-      "ownershipLimitExemptions",
       "phaseEvents",
       "phaseId",
       "players",
@@ -4142,6 +3930,7 @@
       "stockMarket",
       "stockRound",
       "systems",
+      "takeoverBuyerIds",
       "tileInventory",
       "trainInventory",
       "turnManager",

@@ -1,3 +1,4 @@
+import { lookupTitle, type TitleLookup } from './titleLookup.js'
 import {
     assertExists,
     GameResult,
@@ -38,7 +39,7 @@ export type FinalScoresBackfillTask = Static<typeof FinalScoresBackfillTask>
 type BackfillDependencies = {
     store: Pick<GameStore, 'findFinishedGames' | 'readStateFromStorage' | 'recordFinalScores'>
     tasks: Pick<TaskService, 'createPushTask'>
-    titles: Record<string, GameDefinition>
+    titles: TitleLookup<GameDefinition>
 }
 
 type ScoredGame = { outcome: FinalScoresBackfillOutcome; finalScores?: Record<string, number> }
@@ -109,7 +110,7 @@ async function backfillGame(
     if (listed.finalScores) return { outcome: FinalScoresBackfillOutcome.AlreadyScored }
     if (listed.result === GameResult.Abandoned)
         return { outcome: FinalScoresBackfillOutcome.Abandoned }
-    const scoring = titles[listed.typeId]?.runtime.scoring
+    const scoring = lookupTitle(titles, listed.typeId)?.runtime.scoring
     if (!scoring) return { outcome: FinalScoresBackfillOutcome.NoScoring }
 
     const state = await store.readStateFromStorage(listed.id)

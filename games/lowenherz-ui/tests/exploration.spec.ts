@@ -37,11 +37,13 @@ async function createPrivateMoneyGame(page: Page) {
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
     await expect.poll(() => page.evaluate(() => !!window.lowenherzSession)).toBe(true)
-    await expect.poll(() => page.evaluate(() => window.lowenherzSession.game.config)).toEqual({
-        privateMoney: true,
-        standardSetup: true,
-        allowZeroDucatOffers: false
-    })
+    await expect
+        .poll(() => page.evaluate(() => window.lowenherzSession.game.config))
+        .toEqual({
+            privateMoney: true,
+            standardSetup: true,
+            allowZeroDucatOffers: false
+        })
 }
 
 test('private-money exploration requires Host View and preserves its source through play and Undo', async ({

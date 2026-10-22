@@ -207,6 +207,21 @@ export function denizensAtYourSite(state: HydratedOathGameState, playerId: strin
     return state.denizensAt(pawnSiteId(state, playerId))
 }
 
+/**
+ * "This site" on a card played to a site: the site holding it, which the People's Favor or New Growth may make
+ * another than its player's (R-5.1.4.I). Before revision 16 (R-X.4), its player's own site.
+ */
+export function siteOfPlayedCard(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string
+): string {
+    const holding = isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+        ? siteHolding(state, cardId)
+        : undefined
+    return holding ?? pawnSiteId(state, playerId)
+}
+
 export function faceupSitesInYourRegion(state: HydratedOathGameState, playerId: string): string[] {
     const region = regionOfPawn(state, playerId)
     return state.faceupSiteIds().filter((s) => state.regionOf(s) === region)
@@ -236,16 +251,16 @@ export interface DiscardedDenizens {
     pileDeposits: PileDeposit[]
 }
 
-/** R-7.1.3 */
+/** R-7.1.3 — what picks of these banks yield from the counts the banks hold. */
 export function favorObtainableFromPicks(
-    state: HydratedOathGameState,
+    favorBank: Readonly<Record<Suit, number>>,
     suits: readonly Suit[]
 ): number {
     const wanted = new Map<Suit, number>()
     for (const suit of suits) wanted.set(suit, (wanted.get(suit) ?? 0) + 1)
     let obtainable = 0
     for (const [suit, count] of wanted) {
-        obtainable += Math.min(count, state.favorBank[suit])
+        obtainable += Math.min(count, favorBank[suit])
     }
     return obtainable
 }
@@ -317,6 +332,36 @@ export function moveWarbandsBoardToSite(
     removeWarbandsFrom(state, { kind: 'board', playerId }, owner, moved)
     addWarbandsToSite(state, siteId, owner, moved)
     return moved
+}
+
+/**
+ * R-6.5 — the state a run of `playerId`'s warband moves is checked on: the warbands at sites and on
+ * their board are copied and every other read goes to `state`, so the check reads nothing their own
+ * view lacks (a whole-state copy reads host-only and hidden values). Other writes are refused.
+ */
+export function warbandMovesOverlay(
+    state: HydratedOathGameState,
+    playerId: string
+): HydratedOathGameState {
+    const mover = state.getPlayerState(playerId)
+    const board = withOverrides(mover, { warbandsOnBoard: { ...mover.warbandsOnBoard } })
+    const warbandsBySite: Record<string, WarbandCounts> = Object.fromEntries(
+        Object.entries(state.warbandsBySite).map(([siteId, counts]) => [siteId, { ...counts }])
+    )
+    return withOverrides(state, {
+        players: state.players.map((player) => (player.playerId === playerId ? board : player)),
+        warbandsBySite
+    })
+}
+
+function withOverrides<T extends object>(target: T, overrides: Partial<T>): T {
+    return new Proxy(target, {
+        get: (from, property, receiver) =>
+            Object.hasOwn(overrides, property)
+                ? Reflect.get(overrides, property)
+                : Reflect.get(from, property, receiver),
+        set: () => false
+    })
 }
 
 /** R-6.5 — never the last warband at the site, which keeps rule of the site stable. */

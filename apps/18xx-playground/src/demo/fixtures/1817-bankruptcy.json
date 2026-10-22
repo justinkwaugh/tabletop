@@ -3942,14 +3942,6 @@
    "companyId": "J"
   },
   {
-   "id": "recorded:244",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "18003",
-   "type": "FinishTrack",
-   "companyId": "H"
-  },
-  {
    "id": "recorded:245",
    "gameId": "1817-1817_game_end_bankrupt",
    "source": "user",
@@ -4009,14 +4001,6 @@
    "rotation": 2,
    "nodeMapping": {},
    "expectedCost": 0
-  },
-  {
-   "id": "recorded:249",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "4738",
-   "type": "FinishTrack",
-   "companyId": "R"
   },
   {
    "id": "recorded:250",
@@ -4370,14 +4354,6 @@
    "playerId": "10573",
    "type": "FinishTrains",
    "companyId": "NYOW"
-  },
-  {
-   "id": "recorded:272",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "7791",
-   "type": "FinishTrack",
-   "companyId": "AS"
   },
   {
    "id": "recorded:273",
@@ -5020,14 +4996,6 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:336",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "10573",
-   "type": "FinishTrack",
-   "companyId": "BELT"
-  },
-  {
    "id": "recorded:337",
    "gameId": "1817-1817_game_end_bankrupt",
    "source": "user",
@@ -5115,14 +5083,6 @@
    "playerId": "10573",
    "companyId": "BELT",
    "type": "FinishOperatingTurn"
-  },
-  {
-   "id": "recorded:342",
-   "gameId": "1817-1817_game_end_bankrupt",
-   "source": "user",
-   "playerId": "12235",
-   "type": "FinishTrack",
-   "companyId": "J"
   },
   {
    "id": "recorded:343",

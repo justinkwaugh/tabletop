@@ -5,6 +5,14 @@ import { ActionSource, GameAction } from '../engine/gameAction.js'
 import { calculateActionChecksum } from '../../util/checksum.js'
 import { GameState } from '../model/gameState.js'
 import * as Visibility from './index.js'
+import {
+    PrivateHandHost,
+    p1,
+    p2,
+    playPrivateHand,
+    runtime,
+    spectator
+} from './tests/privateHandGame.js'
 
 const ActionType = 'changeValue'
 const ActionPolicy = 'example.action-audience'
@@ -667,6 +675,35 @@ describe('game visibility', () => {
         expect(GameAction.properties.forwardPatch[Visibility.MetadataKey]).toEqual({
             policy: Visibility.Policy.HostOnly,
             redaction: { kind: 'omit' }
+        })
+    })
+
+    it('keeps every earlier projected history as a prefix that a projected suffix completes', () => {
+        const host = new PrivateHandHost()
+        const perspectives = [p1, p2, spectator]
+        const earlier = perspectives.map(() => [] as (readonly GameAction[])[])
+        for (let turn = 0; ; turn++) {
+            perspectives.forEach((perspective, index) =>
+                earlier[index].push(host.history(perspective).actions)
+            )
+            if (playPrivateHand(host, `turn-${turn}`, 1).length === 0) break
+        }
+        expect(host.actions.length).toBeGreaterThan(3)
+
+        perspectives.forEach((perspective, index) => {
+            const full = host.history(perspective).actions
+            earlier[index].forEach((prefix, startIndex) => {
+                expect(full.slice(0, startIndex)).toEqual(prefix)
+                const suffix = Visibility.projectActionHistory({
+                    startIndex,
+                    currentState: host.state,
+                    actions: host.actions.slice(startIndex),
+                    visibility: runtime.visibility!,
+                    perspective,
+                    game: host.game
+                })
+                expect([...prefix, ...suffix.actions]).toEqual(full)
+            })
         })
     })
 })

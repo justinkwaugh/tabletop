@@ -6,6 +6,15 @@ import { getPrng } from '../../util/prng.js'
 import { ActionSource, type GameAction } from './gameAction.js'
 import { ExplorationHistory } from './explorationHistory.js'
 import { projectActionHistory } from '../visibility/gameVisibility.js'
+import { GameEngine } from './gameEngine.js'
+import type { GameExploration } from '../definition/gameExploration.js'
+import {
+    createNoteGame,
+    note,
+    noteGameRuntime,
+    step,
+    type NoteGameState
+} from './tests/noteGame.js'
 import {
     CanonicalValidator,
     createPrivateHandGame,
@@ -353,5 +362,47 @@ describe('Exploration boundary patches', () => {
         for (const action of result.processedActions)
             current = history.forward(current, action, game, legacy)
         expect(current).toEqual(result.updatedState)
+    })
+})
+
+function declarationScenario(exploration: GameExploration<NoteGameState>) {
+    const { game, state } = createNoteGame()
+    const engine = new GameEngine({ ...noteGameRuntime, exploration })
+    const recorded: GameAction[] = []
+    const play = (from: NoteGameState, action: GameAction) => {
+        const result = engine.executeCanonicalAction({ game, state: from, action })
+        recorded.push(...result.processedActions)
+        return result.updatedState
+    }
+    let live = play(state, step('s1', game.id, 'p1'))
+    live = play(live, note('live-note', game.id, 'p3', 'live'))
+    live = play(live, step('s2', game.id, 'p2'))
+    const history = new ExplorationHistory(engine)
+    let explored = exploration.createFromCanonicalState(history.prepareState(live))
+    explored.explorationState = history.checkpoint(live, explored, recorded, game, 'canonical')
+    const boundary = explored.explorationState
+    explored = play(explored, note('explored-note', game.id, 'p1', 'explored'))
+    explored.explorationState = boundary
+    return { history, explored, recorded }
+}
+
+describe('Exploration Undo declarations', () => {
+    it('redoes every declaration it passes for titles without a declaration rule', () => {
+        const { history, explored, recorded } = declarationScenario({
+            createFromCanonicalState: (state) => state
+        })
+        const { redo } = history.undoThrough(explored, recorded)
+        expect(redo.map((action) => action.id)).toEqual(['live-note', 'explored-note'])
+    })
+
+    it('leaves source declarations the title does not keep, but redoes explored ones', () => {
+        const { history, explored, recorded } = declarationScenario({
+            createFromCanonicalState: (state) => state,
+            keepsSourceDeclaration: (action) => action.type !== 'note'
+        })
+        const { state, redo } = history.undoThrough(explored, recorded)
+        expect(redo.map((action) => action.id)).toEqual(['explored-note'])
+        expect(state.actionCount).toBe(recorded[0].index)
+        expect(state.notes).toEqual({})
     })
 })

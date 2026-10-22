@@ -12,11 +12,14 @@ import {
     currentQuestion,
     heldRelicsToBottom,
     payableWoodPicks,
+    reasonWoodStayRefused,
     playersAt,
     powerMoveToll,
+    powerTravelNeedsFlip,
     shroudedWoodDestinations,
     usableFavor,
     warbandOwnerGainedByPower,
+    woodTravelPaysAtPick,
     type ConspiracyPlay,
     PowerQuestionValidator,
     type PowerQuestion,
@@ -24,6 +27,7 @@ import {
     type QuestionAnswer
 } from '@tabletop/oath'
 import { answerCostText } from './actionCards.js'
+import type { TravelPick } from './actionOffers.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
 import { exchangeComplete, noExchangePicks, type ExchangePicks } from './exchangeTerms.js'
 import {
@@ -348,7 +352,8 @@ export class QuestionDraft implements PanelDraft {
         if (!playerId) return []
         const kept: string[] = []
         for (const cardId of picks) {
-            if (!adviserLimitDiscards(this.session.gameState, playerId, kept).includes(cardId)) break
+            if (!adviserLimitDiscards(this.session.gameState, playerId, kept).includes(cardId))
+                break
             kept.push(cardId)
         }
         return kept
@@ -443,6 +448,11 @@ export class QuestionDraft implements PanelDraft {
         await this.send({ kind: PowerQuestionKind.PickFavorBank, suit })
     }
 
+    /** R-11.7-H2 — Hospitality's bank, after the Shrouded Wood ruler's pick: one tap gains. */
+    async gainHospitalityFavor(suit: Suit): Promise<void> {
+        await this.send({ kind: PowerQuestionKind.HospitalityBank, suit })
+    }
+
     /** Fae Merchant — the relics held before the draw that may go down; the Grand Scepter never does. */
     get heldRelicsToBottom(): string[] {
         const question = this.question
@@ -482,8 +492,21 @@ export class QuestionDraft implements PanelDraft {
         )
     }
 
+    /** R-11.13-H1 — Brass Horse's user reaches The Hidden Place (or passes the Narrow Pass) only by flipping a secret. */
+    travelFlipAt(siteId: string): boolean {
+        const question = this.question
+        return (
+            question?.kind === PowerQuestionKind.TravelFreeTo &&
+            powerTravelNeedsFlip(this.session.gameState, question.askedPlayerId, siteId)
+        )
+    }
+
     async travelTo(siteId: string): Promise<void> {
-        await this.send({ kind: PowerQuestionKind.TravelFreeTo, siteId })
+        await this.send(
+            this.travelFlipAt(siteId)
+                ? { kind: PowerQuestionKind.TravelFreeTo, siteId, flipSecret: true }
+                : { kind: PowerQuestionKind.TravelFreeTo, siteId }
+        )
     }
 
     /** R-11.7 — the sites the Shrouded Wood's ruler may send the traveler to. */
@@ -491,27 +514,118 @@ export class QuestionDraft implements PanelDraft {
         const question = this.question
         if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination) return []
         if (question.travel) return this.woodRegions.flatMap((row) => row.siteIds)
-        return shroudedWoodDestinations(
+        const sites = shroudedWoodDestinations(
             this.session.gameState,
             question.travelerPlayerId,
             question.fromSiteId
         )
+        // R-11.7-H1 — after the Brass Horse, only among the sites it allows.
+        const allowed = question.power?.siteIds
+        return allowed ? sites.filter((siteId) => allowed.includes(siteId)) : sites
     }
 
-    /** R-11.7 — the traveller's own Travel: the sites they can pay for, by region and price. */
+    /**
+     * R-11.7 — the traveller's own Travel: the sites they can pay for, by region and price, with
+     * the cards they declared counted for each site, as the engine counts them (R-11.7-H2).
+     */
     get woodRegions(): WoodRegion[] {
         const question = this.question
         if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination || !question.travel) {
             return []
         }
         const state = this.session.gameState
-        const picks = payableWoodPicks(state, question.travelerPlayerId, question.travel.free)
+        const picks = payableWoodPicks(state, question.travelerPlayerId, question.travel)
         return woodRegions(state, picks)
     }
 
     async sendThrough(siteId: string): Promise<void> {
         if (!this.woodDestinations.includes(siteId)) return
         await this.send({ kind: PowerQuestionKind.ShroudedWoodDestination, siteId })
+    }
+
+    /**
+     * R-11.7, R-11.13-H1 — this seat's open Travel question, answered on the map: the Shrouded
+     * Wood ruler's pick, priced for the traveller's own Travel and free after a card or a banish
+     * (R-11.7-H1), or the Brass Horse user's own free pick.
+     */
+    get travelPick(): TravelPick | undefined {
+        const question = this.question
+        if (question?.kind === PowerQuestionKind.TravelFreeTo) {
+            return {
+                moverId: question.askedPlayerId,
+                ruler: false,
+                free: true,
+                sites: question.siteIds.map((siteId) => ({
+                    siteId,
+                    cost: undefined,
+                    foldedBy: [],
+                    toll: this.travelTollAt(siteId),
+                    flip: this.travelFlipAt(siteId)
+                }))
+            }
+        }
+        if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination) return undefined
+        const moverId = question.travelerPlayerId
+        if (question.travel) {
+            return {
+                moverId,
+                ruler: true,
+                free: false,
+                sites: this.woodRegions.flatMap(({ cost, foldedBy, siteIds }) =>
+                    siteIds.map((siteId) => ({
+                        siteId,
+                        cost,
+                        foldedBy,
+                        toll: this.woodTollAt(siteId),
+                        flip: false
+                    }))
+                )
+            }
+        }
+        // R-11.7 — leaving the Wood ignores The Hidden Place, so no pick from it flips a secret.
+        // Before `UiBatch1` the traveller's own Travel paid before the pick, so nothing is free.
+        return {
+            moverId,
+            ruler: true,
+            free: woodTravelPaysAtPick(this.session.gameState),
+            sites: this.woodDestinations.map((siteId) => ({
+                siteId,
+                cost: undefined,
+                foldedBy: [],
+                toll: this.woodTollAt(siteId),
+                flip: false
+            }))
+        }
+    }
+
+    /** A tap on a site the open Travel question offers sends it. */
+    async pickTravelSite(siteId: string): Promise<void> {
+        const question = this.question
+        if (question?.kind === PowerQuestionKind.TravelFreeTo) {
+            if (question.siteIds.includes(siteId)) await this.travelTo(siteId)
+            return
+        }
+        await this.sendThrough(siteId)
+    }
+
+    /**
+     * R-11.7-H2 — the ruler may keep the traveller at the Wood only when they can pay for no site
+     * without the cards they declared (Forest Paths' Q&A), as the engine judges it.
+     */
+    get woodStayOffered(): boolean {
+        const question = this.question
+        if (question?.kind !== PowerQuestionKind.ShroudedWoodDestination || !question.travel) {
+            return false
+        }
+        const state = this.session.gameState
+        return (
+            reasonWoodStayRefused(state, question.travelerPlayerId, question.travel) === undefined
+        )
+    }
+
+    async keepTravelerInPlace(): Promise<void> {
+        if (!this.woodStayOffered) return
+        await this.send({ kind: PowerQuestionKind.ShroudedWoodDestination, stay: true })
     }
 
     async playVision(play: SearchPlay): Promise<void> {
@@ -602,6 +716,10 @@ export class QuestionDraft implements PanelDraft {
                 return { kind: question.kind, pay: yes }
             case PowerQuestionKind.DragonskinDrum:
                 return { kind: question.kind, gain: yes }
+            case PowerQuestionKind.FlipToTravel:
+                return { kind: question.kind, flip: yes }
+            case PowerQuestionKind.WayStationFavor:
+                return { kind: question.kind, give: yes }
             case PowerQuestionKind.SneakAttack:
                 assert(!yes, 'A Sneak Attack is taken by campaigning, not by an answer')
                 return { kind: question.kind, campaign: false }

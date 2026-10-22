@@ -1,5 +1,5 @@
 <script lang="ts">
-import '$lib/styles/focusable-control.css'
+    import '$lib/styles/focusable-control.css'
     import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { Color, OffsetCoordinates, sameCoordinates } from '@tabletop/common'
     import {

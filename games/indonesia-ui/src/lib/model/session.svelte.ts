@@ -196,9 +196,7 @@ export class IndonesiaGameSession extends GameSession<
 
     isNewEra = $derived(this.gameState.machineState === MachineState.NewEra)
     researchSelectionEnabled = $derived.by(
-        () =>
-            this.isMyTurn &&
-            this.gameState.machineState === MachineState.ResearchAndDevelopment
+        () => this.isMyTurn && this.gameState.machineState === MachineState.ResearchAndDevelopment
     )
 
     startCompanySelectionEnabled = $derived.by(
@@ -584,24 +582,26 @@ export class IndonesiaGameSession extends GameSession<
         return this.deliveryAvailableCityIds.includes(selectedCityId) ? selectedCityId : null
     })
 
-    deliveryShippingChoices: { routeKey: string; candidate: AtomicDeliveryCandidate }[] = $derived.by(() => {
-        const selectedAreaId = this.selectedDeliveryCultivatedAreaId
-        const selectedCityId = this.selectedDeliveryCityId
-        if (!selectedAreaId || !selectedCityId) {
-            return []
-        }
+    deliveryShippingChoices: { routeKey: string; candidate: AtomicDeliveryCandidate }[] =
+        $derived.by(() => {
+            const selectedAreaId = this.selectedDeliveryCultivatedAreaId
+            const selectedCityId = this.selectedDeliveryCityId
+            if (!selectedAreaId || !selectedCityId) {
+                return []
+            }
 
-        return this.safeDeliveryCandidates
-            .filter(
-                (candidate) =>
-                    candidate.cultivatedAreaId === selectedAreaId && candidate.cityId === selectedCityId
-            )
-            .map((candidate) => ({
-                routeKey: `${candidate.shippingCompanyId}|${candidate.seaAreaIds.join('>')}`,
-                candidate
-            }))
-            .sort((choiceA, choiceB) => choiceA.routeKey.localeCompare(choiceB.routeKey))
-    })
+            return this.safeDeliveryCandidates
+                .filter(
+                    (candidate) =>
+                        candidate.cultivatedAreaId === selectedAreaId &&
+                        candidate.cityId === selectedCityId
+                )
+                .map((candidate) => ({
+                    routeKey: `${candidate.shippingCompanyId}|${candidate.seaAreaIds.join('>')}`,
+                    candidate
+                }))
+                .sort((choiceA, choiceB) => choiceA.routeKey.localeCompare(choiceB.routeKey))
+        })
 
     hoveredDeliveryShippingChoice: { routeKey: string; candidate: AtomicDeliveryCandidate } | null =
         $derived.by(() => {
@@ -611,7 +611,9 @@ export class IndonesiaGameSession extends GameSession<
             }
 
             return (
-                this.deliveryShippingChoices.find((choice) => choice.routeKey === hoveredRouteKey) ?? null
+                this.deliveryShippingChoices.find(
+                    (choice) => choice.routeKey === hoveredRouteKey
+                ) ?? null
             )
         })
 
@@ -652,7 +654,9 @@ export class IndonesiaGameSession extends GameSession<
                 return 'none'
             }
 
-            return deliveryTarget >= producedGoodsCount ? 'mandatory-expansion' : 'optional-expansion'
+            return deliveryTarget >= producedGoodsCount
+                ? 'mandatory-expansion'
+                : 'optional-expansion'
         })
 
     deliveryAvailableCityAreaIds: string[] = $derived.by(() => {
@@ -834,9 +838,7 @@ export class IndonesiaGameSession extends GameSession<
                     ? cultivatedZoneAreaIdsByCultivatedAreaId.get(plannedRoute.cultivatedAreaId)
                     : undefined) ??
                 cultivatedAreaIdsByZoneId.get(plannedRoute.zoneId) ??
-                (plannedRoute.cultivatedAreaId !== undefined
-                    ? [plannedRoute.cultivatedAreaId]
-                    : [])
+                (plannedRoute.cultivatedAreaId !== undefined ? [plannedRoute.cultivatedAreaId] : [])
 
             return {
                 routeKey: `planned:${plannedRoute.shippingCompanyId}|${plannedRoute.cityId}|${plannedRoute.zoneId}|${plannedRoute.seaAreaIds.join('>')}`,
@@ -852,12 +854,12 @@ export class IndonesiaGameSession extends GameSession<
 
         const hoveredChoice = this.hoveredDeliveryShippingChoice
         if (hoveredChoice) {
-            const sourceAreaIds =
-                cultivatedZoneAreaIdsByCultivatedAreaId.get(
+            const sourceAreaIds = cultivatedZoneAreaIdsByCultivatedAreaId.get(
+                hoveredChoice.candidate.cultivatedAreaId
+            ) ??
+                cultivatedAreaIdsByZoneId.get(hoveredChoice.candidate.zoneId) ?? [
                     hoveredChoice.candidate.cultivatedAreaId
-                ) ??
-                cultivatedAreaIdsByZoneId.get(hoveredChoice.candidate.zoneId) ??
-                [hoveredChoice.candidate.cultivatedAreaId]
+                ]
 
             return {
                 routeKey: hoveredChoice.routeKey,
@@ -1231,7 +1233,12 @@ export class IndonesiaGameSession extends GameSession<
             return
         }
 
-        const option = HydratedProposeMerger.findOption(this.gameState, myPlayerId, companyAId, companyBId)
+        const option = HydratedProposeMerger.findOption(
+            this.gameState,
+            myPlayerId,
+            companyAId,
+            companyBId
+        )
         if (!option) {
             return
         }

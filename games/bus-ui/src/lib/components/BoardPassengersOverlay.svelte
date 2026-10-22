@@ -17,7 +17,10 @@
     import { PassengerReturnAnimator } from '$lib/animators/passengerReturnAnimator.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import { PassengerDeliveryAnimator } from '$lib/animators/passengerDeliveryAnimator.js'
-    import { BUS_BOARD_NODE_POINTS, BUS_BUILDING_SITE_POINTS } from '$lib/definitions/busBoardGraph.js'
+    import {
+        BUS_BOARD_NODE_POINTS,
+        BUS_BUILDING_SITE_POINTS
+    } from '$lib/definitions/busBoardGraph.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -52,12 +55,11 @@
     }
 
     let hoveredVroomSourceNodeId: BusNodeId | undefined = $state()
-    let animatedDeliveringPassengers: Map<string, DeliveringPassengerPose> | undefined = $derived.by(
-        () => {
+    let animatedDeliveringPassengers: Map<string, DeliveringPassengerPose> | undefined =
+        $derived.by(() => {
             gameSession.gameState
             return undefined
-        }
-    )
+        })
     let stationPassengerCountOverrides: Map<BusNodeId, number> | undefined = $derived.by(() => {
         gameSession.gameState
         return undefined
@@ -206,7 +208,10 @@
     })
 
     const shouldMaskUnselectedVroomPassengers = $derived.by(() => {
-        return !gameSession.isViewingHistory && (isChoosingVroomSourcePassenger || !!chosenVroomSourceNodeId)
+        return (
+            !gameSession.isViewingHistory &&
+            (isChoosingVroomSourcePassenger || !!chosenVroomSourceNodeId)
+        )
     })
 
     const passengerDeliveryAnimator = new PassengerDeliveryAnimator(gameSession, {
@@ -345,22 +350,24 @@
     {@const isChosenVroomSource = chosenVroomSourceNodeId === typedNodeId}
     {@const isSelectableVroomSource = highlightedVroomSourceNodeIds.includes(typedNodeId)}
     {@const isHoveredSelectableVroomSource =
-        isSelectableVroomSource &&
-        !isChosenVroomSource &&
-        hoveredVroomSourceNodeId === typedNodeId}
+        isSelectableVroomSource && !isChosenVroomSource && hoveredVroomSourceNodeId === typedNodeId}
     {@const animatedDeliverySourceCount =
         animatedDeliveringPassengerSourceCountByNodeId.get(typedNodeId) ?? 0}
-    {@const deliveryAdjustedPassengerCount =
-        Math.max(0, entry.passengers.length - animatedDeliverySourceCount)}
+    {@const deliveryAdjustedPassengerCount = Math.max(
+        0,
+        entry.passengers.length - animatedDeliverySourceCount
+    )}
     {@const overridePassengerCount = stationPassengerCountOverrides?.get(typedNodeId)}
     {@const displayPassengerCount = overridePassengerCount ?? deliveryAdjustedPassengerCount}
     {@const shouldMaskForVroom =
-        shouldMaskUnselectedVroomPassengers &&
-        !(isSelectableVroomSource || isChosenVroomSource)}
+        shouldMaskUnselectedVroomPassengers && !(isSelectableVroomSource || isChosenVroomSource)}
     {#if displayPassengerCount > 0}
         <g
             transform={`translate(${point.x} ${point.y})`}
-            use:animateStationPassenger={{ animator: addPassengersPlacementAnimator, nodeId: typedNodeId }}
+            use:animateStationPassenger={{
+                animator: addPassengersPlacementAnimator,
+                nodeId: typedNodeId
+            }}
         >
             <Passenger
                 x={0}

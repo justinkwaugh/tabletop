@@ -11,20 +11,22 @@ import {
     getCompany,
     isOperatingStep,
     nextOperatingCompany,
+    operatingRoundEnd,
+    RoundEnd,
     settleCashPayments,
-    SystemActionFirstHandler
+    SystemActionFirstHandler,
+    type ValuationRules
 } from '@tabletop/18xx'
 import type {
     EighteenThirtyTwoState,
     EighteenThirtyTwoStateHandler,
     HydratedEighteenThirtyTwoState
 } from './state.js'
-import { protectable } from './priceProtection.js'
 import { isClosingSpace, EighteenThirtyTwoMarket } from './stockMarket.js'
 
 /**
- * The next company whose price has entered the black area, unless its president may yet protect
- * the sale that took it there (§5.1.1).
+ * The next company whose price has entered the black area (§5.1.1). A sale a president may
+ * protect leaves the price where it is until they decide.
  */
 export function companyAwaitingClosure(state: EighteenThirtyTwoState): string | undefined {
     return state.companies.find(
@@ -32,10 +34,7 @@ export function companyAwaitingClosure(state: EighteenThirtyTwoState): string | 
             company.kind !== 'private' &&
             company.started &&
             !company.closed &&
-            isClosingSpace(EighteenThirtyTwoMarket.companySpace(state.stockMarket, company.id)) &&
-            !state.priceProtection?.sales.some(
-                (sale) => sale.companyId === company.id && protectable(state, sale)
-            )
+            isClosingSpace(EighteenThirtyTwoMarket.companySpace(state.stockMarket, company.id))
     )?.id
 }
 
@@ -47,7 +46,8 @@ const Fields = Type.Object({
             {
                 ...CompanyClosure.properties,
                 forfeit: Type.Optional(CashPayment),
-                endedTurn: Type.Boolean()
+                endedTurn: Type.Boolean(),
+                roundEnd: Type.Optional(RoundEnd)
             },
             { additionalProperties: false }
         )
@@ -77,8 +77,10 @@ export class HydratedCloseCompany
     declare type: 'CloseCompany'
     declare companyId: string
     declare metadata?: CloseCompany['metadata']
-    constructor(data: CloseCompany) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: CloseCompany, valuationRules: ValuationRules) {
         super(data instanceof HydratedCloseCompany ? data.dehydrate() : data, Validator)
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedEighteenThirtyTwoState): void {
         assert(
@@ -110,7 +112,13 @@ export class HydratedCloseCompany
             delete state.trainPurchaseStep
             state.activePlayerIds = []
         }
-        this.metadata = { ...closure, ...(forfeit ? { forfeit } : {}), endedTurn: ownTurn }
+        const ended = ownTurn ? operatingRoundEnd(state, this.#valuationRules) : undefined
+        this.metadata = {
+            ...closure,
+            ...(forfeit ? { forfeit } : {}),
+            endedTurn: ownTurn,
+            ...(ended ? { roundEnd: ended } : {})
+        }
     }
 }
 

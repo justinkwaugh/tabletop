@@ -25,16 +25,29 @@
         }
     })
     const disabled = $derived(session.busy || session.isViewingHistory || !instructions.canDeclare)
-    let chosenMode = $state<'pass' | 'buy'>()
-    let chosenCompanyId = $state<string>()
-    let chosenPoolId = $state<string>()
-    let goal = $state<'floated' | 'shares'>('floated')
-    let shareCount = $state(2)
-    let thenPass = $state(true)
-    const mode = $derived(instructions.mine?.instruction.kind ?? chosenMode)
+    type InstructionDraft = {
+        playerId: string | undefined
+        mode?: 'pass' | 'buy'
+        companyId?: string
+        poolId?: string
+        goal: 'floated' | 'shares'
+        shareCount: number
+        thenPass: boolean
+    }
+    const playerId = $derived(session.myPlayer?.id)
+    let draft = $derived<InstructionDraft>({
+        playerId,
+        goal: 'floated',
+        shareCount: 2,
+        thenPass: false
+    })
+    function updateDraft(change: Partial<Omit<InstructionDraft, 'playerId'>>) {
+        draft = { ...draft, ...change }
+    }
+    const mode = $derived(instructions.mine?.instruction.kind ?? draft.mode)
     const modeIndex = $derived(mode === 'pass' ? 0 : mode === 'buy' ? 1 : -1)
     const choice = $derived(
-        instructions.buyChoices.find((choice) => choice.company.id === chosenCompanyId)
+        instructions.buyChoices.find((choice) => choice.company.id === draft.companyId)
     )
     const pickerId = $props.id()
     let pickerPanel: HTMLDivElement | undefined = $state()
@@ -55,33 +68,35 @@
         if (helpOpen && helpButton) helpBounds = popoverAbove(helpButton, HelpPanelWidth)
     }
     function pickCompany(companyId: string) {
-        chosenCompanyId = companyId
+        updateDraft({ companyId })
         pickerPanel?.hidePopover()
     }
     const pool = $derived(
-        choice?.pools.find((pool) => pool.id === chosenPoolId) ?? choice?.pools[0]
+        choice?.pools.find((pool) => pool.id === draft.poolId) ?? choice?.pools[0]
     )
     const poolIndex = $derived(choice?.pools.findIndex((item) => item.id === pool?.id) ?? -1)
     const shareRange = $derived(
         choice && pool ? instructions.shareGoalRange(choice, pool.id) : undefined
     )
     const floatGoal = $derived(!!choice && !choice.company.floated)
-    const goalKind = $derived(!floatGoal ? 'shares' : shareRange ? goal : 'floated')
-    const shareGoal = $derived(shareRange ? shareGoalWithin(shareRange, shareCount) : shareCount)
+    const goalKind = $derived(!floatGoal ? 'shares' : shareRange ? draft.goal : 'floated')
+    const shareGoal = $derived(
+        shareRange ? shareGoalWithin(shareRange, draft.shareCount) : draft.shareCount
+    )
     function enable() {
         if (mode === 'pass') {
-            chosenMode = undefined
+            updateDraft({ mode: undefined })
             void instructions.declarePass()
             return
         }
         if (!choice || !pool) return
-        chosenMode = undefined
+        updateDraft({ mode: undefined })
         void instructions.declareBuy({
             companyId: choice.company.id,
             preferredPoolId: pool.id,
             until:
                 goalKind === 'floated' ? { kind: 'floated' } : { kind: 'shares', count: shareGoal },
-            thenPass
+            thenPass: draft.thenPass
         })
     }
 </script>
@@ -94,7 +109,8 @@
                     <button
                         disabled={disabled || !!instructions.mine}
                         aria-pressed={mode === 'pass'}
-                        onclick={() => (chosenMode = chosenMode === 'pass' ? undefined : 'pass')}
+                        onclick={() =>
+                            updateDraft({ mode: draft.mode === 'pass' ? undefined : 'pass' })}
                         >Autopass</button
                     >
                     <button
@@ -102,7 +118,8 @@
                             !!instructions.mine ||
                             instructions.buyChoices.length === 0}
                         aria-pressed={mode === 'buy'}
-                        onclick={() => (chosenMode = chosenMode === 'buy' ? undefined : 'buy')}
+                        onclick={() =>
+                            updateDraft({ mode: draft.mode === 'buy' ? undefined : 'buy' })}
                         >Autobuy</button
                     >
                 </SlidingToggle>
@@ -190,7 +207,7 @@
                                         <button
                                             {disabled}
                                             aria-pressed={option.id === pool.id}
-                                            onclick={() => (chosenPoolId = option.id)}
+                                            onclick={() => updateDraft({ poolId: option.id })}
                                             >{poolLabel(option)}</button
                                         >
                                     {/each}
@@ -207,14 +224,16 @@
                                     <button
                                         {disabled}
                                         aria-pressed={goalKind === 'floated'}
-                                        onclick={() => (goal = 'floated')}>Float</button
+                                        onclick={() => updateDraft({ goal: 'floated' })}
+                                        >Float</button
                                     >
                                 {/if}
                                 {#if shareRange}
                                     <button
                                         {disabled}
                                         aria-pressed={goalKind === 'shares'}
-                                        onclick={() => (goal = 'shares')}>I own</button
+                                        onclick={() => updateDraft({ goal: 'shares' })}
+                                        >I own</button
                                     >
                                 {/if}
                             </SlidingToggle>
@@ -224,23 +243,25 @@
                                 <button
                                     disabled={disabled || shareGoal <= shareRange.min}
                                     aria-label="Fewer shares"
-                                    onclick={() => (shareCount = shareGoal - 1)}>−</button
+                                    onclick={() => updateDraft({ shareCount: shareGoal - 1 })}
+                                    >−</button
                                 >
                                 <span>{shareGoal}</span>
                                 <button
                                     disabled={disabled || shareGoal >= shareRange.max}
                                     aria-label="More shares"
-                                    onclick={() => (shareCount = shareGoal + 1)}>+</button
+                                    onclick={() => updateDraft({ shareCount: shareGoal + 1 })}
+                                    >+</button
                                 >
                             </div>
                         {/if}
                         <button
                             class="switch"
                             role="switch"
-                            aria-checked={thenPass}
+                            aria-checked={draft.thenPass}
                             {disabled}
-                            onclick={() => (thenPass = !thenPass)}
-                            ><SwitchTrack on={thenPass} />then pass</button
+                            onclick={() => updateDraft({ thenPass: !draft.thenPass })}
+                            ><SwitchTrack on={draft.thenPass} />then pass</button
                         >
                     {/if}
                 </div>
@@ -284,12 +305,9 @@
 
 <style>
     .standing-bar {
+        container: standing-bar / inline-size;
         margin-top: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 6px 4px 0;
-        border-top: 1px solid var(--rail-border, #485666);
+        padding-top: 10px;
         font-size: 12px;
         color: var(--rail-text, #e3e9ef);
     }
@@ -299,6 +317,18 @@
         align-items: center;
         gap: 8px;
         min-height: 26px;
+        padding: 6px 4px 0;
+        border-top: 1px solid var(--rail-border, #485666);
+    }
+    @container standing-bar (max-width: 759px) {
+        .tray:not(.notice, .bare) {
+            order: 1;
+            flex: 1 0 100%;
+            box-sizing: border-box;
+        }
+        .connector:has(+ .tray:not(.notice, .bare)) {
+            display: none;
+        }
     }
     .summary {
         color: var(--rail-text, #e3e9ef);

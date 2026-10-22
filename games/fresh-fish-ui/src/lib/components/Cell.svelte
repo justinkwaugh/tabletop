@@ -112,12 +112,17 @@
     })
 
     let highlighted = $derived(
-        gameSession.highlightedCoords !== undefined &&
-            gameSession.highlightedCoords[0] === coords[0] &&
-            gameSession.highlightedCoords[1] === coords[1]
+        gameSession.boardHighlightCoords !== undefined &&
+            gameSession.boardHighlightCoords[0] === coords[0] &&
+            gameSession.boardHighlightCoords[1] === coords[1]
     )
+    // Touch has no hover, and iOS may never report the finger leaving after a tap.
     let hovered = $state(false)
     let previewing = $derived(hovered && interactable)
+
+    function handlePointerHover(event: PointerEvent, over: boolean) {
+        if (event.pointerType !== 'touch') hovered = over
+    }
 
     let mayExpropriate = $derived(
         (isDiskCell(cell) &&
@@ -129,14 +134,12 @@
     )
 
     function handleMouseOver() {
-        hovered = true
         if (mayExpropriate) {
             gameSession.previewExpropriation(coords)
         }
     }
 
     function handleMouseLeave() {
-        hovered = false
         if (mayExpropriate) {
             gameSession.clearExpropriationPreview()
         }
@@ -186,6 +189,8 @@
     onkeypress={async () => handleClick()}
     onmouseover={() => handleMouseOver()}
     onmouseleave={() => handleMouseLeave()}
+    onpointerenter={(event) => handlePointerHover(event, true)}
+    onpointerleave={(event) => handlePointerHover(event, false)}
     class="cell relative isolate w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center items-center
         {interactable && interacting ? 'cursor-pointer' : ''}
         {disabled ? 'dimmed' : ''}"

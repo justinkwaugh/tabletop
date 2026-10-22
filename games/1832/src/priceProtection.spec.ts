@@ -38,6 +38,10 @@ function saleReason(play: Play, playerId: string, companyId: string, shares: num
     ).reason
 }
 
+function ownershipLimit(play: Play, playerId: string, companyId: string) {
+    return EighteenThirtyTwoStockRules.ownershipLimit(play.state, companyId, player(playerId))
+}
+
 function setPlayerCash(state: EighteenThirtyTwoState, playerId: string, amount: number) {
     const cash = state.cash.find(
         (entry) => entry.owner.kind === 'player' && entry.owner.playerId === playerId
@@ -121,10 +125,10 @@ function trading(prepare: (state: EighteenThirtyTwoState) => void = () => {}) {
 }
 
 describe('share price protection', () => {
-    it('lets the president buy back a stock-round sale, restoring the price', () => {
+    it('lets the president buy back a stock-round sale, the price never moving', () => {
         const play = trading()
         const proceeds = sell(play, 'CG', 2)
-        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('2:6')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('0:6')
         expect(play.state.machineState).toBe('StockRound')
         play.act('FinishStockTurn')
         expect(play.state.machineState).toBe('ProtectingPrice')
@@ -142,10 +146,11 @@ describe('share price protection', () => {
         expect(play.state.priceProtection).toBeUndefined()
     })
 
-    it('resumes with the next player when the president declines', () => {
+    it('drops the price and resumes with the next player when the president declines', () => {
         const play = trading()
         sell(play, 'CG', 2)
         play.act('FinishStockTurn')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('0:6')
         play.act('DeclineProtection', { companyId: 'CG' }, 'blair')
         expect(play.state.machineState).toBe('StockRound')
         expect(play.state.activePlayerIds).toEqual(['blair'])
@@ -162,10 +167,13 @@ describe('share price protection', () => {
         expect(play.state.priceProtection).toBeUndefined()
     })
 
-    it('needs the cash to buy every share sold', () => {
+    it('needs the cash to buy every share sold, else the price falls once the seller finishes', () => {
         const play = trading((state) => setPlayerCash(state, 'blair', 150))
         sell(play, 'CG', 2)
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('0:6')
         play.act('FinishStockTurn')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('2:6')
+        expect(play.state.priceProtection).toBeUndefined()
         expect(play.state.machineState).toBe('StockRound')
         expect(play.state.activePlayerIds).toEqual(['blair'])
     })
@@ -176,9 +184,7 @@ describe('share price protection', () => {
         play.act('FinishStockTurn')
         play.act('ProtectShares', { companyId: 'CG' }, 'blair')
         expect(sharesOwned(play.state, 'CG', player('blair'))).toBe(8)
-        expect(play.state.ownershipLimitExemptions).toEqual([
-            { owner: player('blair'), companyId: 'CG', maximumShares: 8 }
-        ])
+        expect(ownershipLimit(play, 'blair', 'CG')).toBe(80)
         play.act('FinishStockTurn', {}, 'casey')
         play.act('FinishStockTurn', {}, 'alex')
         expect(play.state.activePlayerIds).toEqual(['blair'])
@@ -186,7 +192,7 @@ describe('share price protection', () => {
         expect(saleReason(play, 'blair', 'CG', 1)).toBe('Sell down to 60% of this company.')
         sell(play, 'CG', 2)
         expect(sharesOwned(play.state, 'CG', player('blair'))).toBe(6)
-        expect(play.state.ownershipLimitExemptions).toEqual([])
+        expect(ownershipLimit(play, 'blair', 'CG')).toBe(60)
     })
 
     it('keeps an excess bought in the green area after the price leaves it', () => {
@@ -206,14 +212,12 @@ describe('share price protection', () => {
         )?.id
         assertExists(certificateId, 'A CG share is in the market')
         play.act('BuyShares', { buyer: player('blair'), certificateId, expectedPrice: 50 }, 'blair')
-        expect(play.state.ownershipLimitExemptions).toEqual([
-            { owner: player('blair'), companyId: 'CG', maximumShares: 7 }
-        ])
         placeStockMarker(play.state.stockMarket, 'CG', '1:6')
+        expect(ownershipLimit(play, 'blair', 'CG')).toBe(70)
         expect(play.valid('blair')).toContain('FinishStockTurn')
     })
 
-    it('restores two companies sold from one space in their order', () => {
+    it('keeps two companies sold from one space in their order when both are protected', () => {
         const play = trading((state) => {
             placeStockMarker(state.stockMarket, 'CG', '1:6')
             giveOfferingShares(state, 'CG', 'casey', 1)
@@ -286,23 +290,120 @@ describe('share price protection', () => {
         expect(play.state.machineState).toBe('LayingTrack')
     })
 
-    it('merges a seller’s forced sales of one company, from its first price', () => {
-        const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3, (state) =>
+    it('holds the operating turn’s earnings while presidents decide', () => {
+        const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3, (state) => {
+            setPlayerCash(state, 'alex', 300)
+            const companyId = state.trainPurchaseStep?.companyId
+            assertExists(companyId, 'The company is buying trains')
+            state.routeStep = { companyId, result: { companyId, routes: [], revenue: 0 } }
+            state.earningsDistribution = {
+                companyId,
+                choice: 'withhold',
+                revenue: 0,
+                retained: 0,
+                dividendPerShare: 0,
+                bonusPerShare: 0,
+                bankAdjustment: 0,
+                payments: []
+            }
+        })
+        fundCheapestTrain(play)
+        sellToFund(play, 'ACL', 1)
+        completeFunding(play)
+        expect(play.state.machineState).toBe('ProtectingPrice')
+        play.act('ProtectShares', { companyId: 'ACL' }, 'alex')
+        expect(play.state.priceProtection).toBeUndefined()
+        expect(play.state.earningsDistribution).toBeUndefined()
+        expect(play.state.operatingSet?.completedCompanyIds).toContain('CG')
+    })
+
+    it('sells a seller’s later forced sales of one company at the unmoved price', () => {
+        const play = playExample(EighteenThirtyTwoScenarios, 'funding', 3, (state) => {
             giveOfferingShares(state, 'ACL', 'blair', 1)
-        )
+            setPlayerCash(state, 'alex', 300)
+        })
         fundCheapestTrain(play)
         const from = EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'ACL')
         sellToFund(play, 'ACL', 1)
-        const second = EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'ACL').price
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'ACL').id).toBe(from.id)
         sellToFund(play, 'ACL', 1)
         expect(play.state.priceProtection?.sales).toEqual([
             expect.objectContaining({
                 companyId: 'ACL',
                 shares: 2,
-                proceeds: from.price + second,
-                fromMarketSpaceId: from.id
+                proceeds: from.price * 2,
+                fromMarketSpaceId: from.id,
+                blocks: [1, 1]
             })
         ])
+    })
+
+    it('drops declined sales one by one, in the order sold', () => {
+        const play = trading((state) => {
+            placeStockMarker(state.stockMarket, 'CG', '1:6')
+            giveOfferingShares(state, 'CG', 'casey', 1)
+        })
+        play.act('FinishStockTurn')
+        play.act('FinishStockTurn')
+        sell(play, 'ACL', 1)
+        sell(play, 'CG', 1)
+        expect(
+            play.state.stockMarket.stacks.find((stack) => stack.spaceId === '1:6')?.companyIds
+        ).toEqual(['ACL', 'CG'])
+        play.act('DeclineProtection', { companyId: 'ACL' }, 'alex')
+        play.act('DeclineProtection', { companyId: 'CG' }, 'blair')
+        // Each arrives below the markers already there (§5.8.4).
+        expect(
+            play.state.stockMarket.stacks.find((stack) => stack.spaceId === '2:6')?.companyIds
+        ).toEqual(['ACL', 'CG'])
+    })
+
+    it('moves a seller’s own company at once, a declined sale arriving below it', () => {
+        const play = trading((state) => placeStockMarker(state.stockMarket, 'CG', '1:6'))
+        sell(play, 'CG', 1)
+        sell(play, 'ACL', 1)
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'ACL').id).toBe('2:6')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('1:6')
+        play.act('FinishStockTurn')
+        play.act('DeclineProtection', { companyId: 'CG' }, 'blair')
+        expect(
+            play.state.stockMarket.stacks.find((stack) => stack.spaceId === '2:6')?.companyIds
+        ).toEqual(['ACL', 'CG'])
+    })
+
+    it('leaves a sale recorded before sales were held where its price already fell', () => {
+        const play = trading()
+        sell(play, 'CG', 2)
+        const record = play.state.priceProtection
+        assertExists(record, 'The sale is held')
+        delete record.sales[0].blocks
+        placeStockMarker(play.state.stockMarket, 'CG', '2:6')
+        play.act('FinishStockTurn')
+        play.act('DeclineProtection', { companyId: 'CG' }, 'blair')
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('2:6')
+    })
+
+    it('weighs the seller’s holdings as if their held sales had fallen', () => {
+        const play = trading((state) => {
+            placeStockMarker(state.stockMarket, 'CG', '2:3')
+            giveOfferingShares(state, 'CG', 'alex', 1)
+        })
+        const weight = (playerId: string) => {
+            const certificate = play.state.certificates.find(
+                (item) =>
+                    item.companyId === 'CG' &&
+                    item.owner.kind === 'player' &&
+                    item.owner.playerId === playerId
+            )
+            assertExists(certificate, 'The player holds CG')
+            return EighteenThirtyTwoStockRules.certificateWeight(play.state, certificate)
+        }
+        expect(weight('alex')).toBe(1)
+        sell(play, 'CG', 2)
+        expect(EighteenThirtyTwoMarket.companySpace(play.state.stockMarket, 'CG').id).toBe('2:3')
+        // The seller must assume CG falls into the yellow area; its president need not (§5.3.5).
+        expect(weight('alex')).toBe(0)
+        expect(weight('blair')).toBe(1)
     })
 })
 
@@ -369,8 +470,7 @@ describe('black-area closure', () => {
                     kind: 'port',
                     companyId: 'CG',
                     locationId: 'U28',
-                    nodeId: 'city-0',
-                    placed: { set: 1, round: 1 }
+                    nodeId: 'city-0'
                 }
             ]
             state.trainInventory.trains = state.trainInventory.trains.map((train, index) =>

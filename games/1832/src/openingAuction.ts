@@ -10,6 +10,7 @@ import {
     type InitialPosition,
     type Opening,
     type OpeningSetup,
+    startingCashByPlayerCount,
     type WaterfallAuctionRules
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
@@ -24,10 +25,9 @@ import { EighteenThirtyTwoGameConfig } from './definition/gameConfig.js'
 
 export const EighteenThirtyTwoBank = 12000
 export const EighteenThirtyTwoInitialTitleState = {
-    ownershipLimitExemptions: [],
     variants: {},
     systems: {},
-    mergers: [],
+    takeoverBuyerIds: [],
     coalRights: [],
     revenueTokens: [],
     companyStarts: {}
@@ -41,6 +41,10 @@ export const EighteenThirtyTwoStartingCash: Readonly<Record<number, number>> = {
     6: 350,
     7: 300
 }
+
+export const eighteenThirtyTwoStartingCash = startingCashByPlayerCount(
+    EighteenThirtyTwoStartingCash
+)
 
 // The privates are sold in ascending order; bids exceed the price by $5, and several bidders
 // settle a lot by auction from the left of the highest bidder (§5.7).
@@ -72,7 +76,7 @@ export function createEighteenThirtyTwoOpening({
     assert(players.length >= 2 && players.length <= 7, '1832 supports two through seven players')
     const variants = EighteenThirtyTwoGameConfig.variants(config)
     const majors = Object.values(EighteenThirtyTwoMajors)
-    const capital = EighteenThirtyTwoStartingCash[players.length]
+    const capital = eighteenThirtyTwoStartingCash({ playerCount: players.length, config })
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
         stockMarket: { stacks: [] },

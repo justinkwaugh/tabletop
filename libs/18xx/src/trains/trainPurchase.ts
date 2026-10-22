@@ -1,7 +1,8 @@
 import type { MapStateData } from '../map/mapState.js'
+import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
-import { cashOwnedBy, controllingOwner, getCompany } from '../finance/finance.js'
+import { cashOwnedBy, getCompany } from '../finance/finance.js'
 import { trainsOwnedBy, trainCanBeTraded, type Train, type TrainPurchaseState } from './train.js'
 import type { TrainDepot } from './trainDepot.js'
 import type { DeparturePayment, TrainDeparture } from './trainDepartures.js'
@@ -63,7 +64,7 @@ export class TrainPurchase {
         return (
             this.state.trainPurchaseStep?.companyId === companyId &&
             !getCompany(this.state, companyId).closed &&
-            controllingOwner(this.state, companyId)?.playerId === playerId
+            actsFor(this.state, playerId, companyId)
         )
     }
     offers(): {

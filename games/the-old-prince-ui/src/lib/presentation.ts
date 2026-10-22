@@ -137,6 +137,7 @@ export const TheOldPrincePresentation: TitlePresentation = {
               ? 'Treasury'
               : TheOldPrinceNames.pool(pool.id),
     privatePurchaseLabel: 'Buy Hunslet',
+    privatePurchaseEmpty: 'You don’t own the Hunslet',
     // Second-variant share and president certificates for the seven charters and six branches.
     publishedShareImages: {
         C: { share: CharlottetownShare, president: CharlottetownPresident },

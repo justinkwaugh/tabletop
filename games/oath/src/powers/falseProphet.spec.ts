@@ -11,7 +11,13 @@ import { OathTestEngine } from '../testing/engine.js'
 import { Banner, PlayerStatus, Region } from '../model/oathEnums.js'
 import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
-import { testBanners, testPlayer, testState, testVaultWithRelics, openTurn } from '../testing/fixture.js'
+import {
+    testBanners,
+    testPlayer,
+    testState,
+    testVaultWithRelics,
+    openTurn
+} from '../testing/fixture.js'
 import { legalChoices, type PowerChoice } from '../util/powerChoice.js'
 import { becomeCitizen } from '../util/citizenship.js'
 import { meetsRevealedVisionGoal, revealedVisionIdsOf } from '../util/oathkeeper.js'
@@ -39,14 +45,56 @@ const CHAN = 'chan'
 const POWER = powersWithTiming(PROPHET, PowerTiming.WhenPlayed)[0]
 
 /** R-3.2 — three Visions have been drawn. */
-function board(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}, turn = ME) {
+function board(
+    over: Record<string, Record<string, unknown>> = {},
+    state: Record<string, unknown> = {},
+    turn = ME
+) {
     const s = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, handIds: [PROPHET], warbandsOnBoard: { [ME]: 2 }, warbandsInPersonalBank: { [ME]: 6 }, ...over[ME] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'p1', favor: 4, secrets: 2, supply: 6, revealedVisionId: FAITH, warbandsOnBoard: { [FOE]: 2 }, warbandsInPersonalBank: { [FOE]: 6 }, ...over[FOE] }),
-            testPlayer({ playerId: CHAN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }, ...over[CHAN] })
+            testPlayer({
+                playerId: ME,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                handIds: [PROPHET],
+                warbandsOnBoard: { [ME]: 2 },
+                warbandsInPersonalBank: { [ME]: 6 },
+                ...over[ME]
+            }),
+            testPlayer({
+                playerId: FOE,
+                color: Color.Blue,
+                siteId: 'p1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                revealedVisionId: FAITH,
+                warbandsOnBoard: { [FOE]: 2 },
+                warbandsInPersonalBank: { [FOE]: 6 },
+                ...over[FOE]
+            }),
+            testPlayer({
+                playerId: CHAN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 },
+                ...over[CHAN]
+            })
         ],
-        { chancellorPlayerId: CHAN, visionsDrawn: 3, machineState: MachineState.Searching, ...state }
+        {
+            chancellorPlayerId: CHAN,
+            visionsDrawn: 3,
+            machineState: MachineState.Searching,
+            ...state
+        }
     )
     openTurn(s, turn)
     s.activePlayerIds = [turn]
@@ -54,26 +102,57 @@ function board(over: Record<string, Record<string, unknown>> = {}, state: Record
 }
 type Board = ReturnType<typeof board>
 
-const playIt = (choices?: PowerChoice[]) => ({ keptCardId: PROPHET, discardOrder: [], play: SearchPlay.Adviser, faceUp: true, choices })
+const playIt = (choices?: PowerChoice[]) => ({
+    keptCardId: PROPHET,
+    discardOrder: [],
+    play: SearchPlay.Adviser,
+    faceUp: true,
+    choices
+})
 function play(s: Board, choices?: PowerChoice[]) {
-    const action = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: ME, ...playIt(choices) }))
+    const action = new HydratedSearchResolve(
+        buildAction(SearchResolve, { playerId: ME, ...playIt(choices) })
+    )
     action.apply(s)
     return action
 }
-function prophesied(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}, turn = FOE) {
+function prophesied(
+    over: Record<string, Record<string, unknown>> = {},
+    state: Record<string, unknown> = {},
+    turn = FOE
+) {
     return board(
-        { ...over, [ME]: { handIds: [], advisers: [{ cardId: PROPHET, faceUp: true }], warbandsInPersonalBank: { [ME]: 5 }, ...over[ME] } },
+        {
+            ...over,
+            [ME]: {
+                handIds: [],
+                advisers: [{ cardId: PROPHET, faceUp: true }],
+                warbandsInPersonalBank: { [ME]: 5 },
+                ...over[ME]
+            }
+        },
         { warbandsOnCards: { [FAITH]: { [ME]: 1 } }, ...state },
         turn
     )
 }
 function revealAnother(s: Board, cardId: string) {
     s.getPlayerState(FOE).setHand([cardId])
-    const action = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: FOE, keptCardId: cardId, discardOrder: [], play: SearchPlay.RevealedVision }))
+    const action = new HydratedSearchResolve(
+        buildAction(SearchResolve, {
+            playerId: FOE,
+            keptCardId: cardId,
+            discardOrder: [],
+            play: SearchPlay.RevealedVision
+        })
+    )
     action.apply(s)
     return action
 }
-const playTo = (to: SearchPlay, discardedAdviserCardId?: string): QuestionAnswer => ({ kind: PowerQuestionKind.PlayOrDiscardVision, play: to, discardedAdviserCardId })
+const playTo = (to: SearchPlay, discardedAdviserCardId?: string): QuestionAnswer => ({
+    kind: PowerQuestionKind.PlayOrDiscardVision,
+    play: to,
+    discardedAdviserCardId
+})
 
 describe('False Prophet — registered', () => {
     it('its When Played power has an effect', () => {
@@ -93,22 +172,32 @@ describe('False Prophet — "When played, if you\'re an Exile, gain one warband 
         expect(s.getPlayerState(ME).warbandsOnBoard[ME]).toBe(2)
         expect(s.getPlayerState(ME)).toMatchObject({ favor: 4, secrets: 2 })
         expect(s.getPlayerState(ME).advisers).toEqual([{ cardId: PROPHET, faceUp: true }])
-        expect(whenPlayed).toBe(`False Prophet: gained a warband and put it on ${FAITH}, now revealed for me too`)
+        expect(whenPlayed).toBe(
+            `False Prophet: gained a warband and put it on ${FAITH}, now revealed for me too`
+        )
         expect(s.getPlayerState(FOE).revealedVisionId).toBe(FAITH)
     })
 
     it('any revealed Vision: every player’s, the player’s own among them; one nobody has revealed is refused', () => {
         const s = board({ [ME]: { revealedVisionId: CONQUEST } })
         expect(legalChoices(s, ME, POWER)[0].options).toEqual([card(CONQUEST), card(FAITH)])
-        expect(HydratedSearchResolve.reasonCannotResolve(s, ME, playIt([card(REBELLION)]))).toMatch(/vision.rebellion is not among the options for a revealed Vision/)
-        expect(HydratedSearchResolve.reasonCannotResolve(s, ME, playIt([card(FAITH), card(CONQUEST)]))).toMatch(/at most 1/)
+        expect(HydratedSearchResolve.reasonCannotResolve(s, ME, playIt([card(REBELLION)]))).toMatch(
+            /vision.rebellion is not among the options for a revealed Vision/
+        )
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(s, ME, playIt([card(FAITH), card(CONQUEST)]))
+        ).toMatch(/at most 1/)
         play(s, [card(CONQUEST)])
         expect(s.warbandsOnCard(CONQUEST)).toEqual({ [ME]: 1 })
     })
 
     it('a required pick missing is refused: the text has no "may" (R-7.1.3)', () => {
-        expect(HydratedSearchResolve.reasonCannotResolve(board(), ME, playIt())).toBe('choose the revealed Vision the warband goes on')
-        expect(HydratedSearchResolve.reasonCannotResolve(board(), ME, playIt([card(FAITH)]))).toBeUndefined()
+        expect(HydratedSearchResolve.reasonCannotResolve(board(), ME, playIt())).toBe(
+            'choose the revealed Vision the warband goes on'
+        )
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(board(), ME, playIt([card(FAITH)]))
+        ).toBeUndefined()
     })
 
     it('with no Vision revealed, the gained warband returns to the bank, so nothing changes', () => {
@@ -132,7 +221,9 @@ describe('False Prophet — "When played, if you\'re an Exile, gain one warband 
     it('a Citizen who plays it gains nothing, and is offered no Vision', () => {
         const s = board({ [ME]: { status: PlayerStatus.Citizen } })
         expect(legalChoices(s, ME, POWER)[0].options).toEqual([])
-        expect(HydratedSearchResolve.reasonCannotResolve(s, ME, playIt([card(FAITH)]))).toMatch(/not among the options/)
+        expect(HydratedSearchResolve.reasonCannotResolve(s, ME, playIt([card(FAITH)]))).toMatch(
+            /not among the options/
+        )
         const whenPlayed = play(s).metadata?.whenPlayed
         expect(whenPlayed).toBe('False Prophet: a citizen gains nothing from it')
         expect(s.getPlayerState(ME).warbandsInPersonalBank[ME]).toBe(6)
@@ -142,7 +233,15 @@ describe('False Prophet — "When played, if you\'re an Exile, gain one warband 
 
     it('played facedown it does nothing (R-7.3.3)', () => {
         const s = board()
-        new HydratedSearchResolve(buildAction(SearchResolve, { playerId: ME, keptCardId: PROPHET, discardOrder: [], play: SearchPlay.Adviser, faceUp: false })).apply(s)
+        new HydratedSearchResolve(
+            buildAction(SearchResolve, {
+                playerId: ME,
+                keptCardId: PROPHET,
+                discardOrder: [],
+                play: SearchPlay.Adviser,
+                faceUp: false
+            })
+        ).apply(s)
         expect(s.warbandsOnCards ?? {}).toEqual({})
         expect(s.getPlayerState(ME).warbandsInPersonalBank[ME]).toBe(6)
     })
@@ -161,7 +260,10 @@ describe('False Prophet — "You now also have it revealed"', () => {
     })
 
     it('you now also have it revealed: beside a Vision of their own (R-2.2.1), either goal met is a win', () => {
-        const s = prophesied({ [ME]: { revealedVisionId: CONQUEST } }, { banners: testBanners({ [Banner.DarkestSecret]: ME }) })
+        const s = prophesied(
+            { [ME]: { revealedVisionId: CONQUEST } },
+            { banners: testBanners({ [Banner.DarkestSecret]: ME }) }
+        )
         expect(revealedVisionIdsOf(s, ME)).toEqual([CONQUEST, FAITH])
         expect(meetsRevealedVisionGoal(s, ME)).toBe(true)
     })
@@ -179,16 +281,28 @@ describe('False Prophet — "You now also have it revealed"', () => {
         const t = prophesied(
             {
                 [FOE]: { revealedVisionId: REBELLION },
-                [CHAN]: { status: PlayerStatus.Exile, color: Color.Yellow, revealedVisionId: FAITH, warbandsOnBoard: {}, warbandsInPersonalBank: {} }
+                [CHAN]: {
+                    status: PlayerStatus.Exile,
+                    color: Color.Yellow,
+                    revealedVisionId: FAITH,
+                    warbandsOnBoard: {},
+                    warbandsInPersonalBank: {}
+                }
             },
-            { chancellorPlayerId: undefined, banners: testBanners({ [Banner.PeoplesFavor]: FOE, [Banner.DarkestSecret]: ME }) }
+            {
+                chancellorPlayerId: undefined,
+                banners: testBanners({ [Banner.PeoplesFavor]: FOE, [Banner.DarkestSecret]: ME })
+            }
         )
         expect(meetsRevealedVisionGoal(t, ME)).toBe(true)
         expect(warExhaustionWinner(t)).toMatchObject({ winnerPlayerId: FOE, rule: 'R-3.4.3' })
     })
 
     it('a Citizen keeps it revealed but cannot win by it until an Exile again (R-3.2)', () => {
-        const s = prophesied({ [ME]: { status: PlayerStatus.Citizen } }, { banners: testBanners({ [Banner.DarkestSecret]: ME }) })
+        const s = prophesied(
+            { [ME]: { status: PlayerStatus.Citizen } },
+            { banners: testBanners({ [Banner.DarkestSecret]: ME }) }
+        )
         expect(revealedVisionIdsOf(s, ME)).toEqual([FAITH])
         expect(wakePhaseWin(s, ME)).toBeUndefined()
         s.getPlayerState(ME).status = PlayerStatus.Exile
@@ -208,8 +322,19 @@ describe('False Prophet — "If it is ever discarded, kill the warband and play 
         expect(s.warbandsOnCard(FAITH)).toEqual({ [ME]: 0 })
         expect(s.getPlayerState(ME).warbandsInPersonalBank[ME]).toBe(6)
         expect(resolve?.metadata?.discardedCardIds).toEqual([])
-        expect(s.discardPileCounts).toEqual({ [Region.Cradle]: 0, [Region.Provinces]: 0, [Region.Hinterland]: 0 })
-        expect(s.pendingQuestions?.queue).toEqual([{ kind: PowerQuestionKind.PlayOrDiscardVision, cardId: PROPHET, askedPlayerId: ME, visionCardId: FAITH }])
+        expect(s.discardPileCounts).toEqual({
+            [Region.Cradle]: 0,
+            [Region.Provinces]: 0,
+            [Region.Hinterland]: 0
+        })
+        expect(s.pendingQuestions?.queue).toEqual([
+            {
+                kind: PowerQuestionKind.PlayOrDiscardVision,
+                cardId: PROPHET,
+                askedPlayerId: ME,
+                visionCardId: FAITH
+            }
+        ])
         expect(revealedVisionIdsOf(s, ME)).toEqual([])
     })
 
@@ -220,7 +345,11 @@ describe('False Prophet — "If it is ever discarded, kill the warband and play 
         expect(conversion.discardPileRegion).toBeUndefined()
         expect(s.getPlayerState(FOE).revealedVisionId).toBeUndefined()
         expect(s.getPlayerState(ME).warbandsInPersonalBank[ME]).toBe(6)
-        expect(s.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.PlayOrDiscardVision, askedPlayerId: ME, visionCardId: FAITH })
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.PlayOrDiscardVision,
+            askedPlayerId: ME,
+            visionCardId: FAITH
+        })
     })
 
     it('a Vision with no warband on it is discarded as ever, and nobody is asked', () => {
@@ -230,7 +359,10 @@ describe('False Prophet — "If it is ever discarded, kill the warband and play 
         expect(s.discardPileCounts[Region.Hinterland]).toBe(1)
         expect(s.pendingQuestions).toBeUndefined()
         const t = board({ [ME]: { handIds: [] } }, {}, FOE)
-        expect(becomeCitizen(t, FOE)).toMatchObject({ discardedVisionId: FAITH, discardPileRegion: Region.Hinterland })
+        expect(becomeCitizen(t, FOE)).toMatchObject({
+            discardedVisionId: FAITH,
+            discardPileRegion: Region.Hinterland
+        })
     })
 
     it('play … the Vision: faceup to their own Revealed Vision space, discarding the Vision already there (R-5.1.4.III)', () => {
@@ -240,7 +372,11 @@ describe('False Prophet — "If it is ever discarded, kill the warband and play 
         expect(s.getPlayerState(ME).revealedVisionId).toBe(FAITH)
         expect(s.pendingQuestions?.queue).toEqual([])
         // R-10.5 — me stands in the Cradle, so the old Vision goes to the Provinces pile.
-        expect(reply.metadata).toMatchObject({ discardedCardIds: [CONQUEST], discardPileRegion: Region.Provinces, summary: `played ${FAITH} (revealedVision)` })
+        expect(reply.metadata).toMatchObject({
+            discardedCardIds: [CONQUEST],
+            discardPileRegion: Region.Provinces,
+            summary: `played ${FAITH} (revealedVision)`
+        })
         expect(s.discardPileCounts[Region.Provinces]).toBe(1)
         expect(reply.revealsInfo).toBe(true)
     })
@@ -250,20 +386,44 @@ describe('False Prophet — "If it is ever discarded, kill the warband and play 
         revealAnother(s, REBELLION)
         answerQuestion(s, ME, playTo(SearchPlay.Adviser))
         // The Vision was revealed, so the table still knows it facedown.
-        expect(s.getPlayerState(ME).knownAdvisers()).toEqual([{ cardId: PROPHET, faceUp: true }, { cardId: FAITH, faceUp: false, seen: true }])
-        const full = prophesied({ [ME]: { handIds: [], advisers: [{ cardId: PROPHET, faceUp: true }, { cardId: FILLER, faceUp: true }, { cardId: 'denizen.hearth.wayside-inn', faceUp: true }] } })
+        expect(s.getPlayerState(ME).knownAdvisers()).toEqual([
+            { cardId: PROPHET, faceUp: true },
+            { cardId: FAITH, faceUp: false, seen: true }
+        ])
+        const full = prophesied({
+            [ME]: {
+                handIds: [],
+                advisers: [
+                    { cardId: PROPHET, faceUp: true },
+                    { cardId: FILLER, faceUp: true },
+                    { cardId: 'denizen.hearth.wayside-inn', faceUp: true }
+                ]
+            }
+        })
         revealAnother(full, REBELLION)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(full, ME, playTo(SearchPlay.Adviser))).toMatch(/already at the adviser limit of 3/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(full, ME, playTo(SearchPlay.Adviser, PROPHET))).toMatch(/is locked and cannot be discarded/)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(full, ME, playTo(SearchPlay.Adviser))
+        ).toMatch(/already at the adviser limit of 3/)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(full, ME, playTo(SearchPlay.Adviser, PROPHET))
+        ).toMatch(/is locked and cannot be discarded/)
         answerQuestion(full, ME, playTo(SearchPlay.Adviser, FILLER))
-        expect(full.getPlayerState(ME).knownAdviserIds()).toEqual([PROPHET, 'denizen.hearth.wayside-inn', FAITH])
+        expect(full.getPlayerState(ME).knownAdviserIds()).toEqual([
+            PROPHET,
+            'denizen.hearth.wayside-inn',
+            FAITH
+        ])
     })
 
     it('… or discard the Vision: to the pile a Search of theirs would discard to (R-10.5)', () => {
         const s = prophesied()
         revealAnother(s, REBELLION)
         const reply = answerQuestion(s, ME, playTo(SearchPlay.Discard))
-        expect(reply.metadata).toMatchObject({ discardedCardIds: [FAITH], discardPileRegion: Region.Provinces, summary: `discarded ${FAITH}` })
+        expect(reply.metadata).toMatchObject({
+            discardedCardIds: [FAITH],
+            discardPileRegion: Region.Provinces,
+            summary: `discarded ${FAITH}`
+        })
         expect(s.discardPileCounts[Region.Provinces]).toBe(1)
         expect(s.getPlayerState(ME).revealedVisionId).toBeUndefined()
     })
@@ -271,20 +431,56 @@ describe('False Prophet — "If it is ever discarded, kill the warband and play 
     it('as if you had searched: the plays a Search refuses are refused, and only the False Prophet’s player answers', () => {
         const s = prophesied()
         revealAnother(s, REBELLION)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, ME, playTo(SearchPlay.Site))).toBe('Visions cannot be played to a site')
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, ME, playTo(SearchPlay.Conspiracy))).toMatch(/is not the Conspiracy/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, FOE, playTo(SearchPlay.Discard))).toMatch(/the question is me's to answer/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, ME, { kind: PowerQuestionKind.KeepOrBottomRelic, keep: true })).toMatch(/the question is playOrDiscardVision/)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, ME, playTo(SearchPlay.Site))).toBe(
+            'Visions cannot be played to a site'
+        )
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, ME, playTo(SearchPlay.Conspiracy))
+        ).toMatch(/is not the Conspiracy/)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, FOE, playTo(SearchPlay.Discard))
+        ).toMatch(/the question is me's to answer/)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, ME, {
+                kind: PowerQuestionKind.KeepOrBottomRelic,
+                keep: true
+            })
+        ).toMatch(/the question is playOrDiscardVision/)
         // R-5.1.4.III — a Citizen cannot play a Vision faceup.
         const citizen = prophesied({ [ME]: { status: PlayerStatus.Citizen } })
         revealAnother(citizen, REBELLION)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(citizen, ME, playTo(SearchPlay.RevealedVision))).toMatch(/cannot play a Vision faceup/)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(citizen, ME, playTo(SearchPlay.Discard))).toBeUndefined()
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(
+                citizen,
+                ME,
+                playTo(SearchPlay.RevealedVision)
+            )
+        ).toMatch(/cannot play a Vision faceup/)
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(citizen, ME, playTo(SearchPlay.Discard))
+        ).toBeUndefined()
     })
 
     it('their own Vision under their own warband: discarding it asks them, and playing it back discards the newcomer', () => {
-        const s = board({ [ME]: { handIds: [REBELLION], revealedVisionId: CONQUEST, advisers: [{ cardId: PROPHET, faceUp: true }], warbandsInPersonalBank: { [ME]: 5 } } }, { warbandsOnCards: { [CONQUEST]: { [ME]: 1 } } })
-        new HydratedSearchResolve(buildAction(SearchResolve, { playerId: ME, keptCardId: REBELLION, discardOrder: [], play: SearchPlay.RevealedVision })).apply(s)
+        const s = board(
+            {
+                [ME]: {
+                    handIds: [REBELLION],
+                    revealedVisionId: CONQUEST,
+                    advisers: [{ cardId: PROPHET, faceUp: true }],
+                    warbandsInPersonalBank: { [ME]: 5 }
+                }
+            },
+            { warbandsOnCards: { [CONQUEST]: { [ME]: 1 } } }
+        )
+        new HydratedSearchResolve(
+            buildAction(SearchResolve, {
+                playerId: ME,
+                keptCardId: REBELLION,
+                discardOrder: [],
+                play: SearchPlay.RevealedVision
+            })
+        ).apply(s)
         expect(s.getPlayerState(ME).revealedVisionId).toBe(REBELLION)
         const reply = answerQuestion(s, ME, playTo(SearchPlay.RevealedVision))
         expect(s.getPlayerState(ME).revealedVisionId).toBe(CONQUEST)
@@ -296,10 +492,19 @@ describe('False Prophet — the question is a turn, through the engine', () => {
     const engine = new OathTestEngine(OathRuntime)
     const game = testGame([ME, FOE, CHAN])
     let seq = 0
-    const stamp = (index: number) => ({ id: `fp-${(seq += 1)}`, gameId: 'game-1', source: ActionSource.User, index })
+    const stamp = (index: number) => ({
+        id: `fp-${(seq += 1)}`,
+        gameId: 'game-1',
+        source: ActionSource.User,
+        index
+    })
     function dehydrated(s: Board, turn: string) {
         const state = s.dehydrate()
-        state.turnManager = { series: [{ type: 'turn', playerId: turn, start: 0 }], turnOrder: [ME, FOE, CHAN], turnCounts: { [ME]: 1, [FOE]: 1, [CHAN]: 1 } }
+        state.turnManager = {
+            series: [{ type: 'turn', playerId: turn, start: 0 }],
+            turnOrder: [ME, FOE, CHAN],
+            turnCounts: { [ME]: 1, [FOE]: 1, [CHAN]: 1 }
+        }
         state.activePlayerIds = [turn]
         return state
     }
@@ -308,13 +513,29 @@ describe('False Prophet — the question is a turn, through the engine', () => {
         const s = prophesied()
         s.getPlayerState(FOE).setHand([REBELLION])
         let state = dehydrated(s, FOE)
-        const reveal: SearchResolve = { ...stamp(state.actionCount), type: ActionType.SearchResolve, playerId: FOE, keptCardId: REBELLION, discardOrder: [], play: SearchPlay.RevealedVision }
+        const reveal: SearchResolve = {
+            ...stamp(state.actionCount),
+            type: ActionType.SearchResolve,
+            playerId: FOE,
+            keptCardId: REBELLION,
+            discardOrder: [],
+            play: SearchPlay.RevealedVision
+        }
         state = engine.run(reveal, state, game).updatedState
         expect(state.machineState).toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual([ME])
-        expect(engine.getValidActionTypesForPlayer(game, state, ME)).toContain(ActionType.AnswerQuestion)
-        expect(engine.getValidActionTypesForPlayer(game, state, FOE)).not.toContain(ActionType.AnswerQuestion)
-        const reply: AnswerQuestion = { ...stamp(state.actionCount), type: ActionType.AnswerQuestion, playerId: ME, answer: playTo(SearchPlay.RevealedVision) }
+        expect(engine.getValidActionTypesForPlayer(game, state, ME)).toContain(
+            ActionType.AnswerQuestion
+        )
+        expect(engine.getValidActionTypesForPlayer(game, state, FOE)).not.toContain(
+            ActionType.AnswerQuestion
+        )
+        const reply: AnswerQuestion = {
+            ...stamp(state.actionCount),
+            type: ActionType.AnswerQuestion,
+            playerId: ME,
+            answer: playTo(SearchPlay.RevealedVision)
+        }
         state = engine.run(reply, state, game).updatedState
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual([FOE])
@@ -323,17 +544,41 @@ describe('False Prophet — the question is a turn, through the engine', () => {
     })
 
     it('R-6.6.2 through the engine: a Citizenship accepted asks the False Prophet’s player before the offerer’s turn resumes', () => {
-        const s = prophesied({ [CHAN]: { relicIds: ['relic.grand-scepter'], siteId: 'p1' } }, { machineState: MachineState.ActPhase, reliquary: [{ slotId: 'reliquary.0' }], vault: testVaultWithRelics({ 'reliquary.0': 'relic.cup' }) }, CHAN)
+        const s = prophesied(
+            { [CHAN]: { relicIds: ['relic.grand-scepter'], siteId: 'p1' } },
+            {
+                machineState: MachineState.ActPhase,
+                reliquary: [{ slotId: 'reliquary.0' }],
+                vault: testVaultWithRelics({ 'reliquary.0': 'relic.cup' })
+            },
+            CHAN
+        )
         let state = dehydrated(s, CHAN)
-        const offer: OfferCitizenship = { ...stamp(state.actionCount), type: ActionType.OfferCitizenship, playerId: CHAN, exilePlayerId: FOE, reliquarySlotId: 'reliquary.0' }
+        const offer: OfferCitizenship = {
+            ...stamp(state.actionCount),
+            type: ActionType.OfferCitizenship,
+            playerId: CHAN,
+            exilePlayerId: FOE,
+            reliquarySlotId: 'reliquary.0'
+        }
         state = engine.run(offer, state, game).updatedState
         expect(state.machineState).toBe(MachineState.ConsentRequest)
-        const accept: ResolveCitizenshipOffer = { ...stamp(state.actionCount), type: ActionType.ResolveCitizenshipOffer, playerId: FOE, granted: true }
+        const accept: ResolveCitizenshipOffer = {
+            ...stamp(state.actionCount),
+            type: ActionType.ResolveCitizenshipOffer,
+            playerId: FOE,
+            granted: true
+        }
         state = engine.run(accept, state, game).updatedState
         expect(state.players[1].status).toBe(PlayerStatus.Citizen)
         expect(state.machineState).toBe(MachineState.PowerQuestion)
         expect(state.activePlayerIds).toEqual([ME])
-        const reply: AnswerQuestion = { ...stamp(state.actionCount), type: ActionType.AnswerQuestion, playerId: ME, answer: playTo(SearchPlay.Discard) }
+        const reply: AnswerQuestion = {
+            ...stamp(state.actionCount),
+            type: ActionType.AnswerQuestion,
+            playerId: ME,
+            answer: playTo(SearchPlay.Discard)
+        }
         state = engine.run(reply, state, game).updatedState
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual([CHAN])

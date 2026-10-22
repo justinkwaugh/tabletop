@@ -31,13 +31,47 @@ export type BoardPick = {
 /** A choice made by tapping the map, as a phone frames it: the sites its frame and chips count. */
 export type MapPick = {
     /**
-     * Setup's start site, a Travel destination, where the spoils banish the defeated pawn, or a
-     * site for the powers in Use a power.
+     * Setup's start site, a Travel destination, where the spoils banish the defeated pawn, a site
+     * for the powers in Use a power, or the Shrouded Wood ruler's pick for another player's pawn.
      */
-    kind: 'start' | 'travel' | 'banish' | 'power'
+    kind: 'start' | 'travel' | 'banish' | 'power' | 'ruler'
     sites: string[]
     /** More than one site to choose among; Setup's one legal site is shown, not chosen. */
     choosing: boolean
+    /**
+     * Whose pawn the pick moves, so the map opens on its region: the seat's own, the defender's
+     * for a banish, the traveller's or the moved player's for the Shrouded Wood ruler's pick.
+     */
+    moverId: string | undefined
+}
+
+/**
+ * R-11.7, R-11.13-H1 — a site the open Travel question lets the asked seat pick on the map: what
+ * the pawn's owner pays there in Supply (none when nothing is paid at the pick), the cards that
+ * set it (Decadent, Tents), whether Toll Roads will ask them (R-7.1.4), and whether the move flips
+ * a secret (The Hidden Place).
+ */
+export type TravelPickSite = {
+    siteId: string
+    cost: number | undefined
+    foldedBy: string[]
+    toll: boolean
+    flip: boolean
+}
+
+/**
+ * R-11.7, R-11.13-H1 — a Travel question answered on the map: the Shrouded Wood ruler's pick (for
+ * the traveller's own Travel, or for a pawn the Whistle, the Brass Horse, Palanquin or a banish
+ * moves) or the Brass Horse user's own pick.
+ */
+export type TravelPick = {
+    /** Whose pawn moves. */
+    moverId: string
+    /** The Shrouded Wood's ruler picks for another player. */
+    ruler: boolean
+    /** The move spends no Supply: the line says so once, and the sites carry no price. */
+    free: boolean
+    sites: TravelPickSite[]
 }
 
 export type SiteOffer =
@@ -64,12 +98,8 @@ export type SiteOffer =
     | { slotId: string; intent: 'moveWarbands' }
     /** R-5.5.7.III — a tap on the map banishes the defeated pawn there. */
     | { slotId: string; intent: 'banish' }
-    /**
-     * R-11.7 — a site the Shrouded Wood's ruler may send the traveller to on their own Travel: what
-     * the traveller pays there, the cards that changed it (Decadent), and whether Toll Roads will
-     * ask them (R-7.1.4). A tap on the map sends the pick; a desktop lights these, a phone does not.
-     */
-    | { slotId: string; intent: 'wood'; cost: number; foldedBy: string[]; toll: boolean }
+    /** R-11.7, R-11.13-H1 — a site the open Travel question offers: a tap on the map sends it. */
+    | ({ slotId: string; intent: 'question' } & Omit<TravelPickSite, 'siteId'>)
     /**
      * R-7.1.3 — a site a power in Use a power can take: the words of every row a tap there
      * fills, and whether the panel's one ring is on it.

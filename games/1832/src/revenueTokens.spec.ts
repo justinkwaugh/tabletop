@@ -3,15 +3,30 @@ import { placeStockMarker } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import {
     EighteenThirtyTwoMajors,
+    EighteenThirtyTwoPhaseRules,
     EighteenThirtyTwoPrivates,
     EighteenThirtyTwoRouteRules,
     EighteenThirtyTwoStationRules,
     migrateRevenueTokens,
     ranToMiamiFirst,
     revenueTokenChoices,
-    stopBonuses
+    stopBonuses,
+    type EighteenThirtyTwoState
 } from './index.js'
 import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
+
+/** The state as a phase begins, with the title's phase changes applied. */
+function beginPhase(state: EighteenThirtyTwoState, phaseId: string) {
+    const next = { ...state, phaseId }
+    const changes = EighteenThirtyTwoPhaseRules.changes?.apply(next, {
+        id: `phase:${phaseId}`,
+        trainId: `${phaseId}:1`,
+        definitionId: phaseId,
+        fromPhaseId: state.phaseId,
+        toPhaseId: phaseId
+    })
+    return { state: next, changes }
+}
 
 function stationsPlay(privateIds: readonly string[]) {
     return playExample(EighteenThirtyTwoScenarios, 'stations', 3, (state) => {
@@ -71,8 +86,11 @@ describe('Port and Cotton tokens', () => {
         expect(amount('ACL', 'T29')).toEqual([{ amount: 10, sourceId: 'port' }])
         expect(amount('CG', 'Q28')).toEqual([{ amount: 10, sourceId: 'cotton' }])
         expect(amount('ACL', 'Q28')).toEqual([])
-        expect(amount('CG', 'T29', '6')).toEqual([])
         expect(revenueTokenChoices(play.state, 'blair')).toEqual([])
+        expect(beginPhase(play.state, '5').changes).toEqual({ removedRevenueTokens: [] })
+        const sixth = beginPhase(play.state, '6')
+        expect(sixth.changes).toEqual({ removedRevenueTokens: play.state.revenueTokens })
+        expect(sixth.state.revenueTokens).toEqual([])
     })
 
     it('keeps the station step open while a token may still be placed', () => {
@@ -97,6 +115,10 @@ describe('Miami and Key West', () => {
         expect(value('3')).toBe(0)
         expect(value('3', true)).toBe(20)
         expect(value('5')).toBe(20)
+        // From phase 5 the first run no longer matters, nor whose share London bought.
+        const fifth = beginPhase({ ...state, miamiRun: true, londonCompanyId: 'CG' }, '5').state
+        expect(fifth.miamiRun).toBeUndefined()
+        expect(fifth.londonCompanyId).toBeUndefined()
     })
 
     it('adds $50 at Miami for the FEC with its Key West token, until phase 8', () => {
@@ -104,15 +126,15 @@ describe('Miami and Key West', () => {
             kind: 'key-west' as const,
             companyId: 'FEC',
             locationId: 'AA28',
-            nodeId: 'offboard',
-            placed: { set: 1, round: 1 }
+            nodeId: 'offboard'
         }
-        const withToken = (phaseId: string) => ({ ...state, phaseId, revenueTokens: [token] })
-        expect(stopBonuses(withToken('3'), 'FEC', miami)).toEqual([
-            { amount: 50, sourceId: 'key-west' }
-        ])
-        expect(stopBonuses(withToken('3'), 'CG', miami)).toEqual([])
-        expect(stopBonuses(withToken('8'), 'FEC', miami)).toEqual([])
+        const withToken = { ...state, phaseId: '3', revenueTokens: [token] }
+        expect(stopBonuses(withToken, 'FEC', miami)).toEqual([{ amount: 50, sourceId: 'key-west' }])
+        expect(stopBonuses(withToken, 'CG', miami)).toEqual([])
+        expect(beginPhase(withToken, '6').state.revenueTokens).toEqual([token])
+        const eighth = beginPhase(withToken, '8')
+        expect(eighth.changes).toEqual({ removedRevenueTokens: [token] })
+        expect(stopBonuses(eighth.state, 'FEC', miami)).toEqual([])
     })
 })
 
@@ -172,6 +194,7 @@ describe('Miami’s first run', () => {
                     routes: [
                         {
                             trainId: 'train',
+                            definitionId: '2',
                             start: { locationId: 'W26', nodeId: 'city' },
                             paths: [{ locationId: 'W26', pathId: 'edge-5' }],
                             visits: [

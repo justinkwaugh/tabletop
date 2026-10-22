@@ -183,8 +183,12 @@
 
     function handleMouseDown(event: MouseEvent) {
         suppressMouseClick = false
-        if (event.button !== 0 || (event.target instanceof Element &&
-            event.target.closest('input, textarea, select, [contenteditable="true"]'))) return
+        if (
+            event.button !== 0 ||
+            (event.target instanceof Element &&
+                event.target.closest('input, textarea, select, [contenteditable="true"]'))
+        )
+            return
         event.preventDefault()
         mouseStartPoint = mouseLastPoint = { x: event.clientX, y: event.clientY }
     }
@@ -195,8 +199,11 @@
             endMouseDrag()
             return
         }
-        if (!mouseDragging && Math.hypot(event.clientX - mouseStartPoint.x,
-            event.clientY - mouseStartPoint.y) < 5) return
+        if (
+            !mouseDragging &&
+            Math.hypot(event.clientX - mouseStartPoint.x, event.clientY - mouseStartPoint.y) < 5
+        )
+            return
         mouseDragging = true
         suppressMouseClick = true
         event.preventDefault()
@@ -204,9 +211,12 @@
         cancelPanInertia()
         cancelScrollInertia()
         clearActiveFocus()
-        const next = clampTranslation(currentScale,
+        const next = clampTranslation(
+            currentScale,
             currentTranslateX + event.clientX - mouseLastPoint.x,
-            currentTranslateY + event.clientY - mouseLastPoint.y, 'gesture')
+            currentTranslateY + event.clientY - mouseLastPoint.y,
+            'gesture'
+        )
         mouseLastPoint = { x: event.clientX, y: event.clientY }
         notifyManualViewChange(currentScale, next.translateX, next.translateY)
         applyView(currentScale, next.translateX, next.translateY)
@@ -284,11 +294,15 @@
             return containScale
         }
 
-        return Math.min(Math.max(wrapperWidth / contentWidth, availableHeight() / contentHeight), fitCap())
+        return Math.min(
+            Math.max(wrapperWidth / contentWidth, availableHeight() / contentHeight),
+            fitCap()
+        )
     }
 
     function updateDiscreteLevels(lowestScale: number) {
-        zoomLevels = lowestScale === maxScale ? 0 : Math.floor((maxScale - lowestScale) / DISCRETE_ZOOM_STEP)
+        zoomLevels =
+            lowestScale === maxScale ? 0 : Math.floor((maxScale - lowestScale) / DISCRETE_ZOOM_STEP)
     }
 
     function clampScale(scale: number) {
@@ -316,13 +330,16 @@
         const scaledWidth = contentWidth * clampedScale
         const scaledHeight = contentHeight * clampedScale
         const defaultTranslateX = getOffsetX(scaledWidth)
-        const defaultTranslateY = insetTop + (isExpanded ? Math.max(0, (availableHeight() - scaledHeight) / 2) : 0)
-        const rangeX = scaledWidth > wrapperWidth
-            ? { min: wrapperWidth - scaledWidth, max: 0 }
-            : { min: defaultTranslateX, max: defaultTranslateX }
-        const rangeY = scaledHeight > availableHeight()
-            ? { min: wrapperHeight - scaledHeight, max: insetTop }
-            : { min: defaultTranslateY, max: defaultTranslateY }
+        const defaultTranslateY =
+            insetTop + (isExpanded ? Math.max(0, (availableHeight() - scaledHeight) / 2) : 0)
+        const rangeX =
+            scaledWidth > wrapperWidth
+                ? { min: wrapperWidth - scaledWidth, max: 0 }
+                : { min: defaultTranslateX, max: defaultTranslateX }
+        const rangeY =
+            scaledHeight > availableHeight()
+                ? { min: wrapperHeight - scaledHeight, max: insetTop }
+                : { min: defaultTranslateY, max: defaultTranslateY }
         const overpanFraction = getOverpanFraction(clampedScale)
 
         const gestureFraction = overpan === 'focus' ? overpanFraction : 0
@@ -330,24 +347,60 @@
             scale: clampedScale,
             x: {
                 range: rangeX,
-                overpanRange: getOverpanRange(rangeX, scaledWidth, 0, wrapperWidth, 0.5, overpanFraction),
-                gestureRange: getOverpanRange(rangeX, scaledWidth, 0, wrapperWidth, gestureOverpanReach, gestureFraction)
+                overpanRange: getOverpanRange(
+                    rangeX,
+                    scaledWidth,
+                    0,
+                    wrapperWidth,
+                    0.5,
+                    overpanFraction
+                ),
+                gestureRange: getOverpanRange(
+                    rangeX,
+                    scaledWidth,
+                    0,
+                    wrapperWidth,
+                    gestureOverpanReach,
+                    gestureFraction
+                )
             },
             y: {
                 range: rangeY,
-                overpanRange: getOverpanRange(rangeY, scaledHeight, insetTop, availableHeight(), 0.5, overpanFraction),
-                gestureRange: getOverpanRange(rangeY, scaledHeight, insetTop, availableHeight(), gestureOverpanReach, gestureFraction)
+                overpanRange: getOverpanRange(
+                    rangeY,
+                    scaledHeight,
+                    insetTop,
+                    availableHeight(),
+                    0.5,
+                    overpanFraction
+                ),
+                gestureRange: getOverpanRange(
+                    rangeY,
+                    scaledHeight,
+                    insetTop,
+                    availableHeight(),
+                    gestureOverpanReach,
+                    gestureFraction
+                )
             }
         }
     }
 
     function getOverpanFraction(scale: number) {
-        return overpan === 'none' ? 0 : clamp((scale / minScale - 1) / OVERPAN_EASE_RELATIVE_ZOOM, 0, 1)
+        return overpan === 'none'
+            ? 0
+            : clamp((scale / minScale - 1) / OVERPAN_EASE_RELATIVE_ZOOM, 0, 1)
     }
 
     // Overpan lets the content's edges come a reach of the view in from its own edges.
-    function getOverpanRange(range: PanRange, scaledSize: number, viewportStart: number, viewportSize: number,
-        reach: number, fraction: number): PanRange {
+    function getOverpanRange(
+        range: PanRange,
+        scaledSize: number,
+        viewportStart: number,
+        viewportSize: number,
+        reach: number,
+        fraction: number
+    ): PanRange {
         const near = viewportStart + reach * viewportSize
         const far = viewportStart + (1 - reach) * viewportSize
         return {
@@ -357,26 +410,56 @@
     }
 
     function mayOverpanFreely(axis: Axis, source: ViewChangeSource) {
-        return source === 'programmatic' || overpan === 'both' || overpan === axis ||
+        return (
+            source === 'programmatic' ||
+            overpan === 'both' ||
+            overpan === axis ||
             (isExpanded && overpan !== 'none')
+        )
     }
 
-    function getPanRange(target: AxisMetrics, current: AxisMetrics, currentTranslate: number, free: boolean): PanRange {
+    function getPanRange(
+        target: AxisMetrics,
+        current: AxisMetrics,
+        currentTranslate: number,
+        free: boolean
+    ): PanRange {
         if (free) {
             return target.overpanRange
         }
 
         return {
-            min: Math.max(target.overpanRange.min, target.gestureRange.min - Math.max(0, current.gestureRange.min - currentTranslate)),
-            max: Math.min(target.overpanRange.max, target.gestureRange.max + Math.max(0, currentTranslate - current.gestureRange.max))
+            min: Math.max(
+                target.overpanRange.min,
+                target.gestureRange.min - Math.max(0, current.gestureRange.min - currentTranslate)
+            ),
+            max: Math.min(
+                target.overpanRange.max,
+                target.gestureRange.max + Math.max(0, currentTranslate - current.gestureRange.max)
+            )
         }
     }
 
-    function clampTranslation(scale: number, translateX: number, translateY: number, source: ViewChangeSource) {
+    function clampTranslation(
+        scale: number,
+        translateX: number,
+        translateY: number,
+        source: ViewChangeSource
+    ) {
         const metrics = getMetrics(scale)
         const current = getMetrics(currentScale)
-        const rangeX = getPanRange(metrics.x, current.x, currentTranslateX, mayOverpanFreely('x', source))
-        const rangeY = getPanRange(metrics.y, current.y, currentTranslateY, mayOverpanFreely('y', source))
+        const rangeX = getPanRange(
+            metrics.x,
+            current.x,
+            currentTranslateX,
+            mayOverpanFreely('x', source)
+        )
+        const rangeY = getPanRange(
+            metrics.y,
+            current.y,
+            currentTranslateY,
+            mayOverpanFreely('y', source)
+        )
 
         return {
             metrics,
@@ -386,9 +469,11 @@
     }
 
     function notifyManualViewChange(scale: number, translateX: number, translateY: number) {
-        if (Math.abs(scale - currentScale) > EPSILON ||
+        if (
+            Math.abs(scale - currentScale) > EPSILON ||
             Math.abs(translateX - currentTranslateX) > EPSILON ||
-            Math.abs(translateY - currentTranslateY) > EPSILON) {
+            Math.abs(translateY - currentTranslateY) > EPSILON
+        ) {
             onManualViewChange?.()
         }
     }
@@ -443,8 +528,11 @@
     }
 
     function applyView(scale: number, translateX: number, translateY: number, deferRender = false) {
-        const { metrics, translateX: clampedTranslateX, translateY: clampedTranslateY } =
-            clampTranslation(scale, translateX, translateY, 'programmatic')
+        const {
+            metrics,
+            translateX: clampedTranslateX,
+            translateY: clampedTranslateY
+        } = clampTranslation(scale, translateX, translateY, 'programmatic')
 
         currentScale = metrics.scale
         currentTranslateX = clampedTranslateX
@@ -464,15 +552,31 @@
         }
     }
 
-    function findScrollableAncestor(element: HTMLElement | null): HTMLElement | null {
+    const SCROLL_AXES = {
+        x: {
+            overflow: (style: CSSStyleDeclaration) => style.overflowX,
+            overflows: (element: HTMLElement) => element.scrollWidth > element.clientWidth,
+            position: 'scrollLeft',
+            windowPosition: () => window.scrollX,
+            windowScroll: (delta: number) => ({ left: delta })
+        },
+        y: {
+            overflow: (style: CSSStyleDeclaration) => style.overflowY,
+            overflows: (element: HTMLElement) => element.scrollHeight > element.clientHeight,
+            position: 'scrollTop',
+            windowPosition: () => window.scrollY,
+            windowScroll: (delta: number) => ({ top: delta })
+        }
+    } as const satisfies Record<Axis, unknown>
+
+    function findScrollableAncestor(element: HTMLElement | null, axis: Axis): HTMLElement | null {
+        const scrollAxis = SCROLL_AXES[axis]
         let current = element?.parentElement ?? null
         while (current) {
-            const style = getComputedStyle(current)
-            const canScrollX =
-                /(auto|scroll|overlay)/.test(style.overflowX) && current.scrollWidth > current.clientWidth
-            const canScrollY =
-                /(auto|scroll|overlay)/.test(style.overflowY) && current.scrollHeight > current.clientHeight
-            if (canScrollX || canScrollY) {
+            if (
+                /(auto|scroll|overlay)/.test(scrollAxis.overflow(getComputedStyle(current))) &&
+                scrollAxis.overflows(current)
+            ) {
                 return current
             }
             current = current.parentElement
@@ -483,33 +587,31 @@
 
     function scrollAncestorBy(deltaX: number, deltaY: number) {
         if (isExpanded) return { movedX: 0, movedY: 0 }
-        const scrollAncestor = findScrollableAncestor(scroller)
-        if (scrollAncestor) {
-            const startLeft = scrollAncestor.scrollLeft
-            const startTop = scrollAncestor.scrollTop
-            scrollAncestor.scrollLeft -= deltaX
-            scrollAncestor.scrollTop -= deltaY
-            return {
-                movedX: scrollAncestor.scrollLeft - startLeft,
-                movedY: scrollAncestor.scrollTop - startTop
-            }
-        }
-
-        const startX = window.scrollX
-        const startY = window.scrollY
-        window.scrollBy({
-            left: -deltaX,
-            top: -deltaY,
-            behavior: 'auto'
-        })
-
         return {
-            movedX: window.scrollX - startX,
-            movedY: window.scrollY - startY
+            movedX: scrollAncestorAlong('x', deltaX),
+            movedY: scrollAncestorAlong('y', deltaY)
         }
     }
 
-    function getViewportCenterContentPoint(centerX = wrapperWidth / 2, centerY = viewportCenterY()) {
+    function scrollAncestorAlong(axis: Axis, delta: number) {
+        if (Math.abs(delta) <= EPSILON) return 0
+        const scrollAxis = SCROLL_AXES[axis]
+        const scrollAncestor = findScrollableAncestor(scroller, axis)
+        if (scrollAncestor) {
+            const start = scrollAncestor[scrollAxis.position]
+            scrollAncestor[scrollAxis.position] -= delta
+            return scrollAncestor[scrollAxis.position] - start
+        }
+
+        const start = scrollAxis.windowPosition()
+        window.scrollBy(scrollAxis.windowScroll(-delta))
+        return scrollAxis.windowPosition() - start
+    }
+
+    function getViewportCenterContentPoint(
+        centerX = wrapperWidth / 2,
+        centerY = viewportCenterY()
+    ) {
         return {
             x: clamp((centerX - currentTranslateX) / currentScale, 0, contentWidth),
             y: clamp((centerY - currentTranslateY) / currentScale, 0, contentHeight)
@@ -681,10 +783,7 @@
             const deltaMs = Math.max(1, timestamp - lastTimestamp)
             lastTimestamp = timestamp
             const decay = Math.pow(TOUCH_INERTIA_DECAY_PER_FRAME, deltaMs / (1000 / 60))
-            const movement = scrollAncestorBy(
-                scrollVelocityX * deltaMs,
-                scrollVelocityY * deltaMs
-            )
+            const movement = scrollAncestorBy(scrollVelocityX * deltaMs, scrollVelocityY * deltaMs)
             const movedX = Math.abs(movement.movedX) > EPSILON
             const movedY = Math.abs(movement.movedY) > EPSILON
 
@@ -759,7 +858,13 @@
             ? getViewportCenterContentPoint()
             : { x: contentWidth / 2, y: contentHeight / 2 }
 
-        zoomToScaleKeepingContentPoint(centerPoint.x, centerPoint.y, targetScale, animate, deferRender)
+        zoomToScaleKeepingContentPoint(
+            centerPoint.x,
+            centerPoint.y,
+            targetScale,
+            animate,
+            deferRender
+        )
     }
 
     function zoomToScaleKeepingContentPoint(
@@ -859,7 +964,14 @@
     // Only entering or leaving full screen refits, so a phone's toolbar showing and hiding never drifts the zoom.
     function scaleKeepingShownArea(previousView: PlacedView, size: RectangleDimensions) {
         if (previousView.expanded === isExpanded) return currentScale
-        return currentScale * Math.min(1, size.width / previousView.size.width, size.height / previousView.size.height)
+        return (
+            currentScale *
+            Math.min(
+                1,
+                size.width / previousView.size.width,
+                size.height / previousView.size.height
+            )
+        )
     }
 
     function getDiscreteScaleStep() {
@@ -911,8 +1023,11 @@
     }
 
     export function isVisible() {
-        return !!viewport && viewport.getBoundingClientRect().width > 0 &&
+        return (
+            !!viewport &&
+            viewport.getBoundingClientRect().width > 0 &&
             getComputedStyle(viewport).visibility === 'visible'
+        )
     }
 
     function handleFullscreenKey(event: KeyboardEvent) {
@@ -923,14 +1038,22 @@
             return
         }
         if (
-            event.key.toLowerCase() !== 'f' || !expandable ||
-            event.ctrlKey || event.metaKey || event.altKey ||
-            !isVisible() || (allowFullscreenShortcut && !allowFullscreenShortcut())
-        ) return
+            event.key.toLowerCase() !== 'f' ||
+            !expandable ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.altKey ||
+            !isVisible() ||
+            (allowFullscreenShortcut && !allowFullscreenShortcut())
+        )
+            return
         const target = event.target
-        if (target instanceof HTMLElement && (
-            target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]')
-        )) return
+        if (
+            target instanceof HTMLElement &&
+            (target.isContentEditable ||
+                target.closest('input, textarea, select, [role="textbox"]'))
+        )
+            return
         event.preventDefault()
         toggleExpanded()
     }
@@ -1060,7 +1183,8 @@
             }
 
             const targetScale =
-                pinchStartScale * Math.pow(pinchDistance / pinchStartDistance, PINCH_ZOOM_SENSITIVITY)
+                pinchStartScale *
+                Math.pow(pinchDistance / pinchStartDistance, PINCH_ZOOM_SENSITIVITY)
             const rect = scroller.getBoundingClientRect()
             const viewportX = pinchLatestMidpoint.x - rect.left
             const viewportY = pinchLatestMidpoint.y - rect.top
@@ -1202,12 +1326,8 @@
             -TOUCH_INERTIA_MAX_VELOCITY,
             TOUCH_INERTIA_MAX_VELOCITY
         )
-        scrollVelocityX = didScrollX
-            ? scrollVelocityX * 0.35 + scrollVelocityCandidateX * 0.65
-            : 0
-        scrollVelocityY = didScrollY
-            ? scrollVelocityY * 0.35 + scrollVelocityCandidateY * 0.65
-            : 0
+        scrollVelocityX = didScrollX ? scrollVelocityX * 0.35 + scrollVelocityCandidateX * 0.65 : 0
+        scrollVelocityY = didScrollY ? scrollVelocityY * 0.35 + scrollVelocityCandidateY * 0.65 : 0
     }
 
     function clearPinchState() {
@@ -1258,16 +1378,21 @@
         if (!event.ctrlKey) {
             if (event.timeStamp - lastWheelTimestamp > 250) smoothWheelGesture = false
             lastWheelTimestamp = event.timeStamp
-            const smoothDelta = event.deltaMode === WheelEvent.DOM_DELTA_PIXEL &&
-                (event.deltaX !== 0 || Math.abs(event.deltaY) < 50 ||
+            const smoothDelta =
+                event.deltaMode === WheelEvent.DOM_DELTA_PIXEL &&
+                (event.deltaX !== 0 ||
+                    Math.abs(event.deltaY) < 50 ||
                     !Number.isInteger(event.deltaY))
             smoothWheelGesture ||= smoothDelta
             if (smoothWheelGesture) {
                 const deltaX = -event.deltaX * unit
                 const deltaY = -event.deltaY * unit
-                const next = clampTranslation(currentScale,
+                const next = clampTranslation(
+                    currentScale,
                     currentTranslateX + deltaX,
-                    currentTranslateY + deltaY, 'gesture')
+                    currentTranslateY + deltaY,
+                    'gesture'
+                )
                 const residualX = deltaX - (next.translateX - currentTranslateX)
                 const residualY = deltaY - (next.translateY - currentTranslateY)
                 notifyManualViewChange(currentScale, next.translateX, next.translateY)
@@ -1285,8 +1410,13 @@
         const contentPoint = getContentPointForClientPoint(event.clientX, event.clientY)
         const rect = scroller.getBoundingClientRect()
         const targetView = getViewForContentPointAtViewportPoint(
-            contentPoint.x, contentPoint.y,
-            event.clientX - rect.left, event.clientY - rect.top, nextScale, 'gesture')
+            contentPoint.x,
+            contentPoint.y,
+            event.clientX - rect.left,
+            event.clientY - rect.top,
+            nextScale,
+            'gesture'
+        )
         notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
         applyView(targetView.scale, targetView.translateX, targetView.translateY, true)
     }
@@ -1398,7 +1528,10 @@
     bind:this={fullscreenLayer}
     role={isExpanded ? 'dialog' : 'presentation'}
     aria-label={isExpanded ? 'Full screen view' : undefined}
-    oncancel={(event) => { event.preventDefault(); collapse() }}
+    oncancel={(event) => {
+        event.preventDefault()
+        collapse()
+    }}
     onkeydown={(event) => {
         if (!isExpanded) return
         handleFullscreenKey(event)
@@ -1420,7 +1553,12 @@
         style={`${isExpanded ? 'width: 100%; padding: 8px;' : ''} height: calc(100% - ${toolbar ? toolbarHeight : 0}px); touch-action: none; user-select: none; cursor: ${mouseDragging ? 'grabbing' : 'grab'};`}
         onwheel={handleWheel}
     >
-        <div bind:this={viewport} bind:clientWidth={wrapperWidth} bind:clientHeight={wrapperHeight} class="relative w-full h-full">
+        <div
+            bind:this={viewport}
+            bind:clientWidth={wrapperWidth}
+            bind:clientHeight={wrapperHeight}
+            class="relative w-full h-full"
+        >
             <div
                 bind:this={content}
                 class="absolute top-0 left-0 box-border"
@@ -1519,7 +1657,9 @@
 </dialog>
 
 <style>
-    dialog { visibility: inherit; }
+    dialog {
+        visibility: inherit;
+    }
     .scaling-surface,
     .scaling-surface :global(*) {
         -webkit-user-select: none;

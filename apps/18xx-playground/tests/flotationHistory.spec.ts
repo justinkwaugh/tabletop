@@ -64,6 +64,6 @@ test('the position panel describes the purchase and flotation in the same step',
     await page.getByRole('button', { name: 'step backwards', exact: true }).click()
     await page.getByRole('button', { name: 'step forwards', exact: true }).click()
     const panel = page.getByRole('region', { name: 'Current action', exact: true })
-    await expect(panel).toContainText('Bought')
+    await expect(panel).toContainText('bought')
     await expect(panel).toContainText('floated')
 })

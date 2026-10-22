@@ -66,7 +66,10 @@ export class EndOfGameStateHandler implements MachineStateHandler<
         gameState.activePlayerIds = []
     }
 
-    onAction(_action: EndOfGameAction, _context: MachineContext<HydratedBusGameState>): MachineState {
+    onAction(
+        _action: EndOfGameAction,
+        _context: MachineContext<HydratedBusGameState>
+    ): MachineState {
         switch (true) {
             // Leave this comment if you want the template to generate code for valid actions
             default: {

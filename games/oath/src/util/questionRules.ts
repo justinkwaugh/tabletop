@@ -3,12 +3,18 @@ import { burnFavor } from './burn.js'
 import { gainFavorFromBank, giveFavor, spendFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState, discardRegionFor } from '../model/gameState.js'
 import { SearchPlay } from '../model/oathEnums.js'
-import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
+import {
+    PowerQuestionKind,
+    RerolledRollKind,
+    type ShroudedWoodPick,
+    type ShroudedWoodTravel
+} from '../model/question.js'
 import { offerReroll, settleRoll } from './reroll.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
 import { cardPowers, type CardPower, type PowerUseKey } from '../data/cardPowers.js'
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
-import { regionOfPawn } from './pawn.js'
+import { pawnSiteId, regionOfPawn } from './pawn.js'
+import type { SiteFlip } from './hiddenInputs.js'
 import { rollDefenseShields } from '../data/dice.js'
 import {
     playCard,
@@ -43,16 +49,29 @@ import {
 } from './exchange.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
-import { reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
-import { reasonWoodPickRefused, settleWoodPick, shroudedWoodDestinations } from './shroudedWood.js'
+import { powerTravelNeedsFlip, reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
+import {
+    gainOnArrival,
+    reasonWoodPickRefused,
+    reasonWoodStayRefused,
+    settleWoodPick,
+    shroudedWoodDestinations,
+    wayStationChoiceAt,
+    type WoodSettle,
+    type WoodTravel
+} from './shroudedWood.js'
 import { settleBanishedVictory } from './campaignVictory.js'
 import {
     askPowerMoveToll,
     canPayPowerMoveToll,
+    giveWhistleSecret,
     powerMoveToll,
-    settlePowerMoveToll
+    settlePowerMoveFlip,
+    settlePowerMoveToll,
+    whistleUserOnArrival
 } from './powerMoveTolls.js'
 import { payToll } from './tolls.js'
+import { flipSecretFacedown, reasonFlipInvalid } from './siteTravel.js'
 import { gainFromDrum, reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { forgoFreeActionNow } from './freeActions.js'
@@ -62,6 +81,118 @@ import {
     holdTurnForSkippedFreeAction
 } from './sneakAttack.js'
 import { ActionType } from '../definition/actions.js'
+import { MachineState } from '../definition/states.js'
+
+/**
+ * The Travel out of a Shrouded Wood has landed. Second Wind out of turn judges its free Campaign
+ * from here and ends nothing else; in the traveller's own turn a declared Special Envoy ends their
+ * Act Phase (R-11.7-H2), as on any Travel.
+ */
+function woodTravelLanded(
+    state: HydratedOathGameState,
+    travelerId: string,
+    endsActPhase: boolean
+): { resumeMachineState?: MachineState } {
+    if (state.heldTurn !== undefined) return endTravelOutOfTurn(state, travelerId)
+    if (!endsActPhase) return {}
+    if (state.pendingQuestions) state.pendingQuestions.resumeMachineState = MachineState.RestPhase
+    return { resumeMachineState: MachineState.RestPhase }
+}
+
+interface WoodArrival {
+    travelerId: string
+    siteId: string
+    travel: ShroudedWoodTravel
+    /** The Shrouded Wood's ruler, who picked the site. */
+    chooserId: string
+    askingPlayerId: string
+}
+
+/** The pick has landed the traveller: what it records, and how the step goes on. */
+interface WoodLanding {
+    pick: ShroudedWoodPick
+    revealed?: SiteFlip
+    landed: { resumeMachineState?: MachineState }
+}
+
+/**
+ * R-11.7, R-11.7-H2 — the traveller pays and arrives (`settleWoodPick`); then a declared
+ * Hospitality's bank: one is gained unasked (the question's forced outcome, noted with the pick),
+ * and with two or more the traveller is asked, and the Travel lands with their answer.
+ */
+function landFromWood(
+    state: HydratedOathGameState,
+    travelerId: string,
+    siteId: string,
+    travel: WoodTravel,
+    settle: WoodSettle,
+    askingPlayerId: string
+): WoodLanding {
+    const settled = settleWoodPick(state, travelerId, siteId, travel, settle)
+    const { revealed, endsActPhase, bankOnArrival } = settled
+    let pick = settled.pick
+    if (bankOnArrival) {
+        const forced = askQuestion(
+            state,
+            askingPlayerId,
+            {
+                kind: PowerQuestionKind.HospitalityBank,
+                ...bankOnArrival.card,
+                askedPlayerId: travelerId,
+                siteId,
+                banks: bankOnArrival.banks,
+                ...(endsActPhase ? { endsActPhase: true as const } : {})
+            },
+            true
+        )
+        if (forced === undefined) return { pick, revealed, landed: {} }
+        pick = { ...pick, notes: [...(pick.notes ?? []), forced] }
+    }
+    return { pick, revealed, landed: woodTravelLanded(state, travelerId, endsActPhase) }
+}
+
+/**
+ * R-11.7, R-11.7-H3 — the ruler's pick for the traveller's own Travel lands, any Toll Roads toll
+ * paid: Way Station's favor is asked when the traveller could pay either way, given unasked when
+ * only it is open, and otherwise the Supply is paid. Undefined: the Way Station question waits.
+ */
+function arriveFromWood(
+    state: HydratedOathGameState,
+    { travelerId, siteId, travel, chooserId, askingPlayerId }: WoodArrival
+): WoodLanding | undefined {
+    const station = wayStationChoiceAt(state, travelerId, siteId, travel)
+    if (station?.supplyPayable) {
+        const forced = askQuestion(
+            state,
+            askingPlayerId,
+            {
+                kind: PowerQuestionKind.WayStationFavor,
+                cardId: station.toll.cardId,
+                askedPlayerId: travelerId,
+                payeeId: station.toll.payeeId,
+                chooserPlayerId: chooserId,
+                fromSiteId: pawnSiteId(state, travelerId),
+                siteId,
+                supplyCost: station.supplyCost,
+                travel
+            },
+            true
+        )
+        assert(
+            forced === undefined,
+            'Way Station is asked only of a traveller who can give the favor'
+        )
+        return undefined
+    }
+    return landFromWood(
+        state,
+        travelerId,
+        siteId,
+        travel,
+        { favorInstead: station?.toll },
+        askingPlayerId
+    )
+}
 
 function listOf(id: string | undefined): string[] {
     return id === undefined ? [] : [id]
@@ -324,16 +455,35 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     [PowerQuestionKind.ShroudedWoodDestination]: {
         reasonCannotAnswer: (state, _playerId, matched) => {
             const { travelerPlayerId, fromSiteId, travel } = matched.question
-            const siteId = matched.answer.siteId
+            const { siteId, stay } = matched.answer
+            if (stay && siteId !== undefined) {
+                return `name a site or keep ${travelerPlayerId} in place, not both`
+            }
+            // R-11.7-H2 — kept in place only when nothing is payable without the declared cards.
+            if (stay) return reasonWoodStayRefused(state, travelerPlayerId, travel)
+            if (siteId === undefined) return `name the site ${travelerPlayerId} travels to`
             // R-11.7 — the traveller's own Travel goes only where they can pay.
-            if (travel) return reasonWoodPickRefused(state, travelerPlayerId, siteId, travel.free)
+            if (travel) return reasonWoodPickRefused(state, travelerPlayerId, siteId, travel)
+            // R-11.7-H1 — after the Brass Horse, only among the sites its suit allows (its Q&A).
+            const allowed = matched.question.power?.siteIds
+            if (allowed && !allowed.includes(siteId)) {
+                return `${siteId} is not one of the sites the Brass Horse named`
+            }
             return shroudedWoodDestinations(state, travelerPlayerId, fromSiteId).includes(siteId)
                 ? undefined
                 : `${siteId} is not a site ${travelerPlayerId} can be sent to`
         },
         apply: (state, playerId, matched, _asked, askingPlayerId) => {
-            const { travelerPlayerId, travel } = matched.question
+            const { travelerPlayerId, fromSiteId, travel, power } = matched.question
             const siteId = matched.answer.siteId
+            if (siteId === undefined) {
+                // R-11.7-H2 — the Travel is spent and its cards stay paid; no Supply is spent.
+                return {
+                    summary: `kept ${travelerPlayerId} at ${fromSiteId}`,
+                    woodStay: { travelerPlayerId, siteId: fromSiteId },
+                    ...endTravelOutOfTurn(state, travelerPlayerId)
+                }
+            }
             const toll = powerMoveToll(state, travelerPlayerId, siteId)
             if (travel && toll) {
                 // R-11.7, Toll Roads — the toll is asked before any Supply: paid, the Travel settles.
@@ -352,16 +502,17 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 return { summary: `chose ${siteId} for ${travelerPlayerId}`, tollMove }
             }
             if (travel) {
-                const { pick, revealed } = settleWoodPick(
-                    state,
-                    travelerPlayerId,
+                const arrived = arriveFromWood(state, {
+                    travelerId: travelerPlayerId,
                     siteId,
-                    travel.free
-                )
+                    travel,
+                    chooserId: playerId,
+                    askingPlayerId
+                })
+                if (arrived === undefined) return `chose ${siteId} for ${travelerPlayerId}`
+                const { pick, revealed, landed } = arrived
                 const notes = pick.notes ?? []
                 const summary = `sent ${travelerPlayerId} to ${siteId}, who paid ${pick.supplySpent} Supply${notes.length ? ` (${notes.join('; ')})` : ''}`
-                // Second Wind out of turn — the pawn has landed, so the free Campaign is judged from here.
-                const landed = endTravelOutOfTurn(state, travelerPlayerId)
                 return revealed
                     ? { summary, woodPick: pick, disclosed: true, ...landed }
                     : { summary, woodPick: pick, ...landed }
@@ -369,9 +520,11 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (toll) {
                 const move = {
                     move: PowerMoveKind.ShroudedWood,
+                    powerCardId: power?.powerCardId,
                     moverPlayerId: playerId,
                     movedPlayerId: travelerPlayerId,
-                    toSiteId: siteId
+                    toSiteId: siteId,
+                    power
                 }
                 const tollMove = askPowerMoveToll(state, move, toll, askingPlayerId, true)
                 const summary = `chose ${siteId} for ${travelerPlayerId}`
@@ -384,7 +537,18 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 playerId: askingPlayerId,
                 next: true
             })
-            const summary = `sent ${travelerPlayerId} to ${siteId}${notes.length ? ` (${notes.join('; ')})` : ''}`
+            // Whistle — its secret only for a pawn the pick brought to its user's site.
+            const whistler = whistleUserOnArrival(state, {
+                move: PowerMoveKind.ShroudedWood,
+                moverPlayerId: playerId,
+                siteId,
+                power
+            })
+            const given =
+                whistler === undefined ? 0 : giveWhistleSecret(state, whistler, travelerPlayerId)
+            const secret =
+                given > 0 ? `; ${travelerPlayerId} took ${given} secret from the Whistle` : ''
+            const summary = `sent ${travelerPlayerId} to ${siteId}${notes.length ? ` (${notes.join('; ')})` : ''}${secret}`
             // R-5.5.7.III, R-5.5.8 — a banish's burn, plans and end follow the move.
             return {
                 summary,
@@ -402,22 +566,32 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!canPayPowerMoveToll(state, playerId, siteId)) {
                 return `travelling to ${siteId} takes a favor for its toll and you have none`
             }
-            return reasonCannotTravelByPower(state, playerId, siteId)
+            const unable = reasonCannotTravelByPower(state, playerId, siteId)
+            if (unable) return unable
+            // R-11.13-H1 — the user's own flip rides the answer, for a site that asks for one only.
+            const needsFlip = powerTravelNeedsFlip(state, playerId, siteId)
+            if (needsFlip && !matched.answer.flipSecret) {
+                return `travelling to ${siteId} takes a faceup secret flipped facedown`
+            }
+            return reasonFlipInvalid(state, playerId, needsFlip, matched.answer.flipSecret === true)
         },
         apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const siteId = matched.answer.siteId
             // Toll Roads — Brass Horse's user travels, so they pay as they go.
             const toll = powerMoveToll(state, playerId, siteId)
             if (toll) payToll(state, playerId, toll)
+            const flipped = matched.answer.flipSecret === true
+            if (flipped) flipSecretFacedown(state, playerId)
             const { notes } = travelByPower(state, playerId, siteId, {
                 playerId: askingPlayerId,
                 next: true
             })
             const after = notes.length ? ` (${notes.join('; ')})` : ''
-            if (!toll) return `travelled to ${siteId} for no Supply${after}`
+            const travelled = `${flipped ? 'flipped a secret facedown and travelled' : 'travelled'} to ${siteId} for no Supply`
+            if (!toll) return `${travelled}${after}`
             // The History's form for a toll inside a row: what was paid, then the card.
             const paid = toll.payeeId ? `paid ${toll.payeeId}` : 'burned'
-            return `travelled to ${siteId} for no Supply; ${paid} 1 favor (${toll.cardId})${after}`
+            return `${travelled}; ${paid} 1 favor (${toll.cardId})${after}`
         }
     },
     [PowerQuestionKind.RerollDice]: {
@@ -602,7 +776,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 ? `paying takes 1 favor and you have ${usable}`
                 : undefined
         },
-        apply: (state, _playerId, matched) => {
+        apply: (state, _playerId, matched, _asked, askingPlayerId) => {
             const { question } = matched
             const tollMove = settlePowerMoveToll(state, question, matched.answer.pay)
             const paid = `${question.payeeId ? `paid ${question.payeeId}` : 'burned'} 1 favor and went to ${question.siteId}`
@@ -618,13 +792,20 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             }
             if (!question.travel)
                 return { summary: paid, tollMove, ...settleBanishedVictory(state) }
-            // R-11.7 — the toll paid, the Travel pays the Wood's Supply folded for the site, then Tyrant and the site's powers.
-            const { pick, revealed } = settleWoodPick(
-                state,
-                question.askedPlayerId,
-                question.siteId,
-                question.travel.free
-            )
+            // R-11.7 — the toll paid, the Travel pays the Wood's Supply folded for the site (or Way
+            // Station's favor, R-11.7-H3), then Tyrant and the site's powers.
+            const arrived = arriveFromWood(state, {
+                travelerId: question.askedPlayerId,
+                siteId: question.siteId,
+                travel: question.travel,
+                chooserId: question.moverPlayerId,
+                askingPlayerId
+            })
+            if (arrived === undefined) {
+                const toWhom = question.payeeId ? `paid ${question.payeeId}` : 'burned'
+                return { summary: `${toWhom} 1 favor for ${question.cardId}`, tollMove }
+            }
+            const { pick, revealed, landed } = arrived
             assert(
                 revealed === undefined,
                 'Toll Roads asks only for a site its ruler rules, and a ruled site is faceup'
@@ -633,7 +814,86 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 summary: `${paid}, paying ${pick.supplySpent} Supply`,
                 tollMove,
                 woodPick: pick,
-                ...endTravelOutOfTurn(state, question.askedPlayerId)
+                ...landed
+            }
+        }
+    },
+    [PowerQuestionKind.FlipToTravel]: {
+        reasonCannotAnswer: (state, playerId, matched) =>
+            matched.answer.flip ? reasonFlipInvalid(state, playerId, true, true) : undefined,
+        apply: (state, _playerId, matched, _asked, askingPlayerId) => {
+            const { question } = matched
+            // R-11.13-H1 — no flip, no travel: the pawn stays; a banish's burn, plans and end follow.
+            if (!matched.answer.flip) {
+                return {
+                    summary: `kept their secrets and stayed at ${question.fromSiteId}`,
+                    ...settleBanishedVictory(state)
+                }
+            }
+            const settled = settlePowerMoveFlip(state, question, askingPlayerId)
+            if ('tollMove' in settled) {
+                // Toll Roads follows; the secret is flipped once the toll is paid.
+                const summary = `chose to flip a secret to travel to ${question.siteId}`
+                return settled.tollMove.outcome === PowerMoveTollOutcome.Asked
+                    ? summary
+                    : { summary, tollMove: settled.tollMove, ...settleBanishedVictory(state) }
+            }
+            const { notes, revealed, secretsTaken } = settled.arrived
+            const secret = secretsTaken ? `, taking ${secretsTaken} secret from the Whistle` : ''
+            const after = notes.length ? ` (${notes.join('; ')})` : ''
+            return {
+                summary: `flipped a secret facedown and travelled to ${question.siteId}${secret}${after}`,
+                disclosed: revealed ? true : undefined,
+                ...settleBanishedVictory(state)
+            }
+        }
+    },
+    [PowerQuestionKind.WayStationFavor]: {
+        reasonCannotAnswer: (state, playerId, matched) => {
+            if (matched.answer.give) {
+                const usable = usableFavor(state, playerId)
+                return usable < 1 ? `giving takes 1 favor and you have ${usable}` : undefined
+            }
+            const supply = state.getPlayerState(playerId).supply
+            const cost = matched.question.supplyCost
+            return supply < cost ? `paying takes ${cost} Supply and you have ${supply}` : undefined
+        },
+        apply: (state, playerId, matched, _asked, askingPlayerId) => {
+            const { question } = matched
+            // R-11.7-H3 — either answer travels: the favor and no Supply, or the Supply.
+            const favorInstead = matched.answer.give
+                ? { cardId: question.cardId, payeeId: question.payeeId }
+                : undefined
+            const { pick, revealed, landed } = landFromWood(
+                state,
+                playerId,
+                question.siteId,
+                question.travel,
+                { favorInstead, chooserPlayerId: question.chooserPlayerId },
+                askingPlayerId
+            )
+            assert(revealed === undefined, 'Way Station stands at a faceup site')
+            const how = favorInstead
+                ? `${question.payeeId ? `paid ${question.payeeId}` : 'burned'} 1 favor`
+                : `paid ${pick.supplySpent} Supply`
+            return { summary: `${how} and went to ${question.siteId}`, woodPick: pick, ...landed }
+        }
+    },
+    [PowerQuestionKind.HospitalityBank]: {
+        reasonCannotAnswer: (_state, _playerId, matched) => {
+            const { banks, siteId } = matched.question
+            return banks.includes(matched.answer.suit)
+                ? undefined
+                : `${matched.answer.suit} is not a bank Hospitality matches at ${siteId}: choose ${banks.join(' or ')}`
+        },
+        apply: (state, playerId, matched) => {
+            const { question } = matched
+            const card = { cardId: question.cardId, powerIndex: question.powerIndex }
+            // R-11.7-H2 — "gain [favor] from one favor bank": the one the traveller chose.
+            const notes = gainOnArrival(state, playerId, card, matched.answer.suit, question.siteId)
+            return {
+                summary: notes.join('; '),
+                ...woodTravelLanded(state, playerId, question.endsActPhase === true)
             }
         }
     },

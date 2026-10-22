@@ -28,5 +28,5 @@ export const LowenherzStateHandlers: Record<
     [MachineState.PlacingWalls]: new PlacingWallsStateHandler(),
     [MachineState.PlacingKnights]: new PlacingKnightsStateHandler(),
     [MachineState.TakingPoliticsCard]: new TakingPoliticsCardStateHandler(),
-    [MachineState.EndOfGame]: new EndOfGameStateHandler(),
+    [MachineState.EndOfGame]: new EndOfGameStateHandler()
 }

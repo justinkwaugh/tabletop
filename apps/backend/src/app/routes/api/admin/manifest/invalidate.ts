@@ -1,7 +1,6 @@
 import { FastifyInstance } from 'fastify'
-import type { AppOptions } from '../../../../app.js'
 
-export default async function (fastify: FastifyInstance, opts: AppOptions) {
+export default async function (fastify: FastifyInstance) {
     fastify.post(
         '/invalidate',
         {
@@ -11,9 +10,10 @@ export default async function (fastify: FastifyInstance, opts: AppOptions) {
         },
         async function () {
             await fastify.libraryService.invalidateManifestCache()
-            await fastify.libraryService.refreshManifest()
-            // Held open until a replacement the new manifest asked for ends; see ReplacementRequest.
-            return { status: 'ok', replacement: await opts.replacement.outcome() }
+            // Cloud Run gives an instance CPU only while a request is open, so the activation
+            // the new manifest asks for runs inside this one and its outcome is reported.
+            await fastify.libraryService.refreshAndActivate()
+            return { status: 'ok', replacement: 'none', activation: 'complete' }
         }
     )
 }

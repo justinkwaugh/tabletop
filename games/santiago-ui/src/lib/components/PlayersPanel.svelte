@@ -24,8 +24,8 @@
     // highlight, not by moving rows around.
     const sortedPlayers = $derived(
         state.seatOrder
-            .map(id => state.players.find(p => p.playerId === id))
-            .filter(p => p !== undefined)
+            .map((id) => state.players.find((p) => p.playerId === id))
+            .filter((p) => p !== undefined)
     )
 </script>
 
@@ -37,19 +37,28 @@
         {@const isPreviousOverseer = previousOverseerId === p.playerId}
         {@const color = session.colors.getPlayerUiColor(p.playerId)}
         {@const textColor = session.colors.getPlayerTextColor(p.playerId)}
-        {@const passedPersonalCanal = state.machineState === MachineState.ExtraIrrigation &&
-            p.hasPersonalCanal && state.extraIrrigationPassed.includes(p.playerId)}
-        {@const nameShadow = textColor === 'text-black'
-            ? '0 1px 0 rgba(255,255,255,0.5)'
-            : '0 1px 2px rgba(0,0,0,0.6)'}
+        {@const passedPersonalCanal =
+            state.machineState === MachineState.ExtraIrrigation &&
+            p.hasPersonalCanal &&
+            state.extraIrrigationPassed.includes(p.playerId)}
+        {@const nameShadow =
+            textColor === 'text-black'
+                ? '0 1px 0 rgba(255,255,255,0.5)'
+                : '0 1px 2px rgba(0,0,0,0.6)'}
         <div
-            class="paper-texture rounded-lg overflow-hidden {isActive ? 'border-[5px] pulse-border' : 'border-[5px]'}"
+            class="paper-texture rounded-lg overflow-hidden {isActive
+                ? 'border-[5px] pulse-border'
+                : 'border-[5px]'}"
             style={isActive ? '' : `border-color: ${color}`}
         >
             <!-- Colored name bar -->
-            <div class="font-heading px-[10px] py-[7px] flex items-center gap-[7px] font-bold uppercase tracking-widest {textColor} text-[15px]"
-                 style="background-color: {color}">
-                <span class="truncate min-w-0 flex-1 text-[18px]" style="text-shadow: {nameShadow}">{session.getPlayerName(p.playerId)}</span>
+            <div
+                class="font-heading px-[10px] py-[7px] flex items-center gap-[7px] font-bold uppercase tracking-widest {textColor} text-[15px]"
+                style="background-color: {color}"
+            >
+                <span class="truncate min-w-0 flex-1 text-[18px]" style="text-shadow: {nameShadow}"
+                    >{session.getPlayerName(p.playerId)}</span
+                >
                 {#if isOverseer}
                     <OverseerPill />
                 {:else if isPreviousOverseer}
@@ -57,24 +66,36 @@
                 {/if}
                 {#if isPlanting && p.bid !== undefined}
                     <span class="ml-auto shrink-0 flex items-center gap-1">
-                        <span class="font-ui text-[9px] uppercase tracking-wide opacity-70">Bid</span>
+                        <span class="font-ui text-[9px] uppercase tracking-wide opacity-70"
+                            >Bid</span
+                        >
                         <MoneyBadge amount={p.bid} />
                     </span>
                 {/if}
             </div>
             <!-- Dark content area -->
-            <div class="px-3 py-2.5 bg-stone-800 flex justify-between items-center text-lg text-white">
-                <span class="text-green-300">⭐ {isEndOfGame ? p.score : (liveScores[p.playerId] ?? 0)}</span>
+            <div
+                class="px-3 py-2.5 bg-stone-800 flex justify-between items-center text-lg text-white"
+            >
+                <span class="text-green-300"
+                    >⭐ {isEndOfGame ? p.score : (liveScores[p.playerId] ?? 0)}</span
+                >
                 <div class="flex flex-col items-center gap-0">
                     <div class="relative">
                         <CanalIcon dim={!p.hasPersonalCanal} />
                         {#if passedPersonalCanal}
-                            <span class="absolute inset-0 flex items-center justify-center leading-none text-[14px] uppercase tracking-wide text-white/70"
-                                  style="text-shadow: 0 1px 2px rgba(0,0,0,0.85); transform: translateY(-4px)">Passed</span>
+                            <span
+                                class="absolute inset-0 flex items-center justify-center leading-none text-[14px] uppercase tracking-wide text-white/70"
+                                style="text-shadow: 0 1px 2px rgba(0,0,0,0.85); transform: translateY(-4px)"
+                                >Passed</span
+                            >
                         {/if}
                     </div>
                     {#if p.hasPersonalCanal}
-                        <span class="font-ui -mt-1 text-[10px] text-stone-400 uppercase tracking-wide whitespace-nowrap">Personal canal</span>
+                        <span
+                            class="font-ui -mt-1 text-[10px] text-stone-400 uppercase tracking-wide whitespace-nowrap"
+                            >Personal canal</span
+                        >
                     {/if}
                 </div>
                 <MoneyBadge amount={p.money} hidden={!isMe && !publicMoney && !isEndOfGame} />

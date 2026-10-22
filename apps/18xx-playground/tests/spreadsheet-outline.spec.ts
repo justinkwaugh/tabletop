@@ -17,7 +17,7 @@ for (const browserName of ['chromium', 'firefox'] as const) {
                     element.parentElement?.style.setProperty('--rail-focus', '#ff00ff')
                 )
                 for (const width of [1600, 1250, 1600, 1250]) {
-                    await page.setViewportSize({ width, height: 1000 })
+                    await page.setViewportSize({ width, height: 1200 })
                     await expect(async () => {
                         const points = await table.evaluate((element) => {
                             const bounds = element.getBoundingClientRect()

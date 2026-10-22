@@ -16,11 +16,7 @@ import {
     ProductionCompany,
     ShippingCompany
 } from '../components/company.js'
-import {
-    AreaType,
-    CultivatedArea,
-    isSeaArea,
-} from '../components/area.js'
+import { AreaType, CultivatedArea, isSeaArea } from '../components/area.js'
 import { CompanyType } from '../definition/companyType.js'
 import { queueRemovalForUnstartableAvailableDeeds } from '../operations/deedAvailability.js'
 import { chooseNewShippingStyle } from '../utils/shippingStyles.js'
@@ -131,7 +127,11 @@ export class HydratedStartCompany
             return false
         }
 
-        for (const validAreaId of HydratedStartCompany.validAreaIds(state, this.playerId, deed.id)) {
+        for (const validAreaId of HydratedStartCompany.validAreaIds(
+            state,
+            this.playerId,
+            deed.id
+        )) {
             if (validAreaId === this.areaId) {
                 return true
             }

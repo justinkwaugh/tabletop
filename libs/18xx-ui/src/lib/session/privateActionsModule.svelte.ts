@@ -28,6 +28,8 @@ export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: str
         | {
               kind: 'location'
               locationIds: readonly string[]
+              /** Offers the power in the station step as a button with this label. */
+              stationStepLabel?: string
               /** Chooses a hex, with the city or town clicked within it when there was one. */
               choose(locationId: string, nodeId?: string): Promise<void>
           }
@@ -162,6 +164,10 @@ export class PrivateActionsModule implements LocalSelection {
 
     choosePowers() {
         this.chooseSource('powers')
+    }
+    // Buying from another player is rare, so purchases open on the player's own privates.
+    openPurchases() {
+        this.chooseSource('mine')
     }
     choosePurchaseSource(source: 'mine' | 'other') {
         this.chooseSource(source)

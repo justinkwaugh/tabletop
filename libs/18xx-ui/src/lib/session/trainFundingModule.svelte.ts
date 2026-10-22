@@ -42,6 +42,12 @@ export class TrainFundingModule {
     purchases = $derived.by(() =>
         this.session.state.machineState === 'BuyingTrains' ? (this.model?.purchases() ?? []) : []
     )
+    /** Whether the help is optional, offered to a company that already owns a train. */
+    voluntary = $derived.by(() => {
+        const companyId =
+            this.session.state.trainFunding?.purchase.companyId ?? this.purchases[0]?.companyId
+        return !!companyId && !!this.model?.voluntary(companyId)
+    })
     choice = $derived.by(() =>
         this.session.state.machineState === 'FundingTrain' ? this.model?.next() : undefined
     )
@@ -63,6 +69,12 @@ export class TrainFundingModule {
             )
     )
     purchase = $derived.by(() => this.session.state.trainFunding?.purchase ?? this.purchases[0])
+    options = $derived.by(() => {
+        const model = this.model
+        return model && !this.session.state.trainFunding
+            ? this.purchases.map((purchase) => ({ purchase, plan: model.preview(purchase) }))
+            : []
+    })
     plan = $derived.by(() => (this.purchase ? this.model?.preview(this.purchase) : undefined))
     sales = $derived.by(() => (this.plan?.choice.kind === 'sell' ? this.plan.choice.sales : []))
     private actionsSinceFunding = $derived.by(() => {
@@ -90,6 +102,11 @@ export class TrainFundingModule {
             })
         )
         await this.completeCashFunding(buy)
+    }
+    async fundOption(purchase: TrainPurchaseDetails) {
+        const option = this.options.find((option) => option.purchase === purchase)
+        assert(option, 'Choose a fundable train')
+        await this.fund(purchase, !option.plan.requiresSales)
     }
     async resolve(sale?: ShareSaleDetails) {
         if (sale)

@@ -103,30 +103,46 @@ describe('a run of favor picks: the banks it may name and what it comes to', () 
         expect(offered).toHaveLength(24)
         for (const legal of offered) {
             expect(legal.total).toBe(3)
-            expect(legal.options).not.toContainEqual({ kind: PowerChoiceKind.FavorBank, suit: Suit.Beast })
+            expect(legal.options).not.toContainEqual({
+                kind: PowerChoiceKind.FavorBank,
+                suit: Suit.Beast
+            })
             expect(legal.options).toHaveLength(5)
         }
     })
 
     it('Memory of Nature: all the other banks hold when they hold fewer than X', () => {
-        const scarce = { ...BANKS, [Suit.Order]: 0, [Suit.Hearth]: 0, [Suit.Arcane]: 0, [Suit.Discord]: 1 }
+        const scarce = {
+            ...BANKS,
+            [Suit.Order]: 0,
+            [Suit.Hearth]: 0,
+            [Suit.Arcane]: 0,
+            [Suit.Discord]: 1
+        }
         const [legal] = offeredChoices(table({}, { favorBank: scarce }), 'dana', MEMORY)
         expect(legal?.total).toBe(1)
     })
 
     it('reads no total for a power without a run', () => {
-        expect(offeredChoices(table(), 'dana', BRACKEN).map((legal) => legal.total)).toEqual([undefined, undefined])
+        expect(offeredChoices(table(), 'dana', BRACKEN).map((legal) => legal.total)).toEqual([
+            undefined,
+            undefined
+        ])
     })
 })
 
 describe('the "or": its second branch, marked; offered only while it does anything', () => {
     it('Forgotten Vault, Mountain Giant and Bracken mark their yes as the second branch', () => {
         for (const cardPower of [VAULT, GIANT, BRACKEN]) {
-            const yes = legalChoices(table(), 'dana', cardPower).find((legal) => legal.spec.kind === PowerChoiceKind.Yes)
+            const yes = legalChoices(table(), 'dana', cardPower).find(
+                (legal) => legal.spec.kind === PowerChoiceKind.Yes
+            )
             expect(yes?.spec.or).toBe(true)
         }
         for (const cardPower of [HEIR, BEWITCH, AMBITIONS, PACT]) {
-            const yes = legalChoices(table(), 'dana', cardPower).find((legal) => legal.spec.kind === PowerChoiceKind.Yes)
+            const yes = legalChoices(table(), 'dana', cardPower).find(
+                (legal) => legal.spec.kind === PowerChoiceKind.Yes
+            )
             expect(yes?.spec.or).toBeUndefined()
         }
     })
@@ -140,8 +156,12 @@ describe('the "or": its second branch, marked; offered only while it does anythi
 
     it('the doorway still judges a Burn sent at the last secret as before', () => {
         const last = table({}, { banners: testBanners({ [Banner.DarkestSecret]: 'rhys' }, 1) })
-        expect(reasonChoicesInvalid(last, 'dana', VAULT, [{ kind: PowerChoiceKind.Yes }])).toBeUndefined()
-        expect(legalChoices(last, 'dana', VAULT)[0]?.options).toEqual([{ kind: PowerChoiceKind.Yes }])
+        expect(
+            reasonChoicesInvalid(last, 'dana', VAULT, [{ kind: PowerChoiceKind.Yes }])
+        ).toBeUndefined()
+        expect(legalChoices(last, 'dana', VAULT)[0]?.options).toEqual([
+            { kind: PowerChoiceKind.Yes }
+        ])
     })
 })
 
@@ -171,8 +191,14 @@ describe('the "may": offered only when the card would let the seat take it', () 
 
     it('Ancient Pact: the yes and its relic to an Exile who holds the Darkest Secret', () => {
         const reliquary = { reliquary: [{ slotId: 'reliquary.0' }] }
-        const holds = table({}, { ...reliquary, banners: testBanners({ [Banner.DarkestSecret]: 'dana' }) })
-        expect(options(PACT, holds)).toEqual([yes, [{ kind: PowerChoiceKind.RelicSlot, slotId: 'reliquary.0' }]])
+        const holds = table(
+            {},
+            { ...reliquary, banners: testBanners({ [Banner.DarkestSecret]: 'dana' }) }
+        )
+        expect(options(PACT, holds)).toEqual([
+            yes,
+            [{ kind: PowerChoiceKind.RelicSlot, slotId: 'reliquary.0' }]
+        ])
         expect(options(PACT, table({}, reliquary))).toEqual([[], []])
     })
 

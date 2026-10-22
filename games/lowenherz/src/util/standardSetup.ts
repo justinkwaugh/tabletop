@@ -18,7 +18,11 @@ const TILE_SIZE = 5
 // The "basic game" board is always laid out the same way - tiles read A B C / D E F,
 // top-left to bottom-right, each at its printed (unrotated) orientation. Only the
 // variable-construction rules mix and rotate the tiles randomly (see assembleBoard()).
-const STANDARD_TILE_ORDER: { id: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'; tileCol: number; tileRow: number }[] = [
+const STANDARD_TILE_ORDER: {
+    id: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
+    tileCol: number
+    tileRow: number
+}[] = [
     { id: 'A', tileCol: 0, tileRow: 0 },
     { id: 'B', tileCol: 1, tileRow: 0 },
     { id: 'C', tileCol: 2, tileRow: 0 },
@@ -106,7 +110,12 @@ const CORNER_SETUPS: CornerSetup[] = [
 // All the walls needed to fully enclose one rectangle - the board's own outer edge is
 // already an implicit wall (see isWalledBetween) and is never stored, so an edge of the
 // rectangle that lies on the board boundary is simply skipped.
-function rectangleWalls(rect: { colMin: number; colMax: number; rowMin: number; rowMax: number }): Wall[] {
+function rectangleWalls(rect: {
+    colMin: number
+    colMax: number
+    rowMin: number
+    rowMax: number
+}): Wall[] {
     const walls: Wall[] = []
     const { colMin, colMax, rowMin, rowMax } = rect
 

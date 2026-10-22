@@ -165,9 +165,13 @@ partial operation and requires inspecting the reported traffic state.
 Backend deployments configure HTTP startup, readiness and liveness probes on
 port 8081 at `/__health/ready`, separately from the HTTP/2 ingress. The endpoint
 requires the public listener and an answering child. Session affinity is disabled
-because it bypasses failed readiness checks. Startup allows 240 seconds, readiness
-fails after one unsuccessful two-second check, and liveness allows roughly two
-minutes for child recovery. The public `/__health/ready` endpoint also exposes the
+because it bypasses failed readiness checks. Startup allows 240 seconds and liveness
+roughly two minutes for child recovery. Readiness fails after three unsuccessful checks,
+every 5 seconds on the backend, so a stall shorter than about 15 seconds does not start
+another instance; tasks runs one instance and is checked every 30 seconds. Each health
+check that waits more than a second for the child logs `worker_stall` with how long it
+waited, which is the signal to watch for worker stalls. A child that announced it is
+loading game logic is vouched for for up to 30 seconds. The public `/__health/ready` endpoint also exposes the
 child check for direct revision verification. These checks require the supervised
 backend image; selecting an existing older revision retains that revision's own
 probe settings.
@@ -216,6 +220,27 @@ deploy-backend [--no-traffic] [--service=backend|tasks]
 promote-backend [--service=backend|tasks]
                              Shift traffic to the latest revision after a --no-traffic deploy
 rollback-backend [revision] [--service=backend|tasks]  Restore an earlier ready revision
+migrate-logic-artifacts [--game=<id>] [--apply]  Add index.cjs beside published logic that lacks it
+```
+
+## Title logic activation
+
+A logic build emits `index.cjs`, the bundle as a collectible CommonJS factory, beside the ESM
+bundle. The backend activates a new logic selection inside its running worker and compiles the
+title's request validators with TypeBox on first use: the invalidation request holds the connection
+open until the instance it reaches has activated and answers `activation: "complete"`; every other
+instance activates during its next request, which waits for the load. No process is replaced and
+no UI republish is needed for a logic change. See
+[ADR 0011](../../docs/adr/0011-game-logic-runs-as-collectible-factories.md).
+
+Artifacts published before the build emitted the factory are imported the old way and stay
+resident until the worker restarts. `migrate-logic-artifacts` lists each title's current logic
+version that lacks it and, with `--apply`, builds it from the published ESM bundle and uploads it
+beside it. Rollback targets are left alone; a release republishes them with the factory anyway:
+
+```
+tabletop-deploy migrate-logic-artifacts            # plan only
+tabletop-deploy migrate-logic-artifacts --apply    # build and upload the missing factories
 ```
 
 ## Configuration

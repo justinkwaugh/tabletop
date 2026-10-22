@@ -2,14 +2,13 @@ import {
     AuctionFields,
     composeEighteenXXState,
     defineEighteenXXState,
-    OwnershipExemptionFields,
     PendingParFields,
     PrivatePowerFields,
     RailwayFields,
     RailwayMachineStates,
+    railwayStateValidation,
     StockTurnPurchaseFields,
     validatePendingPar,
-    validateRailwayState,
     validateWaterfallAuction,
     WaterfallAuctionMachineStates,
     type EighteenXXStateHandler,
@@ -31,7 +30,6 @@ export const EighteenThirtyTwoState = composeEighteenXXState(
         ...PendingParFields,
         ...StockTurnPurchaseFields,
         ...AuctionFields,
-        ...OwnershipExemptionFields,
         ...EighteenThirtyTwoTitleFields
     },
     [
@@ -46,7 +44,8 @@ export type EighteenThirtyTwoState = Type.Static<typeof EighteenThirtyTwoState>
 export type HydratedEighteenThirtyTwoState = HydratedEighteenXXState<typeof EighteenThirtyTwoState>
 export type EighteenThirtyTwoStateHandler = EighteenXXStateHandler<HydratedEighteenThirtyTwoState>
 export const EighteenThirtyTwoStateDefinition = defineEighteenXXState(EighteenThirtyTwoState, [
-    validateRailwayState,
+    // A sale's price protection waits on presidents mid-turn, after the company's run.
+    railwayStateValidation({ operatingInterruptions: [ProtectingPriceState] }),
     validateWaterfallAuction,
     validatePendingPar
 ])

@@ -1,20 +1,20 @@
 <script lang="ts">
-    import { draftCompany, isBlank, priceFor } from '@tabletop/1846'
+    import { isBlank, priceFor } from '@tabletop/1846'
     import DraftCard from './DraftCard.svelte'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
     const state = $derived(session.gameState)
     const money = $derived(session.presentation.money)
-    const hiddenDraft = $derived(state.draft.kind === 'hidden' ? state.draft : undefined)
+    const hiddenDraft = $derived(state.draft?.kind === 'hidden' ? state.draft : undefined)
     const mine = $derived(
         hiddenDraft?.participants.find((player) => player.playerId === session.myPlayer?.id)
     )
     const choosers = $derived(state.activePlayerIds.map((id) => session.getPlayerName(id)))
-    const label = (id: string) => (isBlank(id) ? 'Pass' : draftCompany(id).name)
+    const label = (id: string) => (isBlank(id) ? 'Pass' : session.companyName(id))
 </script>
 
 {#if hiddenDraft}
-    <section class="draft" aria-label="Private company draft">
+    <section class="draft midwest-panel centered-panel" aria-label="Private company draft">
         <header class="draft-heading">
             <h2>{choosers.join(', ')} to choose</h2>
             <p>

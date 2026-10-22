@@ -7,10 +7,7 @@ import {
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedResearch, isResearch } from '../actions/research.js'
-import {
-    HydratedRemoveCompanyDeed,
-    isRemoveCompanyDeed
-} from '../actions/removeCompanyDeed.js'
+import { HydratedRemoveCompanyDeed, isRemoveCompanyDeed } from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { resolvePostOperationsState } from './operationsFlow.js'
@@ -109,8 +106,9 @@ export class ResearchAndDevelopmentStateHandler implements MachineStateHandler<
                 )
                 if (allPlayersResearched) {
                     state.phaseManager.endPhase(state.actionCount)
-                    const anyPlayerCanOperateCompany = state.turnManager.turnOrder.some((playerId) =>
-                        state.canPlayerOperateAnyCompanyInFreshOperationsPhase(playerId)
+                    const anyPlayerCanOperateCompany = state.turnManager.turnOrder.some(
+                        (playerId) =>
+                            state.canPlayerOperateAnyCompanyInFreshOperationsPhase(playerId)
                     )
                     if (!anyPlayerCanOperateCompany) {
                         if (state.canAnyCityGrow()) {

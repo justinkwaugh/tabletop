@@ -188,12 +188,15 @@ import { lossesOfAttack, type AttackLosses } from './attackLosses.js'
 import { arrowDrawingOf, attackMarkOf, type AttackMark } from './attackMark.js'
 import { fightOf, recordedAccounts, verdictOf, type ResultAccounts } from './resultAccount.js'
 import { turnTrails, type Trail } from './turnTrails.js'
+import { inGameOrder, ordersInGameOrder } from './gameOrder.js'
 import {
+    ATTACH,
     RideChoice,
     moveCommandOptions,
     moveOrder,
     reinforcementsOf,
     rideOnOrder,
+    type CommandChoice,
     type Reinforcement
 } from './moveCommands.js'
 import {
@@ -771,12 +774,33 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     commandOptions: CommandKind[] = $derived(this.ridingOn ? [] : this.commandsForUnitsInHand)
 
-    commandKind: CommandKind | undefined = $derived.by(() => {
+    /** The one unit in hand on its own, which Attach may take into another corps. */
+    unitAlone: ProjectedUnit | undefined = $derived.by(() => {
+        const [unitId, ...others] = this.wholeCorpsChosen ? [] : this.pickedUnitIds
+        return unitId !== undefined && others.length === 0
+            ? this.selectedGroup?.units.find((unit) => unit.id === unitId)
+            : undefined
+    })
+
+    attachTo: Commander[] = $derived(this.unitAlone ? this.attachOptions(this.unitAlone) : [])
+
+    commandChoices: CommandChoice[] = $derived.by(() => {
+        const attach: CommandChoice[] = this.attachTo.length > 0 ? [ATTACH] : []
+        return [...this.commandOptions, ...attach]
+    })
+
+    commandChoice: CommandChoice | undefined = $derived.by(() => {
         const chosen = chosenCommandOf(this.selection)
-        return chosen !== undefined && this.commandOptions.includes(chosen)
+        return chosen !== undefined && this.commandChoices.includes(chosen)
             ? chosen
             : this.commandOptions[0]
     })
+
+    attaching = $derived(this.commandChoice === ATTACH)
+
+    commandKind: CommandKind | undefined = $derived(
+        this.commandChoice === ATTACH ? undefined : this.commandChoice
+    )
 
     order: MoveOrder | undefined = $derived.by(() => {
         const group = this.selectedGroup
@@ -787,6 +811,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
         return group && kind !== undefined ? moveOrder(kind, group, this.pickedUnitIds) : undefined
     })
+
+    /** The command the switch shows: Attach, or the kind of the order, which riding on sets. */
+    commandInForce: CommandChoice | undefined = $derived(this.attaching ? ATTACH : this.order?.kind)
 
     private orderTargets: MoveTarget[] = $derived.by(() => {
         const playerId = this.myPlayerId
@@ -926,7 +953,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         return shownMovedInUnitStrip(unit, this.blockMarkContext)
     }
 
-    attachOptions(unit: ProjectedUnit): Commander[] {
+    private attachOptions(unit: ProjectedUnit): Commander[] {
         const playerId = this.myPlayerId
         if (!this.isCommanding || !playerId) {
             return []
@@ -1054,9 +1081,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
     }
 
-    chooseCommand(kind: CommandKind) {
-        if (kind !== this.commandKind && this.commandOptions.includes(kind)) {
-            this.stageCommand(setCommand(this.selection, kind))
+    chooseCommand(choice: CommandChoice) {
+        if (choice !== this.commandChoice && this.commandChoices.includes(choice)) {
+            this.stageCommand(setCommand(this.selection, choice))
         }
     }
 
@@ -1305,7 +1332,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stage = this.battleStage
         if (stage?.kind === StageKind.Defence && stage.defenders.length > 0 && !stage.problem) {
             await this.applyAction(
-                this.createPlayerAction(DeclareDefense, { unitIds: stage.defenders })
+                this.createPlayerAction(DeclareDefense, {
+                    unitIds: inGameOrder(this.gameState.units, stage.defenders)
+                })
             )
         }
     }
@@ -1337,7 +1366,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stage = this.battleStage
         if (stage?.kind === StageKind.Feint && stage.orders && stage.ends.includes(end)) {
             await this.applyAction(
-                this.createPlayerAction(DeclareFeint, { orders: stage.orders, end })
+                this.createPlayerAction(DeclareFeint, {
+                    orders: ordersInGameOrder(this.gameState.units, stage.orders),
+                    end
+                })
             )
         }
     }
@@ -1360,7 +1392,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (stage?.kind === StageKind.Declaration && stage.orders && !stage.problem) {
             await this.applyAction(
                 this.createPlayerAction(DeclareAttack, {
-                    orders: stage.orders,
+                    orders: ordersInGameOrder(this.gameState.units, stage.orders),
                     wide: stage.wide,
                     leaderIds: stage.leaders,
                     targetLeaderId: stage.target
@@ -1372,14 +1404,22 @@ export class NapoleonsTriumphGameSession extends GameSession<
     async moveIn() {
         const stage = this.battleStage
         if (stage?.kind === StageKind.Occupation && stage.orders && stage.mayMoveIn) {
-            await this.applyAction(this.createPlayerAction(Occupy, { orders: stage.orders }))
+            await this.applyAction(
+                this.createPlayerAction(Occupy, {
+                    orders: ordersInGameOrder(this.gameState.units, stage.orders)
+                })
+            )
         }
     }
 
     async rideIn() {
         const stage = this.battleStage
         if (stage?.kind === StageKind.Occupation && stage.roadOrders) {
-            await this.applyAction(this.createPlayerAction(Occupy, { orders: stage.roadOrders }))
+            await this.applyAction(
+                this.createPlayerAction(Occupy, {
+                    orders: ordersInGameOrder(this.gameState.units, stage.roadOrders)
+                })
+            )
         }
     }
 
@@ -1387,7 +1427,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stage = this.battleStage
         if (stage?.kind === StageKind.Occupation && stage.orders && stage.gunsMayStay) {
             await this.applyAction(
-                this.createPlayerAction(Occupy, { orders: stage.orders, artilleryStays: true })
+                this.createPlayerAction(Occupy, {
+                    orders: ordersInGameOrder(this.gameState.units, stage.orders),
+                    artilleryStays: true
+                })
             )
         }
     }
@@ -1396,7 +1439,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
         const stage = this.battleStage
         if (stage?.kind === StageKind.Counter && !stage.problem) {
             await this.applyAction(
-                this.createPlayerAction(CounterAttack, { unitIds: stage.counterAttackers })
+                this.createPlayerAction(CounterAttack, {
+                    unitIds: inGameOrder(this.gameState.units, stage.counterAttackers)
+                })
             )
         }
     }
@@ -1424,7 +1469,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (stage?.kind === StageKind.Advance && stage.advancing.length > 0) {
             await this.applyAction(
                 this.createPlayerAction(Advance, {
-                    unitIds: stage.advancing,
+                    unitIds: inGameOrder(this.gameState.units, stage.advancing),
                     commanderIds: commandersGoing(stage)
                 })
             )
@@ -1532,7 +1577,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     private hasCommanded(group: PieceGroup): boolean {
         return (
-            this.isCommanding &&
+            !this.isViewingHistory &&
             group.playerId === this.myPlayerId &&
             group.commander?.commandsThisTurn !== undefined
         )
@@ -1575,7 +1620,12 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.stageCommand(noCommandSelection())
         await this.applyAction(
             this.createPlayerAction(Move, {
-                order: { ...order, road: way?.road, entryId: way?.entryId },
+                order: {
+                    ...order,
+                    unitIds: inGameOrder(this.gameState.units, order.unitIds),
+                    road: way?.road,
+                    entryId: way?.entryId
+                },
                 to
             })
         )

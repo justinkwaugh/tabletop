@@ -9,6 +9,7 @@ import {
     validateGameResult
 } from '@tabletop/common'
 import { isLayTrack } from '../actions/layTrack.js'
+import { EditionId } from '../editions/types.js'
 import type { RailheadsProjectedState } from '../model/gameState.js'
 import { IndustryBoost } from '../model/track.js'
 import { botAction, createGame } from '../testing/bot.js'
@@ -43,9 +44,15 @@ function playToEnd(count: number, config: Record<string, boolean | string> = {})
     return { game, initial, history, final: state }
 }
 
-describe.each([3, 4, 5])('a %i player game', (count) => {
+const TABLES = Object.values(EditionId).flatMap((edition) =>
+    [3, 4, 5].map((count) => ({ edition, count }))
+)
+
+describe.each(TABLES)('a $count player game of $edition', ({ edition, count }) => {
+    const config = { edition }
+
     it('plays four rounds to a declared result', () => {
-        const { final, history } = playToEnd(count)
+        const { final, history } = playToEnd(count, config)
         expect(final.machineState).toBe(MachineState.EndOfGame)
         expect(final.rounds.series).toHaveLength(4)
         expect([GameResult.Win, GameResult.Draw]).toContain(final.result)
@@ -64,12 +71,12 @@ describe.each([3, 4, 5])('a %i player game', (count) => {
         const scores = RailheadsRuntime.scoring.finalScores(final)
         const best = Math.max(...Object.values(scores))
         expect(final.winningPlayerIds.every((playerId) => scores[playerId] === best)).toBe(true)
-        const again = playToEnd(count).final
+        const again = playToEnd(count, config).final
         expect({ ...again, id: final.id }).toEqual(final)
     })
 
     it('replays and undoes every processed action', () => {
-        const { game, initial, history, final } = playToEnd(count)
+        const { game, initial, history, final } = playToEnd(count, config)
         const befores: RailheadsProjectedState[] = []
         let replay = initial
         for (const action of history) {
@@ -86,9 +93,9 @@ describe.each([3, 4, 5])('a %i player game', (count) => {
     })
 })
 
-describe('Off the Rails', () => {
+describe.each(Object.values(EditionId))('Off the Rails in %s', (edition) => {
     it('plays to the end choosing how industries develop', () => {
-        const { final, history } = playToEnd(4, { offTheRails: true })
+        const { final, history } = playToEnd(4, { edition, offTheRails: true })
         expect(final.offTheRails).toBe(true)
         expect(final.machineState).toBe(MachineState.EndOfGame)
         const effects = history.filter(isLayTrack).flatMap((action) =>

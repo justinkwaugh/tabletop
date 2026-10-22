@@ -50,7 +50,19 @@ describe('West Virginia Coal Fields', () => {
             Number(central) - 80
         )
         expect(play.state.trackStep?.lays).toEqual([])
-        expect(play.state.coalPurchase).toEqual({ companyId: 'CG', turn: { set: 1, round: 1 } })
+        expect(play.state.coalTokenBought).toBe(true)
+    })
+
+    it('counts the purchase as a yellow lay for the buyer’s turn only', () => {
+        const play = coalFieldsPlay('ACL')
+        play.act('BuyCoalRights', { companyId: 'CG' })
+        play.act('FinishTrack', { companyId: 'CG' })
+        play.act('RunTrains', { companyId: 'CG', routes: [] })
+        expect(play.state.coalTokenBought).toBe(true)
+        play.act('FinishOperatingTurn', { companyId: 'CG' })
+        expect(play.state.machineState).toBe('LayingTrack')
+        expect(play.state.trackStep?.companyId).not.toBe('CG')
+        expect(play.state.coalTokenBought).toBeUndefined()
     })
 
     it('stays closed to every company while a player owns the private', () => {

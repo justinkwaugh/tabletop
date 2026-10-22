@@ -21,9 +21,10 @@ export class FirestorePreferenceStore implements PreferenceStore {
     private record(snapshot: DocumentSnapshot): PreferenceRecord | undefined {
         if (!snapshot.exists) return undefined
         const stored = snapshot.data()
-        const data: unknown = stored && typeof stored.values === 'string'
-            ? { ...stored, values: JSON.parse(stored.values) }
-            : stored
+        const data: unknown =
+            stored && typeof stored.values === 'string'
+                ? { ...stored, values: JSON.parse(stored.values) }
+                : stored
         if (!validator.Check(data)) throw new Error('Invalid stored preferences')
         return data
     }
@@ -49,7 +50,10 @@ export class FirestorePreferenceStore implements PreferenceStore {
                 const snapshots = await transaction.getAll(...refs)
                 const result = change(snapshots.map((snapshot) => this.record(snapshot)))
                 const record = result.records[result.changedIndex]
-                transaction.set(refs[result.changedIndex], { ...record, values: JSON.stringify(record.values) })
+                transaction.set(refs[result.changedIndex], {
+                    ...record,
+                    values: JSON.stringify(record.values)
+                })
                 return result.records
             })
         )

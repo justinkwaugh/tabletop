@@ -82,12 +82,10 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         const state = setUpState(4)
         expect(state.chancellorPlayerId).toBe(state.turnManager.turnOrder[0])
         expect(state.players[0].status).toBe(PlayerStatus.Chancellor)
-        expect(
-            state.players.filter((p) => p.status === PlayerStatus.Chancellor)
-        ).toHaveLength(1)
+        expect(state.players.filter((p) => p.status === PlayerStatus.Chancellor)).toHaveLength(1)
     })
 
-    it('R-1.8, R-1.9, R-10.13 — each bank is keyed by its owner: the Empire\'s for the Chancellor, the player\'s own id for an Exile', () => {
+    it("R-1.8, R-1.9, R-10.13 — each bank is keyed by its owner: the Empire's for the Chancellor, the player's own id for an Exile", () => {
         const state = setUpState(4)
         for (const player of state.players) {
             const owner =
@@ -97,7 +95,7 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         }
     })
 
-    it('R-1.8 — the Chancellor shows the Empire\'s purple and holds the Grand Scepter', () => {
+    it("R-1.8 — the Chancellor shows the Empire's purple and holds the Grand Scepter", () => {
         const state = setUpState(4)
         const chancellorId = state.chancellorPlayerId
         assertExists(chancellorId, 'setup names a Chancellor')
@@ -150,9 +148,7 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         assertExists(chancellorId, 'setup names a Chancellor')
         const chancellor = state.getPlayerState(chancellorId)
         expect(chancellor.warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(CHANCELLOR_BOARD_WARBANDS)
-        expect(state.warbandsBySite[TOP_CRADLE_SLOT]?.[IMPERIAL_WARBANDS]).toBe(
-            TOP_CRADLE_WARBANDS
-        )
+        expect(state.warbandsBySite[TOP_CRADLE_SLOT]?.[IMPERIAL_WARBANDS]).toBe(TOP_CRADLE_WARBANDS)
         expect(chancellor.warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(
             CHANCELLOR_WARBANDS - CHANCELLOR_BOARD_WARBANDS - TOP_CRADLE_WARBANDS
         )
@@ -184,17 +180,13 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
 
     it('R-1.13 — Devotion hands the Chancellor the Darkest Secret', () => {
         const state = setUpState(3, { oathType: OathType.Devotion })
-        expect(state.banners[Banner.DarkestSecret].holderPlayerId).toBe(
-            state.chancellorPlayerId
-        )
+        expect(state.banners[Banner.DarkestSecret].holderPlayerId).toBe(state.chancellorPlayerId)
         expect(state.banners[Banner.PeoplesFavor].holderPlayerId).toBeUndefined()
     })
 
     it('R-1.13 — The People hands the Chancellor the People’s Favor', () => {
         const state = setUpState(3, { oathType: OathType.ThePeople })
-        expect(state.banners[Banner.PeoplesFavor].holderPlayerId).toBe(
-            state.chancellorPlayerId
-        )
+        expect(state.banners[Banner.PeoplesFavor].holderPlayerId).toBe(state.chancellorPlayerId)
         expect(state.banners[Banner.DarkestSecret].holderPlayerId).toBeUndefined()
     })
 
@@ -236,7 +228,7 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         }
     })
 
-    it('R-1.16 — a deal the bank cannot pay leaves the sites\' favor for the Chancellor to split', () => {
+    it("R-1.16 — a deal the bank cannot pay leaves the sites' favor for the Chancellor to split", () => {
         const playerCount = 6
         // Seed 54 exhausts the bank at six players.
         const state = setUpState(playerCount, { setupVariant: SetupVariant.Randomized }, 54)
@@ -440,9 +432,7 @@ describe('setup — the vault build (R-1.1, R-1.17, R-1.18, R-1.21)', () => {
         const vault = buildSetupVault(state, getPrng(1))
         expect(vault.worldDeck.length).toBeGreaterThan(30)
         // R-1.19, R-1.20 — 21 cards at six players.
-        expect(vault.worldDeck.slice(-21).filter((id) => id.startsWith('vision.'))).toEqual(
-            []
-        )
+        expect(vault.worldDeck.slice(-21).filter((id) => id.startsWith('vision.'))).toEqual([])
     })
 
     it('shuffles from the protected stream it is given, never the public state seed', () => {

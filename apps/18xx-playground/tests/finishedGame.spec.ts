@@ -1,5 +1,15 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { putLocalRecords, readLocalRecords } from './localGameStore.js'
+
+async function stepSettled(page: Page, button: Locator, steps: number) {
+    const historyJumps = page
+        .getByRole('list', { name: 'Action history' })
+        .getByRole('button', { name: /^Jump to .+ in history$/ })
+    for (let step = 0; step < steps; step++) {
+        await button.click()
+        await expect(historyJumps.first()).toBeEnabled()
+    }
+}
 
 test('finished TOP supports saved history navigation back to the opening auction', async ({
     page
@@ -44,9 +54,9 @@ test('finished 1889 steps back and forward across its bank-break payout', async 
     await expect(winner).toBeVisible({ timeout: 30000 })
     const back = page.getByRole('button', { name: 'step backwards', exact: true })
     const forward = page.getByRole('button', { name: 'step forwards', exact: true })
-    for (let step = 0; step < 12; step++) await back.click()
+    await stepSettled(page, back, 12)
     await expect(winner).toHaveCount(0)
-    for (let step = 0; step < 12; step++) await forward.click()
+    await stepSettled(page, forward, 12)
     await expect(winner).toBeVisible()
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const history = page.getByRole('list', { name: 'Action history' })
@@ -104,9 +114,9 @@ test('finished 1817 steps back across its last acquisition round and jumps to it
     await expect(winner).toBeVisible({ timeout: 90000 })
     const back = page.getByRole('button', { name: 'step backwards', exact: true })
     const forward = page.getByRole('button', { name: 'step forwards', exact: true })
-    for (let step = 0; step < 12; step++) await back.click()
+    await stepSettled(page, back, 12)
     await expect(winner).toHaveCount(0)
-    for (let step = 0; step < 12; step++) await forward.click()
+    await stepSettled(page, forward, 12)
     await expect(winner).toBeVisible()
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const history = page.getByRole('list', { name: 'Action history' })

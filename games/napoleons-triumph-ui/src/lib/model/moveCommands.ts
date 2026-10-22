@@ -19,6 +19,11 @@ export enum RideChoice {
     NewCommand = 'NewCommand'
 }
 
+/** Rule 9: Attach is a Corps Command that moves nothing; it is chosen beside the moves. */
+export const ATTACH = 'attach'
+
+export type CommandChoice = CommandKind | typeof ATTACH
+
 export interface CommandedGroup {
     commander?: Commander
     units: readonly ProjectedUnit[]

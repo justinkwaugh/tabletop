@@ -25,21 +25,21 @@ The log includes `reqId`, route, method, response status, and elapsed applicatio
 
 Each span has an `id`, optional `parentId`, operation `name`, `startMs`, `durationMs`, and `status`. Offsets share the request start time. Parent durations include children. Parallel operations overlap; do not sum all spans to estimate request duration. Gaps between children expose work not separately instrumented.
 
-| Operation | What it measures |
-| --- | --- |
-| `manifest.refresh`, `manifest.get` | Request-time manifest refresh and response version lookup; refresh runs only outside local mode |
-| `auth.user` | Session user lookup, including cache/database work |
-| `game.applyActionToGame`, `game.undoAction` | Service execution; each action collision retry has its own attempt span |
-| `store.*` | Game, state, action history, and persistence operations |
-| `redis.pool.wait`, `redis.guardPool.wait` | Waiting for a pooled connection |
-| `redis.get`, `redis.mGet`, `redis.watch`, `redis.exec`, `redis.unwatch`, etc. | Individual awaited Redis client calls; `exec` covers a transaction batch, not each queued command |
-| `cache.*` | Cache lookup, write protection, release, fill, and consistent-read fallback |
-| `firestore.document.get`, `firestore.user.get`, `firestore.getAll`, `firestore.query.get` | Awaited SDK reads, including SDK-internal work/retries |
-| `firestore.transaction` | The entire Firestore transaction, including callback attempts, commit, and retry backoff |
-| `firestore.transaction.body` | One callback attempt; time outside these children includes SDK commit/retry overhead, not a separately measured commit RPC |
-| `engine.*` | Canonical execution, Undo patches, and canonical validation |
-| `projection.response.*`, `projection.publish.*` | Response preparation and notification representation/delivery dispatch |
-| `game.notifyGamePlayers`, `game.scheduleTurnNotification` | Player notification preparation, including awaited notification-marker writes |
+| Operation                                                                                 | What it measures                                                                                                           |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `manifest.refresh`, `manifest.get`                                                        | Request-time manifest refresh and response version lookup; refresh runs only outside local mode                            |
+| `auth.user`                                                                               | Session user lookup, including cache/database work                                                                         |
+| `game.applyActionToGame`, `game.undoAction`                                               | Service execution; each action collision retry has its own attempt span                                                    |
+| `store.*`                                                                                 | Game, state, action history, and persistence operations                                                                    |
+| `redis.pool.wait`, `redis.guardPool.wait`                                                 | Waiting for a pooled connection                                                                                            |
+| `redis.get`, `redis.mGet`, `redis.watch`, `redis.exec`, `redis.unwatch`, etc.             | Individual awaited Redis client calls; `exec` covers a transaction batch, not each queued command                          |
+| `cache.*`                                                                                 | Cache lookup, write protection, release, fill, and consistent-read fallback                                                |
+| `firestore.document.get`, `firestore.user.get`, `firestore.getAll`, `firestore.query.get` | Awaited SDK reads, including SDK-internal work/retries                                                                     |
+| `firestore.transaction`                                                                   | The entire Firestore transaction, including callback attempts, commit, and retry backoff                                   |
+| `firestore.transaction.body`                                                              | One callback attempt; time outside these children includes SDK commit/retry overhead, not a separately measured commit RPC |
+| `engine.*`                                                                                | Canonical execution, Undo patches, and canonical validation                                                                |
+| `projection.response.*`, `projection.publish.*`                                           | Response preparation and notification representation/delivery dispatch                                                     |
+| `game.notifyGamePlayers`, `game.scheduleTurnNotification`                                 | Player notification preparation, including awaited notification-marker writes                                              |
 
 Counters include cache hits/misses, consistency fallbacks, WATCH conflicts, write acquisition/release attempts, Firestore transaction attempts/retries, game action attempts, and processed Action counts. Write acquisition attempts can also increase when a transaction adds more cache keys; they are not themselves a retry count. Inspect failed acquisition spans and WATCH conflicts to identify retry work. Absent counters mean zero occurrences.
 
@@ -66,9 +66,9 @@ After deployment, compare warm requests with the earlier revision. Inside `store
 The supplied captures from revision `backend-00517-tvw` confirm overlapping initial reads and one Game/State batch followed by a chunk batch. Compared with the four previous captures from `backend-00516-4gt`:
 
 | Fresh Fish request | Previous mean | New mean | Samples, previous/new |
-| --- | ---: | ---: | ---: |
-| Undo | 385 ms | 302 ms | 2 / 3 |
-| PlaceDisk | 396 ms | 365 ms | 2 / 2 |
+| ------------------ | ------------: | -------: | --------------------: |
+| Undo               |        385 ms |   302 ms |                 2 / 3 |
+| PlaceDisk          |        396 ms |   365 ms |                 2 / 2 |
 
 Undo's mean guarded load fell from 165 to 122 ms and its transaction callback from 103 to 71 ms. PlaceDisk still varied: one request had an 80 ms chunk read, another a 131 ms State read. Projection also became faster between captures, which the database batching change does not explain. These small samples establish that the intended read sequence is deployed, but do not isolate an exact overall speedup attributable to batching.
 
@@ -84,15 +84,15 @@ The SDK's `runTransactionOnce` awaits the application callback, then awaits comm
 
 An offline profile used the real storage converters, Firestore WriteBatch preparation, and protobuf encoding with the checked-in legacy rehearsal exports. It measured 150 iterations after 30 warmup iterations on Node 24.19.0. No database requests were made. The largest available chunk from each export was paired with its final State; these are representative fixtures, not the documents from the production captures.
 
-| Measurement | Fresh Fish | Sol |
-| --- | ---: | ---: |
-| Actions in measured chunk | 183 | 200 |
-| Chunk JSON bytes | 153,031 | 229,898 |
-| State JSON bytes | 11,922 | 22,839 |
-| Encoded chunk + State commit bytes, excluding Game update | 170,144 | 258,326 |
-| Chunk JSON decode median / p95 | 0.44 / 0.61 ms | 0.69 / 0.91 ms |
-| Prepare both writes median / p95 | 1.24 / 1.58 ms | 2.01 / 2.98 ms |
-| Encode commit protobuf median / p95 | 0.15 / 0.32 ms | 0.23 / 0.40 ms |
+| Measurement                                               |     Fresh Fish |            Sol |
+| --------------------------------------------------------- | -------------: | -------------: |
+| Actions in measured chunk                                 |            183 |            200 |
+| Chunk JSON bytes                                          |        153,031 |        229,898 |
+| State JSON bytes                                          |         11,922 |         22,839 |
+| Encoded chunk + State commit bytes, excluding Game update |        170,144 |        258,326 |
+| Chunk JSON decode median / p95                            | 0.44 / 0.61 ms | 0.69 / 0.91 ms |
+| Prepare both writes median / p95                          | 1.24 / 1.58 ms | 2.01 / 2.98 ms |
+| Encode commit protobuf median / p95                       | 0.15 / 0.32 ms | 0.23 / 0.40 ms |
 
 This weakens the serialization-CPU hypothesis for these fixtures. It does not measure production payload size, Cloud Run CPU contention, network transfer, or database processing. Each action still reads and rewrites its affected chunk, so payload growth remains worth measuring before considering a chunk-size or storage-format change.
 
@@ -108,13 +108,23 @@ The per-database metric covers non-streaming RPCs and should not be assumed to e
 
 A CPU profile of a four-player Fresh Fish PlaceDisk response plus spectator/player notifications found repeated TypeBox schema validation during union matching. The state projector walks board cells and calls the interpreted `Value.Check` for each candidate branch. That call checks the schema as well as its value on every invocation.
 
-Union matching now reuses compiled branch validators. A weak cache is keyed by both the reference-definition set and branch schema, so a shared reference can resolve differently in different schemas. Each value is still checked on every projection. Privacy policies, canonical/projected validation, all matching-branch comparisons, and both cascade replay proofs remain in place. No canonical or projected values are cached.
+Union matching now reuses compiled branch validators. A weak cache is keyed by both the reference-definition set and branch schema, so a shared reference can resolve differently in different schemas. Each value is still checked on every projection. Privacy policies, canonical/projected validation, all matching-branch comparisons, and both cascade replay proofs remain in place. The projector caches no canonical or projected values; the [projected history cache](projected-history-cache.md) caches projected history records in Redis.
 
 The local benchmark used one fixed generated four-player state, 10 warmup requests and 60 timed requests. Each request generated the acting player's response and five notification payloads, using the real backend representation functions with an in-memory notification sender. Median total time fell from 33.8 ms to 25.9 ms, about 23%. One instrumented request attributed approximately 14 ms to the 18 State projections before compilation and 3.5 ms afterward; these breakdown samples are illustrative, not independent production estimates. Response and notification payloads matched after excluding generated notification IDs and Action creation timestamps. Cloud Run improvement still needs measurement.
 
 Regression coverage checks shared union references under different definition sets, changing values and viewer policies, and ambiguous matching branches. Existing privacy, replay, and hosted-representation tests continue to apply.
 
 This change lives in the shared projector implementation bundled into each Game Runtime. Existing Logic/UI Artifacts retain their old projector. Republish a game's Logic and matching UI Artifacts to adopt the optimization; a backend-only or Site Frontend-only deployment does not update those bundled projectors. Response shapes, stored schemas, and host bridge contracts are unchanged, so existing artifacts remain compatible.
+
+## Projection optimization: evaluated intersects and shared boundary States, 2026-10-21
+
+Readiness probe failures on the backend (`READINESS HTTP probe failed … 503`, about 20–30 a day) matched full loads of protected Games that held the worker past the gateway's 1 s health probe. The worst, a Reef Encounter load with 224 Actions, spent 6,070 ms of 6,265 ms in `projection.response.game`; 43 loads that day spent over a second there.
+
+A local CPU profile of that Game, exported from production, attributed about 85% of projection time to TypeBox `Type.Evaluate` rebuilding the same intersected schemas for every value. The projector now caches the evaluated schema per intersect schema object (`evaluateIntersect`). `projectActionHistory` also projected each State on a cascade boundary twice, once as a cascade's `before` and once as the previous cascade's last `after`, plus the current State once more; it now projects each canonical State object once and reuses the result for diffing.
+
+Local times for the full history projection: Reef Encounter (224 Actions) 1,550 to 100 ms, Sol (492) 550 to 380 ms, Fresh Fish (189) 140 to 90 ms. Output hashes matched the previous implementation for every Player and the spectator in all three Games. What remains is per-State cloning, the schema walk and patch diffing, which grow with history length; see the [projected history cache](projected-history-cache.md).
+
+Like the union-check optimization, this lives in the projector bundled into each Game Runtime. Each protected title adopts it when its Logic is republished.
 
 ## Fresh Fish game opening, 2026-09-18
 
@@ -160,21 +170,21 @@ Measure time to visible board separately from time to complete history. This mov
 
 ### Scenario regression coverage
 
-| Scenario | Regression coverage |
-| --- | --- |
-| Show the projected board before history arrives | `pageLoad.spec.ts` returns a modern session after only the State request; deferred-history browser tests compare its displayed State with the host projection |
-| Initiate and optimistically execute Actions without earlier history | `gameReconciliation.spec.ts` checkpoint submission; browser delayed-history and failed-history scenarios |
-| Receive ordinary notifications | Checkpoint tests exercise canonical execution and projected patches; the failed-history browser scenario receives a live notification |
-| Duplicate, missing, or out-of-order notifications | Checkpoint tests cover retained duplicates, unknown duplicates before the checkpoint, and incremental recovery with complete and incomplete history |
-| Undo within retained history | Replacement-notification tests exercise rollback boundaries available in complete and incomplete contexts |
-| Undo crossing before the checkpoint | Reconciliation and browser tests require full reload; browser tests also initiate Undo of a retained Action whose server replay requires earlier history |
-| Full resync failure and retry | The `resync-failure` browser scenario verifies that play pauses and resumes only after successful recovery |
-| Partial action descriptions and unavailable old history | Browser tests verify an initially empty retained log, absent last Action and Undo candidate, and blocked history navigation |
-| History navigation and exploration | Deferred-history browser tests verify gating and re-enabling; existing complete-history navigation, replay, exploration, and optimistic Undo browser tests remain in the run |
-| Attach history while play advances | Tests cover attachment during a pending optimistic submission, older and newer history responses, branch mismatch, and no board transition on successful attachment |
-| Session disposal or perspective change during loading | Deferred-history browser scenarios reject late attachment to disposed or differently represented sessions |
-| Mixed UI Artifact versions and complete local results | Page-loader tests cover modern sessions, legacy sessions, and already-complete data without an additional request |
-| State-only transport and privacy | Route, API, service, and representation tests cover the query flag, distinct ETag, skipped Action reads, and projected State |
+| Scenario                                                            | Regression coverage                                                                                                                                                          |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Show the projected board before history arrives                     | `pageLoad.spec.ts` returns a modern session after only the State request; deferred-history browser tests compare its displayed State with the host projection                |
+| Initiate and optimistically execute Actions without earlier history | `gameReconciliation.spec.ts` checkpoint submission; browser delayed-history and failed-history scenarios                                                                     |
+| Receive ordinary notifications                                      | Checkpoint tests exercise canonical execution and projected patches; the failed-history browser scenario receives a live notification                                        |
+| Duplicate, missing, or out-of-order notifications                   | Checkpoint tests cover retained duplicates, unknown duplicates before the checkpoint, and incremental recovery with complete and incomplete history                          |
+| Undo within retained history                                        | Replacement-notification tests exercise rollback boundaries available in complete and incomplete contexts                                                                    |
+| Undo crossing before the checkpoint                                 | Reconciliation and browser tests require full reload; browser tests also initiate Undo of a retained Action whose server replay requires earlier history                     |
+| Full resync failure and retry                                       | The `resync-failure` browser scenario verifies that play pauses and resumes only after successful recovery                                                                   |
+| Partial action descriptions and unavailable old history             | Browser tests verify an initially empty retained log, absent last Action and Undo candidate, and blocked history navigation                                                  |
+| History navigation and exploration                                  | Deferred-history browser tests verify gating and re-enabling; existing complete-history navigation, replay, exploration, and optimistic Undo browser tests remain in the run |
+| Attach history while play advances                                  | Tests cover attachment during a pending optimistic submission, older and newer history responses, branch mismatch, and no board transition on successful attachment          |
+| Session disposal or perspective change during loading               | Deferred-history browser scenarios reject late attachment to disposed or differently represented sessions                                                                    |
+| Mixed UI Artifact versions and complete local results               | Page-loader tests cover modern sessions, legacy sessions, and already-complete data without an additional request                                                            |
+| State-only transport and privacy                                    | Route, API, service, and representation tests cover the query flag, distinct ETag, skipped Action reads, and projected State                                                 |
 
 The proposed self-contained before/after Undo patch is not introduced by this change. Tests exercise the existing notification contracts and their resync fallback. Exploration before full history is deliberately unavailable in this implementation; its gate is tested rather than claiming history-independent exploration support.
 
@@ -190,10 +200,10 @@ from its preceding response. Using the same session and validator against the
 direct Cloud Run backend returned 304. Both paths reported Site Frontend version
 22.1.0; that header does not identify the backend revision.
 
-| Representation | Public site conditional response | Direct Cloud Run conditional response |
-| --- | --- | --- |
-| State-only | 200, 48,041 body bytes, unchanged ETag | 304, no body |
-| Full history | 200, 89,543 body bytes, unchanged ETag | 304, no body |
+| Representation | Public site conditional response       | Direct Cloud Run conditional response |
+| -------------- | -------------------------------------- | ------------------------------------- |
+| State-only     | 200, 48,041 body bytes, unchanged ETag | 304, no body                          |
+| Full history   | 200, 89,543 body bytes, unchanged ETag | 304, no body                          |
 
 The direct comparison initially used the `latest` revision-tag URL. Repeating the
 state-only comparison against the untagged Cloud Run service also returned 304,

@@ -33,7 +33,9 @@ function addConflictEdge(
     adjacencyByCompanyId.set(companyBId, companyBConflicts)
 }
 
-function productionCompanyById(gameState: HydratedIndonesiaGameState): Map<string, ProductionCompany> {
+function productionCompanyById(
+    gameState: HydratedIndonesiaGameState
+): Map<string, ProductionCompany> {
     return new Map(
         gameState.companies
             .filter((company): company is ProductionCompany => {
@@ -113,7 +115,11 @@ function applyPlayerModeConflicts(
 
         for (const sameGoodIds of companyIdsByGood.values()) {
             for (let leftIndex = 0; leftIndex < sameGoodIds.length; leftIndex += 1) {
-                for (let rightIndex = leftIndex + 1; rightIndex < sameGoodIds.length; rightIndex += 1) {
+                for (
+                    let rightIndex = leftIndex + 1;
+                    rightIndex < sameGoodIds.length;
+                    rightIndex += 1
+                ) {
                     addConflictEdge(
                         adjacencyByCompanyId,
                         sameGoodIds[leftIndex],
@@ -217,7 +223,12 @@ export function productionConflictRankByCompanyId(
     if (mode === 'goods') {
         applyGoodsModeConflicts(gameState, companyById, areaCompanyIdByAreaId, adjacencyByCompanyId)
     } else {
-        applyPlayerModeConflicts(gameState, companyById, areaCompanyIdByAreaId, adjacencyByCompanyId)
+        applyPlayerModeConflicts(
+            gameState,
+            companyById,
+            areaCompanyIdByAreaId,
+            adjacencyByCompanyId
+        )
     }
 
     const orderedCompanyIds = [...companyById.keys()].sort((leftCompanyId, rightCompanyId) => {

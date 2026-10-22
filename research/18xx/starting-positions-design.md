@@ -36,7 +36,14 @@ zero takes that role. A title whose first player comes from seating, a first auc
 wealth ignores the draw helper and reads `startingPositions` in its own opening; one with
 seat-specific assets hands them out by position.
 
-Unchanged: player colors and the `players` array follow `game.players`; TOP still deals
+1846 seats by draft order: position zero drafts first (or buys first in the two-player
+public opening) and the draft follows the assignment. Its table order, the `players` array,
+runs the other way, so the last position holds the priority deal for the first stock
+round. 1846 still consumes its ordinary seating shuffle so removals and the deck are
+unchanged, and the title supplies the suite's seated state for its reordered `players`
+and dealt packet.
+
+Unchanged elsewhere: player colors and the `players` array follow `game.players`; TOP still deals
 lot piles by `players`. Pile contents are random, so which player receives which slice
 carries no positional advantage.
 
@@ -53,9 +60,10 @@ tournament-policy question for the title, not a family default.
 ## Randomness
 
 `randomnessVersion: 1` derives the public and protected PRNG seeds from a private master
-seed for new Games only. 18xx uses only the public stream and has no hidden information,
-so the state already carries its effective seed and the canonical `masterSeed` reveals
-nothing new. The shared `GameState` schema already allows `masterSeed` and ChaCha20
+seed for new Games only. 18xx titles other than 1846 use only the public stream and have no
+hidden information, so their state already carries its effective seed and the canonical
+`masterSeed` reveals nothing new. 1846's hidden draft shuffles from the protected stream,
+and its visibility projector redacts `masterSeed` and the protected cursor. The shared `GameState` schema already allows `masterSeed` and ChaCha20
 cursors, so the runtime-contract snapshots are unchanged. The deployed TOP Game keeps its
 numeric cursors and replays unchanged; every published TOP artifact postdates ChaCha20
 support in Common, so rolling back to one still loads the new saves.
@@ -69,7 +77,7 @@ pinning the same setup.
 - For every supported player count, one master seed reproduces the same Game; assigning
   the ordinary seating reproduces the ordinary Game exactly; every rotation and the
   reversed seating seat the table, start with position zero, and leave colors and the
-  PRNG cursor unchanged (`libs/18xx/test/startingPositions.ts`, TOP 3–4, 1889 2–6).
+  PRNG cursor unchanged (`libs/18xx/test/startingPositions.ts`, TOP 3–4, 1889 2–6, 1846 2–5).
 - Invalid assignments and assignments to prepared scenarios are rejected.
 - The opening digests, runtime-contract snapshots and deployed-game replay are unchanged.
 - The ending example records a valid result whose top final scores are the winners.

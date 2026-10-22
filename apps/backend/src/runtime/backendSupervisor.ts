@@ -9,17 +9,21 @@ export interface SupervisorOptions {
     entry: URL
     env?: NodeJS.ProcessEnv
     startupTimeoutMs?: number
+    // How long close() lets the worker finish the requests it holds before killing it.
     drainTimeoutMs?: number
     retryDelayMs?: number
+    // How long readiness vouches for a worker that announced it is loading game logic.
+    titleLoadGraceMs?: number
 }
 
+// Starts the backend worker and starts another when it exits. Game logic changes are activated
+// inside the worker (see LibraryService), so a healthy worker is never replaced.
 export class BackendSupervisor {
     private readonly children = new Set<BackendChild>()
-    private starting?: BackendChild
     private active?: BackendChild
     private activePort?: number
-    private replacement?: Promise<void>
-    private reloadPending = false
+    private starting?: Promise<void>
+    private startPending = false
     private stopping = false
     private retry?: NodeJS.Timeout
     private readonly readinessWaiters = new Set<() => void>()
@@ -31,8 +35,19 @@ export class BackendSupervisor {
     }
 
     acquire(): BackendTarget | undefined {
+        const serving = this.serving()
+        if (!serving) return undefined
+        return { port: serving.port, release: serving.child.retain() }
+    }
+
+    vouchingForTitleLoad(): boolean {
+        const elapsed = this.serving()?.child.titleLoadElapsedMs()
+        return elapsed !== undefined && elapsed < (this.options.titleLoadGraceMs ?? 30_000)
+    }
+
+    private serving(): { child: BackendChild; port: number } | undefined {
         if (!this.active || !this.activePort || this.stopping) return undefined
-        return { port: this.activePort, release: this.active.retain() }
+        return { child: this.active, port: this.activePort }
     }
 
     async acquireWhenReady(signal: AbortSignal): Promise<BackendTarget> {
@@ -65,72 +80,60 @@ export class BackendSupervisor {
     }
 
     async start(): Promise<void> {
-        await this.replace()
+        await this.startChild()
         if (!this.active) throw new Error('No backend is ready')
     }
 
-    private requestReload(): void {
+    private requestStart(): void {
         if (this.stopping) return
-        this.reloadPending = true
-        if (!this.replacement && !this.retry) void this.replace()
+        this.startPending = true
+        if (!this.starting && !this.retry) void this.startChild()
     }
 
-    private replace(): Promise<void> {
-        if (this.replacement) return this.replacement
-        this.reloadPending = false
-        this.replacement = this.replaceChild()
+    private startChild(): Promise<void> {
+        if (this.starting) return this.starting
+        this.startPending = false
+        this.starting = this.spawnChild()
             .catch((error: unknown) => {
-                console.error('Backend replacement failed; retaining the serving child', error)
-                this.active?.notify('replacement-failed')
-                this.reloadPending = true
+                console.error('Backend start failed; retrying', error)
+                this.startPending = true
                 if (!this.stopping) {
                     this.retry = setTimeout(() => {
                         this.retry = undefined
-                        void this.replace()
+                        void this.startChild()
                     }, this.options.retryDelayMs ?? 30_000)
                 }
             })
             .finally(() => {
-                this.replacement = undefined
-                if (this.reloadPending && !this.stopping && !this.retry) void this.replace()
+                this.starting = undefined
+                if (this.startPending && !this.stopping && !this.retry) void this.startChild()
             })
-        return this.replacement
+        return this.starting
     }
 
-    private async replaceChild(): Promise<void> {
-        const previous = this.active
+    private async spawnChild(): Promise<void> {
         const candidate = new BackendChild(
             this.options.entry,
             this.options.startupTimeoutMs ?? 120_000,
-            () => {
-                if (candidate === this.active || candidate === this.starting) this.requestReload()
-            },
             this.options.env
         )
-        this.starting = candidate
         this.children.add(candidate)
         void candidate.exited.then(() => {
             this.children.delete(candidate)
             if (this.active === candidate) {
                 this.active = undefined
                 this.activePort = undefined
-                this.requestReload()
+                this.requestStart()
             }
         })
         try {
             const port = await candidate.ready
             if (this.stopping) return
-            this.starting = undefined
             this.active = candidate
             this.activePort = port
             for (const check of this.readinessWaiters) check()
             console.log('Backend ready; routing requests to port', port)
-            if (previous) {
-                previous.notify('superseded')
-                await previous.stop(this.options.drainTimeoutMs ?? 30_000)
-            }
         } catch (error) {
-            this.starting = undefined
             await candidate.stop(0)
             throw error
         }
@@ -141,7 +144,8 @@ export class BackendSupervisor {
         clearTimeout(this.retry)
         this.activePort = undefined
         for (const check of this.readinessWaiters) check()
-        await Promise.all([...this.children].map((child) => child.stop(8_000)))
-        await this.replacement
+        const drainTimeoutMs = this.options.drainTimeoutMs ?? 8_000
+        await Promise.all([...this.children].map((child) => child.stop(drainTimeoutMs)))
+        await this.starting
     }
 }

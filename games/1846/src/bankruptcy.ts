@@ -1,70 +1,23 @@
 import { Market1846 } from './stock.js'
-import { releasePrivateReservations } from './stations.js'
 import * as Type from 'typebox'
-import { Compile } from 'typebox/compile'
-import {
-    ActionSource,
-    GameResult,
-    PlayerAction,
-    HydratableAction,
-    assert,
-    assertExists,
-    type GameAction
-} from '@tabletop/common'
 import {
     CashPayment,
-    ShareSaleDetails,
     PresidencyChange,
-    applyShareSale,
     applyPresidencyChange,
     certificatesOwnedBy,
     closePrivate,
-    controllingOwner,
     evaluatePresidency,
     reorderPendingOperatingCompanies,
-    finiteCashOwnedBy,
-    finalWealth,
     playersAfterPresident,
     settleCashPayments,
-    sharesOwned
+    sharesOwned,
+    type EliminationRules
 } from '@tabletop/18xx'
-import { emergencyShareSaleChoices } from './emergencyFunding.js'
-import { emergencyBankOffers } from './emergencyTrain.js'
 import { closeRailroad, corporationAwaitingClosure, RailroadClosure } from './closeCorporation.js'
-import { inReceivership } from './receivership.js'
-import { OperatingRules1846, ValuationRules1846 } from './operating.js'
+import { inReceivership } from '@tabletop/18xx'
+import { OperatingRules1846 } from './operating.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
-export const BankruptcyFields = {
-    bankruptPlayerIds: Type.Array(Type.String(), { uniqueItems: true })
-}
-
-export function bankruptcyShortfall(state: HydratedEighteenFortySixState): number | undefined {
-    if (state.machineState !== 'FundingTrain' || !state.emergencyFunding) return undefined
-    const companyId = state.emergencyFunding.companyId
-    const owner = controllingOwner(state, companyId)
-    assertExists(owner, 'Bankruptcy requires an operating president')
-    const offers = emergencyBankOffers(state)
-    if (!offers.length) return undefined
-    const sales = emergencyShareSaleChoices(state)
-    const liquidation = state.companies.reduce(
-        (sum, company) =>
-            sum +
-            Math.max(
-                0,
-                ...sales
-                    .filter((sale) => sale.sales[0].companyId === company.id)
-                    .map((sale) => sale.proceeds)
-            ),
-        0
-    )
-    const shortfall =
-        Math.min(...offers.map((offer) => offer.price)) -
-        liquidation -
-        finiteCashOwnedBy(state, owner) -
-        finiteCashOwnedBy(state, { kind: 'company', companyId })
-    return shortfall > 0 ? shortfall : undefined
-}
 const ForcedSale = Type.Object(
     {
         companyId: Type.String(),
@@ -76,66 +29,27 @@ const ForcedSale = Type.Object(
     },
     { additionalProperties: false }
 )
-export const DeclareBankruptcy = Type.Object(
+export const BankruptcyChanges1846 = Type.Object(
     {
-        ...PlayerAction.properties,
-        type: Type.Literal('DeclareBankruptcy1846'),
-        source: Type.Literal(ActionSource.User),
-        companyId: Type.String(),
-        metadata: Type.Optional(
-            Type.Object(
-                {
-                    shortfall: Type.Integer({ minimum: 1 }),
-                    sales: Type.Array(ShareSaleDetails),
-                    forcedSales: Type.Array(ForcedSale),
-                    payments: Type.Array(CashPayment),
-                    closedRailroads: Type.Array(RailroadClosure),
-                    closedPrivateIds: Type.Array(Type.String()),
-                    receiverCompanyIds: Type.Array(Type.String())
-                },
-                { additionalProperties: false }
-            )
-        )
+        forcedSales: Type.Array(ForcedSale),
+        payments: Type.Array(CashPayment),
+        closedRailroads: Type.Array(RailroadClosure),
+        closedPrivateIds: Type.Array(Type.String()),
+        receiverCompanyIds: Type.Array(Type.String())
     },
     { additionalProperties: false }
 )
-const Validator = Compile(DeclareBankruptcy)
-export function isDeclareBankruptcy1846(
-    action: GameAction
-): action is Type.Static<typeof DeclareBankruptcy> {
-    return action.type === 'DeclareBankruptcy1846' && Validator.Check(action)
-}
-export class DeclareBankruptcyAction extends HydratableAction<typeof DeclareBankruptcy> {
-    declare playerId: string
-    declare companyId: string
-    declare metadata?: Type.Static<typeof DeclareBankruptcy>['metadata']
-    constructor(data: Type.Static<typeof DeclareBankruptcy>) {
-        super(data, Validator)
-    }
-    isValid(state: HydratedEighteenFortySixState): boolean {
-        return (
-            this.source === ActionSource.User &&
-            state.activePlayerIds.includes(this.playerId) &&
-            state.emergencyFunding?.companyId === this.companyId &&
-            controllingOwner(state, this.companyId)?.playerId === this.playerId &&
-            bankruptcyShortfall(state) !== undefined
-        )
-    }
-    apply(state: HydratedEighteenFortySixState): void {
-        assert(this.isValid(state), 'Bankruptcy requires an unavoidable train shortfall')
-        const shortfall = bankruptcyShortfall(state)
-        assertExists(shortfall, 'Bankruptcy requires a shortfall')
-        const player = { kind: 'player' as const, playerId: this.playerId }
-        const sales: ShareSaleDetails[] = []
-        for (const company of state.companies) {
-            const sale = emergencyShareSaleChoices(state)
-                .filter((sale) => sale.sales[0].companyId === company.id)
-                .toSorted((a, b) => b.proceeds - a.proceeds)[0]
-            if (!sale) continue
-            applyShareSale(state, sale)
-            state.emergencyFunding?.soldCompanyIds.push(company.id)
-            sales.push(sale)
-        }
+export type BankruptcyChanges1846 = Type.Static<typeof BankruptcyChanges1846>
+
+/**
+ * GMT §7: a bankrupt president's remaining stock is sold to the market at its price, without
+ * moving it, even above the market limit; presidencies pass to the largest holders or leave
+ * the corporation in receivership; their independents and privates close.
+ */
+export const Elimination1846: EliminationRules<typeof BankruptcyChanges1846> = {
+    schema: BankruptcyChanges1846,
+    eliminate(state: HydratedEighteenFortySixState, playerId): BankruptcyChanges1846 {
+        const player = { kind: 'player' as const, playerId }
         const forcedSales: Type.Static<typeof ForcedSale>[] = []
         const payments: CashPayment[] = []
         for (const company of state.companies) {
@@ -146,7 +60,7 @@ export class DeclareBankruptcyAction extends HydratableAction<typeof DeclareBank
                 state,
                 company.id,
                 playersAfterPresident(state, company.id, state.turnManager.turnOrder).filter(
-                    (owner) => owner.kind !== 'player' || owner.playerId !== this.playerId
+                    (owner) => owner.kind !== 'player' || owner.playerId !== playerId
                 ),
                 { owner: player, shares: 0 }
             )
@@ -169,10 +83,7 @@ export class DeclareBankruptcyAction extends HydratableAction<typeof DeclareBank
                 certificate.owner = { kind: 'bank' }
                 certificate.poolId = 'open-market'
             }
-            if (
-                company.president?.kind === 'player' &&
-                company.president.playerId === this.playerId
-            )
+            if (company.president?.kind === 'player' && company.president.playerId === playerId)
                 delete company.president
         }
         settleCashPayments(state, payments)
@@ -181,56 +92,22 @@ export class DeclareBankruptcyAction extends HydratableAction<typeof DeclareBank
                 (company) =>
                     company.kind === 'minor' &&
                     !company.closed &&
-                    controllingOwner(state, company.id)?.playerId === this.playerId
+                    company.president?.kind === 'player' &&
+                    company.president.playerId === playerId
             )
             .map((company) => closeRailroad(state, company.id))
         const closedPrivateIds = certificatesOwnedBy(state, player)
             .filter((certificate) => certificate.kind === 'private')
             .map((certificate) => certificate.companyId)
         for (const id of closedPrivateIds) closePrivate(state, id)
-        releasePrivateReservations(state, closedPrivateIds)
         if (closedPrivateIds.includes('SC')) delete state.steamboat
-        const amount = finiteCashOwnedBy(state, player)
-        if (amount) {
-            const payment: CashPayment = {
-                from: player,
-                to: { kind: 'company', companyId: this.companyId },
-                amount
-            }
-            settleCashPayments(state, [payment])
-            payments.push(payment)
-        }
         let closing = corporationAwaitingClosure(state)
         while (closing) {
             closedRailroads.push(closeRailroad(state, closing))
             closing = corporationAwaitingClosure(state)
         }
         reorderPendingOperatingCompanies(state, OperatingRules1846.companyOrder(state))
-        state.bankruptPlayerIds.push(this.playerId)
-        state.turnManager.turnOrder = state.turnManager.turnOrder.filter(
-            (id) => id !== this.playerId
-        )
-        state.stockRound.passedPlayerIds = state.stockRound.passedPlayerIds.filter(
-            (id) => id !== this.playerId
-        )
-        state.turnManager.endTurn(state.actionCount)
-        delete state.emergencyFunding
-        if (state.turnManager.turnOrder.length === 1) {
-            state.gameEnding = { reason: 'All other players bankrupt' }
-            state.finalWealth = finalWealth(state, ValuationRules1846)
-            state.winningPlayerIds = [...state.turnManager.turnOrder]
-            state.result = GameResult.Win
-            state.activePlayerIds = []
-        } else {
-            const president = controllingOwner(state, this.companyId)
-            state.activePlayerIds = president
-                ? [president.playerId]
-                : [...state.turnManager.turnOrder]
-            state.turnManager.startTurn(state.activePlayerIds[0], state.actionCount + 1)
-        }
-        this.metadata = {
-            shortfall,
-            sales,
+        return {
             forcedSales,
             payments,
             closedRailroads,

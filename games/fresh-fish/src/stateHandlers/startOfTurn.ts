@@ -15,9 +15,10 @@ type StartOfTurnAction = HydratedPlaceDisk | HydratedDrawTile | HydratedPass
 //                 StartOfTurn(DrawTile) -> MarketTileDrawn (when market tile drawn)
 //                 StartOfTurn(DrawTile) -> StallTileDrawn (when stall tile is drawn)
 //                 StartOfTurn(Pass) -> StartOfTurn (no possible moves)
-export class StartOfTurnStateHandler
-    implements MachineStateHandler<StartOfTurnAction, HydratedFreshFishGameState>
-{
+export class StartOfTurnStateHandler implements MachineStateHandler<
+    StartOfTurnAction,
+    HydratedFreshFishGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedFreshFishGameState>

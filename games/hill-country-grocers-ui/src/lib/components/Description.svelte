@@ -7,7 +7,8 @@
 </script>
 
 {#each description as segment, index (index)}
-    {#if typeof segment === 'string'}<span>{segment}</span>{:else if 'playerId' in segment}<PlayerName
+    {#if typeof segment === 'string'}<span>{segment}</span
+        >{:else if 'playerId' in segment}<PlayerName
             playerId={segment.playerId}
         />{:else}<CompanyBadge companyId={segment.companyId} />{/if}
 {/each}

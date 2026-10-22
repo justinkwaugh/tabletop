@@ -46,9 +46,7 @@ describe('vault construction', () => {
 
     it('starts with all three discard piles present (R-2.1.2)', () => {
         const vault = createOathVault({}, getPrng(1))
-        expect(Object.keys(vault.discardPiles).sort()).toEqual(
-            [...Object.values(Region)].sort()
-        )
+        expect(Object.keys(vault.discardPiles).sort()).toEqual([...Object.values(Region)].sort())
     })
 })
 

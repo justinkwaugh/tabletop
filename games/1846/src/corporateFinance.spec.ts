@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { assertExists, ActionSource } from '@tabletop/common'
 import { TrackConstruction, finiteCashOwnedBy, placeStockMarker, sharesOwned } from '@tabletop/18xx'
 import { corporateFinanceChoices } from './corporateFinance.js'
-import { layTrack, stockGame } from './testSupport.js'
+import { layTrack, stockGame } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
 
 function financeGame() {

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource } from '@tabletop/common'
-import { ActionType, CoralColor, type TakeOpenSeaSpace } from '@tabletop/reef-encounter'
+import {
+    ActionType,
+    CoralColor,
+    type EatCoral,
+    type TakeOpenSeaSpace
+} from '@tabletop/reef-encounter'
 import { turnSummary } from './turnRecap.js'
 
 const take = (polyps: CoralColor[]): TakeOpenSeaSpace => ({
@@ -12,6 +17,17 @@ const take = (polyps: CoralColor[]): TakeOpenSeaSpace => ({
     larvaColor: CoralColor.Grey,
     metadata: { polyps }
 })
+
+const eat: EatCoral = {
+    id: 'eat',
+    gameId: 'game',
+    source: ActionSource.User,
+    type: ActionType.EatCoral,
+    playerId: 'a',
+    boardId: 3,
+    coords: { row: 3, col: 1 },
+    metadata: { color: CoralColor.Pink, polyps: 8, returnedToBag: 4, shrimpToOpenSea: false }
+}
 
 const summary = (polyps: CoralColor[]) =>
     turnSummary([take(polyps)], 'their', (boardId) => `Board ${boardId}`)
@@ -37,5 +53,25 @@ describe('the recap of a turn ended in the open sea', () => {
 
     it('says when the cube came alone', () => {
         expect(summary([])?.text).toBe('took the grey larva cube')
+    })
+})
+
+describe('the recap of a turn that ate a coral', () => {
+    // A recap of the feeding alone read as a leftover from the start of the turn.
+    it('says how the turn ended after the feeding', () => {
+        const recap = turnSummary(
+            [eat, take([CoralColor.Grey, CoralColor.Grey, CoralColor.White])],
+            'their',
+            (boardId) => `Board ${boardId}`
+        )
+        expect(recap?.text).toBe(
+            'fed 8 pink polyps to their parrotfish, then took the grey larva cube with two grey polyps and a white polyp'
+        )
+    })
+
+    it('says only the feeding when the eat ended the turn', () => {
+        expect(turnSummary([eat], 'their', (boardId) => `Board ${boardId}`)?.text).toBe(
+            'fed 8 pink polyps to their parrotfish'
+        )
     })
 })

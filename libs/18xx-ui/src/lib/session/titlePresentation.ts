@@ -16,6 +16,7 @@ import type {
 } from '../table/companyPresentation.js'
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
 import type { TerrainIconName } from '../maps/terrainIcons.js'
+import type { HistoryMapPlacement } from '../maps/historicalMap.js'
 
 export type PrivateTokenPresentation =
     | { companyId: string }
@@ -42,6 +43,10 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
 
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = { label: string; value: string }
+/** A right or marker a company holds, shown beside its trains, such as access to coal fields. */
+export type CompanyMark = { label: string; description: string }
+/** The companies a company was formed from, shown under its header, such as a System's shells. */
+export type CompanyOrigin = { text: string; companyIds: readonly string[] }
 
 /**
  * A label above a market zone, drawn across its spaces as an arrow toward its far end or as a span
@@ -94,7 +99,7 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** The bank's pool of shares not yet sold, where a title has one. */
     ipoPoolId?: string
     exchangePoolId?: string
-    companyNames?: Readonly<Record<string, CompanyNameVariants>>
+    companyNames: Readonly<Record<string, CompanyNameVariants>>
     companyPricePresentation?: CompanyPricePresentation
     numberedShareNames?: NumberedShareNames
     includedCompanyIds?: readonly string[]
@@ -105,6 +110,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     instructionStopText?: (reason: TitleStopReason) => string
     privatePurchaseLabel?: string
     privatePurchaseHeading?: string
+    /** Shown under the player's own privates when they have none the company can buy. */
+    privatePurchaseEmpty?: string
     privateTilePrompts?: Readonly<Record<string, string>>
     privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
     /** Lists minor companies a player owns among their privates, as 1846 sells them in its draft. */
@@ -126,11 +133,15 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     companyColumns?: readonly CompanyColumn<State>[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
+    companyMarks?(state: State, companyId: string): readonly CompanyMark[]
+    companyOrigin?(state: State, companyId: string): CompanyOrigin | undefined
     /**
      * What an operating company takes off printed terrain and border costs, by terrain kind, such
      * as a private's mountain discount; the map shows the costs it would pay.
      */
     terrainDiscounts?(state: State, companyId: string): Readonly<Record<string, number>>
+    /** Where a title's own actions place on the map, beyond the family's tile lays and stations. */
+    historyMapPlacement?(action: GameAction): HistoryMapPlacement | undefined
     marketCell?: MarketCellDimensions
     marketZones?: readonly MarketZone[]
     marketLedge?: MarketLedge

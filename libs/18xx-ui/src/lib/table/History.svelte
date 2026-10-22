@@ -7,9 +7,12 @@
     import { entryOrderChanges, historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
     import { auctionLotName } from './auctionHistory.js'
-    import type { CompanyNameVariants } from './companyPresentation.js'
     import { historyGroups } from './historyGroups.js'
-    import { historyDescription, type TitleActionDescription } from './historyDescription.js'
+    import {
+        companyLabels,
+        historyDescription,
+        type TitleActionDescription
+    } from './historyDescription.js'
     import HistoryGroup from './HistoryGroup.svelte'
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import RoundHistory from './RoundHistory.svelte'
@@ -18,22 +21,12 @@
     let {
         session,
         onPreviewMap,
-        phaseColors,
-        phaseTileColors,
-        tileColors,
-        tileColorNames,
         trainColors,
-        describeAction,
-        companyNames
+        describeAction
     }: {
         onPreviewMap: (action: GameAction) => void
         session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
-        phaseColors: Readonly<Record<string, string>>
-        phaseTileColors: Readonly<Record<string, readonly string[]>>
-        tileColors?: Readonly<Record<string, string>>
-        tileColorNames?: Readonly<Record<string, string>>
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: TitleActionDescription
     } = $props()
     const money = $derived(session.presentation.money)
@@ -69,11 +62,17 @@
     function returnToCurrent() {
         if (!jumpDisabled) void session.history.goToEnd()
     }
-    function fullCompanyName(id: string) {
-        return session.companyName(id)
-    }
+    const labels = $derived(
+        companyLabels(
+            gameState.companies,
+            (id) => session.companyInitials(id),
+            (id) => session.companyName(id)
+        )
+    )
     function companyName(id: string) {
-        return companyNames?.[id]?.history ?? fullCompanyName(id)
+        return gameState.companies.find((company) => company.id === id)?.kind === 'private'
+            ? session.companyName(id)
+            : session.companyInitials(id)
     }
     function describeShared(action: GameAction) {
         return historyDescription(
@@ -107,7 +106,7 @@
     onJump={jumpToHistory}
     {jumpDisabled}
     {rounds}
-    {phaseColors}
+    phaseColors={session.presentation.phaseColors}
     {newestFirst}
     historyComplete={context.hasCompleteHistory}
     onOrderChange={(first) =>
@@ -121,11 +120,13 @@
         <ol aria-label={`${round.label} actions`}>
             {#each newestFirst ? groups : groups.toReversed() as entry (entry.id)}
                 {#if entry.kind === 'auction'}
+                    {@const offered = lot(entry.offer.lotId)}
                     <li class="auction">
                         <AuctionHistoryCard
                             {money}
                             card={entry}
-                            lot={lot(entry.offer.lotId)}
+                            lot={offered}
+                            lotName={session.lotName(offered)}
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
                         />
@@ -143,6 +144,7 @@
                             onJump={jumpToHistory}
                             {jumpDisabled}
                             {onPreviewMap}
+                            previewsMap={(action) => session.previewsHistoryMap(action)}
                             previewActionId={session.historicalMap?.actionId}
                             appearance={entry.companyId
                                 ? session.mapView.stations[entry.companyId]
@@ -150,10 +152,7 @@
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
                             currentController={(id) => controllingOwner(gameState, id)?.playerId}
-                            {phaseColors}
-                            {phaseTileColors}
-                            {tileColors}
-                            {tileColorNames}
+                            phasePalette={session.phaseChangePalette}
                             {trainColors}
                             shareCards={(action) => session.shareCards(action)}
                             trainName={(id) => session.trainDepot.trainDefinition(id).name}
@@ -162,7 +161,8 @@
                             {bankBreaks}
                             stations={session.mapView.stations}
                             {describe}
-                            {companyName}
+                            companyName={(id) => session.companyName(id)}
+                            companyLabels={labels}
                         />
                     </li>
                 {/if}

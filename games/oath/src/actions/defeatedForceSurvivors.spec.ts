@@ -3,7 +3,12 @@ import { Color } from '@tabletop/common'
 import { HydratedCampaign, Campaign, type CampaignDefender } from './campaign.js'
 import { HydratedCampaignSacrifice, CampaignSacrifice } from './campaignSacrifice.js'
 import { HydratedUseActionPower, UseActionPower } from './useActionPower.js'
-import { CampaignTargetKind, type CampaignState, type CampaignTarget, type WarbandGroup } from '../model/campaign.js'
+import {
+    CampaignTargetKind,
+    type CampaignState,
+    type CampaignTarget,
+    type WarbandGroup
+} from '../model/campaign.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { IMPERIAL_WARBANDS, type WarbandCounts } from '../model/warbandCounts.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
@@ -42,13 +47,53 @@ interface Table {
  * `cit`, a Citizen at c1 with 3 Imperial warbands on the board; `chan`, the Chancellor, with 4; `ex`, an
  * Exile with 2 of their own. The Empire's warbands alone hold c1 (Captains is there) and, by default, c2.
  */
-function table({ oathRevision, attacker, advisers = [], chancellorAt = 'h1', exileAt = 'c1', atC2 = { [IMPERIAL_WARBANDS]: 2 } }: Table) {
-    const held = (seat: Seat) => (seat === attacker ? advisers.map((cardId) => ({ cardId, faceUp: true })) : [])
+function table({
+    oathRevision,
+    attacker,
+    advisers = [],
+    chancellorAt = 'h1',
+    exileAt = 'c1',
+    atC2 = { [IMPERIAL_WARBANDS]: 2 }
+}: Table) {
+    const held = (seat: Seat) =>
+        seat === attacker ? advisers.map((cardId) => ({ cardId, faceUp: true })) : []
     const s = testState(
         [
-            testPlayer({ playerId: 'cit', color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', supply: 5, favor: 4, secrets: 3, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }, advisers: held('cit') }),
-            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: chancellorAt, supply: 5, favor: 4, secrets: 3, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 }, advisers: held('chan') }),
-            testPlayer({ playerId: 'ex', color: Color.Red, status: PlayerStatus.Exile, siteId: exileAt, supply: 5, favor: 4, secrets: 3, warbandsOnBoard: { ex: 2 }, warbandsInPersonalBank: { ex: 10 }, advisers: held('ex') })
+            testPlayer({
+                playerId: 'cit',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: 'c1',
+                supply: 5,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                advisers: held('cit')
+            }),
+            testPlayer({
+                playerId: 'chan',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: chancellorAt,
+                supply: 5,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 },
+                advisers: held('chan')
+            }),
+            testPlayer({
+                playerId: 'ex',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: exileAt,
+                supply: 5,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { ex: 2 },
+                warbandsInPersonalBank: { ex: 10 },
+                advisers: held('ex')
+            })
         ],
         {
             oathRevision,
@@ -63,7 +108,14 @@ function table({ oathRevision, attacker, advisers = [], chancellorAt = 'h1', exi
 
 /** Captains or Wild Allies names c2; the next action is the Campaign from there. */
 function actingFromC2(s: HydratedOathGameState, playerId: Seat, cardId: string) {
-    new HydratedUseActionPower(buildAction(UseActionPower, { playerId, cardId, powerIndex: powerIndexOf(cardId, PowerTiming.Action), choices: [site('c2')] })).apply(s)
+    new HydratedUseActionPower(
+        buildAction(UseActionPower, {
+            playerId,
+            cardId,
+            powerIndex: powerIndexOf(cardId, PowerTiming.Action),
+            choices: [site('c2')]
+        })
+    ).apply(s)
     s.actionCount += 1
     return s
 }
@@ -72,27 +124,45 @@ const pawn: CampaignTarget[] = [{ kind: CampaignTargetKind.PawnAndFavor }]
 const siteC2: CampaignTarget[] = [{ kind: CampaignTargetKind.Site, siteId: 'c2' }]
 
 /** Declares the Campaign with no attack dice, then fixes the roll so the attacker is defeated. */
-function defeatedCampaign(s: HydratedOathGameState, playerId: Seat, defender: Seat, targets: CampaignTarget[]) {
+function defeatedCampaign(
+    s: HydratedOathGameState,
+    playerId: Seat,
+    defender: Seat,
+    targets: CampaignTarget[]
+) {
     const against: CampaignDefender = { kind: 'player', playerId: defender }
-    new HydratedCampaign(buildAction(Campaign, { playerId, defender: against, targets, attackDice: 0 })).apply(s)
+    new HydratedCampaign(
+        buildAction(Campaign, { playerId, defender: against, targets, attackDice: 0 })
+    ).apply(s)
     const running = ongoingCampaign(s)
     running.swords = 0
     running.defense = 5
     return running
 }
 
-const fromBoard = (playerId: string, owner: string, count: number): WarbandGroup => ({ at: { kind: 'board', playerId }, owner, count })
+const fromBoard = (playerId: string, owner: string, count: number): WarbandGroup => ({
+    at: { kind: 'board', playerId },
+    owner,
+    count
+})
 
 /** The attacker loses, keeping their board's warbands alive where they can: the dead come off the board. */
 function loseFromBoard(s: HydratedOathGameState, playerId: Seat, owner: string, count: number) {
-    const action = new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId, sacrifice: 0, defeatKills: [fromBoard(playerId, owner, count)] }))
+    const action = new HydratedCampaignSacrifice(
+        buildAction(CampaignSacrifice, {
+            playerId,
+            sacrifice: 0,
+            defeatKills: [fromBoard(playerId, owner, count)]
+        })
+    )
     expectWarbandsConserved(s, () => action.apply(s))
     expect(action.metadata?.attackerVictorious).toBe(false)
     expect(action.metadata?.defeatKilled).toBe(count)
     expect(s.campaign).toBeUndefined()
 }
 
-const imperialOn = (s: HydratedOathGameState, playerId: string) => s.getPlayerState(playerId).warbandsOnBoard[IMPERIAL_WARBANDS] ?? 0
+const imperialOn = (s: HydratedOathGameState, playerId: string) =>
+    s.getPlayerState(playerId).warbandsOnBoard[IMPERIAL_WARBANDS] ?? 0
 
 /** Vow of Union, attacking an Exile: c1 (1) and c2 (2), the sites `cit` rules, beside the 3 on the board. */
 function vowOfUnionDefeated(oathRevision: number) {
@@ -139,7 +209,11 @@ describe('R-5.5.6 — a defeated Citizen attacker moves the survivors at the sit
 describe('R-5.5.6 — the Chancellor and an Exile take their survivors home as before', () => {
     for (const oathRevision of [before, atRevision]) {
         it(`the Chancellor with Captains: the 2 from c2 go to their board (revision ${oathRevision})`, () => {
-            const s = actingFromC2(table({ oathRevision, attacker: 'chan', chancellorAt: 'c1', exileAt: 'c2' }), 'chan', CAPTAINS)
+            const s = actingFromC2(
+                table({ oathRevision, attacker: 'chan', chancellorAt: 'c1', exileAt: 'c2' }),
+                'chan',
+                CAPTAINS
+            )
             defeatedCampaign(s, 'chan', 'ex', pawn)
             loseFromBoard(s, 'chan', IMPERIAL_WARBANDS, 3)
             expect(warbandsAt(s, 'c2')[IMPERIAL_WARBANDS]).toBe(0)
@@ -148,7 +222,17 @@ describe('R-5.5.6 — the Chancellor and an Exile take their survivors home as b
         })
 
         it(`an Exile with Wild Allies: their 2 from c2 go to their board (revision ${oathRevision})`, () => {
-            const s = actingFromC2(table({ oathRevision, attacker: 'ex', advisers: [WILD_ALLIES], chancellorAt: 'c2', atC2: { ex: 2 } }), 'ex', WILD_ALLIES)
+            const s = actingFromC2(
+                table({
+                    oathRevision,
+                    attacker: 'ex',
+                    advisers: [WILD_ALLIES],
+                    chancellorAt: 'c2',
+                    atC2: { ex: 2 }
+                }),
+                'ex',
+                WILD_ALLIES
+            )
             defeatedCampaign(s, 'ex', 'chan', pawn)
             loseFromBoard(s, 'ex', 'ex', 2)
             expect(warbandsAt(s, 'c2')['ex']).toBe(0)
@@ -173,7 +257,11 @@ describe('R-X.4 — before revision 7 a defeated Citizen’s survivors at sites 
 })
 
 describe('R-5.5.6, R-10.13 — the defeat pick matters only when the dead go to more than one bank or the survivors to more than one board', () => {
-    const atSite = (siteId: string, owner: string, count: number): WarbandGroup => ({ at: { kind: 'site', siteId }, owner, count })
+    const atSite = (siteId: string, owner: string, count: number): WarbandGroup => ({
+        at: { kind: 'site', siteId },
+        owner,
+        count
+    })
     const revision = (oathRevision: number) => table({ oathRevision, attacker: 'cit' })
 
     it('a defeated attacker’s one-owner force: never from revision 7, since every survivor ends on their board', () => {
@@ -185,7 +273,10 @@ describe('R-5.5.6, R-10.13 — the defeat pick matters only when the dead go to 
         expect(defeatPickMatters(revision(atRevision), exile, 'ex')).toBe(false)
         expect(defeatPickMatters(revision(before), exile, 'ex')).toBe(false)
 
-        const chancellor = [atSite('c2', IMPERIAL_WARBANDS, 2), fromBoard('chan', IMPERIAL_WARBANDS, 4)]
+        const chancellor = [
+            atSite('c2', IMPERIAL_WARBANDS, 2),
+            fromBoard('chan', IMPERIAL_WARBANDS, 4)
+        ]
         expect(defeatPickMatters(revision(atRevision), chancellor, 'chan')).toBe(false)
         expect(defeatPickMatters(revision(before), chancellor, 'chan')).toBe(false)
     })
@@ -199,8 +290,18 @@ describe('R-5.5.6, R-10.13 — the defeat pick matters only when the dead go to 
     it('a defending force: its survivors at sites go to their owner’s board, the Empire’s to the Chancellor’s', () => {
         const s = revision(atRevision)
         expect(defeatPickMatters(s, [atSite('c2', 'ex', 2), fromBoard('ex', 'ex', 1)])).toBe(false)
-        expect(defeatPickMatters(s, [atSite('c2', IMPERIAL_WARBANDS, 2), fromBoard('chan', IMPERIAL_WARBANDS, 2)])).toBe(false)
-        expect(defeatPickMatters(s, [atSite('c2', IMPERIAL_WARBANDS, 2), fromBoard('cit', IMPERIAL_WARBANDS, 1)])).toBe(true)
+        expect(
+            defeatPickMatters(s, [
+                atSite('c2', IMPERIAL_WARBANDS, 2),
+                fromBoard('chan', IMPERIAL_WARBANDS, 2)
+            ])
+        ).toBe(false)
+        expect(
+            defeatPickMatters(s, [
+                atSite('c2', IMPERIAL_WARBANDS, 2),
+                fromBoard('cit', IMPERIAL_WARBANDS, 1)
+            ])
+        ).toBe(true)
         expect(defeatPickMatters(s, [atSite('c2', IMPERIAL_WARBANDS, 2)])).toBe(false)
     })
 })
@@ -234,7 +335,10 @@ describe('R-5.5.6.a — a lone defender is not asked for losses that cannot diff
         s.campaign = campaign
         return { s, owner }
     }
-    const victory = () => new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId: 'ex', sacrifice: 0 }))
+    const victory = () =>
+        new HydratedCampaignSacrifice(
+            buildAction(CampaignSacrifice, { playerId: 'ex', sacrifice: 0 })
+        )
 
     for (const defender of ['ex', 'chan'] as const) {
         it(`${defender === 'ex' ? 'an Exile' : 'the Chancellor'}: the default kill is taken, and the survivors go to their board`, () => {
@@ -258,15 +362,34 @@ describe('R-5.5.6.a — a lone defender is not asked for losses that cannot diff
 
 describe('R-5.5.5.c — a sacrifice is exactly enough to win, so the defeat pick never reads a force less a sacrifice', () => {
     it('a sacrifice named at c2 wins: the attacker names no defeated half, and none is offered', () => {
-        const s = actingFromC2(table({ oathRevision: atRevision, attacker: 'cit' }), 'cit', CAPTAINS)
+        const s = actingFromC2(
+            table({ oathRevision: atRevision, attacker: 'cit' }),
+            'cit',
+            CAPTAINS
+        )
         const running = defeatedCampaign(s, 'cit', 'chan', siteC2)
         running.swords = 4
         running.defense = 4
         expect(HydratedCampaignSacrifice.sacrificeNeeded(running)).toBe(1)
         expect(HydratedCampaignSacrifice.isVictorious(running, 1)).toBe(true)
-        const atC2 = { at: { kind: 'site' as const, siteId: 'c2' }, owner: IMPERIAL_WARBANDS, count: 1 }
-        expect(HydratedCampaignSacrifice.reasonCannotResolve(s, 'cit', { sacrifice: 1, sacrificeKills: [atC2] })).toBeUndefined()
-        expect(HydratedCampaignSacrifice.reasonCannotResolve(s, 'cit', { sacrifice: 1, sacrificeKills: [atC2], defeatKills: [fromBoard('cit', IMPERIAL_WARBANDS, 2)] })).toMatch(/defending side chooses its own losses/)
+        const atC2 = {
+            at: { kind: 'site' as const, siteId: 'c2' },
+            owner: IMPERIAL_WARBANDS,
+            count: 1
+        }
+        expect(
+            HydratedCampaignSacrifice.reasonCannotResolve(s, 'cit', {
+                sacrifice: 1,
+                sacrificeKills: [atC2]
+            })
+        ).toBeUndefined()
+        expect(
+            HydratedCampaignSacrifice.reasonCannotResolve(s, 'cit', {
+                sacrifice: 1,
+                sacrificeKills: [atC2],
+                defeatKills: [fromBoard('cit', IMPERIAL_WARBANDS, 2)]
+            })
+        ).toMatch(/defending side chooses its own losses/)
         expect(HydratedCampaignSacrifice.attackerDefeatKills(s, 1)).toEqual([])
     })
 })

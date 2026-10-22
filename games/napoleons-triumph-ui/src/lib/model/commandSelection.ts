@@ -1,6 +1,5 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
-import type { CommandKind } from '@tabletop/napoleons-triumph'
-import { RideChoice } from './moveCommands.js'
+import { RideChoice, type CommandChoice } from './moveCommands.js'
 import { stagedSelection } from './stagedSelection.js'
 
 export interface PickedUp {
@@ -13,7 +12,7 @@ type CommandSelectionValues = {
     group: PickedUp
     units: string[]
     ride: RideChoice
-    command: CommandKind
+    command: CommandChoice
     destination: string
     way: string[]
     threat: number
@@ -66,7 +65,7 @@ export function chosenUnitsOf(selection: CommandSelection): string[] | undefined
     return commandSelection.value(selection, 'units')
 }
 
-export function chosenCommandOf(selection: CommandSelection): CommandKind | undefined {
+export function chosenCommandOf(selection: CommandSelection): CommandChoice | undefined {
     return commandSelection.value(selection, 'command')
 }
 
@@ -146,8 +145,8 @@ export function rideOf(selection: CommandSelection): RideChoice {
     return commandSelection.value(selection, 'ride') ?? RideChoice.RidingOn
 }
 
-export function setCommand(selection: CommandSelection, kind: CommandKind): CommandSelection {
-    return withoutDestination(commandSelection.revise(selection, 'command', kind, 'manual'))
+export function setCommand(selection: CommandSelection, choice: CommandChoice): CommandSelection {
+    return withoutDestination(commandSelection.revise(selection, 'command', choice, 'manual'))
 }
 
 export function setDestination(selection: CommandSelection, targetKey: string): CommandSelection {

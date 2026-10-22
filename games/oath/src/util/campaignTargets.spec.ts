@@ -30,8 +30,18 @@ const RELIC_AT_C2: CampaignTarget = { kind: CampaignTargetKind.SiteRelic, slotId
 function campaignBoard() {
     const state = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [ME]: 4 } }),
-            testPlayer({ playerId: FOE, color: Color.Yellow, siteId: 'c1', relicIds: ['relic.map'] })
+            testPlayer({
+                playerId: ME,
+                color: Color.Red,
+                siteId: 'c1',
+                warbandsOnBoard: { [ME]: 4 }
+            }),
+            testPlayer({
+                playerId: FOE,
+                color: Color.Yellow,
+                siteId: 'c1',
+                relicIds: ['relic.map']
+            })
         ],
         {
             warbandsBySite: { c2: { [FOE]: 2 } },
@@ -45,7 +55,13 @@ function campaignBoard() {
 function imperialBoard(myRelics: string[]) {
     const state = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', relicIds: myRelics, warbandsOnBoard: { [ME]: 4 } }),
+            testPlayer({
+                playerId: ME,
+                color: Color.Red,
+                siteId: 'c1',
+                relicIds: myRelics,
+                warbandsOnBoard: { [ME]: 4 }
+            }),
             testPlayer({
                 playerId: CHAN,
                 color: Color.Purple,
@@ -54,7 +70,13 @@ function imperialBoard(myRelics: string[]) {
                 warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }
             }),
-            testPlayer({ playerId: CIT, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p1', warbandsInPersonalBank: { [CIT]: 14 } })
+            testPlayer({
+                playerId: CIT,
+                color: Color.Yellow,
+                status: PlayerStatus.Citizen,
+                siteId: 'p1',
+                warbandsInPersonalBank: { [CIT]: 14 }
+            })
         ],
         {
             chancellorPlayerId: CHAN,
@@ -85,24 +107,47 @@ describe('campaignTargetOptions — what a Campaign can target (R-5.5.2)', () =>
 
     it('Relic Hunter offers the relics at a chosen site only while its plan is declared', () => {
         const state = campaignBoard()
-        expect(campaignTargetOptions(state, FOE_DEFENDS, [HUNTER_PLAN], [SITE_C2])).toContainEqual(RELIC_AT_C2)
-        expect(campaignTargetOptions(state, FOE_DEFENDS, [], [SITE_C2])).not.toContainEqual(RELIC_AT_C2)
-        expect(campaignTargetOptions(state, FOE_DEFENDS, [HUNTER_PLAN], [])).not.toContainEqual(RELIC_AT_C2)
+        expect(campaignTargetOptions(state, FOE_DEFENDS, [HUNTER_PLAN], [SITE_C2])).toContainEqual(
+            RELIC_AT_C2
+        )
+        expect(campaignTargetOptions(state, FOE_DEFENDS, [], [SITE_C2])).not.toContainEqual(
+            RELIC_AT_C2
+        )
+        expect(campaignTargetOptions(state, FOE_DEFENDS, [HUNTER_PLAN], [])).not.toContainEqual(
+            RELIC_AT_C2
+        )
     })
 })
 
 describe('sitesDefendedBy', () => {
     it('the bandits defend the empty sites', () => {
-        expect(sitesDefendedBy(imperialBoard([]), { kind: 'bandits' })).toEqual(['c2', 'p2', 'p3', 'h1', 'h2', 'h3'])
+        expect(sitesDefendedBy(imperialBoard([]), { kind: 'bandits' })).toEqual([
+            'c2',
+            'p2',
+            'p3',
+            'h1',
+            'h2',
+            'h3'
+        ])
     })
 
     it('a player defends every site they rule, empty ones included under the Bandit Crown', () => {
         const state = imperialBoard([CROWN])
         expect(sitesDefendedBy(state, { kind: 'bandits' })).toEqual([])
-        expect(sitesDefendedBy(state, { kind: 'player', playerId: ME })).toEqual(['c1', 'c2', 'p2', 'p3', 'h1', 'h2', 'h3'])
+        expect(sitesDefendedBy(state, { kind: 'player', playerId: ME })).toEqual([
+            'c1',
+            'c2',
+            'p2',
+            'p3',
+            'h1',
+            'h2',
+            'h3'
+        ])
     })
 
     it('a Citizen defends the Imperial sites as well as their own', () => {
-        expect(sitesDefendedBy(imperialBoard([]), { kind: 'player', playerId: CIT })).toEqual(['p1'])
+        expect(sitesDefendedBy(imperialBoard([]), { kind: 'player', playerId: CIT })).toEqual([
+            'p1'
+        ])
     })
 })

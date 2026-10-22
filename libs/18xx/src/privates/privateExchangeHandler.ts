@@ -1,4 +1,5 @@
 import type { FormationState } from '../company/companyState.js'
+import { inReceivership } from '../finance/receivership.js'
 import {
     ActionSource,
     assertExists,
@@ -63,7 +64,8 @@ export class PrivateExchangeHandler<
             )
         if (
             action.source === ActionSource.User &&
-            action.playerId !== context.gameState.activePlayerIds[0]
+            action.playerId !== undefined &&
+            !this.ordinaryActor(context.gameState, action.playerId)
         )
             return false
         return this.handler.isValidAction(action, context)
@@ -76,18 +78,32 @@ export class PrivateExchangeHandler<
                 outOfTurnExchangeOffers(state, playerId, this.rules, this.stockRules).length
                 ? ['ExchangePrivateOutOfTurn']
                 : []
-        const ordinary =
-            playerId === state.activePlayerIds[0]
-                ? this.handler.validActionsForPlayer(playerId, context)
-                : []
+        const ordinary = this.ordinaryActor(state, playerId)
+            ? this.handler.validActionsForPlayer(playerId, context)
+            : []
         return privateExchangeOffers(state, playerId, this.rules, this.stockRules).length
             ? [...ordinary, 'ExchangePrivate']
             : ordinary
+    }
+    /** The turn's own actor: its first active player, or any receiver of the operating company. */
+    private ordinaryActor(state: State, playerId: string): boolean {
+        if (playerId === state.activePlayerIds[0]) return true
+        const companyId =
+            state.machineState === 'StockRound' ? undefined : nextOperatingCompany(state)
+        return (
+            companyId !== undefined &&
+            inReceivership(state, companyId) &&
+            state.activePlayerIds.includes(playerId)
+        )
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
         const companyId =
             state.machineState === 'StockRound' ? undefined : nextOperatingCompany(state)
+        if (companyId && inReceivership(state, companyId)) {
+            this.handler.enter(context)
+            return
+        }
         const playerId = companyId
             ? controllingOwner(state, companyId)?.playerId
             : (state.turnManager.currentTurn()?.playerId ?? state.activePlayerIds[0])

@@ -3,6 +3,7 @@
     let { session, purchaseLabel }: { session: EighteenXXSessionView; purchaseLabel: string } =
         $props()
     const canBuy = $derived(session.decisions.companyPurchasesAvailable)
+    const onlyOthersSell = $derived(!session.decisions.ownCompanyPurchasesAvailable)
     const canUse = $derived(session.privateActions.powersAvailable)
     const buying = $derived(!!session.privateActions.purchaseSource)
     const usingPowers = $derived(session.privateActions.selection === 'powers')
@@ -24,21 +25,13 @@
         menu?.hidePopover()
         if (powers ? usingPowers : buying) session.privateActions.close()
         else if (powers) session.privateActions.choosePowers()
-        else
-            session.privateActions.choosePurchaseSource(
-                session.decisions.companyPurchases.some(
-                    (option) =>
-                        option.request.seller.kind === 'player' &&
-                        option.request.seller.playerId === session.myPlayer?.id
-                )
-                    ? 'mine'
-                    : 'other'
-            )
+        else session.privateActions.openPurchases()
     }
 </script>
 
 {#snippet choices()}
     {#if canBuy}<button
+            class:quiet={onlyOthersSell}
             aria-pressed={buying}
             disabled={!session.decisions.canResolve}
             onclick={() => choose(false)}>{purchaseLabel}</button
@@ -104,6 +97,10 @@
     }
     button:hover:not(:disabled) {
         background: var(--rail-surface-selected, #cdbba9);
+    }
+    button.quiet:not(:hover, [aria-pressed='true']) {
+        background: transparent;
+        color: var(--rail-muted, #968574);
     }
     button[aria-pressed='true'],
     button[aria-expanded='true'] {

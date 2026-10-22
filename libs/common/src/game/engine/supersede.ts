@@ -13,8 +13,7 @@ export type SupersedeReplay<T extends GameState> = {
 }
 
 export type SupersedeOutcome<T extends GameState> =
-    | { kind: 'invalid'; reason: string }
-    | ({ kind: 'replace' } & SupersedeReplay<T>)
+    { kind: 'invalid'; reason: string } | ({ kind: 'replace' } & SupersedeReplay<T>)
 
 export function replaceSupersededAction<
     T extends GameState,

@@ -184,9 +184,7 @@
 
     {#each turnOrderDiscs as disc (disc.playerId)}
         {@const hitRect = turnOrderHitRectByPlayerId.get(disc.playerId)}
-        <g
-            use:animateTurnOrderDisc={{ x: disc.x, y: disc.y }}
-        >
+        <g use:animateTurnOrderDisc={{ x: disc.x, y: disc.y }}>
             {#if selectedPlayerId === disc.playerId}
                 <circle
                     cx={0}

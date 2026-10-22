@@ -101,14 +101,36 @@ describe('a facedown adviser has no power, even for its holder (R-5.1.4.II)', ()
 
     it('refuses its Action power, its battle plan and its modifier, and a faceup copy of each is allowed', () => {
         const hidden = holding(false)
-        expect(reasonCannotUsePower(hidden, 'p1', ELDERS, powerIndexOf(ELDERS, PowerTiming.Action), PowerTiming.Action)).toMatch(/facedown advisers, which have no power/)
+        expect(
+            reasonCannotUsePower(
+                hidden,
+                'p1',
+                ELDERS,
+                powerIndexOf(ELDERS, PowerTiming.Action),
+                PowerTiming.Action
+            )
+        ).toMatch(/facedown advisers, which have no power/)
         expect(mayUseBattlePlansOf(hidden, 'p1', SPECIALIST)).toBe(false)
-        const mushrooms = [{ cardId: MUSHROOMS, powerIndex: powerIndexOf(MUSHROOMS, PowerTiming.Modifier) }]
-        expect(resolveModifiers(hidden, 'p1', ActionType.Search, mushrooms).reason).toMatch(/facedown advisers, which have no power/)
+        const mushrooms = [
+            { cardId: MUSHROOMS, powerIndex: powerIndexOf(MUSHROOMS, PowerTiming.Modifier) }
+        ]
+        expect(resolveModifiers(hidden, 'p1', ActionType.Search, mushrooms).reason).toMatch(
+            /facedown advisers, which have no power/
+        )
 
         const shown = holding(true)
-        expect(reasonCannotUsePower(shown, 'p1', ELDERS, powerIndexOf(ELDERS, PowerTiming.Action), PowerTiming.Action) ?? '').not.toMatch(/facedown/)
+        expect(
+            reasonCannotUsePower(
+                shown,
+                'p1',
+                ELDERS,
+                powerIndexOf(ELDERS, PowerTiming.Action),
+                PowerTiming.Action
+            ) ?? ''
+        ).not.toMatch(/facedown/)
         expect(mayUseBattlePlansOf(shown, 'p1', SPECIALIST)).toBe(true)
-        expect(resolveModifiers(shown, 'p1', ActionType.Search, mushrooms).reason ?? '').not.toMatch(/facedown/)
+        expect(
+            resolveModifiers(shown, 'p1', ActionType.Search, mushrooms).reason ?? ''
+        ).not.toMatch(/facedown/)
     })
 })

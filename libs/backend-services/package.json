@@ -27,7 +27,7 @@
         "@google-cloud/secret-manager": "^5.6.0",
         "@google-cloud/tasks": "^5.4.0",
         "@leeoniya/ufuzzy": "^1.0.14",
-        "@react-email/components": "^0.0.28",
+        "@react-email/components": "1.0.6",
         "typebox": "^1.0.79",
         "@tabletop/common": "workspace:*",
         "@tabletop/email": "workspace:*",
@@ -40,12 +40,13 @@
         "glob-to-regexp": "^0.4.1",
         "nanoid": "5.1.6",
         "redis": "^5.10.0",
-        "resend": "^4.0.2",
+        "resend": "^6.8.0",
         "typescript-retry-decorator": "2.5.4",
         "web-push": "^3.6.7"
     },
     "devDependencies": {
         "@tabletop/vitest-config": "workspace:*",
+        "esbuild": "^0.28.2",
         "@tabletop/eslint-config": "workspace:*",
         "@types/bcrypt": "^5.0.2",
         "@types/glob-to-regexp": "^0.4.4",

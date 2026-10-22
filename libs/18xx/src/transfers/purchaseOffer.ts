@@ -106,6 +106,8 @@ export function isCompanyPurchaseOffer(offer: PendingPurchaseOffer): offer is Pu
 }
 export interface TransferRules {
     charters: CompanyCharters
+    /** Whether a company may be bought whole, as 1846's independents are. */
+    companyAcquisitions?: boolean
     operatingCompany(state: CompanyDecisionState): string | undefined
     canPurchase(state: CompanyDecisionState, companyId: string, asset: PurchaseAsset): boolean
     priceRange(

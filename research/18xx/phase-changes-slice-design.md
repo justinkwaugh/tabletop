@@ -21,6 +21,14 @@ suspension remain extensions, rather than invented generic event infrastructure.
 Tile colors, revenue stages, train limits, and TOP starting prices already read
 phaseId. OperatingSet.roundCount remains its existing snapshot.
 
+A title's own changes as a phase begins go through `PhaseRules.changes` (added
+2026-10-19 for 1846's independents and Steamboat at III and its revenue markers and
+extra reservations at IV): the title supplies the schema of what it records and an
+`apply` that runs once the new phase is current, before its trains rust and before
+private effects. The shared `AdvancePhase` Action carries the result under
+`metadata.changes`, registered per title with that schema, so no title defines a
+second phase Action.
+
 TOP §§7.6,13.2,14: current capacity is checked before purchase, rusting is immediate,
 excess trains leave the game, and 4+ trains with no prior operating opportunity survive diesel until their
 next operating opportunity. They cannot be traded. Completing that company's run

@@ -32,8 +32,12 @@ describe('a refusal as its reader sees it', () => {
         const reason = `${ALICE} is the Chancellor, not an Exile`
         expect(humanizeReason(reason, seats, ALICE)).toBe('you are the Chancellor, not an Exile')
         expect(humanizeReason(reason, seats, BOB)).toBe('Alice is the Chancellor, not an Exile')
-        expect(humanizeReason(`${ALICE} has no favor to burn`, seats, ALICE)).toBe('you have no favor to burn')
-        expect(humanizeReason(`${ALICE} has no favor to burn`, seats, BOB)).toBe('Alice has no favor to burn')
+        expect(humanizeReason(`${ALICE} has no favor to burn`, seats, ALICE)).toBe(
+            'you have no favor to burn'
+        )
+        expect(humanizeReason(`${ALICE} has no favor to burn`, seats, BOB)).toBe(
+            'Alice has no favor to burn'
+        )
     })
 
     it('a spectator reads every seat by name', () => {
@@ -47,9 +51,9 @@ describe('a refusal as its reader sees it', () => {
             seats: ['ab', 'ab-c', '-x_'],
             player: (id) => ({ ab: 'Ann', 'ab-c': 'Cal', '-x_': 'Xia' })[id] ?? id
         }
-        expect(humanizeReason("ab-c has 0 favor; ab's relics; -x_ is here", prefixed, undefined)).toBe(
-            "Cal has 0 favor; Ann's relics; Xia is here"
-        )
+        expect(
+            humanizeReason("ab-c has 0 favor; ab's relics; -x_ is here", prefixed, undefined)
+        ).toBe("Cal has 0 favor; Ann's relics; Xia is here")
     })
 
     it('a name with “$” in it is inserted as written', () => {
@@ -59,9 +63,9 @@ describe('a refusal as its reader sees it', () => {
     })
 
     it('strips the rule citations and names cards as before', () => {
-        expect(
-            humanizeReason(`${BOB} holds relic.cup-of-plenty (R-5.5.2)`, seats, ALICE)
-        ).toBe('Bob holds Cup of Plenty')
+        expect(humanizeReason(`${BOB} holds relic.cup-of-plenty (R-5.5.2)`, seats, ALICE)).toBe(
+            'Bob holds Cup of Plenty'
+        )
     })
 })
 
@@ -70,24 +74,25 @@ describe('a refusal with each other seat as its chip', () => {
     const chip = (playerId: string, possessive = false) => ({ kind: 'seat', playerId, possessive })
 
     it('reads as `humanizeReason` does, with another seat apart, and the reader still “you”', () => {
-        expect(reasonParts(`${BOB} has 0 favor, not the 2 ${ALICE} would take (R-5.5.2)`, seats.seats, ALICE)).toEqual([
-            chip(BOB),
-            text(' has 0 favor, not the 2 you would take')
-        ])
-        expect(reasonParts(`${ALICE} is the Chancellor; ${BOB}'s relics stay`, seats.seats, ALICE)).toEqual([
-            text('you are the Chancellor; '),
-            chip(BOB, true),
-            text(' relics stay')
-        ])
+        expect(
+            reasonParts(
+                `${BOB} has 0 favor, not the 2 ${ALICE} would take (R-5.5.2)`,
+                seats.seats,
+                ALICE
+            )
+        ).toEqual([chip(BOB), text(' has 0 favor, not the 2 you would take')])
+        expect(
+            reasonParts(`${ALICE} is the Chancellor; ${BOB}'s relics stay`, seats.seats, ALICE)
+        ).toEqual([text('you are the Chancellor; '), chip(BOB, true), text(' relics stay')])
     })
 
     it('a spectator reads every seat as its chip; a reason with no seat is one run of text', () => {
-        expect(reasonParts(`${ALICE} gave relic.cup-of-plenty to ${BOB}`, seats.seats, undefined)).toEqual([
-            chip(ALICE),
-            text(' gave Cup of Plenty to '),
-            chip(BOB)
+        expect(
+            reasonParts(`${ALICE} gave relic.cup-of-plenty to ${BOB}`, seats.seats, undefined)
+        ).toEqual([chip(ALICE), text(' gave Cup of Plenty to '), chip(BOB)])
+        expect(reasonParts('the world deck is empty', seats.seats, ALICE)).toEqual([
+            text('the world deck is empty')
         ])
-        expect(reasonParts('the world deck is empty', seats.seats, ALICE)).toEqual([text('the world deck is empty')])
     })
 })
 
@@ -102,7 +107,9 @@ describe('a summary as its reader sees it', () => {
     })
 
     it('every other seat is named, and the viewer is “you”', () => {
-        expect(nameSeats(`took 2 favor from ${BOB}`, seats, BOB, ALICE)).toBe('took 2 favor from you')
+        expect(nameSeats(`took 2 favor from ${BOB}`, seats, BOB, ALICE)).toBe(
+            'took 2 favor from you'
+        )
         expect(nameSeats(`took 2 favor from ${BOB}`, seats, undefined, ALICE)).toBe(
             'took 2 favor from Bob'
         )

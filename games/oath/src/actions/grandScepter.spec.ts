@@ -36,7 +36,12 @@ describe("the Grand Scepter's continuous lockout is dead while its three permiss
                     siteId: 'c2',
                     relicIds: [GRAND_SCEPTER_ID]
                 }),
-                testPlayer({ playerId: 'target', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c2' })
+                testPlayer({
+                    playerId: 'target',
+                    color: Color.Blue,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c2'
+                })
             ],
             {
                 chancellorPlayerId: 'chancellor',
@@ -57,19 +62,28 @@ describe("the Grand Scepter's continuous lockout is dead while its three permiss
         state.grandScepterTakenOnTurnStart = 4
 
         expect(
-            HydratedLetPeek.reasonCannotLetPeek(state, 'holder', 'target', { kind: LetPeekSubjectKind.Reliquary, slotId: 'reliquary.0' })
+            HydratedLetPeek.reasonCannotLetPeek(state, 'holder', 'target', {
+                kind: LetPeekSubjectKind.Reliquary,
+                slotId: 'reliquary.0'
+            })
         ).toMatch(/cannot be used on the turn it was taken/)
 
         state.turnManager.series = [{ type: 'turn', playerId: 'holder', start: 9 }]
         expect(
-            HydratedLetPeek.reasonCannotLetPeek(state, 'holder', 'target', { kind: LetPeekSubjectKind.Reliquary, slotId: 'reliquary.0' })
+            HydratedLetPeek.reasonCannotLetPeek(state, 'holder', 'target', {
+                kind: LetPeekSubjectKind.Reliquary,
+                slotId: 'reliquary.0'
+            })
         ).toBeUndefined()
     })
 
     it('a holder who did not take it this turn shows it freely (no over-lock)', () => {
         const state = board()
         expect(
-            HydratedLetPeek.reasonCannotLetPeek(state, 'holder', 'target', { kind: LetPeekSubjectKind.Reliquary, slotId: 'reliquary.0' })
+            HydratedLetPeek.reasonCannotLetPeek(state, 'holder', 'target', {
+                kind: LetPeekSubjectKind.Reliquary,
+                slotId: 'reliquary.0'
+            })
         ).toBeUndefined()
     })
 })
@@ -109,11 +123,12 @@ describe('Scepter double delivery: the same act is reachable through two doors w
         const state = board()
 
         expect(
-            HydratedLetPeek.reasonCannotLetPeek(state, 'holder', 'target', { kind: LetPeekSubjectKind.Reliquary, slotId: 'reliquary.0' })
+            HydratedLetPeek.reasonCannotLetPeek(state, 'holder', 'target', {
+                kind: LetPeekSubjectKind.Reliquary,
+                slotId: 'reliquary.0'
+            })
         ).toBeUndefined()
-        expect(
-            HydratedOfferCitizenship.canDoOfferCitizenship(state, 'holder')
-        ).toBe(true)
+        expect(HydratedOfferCitizenship.canDoOfferCitizenship(state, 'holder')).toBe(true)
 
         // Power 1 is the Scepter's printed Peek.
         const holderHasAccess = HydratedUseActionPower.reasonCannotUse(
@@ -132,7 +147,14 @@ describe('The Grand Scepter given in an exchange is not taken (its Q&A: "Take an
     it("received through Tinker's Fair on its new holder's turn, it can be used at once", () => {
         const s = rulerTable([TINKERS_FAIR], [], { other: { relicIds: [GRAND_SCEPTER_ID] } })
         actionPowerUse('ruler', TINKERS_FAIR, [
-            { kind: PowerChoiceKind.Exchange, withPlayerId: 'other', terms: { fromProposer: { favor: 1 }, fromCounterparty: { relicCardIds: [GRAND_SCEPTER_ID] } } }
+            {
+                kind: PowerChoiceKind.Exchange,
+                withPlayerId: 'other',
+                terms: {
+                    fromProposer: { favor: 1 },
+                    fromCounterparty: { relicCardIds: [GRAND_SCEPTER_ID] }
+                }
+            }
         ]).apply(s)
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(s.getPlayerState('ruler').relicIds).toEqual([GRAND_SCEPTER_ID])
@@ -144,13 +166,31 @@ describe('The Grand Scepter given in an exchange is not taken (its Q&A: "Take an
         for (let seed = 1; seed < 200; seed++) {
             const s = testState(
                 [
-                    testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', warbandsOnBoard: { [ATTACKER]: 10 } }),
-                    testPlayer({ playerId: DEFENDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', relicIds: [GRAND_SCEPTER_ID] })
+                    testPlayer({
+                        playerId: ATTACKER,
+                        color: Color.Red,
+                        status: PlayerStatus.Exile,
+                        siteId: 'c1',
+                        warbandsOnBoard: { [ATTACKER]: 10 }
+                    }),
+                    testPlayer({
+                        playerId: DEFENDER,
+                        color: Color.Yellow,
+                        status: PlayerStatus.Exile,
+                        siteId: 'c1',
+                        relicIds: [GRAND_SCEPTER_ID]
+                    })
                 ],
                 { warbandsBySite: { c1: { [DEFENDER]: 1 } }, prng: { seed, invocations: 0 } }
             )
             openTurn(s, ATTACKER)
-            campaign({ targets: [siteTarget('c1'), { kind: CampaignTargetKind.Relic, cardId: GRAND_SCEPTER_ID }], attackDice: 10 }).apply(s)
+            campaign({
+                targets: [
+                    siteTarget('c1'),
+                    { kind: CampaignTargetKind.Relic, cardId: GRAND_SCEPTER_ID }
+                ],
+                attackDice: 10
+            }).apply(s)
             if (ongoingCampaign(s).swords <= ongoingCampaign(s).defense) continue
             finishCampaign(s)
             expect(s.getPlayerState(ATTACKER).relicIds).toEqual([GRAND_SCEPTER_ID])
@@ -164,26 +204,73 @@ describe('The Grand Scepter given in an exchange is not taken (its Q&A: "Take an
         for (let seed = 1; seed < 200; seed++) {
             const s = testState(
                 [
-                    testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 2, warbandsOnBoard: { [ATTACKER]: 10 }, advisers: [{ cardId: TINKERS_FAIR, faceUp: true }] }),
-                    testPlayer({ playerId: DEFENDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', relicIds: [GRAND_SCEPTER_ID] }),
-                    testPlayer({ playerId: 'receiver', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c1', favor: 2 }),
-                    testPlayer({ playerId: 'peeker', color: Color.White, status: PlayerStatus.Exile, siteId: 'c2' })
+                    testPlayer({
+                        playerId: ATTACKER,
+                        color: Color.Red,
+                        status: PlayerStatus.Exile,
+                        siteId: 'c1',
+                        favor: 2,
+                        warbandsOnBoard: { [ATTACKER]: 10 },
+                        advisers: [{ cardId: TINKERS_FAIR, faceUp: true }]
+                    }),
+                    testPlayer({
+                        playerId: DEFENDER,
+                        color: Color.Yellow,
+                        status: PlayerStatus.Exile,
+                        siteId: 'c1',
+                        relicIds: [GRAND_SCEPTER_ID]
+                    }),
+                    testPlayer({
+                        playerId: 'receiver',
+                        color: Color.Blue,
+                        status: PlayerStatus.Exile,
+                        siteId: 'c1',
+                        favor: 2
+                    }),
+                    testPlayer({
+                        playerId: 'peeker',
+                        color: Color.White,
+                        status: PlayerStatus.Exile,
+                        siteId: 'c2'
+                    })
                 ],
-                { oathRevision: OathRevision.EngineFixes2, warbandsBySite: { c1: { [DEFENDER]: 1 } }, prng: { seed, invocations: 0 } }
+                {
+                    oathRevision: OathRevision.EngineFixes2,
+                    warbandsBySite: { c1: { [DEFENDER]: 1 } },
+                    prng: { seed, invocations: 0 }
+                }
             )
             openTurn(s, ATTACKER)
-            campaign({ targets: [siteTarget('c1'), { kind: CampaignTargetKind.Relic, cardId: GRAND_SCEPTER_ID }], attackDice: 10 }).apply(s)
+            campaign({
+                targets: [
+                    siteTarget('c1'),
+                    { kind: CampaignTargetKind.Relic, cardId: GRAND_SCEPTER_ID }
+                ],
+                attackDice: 10
+            }).apply(s)
             if (ongoingCampaign(s).swords <= ongoingCampaign(s).defense) continue
             finishCampaign(s)
             expect(canUseGrandScepter(s, ATTACKER)).toBe(false)
 
             actionPowerUse(ATTACKER, TINKERS_FAIR, [
-                { kind: PowerChoiceKind.Exchange, withPlayerId: 'receiver', terms: { fromProposer: { relicCardIds: [GRAND_SCEPTER_ID] }, fromCounterparty: { favor: 1 } } }
+                {
+                    kind: PowerChoiceKind.Exchange,
+                    withPlayerId: 'receiver',
+                    terms: {
+                        fromProposer: { relicCardIds: [GRAND_SCEPTER_ID] },
+                        fromCounterparty: { favor: 1 }
+                    }
+                }
             ]).apply(s)
             answerQuestion(s, 'receiver', { kind: PowerQuestionKind.Exchange, accept: true })
             expect(s.getPlayerState('receiver').relicIds).toEqual([GRAND_SCEPTER_ID])
             expect(canUseGrandScepter(s, 'receiver')).toBe(true)
-            expect(HydratedLetPeek.reasonCannotLetPeek(s, 'receiver', 'peeker', { kind: LetPeekSubjectKind.Reliquary, slotId: 'reliquary.0' })).toBeUndefined()
+            expect(
+                HydratedLetPeek.reasonCannotLetPeek(s, 'receiver', 'peeker', {
+                    kind: LetPeekSubjectKind.Reliquary,
+                    slotId: 'reliquary.0'
+                })
+            ).toBeUndefined()
             return
         }
         throw new Error('no seed gave the attacker the victory')
@@ -192,8 +279,18 @@ describe('The Grand Scepter given in an exchange is not taken (its Q&A: "Take an
     function handedOn(oathRevision: number) {
         const s = testState(
             [
-                testPlayer({ playerId: 'taker', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1' }),
-                testPlayer({ playerId: 'given', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c1' })
+                testPlayer({
+                    playerId: 'taker',
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c1'
+                }),
+                testPlayer({
+                    playerId: 'given',
+                    color: Color.Blue,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c1'
+                })
             ],
             { oathRevision }
         )

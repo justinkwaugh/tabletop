@@ -11,7 +11,8 @@
         type FinancialState,
         type TrainState,
         type StationState,
-        type TrainDepot
+        type TrainDepot,
+        isObsoleteTrain
     } from '@tabletop/18xx'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -46,7 +47,7 @@
         requiresTrain: (companyId: string) => boolean
         appearances: Readonly<Record<string, StationAppearance>>
         currentCompanyId?: string
-        /** The displayed state arrived by a silent swap, so the order neither slides nor scrolls. */
+        /** The displayed state arrived by a silent swap, so the order does not slide. */
         restoredSilently?: boolean
         completedCompanyIds?: readonly string[]
         companyDetails: Snippet<[Company]>
@@ -100,31 +101,23 @@
             }
         }
     }
-    type Reveal = { currentCompanyId?: string; order: string; quiet: boolean }
-    // Brings the operating company into view; smoothly only for a live move that keeps the
-    // order, so the scroll never runs alongside the chips sliding to a new order.
-    function revealCurrentCompany(area: HTMLOListElement, initial: Reveal) {
-        let shown: Reveal | undefined
-        function reveal(next: Reveal) {
+    // Brings the operating company into view at once when it is out of sight. The scroll follows
+    // the displayed state, so it is instant rather than motion to order against the chips' slide.
+    function revealCurrentCompany(area: HTMLOListElement, initial: string | undefined) {
+        let revealed = false
+        function reveal(currentCompanyId: string | undefined) {
             const current = [...area.children].find(
                 (child) =>
-                    child instanceof HTMLElement &&
-                    child.dataset.companyId === next.currentCompanyId
+                    child instanceof HTMLElement && child.dataset.companyId === currentCompanyId
             )
-            if (current instanceof HTMLElement && !(shown && fullyVisible(area, current))) {
-                const smooth =
-                    !!shown &&
-                    shown.order === next.order &&
-                    !next.quiet &&
-                    !prefersReducedMotion.current
+            if (current instanceof HTMLElement && !(revealed && fullyVisible(area, current)))
                 area.scrollTo({
                     left:
                         companyStart(area, current) -
                         parseFloat(getComputedStyle(area).paddingLeft),
-                    behavior: smooth ? 'smooth' : 'instant'
+                    behavior: 'instant'
                 })
-            }
-            if (current) shown = next
+            if (current) revealed = true
         }
         reveal(initial)
         return { update: reveal }
@@ -146,7 +139,8 @@
                 }).map((train) => ({
                     id: train.id,
                     color: trainColors[train.definitionId],
-                    name: trainDepot.trainDefinition(train.definitionId).name
+                    name: trainDepot.trainDefinition(train.definitionId).name,
+                    obsolete: isObsoleteTrain(train)
                 })),
                 remainingTokens: gameState.stations.filter(
                     (station) => station.companyId === company.id && station.status === 'available'
@@ -162,14 +156,7 @@
             <CompanyOrderOverview {companies} {appearances} {firstVisible} {lastVisible} />
         </div>
     {/if}
-    <ol
-        use:trackVisibleCompanies
-        use:revealCurrentCompany={{
-            currentCompanyId,
-            order: companies.map((company) => company.id).join(),
-            quiet: restoredSilently
-        }}
-    >
+    <ol use:trackVisibleCompanies use:revealCurrentCompany={currentCompanyId}>
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
             {@const detailed = showDetails || currentCompanyId === company.id}
@@ -180,7 +167,7 @@
                 data-company-id={company.id}
                 class:completed
                 aria-current={currentCompanyId === company.id ? 'step' : undefined}
-                aria-label={`${companyName(company.id)}, cash ${amount === undefined ? 'not applicable' : amount}, trains ${trains.map((train) => train.name).join(', ') || 'none'}, ${remainingTokens.length} station tokens remaining${currentCompanyId === company.id ? ', operating' : completed ? ', operated' : ''}`}
+                aria-label={`${companyName(company.id)}, cash ${amount === undefined ? 'not applicable' : amount}, trains ${trains.map((train) => (train.obsolete ? `${train.name} obsolete` : train.name)).join(', ') || 'none'}, ${remainingTokens.length} station tokens remaining${currentCompanyId === company.id ? ', operating' : completed ? ', operated' : ''}`}
                 title={companyName(company.id)}
             >
                 <button
@@ -216,7 +203,11 @@
                             </div>
                             <div class="trains">
                                 {#each trains as train (train.id)}
-                                    <TrainBadge name={train.name} color={train.color} />
+                                    <TrainBadge
+                                        name={train.name}
+                                        color={train.color}
+                                        obsolete={train.obsolete}
+                                    />
                                 {:else}
                                     <span
                                         class="no-trains"

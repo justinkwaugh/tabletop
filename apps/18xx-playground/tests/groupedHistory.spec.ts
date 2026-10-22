@@ -5,7 +5,7 @@ test('compact stock rows and operating groups retain details and action navigati
 }) => {
     test.setTimeout(60000)
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
     await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({
         timeout: 30000
@@ -16,7 +16,7 @@ test('compact stock rows and operating groups retain details and action navigati
     expect(await playerLines.count()).toBeGreaterThan(1)
     const firstLine = playerLines.first()
     await expect(firstLine).toContainText(/^\s*Player \d+\s+\S/)
-    await expect(firstLine).toContainText(/Player \d+\s+split Belfast Branch/)
+    await expect(firstLine).toContainText(/Player \d+\s+split BB from S/)
     await expect(
         page
             .getByRole('list', { name: 'Action history', exact: true })
@@ -59,7 +59,7 @@ test('compact stock rows and operating groups retain details and action navigati
         page
             .getByRole('list', { name: 'Action history', exact: true })
             .locator('.stock-action')
-            .filter({ hasText: 'Murray River floated' })
+            .filter({ hasText: 'MR floated' })
             .first()
     ).toBeVisible()
     await expect(flotation.locator('.flotation-token svg')).toHaveCount(1)
@@ -79,8 +79,8 @@ test('compact stock rows and operating groups retain details and action navigati
     const stock = page
         .getByRole('list', { name: 'SR 6 actions', exact: true })
         .locator('article.stock')
-        .filter({ hasText: 'split Belfast Branch from Summerside' })
-    await expect(stock).toContainText('split Belfast Branch from Summerside')
+        .filter({ hasText: 'split BB from S' })
+    await expect(stock).toContainText('split BB from S')
     await expect(stock.locator('header')).toHaveCount(0)
     await expect(stock.getByRole('button', { name: /^Details/ })).toHaveCount(0)
     const company = page

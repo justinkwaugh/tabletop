@@ -24,6 +24,7 @@ import {
 import { screenAxes, uprightAngle } from './boardView.js'
 import { insidePolygon } from './polygon.js'
 import { inReadingOrder } from './unitTypeOrder.js'
+import { byCommander } from './groupOrder.js'
 
 export const BAR_HALF_THICKNESS = 6
 const BAR_GAP = 3
@@ -506,12 +507,7 @@ function shiftClearOf(
 }
 
 function sortGroups(groups: PlacedGroup[]): PlacedGroup[] {
-    return groups.toSorted((a, b) => {
-        if ((a.commander === undefined) !== (b.commander === undefined)) {
-            return a.commander ? -1 : 1
-        }
-        return (a.commander?.id ?? '').localeCompare(b.commander?.id ?? '')
-    })
+    return groups.toSorted((a, b) => byCommander(a.commander?.id, b.commander?.id))
 }
 
 export function layoutPieces(

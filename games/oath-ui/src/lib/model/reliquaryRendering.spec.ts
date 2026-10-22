@@ -33,7 +33,9 @@ describe('R-2.3 — the Imperial Reliquary', () => {
     it('holds four relics at setup, and draws four of them', () => {
         const state = board(['reliquary.0', 'reliquary.1', 'reliquary.2', 'reliquary.3'])
         expect(state.reliquarySlots()).toEqual(
-            ['reliquary.0', 'reliquary.1', 'reliquary.2', 'reliquary.3'].map((slotId) => ({ slotId }))
+            ['reliquary.0', 'reliquary.1', 'reliquary.2', 'reliquary.3'].map((slotId) => ({
+                slotId
+            }))
         )
         expect(renderPlan(state)).toEqual(['covered', 'covered', 'covered', 'covered'])
     })
@@ -47,12 +49,7 @@ describe('R-2.3 — the Imperial Reliquary', () => {
 
     it('an empty array is four uncovered spaces, not four missing ones', () => {
         const state = board([])
-        expect(renderPlan(state)).toEqual([
-            'uncovered',
-            'uncovered',
-            'uncovered',
-            'uncovered'
-        ])
+        expect(renderPlan(state)).toEqual(['uncovered', 'uncovered', 'uncovered', 'uncovered'])
         expect(uncoveredReliquarySpaces(state)).toBe(RELIQUARY_SPACES)
     })
 

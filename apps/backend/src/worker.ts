@@ -4,11 +4,25 @@ import { app } from './app/app.js'
 import { installHandlerDrain } from './runtime/handlerDrain.js'
 import { ajvOptions } from './runtime/ajvOptions.js'
 import { lazyValidatorCompiler } from './runtime/lazyValidation.js'
-import { supervisedReplacement } from './runtime/replacementRequest.js'
+import type { TitleLoadMessage } from './runtime/backendChild.js'
 
 if (!process.send) throw new Error('Backend worker requires a supervisor IPC channel')
 const send = process.send.bind(process)
-const replacement = supervisedReplacement(send)
+
+function announce(message: TitleLoadMessage): Promise<void> {
+    return new Promise((resolve, reject) =>
+        send(message, undefined, undefined, (error) => (error ? reject(error) : resolve()))
+    )
+}
+
+async function whileLoadingTitle<T>(load: () => Promise<T>): Promise<T> {
+    await announce({ titleLoad: 'started' })
+    try {
+        return await load()
+    } finally {
+        await announce({ titleLoad: 'finished' })
+    }
+}
 
 const server = Fastify({
     logger: true,
@@ -39,7 +53,7 @@ process.on('disconnect', () => process.exit(1))
 
 try {
     await server.register(rawBody, { global: false, runFirst: true })
-    await server.register(app, { replacement })
+    await server.register(app, { whileLoadingTitle })
     await server.listen({ port: 0, host: '127.0.0.1' })
     const address = server.server.address()
     if (!address || typeof address === 'string') throw new Error('Backend has no TCP address')

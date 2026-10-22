@@ -12,18 +12,19 @@ The requirements below concern new games adopting protected delivery. Existing v
 
 ## Overview
 
-| Title | State to protect | Action data to protect | Protected randomness |
-| --- | --- | --- | --- |
-| Sol | Undrawn deck contents/order | No private payload identified; drawn results are public | Deck shuffle |
-| The Estates | Undrawn roof bag; owner-only money, stolen totals, and running scores with Hidden Money | No sealed bids; drawn roofs and embezzlement are public | Roof shuffle |
-| Santiago | Future tile bag; money under its private-money option | No sealed bids; tile reveals are public | Tile shuffle |
-| Kaivai | Pending final island bids | `PlaceScoringBid.amount` until the round is revealed | Fishing dice, including randomized less-luck variants |
-| Container | Owner scoring card; pending foreign-island bids and duplicate totals; money policy to decide | `SubmitBid.bidAmount` until round reveal | Scoring-card allocation |
-| Lowenherz | Future action deck, politics piles, owner politics hands, pending duel bids; optional private money | Inspected-card choice and pending duel amounts/treasure cards | Action-deck ordering and politics-card allocation |
-| Indonesia | Other players' future city cards; current-card reveal and money policies to settle | No private payload identified in current Actions | City-card allocation |
-| Bus | None identified | None identified | None beyond public setup/identity |
-| Bridges of Shangri-La | None identified | None identified | None beyond public setup |
-| Urbino | None identified | None identified | None beyond public setup |
+| Title                 | State to protect                                                                                                        | Action data to protect                                                     | Protected randomness                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Sol                   | Undrawn deck contents/order                                                                                             | No private payload identified; drawn results are public                    | Deck shuffle                                          |
+| The Estates           | Undrawn roof bag; owner-only money, stolen totals, and running scores with Hidden Money                                 | No sealed bids; drawn roofs and embezzlement are public                    | Roof shuffle                                          |
+| Santiago              | Future tile bag; money under its private-money option                                                                   | No sealed bids; tile reveals are public                                    | Tile shuffle                                          |
+| Kaivai                | Pending final island bids                                                                                               | `PlaceScoringBid.amount` until the round is revealed                       | Fishing dice, including randomized less-luck variants |
+| Container             | Owner scoring card; pending foreign-island bids and duplicate totals; money policy to decide                            | `SubmitBid.bidAmount` until round reveal                                   | Scoring-card allocation                               |
+| Lowenherz             | Future action deck, politics piles, owner politics hands, pending duel bids; optional private money                     | Inspected-card choice and pending duel amounts/treasure cards              | Action-deck ordering and politics-card allocation     |
+| Indonesia             | Other players' future city cards; current-card reveal and money policies to settle                                      | No private payload identified in current Actions                           | City-card allocation                                  |
+| Bus                   | None identified                                                                                                         | None identified                                                            | None beyond public setup/identity                     |
+| Bridges of Shangri-La | None identified                                                                                                         | None identified                                                            | None beyond public setup                              |
+| Urbino                | None identified                                                                                                         | None identified                                                            | None beyond public setup                              |
+| 1846                  | Undealt draft deck (host only); each participant's packet and selections (owner only); the two-player opening is public | `ChooseDraftCard.cardId` (actor only); the reveal publishes every purchase | Deck shuffle and the reshuffle of returned cards      |
 
 “Until reveal” does not mean an old submission Action should be dynamically unredacted later. Keep private historical submissions protected and publish a separate complete result at the reveal transition.
 
@@ -117,13 +118,22 @@ Sources: [player state](../games/indonesia/src/model/playerState.ts), [initializ
 
 **Money decision:** the [bundled rulebook](../games/indonesia/indonesia-rules-09-EN.pdf), setup section, allows open or closed money and defaults to closed when no agreement is made. The implementation displays `cash` and `bank` publicly and has no corresponding option. Decide whether to retain open money or introduce a configurable owner-only representation, with final totals public. As elsewhere, public financial history can reveal balances by calculation.
 
+## 1846
+
+Sources: [state](../games/1846/src/state.ts), [opening](../games/1846/src/opening.ts), [distribution](../games/1846/src/distribution.ts), [actions](../games/1846/src/actions.ts), [projection test](../games/1846/src/distribution.spec.ts).
+
+- **Protect:** `draft.deck` for the host only; each participant's `packet` and `selections` for their owner. `remainingCount`, the lone `finalOffer`, who has passed, the seating and the removed companies are public.
+- **Actions:** `ChooseDraftCard.cardId` is the actor's; `PassFinalCompany` and `RevealDraft` are public, and the reveal records every purchase.
+- **Randomness:** the deck shuffle and each reshuffle of returned cards draw from the protected stream; seating and removals use the public stream.
+- **Adopted:** the runtime registers its strict canonical schema through `canonicalState`, from which the family projects state and Actions. There is no projected Exploration.
+
 ## Titles with no identified protection requirement
 
-| Title and source | Reviewed public state and Actions |
-| --- | --- |
-| [Bus](../games/bus/src/model/gameState.ts) | Routes, passengers and their movement, buildings, worker action choices, buses/sticks/stones, time, first-player order, scores, and passes are public. Randomness found is public setup and passenger identity generation. |
-| [Bridges of Shangri-La](../games/bridges-of-shangri-la/src/model/gameState.ts) | Masters, students, bridges, stones, supplies, scores, recruitment, placements, journeys, and passes are public. Randomness found is setup colors and order. |
-| [Urbino](../games/urbino/src/model/gameState.ts) | Board, architects, building supplies, placements/repositioning, passes, concession, and scores are public. Randomness found is setup colors and order. |
+| Title and source                                                               | Reviewed public state and Actions                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Bus](../games/bus/src/model/gameState.ts)                                     | Routes, passengers and their movement, buildings, worker action choices, buses/sticks/stones, time, first-player order, scores, and passes are public. Randomness found is public setup and passenger identity generation. |
+| [Bridges of Shangri-La](../games/bridges-of-shangri-la/src/model/gameState.ts) | Masters, students, bridges, stones, supplies, scores, recruitment, placements, journeys, and passes are public. Randomness found is setup colors and order.                                                                |
+| [Urbino](../games/urbino/src/model/gameState.ts)                               | Board, architects, building supplies, placements/repositioning, passes, concession, and scores are public. Randomness found is setup colors and order.                                                                     |
 
 These titles need no visibility registration merely because new game instances use system version 3. Local UI selections that have not been submitted are not canonical secrets to project.
 

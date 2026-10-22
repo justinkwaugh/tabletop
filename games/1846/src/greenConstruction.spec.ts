@@ -6,7 +6,7 @@ import {
     routeConnectionBonuses,
     type RouteRevenueStop
 } from '@tabletop/18xx'
-import { stockGame, layTrack } from './testSupport.js'
+import { stockGame, layTrack } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { RouteRules1846 } from './routes.js'

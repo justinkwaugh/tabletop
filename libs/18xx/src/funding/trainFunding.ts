@@ -15,6 +15,7 @@ import { trainsOwnedBy } from '../trains/train.js'
 import { evaluateShareDisposal, applyShareSale, type ShareSaleDetails } from '../stock/shareSale.js'
 import type { StockRules, ShareSaleTerms } from '../stock/stockRules.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
+import type { EliminationRules } from './elimination.js'
 
 export const TrainFunding = Type.Object(
     {
@@ -22,12 +23,15 @@ export const TrainFunding = Type.Object(
         playerId: Type.String(),
         contributors: Type.Array(Owner),
         sales: Type.Array(
-            Type.Object({
-                seller: Owner,
-                companyId: Type.String(),
-                // Stored games from before this stopped being recorded may hold it; never read.
-                shares: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 1 })))
-            })
+            Type.Object(
+                {
+                    seller: Owner,
+                    companyId: Type.String(),
+                    // Stored games from before this stopped being recorded may hold it; never read.
+                    shares: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 1 })))
+                },
+                { additionalProperties: false }
+            )
         )
     },
     { additionalProperties: false }
@@ -52,11 +56,25 @@ export interface TrainFundingRules {
     includeMarketTrains: boolean
     sellInBlocks: boolean
     contributors(state: FundingState, companyId: string): Owner[]
+    /**
+     * Terms for issuing the company's treasury shares, given how many it holds; it issues
+     * `maximumShares` of them, as one block.
+     */
     issuanceTerms(
         state: FundingState,
         companyId: string,
         shares: number
     ): ShareSaleTerms | undefined
+    /** The purchases the funding may be for, from every offer; the cheapest unless given. */
+    fundablePurchases?(
+        state: FundingState,
+        companyId: string,
+        offers: readonly TrainPurchaseDetails[]
+    ): TrainPurchaseDetails[]
+    /** Whether a legal sale may raise funds; every legal sale unless given. */
+    permitsSale?(state: FundingState, details: ShareSaleDetails): boolean
+    /** How a player whose funding is exhausted leaves the game; without it, bankruptcy ends it. */
+    elimination?: EliminationRules
     saleTerms(
         state: FundingState,
         companyId: string,
@@ -65,6 +83,12 @@ export interface TrainFundingRules {
     ): ShareSaleTerms | string
     protectsPresidency(companyId: string, operatingCompanyId: string): boolean
     requiredSaleShares(state: FundingState, seller: Owner, companyId: string): number
+    /**
+     * Whether a company that owns a train may still have its contributors help buy the cheapest
+     * one. Such help comes from their cash alone, with no issuance or share sales, and is offered
+     * only when that cash covers the price.
+     */
+    voluntaryFunding?(state: FundingState, companyId: string): boolean
 }
 export type FundingChoice =
     | { kind: 'issue'; details: ShareSaleDetails }
@@ -73,6 +97,10 @@ export type FundingChoice =
     | { kind: 'buy'; purchase: TrainPurchaseDetails }
     | { kind: 'bankrupt'; shortfall: number }
 
+function cheapestOffers(offers: readonly TrainPurchaseDetails[]): TrainPurchaseDetails[] {
+    const price = Math.min(...offers.map((offer) => offer.price))
+    return offers.filter((offer) => offer.price === price)
+}
 export class EmergencyTrainFunding {
     constructor(
         private readonly state: FundingState,
@@ -99,11 +127,12 @@ export class EmergencyTrainFunding {
     }
     purchases(): TrainPurchaseDetails[] {
         const companyId = this.state.trainPurchaseStep?.companyId
+        if (!companyId || getCompany(this.state, companyId).closed) return []
+        const voluntary = this.voluntary(companyId)
         if (
-            !companyId ||
-            getCompany(this.state, companyId).closed ||
-            trainsOwnedBy(this.state, { kind: 'company', companyId }).length ||
-            !this.trains.requiresTrain(this.state, companyId)
+            voluntary
+                ? !this.rules.voluntaryFunding?.(this.state, companyId)
+                : !this.trains.requiresTrain(this.state, companyId)
         )
             return []
         const projected = {
@@ -123,9 +152,20 @@ export class EmergencyTrainFunding {
                 ? purchase.marketOffers().flatMap((offer) => (offer.details ? [offer.details] : []))
                 : [])
         ]
-        const price = Math.min(...offers.map((offer) => offer.price))
-        if (this.cash({ kind: 'company', companyId }) >= price) return []
-        return offers.filter((offer) => offer.price === price)
+        const treasury = this.cash({ kind: 'company', companyId })
+        if (voluntary) {
+            const cheapest = cheapestOffers(offers)
+            const price = cheapest[0]?.price
+            if (price === undefined || treasury >= price) return []
+            const raised = this.rules
+                .contributors(this.state, companyId)
+                .reduce((total, owner) => total + this.cash(owner), treasury)
+            return raised < price ? [] : cheapest
+        }
+        const fundable = this.rules.fundablePurchases
+            ? this.rules.fundablePurchases(this.state, companyId, offers)
+            : cheapestOffers(offers)
+        return fundable.filter((offer) => offer.price > treasury)
     }
     preview(purchase: TrainPurchaseDetails) {
         const state: FundingState = {
@@ -200,12 +240,12 @@ export class EmergencyTrainFunding {
         const companyId = funding.purchase.companyId
         const treasury: Owner = { kind: 'company', companyId }
         const shortfall = this.shortfall()
-        if (shortfall) {
-            const shares = sharesOwned(this.state, companyId, treasury)
-            const terms = shares
-                ? this.rules.issuanceTerms(this.state, companyId, shares)
-                : undefined
-            if (terms) {
+        const voluntary = this.voluntary(companyId)
+        if (shortfall && !voluntary) {
+            const held = sharesOwned(this.state, companyId, treasury)
+            const terms = held ? this.rules.issuanceTerms(this.state, companyId, held) : undefined
+            const shares = Math.min(held, terms?.maximumShares ?? 0)
+            if (terms && shares > 0) {
                 const result = evaluateShareDisposal(
                     this.state,
                     treasury,
@@ -217,11 +257,11 @@ export class EmergencyTrainFunding {
             }
         }
         for (const owner of funding.contributors) {
-            const required = this.sales(owner, true)
+            const required = voluntary ? [] : this.sales(owner, true)
             if (required.length) return { kind: 'sell', owner, sales: required }
             if (!shortfall) continue
             const cash = this.cash(owner)
-            if (cash < shortfall) {
+            if (cash < shortfall && !voluntary) {
                 const sales = this.sales(owner, false)
                 if (sales.length) return { kind: 'sell', owner, sales }
             }
@@ -231,6 +271,10 @@ export class EmergencyTrainFunding {
         return shortfall
             ? { kind: 'bankrupt', shortfall }
             : { kind: 'buy', purchase: funding.purchase }
+    }
+    /** Whether the company being funded already owns a train, so needs none. */
+    voluntary(companyId: string): boolean {
+        return trainsOwnedBy(this.state, { kind: 'company', companyId }).length > 0
     }
     private cash(owner: Owner): number {
         const amount = cashOwnedBy(this.state, owner)
@@ -260,6 +304,7 @@ export class EmergencyTrainFunding {
                         market: this.stocks.market,
                         charters: this.stocks.charters,
                         presidencyCandidates: this.stocks.presidencyCandidates,
+                        holdsMarketMove: this.stocks.holdsMarketMove,
                         saleTerms: (_state, id, count, seller) =>
                             this.rules.saleTerms(this.state, id, count, seller)
                     }
@@ -273,7 +318,8 @@ export class EmergencyTrainFunding {
                                 sale.companyId,
                                 funding.purchase.companyId
                             )
-                    )
+                    ) ||
+                    this.rules.permitsSale?.(this.state, result.details) === false
                 )
                     continue
                 if (required) {

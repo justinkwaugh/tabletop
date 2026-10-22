@@ -13,7 +13,10 @@
 </script>
 
 <div class="toggle" role="radiogroup" aria-label="Height indication">
-    <span class="urbino-display px-1.5 text-[10px] tracking-[0.18em] text-(--cream-quiet) max-sm:hidden">HEIGHT INDICATION</span>
+    <span
+        class="urbino-display px-1.5 text-[10px] tracking-[0.18em] text-(--cream-quiet) max-sm:hidden"
+        >HEIGHT INDICATION</span
+    >
     {#each options as option (option.style)}
         {@const checked = session.buildingStyle === option.style}
         <button

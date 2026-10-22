@@ -9,7 +9,7 @@ import {
     type TrackRequest,
     type TrackLayDetails
 } from '@tabletop/18xx'
-import { stockGame, start } from './testSupport.js'
+import { stockGame, start } from '../test/testSupport.js'
 import { PrivateConstruction, type ConstructionPrivateId } from './privateConstruction.js'
 import { chicagoPrivateStation } from './privateStation.js'
 import { EighteenFortySixTileSet } from './tiles.js'

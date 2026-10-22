@@ -35,7 +35,6 @@ export type PrivatesSession = ModuleSession<
         | 'companyRules'
         | 'outOfTurnPrivatePowers'
         | 'privatePowerRules'
-        | 'names'
     >
 >
 
@@ -124,11 +123,9 @@ export class PrivatesModule {
                         requestablePrivateIds(state, playerId, rules.privatePowerRules).length > 0)
             )
     })
-    requestablePrivateNames(playerId: string) {
+    requestablePrivateIds(playerId: string) {
         const { state, rules } = this.session
-        return requestablePrivateIds(state, playerId, rules.privatePowerRules).map((id) =>
-            rules.names.company(id)
-        )
+        return requestablePrivateIds(state, playerId, rules.privatePowerRules)
     }
     hasRequest(playerId: string) {
         return hasPrivatePowerRequest(this.session.state, playerId)

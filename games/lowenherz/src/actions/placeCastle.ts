@@ -22,11 +22,7 @@ function placementPlanFor(state: HydratedLowenherzGameState) {
 // describeCastleSquareProblem(). Not "wrong-terrain"/"occupied" combined into one
 // generic reason because the UI needs to tell them apart to report accurately.
 export type CastleSquareProblem =
-    | 'notYourTurn'
-    | 'wrongTerrain'
-    | 'occupied'
-    | 'noKnightSquare'
-    | 'tooClose'
+    'notYourTurn' | 'wrongTerrain' | 'occupied' | 'noKnightSquare' | 'tooClose'
 
 export type PlaceCastleMetadata = Type.Static<typeof PlaceCastleMetadata>
 export const PlaceCastleMetadata = Type.Object({})
@@ -61,7 +57,10 @@ export function currentPlacementOwner(state: HydratedLowenherzGameState): PieceO
     return currentPlacementSlot(placementPlanFor(state), totalCastlesPlaced(state.board))?.owner
 }
 
-export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> implements PlaceCastle {
+export class HydratedPlaceCastle
+    extends HydratableAction<typeof PlaceCastle>
+    implements PlaceCastle
+{
     declare type: ActionType.PlaceCastle
     declare playerId: string
     declare castleCol: number
@@ -119,8 +118,12 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         castleRow: number
     ): boolean {
         return (
-            HydratedPlaceCastle.describeCastleSquareProblem(state, playerId, castleCol, castleRow) ===
-            undefined
+            HydratedPlaceCastle.describeCastleSquareProblem(
+                state,
+                playerId,
+                castleCol,
+                castleRow
+            ) === undefined
         )
     }
 

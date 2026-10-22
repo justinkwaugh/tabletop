@@ -228,7 +228,7 @@ function isObject(value: unknown): value is object {
 
 function projectSingleSchemaKeyword(schema: Type.TSchema, keyword: string) {
     const child: unknown = Reflect.get(schema, keyword)
-    if (Type.IsSchema(child)) {
+    if (Type.IsSchema(child) && !Array.isArray(child)) {
         Reflect.set(schema, keyword, projectSchema(child))
     }
 }
@@ -250,12 +250,12 @@ function projectSchemaRecordKeyword(schema: Type.TSchema, keyword: string) {
     if (!isObject(children)) {
         return
     }
+    const projectedChildren = {}
     for (const key of Reflect.ownKeys(children)) {
         const child: unknown = Reflect.get(children, key)
-        if (Type.IsSchema(child)) {
-            Reflect.set(children, key, projectSchema(child))
-        }
+        Reflect.set(projectedChildren, key, Type.IsSchema(child) ? projectSchema(child) : child)
     }
+    Reflect.set(schema, keyword, projectedChildren)
 }
 
 function updateRequiredProperties(schema: Type.TSchema) {

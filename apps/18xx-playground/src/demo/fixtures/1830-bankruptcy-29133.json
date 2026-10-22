@@ -5692,14 +5692,6 @@
    "price": 259
   },
   {
-   "id": "recorded:331",
-   "gameId": "1830-29133",
-   "source": "user",
-   "playerId": "4639",
-   "companyId": "BM",
-   "type": "FinishTrack"
-  },
-  {
    "id": "recorded:332",
    "gameId": "1830-29133",
    "source": "user",

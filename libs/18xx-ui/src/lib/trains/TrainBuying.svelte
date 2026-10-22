@@ -89,6 +89,12 @@
                 : `${remaining} remaining`}</small
         >
         {#if reason}<small class="reason">{reason}</small>{/if}
+        {#if funding && session.trainFunding.voluntary}
+            {#each session.trainFunding.plan?.contributions ?? [] as help, index (index)}
+                <small class="help">{session.ownerName(help.owner)} adds {money(help.amount)}</small
+                >
+            {/each}
+        {/if}
     </div>
 {/snippet}
 
@@ -100,7 +106,7 @@
         {#if session.gameState.purchaseOffer?.asset.kind === 'train'}
             <CompanyTrainBuying {session} {trainColors} />
         {:else}
-            {#if !session.trainFunding.purchases.length}
+            {#if !session.trainFunding.purchases.length || session.trainFunding.voluntary}
                 <header>
                     <h2>
                         Choose a train to buy
@@ -140,7 +146,7 @@
                 </nav>
             {/if}
             {#if session.trainBuying.source === 'depot'}
-                {#if session.trainFunding.purchases.length}
+                {#if session.trainFunding.purchases.length && !session.trainFunding.voluntary}
                     <TrainFunding {session} {trainColors} {showUndo} />
                 {:else}
                     <div class="trains">
@@ -297,6 +303,11 @@
     }
     .remaining {
         text-align: right;
+    }
+    .help {
+        max-width: 140px;
+        text-align: right;
+        font-weight: 600;
     }
     .traded {
         display: flex;

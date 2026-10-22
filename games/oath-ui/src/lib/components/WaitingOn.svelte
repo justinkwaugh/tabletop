@@ -8,7 +8,7 @@
 </script>
 
 <p class="text-sm text-oath-text-muted">
-    Waiting on {#each playerIds as playerId, index (playerId)}{index > 0
-            ? ' '
-            : ''}<PlayerName {playerId} />{/each}.
+    Waiting on {#each playerIds as playerId, index (playerId)}{index > 0 ? ' ' : ''}<PlayerName
+            {playerId}
+        />{/each}.
 </p>

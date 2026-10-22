@@ -32,11 +32,21 @@ const RETURN = 'denizen.hearth.awaited-return'
 
 function rest(cardId: string, choices?: PowerChoice[], playerId = 'ruler') {
     return new HydratedUseRestPower(
-        buildAction(UseRestPower, { playerId, cardId, powerIndex: powerIndexOf(cardId, PowerTiming.Rest), choices })
+        buildAction(UseRestPower, {
+            playerId,
+            cardId,
+            powerIndex: powerIndexOf(cardId, PowerTiming.Rest),
+            choices
+        })
     )
 }
 
-function board(cards: string[], advisers: string[] = [], ruler: Record<string, unknown> = {}, over: Record<string, unknown> = {}) {
+function board(
+    cards: string[],
+    advisers: string[] = [],
+    ruler: Record<string, unknown> = {},
+    over: Record<string, unknown> = {}
+) {
     const s = testState(
         [
             testPlayer({
@@ -106,7 +116,11 @@ describe('Rest powers — R-4.3.5, R-7.3.4', () => {
         const s = board([], [INSOMNIA])
         expect(() => rest(INSOMNIA, undefined, 'chancellor').apply(s)).toThrow(/not your turn/)
         const use = new HydratedUseActionPower(
-            buildAction(UseActionPower, { playerId: 'ruler', cardId: INSOMNIA, powerIndex: powerIndexOf(INSOMNIA, PowerTiming.Rest) })
+            buildAction(UseActionPower, {
+                playerId: 'ruler',
+                cardId: INSOMNIA,
+                powerIndex: powerIndexOf(INSOMNIA, PowerTiming.Rest)
+            })
         )
         expect(() => use.apply(s)).toThrow(/"Action:"/)
     })
@@ -131,9 +145,11 @@ describe('Rest powers — R-4.3.5, R-7.3.4', () => {
     it('Silver Tongue: the bank must match a card at your site', () => {
         const s = board([INN, OAK], [SILVER])
         const legal = HydratedUseRestPower.legalRestPowers(s, 'ruler')
-        expect(legal[0]?.choices[0]?.options.map((o) => (o.kind === PowerChoiceKind.FavorBank ? o.suit : undefined)).sort()).toEqual(
-            [Suit.Beast, Suit.Hearth].sort()
-        )
+        expect(
+            legal[0]?.choices[0]?.options
+                .map((o) => (o.kind === PowerChoiceKind.FavorBank ? o.suit : undefined))
+                .sort()
+        ).toEqual([Suit.Beast, Suit.Hearth].sort())
         expect(() => rest(SILVER, [bank(Suit.Arcane)]).apply(board([INN, OAK], [SILVER]))).toThrow()
         rest(SILVER, [bank(Suit.Beast)]).apply(s)
         expect(s.getPlayerState('ruler').favor).toBe(4)
@@ -162,48 +178,108 @@ describe('continuous powers — R-7.1.4-H1', () => {
     it('a third adviser is refused with a limiter held; playing the limiter third forces the discard', () => {
         const s = board([], [INSOMNIA, TENTS])
         s.getPlayerState('ruler').handIds = [RETURN]
-        expect(reasonCannotPlayCard(s, 'ruler', RETURN, SearchPlay.Adviser, { faceUp: true })).toMatch(/adviser limit of 2/)
+        expect(
+            reasonCannotPlayCard(s, 'ruler', RETURN, SearchPlay.Adviser, { faceUp: true })
+        ).toMatch(/adviser limit of 2/)
 
         const t = board([], [RETURN, TENTS])
         t.getPlayerState('ruler').handIds = [SILVER]
-        expect(reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, { faceUp: true })).toMatch(/adviser limit of 2/)
         expect(
-            reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, { faceUp: true, discardedAdviserCardIds: [RETURN] })
+            reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, { faceUp: true })
+        ).toMatch(/adviser limit of 2/)
+        expect(
+            reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, {
+                faceUp: true,
+                discardedAdviserCardIds: [RETURN]
+            })
         ).toBeUndefined()
-        expect(reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, { faceUp: false })).toBeUndefined()
+        expect(
+            reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, { faceUp: false })
+        ).toBeUndefined()
     })
 
     it('R-7.6.4 — a limiter played over three advisers discards two; turned faceup from three, it discards one (R-6.1)', () => {
         const t = board([], [RETURN, TENTS, INN])
         t.getPlayerState('ruler').handIds = [SILVER]
-        expect(reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, { faceUp: true, discardedAdviserCardIds: [RETURN] })).toMatch(/2 advisers must be discarded/)
-        expect(reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, { faceUp: true, discardedAdviserCardIds: [RETURN, RETURN] })).toMatch(/discarded once/)
-        expect(reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, { faceUp: true, discardedAdviserCardIds: [RETURN, TENTS] })).toBeUndefined()
+        expect(
+            reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, {
+                faceUp: true,
+                discardedAdviserCardIds: [RETURN]
+            })
+        ).toMatch(/2 advisers must be discarded/)
+        expect(
+            reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, {
+                faceUp: true,
+                discardedAdviserCardIds: [RETURN, RETURN]
+            })
+        ).toMatch(/discarded once/)
+        expect(
+            reasonCannotPlayCard(t, 'ruler', SILVER, SearchPlay.Adviser, {
+                faceUp: true,
+                discardedAdviserCardIds: [RETURN, TENTS]
+            })
+        ).toBeUndefined()
 
-        const flip = board([], [RETURN, TENTS], { advisers: [{ cardId: RETURN, faceUp: true }, { cardId: TENTS, faceUp: true }, { cardId: SILVER, faceUp: false }] })
+        const flip = board([], [RETURN, TENTS], {
+            advisers: [
+                { cardId: RETURN, faceUp: true },
+                { cardId: TENTS, faceUp: true },
+                { cardId: SILVER, faceUp: false }
+            ]
+        })
         const turnUp = (discardedAdviserCardIds?: string[]) =>
-            HydratedPlayFacedownAdviser.reasonCannotPlay(flip, 'ruler', { cardId: SILVER, play: SearchPlay.Adviser, discardedAdviserCardIds })
+            HydratedPlayFacedownAdviser.reasonCannotPlay(flip, 'ruler', {
+                cardId: SILVER,
+                play: SearchPlay.Adviser,
+                discardedAdviserCardIds
+            })
         expect(turnUp()).toMatch(/adviser limit of 2/)
         expect(turnUp([SILVER])).toMatch(/not one of your other advisers/)
         expect(turnUp([TENTS])).toBeUndefined()
-        new HydratedPlayFacedownAdviser(buildAction(PlayFacedownAdviser, { playerId: 'ruler', cardId: SILVER, play: SearchPlay.Adviser, discardedAdviserCardIds: [TENTS] })).apply(flip)
-        expect(flip.getPlayerState('ruler').knownAdvisers().map((a) => a.cardId)).toEqual([RETURN, SILVER])
+        new HydratedPlayFacedownAdviser(
+            buildAction(PlayFacedownAdviser, {
+                playerId: 'ruler',
+                cardId: SILVER,
+                play: SearchPlay.Adviser,
+                discardedAdviserCardIds: [TENTS]
+            })
+        ).apply(flip)
+        expect(
+            flip
+                .getPlayerState('ruler')
+                .knownAdvisers()
+                .map((a) => a.cardId)
+        ).toEqual([RETURN, SILVER])
     })
 
     it('Vow of Poverty: trading for favor is refused, trading for secrets is not', () => {
         const s = board([INN], [POVERTY])
-        expect(HydratedTrade.reasonCannotTrade(s, 'ruler', INN, TradeOption.ForFavor)).toMatch(/cannot gain favor from Trade/)
-        expect(HydratedTrade.reasonCannotTrade(s, 'ruler', INN, TradeOption.ForSecrets)).toBeUndefined()
-        expect(HydratedTrade.reasonCannotTrade(board([INN]), 'ruler', INN, TradeOption.ForFavor)).toBeUndefined()
+        expect(HydratedTrade.reasonCannotTrade(s, 'ruler', INN, TradeOption.ForFavor)).toMatch(
+            /cannot gain favor from Trade/
+        )
+        expect(
+            HydratedTrade.reasonCannotTrade(s, 'ruler', INN, TradeOption.ForSecrets)
+        ).toBeUndefined()
+        expect(
+            HydratedTrade.reasonCannotTrade(board([INN]), 'ruler', INN, TradeOption.ForFavor)
+        ).toBeUndefined()
     })
 
     it('Vow of Obedience: a Vision cannot be played faceup', () => {
         const s = board([], [OBEDIENCE])
         s.getPlayerState('ruler').handIds = ['vision.conquest']
-        expect(reasonCannotPlayCard(s, 'ruler', 'vision.conquest', SearchPlay.RevealedVision)).toMatch(/Vow of Obedience/)
+        expect(
+            reasonCannotPlayCard(s, 'ruler', 'vision.conquest', SearchPlay.RevealedVision)
+        ).toMatch(/Vow of Obedience/)
         const free = board([], [])
         free.getPlayerState('ruler').handIds = ['vision.conquest']
-        expect(reasonCannotPlayCard(free, 'ruler', 'vision.conquest', SearchPlay.RevealedVision)).toBeUndefined()
-        expect(reasonCannotPlayCard(s, 'ruler', 'vision.conquest', SearchPlay.Adviser, { faceUp: false })).toBeUndefined()
+        expect(
+            reasonCannotPlayCard(free, 'ruler', 'vision.conquest', SearchPlay.RevealedVision)
+        ).toBeUndefined()
+        expect(
+            reasonCannotPlayCard(s, 'ruler', 'vision.conquest', SearchPlay.Adviser, {
+                faceUp: false
+            })
+        ).toBeUndefined()
     })
 })

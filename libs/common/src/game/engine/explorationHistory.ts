@@ -2,12 +2,14 @@ import { recordedSource } from './recordedHistory.js'
 import jsonpatch from 'fast-json-patch'
 import { deriveGameSeeds, generateMasterSeed } from '../../util/gameSeeds.js'
 import { generateSeed } from '../../util/prng.js'
-import { assert } from '../../util/assertions.js'
+import { assert, assertExists } from '../../util/assertions.js'
 import { ActionSource, type GameAction, type Patch } from './gameAction.js'
 import type { GameEngine } from './gameEngine.js'
 import type { Game } from '../model/game.js'
 import type { ExplorationState, GameState, HydratedGameState } from '../model/gameState.js'
 import { isRedactedAction } from '../visibility/actionProjector.js'
+import { isOutOfTurnDeclaration } from './actionHistory.js'
+import { isSameSimultaneousGroup } from './playerUndo.js'
 
 export class ExplorationHistory<T extends GameState, U extends HydratedGameState<T>> {
     constructor(private readonly engine: GameEngine<T, U>) {}
@@ -75,6 +77,19 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         return this.engine.applyProcessedAction({ state: before, action, game })
     }
 
+    undoThrough(current: T, undone: readonly GameAction[]): { state: T; redo: GameAction[] } {
+        const target = undone[0]
+        assertExists(target, 'Undo needs a target Action')
+        const exploration = current.explorationState
+        let state = current
+        const redo: GameAction[] = []
+        for (const action of undone.toReversed()) {
+            if (this.redoesAfterUndo(action, target, exploration)) redo.unshift(action)
+            state = this.undo(state, action, exploration)
+        }
+        return { state: this.afterUndo(current, state, undone), redo }
+    }
+
     afterUndo(before: T, after: T, removed: readonly GameAction[]): T {
         const exploration = before.explorationState
         const checkpoint = exploration?.checkpoint
@@ -103,7 +118,7 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
         )
         let source = this.restore(boundary, checkpoint.source)
         for (const action of removed.toReversed()) {
-            if (action.index !== undefined && action.index < exploration.actionCount) {
+            if (this.recordedBeforeExploration(action, exploration)) {
                 source = this.engine.undoProcessedAction({ state: source, action })
             }
         }
@@ -113,6 +128,30 @@ export class ExplorationHistory<T extends GameState, U extends HydratedGameState
             checkpoint: this.createBoundary(source, after, checkpoint.undoLimit)
         }
         return after
+    }
+
+    private redoesAfterUndo(
+        action: GameAction,
+        target: GameAction,
+        exploration?: ExplorationState
+    ): boolean {
+        if (
+            action.playerId !== undefined &&
+            action.playerId !== target.playerId &&
+            isSameSimultaneousGroup(action, target)
+        )
+            return true
+        if (!isOutOfTurnDeclaration(action) || action.id === target.id) return false
+        if (!this.recordedBeforeExploration(action, exploration)) return true
+        return this.engine.runtime.exploration?.keepsSourceDeclaration?.(action) ?? true
+    }
+
+    private recordedBeforeExploration(action: GameAction, exploration?: ExplorationState) {
+        return (
+            exploration !== undefined &&
+            action.index !== undefined &&
+            action.index < exploration.actionCount
+        )
     }
 
     private createBoundary(

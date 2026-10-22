@@ -11,8 +11,15 @@ import { CampaignTargetKind, type CampaignTarget } from '../model/campaign.js'
 import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { Suit } from '../model/oathEnums.js'
-import { CRADLE, HINTERLAND, PROVINCES, testPlayer, testState, withChancellor } from '../testing/fixture.js'
-import { battlePlanUse } from '../testing/choices.js'
+import {
+    CRADLE,
+    HINTERLAND,
+    PROVINCES,
+    testPlayer,
+    testState,
+    withChancellor
+} from '../testing/fixture.js'
+import { battlePlanUse, modifierUse } from '../testing/choices.js'
 import { testGame } from '../testing/game.js'
 import { adviser } from '../testing/tables.js'
 import { OathRevision } from '../util/revision.js'
@@ -34,6 +41,11 @@ const SHROUDED_WOOD = 'site.shrouded-wood'
 const VOW_OF_UNION = 'denizen.beast.vow-of-union'
 const GIANT_PYTHON = 'denizen.beast.giant-python'
 const TOLL_ROADS = 'denizen.order.toll-roads'
+const SPECIAL_ENVOY = 'denizen.nomad.special-envoy'
+const TENTS = 'denizen.nomad.tents'
+const HOSPITALITY = 'denizen.nomad.hospitality'
+const ORACLE = 'denizen.nomad.oracle'
+const BLACKMAIL = 'denizen.discord.blackmail'
 
 const atRevision = OathRevision.EngineFixes3
 const before = OathRevision.UiBatch1
@@ -59,9 +71,37 @@ interface Scene {
 function board({ revision, seed, x = {}, y = {}, h = {}, state = {} }: Scene) {
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: X, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [X]: 6 }, ...x }),
-            testPlayer({ playerId: Y, color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 0, warbandsOnBoard: { [Y]: 4 }, advisers: [adviser(SNEAK_ATTACK), adviser(SECOND_WIND)], ...y }),
-            testPlayer({ playerId: H, color: Color.Yellow, siteId: 'p1', favor: 0, supply: 6, warbandsOnBoard: { [H]: 2 }, warbandsInPersonalBank: { [H]: 12 }, ...h })
+            testPlayer({
+                playerId: X,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                warbandsOnBoard: { [X]: 6 },
+                ...x
+            }),
+            testPlayer({
+                playerId: Y,
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                supply: 0,
+                warbandsOnBoard: { [Y]: 4 },
+                advisers: [adviser(SNEAK_ATTACK), adviser(SECOND_WIND)],
+                ...y
+            }),
+            testPlayer({
+                playerId: H,
+                color: Color.Yellow,
+                siteId: 'p1',
+                favor: 0,
+                supply: 6,
+                warbandsOnBoard: { [H]: 2 },
+                warbandsInPersonalBank: { [H]: 12 },
+                ...h
+            })
         ]),
         { warbandsBySite: {}, prng: { seed, invocations: 0 }, ...state }
     )
@@ -80,35 +120,68 @@ class Table {
 
     constructor(s: HydratedOathGameState, seats = [X, Y, H]) {
         this.state = s.dehydrate()
-        this.state.turnManager = { series: [{ type: 'turn', playerId: X, start: 0 }], turnOrder: seats, turnCounts: { [X]: 1, [Y]: 1, [H]: 1 } }
+        this.state.turnManager = {
+            series: [{ type: 'turn', playerId: X, start: 0 }],
+            turnOrder: seats,
+            turnCounts: { [X]: 1, [Y]: 1, [H]: 1 }
+        }
         this.state.activePlayerIds = [X]
     }
 
     run(fields: { type: ActionType; playerId: string } & Record<string, unknown>) {
-        const action: GameAction = { id: `sw-${(this.seq += 1)}`, gameId: 'game-1', source: ActionSource.User, index: this.state.actionCount, ...fields }
+        const action: GameAction = {
+            id: `sw-${(this.seq += 1)}`,
+            gameId: 'game-1',
+            source: ActionSource.User,
+            index: this.state.actionCount,
+            ...fields
+        }
         const result = engine.run(action, this.state, game)
         this.state = result.updatedState
         this.processed = result.processedActions
         return this
     }
 
-    campaign(playerId: string, defender: string | undefined, targets: CampaignTarget[], attackDice: number, plans: string[] = []) {
-        return this.run({ type: ActionType.Campaign, playerId, defender: defender ? { kind: 'player', playerId: defender } : { kind: 'bandits' }, targets, attackDice, plans: plans.map(battlePlanUse) })
+    campaign(
+        playerId: string,
+        defender: string | undefined,
+        targets: CampaignTarget[],
+        attackDice: number,
+        plans: string[] = []
+    ) {
+        return this.run({
+            type: ActionType.Campaign,
+            playerId,
+            defender: defender ? { kind: 'player', playerId: defender } : { kind: 'bandits' },
+            targets,
+            attackDice,
+            plans: plans.map(battlePlanUse)
+        })
     }
 
     /** The defending side's plans, when the machine asks for them. */
     defendIfAsked(playerId: string) {
-        if (this.state.machineState === MachineState.CampaignPlans) this.run({ type: ActionType.CampaignDefend, playerId, plans: [] })
+        if (this.state.machineState === MachineState.CampaignPlans)
+            this.run({ type: ActionType.CampaignDefend, playerId, plans: [] })
         return this
     }
 
     sacrifice(playerId: string) {
-        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(this.state), 0)
+        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(
+            new HydratedOathGameState(this.state),
+            0
+        )
         return this.run({ type: ActionType.CampaignSacrifice, playerId, sacrifice: 0, defeatKills })
     }
 
     victory(playerId: string, fields: Record<string, unknown> = {}) {
-        return this.run({ type: ActionType.CampaignResolveVictory, playerId, placements: [], burnFavor: false, ...fields })
+        return this.run({
+            type: ActionType.CampaignResolveVictory,
+            playerId,
+            placements: [],
+            burnFavor: false,
+            ...fields
+        })
     }
 
     travel(playerId: string, siteId?: string) {
@@ -139,7 +212,12 @@ class Table {
     /** The offer the seat's own screen computes, on its projected view. */
     ownOffer(playerId: string) {
         const view = { kind: 'player', playerId } as const
-        return engine.getValidActionTypesForPlayer(protectedGame, served(this.state, view), playerId, { perspective: view })
+        return engine.getValidActionTypesForPlayer(
+            protectedGame,
+            served(this.state, view),
+            playerId,
+            { perspective: view }
+        )
     }
 
     get question() {
@@ -167,7 +245,12 @@ function yWinsOutOfTurn(
         expect(t.question).toMatchObject({ kind: PowerQuestionKind.SneakAttack, askedPlayerId: Y })
         t.campaign(Y, X, [PAWN], 4, [SECOND_WIND]).defendIfAsked(X)
         const rolled = t.state.campaign
-        if (!rolled || rolled.swords <= rolled.defense || t.state.machineState !== MachineState.CampaignSacrifice) continue
+        if (
+            !rolled ||
+            rolled.swords <= rolled.defense ||
+            t.state.machineState !== MachineState.CampaignSacrifice
+        )
+            continue
         t.sacrifice(Y)
         if (t.state.campaign?.attackerVictorious !== true) continue
         return t.victory(Y, victory)
@@ -179,8 +262,16 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
     it('the holder is asked "Travel now?" before the paused turn resumes; the turn stays held, and only the holder may act', () => {
         const t = yWinsOutOfTurn({ revision: atRevision })
         expect(t.state.machineState).toBe(MachineState.PowerQuestion)
-        expect(t.question).toEqual({ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: Y, action: ActionType.Travel })
-        expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X, resumeMachineState: MachineState.ActPhase })
+        expect(t.question).toEqual({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            cardId: SECOND_WIND,
+            askedPlayerId: Y,
+            action: ActionType.Travel
+        })
+        expect(t.state.heldTurn).toMatchObject({
+            askingPlayerId: X,
+            resumeMachineState: MachineState.ActPhase
+        })
         expect(t.state.pendingQuestions?.resumeMachineState).toBe(MachineState.ActPhase)
         expect(t.state.activePlayerIds).toEqual([Y])
         expect(t.offered(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Travel])
@@ -190,10 +281,12 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
 
     it("while the Travel, then the Campaign, is asked, each seat's own view offers what the server does", () => {
         const t = yWinsOutOfTurn({ revision: atRevision }, { banishToSiteId: 'p2' })
-        for (const playerId of [X, Y, H]) expect(t.ownOffer(playerId), playerId).toEqual(t.offered(playerId))
+        for (const playerId of [X, Y, H])
+            expect(t.ownOffer(playerId), playerId).toEqual(t.offered(playerId))
         expect(t.ownOffer(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Travel])
         t.travel(Y, 'p2')
-        for (const playerId of [X, Y, H]) expect(t.ownOffer(playerId), playerId).toEqual(t.offered(playerId))
+        for (const playerId of [X, Y, H])
+            expect(t.ownOffer(playerId), playerId).toEqual(t.offered(playerId))
         expect(t.ownOffer(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Campaign])
     })
 
@@ -208,17 +301,31 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
         const travelled = t.processed.find(isTravel)
         expect(travelled?.metadata).toMatchObject({ supplySpent: 0, freeActionOf: SECOND_WIND })
         expect(t.state.machineState).toBe(MachineState.PowerQuestion)
-        expect(t.question).toEqual({ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: Y, action: ActionType.Campaign })
-        expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X, resumeMachineState: MachineState.ActPhase })
+        expect(t.question).toEqual({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            cardId: SECOND_WIND,
+            askedPlayerId: Y,
+            action: ActionType.Campaign
+        })
+        expect(t.state.heldTurn).toMatchObject({
+            askingPlayerId: X,
+            resumeMachineState: MachineState.ActPhase
+        })
         expect(t.offered(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Campaign])
         expect(t.offered(X)).toEqual([])
 
         // Any legal defender: h, who stands at neither site, is not one; x, whose pawn is here, is.
         expect(() => t.campaign(Y, H, [PAWN], 0)).toThrow(/Cannot campaign/)
         t.campaign(Y, X, [PAWN], 0)
-        expect(t.processed.find(isCampaign)?.metadata).toMatchObject({ supplySpent: 0, freeActionOf: SECOND_WIND })
+        expect(t.processed.find(isCampaign)?.metadata).toMatchObject({
+            supplySpent: 0,
+            freeActionOf: SECOND_WIND
+        })
         expect(t.state.campaign?.attackerPlayerId).toBe(Y)
-        expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X, resumeMachineState: MachineState.ActPhase })
+        expect(t.state.heldTurn).toMatchObject({
+            askingPlayerId: X,
+            resumeMachineState: MachineState.ActPhase
+        })
         t.defendIfAsked(X).sacrifice(Y)
 
         expect(t.state.campaign).toBeUndefined()
@@ -237,13 +344,25 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
         const t = yWinsOutOfTurn({ revision: atRevision })
         t.answer(Y, skip)
         const skippedTravel = t.processed.find(isAnswerQuestion)
-        expect(skippedTravel?.metadata).toMatchObject({ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, summary: 'skipped the free Travel' })
-        expect(t.question).toEqual({ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: Y, action: ActionType.Campaign })
+        expect(skippedTravel?.metadata).toMatchObject({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            cardId: SECOND_WIND,
+            summary: 'skipped the free Travel'
+        })
+        expect(t.question).toEqual({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            cardId: SECOND_WIND,
+            askedPlayerId: Y,
+            action: ActionType.Campaign
+        })
         expect(t.state.heldTurn).toBeDefined()
         expect(t.player(Y).siteId).toBe('c1')
 
         t.answer(Y, skip)
-        expect(t.processed.find(isAnswerQuestion)?.metadata).toMatchObject({ summary: 'skipped the free Campaign', last: true })
+        expect(t.processed.find(isAnswerQuestion)?.metadata).toMatchObject({
+            summary: 'skipped the free Campaign',
+            last: true
+        })
         expect(t.state.heldTurn).toBeUndefined()
         expect(t.state.pendingQuestions).toBeUndefined()
         expect(t.state.machineState).toBe(MachineState.ActPhase)
@@ -261,9 +380,18 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
     })
 
     it('the free Travel is a real Travel: leaving a Shrouded Wood an enemy rules, the ruler picks the site, for no Supply, and then the Campaign is asked', () => {
-        const sites = { ...Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((id) => [id, id])), c1: SHROUDED_WOOD }
-        const t = yWinsOutOfTurn({ revision: atRevision, state: { siteCards: sites, warbandsBySite: { c1: { [H]: 1 } } } })
-        expect(t.question).toMatchObject({ kind: PowerQuestionKind.FreeActionOutOfTurn, action: ActionType.Travel })
+        const sites = {
+            ...Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((id) => [id, id])),
+            c1: SHROUDED_WOOD
+        }
+        const t = yWinsOutOfTurn({
+            revision: atRevision,
+            state: { siteCards: sites, warbandsBySite: { c1: { [H]: 1 } } }
+        })
+        expect(t.question).toMatchObject({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            action: ActionType.Travel
+        })
         expect(() => t.travel(Y, 'c2')).toThrow(/the Shrouded Wood's ruler chooses where you go/)
         t.travel(Y)
         // The Campaign is judged once the pawn lands, so it is asked after the pick.
@@ -273,23 +401,123 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
         expect(t.state.heldTurn).toBeDefined()
         t.answer(H, { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'h1' })
         expect(t.player(Y)).toMatchObject({ siteId: 'h1', supply: 0 })
-        expect(t.question).toMatchObject({ kind: PowerQuestionKind.FreeActionOutOfTurn, askedPlayerId: Y, action: ActionType.Campaign })
+        expect(t.question).toMatchObject({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            askedPlayerId: Y,
+            action: ActionType.Campaign
+        })
         expect(t.state.activePlayerIds).toEqual([Y])
         t.answer(Y, skip)
         expect(t.state.machineState).toBe(MachineState.ActPhase)
         expect(t.state.heldTurn).toBeUndefined()
     })
 
+    it('R-11.7-H2 (revision 15) — leaving the Wood out of turn with Special Envoy and Tents declared: Tents’ favor is placed, and the Envoy ends nobody’s Act Phase', () => {
+        const sites = {
+            ...Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((id) => [id, id])),
+            c1: SHROUDED_WOOD
+        }
+        const advisers = [
+            adviser(SNEAK_ATTACK),
+            adviser(SECOND_WIND),
+            adviser(SPECIAL_ENVOY),
+            adviser(TENTS)
+        ]
+        const t = yWinsOutOfTurn({
+            revision: OathRevision.EngineFixes11,
+            y: { advisers },
+            state: { siteCards: sites, warbandsBySite: { c1: { [H]: 1 } } }
+        })
+        const favor = t.player(Y).favor
+        t.run({
+            type: ActionType.Travel,
+            playerId: Y,
+            modifiers: [modifierUse(SPECIAL_ENVOY), modifierUse(TENTS)]
+        })
+        expect(t.player(Y).favor).toBe(favor - 1)
+        expect(t.question).toMatchObject({
+            kind: PowerQuestionKind.ShroudedWoodDestination,
+            askedPlayerId: H,
+            travel: {
+                free: true,
+                modifiers: [SPECIAL_ENVOY, TENTS].map((cardId) => ({
+                    cardId,
+                    powerIndex: modifierUse(cardId).powerIndex
+                }))
+            }
+        })
+        t.answer(H, { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'h1' })
+        expect(t.player(Y)).toMatchObject({ siteId: 'h1', supply: 0 })
+        expect(t.question).toMatchObject({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            askedPlayerId: Y,
+            action: ActionType.Campaign
+        })
+        t.answer(Y, skip)
+        expect(t.state.machineState).toBe(MachineState.ActPhase)
+        expect(t.state.activePlayerIds).toEqual([X])
+        expect(t.state.heldTurn).toBeUndefined()
+    })
+
+    it('R-11.7-H2 (revision 15) — leaving the Wood out of turn with Hospitality and two banks matching: the bank is asked, then the free Campaign', () => {
+        const sites = {
+            ...Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((id) => [id, id])),
+            c1: SHROUDED_WOOD
+        }
+        const advisers = [adviser(SNEAK_ATTACK), adviser(SECOND_WIND), adviser(HOSPITALITY)]
+        // h1 holds a Discord and a Nomad card, and y's advisers are Discord and Nomad.
+        const t = yWinsOutOfTurn({
+            revision: OathRevision.EngineFixes11,
+            y: { advisers },
+            state: {
+                siteCards: sites,
+                warbandsBySite: { c1: { [H]: 1 } },
+                denizensBySite: { h1: [BLACKMAIL, ORACLE] }
+            }
+        })
+        const favor = t.player(Y).favor
+        t.run({ type: ActionType.Travel, playerId: Y, modifiers: [modifierUse(HOSPITALITY)] })
+        t.answer(H, { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'h1' })
+        expect(t.player(Y)).toMatchObject({ siteId: 'h1', supply: 0 })
+        expect(t.question).toMatchObject({
+            kind: PowerQuestionKind.HospitalityBank,
+            askedPlayerId: Y,
+            banks: [Suit.Discord, Suit.Nomad]
+        })
+        expect(t.state.heldTurn).toBeDefined()
+        t.answer(Y, { kind: PowerQuestionKind.HospitalityBank, suit: Suit.Discord })
+        expect(t.player(Y).favor).toBe(favor + 1)
+        expect(t.question).toMatchObject({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            askedPlayerId: Y,
+            action: ActionType.Campaign
+        })
+        t.answer(Y, skip)
+        expect(t.state.machineState).toBe(MachineState.ActPhase)
+        expect(t.state.activePlayerIds).toEqual([X])
+        expect(t.state.heldTurn).toBeUndefined()
+    })
+
     it('Sneak Attack first, then Second Wind; the chain ends before the paused turn resumes, and the turn’s own questions wait for it (R-10.2-H1)', () => {
-        const t = yWinsOutOfTurn({ revision: atRevision, h: { advisers: [adviser(HERALD)] } }, {}, [X, Y, H])
+        const t = yWinsOutOfTurn({ revision: atRevision, h: { advisers: [adviser(HERALD)] } }, {}, [
+            X,
+            Y,
+            H
+        ])
         // h's Herald for y's Campaign, then y's free Travel; h's Herald for x's Campaign waits with the turn.
         expect(t.queue).toEqual([
             [PowerQuestionKind.PickFavorBank, H],
             [PowerQuestionKind.FreeActionOutOfTurn, Y]
         ])
-        expect(t.state.heldTurn?.queue.map((q) => [q.kind, q.askedPlayerId])).toEqual([[PowerQuestionKind.PickFavorBank, H]])
+        expect(t.state.heldTurn?.queue.map((q) => [q.kind, q.askedPlayerId])).toEqual([
+            [PowerQuestionKind.PickFavorBank, H]
+        ])
         t.answer(H, herald)
-        expect(t.question).toMatchObject({ kind: PowerQuestionKind.FreeActionOutOfTurn, askedPlayerId: Y, action: ActionType.Travel })
+        expect(t.question).toMatchObject({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            askedPlayerId: Y,
+            action: ActionType.Travel
+        })
         t.answer(Y, skip)
         t.campaign(Y, X, [PAWN], 0).defendIfAsked(X).sacrifice(Y)
         // The free Campaign's own Herald, then the paused turn's.
@@ -315,10 +543,19 @@ describe('Second Wind out of turn (revision 7) — "you may travel and then may 
 
         t.answer(Y, skip)
         t.campaign(Y, X, [PAWN], 0).defendIfAsked(X).sacrifice(Y)
-        expect(t.question).toEqual({ kind: PowerQuestionKind.SneakAttack, cardId: SNEAK_ATTACK, askedPlayerId: H, defenderPlayerId: Y })
+        expect(t.question).toEqual({
+            kind: PowerQuestionKind.SneakAttack,
+            cardId: SNEAK_ATTACK,
+            askedPlayerId: H,
+            defenderPlayerId: Y
+        })
         expect(t.state.heldTurn).toBeUndefined()
         t.campaign(H, Y, [PAWN], 0)
-        expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X, resumeMachineState: MachineState.ActPhase, queue: [] })
+        expect(t.state.heldTurn).toMatchObject({
+            askingPlayerId: X,
+            resumeMachineState: MachineState.ActPhase,
+            queue: []
+        })
         t.defendIfAsked(Y).sacrifice(H)
         expect(t.state.heldTurn).toBeUndefined()
         expect(t.state.machineState).toBe(MachineState.ActPhase)
@@ -335,16 +572,32 @@ describe('Second Wind out of turn (revision 7) — a free action that cannot be 
     const sworn = { advisers: [adviser(SNEAK_ATTACK), adviser(SECOND_WIND), adviser(VOW_OF_UNION)] }
 
     it('no legal destination: the Travel is skipped unasked, and "Campaign now?" is asked at once', () => {
-        const t = yWinsOutOfTurn({ revision: atRevision, y: sworn, state: { warbandsBySite: { c1: { [Y]: 1 } } } }, {}, undefined, [PAWN, C1])
+        const t = yWinsOutOfTurn(
+            { revision: atRevision, y: sworn, state: { warbandsBySite: { c1: { [Y]: 1 } } } },
+            {},
+            undefined,
+            [PAWN, C1]
+        )
         expect(t.player(Y).siteId).toBe('c1')
-        expect(t.question).toEqual({ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: Y, action: ActionType.Campaign })
+        expect(t.question).toEqual({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            cardId: SECOND_WIND,
+            askedPlayerId: Y,
+            action: ActionType.Campaign
+        })
         expect(t.player(Y).freeTravelAtAction).toBeUndefined()
-        expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X, resumeMachineState: MachineState.ActPhase })
+        expect(t.state.heldTurn).toMatchObject({
+            askingPlayerId: X,
+            resumeMachineState: MachineState.ActPhase
+        })
         expect(t.offered(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Campaign])
     })
 
     it('no legal defender from the new site: the Campaign is skipped unasked, and the paused turn resumes', () => {
-        const t = yWinsOutOfTurn({ revision: atRevision, state: { warbandsBySite: { h2: { [Y]: 1 } } } })
+        const t = yWinsOutOfTurn({
+            revision: atRevision,
+            state: { warbandsBySite: { h2: { [Y]: 1 } } }
+        })
         t.travel(Y, 'h2')
         expect(t.player(Y).siteId).toBe('h2')
         expect(t.state.pendingQuestions).toBeUndefined()
@@ -378,35 +631,60 @@ describe('Second Wind out of turn (revision 7) — a free action that cannot be 
  * Giant Python: "Whenever a player attacks you, they must declare targets that add an even total of defense dice."
  */
 describe('Second Wind out of turn (revision 7) — leaving a Shrouded Wood, the free Campaign is judged where the pawn lands', () => {
-    const woodSites = { ...Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((id) => [id, id])), c1: SHROUDED_WOOD }
+    const woodSites = {
+        ...Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((id) => [id, id])),
+        c1: SHROUDED_WOOD
+    }
     /** h rules only the Wood, so declaring h means targeting the Wood alone: one die, which Giant Python refuses. */
     const python = { advisers: [adviser(GIANT_PYTHON)] }
     const defendersOfY = (t: Table) => defendersOpenTo(new HydratedOathGameState(t.state), Y)
-    const woodPick = (siteId: string): QuestionAnswer => ({ kind: PowerQuestionKind.ShroudedWoodDestination, siteId })
+    const woodPick = (siteId: string): QuestionAnswer => ({
+        kind: PowerQuestionKind.ShroudedWoodDestination,
+        siteId
+    })
     /** y banishes x from the Wood; its ruler, h, sends x to p2 (R-11.7), and then y's free Travel is asked. */
     const xBanishedToP2 = (scene: Omit<Scene, 'seed'>) => {
         const t = yWinsOutOfTurn(scene, { banish: true })
         t.answer(H, woodPick('p2'))
         expect(t.player(X).siteId).toBe('p2')
-        expect(t.question).toMatchObject({ kind: PowerQuestionKind.FreeActionOutOfTurn, askedPlayerId: Y, action: ActionType.Travel })
+        expect(t.question).toMatchObject({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            askedPlayerId: Y,
+            action: ActionType.Travel
+        })
         return t
     }
 
     it('no defender at the Wood, one where the ruler sends the pawn: the Campaign is asked there', () => {
-        const t = xBanishedToP2({ revision: atRevision, h: python, state: { siteCards: woodSites, warbandsBySite: { c1: { [H]: 1 } } } })
+        const t = xBanishedToP2({
+            revision: atRevision,
+            h: python,
+            state: { siteCards: woodSites, warbandsBySite: { c1: { [H]: 1 } } }
+        })
         expect(defendersOfY(t)).toEqual([])
         t.travel(Y)
         expect(t.queue).toEqual([[PowerQuestionKind.ShroudedWoodDestination, H]])
         expect(t.player(Y).freeCampaignAtAction).toBeDefined()
-        expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X, resumeMachineState: MachineState.ActPhase })
+        expect(t.state.heldTurn).toMatchObject({
+            askingPlayerId: X,
+            resumeMachineState: MachineState.ActPhase
+        })
 
         t.answer(H, woodPick('p2'))
         expect(t.player(Y)).toMatchObject({ siteId: 'p2', supply: 0 })
-        expect(t.question).toEqual({ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: Y, action: ActionType.Campaign })
+        expect(t.question).toEqual({
+            kind: PowerQuestionKind.FreeActionOutOfTurn,
+            cardId: SECOND_WIND,
+            askedPlayerId: Y,
+            action: ActionType.Campaign
+        })
         expect(t.state.activePlayerIds).toEqual([Y])
         expect(t.offered(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Campaign])
         t.campaign(Y, X, [PAWN], 0)
-        expect(t.processed.find(isCampaign)?.metadata).toMatchObject({ supplySpent: 0, freeActionOf: SECOND_WIND })
+        expect(t.processed.find(isCampaign)?.metadata).toMatchObject({
+            supplySpent: 0,
+            freeActionOf: SECOND_WIND
+        })
         t.defendIfAsked(X).sacrifice(Y)
         expect(t.state.heldTurn).toBeUndefined()
         expect(t.state.machineState).toBe(MachineState.ActPhase)
@@ -414,7 +692,10 @@ describe('Second Wind out of turn (revision 7) — leaving a Shrouded Wood, the 
     })
 
     it('a defender at the Wood, none where the ruler sends the pawn: the Campaign is not asked, and the paused turn resumes', () => {
-        const t = yWinsOutOfTurn({ revision: atRevision, state: { siteCards: woodSites, warbandsBySite: { c1: { [H]: 1 }, h2: { [Y]: 1 } } } })
+        const t = yWinsOutOfTurn({
+            revision: atRevision,
+            state: { siteCards: woodSites, warbandsBySite: { c1: { [H]: 1 }, h2: { [Y]: 1 } } }
+        })
         expect(defendersOfY(t)).toContainEqual({ kind: 'player', playerId: X })
         t.travel(Y)
         expect(t.queue).toEqual([[PowerQuestionKind.ShroudedWoodDestination, H]])
@@ -422,7 +703,10 @@ describe('Second Wind out of turn (revision 7) — leaving a Shrouded Wood, the 
         t.answer(H, woodPick('h2'))
         expect(t.player(Y).siteId).toBe('h2')
         expect(defendersOfY(t)).toEqual([])
-        expect(t.processed.find(isAnswerQuestion)?.metadata).toMatchObject({ kind: PowerQuestionKind.ShroudedWoodDestination, last: true })
+        expect(t.processed.find(isAnswerQuestion)?.metadata).toMatchObject({
+            kind: PowerQuestionKind.ShroudedWoodDestination,
+            last: true
+        })
         expect(t.state.pendingQuestions).toBeUndefined()
         expect(t.state.heldTurn).toBeUndefined()
         expect(t.state.machineState).toBe(MachineState.ActPhase)
@@ -433,20 +717,40 @@ describe('Second Wind out of turn (revision 7) — leaving a Shrouded Wood, the 
 
     it('the pick asks for a toll: the Campaign is judged after the answer, from the new site when paid and from the Wood when refused', () => {
         // x rules p2, which holds Toll Roads, and is sent there; h, holding Giant Python, rules only the Wood.
-        const scene = { revision: atRevision, h: python, state: { siteCards: woodSites, denizensBySite: { p2: [TOLL_ROADS] }, warbandsBySite: { c1: { [H]: 1 }, p2: { [X]: 1 } } } }
+        const scene = {
+            revision: atRevision,
+            h: python,
+            state: {
+                siteCards: woodSites,
+                denizensBySite: { p2: [TOLL_ROADS] },
+                warbandsBySite: { c1: { [H]: 1 }, p2: { [X]: 1 } }
+            }
+        }
         for (const pay of [true, false]) {
             const t = xBanishedToP2(scene)
             expect(defendersOfY(t)).toEqual([])
             t.travel(Y)
             t.answer(H, woodPick('p2'))
-            expect(t.question).toMatchObject({ kind: PowerQuestionKind.PayTravelToll, askedPlayerId: Y, siteId: 'p2' })
+            expect(t.question).toMatchObject({
+                kind: PowerQuestionKind.PayTravelToll,
+                askedPlayerId: Y,
+                siteId: 'p2'
+            })
             expect(t.player(Y).freeCampaignAtAction).toBeDefined()
 
             t.answer(Y, { kind: PowerQuestionKind.PayTravelToll, pay })
             if (pay) {
                 expect(t.player(Y).siteId).toBe('p2')
-                expect(t.question).toEqual({ kind: PowerQuestionKind.FreeActionOutOfTurn, cardId: SECOND_WIND, askedPlayerId: Y, action: ActionType.Campaign })
-                expect(t.state.heldTurn).toMatchObject({ askingPlayerId: X, resumeMachineState: MachineState.ActPhase })
+                expect(t.question).toEqual({
+                    kind: PowerQuestionKind.FreeActionOutOfTurn,
+                    cardId: SECOND_WIND,
+                    askedPlayerId: Y,
+                    action: ActionType.Campaign
+                })
+                expect(t.state.heldTurn).toMatchObject({
+                    askingPlayerId: X,
+                    resumeMachineState: MachineState.ActPhase
+                })
                 expect(t.offered(Y)).toEqual([ActionType.AnswerQuestion, ActionType.Campaign])
             } else {
                 expect(t.player(Y).siteId).toBe('c1')

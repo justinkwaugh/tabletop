@@ -14,7 +14,8 @@ async function createGame(page: Page) {
 }
 
 async function placeBid(page: Page, amount: number) {
-    for (let i = 0; i < amount; i++) await page.getByRole('button', { name: '+', exact: true }).click()
+    for (let i = 0; i < amount; i++)
+        await page.getByRole('button', { name: '+', exact: true }).click()
     await page.getByRole('button', { name: 'Place Bid', exact: true }).click()
 }
 
@@ -39,7 +40,9 @@ async function boardTopsWhile(page: Page, act: () => Promise<void>): Promise<num
     })
 }
 
-test('the board slides up as bidding hands the action bar to the first planter', async ({ page }) => {
+test('the board slides up as bidding hands the action bar to the first planter', async ({
+    page
+}) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await createGame(page)
@@ -51,7 +54,9 @@ test('the board slides up as bidding hands the action bar to the first planter',
 
     const tops = await boardTopsWhile(page, () => placeBid(page, 3))
 
-    await expect(page.getByText('Choose a field and plant it on the board', { exact: true })).toBeVisible()
+    await expect(
+        page.getByText('Choose a field and plant it on the board', { exact: true })
+    ).toBeVisible()
     const start = tops[0]
     const end = tops[tops.length - 1]
     expect(end).toBeLessThan(start)
@@ -69,7 +74,9 @@ test('Undo clears a chosen field before it undoes the last bid', async ({ page }
         await expect(page.getByRole('button', { name: 'Place Bid', exact: true })).toBeVisible()
         await placeBid(page, amount)
     }
-    await expect(page.getByText('Choose a field and plant it on the board', { exact: true })).toBeVisible()
+    await expect(
+        page.getByText('Choose a field and plant it on the board', { exact: true })
+    ).toBeVisible()
 
     const undo = page.getByRole('button', { name: 'Undo', exact: true })
     const crop = page.getByRole('img', { name: /^(bananas|chili|coconut|grapes|watermelon)$/ })
@@ -78,7 +85,9 @@ test('Undo clears a chosen field before it undoes the last bid', async ({ page }
 
     await undo.click()
     await expect(page.locator('.tile-selected')).toHaveCount(0)
-    await expect(page.getByText('Choose a field and plant it on the board', { exact: true })).toBeVisible()
+    await expect(
+        page.getByText('Choose a field and plant it on the board', { exact: true })
+    ).toBeVisible()
 
     await undo.click()
     await expect(page.getByRole('button', { name: 'Place Bid', exact: true })).toBeVisible()

@@ -8,10 +8,10 @@ Slice 8 of [the tournament roadmap](https://github.com/justinkwaugh/tabletop/iss
 - Players already get turn reminders (after 1 minute, 1, 4 and 8 hours, then every 12 hours for about a week). There are no new player reminders.
 - **Stall alert.** When a Tournament Game goes 2 days without a move, the bot sends every administrator a Discord DM, once for that stall. A later move and a new stall send one new alert. Administrators without a linked Discord account get nothing.
 - **Substitute.** An administrator can put any active account into an Entrant's place, as long as that account is not already in the event. The Substitute plays the place's current and remaining Tables, and the place keeps its results so far. The replaced player is dropped.
-  - For each Table the place is playing when the Substitute arrives, the administrator chooses to take over the Game in progress or restart that Table.
-  - The place still gets a final place, so everyone else's standings and movement are unchanged.
-  - In a one-off Tournament a Substitute's place cannot win: if it finishes first, the next place down wins.
-  - In a League the place's own movement goes to nobody; its next-Season place becomes a Vacancy filled from below. The Substitute gets a Held Place at the Bottom Level for the next Season, whatever the place's result.
+    - For each Table the place is playing when the Substitute arrives, the administrator chooses to take over the Game in progress or restart that Table.
+    - The place still gets a final place, so everyone else's standings and movement are unchanged.
+    - In a one-off Tournament a Substitute's place cannot win: if it finishes first, the next place down wins.
+    - In a League the place's own movement goes to nobody; its next-Season place becomes a Vacancy filled from below. The Substitute gets a Held Place at the Bottom Level for the next Season, whatever the place's result.
 - **Withdrawal.** An administrator can withdraw an Entrant with no Substitute. Their Tables that are not finished are Void, their finished results stay, and they are not ranked. The others are ranked by points as they stand: a Void Table counts for nobody. A withdrawn League Entrant gets no movement and no Held Place.
 
 ## Implementation choices

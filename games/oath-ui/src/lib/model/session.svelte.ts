@@ -40,10 +40,9 @@ import {
     HydratedRollEndDie,
     Search,
     SearchPlay,
-    shroudedWoodChooser,
+    woodChooserForTravel,
     isFreeTravelNow,
-    payableWoodPicks,
-    playMapChanges,
+    woodPicksBeforeTravel,
     woodTravelPaysAtPick,
     SearchResolve,
     SelfExile,
@@ -70,6 +69,7 @@ import {
     type CardPower,
     type LegalChoice,
     type ModifierUse,
+    type PlayMapChanges,
     type PowerChoice,
     type PowerUseKey,
     type QuestionAnswer,
@@ -87,8 +87,8 @@ import { warbandOwnerName } from './names.js'
 import { OathSelection } from './oathSelection.svelte.js'
 import { SearchDraft } from './searchDraft.js'
 import { QuestionDraft } from './questionDraft.js'
-import { woodRegions, type WoodRegion } from './woodTravel.js'
-import { gridRefusal, refusalWords } from './actionAvailability.js'
+import { woodRegions, woodTravelCards, type WoodRegion } from './woodTravel.js'
+import { refusalWords, woodTravelRefusal } from './actionAvailability.js'
 import {
     AttackPlansDraft,
     AttackerLossesDraft,
@@ -167,7 +167,7 @@ import {
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { whenPlayedChoices } from './whenPlayed.js'
+import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
 import { toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
@@ -660,7 +660,19 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
                         cards.placing,
                         carried
                     ).length > 0)) ||
-            whenPlayedChoices(this.gameState, playerId, cardId, play, true).length > 0 ||
+            // R-7.3.3 — with what the play gains first, as the engine plans it (Bewitch's yes).
+            whenPlayedChoices(
+                this.gameState,
+                playerId,
+                cardId,
+                play,
+                true,
+                HydratedPlayFacedownAdviser.playMapChanges(this.gameState, playerId, {
+                    cardId,
+                    play,
+                    modifiers: carried
+                })
+            ).length > 0 ||
             // R-5.1.4.IV — the take, or why there is none to make.
             play === SearchPlay.Conspiracy ||
             // R-6.1, R-7.4 — a card the play may use is shown in the step it changes.
@@ -940,16 +952,41 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.selection.set('discardFirst', cardId)
     }
 
+    // R-5.1.4.I, R-11.10 — the card picked to discard before the site play goes first; R-7.3.3 — the
+    // play's gains come before the power, as the engine plans them for this play (R-6.1).
+    private get adviserPlayChanges(): PlayMapChanges | undefined {
+        const playerId = this.liveTurnSeatId
+        const cardId = this.adviserCardId
+        const play = this.adviserPlay
+        if (!playerId || !cardId || play === undefined) return undefined
+        return HydratedPlayFacedownAdviser.playMapChanges(this.gameState, playerId, {
+            cardId,
+            play,
+            discardedAdviserCardIds: this.adviserPlayDiscards,
+            toSiteId: this.adviserToSite,
+            discardFirstCardId: this.adviserDiscardFirst,
+            modifiers: this.adviserModifiers
+        })
+    }
+
     get adviserPlayChoices(): LegalChoice[] {
         const playerId = this.liveTurnSeatId
         const cardId = this.adviserCardId
         const play = this.adviserPlay
         if (!playerId || !cardId || play === undefined) return []
-        // R-5.1.4.I, R-11.10 — the card picked to discard before the site play goes first.
-        const mapChanges = playMapChanges(this.gameState, cardId, play, {
-            discardFirstCardId: this.adviserDiscardFirst
-        })
-        return whenPlayedChoices(this.gameState, playerId, cardId, play, true, mapChanges)
+        return whenPlayedChoices(
+            this.gameState,
+            playerId,
+            cardId,
+            play,
+            true,
+            this.adviserPlayChanges
+        )
+    }
+
+    /** R-7.3.3 — the favor banks the When Played picks are judged on (Salad Days'). */
+    get adviserPlayBanks(): Readonly<Record<Suit, number>> {
+        return whenPlayedBanks(this.gameState, this.adviserPlayChanges)
     }
 
     get adviserPlayPicks(): PowerChoicePicks {
@@ -1151,18 +1188,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         // R-5.5.7.III — the spoils' pawn step, which a Sneak Attack may open off the seat's turn.
         const banish = this.victory.mapSites
         if (banish.length > 0) return banish.map((slotId) => ({ slotId, intent: 'banish' }))
-        // R-11.7 — the Shrouded Wood ruler's pick for the traveller's own Travel, asked off his turn.
-        const wood = this.question.woodRegions
-        if (wood.length > 0) {
-            return wood.flatMap(({ cost, foldedBy, siteIds }) =>
-                siteIds.map((slotId) => ({
-                    slotId,
-                    intent: 'wood',
-                    cost,
-                    foldedBy,
-                    toll: this.question.woodTollAt(slotId)
-                }))
-            )
+        // R-11.7, R-11.13-H1 — a Travel question's pick (the Shrouded Wood ruler's, asked off their
+        // turn, or the Brass Horse user's own), made on the map at every width.
+        const question = this.question.travelPick
+        if (question && question.sites.length > 0) {
+            return question.sites.map(({ siteId, ...site }) => ({
+                slotId: siteId,
+                intent: 'question',
+                ...site
+            }))
         }
         const playerId = this.liveTurnSeatId
         if (!playerId) return []
@@ -1228,25 +1262,47 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /**
      * A choice made by tapping the map, which a phone frames while its step is open: Setup's start
      * sites, all of them until the send, so the frame and its chips hold while the discards are
-     * ordered; Travel's destinations; where the spoils banish the defeated pawn; or the sites the
-     * powers in Use a power can take.
+     * ordered; Travel's destinations; where the spoils banish the defeated pawn; a Travel
+     * question's sites (the Shrouded Wood ruler's pick, the Brass Horse user's own); or the sites
+     * the powers in Use a power can take. Each names the pawn it moves, whose region it opens on.
      */
     get mapPick(): MapPick | undefined {
+        const moverId = this.liveTurnSeatId
         if (this.setup.boardPick) {
             const sites = this.setup.sites
-            return { kind: 'start', sites, choosing: sites.length > 1 }
+            return { kind: 'start', sites, choosing: sites.length > 1, moverId }
         }
         const banish = this.victory.mapSites
-        if (banish.length > 0) return { kind: 'banish', sites: banish, choosing: banish.length > 1 }
+        if (banish.length > 0) {
+            // R-5.5.7.III — the banished pawn is the defender's.
+            const defenderId = this.gameState.campaign?.defenderPlayerId
+            return {
+                kind: 'banish',
+                sites: banish,
+                choosing: banish.length > 1,
+                moverId: defenderId
+            }
+        }
+        const question = this.question.travelPick
+        if (question && question.sites.length > 0) {
+            return {
+                kind: question.ruler ? 'ruler' : 'travel',
+                sites: question.sites.map(({ siteId }) => siteId),
+                choosing: true,
+                moverId: question.moverId
+            }
+        }
         const destinations = this.siteOffers.flatMap((offer) =>
             offer.intent === 'travel' ? [offer.slotId] : []
         )
-        if (destinations.length > 0) return { kind: 'travel', sites: destinations, choosing: true }
+        if (destinations.length > 0) {
+            return { kind: 'travel', sites: destinations, choosing: true, moverId }
+        }
         const powerSites = this.siteOffers.flatMap((offer) =>
             offer.intent === 'power' ? [offer.slotId] : []
         )
         return powerSites.length > 0
-            ? { kind: 'power', sites: powerSites, choosing: true }
+            ? { kind: 'power', sites: powerSites, choosing: true, moverId }
             : undefined
     }
 
@@ -1565,21 +1621,37 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.travelRows.find((row) => row.slotId === siteId)?.ways ?? []
     }
 
-    /** R-11.7 — who chooses where this seat's Travel goes, when an enemy rules its Shrouded Wood. */
+    /**
+     * R-11.7 — who chooses where this seat's Travel goes, when an enemy rules its Shrouded Wood:
+     * nobody once Portal is declared at its own site there (R-11.7-H4).
+     */
     get shroudedWoodChooser(): string | undefined {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Travel) return undefined
-        return shroudedWoodChooser(this.gameState, playerId)
+        return woodChooserForTravel(this.gameState, playerId, this.modifiers.declared)
     }
 
-    /** R-11.7 — what each region the ruler may pick would cost, once the Travel pays at the pick. */
+    /** R-11.7-H2 — the cards in use that this seat's Travel out of an enemy's Wood declares. */
+    get woodTravelCards(): ModifierUse[] {
+        const playerId = this.liveTurnSeatId
+        if (!playerId) return []
+        return woodTravelCards(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    /**
+     * R-11.7 — what each region the ruler may pick would cost, once the Travel pays at the pick;
+     * R-11.7-H2 — with the cards in use counted, as the ruler will then be offered them.
+     */
     get woodRegions(): WoodRegion[] | undefined {
         const playerId = this.liveTurnSeatId
         if (!playerId || !this.shroudedWoodChooser || !woodTravelPaysAtPick(this.gameState)) {
             return undefined
         }
-        const picks = payableWoodPicks(this.gameState, playerId, this.woodTravelIsFree)
-        return woodRegions(this.gameState, picks)
+        const picks = woodPicksBeforeTravel(this.gameState, playerId, this.woodTravelCards)
+        return woodRegions(
+            this.gameState,
+            picks.map(({ pick }) => pick)
+        )
     }
 
     /** Second Wind, Brass Horse */
@@ -1591,14 +1663,19 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     get woodTravelReason(): string | undefined {
         const playerId = this.liveTurnSeatId
         if (!playerId) return undefined
-        return HydratedTravel.reasonCannotLeaveShroudedWood(this.gameState, playerId, {})
+        return HydratedTravel.reasonCannotLeaveShroudedWood(this.gameState, playerId, {
+            modifiers: this.woodTravelCards
+        })
     }
 
-    /** The red line under a Wood Travel nobody can pay, in the grid's words ("Needs 2 Supply; you have 1."). */
+    /**
+     * The red line under a Wood Travel nobody can pay with the cards in use, in the grid's words
+     * ("Needs 2 Supply; you have 1."). The tile may be open on a card not yet in use (R-11.7-H2).
+     */
     get woodTravelRefusal(): string | undefined {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.woodTravelReason === undefined) return undefined
-        const refusal = gridRefusal(this.gameState, playerId, ActionType.Travel)
+        const refusal = woodTravelRefusal(this.gameState, playerId, this.woodTravelCards)
         if (!refusal) return undefined
         return refusal.cause === 'engine'
             ? this.humanizeReason(refusal.reason)
@@ -1608,7 +1685,10 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     async travelFromShroudedWood(): Promise<void> {
         if (!this.shroudedWoodChooser || this.woodTravelReason !== undefined) return
         await this.commit(
-            this.createPlayerAction(Travel, { type: ActionType.Travel, modifiers: [] })
+            this.createPlayerAction(Travel, {
+                type: ActionType.Travel,
+                modifiers: this.woodTravelCards
+            })
         )
     }
 

@@ -18,6 +18,7 @@
         type BoardArtwork,
         printedMapReservations,
         mapBorderCosts,
+        terrainRowWidths,
         type MapDrawing,
         type MapSelection,
         type MapToken,
@@ -28,6 +29,7 @@
         scene,
         legalLocationIds = [],
         highlightedLocationIds = legalLocationIds,
+        outlinedLocationIds = [],
         maskUnavailableLocations = false,
         previewLocationId,
         translucentLocationId,
@@ -47,6 +49,8 @@
         scene: MapDrawing
         legalLocationIds?: readonly string[]
         highlightedLocationIds?: readonly string[]
+        /** Hexes outlined as a selected hex is, without selecting them. */
+        outlinedLocationIds?: readonly string[]
         maskUnavailableLocations?: boolean
         previewLocationId?: string
         translucentLocationId?: string
@@ -267,6 +271,26 @@
                                 reservation.locationId === id && reservation.nodeId === node.node.id
                         )
                         .map((reservation) => reservation.companyId)}
+                    <!-- A reservation holds a space, not a particular one: show it in the free spaces. -->
+                    {@const reservedBySlot = node.slots
+                        .map((_, slot) => slot)
+                        .filter(
+                            (slot) =>
+                                !tokens.some(
+                                    (token) =>
+                                        token.locationId === id &&
+                                        token.nodeId === node.node.id &&
+                                        token.slot === slot
+                                )
+                        )
+                        .slice(0, reservedCompanyIds.length)
+                        .reduce<Record<number, string>>(
+                            (reserved, slot, index) => ({
+                                ...reserved,
+                                [slot]: reservedCompanyIds[index]
+                            }),
+                            {}
+                        )}
                     {@const tokenSize = 2 * node.slotRadius}
                     {#each node.slots as point, slot (slot)}
                         {@const token = tokens.find(
@@ -285,12 +309,9 @@
                                 />
                             </g>
                         {/if}
-                        {@const reservedAppearance = stationAppearances[reservedCompanyIds[slot]]}
+                        {@const reservedAppearance = stationAppearances[reservedBySlot[slot]]}
                         {#if !token && reservedAppearance}
-                            <g
-                                class="reserved-token"
-                                data-map-reservation={reservedCompanyIds[slot]}
-                            >
+                            <g class="reserved-token" data-map-reservation={reservedBySlot[slot]}>
                                 <title>{`Reserved for ${reservedAppearance.label}`}</title>
                                 <CompanyToken
                                     appearance={reservedAppearance}
@@ -337,9 +358,10 @@
                     >
                         {#if !entry.placed && entry.location.terrain}
                             {@const terrain = entry.location.terrain}
-                            {@const iconWidth = terrain.kinds.length * 19}
                             {@const cost = `${scene.terrainCostPrefix}${terrainCost(terrain)}`}
-                            {@const labelWidth = cost.length * 6.5}
+                            {@const widths = terrainRowWidths(terrain.kinds.length, cost)}
+                            {@const iconWidth = widths.icons}
+                            {@const labelWidth = widths.cost}
                             <g
                                 data-map-terrain
                                 transform={`translate(${-(iconWidth + labelWidth) / 2} ${entry.terrainY})`}
@@ -459,6 +481,16 @@
                                         fill={appearance.paper}>{annotation.label}</text
                                     >
                                 </g>
+                            {:else if annotation.kind === 'token'}
+                                <image
+                                    data-map-placed-token={annotation.markerId}
+                                    href={annotation.imageUrl}
+                                    x={annotation.x - annotation.radius}
+                                    y={annotation.y - annotation.radius}
+                                    width={annotation.radius * 2}
+                                    height={annotation.radius * 2}
+                                    ><title>{annotation.label}</title></image
+                                >
                             {:else}
                                 <g
                                     data-map-revenue-symbol={annotation.markerId}
@@ -835,7 +867,7 @@
         pointer-events="none"
         aria-hidden="true"
     >
-        {#each entries.filter((entry) => entry.location.id === selection?.locationId || entry.location.id === focusedLocationId || entry.location.id === previewLocationId || (maskUnavailableLocations && entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))) as entry (entry.location.id)}
+        {#each entries.filter((entry) => entry.location.id === selection?.locationId || outlinedLocationIds.includes(entry.location.id) || entry.location.id === focusedLocationId || entry.location.id === previewLocationId || (maskUnavailableLocations && entry.location.id === hoveredLocationId && legalLocationIds.includes(entry.location.id))) as entry (entry.location.id)}
             <polygon
                 data-map-highlight={entry.location.id}
                 data-track-preview={entry.location.id === previewLocationId
@@ -856,8 +888,9 @@
 </svg>
 
 <style>
+    /* No grayscale: WebKit ignores CSS filter functions on SVG elements, and players
+       preferred the faded colours it shows. */
     .reserved-token {
-        filter: grayscale(1);
         opacity: 0.4;
     }
     .map-scene {

@@ -33,8 +33,7 @@ function rectOf(table: Readonly<Record<string, BoundingBox>>, slotId: string): B
     return rect
 }
 
-const disjoint = (a: BoundingBox, b: BoundingBox) =>
-    a.x + a.width <= b.x || b.x + b.width <= a.x
+const disjoint = (a: BoundingBox, b: BoundingBox) => a.x + a.width <= b.x || b.x + b.width <= a.x
 
 describe('the board focus views (scenario 45)', () => {
     it('a region holds its discard pile, its sites and the strips beside them', () => {
@@ -53,7 +52,8 @@ describe('the board focus views (scenario 45)', () => {
             const rect = regionFocusRect(region)
             for (const slotId of mapSlotsFor(region)) {
                 const full: StripSpace[] = []
-                for (let i = 0; i < 8; i++) full.push({ kind: i % 3 === 2 ? 'relic' : 'denizen', pickable: false })
+                for (let i = 0; i < 8; i++)
+                    full.push({ kind: i % 3 === 2 ? 'relic' : 'denizen', pickable: false })
                 for (const placed of stripLayout(rectOf(CARD_STRIP_RECTS, slotId), full)) {
                     expect(contains(rect, placed)).toBe(true)
                 }
@@ -65,8 +65,12 @@ describe('the board focus views (scenario 45)', () => {
     })
 
     it('the three regions sit side by side without overlapping', () => {
-        expect(disjoint(regionFocusRect(Region.Cradle), regionFocusRect(Region.Provinces))).toBe(true)
-        expect(disjoint(regionFocusRect(Region.Provinces), regionFocusRect(Region.Hinterland))).toBe(true)
+        expect(disjoint(regionFocusRect(Region.Cradle), regionFocusRect(Region.Provinces))).toBe(
+            true
+        )
+        expect(
+            disjoint(regionFocusRect(Region.Provinces), regionFocusRect(Region.Hinterland))
+        ).toBe(true)
     })
 
     it('the banks view holds the six banks and the shared one, and no site', () => {
@@ -82,7 +86,8 @@ describe('the board focus views (scenario 45)', () => {
         for (const slotId of Object.keys(SITE_SLOT_RECTS)) {
             const rect = siteFocusRect(slotId)
             const full: StripSpace[] = []
-            for (let i = 0; i < 8; i++) full.push({ kind: i % 3 === 2 ? 'relic' : 'denizen', pickable: false })
+            for (let i = 0; i < 8; i++)
+                full.push({ kind: i % 3 === 2 ? 'relic' : 'denizen', pickable: false })
             for (const placed of stripLayout(rectOf(CARD_STRIP_RECTS, slotId), full)) {
                 expect(contains(rect, placed)).toBe(true)
             }
@@ -126,7 +131,9 @@ describe('Travel on a phone frames the lit sites (Choose a Travel destination)',
     })
 
     it('Setup sideways frames the rows its start sites stand in: the top row for three, and for one', () => {
-        const top = [Region.Cradle, Region.Provinces, Region.Hinterland].map((region) => mapSlotsFor(region)[0])
+        const top = [Region.Cradle, Region.Provinces, Region.Hinterland].map(
+            (region) => mapSlotsFor(region)[0]
+        )
         const rect = siteRowsFrameRect(top)
         for (const slotId of top) expect(contains(rect, rectOf(SITE_SLOT_RECTS, slotId))).toBe(true)
         for (const region of [Region.Cradle, Region.Provinces, Region.Hinterland]) {

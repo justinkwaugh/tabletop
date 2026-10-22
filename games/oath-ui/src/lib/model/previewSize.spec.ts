@@ -21,7 +21,9 @@ describe('the enlarged card’s size (scenario 52)', () => {
     })
 
     it('stays inside the height of a short area', () => {
-        expect(previewWidth({ width: 1440, height: 400 }, 770 / 596, 770)).toBe(Math.round(400 * 0.82 * (770 / 596)))
+        expect(previewWidth({ width: 1440, height: 400 }, 770 / 596, 770)).toBe(
+            Math.round(400 * 0.82 * (770 / 596))
+        )
     })
 
     it('reads the source width from the card: banners, Visions and sites are wide', () => {

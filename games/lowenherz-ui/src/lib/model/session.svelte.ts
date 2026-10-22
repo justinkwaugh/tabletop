@@ -189,8 +189,8 @@ export class LowenherzGameSession extends GameSession<
     // An effect used to assign these from the offer on every tick and clear them when the
     // negotiation ended. Deriving them means there is nothing to clear: no negotiation, no draft.
     private negotiationDraft:
-        | { key: string; proposerId: string | undefined; amount: number }
-        | undefined = $state(undefined)
+        { key: string; proposerId: string | undefined; amount: number } | undefined =
+        $state(undefined)
 
     private get negotiationKey(): string | undefined {
         const negotiation = this.displayNegotiation
@@ -2213,8 +2213,10 @@ export class LowenherzGameSession extends GameSession<
                 break
             case PoliticsCardType.Treasure:
                 if (card.value === undefined) break
-                if (this.selectedTreasureCard?.value === card.value) this.selectTreasureCard(undefined)
-                if (this.armedDuelTreasureValues.includes(card.value)) this.unarmDuelTreasure(card.value)
+                if (this.selectedTreasureCard?.value === card.value)
+                    this.selectTreasureCard(undefined)
+                if (this.armedDuelTreasureValues.includes(card.value))
+                    this.unarmDuelTreasure(card.value)
                 break
         }
     }
@@ -2310,7 +2312,9 @@ export class LowenherzGameSession extends GameSession<
         if (money >= ALLIANCE_CANCELLATION_COST) return { ducats: ALLIANCE_CANCELLATION_COST }
         const affordable = this.myTreasureCards
             .map((card) => card.value)
-            .filter((value): value is number => value !== undefined && withTreasure(value) !== undefined)
+            .filter(
+                (value): value is number => value !== undefined && withTreasure(value) !== undefined
+            )
         return affordable.length === 1 ? withTreasure(affordable[0]) : undefined
     }
 
@@ -2323,7 +2327,8 @@ export class LowenherzGameSession extends GameSession<
         const payment = this.allianceBreakingPayment
         if (!payment) return
 
-        const treasure = payment.treasureValue === undefined ? {} : { treasureValue: payment.treasureValue }
+        const treasure =
+            payment.treasureValue === undefined ? {} : { treasureValue: payment.treasureValue }
         const action = this.createPlayerAction(CancelAlliance, { allianceId, ...treasure })
 
         const invalidReason = cancelAllianceReason(
@@ -2382,7 +2387,8 @@ export class LowenherzGameSession extends GameSession<
                 // meant every single player always picked slot 1, so border actions
                 // in the middle/bottom band were never chosen at all.
                 const decisionSlots = [1, 2, 3] as const
-                const preferred = decisionSlots[this.gameState.decisions.length % decisionSlots.length]
+                const preferred =
+                    decisionSlots[this.gameState.decisions.length % decisionSlots.length]
                 const slot = usedSlots.has(preferred)
                     ? decisionSlots.find((s) => !usedSlots.has(s))
                     : preferred

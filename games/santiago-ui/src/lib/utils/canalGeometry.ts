@@ -22,14 +22,19 @@ export function intersectionKey(col: number, row: number): string {
     return `${col},${row}`
 }
 
-export function segmentEndpointKeys(seg: Pick<CanalSegment, 'orientation' | 'col' | 'row'>): [string, string] {
+export function segmentEndpointKeys(
+    seg: Pick<CanalSegment, 'orientation' | 'col' | 'row'>
+): [string, string] {
     return seg.orientation === 'H'
         ? [intersectionKey(seg.col, seg.row), intersectionKey(seg.col + 1, seg.row)]
         : [intersectionKey(seg.col, seg.row), intersectionKey(seg.col, seg.row + 1)]
 }
 
 // Water reaches a segment from whichever end already touches the spring or a built canal.
-export function waterEntersAtFarEnd(seg: CanalSegment, board: Pick<SantiagoBoard, 'spring' | 'canals'>): boolean {
+export function waterEntersAtFarEnd(
+    seg: CanalSegment,
+    board: Pick<SantiagoBoard, 'spring' | 'canals'>
+): boolean {
     const watered = new Set([
         intersectionKey(board.spring.col, board.spring.row),
         ...board.canals.flatMap(segmentEndpointKeys)

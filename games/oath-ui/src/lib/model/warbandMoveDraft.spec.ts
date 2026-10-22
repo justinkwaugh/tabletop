@@ -28,7 +28,11 @@ async function moving(warbandsOnBoard: WarbandCounts, status = PlayerStatus.Exil
 describe('moving warbands of two owners', () => {
     it('lists one row per owner and direction, so a Citizen holding both owners sees both', async () => {
         const single = await moving({ me: 2 })
-        expect(single.options.filter((o) => o.move.kind === WarbandMoveKind.BoardToSite).map((o) => o.owner)).toEqual(['me'])
+        expect(
+            single.options
+                .filter((o) => o.move.kind === WarbandMoveKind.BoardToSite)
+                .map((o) => o.owner)
+        ).toEqual(['me'])
 
         // A Citizen whose warbands could not all be replaced holds both (R-6.6.2).
         const two = await moving({ me: 2, [IMPERIAL_WARBANDS]: 1 }, PlayerStatus.Citizen)

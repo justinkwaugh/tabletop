@@ -33,8 +33,8 @@
             playersAndStates.map((item) => [item.playerState.playerId, item])
         )
 
-        const results = gameSession.gameState.turnManager.turnOrder.map(
-            (playerId) => playersAndStatesById.get(playerId)!
+        const results = gameSession.gameState.turnManager.turnOrder.map((playerId) =>
+            playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
 
         const active = results.filter(

@@ -3,12 +3,12 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import {
         type EighteenFortySixProjectedState,
-        type HydratedEighteenFortySixState
+        type HydratedEighteenFortySixState,
+        CompanyDescriptions1846
     } from '@tabletop/1846'
     import {
         GameTable,
         OperatingActions,
-        AutomaticRoutes,
         StationBuilding,
         CompanyDecisions,
         SlidingToggle
@@ -16,13 +16,13 @@
     import { fade } from 'svelte/transition'
     import { prefersReducedMotion } from 'svelte/motion'
     import { EighteenFortySixSession } from './session.svelte.js'
-    import { CompanyDescriptions } from './companyDescriptions.js'
     import OpeningCompanies from './OpeningCompanies.svelte'
     import Draft from './Draft.svelte'
     import RevenueMarkerPrompt from './RevenueMarkerPrompt.svelte'
+    import NothingToBuild from './NothingToBuild.svelte'
     import SteamboatAssignment from './SteamboatAssignment.svelte'
-    import EmergencyTrains from './EmergencyTrains.svelte'
     import CorporateFinance from './CorporateFinance.svelte'
+    import PresidencyClaims from './PresidencyClaims.svelte'
     import { describe1846Action } from './history.js'
     import './panels.css'
     let {
@@ -34,7 +34,7 @@
         return gameSession
     })
     const state = $derived(session.gameState)
-    const privateOperationDescription = (id: string) => CompanyDescriptions[id]
+    const privateOperationDescription = (id: string) => CompanyDescriptions1846[id]
     const operatingModes = $derived.by(() => {
         const mode = session.constructionMode
         const finance = session.financeChoices.length
@@ -89,16 +89,29 @@
             !session.decisions.selection &&
             !session.privateActions.selection
     )
+    const showFinance = $derived(
+        session.constructionMode === 'finance' &&
+            session.financeChoices.length > 0 &&
+            !state.purchaseOffer &&
+            !session.privateActions.selection &&
+            !session.privateActions.trackPowerSelection &&
+            !session.decisions.selection
+    )
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
 </script>
 
-<GameTable {session} {privateOperationDescription} historyDescription={describe1846Action}>
+<GameTable
+    {session}
+    {privateOperationDescription}
+    historyDescription={describe1846Action}
+    additionalStockActions={session.stockPanels.menuOptions}
+>
     {#snippet actions(_focusLocation, focusRoute)}
         <div class="midwest-actions">
             {#if showOperatingModes}
-                <nav aria-label="Operating mode" class="operating-mode">
+                <nav aria-label="Operating mode" class="operating-mode midwest-panel">
                     <SlidingToggle
                         count={operatingModes.length}
                         selectedIndex={operatingModes.findIndex((mode) => mode.selected)}
@@ -111,39 +124,33 @@
                     </SlidingToggle>
                 </nav>
             {/if}
-            <div class="midwest-content centered-panel">
-                {#key showOperatingModes ? session.constructionMode : undefined}<div
-                        in:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}
-                    >
-                        {#if state.machineState === 'BuyingOpeningCompanies'}
-                            <OpeningCompanies {session} />
-                        {:else if state.machineState === 'Drafting' || state.machineState === 'RevealingDraft'}
-                            <Draft {session} />
-                        {:else if state.pendingRevenueMarker}
-                            <RevenueMarkerPrompt {session} />
-                        {:else if state.machineState === 'AssigningSteamboat'}
-                            <SteamboatAssignment {session} />
-                        {:else if state.machineState === 'RunningReceiver'}
-                            <AutomaticRoutes
+            {#key showOperatingModes ? session.constructionMode : undefined}<div
+                    class="midwest-content"
+                    in:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}
+                >
+                    {#if state.machineState === 'BuyingOpeningCompanies'}
+                        <OpeningCompanies {session} />
+                    {:else if state.machineState === 'Drafting' || state.machineState === 'RevealingDraft'}
+                        <Draft {session} />
+                    {:else if state.pendingRevenueMarker}
+                        <RevenueMarkerPrompt {session} />
+                    {:else if state.machineState === 'AssigningSteamboat'}
+                        <SteamboatAssignment {session} />
+                    {:else if session.stockPanels.open === 'receivership'}
+                        <PresidencyClaims {session} />
+                    {:else if showFinance}
+                        <CorporateFinance {session} />
+                    {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'stations' && !state.purchaseOffer}
+                        <div class="centered-panel">
+                            <CompanyDecisions
                                 {session}
-                                {createRouteWorker}
-                                onFocusRoute={focusRoute}
                                 trainColors={session.presentation.trainColors}
+                                showUndo={false}
                             />
-                        {:else if state.machineState === 'FundingTrain'}
-                            <section aria-label="Emergency train funding">
-                                <EmergencyTrains {session} />
-                            </section>
-                        {:else}
-                            {#if session.constructionMode === 'finance' && session.financeChoices.length && !state.purchaseOffer}
-                                <CorporateFinance {session} />
-                            {:else if state.machineState === 'LayingTrack' && session.constructionMode === 'stations' && !state.purchaseOffer}
-                                <CompanyDecisions
-                                    {session}
-                                    trainColors={session.presentation.trainColors}
-                                    showUndo={false}
-                                />
-                                {#if !session.privateActions.selection && !session.decisions.selection}
+                            {#if !session.privateActions.selection && !session.decisions.selection}
+                                {#if session.nothingToBuild}
+                                    <NothingToBuild {session} />
+                                {:else}
                                     <StationBuilding
                                         {session}
                                         showUndo={false}
@@ -151,33 +158,17 @@
                                         onSkip={() => session.finishConstruction()}
                                     />
                                 {/if}
-                            {:else}
-                                <OperatingActions
-                                    {session}
-                                    {privateOperationDescription}
-                                    {createRouteWorker}
-                                    onFocusRoute={focusRoute}
-                                />
                             {/if}
-                            {#if state.machineState === 'StockRound' && session.receiverShares.length}
-                                <section aria-label="Companies in receivership">
-                                    <h2>Take over a company</h2>
-                                    {#each session.receiverShares as choice (choice.companyId)}
-                                        <button
-                                            disabled={!session.canChooseAction}
-                                            onclick={() => session.buyReceiverShare(choice)}
-                                            >{choice.companyId} · buy 10% for ${choice.price} and become
-                                            president</button
-                                        >
-                                    {/each}
-                                </section>
-                            {/if}
-                            {#if state.machineState === 'BuyingTrains'}<EmergencyTrains
-                                    {session}
-                                />{/if}
-                        {/if}
-                    </div>{/key}
-            </div>
+                        </div>
+                    {:else}
+                        <OperatingActions
+                            {session}
+                            {privateOperationDescription}
+                            {createRouteWorker}
+                            onFocusRoute={focusRoute}
+                        />
+                    {/if}
+                </div>{/key}
         </div>
     {/snippet}
 </GameTable>

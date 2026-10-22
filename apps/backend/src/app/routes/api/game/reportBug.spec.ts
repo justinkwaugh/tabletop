@@ -81,7 +81,10 @@ describe('POST /reportBug', () => {
     it('takes the most screenshots a report may carry at their largest', async () => {
         const { server, reportBug } = await createServer({ configured: true })
         servers.add(server)
-        const screenshots = Array.from({ length: BUG_REPORT_SCREENSHOT_MAX_COUNT }, () => largestScreenshot)
+        const screenshots = Array.from(
+            { length: BUG_REPORT_SCREENSHOT_MAX_COUNT },
+            () => largestScreenshot
+        )
 
         const response = await server.inject({
             method: 'POST',
@@ -102,7 +105,10 @@ describe('POST /reportBug', () => {
             url: '/reportBug',
             payload: {
                 ...report,
-                screenshots: Array.from({ length: BUG_REPORT_SCREENSHOT_MAX_COUNT + 1 }, () => '/9j/AA==')
+                screenshots: Array.from(
+                    { length: BUG_REPORT_SCREENSHOT_MAX_COUNT + 1 },
+                    () => '/9j/AA=='
+                )
             }
         })
 

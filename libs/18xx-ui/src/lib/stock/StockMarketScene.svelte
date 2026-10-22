@@ -121,6 +121,9 @@
             const after = marketTokenLayout(chart, to, cell)
             if (JSON.stringify(before) === JSON.stringify(after)) return
             hoveredSpace = undefined
+            // The market shown when the run began; a newer one published meanwhile, such as a
+            // view switch, supersedes the run, and its tokens already follow that market.
+            const shownMarket = untrack(() => market)
             const beforeById = new Map(before.map((item) => [item.companyId, item]))
             const afterById = new Map(after.map((item) => [item.companyId, item]))
             tokens = [
@@ -160,7 +163,7 @@
             animationContext.afterAnimations(() => {
                 timelines.delete(timeline)
                 if (!board) return
-                tokens = after
+                if (untrack(() => market) === shownMarket) tokens = after
                 void tick().then(() => {
                     for (const element of elements.values()) {
                         for (const property of [

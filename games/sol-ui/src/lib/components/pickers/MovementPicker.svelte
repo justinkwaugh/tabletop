@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import UISundiver from '$lib/components/Sundiver.svelte'
     import { Sundiver, EffectType, StationType } from '@tabletop/sol'
     import EnergyNode from '$lib/images/energynode.svelte'

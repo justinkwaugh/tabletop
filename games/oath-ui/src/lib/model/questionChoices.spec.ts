@@ -110,7 +110,11 @@ describe('stackOrderAnswer (Pilgrimage, Law Glossary "Discard")', () => {
     })
 
     it('a card that is not among those drawn makes an answer the engine refuses', () => {
-        const answer = stackOrderAnswer(PowerQuestionKind.OrderDrawnCards, DRAWN, [DRAWN[0], DRAWN[1], 'denizen.order.scouts'])
+        const answer = stackOrderAnswer(PowerQuestionKind.OrderDrawnCards, DRAWN, [
+            DRAWN[0],
+            DRAWN[1],
+            'denizen.order.scouts'
+        ])
         expect(HydratedAnswerQuestion.reasonCannotAnswer(stacking(), 'me', answer)).toBe(
             'the order must name each of the 3 cards once'
         )
@@ -120,8 +124,19 @@ describe('stackOrderAnswer (Pilgrimage, Law Glossary "Discard")', () => {
 describe('the advisers an exchange may offer (R-10.8, R-9.4)', () => {
     function holders() {
         return testState([
-            testPlayer({ playerId: 'me', color: Color.Red, advisers: [{ cardId: ADVISERS[0], faceUp: false }, { cardId: ADVISERS[1], faceUp: true }] }),
-            testPlayer({ playerId: 'them', color: Color.Blue, advisers: [{ cardId: ADVISERS[2], faceUp: false }] })
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                advisers: [
+                    { cardId: ADVISERS[0], faceUp: false },
+                    { cardId: ADVISERS[1], faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'them',
+                color: Color.Blue,
+                advisers: [{ cardId: ADVISERS[2], faceUp: false }]
+            })
         ])
     }
 
@@ -134,19 +149,32 @@ describe('the advisers an exchange may offer (R-10.8, R-9.4)', () => {
         expect(offerableAdviserRows(state, 'them', 'me')).toEqual([
             { row: 0, back: CardKind.Denizen, label: 'the facedown adviser in row 1' }
         ])
-        expect(offerableAdviserRows(state, 'them', 'me')[0]).not.toHaveProperty('cardId', ADVISERS[2])
-        expect(offerableAdviserRows(state, 'me', 'them').map((row) => row.cardId)).toEqual([undefined, ADVISERS[1]])
+        expect(offerableAdviserRows(state, 'them', 'me')[0]).not.toHaveProperty(
+            'cardId',
+            ADVISERS[2]
+        )
+        expect(offerableAdviserRows(state, 'me', 'them').map((row) => row.cardId)).toEqual([
+            undefined,
+            ADVISERS[1]
+        ])
         expect(JSON.stringify(offerableAdviserRows(state, 'me', 'them'))).not.toContain('Messenger')
     })
 
     it('offers a facedown Vision with the Vision back to everyone, named to its holder alone', () => {
         const state = testState([
             testPlayer({ playerId: 'me', color: Color.Red }),
-            testPlayer({ playerId: 'them', color: Color.Blue, advisers: [{ cardId: 'vision.conquest', faceUp: false }] })
+            testPlayer({
+                playerId: 'them',
+                color: Color.Blue,
+                advisers: [{ cardId: 'vision.conquest', faceUp: false }]
+            })
         ])
         expect(offerableAdviserRows(state, 'them', 'me')).toEqual([
             { row: 0, back: CardKind.Vision, label: 'the facedown adviser in row 1' }
         ])
-        expect(offerableAdviserRows(state, 'them', 'them')[0]).toMatchObject({ cardId: 'vision.conquest', back: CardKind.Vision })
+        expect(offerableAdviserRows(state, 'them', 'them')[0]).toMatchObject({
+            cardId: 'vision.conquest',
+            back: CardKind.Vision
+        })
     })
 })

@@ -120,6 +120,15 @@ describe('CompanyDecisionsModule', () => {
         expect(module.purchaseOfferEvaluation).toBeDefined()
     })
 
+    it('starts a company acquisition at the most the company can pay within the title range', () => {
+        const { module } = deciding(['OfferPurchase'])
+        module.selectPurchaseOffer({
+            ...purchase,
+            asset: { kind: 'company', companyId: 'minor' }
+        })
+        expect(module.selection).toMatchObject({ kind: 'purchase', request: { price: 60 } })
+    })
+
     it('treats the decision as one manual choice that Undo and Back both clear', () => {
         const { module } = deciding(['OfferPurchase'])
         module.selectPurchaseOffer(purchase)

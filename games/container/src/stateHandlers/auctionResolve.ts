@@ -1,8 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler,
-    MachineContext
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedContainerGameState } from '../model/gameState.js'
@@ -11,13 +7,8 @@ import { HydratedTakeLoan, isTakeLoan } from '../actions/takeLoan.js'
 
 export type AuctionResolveAction = HydratedResolveAuction | HydratedTakeLoan
 
-export class AuctionResolveStateHandler
-    implements MachineStateHandler<AuctionResolveAction>
-{
-    isValidAction(
-        action: HydratedAction,
-        context: MachineContext
-    ): action is AuctionResolveAction {
+export class AuctionResolveStateHandler implements MachineStateHandler<AuctionResolveAction> {
+    isValidAction(action: HydratedAction, context: MachineContext): action is AuctionResolveAction {
         const state = context.gameState as HydratedContainerGameState
         if (!action.playerId) {
             return false

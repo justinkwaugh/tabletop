@@ -1,6 +1,6 @@
 import { Charters1846 } from './charters.js'
 import { releasePrivateReservations } from './stations.js'
-import { inReceivership } from './receivership.js'
+import { inReceivership } from '@tabletop/18xx'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
@@ -25,17 +25,8 @@ import type { SteamboatState } from './steamboat.js'
 import { isRevenuePrivate, type RevenueMarkerState } from './revenueMarkers.js'
 
 export const AcquisitionFields = {
-    independentAcquisitions: Type.Array(
-        Type.Object(
-            {
-                companyId: Type.String(),
-                trainId: Type.String(),
-                setNumber: Type.Integer({ minimum: 1 }),
-                roundNumber: Type.Integer({ minimum: 1 })
-            },
-            { additionalProperties: false }
-        )
-    )
+    // §6.93: an independent's train cannot run in the round the corporation buys it.
+    acquiredTrainIds: Type.Optional(Type.Array(Type.String(), { uniqueItems: true }))
 }
 export type AcquisitionState = Type.Static<Type.TObject<typeof AcquisitionFields>>
 export const AcquisitionSteps = [
@@ -47,6 +38,7 @@ export const AcquisitionSteps = [
 
 export const TransferRules1846: TransferRules = {
     charters: Charters1846,
+    companyAcquisitions: true,
     operatingCompany(state) {
         return AcquisitionSteps.some((step) => step === state.machineState)
             ? nextOperatingCompany(state)
@@ -99,16 +91,10 @@ export const TransferRules1846: TransferRules = {
         }
         assert(offer.asset.kind === 'company', '1846 purchases private or independent companies')
         const id = offer.asset.companyId
-        const set = state.operatingSet
-        assertExists(set, 'An independent is acquired during operations')
+        assertExists(state.operatingSet, 'An independent is acquired during operations')
         const assets = transferCompanyAssets(state, id, offer.buyer.companyId, { loans: false })
         assert(assets.trainIds.length === 1, 'An independent brings its single 2-train')
-        state.independentAcquisitions.push({
-            companyId: id,
-            trainId: assets.trainIds[0],
-            setNumber: set.number,
-            roundNumber: set.roundNumber
-        })
+        state.acquiredTrainIds = [...(state.acquiredTrainIds ?? []), assets.trainIds[0]]
         const station = state.stations.find(
             (station) => station.companyId === id && station.status === 'placed'
         )
@@ -146,13 +132,8 @@ export const TransferRules1846: TransferRules = {
 }
 
 export function canRunAcquiredTrain(
-    state: TrainRunningState & AcquisitionState & Pick<CompanyDecisionState, 'operatingSet'>,
+    state: TrainRunningState & AcquisitionState,
     train: Train
 ): boolean {
-    return !state.independentAcquisitions.some(
-        (acquisition) =>
-            acquisition.trainId === train.id &&
-            acquisition.setNumber === state.operatingSet?.number &&
-            acquisition.roundNumber === state.operatingSet.roundNumber
-    )
+    return !state.acquiredTrainIds?.includes(train.id)
 }

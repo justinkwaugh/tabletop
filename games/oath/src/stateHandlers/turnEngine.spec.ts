@@ -87,7 +87,8 @@ function wake(state: OathProjectedState, game: Game, playerId: string) {
         expect(state.activePlayerIds).toEqual([playerId])
         return state
     }
-    return engine.runNext(buildAction(ResolveWake, { playerId, favorSteps: [] }), state, game).updatedState
+    return engine.runNext(buildAction(ResolveWake, { playerId, favorSteps: [] }), state, game)
+        .updatedState
 }
 
 function endTurn(state: OathProjectedState, game: Game, playerId: string) {
@@ -121,11 +122,15 @@ function offerCitizenship(
     playerId: string,
     exilePlayerId: string
 ) {
-    return engine.runNext(buildAction(OfferCitizenship, {
-        playerId,
-        exilePlayerId,
-        reliquarySlotId: 'reliquary.0'
-    }), state, game).updatedState
+    return engine.runNext(
+        buildAction(OfferCitizenship, {
+            playerId,
+            exilePlayerId,
+            reliquarySlotId: 'reliquary.0'
+        }),
+        state,
+        game
+    ).updatedState
 }
 
 describe('R-4 — a turn is Wake, then Act, then Rest', () => {
@@ -138,11 +143,19 @@ describe('R-4 — a turn is Wake, then Act, then Rest', () => {
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual(['p1'])
 
-        state = engine.runNext(buildAction(EndActPhase, { playerId: 'p1' }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(EndActPhase, { playerId: 'p1' }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.RestPhase)
         expect(state.activePlayerIds).toEqual(['p1'])
 
-        state = engine.runNext(buildAction(CompleteRest, { playerId: 'p1' }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(CompleteRest, { playerId: 'p1' }),
+            state,
+            game
+        ).updatedState
         // R-4.1 — p2's Wake has nothing to decide, so the engine resolves it in the same run.
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual(['p2'])
@@ -182,7 +195,11 @@ describe('R-4.2 — the Act Phase spans any number of actions', () => {
         let state = wake(buildState(), testGame(['p1', 'p2']), 'p1')
 
         for (const cardId of [ORDER, BEAST, HEARTH]) {
-            state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId }), state, game).updatedState
+            state = engine.runNext(
+                buildAction(Muster, { playerId: 'p1', cardId }),
+                state,
+                game
+            ).updatedState
             expect(state.activePlayerIds).toEqual(['p1'])
             expect(state.machineState).toBe(MachineState.ActPhase)
         }
@@ -202,12 +219,14 @@ describe('R-4.2 — the Act Phase spans any number of actions', () => {
         let state = wake(buildState(), game, 'p1')
         const vault = testVaultWithRelics({})
         vault.worldDeck = [ORDER, BEAST, HEARTH]
-        const search = action(buildAction(Search, {
-            playerId: 'p1',
-            drawFrom: SearchSource.WorldDeck,
-            revealsInfo: true,
-            index: state.actionCount
-        }))
+        const search = action(
+            buildAction(Search, {
+                playerId: 'p1',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                index: state.actionCount
+            })
+        )
         state.vault = vault
         let result = engine.run(search, state, game)
         state = result.updatedState
@@ -216,13 +235,15 @@ describe('R-4.2 — the Act Phase spans any number of actions', () => {
         expect(state.activePlayerIds).toEqual(['p1'])
 
         result = engine.run(
-            action(buildAction(SearchResolve, {
-                playerId: 'p1',
-                keptCardId: ORDER,
-                discardOrder: [BEAST, HEARTH],
-                play: SearchPlay.Adviser,
-                index: state.actionCount
-            })),
+            action(
+                buildAction(SearchResolve, {
+                    playerId: 'p1',
+                    keptCardId: ORDER,
+                    discardOrder: [BEAST, HEARTH],
+                    play: SearchPlay.Adviser,
+                    index: state.actionCount
+                })
+            ),
             state,
             game
         )
@@ -238,12 +259,14 @@ describe('R-4.2 — the Act Phase spans any number of actions', () => {
         const game = testGame(['p1', 'p2'])
         const state = wake(buildState(), game, 'p1')
         const result = engine.run(
-            action(buildAction(Trade, {
-                playerId: 'p1',
-                cardId: ORDER,
-                option: TradeOption.ForFavor,
-                index: state.actionCount
-            })),
+            action(
+                buildAction(Trade, {
+                    playerId: 'p1',
+                    cardId: ORDER,
+                    option: TradeOption.ForFavor,
+                    index: state.actionCount
+                })
+            ),
             state,
             game
         )
@@ -264,10 +287,14 @@ describe('R-4.1 — the Wake Phase through the engine', () => {
         // R-4.1.1 is mandatory for the holder, so an empty declaration fails.
         expect(() => wake(state, game, 'p1')).toThrow(/still able/)
 
-        const done = engine.runNext(buildAction(ResolveWake, {
-            playerId: 'p1',
-            favorSteps: [{ kind: 'place' }]
-        }), state, game).updatedState
+        const done = engine.runNext(
+            buildAction(ResolveWake, {
+                playerId: 'p1',
+                favorSteps: [{ kind: 'place' }]
+            }),
+            state,
+            game
+        ).updatedState
         expect(done.banners[Banner.PeoplesFavor].value).toBe(2)
         expect(done.players[0].favor).toBe(3)
     })
@@ -275,11 +302,16 @@ describe('R-4.1 — the Wake Phase through the engine', () => {
     it('rejects favor steps from a player who does not hold it (R-4.1.1)', () => {
         const game = testGame(['p1', 'p2'])
         const state = buildState()
-        expect(() =>
-            engine.runNext(buildAction(ResolveWake, {
-                playerId: 'p1',
-                favorSteps: [{ kind: 'place' }]
-            }), state, game).updatedState
+        expect(
+            () =>
+                engine.runNext(
+                    buildAction(ResolveWake, {
+                        playerId: 'p1',
+                        favorSteps: [{ kind: 'place' }]
+                    }),
+                    state,
+                    game
+                ).updatedState
         ).toThrow(/do not hold the People’s Favor/)
     })
 
@@ -299,7 +331,11 @@ describe('R-4.3 — the Rest Phase through the engine', () => {
             cardTokens: { [ORDER]: { favor: 2, secrets: 1 } }
         })
         state = wake(state, game, 'p1')
-        state = engine.runNext(buildAction(EndActPhase, { playerId: 'p1' }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(EndActPhase, { playerId: 'p1' }),
+            state,
+            game
+        ).updatedState
 
         // R-4.3.1, R-4.3.2
         expect(state.favorBank[Suit.Order]).toBe(5)
@@ -312,7 +348,11 @@ describe('R-4.3 — the Rest Phase through the engine', () => {
     it('offers only the Rest completion in the Rest Phase (R-4.3.5)', () => {
         const game = testGame(['p1', 'p2'])
         let state = wake(buildState(), game, 'p1')
-        state = engine.runNext(buildAction(EndActPhase, { playerId: 'p1' }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(EndActPhase, { playerId: 'p1' }),
+            state,
+            game
+        ).updatedState
         expect(engine.getValidActionTypesForPlayer(game, state, 'p1')).toEqual([
             ActionType.CompleteRest
         ])
@@ -321,7 +361,11 @@ describe('R-4.3 — the Rest Phase through the engine', () => {
     it('does not let supplySpentThisTurn leak into the next turn (R-4.3.4)', () => {
         const game = testGame(['p1', 'p2'])
         let state = wake(buildState(), game, 'p1')
-        state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(Muster, { playerId: 'p1', cardId: ORDER }),
+            state,
+            game
+        ).updatedState
         expect(state.players[0].supplySpentThisTurn).toBe(1)
 
         state = endTurn(state, game, 'p1')
@@ -371,7 +415,11 @@ describe('R-2.11-H1 — the title is re-evaluated after every action', () => {
         expect(state.oathkeeperPlayerId).toBe('p1')
 
         state.warbandsBySite = { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { p2: 1 }, p1: { p2: 1 } }
-        state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(Muster, { playerId: 'p1', cardId: ORDER }),
+            state,
+            game
+        ).updatedState
         expect(state.oathkeeperPlayerId).toBe('p2')
     })
 })
@@ -384,10 +432,14 @@ describe('R-3.3 — the Stable Regime Win at a round boundary', () => {
             oathType: OathType.ThePeople,
             banners: testBanners({ [Banner.PeoplesFavor]: 'p1' })
         })
-        state = engine.runNext(buildAction(ResolveWake, {
-            playerId: 'p1',
-            favorSteps: [{ kind: 'place' }]
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveWake, {
+                playerId: 'p1',
+                favorSteps: [{ kind: 'place' }]
+            }),
+            state,
+            game
+        ).updatedState
         state = endTurn(state, game, 'p1')
         state = wake(state, game, 'p2')
         return { game, state }
@@ -419,10 +471,14 @@ describe('R-3.3 — the Stable Regime Win at a round boundary', () => {
         })
         state = wake(state, game, 'p1')
         state = endTurn(state, game, 'p1')
-        state = engine.runNext(buildAction(ResolveWake, {
-            playerId: 'p2',
-            favorSteps: [{ kind: 'return', toSuit: Suit.Discord }]
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveWake, {
+                playerId: 'p2',
+                favorSteps: [{ kind: 'return', toSuit: Suit.Discord }]
+            }),
+            state,
+            game
+        ).updatedState
 
         const before = state.prng.invocations
         const after = endTurn(state, game, 'p2')
@@ -441,10 +497,14 @@ describe('R-3.3 — the Stable Regime Win at a round boundary', () => {
                 oathType: OathType.ThePeople,
                 banners: testBanners({ [Banner.PeoplesFavor]: 'p1' })
             })
-            state = engine.runNext(buildAction(ResolveWake, {
-                playerId: 'p1',
-                favorSteps: [{ kind: 'place' }]
-            }), state, game).updatedState
+            state = engine.runNext(
+                buildAction(ResolveWake, {
+                    playerId: 'p1',
+                    favorSteps: [{ kind: 'place' }]
+                }),
+                state,
+                game
+            ).updatedState
             state = endTurn(state, game, 'p1')
             state = wake(state, game, 'p2')
             const after = endTurn(state, game, 'p2')
@@ -465,10 +525,14 @@ describe('R-3.4 — the eighth round ends the game automatically', () => {
             oathType: OathType.ThePeople,
             banners: testBanners({ [Banner.PeoplesFavor]: 'p1' })
         })
-        state = engine.runNext(buildAction(ResolveWake, {
-            playerId: 'p1',
-            favorSteps: [{ kind: 'place' }]
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveWake, {
+                playerId: 'p1',
+                favorSteps: [{ kind: 'place' }]
+            }),
+            state,
+            game
+        ).updatedState
         state = endTurn(state, game, 'p1')
         state = wake(state, game, 'p2')
 
@@ -486,7 +550,11 @@ describe('R-3.4 — the eighth round ends the game automatically', () => {
 describe('R-6.6.2 and R-6.8 end the Act Phase from inside a minor action', () => {
     // R-6.4-H1 — the Scepter's holder is taught the Reliquary, so the vault holds its relics.
     const reliquaryVault = () =>
-        testVaultWithRelics(Object.fromEntries([0, 1, 2, 3].map((i) => [`reliquary.${i}`, `relic.unnamed-${i + 1}`])))
+        testVaultWithRelics(
+            Object.fromEntries(
+                [0, 1, 2, 3].map((i) => [`reliquary.${i}`, `relic.unnamed-${i + 1}`])
+            )
+        )
 
     it('R-6.8 — self-exiling ends the acting player’s own Act Phase', () => {
         const game = testGame(['p1', 'p2'])
@@ -527,8 +595,16 @@ describe('R-6.6.2 and R-6.8 end the Act Phase from inside a minor action', () =>
         expect(state.players[0].supplyAtTurnStart).toBe(MAX_SUPPLY)
 
         // R-5.6.1 — spend the whole track: a saving of 3 plus the base of 4 would also reach 7 and hide a marker reading.
-        state = engine.runNext(buildAction(Travel, { playerId: 'p1', siteId: 'h1' }), state, game).updatedState
-        state = engine.runNext(buildAction(Travel, { playerId: 'p1', siteId: 'h2' }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(Travel, { playerId: 'p1', siteId: 'h1' }),
+            state,
+            game
+        ).updatedState
+        state = engine.runNext(
+            buildAction(Travel, { playerId: 'p1', siteId: 'h2' }),
+            state,
+            game
+        ).updatedState
         const spent = state.players[0].supplySpentThisTurn
         expect(spent).toBe(MAX_SUPPLY)
 
@@ -545,10 +621,7 @@ describe('R-6.6.2 and R-6.8 end the Act Phase from inside a minor action', () =>
             0
         )
         expect(rested).toBe(
-            Math.min(
-                MAX_SUPPLY,
-                refreshSpaceFor(EXILE_REFRESH_BANDS, bank) + (MAX_SUPPLY - spent)
-            )
+            Math.min(MAX_SUPPLY, refreshSpaceFor(EXILE_REFRESH_BANDS, bank) + (MAX_SUPPLY - spent))
         )
 
         expect(state.players[0].supplySpentThisTurn).toBe(0)
@@ -559,10 +632,14 @@ describe('R-6.6.2 and R-6.8 end the Act Phase from inside a minor action', () =>
         const game = testGame(['p1', 'p2'])
         let state = citizenshipTable()
         state = offerCitizenship(state, game, 'p1', 'p2')
-        state = engine.runNext(buildAction(ResolveCitizenshipOffer, {
-            playerId: 'p2',
-            granted: true
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveCitizenshipOffer, {
+                playerId: 'p2',
+                granted: true
+            }),
+            state,
+            game
+        ).updatedState
 
         expect(state.players[1].status).toBe(PlayerStatus.Citizen)
         expect(state.machineState).toBe(MachineState.ActPhase)
@@ -578,10 +655,14 @@ describe('R-6.6.2 and R-6.8 end the Act Phase from inside a minor action', () =>
         state = offerCitizenship(state, game, 'p1', 'p1')
         expect(state.activePlayerIds).toEqual(['p1'])
 
-        state = engine.runNext(buildAction(ResolveCitizenshipOffer, {
-            playerId: 'p1',
-            granted: true
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveCitizenshipOffer, {
+                playerId: 'p1',
+                granted: true
+            }),
+            state,
+            game
+        ).updatedState
 
         expect(state.players[0].status).toBe(PlayerStatus.Citizen)
         expect(state.machineState).toBe(MachineState.RestPhase)
@@ -616,8 +697,10 @@ describe('R-X.1 — a question is a turn, through the engine', () => {
         expect(engine.getValidActionTypesForPlayer(game, state, 'p2')).toContain(
             ActionType.ResolveCitizenshipOffer
         )
-        expect(() =>
-            engine.runNext(buildAction(EndActPhase, { playerId: 'p1' }), state, game).updatedState
+        expect(
+            () =>
+                engine.runNext(buildAction(EndActPhase, { playerId: 'p1' }), state, game)
+                    .updatedState
         ).toThrow()
     })
 
@@ -627,10 +710,14 @@ describe('R-X.1 — a question is a turn, through the engine', () => {
         state = offerCitizenship(state, game, 'p1', 'p2')
 
         const before = structuredClone(state.players)
-        state = engine.runNext(buildAction(ResolveCitizenshipOffer, {
-            playerId: 'p2',
-            granted: false
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveCitizenshipOffer, {
+                playerId: 'p2',
+                granted: false
+            }),
+            state,
+            game
+        ).updatedState
 
         expect(state.players[1].status).toBe(PlayerStatus.Exile)
         expect(state.players).toEqual(before)
@@ -644,10 +731,14 @@ describe('R-X.1 — a question is a turn, through the engine', () => {
         const game = testGame(['p1', 'p2'])
         let state = citizenshipTable()
         state = offerCitizenship(state, game, 'p1', 'p2')
-        state = engine.runNext(buildAction(ResolveCitizenshipOffer, {
-            playerId: 'p2',
-            granted: false
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveCitizenshipOffer, {
+                playerId: 'p2',
+                granted: false
+            }),
+            state,
+            game
+        ).updatedState
         state = offerCitizenship(state, game, 'p1', 'p2')
         expect(state.machineState).toBe(MachineState.ConsentRequest)
     })
@@ -671,10 +762,14 @@ describe('R-X.1 — a question is a turn, through the engine', () => {
         state = offerCitizenship(state, game, 'p1', 'p2')
         expect(state.oathkeeperPlayerId).toBe('p2')
 
-        state = engine.runNext(buildAction(ResolveCitizenshipOffer, {
-            playerId: 'p2',
-            granted: true
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveCitizenshipOffer, {
+                playerId: 'p2',
+                granted: true
+            }),
+            state,
+            game
+        ).updatedState
 
         expect(state.oathkeeperPlayerId).toBe('p1')
         expect(state.pendingOathkeeperChoice).toBeUndefined()
@@ -686,29 +781,45 @@ describe('R-X.1 — a question is a turn, through the engine', () => {
         let state = citizenshipTable()
         state = offerCitizenship(state, game, 'p1', 'p2')
 
-        expect(() =>
-            engine.runNext(buildAction(ResolveCitizenshipOffer, {
-                playerId: 'p1',
-                granted: true
-            }), state, game).updatedState
+        expect(
+            () =>
+                engine.runNext(
+                    buildAction(ResolveCitizenshipOffer, {
+                        playerId: 'p1',
+                        granted: true
+                    }),
+                    state,
+                    game
+                ).updatedState
         ).toThrow(/not an active player/)
     })
 })
 
 describe('R-6.5.b — a warband move waits on the other player, through the engine', () => {
     function takeTable() {
-        return buildState({}, {
-            p2: { status: PlayerStatus.Citizen, siteId: 'c1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } }
-        })
+        return buildState(
+            {},
+            {
+                p2: {
+                    status: PlayerStatus.Citizen,
+                    siteId: 'c1',
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
+                }
+            }
+        )
     }
 
     function takeOne(state: OathProjectedState, game: Game) {
-        return engine.runNext(buildAction(MoveWarbands, {
-            playerId: 'p1',
-            move: { kind: WarbandMoveKind.TakeFromImperial, otherPlayerId: 'p2' },
-            owner: IMPERIAL_WARBANDS,
-            count: 1
-        }), state, game).updatedState
+        return engine.runNext(
+            buildAction(MoveWarbands, {
+                playerId: 'p1',
+                move: { kind: WarbandMoveKind.TakeFromImperial, otherPlayerId: 'p2' },
+                owner: IMPERIAL_WARBANDS,
+                count: 1
+            }),
+            state,
+            game
+        ).updatedState
     }
 
     it('puts the asked player on the clock and offers them the answer alone', () => {
@@ -716,7 +827,9 @@ describe('R-6.5.b — a warband move waits on the other player, through the engi
         const state = takeOne(wake(takeTable(), game, 'p1'), game)
         expect(state.machineState).toBe(MachineState.ConsentRequest)
         expect(state.activePlayerIds).toEqual(['p2'])
-        expect(engine.getValidActionTypesForPlayer(game, state, 'p2')).toEqual([ActionType.AnswerConsent])
+        expect(engine.getValidActionTypesForPlayer(game, state, 'p2')).toEqual([
+            ActionType.AnswerConsent
+        ])
         expect(engine.getValidActionTypesForPlayer(game, state, 'p1')).toEqual([])
         expect(state.players[1].warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 2 })
     })
@@ -724,7 +837,11 @@ describe('R-6.5.b — a warband move waits on the other player, through the engi
     it('the answer carries the move out and hands the turn back', () => {
         const game = testGame(['p1', 'p2'])
         let state = takeOne(wake(takeTable(), game, 'p1'), game)
-        state = engine.runNext(buildAction(AnswerConsent, { playerId: 'p2', granted: true }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(AnswerConsent, { playerId: 'p2', granted: true }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual(['p1'])
         expect(state.players[1].warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 1 })
@@ -749,7 +866,11 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
         expect(state.oathkeeperPlayerId).toBe('p1')
 
         state.warbandsBySite = { c2: { p2: 1 }, p1: { p2: 1 } }
-        state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(Muster, { playerId: 'p1', cardId: ORDER }),
+            state,
+            game
+        ).updatedState
 
         expect(state.pendingOathkeeperChoice).toBeUndefined()
         expect(state.oathkeeperPlayerId).toBe('p2')
@@ -779,7 +900,11 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
         expect(state.oathkeeperPlayerId).toBe('p1')
 
         state.warbandsBySite = { c2: { p2: 1 }, p1: { p3: 1 } }
-        state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(Muster, { playerId: 'p1', cardId: ORDER }),
+            state,
+            game
+        ).updatedState
 
         // R-2.11.b — the title stays put until the outgoing holder chooses.
         expect(state.oathkeeperPlayerId).toBe('p1')
@@ -791,10 +916,14 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
             ActionType.ResolveOathkeeper
         ])
 
-        state = engine.runNext(buildAction(ResolveOathkeeper, {
-            playerId: 'p1',
-            chosenPlayerId: 'p3'
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveOathkeeper, {
+                playerId: 'p1',
+                chosenPlayerId: 'p3'
+            }),
+            state,
+            game
+        ).updatedState
 
         expect(state.oathkeeperPlayerId).toBe('p3')
         expect(state.oathkeeperIsUsurper).toBe(false)
@@ -825,14 +954,23 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
 
         state = wake(state, game, 'p1')
         state.warbandsBySite = { c2: { p2: 1 }, p1: { p3: 1 } }
-        state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(Muster, { playerId: 'p1', cardId: ORDER }),
+            state,
+            game
+        ).updatedState
         expect(state.machineState).toBe(MachineState.OathkeeperChoice)
 
-        expect(() =>
-            engine.runNext(buildAction(ResolveOathkeeper, {
-                playerId: 'p1',
-                chosenPlayerId: 'p1'
-            }), state, game).updatedState
+        expect(
+            () =>
+                engine.runNext(
+                    buildAction(ResolveOathkeeper, {
+                        playerId: 'p1',
+                        chosenPlayerId: 'p1'
+                    }),
+                    state,
+                    game
+                ).updatedState
         ).toThrow(/not one of the tied players/)
     })
 })
@@ -852,14 +990,22 @@ describe('a scripted full game reaches a correct Oathkeeper victory', () => {
         state = wake(state, game, 'p1')
         expect(state.oathkeeperPlayerId).toBe('p2')
         expect(state.oathkeeperIsUsurper).toBe(false)
-        state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(Muster, { playerId: 'p1', cardId: ORDER }),
+            state,
+            game
+        ).updatedState
         state = endTurn(state, game, 'p1')
 
         // R-4.1.1 is mandatory: p2 holds the People's Favor.
-        state = engine.runNext(buildAction(ResolveWake, {
-            playerId: 'p2',
-            favorSteps: [{ kind: 'place' }]
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveWake, {
+                playerId: 'p2',
+                favorSteps: [{ kind: 'place' }]
+            }),
+            state,
+            game
+        ).updatedState
         expect(state.oathkeeperIsUsurper).toBe(true)
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.winningPlayerIds).toEqual([])
@@ -872,10 +1018,14 @@ describe('a scripted full game reaches a correct Oathkeeper victory', () => {
         expect(state.winningPlayerIds).toEqual([])
         state = endTurn(state, game, 'p1')
 
-        state = engine.runNext(buildAction(ResolveWake, {
-            playerId: 'p2',
-            favorSteps: [{ kind: 'place' }]
-        }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(ResolveWake, {
+                playerId: 'p2',
+                favorSteps: [{ kind: 'place' }]
+            }),
+            state,
+            game
+        ).updatedState
 
         expect(state.machineState).toBe(MachineState.EndOfGame)
         expect(state.winningPlayerIds).toEqual(['p2'])
@@ -888,7 +1038,11 @@ describe('R-4.1 — a Wake with nothing to decide resolves itself', () => {
     it('opens the next turn straight into its Act Phase, through a System ResolveWake', () => {
         const game = testGame(['p1', 'p2'])
         let state = wake(buildState(), game, 'p1')
-        state = engine.runNext(buildAction(EndActPhase, { playerId: 'p1' }), state, game).updatedState
+        state = engine.runNext(
+            buildAction(EndActPhase, { playerId: 'p1' }),
+            state,
+            game
+        ).updatedState
 
         const result = engine.run(
             action(buildAction(CompleteRest, { playerId: 'p1', index: state.actionCount })),
@@ -951,13 +1105,23 @@ describe('R-6.4-H1 — the Reliquary is the Scepter holder’s to know, with no 
     const RELIC_A = 'relic.unnamed-1'
     const RELIC_B = 'relic.unnamed-2'
 
-    function scepterTable(reliquary: { slotId: string }[], peekedRelics: Record<string, string> = {}) {
+    function scepterTable(
+        reliquary: { slotId: string }[],
+        peekedRelics: Record<string, string> = {}
+    ) {
         const vault = testVaultWithRelics({})
         vault.relicFacedown['reliquary.0'] = RELIC_A
         vault.relicFacedown['reliquary.1'] = RELIC_B
-        return buildState({ reliquary, vault }, {
-            p1: { relicIds: ['relic.grand-scepter'], peekedRelicSlotIds: Object.keys(peekedRelics), peekedRelics }
-        })
+        return buildState(
+            { reliquary, vault },
+            {
+                p1: {
+                    relicIds: ['relic.grand-scepter'],
+                    peekedRelicSlotIds: Object.keys(peekedRelics),
+                    peekedRelics
+                }
+            }
+        )
     }
 
     it('after any action the holder knows every covered space, and learning it is an Undo barrier', () => {
@@ -970,7 +1134,10 @@ describe('R-6.4-H1 — the Reliquary is the Scepter holder’s to know, with no 
         )
         expect(result.processedActions.map((a) => a.type)).toEqual([ActionType.ResolveWake])
         expect(result.processedActions[0].revealsInfo).toBe(true)
-        expect(result.updatedState.players[0].peekedRelics).toEqual({ 'reliquary.0': RELIC_A, 'reliquary.1': RELIC_B })
+        expect(result.updatedState.players[0].peekedRelics).toEqual({
+            'reliquary.0': RELIC_A,
+            'reliquary.1': RELIC_B
+        })
         expect(result.updatedState.machineState).toBe(MachineState.ActPhase)
     })
 
@@ -985,7 +1152,13 @@ describe('R-6.4-H1 — the Reliquary is the Scepter holder’s to know, with no 
         expect(HydratedPeek.legalTargets(s, 'p1').map((t) => t.slotId)).not.toContain('reliquary.0')
         expect(() =>
             engine.run(
-                action(buildAction(Peek, { playerId: 'p1', target: { kind: PeekTargetKind.SiteRelic, slotId: 'reliquary.1' }, index: 1 })),
+                action(
+                    buildAction(Peek, {
+                        playerId: 'p1',
+                        target: { kind: PeekTargetKind.SiteRelic, slotId: 'reliquary.1' },
+                        index: 1
+                    })
+                ),
                 woke.updatedState,
                 game
             )
@@ -994,7 +1167,10 @@ describe('R-6.4-H1 — the Reliquary is the Scepter holder’s to know, with no 
 
     it('a holder who already knows every space learns nothing, so the action is no barrier for it', () => {
         const game = testGame(['p1', 'p2'])
-        const state = scepterTable([{ slotId: 'reliquary.0' }, { slotId: 'reliquary.1' }], { 'reliquary.0': RELIC_A, 'reliquary.1': RELIC_B })
+        const state = scepterTable([{ slotId: 'reliquary.0' }, { slotId: 'reliquary.1' }], {
+            'reliquary.0': RELIC_A,
+            'reliquary.1': RELIC_B
+        })
         const result = engine.run(
             action(buildAction(ResolveWake, { playerId: 'p1', favorSteps: [], index: 0 })),
             state,

@@ -23,10 +23,11 @@
         type Company,
         type Owner,
         type PurchaseRequest,
-        type ValuationRules
+        type ValuationRules,
+        isObsoleteTrain
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import PlayerName from './PlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
@@ -59,7 +60,6 @@
         exchangePoolId,
         valuationRules,
         trainColors,
-        companyNames = {},
         numberedShareNames = {},
         includedCompanyIds = [],
         includedPortfolioCompanyIds = [],
@@ -75,7 +75,6 @@
         exchangePoolId?: string
         trainColors: Readonly<Record<string, string>>
         valuationRules: ValuationRules
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         numberedShareNames?: NumberedShareNames
         includedCompanyIds?: readonly string[]
         portfolioCompanyIds?: readonly string[]
@@ -188,9 +187,7 @@
         exchange: 'Exch.'
     }
     const portfolioColumnLabels = $derived(
-        new Map(
-            portfolioCompanyIds.map((id) => [`company:${id}`, companyNames[id]?.initials ?? id])
-        )
+        new Map(portfolioCompanyIds.map((id) => [`company:${id}`, session.companyInitials(id)]))
     )
     // A pool's shorts, such as the market's, count against its shares.
     function poolShares(poolId: string, companyId: string): number {
@@ -639,13 +636,16 @@
     {cashText(money, cash)}
 {/snippet}
 
-{#snippet lastRunCell(company: Company, run: ReturnType<typeof companyLastRun>)}
+{#snippet lastRunCell(row: CompanyRow)}
+    {@const company = row.company}
     {#if company.lastRunRevenue === undefined}<span class="empty">—</span>
-    {:else if run}
+    {:else if row.lastRun}
+        {@const { run, withheld } = row.lastRun}
         <button
             class="last-run"
+            class:withheld
             disabled={session.busy || session.updatingVisibleState}
-            aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}`}
+            aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}${withheld ? ', withheld' : ''}`}
             onclick={() => onPreviewMap(run)}>{money(company.lastRunRevenue)}</button
         >
     {:else}<span class="last-run-revenue">{money(company.lastRunRevenue)}</span>{/if}
@@ -657,6 +657,7 @@
             <TrainBadge
                 name={session.trainShortLabel(train.definitionId)}
                 color={trainColors[train.definitionId]}
+                obsolete={isObsoleteTrain(train)}
             />
         {:else}<span class="empty">—</span>{/each}
     </span>
@@ -741,9 +742,7 @@
         {#if session.mapView.stations[company.id]}
             <CompanyToken appearance={session.mapView.stations[company.id]} size={22} />
         {/if}
-        <span title={session.companyName(company.id)}
-            >{companyNames[company.id]?.initials ?? company.id}</span
-        >
+        <span title={session.companyName(company.id)}>{session.companyInitials(company.id)}</span>
     </span>
 {/snippet}
 
@@ -797,7 +796,7 @@
                 }))}
                 appearances={session.mapView.stations}
                 view={period === 'Player income' ? 'Player' : 'Company'}
-                {companyNames}
+                companyInitials={(companyId) => session.companyInitials(companyId)}
                 companyName={(companyId) => session.companyName(companyId)}
                 {onPreviewMap}
             />
@@ -943,7 +942,7 @@
                                             ).length}/{row.stations.length}</td
                                         >
                                         <td class="company-stat-start"
-                                            >{@render lastRunCell(row.company, row.lastRun)}</td
+                                            >{@render lastRunCell(row)}</td
                                         >
                                         {#each titleColumns as column (column.id)}<td
                                                 class="company-stat-start bright-cell"
@@ -1109,8 +1108,7 @@
                                     {@render companySortHeader('row', 'Last run', 'lastRun')}
                                     {#each rows as row (row.company.id)}<td
                                             class:operating-column={row.company.id ===
-                                                operatingCompanyId}
-                                            >{@render lastRunCell(row.company, row.lastRun)}</td
+                                                operatingCompanyId}>{@render lastRunCell(row)}</td
                                         >{/each}
                                     {#each ownerStatisticKeys as _, index (index)}<td
                                             class:stat-start={index === 0}
@@ -1196,12 +1194,9 @@
                                     data-purchase-buyer={ownerIdFor(choice.request.buyer)}
                                     onclick={() => confirmBuy(choice.request.buyer)}
                                 >
-                                    As {choice.request.buyer.kind === 'company'
-                                        ? (companyNames[choice.request.buyer.companyId]?.short ??
-                                          session.ownerName(choice.request.buyer))
-                                        : session.ownerName(
-                                              choice.request.buyer
-                                          )}{#if contribution > 0}{' + '}{money(contribution)}{/if}
+                                    As {session.ownerName(
+                                        choice.request.buyer
+                                    )}{#if contribution > 0}{' + '}{money(contribution)}{/if}
                                 </button>
                             {/if}
                         {/each}
@@ -1523,6 +1518,9 @@
     }
     .last-run:disabled {
         cursor: default;
+    }
+    .withheld {
+        color: var(--rail-negative, #b33a32);
     }
 
     thead th,

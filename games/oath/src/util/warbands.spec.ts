@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { adjustCount, totalWarbands } from './warbands.js'
-import { expectWarbandsConserved, warbandCensus, warbandConservationBreaches } from '../testing/census.js'
+import {
+    expectWarbandsConserved,
+    warbandCensus,
+    warbandConservationBreaches
+} from '../testing/census.js'
 import {
     addWarbandsToCard,
     killWarbands,
@@ -100,7 +104,7 @@ describe('conservation (R-1.8, R-1.9, R-10.13)', () => {
         ).toThrow(/imperial: 24 -> 22/)
     })
 
-    it('catches a swap that mints one owner\'s warbands and loses another\'s', () => {
+    it("catches a swap that mints one owner's warbands and loses another's", () => {
         // R-6.6.2 — a Citizen conversion replaces an Exile's warbands with Imperial ones.
         const state = fullTable()
         expect(() =>
@@ -158,9 +162,9 @@ describe('conservation (R-1.8, R-1.9, R-10.13)', () => {
 
         expect(() =>
             expectWarbandsConserved(state, () => {
-                new HydratedMuster(
-                    buildAction(Muster, { playerId: 'p1', cardId: 'card-a' })
-                ).apply(state)
+                new HydratedMuster(buildAction(Muster, { playerId: 'p1', cardId: 'card-a' })).apply(
+                    state
+                )
             })
         ).not.toThrow()
 

@@ -6,14 +6,8 @@
         COMPANY_DEED_VIEWBOX_RY,
         COMPANY_DEED_VIEWBOX_WIDTH
     } from '$lib/definitions/companyDeedGeometry.js'
-    import {
-        companyCardKindFor,
-        companyDeedStyleForType
-    } from '$lib/components/CompanyDeed.svelte'
-    import {
-        shippingSizeTotalsFromDeeds,
-        type ShippingSizeEntry
-    } from '$lib/utils/deeds.js'
+    import { companyCardKindFor, companyDeedStyleForType } from '$lib/components/CompanyDeed.svelte'
+    import { shippingSizeTotalsFromDeeds, type ShippingSizeEntry } from '$lib/utils/deeds.js'
     import { CompanyType, Good, type AnyDeed } from '@tabletop/indonesia'
 
     type CompanyCardCompany = {
@@ -61,7 +55,9 @@
             return cardCompany.good
         }
 
-        const productionDeed = cardCompany.deeds.find((deed) => deed.type === CompanyType.Production)
+        const productionDeed = cardCompany.deeds.find(
+            (deed) => deed.type === CompanyType.Production
+        )
         return productionDeed?.good ?? null
     }
 
@@ -92,9 +88,7 @@
     })
 
     const statLines: readonly StatLine[] = $derived.by(() => {
-        const lines: StatLine[] = [
-            { key: 'deeds', label: 'DEEDS', value: `${deedCount}` }
-        ]
+        const lines: StatLine[] = [{ key: 'deeds', label: 'DEEDS', value: `${deedCount}` }]
 
         if (company.type === CompanyType.Production) {
             lines.push({

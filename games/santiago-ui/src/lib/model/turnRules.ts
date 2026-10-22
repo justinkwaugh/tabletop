@@ -26,15 +26,24 @@ export function projectedOverseerId(state: HydratedSantiagoGameState): string | 
     if (state.machineState !== MachineState.Bidding) return state.canalOverseerId
     const zeroBidders = state.players
         .filter((p) => p.bid === 0)
-        .sort((a, b) => state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId))
+        .sort(
+            (a, b) =>
+                state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId)
+        )
     return zeroBidders[0]?.playerId
 }
 
-export function isSpringPlacementTurn(state: HydratedSantiagoGameState, playerId: string | undefined): boolean {
+export function isSpringPlacementTurn(
+    state: HydratedSantiagoGameState,
+    playerId: string | undefined
+): boolean {
     return state.machineState === MachineState.SpringPlacement && playerId === state.seatOrder[0]
 }
 
-export function isPlantTurn(state: HydratedSantiagoGameState, playerId: string | undefined): boolean {
+export function isPlantTurn(
+    state: HydratedSantiagoGameState,
+    playerId: string | undefined
+): boolean {
     return (
         state.machineState === MachineState.PlantingPhase &&
         state.plantersOrder[state.planterIndex] === playerId
@@ -50,12 +59,19 @@ export function isNeutralPlacementStage(state: HydratedSantiagoGameState): boole
     )
 }
 
-export function isNeutralPlacementTurn(state: HydratedSantiagoGameState, playerId: string | undefined): boolean {
+export function isNeutralPlacementTurn(
+    state: HydratedSantiagoGameState,
+    playerId: string | undefined
+): boolean {
     return isNeutralPlacementStage(state) && playerId === state.plantersOrder[0]
 }
 
 export function canRevealTiles(state: HydratedSantiagoGameState, viewer: Viewer): boolean {
-    return viewer.isMyTurn && !!viewer.playerId && HydratedRevealTiles.canRevealTiles(state, viewer.playerId)
+    return (
+        viewer.isMyTurn &&
+        !!viewer.playerId &&
+        HydratedRevealTiles.canRevealTiles(state, viewer.playerId)
+    )
 }
 
 export function isOverseerDecisionPhase(state: HydratedSantiagoGameState): boolean {
@@ -96,9 +112,14 @@ export function rejectPenalty(state: HydratedSantiagoGameState): number {
 // Canal spots drawn on the board. Through the whole canal-building (bribe) phase everyone sees
 // them, since bribe labels are pinned to the spots they bid on; extra irrigation stays private to
 // the player holding the personal canal.
-export function visibleCanalSegments(state: HydratedSantiagoGameState, viewer: Viewer): CanalSegment[] {
+export function visibleCanalSegments(
+    state: HydratedSantiagoGameState,
+    viewer: Viewer
+): CanalSegment[] {
     if (state.machineState === MachineState.CanalBuilding) return validCanalPlacements(state.board)
     if (state.machineState !== MachineState.ExtraIrrigation || !viewer.isMyTurn) return []
-    const hasPersonalCanal = state.players.find((p) => p.playerId === viewer.playerId)?.hasPersonalCanal
+    const hasPersonalCanal = state.players.find(
+        (p) => p.playerId === viewer.playerId
+    )?.hasPersonalCanal
     return hasPersonalCanal ? validCanalPlacements(state.board) : []
 }

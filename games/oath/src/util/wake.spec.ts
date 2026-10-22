@@ -99,9 +99,12 @@ describe('R-4.1.1.I — place or return one favor', () => {
             reasonCannotTakePeoplesFavorStep(broke, HOLDER, { kind: 'return', toSuit: Suit.Nomad })
         ).toMatch(/never drops below/)
 
-        const twoUp = table({ banners: testBanners({ [Banner.PeoplesFavor]: HOLDER }, 2) }, {
-            favor: 0
-        })
+        const twoUp = table(
+            { banners: testBanners({ [Banner.PeoplesFavor]: HOLDER }, 2) },
+            {
+                favor: 0
+            }
+        )
         expect(availablePeoplesFavorOptions(twoUp, HOLDER)).toEqual(['return'])
     })
 

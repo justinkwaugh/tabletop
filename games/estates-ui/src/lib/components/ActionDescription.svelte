@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { type GameAction, range } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'

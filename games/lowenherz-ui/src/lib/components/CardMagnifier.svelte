@@ -43,10 +43,19 @@
         const maxHeight = window.innerHeight - 2 * VIEWPORT_MARGIN
         const width = Math.min(rect.width * GROWTH, maxWidth, maxHeight * CARD_ASPECT)
         const height = width / CARD_ASPECT
-        const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
+        const clamp = (value: number, min: number, max: number) =>
+            Math.min(Math.max(value, min), max)
         return {
-            centerX: clamp(rect.left + rect.width / 2, VIEWPORT_MARGIN + width / 2, window.innerWidth - VIEWPORT_MARGIN - width / 2),
-            centerY: clamp(rect.top + rect.height / 2, VIEWPORT_MARGIN + height / 2, window.innerHeight - VIEWPORT_MARGIN - height / 2),
+            centerX: clamp(
+                rect.left + rect.width / 2,
+                VIEWPORT_MARGIN + width / 2,
+                window.innerWidth - VIEWPORT_MARGIN - width / 2
+            ),
+            centerY: clamp(
+                rect.top + rect.height / 2,
+                VIEWPORT_MARGIN + height / 2,
+                window.innerHeight - VIEWPORT_MARGIN - height / 2
+            ),
             width
         }
     }

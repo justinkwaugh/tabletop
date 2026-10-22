@@ -2,6 +2,8 @@
 
 ## Visual intents
 
+- **Edition board.** The board follows the edition's layout (`boardLayout`): Germany's flat-topped map inside a portrait Revenue Track (20 steps across, 30 down), the Midwest's pointy-topped map inside a landscape one (30 across, 20 down). The legend, game-end panel and logo sit in the map's empty corners and never cover a hex. The Midwest map draws thinner hex edges than Germany's, its countryside in four beige shades so no two neighbouring states share one, its lakes as seamless bodies of water with their names, red state borders with state names, and the four demand areas as brown discs wider than a hex beyond the map edge, the map's hexes overlapping each disc, each showing the two industries it wants. The logo's rail foot credits the designer. Its game-end panel prints the State Subsidies table, its legend marks site prices with an asterisk for the $2 added per disc already there, and each charter shows the states its track reaches beside the subsidy per share.
+
 - **Choose an action.** On the acting player's Choosing Action turn, the action spaces they can afford and take are highlighted in the strip above the board and clickable. Each space carries a gold corner bubble with what choosing it costs now and, when coins wait on it, a dark corner bubble with their number. A space holding coins also offers "Consolidate" ("Take" on phones). On phones the action panel lists every space's rules, since the tiles show only short names.
 - **Round ending.** The Round Timer's coin turns red while the choosing player can take a space whose cost equals the coins left, the choice that ends the round.
 - **Choose a company.** In Lay Track and Issue Share, the companies the player may pick are highlighted with a dashed gold border on their charters and offered in the action panel as share certificates, so the choice works when the charters are out of view. Charters sit in the Investors tab below 1280px wide and in a right-hand pane from 1280px. A lone option is chosen automatically and nothing is highlighted.
@@ -23,10 +25,11 @@ The session owns the staged track selection (companies, pieces, a pending Off th
 
 ## Render ownership
 
-The map layer draws hexes and names beneath the track layer (discs and cubes; stacks on sites fan left and right and sit above the site's value), which sits beneath the target rings, which sit beneath the Off the Rails card. Nothing above the revenue track takes clicks except rings and the card. The board uses no SVG or CSS filters and no endless animations.
+The map layer draws, bottom to top: demand-area discs, the hex outline, lakes and their names, land hexes with industry rings and marks, state borders, demand areas, site names and values, then state names. It sits beneath the track layer (discs and cubes; stacks on sites fan left and right and sit above the site's value), which sits beneath the target rings, which sit beneath the Off the Rails card. Nothing above the revenue track takes clicks except rings and the card. The board uses no SVG or CSS filters and no endless animations.
 
 ## Verification scenarios
 
 - In Lay Track III with two held companies, click a charter then a ringed hex: a ghost disc appears and Undo removes it. A second Undo clears the company; a third undoes the action.
 - With a $5 treasury, stage discs on $2 hexes: after two, no rings remain.
 - In Industry Investment as the investor, "Bid $0" is absent; as another player it places a sealed zero.
+- In the Midwest, with B&O track beside the Indiana steel site but no demand for steel, the site is not ringed; staging a disc beside Washington D.C. rings it, and Undo removes the disc and the ring.

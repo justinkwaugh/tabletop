@@ -193,7 +193,10 @@ it('prints a bonus badge beneath the revenue and each port clear of it inside th
     expect(ports).toHaveLength(2)
     for (const port of ports) {
         assert(port.kind === 'symbol')
-        expect(Math.hypot(port.x, port.y) + port.radius).toBeLessThan(43.3)
+        for (const normal of [0, 60, 120].map((angle) => (angle * Math.PI) / 180))
+            expect(
+                Math.abs(port.x * Math.cos(normal) + port.y * Math.sin(normal)) + port.radius
+            ).toBeLessThan(43.3)
         for (const cell of cells)
             expect(
                 Math.abs(port.x - cell.x) > port.radius + cell.width / 2 ||
@@ -203,6 +206,63 @@ it('prints a bonus badge beneath the revenue and each port clear of it inside th
     expect(Math.hypot(ports[0].x - ports[1].x, ports[0].y - ports[1].y)).toBeGreaterThanOrEqual(
         2 * 8.7
     )
+})
+
+it('places tokens over the symbol they cover, in the corner farthest from revenue, or centred', () => {
+    const tokenHex = (id: string, q: number, markers: readonly string[]) => ({
+        id,
+        coordinates: { q, r: 0 },
+        buildable: true,
+        preprintedTile: createCityTileFace('white', [1, 4], 30, 1),
+        markers: markers.map((marker) => ({ id: marker, label: marker, description: marker }))
+    })
+    const map = new RailwayMap({
+        id: 'tokens',
+        name: 'Tokens',
+        orientation: HexOrientation.Pointy,
+        locations: [
+            tokenHex('coast', 0, ['port', 'port-token']),
+            tokenHex('inland', 1, ['cotton', 'port-token']),
+            tokenHex('miami', 2, ['key-west'])
+        ]
+    })
+    const [coast, inland, miami] = createMapDrawing(map, undefined, {
+        markerArt: {
+            port: { revenueSymbol: 'port' },
+            'port-token': { token: { imageUrl: 'port.svg', place: { covers: 'port' } } },
+            cotton: { token: { imageUrl: 'cotton.svg', place: 'corner' } },
+            'key-west': { token: { imageUrl: 'key-west.svg', place: 'centre' } }
+        }
+    }).locations
+    const [symbol, portToken] = coast.revenueAnnotations
+    assert(symbol.kind === 'symbol' && portToken.kind === 'token')
+    expect([portToken.x, portToken.y]).toEqual([symbol.x, symbol.y])
+    expect(portToken.radius).toBeGreaterThan(symbol.radius)
+
+    const corners = Array.from({ length: 6 }, (_, index) => ({
+        x: 50 * Math.cos(((index * 60 - 90) * Math.PI) / 180),
+        y: 50 * Math.sin(((index * 60 - 90) * Math.PI) / 180)
+    }))
+    const revenue = inland.drawing.nodes[0].revenuePosition
+    const farthest = corners.reduce((best, corner) =>
+        Math.hypot(corner.x - revenue.x, corner.y - revenue.y) >
+        Math.hypot(best.x - revenue.x, best.y - revenue.y)
+            ? corner
+            : best
+    )
+    const [cotton, uncoveredPort] = inland.revenueAnnotations
+    assert(cotton.kind === 'token' && uncoveredPort.kind === 'token')
+    expect(Math.hypot(cotton.x - farthest.x, cotton.y - farthest.y)).toBeLessThanOrEqual(20)
+    expect(Math.hypot(cotton.x - revenue.x, cotton.y - revenue.y)).toBeGreaterThan(
+        cotton.radius + 8.7
+    )
+    expect(Math.hypot(uncoveredPort.x - cotton.x, uncoveredPort.y - cotton.y)).toBeGreaterThan(
+        2 * cotton.radius
+    )
+
+    const [keyWest] = miami.revenueAnnotations
+    assert(keyWest.kind === 'token')
+    expect([keyWest.x, keyWest.y]).toEqual([0, 0])
 })
 
 it('shows a border cost until track meets across the border from both sides', () => {

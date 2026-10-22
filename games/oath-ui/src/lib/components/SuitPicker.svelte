@@ -10,7 +10,8 @@
     // the picked ones ringed; 44 px on a phone. `open`: a bank the pick cannot take now keeps its
     // place, faded and untappable. `framed`: each bank a framed button, its favor beside the
     // symbol (several banks picked in one row, Salad Days'). `counts`: each bank's favor as the
-    // state the pick is judged on holds it, when that is not the table's (the Wake's later steps).
+    // state the pick is judged on holds it, when that is not the table's (the Wake's later steps, a
+    // When Played power's after the play's own gains).
     let {
         suits,
         picked,

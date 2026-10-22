@@ -67,8 +67,12 @@ export function trainsOwnedBy(state: TrainState, owner: Owner): Train[] {
     )
 }
 
+export function isObsoleteTrain(train: Train): boolean {
+    return train.status === 'owned' && train.rustsAfterOperation === true
+}
+
 export function trainCanBeTraded(train: Train): boolean {
-    return train.status === 'owned' && !train.rustsAfterOperation
+    return train.status === 'owned' && !isObsoleteTrain(train)
 }
 
 /** Where trains go when they leave a company: the bank's market, or out of play. */

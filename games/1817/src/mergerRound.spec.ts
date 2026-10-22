@@ -9,6 +9,7 @@ import {
     retireCertificates,
     sharesOwned,
     trainsOwnedBy,
+    treasuryPoolId,
     type EighteenXXState,
     type Train
 } from '@tabletop/18xx'
@@ -20,7 +21,6 @@ import {
     treasuryShareIds,
     stationsForConversion,
     stationsOverLimit,
-    treasuryPoolId,
     trimStations
 } from './index.js'
 import { mergerRoundCompanyId, convertedShareSales } from './mergerRound.js'

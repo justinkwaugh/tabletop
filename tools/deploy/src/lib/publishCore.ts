@@ -111,6 +111,8 @@ export const invalidateBackendManifest = (context: PublishContext) =>
 
 const describeReplacement = (replacement: BackendReplacement | undefined) => {
     switch (replacement) {
+        case 'activated':
+            return 'the backend activated the selected title logic'
         case 'none':
             return 'no backend replacement was needed'
         case 'superseded':
@@ -247,8 +249,8 @@ const servesArtifacts = (serving: ServingLookup, artifacts: PublishedArtifact[])
 
 export type ServingSettle = { timeoutMs: number; intervalMs: number }
 
-// The backend swaps in new game logic by replacing its server process, which can take
-// minutes on a throttled instance, so the served logic version lags the manifest.
+// The backend activates new logic inside its worker on the next request each instance sees;
+// instances that have not yet taken a request report the previous logic until they do.
 const DEFAULT_SERVING_SETTLE: ServingSettle = { timeoutMs: 5 * 60_000, intervalMs: 5_000 }
 
 export const pollUntil = async <Value>(
@@ -290,7 +292,7 @@ const awaitServing = async (
         throw new Error(
             `Deploy finished but the backend still serves ${describeServing(serving)}; ` +
                 'check /tmp/manifest-deploy.log, /tmp/manifest-invalidate.log and the backend ' +
-                'logs for a failed process replacement'
+                'logs for a failed title activation or process replacement'
         )
     }
     return serving

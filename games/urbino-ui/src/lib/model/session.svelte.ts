@@ -22,7 +22,7 @@ import {
     UrbinoPreferenceDefinition,
     type UrbinoPreferences,
     type HydratedUrbinoGameState,
-    type UrbinoGameState,
+    type UrbinoGameState
 } from '@tabletop/urbino'
 
 export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbinoGameState> {
@@ -35,9 +35,7 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
 
     buildingStyle: BuildingStyle = $derived(this.preferences.values.buildingStyle)
 
-    isPlacingArchitects = $derived(
-        this.gameState.machineState === MachineState.PlacingArchitects
-    )
+    isPlacingArchitects = $derived(this.gameState.machineState === MachineState.PlacingArchitects)
 
     isChoosingFirstPlayer = $derived(
         this.gameState.machineState === MachineState.ChoosingFirstPlayer
@@ -74,9 +72,7 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
             isRepositionArchitect(this.undoableAction)
     )
 
-    canUndoPlacement = $derived(
-        !!this.undoableAction && isPlaceBuilding(this.undoableAction)
-    )
+    canUndoPlacement = $derived(!!this.undoableAction && isPlaceBuilding(this.undoableAction))
 
     canUndoArchitectPlacement = $derived(
         !!this.undoableAction && isPlaceArchitect(this.undoableAction)
@@ -93,9 +89,7 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
     )
 
     canPass = $derived(
-        this.isTakingTurn &&
-            this.validActionTypes.includes(ActionType.Pass) &&
-            !!this.myPlayer?.id
+        this.isTakingTurn && this.validActionTypes.includes(ActionType.Pass) && !!this.myPlayer?.id
     )
 
     canConcede = $derived(
@@ -117,11 +111,17 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
                 this.gameState.monumentsVariant
             )
         }
-        return getValidPlacements(this.gameState.board, this.gameState.architects, this.myPlayer.id, {
-            houses: player.houses,
-            palaces: player.palaces,
-            towers: player.towers,
-        }, this.gameState.monumentsVariant)
+        return getValidPlacements(
+            this.gameState.board,
+            this.gameState.architects,
+            this.myPlayer.id,
+            {
+                houses: player.houses,
+                palaces: player.palaces,
+                towers: player.towers
+            },
+            this.gameState.monumentsVariant
+        )
     })
 
     placeableBuildingTypes: Set<BuildingType> = $derived.by(() => {
@@ -154,16 +154,26 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
         const result = new Set<number>()
         outer: for (let idx = 0; idx < this.gameState.architects.length; idx++) {
             for (let i = 0; i < BOARD_SQUARES; i++) {
-                if (!isValidRepositionTarget(this.gameState.board, this.gameState.architects, idx, i)) continue
+                if (
+                    !isValidRepositionTarget(
+                        this.gameState.board,
+                        this.gameState.architects,
+                        idx,
+                        i
+                    )
+                )
+                    continue
                 const newArchitects = [...this.gameState.architects]
                 newArchitects[idx] = i
-                if (hasAnyValidPlacement(
-                    this.gameState.board,
-                    newArchitects,
-                    this.myPlayer!.id,
-                    { houses: player.houses, palaces: player.palaces, towers: player.towers },
-                    this.gameState.monumentsVariant
-                )) {
+                if (
+                    hasAnyValidPlacement(
+                        this.gameState.board,
+                        newArchitects,
+                        this.myPlayer!.id,
+                        { houses: player.houses, palaces: player.palaces, towers: player.towers },
+                        this.gameState.monumentsVariant
+                    )
+                ) {
                     result.add(idx)
                     continue outer
                 }
@@ -178,16 +188,26 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
         if (!player) return []
         const valid: number[] = []
         for (let i = 0; i < BOARD_SQUARES; i++) {
-            if (!isValidRepositionTarget(this.gameState.board, this.gameState.architects, this.selectedArchitectIndex, i)) continue
+            if (
+                !isValidRepositionTarget(
+                    this.gameState.board,
+                    this.gameState.architects,
+                    this.selectedArchitectIndex,
+                    i
+                )
+            )
+                continue
             const newArchitects = [...this.gameState.architects]
             newArchitects[this.selectedArchitectIndex] = i
-            if (hasAnyValidPlacement(
-                this.gameState.board,
-                newArchitects,
-                this.myPlayer!.id,
-                { houses: player.houses, palaces: player.palaces, towers: player.towers },
-                this.gameState.monumentsVariant
-            )) {
+            if (
+                hasAnyValidPlacement(
+                    this.gameState.board,
+                    newArchitects,
+                    this.myPlayer!.id,
+                    { houses: player.houses, palaces: player.palaces, towers: player.towers },
+                    this.gameState.monumentsVariant
+                )
+            ) {
                 valid.push(i)
             }
         }
@@ -198,7 +218,8 @@ export class UrbinoGameSession extends GameSession<UrbinoGameState, HydratedUrbi
         position: number
     ): { position: number; architects: number[]; placements: Set<number> } | undefined {
         const architectIndex = this.selectedArchitectIndex
-        if (architectIndex === undefined || !this.validRepositionSquares.includes(position)) return undefined
+        if (architectIndex === undefined || !this.validRepositionSquares.includes(position))
+            return undefined
         const playerId = this.myPlayer?.id
         const player = this.gameState.players.find((p) => p.playerId === playerId)
         if (!playerId || !player) return undefined

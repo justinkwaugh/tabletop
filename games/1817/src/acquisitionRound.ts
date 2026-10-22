@@ -26,7 +26,10 @@ import {
     canTakeLoan,
     isTakeLoan,
     type OperatingState,
-    SystemActionFirstHandler
+    SystemActionFirstHandler,
+    RoundEnd,
+    roundEnd,
+    type ValuationRules
 } from '@tabletop/18xx'
 import {
     acquisitionRoundCompanyIds,
@@ -227,7 +230,10 @@ export function startsAcquisitionRounds(
     )
 }
 
-const EndFields = Type.Object({ type: Type.Literal('EndAcquisitionRound') })
+const EndFields = Type.Object({
+    type: Type.Literal('EndAcquisitionRound'),
+    metadata: Type.Optional(Type.Object({ roundEnd: RoundEnd }, { additionalProperties: false }))
+})
 export const EndAcquisitionRound: Type.TObject<
     Omit<typeof GameAction.properties, 'type'> & typeof EndFields.properties
 > = Type.Object(
@@ -247,8 +253,11 @@ export class HydratedEndAcquisitionRound
     implements EndAcquisitionRound
 {
     declare type: 'EndAcquisitionRound'
-    constructor(data: EndAcquisitionRound) {
+    declare metadata?: EndAcquisitionRound['metadata']
+    readonly #valuationRules: ValuationRules
+    constructor(data: EndAcquisitionRound, valuationRules: ValuationRules) {
         super(data instanceof HydratedEndAcquisitionRound ? data.dehydrate() : data, EndValidator)
+        this.#valuationRules = valuationRules
     }
     isValidFor(state: EighteenSeventeenState): boolean {
         const round = requireRound(state)
@@ -263,6 +272,7 @@ export class HydratedEndAcquisitionRound
         assert(this.isValidFor(state), 'The acquisition round ends once its companies are done')
         requireRound(state).completed = true
         state.activePlayerIds = []
+        this.metadata = { roundEnd: roundEnd(state, this.#valuationRules, 'title') }
     }
 }
 

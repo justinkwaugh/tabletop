@@ -40,7 +40,10 @@ function sample(schema: Type.TSchema, sampling: Sampling, key: string, secret: b
         return sample(schemaOf(anyOf[sampling.variant % anyOf.length]), sampling, key, isSecret)
     const allOf = propertyOf(schema, 'allOf')
     if (Array.isArray(allOf))
-        return Object.assign({}, ...allOf.map((part) => sample(schemaOf(part), sampling, key, isSecret)))
+        return Object.assign(
+            {},
+            ...allOf.map((part) => sample(schemaOf(part), sampling, key, isSecret))
+        )
     switch (propertyOf(schema, 'type')) {
         case 'object': {
             const properties = propertyOf(schema, 'properties')
@@ -54,7 +57,14 @@ function sample(schema: Type.TSchema, sampling: Sampling, key: string, secret: b
                 )
             if (typeof patterns === 'object' && patterns !== null) {
                 const [child] = Object.values(patterns)
-                return { [isSecret ? `k${sampling.secrets}` : 'key']: sample(schemaOf(child), sampling, key, isSecret) }
+                return {
+                    [isSecret ? `k${sampling.secrets}` : 'key']: sample(
+                        schemaOf(child),
+                        sampling,
+                        key,
+                        isSecret
+                    )
+                }
             }
             return {}
         }
@@ -87,14 +97,22 @@ function variantCount(schema: unknown, seen = new Set<unknown>()): number {
         .filter(Array.isArray)
         .map((list) => list.length)
     const children = Object.values(schema).flatMap((child) =>
-        Array.isArray(child) ? child.map((item) => variantCount(item, seen)) : [variantCount(child, seen)]
+        Array.isArray(child)
+            ? child.map((item) => variantCount(item, seen))
+            : [variantCount(child, seen)]
     )
     return Math.max(1, ...own, ...children)
 }
 
 function recordOf(schema: Type.TSchema, type: string, sampling: Sampling) {
     const createdAt = new Date(0)
-    return { ...Object(sample(schema, sampling, '', false)), type, playerId: ACTOR, createdAt, updatedAt: createdAt }
+    return {
+        ...Object(sample(schema, sampling, '', false)),
+        type,
+        playerId: ACTOR,
+        createdAt,
+        updatedAt: createdAt
+    }
 }
 
 describe('every registered action type projects without naming a secret to another seat', () => {
@@ -105,7 +123,9 @@ describe('every registered action type projects without naming a secret to anoth
                 const sampling: Sampling = { variant, secrets: 0 }
                 const record = recordOf(schema, type, sampling)
                 if (!validator.Check(record)) continue
-                expect(() => OathVisibility.actions.project(record, { kind: 'player', playerId: ACTOR })).not.toThrow()
+                expect(() =>
+                    OathVisibility.actions.project(record, { kind: 'player', playerId: ACTOR })
+                ).not.toThrow()
                 for (const perspective of perspectives) {
                     const json = JSON.stringify(OathVisibility.actions.project(record, perspective))
                     expect(json).not.toContain('secret.card-')
@@ -118,15 +138,17 @@ describe('every registered action type projects without naming a secret to anoth
         const schema = OathApiActions.useActionPower
         const record = recordOf(schema, 'useActionPower', { variant: 0, secrets: 0 })
         expect(Compile(schema).Check(record)).toBe(true)
-        const own = JSON.stringify(OathVisibility.actions.project(record, { kind: 'player', playerId: ACTOR }))
+        const own = JSON.stringify(
+            OathVisibility.actions.project(record, { kind: 'player', playerId: ACTOR })
+        )
         expect(own).toContain('secret.card-')
     })
 
     it('samples a valid record of every type', () => {
         const unsampled = Object.entries(OathApiActions).filter(([type, schema]) => {
             const validator = Compile(schema)
-            return !Array.from({ length: variantCount(schema) }, (_, variant) => variant).some((variant) =>
-                validator.Check(recordOf(schema, type, { variant, secrets: 0 }))
+            return !Array.from({ length: variantCount(schema) }, (_, variant) => variant).some(
+                (variant) => validator.Check(recordOf(schema, type, { variant, secrets: 0 }))
             )
         })
         expect(unsampled.map(([type]) => type)).toEqual([])

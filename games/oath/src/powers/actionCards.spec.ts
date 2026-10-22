@@ -14,7 +14,15 @@ import '../powers/index.js'
 import { effectiveSiteCapacity } from '../util/capacity.js'
 import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { answerQuestion } from '../testing/steps.js'
-import { actionPowerUse, bank, boardWarbands, card, player, site, siteWarbands } from '../testing/choices.js'
+import {
+    actionPowerUse,
+    bank,
+    boardWarbands,
+    card,
+    player,
+    site,
+    siteWarbands
+} from '../testing/choices.js'
 import { OathVisibility } from '../definition/runtime.js'
 import { served, spectator } from '../testing/projection.js'
 import { HydratedOathGameState } from '../model/gameState.js'
@@ -27,7 +35,12 @@ const FORGOTTEN_VAULT = 'denizen.arcane.forgotten-vault'
 /** Powerless beast denizens, enough to fill every map slot beside Memory of Nature. */
 const TEST_BEASTS = Array.from({ length: 23 }, (_, i) => `denizen.test.beast-${i + 1}`)
 registerCards(
-    TEST_BEASTS.map((id, i) => ({ id, name: `Test beast ${i + 1}`, kind: CardKind.Denizen, suit: Suit.Beast }))
+    TEST_BEASTS.map((id, i) => ({
+        id,
+        name: `Test beast ${i + 1}`,
+        kind: CardKind.Denizen,
+        suit: Suit.Beast
+    }))
 )
 
 /** An Action power with a cost and no effect, so the doorway's last refusal is reached. */
@@ -67,7 +80,14 @@ function boardNoTurn(cards: string[], over: Record<string, Record<string, unknow
                 warbandsInPersonalBank: { other: 5 },
                 ...over['other']
             }),
-            testPlayer({ playerId: 'away', color: Color.Yellow, siteId: 'h1', favor: 1, secrets: 3, ...over['away'] })
+            testPlayer({
+                playerId: 'away',
+                color: Color.Yellow,
+                siteId: 'h1',
+                favor: 1,
+                secrets: 3,
+                ...over['away']
+            })
         ],
         {
             denizensBySite: { c1: cards, c2: [], h1: [] },
@@ -118,9 +138,9 @@ describe('Hearth', () => {
 
     it('Charming Friend — a player elsewhere is not among the options', () => {
         const s = board(['denizen.hearth.charming-friend'])
-        expect(() => actionPowerUse('ruler', 'denizen.hearth.charming-friend', [player('away')]).apply(s)).toThrow(
-            /away is not among the options for a player at your site/
-        )
+        expect(() =>
+            actionPowerUse('ruler', 'denizen.hearth.charming-friend', [player('away')]).apply(s)
+        ).toThrow(/away is not among the options for a player at your site/)
     })
 })
 
@@ -142,24 +162,40 @@ describe('Arcane', () => {
 
     it('Alchemist — four favor from any banks, a bank repeatable; fewer only when the banks run dry', () => {
         const s = board(['denizen.arcane.alchemist'])
-        actionPowerUse('ruler', 'denizen.arcane.alchemist', [bank(Suit.Beast), bank(Suit.Beast), bank(Suit.Nomad), bank(Suit.Order)]).apply(s)
+        actionPowerUse('ruler', 'denizen.arcane.alchemist', [
+            bank(Suit.Beast),
+            bank(Suit.Beast),
+            bank(Suit.Nomad),
+            bank(Suit.Order)
+        ]).apply(s)
         expect(s.favorBank[Suit.Beast]).toBe(1)
         expect(s.getPlayerState('ruler').favor).toBe(7)
         expect(s.getPlayerState('ruler').secrets).toBe(0)
 
         // R-7.1.3 — "gain four" is not "gain up to four" while the banks still hold favor.
         const two = board(['denizen.arcane.alchemist'])
-        expect(() => actionPowerUse('ruler', 'denizen.arcane.alchemist', [bank(Suit.Beast), bank(Suit.Nomad)]).apply(two)).toThrow(
-            /yield 2, and 4 can be had/
-        )
         expect(() =>
-            actionPowerUse('ruler', 'denizen.arcane.alchemist', [bank(Suit.Beast), bank(Suit.Beast), bank(Suit.Beast), bank(Suit.Beast)]).apply(two)
+            actionPowerUse('ruler', 'denizen.arcane.alchemist', [
+                bank(Suit.Beast),
+                bank(Suit.Nomad)
+            ]).apply(two)
+        ).toThrow(/yield 2, and 4 can be had/)
+        expect(() =>
+            actionPowerUse('ruler', 'denizen.arcane.alchemist', [
+                bank(Suit.Beast),
+                bank(Suit.Beast),
+                bank(Suit.Beast),
+                bank(Suit.Beast)
+            ]).apply(two)
         ).toThrow(/yield 3, and 4 can be had/)
         const dry = board(['denizen.arcane.alchemist'])
         for (const suit of Object.values(Suit)) dry.favorBank[suit] = 0
         dry.favorBank[Suit.Beast] = 1
         dry.favorBank[Suit.Nomad] = 1
-        const a = actionPowerUse('ruler', 'denizen.arcane.alchemist', [bank(Suit.Beast), bank(Suit.Nomad)])
+        const a = actionPowerUse('ruler', 'denizen.arcane.alchemist', [
+            bank(Suit.Beast),
+            bank(Suit.Nomad)
+        ])
         a.apply(dry)
         expect(a.metadata?.summary).toMatch(/gained 2 favor/)
     })
@@ -170,7 +206,9 @@ describe('Arcane', () => {
         a.apply(s)
         expect(s.getPlayerState('ruler').secrets).toBe(3)
         expect(a.metadata?.endsActPhase).toBe(true)
-        expect(new ActPhaseStateHandler().onAction(a, machineContext(s))).toBe(MachineState.RestPhase)
+        expect(new ActPhaseStateHandler().onAction(a, machineContext(s))).toBe(
+            MachineState.RestPhase
+        )
     })
 
     it('Forgotten Vault — in a game created before revision 8: places by default, burns on a yes, a burn at the last secret burns nothing', () => {
@@ -180,12 +218,16 @@ describe('Arcane', () => {
 
         const burn = board(['denizen.arcane.forgotten-vault'])
         burn.banners[Banner.DarkestSecret].value = 3
-        actionPowerUse('ruler', 'denizen.arcane.forgotten-vault', [{ kind: PowerChoiceKind.Yes }]).apply(burn)
+        actionPowerUse('ruler', 'denizen.arcane.forgotten-vault', [
+            { kind: PowerChoiceKind.Yes }
+        ]).apply(burn)
         expect(burn.banners[Banner.DarkestSecret].value).toBe(2)
 
         const floor = board(['denizen.arcane.forgotten-vault'])
         floor.oathRevision = OathRevision.EngineFixes3
-        const a = actionPowerUse('ruler', 'denizen.arcane.forgotten-vault', [{ kind: PowerChoiceKind.Yes }])
+        const a = actionPowerUse('ruler', 'denizen.arcane.forgotten-vault', [
+            { kind: PowerChoiceKind.Yes }
+        ])
         a.apply(floor)
         expect(floor.banners[Banner.DarkestSecret].value).toBe(1)
         expect(a.metadata?.summary).toMatch(/burned 0/)
@@ -200,9 +242,9 @@ describe('Arcane', () => {
         }
         const burnAt = atRevision(1)
         const before = burnAt.dehydrate()
-        expect(() => actionPowerUse('ruler', FORGOTTEN_VAULT, [{ kind: PowerChoiceKind.Yes }]).apply(burnAt)).toThrow(
-            /only its last secret, which cannot be burned/
-        )
+        expect(() =>
+            actionPowerUse('ruler', FORGOTTEN_VAULT, [{ kind: PowerChoiceKind.Yes }]).apply(burnAt)
+        ).toThrow(/only its last secret, which cannot be burned/)
         expect(burnAt.dehydrate()).toEqual(before)
 
         const burn = atRevision(2)
@@ -246,11 +288,16 @@ describe('a power that acts on one seat records it, for the History to name', ()
         const empty = actionPowerUse('ruler', 'denizen.beast.wolves', [player('away')])
         empty.apply(board(['denizen.beast.wolves'], { away: { warbandsOnBoard: {} } }))
         expect(empty.metadata?.targetPlayerId).toBe('away')
-        expect(OathVisibility.actions.project(empty.dehydrate(), spectator)).toHaveProperty('metadata.targetPlayerId', 'away')
+        expect(OathVisibility.actions.project(empty.dehydrate(), spectator)).toHaveProperty(
+            'metadata.targetPlayerId',
+            'away'
+        )
     })
 
     it('Sleight of Hand and Charming Friend record the player they took from', () => {
-        const sleight = actionPowerUse('ruler', 'denizen.discord.sleight-of-hand', [player('other')])
+        const sleight = actionPowerUse('ruler', 'denizen.discord.sleight-of-hand', [
+            player('other')
+        ])
         sleight.apply(board(['denizen.discord.sleight-of-hand']))
         expect(sleight.metadata?.targetPlayerId).toBe('other')
 
@@ -280,8 +327,12 @@ describe('Discord', () => {
         expect(a.metadata?.summary).toMatch(/took 0 secret/)
 
         // A facedown secret is still theirs, so the faceup one is not their last.
-        const facedown = board(['denizen.discord.sleight-of-hand'], { other: { secrets: 1, secretsFacedown: 1 } })
-        actionPowerUse('ruler', 'denizen.discord.sleight-of-hand', [player('other')]).apply(facedown)
+        const facedown = board(['denizen.discord.sleight-of-hand'], {
+            other: { secrets: 1, secretsFacedown: 1 }
+        })
+        actionPowerUse('ruler', 'denizen.discord.sleight-of-hand', [player('other')]).apply(
+            facedown
+        )
         expect(facedown.getPlayerState('other').secrets).toBe(0)
         expect(facedown.getPlayerState('other').secretsFacedown).toBe(1)
     })
@@ -304,7 +355,9 @@ describe('Discord', () => {
 
     it('Gambling Hall — Jinx may reroll the four dice, and the favor waits on the answer', () => {
         const jinxed = () => {
-            const s = board(['denizen.discord.gambling-hall'], { ruler: { favor: 4, advisers: [{ cardId: JINX, faceUp: true }] } })
+            const s = board(['denizen.discord.gambling-hall'], {
+                ruler: { favor: 4, advisers: [{ cardId: JINX, faceUp: true }] }
+            })
             s.favorBank[Suit.Beast] = 10
             actionPowerUse('ruler', 'denizen.discord.gambling-hall', [bank(Suit.Beast)]).apply(s)
             return s
@@ -312,13 +365,24 @@ describe('Discord', () => {
         const kept = jinxed()
         expect(kept.favorBank[Suit.Beast]).toBe(10)
         const question = kept.pendingQuestions?.queue[0]
-        expect(question).toMatchObject({ kind: PowerQuestionKind.RerollDice, askedPlayerId: 'ruler', roll: { kind: RerolledRollKind.GamblingHall, bank: Suit.Beast } })
-        assert(question?.kind === PowerQuestionKind.RerollDice && question.roll.kind === RerolledRollKind.GamblingHall, 'a Gambling Hall reroll')
+        expect(question).toMatchObject({
+            kind: PowerQuestionKind.RerollDice,
+            askedPlayerId: 'ruler',
+            roll: { kind: RerolledRollKind.GamblingHall, bank: Suit.Beast }
+        })
+        assert(
+            question?.kind === PowerQuestionKind.RerollDice &&
+                question.roll.kind === RerolledRollKind.GamblingHall,
+            'a Gambling Hall reroll'
+        )
         answerQuestion(kept, 'ruler', { kind: PowerQuestionKind.RerollDice, reroll: false })
         expect(kept.favorBank[Suit.Beast]).toBe(10 - question.roll.shields)
 
         const rerolled = jinxed()
-        const answer = answerQuestion(rerolled, 'ruler', { kind: PowerQuestionKind.RerollDice, reroll: true })
+        const answer = answerQuestion(rerolled, 'ruler', {
+            kind: PowerQuestionKind.RerollDice,
+            reroll: true
+        })
         expect(rerolled.tokensOn(JINX).secrets).toBe(1)
         expect(answer.revealsInfo).toBe(true)
         const m = /took (\d+) favor/.exec(answer.metadata?.summary ?? '')
@@ -337,14 +401,23 @@ describe('Discord', () => {
         s.getPlayerState('away').setAdvisers([{ cardId: 'denizen.order.wrestlers', faceUp: true }])
 
         expect(() =>
-            actionPowerUse('ruler', 'denizen.discord.assassin', [player('other'), card('denizen.hearth.ballot-box')]).apply(s)
+            actionPowerUse('ruler', 'denizen.discord.assassin', [
+                player('other'),
+                card('denizen.hearth.ballot-box')
+            ]).apply(s)
         ).toThrow(/not among the options/)
         expect(() =>
-            actionPowerUse('ruler', 'denizen.discord.assassin', [player('other'), card('denizen.order.wrestlers')]).apply(s)
+            actionPowerUse('ruler', 'denizen.discord.assassin', [
+                player('other'),
+                card('denizen.order.wrestlers')
+            ]).apply(s)
         ).toThrow(/denizen.order.wrestlers is not a faceup adviser of other/)
         expect(s.tokensOn('denizen.discord.assassin').favor).toBe(0)
 
-        actionPowerUse('ruler', 'denizen.discord.assassin', [player('other'), card('denizen.beast.rangers')]).apply(s)
+        actionPowerUse('ruler', 'denizen.discord.assassin', [
+            player('other'),
+            card('denizen.beast.rangers')
+        ]).apply(s)
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual(['denizen.hearth.ballot-box'])
         // R-10.5 — to the pile one region along from the actor (Cradle → Provinces).
         expect(s.discardPileCounts.provinces).toBe(1)
@@ -352,9 +425,14 @@ describe('Discord', () => {
 
     it('Assassin — a locked adviser cannot be discarded (R-7.2.2)', () => {
         const s = board(['denizen.discord.assassin'])
-        s.getPlayerState('other').setAdvisers([{ cardId: 'denizen.nomad.faithful-friend', faceUp: true }])
+        s.getPlayerState('other').setAdvisers([
+            { cardId: 'denizen.nomad.faithful-friend', faceUp: true }
+        ])
         expect(() =>
-            actionPowerUse('ruler', 'denizen.discord.assassin', [player('other'), card('denizen.nomad.faithful-friend')]).apply(s)
+            actionPowerUse('ruler', 'denizen.discord.assassin', [
+                player('other'),
+                card('denizen.nomad.faithful-friend')
+            ]).apply(s)
         ).toThrow(/not among the options/)
     })
 })
@@ -370,30 +448,57 @@ describe('Nomad', () => {
     it('Resettle — moves a faceup Nomad adviser of any player to a site with room', () => {
         const s = board(['denizen.nomad.resettle'])
         s.getPlayerState('away').setAdvisers([{ cardId: 'denizen.nomad.tents', faceUp: true }])
-        actionPowerUse('ruler', 'denizen.nomad.resettle', [card('denizen.nomad.tents'), site('c2')]).apply(s)
+        actionPowerUse('ruler', 'denizen.nomad.resettle', [
+            card('denizen.nomad.tents'),
+            site('c2')
+        ]).apply(s)
         expect(s.getPlayerState('away').advisers).toEqual([])
         expect(s.denizensBySite['c2']).toContain('denizen.nomad.tents')
     })
 
     it('Resettle — never an adviser-only or locked card (R-7.2.1, R-7.2.2); a full Great Slum takes it after a discard there', () => {
         const refused = board(['denizen.nomad.resettle'])
-        refused.getPlayerState('away').setAdvisers([{ cardId: 'denizen.nomad.ancient-bloodline', faceUp: true }, { cardId: 'denizen.nomad.faithful-friend', faceUp: true }])
+        refused.getPlayerState('away').setAdvisers([
+            { cardId: 'denizen.nomad.ancient-bloodline', faceUp: true },
+            { cardId: 'denizen.nomad.faithful-friend', faceUp: true }
+        ])
         for (const cardId of ['denizen.nomad.ancient-bloodline', 'denizen.nomad.faithful-friend']) {
-            expect(() => actionPowerUse('ruler', 'denizen.nomad.resettle', [card(cardId), site('c2')]).apply(refused)).toThrow(/not among the options/)
+            expect(() =>
+                actionPowerUse('ruler', 'denizen.nomad.resettle', [card(cardId), site('c2')]).apply(
+                    refused
+                )
+            ).toThrow(/not among the options/)
         }
         const slum = board(['denizen.nomad.resettle'])
         slum.siteCards = { ...slum.siteCards, c2: 'site.great-slums' }
-        const residents = ['denizen.order.scouts', 'denizen.beast.wolves', 'denizen.hearth.wayside-inn', 'denizen.discord.naysayers', 'denizen.arcane.tutor']
+        const residents = [
+            'denizen.order.scouts',
+            'denizen.beast.wolves',
+            'denizen.hearth.wayside-inn',
+            'denizen.discord.naysayers',
+            'denizen.arcane.tutor'
+        ]
         slum.denizensBySite['c2'] = residents.slice(0, effectiveSiteCapacity(slum, 'c2'))
         slum.getPlayerState('away').setAdvisers([{ cardId: 'denizen.nomad.tents', faceUp: true }])
-        expect(() => actionPowerUse('ruler', 'denizen.nomad.resettle', [card('denizen.nomad.tents'), site('c2')]).apply(slum)).toThrow(/no room/)
-        actionPowerUse('ruler', 'denizen.nomad.resettle', [card('denizen.nomad.tents'), site('c2'), card('denizen.order.scouts')]).apply(slum)
+        expect(() =>
+            actionPowerUse('ruler', 'denizen.nomad.resettle', [
+                card('denizen.nomad.tents'),
+                site('c2')
+            ]).apply(slum)
+        ).toThrow(/no room/)
+        actionPowerUse('ruler', 'denizen.nomad.resettle', [
+            card('denizen.nomad.tents'),
+            site('c2'),
+            card('denizen.order.scouts')
+        ]).apply(slum)
         expect(slum.denizensBySite['c2']).toContain('denizen.nomad.tents')
         expect(slum.denizensBySite['c2']).not.toContain('denizen.order.scouts')
     })
 
     it('Ancient Binding — every player burns down to one secret; a facedown secret counts as the one kept', () => {
-        const s = board(['denizen.nomad.ancient-binding'], { away: { secrets: 0, secretsFacedown: 1 } })
+        const s = board(['denizen.nomad.ancient-binding'], {
+            away: { secrets: 0, secretsFacedown: 1 }
+        })
         actionPowerUse('ruler', 'denizen.nomad.ancient-binding').apply(s)
         expect(s.getPlayerState('ruler').secrets).toBe(0)
         expect(s.tokensOn('denizen.nomad.ancient-binding').secrets).toBe(1)
@@ -410,31 +515,46 @@ describe('Nomad', () => {
 })
 
 describe('a power records whose warbands its summary counts', () => {
-    it('Wolves on a Citizen\'s board of Imperial warbands records the Empire\'s', () => {
+    it("Wolves on a Citizen's board of Imperial warbands records the Empire's", () => {
         const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('other')])
-        a.apply(board(['denizen.beast.wolves'], {
-            ruler: { status: PlayerStatus.Chancellor, warbandsOnBoard: {}, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } },
-            other: { status: PlayerStatus.Citizen, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } }
-        }))
+        a.apply(
+            board(['denizen.beast.wolves'], {
+                ruler: {
+                    status: PlayerStatus.Chancellor,
+                    warbandsOnBoard: {},
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }
+                },
+                other: { status: PlayerStatus.Citizen, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } }
+            })
+        )
         expect(a.metadata?.warbandOwner).toBe(IMPERIAL_WARBANDS)
-        expect(OathVisibility.actions.project(a.dehydrate(), spectator)).toHaveProperty('metadata.warbandOwner', IMPERIAL_WARBANDS)
+        expect(OathVisibility.actions.project(a.dehydrate(), spectator)).toHaveProperty(
+            'metadata.warbandOwner',
+            IMPERIAL_WARBANDS
+        )
     })
 
-    it('Wolves on an Exile\'s board records theirs', () => {
+    it("Wolves on an Exile's board records theirs", () => {
         const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('other')])
         a.apply(board(['denizen.beast.wolves']))
         expect(a.metadata?.warbandOwner).toBe('other')
     })
 
-    it('Wolves on the Chancellor\'s board records the Empire\'s', () => {
+    it("Wolves on the Chancellor's board records the Empire's", () => {
         const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('ruler')])
-        a.apply(board(['denizen.beast.wolves'], {
-            ruler: { status: PlayerStatus.Chancellor, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } }
-        }))
+        a.apply(
+            board(['denizen.beast.wolves'], {
+                ruler: {
+                    status: PlayerStatus.Chancellor,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }
+                }
+            })
+        )
         expect(a.metadata?.warbandOwner).toBe(IMPERIAL_WARBANDS)
     })
 
-    it('records no owner when the warbands killed were two owners\' or none died', () => {
+    it("records no owner when the warbands killed were two owners' or none died", () => {
         const s = board(['denizen.order.siege-engines'])
         s.warbandsBySite['c2'] = { other: 1, ruler: 1 }
         const mixed = actionPowerUse('ruler', 'denizen.order.siege-engines', [site('c2')])
@@ -449,7 +569,7 @@ describe('a power records whose warbands its summary counts', () => {
 })
 
 describe('Order', () => {
-    it('Siege Engines — kills two warbands at a site in your region, largest owner\'s group first', () => {
+    it("Siege Engines — kills two warbands at a site in your region, largest owner's group first", () => {
         const s = board(['denizen.order.siege-engines'])
         actionPowerUse('ruler', 'denizen.order.siege-engines', [site('c2')]).apply(s)
         expect(s.warbandsBySite['c2']).toEqual({ other: 1, ruler: 1 })
@@ -458,9 +578,9 @@ describe('Order', () => {
 
     it('Siege Engines — a site outside your region is not among the options', () => {
         const s = board(['denizen.order.siege-engines'])
-        expect(() => actionPowerUse('ruler', 'denizen.order.siege-engines', [site('h1')]).apply(s)).toThrow(
-            /h1 is not among the options for a site in your region/
-        )
+        expect(() =>
+            actionPowerUse('ruler', 'denizen.order.siege-engines', [site('h1')]).apply(s)
+        ).toThrow(/h1 is not among the options for a site in your region/)
     })
 })
 
@@ -497,7 +617,9 @@ describe('The doorway with the room furnished', () => {
         const s = board(['denizen.hearth.wayside-inn'])
         const a = actionPowerUse('ruler', 'denizen.hearth.wayside-inn')
         a.apply(s)
-        expect(new ActPhaseStateHandler().onAction(a, machineContext(s))).toBe(MachineState.ActPhase)
+        expect(new ActPhaseStateHandler().onAction(a, machineContext(s))).toBe(
+            MachineState.ActPhase
+        )
     })
 })
 
@@ -507,7 +629,11 @@ describe('Slice 2 — the two deferred Action powers', () => {
         s.denizensBySite['c2'] = ['denizen.beast.rangers']
         s.denizensBySite['h1'] = ['denizen.beast.wolves']
         // X = 3, Memory of Nature itself included.
-        actionPowerUse('ruler', 'denizen.beast.memory-of-nature', [bank(Suit.Nomad), bank(Suit.Order), bank(Suit.Hearth)]).apply(s)
+        actionPowerUse('ruler', 'denizen.beast.memory-of-nature', [
+            bank(Suit.Nomad),
+            bank(Suit.Order),
+            bank(Suit.Hearth)
+        ]).apply(s)
         expect(s.favorBank[Suit.Beast]).toBe(6)
         expect(s.favorBank[Suit.Nomad]).toBe(2)
         expect(s.getPlayerState('ruler').secrets).toBe(1)
@@ -515,15 +641,23 @@ describe('Slice 2 — the two deferred Action powers', () => {
         const four = board(['denizen.beast.memory-of-nature'])
         four.denizensBySite['c2'] = ['denizen.beast.rangers']
         expect(() =>
-            actionPowerUse('ruler', 'denizen.beast.memory-of-nature', [bank(Suit.Nomad), bank(Suit.Order), bank(Suit.Hearth)]).apply(four)
+            actionPowerUse('ruler', 'denizen.beast.memory-of-nature', [
+                bank(Suit.Nomad),
+                bank(Suit.Order),
+                bank(Suit.Hearth)
+            ]).apply(four)
         ).toThrow(/only 2 beast cards are on the map/)
-        expect(() => actionPowerUse('ruler', 'denizen.beast.memory-of-nature', [bank(Suit.Beast)]).apply(four)).toThrow(
-            /cannot be a source for itself/
-        )
+        expect(() =>
+            actionPowerUse('ruler', 'denizen.beast.memory-of-nature', [bank(Suit.Beast)]).apply(
+                four
+            )
+        ).toThrow(/cannot be a source for itself/)
         // "A total of X": X = 2 here, so naming one bank falls one short.
-        expect(() => actionPowerUse('ruler', 'denizen.beast.memory-of-nature', [bank(Suit.Nomad)]).apply(four)).toThrow(
-            /yield 1, and 2 can be moved/
-        )
+        expect(() =>
+            actionPowerUse('ruler', 'denizen.beast.memory-of-nature', [bank(Suit.Nomad)]).apply(
+                four
+            )
+        ).toThrow(/yield 1, and 2 can be moved/)
     })
 
     it('Memory of Nature — X of 9: nine favor named, one per pick, all moved; eight fall short', () => {
@@ -533,7 +667,11 @@ describe('Slice 2 — the two deferred Action powers', () => {
             s.denizensBySite['h1'] = TEST_BEASTS.slice(5, 8)
             return s
         }
-        const picks = [Suit.Nomad, Suit.Order, Suit.Hearth].flatMap((suit) => [bank(suit), bank(suit), bank(suit)])
+        const picks = [Suit.Nomad, Suit.Order, Suit.Hearth].flatMap((suit) => [
+            bank(suit),
+            bank(suit),
+            bank(suit)
+        ])
 
         const s = nine()
         actionPowerUse('ruler', MEMORY_OF_NATURE, picks).apply(s)
@@ -543,23 +681,28 @@ describe('Slice 2 — the two deferred Action powers', () => {
         expect(s.favorBank[Suit.Hearth]).toBe(0)
 
         // R-7.1.3 — nine can be moved, so naming eight falls one short.
-        expect(() => actionPowerUse('ruler', MEMORY_OF_NATURE, picks.slice(0, 8)).apply(nine())).toThrow(
-            /yield 8, and 9 can be moved/
-        )
+        expect(() =>
+            actionPowerUse('ruler', MEMORY_OF_NATURE, picks.slice(0, 8)).apply(nine())
+        ).toThrow(/yield 8, and 9 can be moved/)
     })
 
     it('Memory of Nature — every map slot holding the most cards a site prints: X favor named and moved', () => {
         // R-2.1.1, R-2.8.1 — eight slots, none holding more than the largest printed capacity, 3.
         const s = board([MEMORY_OF_NATURE, TEST_BEASTS[0], TEST_BEASTS[1]])
         const slots = ['c2', 'p1', 'p2', 'p3', 'h1', 'h2', 'h3']
-        slots.forEach((slot, i) => (s.denizensBySite[slot] = TEST_BEASTS.slice(2 + 3 * i, 5 + 3 * i)))
+        slots.forEach(
+            (slot, i) => (s.denizensBySite[slot] = TEST_BEASTS.slice(2 + 3 * i, 5 + 3 * i))
+        )
         const others = [Suit.Nomad, Suit.Order, Suit.Hearth, Suit.Arcane, Suit.Discord]
         for (const suit of others) s.favorBank[suit] = 5
 
-        const power = cardPowers(MEMORY_OF_NATURE)[powerIndexOf(MEMORY_OF_NATURE, PowerTiming.Action)]
+        const power =
+            cardPowers(MEMORY_OF_NATURE)[powerIndexOf(MEMORY_OF_NATURE, PowerTiming.Action)]
         expect(legalChoices(s, 'ruler', power)).toHaveLength(24)
 
-        const picks = others.flatMap((suit) => Array.from({ length: 5 }, () => bank(suit))).slice(0, 24)
+        const picks = others
+            .flatMap((suit) => Array.from({ length: 5 }, () => bank(suit)))
+            .slice(0, 24)
         actionPowerUse('ruler', MEMORY_OF_NATURE, picks).apply(s)
         expect(s.favorBank[Suit.Beast]).toBe(27)
         expect(others.reduce((n, suit) => n + s.favorBank[suit], 0)).toBe(1)
@@ -568,26 +711,39 @@ describe('Slice 2 — the two deferred Action powers', () => {
     it('Messenger — moves warbands board ⇄ ruled sites, never the last one from a site', () => {
         const s = board(['denizen.order.messenger'])
         s.warbandsBySite['c2'] = { other: 3, ruler: 2 }
-        const move = (at: { kind: 'board'; playerId: string } | { kind: 'site'; siteId: string }, count: number): PowerChoice => ({
+        const move = (
+            at: { kind: 'board'; playerId: string } | { kind: 'site'; siteId: string },
+            count: number
+        ): PowerChoice => ({
             kind: PowerChoiceKind.Warbands,
             group: { at, owner: 'ruler', count }
         })
-        actionPowerUse('ruler', 'denizen.order.messenger', [move({ kind: 'board', playerId: 'ruler' }, 1), site('c2')]).apply(s)
+        actionPowerUse('ruler', 'denizen.order.messenger', [
+            move({ kind: 'board', playerId: 'ruler' }, 1),
+            site('c2')
+        ]).apply(s)
         expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(1)
         expect(s.warbandsBySite['c2']['ruler']).toBe(3)
 
         const back = board(['denizen.order.messenger'])
         back.warbandsBySite['c2'] = { other: 3, ruler: 3 }
         expect(() =>
-            actionPowerUse('ruler', 'denizen.order.messenger', [move({ kind: 'site', siteId: 'c2' }, 3)]).apply(back)
+            actionPowerUse('ruler', 'denizen.order.messenger', [
+                move({ kind: 'site', siteId: 'c2' }, 3)
+            ]).apply(back)
         ).toThrow(/only 2 are there/)
-        actionPowerUse('ruler', 'denizen.order.messenger', [move({ kind: 'site', siteId: 'c2' }, 2)]).apply(back)
+        actionPowerUse('ruler', 'denizen.order.messenger', [
+            move({ kind: 'site', siteId: 'c2' }, 2)
+        ]).apply(back)
         expect(back.warbandsBySite['c2']['ruler']).toBe(1)
         expect(back.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
 
         const elsewhere = board(['denizen.order.messenger'])
         expect(() =>
-            actionPowerUse('ruler', 'denizen.order.messenger', [move({ kind: 'board', playerId: 'ruler' }, 1), site('h1')]).apply(elsewhere)
+            actionPowerUse('ruler', 'denizen.order.messenger', [
+                move({ kind: 'board', playerId: 'ruler' }, 1),
+                site('h1')
+            ]).apply(elsewhere)
         ).toThrow(/not among the options/)
     })
 })
@@ -611,43 +767,51 @@ describe('Messenger — each move is read on the state the earlier moves leave',
     it('Messenger chains a move: site A to the board, then the board to site B, with the board empty before', () => {
         const s = board([MESSENGER], { ruler: { warbandsOnBoard: {} } })
         s.warbandsBySite['c2'] = { other: 3, ruler: 3 }
-        expect(use(s, [fromSite('c2', 2), fromBoard(2), site('c1')])).toBe('moved 2 c2 → board; 2 board → c1')
+        expect(use(s, [fromSite('c2', 2), fromBoard(2), site('c1')])).toBe(
+            'moved 2 c2 → board; 2 board → c1'
+        )
         expect(where(s)).toEqual({ board: 0, c1: 3, c2: 1 })
     })
 
     it('Messenger takes from the board warbands an earlier move brought there', () => {
         const s = board([MESSENGER], { ruler: { warbandsOnBoard: { ruler: 1 } } })
         s.warbandsBySite['c2'] = { other: 3, ruler: 3 }
-        expect(use(s, [fromSite('c2', 2), fromBoard(3), site('c1')])).toBe('moved 2 c2 → board; 3 board → c1')
+        expect(use(s, [fromSite('c2', 2), fromBoard(3), site('c1')])).toBe(
+            'moved 2 c2 → board; 3 board → c1'
+        )
         expect(where(s)).toEqual({ board: 0, c1: 4, c2: 1 })
     })
 
     it('Messenger lifts from a site warbands an earlier move placed there', () => {
         const s = board([MESSENGER])
         expect(where(s)).toEqual({ board: 2, c1: 1, c2: 1 })
-        expect(use(s, [fromBoard(2), site('c2'), fromSite('c2', 2)])).toBe('moved 2 board → c2; 2 c2 → board')
+        expect(use(s, [fromBoard(2), site('c2'), fromSite('c2', 2)])).toBe(
+            'moved 2 board → c2; 2 c2 → board'
+        )
         expect(where(s)).toEqual({ board: 2, c1: 1, c2: 1 })
     })
 
     it('Messenger keeps the last warband at every step', () => {
         const s = board([MESSENGER])
-        expect(() => use(s, [fromBoard(2), site('c2'), fromSite('c2', 2), fromSite('c2', 1)])).toThrow(
-            /1 of ruler's warbands is not among the options for more warbands to move/
-        )
+        expect(() =>
+            use(s, [fromBoard(2), site('c2'), fromSite('c2', 2), fromSite('c2', 1)])
+        ).toThrow(/1 of ruler's warbands is not among the options for more warbands to move/)
         expect(() => use(s, [fromBoard(2), site('c2'), fromSite('c2', 3)])).toThrow(
             /3 of ruler's warbands chosen for more warbands to move, but only 2 are there/
         )
         expect(where(s)).toEqual({ board: 2, c1: 1, c2: 1 })
     })
 
-    it('Messenger refuses another player\'s board and an owner the player does not rule with', () => {
+    it("Messenger refuses another player's board and an owner the player does not rule with", () => {
         const s = board([MESSENGER])
         const before = s.dehydrate()
         const theirBoard = boardWarbands('other', 'other', 1)
         const theirWarbands = siteWarbands('c2', 'other', 1)
         const empireOnMyBoard = boardWarbands('ruler', IMPERIAL_WARBANDS, 1)
         for (const foreign of [theirBoard, theirWarbands, empireOnMyBoard]) {
-            expect(() => use(s, [foreign, site('c1')])).toThrow(/is not among the options for warbands to move/)
+            expect(() => use(s, [foreign, site('c1')])).toThrow(
+                /is not among the options for warbands to move/
+            )
             expect(() => use(s, [fromBoard(1), site('c2'), foreign, site('c1')])).toThrow(
                 /is not among the options for more warbands to move/
             )
@@ -655,17 +819,21 @@ describe('Messenger — each move is read on the state the earlier moves leave',
         expect(s.dehydrate()).toEqual(before)
     })
 
-    it('Messenger offers the next move\'s sources on the state the earlier moves leave', () => {
+    it("Messenger offers the next move's sources on the state the earlier moves leave", () => {
         const s = board([MESSENGER], { ruler: { warbandsOnBoard: {} } })
         s.warbandsBySite['c2'] = { other: 3, ruler: 3 }
         const before = s.dehydrate()
         const power = cardPowers(MESSENGER)[powerIndexOf(MESSENGER, PowerTiming.Action)]
-        const sources = (earlier?: PowerChoice[]) => legalChoices(s, 'ruler', power, earlier)[2].options
+        const sources = (earlier?: PowerChoice[]) =>
+            legalChoices(s, 'ruler', power, earlier)[2].options
 
         expect(sources()).toEqual([fromSite('c2', 2)])
         expect(legalChoices(s, 'ruler', power, [])).toEqual(legalChoices(s, 'ruler', power))
         expect(sources([fromSite('c2', 2)])).toEqual([fromBoard(2)])
-        expect(sources([fromSite('c2', 1), site('c1')])).toEqual([fromSite('c1', 1), fromSite('c2', 1)])
+        expect(sources([fromSite('c2', 1), site('c1')])).toEqual([
+            fromSite('c1', 1),
+            fromSite('c2', 1)
+        ])
         expect(s.dehydrate()).toEqual(before)
     })
 
@@ -676,26 +844,76 @@ describe('Messenger — each move is read on the state the earlier moves leave',
         s.warbandsBySite['c2'] = { other: 3, ruler: 3 }
         const own = new HydratedOathGameState(served(s, { kind: 'player', playerId: 'ruler' }))
         const power = cardPowers(MESSENGER)[powerIndexOf(MESSENGER, PowerTiming.Action)]
-        const chains: PowerChoice[][] = [[fromSite('c2', 2)], [fromSite('c2', 1), site('c1')], [fromSite('c2', 2), fromBoard(2), site('c1')], [fromSite('c2', 2), fromBoard(3), site('c1')]]
+        const chains: PowerChoice[][] = [
+            [fromSite('c2', 2)],
+            [fromSite('c2', 1), site('c1')],
+            [fromSite('c2', 2), fromBoard(2), site('c1')],
+            [fromSite('c2', 2), fromBoard(3), site('c1')]
+        ]
         for (const earlier of chains) {
-            expect(legalChoices(own, 'ruler', power, earlier)).toEqual(legalChoices(s, 'ruler', power, earlier))
-            const reason = (state: HydratedOathGameState) => HydratedUseActionPower.reasonCannotUse(state, 'ruler', MESSENGER, power.powerIndex, earlier)
+            expect(legalChoices(own, 'ruler', power, earlier)).toEqual(
+                legalChoices(s, 'ruler', power, earlier)
+            )
+            const reason = (state: HydratedOathGameState) =>
+                HydratedUseActionPower.reasonCannotUse(
+                    state,
+                    'ruler',
+                    MESSENGER,
+                    power.powerIndex,
+                    earlier
+                )
             expect(reason(own), JSON.stringify(earlier)).toEqual(reason(s))
         }
-        expect(HydratedUseActionPower.reasonCannotUse(own, 'ruler', MESSENGER, power.powerIndex, chains[3])).toMatch(/not among the options|only 2/)
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                own,
+                'ruler',
+                MESSENGER,
+                power.powerIndex,
+                chains[3]
+            )
+        ).toMatch(/not among the options|only 2/)
     })
 
     it('Messenger replays every four-pair list the old check accepted unchanged', () => {
-        const accepted: { choices: PowerChoice[]; summary: string; after: ReturnType<typeof where> }[] = [
-            { choices: [fromBoard(2), site('c2')], summary: 'moved 2 board → c2', after: { board: 0, c1: 3, c2: 5 } },
-            { choices: [fromSite('c1', 2)], summary: 'moved 2 c1 → board', after: { board: 4, c1: 1, c2: 3 } },
-            { choices: [fromSite('c1', 2), site('c2')], summary: 'moved 2 c1 → c2', after: { board: 2, c1: 1, c2: 5 } },
+        const accepted: {
+            choices: PowerChoice[]
+            summary: string
+            after: ReturnType<typeof where>
+        }[] = [
             {
-                choices: [fromBoard(1), site('c1'), fromSite('c2', 2), site('c1'), fromSite('c1', 1), fromBoard(1), site('c2')],
+                choices: [fromBoard(2), site('c2')],
+                summary: 'moved 2 board → c2',
+                after: { board: 0, c1: 3, c2: 5 }
+            },
+            {
+                choices: [fromSite('c1', 2)],
+                summary: 'moved 2 c1 → board',
+                after: { board: 4, c1: 1, c2: 3 }
+            },
+            {
+                choices: [fromSite('c1', 2), site('c2')],
+                summary: 'moved 2 c1 → c2',
+                after: { board: 2, c1: 1, c2: 5 }
+            },
+            {
+                choices: [
+                    fromBoard(1),
+                    site('c1'),
+                    fromSite('c2', 2),
+                    site('c1'),
+                    fromSite('c1', 1),
+                    fromBoard(1),
+                    site('c2')
+                ],
                 summary: 'moved 1 board → c1; 2 c2 → c1; 1 c1 → board; 1 board → c2',
                 after: { board: 1, c1: 5, c2: 2 }
             },
-            { choices: [fromBoard(1), site('c1'), site('c2')], summary: 'moved 1 board → c1', after: { board: 1, c1: 4, c2: 3 } }
+            {
+                choices: [fromBoard(1), site('c1'), site('c2')],
+                summary: 'moved 1 board → c1',
+                after: { board: 1, c1: 4, c2: 3 }
+            }
         ]
         for (const { choices, summary, after } of accepted) {
             const s = board([MESSENGER])

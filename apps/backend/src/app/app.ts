@@ -1,14 +1,13 @@
+import { installTitleScope } from '../runtime/titleScope.js'
+import { installManifestRefresh } from '../runtime/manifestRefresh.js'
 import RequestTimingsPlugin from './plugins/requestTimings.js'
-import { STATIC_ROOT } from '@tabletop/backend-services'
-import { measure } from '@tabletop/backend-services/diagnostics'
+import { STATIC_ROOT, type LibraryServiceOptions } from '@tabletop/backend-services'
 import { assertExists } from '@tabletop/common'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import AutoLoad from '@fastify/autoload'
 import SecureSession from '@fastify/secure-session'
 import Auth from '@fastify/auth'
-import FastifyFirebase from '@now-ims/fastify-firebase'
-import { deleteApp } from 'firebase-admin/app'
 import cors from '@fastify/cors'
 import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
@@ -23,7 +22,6 @@ import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
-import type { ReplacementRequest } from '../runtime/replacementRequest.js'
 
 const __dirname = import.meta.dirname
 
@@ -37,13 +35,11 @@ const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
 const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
 const SESSION_EXPIRY_SECONDS = 30 * 24 * 60 * 60
-let firebaseAppIndex = 0
 
 const SESSION_KEY = process.env['SESSION_KEY']
 
-export interface AppOptions {
+export interface AppOptions extends Pick<LibraryServiceOptions, 'whileLoadingTitle'> {
     prefix?: string
-    replacement: Pick<ReplacementRequest, 'request' | 'outcome'>
 }
 
 async function frontendVersion(fastify: FastifyInstance): Promise<string> {
@@ -139,18 +135,6 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     })
 
     await fastify.register(Auth)
-    const firebaseAppName = `tabletop-${process.pid}-${firebaseAppIndex++}`
-    await fastify.register(FastifyFirebase, <FastifyFirebase.FirebaseOptions>{
-        projectId: GCLOUD_PROJECT,
-        name: firebaseAppName
-    })
-    fastify.addHook('onClose', async () => {
-        try {
-            await deleteApp(fastify.firebase)
-        } catch (error) {
-            fastify.log.warn({ err: error }, `Failed to delete firebase app "${firebaseAppName}"`)
-        }
-    })
     await fastify.register(FastifySSEPlugin)
 
     // This loads support plugins
@@ -162,28 +146,11 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
     await fastify.register(AuthorizationPlugin)
     await fastify.register(SensiblePlugin)
-    await fastify.register(FirestorePlugin)
-    await fastify.register(ServicesPlugin)
+    await fastify.register(FirestorePlugin, { projectId: GCLOUD_PROJECT })
+    await fastify.register(ServicesPlugin, { whileLoadingTitle: opts.whileLoadingTitle })
+    installTitleScope(fastify)
 
-    if (service !== 'local') {
-        fastify.addHook('onRequest', async (request, _reply) => {
-            const path = request.url.split('?')[0]
-            if (!path.startsWith(API_PREFIX) && !path.startsWith(TASKS_PREFIX)) {
-                return
-            }
-            try {
-                await measure('manifest.refresh', () => fastify.libraryService.refreshManifest())
-            } catch (error) {
-                console.warn('Unable to refresh manifest', error)
-            }
-        })
-    }
-
-    const unsubscribeManifest = fastify.libraryService.onManifestMismatch(() => {
-        console.log('Manifest mismatch detected, replacing backend process...')
-        opts.replacement.request()
-    })
-    fastify.addHook('onClose', async () => unsubscribeManifest())
+    if (service !== 'local') installManifestRefresh(fastify, [API_PREFIX, TASKS_PREFIX])
 
     await fastify.register(GamesPlugin, { prefix: API_PREFIX })
 

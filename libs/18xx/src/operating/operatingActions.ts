@@ -1,4 +1,5 @@
 import { defineAction, type ActionDefinition } from '../actions/actionDefinition.js'
+import type { ReceivershipRules } from '../finance/receivership.js'
 import type { EndingRules } from '../ending/gameEnding.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import type { OperatingRules } from './operatingSet.js'
@@ -29,7 +30,8 @@ export function operatingActions(
     operating: OperatingRules,
     trains: TrainRules,
     ending: EndingRules,
-    loans?: LoanRules
+    loans?: LoanRules,
+    receivership?: ReceivershipRules
 ): ActionDefinition[] {
     return [
         defineAction(
@@ -45,7 +47,7 @@ export function operatingActions(
         defineAction(
             StartOperatingTurn,
             isStartOperatingTurn,
-            (action) => new HydratedStartOperatingTurn(action)
+            (action) => new HydratedStartOperatingTurn(action, receivership)
         ),
         ...(operating.trainsToExport
             ? [

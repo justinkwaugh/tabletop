@@ -3,6 +3,7 @@ import {
     ActionSource,
     GameStatus,
     PlayerStatus,
+    Role,
     UserStatus,
     type BugReportRequest,
     type Game,
@@ -305,6 +306,15 @@ describe('BugReportService', () => {
             service.reportBug({ user: { ...reporter, id: 'u-9' }, report })
         ).rejects.toBeInstanceOf(UserIsNotAllowedPlayerError)
         expect(discordBotApi.post).not.toHaveBeenCalled()
+    })
+
+    it('accepts a report from an admin who is not a player in the game', async () => {
+        await service.reportBug({ user: { ...reporter, id: 'u-9', roles: [Role.Admin] }, report })
+
+        expect(discordBotApi.post).toHaveBeenCalledWith(
+            '/channels/forum-1/threads',
+            expect.anything()
+        )
     })
 
     it('refuses a game that does not exist', async () => {

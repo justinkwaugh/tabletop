@@ -47,7 +47,11 @@ export class GameNotifications {
         this.listening = true
         this.service.addListener(this.onEvent)
         this.service.listenToGame(this.game.id)
-        if (this.handlesInitialSynchronization && this.delivery.usesProjection && this.service.isUserChannelReady?.()) {
+        if (
+            this.handlesInitialSynchronization &&
+            this.delivery.usesProjection &&
+            this.service.isUserChannelReady?.()
+        ) {
             void this.delivery.enqueue({ kind: 'synchronize' }).catch(() => this.delivery.recover())
         }
     }
@@ -71,7 +75,10 @@ export class GameNotifications {
         } else if (
             isDiscontinuityEvent(event) &&
             (this.handlesInitialSynchronization
-                ? event.channel === (this.delivery.usesProjection ? NotificationChannel.User : NotificationChannel.GameInstance)
+                ? event.channel ===
+                  (this.delivery.usesProjection
+                      ? NotificationChannel.User
+                      : NotificationChannel.GameInstance)
                 : event.channel === NotificationChannel.GameInstance ||
                   (event.channel === NotificationChannel.User && this.delivery.usesProjection))
         ) {

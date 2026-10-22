@@ -6,13 +6,22 @@ import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { PhaseName } from '../definition/phases.js'
 
 // Transition from Bidding(PlaceBid) -> PlaceBid | InitialHuts | PlacingGod
-export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid, HydratedKaivaiGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedKaivaiGameState>): action is HydratedPlaceBid {
+export class BiddingStateHandler implements MachineStateHandler<
+    HydratedPlaceBid,
+    HydratedKaivaiGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): action is HydratedPlaceBid {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): ActionType[] {
         if (this.isValidActionType(ActionType.PlaceBid, playerId, context)) {
             return [ActionType.PlaceBid]
         } else {
@@ -42,7 +51,10 @@ export class BiddingStateHandler implements MachineStateHandler<HydratedPlaceBid
         gameState.activePlayerIds = [nextPlayerId]
     }
 
-    onAction(action: HydratedPlaceBid, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+    onAction(
+        action: HydratedPlaceBid,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {

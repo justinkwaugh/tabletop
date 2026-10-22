@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { fade } from 'svelte/transition'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'

@@ -160,15 +160,10 @@
                     {/if}
                     <span class="points reef-display">{view.parrotfishPoints}</span>
                 {:else}
-                    <span class="note">Concealed</span>
+                    <span class="note">Concealed.</span>
                 {/if}
-                {#if view.shrimpOnOpenSea}
-                    <span class="note">
-                        ate {1 + (view.shrimpsInParrotfish ?? 0)} shrimp{(view.shrimpsInParrotfish ??
-                            0) > 0
-                            ? 's'
-                            : ''}
-                    </span>
+                {#if view.shrimpsEaten}
+                    <span class="note">{view.shrimpsEaten}</span>
                 {/if}
             </dd>
         </div>
