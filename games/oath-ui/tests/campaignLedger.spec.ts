@@ -46,6 +46,8 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(ledger(page)).toContainText(/Bear Traps: killed 1\s*on\s*your\s*board/)
             await expect(ledger(page)).toContainText(/4\s*: 2 to skulls, 1 to Bear Traps, 1 sacrificed/)
             await expect(ledger(page)).toContainText(/Plains \(2\s*placed\), Cup of Plenty, 3/)
+            // R-5.5.6 — nobody was asked to pick the loss; the force as rolled says where it fell.
+            await expect(ledger(page)).toContainText(/1\s*killed at Plains, Plains, Cup of Plenty, 2\s*; banished to River/)
             await expect(ledger(page).locator('.campaign-ledger__die')).toHaveCount(14)
             await expect(card(page).getByRole('button')).toHaveCount(0)
             await expect(card(page)).not.toContainText('From')
@@ -94,7 +96,7 @@ for (const { name, viewport, phone } of SIZES) {
         test('R-5.5.6.a — losses Rhys picked read where they were killed, on the card and the row', async ({ page }) => {
             await openTable(page, 'campaignLedgerPicked')
             await page.getByRole('tab', { name: 'History' }).click()
-            await expect(ledger(page)).toContainText(/1\s*at Plains, Plains, Cup of Plenty, 2\s*; banished to River/)
+            await expect(ledger(page)).toContainText(/1\s*killed at Plains, Plains, Cup of Plenty, 2\s*; banished to River/)
             await expect(ledger(page).locator('.campaign-ledger__die')).toHaveCount(0)
             await expect(history(page)).toContainText(/picked the defense's losses: 1\s*killed at Plains/)
         })

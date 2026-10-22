@@ -11,6 +11,7 @@ import {
     isCampaignSacrifice,
     isCampaignSkullLosses,
     relicDefenseDice,
+    takeFromGroups,
     type CampaignPlacement,
     type CampaignResolveVictory,
     type CampaignRollRecord,
@@ -406,22 +407,28 @@ function planGains(
     })
 }
 
-/** R-5.5.6 — the defending force's losses: where they were picked, else how many were killed. */
+/**
+ * R-5.5.6 — the defending force's losses: where they were picked; else, with no pick asked
+ * (R-5.5.6.a), the engine's default, taken from the force as rolled in its order (revision 25 records
+ * it); else how many were killed.
+ */
 function defeatLosses(steps: readonly GameAction[], names: HistoryNames): Loss[] {
     const picked = steps.find(isCampaignDefeatKills)
     if (picked) return placedLosses(picked.kills, picked.metadata?.defeatKilled ?? 0, names)
     const closing = steps.find(isCampaignSacrifice)?.metadata
-    return [{ count: closing?.defeatKilled ?? 0, reason: 'killed' }]
+    const killed = closing?.defeatKilled ?? 0
+    const force = closing?.roll?.defendingForce
+    return force ? placedLosses(takeFromGroups(force, killed), killed, names) : [{ count: killed, reason: 'killed' }]
 }
 
-/** Losses at the places the record names when they account for every one killed; else the count. */
+/** Losses at the places the record names when they account for every one killed ("killed at Plains"); else the count. */
 function placedLosses(groups: readonly WarbandGroup[], killed: number, names: HistoryNames): Loss[] {
     const placed = warbandPlaces(groups, undefined, names)
     if (placed.length === 0 || forceTotal(groups) !== killed) return [{ count: killed, reason: 'killed' }]
-    return placed.map((group) => ({ count: group.count, reason: group.place }))
+    return placed.map((group) => ({ count: group.count, reason: `killed ${group.place}` }))
 }
 
-/** "4 warbands: 2 to skulls, 1 to Bear Traps, 1 sacrificed"; one reason alone, "1 warband at Plains". */
+/** "4 warbands: 2 to skulls, 1 to Bear Traps, 1 sacrificed"; one reason alone, "1 warband killed at Plains". */
 function warbandLoss(losses: readonly Loss[]): string | undefined {
     const lost = losses.filter((loss) => loss.count > 0)
     const [only, ...more] = lost

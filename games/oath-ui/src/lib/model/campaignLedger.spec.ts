@@ -60,7 +60,7 @@ describe('R-5.5 — the closing card’s ledger, from the Campaign’s own recor
         expect(dana.attackFaces?.filter((face) => face.skulls > 0).length).toBe(2)
         expect(rhys).toMatchObject({
             ...defender,
-            lost: '1 warband killed, Plains, Cup of Plenty, 2 favor; banished to River'
+            lost: '1 warband killed at Plains, Plains, Cup of Plenty, 2 favor; banished to River'
         })
         expect(rhys.gained).toBeUndefined()
         expect(rhys.defenseFaces?.length).toBe(5)
@@ -75,6 +75,8 @@ describe('R-5.5 — the closing card’s ledger, from the Campaign’s own recor
         const [dana, rhys] = ledger.sides
         expect(dana).toMatchObject(attacker)
         expect(rhys).toMatchObject(defender)
+        // Neither picked nor rolled on the record: how many, not where.
+        expect(rhys.lost).toBe('1 warband killed, Plains, Cup of Plenty, 2 favor; banished to River')
         for (const side of ledger.sides) {
             expect(side.attackFaces).toBeUndefined()
             expect(side.defenseFaces).toBeUndefined()
@@ -85,8 +87,39 @@ describe('R-5.5 — the closing card’s ledger, from the Campaign’s own recor
     it('R-5.5.6.a — the defense’s losses picked at a place are lost at that place', async () => {
         const table = campaignLedgerTable({ revision: 0 })
         const [dana, rhys] = campaignLedger(table.actions, seatsById(await namesOf(table))).sides
-        expect(rhys.lost).toBe('1 warband at Plains, Plains, Cup of Plenty, 2 favor; banished to River')
+        expect(rhys.lost).toBe('1 warband killed at Plains, Plains, Cup of Plenty, 2 favor; banished to River')
         expect(dana.gained).toBe('Plains (2 warbands placed), Cup of Plenty, 3 warbands')
+    })
+
+    it('R-5.5.6 — a loss nobody was asked to pick is taken from the rolled force in its order, and read where it fell', () => {
+        // Rhys defends with 1 warband at the Plains and 2 on their board; the default takes the
+        // force's groups in order, so 2 killed are the Plains one and one from the board.
+        const roll = {
+            attackFaces: [],
+            defenseFaces: [],
+            swords: 6,
+            skulls: 0,
+            shields: 0,
+            doubled: false,
+            defendingForce: [
+                { at: { kind: 'site', siteId: PLAINS }, owner: 'Rhys', count: 1 },
+                { at: { kind: 'board', playerId: 'Rhys' }, owner: 'Rhys', count: 2 }
+            ],
+            defendingBandits: 0,
+            defense: 3
+        }
+        const steps = (defeatKilled: number, rolled: Record<string, unknown> = { roll }) => [
+            row({ type: ActionType.Campaign, playerId: 'Dana', defender: { kind: 'player', playerId: 'Rhys' }, targets: [{ kind: CampaignTargetKind.Site, siteId: PLAINS }], attackDice: 6, plans: [], metadata: { supplySpent: 1, battle: { attackPool: 6, defensePool: 1, defense: 3, swords: 6, skullsKilled: 0 } } }),
+            row({ type: ActionType.CampaignSacrifice, playerId: 'Dana', sacrifice: 0, metadata: { attack: 6, defense: 3, attackerVictorious: true, sacrificed: 0, defeatKilled, ...rolled } }),
+            row({ type: ActionType.CampaignResolveVictory, playerId: 'Dana', placements: [], metadata: { warbandsPlaced: 0, relicsTaken: [], bannersSeized: [], seizeBurned: 0, favorBurned: 0, relicsRevealed: 0, defenderPlayerId: 'Rhys' } })
+        ]
+        const names = { player: (playerId: string) => playerId, site: () => 'Plains', seats: SEATS }
+        const lostBy = (defeatKilled: number, rolled?: Record<string, unknown>) =>
+            campaignLedger(steps(defeatKilled, rolled), names).sides[1].lost
+        expect(lostBy(1)).toBe('1 warband killed at Plains, Plains')
+        expect(lostBy(2)).toBe("2 warbands: 1 killed on Rhys's board, 1 killed at Plains, Plains")
+        // Before revision 25 nothing recorded the force: how many, not where.
+        expect(lostBy(1, {})).toBe('1 warband killed, Plains')
     })
 
     it('a lost Campaign closes on the sacrifice: the attacker’s losses, nothing gained', async () => {
@@ -97,7 +130,7 @@ describe('R-5.5 — the closing card’s ledger, from the Campaign’s own recor
         expect(ledger.result).toBe('Dana against Rhys at Plains: 9 attack to 9 defense.')
         const [dana, rhys] = ledger.sides
         expect(dana.plan).toBe('Field Promotion')
-        expect(dana.lost).toBe("6 warbands: 2 to skulls, 1 to Bear Traps, 3 on Dana's board")
+        expect(dana.lost).toBe("6 warbands: 2 to skulls, 1 to Bear Traps, 3 killed on Dana's board")
         expect(dana.gained).toBeUndefined()
         expect(rhys.lost).toBeUndefined()
         expect(rhys.gained).toBeUndefined()
