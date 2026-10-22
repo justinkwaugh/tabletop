@@ -249,8 +249,12 @@ registerEffect(GREAT_HERD, powerIndexOf(GREAT_HERD, PowerTiming.WhenPlayed), {
             !ownCardLockedFor(ctx.state, ctx.playerId, GREAT_HERD),
             'Great Herd is locked where it was played, so it cannot be swapped'
         )
-        swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, GREAT_HERD, target.cardId)
-        return { summary: `swapped Great Herd with ${target.cardId}` }
+        // R-10.25 — with the Nomad card at its own site, the two swap to the same place: nothing moves.
+        return swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, GREAT_HERD, target.cardId)
+            ? { summary: `swapped Great Herd with ${target.cardId}` }
+            : {
+                  summary: `kept Great Herd where it was played, at the same site as ${target.cardId}`
+              }
     }
 })
 

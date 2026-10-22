@@ -322,20 +322,20 @@ export function moveFavorBetweenBanks(
 
 /**
  * R-10.25 — a 1:1 swap leaves capacity unchanged; the caller's domain refuses a locked target (R-7.2.2).
- * From revision 10, two cards at one site swap to the same place, so nothing moves.
+ * From revision 10, two cards at one site swap to the same place, so nothing moves. Says whether they moved.
  */
 export function swapPlayedCardWithSiteCard(
     state: HydratedOathGameState,
     playerId: string,
     playedCardId: string,
     siteCardId: string
-): void {
+): boolean {
     const targetSite = siteHolding(state, siteCardId)
     assertExists(targetSite, `${siteCardId} is a denizen at a site`)
     const player = state.getPlayerState(playerId)
     const playedAtSite = siteHolding(state, playedCardId)
     if (playedAtSite === targetSite && isAtLeastOathRevision(state, OathRevision.EngineFixes6)) {
-        return
+        return false
     }
     if (playedAtSite) {
         state.denizensBySite[playedAtSite] = state.denizensBySite[playedAtSite].map((id) =>
@@ -351,6 +351,7 @@ export function swapPlayedCardWithSiteCard(
     state.denizensBySite[targetSite] = state.denizensBySite[targetSite].map((id) =>
         id === siteCardId ? playedCardId : id
     )
+    return true
 }
 
 export function moveWarbandsBoardToSite(

@@ -205,13 +205,13 @@ describe('Nomad', () => {
             return s
         }
 
-        it('played to the site that holds the Nomad card and swapped with it, both cards stay where they are', () => {
+        it('played to the site that holds the Nomad card and swapped with it, both cards stay where they are, and History says nothing moved', () => {
             const s = at(OathRevision.EngineFixes6, { c1: [TENTS] })
             const before = placedDenizens(s)
             const a = playDrawnCard(s, HERD, SearchPlay.Site, [card(TENTS)])
             expect(s.denizensBySite['c1']).toEqual([TENTS, HERD])
             expect(placedDenizens(s)).toEqual([...before, HERD].sort())
-            expect(a.metadata?.whenPlayed).toMatch(/swapped Great Herd with denizen.nomad.tents/)
+            expect(a.metadata?.whenPlayed).toBe('kept Great Herd where it was played, at the same site as denizen.nomad.tents')
         })
 
         it('a Nomad card at another site still trades places with it, beside one at its own site', () => {
@@ -230,11 +230,11 @@ describe('Nomad', () => {
 
         it('the swap itself: same site changes nothing; different sites and an adviser trade places', () => {
             const same = at(OathRevision.EngineFixes6, { c1: [TENTS, HERD] })
-            swapPlayedCardWithSiteCard(same, 'ruler', HERD, TENTS)
+            expect(swapPlayedCardWithSiteCard(same, 'ruler', HERD, TENTS)).toBe(false)
             expect(same.denizensBySite['c1']).toEqual([TENTS, HERD])
 
             const apart = at(OathRevision.EngineFixes6, { c1: [HERD], h1: [TENTS] })
-            swapPlayedCardWithSiteCard(apart, 'ruler', HERD, TENTS)
+            expect(swapPlayedCardWithSiteCard(apart, 'ruler', HERD, TENTS)).toBe(true)
             expect(apart.denizensBySite['c1']).toEqual([TENTS])
             expect(apart.denizensBySite['h1']).toEqual([HERD])
 
@@ -249,8 +249,9 @@ describe('Nomad', () => {
 
         it('before revision 10 a recorded game replays as it was recorded: the site is left with Great Herd twice', () => {
             const s = at(OathRevision.EngineFixes5, { c1: [TENTS] })
-            playDrawnCard(s, HERD, SearchPlay.Site, [card(TENTS)])
+            const a = playDrawnCard(s, HERD, SearchPlay.Site, [card(TENTS)])
             expect(s.denizensBySite['c1']).toEqual([HERD, HERD])
+            expect(a.metadata?.whenPlayed).toBe('swapped Great Herd with denizen.nomad.tents')
         })
     })
 })
